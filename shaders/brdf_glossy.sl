@@ -43,16 +43,17 @@ class brdf_glossy (
     public float D(normal N; vector wh;)
     {
         float costhetah = abs(N . wh);
-        float D = (exp+2) * (1/(2*M_PI)) * pow( max(0, costhetah), exp);
+        float D = (exp+2) * (1/(2*PI)) * pow( max(0, costhetah), exp);
         return D;
     }
     
+    /* expects all vector inputs normalised */
     public float G(normal N; vector wi; vector wo; vector wh)
     {
-        float ndotwh = normalize(wh) . N;
-        float ndotwo = normalize(wo) . N;
-        float ndotwi = normalize(wi) . N;
-        float wodotwh = abs(normalize(wo) . normalize(wh));
+        float ndotwh = wh . N;
+        float ndotwo = wo . N;
+        float ndotwi = wi . N;
+        float wodotwh = abs(wo . wh);
         float g = min(1, min((2*ndotwh*ndotwo / wodotwh),
                              (2*ndotwh*ndotwi / wodotwh)));
         return g;
@@ -67,7 +68,7 @@ class brdf_glossy (
         float costheta = abs(N . wh);
         
         float pdf = ((exp + 1) * pow(costheta, exp)) /
-                    (2 * M_PI * 4 * (wo . wh));
+                    (2 * PI * 4 * (wo . wh));
         return pdf;
     }
     
@@ -81,16 +82,15 @@ class brdf_glossy (
     {
         vector won = normalize(wo);
         vector win = normalize(wi);
-        
+        vector wh = normalize( won + win );
+
         float costhetaO = abs(won . N);
         float costhetaI = abs(win . N);
-        
-        vector wh = normalize( won + win );
         
         float costhetah = win . wh;
         
         float F = schlick(costhetah);
-        float geo = G(N, wi, wo, wh);
+        float geo = G(N, win, won, wh);
 
         color f = Cs * D(N, wh) * geo * F / (4 * costhetaO * costhetaI);
         return f;
@@ -144,7 +144,7 @@ class brdf_glossy (
             
             float costheta = pow(s1, 1.0/(exp+1));
             float sintheta = sqrt(max(0, 1-(costheta*costheta)));
-            float phi = s2 * 2 * M_PI;
+            float phi = s2 * 2 * PI;
             
             vector H = spherical_to_cartesian(sintheta, costheta, phi);
             
