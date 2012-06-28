@@ -41,14 +41,14 @@ if "bpy" in locals():
     imp.reload(ui)
     imp.reload(operators)
     imp.reload(export)
-    imp.reload(draw)
+    #imp.reload(draw)
 else:
     import bpy
     from . import properties
     from . import ui
     from . import operators
     from . import export
-    from . import draw
+    #from . import draw
 
 class Render3Delight(bpy.types.RenderEngine):
     bl_idname = '3DELIGHT_RENDER'
