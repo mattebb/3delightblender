@@ -1,0 +1,102 @@
+v0.7.5 - 25/04/2012
+* Enabled editable output paths, including RIB file export, shadow maps, and point clouds. These path properties support using environment variables, or other blender data variables that are built in to the exporter. Environment variables can be read from outside blender, or default environment variables can be edited from within the Environment Variables panel in Render Properties.
+More info at: http://mattebb.com/3delightblender/documentation/
+* Added option to either both export RIB and render interactively, or just export the RIB (better for render farms)
+* Added choose of Display Drivers - currently accepted are 'auto' (integrated in blender image editor), idisplay, and tiff.
+* Added access to Hider settings. Using idisplay with the raytrace hider allows progressive rendering.
+
+Fixes:
+* Updated geometry export to work with new the 'bmesh' mesh data structure. Ngons are exported natively.
+* Updated for changes to blender python API
+
+
+v0.7.0 - 15/09/2011
+* Added pointcloud global illumination method
+  Auto-generates a pointcloud as a pre-pass, and adds a lightsource that reads and renders the stored colour information
+* Added toggle to enable/disable auto generation of shadow maps/point clouds
+
+Fixes:
+* Fixed optimising textures with an empty source path
+* Fixed reading primitive variables from modified meshes
+* Fixed reading shader parameters with 2 elements (eg float var[2] )
+* Fixed bad ordering of shader parameters
+* Fixed missing width parameter in particle hair
+* Fix for adding textures to lamp shaders
+* Ignore errors when scanning for shaders
+
+
+v0.6.5 - 23/08/2011
+* Fix for shadow maps generation on Windows
+* Fix for auto-converting image textures to 3dl format
+
+
+v0.6.4 - 20/08/2011
+* Fix for not finding 3delight library correctly on Linux (ubuntu)	
+
+
+v0.6.3 - 11/08/2011
+* Fix for environment variables not being found when generating shader list
+
+
+v0.6.2 - 09/08/2011
+* Updated shader UI to dynamically generate a list of all shaders in shader paths to choose from. Also removed necessity to manually 'Initialise Shader Parameters'.
+See: http://vimeo.com/27460855
+
+Fixed bugs:
+* Bad syntax in subdivisionmesh export when using creases
+* Enum properties in shaders were being interpreted as the wrong type
+* Particle instances weren't working properly
+* Secondary GI panel was invisible
+* If native renderman geometry types aren't supported by the exporter, support exporting as a tessellated mesh representation for the time being.
+
+
+v0.6.0 - 05/07/2011
+Added functionality to:
+* Export geometry to RIB archives, either manually (file->export) or at render time
+* Export animated and/or motion blurred geometry to RIB archives/sequences
+* Render objects as procedural geometry - standard and delayed load RIB archives (static or animated sequences), procedural run program, or dynamic load DSO
+* Instance objects on particles (using particle location, rotation and size), full transformation and deformation motion blur is supported
+* Export primitive variables from meshes:
+ - mesh vertex colors as 'color' primvars
+ - mesh vertex groups as 'float' primvars
+ - mesh UVs as 'float[2]' primvars
+ - default UV and vertex colour sets, vertex normals built in
+* Export primitive variables from particles:
+ - particle properties, eg. velocity, angular velocity, age, lifetime...
+ - default 'size' built in
+* Export motion blurred blender fluid
+* Export blender curve objects as renderman curve primitives (animation not supported yet due to limitations in blender API), or as tessellated mesh/subdivision mesh primitives
+
+* General optimisations and cleanups
+
+
+v0.54b - 10/05/2011
+Fixes:
+* Fix problems with malformed paths on Windows
+
+
+v0.54 - 05/05/2011
+Fixes:
+* Updated to be compatible with Blender 2.57 release bpy API
+* Added manual shader initialisation to work around new limitations in bpy API
+* Attempted fixes for windows texture path troubles
+
+New features: 
+* Motion blurred dynamic hair support
+
+New features contributed by Magnus Löfgren:
+* Support for deep shadow maps (Transparent Shadows), on by default 
+* Trace Motion Blur parameter now accessible, allowing motion blurred shadows
+
+
+v0.52 - 03/03/2011
+* Updated to work with recent Python API property registration changes. Contributed by Jeff Doyle - thanks!
+
+
+v0.51 - 09/02/2011
+* Fixes for path handling on Windows
+* Fixes for environment variable handling, addition of 3delight_env.txt
+
+
+v0.5 - 07/02/2011
+* Initial release

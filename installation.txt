@@ -1,0 +1,18 @@
+3Delight/Blender Installation Instructions
+------------------------------------------
+
+Unpack and move the render_3delight folder into your blender addons folder. You can then enable the addon in the Addons tab of blender user preferences
+
+
+You may also need to tell blender the location of your 3Delight installation folder. When you start Blender and the add-on, it will try to guess where your 3Delight folder is, but it may not be correct. You can set this folder explicitly in the Blender Property Editor:
+Render Properties -> Search Paths panel -> 3Delight Path
+
+Setting the location in Blender is enough to make it work, however if you want to avoid setting it manually each time, you can force it by editing the 3delight_env.txt file in the render_3delight add-on folder. Simply add the path to the 3Delight installation folder at the end of the first line and save the file. For example:
+DELIGHT=/Applications/Graphics/3Delight-9.0.84
+
+The location specified in 3delight_env.txt will override anything set in the Render Properties -> 3Delight Path property.
+
+Finally, if you have 3Delight's environment variables set ($DELIGHT, $DL_SHADERS_PATH, etc), these paths will override both the 3Delight Path property and the 3delight_env.txt file.
+
+
+Matt Ebb, 9 Feb 2011
