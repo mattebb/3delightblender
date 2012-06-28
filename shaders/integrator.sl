@@ -24,7 +24,7 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 */
-
+#include "util.h"
 
 class integrator()
 {
