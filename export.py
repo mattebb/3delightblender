@@ -699,7 +699,6 @@ def export_material(file, rpass, scene, mat):
     else:
         export_shader(file, scene, rpass, mat, 'atmosphere')
         
-    file.write('        Shader "integrator" "inte" \n')    
     #file.write('        Shader "brdf_diffuse" "brdf_diffuse" \n')    
 
 
@@ -1409,6 +1408,14 @@ def export_archive(scene, objects, filepath="", archive_motion=True, animated=Tr
     return file.name
 
 
+def export_integrator(file, rpass, scene):
+    rm = scene.world.renderman
+
+    file.write('        Shader "integrator" "inte" \n')    
+
+    parameterlist = rna_to_shaderparameters(scene, rm.integrator, 'surface')
+    for sp in parameterlist:
+        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
 
 def export_global_illumination_lights(file, rpass, scene):
     rm = scene.world.renderman
@@ -1921,11 +1928,12 @@ def write_rib(rpass, scene, info_callback):
     
     export_camera(file, scene, motion)
     export_render_settings(file, rpass, scene)
-    export_global_illumination_settings(file, rpass, scene)
+    #export_global_illumination_settings(file, rpass, scene)
     
     file.write('WorldBegin\n\n')
 
-    export_global_illumination_lights(file, rpass, scene)
+    #export_global_illumination_lights(file, rpass, scene)
+    export_integrator(file, rpass, scene)
     export_scene_lights(file, rpass, scene)
     export_objects(file, rpass, scene, motion)
     

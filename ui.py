@@ -496,6 +496,24 @@ class ShaderPanel3dl():
 
 
 
+class WORLD_PT_3Delight_integrator(ShaderPanel3dl, bpy.types.Panel):
+    bl_context = "world"
+    bl_label = "Integrator"
+    shader_type = 'surface'
+    
+
+    def draw(self, context):
+        layout = self.layout
+        world = context.world
+        rm = world.renderman
+        scene = context.scene
+        
+        col = layout.column()
+        col.prop(rm.integrator.surface_shaders, "active")
+                
+        self._draw_params(scene, rm.integrator, col)
+
+'''
 class WORLD_PT_3Delight_gi(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -599,6 +617,7 @@ class WORLD_PT_3Delight_gi_pointcloud(bpy.types.Panel):
         subcol = col.column()
         subcol.active = rm.gi_secondary.ptc_generate_auto
         subcol.prop(rm.gi_secondary, "ptc_shadingrate")
+'''
 
 # unused atm
 ''' 

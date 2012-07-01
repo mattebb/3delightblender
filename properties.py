@@ -496,6 +496,13 @@ class GISecondaryShaders(bpy.types.PropertyGroup):
                 items=gi_secondary_types,
                 default=gi_secondary_types[1][0])
 
+class IntegratorShaders(bpy.types.PropertyGroup):
+    active = EnumProperty(
+                name="Integrator",
+                description="Integrator to use for light calculation",
+                items=[('integrator', 'Ray Tracing Integrator', '')],
+                default='integrator')
+
 
 class RendermanGIPrimary(bpy.types.PropertyGroup):
 
@@ -506,6 +513,12 @@ class RendermanGISecondary(bpy.types.PropertyGroup):
     
     light_shaders = PointerProperty(
                 type=GISecondaryShaders, name="Secondary GI Shader Settings")
+
+class RendermanIntegrator(bpy.types.PropertyGroup):
+    
+    surface_shaders = PointerProperty(
+                type=IntegratorShaders, name="Integrator Shader Settings")
+
 
 # Photon Secondary bounce (render) properties
     photon_count = IntProperty(
@@ -555,6 +568,9 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
     
     gi_secondary = PointerProperty(
                 type=RendermanGISecondary, name="Secondary GI Settings")
+
+    integrator = PointerProperty(
+                type=RendermanIntegrator, name="Integrator Settings")
 
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
     pass
@@ -1257,6 +1273,8 @@ classes = [atmosphereShaders,
             RendermanParticlePrimVar,
             GIPrimaryShaders,
             GISecondaryShaders,
+            IntegratorShaders,
+            RendermanIntegrator,
             RendermanGIPrimary,
             RendermanGISecondary,
             RendermanMaterialSettings,

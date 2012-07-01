@@ -742,6 +742,7 @@ def rna_types_initialise(scene):
     
     for id in bpy.data.worlds:
         rm = getattr(id, "renderman")
+        ptrs.append(getattr(rm, "integrator"))
         ptrs.extend((getattr(rm, "gi_primary"), getattr(rm, "gi_secondary")))
     
     # material surface coshaders
