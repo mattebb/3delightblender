@@ -29,85 +29,191 @@
 
 #include "util.h"
 
+#pragma annotation shape "gadgettype=optionmenu:Rectangle:Disc;label=Shape;hint=Area light shape"
+
 class
-area(
-       uniform float intensity = 1;
-       uniform color lightcolor = 1;
-       uniform float samples = 16;
-       uniform float width = 1.0;
-       uniform float height = 1.0;
-       uniform string texturename = "";
+light_area(
+        uniform float intensity = 1;
+        uniform color lightcolor = 1;
+        uniform float samples = 16;
+        uniform float width = 1.0;
+        uniform float height = 1.0;
+        uniform string texturename = "";
+        uniform float shape = 0;
        )
        
 {
 
     uniform point center = point "shader" (0,0,0); // center of rectangle
-    varying vector udir = vector "shader" (width,0,0); // axis of rectangle
-    varying vector vdir = vector "shader" (0,height,0); // axis of rectangle
-    uniform vector zdir = vector "shader" (0,0,1);   // direction of light
+    uniform vector udir = vector "shader" (width*0.5,0,0); // axis of rectangle
+    uniform vector vdir = vector "shader" (0,height*0.5,0); // axis of rectangle
+    uniform vector zdir = vector "shader" (0,0,-1);   // direction of light
+    uniform float area;
 
+    public void construct() {
+        if (shape == 0)         area = width*height;
+        else if (shape == 1)    area = PI*width*0.5*height*0.5;
+    }
 
-    public color getshadow(varying point P; varying vector L) {
-        return transmission(P, P+L);
+    float intersect(point P; vector V;)
+    {
+        // transform ray into local space of light (shader space)
+        varying point Pl = transform("current", "shader", P);
+        varying vector Vl = transform("current", "shader", V);
+        float black = 0.0;
+        
+        // check to see if ray is parallel or behind the light
+        if (Vl[2] <= 0)
+           return black;
+        
+        varying float thit = -Pl[2] / Vl[2];
+        if (thit < 0) return black;
+        
+        varying point ph = Pl + Vl * thit;
+        
+        if (shape == 0) {
+            // check to see if inside area quad
+            if ((abs(ph[0]) > width*0.5) || (abs(ph[1]) > height*0.5))
+                return black;
+            
+        } else if (shape == 1) {
+            // check to see if inside area disc
+            float x = ph[0]/(width*0.5);
+            float y = ph[1]/(height*0.5);
+            
+            if ( x*x + y*y > 1 )
+                return black;    
+        }
+        
+        return thit;
     }
     
-    public float intersect(point P; vector V;)
+    color Le(point P; vector L;) {
+        color black = color(0,0,0);
+        color Le = black;
+        
+        if (length(L) < 0.001)
+            return black;
+        
+        point Pl = P + L;
+        
+        point uv = transform("current", "shader", Pl);
+        float su = ((uv[0] / width)+1)*0.5;
+        float sv = ((uv[1] / height)+1)*0.5;
+        
+        if (texturename != "")
+            Le = texture(texturename); //, su, sv, su, sv, su, sv, su, sv);
+        else
+            Le = lightcolor;
+
+        Le *= intensity;
+        
+        return Le;
+    }
+    
+    float pdf(point P; vector V; output vector L;)
     {
-        // check for parallel
-        if (V . zdir == 0) return 0;
+        float thit = intersect(P, V);
+        float black = 0;
         
+        if (thit < 0)
+            return black;
         
-        uniform point center = point "shader" (0,0,0); // center of rectangle
-        center = transform("world", center);
-        return 1;
+        L = V*thit;       
+        
+        // convert to solid angle
+        float dist = length(L); //distance(P, P+L);
+        float costheta = -zdir . normalize(L);
+        float pdf = (dist*dist) / (costheta*area);
+        
+        return pdf;
+    }
+    
+    public void eval_light(point P; vector wi[];
+                                uniform float nsamp;
+                                output vector _L[];
+                                output color _Li[];
+                                output float _pdf[];
+                                )
+    {
+        float i;
+        resize(_L, nsamp);
+        resize(_Li, nsamp);
+        resize(_pdf, nsamp);
+        
+        for (i = 0; i < nsamp; i += 1) {
+            _pdf[i] = pdf(P, wi[i], _L[i]);
+            
+            if (_pdf[i] > 0)
+                _Li[i] = Le(P, _L[i]);
+        }
     }
     
     
     public void light( output vector L;         // unused
                        output color Cl;         // unused
-                       output color _Cl[] = { };
-                       output vector _L[] = { };
-                       output float _pdf[] = { };
+                       varying normal Ns;
+                       output color _Li[];
+                       output vector _L[];
+                       output float _pdf[];
+                       output uniform float nsamp = 0;
                        )
     {
        vector rnd;
        varying point samplepos;
        varying float su, sv;
        uniform float s;
-       uniform float area = width*height;
+       uniform float nsamples;
+       
+       if (nsamp <= 0)
+            nsamples = 32;
+       else
+            nsamples = nsamp;
 
-       resize(_Cl, samples);   // note use of resizable arrays
-       resize(_L, samples);
-       resize(_pdf, samples);
+       resize(_Li, nsamples);   // note use of resizable arrays
+       resize(_L, nsamples);
+       resize(_pdf, nsamples);
 
-      
-       for (s = 0; s < samples; s += 1) {
+       color Le;
+       color black=0;
+       
+       for (s = 0; s < nsamples; s += 1) {
             su = random();
             sv = random();
-            samplepos = center + ((su-0.5) * udir) + ((sv-0.5) * vdir);
-            _L[s] = samplepos - Ps;
+            
+            if (shape == 0) {
+                samplepos = center + (((su*2)-1) * udir) + (((sv*2)-1) * vdir);
+            } else if (shape == 1) {
+                varying vector S = warp_disc(su, sv);   // in [-1,1]
+                su = S[0];
+                sv = S[1];
+                samplepos = center + (su * udir) + (sv * vdir);
+            }
+
+            _L[s] = samplepos - P;     // vector P -> light
             
             varying float dist = length(_L[s]);
-            float costheta_z = _L[s] . zdir;
+            float costheta_z = normalize(_L[s]) . -zdir;
             
-            _pdf[s] = (dist*dist) / (costheta_z * area);
+            if (costheta_z <= 0) {
+                _Li[s] = 0;
+                _pdf[s] = 0;
+                return;
+            }
             
+            _pdf[s] = (dist*dist) / (abs(costheta_z)*area);
+
             
-            if (costheta_z < 0) {
-                _Cl[s] = 0.0;
-            } else {
-                if (texturename != "") {
-                    uniform float f = sqrt(1/samples)*4;
-                    Cl = texture(texturename, su, sv, su+f, sv, su+f, sv+f, su, sv+f);
-                    //Cl = texture(texturename, su, sv, "width", 1);
-                } else
-                    Cl = lightcolor;
-               
-                _Cl[s] = intensity * Cl;
-            }            
+            if (texturename != "")
+                _Li[s] = texture(texturename, su, sv, su, sv, su, sv, su, sv);
+            else
+                _Li[s] = lightcolor;
+            _Li[s] *= intensity;
+
            
        }
-
+       nsamp = nsamples;
+       
        // Clear L and Cl, even though they're unused.
        L = (0,0,0);
        Cl = (0,0,0);
