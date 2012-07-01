@@ -427,9 +427,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
 
     use_default_paths = BoolProperty(
-                name="Use default paths",
+                name="Use 3Delight default paths",
                 description="Includes paths for default shaders etc. from 3Delight install",
-                default=True)
+                default=False)
     use_builtin_paths = BoolProperty(
                 name="Use built in paths",
                 description="Includes paths for default shaders etc. from Blender->3Delight exporter",

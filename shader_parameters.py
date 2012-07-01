@@ -146,6 +146,14 @@ def sp_optionmenu_to_string(sp):
     elif sp.data_type == 'string':
         return [(opt.lower(), opt, "") for opt in sp.optionmenu]
 
+def shader_visbility_annotation(annotations):
+    for an in annotations:
+        an_items = [a for a in an.split('"') if a.isalnum()]
+        for i, an in enumerate(an_items):
+            if an_items[i] == 'visibility' and an_items[i+1] == 'False':
+                return False
+    return True
+
 
 
 
@@ -219,11 +227,18 @@ class BgShaderScan(threading.Thread):
                 if os.path.splitext(f)[1] == '.sdl':
                     try:
                         output = subprocess.check_output(["shaderinfo", "-t", os.path.join(path, f)]).decode().split('\n')
+                        ann_output = subprocess.check_output(["shaderinfo", "-a", os.path.join(path, f)]).decode().split('\n')
                     except:
                         continue
+
+                    # Use the #pragma annotation "visibility" shader annotation to hide from view
+                    ann_output = [o.replace('\r', '') for o in ann_output]
+                    if shader_visbility_annotation(ann_output) == False:
+                        continue
+                    
                     sdlname = output[0].replace('\r', '')
                     sdltype = output[1].replace('\r', '')
-                    
+
                     if not sdltype in shaders.keys():
                         shaders[sdltype] = []
 
@@ -743,7 +758,7 @@ def rna_types_initialise(scene):
     for id in bpy.data.worlds:
         rm = getattr(id, "renderman")
         ptrs.append(getattr(rm, "integrator"))
-        ptrs.extend((getattr(rm, "gi_primary"), getattr(rm, "gi_secondary")))
+        #ptrs.extend((getattr(rm, "gi_primary"), getattr(rm, "gi_secondary")))
     
     # material surface coshaders
     for mat in bpy.data.materials:

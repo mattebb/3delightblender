@@ -24,10 +24,21 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 */
+
+#pragma annotation visibility "False"
+
 #include "util.h"
 
-class integrator()
+class integrator(
+    float minsamples = 16;
+    float maxsamples = 32;
+    float diffuse_bounces = 0;
+    )
 {
+    /* to get parameters picked up */
+    public void surface(output color Ci, Oi) { }
+
+
     color visibility(point Pt; vector V; float shadowtype; string shadowmap;)
     {
         color Cv;
@@ -105,8 +116,8 @@ class integrator()
         float sample_lamp = 1;
         float sample_brdf = 1;
 
-        uniform float nsamples=32;
-        varying float max_samples = clamp((nsamples*area), 8, nsamples);
+        uniform float nsamples=maxsamples;
+        varying float max_samples = clamp((nsamples*area), minsamples, nsamples);
 
         varying float samples[max_samples];
 
@@ -116,6 +127,7 @@ class integrator()
             
             if (ray_depth > 0 )
                 max_samples = nsamples = 1;
+
             if (sample_lamp ==1 ) {
             lights[i]->light(L, Cl, Ns, _l_Li, _l_L, _l_pdf, "nsamp", nsamples);
             shd->eval_bsdf(Ns, wo, _l_L, nsamples, _l_bsdf_f, _l_bsdf_pdf);
@@ -232,8 +244,7 @@ class integrator()
 
 
 
-        #if 1
-        if (ray_depth < 1) {
+        if (ray_depth < diffuse_bounces) {
             CLi = 0;
             
             shd->sample_bsdf(Ns, wo, nsamples, _bl_wi, _bl_f, _bl_pdf);
@@ -248,8 +259,7 @@ class integrator()
             }
             Ci += CLi / nsamples;
         }
-        #endif
-        
+                
         // Set Ci and Oi
         Ci *= Os;
         Oi = Os;
