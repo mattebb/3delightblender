@@ -27,9 +27,7 @@
 
 #include "util.h"
 
-//
-// Surface shader class definition
-//
+
 class brdf_specular (
                     )
 {

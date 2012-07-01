@@ -115,6 +115,8 @@ class integrator(
                    
         float sample_lamp = 1;
         float sample_brdf = 1;
+        if (shd->type == "DIFFUSE")
+            sample_brdf = 0;
 
         uniform float nsamples=maxsamples;
         varying float max_samples = clamp((nsamples*area), minsamples, nsamples);
@@ -160,8 +162,8 @@ class integrator(
                 if (_l_Li[s] != black && _l_pdf[s] > 0) {
                 
                     if (_l_bsdf_f[s] != black) {
-                        //varying color Li = _l_Li[s] * transmission(Pt, Pt + _l_L[s]);
-                        varying color Li = _l_Li[s] * visibility(Pt, _l_L[s],stype,smap);
+                        varying color Li = _l_Li[s] * transmission(Pt, Pt + _l_L[s]);
+                        //varying color Li = _l_Li[s] * visibility(Pt, _l_L[s],stype,smap);
                         //varying color Li = _l_Li[s] * lights[i]->vis(Pt, _l_L[s]);
                         //varying color Li = _l_Li[s] * _l_vis[s];
                         

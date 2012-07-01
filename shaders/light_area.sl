@@ -44,6 +44,12 @@ light_area(
        
 {
 
+    public constant float isdelta = 0;
+    public constant float stype=0;
+    
+    constant float zero = 0;
+    constant color black = 0;
+
     uniform point center = point "shader" (0,0,0); // center of rectangle
     uniform vector udir = vector "shader" (width*0.5,0,0); // axis of rectangle
     uniform vector vdir = vector "shader" (0,height*0.5,0); // axis of rectangle
@@ -60,21 +66,20 @@ light_area(
         // transform ray into local space of light (shader space)
         varying point Pl = transform("current", "shader", P);
         varying vector Vl = transform("current", "shader", V);
-        float black = 0.0;
         
         // check to see if ray is parallel or behind the light
         if (Vl[2] <= 0)
-           return black;
+           return zero;
         
         varying float thit = -Pl[2] / Vl[2];
-        if (thit < 0) return black;
+        if (thit < 0) return zero;
         
         varying point ph = Pl + Vl * thit;
         
         if (shape == 0) {
             // check to see if inside area quad
             if ((abs(ph[0]) > width*0.5) || (abs(ph[1]) > height*0.5))
-                return black;
+                return zero;
             
         } else if (shape == 1) {
             // check to see if inside area disc
@@ -82,14 +87,13 @@ light_area(
             float y = ph[1]/(height*0.5);
             
             if ( x*x + y*y > 1 )
-                return black;    
+                return zero;    
         }
         
         return thit;
     }
     
     color Le(point P; vector L;) {
-        color black = color(0,0,0);
         color Le = black;
         
         if (length(L) < 0.001)
@@ -114,10 +118,9 @@ light_area(
     float pdf(point P; vector V; output vector L;)
     {
         float thit = intersect(P, V);
-        float black = 0;
-        
+                
         if (thit < 0)
-            return black;
+            return zero;
         
         L = V*thit;       
         
@@ -156,27 +159,21 @@ light_area(
                        output color _Li[];
                        output vector _L[];
                        output float _pdf[];
-                       output uniform float nsamp = 0;
+                       uniform float nsamp = 32;
                        )
     {
        vector rnd;
        varying point samplepos;
        varying float su, sv;
        uniform float s;
-       uniform float nsamples;
+       uniform float nsamples=nsamp;
        
-       if (nsamp <= 0)
-            nsamples = 32;
-       else
-            nsamples = nsamp;
-
        resize(_Li, nsamples);   // note use of resizable arrays
        resize(_L, nsamples);
        resize(_pdf, nsamples);
 
        color Le;
-       color black=0;
-       
+              
        for (s = 0; s < nsamples; s += 1) {
             su = random();
             sv = random();
@@ -193,7 +190,7 @@ light_area(
             _L[s] = samplepos - P;     // vector P -> light
             
             varying float dist = length(_L[s]);
-            float costheta_z = normalize(_L[s]) . -zdir;
+            varying float costheta_z = normalize(_L[s]) . -zdir;
             
             if (costheta_z <= 0) {
                 _Li[s] = 0;
@@ -212,7 +209,6 @@ light_area(
 
            
        }
-       nsamp = nsamples;
        
        // Clear L and Cl, even though they're unused.
        L = (0,0,0);

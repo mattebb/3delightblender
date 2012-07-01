@@ -36,7 +36,8 @@ class brdf_glossy (
                   float Kd = 0.5;
                   float roughness=0.5;)
 {
-    
+    public constant string type = "GLOSSY";
+
     float exp = (2 / (roughness*roughness)) - 2;
 
 
