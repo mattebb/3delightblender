@@ -149,8 +149,9 @@ class integrator(
             varying float samples_taken = 0;
 
             for (s = 0; s < max_samples; s += 1) {
-                varying color Csamp = 0;
-                //uniform float bias = 0.01;
+                color Csamp=0;
+
+                // Jitter across micropolygon area for anti-aliasing
                 Pt = P + (float random()-0.5)*Du(P)*du + (float random()-0.5)*Dv(P)*dv;
 
                 if (sample_lamp == 1) {
@@ -159,7 +160,7 @@ class integrator(
                 if (_l_Li[s] != black && _l_pdf[s] > 0) {
                 
                     if (_l_bsdf_f[s] != black) {
-                        //varying color Li = _l_Li[s] * transmission(Pt, Pt + _l_L[s]);//, "bias", bias);
+                        //varying color Li = _l_Li[s] * transmission(Pt, Pt + _l_L[s]);
                         varying color Li = _l_Li[s] * visibility(Pt, _l_L[s],stype,smap);
                         //varying color Li = _l_Li[s] * lights[i]->vis(Pt, _l_L[s]);
                         //varying color Li = _l_Li[s] * _l_vis[s];
@@ -184,7 +185,7 @@ class integrator(
                 // MIS: sampling BSDF
                 if (lights[i]->isdelta != 1 && _bl_f[s] != black && _bl_pdf[s] > 0) {
                     if (_bl_Lpdf[s] > 0) {
-                        varying color Li = _bl_Li[s] * transmission(Pt, Pt + _bl_L[s]); //, "bias", bias);
+                        varying color Li = _bl_Li[s] * transmission(Pt, Pt + _bl_L[s]);
                         //varying color Li = _l_Li[s] * visibility(Pt, _l_L[s],stype,smap);
                         //varying color Li = _l_Li[s] * lights[i]->vis(Pt, _bl_L[s]);
                         //varying color Li = _bl_Li[s] * _bl_vis[s];
