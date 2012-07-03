@@ -363,6 +363,21 @@ def get_3dl_annotations(shader_path_list, shader_name):
     return output
 
 
+def update_shader_parameter(self, context):
+    # XXX Hack to update material preview by setting blender-native property
+    if type(self.id_data) == bpy.types.Material:
+        self.id_data.diffuse_color = self.id_data.diffuse_color
+
+def update_parameter_distant_ortho_scale(propname):
+    def update_parameter(self, context):
+        print( propname )
+        print( getattr(self, propname) )
+        print( dir(self) )
+    return update_parameter
+    #self.id_data.type == 'SPOT'
+    #self.id_data.distance = self.id_data.renderman.
+
+
 # Helpers for dealing with shader parameters
 class ShaderParameter():
     
@@ -384,6 +399,7 @@ class ShaderParameter():
         self.hide = False
         self.gadgettype = ''
         self.optionmenu = []
+        self.update = None
 
     def __repr__(self):
         return "shader %s type: %s data_type: %s, value: %s, length: %s" %  \
@@ -490,6 +506,12 @@ def get_parameters_shaderinfo(shader_path_list, shader_name, data_type):
                         
                         if gadget_items[0] == 'optionmenu':
                             sp.optionmenu = gadget_items[1:]
+                    elif v_items[0] == 'vis':
+                        if v_items[1] == 'distant_scale':
+                            sp.update = update_parameter_distant_ortho_scale(an_name)
+
+                    print("---", v_items[0])
+
 
 
     return name, parameters
@@ -577,11 +599,6 @@ def rna_to_shaderparameters(scene, rmptr, shader_type):
 
     return parameters    
 
-def update_shader_parameter(self, context):
-    # XXX Hack to update material preview by setting blender-native property
-    if type(self.id_data) == bpy.types.Material:
-        self.id_data.diffuse_color = self.id_data.diffuse_color
-
 def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
 
     init_env(scene)
@@ -602,12 +619,13 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
             # assuming it's the active shader, similar logic to get_shader_pointerproperty
             exec('del bpy.types.%s.%s' % (stored_shaders.rna_type.name, stored_shaders.active))
 
-
     shader_paths = get_path_list(scene.renderman, 'shader')
     name, parameters = get_parameters_shaderinfo(shader_paths, stored_shaders.active, shader_type)
 
     if name == '':
         return
+
+    '''
     # Generate an RNA Property group for this shader
     if hasattr(bpy.types, "%sSettings" % name) == False:
         exec("class %sSettings(bpy.types.PropertyGroup): pass" % name)
@@ -624,16 +642,21 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
         if sp.hide:
             options.add('HIDDEN')
         
+
+        update_func = ", update=" + sp.update.__name__ if sp.update != None else ""
+        print( sp.name, update_func )
+        #update_func = ", update=" + sp.update) if sp.update != None
+
         if sp.data_type == 'float':
             if sp.gadgettype == 'checkbox':
-                exec('bpy.types.%sSettings.%s = bpy.props.BoolProperty(name="%s", default=%s, options=%s, description="%s")'
-                    % (name, sp.pyname, sp.label, bool(sp.value), str(options), sp.hint))
+                exec('bpy.types.%sSettings.%s = bpy.props.BoolProperty(name="%s", default=%s, options=%s, description="%s" %s)'
+                    % (name, sp.pyname, sp.label, bool(sp.value), str(options), sp.hint, update_func))
             elif sp.gadgettype == 'optionmenu':
-                exec('bpy.types.%sSettings.%s = bpy.props.EnumProperty(name="%s", items=%s, default="%s", options=%s, description="%s")'
-                % (name, sp.pyname, sp.label, sp_optionmenu_to_string(sp), str(int(sp.value)), str(options), sp.hint))
+                exec('bpy.types.%sSettings.%s = bpy.props.EnumProperty(name="%s", items=%s, default="%s", options=%s, description="%s" %s)'
+                % (name, sp.pyname, sp.label, sp_optionmenu_to_string(sp), str(int(sp.value)), str(options), sp.hint, update_func))
             elif sp.gadgettype == 'floatslider':
-                exec('bpy.types.%sSettings.%s = bpy.props.FloatProperty(name="%s", default=%f, precision=3, min=%f, max=%f, subtype="FACTOR", options=%s, description="%s")'
-                    % (name, sp.pyname, sp.label, sp.value, sp.min, sp.max, str(options), sp.hint))
+                exec('bpy.types.%sSettings.%s = bpy.props.FloatProperty(name="%s", default=%f, precision=3, min=%f, max=%f, subtype="FACTOR", options=%s, description="%s" %s)'
+                    % (name, sp.pyname, sp.label, sp.value, sp.min, sp.max, str(options), sp.hint, update_func))
             elif sp.length > 1:
                 # XXX: fix blender UI for this
                 #if sp.length == 16:
@@ -641,96 +664,96 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
                 #else:
                 #    subtype = 'NONE'
                     
-                exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=%d, min=0.0, soft_min=0.0, soft_max=1.0, subtype="%s", options=%s, description="%s")'
-                    % (name, sp.pyname, sp.label, str(sp.value), sp.length, subtype, str(options), sp.hint))
+                exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=%d, min=0.0, soft_min=0.0, soft_max=1.0, subtype="%s", options=%s, description="%s" %s)'
+                    % (name, sp.pyname, sp.label, str(sp.value), sp.length, subtype, str(options), sp.hint, update_func))
             else:
-                exec('bpy.types.%sSettings.%s = bpy.props.FloatProperty(name="%s", default=%f, precision=3, options=%s, description="%s")'
-                    % (name, sp.pyname, sp.label, sp.value, str(options), sp.hint))
+                exec('bpy.types.%sSettings.%s = bpy.props.FloatProperty(name="%s", default=%f, precision=3, options=%s, description="%s" %s)'
+                    % (name, sp.pyname, sp.label, sp.value, str(options), sp.hint, update_func))
         elif sp.data_type == 'color':
-            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, min=0.0, soft_min=0.0, soft_max=1.0, subtype="COLOR", options=%s, description="%s")'
-                % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint))
+            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, min=0.0, soft_min=0.0, soft_max=1.0, subtype="COLOR", options=%s, description="%s" %s)'
+                % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint, update_func))
         elif sp.data_type == 'string':
             if sp.gadgettype == 'optionmenu':
-                exec('bpy.types.%sSettings.%s = bpy.props.EnumProperty(name="%s", items=%s, default="%s", options=%s, description="%s")'
-                % (name, sp.pyname, sp.label, sp_optionmenu_to_string(sp), str(sp.value), str(options), sp.hint))
+                exec('bpy.types.%sSettings.%s = bpy.props.EnumProperty(name="%s", items=%s, default="%s", options=%s, description="%s" %s)'
+                % (name, sp.pyname, sp.label, sp_optionmenu_to_string(sp), str(sp.value), str(options), sp.hint, update_func))
             elif sp.gadgettype == 'inputfile':
-                exec('bpy.types.%sSettings.%s = bpy.props.StringProperty(name="%s", default="%s", subtype="FILE_PATH", options=%s, description="%s")'
-                    % (name, sp.pyname, sp.label, sp.value, str(options), sp.hint))
+                exec('bpy.types.%sSettings.%s = bpy.props.StringProperty(name="%s", default="%s", subtype="FILE_PATH", options=%s, description="%s" %s)'
+                    % (name, sp.pyname, sp.label, sp.value, str(options), sp.hint, update_func))
             else:
-                exec('bpy.types.%sSettings.%s = bpy.props.StringProperty(name="%s", default="%s", options=%s, description="%s")'
-                    % (name, sp.pyname, sp.label, sp.value, str(options), sp.hint))
+                exec('bpy.types.%sSettings.%s = bpy.props.StringProperty(name="%s", default="%s", options=%s, description="%s" %s)'
+                    % (name, sp.pyname, sp.label, sp.value, str(options), sp.hint, update_func))
         elif sp.data_type == 'point':
-            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, precision=3, subtype="TRANSLATION", options=%s, description="%s")'
-                % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint))
+            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, precision=3, subtype="TRANSLATION", options=%s, description="%s" %s)'
+                % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint, update_func))
         elif sp.data_type == 'vector':
-            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, precision=3, subtype="XYZ", options=%s, description="%s")'
-                % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint))
+            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, precision=3, subtype="XYZ", options=%s, description="%s" %s)'
+                % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint, update_func))
         elif sp.data_type == 'normal':
-            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, precision=3, subtype="EULER", options=%s, description="%s")'
-            % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint))
+            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, precision=3, subtype="EULER", options=%s, description="%s" %s)'
+            % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint, update_func))
 
     return
-''' using dictionaries messes up ordering, do it the old way for now
-    # Generate RNA properties for each shader parameter
-    propdict = {}
+    '''
+
+    # Generate an RNA Property group for this shader, limiting name length for rna specs
+    new_class = type('%sShdSettings' % name[:21], (bpy.types.PropertyGroup,), {}})
+    bpy.utils.register_class(new_class)
+
+    # Create the RNA pointer property
+    setattr(type(stored_shaders), name, bpy.props.PointerProperty(type=new_class, name="%s shader settings" % name) )
+
+    # Generate RNA properties for each shader parameter  
     for sp in parameters:
         options = {'ANIMATABLE'}
+        print (sp.name)
         if sp.hide:
             options.add('HIDDEN')
        
         if sp.data_type == 'float':
             if sp.gadgettype == 'checkbox':
-                propdict[sp.pyname] = bpy.props.BoolProperty(name=sp.label, default=bool(sp.value),
-                                        options=options, description=sp.hint, update=update_shader_parameter)
+                setattr(new_class, sp.pyname, bpy.props.BoolProperty(name=sp.label, default=bool(sp.value),
+                                        options=options, description=sp.hint, update=update_shader_parameter))
                                                 
             elif sp.gadgettype == 'optionmenu':
-                propdict[sp.pyname] = bpy.props.EnumProperty(name=sp.label, items=optionmenu_to_string(sp.optionmenu),
+                setattr(new_class, sp.pyname, bpy.props.EnumProperty(name=sp.label, items=optionmenu_to_string(sp.optionmenu),
                                         default=str(int(sp.value)),
-                                        options=options, description=sp.hint, update=update_shader_parameter)
+                                        options=options, description=sp.hint, update=update_shader_parameter))
 
             elif sp.gadgettype == 'floatslider':
-                propdict[sp.pyname] = bpy.props.FloatProperty(name=sp.label, default=sp.value, precision=3,
+                setattr(new_class, sp.pyname, bpy.props.FloatProperty(name=sp.label, default=sp.value, precision=3,
                                         min=sp.min, max=sp.max, subtype="FACTOR",
-                                        options=options, description=sp.hint, update=update_shader_parameter)
+                                        options=options, description=sp.hint, update=update_shader_parameter))
             elif sp.length == 3:
-                propdict[sp.pyname] = bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3,
+                setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3,
                                         min=sp.min, max=sp.max,
-                                        options=options, description=sp.hint, update=update_shader_parameter)
+                                        options=options, description=sp.hint, update=update_shader_parameter))
             else:
-                propdict[sp.pyname] = bpy.props.FloatProperty(name=sp.label, default=sp.value, precision=3,
-                                        options=options, description=sp.hint, update=update_shader_parameter)
+                setattr(new_class, sp.pyname, bpy.props.FloatProperty(name=sp.label, default=sp.value, precision=3,
+                                        options=options, description=sp.hint, update=update_shader_parameter))
 
         elif sp.data_type == 'color':
-            propdict[sp.pyname] = bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3,
+            setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3,
                                         min=sp.min, soft_min=0.0, max=sp.max, soft_max=1.0, subtype="COLOR",
-                                        options=options, description=sp.hint, update=update_shader_parameter)
+                                        options=options, description=sp.hint, update=update_shader_parameter))
         elif sp.data_type == 'string':
             if sp.gadgettype == 'inputfile':
-                propdict[sp.pyname] = bpy.props.StringProperty(name=sp.label, default=sp.value, subtype="FILE_PATH",
-                                        options=options, description=sp.hint, update=update_shader_parameter)
+                setattr(new_class, sp.pyname, bpy.props.StringProperty(name=sp.label, default=sp.value, subtype="FILE_PATH",
+                                        options=options, description=sp.hint, update=update_shader_parameter))
             else:
-                propdict[sp.pyname] = bpy.props.StringProperty(name=sp.label, default=sp.value,
-                                        options=options, description=sp.hint, update=update_shader_parameter)
+                setattr(new_class, sp.pyname, bpy.props.StringProperty(name=sp.label, default=sp.value,
+                                        options=options, description=sp.hint, update=update_shader_parameter))
                                         
         elif sp.data_type == 'point':
-            propdict[sp.pyname] = bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="TRANSLATION",
-                                        options=options, description=sp.hint, update=update_shader_parameter)
+            setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="TRANSLATION",
+                                        options=options, description=sp.hint, update=update_shader_parameter))
         
         elif sp.data_type == 'vector':
-            propdict[sp.pyname] = bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="XYZ",
-                                        options=options, description=sp.hint, update=update_shader_parameter)
+            setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="XYZ",
+                                        options=options, description=sp.hint, update=update_shader_parameter))
 
         elif sp.data_type == 'normal':
-            propdict[sp.pyname] = bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="EULER",
-                                        options=options, description=sp.hint, update=update_shader_parameter)
-
-    # Generate an RNA Property group for this shader, limiting name length for rna specs
-    new_class = type('%sShdSettings' % name[:21], (bpy.types.PropertyGroup,), propdict)
-    bpy.utils.register_class(new_class)
-
-    # Create the RNA pointer property
-    setattr(type(stored_shaders), name, bpy.props.PointerProperty(type=new_class, name="%s shader settings" % name) )
-'''
+            setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="EULER",
+                                        options=options, description=sp.hint, update=update_shader_parameter))
 
 
 def shader_type_initialised(ptr, shader_type):
