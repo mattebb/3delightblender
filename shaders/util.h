@@ -32,11 +32,6 @@
 
 #define SCENE_BOUNDS    999999
 
-struct lightInfo {
-        uniform float shadowtype = 0;
-        uniform string shadowmap = "";
-}
-
 void sample2d_stratified(float nsamples; output float s1[], s2[];)
 {
     // Compute the number of strata in r and phi directions.

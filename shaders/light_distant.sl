@@ -27,14 +27,18 @@
 
 #include "util.h"
 
+#pragma annotation blender_light_type "spot"
+#pragma annotation shadow_ortho_scale "vis=distant_scale;label=Ortho Scale;hint=Scale of parallel shadow map boundary"
+#pragma annotation shadow_shape "vis=distant_shape;label=Shadow Map Shape;hint=Shape of shadow map"
+
 class
 light_distant(
         uniform float intensity = 1;
         uniform color lightcolor = 1;
-        uniform float samples = 16;
         uniform float angle = 1.0;
         uniform float shadowtype = 0;
         uniform string shadowmap = "";
+        uniform float shadow_ortho_scale = 10.0;
        )
        
 {
@@ -48,12 +52,6 @@ light_distant(
     constant vector zdir = vector "shader" (0,0,1);   // direction of light
     
     constant float angle_rad = radians(angle);
-
-    public void construct() {
-        
-        //if (shape == 0)         area = width*height;
-        //else if (shape == 1)    area = PI*width*0.5*height*0.5;
-    }
     
     color Le(point P; vector L;) {
 

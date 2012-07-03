@@ -37,27 +37,29 @@
 0
 0
 0
-13
+14
 0 12 0
 0 1 0.00000000e+00
-0 4 ""
 0 1 1.00000000e+00
 0 1 1.60000000e+01
+0 4 ""
+0 1 1.00000000e+01
 0 4 "shader"
 0 1 3.20000000e+01
 0 1 9.99999000e+05
-0 4 "_pdf"
 0 4 "_Li"
-0 1 6.28318548e+00
-0 4 "/Users/matt/Desktop/light_distant.sl"
+0 4 "_pdf"
+0 4 "/Developer/3delightblender/shaders/light_distant.sl"
 0 4 "_L"
-6
+0 1 6.28318548e+00
+7
 "intensity" "" 2 1 0 0 0 0
 "lightcolor" "rgb" 2 3 0 0 0 0
 "samples" "" 2 1 0 0 0 0
 "angle" "" 2 1 0 0 0 0
 "shadowtype" "" 2 1 0 0 0 0
 "shadowmap" "" 2 4 0 0 0 0
+"shadow_ortho_scale" "" 2 1 0 0 0 0
 5
 2 0 0 0 1
 8 0 0 0 1
@@ -79,21 +81,14 @@
 
 3
 
-1 41 31 
+1 42 30 
 
 1
 3 
 
 3
 
-4 42 31 
-
-1
-3 
-
-3
-
-1 43 32 
+4 43 30 
 
 1
 3 
@@ -107,85 +102,99 @@
 
 3
 
-1 45 29 
+1 45 30 
 
 1
 3 
 
 3
 
-7 46 30 
+1 46 29 
+
+1
+3 
+
+3
+
+7 47 32 
+
+1
+3 
+
+3
+
+1 48 33 
 
 1
 3 
 
 0
 8
-52
-53
 54
-47
-48
+55
+56
 49
 50
 51
+52
+53
 
 3
 
-1 52 31 
+1 54 30 
 
 1
 3 
 
 3
 
-1 53 45 
+1 55 46 
 
 1
 3 
 
 3
 
-7 54 46 
+7 56 47 
 
 1
 3 
 
 9
 
-9 55 29 29 29 
-11 47 55 33 
+9 57 29 29 29 
+11 49 57 34 
 
 2
 5 9 
 
 9
 
-9 55 31 29 29 
-12 48 55 33 
+9 57 30 29 29 
+12 50 57 34 
 
 2
 5 9 
 
 9
 
-9 55 29 31 29 
-12 49 55 33 
+9 57 29 30 29 
+12 51 57 34 
 
 2
 5 9 
 
 9
 
-9 55 29 29 31 
-12 50 55 33 
+9 57 29 29 30 
+12 52 57 34 
 
 2
 5 9 
 
 3
 
-57 51 44 
+57 53 45 
 
 1
 3 
@@ -198,21 +207,9 @@
 
 0
 
-3
-"construct"
+2
 "eval_light"
 "light"
-0
-0
-0
-0
-
-0
-0
-0
-
-
-0
 0
 6
 "P" 3 2 0 0 0 0
@@ -265,31 +262,31 @@
 3 0 1 2
 89
 
-252 59 58 
-252 60 58 
-252 61 58 
-1 64 29 
-41 63 29 58 
-235 63 70 
-249 65 61 
-246 36 64 65 39 59 
-245 67 61 64 
-249 65 57 
-249 65 59 
-1 67 29 
-249 65 61 
-41 63 29 67 
-232 63 0 26 
-249 65 60 
-246 37 64 65 39 62 
-245 68 60 64 
-249 65 59 
-25 62 42 41 
-2 66 62 
-2 68 66 
+252 61 60 
+252 62 60 
+252 63 60 
+1 66 29 
+41 65 29 60 
+235 65 70 
+249 67 63 
+246 38 66 67 39 83 
+245 69 63 66 
+249 67 59 
+249 67 61 
+1 69 29 
+249 67 63 
+41 65 29 69 
+232 65 0 26 
+249 67 62 
+246 37 66 67 39 86 
+245 70 62 66 
+249 67 61 
+25 64 43 42 
+2 68 64 
+2 70 68 
 234 
-17 64 64 31 
-41 63 64 58 
+17 66 66 30 
+41 65 66 60 
 236 -73 
 
 26
@@ -342,7 +339,7 @@
 
 3
 
-1 73 29 
+1 75 29 
 
 1
 3 
@@ -369,66 +366,66 @@
 3 0 1 1
 218
 
-42 79 73 29 
-232 79 0 3 
-1 75 34 
+42 81 75 29 
+232 81 0 3 
+1 77 35 
 233 3 
-1 75 73 
+1 77 75 
 234 
-252 70 75 
-252 71 75 
-252 72 75 
-1 74 29 
-41 79 29 75 
-232 79 0 11 
-41 80 29 44 
-25 77 42 41 
-2 85 77 
+252 72 77 
+252 73 77 
+252 74 77 
+1 76 29 
+41 81 29 77 
+232 81 0 11 
+41 82 29 45 
+25 79 43 42 
+2 87 79 
 234 
-235 79 153 
-232 80 0 81 
-100 81 
-100 82 
-61 76 51 
-1 83 76 
-249 84 71 
-246 40 74 84 39 99 
-243 88 71 74 
-151 81 83 31 81 
-24 84 81 81 
-20 84 31 84 
-68 83 84 
-24 82 38 82 
-61 84 82 
-24 84 84 83 
-25 86 48 84 
-59 82 82 
-24 82 82 83 
-25 87 49 82 
-19 86 86 87 
-25 87 50 81 
-19 86 86 87 
-25 88 86 35 
+235 81 153 
+232 82 0 81 
+100 83 
+100 84 
+61 78 53 
+1 85 78 
+249 86 73 
+246 40 76 86 39 123 
+243 90 73 76 
+151 83 85 30 83 
+24 86 83 83 
+20 86 30 86 
+68 85 86 
+24 84 41 84 
+61 86 84 
+24 86 86 85 
+25 88 50 86 
+59 84 84 
+24 84 84 85 
+25 89 51 84 
+19 88 88 89 
+25 89 52 83 
+19 88 88 89 
+25 90 88 36 
 233 20 
-249 82 71 
-246 40 74 82 39 101 
-243 89 71 74 
-25 78 50 35 
-2 89 78 
+249 84 73 
+246 40 76 84 39 125 
+243 91 73 76 
+25 80 52 36 
+2 91 80 
 234 
-249 82 72 
-246 36 74 82 39 104 
-243 90 72 74 
-1 90 31 
-249 84 70 
-246 37 74 84 39 105 
-243 91 70 74 
-249 82 71 
-2 91 85 
-17 74 74 31 
-41 79 74 75 
+249 84 74 
+246 38 76 84 39 128 
+243 92 74 76 
+1 92 30 
+249 86 72 
+246 37 76 86 39 129 
+243 93 72 76 
+249 84 73 
+2 93 87 
+17 76 76 30 
+41 81 76 77 
 236 -156 
-1 73 75 
+1 75 77 
 9 18 29 29 29 
 9 19 29 29 29 
 
@@ -439,19 +436,21 @@
 213 218 
 
 %comment-3dl 7 121
-6
-"MacroBlocks_construct"
-"MA=="
+4
 "MacroBlocks_eval_light"
-"NAozIDIKIDEgMCAyCiA1OCA2MyA2NAo2IDgKIDMgMSAyCiA2NCA1NyA1OSA2MSA2MyA2NwoxNSA3CiA0IDEgMQogNjQgNDEgNDIgNTkgNjAgNjgKMjMgMgogMSAxIDEKIDU4IDY0IDYz"
+"NAozIDIKIDEgMCAyCiA2MCA2NSA2Ngo2IDgKIDMgMSAyCiA2NiA1OSA2MSA2MyA2NSA2OQoxNSA3CiA0IDEgMQogNjYgNDIgNDMgNjEgNjIgNzAKMjMgMgogMSAxIDEKIDYwIDY2IDY1"
 "MacroBlocks_light"
-"Ngo5IDIKIDEgMCAyCiA3NSA3NCA3OQoxMiAzCiAzIDAgMgogNDEgNDIgNDQgODAgODUKMjAgMjAKIDcgMSAxCiA3NCA4MSA4MiA0OCA0OSA1MCA1MSA3MSA4OAo0MSA1CiAyIDEgMQogNzQgNTAgNzEgODkKNDcgMTEKIDMgMyAzCiA3NSA4NSA3MSA3NCA3MCA3MiA3OSA5MCA5MQo1OSAzCiAxIDAgMwogNzUgMTggMTkgNzM="
-"OpCodesForDerivatives_construct"
-"MAo="
+"Ngo5IDIKIDEgMCAyCiA3NyA3NiA4MQoxMiAzCiAzIDAgMgogNDIgNDMgNDUgODIgODcKMjAgMjAKIDcgMSAxCiA3NiA4MyA4NCA1MCA1MSA1MiA1MyA3MyA5MAo0MSA1CiAyIDEgMQogNzYgNTIgNzMgOTEKNDcgMTEKIDMgMyAzCiA3NyA4NyA3MyA3NiA3MiA3NCA4MSA5MiA5Mwo1OSAzCiAxIDAgMwogNzcgMTggMTkgNzU="
 "OpCodesForDerivatives_eval_light"
 "MAo="
 "OpCodesForDerivatives_light"
 "MAo="
 %comment-user 7 121
-0
+3
+"blender_light_type"
+"c3BvdA=="
+"shadow_ortho_scale"
+"dmlzPWRpc3RhbnRfc2NhbGU7bGFiZWw9T3J0aG8gU2NhbGU7aGludD1TY2FsZSBvZiBwYXJhbGxlbCBzaGFkb3cgbWFwIGJvdW5kYXJ5"
+"shadow_shape"
+"dmlzPWRpc3RhbnRfc2hhcGU7bGFiZWw9U2hhZG93IE1hcCBTaGFwZTtoaW50PVNoYXBlIG9mIHNoYWRvdyBtYXA="
 

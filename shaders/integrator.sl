@@ -39,14 +39,17 @@ class integrator(
     public void surface(output color Ci, Oi) { }
 
 
-    color visibility(point Pt; vector V; float shadowtype; string shadowmap;)
+    color visibility(point Pt; vector V; shader lgt;) //float shadowtype; string shadowmap;)
     {
         color Cv;
-        if (shadowtype == 0) {  // raytrace
+        uniform string smap = lgt->shadowmap;
+        uniform float stype = lgt->shadowtype;
+
+        if (stype == 0) {  // raytrace
             Cv = transmission(Pt, Pt+V);
         }
-        else if (shadowtype == 1) { // shadow map
-            Cv = color(1) - shadow(shadowmap, Pt);
+        else if (stype == 1) { // shadow map
+            Cv = color(1) - shadow(smap, Pt);
         }
         return Cv;
     }
@@ -142,8 +145,6 @@ class integrator(
             //lights[i]->visibility(P, _bl_L, _bl_pdf, _bl_Li, nsamples, _bl_vis);
             }
 
-            uniform string smap = lights[i]->smap;
-            uniform float stype = lights[i]->stype;
             //if (ray_depth > 0)
             //    stype = 1;
 
@@ -162,8 +163,9 @@ class integrator(
                 if (_l_Li[s] != black && _l_pdf[s] > 0) {
                 
                     if (_l_bsdf_f[s] != black) {
-                        varying color Li = _l_Li[s] * transmission(Pt, Pt + _l_L[s]);
-                        //varying color Li = _l_Li[s] * visibility(Pt, _l_L[s],stype,smap);
+                        //varying color Li = _l_Li[s] * transmission(Pt, Pt + _l_L[s]);
+                        
+                        varying color Li = _l_Li[s] * visibility(Pt, _l_L[s], lights[i]);
                         //varying color Li = _l_Li[s] * lights[i]->vis(Pt, _l_L[s]);
                         //varying color Li = _l_Li[s] * _l_vis[s];
                         
