@@ -368,15 +368,29 @@ def update_shader_parameter(self, context):
     if type(self.id_data) == bpy.types.Material:
         self.id_data.diffuse_color = self.id_data.diffuse_color
 
-def update_parameter_distant_ortho_scale(propname):
-    def update_parameter(self, context):
-        print( propname )
-        print( getattr(self, propname) )
-        print( dir(self) )
-    return update_parameter
-    #self.id_data.type == 'SPOT'
-    #self.id_data.distance = self.id_data.renderman.
 
+
+def update_parameter(propname, vis_name):
+
+    valid_vis_names = ('distant_scale',)
+
+    if not vis_name in valid_vis_names:
+        return None
+
+    def modified_update_parameter(self, context):
+        #print( propname )
+        #print( getattr(self, propname) )
+        #print( dir(self) )
+
+        if vis_name == 'distant_scale':
+            self.id_data.type = 'SPOT'       
+            self.id_data.distance = getattr(self, propname)
+        elif vis_name == 'distant_shape':
+            self.id_data.type = 'SPOT'
+
+
+    return modified_update_parameter
+    
 
 # Helpers for dealing with shader parameters
 class ShaderParameter():
@@ -399,7 +413,7 @@ class ShaderParameter():
         self.hide = False
         self.gadgettype = ''
         self.optionmenu = []
-        self.update = None
+        self.update = update_parameter
 
     def __repr__(self):
         return "shader %s type: %s data_type: %s, value: %s, length: %s" %  \
@@ -508,9 +522,7 @@ def get_parameters_shaderinfo(shader_path_list, shader_name, data_type):
                             sp.optionmenu = gadget_items[1:]
                     elif v_items[0] == 'vis':
                         if v_items[1] == 'distant_scale':
-                            sp.update = update_parameter_distant_ortho_scale(an_name)
-
-                    print("---", v_items[0])
+                            sp.update = update_parameter(an_name, v_items[1])
 
 
 
@@ -696,7 +708,7 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
     '''
 
     # Generate an RNA Property group for this shader, limiting name length for rna specs
-    new_class = type('%sShdSettings' % name[:21], (bpy.types.PropertyGroup,), {}})
+    new_class = type('%sShdSettings' % name[:21], (bpy.types.PropertyGroup,), {})
     bpy.utils.register_class(new_class)
 
     # Create the RNA pointer property
@@ -705,7 +717,7 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
     # Generate RNA properties for each shader parameter  
     for sp in parameters:
         options = {'ANIMATABLE'}
-        print (sp.name)
+        
         if sp.hide:
             options.add('HIDDEN')
        
@@ -729,7 +741,7 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
                                         options=options, description=sp.hint, update=update_shader_parameter))
             else:
                 setattr(new_class, sp.pyname, bpy.props.FloatProperty(name=sp.label, default=sp.value, precision=3,
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
 
         elif sp.data_type == 'color':
             setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3,
