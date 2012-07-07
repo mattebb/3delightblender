@@ -1608,12 +1608,19 @@ def export_camera_shadowmap(file, scene, ob, motion):
         file.write('PixelSamples %d %d \n' % 
                     (rm.pixelsamples_x, rm.pixelsamples_y))
         file.write('PixelFilter "box" 1 1 \n')
-        #file.write('PixelFilter "%s" %d %d \n' % 
-        #            (rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y))
-    
+
     file.write('ShadingRate %f \n' % rm.shadingrate )
     file.write('\n') 
-  
+    
+    if rm.light_shaders.active != '':
+        params = rna_to_shaderparameters(scene, rm, 'light')
+        for sp in params:
+            if sp.meta == 'distant_scale':
+                xaspect = yaspect = sp.value / 2.0
+                file.write('Projection "orthographic"\n')
+                file.write('ScreenWindow %f %f %f %f\n' % (-xaspect, xaspect, -yaspect, yaspect))
+                
+    '''
     if lamp.type == 'SPOT':
         file.write('Clipping %f %f\n' % (lamp.shadow_buffer_clip_start, lamp.shadow_buffer_clip_end))
         file.write('Projection "perspective" "fov" %f\n' % (lamp.spot_size*(180.0/math.pi)))
@@ -1624,7 +1631,7 @@ def export_camera_shadowmap(file, scene, ob, motion):
         yaspect= lens/2.0
         file.write('Projection "orthographic"\n')    
         file.write('ScreenWindow %f %f %f %f\n' % (-xaspect, xaspect, -yaspect, yaspect))
-    
+    '''
     if scene.renderman.motion_blur:
         file.write('Shutter %f %f\n' % (srm.shutter_open, srm.shutter_close))
         file.write('Option "shutter" "efficiency" [ %f %f ] \n' % 
@@ -1653,10 +1660,15 @@ def ptc_generate_required(scene):
     if not rm.gi_secondary.ptc_generate_auto: return False
     return True
 
-def shadowmap_generate_required(ob):
+def shadowmap_generate_required(scene, ob):
     if ob.type != 'LAMP': return False
     
     rm = ob.data.renderman
+
+    for sp in rna_to_shaderparameters(scene, rm, 'light'):
+        if sp.meta == 'use_shadow_map' and sp.value > 0:
+            return True
+
     if not ob.data.type in ('SPOT', 'SUN'): return False
     if not rm.shadow_method == 'SHADOW_MAP': return False
     if not rm.shadow_map_generate_auto: return False
@@ -1730,7 +1742,7 @@ def make_shadowmaps(paths, scene, info_callback):
     
     rpass = RPass(scene, render_objects, paths, "shadowmap")    
     
-    shadow_lamps = [ob for ob in rpass.objects if shadowmap_generate_required(ob) ]
+    shadow_lamps = [ob for ob in rpass.objects if shadowmap_generate_required(scene, ob) ]
     
     for ob in shadow_lamps:
         rm = ob.data.renderman

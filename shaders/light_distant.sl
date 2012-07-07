@@ -27,15 +27,15 @@
 
 #include "util.h"
 
-#pragma annotation blender_light_type "spot"
-#pragma annotation shadow_ortho_scale "vis=distant_scale;label=Ortho Scale;hint=Scale of parallel shadow map boundary"
-#pragma annotation shadow_shape "vis=distant_shape;label=Shadow Map Shape;hint=Shape of shadow map"
+#pragma annotation blender_render_shadowmaps "True"
+#pragma annotation shadow_ortho_scale "meta=distant_scale;label=Ortho Scale;hint=Scale of parallel shadow map boundary"
+#pragma annotation shadowtype "meta=use_shadow_map;label=Shadow Type;"
 
 class
 light_distant(
         uniform float intensity = 1;
         uniform color lightcolor = 1;
-        uniform float angle = 1.0;
+        uniform float angle = 0.5;
         uniform float shadowtype = 0;
         uniform string shadowmap = "";
         uniform float shadow_ortho_scale = 10.0;

@@ -38,6 +38,7 @@ from .shader_parameters import shader_type_initialised
 from .shader_parameters import tex_optimised_path
 from .shader_parameters import tex_source_path
 
+from .export import shadowmap_generate_required
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
@@ -938,12 +939,14 @@ class DATA_PT_3Delight_lamp_shadow(bpy.types.Panel):
         layout = self.layout
 
         lamp = context.lamp
+        ob = context.object
         rm = lamp.renderman
         wide_ui = context.region.width > narrowui
 
         layout.prop(rm, "shadow_method", expand=True)
 
-        if rm.shadow_method == 'SHADOW_MAP':
+        if shadowmap_generate_required(scene, ob):
+        #if rm.shadow_method == 'SHADOW_MAP':
             layout.prop(rm, "shadow_map_generate_auto")
             
             col = layout.column()

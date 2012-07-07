@@ -27,7 +27,7 @@ import bpy
 
 from .util import guess_3dl_path
 
-from .shader_parameters import shaders_in_path
+from .shader_scan import shaders_in_path
 from .shader_parameters import rna_type_initialise
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, \

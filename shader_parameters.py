@@ -27,8 +27,6 @@ import os
 import subprocess
 import bpy
 import re
-import threading
-import time
 
 from .util import init_env
 from .util import path_win_to_unixy
@@ -146,142 +144,16 @@ def sp_optionmenu_to_string(sp):
     elif sp.data_type == 'string':
         return [(opt.lower(), opt, "") for opt in sp.optionmenu]
 
-def shader_visbility_annotation(annotations):
-    for an in annotations:
-        an_items = [a for a in an.split('"') if a.isalnum()]
-        for i, an in enumerate(an_items):
-            if an_items[i] == 'visibility' and an_items[i+1] == 'False':
-                return False
-    return True
+
+
+def shader_supports_shadowmap(scene, rm, stype):
+    return len(sp for sp in rna_to_shaderparameters(scene, rm, stype) if sp.meta == 'use_shadow_map') > 0
 
 
 
 
 
-# Setup for scanning for available shaders to display in the UI
-# This is done in a background thread to avoid blocking the UI while scanning files
-shader_cache = {}
-shaderscan_lock = threading.Lock()
 
-class BgShaderScan(threading.Thread):
-    def __init__(self, lock, path_list, scene_name, shader_type, material):
-        threading.Thread.__init__(self)
-        self.lock = lock
-        self.path_list = path_list
-        self.scene_name = scene_name
-        self.type = shader_type
-        self.material = material
-        self.daemon = True   
-    
-    def run(self):
-        global shader_cache
-        scn = self.scene_name
-        regenerate = False
-        
-        # limit to only one BG thread at a time, exit rather than wait
-        if not self.lock.acquire(blocking=False):
-            return
-
-        # create a new cache for this scene if non-existent
-        if not self.scene_name in shader_cache.keys():
-            shader_cache[scn] = {}
-            shader_cache[scn]['dirs'] = {}
-            shader_cache[scn]['shaders'] = {}
-            
-            # initialise some common ones
-            shader_cache[scn]['shaders']['surface'] = []
-            shader_cache[scn]['shaders']['displacement'] = []
-            shader_cache[scn]['shaders']['interior'] = []
-            shader_cache[scn]['shaders']['atmosphere'] = []
-                    
-        # check to see if any dirs have been modified since the last scan, 
-        # and if so prepare to regenerate
-        for path in self.path_list:
-            #print(path)
-            if not path in shader_cache[scn]['dirs'].keys():
-                shader_cache[scn]['dirs'][path] = 0.0
-
-            if shader_cache[scn]['dirs'][path] < os.path.getmtime(path):
-                regenerate = True
-                break
-
-        # return if we don't need to scan shaders
-        if not regenerate:
-            # block for a couple more seconds, to prevent too much scanning
-            time.sleep(2)
-            self.lock.release()
-            return
-        
-        shaders = {}
-        # we need to regenerate, so rebuild entire shader list from all paths
-        for k in shader_cache[scn]['shaders'].keys():
-            shader_cache[scn]['shaders'][k] = ['Loading...']
-            shaders[k] = []
-        
-        for path in self.path_list:
-            # store the time of this scan
-            shader_cache[scn]['dirs'][path] = os.path.getmtime(path)
-
-            # now store the updated shader contents
-            for f in os.listdir(path):           
-                if os.path.splitext(f)[1] == '.sdl':
-                    try:
-                        output = subprocess.check_output(["shaderinfo", "-t", os.path.join(path, f)]).decode().split('\n')
-                        ann_output = subprocess.check_output(["shaderinfo", "-a", os.path.join(path, f)]).decode().split('\n')
-                    except:
-                        continue
-
-                    # Use the #pragma annotation "visibility" shader annotation to hide from view
-                    ann_output = [o.replace('\r', '') for o in ann_output]
-                    if shader_visbility_annotation(ann_output) == False:
-                        continue
-                    
-                    sdlname = output[0].replace('\r', '')
-                    sdltype = output[1].replace('\r', '')
-
-                    if not sdltype in shaders.keys():
-                        shaders[sdltype] = []
-
-                    shaders[sdltype].append(sdlname)
-        
-        # set the new shader cache
-        shader_cache[scn]['shaders'] = shaders
-        
-        self.lock.release()
-        
-        # XXX -- SUPER dodgy hack to force redraw of the property editor 
-        # when the thread is done, since we have no other way atm
-        # modify a property, to get it to send a notifier internally
-        if self.material:
-            try:
-                self.material.diffuse_color = self.material.diffuse_color
-            except:
-                pass
-        
-
-
-# scans valid paths on disk for shaders, and caches for later retrieval
-def shaders_in_path(context, type):
-    global shaderscan_lock
-    global shader_cache
-
-    scene = context.scene
-    init_env(scene)
-    
-    if hasattr(context, "material"):
-        material = context.material
-    else:
-        material = None
-    
-    path_list = get_path_list_converted(scene.renderman, 'shader')
-    
-    scanthread = BgShaderScan(shaderscan_lock, path_list, scene.name, type, material)
-    scanthread.start()
-
-    if scene.name in shader_cache and type in shader_cache[scene.name]['shaders'].keys():
-        return sorted(shader_cache[scene.name]['shaders'][type], key=str.lower)
-    else:
-        return ['Loading...']
 
 
 
@@ -368,26 +240,29 @@ def update_shader_parameter(self, context):
     if type(self.id_data) == bpy.types.Material:
         self.id_data.diffuse_color = self.id_data.diffuse_color
 
-
+def update_noop(self, context):
+    pass
 
 def update_parameter(propname, vis_name):
 
-    valid_vis_names = ('distant_scale',)
+    valid_vis_names = ('distant_scale','distant_shadow_type')
 
     if not vis_name in valid_vis_names:
-        return None
+        return update_noop
 
+    def update_parameter_distantlight(self):
+        self.id_data.type = 'AREA'
+        self.id_data.distance = 10
+        
     def modified_update_parameter(self, context):
-        #print( propname )
-        #print( getattr(self, propname) )
-        #print( dir(self) )
 
         if vis_name == 'distant_scale':
-            self.id_data.type = 'SPOT'       
-            self.id_data.distance = getattr(self, propname)
-        elif vis_name == 'distant_shape':
-            self.id_data.type = 'SPOT'
-
+            update_parameter_distantlight(self)
+            self.id_data.size = getattr(self, propname)
+        elif vis_name == 'distant_shadow_type':
+            update_parameter_distantlight(self)
+            if getattr(self, propname) == 0:
+                self.id_data.size = 0
 
     return modified_update_parameter
     
@@ -414,6 +289,7 @@ class ShaderParameter():
         self.gadgettype = ''
         self.optionmenu = []
         self.update = update_parameter
+        self.meta = {}
 
     def __repr__(self):
         return "shader %s type: %s data_type: %s, value: %s, length: %s" %  \
@@ -520,9 +396,9 @@ def get_parameters_shaderinfo(shader_path_list, shader_name, data_type):
                         
                         if gadget_items[0] == 'optionmenu':
                             sp.optionmenu = gadget_items[1:]
-                    elif v_items[0] == 'vis':
-                        if v_items[1] == 'distant_scale':
-                            sp.update = update_parameter(an_name, v_items[1])
+                    elif v_items[0] == 'meta':
+                        sp.meta = v_items[1]
+                        sp.update = update_parameter(an_name, v_items[1])
 
 
 
@@ -567,7 +443,8 @@ def rna_to_shaderparameters(scene, rmptr, shader_type):
         sp.pyname = p
         sp.name = pyname_to_slname(p)
         sp.value = prop
-        
+        sp.meta = sptr.meta[sp.pyname] if sp.pyname in sptr.meta.keys() else ''
+
         # inspect python/RNA types and convert to renderman types
         if rnatypename == 'FLOAT':
             if typename.lower() == 'color':
@@ -637,75 +514,7 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
     if name == '':
         return
 
-    '''
-    # Generate an RNA Property group for this shader
-    if hasattr(bpy.types, "%sSettings" % name) == False:
-        exec("class %sSettings(bpy.types.PropertyGroup): pass" % name)
-        exec("bpy.utils.register_class(%sSettings)" % name)
 
-    # Create the RNA pointer property
-    bpytype = stored_shaders.bl_rna.name
-    exec('bpy.types.%s.%s = bpy.props.PointerProperty(type=bpy.types.%sSettings, name="%s shader settings")' 
-        % (bpytype, name, name, name))
-
-    # Generate RNA properties for each shader parameter
-    for sp in parameters:
-        options = {'ANIMATABLE'}
-        if sp.hide:
-            options.add('HIDDEN')
-        
-
-        update_func = ", update=" + sp.update.__name__ if sp.update != None else ""
-        print( sp.name, update_func )
-        #update_func = ", update=" + sp.update) if sp.update != None
-
-        if sp.data_type == 'float':
-            if sp.gadgettype == 'checkbox':
-                exec('bpy.types.%sSettings.%s = bpy.props.BoolProperty(name="%s", default=%s, options=%s, description="%s" %s)'
-                    % (name, sp.pyname, sp.label, bool(sp.value), str(options), sp.hint, update_func))
-            elif sp.gadgettype == 'optionmenu':
-                exec('bpy.types.%sSettings.%s = bpy.props.EnumProperty(name="%s", items=%s, default="%s", options=%s, description="%s" %s)'
-                % (name, sp.pyname, sp.label, sp_optionmenu_to_string(sp), str(int(sp.value)), str(options), sp.hint, update_func))
-            elif sp.gadgettype == 'floatslider':
-                exec('bpy.types.%sSettings.%s = bpy.props.FloatProperty(name="%s", default=%f, precision=3, min=%f, max=%f, subtype="FACTOR", options=%s, description="%s" %s)'
-                    % (name, sp.pyname, sp.label, sp.value, sp.min, sp.max, str(options), sp.hint, update_func))
-            elif sp.length > 1:
-                # XXX: fix blender UI for this
-                #if sp.length == 16:
-                #    subtype = 'MATRIX'
-                #else:
-                #    subtype = 'NONE'
-                    
-                exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=%d, min=0.0, soft_min=0.0, soft_max=1.0, subtype="%s", options=%s, description="%s" %s)'
-                    % (name, sp.pyname, sp.label, str(sp.value), sp.length, subtype, str(options), sp.hint, update_func))
-            else:
-                exec('bpy.types.%sSettings.%s = bpy.props.FloatProperty(name="%s", default=%f, precision=3, options=%s, description="%s" %s)'
-                    % (name, sp.pyname, sp.label, sp.value, str(options), sp.hint, update_func))
-        elif sp.data_type == 'color':
-            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, min=0.0, soft_min=0.0, soft_max=1.0, subtype="COLOR", options=%s, description="%s" %s)'
-                % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint, update_func))
-        elif sp.data_type == 'string':
-            if sp.gadgettype == 'optionmenu':
-                exec('bpy.types.%sSettings.%s = bpy.props.EnumProperty(name="%s", items=%s, default="%s", options=%s, description="%s" %s)'
-                % (name, sp.pyname, sp.label, sp_optionmenu_to_string(sp), str(sp.value), str(options), sp.hint, update_func))
-            elif sp.gadgettype == 'inputfile':
-                exec('bpy.types.%sSettings.%s = bpy.props.StringProperty(name="%s", default="%s", subtype="FILE_PATH", options=%s, description="%s" %s)'
-                    % (name, sp.pyname, sp.label, sp.value, str(options), sp.hint, update_func))
-            else:
-                exec('bpy.types.%sSettings.%s = bpy.props.StringProperty(name="%s", default="%s", options=%s, description="%s" %s)'
-                    % (name, sp.pyname, sp.label, sp.value, str(options), sp.hint, update_func))
-        elif sp.data_type == 'point':
-            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, precision=3, subtype="TRANSLATION", options=%s, description="%s" %s)'
-                % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint, update_func))
-        elif sp.data_type == 'vector':
-            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, precision=3, subtype="XYZ", options=%s, description="%s" %s)'
-                % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint, update_func))
-        elif sp.data_type == 'normal':
-            exec('bpy.types.%sSettings.%s = bpy.props.FloatVectorProperty(name="%s", default=%s, size=3, precision=3, subtype="EULER", options=%s, description="%s" %s)'
-            % (name, sp.pyname, sp.label, str(sp.value), str(options), sp.hint, update_func))
-
-    return
-    '''
 
     # Generate an RNA Property group for this shader, limiting name length for rna specs
     new_class = type('%sShdSettings' % name[:21], (bpy.types.PropertyGroup,), {})
@@ -714,31 +523,35 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
     # Create the RNA pointer property
     setattr(type(stored_shaders), name, bpy.props.PointerProperty(type=new_class, name="%s shader settings" % name) )
 
+    new_class.meta = {}
+
     # Generate RNA properties for each shader parameter  
     for sp in parameters:
         options = {'ANIMATABLE'}
         
+        new_class.meta[sp.pyname] = sp.meta
+
         if sp.hide:
             options.add('HIDDEN')
        
         if sp.data_type == 'float':
             if sp.gadgettype == 'checkbox':
                 setattr(new_class, sp.pyname, bpy.props.BoolProperty(name=sp.label, default=bool(sp.value),
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
                                                 
             elif sp.gadgettype == 'optionmenu':
                 setattr(new_class, sp.pyname, bpy.props.EnumProperty(name=sp.label, items=optionmenu_to_string(sp.optionmenu),
                                         default=str(int(sp.value)),
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
 
             elif sp.gadgettype == 'floatslider':
                 setattr(new_class, sp.pyname, bpy.props.FloatProperty(name=sp.label, default=sp.value, precision=3,
                                         min=sp.min, max=sp.max, subtype="FACTOR",
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
             elif sp.length == 3:
                 setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3,
                                         min=sp.min, max=sp.max,
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
             else:
                 setattr(new_class, sp.pyname, bpy.props.FloatProperty(name=sp.label, default=sp.value, precision=3,
                                         options=options, description=sp.hint, update=sp.update))
@@ -746,26 +559,28 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
         elif sp.data_type == 'color':
             setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3,
                                         min=sp.min, soft_min=0.0, max=sp.max, soft_max=1.0, subtype="COLOR",
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
         elif sp.data_type == 'string':
             if sp.gadgettype == 'inputfile':
                 setattr(new_class, sp.pyname, bpy.props.StringProperty(name=sp.label, default=sp.value, subtype="FILE_PATH",
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
             else:
                 setattr(new_class, sp.pyname, bpy.props.StringProperty(name=sp.label, default=sp.value,
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
                                         
         elif sp.data_type == 'point':
             setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="TRANSLATION",
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
         
         elif sp.data_type == 'vector':
             setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="XYZ",
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
 
         elif sp.data_type == 'normal':
             setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="EULER",
-                                        options=options, description=sp.hint, update=update_shader_parameter))
+                                        options=options, description=sp.hint, update=sp.update))
+
+        
 
 
 def shader_type_initialised(ptr, shader_type):
