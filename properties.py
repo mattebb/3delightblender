@@ -179,6 +179,55 @@ class RendermanPath(bpy.types.PropertyGroup):
     name = StringProperty(
                 name="", subtype='DIR_PATH')
 
+class RendermanRibBox(bpy.types.PropertyGroup):
+    name = StringProperty( name="Rib Call" )
+
+class RendermanGrouping(bpy.types.PropertyGroup):
+    name = StringProperty( name="Group Name" )
+
+class LightLinking(bpy.types.PropertyGroup):
+    
+    def lights_list_items(self, context):
+        items = [('No light chosen','Choose a light','')]
+        for lamp in bpy.data.lamps:
+            items.append( (lamp.name,lamp.name,'') )
+        return items
+    
+    def update_name( self, context ):
+        self.name =self.light +' '+ self.illuminate
+    
+    light = EnumProperty    (   name="Light", 
+                                update=update_name,
+                                items=lights_list_items
+                            )
+    illuminate = EnumProperty(  name="illuminate",
+                                update=update_name,
+	                            items=[ ('uses its default illumination', 'Inherit', ''),
+								        ('forced ON', 'On', ''),
+								        ('forced OFF', 'Off', '')]
+                             )
+
+
+class TraceSet(bpy.types.PropertyGroup):
+    
+    def groups_list_items(self, context):
+        items = [('No group chosen','Choose a trace set','')]
+        for grp in context.scene.renderman.grouping_membership:
+            items.append( (grp.name,grp.name,'') )
+        return items
+    
+    def update_name( self, context ):
+        self.name = self.mode +' '+ self.group
+    
+    group = EnumProperty    (   name="Group", 
+                                update=update_name,
+                                items=groups_list_items
+                            )
+    mode = EnumProperty(  name="Include/Exclude",
+                                update=update_name,
+	                            items=[ ('included in', 'Include', ''),
+								        ('excluded from', 'Exclude', '')]
+                             )
 
 # hmmm, re-evaluate this idea later...
 class RendermanPass(bpy.types.PropertyGroup):
@@ -407,6 +456,19 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 name="Progressive Rendering",
                 description="Enables progressive rendering. This is only visible with some display drivers (such as idisplay)",
                 default=False)
+	
+    # Rib Box Properties
+    btyRibBox_calls = CollectionProperty(type=RendermanRibBox, name="Beauty-pass RibBox")
+    btyRibBox_index = IntProperty(min=-1, default=-1)
+	
+	
+    bakRibBox_calls = CollectionProperty(type=RendermanRibBox, name="Bake-pass RibBox")
+    bakRibBox_index = IntProperty(min=-1, default=-1)
+    
+	
+	# Trace Sets (grouping membership)
+    grouping_membership = CollectionProperty(type=RendermanGrouping, name="Trace Sets")
+    grouping_membership_index = IntProperty(min=-1, default=-1)
                 
                 
     env_vars = PointerProperty(
@@ -891,6 +953,16 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                 name="Ortho Scale",
                 description="Scale factor for orthographic shadow maps",
                 default=1.0)
+				
+    # Rib Box Properties
+    shdRibBox_calls = CollectionProperty(type=RendermanRibBox, name='Shadow-pass RibBox')
+    shdRibBox_index = IntProperty(min=-1, default=-1)
+	
+	# illuminate
+    illuminates_by_default = BoolProperty(
+                name="Illuminates by default",
+                description="Illuminates by default",
+                default=True)
 
 
 class RendermanMeshPrimVar(bpy.types.PropertyGroup):
@@ -1259,6 +1331,14 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 description="How the object appears to transmission-like rays",
                 items=transmission_items,
                 default=transmission_default)
+	
+	# Light-Linking
+    light_linking = CollectionProperty(type=LightLinking, name='Light Linking')
+    light_linking_index = IntProperty(min=-1, default=-1)
+    
+    # Trace Sets
+    trace_set = CollectionProperty(type=TraceSet, name='Trace Set')
+    trace_set_index = IntProperty(min=-1, default=-1)
 
 # collection of property group classes that need to be registered on module startup
 classes = [atmosphereShaders,
@@ -1268,6 +1348,10 @@ classes = [atmosphereShaders,
             lightShaders,
             RendermanCoshader,
             RendermanPath,
+			RendermanRibBox,
+            RendermanGrouping,
+			LightLinking,
+            TraceSet,
             RendermanPass,
             RendermanMeshPrimVar,
             RendermanParticlePrimVar,

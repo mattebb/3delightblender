@@ -400,7 +400,6 @@ def get_mesh_uv(mesh, name=""):
     else:
         # assuming uv loop layers and uv textures share identical indices
         idx = mesh.uv_textures.keys().index(name)
-        #idx = [i for i, uvtex in enumerate(mesh.uv_textures) if uvtex.name == name][0]
         uv_loop_layer = mesh.uv_layers[idx]
     
     if uv_loop_layer == None:
@@ -676,7 +675,7 @@ def export_light(rpass, scene, file, ob):
     file.write('    TransformEnd\n')
     file.write('    AttributeEnd\n')
     
-    file.write('    Illuminate "%s" 1 \n' % ob.name);
+    file.write('    Illuminate "%s" %d \n' % (ob.name, rm.illuminates_by_default))
     file.write('    \n')
 
 def export_sss_bake(file, rpass, mat):
@@ -1258,10 +1257,30 @@ def export_object(file, rpass, scene, ob, motion):
 
     if rm.export_coordsys:
         file.write('        CoordinateSystem "%s" \n' % ob.name)
+    
+	# Light Linking
+    if rpass.light_shaders:
+        file.write('\n        # Light Linking\n')
+        for light in rm.light_linking:
+            light_name = light.light
+            if is_renderable(scene, scene.objects[light_name]):
+                if light.illuminate.split(' ')[-1] == 'ON':
+                    file.write('        Illuminate "%s" 1 \n' % light_name)
+                elif light.illuminate.split(' ')[-1] == 'OFF':
+                    file.write('        Illuminate "%s" 0 \n' % light_name)
 
+    # Trace Sets
+    file.write('\n        # Trace Sets\n')
+    for set in rm.trace_set:
+        set_name = set.group
+        set_mode = '+'
+        if set.mode.startswith('exclude'):
+            set_mode = '-'
+        file.write('        Attribute "grouping" "string membership" ["%s%s"] \n' % (set_mode,set_name))
+	
     # Transformation
     if ob.name in motion['transformation']:
-        file.write('        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
+        file.write('\n        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
         
         for sample in motion['transformation'][ob.name]:
             file.write('            Transform %s\n' % rib(sample))
@@ -1712,6 +1731,7 @@ def make_ptc_indirect(paths, scene, info_callback):
     
     export_header(file)
     export_searchpaths(file, paths)
+    export_ribBox(file, rpass, scene)
     
     scene.frame_set(scene.frame_current)
     file.write('FrameBegin %d\n\n' % scene.frame_current)
@@ -1776,6 +1796,11 @@ def make_shadowmaps(paths, scene, info_callback):
             file.write('Display "%s" "dsm" "rgbaz" \n\n' % rib_path( paths['shadow_map'], escape_slashes=True ))
         else:
             file.write('Display "%s" "shadowmap" "z" \n\n' % rib_path( paths['shadow_map'], escape_slashes=True ))
+        
+        file.write( '# Shadow Rib Box \n' )
+        for ribCall in rm.shdRibBox_calls:
+            file.write( '%s\n' % ribCall.name )
+        file.write( '\n' )
         
         scene.frame_set(scene.frame_current)
         file.write('FrameBegin %d\n\n' % scene.frame_current)
@@ -1932,7 +1957,22 @@ def export_hider(file, rpass, scene):
     elif rm.hider == 'raytrace':
         file.write('Hider "raytrace" \n')
         file.write('    "int progressive" [%d] \n' % rm.raytrace_progressive)
+	
+	
+def export_ribBox(file, rpass, scene ):
+    rm = scene.renderman
+	
+    if rpass.type == 'ptc_indirect':
+        rbox = rm.bakRibBox_calls
+    elif rpass.type == 'shadowmap':
+        rbox = rm.shdRibBox_calls
+    else:
+        rbox = rm.btyRibBox_calls
 
+    file.write( '\n# RibBox \n' )
+    for ribCall in rbox:
+        file.write( '%s \n' % ribCall.name )
+    file.write( '\n' )
 
 def write_rib(rpass, scene, info_callback):
     info_callback('Generating RIB')
@@ -1947,6 +1987,7 @@ def write_rib(rpass, scene, info_callback):
     
     export_display(file, rpass, scene)
     export_hider(file, rpass, scene)
+    export_ribBox(file, rpass, scene)
     
     scene.frame_set(scene.frame_current)
     file.write('FrameBegin %d\n\n' % scene.frame_current)

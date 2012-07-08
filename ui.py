@@ -283,6 +283,44 @@ class RENDER_PT_renderman_hider(bpy.types.Panel):
             col.prop(rm, "raytrace_progressive")
 
 
+class RENDER_PT_renderman_BtyRibBox(CollectionPanel3dl, bpy.types.Panel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "render"
+    bl_label = "BeautyPass Options RibBox"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    def draw_item(self, layout, context, item):
+        layout.prop(item, "name")
+	
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+        
+        self._draw_collection(context, layout, rm, "Bty RibBox:", "collection.add_remove",
+                                        "scene", "btyRibBox_calls", "btyRibBox_index")
+
+
+class RENDER_PT_renderman_grouping(CollectionPanel3dl, bpy.types.Panel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "render"
+    bl_label = "Trace Sets"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    def draw_item(self, layout, context, item):
+        layout.prop(item, "name")
+	
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+        
+        self._draw_collection(context, layout, rm, "Trace Sets:", "collection.add_remove",
+                                        "scene", "grouping_membership", "grouping_membership_index")
+
+
 class RENDER_PT_3Delight_environment(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -893,6 +931,7 @@ class DATA_PT_3Delight_lamp(ShaderPanel3dl, bpy.types.Panel):
 
         col = split.column()
         col.prop(lamp, "color", text="")
+        col.prop(rm, "illuminates_by_default")
         col.prop(rm, "emit_photons")
         
         col = split.column()
@@ -981,6 +1020,34 @@ class DATA_PT_3Delight_lamp_shadow(bpy.types.Panel):
             
         elif rm.shadow_method == 'RAYTRACED':
             pass
+
+
+
+class DATA_PT_3Delight_lamp_shadow_ribBox(CollectionPanel3dl, bpy.types.Panel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "data"
+    bl_label = "RibBox"
+    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        if rd.engine not in {'3DELIGHT_RENDER'}: return False
+        if not context.lamp: return False
+
+        rm = context.lamp.renderman
+        if not shader_supports_shadowmap(context.scene, rm, 'light'): return False
+        return True
+
+    def draw_item(self, layout, context, item):
+        layout.prop(item, "name")
+
+    def draw(self, context):
+        layout = self.layout
+        rm = context.lamp.renderman
+        
+        self._draw_collection(context, layout, rm, "Shd RibBox:", "collection.add_remove",
+                                        "lamp", "shdRibBox_calls", "shdRibBox_index")
 
 class OBJECT_PT_3Delight_object_geometry(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
@@ -1097,7 +1164,7 @@ class OBJECT_PT_3Delight_object_render_shading(bpy.types.Panel):
         col.prop(rm, "geometric_approx_focus")
 
 
-class OBJECT_PT_3Delight_object_render(bpy.types.Panel):
+class OBJECT_PT_3Delight_object_render(CollectionPanel3dl, bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1108,6 +1175,16 @@ class OBJECT_PT_3Delight_object_render(bpy.types.Panel):
         rd = context.scene.render
         return (context.object and rd.engine in {'3DELIGHT_RENDER'})
 
+    def draw_item(self, layout, context, item):
+        ob = context.object
+        rm = bpy.data.objects[ob.name].renderman
+        ll = rm.light_linking
+        index = rm.light_linking_index
+        
+        col = layout.column()
+        col.prop(item, "group")
+        col.prop(item, "mode")
+        
     def draw(self, context):
         layout = self.layout
         ob = context.object
@@ -1136,6 +1213,43 @@ class OBJECT_PT_3Delight_object_render(bpy.types.Panel):
         col.separator()
         
         col.prop(rm, "matte")
+        
+        col.separator()
+        
+        self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
+                                        "object", "trace_set", "trace_set_index")
+
+class OBJECT_PT_3Delight_object_lightlinking(CollectionPanel3dl, bpy.types.Panel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+    bl_label = "Light Linking"
+    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return (context.object and rd.engine in {'3DELIGHT_RENDER'})
+
+
+    def draw_item(self, layout, context, item):
+        ob = context.object
+        rm = bpy.data.objects[ob.name].renderman
+        ll = rm.light_linking
+        index = rm.light_linking_index
+        
+        col = layout.column()
+        col.prop(item, "light")
+        col.prop(item, "illuminate")
+	
+    def draw(self, context):
+        layout = self.layout
+        ob = context.object
+        rm = ob.renderman
+        scene = context.scene
+        
+        self._draw_collection(context, layout, rm, "Light Link:", "collection.add_remove",
+                                        "object", "light_linking", "light_linking_index")
+
 
 from bl_ui.properties_particle import ParticleButtonsPanel
 
