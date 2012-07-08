@@ -27,8 +27,8 @@
 
 #include "util.h"
 
-#pragma annotation blender_render_shadowmaps "True"
 #pragma annotation shadow_ortho_scale "meta=distant_scale;label=Ortho Scale;hint=Scale of parallel shadow map boundary"
+#pragma annotation shadowmap "meta=shadow_map_path;label=Shadow Map Path;hide=True;"
 #pragma annotation shadowtype "meta=use_shadow_map;label=Shadow Type;"
 
 class

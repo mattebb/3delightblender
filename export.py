@@ -55,6 +55,8 @@ from .shader_parameters import rna_types_initialise
 
 from .shader_parameters import shader_recompile
 
+from .shader_parameters import shader_requires_shadowmap
+
 from .shader_parameters import get_path_list_converted
 from .shader_parameters import path_list_convert
 from .shader_parameters import tex_source_path
@@ -634,12 +636,24 @@ def export_light(rpass, scene, file, ob):
             value = rib(loc)
         elif sp.name == 'to': 
             value = rib(lvec)
+
+
+        elif sp.meta == 'shadow_map_path':
+            if shader_requires_shadowmap(scene, rm, 'light'):
+                path = rib_path(shadowmap_path(scene, ob))
+                print(path)
+                file.write('        "string %s" "%s" \n' % (sp.name, path))
+
+            ''' XXX old shaders
+
+        
         elif sp.name == 'coneangle':
             if hasattr(lamp, "spot_size"):
                 coneangle = lamp.spot_size / 2.0
                 value = rib(coneangle)
             else:
                 value = rib(45)
+        
         elif sp.name in ('shadowmap', 'shadowname', 'shadowmapname'):
             if rm.shadow_method == 'SHADOW_MAP':
                 shadowmapname = rib_path(shadowmap_path(scene, ob))
@@ -648,7 +662,7 @@ def export_light(rpass, scene, file, ob):
                 file.write('        "string %s" ["raytrace"] \n' % sp.name)
             
             continue
-        
+            '''
         # more exceptions, use blender's built in equivalent parameters (eg. spot size)
         elif sp.name in exclude_lamp_params.keys():
             value = rib(getattr(lamp, exclude_lamp_params[sp.name]))
@@ -1665,10 +1679,9 @@ def shadowmap_generate_required(scene, ob):
     
     rm = ob.data.renderman
 
-    for sp in rna_to_shaderparameters(scene, rm, 'light'):
-        if sp.meta == 'use_shadow_map' and sp.value > 0:
-            return True
-
+    if shader_requires_shadowmap(scene, rm, 'light'):
+        return True
+    
     if not ob.data.type in ('SPOT', 'SUN'): return False
     if not rm.shadow_method == 'SHADOW_MAP': return False
     if not rm.shadow_map_generate_auto: return False

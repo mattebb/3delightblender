@@ -146,11 +146,15 @@ def sp_optionmenu_to_string(sp):
 
 
 
-def shader_supports_shadowmap(scene, rm, stype):
-    return len(sp for sp in rna_to_shaderparameters(scene, rm, stype) if sp.meta == 'use_shadow_map') > 0
+def shader_supports_shadowmap(scene, rm, stype):    
+    if len([sp for sp in rna_to_shaderparameters(scene, rm, stype) if sp.meta == 'use_shadow_map']) > 0:
+        return True
+    return False
 
-
-
+def shader_requires_shadowmap(scene, rm, stype):
+    if sum(sp.value for sp in rna_to_shaderparameters(scene, rm, stype) if sp.meta == 'use_shadow_map') > 0:
+        return True
+    return False
 
 
 
@@ -540,7 +544,7 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
                                         options=options, description=sp.hint, update=sp.update))
                                                 
             elif sp.gadgettype == 'optionmenu':
-                setattr(new_class, sp.pyname, bpy.props.EnumProperty(name=sp.label, items=optionmenu_to_string(sp.optionmenu),
+                setattr(new_class, sp.pyname, bpy.props.EnumProperty(name=sp.label, items=sp_optionmenu_to_string(sp),
                                         default=str(int(sp.value)),
                                         options=options, description=sp.hint, update=sp.update))
 

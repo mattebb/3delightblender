@@ -38,7 +38,8 @@ from .shader_parameters import shader_type_initialised
 from .shader_parameters import tex_optimised_path
 from .shader_parameters import tex_source_path
 
-from .export import shadowmap_generate_required
+from .shader_parameters import shader_supports_shadowmap
+from .shader_parameters import shader_requires_shadowmap
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
@@ -918,35 +919,39 @@ class DATA_PT_3Delight_lamp_shadow(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        try:
-            lamp = context.lamp
-            rm = lamp.renderman
-        except:
+        scene = context.scene
+        if rd.engine not in {'3DELIGHT_RENDER'}:
             return False
 
         if not context.lamp: return False
 
-        if rd.engine not in {'3DELIGHT_RENDER'}:
-            return False
-        
+        rm = context.lamp.renderman
+        if not shader_supports_shadowmap(scene, rm, 'light'): return False
+
+        return True
+        '''
         if rm.light_shaders.active == '':
             if lamp.type not in ('SPOT', 'SUN', 'POINT'): return False
         else:
             if rm.light_shaders.active.find('shadow') == -1: return False
         return True
+        '''
 
     def draw(self, context):
         layout = self.layout
-
+        scene = context.scene
         lamp = context.lamp
         ob = context.object
         rm = lamp.renderman
         wide_ui = context.region.width > narrowui
 
-        layout.prop(rm, "shadow_method", expand=True)
+        # layout.prop(rm, "shadow_method", expand=True)
 
-        if shadowmap_generate_required(scene, ob):
-        #if rm.shadow_method == 'SHADOW_MAP':
+
+        # Shadowmap rendering is handled by 3delight/blender.
+        # Shaders can (will) tell the addon whether to
+        # enable this functionality or not
+        if shader_requires_shadowmap(scene, rm, 'light'):
             layout.prop(rm, "shadow_map_generate_auto")
             
             col = layout.column()
@@ -959,7 +964,8 @@ class DATA_PT_3Delight_lamp_shadow(bpy.types.Panel):
                 row = col.row()
                 row.prop(rm, "pixelsamples_x")
                 row.prop(rm, "pixelsamples_y")
-                
+            
+            # XXX TODO remove dependence on blender light types
             if lamp.type == 'SPOT':
                 split = col.split()
                 subcol = split.column()
