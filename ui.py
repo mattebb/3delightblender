@@ -1227,7 +1227,7 @@ class OBJECT_PT_3Delight_object_lightlinking(CollectionPanel, bpy.types.Panel):
         index = rm.light_linking_index
         
         col = layout.column()
-        col.prop(item, "light")
+        col.prop_search(item, "light", bpy.data, "lamps")
         col.prop(item, "illuminate")
 	
     def draw(self, context):

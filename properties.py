@@ -194,18 +194,21 @@ class LightLinking(bpy.types.PropertyGroup):
         return items
     
     def update_name( self, context ):
-        self.name =self.light +' '+ self.illuminate
+        infostr = ('(Default)', '(Forced On)', '(Forced Off)')
+        valstr = ('DEFAULT', 'ON', 'OFF')
+        
+        self.name = "%s %s" % (self.light, infostr[valstr.index(self.illuminate)])
     
-    light = EnumProperty    (   name="Light", 
-                                update=update_name,
-                                items=lights_list_items
-                            )
-    illuminate = EnumProperty(  name="illuminate",
-                                update=update_name,
-	                            items=[ ('uses its default illumination', 'Inherit', ''),
-								        ('forced ON', 'On', ''),
-								        ('forced OFF', 'Off', '')]
-                             )
+    light = StringProperty(
+                name="Light",
+                update=update_name )
+
+    illuminate = EnumProperty(
+                name="Illuminate",
+                update=update_name,
+                items=[ ('DEFAULT', 'Default', ''),
+				        ('ON', 'On', ''),
+				        ('OFF', 'Off', '')] )
 
 
 class TraceSet(bpy.types.PropertyGroup):
