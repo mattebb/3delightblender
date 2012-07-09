@@ -99,6 +99,130 @@ for member in dir(properties_particle):
 del properties_particle
 
 
+
+# ------- Subclassed Panel Types -------
+
+
+class CollectionPanel():
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return (rd.engine in {'3DELIGHT_RENDER'})
+
+    def _draw_collection(self, context, layout, ptr, name, operator, opcontext, prop_coll, collection_index):
+        layout.label(name)
+        row = layout.row()
+        row.template_list(ptr, prop_coll, ptr, collection_index, rows=1)
+        col = row.column(align=True)
+        
+        op = col.operator(operator, icon="ZOOMIN", text="")
+        op.context = opcontext
+        op.collection = prop_coll
+        op.collection_index = collection_index
+        op.defaultname = ''
+        op.action = 'ADD'
+        
+        op = col.operator(operator, icon="ZOOMOUT", text="")
+        op.context = opcontext
+        op.collection = prop_coll
+        op.collection_index = collection_index
+        op.action = 'REMOVE'
+        
+        if hasattr(ptr, prop_coll) and len(getattr(ptr, prop_coll)) > 0 and getattr(ptr, collection_index) >= 0:
+            item = getattr(ptr, prop_coll)[getattr(ptr, collection_index)]
+            self.draw_item(layout, context, item)
+
+
+
+class InlineRibPanel(CollectionPanel, bpy.types.Panel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_label = "Inline RIB"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    def draw_item(self, layout, context, item):
+        layout.prop_search(item, "name", bpy.data, "texts")
+
+
+class ShaderPanel():
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    COMPAT_ENGINES = {'3DELIGHT_RENDER'}
+    
+    shader_type = 'surface'
+    param_exclude = {}
+    
+    def found_shaders(self, context, rm):
+        # pretty much guaranteed to have at least one surface shader...? weak
+        return len(rm.surface_shaders.surface_shader_list_items(context)) > 3
+
+    def _draw_shader_menu_params(self, layout, context, ptr):
+        if not self.found_shaders(context, ptr):
+            layout.label("Loading Shaders...")
+            return
+
+        row = layout.row()
+        shaders = getattr(ptr, "%s_shaders" % self.shader_type)
+        
+        row.prop(shaders, "shader_list", text="")
+        
+        if shaders.shader_list == "custom":
+            row.prop(shaders, "active", text="")
+        op = row.operator("shading.refresh_shader_parameters", text="", icon='FILE_REFRESH')
+        op.shader_type = self.shader_type
+        op.initialise_all = True
+
+        layout.separator()
+        
+        self._draw_params(context.scene, ptr, layout)
+    
+    def _draw_params(self, scene, ptr, layout):
+
+        # First update the stored parameters if they don't exist or are new
+        if not shader_type_initialised(ptr, self.shader_type):
+            op = layout.operator("shading.refresh_shader_parameters", text="Init Shader Parameters", icon='ZOOMIN')
+            op.shader_type = self.shader_type
+            op.initialise_all = True
+            return
+
+        # Find the pointer to the shader parameters
+        stored_shaders = getattr(ptr, "%s_shaders" % self.shader_type)
+        sptr = get_shader_pointerproperty(ptr, self.shader_type)
+        
+        # Iterate and display all parameters stored for this shader
+        for sp in rna_to_shaderparameters(scene, ptr, self.shader_type):
+            if sp.name not in self.param_exclude.keys():
+                row = layout.row()
+                row.prop(sptr, sp.pyname)
+                
+                if sp.data_type == 'string' and sp.gadgettype != 'optionmenu':
+                    # check to see if it's a texture already
+                    if getattr(sptr, sp.pyname) in [tex.name for tex in bpy.data.textures]:
+                        op = row.operator("texture.convert_to_texture", text="", icon='TEXTURE')
+                    else:
+                        op = row.operator("texture.convert_to_texture", text="", icon='ZOOMIN')
+                    op.propname = sp.pyname
+                    op.shader_type = self.shader_type
+    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+      
+        if cls.bl_context == 'data' and cls.shader_type == 'light':
+            return (hasattr(context, "lamp") and context.lamp != None and rd.engine in {'3DELIGHT_RENDER'})
+        elif cls.bl_context == 'world':
+            return (hasattr(context, "world") and context.world != None and rd.engine in {'3DELIGHT_RENDER'})
+        elif cls.bl_context == 'material':
+            return (hasattr(context, "material") and context.material != None and rd.engine in {'3DELIGHT_RENDER'})
+
+
+
+
+
+
 # ------- UI panel definitions -------
 
 
@@ -163,40 +287,7 @@ class RENDER_PT_3Delight_sampling(bpy.types.Panel):
         scol.prop(rm, "shutter_efficiency_open")
         scol.prop(rm, "shutter_efficiency_close")
 
-class CollectionPanel3dl():
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return (rd.engine in {'3DELIGHT_RENDER'})
-
-    def _draw_collection(self, context, layout, ptr, name, operator, opcontext, prop_coll, collection_index):
-        layout.label(name)
-        row = layout.row()
-        row.template_list(ptr, prop_coll, ptr, collection_index, rows=1)
-        col = row.column(align=True)
-        
-        op = col.operator(operator, icon="ZOOMIN", text="")
-        op.context = opcontext
-        op.collection = prop_coll
-        op.collection_index = collection_index
-        op.defaultname = ''
-        op.action = 'ADD'
-        
-        op = col.operator(operator, icon="ZOOMOUT", text="")
-        op.context = opcontext
-        op.collection = prop_coll
-        op.collection_index = collection_index
-        op.action = 'REMOVE'
-        
-        if hasattr(ptr, prop_coll) and len(getattr(ptr, prop_coll)) > 0 and getattr(ptr, collection_index) >= 0:
-            item = getattr(ptr, prop_coll)[getattr(ptr, collection_index)]
-            self.draw_item(layout, context, item)
-
-
-class MESH_PT_3Delight_prim_vars(CollectionPanel3dl, bpy.types.Panel):
+class MESH_PT_3Delight_prim_vars(CollectionPanel, bpy.types.Panel):
     bl_context = "data"
     bl_label = "Primitive Variables"
 
@@ -282,27 +373,17 @@ class RENDER_PT_renderman_hider(bpy.types.Panel):
             col.active = rm.display_driver == 'idisplay'
             col.prop(rm, "raytrace_progressive")
 
-
-class RENDER_PT_renderman_BtyRibBox(CollectionPanel3dl, bpy.types.Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
+class RENDER_PT_inlineRIB(InlineRibPanel, bpy.types.Panel):
     bl_context = "render"
-    bl_label = "BeautyPass Options RibBox"
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_label = "Inline RIB"
     
-    def draw_item(self, layout, context, item):
-        layout.prop(item, "name")
-	
     def draw(self, context):
         layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-        
-        self._draw_collection(context, layout, rm, "Bty RibBox:", "collection.add_remove",
-                                        "scene", "btyRibBox_calls", "btyRibBox_index")
+        self._draw_collection(context, layout, context.scene.renderman, 
+                                        "Inline RIB:", "collection.add_remove",
+                                        "scene", "bty_inlinerib_texts", "bty_inlinerib_index")    
 
-
-class RENDER_PT_renderman_grouping(CollectionPanel3dl, bpy.types.Panel):
+class RENDER_PT_renderman_grouping(CollectionPanel, bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "render"
@@ -339,7 +420,7 @@ class RENDER_PT_3Delight_environment(bpy.types.Panel):
         layout.prop(env, "ptc")
         layout.prop(env, "arc")
 
-class RENDER_PT_3Delight_paths(CollectionPanel3dl, bpy.types.Panel):
+class RENDER_PT_3Delight_paths(CollectionPanel, bpy.types.Panel):
     bl_context = "render"
     bl_label = "Search Paths"
     bl_options = {'DEFAULT_CLOSED'}
@@ -447,96 +528,9 @@ class RENDER_PT_3Delight_performance(bpy.types.Panel):
         col.prop(rm, "max_eye_splits")
         col.prop(rm, "trace_approximation")
         #col.prop(rm, "recompile_shaders")
-        
-
-class ShaderPanel3dl():
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    COMPAT_ENGINES = {'3DELIGHT_RENDER'}
-    
-    shader_type = 'surface'
-    param_exclude = {}
-    
-    
-    
-    def found_shaders(self, context, rm):
-        # pretty much guaranteed to have at least one surface shader...? weak
-        return len(rm.surface_shaders.surface_shader_list_items(context)) > 3
-        
-        '''
-        if self.shader_type == 'surface':
-            return len(rm.surface_shaders.surface_shader_list_items(context)) > 3
-        elif self.shader_type == 'displacement':
-            return len(rm.displacement_shaders.displacement_shader_list_items(context)) > 3
-        elif self.shader_type == 'interior':
-            return len(rm.interior_shaders.interior_shader_list_items(context)) > 3
-        else:
-            return False
-        '''
-    
-    def _draw_shader_menu_params(self, layout, context, ptr):
-        if not self.found_shaders(context, ptr):
-            layout.label("Loading Shaders...")
-            return
-
-        row = layout.row()
-        shaders = getattr(ptr, "%s_shaders" % self.shader_type)
-        
-        row.prop(shaders, "shader_list", text="")
-        
-        if shaders.shader_list == "custom":
-            row.prop(shaders, "active", text="")
-        op = row.operator("shading.refresh_shader_parameters", text="", icon='FILE_REFRESH')
-        op.shader_type = self.shader_type
-        op.initialise_all = True
-
-        layout.separator()
-        
-        self._draw_params(context.scene, ptr, layout)
-    
-    def _draw_params(self, scene, ptr, layout):
-
-        # First update the stored parameters if they don't exist or are new
-
-        if not shader_type_initialised(ptr, self.shader_type):
-            op = layout.operator("shading.refresh_shader_parameters", text="Init Shader Parameters", icon='ZOOMIN')
-            op.shader_type = self.shader_type
-            op.initialise_all = True
-            return
-
-        # Find the pointer to the shader parameters
-        stored_shaders = getattr(ptr, "%s_shaders" % self.shader_type)
-        sptr = get_shader_pointerproperty(ptr, self.shader_type)
-        
-        # Iterate and display all parameters stored for this shader
-        for sp in rna_to_shaderparameters(scene, ptr, self.shader_type):
-            if sp.name not in self.param_exclude.keys():
-                row = layout.row()
-                row.prop(sptr, sp.pyname)
-                
-                if sp.data_type == 'string' and sp.gadgettype != 'optionmenu':
-                    # check to see if it's a texture already
-                    if getattr(sptr, sp.pyname) in [tex.name for tex in bpy.data.textures]:
-                        op = row.operator("texture.convert_to_texture", text="", icon='TEXTURE')
-                    else:
-                        op = row.operator("texture.convert_to_texture", text="", icon='ZOOMIN')
-                    op.propname = sp.pyname
-                    op.shader_type = self.shader_type
-    
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-      
-        if cls.bl_context == 'data' and cls.shader_type == 'light':
-            return (hasattr(context, "lamp") and context.lamp != None and rd.engine in {'3DELIGHT_RENDER'})
-        elif cls.bl_context == 'world':
-            return (hasattr(context, "world") and context.world != None and rd.engine in {'3DELIGHT_RENDER'})
-        elif cls.bl_context == 'material':
-            return (hasattr(context, "material") and context.material != None and rd.engine in {'3DELIGHT_RENDER'})
 
 
-
-class WORLD_PT_3Delight_integrator(ShaderPanel3dl, bpy.types.Panel):
+class WORLD_PT_3Delight_integrator(ShaderPanel, bpy.types.Panel):
     bl_context = "world"
     bl_label = "Integrator"
     shader_type = 'surface'
@@ -595,7 +589,7 @@ class MATERIAL_PT_3Delight_preview(bpy.types.Panel):
         
 
 
-class MATERIAL_PT_3Delight_shader_surface(ShaderPanel3dl, bpy.types.Panel):
+class MATERIAL_PT_3Delight_shader_surface(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Surface Shader"
     shader_type = 'surface'
@@ -614,7 +608,7 @@ class MATERIAL_PT_3Delight_shader_surface(ShaderPanel3dl, bpy.types.Panel):
         self._draw_shader_menu_params(layout, context, rm)
         
         
-class MATERIAL_PT_3Delight_shader_displacement(ShaderPanel3dl, bpy.types.Panel):
+class MATERIAL_PT_3Delight_shader_displacement(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Displacement Shader"
     shader_type = 'displacement'
@@ -625,7 +619,7 @@ class MATERIAL_PT_3Delight_shader_displacement(ShaderPanel3dl, bpy.types.Panel):
         rm = mat.renderman
         self._draw_shader_menu_params(layout, context, rm)
 
-class MATERIAL_PT_3Delight_shader_interior(ShaderPanel3dl, bpy.types.Panel):
+class MATERIAL_PT_3Delight_shader_interior(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Interior"
     shader_type = 'interior'
@@ -637,7 +631,7 @@ class MATERIAL_PT_3Delight_shader_interior(ShaderPanel3dl, bpy.types.Panel):
         rm = mat.renderman
         self._draw_shader_menu_params(layout, context, rm)
 
-class MATERIAL_PT_3Delight_shader_atmosphere(ShaderPanel3dl, bpy.types.Panel):
+class MATERIAL_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Atmosphere"
     shader_type = 'atmosphere'
@@ -650,7 +644,7 @@ class MATERIAL_PT_3Delight_shader_atmosphere(ShaderPanel3dl, bpy.types.Panel):
         self._draw_shader_menu_params(layout, context, rm)
 
 
-class MATERIAL_PT_3Delight_shader_coshaders(ShaderPanel3dl, bpy.types.Panel):
+class MATERIAL_PT_3Delight_shader_coshaders(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Co-Shaders"
     shader_type = 'surface'
@@ -687,7 +681,7 @@ class MATERIAL_PT_3Delight_shader_coshaders(ShaderPanel3dl, bpy.types.Panel):
             
         
 
-class WORLD_PT_3Delight_shader_atmosphere(ShaderPanel3dl, bpy.types.Panel):
+class WORLD_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "world"
@@ -902,7 +896,7 @@ class TEXTURE_PT_3Delight_image_generate(TexturePanel3dl, bpy.types.Panel):
         col.operator("texture.generate_optimised", text="Generate Now", icon='FILE_IMAGE')
 
 
-class DATA_PT_3Delight_lamp(ShaderPanel3dl, bpy.types.Panel):
+class DATA_PT_3Delight_lamp(ShaderPanel, bpy.types.Panel):
     bl_context = "data"
     bl_label = "Lamp"
     shader_type = 'light'
@@ -1023,11 +1017,9 @@ class DATA_PT_3Delight_lamp_shadow(bpy.types.Panel):
 
 
 
-class DATA_PT_3Delight_lamp_shadow_ribBox(CollectionPanel3dl, bpy.types.Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
+class DATA_PT_3Delight_lamp_shadow_ribBox(InlineRibPanel, bpy.types.Panel):
     bl_context = "data"
-    bl_label = "RibBox"
+    bl_label = "Shadow Map Inline RIB"
     
     @classmethod
     def poll(cls, context):
@@ -1039,15 +1031,12 @@ class DATA_PT_3Delight_lamp_shadow_ribBox(CollectionPanel3dl, bpy.types.Panel):
         if not shader_supports_shadowmap(context.scene, rm, 'light'): return False
         return True
 
-    def draw_item(self, layout, context, item):
-        layout.prop(item, "name")
 
     def draw(self, context):
         layout = self.layout
-        rm = context.lamp.renderman
-        
-        self._draw_collection(context, layout, rm, "Shd RibBox:", "collection.add_remove",
-                                        "lamp", "shdRibBox_calls", "shdRibBox_index")
+        self._draw_collection(context, layout, context.lamp.renderman, 
+                                        "Inline RIB:", "collection.add_remove",
+                                        "lamp", "shd_inlinerib_texts", "shd_inlinerib_index")
 
 class OBJECT_PT_3Delight_object_geometry(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
@@ -1164,7 +1153,7 @@ class OBJECT_PT_3Delight_object_render_shading(bpy.types.Panel):
         col.prop(rm, "geometric_approx_focus")
 
 
-class OBJECT_PT_3Delight_object_render(CollectionPanel3dl, bpy.types.Panel):
+class OBJECT_PT_3Delight_object_render(CollectionPanel, bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1219,7 +1208,7 @@ class OBJECT_PT_3Delight_object_render(CollectionPanel3dl, bpy.types.Panel):
         self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
                                         "object", "trace_set", "trace_set_index")
 
-class OBJECT_PT_3Delight_object_lightlinking(CollectionPanel3dl, bpy.types.Panel):
+class OBJECT_PT_3Delight_object_lightlinking(CollectionPanel, bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1289,7 +1278,7 @@ class PARTICLE_PT_3Delight_particle(ParticleButtonsPanel, bpy.types.Panel):
         subcol.prop(rm, "width")
 
 
-class PARTICLE_PT_3Delight_prim_vars(CollectionPanel3dl, bpy.types.Panel):
+class PARTICLE_PT_3Delight_prim_vars(CollectionPanel, bpy.types.Panel):
     bl_context = "particle"
     bl_label = "Primitive Variables"
 

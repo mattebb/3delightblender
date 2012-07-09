@@ -179,9 +179,9 @@ class RendermanPath(bpy.types.PropertyGroup):
     name = StringProperty(
                 name="", subtype='DIR_PATH')
 
-class RendermanRibBox(bpy.types.PropertyGroup):
-    name = StringProperty( name="Rib Call" )
-
+class RendermanInlineRIB(bpy.types.PropertyGroup):
+    name = StringProperty( name="Text Block" )
+    
 class RendermanGrouping(bpy.types.PropertyGroup):
     name = StringProperty( name="Group Name" )
 
@@ -458,12 +458,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 default=False)
 	
     # Rib Box Properties
-    btyRibBox_calls = CollectionProperty(type=RendermanRibBox, name="Beauty-pass RibBox")
-    btyRibBox_index = IntProperty(min=-1, default=-1)
+    bty_inlinerib_texts = CollectionProperty(type=RendermanInlineRIB, name="Beauty-pass Inline RIB")
+    bty_inlinerib_index = IntProperty(min=-1, default=-1)
 	
 	
-    bakRibBox_calls = CollectionProperty(type=RendermanRibBox, name="Bake-pass RibBox")
-    bakRibBox_index = IntProperty(min=-1, default=-1)
+    bak_inlinerib_texts = CollectionProperty(type=RendermanInlineRIB, name="Bake-pass Inline RIB")
+    bak_inlinerib_index = IntProperty(min=-1, default=-1)
     
 	
 	# Trace Sets (grouping membership)
@@ -955,8 +955,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                 default=1.0)
 				
     # Rib Box Properties
-    shdRibBox_calls = CollectionProperty(type=RendermanRibBox, name='Shadow-pass RibBox')
-    shdRibBox_index = IntProperty(min=-1, default=-1)
+    shd_inlinerib_texts = CollectionProperty(type=RendermanInlineRIB, name='Shadow map pass Inline RIB')
+    shd_inlinerib_index = IntProperty(min=-1, default=-1)
 	
 	# illuminate
     illuminates_by_default = BoolProperty(
@@ -1348,7 +1348,7 @@ classes = [atmosphereShaders,
             lightShaders,
             RendermanCoshader,
             RendermanPath,
-			RendermanRibBox,
+			RendermanInlineRIB,
             RendermanGrouping,
 			LightLinking,
             TraceSet,

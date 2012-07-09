@@ -287,7 +287,35 @@ class SCREEN_OT_blocking_render(bpy.types.Operator):
     def execute(self, context):
         bpy.ops.render.render(animation=self.properties.animation)
         return {'FINISHED'}
-        
+
+'''
+class TEXT_OT_add_inline_rib(bpy.types.Operator):
+    """
+    This operator is only intended for when there are no
+    blender text datablocks in the file. Just for convenience
+    """
+    bl_label = "Add New"
+    bl_idname = "text.add_inline_rib"
+
+    context = StringProperty(
+                name="Context",
+                description="Name of context member to find renderman pointer in",
+                default="")
+    collection = StringProperty(
+                name="Collection",
+                description="The collection to manipulate",
+                default="")
+
+    def execute(self, context):
+        if len(bpy.data.texts) > 0:
+            return {'CANCELLED'}
+        bpy.data.texts.new(name="Inline RIB")
+
+        id = getattr_recursive(context, self.properties.context)
+        rm = id.renderman
+        collection = getattr(rm, prop_coll)
+'''
+
 # ### Yuck, this should be built in to blender...
 class COLLECTION_OT_add_remove(bpy.types.Operator):
     bl_label = "Add or Remove Paths"
