@@ -1731,7 +1731,7 @@ def make_ptc_indirect(paths, scene, info_callback):
     
     export_header(file)
     export_searchpaths(file, paths)
-    export_ribBox(file, rpass, scene)
+    export_inline_rib(file, rpass, scene)
     
     scene.frame_set(scene.frame_current)
     file.write('FrameBegin %d\n\n' % scene.frame_current)
@@ -1797,10 +1797,8 @@ def make_shadowmaps(paths, scene, info_callback):
         else:
             file.write('Display "%s" "shadowmap" "z" \n\n' % rib_path( paths['shadow_map'], escape_slashes=True ))
         
-        file.write( '# Shadow Rib Box \n' )
-        for ribCall in rm.shdRibBox_calls:
-            file.write( '%s\n' % ribCall.name )
-        file.write( '\n' )
+
+        export_inline_rib(file, rpass, scene, lamp=ob.data)
         
         scene.frame_set(scene.frame_current)
         file.write('FrameBegin %d\n\n' % scene.frame_current)
@@ -1959,19 +1957,24 @@ def export_hider(file, rpass, scene):
         file.write('    "int progressive" [%d] \n' % rm.raytrace_progressive)
 	
 	
-def export_ribBox(file, rpass, scene ):
+def export_inline_rib(file, rpass, scene, lamp=None ):
     rm = scene.renderman
 	
-    if rpass.type == 'ptc_indirect':
-        rbox = rm.bakRibBox_calls
-    elif rpass.type == 'shadowmap':
-        rbox = rm.shdRibBox_calls
+    if lamp != None and rpass.type == 'shadowmap':
+        rm = lamp.renderman
+        txts = rm.shd_inlinerib_texts
+    elif rpass.type == 'ptc_indirect':
+        txts = rm.bak_inlinerib_texts
     else:
-        rbox = rm.btyRibBox_calls
+        txts = rm.bty_inlinerib_texts
 
-    file.write( '\n# RibBox \n' )
-    for ribCall in rbox:
-        file.write( '%s \n' % ribCall.name )
+    file.write( '\n# Inline RIB \n' )
+
+    for txt in txts:
+        textblock = bpy.data.texts[txt.name]
+        for l in textblock.lines:
+            file.write( '%s \n' % l.body )    
+
     file.write( '\n' )
 
 def write_rib(rpass, scene, info_callback):
@@ -1987,7 +1990,7 @@ def write_rib(rpass, scene, info_callback):
     
     export_display(file, rpass, scene)
     export_hider(file, rpass, scene)
-    export_ribBox(file, rpass, scene)
+    export_inline_rib(file, rpass, scene)
     
     scene.frame_set(scene.frame_current)
     file.write('FrameBegin %d\n\n' % scene.frame_current)
