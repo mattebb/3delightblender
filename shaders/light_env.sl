@@ -171,24 +171,6 @@ light_env(
             precompute1d(col, nv, i, pdfv, cdfv, colsum[i]);
         }
         precompute1d(colsum, nu, 0, pdfu, cdfu, sum);
-
-        // sample
-        uniform float npt = 64;
-        resize(pts, npt);
-        for (i=0; i<npt; i+=1) {
-            uniform float r1 = random();
-            uniform float r2 = random();
-            uniform float su=0, sv=0;
-            uniform float pu=0, pv=0;
-            
-            sample1d(pdfu, cdfu, 0,            nu, r1, su, pu);
-            sample1d(pdfv, cdfv, floor(su*nu), nv, r2, sv, pv);
-
-            uniform float vi = floor(sv*nv);
-            uniform float pdf = (pu * pv) / (2*PI*PI*sin(PI * (sv/nv)));
-            uniform point p = point(su, sv, pdf);
-            pts[i] = p;
-        }        
     }
 
 
