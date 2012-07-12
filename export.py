@@ -1701,10 +1701,12 @@ def shadowmap_generate_required(scene, ob):
     if shader_requires_shadowmap(scene, rm, 'light'):
         return True
     
+    '''
     if not ob.data.type in ('SPOT', 'SUN'): return False
     if not rm.shadow_method == 'SHADOW_MAP': return False
     if not rm.shadow_map_generate_auto: return False
-    return True
+    '''
+    return False
 
 
 def make_ptc_indirect(paths, scene, info_callback):
