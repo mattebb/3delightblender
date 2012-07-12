@@ -41,15 +41,24 @@ class integrator(
 
     color visibility(point Pt; vector V; shader lgt;) //float shadowtype; string shadowmap;)
     {
-        color Cv;
-        uniform string smap = lgt->shadowmap;
-        uniform float stype = lgt->shadowtype;
+        color Cv=0;
+        uniform float stype;
+        uniform float has_stype = getvar(lgt, "shadowtype", stype);
+
+        if (has_stype == 0) stype = 0;
 
         if (stype == 0) {  // raytrace
             Cv = transmission(Pt, Pt+V);
         }
         else if (stype == 1) { // shadow map
-            Cv = color(1) - shadow(smap, Pt);
+            uniform string smap;
+            uniform float has_smap = getvar(lgt, "shadowmap", smap);
+
+            if (has_smap)
+                Cv = color(1) - shadow(smap, Pt);
+        }
+        else {          // handled by lamp
+            return lgt->getshadow();
         }
         return Cv;
     }
@@ -172,9 +181,13 @@ class integrator(
                         float dot_i = normalize(_l_L[s]) . Ns;
                         
                         varying float weight;
-                        if (sample_lamp == 1 && sample_brdf == 0)
+                        uniform float has_isdelta;
+                        uniform float isdelta;
+                        has_isdelta = getvar(lights[i], "isdelta", isdelta);
+
+                        if (isdelta == 1)
                             weight = 1;
-                        if (lights[i]->isdelta == 1)
+                        if (sample_lamp == 1 && sample_brdf == 0)
                             weight = 1;
                         else
                             weight = power(1, _l_pdf[s], 1, _l_bsdf_pdf[s]);
