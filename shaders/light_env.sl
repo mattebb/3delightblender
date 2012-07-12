@@ -35,8 +35,8 @@ light_env(
         uniform color lightcolor = 1;
         uniform float samples = 16;
         uniform string texturename = "";
-        uniform float nu=32;
-        uniform float nv=16;
+        uniform float nu=512;
+        uniform float nv=256;
        )
        
 {
