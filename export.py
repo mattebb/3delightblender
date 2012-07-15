@@ -1528,6 +1528,8 @@ def render_get_aspect(r, camera=None):
         aspectratio= yratio/xratio;
         xaspect= 1.0;
         yaspect= aspectratio;
+    else:
+        aspectratio = xaspect = yaspect = 1.0
         
     return xaspect, yaspect, aspectratio
 
@@ -1916,7 +1918,7 @@ def write_preview_rib(rpass, scene):
     export_render_settings_preview(file, rpass, scene)
 
     file.write('WorldBegin\n\n')
-
+    
     # preview scene: walls, lights
     file.write('        ReadArchive "%s" \n\n' % preview_rib_data_path)
     
@@ -2011,7 +2013,7 @@ def write_rib(rpass, scene, info_callback):
     #export_global_illumination_settings(file, rpass, scene)
     
     file.write('WorldBegin\n\n')
-
+    
     #export_global_illumination_lights(file, rpass, scene)
     export_integrator(file, rpass, scene)
     export_scene_lights(file, rpass, scene)
