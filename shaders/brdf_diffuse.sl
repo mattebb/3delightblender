@@ -29,9 +29,9 @@
 
 
 class brdf_diffuse (
-
                   string texturename = "";
-                  float Kd = 0.5;)
+                  float Kd = 0.5;
+                  )
 {
     public constant string type = "DIFFUSE";
     
@@ -102,9 +102,7 @@ class brdf_diffuse (
         shader int = getshader("inte");
         uniform string shadername = "brdf_diffuse";
         int->integrate(Ci, Oi, shadername);
-
-        //Ci = color(1,0,0);
-
+        
         // Set Ci and Oi
         Ci *= Os;
         Oi = Os;
