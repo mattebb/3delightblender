@@ -224,12 +224,14 @@ shadingnormal(normal N)
 {
     extern vector I;
     normal Ns = normalize(N);
+    /*
     uniform float sides = 2;
     uniform float raydepth;
     attribute("Sides", sides);
     rayinfo("depth", raydepth);
     if (sides == 2 || raydepth > 0)
         Ns = faceforward(Ns, I, Ns);
+    */
     return Ns;
 }
 
