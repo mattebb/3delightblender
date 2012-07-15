@@ -1509,17 +1509,22 @@ def render_get_resolution(r):
     return xres, yres
 
 
-def render_get_aspect(r):
+def render_get_aspect(r, camera=None):
     xres, yres = render_get_resolution(r)
     
     xratio= xres*r.pixel_aspect_x/200.0
     yratio= yres*r.pixel_aspect_y/200.0
 
-    if xratio > yratio:
+    if camera == None or camera.type != 'PERSP':
+        fit = 'AUTO'
+    else:
+        fit = camera.sensor_fit
+    
+    if fit == 'HORIZONTAL' or fit == 'AUTO' and xratio > yratio:
         aspectratio= xratio/yratio
         xaspect= aspectratio
         yaspect= 1.0
-    else:
+    elif fit == 'VERTICAL' or fit == 'AUTO' and yratio > xratio:
         aspectratio= yratio/xratio;
         xaspect= 1.0;
         yaspect= aspectratio;
@@ -1585,30 +1590,34 @@ def export_camera(file, scene, motion):
         
     r = scene.render
     ob = scene.camera    
-    camera = ob.data
+    cam = ob.data
     rm = scene.renderman
     
-    xaspect, yaspect, aspectratio = render_get_aspect(r)
+    xaspect, yaspect, aspectratio = render_get_aspect(r, cam)
     
     if rm.depth_of_field:
-        if camera.dof_object:
-            dof_distance = (ob.location - camera.dof_object.location).length
+        if cam.dof_object:
+            dof_distance = (ob.location - cam.dof_object.location).length
         else:
-            dof_distance = camera.dof_distance
+            dof_distance = cam.dof_distance
         file.write('DepthOfField %f 1.0 %f\n' % (rm.fstop, dof_distance))
         
     if scene.renderman.motion_blur:
         file.write('Shutter %f %f\n' % (rm.shutter_open, rm.shutter_close))
         file.write('Option "shutter" "efficiency" [ %f %f ] \n' % (rm.shutter_efficiency_open, rm.shutter_efficiency_close))
 
-    file.write('Clipping %f %f\n' % (camera.clip_start, camera.clip_end))
+    file.write('Clipping %f %f\n' % (cam.clip_start, cam.clip_end))
     
-    if camera.type == 'PERSP':
-        lens= camera.lens
-        fov= 360.0*math.atan(16.0/lens/aspectratio)/math.pi
+    if cam.type == 'PERSP':
+        lens= cam.lens
+        
+        sensor = cam.sensor_height if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+
+        fov= 360.0*math.atan((sensor*0.5)/lens/aspectratio)/math.pi
+
         file.write('Projection "perspective" "fov" %f\n' % fov)
     else:
-        lens= camera.ortho_scale
+        lens= cam.ortho_scale
         xaspect= xaspect*lens/(aspectratio*2.0)
         yaspect= yaspect*lens/(aspectratio*2.0)
         file.write('Projection "orthographic"\n')
