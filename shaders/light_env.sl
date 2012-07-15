@@ -33,7 +33,6 @@ class
 light_env(
     uniform float intensity = 1;
     uniform color lightcolor = 1;
-    uniform float samples = 16;
     uniform string texturename = "";
     uniform float nu=512;
     uniform float nv=256;
@@ -252,7 +251,7 @@ light_env(
                 //    l[2] *= -1 ;
 
                 _L[s] = align_ortho(l, Ns, dPdu );
-                _pdf[s] = (_L[s] . Ns) / (2*PI);
+                _pdf[s] = (_L[s] . Ns) / PI;    //(2*PI)
                 _L[s] *= SCENE_BOUNDS;
 
                 _Li[s] = lightcolor * intensity;
