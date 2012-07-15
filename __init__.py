@@ -32,7 +32,7 @@ bl_info = {
     "description": "3Delight (renderman) integration",
     "warning": "",
     "wiki_url": "http://mattebb.com/3delightblender/",
-    "tracker_url": "http://mattebb.com/3delightblender/",
+    "tracker_url": "https://github.com/mattebb/3delightblender",
     "category": "Render"}
 
 if "bpy" in locals():
