@@ -27,19 +27,26 @@
 
 #pragma annotation visibility "False"
 
+#pragma annotation sample_light "gadgettype=checkbox;label=Sample Lights;"
+#pragma annotation sample_bsdf "gadgettype=checkbox;label=Sample BSDF;"
+
 #include "util.h"
 
 class integrator(
-    float minsamples = 16;
-    float maxsamples = 32;
-    float diffuse_bounces = 0;
+            uniform float minsamples = 16;
+            uniform float maxsamples = 32;
+            uniform float diffuse_bounces = 0;
+            uniform float specular_bounces = 0;
+            uniform float transmission_bounces = 0;
+            uniform float sample_light = 1;
+            uniform float sample_bsdf = 1;
     )
 {
     /* to get parameters picked up */
     public void surface(output color Ci, Oi) { }
 
 
-    color visibility(point Pt; vector V; shader lgt;) //float shadowtype; string shadowmap;)
+    color visibility(point Pt; vector V; shader lgt;)
     {
         color Cv=0;
         uniform float stype;
@@ -118,20 +125,21 @@ class integrator(
 
         shader shd = getshader(shadername);
 
-        if (ray_depth > 2)
-            return;
-
         varying float area = area(transform("raster", P), "dicing");
 
-#if 1
                    
-        float sample_lamp = 1;
-        float sample_brdf = 1;
+        float mis_sample_light = sample_light;
+        float mis_sample_bsdf = sample_bsdf;
         if (shd->type == "DIFFUSE")
-            sample_brdf = 0;
+            mis_sample_bsdf = 0;
+        else if (shd->type == "SPECULAR")
+            mis_sample_light = 0;
 
         uniform float nsamples=maxsamples;
         varying float max_samples = clamp((nsamples*area), minsamples, nsamples);
+
+        if (ray_depth > 0 )
+                max_samples = nsamples = 1;
 
         varying float samples[max_samples];
 
@@ -139,26 +147,19 @@ class integrator(
         for (i = 0; i < nlights; i += 1) {
             CLi = 0;
             
-            if (ray_depth > 0 )
-                max_samples = nsamples = 1;
-
-            if (sample_lamp ==1 ) {
-            lights[i]->light(L, Cl, Ns, _l_Li, _l_L, _l_pdf, "nsamp", nsamples);
-            shd->eval_bsdf(Ns, wo, _l_L, nsamples, _l_bsdf_f, _l_bsdf_pdf);
-            //lights[i]->visibility(P, _l_L, _l_pdf, _l_Li, nsamples, _l_vis);
+            if (mis_sample_light == 1 ) {
+                lights[i]->light(L, Cl, Ns, _l_Li, _l_L, _l_pdf, "nsamp", nsamples);
+                shd->eval_bsdf(Ns, wo, _l_L, nsamples, _l_bsdf_f, _l_bsdf_pdf);
+                    //lights[i]->visibility(P, _l_L, _l_pdf, _l_Li, nsamples, _l_vis);
+            }
+            if (mis_sample_bsdf == 1 ) {
+                shd->sample_bsdf(Ns, wo, nsamples, _bl_wi, _bl_f, _bl_pdf);
+                lights[i]->eval_light(P, _bl_wi, nsamples, _bl_L, _bl_Li, _bl_Lpdf);
+                    //lights[i]->visibility(P, _bl_L, _bl_pdf, _bl_Li, nsamples, _bl_vis);
             }
 
-            if (sample_brdf ==1 ) {
-            shd->sample_bsdf(Ns, wo, nsamples, _bl_wi, _bl_f, _bl_pdf);
-            lights[i]->eval_light(P, _bl_wi, nsamples, _bl_L, _bl_Li, _bl_Lpdf);
-            //lights[i]->visibility(P, _bl_L, _bl_pdf, _bl_Li, nsamples, _bl_vis);
-            }
-
-            //if (ray_depth > 0)
-            //    stype = 1;
-
-            varying point Pt = P;
             varying float samples_taken = 0;
+            varying point Pt;
 
             for (s = 0; s < max_samples; s += 1) {
                 color Csamp=0;
@@ -166,59 +167,57 @@ class integrator(
                 // Jitter across micropolygon area for anti-aliasing
                 Pt = P + (float random()-0.5)*Du(P)*du + (float random()-0.5)*Dv(P)*dv;
 
-                if (sample_lamp == 1) {
+                if (mis_sample_light == 1) {
                 
-                // MIS: sampling light
-                if (_l_Li[s] != black && _l_pdf[s] > 0) {
-                
-                    if (_l_bsdf_f[s] != black) {
-                        //varying color Li = _l_Li[s] * transmission(Pt, Pt + _l_L[s]);
-                        
-                        varying color Li = _l_Li[s] * visibility(Pt, _l_L[s], lights[i]);
-                        //varying color Li = _l_Li[s] * lights[i]->vis(Pt, _l_L[s]);
-                        //varying color Li = _l_Li[s] * _l_vis[s];
-                        
-                        float dot_i = normalize(_l_L[s]) . Ns;
-                        
-                        varying float weight;
-                        uniform float has_isdelta;
-                        uniform float isdelta;
-                        has_isdelta = getvar(lights[i], "isdelta", isdelta);
+                    // MIS: sampling light
+                    if (_l_Li[s] != black && _l_pdf[s] > 0) {
+                    
+                        if (_l_bsdf_f[s] != black) {
+                            //varying color Li = _l_Li[s] * transmission(Pt, Pt + _l_L[s]);
+                            varying color Li = _l_Li[s] * visibility(Pt, _l_L[s], lights[i]);
+                            //varying color Li = _l_Li[s] * lights[i]->vis(Pt, _l_L[s]);
+                            //varying color Li = _l_Li[s] * _l_vis[s];
+                            
+                            float dot_i = abs(normalize(_l_L[s]) . Ns);
+                            
+                            varying float weight;
+                            //uniform float has_isdelta;
+                            uniform float isdelta = lights[i]->isdelta;
+                            //has_isdelta = getvar(lights[i], "isdelta", isdelta);
 
-                        if (isdelta == 1)
-                            weight = 1;
-                        if (sample_lamp == 1 && sample_brdf == 0)
-                            weight = 1;
-                        else
-                            weight = power(1, _l_pdf[s], 1, _l_bsdf_pdf[s]);
-                        
-                        Csamp += _l_bsdf_f[s] * Li * dot_i * weight / _l_pdf[s];
+                            if (isdelta == 1)
+                                weight = 1;
+                            if (mis_sample_light == 1 && mis_sample_bsdf == 0)
+                                weight = 1;
+                            else
+                                weight = power(1, _l_pdf[s], 1, _l_bsdf_pdf[s]);
+                            
+                            Csamp += _l_bsdf_f[s] * Li * dot_i * weight / _l_pdf[s];
+                        }
                     }
                 }
-                }
                 
-                if (sample_brdf == 1) {
+                if (mis_sample_bsdf == 1) {
                 
-                // MIS: sampling BSDF
-                if (lights[i]->isdelta != 1 && _bl_f[s] != black && _bl_pdf[s] > 0) {
-                    if (_bl_Lpdf[s] > 0) {
-                        varying color Li = _bl_Li[s] * transmission(Pt, Pt + _bl_L[s]);
-                        //varying color Li = _l_Li[s] * visibility(Pt, _l_L[s],stype,smap);
-                        //varying color Li = _l_Li[s] * lights[i]->vis(Pt, _bl_L[s]);
-                        //varying color Li = _bl_Li[s] * _bl_vis[s];
+                    // MIS: sampling BSDF
+                    if (lights[i]->isdelta != 1 && _bl_f[s] != black && _bl_pdf[s] > 0) {
+                        if (_bl_Lpdf[s] > 0) {
+                            //varying color Li = _bl_Li[s] * transmission(Pt, Pt + _bl_L[s]);
+                            varying color Li = _l_Li[s] * visibility(Pt, _l_L[s], lights[i]);
+                            //varying color Li = _l_Li[s] * lights[i]->vis(Pt, _bl_L[s]);
+                            //varying color Li = _bl_Li[s] * _bl_vis[s];
 
-                        float dot_i = normalize(_bl_L[s]) . Ns;
-                        varying float weight = power(1, _bl_pdf[s], 1, _bl_Lpdf[s]);
-                        
-                        if (sample_lamp == 0 && sample_brdf == 1)
-                            weight = 1;
-                        
-                        Csamp += _bl_f[s] * Li * dot_i * weight / _bl_pdf[s]; 
+                            float dot_i = abs(normalize(_bl_L[s]) . Ns);
+
+                            varying float weight = power(1, _bl_pdf[s], 1, _bl_Lpdf[s]);
+                            
+                            if (mis_sample_light == 0 && mis_sample_bsdf == 1)
+                                weight = 1;
+                            
+                            Csamp += _bl_f[s] * Li * dot_i * weight / _bl_pdf[s]; 
+                        }
                     }
                 }
-                }
-
-                
 
                 samples_taken += 1;
 
@@ -260,9 +259,15 @@ class integrator(
             //Ci = mix(Ci, ctransform("HSV", "RGB", color((s/max_samples)*0.5,1,1)) , 0.1);
         }
 
+        uniform float limit;
+        if (shd->type == "DIFFUSE")
+            limit = diffuse_bounces;
+        if (shd->type == "SPECULAR")
+            limit = specular_bounces;
+        if (shd->type == "TRANSMISSION")
+            limit = transmission_bounces;
 
-
-        if (ray_depth < diffuse_bounces) {
+        if (ray_depth < limit) {
             CLi = 0;
             
             shd->sample_bsdf(Ns, wo, nsamples, _bl_wi, _bl_f, _bl_pdf);
@@ -271,7 +276,7 @@ class integrator(
                 if (_bl_f[s] != black && _bl_pdf[s] > 0) {
                     color Li = trace(P, _bl_wi[s]);
                     
-                    float dot_i = normalize(_bl_wi[s]) . Ns;
+                    float dot_i = abs(normalize(_bl_wi[s]) . Ns);
                     CLi += _bl_f[s] * Li * dot_i / _bl_pdf[s];
                 }
             }
@@ -281,9 +286,7 @@ class integrator(
         // Set Ci and Oi
         Ci *= Os;
         Oi = Os;
-        
-        
-#endif
+
     }
 
 }
