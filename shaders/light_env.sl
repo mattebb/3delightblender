@@ -31,15 +31,18 @@
 
 class
 light_env(
-        uniform float intensity = 1;
-        uniform color lightcolor = 1;
-        uniform float samples = 16;
-        uniform string texturename = "";
-        uniform float nu=512;
-        uniform float nv=256;
-       )
-       
+    uniform float intensity = 1;
+    uniform color lightcolor = 1;
+    uniform float samples = 16;
+    uniform string texturename = "";
+    uniform float nu=512;
+    uniform float nv=256;
+    )
+
 {
+    public constant float isdelta = 0;
+    public constant float shadowtype = SHADOW_RAYTRACE;
+
     uniform float pdfv[] = 0;
     uniform float cdfv[] = 0;
 
@@ -98,7 +101,7 @@ light_env(
         float i;
         for (i=0; i<n-1; i+=1) {
             if (ar[ofs + i + 1] > x)
-                break;
+            break;
         }
         return i;
     }
@@ -118,12 +121,12 @@ light_env(
             }
             else if (ar[m] < x) {
                 if (ar[m+1] > x)
-                   return m - ofs;
+                return m - ofs;
 
                 low = m+1;
             }
             else
-                return m - ofs;
+            return m - ofs;
         }
         return -1;
     }
@@ -149,6 +152,10 @@ light_env(
     }
 
     public void construct() {
+
+        /* only do importance precalculation if there's an environment map */
+        if (texturename == "") return;
+
         uniform float i;
         uniform float colsum[nu];
         uniform float sum;
@@ -159,7 +166,6 @@ light_env(
         resize(cdfu, nu+1);
         
         // precompute values of sin theta
-        //   uniform float sinvals[nv];
         resize(sinvals, nv);
         for (i=0; i<nv; i+=1) {        
             sinvals[i] = sin(PI * (i+0.5)/nv);
@@ -178,7 +184,7 @@ light_env(
         color Le;
         vector Lw = transform("current", "world", normalize(L));
         float u, v;
-                
+
         cartesian_to_spherical( Lw, u, v);
         
         u = u/(2*PI);
@@ -194,11 +200,11 @@ light_env(
 
     
     public void eval_light(point P; vector wi[];
-                                uniform float nsamp;
-                                output vector _L[];
-                                output color _Li[];
-                                output float _pdf[];
-                                )
+        uniform float nsamp;
+        output vector _L[];
+        output color _Li[];
+        output float _pdf[];
+        )
     {
         float i;
         resize(_L, nsamp);
@@ -207,9 +213,7 @@ light_env(
         
         for (i = 0; i < nsamp; i += 1) {
             _pdf[i] = 1/(2*PI);
-            
-            _L[i] = wi[i] * 100000;
-
+            _L[i] = wi[i] * SCENE_BOUNDS;
             _Li[i] = Le(P, _L[i]);
         }
     }
@@ -220,59 +224,71 @@ light_env(
                        output color _Li[];
                        output vector _L[];
                        output float _pdf[];
-                       output uniform float nsamp = 0;
+                       uniform float nsamp = 32;
                        )
     {
-       vector rnd;
-       varying point samplepos;
-       varying float r1, r2;
-       uniform float s;
-       uniform float nsamples;
-       
-       if (nsamp <= 0)
-            nsamples = 32;
-       else
-            nsamples = nsamp;
+        vector rnd;
+        varying point samplepos;
+        varying float r1, r2;
+        uniform float s;
+        uniform float nsamples=nsamp;
 
-       resize(_Li, nsamples);
-       resize(_L, nsamples);
-       resize(_pdf, nsamples);
+        resize(_Li, nsamples);
+        resize(_L, nsamples);
+        resize(_pdf, nsamples);
 
-       color Le;
-       color black=0;
-       
-       
-       for (s = 0; s < nsamples; s += 1) {
-            r1 = random();
-            r2 = random();
-            
-            float su=0, sv=0;
-            float pu=0, pv=0;
-            float vi;
+        color Le;
+        color black=0;
 
-            sample1d(pdfu, cdfu, 0,  nu, r1, su, pu);
-            sample1d(pdfv, cdfv, floor(su*(nu-1)), nv, r2, sv, pv);
+        // if no environment map, use cosine weighted sampling
+        if (texturename == "") {
+            for (s = 0; s < nsamples; s += 1) {
+                r1 = random();
+                r2 = random();
 
-            if (sv == 0 || sv == 1)
-                _pdf[s] = 0;
-            else
-                _pdf[s] = (pu * pv) * (nu*nv / (2*PI*PI* sinvals[sv*nv]));
+                vector l = warp_hemicosine(r1, r2);                
+                // cosine weighted full sphere sampling
+                //if (random() < 0.5)
+                //    l[2] *= -1 ;
 
-            float phi = su*2*PI;
-            float theta = sv*PI;
-            vector l = spherical_to_cartesian(sin(theta), cos(theta), phi); // * 999;
-            
-            _L[s] = align_ortho(l, -zdir, vdir );
+                _L[s] = align_ortho(l, Ns, dPdu );
+                _pdf[s] = (_L[s] . Ns) / (2*PI);
+                _L[s] *= SCENE_BOUNDS;
 
-            _Li[s] = texture(texturename, su,sv,su,sv,su,sv,su,sv);
+                _Li[s] = lightcolor * intensity;
+            }
 
-       }
+        // else use importance sampling
+        } else {
+            for (s = 0; s < nsamples; s += 1) {
+                r1 = random();
+                r2 = random();
 
-       
-       nsamp = nsamples;
-       
+                float su=0, sv=0;
+                float pu=0, pv=0;
+                float vi;
+
+                sample1d(pdfu, cdfu, 0,  nu, r1, su, pu);
+                sample1d(pdfv, cdfv, floor(su*(nu-1)), nv, r2, sv, pv);
+
+                if (sv == 0 || sv == 1)
+                    _pdf[s] = 0;
+                else
+                    _pdf[s] = (pu * pv) * (nu*nv / (2*PI*PI* sinvals[sv*nv]));
+
+                float phi = su*2*PI;
+                float theta = sv*PI;
+                vector l = spherical_to_cartesian(sin(theta), cos(theta), phi);
+                
+                _L[s] = align_ortho(l, -zdir, vdir ) * SCENE_BOUNDS;
+
+                _Li[s] = texture(texturename, su,sv,su,sv,su,sv,su,sv);
+
+            }
+        }
+        
        // Clear L and Cl, even though they're unused.
        L = (0,0,0);
        Cl = (0,0,0);
-    }
+   }
 }

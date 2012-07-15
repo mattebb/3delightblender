@@ -30,6 +30,9 @@
 #ifndef util_h
 #define util_h
 
+#define SHADOW_RAYTRACE     0
+#define SHADOW_MAP          1
+
 #define SCENE_BOUNDS    999999
 
 void sample2d_stratified(float nsamples; output float s1[], s2[];)

@@ -29,6 +29,9 @@
 
 #include "util.h"
 
+#define SHAPE_RECT  0
+#define SHAPE_DISC  1
+
 #pragma annotation shape "gadgettype=optionmenu:Rectangle:Disc;label=Shape;hint=Area light shape"
 
 class
@@ -45,7 +48,7 @@ light_area(
 {
 
     public constant float isdelta = 0;
-    public constant float stype=0;
+    public constant float shadowtype = SHADOW_RAYTRACE;
     
     constant float zero = 0;
     constant color black = 0;
@@ -57,8 +60,8 @@ light_area(
     uniform float area;
 
     public void construct() {
-        if (shape == 0)         area = width*height;
-        else if (shape == 1)    area = PI*width*0.5*height*0.5;
+        if (shape == SHAPE_RECT)         area = width*height;
+        else if (shape == SHAPE_DISC)    area = PI*width*0.5*height*0.5;
     }
 
     float intersect(point P; vector V;)
@@ -76,12 +79,12 @@ light_area(
         
         varying point ph = Pl + Vl * thit;
         
-        if (shape == 0) {
+        if (shape == SHAPE_RECT) {
             // check to see if inside area quad
             if ((abs(ph[0]) > width*0.5) || (abs(ph[1]) > height*0.5))
                 return zero;
             
-        } else if (shape == 1) {
+        } else if (shape == SHAPE_DISC) {
             // check to see if inside area disc
             float x = ph[0]/(width*0.5);
             float y = ph[1]/(height*0.5);
@@ -162,7 +165,6 @@ light_area(
                        uniform float nsamp = 32;
                        )
     {
-       vector rnd;
        varying point samplepos;
        varying float su, sv;
        uniform float s;
@@ -178,9 +180,9 @@ light_area(
             su = random();
             sv = random();
             
-            if (shape == 0) {
+            if (shape == SHAPE_RECT) {
                 samplepos = center + (((su*2)-1) * udir) + (((sv*2)-1) * vdir);
-            } else if (shape == 1) {
+            } else if (shape == SHAPE_DISC) {
                 varying vector S = warp_disc(su, sv);   // in [-1,1]
                 su = S[0];
                 sv = S[1];
@@ -197,7 +199,6 @@ light_area(
                 _pdf[s] = 0;
                 return;
             }
-            
             _pdf[s] = (dist*dist) / (abs(costheta_z)*area);
 
             
@@ -205,9 +206,7 @@ light_area(
                 _Li[s] = texture(texturename, su, sv, su, sv, su, sv, su, sv);
             else
                 _Li[s] = lightcolor;
-            _Li[s] *= intensity;
-
-           
+            _Li[s] *= intensity;           
        }
        
        // Clear L and Cl, even though they're unused.
