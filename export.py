@@ -1539,9 +1539,11 @@ def export_render_settings(file, rpass, scene):
     r = scene.render
     
     file.write('Option "render" "integer nthreads" %d\n' % rm.threads)
-    file.write('Option "trace" "integer maxdepth" %d\n\n' % rm.max_trace_depth)
-    file.write('Option "limits" "integer eyesplits" %d\n\n' % rm.max_eye_splits)
-    file.write('Option "trace" "float approximation" %f\n\n' % rm.trace_approximation)
+    file.write('Option "trace" "integer maxdepth" [%d]\n' % rm.max_trace_depth)
+    file.write('Attribute "trace" "integer maxspeculardepth" [%d]\n' % rm.max_specular_depth)
+    file.write('Attribute "trace" "integer maxdiffusedepth" [%d]\n' % rm.max_diffuse_depth)
+    file.write('Option "limits" "integer eyesplits" %d\n' % rm.max_eye_splits)
+    file.write('Option "trace" "float approximation" %f\n' % rm.trace_approximation)
     
     rpass.resolution = render_get_resolution(r)
 
@@ -2013,7 +2015,7 @@ def write_rib(rpass, scene, info_callback):
     #export_global_illumination_settings(file, rpass, scene)
     
     file.write('WorldBegin\n\n')
-    
+
     #export_global_illumination_lights(file, rpass, scene)
     export_integrator(file, rpass, scene)
     export_scene_lights(file, rpass, scene)

@@ -352,6 +352,14 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     max_trace_depth = IntProperty(
                 name="Max Trace Depth",
                 description="Maximum number of ray bounces (0 disables ray tracing)",
+                min=0, max=32, default=4)
+    max_specular_depth = IntProperty(
+                name="Max Specular Depth",
+                description="Maximum number of specular ray bounces",
+                min=0, max=32, default=2)
+    max_diffuse_depth = IntProperty(
+                name="Max Diffuse Depth",
+                description="Maximum number of diffuse ray bounces",
                 min=0, max=32, default=2)
     max_eye_splits = IntProperty(
                 name="Max Eye Splits",
