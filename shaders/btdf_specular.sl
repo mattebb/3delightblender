@@ -33,7 +33,7 @@ class btdf_specular (
                     )
 {
 
-    public constant string type = "SPECULAR";
+    public constant string type = "transmission";
     
     public void sample_bsdf(normal N; vector wo; uniform float nsamp;
                             output vector wi[];
@@ -54,12 +54,12 @@ class btdf_specular (
             float ndotwo = N . won;
 
             if (ndotwo < 0) {
-                eta =f ior;
+                eta = ior;
                 Nr = -N;
             }
 
             wi[i] = normalize(refract(-won, normalize(Nr), eta));
-            //wi[i] = -won;
+            wi[i] = -won;
 
             // XXX include fresnel stuff here?
             f[i] = color(1,1,1);    
@@ -90,11 +90,5 @@ class btdf_specular (
         uniform string shadername = "btdf_specular";
         int->integrate(Ci, Oi, shadername);
 
-        //Ci = color(1,0,0);
-
-        // Set Ci and Oi
-        Ci *= Os;
-        Oi = Os;
-        
     }
 }

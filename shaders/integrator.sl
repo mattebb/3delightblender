@@ -126,7 +126,6 @@ class integrator(
         shader shd = getshader(shadername);
 
         varying float area = area(transform("raster", P), "dicing");
-
                    
         float mis_sample_light = sample_light;
         float mis_sample_bsdf = sample_bsdf;
@@ -259,22 +258,33 @@ class integrator(
             //Ci = mix(Ci, ctransform("HSV", "RGB", color((s/max_samples)*0.5,1,1)) , 0.1);
         }
 
-        uniform float limit;
-        if (shd->type == "DIFFUSE")
-            limit = diffuse_bounces;
-        if (shd->type == "SPECULAR")
-            limit = specular_bounces;
-        if (shd->type == "TRANSMISSION")
-            limit = transmission_bounces;
+        uniform float trace_indirect=0;
+        float depth=0;
 
-        if (ray_depth < limit) {
+        if (shd->type == "diffuse") {
+            rayinfo("diffusedepth", depth);
+            if (depth < diffuse_bounces)
+                trace_indirect = 1;
+        }
+        else if (shd->type == "specular") {
+            rayinfo("speculardepth", depth);
+            if (depth < specular_bounces)
+                trace_indirect = 1;
+        }
+        else if (shd->type == "transmission") {
+            rayinfo("shadowdepth", depth);
+            if (depth < transmission_bounces)
+                trace_indirect = 1;
+        }
+
+        if (trace_indirect){
             CLi = 0;
             
             shd->sample_bsdf(Ns, wo, nsamples, _bl_wi, _bl_f, _bl_pdf);
 
             for (s = 0; s < nsamples; s += 1) {
                 if (_bl_f[s] != black && _bl_pdf[s] > 0) {
-                    color Li = trace(P, _bl_wi[s]);
+                    color Li = trace(P, _bl_wi[s], "raytype", shd->type);
                     
                     float dot_i = abs(normalize(_bl_wi[s]) . Ns);
                     CLi += _bl_f[s] * Li * dot_i / _bl_pdf[s];
@@ -282,7 +292,7 @@ class integrator(
             }
             Ci += CLi / nsamples;
         }
-                
+
         // Set Ci and Oi
         Ci *= Os;
         Oi = Os;

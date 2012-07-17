@@ -32,7 +32,7 @@ class brdf_specular (
                     )
 {
 
-    public constant string type = "SPECULAR";
+    public constant string type = "specular";
     
     public void sample_bsdf(normal N; vector wo; uniform float nsamp;
                             output vector wi[];

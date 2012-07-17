@@ -10,7 +10,7 @@
 0
 
 1
-1
+0
 1
 1
 1
@@ -45,7 +45,7 @@
 0 1 2.00000000e+00
 0 1 3.14159274e+00
 0 4 ""
-0 4 "DIFFUSE"
+0 4 "diffuse"
 0 4 "inte"
 0 4 "brdf_diffuse"
 0 4 "_f"
@@ -411,10 +411,9 @@
 37
 3 6 9 13 16 20 23 29 33 37 41 45 49 52 58 62 67 70 76 80 
 83 86 87 90 96 100 104 107 110 116 120 124 128 129 133 137 139 
-3
+2
 2
 3
-1
 2
 "*Ci" 3 3 0 0 1 0
 "*Oi" 3 3 0 0 1 0
@@ -435,22 +434,19 @@
 4 0 0 0
 13 0 0 0
 0
-31
+24
 
 9 2 30 30 30 
 9 3 31 31 31 
 211 94 36 
 7 93 37 
 227 3 94 41 37 2 3 93 
-26 2 2 1 
-2 3 1 
 
-7
-5 10 13 16 24 28 31 
-3
+5
+5 10 13 16 24 
+2
 2
 3
-1
 1
 "*Oi" 3 3 0 0 1 0
 0
@@ -465,17 +461,16 @@
 4 0 0 0
 13 0 0 0
 0
-27
+24
 
 9 2 30 30 30 
 9 3 31 31 31 
 211 96 36 
 7 95 37 
 227 3 96 41 37 2 3 95 
-2 3 1 
 
-6
-5 10 13 16 24 27 
+5
+5 10 13 16 24 
 
 %comment-3dl 7 121
 12
@@ -490,7 +485,7 @@
 "MacroBlocks_sample_bsdf"
 "MgozIDIKIDEgMCAyCiA2MiA2NiA2OQoxMSA1MgogNiA1IDQKIDY3IDY4IDcxIDExIDYwIDYyIDY5IDcyIDYzIDY0IDY1IDY2IDc1IDc2IDc3"
 "MacroBlocks_surface"
-"MgowIDIKIDAgMCAyCiAyIDMKNSAyCiAxIDEgMQogMSAyIDM="
+"MQowIDIKIDAgMCAyCiAyIDM="
 "OpCodesForDerivatives_*opacity"
 "MAo="
 "OpCodesForDerivatives_eval_bsdf"

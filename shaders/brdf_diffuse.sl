@@ -33,7 +33,7 @@ class brdf_diffuse (
                   float Kd = 0.5;
                   )
 {
-    public constant string type = "DIFFUSE";
+    public constant string type = "diffuse";
     
     public color f(varying normal Ns; varying vector wi;)
     {
@@ -102,10 +102,5 @@ class brdf_diffuse (
         shader int = getshader("inte");
         uniform string shadername = "brdf_diffuse";
         int->integrate(Ci, Oi, shadername);
-        
-        // Set Ci and Oi
-        Ci *= Os;
-        Oi = Os;
-        
     }
 }
