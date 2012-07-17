@@ -105,6 +105,11 @@ float lum(color C)
     return 0.2126*C[0] + 0.7152*C[1] + 0.0722*C[2];
 }
 
+float lengthsq(vector V)
+{
+    return V[0]*V[0] + V[1]*V[1] + V[2]*V[2];
+}
+
 float power(float nf; float fPdf; float ng; float gPdf)
 {
     float f = nf * fPdf;

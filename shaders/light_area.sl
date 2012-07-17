@@ -102,19 +102,19 @@ light_area(
         if (length(L) < 0.001)
             return black;
         
+        if (texturename != "") {
+             Le = lightcolor*intensity;
+             return Le;
+        }
+
         point Pl = P + L;
         
         point uv = transform("current", "shader", Pl);
         float su = ((uv[0] / width)+1)*0.5;
         float sv = ((uv[1] / height)+1)*0.5;
         
-        if (texturename != "")
-            Le = texture(texturename); //, su, sv, su, sv, su, sv, su, sv);
-        else
-            Le = lightcolor;
-
+        Le = texture(texturename); //, su, sv, su, sv, su, sv, su, sv);
         Le *= intensity;
-        
         return Le;
     }
     
@@ -128,9 +128,9 @@ light_area(
         L = V*thit;       
         
         // convert to solid angle
-        float dist = length(L); //distance(P, P+L);
+        float distsq = lengthsq(L);
         float costheta = -zdir . normalize(L);
-        float pdf = (dist*dist) / (costheta*area);
+        float pdf = distsq   / (costheta*area);
         
         return pdf;
     }
@@ -191,7 +191,8 @@ light_area(
 
             _L[s] = samplepos - P;     // vector P -> light
             
-            varying float dist = length(_L[s]);
+            
+            varying float distsq = lengthsq(_L[s]);
             varying float costheta_z = normalize(_L[s]) . -zdir;
             
             if (costheta_z <= 0) {
@@ -199,7 +200,7 @@ light_area(
                 _pdf[s] = 0;
                 return;
             }
-            _pdf[s] = (dist*dist) / (abs(costheta_z)*area);
+            _pdf[s] = distsq / (abs(costheta_z)*area);
 
             
             if (texturename != "")
