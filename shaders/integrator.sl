@@ -36,15 +36,23 @@ class integrator(
             uniform float minsamples = 16;
             uniform float maxsamples = 32;
             uniform float diffuse_bounces = 0;
+            uniform float diffuse_factor = 1.0;
             uniform float specular_bounces = 0;
+            uniform float specular_factor = 1.0;
             uniform float transmission_bounces = 0;
+            uniform float transmission_factor = 1.0;
             uniform float sample_light = 1;
             uniform float sample_bsdf = 1;
+            uniform float indirect_sample_factor = 0.2;
     )
 {
     /* to get parameters picked up */
     public void surface(output color Ci, Oi) { }
 
+    uniform float ray_depth;
+    uniform float diffuse_depth;
+    uniform float specular_depth;
+    uniform float transmission_depth;
 
     color visibility(point Pt; vector V; shader lgt;)
     {
@@ -71,38 +79,29 @@ class integrator(
     }
 
     public void begin() {
-
-
+        rayinfo("depth", ray_depth);
+        rayinfo("diffusedepth", diffuse_depth);
+        rayinfo("speculardepth", specular_depth);
+        rayinfo("shadowdepth", transmission_depth);
     }
 
     public void integrate(output color Ci, Oi;
                         uniform string shadername) {
  
         varying normal Ns = shadingnormal(N);
-        vector In = normalize(I);
-        vector Ln;
-
-        varying color Cdirect=0, tr=0;
         uniform float i, s;
 
+        shader shd = getshader(shadername);
         shader lights[] = getlights();
         uniform float nlights = arraylength(lights);
 
-        uniform float ray_depth;
-        rayinfo( "depth", ray_depth );
-
         color black = color(0,0,0);
-        color bsdf_f;
-        float bsdf_pdf;
 
         vector L;   // unused
         color Cl;   // unused
-        color CLi;
         Ci=0;
-        vector wi;
         varying vector wo = -I;
         
-
         // for sampling light        
         vector _l_L[]; // P -> light sampled vector
         float _l_pdf[]; // light sampled pdf
@@ -123,7 +122,7 @@ class integrator(
         color _l_vis[];     // visibility
         color _bl_vis[];     // visibility
 
-        shader shd = getshader(shadername);
+        
 
         varying float area = area(transform("raster", P), "dicing");
                    
@@ -138,13 +137,21 @@ class integrator(
         varying float max_samples = clamp((nsamples*area), minsamples, nsamples);
 
         if (ray_depth > 0 )
-                max_samples = nsamples = 1;
-
+            max_samples = nsamples = 2; //indirect_sample_factor / ray_depth;
+/*
+        if (shd->type == "diffuse")
+            max_samples = max_samples * diffuse_factor;
+        else if (shd->type == "specular")
+            max_samples = max_samples * specular_factor;
+        else if (shd->type == "transmission")
+            max_samples = max_samples * transmission_factor;
+            
+*/
         varying float samples[max_samples];
 
         // Sample the light
         for (i = 0; i < nlights; i += 1) {
-            CLi = 0;
+            color CLi = 0;
             
             if (mis_sample_light == 1 ) {
                 lights[i]->light(L, Cl, Ns, _l_Li, _l_L, _l_pdf, "nsamp", nsamples);
@@ -259,26 +266,15 @@ class integrator(
         }
 
         uniform float trace_indirect=0;
-        float depth=0;
-
-        if (shd->type == "diffuse") {
-            rayinfo("diffusedepth", depth);
-            if (depth < diffuse_bounces)
-                trace_indirect = 1;
-        }
-        else if (shd->type == "specular") {
-            rayinfo("speculardepth", depth);
-            if (depth < specular_bounces)
-                trace_indirect = 1;
-        }
-        else if (shd->type == "transmission") {
-            rayinfo("shadowdepth", depth);
-            if (depth < transmission_bounces)
-                trace_indirect = 1;
-        }
+        if (shd->type == "diffuse" && diffuse_depth < diffuse_bounces)
+            trace_indirect = 1;
+        else if (shd->type == "specular" && specular_depth < specular_bounces)
+            trace_indirect = 1;
+        else if (shd->type == "transmission" && transmission_depth < transmission_bounces)
+            trace_indirect = 1;
 
         if (trace_indirect){
-            CLi = 0;
+            color CLi = 0;
             
             shd->sample_bsdf(Ns, wo, nsamples, _bl_wi, _bl_f, _bl_pdf);
 
@@ -296,7 +292,6 @@ class integrator(
         // Set Ci and Oi
         Ci *= Os;
         Oi = Os;
-
     }
 
 }
