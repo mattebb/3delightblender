@@ -59,8 +59,7 @@ class btdf_specular (
             }
 
             wi[i] = normalize(refract(-won, normalize(Nr), eta));
-            wi[i] = -won;
-
+            
             // XXX include fresnel stuff here?
             f[i] = color(1,1,1);    
             pdf[i] = 1;
