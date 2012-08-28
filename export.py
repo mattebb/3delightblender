@@ -712,7 +712,8 @@ def export_material(file, rpass, scene, mat):
     else:
         export_shader(file, scene, rpass, mat, 'atmosphere')
         
-    #file.write('        Shader "brdf_diffuse" "brdf_diffuse" \n')    
+    file.write('        Shader "brdf_specular" "brdf_specular" \n')
+    file.write('        Shader "btdf_specular" "btdf_specular" \n')
 
 
 def export_strands(file, rpass, scene, ob, motion):

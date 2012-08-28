@@ -37,9 +37,9 @@ class integrator(
             uniform float maxsamples = 32;
             uniform float diffuse_bounces = 0;
             uniform float diffuse_factor = 1.0;
-            uniform float specular_bounces = 0;
+            uniform float specular_bounces = 1;
             uniform float specular_factor = 1.0;
-            uniform float transmission_bounces = 0;
+            uniform float transmission_bounces = 2;
             uniform float transmission_factor = 1.0;
             uniform float sample_light = 1;
             uniform float sample_bsdf = 1;
@@ -133,11 +133,10 @@ class integrator(
         else if (shd->type == "SPECULAR")
             mis_sample_light = 0;
 
-        uniform float nsamples=maxsamples;
-        varying float max_samples = clamp((nsamples*area), minsamples, nsamples);
+        varying float max_samples = clamp((maxsamples*area), minsamples, maxsamples);
 
         if (ray_depth > 0 )
-            max_samples = nsamples = 2; //indirect_sample_factor / ray_depth;
+            max_samples = 2; //indirect_sample_factor / ray_depth;
 /*
         if (shd->type == "diffuse")
             max_samples = max_samples * diffuse_factor;
@@ -154,14 +153,14 @@ class integrator(
             color CLi = 0;
             
             if (mis_sample_light == 1 ) {
-                lights[i]->light(L, Cl, Ns, _l_Li, _l_L, _l_pdf, "nsamp", nsamples);
-                shd->eval_bsdf(Ns, wo, _l_L, nsamples, _l_bsdf_f, _l_bsdf_pdf);
-                    //lights[i]->visibility(P, _l_L, _l_pdf, _l_Li, nsamples, _l_vis);
+                lights[i]->light(L, Cl, Ns, _l_Li, _l_L, _l_pdf, "nsamp", max_samples);
+                shd->eval_bsdf(Ns, wo, _l_L, max_samples, _l_bsdf_f, _l_bsdf_pdf);
+                    //lights[i]->visibility(P, _l_L, _l_pdf, _l_Li, max_samples, _l_vis);
             }
             if (mis_sample_bsdf == 1 ) {
-                shd->sample_bsdf(Ns, wo, nsamples, _bl_wi, _bl_f, _bl_pdf);
-                lights[i]->eval_light(P, _bl_wi, nsamples, _bl_L, _bl_Li, _bl_Lpdf);
-                    //lights[i]->visibility(P, _bl_L, _bl_pdf, _bl_Li, nsamples, _bl_vis);
+                shd->sample_bsdf(Ns, wo, max_samples, _bl_wi, _bl_f, _bl_pdf);
+                lights[i]->eval_light(P, _bl_wi, max_samples, _bl_L, _bl_Li, _bl_Lpdf);
+                    //lights[i]->visibility(P, _bl_L, _bl_pdf, _bl_Li, max_samples, _bl_vis);
             }
 
             varying float samples_taken = 0;
@@ -276,9 +275,9 @@ class integrator(
         if (trace_indirect){
             color CLi = 0;
             
-            shd->sample_bsdf(Ns, wo, nsamples, _bl_wi, _bl_f, _bl_pdf);
+            shd->sample_bsdf(Ns, wo, max_samples, _bl_wi, _bl_f, _bl_pdf);
 
-            for (s = 0; s < nsamples; s += 1) {
+            for (s = 0; s < max_samples; s += 1) {
                 if (_bl_f[s] != black && _bl_pdf[s] > 0) {
                     color Li = trace(P, _bl_wi[s], "raytype", shd->type);
                     
@@ -286,7 +285,7 @@ class integrator(
                     CLi += _bl_f[s] * Li * dot_i / _bl_pdf[s];
                 }
             }
-            Ci += CLi / nsamples;
+            Ci += CLi / max_samples;
         }
 
         // Set Ci and Oi
