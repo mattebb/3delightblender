@@ -33,6 +33,80 @@ from .util import path_win_to_unixy
 from .util import user_path
 from .util import get_sequence_path
 
+# BBM addition begin
+# temporarily a straight copy of properties.py
+from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, \
+IntProperty, FloatProperty, FloatVectorProperty, CollectionProperty
+
+class coshaderShaders(bpy.types.PropertyGroup):
+
+    def coshader_shader_active_update(self, context):
+		# BBM addition begin
+        if self.id_data.name == 'World': # world coshaders
+            location = 'world'
+            mat_rm = context.scene.world.renderman
+        elif bpy.context.active_object.name in bpy.data.lamps.keys(): # lamp coshaders
+            location = 'lamp'
+            lamp = bpy.data.lamps.get(bpy.context.active_object.name)
+            mat_rm = lamp.renderman
+        else: # material coshaders
+            location = 'material'
+            mat_rm = context.active_object.active_material.renderman
+        shader_active_update(self, context, 'shader', location) # BBM modified (from 'surface' to 'shader')
+        cosh_index = mat_rm.coshaders_index
+        active_cosh = mat_rm.coshaders[cosh_index]
+        active_cosh_name = active_cosh.shader_shaders.active
+        if active_cosh_name == 'null':
+            coshader_name = active_cosh_name
+        else:
+            all_cosh = [ (cosh.name) for cosh in mat_rm.coshaders ]
+            same_name = 1
+            for cosh in all_cosh:
+                if cosh.startswith( active_cosh_name ):
+                    same_name += 1
+            coshader_name = ('%s_%d' % (active_cosh_name, same_name))
+        active_cosh.name = coshader_name
+        # BBM addition end
+    
+    active = StringProperty(
+                name="Active Co-Shader",
+                description="Shader name to use for coshader",
+                update=coshader_shader_active_update,
+                default="null"
+                )
+
+    def coshader_shader_list_items(self, context):
+        return shader_list_items(self, context, 'shader')
+
+    def coshader_shader_list_update(self, context):
+        shader_list_update(self, context, 'shader')
+
+    shader_list = EnumProperty(
+                name="Active Co-Shader",
+                description="Shader name to use for coshader",
+                update=coshader_shader_list_update,
+                items=coshader_shader_list_items
+                )
+
+class RendermanCoshader(bpy.types.PropertyGroup):
+    name = StringProperty(
+                name="Name (Handle)",
+                description="Handle to refer to this co-shader from another shader")
+    
+	#BBM replace begin
+    #surface_shaders = PointerProperty( 
+    #            type=surfaceShaders,
+    #            name="Surface Shader Settings")
+    #by
+    shader_shaders = PointerProperty(
+                type=coshaderShaders,
+                name="Coshader Shader Settings")
+
+bpy.utils.register_class(coshaderShaders)
+bpy.utils.register_class(RendermanCoshader)
+
+
+# BBM addition end
 shader_ext = 'sdl'
 
 indent = 0
@@ -139,12 +213,29 @@ def pyname_to_slname(name):
     return name
 
 def sp_optionmenu_to_string(sp):
-    if sp.data_type == 'float':        
+
+    if sp.data_type == 'float':
         return [(str(sp.optionmenu.index(opt)), opt, "") for opt in sp.optionmenu]
     elif sp.data_type == 'string':
         return [(opt.lower(), opt, "") for opt in sp.optionmenu]
 
+#BBM addition begin
 
+def sp_shaderlist_to_string( rm ):
+    try:
+        wrld_coshaders = bpy.context.scene.world.renderman.coshaders
+        coshader_names = [(cosh.name) for cosh in wrld_coshaders]
+        if not rm.id_data.name == 'World': # if we're in a material or light, include the local coshaders as well.
+            obj_coshaders = rm.coshaders
+            obj_coshaders_names = [(cosh.name) for cosh in obj_coshaders]
+		    # Need to remove duplicates. The material coshader will win over the world ones if they shader same handle.
+            coshader_names = obj_coshaders_names + list(set(coshader_names) - set(obj_coshaders_names))
+        coshader_names = ['null'] + coshader_names
+        return [(name, name, '') for name in coshader_names ]
+    except AttributeError:
+        return []
+
+#BBM addition end
 
 def shader_supports_shadowmap(scene, rm, stype):    
     if len([sp for sp in rna_to_shaderparameters(scene, rm, stype) if sp.meta == 'use_shadow_map']) > 0:
@@ -215,9 +306,17 @@ def get_3dl_shaderinfo(shader_path_list, shader_name):
         
     try:
         output = subprocess.check_output(["shaderinfo", "-t", filename]).decode().split('\n')
+        #output_noflag = subprocess.check_output(["shaderinfo", "", filename]).decode().split('\n') # BBM added
     except subprocess.CalledProcessError:
         return None
-        
+    
+	# BBM addition begin
+    output_noflag = subprocess.check_output(["shaderinfo", "-d", filename]).decode().split('\n')
+    for i in range(3,len(output)-1):
+        # is this param a shader array or not? (the (i-3)*2+2 is because the parameter formats aren't the same with -t and -d flags)
+        output[i] += ',%s' % ("shader[" in output_noflag[(i-2)])
+	# BBM addition end
+	
     output = [o.replace('\r', '') for o in output]
     
     return output
@@ -248,11 +347,15 @@ def update_noop(self, context):
     pass
 
 def update_parameter(propname, vis_name):
-
+    
     valid_vis_names = ('distant_scale','distant_shadow_type')
 
     if not vis_name in valid_vis_names:
-        return update_noop
+		# BBM replaced
+        #return update_noop
+		# by
+        return None
+		# not a biggie, just to get rid of the "ValueError: the return value must be None" output
 
     def update_parameter_distantlight(self):
         self.id_data.type = 'AREA'
@@ -274,7 +377,11 @@ def update_parameter(propname, vis_name):
 # Helpers for dealing with shader parameters
 class ShaderParameter():
     
-    def __init__(self, name="", data_type="", value=None, shader_type="", length=1):
+	# BBM replace
+    #def __init__(self, name="", data_type="", value=None, shader_type="", length=1):
+	# by
+    def __init__(self, name="", data_type="", value=None, shader_type="", length=1, is_coshader=False, is_array=False):
+	# BBM replace end
         self.shader_type = shader_type
         self.data_type = data_type
         self.value = value
@@ -294,6 +401,10 @@ class ShaderParameter():
         self.optionmenu = []
         self.update = update_parameter
         self.meta = {}
+		# BBM addition begin
+        self.is_coshader = is_coshader
+        self.is_array = is_array
+		# BBM addition end
 
     def __repr__(self):
         return "shader %s type: %s data_type: %s, value: %s, length: %s" %  \
@@ -353,6 +464,12 @@ def get_parameters_shaderinfo(shader_path_list, shader_name, data_type):
         elif param_items[3] == 'string':
             default = str(param_items[6])          
             sp = ShaderParameter(param_name, 'string', default, type)
+		
+		#BBM addition begin
+        elif param_items[3] == 'shader':
+            is_param_an_array = param_items[7] == 'True'
+            sp = ShaderParameter(param_name, 'shader', default, type, is_coshader=True, is_array=is_param_an_array)
+		#BBM addition end
 
         else:   # XXX support other parameter types
             continue
@@ -410,7 +527,12 @@ def get_parameters_shaderinfo(shader_path_list, shader_name, data_type):
 
 
 def get_shader_pointerproperty(ptr, shader_type):
-
+    
+	# BBM addition begin
+    if not hasattr(ptr, "%s_shaders" % shader_type): # world coshaders
+        ptr = ptr.coshaders[ptr.coshaders_index]
+	# BBM addition end
+	
     stored_shaders = getattr(ptr, "%s_shaders" % shader_type)
     if stored_shaders.active == '':
         return None
@@ -442,13 +564,21 @@ def rna_to_shaderparameters(scene, rmptr, shader_type):
 
         if sptr.rna_type.properties[p].is_hidden:
             continue
+		# BBM addition begin
+        if p.startswith('bl_hidden'):
+            continue
+		# BBM addition end
         
         sp = ShaderParameter()
         sp.pyname = p
         sp.name = pyname_to_slname(p)
         sp.value = prop
         sp.meta = sptr.meta[sp.pyname] if sp.pyname in sptr.meta.keys() else ''
-
+		# BBM addition begin
+        sp.is_array = sptr.is_array[sp.pyname] if sp.pyname in sptr.is_array.keys() else ''
+        sp.is_coshader = sptr.is_coshader[sp.pyname] if sp.pyname in sptr.is_coshader.keys() else ''
+		# BBM addition end
+		
         # inspect python/RNA types and convert to renderman types
         if rnatypename == 'FLOAT':
             if typename.lower() == 'color':
@@ -462,6 +592,13 @@ def rna_to_shaderparameters(scene, rmptr, shader_type):
                     sp.data_type = 'normal'
             else:
                 sp.data_type = 'float'
+		#BBM addition begin
+        elif rnatypename == 'INT':
+            sp.data_type = 'float'
+        elif rnatypename == 'COLLECTION':
+            sp.data_type = 'string'
+            sp.gadgettype = 'optionmenu'
+		#BBM addition end
         elif rnatypename == 'BOOLEAN':
             sp.data_type = 'float'
             sp.value = float(prop)
@@ -496,6 +633,16 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
 
     init_env(scene)
     
+    # BBM addition begin
+    # account for world coshaders (path different from Lamps and Objects)
+    #if rmptr.id_data.name == 'World':
+    #    stored_shaders = rmptr.coshaders
+    #    shader_index = rmptr.coshaders_index
+    #    shader_paths = get_path_list(scene.renderman, 'shader')
+    #    name, parameters = get_parameters_shaderinfo(shader_paths, stored_shaders[shader_index], shader_type)
+    #else:
+    # BBM addition end
+    
     # check to see if this blender data type holds this shader type
     try: stored_shaders = getattr(rmptr, "%s_shaders" % shader_type)
     except AttributeError: return
@@ -505,13 +652,26 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
         sptr = get_shader_pointerproperty(rmptr, shader_type)
         if sptr is not None:
             for p in rna_to_propnames(sptr):
-                exec('del bpy.types.%s.%s' % (sptr.rna_type.name, p))
+                # BBM replaced begin
+                #exec('del bpy.types.%s.%s' % (sptr.rna_type.name, p)):
+				# by
+                try:
+                    exec('del bpy.types.%s.%s' % (sptr.rna_type.name, p))
+                except:
+                    pass
+				# BBM replaced end - ok, I got errors here, don't know why quite honestly
         
             # delete the pointerproperty that's the instance of the idproperty group
             # for this shader, from the shaders collection
             # assuming it's the active shader, similar logic to get_shader_pointerproperty
-            exec('del bpy.types.%s.%s' % (stored_shaders.rna_type.name, stored_shaders.active))
-
+            # BBM replaced begin
+            #exec('del bpy.types.%s.%s' % (stored_shaders.rna_type.name, stored_shaders.active))
+			#by
+            try:
+                exec('del bpy.types.%s.%s' % (stored_shaders.rna_type.name, stored_shaders.active))
+            except:
+                pass
+    
     shader_paths = get_path_list(scene.renderman, 'shader')
     name, parameters = get_parameters_shaderinfo(shader_paths, stored_shaders.active, shader_type)
 
@@ -528,13 +688,21 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
     setattr(type(stored_shaders), name, bpy.props.PointerProperty(type=new_class, name="%s shader settings" % name) )
 
     new_class.meta = {}
-
+	# BBM addition begin
+    new_class.is_array = {}
+    new_class.is_coshader = {}
+	# BBM addition end
+    
     # Generate RNA properties for each shader parameter  
     for sp in parameters:
         options = {'ANIMATABLE'}
         
         new_class.meta[sp.pyname] = sp.meta
-
+		# BBM addition begin
+        new_class.is_array[sp.pyname] = sp.is_array
+        new_class.is_coshader[sp.pyname] = sp.is_coshader
+		# BBM addition end
+		
         if sp.hide:
             options.add('HIDDEN')
        
@@ -552,6 +720,18 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
                 setattr(new_class, sp.pyname, bpy.props.FloatProperty(name=sp.label, default=sp.value, precision=3,
                                         min=sp.min, max=sp.max, subtype="FACTOR",
                                         options=options, description=sp.hint, update=sp.update))
+			
+			# BBM Addition begin
+            elif sp.gadgettype.startswith('intfield'):
+                setattr(new_class, sp.pyname, bpy.props.IntProperty(name=sp.label, default=int(sp.value),
+                                        options=options, description=sp.hint, update=sp.update))
+										
+            elif sp.gadgettype.startswith('intslider'):
+                setattr(new_class, sp.pyname, bpy.props.IntProperty(name=sp.label, default=int(sp.value),
+                                        min=int(sp.min), max=int(sp.max), subtype="FACTOR",
+                                        options=options, description=sp.hint, update=sp.update))
+			# BBM add end
+			
             elif sp.length == 3:
                 setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3,
                                         min=sp.min, max=sp.max,
@@ -583,6 +763,20 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
         elif sp.data_type == 'normal':
             setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="EULER",
                                         options=options, description=sp.hint, update=sp.update))
+        
+        #BBM addition begin
+        elif sp.data_type == 'shader':
+            if sp.is_array == 0:
+                setattr(new_class, sp.pyname, bpy.props.EnumProperty(name=sp.label, items=sp_shaderlist_to_string( rmptr ),
+                                        options=options, description=sp.hint, update=sp.update))
+            else:
+                setattr(new_class, sp.pyname, bpy.props.CollectionProperty(name=sp.label, type=RendermanCoshader, options=options, description=sp.hint))
+                setattr(new_class , 'bl_hidden_%s_index' % sp.pyname, IntProperty(name=sp.label, default=int(-1), subtype="FACTOR",
+                                        options=options, description=sp.hint, update=sp.update))
+                setattr(new_class, 'bl_hidden_%s_menu' % sp.pyname, bpy.props.EnumProperty(name=sp.label, items=sp_shaderlist_to_string( rmptr ),
+                                        options=options, description=sp.hint, update=sp.update))
+
+		#BBM addition end
 
         
 
@@ -617,8 +811,18 @@ def rna_types_initialise(scene):
     # material surface coshaders
     for mat in bpy.data.materials:
         ptrs.extend( (coshader for coshader in mat.renderman.coshaders) )
+	# BBM addition begin
+    for lgt in bpy.data.lamps:
+        ptrs.extend( (coshader for coshader in lgt.renderman.coshaders) )
+    for wld in bpy.data.worlds:
+        ptrs.extend( (coshader for coshader in wld.renderman.coshaders) )
+	# BBM addition end
     
-    shader_types = ('surface', 'displacement', 'interior', 'atmosphere', 'light')
+	#BBM repalce
+    #shader_types = ('surface', 'displacement', 'interior', 'atmosphere', 'light')
+	#by
+    shader_types = ('surface', 'displacement', 'interior', 'atmosphere', 'light', 'shader')
+	#BBM replace end
     
     # iterate over all data that can have shaders
     for rmptr in ptrs:

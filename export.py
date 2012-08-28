@@ -596,36 +596,53 @@ def export_light(rpass, scene, file, ob):
     
     
     if rm.emit_photons and lamp.type in ('SPOT', 'POINT', 'SUN'):
-        file.write('    Attribute "light" "string emitphotons" [ "on" ]\n' )
-    
+        file.write('        Attribute "light" "string emitphotons" [ "on" ]\n' )
+	
+	# BBM addition begin
+	# export light coshaders
+    file.write('\n        ## Light Co-shaders\n')
+    for cosh_item in rm.coshaders.items():
+        coshader_handle = cosh_item[0]
+        coshader_name = cosh_item[1].shader_shaders.active
+        file.write('        Shader "%s" \n            "%s"\n' % (coshader_name, coshader_handle) )
+        parameterlist = rna_to_shaderparameters(scene, cosh_item[1], 'shader')
+        for sp in parameterlist:
+            if sp.is_array:
+                file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
+            else:
+                file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+	
+    file.write('\n        ## Light shader\n')
+    # BBM addition end
+	
     # user defined light shader
     if rm.light_shaders.active != '':
-        file.write('    LightSource "%s" \n' % rm.light_shaders.active)
+        file.write('        LightSource "%s" \n' % rm.light_shaders.active)
         params = rna_to_shaderparameters(scene, rm, 'light')
 
     # automatic shaders per blender lamp type
     elif lamp.type == 'POINT':
-        file.write('    LightSource "pointlight" \n')
+        file.write('        LightSource "pointlight" \n')
         name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'pointlight', 'light')
         
     elif lamp.type == 'SPOT':
         if rm.shadow_method == 'SHADOW_MAP':
-            file.write('    LightSource "shadowspot" \n')
+            file.write('        LightSource "shadowspot" \n')
             name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'shadowspot', 'light')
         
         else:
-            file.write('    LightSource "spotlight" \n')
+            file.write('        LightSource "spotlight" \n')
             name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'spotlight', 'light')
             
     elif lamp.type == 'SUN':
-        file.write('    LightSource "h_distantshadow" \n')
+        file.write('        LightSource "h_distantshadow" \n')
         name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'h_distantshadow', 'light')
         
     elif lamp.type == 'HEMI':
-        file.write('    LightSource "ambientlight" \n')
+        file.write('        LightSource "ambientlight" \n')
         name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'ambientlight', 'light')
         
-    file.write('        "%s" \n' % ob.name) # handle
+    file.write('            "%s" \n' % ob.name) # handle
     
     
     # parameter list
@@ -670,7 +687,12 @@ def export_light(rpass, scene, file, ob):
         else:
             value = rib(sp.value)
 
-        file.write('        "%s %s" %s\n' % (sp.data_type, sp.name, value))
+		# BBM addition begin
+        if sp.is_array:
+            file.write('        "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
+        else:
+		# BBM addition end
+            file.write('        "%s %s" %s\n' % (sp.data_type, sp.name, value))
 
     file.write('    TransformEnd\n')
     file.write('    AttributeEnd\n')
@@ -702,6 +724,7 @@ def export_material(file, rpass, scene, mat):
     export_sss_bake(file, rpass, mat)
     
     export_shader_init(file, rpass, mat)
+    export_shader(file, scene, rpass, mat, 'shader') # BBM addition
     export_shader(file, scene, rpass, mat, 'surface')
     export_shader(file, scene, rpass, mat, 'displacement')
     export_shader(file, scene, rpass, mat, 'interior')
@@ -902,7 +925,8 @@ def export_shader_init(file, rpass, mat):
 
 def export_shader(file, scene, rpass, idblock, type):
     rm = idblock.renderman
-    
+    file.write('\n        # %s\n' % type ) # BBM addition
+	
     if type == 'surface':
         mat = idblock
         
@@ -948,15 +972,39 @@ def export_shader(file, scene, rpass, idblock, type):
         file.write('        Atmosphere "%s" \n' % rm.atmosphere_shaders.active)
 
         parameterlist = rna_to_shaderparameters(scene, rm, type)
-        
+    
+	# BBM addition begin
+    elif type == 'shader':
+        for cosh_item in rm.coshaders.items():
+            coshader_handle = cosh_item[0]
+            coshader_name = cosh_item[1].shader_shaders.active
+            file.write('        Shader "%s" "%s"\n' % (coshader_name, coshader_handle) )
+            parameterlist = rna_to_shaderparameters(scene, cosh_item[1], type)
+            for sp in parameterlist:
+                if sp.is_coshader and sp.value == '':
+                    sp.value = 'null'
+                if sp.is_array:
+                    file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
+                else:
+                    file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+        return
+	# BBM addition end
+	
     # parameter list
     for sp in parameterlist:
-        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-
-    if type == 'surface':
-        file.write('        Shader "%s" "%s" \n' % (rm.surface_shaders.active, rm.surface_shaders.active))
-        for sp in parameterlist:
+		# BBM addition begin
+        if sp.is_array:
+            file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
+        else:
+		# BBM addition end
             file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+
+    # BBM removed begin
+    #if type == 'surface':
+    #    file.write('        Shader "%s" "%s" \n' % (rm.surface_shaders.active, rm.surface_shaders.active))
+    #    for sp in parameterlist:
+    #        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+	# BBM removed end
 
 def detect_primitive(ob):
     rm = ob.renderman
@@ -1449,7 +1497,30 @@ def export_integrator(file, rpass, scene):
 
     parameterlist = rna_to_shaderparameters(scene, rm.integrator, 'surface')
     for sp in parameterlist:
-        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+		# BBM addition begin
+        if sp.is_array:
+            file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
+        else:
+		# BBM addition end
+            file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+
+# BBM addition begin
+def export_world_coshaders(file, rpass, scene):
+    rm = scene.world.renderman
+
+    file.write('    ## World Co-shaders\n')
+    for cosh_item in rm.coshaders.items():
+        coshader_handle = cosh_item[0]
+        coshader_name = cosh_item[1].shader_shaders.active
+        file.write('    Shader "%s" "%s"\n' % (coshader_name, coshader_handle) )
+        parameterlist = rna_to_shaderparameters(scene, cosh_item[1], 'shader')
+        for sp in parameterlist:
+            if sp.is_array:
+                file.write('        "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
+            else:
+                file.write('        "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+				
+# BBM addition end
 
 def export_global_illumination_lights(file, rpass, scene):
     rm = scene.world.renderman
@@ -1470,7 +1541,12 @@ def export_global_illumination_lights(file, rpass, scene):
    
     # parameter list
     for sp in parameterlist:
-        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+		# BBM addition begin
+        if sp.is_array:
+            file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
+        else:
+		# BBM addition end
+            file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
         
     file.write('    AttributeEnd\n')
     file.write('    Illuminate "indirectambient" 1 \n');
@@ -2018,6 +2094,7 @@ def write_rib(rpass, scene, info_callback):
     file.write('WorldBegin\n\n')
 
     #export_global_illumination_lights(file, rpass, scene)
+    export_world_coshaders(file, rpass, scene) # BBM addition
     export_integrator(file, rpass, scene)
     export_scene_lights(file, rpass, scene)
     export_objects(file, rpass, scene, motion)

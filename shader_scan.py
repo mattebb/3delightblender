@@ -75,6 +75,10 @@ class BgShaderScan(threading.Thread):
             shader_cache[scn]['shaders']['displacement'] = []
             shader_cache[scn]['shaders']['interior'] = []
             shader_cache[scn]['shaders']['atmosphere'] = []
+			#BBM addition begin
+            shader_cache[scn]['shaders']['shader'] = []
+            shader_cache[scn]['shaders']['light'] = []
+			#BBM addition end
                     
         # check to see if any dirs have been modified since the last scan, 
         # and if so prepare to regenerate

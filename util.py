@@ -134,10 +134,15 @@ def user_path(path, scene=None, ob=None):
 
 # ------------- RIB formatting Helpers -------------
 
-def rib(v):
+def rib(v, is_cosh_array=False):
     
+	# BBM addition begin
+    if is_cosh_array:
+        return '[ "' + '" "'.join([i.name for i in v]) + '" ]'
+	# BBM addition end
+	
     # float, int
-    if type(v) in (float, int, mathutils.Vector, mathutils.Color):
+    elif type(v) in (float, int, mathutils.Vector, mathutils.Color): # BBM modified from if to elif
         vlen = 1
         
         if hasattr(v, '__len__'):

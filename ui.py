@@ -157,7 +157,14 @@ class ShaderPanel():
     
     def found_shaders(self, context, rm):
         # pretty much guaranteed to have at least one surface shader...? weak
-        return len(rm.surface_shaders.surface_shader_list_items(context)) > 3
+		#BBM addition begin
+        if self.shader_type is 'shader':
+            return len(rm.shader_shaders.coshader_shader_list_items(context)) > 3
+        elif self.shader_type is 'light':
+            return len(rm.light_shaders.light_shader_list_items(context)) > 2 # the two first ones are [('null', 'None', ''), ('custom', 'Custom', '')] (defaults from shader_list_items)
+        else:
+			#BBM addition end
+            return len(rm.surface_shaders.surface_shader_list_items(context)) > 3
 
     def _draw_shader_menu_params(self, layout, context, ptr):
         if not self.found_shaders(context, ptr):
@@ -194,9 +201,60 @@ class ShaderPanel():
         
         # Iterate and display all parameters stored for this shader
         for sp in rna_to_shaderparameters(scene, ptr, self.shader_type):
-            if sp.name not in self.param_exclude.keys():
+            if sp.name not in self.param_exclude.keys() and not sp.name.startswith('bl_hidden'): # BBM added the 'bl_hidden' case
+				
                 row = layout.row()
-                row.prop(sptr, sp.pyname)
+				# BBM modification begin
+				# from 
+                #row.prop(sptr, sp.pyname)
+				# to
+                if sp.is_coshader:
+                    if not sp.is_array:
+                        col = row.column(align=True)
+                        row = col.row()
+                        row.prop(sptr, sp.pyname)
+                        op = row.operator("shading.refresh_coshader_list", text="", icon='FILE_REFRESH')
+                        op.shader_type = self.shader_type
+                        op.parameter_name = sp.pyname
+						
+                    else:
+                        active_shader_type = getattr(ptr, '%s_shaders' % self.shader_type)
+                        shader_name = active_shader_type.active
+                        index_name = 'bl_hidden_%s_index' % sp.pyname
+                        col = row.column(align=True)
+                        row = col.row()
+                        row.prop(sptr, 'bl_hidden_%s_menu' % sp.pyname)
+						
+						
+                        op = row.operator("shading.refresh_coshader_list", text="", icon='FILE_REFRESH')
+                        op.shader_type = self.shader_type
+                        op.parameter_name = sp.pyname
+		
+                        row = col.row()
+                        row.template_list(sptr, sp.pyname, sptr, index_name, rows=1, maxrows=5)
+                        col = row.column(align=True)
+						
+                        op = col.operator("collection.add_remove", icon="ZOOMIN", text="")
+                        op.context = shader_name
+                        op.collection = sp.pyname
+                        op.collection_index = index_name
+                        op.action = 'ADD'
+                        op.defaultname = ''
+                        op.is_shader_param = True
+                        op.shader_type = self.shader_type
+        
+                        op = col.operator("collection.add_remove", icon="ZOOMOUT", text="")
+                        op.context = shader_name
+                        op.collection = sp.pyname
+                        op.collection_index = index_name
+                        op.action = 'REMOVE'
+                        op.is_shader_param = True
+                        op.shader_type = self.shader_type
+						
+                else:
+                    row.prop(sptr, sp.pyname)
+                
+				# BBM addition end
                 
                 if sp.data_type == 'string' and sp.gadgettype != 'optionmenu':
                     # check to see if it's a texture already
@@ -550,6 +608,44 @@ class WORLD_PT_3Delight_integrator(ShaderPanel, bpy.types.Panel):
         self._draw_params(scene, rm.integrator, col)
 
 
+# BBM addition begin
+
+class WORLD_PT_3Delight_coshaders(ShaderPanel, bpy.types.Panel):
+    bl_context = "world"
+    bl_label = "World Co-shaders"
+    shader_type = 'shader'
+    
+
+    def draw(self, context):
+        layout = self.layout
+        world = context.world
+        rm = world.renderman
+        scene = context.scene
+        
+        row = layout.row()
+        row.template_list(rm, "coshaders", rm, "coshaders_index", rows=1, maxrows=5)
+        col = row.column(align=True)
+        
+        op = col.operator("collection.add_remove", icon="ZOOMIN", text="")
+        op.context = "world"
+        op.collection = "coshaders"
+        op.collection_index = "coshaders_index"
+        op.action = 'ADD'
+        op.defaultname = ''
+        
+        op = col.operator("collection.add_remove", icon="ZOOMOUT", text="")
+        op.context = "world"
+        op.collection = "coshaders"
+        op.collection_index = "coshaders_index"
+        op.action = 'REMOVE'
+        
+        if len(rm.coshaders) > 0:
+            item = rm.coshaders[rm.coshaders_index]
+            
+            layout.prop(item, "name")   
+            self._draw_shader_menu_params(layout, context, item)  
+		 
+# BBM addition end
 
 # unused atm
 ''' 
@@ -619,6 +715,10 @@ class MATERIAL_PT_3Delight_shader_displacement(ShaderPanel, bpy.types.Panel):
         layout = self.layout
         mat = context.material
         rm = mat.renderman
+		# BBM addition begin
+        row = layout.row()
+        row.prop(rm, "displacementbound")
+		# BBM addition end
         self._draw_shader_menu_params(layout, context, rm)
 
 class MATERIAL_PT_3Delight_shader_interior(ShaderPanel, bpy.types.Panel):
@@ -649,7 +749,11 @@ class MATERIAL_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
 class MATERIAL_PT_3Delight_shader_coshaders(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Co-Shaders"
-    shader_type = 'surface'
+	#BBM repalced
+    #shader_type = 'surface'
+	#by
+    shader_type = 'shader'
+	#BBM repalce end
     bl_options = {'DEFAULT_CLOSED'}
     
     def draw(self, context):
@@ -932,9 +1036,47 @@ class DATA_PT_3Delight_lamp(ShaderPanel, bpy.types.Panel):
         
         col = split.column()
         col.prop(lamp, "energy")
+		
+        self._draw_shader_menu_params(layout, context, rm) # BBM modification
+        #self._draw_params(scene, lamp.renderman, layout)
+
+# BBM addition begin
+class DATA_PT_3Delight_lamp_coshaders(ShaderPanel, bpy.types.Panel):
+    bl_context = "data"
+    bl_label = "Light Co-Shaders"
+    shader_type = 'light' # right, this is a hack, if it is set to 'shader' as it should be, this section doesn't appear in the ui. This really shows my poor comprehension od Blender API
+    
+    def draw(self, context):
+        layout = self.layout
         
-        self._draw_params(scene, lamp.renderman, layout)
+        lamp = context.lamp
+        rm = context.lamp.renderman
+        scene = context.scene
+		
+        row = layout.row()
+        row.template_list(rm, "coshaders", rm, "coshaders_index", rows=1)
+        col = row.column(align=True)
+		
+        op = col.operator("collection.add_remove", icon="ZOOMIN", text="")
+        op.context = 'lamp'
+        op.collection = "coshaders"
+        op.collection_index = "coshaders_index"
+        op.action = 'ADD'
+        op.defaultname = ''
         
+        op = col.operator("collection.add_remove", icon="ZOOMOUT", text="")
+        op.context = 'lamp'
+        op.collection = "coshaders"
+        op.collection_index = "coshaders_index"
+        op.action = 'REMOVE'
+        
+        if len(rm.coshaders) > 0:
+            item = rm.coshaders[rm.coshaders_index]
+            
+            layout.prop(item, "name")
+            self.shader_type = 'shader' # Now we set it back to 'shader' because we want to get the coshaders, no the lights.
+            self._draw_shader_menu_params(layout, context, item)  
+# BBM addition end
 
 class DATA_PT_3Delight_lamp_shadow(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'

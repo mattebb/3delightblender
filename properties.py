@@ -46,13 +46,21 @@ def shader_list_update(self, context, shader_type):
         # For safety, we keep the active shader property separate as a string property,
         # and update when chosen from the shader list
         self.active = str(self.shader_list)
-        
-def shader_active_update(self, context, shader_type):
+
+# BBM modified begin
+def shader_active_update(self, context, shader_type, location="material"):
     # Also initialise shader parameters when chosen from the shader list
-    rna_type_initialise(context.scene, context.material.renderman, shader_type, True)
+    if location == 'world':
+        rm = context.world.renderman
+    elif location == 'lamp':
+        rm = context.lamp.renderman
+    else:
+        rm = context.material.renderman
+    rna_type_initialise(context.scene, rm, shader_type, True)
     # and for coshaders
-    for coshader in context.material.renderman.coshaders:        
+    for coshader in rm.coshaders:        
         rna_type_initialise(context.scene, coshader, shader_type, True)
+# BBM modified end
 
 class atmosphereShaders(bpy.types.PropertyGroup):
     def atmosphere_shader_active_update(self, context):
@@ -146,21 +154,96 @@ class interiorShaders(bpy.types.PropertyGroup):
                 update=interior_shader_list_update,
                 items=interior_shader_list_items)
 
+#BBM modification begin
+
 class lightShaders(bpy.types.PropertyGroup):
+	
+    def light_shader_active_update(self, context):
+        shader_active_update(self, context, 'light')
+	
     active = StringProperty(
                 name="Active Light Shader",
                 description="Shader name to use for light",
                 default="")
+	
+    def light_shader_list_items(self, context):
+        return shader_list_items(self, context, 'light')
 
+    def light_shader_list_update(self, context):
+        shader_list_update(self, context, 'light')
+
+    shader_list = EnumProperty(
+                name="Active Light",
+                description="Light shader",
+                update=light_shader_list_update,
+                items=light_shader_list_items
+                )
+
+
+class coshaderShaders(bpy.types.PropertyGroup):
+
+    def coshader_shader_active_update(self, context):
+		# BBM addition begin
+        if self.id_data.name == 'World': # world coshaders
+            location = 'world'
+            mat_rm = context.scene.world.renderman
+        elif bpy.context.active_object.name in bpy.data.lamps.keys(): # lamp coshaders
+            location = 'lamp'
+            lamp = bpy.data.lamps.get(bpy.context.active_object.name)
+            mat_rm = lamp.renderman
+        else: # material coshaders
+            location = 'material'
+            mat_rm = context.active_object.active_material.renderman
+        shader_active_update(self, context, 'shader', location) # BBM modified (from 'surface' to 'shader')
+        cosh_index = mat_rm.coshaders_index
+        active_cosh = mat_rm.coshaders[cosh_index]
+        active_cosh_name = active_cosh.shader_shaders.active
+        if active_cosh_name == 'null':
+            coshader_name = active_cosh_name
+        else:
+            all_cosh = [ (cosh.name) for cosh in mat_rm.coshaders ]
+            same_name = 1
+            for cosh in all_cosh:
+                if cosh.startswith( active_cosh_name ):
+                    same_name += 1
+            coshader_name = ('%s_%d' % (active_cosh_name, same_name))
+        active_cosh.name = coshader_name
+        # BBM addition end
+    
+    active = StringProperty(
+                name="Active Co-Shader",
+                description="Shader name to use for coshader",
+                update=coshader_shader_active_update,
+                default="null"
+                )
+
+    def coshader_shader_list_items(self, context):
+        return shader_list_items(self, context, 'shader')
+
+    def coshader_shader_list_update(self, context):
+        shader_list_update(self, context, 'shader')
+
+    shader_list = EnumProperty(
+                name="Active Co-Shader",
+                description="Shader name to use for coshader",
+                update=coshader_shader_list_update,
+                items=coshader_shader_list_items
+                )
 
 class RendermanCoshader(bpy.types.PropertyGroup):
     name = StringProperty(
                 name="Name (Handle)",
                 description="Handle to refer to this co-shader from another shader")
-                
-    surface_shaders = PointerProperty( 
-                type=surfaceShaders,
-                name="Surface Shader Settings")
+    
+	#BBM replace begin
+    #surface_shaders = PointerProperty( 
+    #            type=surfaceShaders,
+    #            name="Surface Shader Settings")
+    #by
+    shader_shaders = PointerProperty(
+                type=coshaderShaders,
+                name="Coshader Shader Settings")
+#BBM modification end
 
 # Blender data
 # --------------------------
@@ -644,6 +727,11 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
 
     integrator = PointerProperty(
                 type=RendermanIntegrator, name="Integrator Settings")
+	
+	# BBM addition begin
+    coshaders = CollectionProperty(type=RendermanCoshader, name="World Co-Shaders")
+    coshaders_index = IntProperty(min=-1, default=-1)
+	# BBM addition end
 
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
     pass
@@ -664,9 +752,10 @@ class RendermanMaterialSettings(bpy.types.PropertyGroup):
     atmosphere_shaders = PointerProperty(
                 type=atmosphereShaders,
                 name="Atmosphere Shader Settings")
-
-    coshaders = CollectionProperty(type=RendermanCoshader, name="Co-Shaders")
+	
+    coshaders = CollectionProperty(type=RendermanCoshader, name="Material Co-Shaders")
     coshaders_index = IntProperty(min=-1, default=-1)
+	
 
     displacementbound = FloatProperty(
                 name="Displacement Bound",
@@ -974,6 +1063,12 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                 name="Illuminates by default",
                 description="Illuminates by default",
                 default=True)
+
+    
+	# BBM addition begin
+    coshaders = CollectionProperty(type=RendermanCoshader, name="Light Co-Shaders")
+    coshaders_index = IntProperty(min=-1, default=-1)
+	# BBM addition end
 
 
 class RendermanMeshPrimVar(bpy.types.PropertyGroup):
@@ -1357,6 +1452,7 @@ classes = [atmosphereShaders,
             surfaceShaders,
             interiorShaders,
             lightShaders,
+            coshaderShaders, #BBM addition
             RendermanCoshader,
             RendermanPath,
 			RendermanInlineRIB,
