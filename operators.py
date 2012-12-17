@@ -45,6 +45,21 @@ from .export import export_archive
 from bpy_extras.io_utils import ExportHelper
 
 
+class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
+    ''''''
+    bl_idname = "shading.add_renderman_nodetree"
+    bl_label = "Add Renderman Nodetree"
+    bl_description = "Add a renderman shader node tree linked to this material"
+
+        
+    def execute(self, context):
+        mat = context.material
+        nt = bpy.data.node_groups.new(mat.name, type='RendermanShaderTree')
+        nt.use_fake_user = True
+        mat.renderman.nodetree = nt.name
+        nt.nodes.new('OutputShaderNode')
+
+        return {'FINISHED'}
 
 class SHADING_OT_refresh_shader_parameters(bpy.types.Operator):
     ''''''
@@ -100,14 +115,16 @@ class SHADING_OT_refresh_coshader_list(bpy.types.Operator):
     def execute(self, context):
         shader_type = self.properties.shader_type
         param_name = self.properties.parameter_name
-        is_world_coshader = self.properties.is_world_coshader
+        #is_world_coshader = self.properties.is_world_coshader
         scene = context.scene
         if bpy.context.active_object.name in bpy.data.lamps.keys(): # lamp
             lamp = bpy.data.lamps.get(bpy.context.active_object.name)
             rm = lamp.renderman
         else: # material
             rm = bpy.context.active_object.active_material.renderman
+        print('----- refresh coshader list START')
         rna_type_initialise(scene, rm, shader_type, True)
+        print('----- refresh coshader list END')
         return {'FINISHED'}
 # BBM addition end
 
@@ -351,6 +368,8 @@ class TEXT_OT_add_inline_rib(bpy.types.Operator):
         rm = id.renderman
         collection = getattr(rm, prop_coll)
 '''
+
+
 
 # ### Yuck, this should be built in to blender...
 class COLLECTION_OT_add_remove(bpy.types.Operator):
