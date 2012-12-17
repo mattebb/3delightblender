@@ -47,7 +47,60 @@ def getattr_recursive(ptr, attrstring):
         ptr = getattr(ptr, attr)
 
     return ptr
+
+
 # -------------------- Path Handling -----------------------------
+
+# convert multiple path delimiters from : to ;
+# converts both windows style paths (x:C:\blah -> x;C:\blah)
+# and unix style (x:/home/blah -> x;/home/blah)
+def path_delimit_to_semicolons(winpath):
+    return re.sub(r'(:)(?=[A-Za-z]|\/)', r';', winpath)
+
+
+def get_path_list(rm, type):
+    paths = []
+    if rm.use_default_paths:
+        paths.append('@')
+        
+    if rm.use_builtin_paths:
+        paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "%ss" % type))
+        
+    for p in getattr(rm, "%s_paths" % type):
+        paths.append(bpy.path.abspath(p.name))
+
+    return paths
+
+
+# Convert env variables to full paths.
+def path_list_convert(path_list, to_unix=False):
+    paths = []
+    
+    for p in path_list:
+        
+        p = os.path.expanduser(p)
+        
+        if p == '@' or p.find('$') != -1:
+            # path contains environment variables
+            p = p.replace('@', os.path.expandvars('$DL_SHADERS_PATH'))
+            
+            # convert path separators from : to ;
+            p = path_delimit_to_semicolons(p)
+            
+            if to_unix:
+                p = path_win_to_unixy(p)
+            
+            envpath = ''.join(p).split(';')
+            paths.extend(envpath)
+        else:
+            if to_unix:
+                p = path_win_to_unixy(p)
+            paths.append(p)
+
+    return paths
+
+def get_path_list_converted(rm, type, to_unix=False):
+    return path_list_convert(get_path_list(rm, type), to_unix)
 
 def path_win_to_unixy(winpath, escape_slashes=False):
     if escape_slashes:

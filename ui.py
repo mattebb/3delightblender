@@ -208,9 +208,12 @@ class ShaderPanel():
 				# from 
                 #row.prop(sptr, sp.pyname)
 				# to
+
+                '''
                 if sp.is_coshader:
                     if not sp.is_array:
                         col = row.column(align=True)
+                        
                         row = col.row()
                         row.prop(sptr, sp.pyname)
                         op = row.operator("shading.refresh_coshader_list", text="", icon='FILE_REFRESH')
@@ -252,7 +255,8 @@ class ShaderPanel():
                         op.shader_type = self.shader_type
 						
                 else:
-                    row.prop(sptr, sp.pyname)
+                '''
+                row.prop(sptr, sp.pyname)
                 
 				# BBM addition end
                 
@@ -679,7 +683,12 @@ class MATERIAL_PT_3Delight_preview(bpy.types.Panel):
 
         row = layout.row()
         row.template_preview(context.material, show_buttons=1)
-        
+
+        if mat.renderman.nodetree != '':
+            layout.prop_search(mat.renderman, "nodetree", bpy.data, "node_groups")
+        else:
+            layout.operator('shading.add_renderman_nodetree')
+            
         #col = row.column()
         #col.scale_x = 1.5
         #col.prop(rm, "preview_render_type", text="", expand=True)
@@ -704,6 +713,8 @@ class MATERIAL_PT_3Delight_shader_surface(ShaderPanel, bpy.types.Panel):
         layout.separator()
         
         self._draw_shader_menu_params(layout, context, rm)
+
+
         
         
 class MATERIAL_PT_3Delight_shader_displacement(ShaderPanel, bpy.types.Panel):

@@ -28,8 +28,9 @@ import os
 import subprocess
 import time
 
+import bpy
 from .util import init_env
-from .shader_parameters import get_path_list_converted
+from .util import get_path_list_converted
 
 
 def shader_visbility_annotation(annotations):
@@ -46,12 +47,11 @@ shader_cache = {}
 shaderscan_lock = threading.Lock()
 
 class BgShaderScan(threading.Thread):
-    def __init__(self, lock, path_list, scene_name, shader_type, material):
+    def __init__(self, lock, path_list, scene_name, material):
         threading.Thread.__init__(self)
         self.lock = lock
         self.path_list = path_list
         self.scene_name = scene_name
-        self.type = shader_type
         self.material = material
         self.daemon = True   
     
@@ -145,24 +145,37 @@ class BgShaderScan(threading.Thread):
                 pass
 
 # scans valid paths on disk for shaders, and caches for later retrieval
-def shaders_in_path(context, type):
+def shaders_in_path(scene, idblock, shader_type='', threaded=True):
     global shaderscan_lock
     global shader_cache
 
-    scene = context.scene
+    #scene = context.scene
     init_env(scene)
     
-    if hasattr(context, "material"):
-        material = context.material
+    if type(idblock) == bpy.types.Material:
+        material = idblock
+    #if hasattr(context, "material"):
+    #    material = context.material
     else:
         material = None
     
     path_list = get_path_list_converted(scene.renderman, 'shader')
     
-    scanthread = BgShaderScan(shaderscan_lock, path_list, scene.name, type, material)
-    scanthread.start()
+    scanthread = BgShaderScan(shaderscan_lock, path_list, scene.name, material)
+    if threaded:
+        scanthread.start()
+    else:
+        print('run')
+        scanthread.run()
 
-    if scene.name in shader_cache and type in shader_cache[scene.name]['shaders'].keys():
-        return sorted(shader_cache[scene.name]['shaders'][type], key=str.lower)
+
+    if scene.name in shader_cache:
+        if shader_type != '' and shader_type in shader_cache[scene.name]['shaders'].keys():
+            return sorted(shader_cache[scene.name]['shaders'][shader_type], key=str.lower)
+        else:
+            shaderlist = [l for l in shader_cache[scene.name]['shaders'].values()]
+            print('SHADER LIST ----------')
+            print(shaderlist)
+            return [item for sublist in shaderlist for item in sublist] 
     else:
         return ['Loading...']

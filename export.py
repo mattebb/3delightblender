@@ -41,6 +41,8 @@ from .util import make_frame_path
 from .util import init_env
 from .util import get_sequence_path
 from .util import user_path
+from .util import get_path_list_converted
+from .util import path_list_convert
 
 addon_version = bl_info['version']
 
@@ -57,10 +59,10 @@ from .shader_parameters import shader_recompile
 
 from .shader_parameters import shader_requires_shadowmap
 
-from .shader_parameters import get_path_list_converted
-from .shader_parameters import path_list_convert
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
+
+from .nodes import export_shader_nodetree
 
 class RPass:    
     def __init__(self, scene, objects=[], paths={}, type="", motion_blur=False):
@@ -724,19 +726,24 @@ def export_material(file, rpass, scene, mat):
     export_sss_bake(file, rpass, mat)
     
     export_shader_init(file, rpass, mat)
-    export_shader(file, scene, rpass, mat, 'shader') # BBM addition
-    export_shader(file, scene, rpass, mat, 'surface')
-    export_shader(file, scene, rpass, mat, 'displacement')
-    export_shader(file, scene, rpass, mat, 'interior')
+
+    if mat.renderman.nodetree != '':
+        export_shader_nodetree(file, scene, mat)
+    else:
+        #export_shader(file, scene, rpass, mat, 'shader') # BBM addition
+        export_shader(file, scene, rpass, mat, 'surface')
+        export_shader(file, scene, rpass, mat, 'displacement')
+        export_shader(file, scene, rpass, mat, 'interior')
     
+    '''
     # allow overriding with global world atmosphere shader
     if mat.renderman.inherit_world_atmosphere:
         export_shader(file, scene, rpass, scene.world, 'atmosphere')
     else:
         export_shader(file, scene, rpass, mat, 'atmosphere')
-        
-    file.write('        Shader "brdf_specular" "brdf_specular" \n')
-    file.write('        Shader "btdf_specular" "btdf_specular" \n')
+    ''' 
+    #file.write('        Shader "brdf_specular" "brdf_specular" \n')
+    #file.write('        Shader "btdf_specular" "btdf_specular" \n')
 
 
 def export_strands(file, rpass, scene, ob, motion):
@@ -922,12 +929,25 @@ def export_shader_init(file, rpass, mat):
     if rpass.emit_photons:
         file.write('        Attribute "photon" "string shadingmodel" "%s" \n' % rm.photon_shadingmodel)
 
-
-def export_shader(file, scene, rpass, idblock, type):
+def export_shader(file, scene, rpass, idblock, shader_type):
     rm = idblock.renderman
-    file.write('\n        # %s\n' % type ) # BBM addition
+    file.write('\n        # %s\n' % shader_type ) # BBM addition
 	
-    if type == 'surface':
+    parameterlist = rna_to_shaderparameters(scene, rm, shader_type)
+
+    for sp in parameterlist:
+        print('sp.meta[\'data_type\'] %s ' % sp.meta['data_type'])
+        if sp.meta['data_type'] == 'shader':
+            if sp.value == 'null':
+                continue
+            if sp.is_array:
+                collection = sp.value 
+                for item in collection:
+                    file.write('        Shader "%s" "%s"\n' % (item.value, idblock.name+'_'+sp.name) )
+            else:
+                file.write('        Shader "%s" "%s"\n' % (sp.value, sp.value)) #idblock.name+'_'+sp.name) )
+
+    if shader_type == 'surface':
         mat = idblock
         
         if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
@@ -935,26 +955,20 @@ def export_shader(file, scene, rpass, idblock, type):
         file.write('        Color %s\n' % rib(mat.diffuse_color))
         file.write('        Opacity %s\n' % rib([mat.alpha for i in range(3)]))
         file.write('        Surface "%s" \n' % rm.surface_shaders.active)
-
-        parameterlist = rna_to_shaderparameters(scene, rm, type)
         
-    elif type == 'displacement':
+    elif shader_type == 'displacement':
         if rm.displacement_shaders.active == '' or not rpass.displacement_shaders: return
         
         if rm.displacementbound > 0.0:
             file.write('        Attribute "displacementbound" "sphere" %f \n' % rm.displacementbound)
-    
         file.write('        Displacement "%s" \n' % rm.displacement_shaders.active)
-        parameterlist = rna_to_shaderparameters(scene, rm, type)
-    
-    elif type == 'interior':
+            
+    elif shader_type == 'interior':
         if rm.interior_shaders.active == '' or not rpass.interior_shaders: return
         
         file.write('        Interior "%s" \n' % rm.interior_shaders.active)
-
-        parameterlist = rna_to_shaderparameters(scene, rm, type)
     
-    elif type == 'atmosphere':
+    elif shader_type == 'atmosphere':
 
         if rpass.type == 'ptc_indirect':
 
@@ -966,33 +980,37 @@ def export_shader(file, scene, rpass, idblock, type):
             file.write('        Atmosphere "vol_ptcbake" \n')
             file.write('            "string ptc_file" "%s" \n' % relpath)
         
-
         if rm.atmosphere_shaders.active == '' or not rpass.atmosphere_shaders: return
-        
         file.write('        Atmosphere "%s" \n' % rm.atmosphere_shaders.active)
-
-        parameterlist = rna_to_shaderparameters(scene, rm, type)
     
-	# BBM addition begin
-    elif type == 'shader':
+
+    '''
+    # BBM addition begin
+    elif shader_type == 'shader':
         for cosh_item in rm.coshaders.items():
             coshader_handle = cosh_item[0]
             coshader_name = cosh_item[1].shader_shaders.active
             file.write('        Shader "%s" "%s"\n' % (coshader_name, coshader_handle) )
-            parameterlist = rna_to_shaderparameters(scene, cosh_item[1], type)
+            parameterlist = rna_to_shaderparameters(scene, cosh_item[1], shader_type)
+            print('--', sp.value, sp.pyname)
             for sp in parameterlist:
-                if sp.is_coshader and sp.value == '':
+                if sp.is_coshader and sp.value == '' or sp.value == 'null':
                     sp.value = 'null'
-                if sp.is_array:
-                    file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
                 else:
-                    file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+                    if sp.is_array:
+                        file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
+                    else:
+                        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
         return
 	# BBM addition end
-	
+    '''
+
     # parameter list
     for sp in parameterlist:
 		# BBM addition begin
+        if sp.value == 'null':
+            continue
+
         if sp.is_array:
             file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
         else:
@@ -2177,6 +2195,7 @@ def available_licenses():
 
 
 def init(engine):
+    print('init export')
     pass
 
 def free(engine):
@@ -2243,7 +2262,8 @@ def render_scene(engine):
         render_rib(engine)
     
 def render_preview(engine):
-    render_rib(engine)
+    pass
+    #render_rib(engine)
 
 
 def render_rib(engine):
