@@ -26,7 +26,7 @@
 bl_info = {
     "name": "3Delight",
     "author": "Matt Ebb",
-    "version": (0, 8, 0),
+    "version": (0, 9, 0),
     "blender": (2, 6, 2),
     "location": "Info Header (engine dropdown)",
     "description": "3Delight (renderman) integration",
@@ -48,7 +48,9 @@ else:
     from . import ui
     from . import operators
     from . import export
+    from . import nodes
     #from . import draw
+
 
 class Render3Delight(bpy.types.RenderEngine):
     bl_idname = '3DELIGHT_RENDER'
@@ -92,6 +94,7 @@ def register():
     export.register()
     #draw.register()
     bpy.utils.register_module(__name__)
+    nodes.init()
 
 
 def unregister():
