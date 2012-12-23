@@ -2,15 +2,21 @@
 
 class base_surface(
     color baseColor = 1;
+    shader brdf_coshaders[] = {};
+
+    float test=2;
+
     shader color_coshader = null;
     
+    shader test2 = null;
+
     color baseOpacity = 1;
     shader opac_coshader = null;
     
     string bump_coshader_cat = "_bump";
     string disp_coshader_cat = "_disp";
     
-    shader brdf_coshaders[] = {};
+    
     float kenv = 1;
     float kd = 1;
     float ks = 1;

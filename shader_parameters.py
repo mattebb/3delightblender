@@ -377,7 +377,7 @@ class ShaderParameter():
         self.meta = {}
         self.meta['shader_input'] = False
         self.meta['data_type'] = data_type
-        self.meta['shader_array'] = is_array
+        self.meta['array'] = is_array
 
 		# BBM addition begin
         self.is_coshader = is_coshader
@@ -428,7 +428,6 @@ def get_parameters_shaderinfo(shader_path_list, shader_name, data_type):
             sp = ShaderParameter(param['name'], param['data_type'], default, sdl_type)
 		
         elif param['data_type'] == 'shader':
-            print('shader - is_array:', param['array'])
             sp = ShaderParameter(param['name'], param['data_type'], default, sdl_type, is_coshader=True, is_array=param['array'])
 		
         else:   # XXX support other parameter types
