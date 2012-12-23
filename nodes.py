@@ -37,6 +37,8 @@ def add_nodetype(layout, type):
     layout.operator("node.add_node", text=type.bl_label).type = type.bl_rna.identifier
 
 
+# Default Types
+
 # Derived from the NodeTree base type, similar to Menu, Operator, Panel, etc.
 class RendermanShaderTree(bpy.types.NodeTree):
     '''A node tree comprised of renderman co-shader nodes'''
@@ -75,23 +77,23 @@ class RendermanShaderSocket(bpy.types.NodeSocket):
     '''Renderman co-shader input/output'''
     bl_idname = 'RendermanShaderSocket'
     bl_label = 'Renderman Shader Socket'
-    bl_color = (1.0, 0.5, 0.1, 0.5)
-    
-    '''
-    my_items = [
-        ("DOWN", "Down", "Where your feet are"),
-        ("UP", "Up", "Where your head should be"),
-        ("LEFT", "Left", "Not right"),
-        ("RIGHT", "Right", "Not left")
-    ]
-    myEnumProperty = bpy.props.EnumProperty(name="Direction", description="Just an example", items=my_items, default='UP')
-    '''
-    
+    bl_color = (1.0, 0.2, 0.2, 0.5)
+
     # Optional function for drawing the socket input value
     def draw_value(self, context, layout, node):
         layout.label(self.name)
-        pass
-        #layout.prop(self, "myEnumProperty", text=self.name)
+
+
+class RendermanShaderArraySocket(bpy.types.NodeSocket):
+    '''Renderman co-shader array input/output'''
+    bl_idname = 'RendermanShaderArraySocket'
+    bl_label = 'Renderman Shader Array Socket'
+    bl_color = (1.0, 0.2, 0.6, 0.5)
+
+    # Optional function for drawing the socket input value
+    def draw_value(self, context, layout, node):
+        layout.label(self.name)
+
 
 # Base class for all custom nodes in this tree type.
 # Defines a poll function to enable instantiation.
@@ -111,7 +113,11 @@ class OutputShaderNode(bpy.types.Node, RendermanShaderNode):
         self.inputs.new('RendermanShaderSocket', "Atmosphere")
 
 
+# Dynamic types
+
 def generate_node_type(scene, name):
+    ''' Dynamically generate a node type from shader '''
+
     path_list = get_path_list(scene.renderman, 'shader')
     name, parameters = get_parameters_shaderinfo(path_list, name, '')
 
@@ -121,22 +127,31 @@ def generate_node_type(scene, name):
     ntype.bl_label = '%sShaderNode' % name[:16]
 
     def init(self, context):
-        # XXX   filter only if output annotated
         self.outputs.new('RendermanShaderSocket', "Shader")
         for sp in [p for p in parameters if p.data_type == 'shader']:
-            self.inputs.new('RendermanShaderSocket', sp.name)
+            print(sp.meta)
+            print(sp)
+            if sp.meta['array']:
+                self.inputs.new('RendermanShaderArraySocket', sp.name)
+            else:
+                self.inputs.new('RendermanShaderSocket', sp.name)
 
     def draw_buttons(self, context, layout):
+        #for p in self.prop_names:
+        #    layout.prop(self, p)
+
+        for sp in [p for p in parameters if p.meta['array']]:
+            row = layout.row()
+            row.label(sp.name)
+            row.operator("node.add_array_socket", text='', icon='ZOOMIN').array_name = sp.name
+    
+    def draw_buttons_ext(self, context, layout):
+
+        layout.operator('node.refresh_shader_parameters', icon='FILE_REFRESH')
+
         for p in self.prop_names:
             layout.prop(self, p)
 
-        for sp in [p for p in parameters if p.meta['shader_array']]:
-            layout.operator("node.add_new_socket", text='+ %s'%sp.name)
-    
-    def draw_buttons_ext(self, context, layout):
-        for p in self.prop_names:
-            layout.prop(self, p)
-    
     ntype.init = init
     ntype.draw_buttons = draw_buttons
     ntype.draw_buttons_ext = draw_buttons_ext
@@ -147,30 +162,53 @@ def generate_node_type(scene, name):
 
     RendermanShaderTree.nodetypes.append( ntype )
 
-def rindex(l, item):
-    return len(l)-1 - l[-1::-1].index(item) # slice notation reverses sequence
 
-class NODE_OT_add_socket(bpy.types.Operator):
-    bl_idname = 'node.add_new_socket'
-    bl_label = 'Add S'
+class NODE_OT_refresh_shader_parameters(bpy.types.Operator):
+    bl_idname = 'node.refresh_shader_parameters'
+    bl_label = 'Refresh Shader Parameters'
+    icon='FILE_REFRESH'
 
     def execute(self, context):
         node = context.node
-        print( node )
+        for i in node.inputs:
+            node.inputs.remove(i)
+        for o in node.outputs:
+            node.outputs.remove(o)
 
+        node.init(context)
+
+        return {'FINISHED'}
+    
+
+def rindex(l, item):
+    return len(l)-1 - l[-1::-1].index(item) # slice notation reverses sequence
+
+class NODE_OT_add_array_socket(bpy.types.Operator):
+    bl_idname = 'node.add_array_socket'
+    bl_label = 'Add S'
+
+    array_name = bpy.props.StringProperty(name="Array Name",
+        description="Name of the shader array to add an additional socket to",
+        default="")
+
+    def execute(self, context):
+        node = context.node
+        array_name = self.properties.array_name
+    
         nt = bpy.data.node_groups[context.active_object.material_slots[0].material.renderman.nodetree]
 
         def isocket_output(nt, socket):
             if not socket.is_linked:
                 return None
-            return [l.from_socket for l in nt.links if l.to_socket == socket][0]
+            return next((l.from_socket for l in nt.links if l.to_socket == socket), None)
 
         # copy existing inputs, in order to manipulate
         inputs_data = [{'name':s.name, 'output':isocket_output(nt, s)} for s in node.inputs]
         
         # add new input in requested position
-        idx = rindex(inputs_data)
-        inputs_data.insert(1, {'name':'New', 'output':None})
+        names = [d['name'] for d in inputs_data]
+        idx = rindex(names, array_name)
+        inputs_data.insert(idx+1, {'name':names[idx], 'output':None})
         
         # clear old sockets
         for input in node.inputs:
@@ -179,20 +217,20 @@ class NODE_OT_add_socket(bpy.types.Operator):
         # recreate with new ordering, and restore previous links
         for i in inputs_data:
             socket = node.inputs.new('RendermanShaderSocket', i['name'])
+            socket.array = True
             if i['output'] is not None:
                 nt.links.new(i['output'], socket)
 
         return {'FINISHED'}
 
-def init():
-    scene = bpy.data.scenes[0]
 
-    for s in shaders_in_path(scene, None, threaded=False):
-        generate_node_type(scene, s)
+
+
+
+
 
 def node_shader_handle(nt, node):
     return '%s_%s' % (nt.name, node.name)
-
 
 def node_socket_input(nt, socket):
     return [l.from_node for l in nt.links if l.to_socket == socket][0]
@@ -213,7 +251,23 @@ def shader_node_rib(file, scene, nt, node, shader_type='Shader'):
     parameterlist = ptr_to_shaderparameters(scene, node)
     for sp in parameterlist:
         file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-    for socket in linked_sockets(node.inputs):
+
+
+    print([s.array for s in node.inputs])
+
+    sockets = linked_sockets(node.inputs)
+    socket_names = [s.name for s in sockets]
+    arrays = [s for s in sockets if socket_names.count(s.name) > 1]
+
+    for arraysocket in set(arrays):
+
+        arraynodes = [node_socket_input(nt, s) for s in sockets if s.name == arraysocket.name]
+        handles = ['"%s"' % node_shader_handle(nt, n) for n in arraynodes]
+        count = socket_names.count(arraysocket.name)
+
+        file.write('            "string %s[%d]" %s \n' % (arraysocket.name, count, rib(handles)) )
+
+    for socket in sockets:
         inode = node_socket_input(nt, socket)
         file.write('            "string %s" "%s" \n' % (socket.name, node_shader_handle(nt,inode)))
 
@@ -222,17 +276,16 @@ def node_gather_inputs(nt, node):
     input_nodes = []
     
     for isocket in linked_sockets(node.inputs):
+
         # find input node via searching nodetree.links
         input_node = node_socket_input(nt, isocket)
-        
+
         # recursively add the current node's inputs to the front of the list
         input_nodes = node_gather_inputs(nt, input_node) + input_nodes
 
         # and add the current input node itself
         if input_node not in input_nodes:
             input_nodes.append(input_node)
-
-    #input_nodes.append(node)
     return input_nodes
 
 
@@ -261,3 +314,10 @@ def export_shader_nodetree(file, scene, mat):
         file.write('\n')
 
 
+
+
+def init():
+    scene = bpy.data.scenes[0]
+
+    for s in shaders_in_path(scene, None, threaded=False):
+        generate_node_type(scene, s)
