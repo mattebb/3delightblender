@@ -77,7 +77,7 @@ class RendermanShaderSocket(bpy.types.NodeSocket):
     '''Renderman co-shader input/output'''
     bl_idname = 'RendermanShaderSocket'
     bl_label = 'Renderman Shader Socket'
-    bl_color = (1.0, 0.2, 0.2, 0.5)
+    bl_color = (1.0, 0.2, 0.2, 0.75)
 
     # Optional function for drawing the socket input value
     def draw_value(self, context, layout, node):
@@ -88,7 +88,7 @@ class RendermanShaderArraySocket(bpy.types.NodeSocket):
     '''Renderman co-shader array input/output'''
     bl_idname = 'RendermanShaderArraySocket'
     bl_label = 'Renderman Shader Array Socket'
-    bl_color = (1.0, 0.2, 0.6, 0.5)
+    bl_color = (1.0, 0.2, 0.5, 0.75)
 
     # Optional function for drawing the socket input value
     def draw_value(self, context, layout, node):
@@ -124,13 +124,11 @@ def generate_node_type(scene, name):
     print('generating node: %s' % name)
 
     ntype = type('%sShaderNode' % name[:16], (bpy.types.Node, RendermanShaderNode), {})
-    ntype.bl_label = '%sShaderNode' % name[:16]
+    ntype.bl_label = name
 
     def init(self, context):
         self.outputs.new('RendermanShaderSocket', "Shader")
         for sp in [p for p in parameters if p.data_type == 'shader']:
-            print(sp.meta)
-            print(sp)
             if sp.meta['array']:
                 self.inputs.new('RendermanShaderArraySocket', sp.name)
             else:
@@ -203,12 +201,16 @@ class NODE_OT_add_array_socket(bpy.types.Operator):
             return next((l.from_socket for l in nt.links if l.to_socket == socket), None)
 
         # copy existing inputs, in order to manipulate
-        inputs_data = [{'name':s.name, 'output':isocket_output(nt, s)} for s in node.inputs]
+        inputs_data = [{'name':s.name, 'type':s.bl_idname, 'output':isocket_output(nt, s)} for s in node.inputs]
+        print(inputs_data)
         
         # add new input in requested position
         names = [d['name'] for d in inputs_data]
         idx = rindex(names, array_name)
-        inputs_data.insert(idx+1, {'name':names[idx], 'output':None})
+        inputs_data.insert(idx+1, { 'name':inputs_data[idx]['name'], 
+                                    'type':inputs_data[idx]['type'],
+                                    'output':None
+                                    })
         
         # clear old sockets
         for input in node.inputs:
@@ -216,7 +218,7 @@ class NODE_OT_add_array_socket(bpy.types.Operator):
 
         # recreate with new ordering, and restore previous links
         for i in inputs_data:
-            socket = node.inputs.new('RendermanShaderSocket', i['name'])
+            socket = node.inputs.new(i['type'], i['name'])
             socket.array = True
             if i['output'] is not None:
                 nt.links.new(i['output'], socket)
@@ -253,21 +255,18 @@ def shader_node_rib(file, scene, nt, node, shader_type='Shader'):
         file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
 
 
-    print([s.array for s in node.inputs])
 
     sockets = linked_sockets(node.inputs)
-    socket_names = [s.name for s in sockets]
-    arrays = [s for s in sockets if socket_names.count(s.name) > 1]
-
-    for arraysocket in set(arrays):
-
-        arraynodes = [node_socket_input(nt, s) for s in sockets if s.name == arraysocket.name]
-        handles = ['"%s"' % node_shader_handle(nt, n) for n in arraynodes]
-        count = socket_names.count(arraysocket.name)
+    arrays = [s for s in sockets if s.bl_idname == 'RendermanShaderArraySocket']
+    print(arrays)
+    for arraysocket in arrays:
+        arrayinputs = [node_socket_input(nt, s) for s in sockets if s.name == arraysocket.name]
+        handles = ['"%s"' % node_shader_handle(nt, n) for n in arrayinputs]
+        count = [s.name for s in arrays].count(arraysocket.name)
 
         file.write('            "string %s[%d]" %s \n' % (arraysocket.name, count, rib(handles)) )
 
-    for socket in sockets:
+    for socket in [s for s in sockets if s not in arrays]:
         inode = node_socket_input(nt, socket)
         file.write('            "string %s" "%s" \n' % (socket.name, node_shader_handle(nt,inode)))
 
