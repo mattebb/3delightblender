@@ -37,29 +37,26 @@
 0
 0
 0
-16
+15
 0 12 0
 0 1 0.00000000e+00
 0 1 1.00000000e+00
-0 1 2.00000000e+00
 0 4 "_bump"
 0 4 "_disp"
+0 13 0
 0 4 "getColor"
 0 4 "setColor"
 0 4 "brdf_coshaders"
-0 13 0
 0 4 "disp_cosh"
 0 4 "/Developer/3delightblender/shaders/base_surface.sl"
 0 4 "getFloat"
 0 4 "base_surface"
 0 4 "bump_cosh"
 0 4 "getBrdf"
-12
+10
 "baseColor" "rgb" 2 3 0 0 0 0
 "brdf_coshaders" "" 2 13 2 -1 0 0
-"test" "" 2 1 0 0 0 0
 "color_coshader" "" 2 13 0 0 0 0
-"test2" "" 2 13 0 0 0 0
 "baseOpacity" "rgb" 2 3 0 0 0 0
 "opac_coshader" "" 2 13 0 0 0 0
 "bump_coshader_cat" "" 2 4 0 0 0 0
@@ -86,7 +83,7 @@
 
 3
 
-4 44 30 
+4 43 30 
 
 1
 3 
@@ -98,83 +95,90 @@
 
 3
 
-1 46 31 
+8 45 33 
 
 1
 3 
 
 3
 
-8 47 37 
+4 46 30 
 
 1
 3 
 
 3
 
-8 48 37 
+8 47 33 
 
 1
 3 
 
 3
 
-4 49 30 
+7 48 31 
 
 1
 3 
 
 3
 
-8 50 37 
+7 49 32 
 
 1
 3 
 
 3
 
-7 51 32 
+1 50 30 
 
 1
 3 
 
 3
 
-7 52 33 
+1 51 30 
 
 1
 3 
 
 3
 
-1 53 30 
-
-1
-3 
-
-3
-
-1 54 30 
-
-1
-3 
-
-3
-
-1 55 30 
+1 52 30 
 
 1
 3 
 
 0
 7
+53
+54
+55
 56
 57
 58
 59
-60
-61
-62
+
+3
+
+4 53 29 
+
+1
+3 
+
+3
+
+4 54 29 
+
+1
+3 
+
+3
+
+4 55 29 
+
+1
+3 
 
 3
 
@@ -185,42 +189,21 @@
 
 3
 
-4 57 29 
+1 57 29 
 
 1
 3 
 
 3
 
-4 58 29 
+1 58 29 
 
 1
 3 
 
 3
 
-4 59 29 
-
-1
-3 
-
-3
-
-1 60 29 
-
-1
-3 
-
-3
-
-1 61 29 
-
-1
-3 
-
-3
-
-1 62 29 
+1 59 29 
 
 1
 3 
@@ -251,14 +234,14 @@
 8 0 0 0
 26
 
-2 56 6 
-135 57 15 1 
-40 63 4 
-135 58 63 1 
-2 59 44 
-1 60 53 
-1 61 54 
-1 62 55 
+2 53 6 
+135 54 15 1 
+40 60 4 
+135 55 60 1 
+2 56 43 
+1 57 50 
+1 58 51 
+1 59 52 
 
 8
 3 7 10 14 17 20 23 26 
@@ -293,26 +276,26 @@
 2 0 0 0
 75
 
-216 1 66 52 
-1 69 29 
-1 64 29 
-249 65 66 
-41 68 29 65 
-235 68 37 
-249 65 66 
-246 38 64 65 39 46 
-242 67 66 64 
-228 1 67 40 41 70 6 
-24 69 69 70 
-17 64 64 30 
-249 65 66 
-41 68 64 65 
+216 1 63 49 
+1 66 29 
+1 61 29 
+249 62 63 
+41 65 29 62 
+235 65 37 
+249 62 63 
+246 37 61 62 38 40 
+242 64 63 61 
+228 1 64 39 40 67 6 
+24 66 66 67 
+17 61 61 30 
+249 62 63 
+41 65 61 62 
 236 -40 
-25 71 57 69 
-19 6 6 71 
-146 71 6 
-2 56 6 
-135 57 71 1 
+25 68 54 66 
+19 6 6 68 
+146 68 6 
+2 53 6 
+135 54 68 1 
 
 20
 4 7 10 13 17 20 23 29 33 40 44 48 51 55 57 61 65 68 71 75 
@@ -336,13 +319,13 @@
 3 0 0 0
 26
 
-2 73 49 
-56 72 50 37 
-232 72 0 11 
-228 1 50 34 41 74 6 
-26 73 73 74 
+2 70 46 
+56 69 47 33 
+232 69 0 11 
+228 1 47 34 40 71 6 
+26 70 70 71 
 234 
-2 3 73 
+2 3 70 
 
 7
 3 7 11 18 22 23 26 
@@ -383,46 +366,46 @@
 177
 
 9 2 29 29 29 
-56 82 47 37 
-232 82 0 12 
-227 7 47 35 41 56 57 58 59 60 61 62 
+56 79 45 33 
+232 79 0 12 
+227 7 45 35 40 53 54 55 56 57 58 59 
 234 
-216 1 78 51 
-1 83 29 
-1 75 29 
-249 76 78 
-41 82 29 76 
-235 82 37 
-249 76 78 
-246 42 75 76 39 75 
-242 79 78 75 
-228 1 79 40 41 84 6 
-24 83 83 84 
-17 75 75 30 
-249 76 78 
-41 82 75 76 
+216 1 75 48 
+1 80 29 
+1 72 29 
+249 73 75 
+41 79 29 73 
+235 79 37 
+249 73 75 
+246 41 72 73 38 69 
+242 76 75 72 
+228 1 76 39 40 81 6 
+24 80 80 81 
+17 72 72 30 
+249 73 75 
+41 79 72 73 
 236 -40 
-25 85 57 83 
-19 85 6 85 
-146 85 85 
-135 57 85 1 
-249 77 45 
-1 75 29 
-41 82 29 77 
-235 82 62 
-249 76 45 
-246 36 75 76 39 85 
-242 80 45 75 
-56 82 80 37 
-232 82 0 30 
-249 76 45 
-246 36 75 76 39 86 
-242 81 45 75 
-228 7 81 43 41 86 56 57 58 59 60 61 62 
-19 2 2 86 
+25 82 54 80 
+19 82 6 82 
+146 82 82 
+135 54 82 1 
+249 74 44 
+1 72 29 
+41 79 29 74 
+235 79 62 
+249 73 44 
+246 36 72 73 38 79 
+242 77 44 72 
+56 79 77 33 
+232 79 0 30 
+249 73 44 
+246 36 72 73 38 80 
+242 78 44 72 
+228 7 78 42 40 83 53 54 55 56 57 58 59 
+19 2 2 83 
 234 
-17 75 75 30 
-41 82 75 77 
+17 72 72 30 
+41 79 72 74 
 236 -65 
 26 2 2 3 
 
@@ -434,13 +417,13 @@
 %comment-3dl 7 121
 8
 "MacroBlocks_begin"
-"MQowIDgKIDcgNyAwCiA2IDE1IDQgNDQgNTMgNTQgNTUgNTYgNTcgNTggNTkgNjAgNjEgNjI="
+"MQowIDgKIDcgNyAwCiA2IDE1IDQgNDMgNTAgNTEgNTIgNTMgNTQgNTUgNTYgNTcgNTggNTk="
 "MacroBlocks_displacement"
-"NQoxIDQKIDEgMCAzCiA2NiA2NCA2OSA2OAo2IDIKIDIgMCAwCiA2NCA2NgoxMCA0CiAyIDIgMQogNzAgNjYgNjQgNjkgNjgKMTUgMgogMiAxIDAKIDY5IDU3IDYKMTggMgogMiAyIDAKIDcxIDYgNTYgNTc="
+"NQoxIDQKIDEgMCAzCiA2MyA2MSA2NiA2NQo2IDIKIDIgMCAwCiA2MSA2MwoxMCA0CiAyIDIgMQogNjcgNjMgNjEgNjYgNjUKMTUgMgogMiAxIDAKIDY2IDU0IDYKMTggMgogMiAyIDAKIDY4IDYgNTMgNTQ="
 "MacroBlocks_opacity"
 "MA=="
 "MacroBlocks_surface"
-"OAo2IDQKIDEgMCAzCiA3OCA3NSA4MiA4MwoxMSAyCiAyIDAgMAogNzUgNzgKMTUgNAogMiAyIDEKIDg0IDc4IDc1IDgzIDgyCjIwIDIKIDMgMCAxCiA4MyA2IDU3IDg1CjIzIDQKIDIgMSAzCiA4NSA0NSA1NyA3NSA3NyA4MgoyOCAyCiAyIDAgMAogNzUgNDUKMzMgMgogMiAwIDAKIDc1IDQ1CjM5IDIKIDEgMSAxCiA3NyA3NSA4Mg=="
+"OAo2IDQKIDEgMCAzCiA3NSA3MiA3OSA4MAoxMSAyCiAyIDAgMAogNzIgNzUKMTUgNAogMiAyIDEKIDgxIDc1IDcyIDgwIDc5CjIwIDIKIDMgMCAxCiA4MCA2IDU0IDgyCjIzIDQKIDIgMSAzCiA4MiA0NCA1NCA3MiA3NCA3OQoyOCAyCiAyIDAgMAogNzIgNDQKMzMgMgogMiAwIDAKIDcyIDQ0CjM5IDIKIDEgMSAxCiA3NCA3MiA3OQ=="
 "OpCodesForDerivatives_begin"
 "MAo="
 "OpCodesForDerivatives_displacement"

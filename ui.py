@@ -694,6 +694,46 @@ class MATERIAL_PT_3Delight_preview(bpy.types.Panel):
         #col.prop(rm, "preview_render_type", text="", expand=True)
         #col.menu("MATERIAL_MT_3Delight_preview_specials", icon='DOWNARROW_HLT', text="")
         
+from .nodes import draw_nodes_recursive
+
+class MATERIAL_PT_3Delight_shader_surface_node(bpy.types.Panel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    
+    bl_context = "material"
+    bl_label = "Node Tree"
+    COMPAT_ENGINES = {'3DELIGHT_RENDER'}
+
+    @classmethod
+    def poll(cls, context):
+        if context.scene.render.engine not in cls.COMPAT_ENGINES:
+            return False
+        if context.material.renderman.nodetree == '':
+            return False
+        return True
+
+    def draw(self, context):
+        layout = self.layout
+        mat = context.material
+        rm = mat.renderman
+        nt = bpy.data.node_groups[rm.nodetree]
+
+        draw_nodes_recursive(layout, context, nt)
+
+        '''
+        node  = nt.nodes.active
+
+        def find_node_input(node, name):
+            for input in node.inputs:
+                if input.name == name:
+                    return input
+
+            return None
+
+        input = find_node_input(node, 'Surface')
+        layout.template_node_view(nt, node, input)
+        '''
+
 
 
 class MATERIAL_PT_3Delight_shader_surface(ShaderPanel, bpy.types.Panel):
