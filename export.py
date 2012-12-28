@@ -2195,7 +2195,6 @@ def available_licenses():
 
 
 def init(engine):
-    print('init export')
     pass
 
 def free(engine):
