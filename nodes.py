@@ -197,23 +197,27 @@ def linked_sockets(sockets):
 
 # UI
 
-
-
-def draw_nodes_recursive(layout, context, ntree, input_name='Surface'):
+def draw_nodes_properties_ui(layout, context, ntree, input_name='Surface'):
     out = next((n for n in ntree.nodes if n.type == 'OutputShaderNode'), None)
     if out is None: return
 
     socket = next((s for s in out.inputs if s.name == input_name), None)
     node = socket_node_input(ntree, socket)
 
+    layout.context_pointer_set("node", out)
+    layout.context_pointer_set("socket", socket)
+
     split = layout.split(0.35)
     split.label(socket.name+':')
-    split.operator_menu_enum("node.add_input_node", "node_type", text=node.bl_label)
+    if socket.is_linked:
+        split.operator_menu_enum("node.add_input_node", "node_type", text=node.bl_label)
+    else:
+        split.operator_menu_enum("node.add_input_node", "node_type", text='None')
 
-    draw_nodes_rec(layout, context, ntree, node)
+    draw_node_properties_recursive(layout, context, ntree, node)
 
 
-def draw_nodes_rec(layout, context, nt, node, level=0):
+def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
     def indented_label(layout, label):
         for i in range(level):
@@ -227,13 +231,13 @@ def draw_nodes_rec(layout, context, nt, node, level=0):
         indented_label(row, p+':')
         split.prop(node, p, text='')
 
-    # not yet 
     layout.context_pointer_set("node", node)
     node.draw_buttons(context, layout)
 
     # node shader inputs
     for socket in node.inputs:
-        layout.context_pointer_set("node", socket_node_input(nt, node))
+        layout.context_pointer_set("socket", socket)
+        #layout.context_pointer_set("node", node)
 
         if socket.is_linked:
             input_node = socket_node_input(nt, socket)
@@ -243,22 +247,18 @@ def draw_nodes_rec(layout, context, nt, node, level=0):
             row = split.row()
             row.prop(socket, "ui_open", icon=icon, text='', icon_only=True, emboss=False)            
             indented_label(row, socket.name+':')
-            
-            
             split.operator_menu_enum("node.add_input_node", "node_type", text=input_node.bl_label)
 
             if socket.ui_open:
-                draw_nodes_rec(layout, context, nt, input_node, level=level+1)
+                draw_node_properties_recursive(layout, context, nt, input_node, level=level+1)
 
         else:
             split = layout.split(NODE_LAYOUT_SPLIT)
             row = split.row()
             row.label('', icon='BLANK1')
             indented_label(row, socket.name+':')
-
-            #split.context_pointer_set("node", socket_node_input(nt, node))
             split.operator_menu_enum("node.add_input_node", "node_type", text='None')
-
+            
     layout.separator()
 
     
@@ -270,15 +270,17 @@ class NODE_OT_add_input_node(bpy.types.Operator):
     bl_label = 'Add Input Node'
 
     def node_type_items(self, context):
-        items = [('DEFAULT', 'Default', '')]
+        items = []
         for nodetype in RendermanShaderTree.nodetypes:
             items.append( (nodetype.typename, nodetype.bl_label, nodetype.bl_label) )
+        items.append( ('REMOVE', 'Remove', 'Remove the node connected to this socket'))
+        items.append( ('DISCONNECT', 'Disconnect', 'Disconnect the node connected to this socket'))
         return items
 
     node_type = bpy.props.EnumProperty(name="Node Type",
         description='Node type to add to this socket',
         items=node_type_items)
-    
+
     def execute(self, context):
         new_type = self.properties.node_type
         if new_type == 'DEFAULT':
@@ -286,21 +288,45 @@ class NODE_OT_add_input_node(bpy.types.Operator):
 
         nt = bpy.data.node_groups[context.active_object.material_slots[0].material.renderman.nodetree]
         node = context.node
+        socket = context.socket
+        input_node = socket_node_input(nt, socket)
 
-        # copy existing inputs, to restore later
-        inputs_data = [{'name':s.name, 'type':s.bl_idname, 'linked_output':socket_socket_input(nt, s)} for s in node.inputs]
+        if new_type == 'REMOVE':
+            nt.nodes.remove(input_node)
+            return {'FINISHED'}
 
-        nt.nodes.remove(node)
+        if new_type == 'DISCONNECT':
+            link = next((l for l in nt.links if l.to_socket == socket), None)
+            nt.links.remove(link)
+            return {'FINISHED'}
 
-        newnode = nt.nodes.new(new_type)
+        # add a new node to existing socket
+        if input_node is None:
+            newnode = nt.nodes.new(new_type)
+            newnode.location = node.location
+            newnode.location[0] -= 300
+            newnode.selected = False
+            nt.links.new(newnode.outputs[0], socket)
 
-        # for i in inputs_data:
-        #     if i['linked_output'] != None:
-        #         for input in newnode.inputs()
+        # replace input node with a new one
+        else:
+            output_names = []
+            for in_socket in node.inputs:
+                if socket_node_input(nt, in_socket) == input_node:
+                    output_names.append( socket_socket_input(nt, in_socket).name )
+                else:
+                    output_names.append(None)
 
+            newnode = nt.nodes.new(new_type)
+            newnode.location = input_node.location
+            nt.nodes.remove(input_node)
 
-
-        
+            for i, output_name in enumerate(output_names):
+                input = node.inputs[i]
+                output = next((o for o in newnode.outputs if o.name == output_name), None)
+                if output is None:
+                    continue
+                nt.links.new(output, input)
 
         return {'FINISHED'}
 
