@@ -1,5 +1,7 @@
 #include "./struct.h"
 
+#pragma annotation __name "Base Surface"
+
 class base_surface(
     color baseColor = 1;
     shader brdf_coshaders[] = {};
