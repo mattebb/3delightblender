@@ -700,6 +700,7 @@ from .nodes import draw_nodes_properties_ui
 class ShaderNodePanel(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
+    bl_label = 'Node Panel'
 
     bl_context = "material"
     COMPAT_ENGINES = {'3DELIGHT_RENDER'}
