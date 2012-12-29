@@ -602,6 +602,7 @@ def export_light(rpass, scene, file, ob):
 	
 	# BBM addition begin
 	# export light coshaders
+    '''
     file.write('\n        ## Light Co-shaders\n')
     for cosh_item in rm.coshaders.items():
         coshader_handle = cosh_item[0]
@@ -615,6 +616,7 @@ def export_light(rpass, scene, file, ob):
                 file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
 	
     file.write('\n        ## Light shader\n')
+    '''
     # BBM addition end
 	
     # user defined light shader
@@ -2112,7 +2114,7 @@ def write_rib(rpass, scene, info_callback):
     file.write('WorldBegin\n\n')
 
     #export_global_illumination_lights(file, rpass, scene)
-    export_world_coshaders(file, rpass, scene) # BBM addition
+    #export_world_coshaders(file, rpass, scene) # BBM addition
     export_integrator(file, rpass, scene)
     export_scene_lights(file, rpass, scene)
     export_objects(file, rpass, scene, motion)

@@ -408,30 +408,28 @@ def get_parameters_shaderinfo(shader_path_list, shader_name, data_type):
 
     # add parameters for this shader
     for param in sdl_param_data:
-        #if len(param_items) <= 1:
-        #    continue
-        #param_name = param_items[0]
-        
+        length = 1
+        is_coshader = False
+
         if param['data_type'] == 'float':
             default = [float(c) for c in param['default'].split(' ')]
             length = len(default)
             if length == 1:
                 default = default[0]
-            sp = ShaderParameter(param['name'], param['data_type'], default, sdl_type, length)
-            
         elif param['data_type'] in ('color', 'point', 'vector'):
             default = [float(c) for c in param['default'].split(' ')]
-            sp = ShaderParameter(param['name'], param['data_type'], default, sdl_type)
-
         elif param['data_type'] == 'string':
             default = str(param['default'])
-            sp = ShaderParameter(param['name'], param['data_type'], default, sdl_type)
-		
         elif param['data_type'] == 'shader':
-            sp = ShaderParameter(param['name'], param['data_type'], default, sdl_type, is_coshader=True, is_array=param['array'])
-		
+            is_coshader = True
+            #
+
+        
         else:   # XXX support other parameter types
             continue
+
+        sp = ShaderParameter(param['name'], param['data_type'], default, sdl_type, is_coshader=is_coshader, is_array=param['array'])
+        
         parameters.append(sp)
 
 
@@ -870,13 +868,13 @@ def rna_types_initialise(scene):
         #ptrs.extend((getattr(rm, "gi_primary"), getattr(rm, "gi_secondary")))
     
     # material surface coshaders
-    for mat in bpy.data.materials:
-        ptrs.extend( (coshader for coshader in mat.renderman.coshaders) )
+    #for mat in bpy.data.materials:
+    #    ptrs.extend( (coshader for coshader in mat.renderman.coshaders) )
 	# BBM addition begin
-    for lgt in bpy.data.lamps:
-        ptrs.extend( (coshader for coshader in lgt.renderman.coshaders) )
-    for wld in bpy.data.worlds:
-        ptrs.extend( (coshader for coshader in wld.renderman.coshaders) )
+    #for lgt in bpy.data.lamps:
+    #    ptrs.extend( (coshader for coshader in lgt.renderman.coshaders) )
+    #for wld in bpy.data.worlds:
+    #    ptrs.extend( (coshader for coshader in wld.renderman.coshaders) )
 	# BBM addition end
     
 	#BBM repalce
