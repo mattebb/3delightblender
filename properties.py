@@ -24,7 +24,7 @@
 # ##### END MIT LICENSE BLOCK #####
 
 import bpy
-from .properties_shader import RendermanCoshader, coshaderShaders
+#from .properties_shader import RendermanCoshader, coshaderShaders
 
 from .util import guess_3dl_path
 
@@ -669,8 +669,8 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
                 type=RendermanIntegrator, name="Integrator Settings")
 	
 	# BBM addition begin
-    coshaders = CollectionProperty(type=RendermanCoshader, name="World Co-Shaders")
-    coshaders_index = IntProperty(min=-1, default=-1)
+    #coshaders = CollectionProperty(type=RendermanCoshader, name="World Co-Shaders")
+    #coshaders_index = IntProperty(min=-1, default=-1)
 	# BBM addition end
 
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
@@ -696,8 +696,8 @@ class RendermanMaterialSettings(bpy.types.PropertyGroup):
                 type=atmosphereShaders,
                 name="Atmosphere Shader Settings")
 	
-    coshaders = CollectionProperty(type=RendermanCoshader, name="Material Co-Shaders")
-    coshaders_index = IntProperty(min=-1, default=-1)
+    #coshaders = CollectionProperty(type=RendermanCoshader, name="Material Co-Shaders")
+    #coshaders_index = IntProperty(min=-1, default=-1)
 	
 
     displacementbound = FloatProperty(
@@ -1009,8 +1009,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
     
 	# BBM addition begin
-    coshaders = CollectionProperty(type=RendermanCoshader, name="Light Co-Shaders")
-    coshaders_index = IntProperty(min=-1, default=-1)
+    #coshaders = CollectionProperty(type=RendermanCoshader, name="Light Co-Shaders")
+    #coshaders_index = IntProperty(min=-1, default=-1)
 	# BBM addition end
 
 
@@ -1395,8 +1395,6 @@ classes = [atmosphereShaders,
             surfaceShaders,
             interiorShaders,
             lightShaders,
-            coshaderShaders, #BBM addition
-            RendermanCoshader,
             RendermanPath,
 			RendermanInlineRIB,
             RendermanGrouping,
