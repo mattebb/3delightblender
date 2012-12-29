@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2011 Matt Ebb
+# Copyright (c) 2012 Matt Ebb
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -40,18 +40,15 @@ def add_nodetype(layout, nodetype):
 
 # Default Types
 
-# Derived from the NodeTree base type, similar to Menu, Operator, Panel, etc.
 class RendermanShaderTree(bpy.types.NodeTree):
     '''A node tree comprised of renderman co-shader nodes'''
     bl_idname = 'RendermanShaderTree'
     bl_label = 'Renderman Shader Tree'
     bl_icon = 'TEXTURE_SHADED'
-
     nodetypes = []
 
     @classmethod
     def poll(cls, context):
-        # Typical shader node test for compatible render engine setting
         return context.scene.render.engine == '3DELIGHT_RENDER'
 
     # Return a node tree from the context to be used in the editor
@@ -64,12 +61,10 @@ class RendermanShaderTree(bpy.types.NodeTree):
                 nt_name = ma.renderman.nodetree
                 if ma and nt_name != '':
                     return bpy.data.node_groups[ma.renderman.nodetree], ma, ma
-
         return (None, None, None)
     
     def draw_add_menu(self, context, layout):
         add_nodetype(layout, OutputShaderNode)
-        
         for nt in self.nodetypes:
             add_nodetype(layout, nt)
 
@@ -78,7 +73,7 @@ class RendermanShaderSocket(bpy.types.NodeSocket):
     '''Renderman co-shader input/output'''
     bl_idname = 'RendermanShaderSocket'
     bl_label = 'Renderman Shader Socket'
-    bl_color = (1.0, 0.2, 0.2, 0.75)
+    bl_color = (0.1, 1.0, 0.2, 0.75)
 
     ui_open = bpy.props.BoolProperty(name='UI Open')
 
@@ -91,7 +86,7 @@ class RendermanShaderArraySocket(bpy.types.NodeSocket):
     '''Renderman co-shader array input/output'''
     bl_idname = 'RendermanShaderArraySocket'
     bl_label = 'Renderman Shader Array Socket'
-    bl_color = (1.0, 0.2, 0.5, 0.75)
+    bl_color = (0.1, 1.0, 0.5, 0.75)
 
     ui_open = bpy.props.BoolProperty(name='UI Open')
 
@@ -145,8 +140,6 @@ def generate_node_type(scene, name):
         #for p in self.prop_names:
         #    layout.prop(self, p)
 
-        layout.operator('node.refresh_shader_parameters', icon='FILE_REFRESH')
-
         for sp in [p for p in parameters if p.meta['array']]:
             row = layout.row(align=True)
             row.label(sp.name)
@@ -154,7 +147,7 @@ def generate_node_type(scene, name):
             row.operator("node.remove_array_socket", text='', icon='ZOOMOUT').array_name = sp.name
     
     def draw_buttons_ext(self, context, layout):
-        #layout.operator('node.refresh_shader_parameters', icon='FILE_REFRESH')
+        layout.operator('node.refresh_shader_parameters', icon='FILE_REFRESH')
 
         for p in self.prop_names:
             split = layout.split(NODE_LAYOUT_SPLIT)
@@ -214,7 +207,8 @@ def draw_nodes_properties_ui(layout, context, ntree, input_name='Surface'):
     else:
         split.operator_menu_enum("node.add_input_node", "node_type", text='None')
 
-    draw_node_properties_recursive(layout, context, ntree, node)
+    if node is not None:
+        draw_node_properties_recursive(layout, context, ntree, node)
 
 
 def draw_node_properties_recursive(layout, context, nt, node, level=0):
@@ -237,8 +231,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
     # node shader inputs
     for socket in node.inputs:
         layout.context_pointer_set("socket", socket)
-        #layout.context_pointer_set("node", node)
-
+        
         if socket.is_linked:
             input_node = socket_node_input(nt, socket)
             icon = 'DISCLOSURE_TRI_DOWN' if socket.ui_open else 'DISCLOSURE_TRI_RIGHT'
@@ -266,6 +259,11 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 # Operators
 
 class NODE_OT_add_input_node(bpy.types.Operator):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
     bl_idname = 'node.add_input_node'
     bl_label = 'Add Input Node'
 
@@ -343,7 +341,6 @@ class NODE_OT_refresh_shader_parameters(bpy.types.Operator):
             node.outputs.remove(o)
 
         node.init(context)
-
         return {'FINISHED'}
     
 
@@ -426,8 +423,10 @@ def shader_node_rib(file, scene, nt, node, shader_type='Shader'):
     sockets = linked_sockets(node.inputs)
     arrays = [s for s in sockets if s.bl_idname == 'RendermanShaderArraySocket']
 
+    # export shader array socket shader references
     for i, arraysocket in enumerate(arrays):
-        # check to see if we've already processed a socket with this name - don't double up
+        # check to see if we've already processed a socket with this name
+        # so we don't double up
         if [s.name for s in arrays].index(arraysocket.name) < i:
             continue
 
@@ -437,12 +436,17 @@ def shader_node_rib(file, scene, nt, node, shader_type='Shader'):
 
         file.write('            "string %s[%d]" %s \n' % (arraysocket.name, count, rib(handles)) )
 
+    # export remaining non-array socket shader references
     for socket in [s for s in sockets if s not in arrays]:
         inode = socket_node_input(nt, socket)
         file.write('            "string %s" "%s" \n' % (socket.name, node_shader_handle(nt,inode)))
 
 
 def node_gather_inputs(nt, node):
+    '''
+    Recursively gather a list of nodes by traversing the node tree backwards
+    from an initial node and following the links connected to its inputs
+    '''
     input_nodes = []
     
     for isocket in linked_sockets(node.inputs):
@@ -478,7 +482,6 @@ def export_shader_nodetree(file, scene, mat):
         shader_node_rib(file, scene, nt, inode, shader_type=isocket.name)
 
         file.write('\n')
-
 
 
 
