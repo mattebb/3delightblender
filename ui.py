@@ -708,7 +708,8 @@ class ShaderNodePanel(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         if context.scene.render.engine not in cls.COMPAT_ENGINES: return False
-        if context.material.renderman.nodetree == '': return False
+        if cls.bl_context == 'material':
+            if context.material.renderman.nodetree == '': return False
         return True
 
 
@@ -1043,6 +1044,23 @@ class TEXTURE_PT_3Delight_image_generate(TexturePanel3dl, bpy.types.Panel):
         col.separator()
         col.operator("texture.generate_optimised", text="Generate Now", icon='FILE_IMAGE')
 
+
+class DATA_PT_3Delight_node_shader_lamp(ShaderNodePanel, bpy.types.Panel):
+    bl_label = "Light Shader Nodes"
+    bl_context = 'data'
+
+    def draw(self, context):
+        layout = self.layout
+        lamp = context.lamp
+        
+        if lamp.renderman.nodetree == '':
+            layout.operator('shading.add_renderman_nodetree').idtype='lamp'
+            return
+        
+        layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
+        
+        nt = bpy.data.node_groups[lamp.renderman.nodetree]
+        draw_nodes_properties_ui(self.layout, context, nt, input_name='Light')
 
 class DATA_PT_3Delight_lamp(ShaderPanel, bpy.types.Panel):
     bl_context = "data"

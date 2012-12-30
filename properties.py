@@ -939,6 +939,11 @@ class RendermanTextureSettings(bpy.types.PropertyGroup):
 
 class RendermanLightSettings(bpy.types.PropertyGroup):
 
+    nodetree = StringProperty(
+                name="Node Tree",
+                description="Name of the shader node tree for this light",
+                default="")
+
     light_shaders = PointerProperty(
                 type=lightShaders,
                 name="Light Shader Settings")

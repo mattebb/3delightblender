@@ -112,6 +112,11 @@ class OutputShaderNode(bpy.types.Node, RendermanShaderNode):
         self.inputs.new('RendermanShaderSocket', "Interior")
         self.inputs.new('RendermanShaderSocket', "Atmosphere")
 
+class OutputLightShaderNode(bpy.types.Node, RendermanShaderNode):
+    bl_label = 'Output'
+    def init(self, context):
+        self.inputs.new('RendermanShaderSocket', "Light")
+        
 
 # Generate dynamic types
 

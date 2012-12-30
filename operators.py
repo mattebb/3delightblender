@@ -51,13 +51,21 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     bl_label = "Add Renderman Nodetree"
     bl_description = "Add a renderman shader node tree linked to this material"
 
-        
+    idtype = StringProperty(name="ID Type", default="material")
+
     def execute(self, context):
-        mat = context.material
-        nt = bpy.data.node_groups.new(mat.name, type='RendermanShaderTree')
+        idtype = self.properties.idtype
+        context_data = {'material':context.material, 'lamp':context.lamp }
+        idblock = context_data[idtype]
+        
+        nt = bpy.data.node_groups.new(idblock.name, type='RendermanShaderTree')
         nt.use_fake_user = True
-        mat.renderman.nodetree = nt.name
-        nt.nodes.new('OutputShaderNode')
+        idblock.renderman.nodetree = nt.name
+
+        if idtype == 'material':
+            nt.nodes.new('OutputShaderNode')
+        else:
+            nt.nodes.new('OutputLightShaderNode')
 
         return {'FINISHED'}
 
