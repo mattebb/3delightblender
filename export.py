@@ -622,7 +622,10 @@ def export_light(rpass, scene, file, ob):
     # user defined light shader
     if rm.light_shaders.active != '':
         file.write('        LightSource "%s" \n' % rm.light_shaders.active)
+        print('export light')
         params = rna_to_shaderparameters(scene, rm, 'light')
+
+        print(params)
 
     # automatic shaders per blender lamp type
     elif lamp.type == 'POINT':

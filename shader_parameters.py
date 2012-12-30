@@ -702,8 +702,11 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
     # BBM addition end
     
     # check to see if this blender data type holds this shader type
-    try: stored_shaders = getattr(rmptr, "%s_shaders" % shader_type)
-    except AttributeError: return
+    try:
+        stored_shaders = getattr(rmptr, "%s_shaders" % shader_type)
+    except AttributeError:
+        print(rmptr, shader_type, 'doesnt hold this type')
+        return
 
     # if the type exists and we are overwriting existing, delete all existing rna properties so we can start fresh
     if replace_existing:
@@ -737,6 +740,7 @@ def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
     name, parameters = get_parameters_shaderinfo(shader_paths, stored_shaders.active, shader_type)
 
     if name == '':
+        print('no name')
         return
 
     # Generate an RNA Property group for this shader, limiting name length for rna specs
@@ -859,8 +863,8 @@ def shader_type_initialised(ptr, shader_type):
 
 def rna_types_initialise(scene):
     
-    #idblocks = list(bpy.data.materials) + list(bpy.data.lamps) + list(bpy.data.worlds)
-    ptrs = [ getattr(id, "renderman") for id in list(bpy.data.materials) + list(bpy.data.lamps) + list(bpy.data.worlds) ]
+    idblocks = list(bpy.data.materials) + list(bpy.data.lamps) + list(bpy.data.worlds)
+    ptrs = [ getattr(id, "renderman") for id in idblocks ]
     
     for id in bpy.data.worlds:
         rm = getattr(id, "renderman")

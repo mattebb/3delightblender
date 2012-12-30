@@ -28,7 +28,7 @@
 #include "util.h"
 
 
-class brdf_diffuse (
+class pbr_brdf_diffuse (
                   string texturename = "";
                   float Kd = 0.5;
                   )

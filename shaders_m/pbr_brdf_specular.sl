@@ -28,7 +28,7 @@
 #include "util.h"
 
 
-class brdf_specular (
+class pbr_brdf_specular (
                     )
 {
 

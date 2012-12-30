@@ -1090,7 +1090,8 @@ class DATA_PT_3Delight_lamp_coshaders(ShaderPanel, bpy.types.Panel):
     
     def draw(self, context):
         layout = self.layout
-        
+        return # XXX
+
         lamp = context.lamp
         rm = context.lamp.renderman
         scene = context.scene

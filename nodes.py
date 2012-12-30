@@ -45,7 +45,7 @@ class RendermanShaderTree(bpy.types.NodeTree):
     bl_idname = 'RendermanShaderTree'
     bl_label = 'Renderman Shader Tree'
     bl_icon = 'TEXTURE_SHADED'
-    nodetypes = []
+    nodetypes = {}
 
     @classmethod
     def poll(cls, context):
@@ -65,7 +65,7 @@ class RendermanShaderTree(bpy.types.NodeTree):
     
     def draw_add_menu(self, context, layout):
         add_nodetype(layout, OutputShaderNode)
-        for nt in self.nodetypes:
+        for nt in self.nodetypes.values():
             add_nodetype(layout, nt)
 
 # Custom socket type
@@ -162,8 +162,9 @@ def generate_node_type(scene, name):
     ntype.prop_names = class_add_parameters(ntype, [p for p in parameters if p.data_type != 'shader'])
     bpy.utils.register_class(ntype)
 
-    RendermanShaderTree.nodetypes.append( ntype )
+    print(ntype, ntype.bl_rna.identifier)
 
+    RendermanShaderTree.nodetypes[typename] = ntype
 
 
 
@@ -269,7 +270,7 @@ class NODE_OT_add_input_node(bpy.types.Operator):
 
     def node_type_items(self, context):
         items = []
-        for nodetype in RendermanShaderTree.nodetypes:
+        for nodetype in RendermanShaderTree.nodetypes.values():
             items.append( (nodetype.typename, nodetype.bl_label, nodetype.bl_label) )
         items.append( ('REMOVE', 'Remove', 'Remove the node connected to this socket'))
         items.append( ('DISCONNECT', 'Disconnect', 'Disconnect the node connected to this socket'))
@@ -487,6 +488,17 @@ def export_shader_nodetree(file, scene, mat):
 
 def init():
     scene = bpy.data.scenes[0]
-
     for s in shaders_in_path(scene, None, threaded=False):
         generate_node_type(scene, s)
+
+    from bpy.app.handlers import persistent
+
+    @persistent
+    def load_handler(dummy):
+        scene = bpy.data.scenes[0]
+        for s in shaders_in_path(scene, None, threaded=False):
+
+            generate_node_type(scene, s)
+
+    bpy.app.handlers.load_post.append(load_handler)
+
