@@ -687,6 +687,27 @@ def class_add_parameters(new_class, shaderparameters):
 
     return parameter_names
 
+def shader_class_name(shader_name):
+    return '%sParams' % shader_name[:21]
+
+# rewrite! yay!
+def shader_class(scene, name):
+    class_name = shader_class_name(name)
+    if class_name in locals().keys():
+        return locals()[class_name]
+
+    path_list = get_path_list(scene.renderman, 'shader')
+    name, parameters = get_parameters_shaderinfo(path_list, name, '')
+
+    new_class = type(class_name, (bpy.types.PropertyGroup,), {})
+    new_class.shader_name = name
+    new_class.prop_names = class_add_parameters(new_class, parameters)
+
+    bpy.utils.register_class(new_class)
+
+    return new_class
+
+
 def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
 
     init_env(scene)
@@ -892,7 +913,7 @@ def rna_types_initialise(scene):
     
         for shader_type in shader_types:
             # only initialise types that haven't already been initialised - safest by default and at render time
-            if not shader_type_initialised(rmptr, shader_type):
-                rna_type_initialise(scene, rmptr, shader_type, False)
+            #if not shader_type_initialised(rmptr, shader_type):
+            rna_type_initialise(scene, rmptr, shader_type, False)
     
     
