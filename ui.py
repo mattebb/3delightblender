@@ -608,8 +608,14 @@ class WORLD_PT_3Delight_integrator(ShaderPanel, bpy.types.Panel):
         
         col = layout.column()
         col.prop(rm.integrator.surface_shaders, "active")
-                
-        self._draw_params(scene, rm.integrator, col)
+
+        op = col.operator("shading.init_parameters")
+        op.shader_name= 'integrator'
+        op.attribute = 'integrator2'
+        op.id_type = 'WORLD'
+        
+        if hasattr(rm, 'integrator2'):
+            self._draw_params(scene, rm.integrator2, col)
 
 
 # BBM addition begin
@@ -702,19 +708,23 @@ class ShaderNodePanel(bpy.types.Panel):
     bl_region_type = 'WINDOW'
     bl_label = 'Node Panel'
 
-    bl_context = "material"
+    bl_context = ""
     COMPAT_ENGINES = {'3DELIGHT_RENDER'}
 
     @classmethod
     def poll(cls, context):
         if context.scene.render.engine not in cls.COMPAT_ENGINES: return False
         if cls.bl_context == 'material':
-            if context.material.renderman.nodetree == '': return False
-        return True
+            if context.material.renderman.nodetree != '': return True
+        if cls.bl_context == 'data':
+            if not context.lamp: return False
+            if context.lamp.renderman.nodetree != '': return True
+        return False
 
 
 class MATERIAL_PT_3Delight_shader_surface_node(ShaderNodePanel, bpy.types.Panel):
     bl_label = "Surface Shader Nodes"
+    bl_context = "material"
 
     def draw(self, context):
         nt = bpy.data.node_groups[context.material.renderman.nodetree]
@@ -722,6 +732,7 @@ class MATERIAL_PT_3Delight_shader_surface_node(ShaderNodePanel, bpy.types.Panel)
 
 class MATERIAL_PT_3Delight_shader_displacement_node(ShaderNodePanel, bpy.types.Panel):
     bl_label = "Displacement Shader Nodes"
+    bl_context = "material"
 
     def draw(self, context):
         nt = bpy.data.node_groups[context.material.renderman.nodetree]
@@ -1045,6 +1056,8 @@ class TEXTURE_PT_3Delight_image_generate(TexturePanel3dl, bpy.types.Panel):
         col.operator("texture.generate_optimised", text="Generate Now", icon='FILE_IMAGE')
 
 
+
+
 class DATA_PT_3Delight_node_shader_lamp(ShaderNodePanel, bpy.types.Panel):
     bl_label = "Light Shader Nodes"
     bl_context = 'data'
@@ -1053,14 +1066,8 @@ class DATA_PT_3Delight_node_shader_lamp(ShaderNodePanel, bpy.types.Panel):
         layout = self.layout
         lamp = context.lamp
         
-        if lamp.renderman.nodetree == '':
-            layout.operator('shading.add_renderman_nodetree').idtype='lamp'
-            return
-        
-        layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
-        
         nt = bpy.data.node_groups[lamp.renderman.nodetree]
-        draw_nodes_properties_ui(self.layout, context, nt, input_name='Light')
+        draw_nodes_properties_ui(self.layout, context, nt, input_name='LightSource', output_node='OutputLightShaderNode')
 
 class DATA_PT_3Delight_lamp(ShaderPanel, bpy.types.Panel):
     bl_context = "data"
@@ -1072,6 +1079,14 @@ class DATA_PT_3Delight_lamp(ShaderPanel, bpy.types.Panel):
         layout = self.layout
 
         lamp = context.lamp
+
+        if lamp.renderman.nodetree == '':
+            layout.operator('shading.add_renderman_nodetree').idtype='lamp'
+            return
+        
+        layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
+        
+
         rm = context.lamp.renderman
         scene = context.scene
         wide_ui = context.region.width > narrowui
