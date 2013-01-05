@@ -25,7 +25,7 @@
 # ##### END MIT LICENSE BLOCK #####
 */
 
-#pragma annotation visibility "False"
+#pragma annotation visibility "True"
 
 #pragma annotation sample_light "gadgettype=checkbox;label=Sample Lights;"
 #pragma annotation sample_bsdf "gadgettype=checkbox;label=Sample BSDF;"
