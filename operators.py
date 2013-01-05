@@ -69,6 +69,39 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class SHADING_OT_init_parameters(bpy.types.Operator):
+    bl_idname = "shading.init_parameters"
+    bl_label = "Init Parameters"
+    bl_description = "Generate the Shader's parameters after changes"
+
+    shader_name = StringProperty(name="Shader Name")
+    attribute = StringProperty(name="Attribute to assign shader parameters to")
+    id_type = StringProperty(name="Type of ID data")
+
+    def execute(self, context):
+        shader_name = self.properties.shader_name
+        attribute = self.properties.attribute
+        id_type = self.properties.id_type
+        scene = context.scene
+
+        from .shader_parameters import shader_class
+
+        if id_type == 'WORLD':
+            print('hasattr int', hasattr(context.world.renderman, attribute))
+            shd_class = shader_class(scene, shader_name)
+            pointerprop = PointerProperty(
+                type=shd_class, name="%s Shader Params" % shader_name)
+
+            print('type is world')
+            setattr(context.world.renderman, attribute, pointerprop)
+
+            print('hasattr int', hasattr(context.world.renderman, attribute))
+
+        return {'FINISHED'}
+
+
+
+
 class SHADING_OT_refresh_shader_parameters(bpy.types.Operator):
     ''''''
     bl_idname = "shading.refresh_shader_parameters"
