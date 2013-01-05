@@ -619,13 +619,12 @@ def export_light(rpass, scene, file, ob):
     '''
     # BBM addition end
 	
+    '''
     # user defined light shader
-    if rm.light_shaders.active != '':
-        file.write('        LightSource "%s" \n' % rm.light_shaders.active)
-        print('export light')
+    if rm.nodetree == '' and rm.light_shaders.active != '':
+        file.write('        LightSource "%s" ' % rm.light_shaders.active)
+        
         params = rna_to_shaderparameters(scene, rm, 'light')
-
-        print(params)
 
     # automatic shaders per blender lamp type
     elif lamp.type == 'POINT':
@@ -649,9 +648,14 @@ def export_light(rpass, scene, file, ob):
         file.write('        LightSource "ambientlight" \n')
         name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'ambientlight', 'light')
         
-    file.write('            "%s" \n' % ob.name) # handle
+    # file.write('            "%s" \n' % ob.name) # handle
+    '''
     
-    
+    if rm.nodetree != '':
+        print('export nodetree ')
+        export_shader_nodetree(file, scene, lamp, output_node='OutputLightShaderNode', handle=ob.name)
+        params = []
+
     # parameter list
     for sp in params:
         # special exceptions since they're not an actual properties on lamp datablock

@@ -55,12 +55,17 @@ class RendermanShaderTree(bpy.types.NodeTree):
     @classmethod
     def get_from_context(cls, context):
         ob = context.active_object
-        if ob:
+        if ob and ob.type not in {'LAMP', 'CAMERA'}:
             ma = ob.active_material
             if ma != None: 
                 nt_name = ma.renderman.nodetree
-                if ma and nt_name != '':
+                if nt_name != '':
                     return bpy.data.node_groups[ma.renderman.nodetree], ma, ma
+        elif ob and ob.type == 'LAMP':
+            la = ob.data
+            nt_name = la.renderman.nodetree
+            if nt_name != '':
+                return bpy.data.node_groups[la.renderman.nodetree], la, la
         return (None, None, None)
     
     def draw_add_menu(self, context, layout):
@@ -115,7 +120,7 @@ class OutputShaderNode(bpy.types.Node, RendermanShaderNode):
 class OutputLightShaderNode(bpy.types.Node, RendermanShaderNode):
     bl_label = 'Output'
     def init(self, context):
-        self.inputs.new('RendermanShaderSocket', "Light")
+        self.inputs.new('RendermanShaderSocket', "LightSource")
         
 
 # Generate dynamic types
@@ -183,8 +188,6 @@ def socket_node_input(nt, socket):
     return next((l.from_node for l in nt.links if l.to_socket == socket), None)
 
 def socket_socket_input(nt, socket):
-    #if not socket.is_linked:
-    #    return None
     return next((l.from_socket for l in nt.links if l.to_socket == socket and socket.is_linked), None)
 
 def linked_sockets(sockets):
@@ -196,13 +199,14 @@ def linked_sockets(sockets):
 
 # UI
 
-def draw_nodes_properties_ui(layout, context, ntree, input_name='Surface'):
-    out = next((n for n in ntree.nodes if n.type == 'OutputShaderNode'), None)
+def draw_nodes_properties_ui(layout, context, ntree, input_name='Surface', output_node='OutputShaderNode'):
+    out = next((n for n in ntree.nodes if n.type == output_node), None)
     if out is None: return
 
     socket = next((s for s in out.inputs if s.name == input_name), None)
     node = socket_node_input(ntree, socket)
 
+    layout.context_pointer_set("nodetree", ntree)
     layout.context_pointer_set("node", out)
     layout.context_pointer_set("socket", socket)
 
@@ -290,7 +294,7 @@ class NODE_OT_add_input_node(bpy.types.Operator):
         if new_type == 'DEFAULT':
             return {'CANCELLED'}
 
-        nt = bpy.data.node_groups[context.active_object.material_slots[0].material.renderman.nodetree]
+        nt = context.nodetree
         node = context.node
         socket = context.socket
         input_node = socket_node_input(nt, socket)
@@ -412,11 +416,14 @@ class NODE_OT_remove_array_socket(bpy.types.Operator):
 
 # Export to rib
 
-def shader_node_rib(file, scene, nt, node, shader_type='Shader'):    
+def shader_node_rib(file, scene, nt, node, shader_type='Shader', handle=None):
     file.write('\n')
+
     file.write('        %s "%s" ' % (shader_type, node.shader_name))
-    if shader_type == "Shader":
+    if shader_type == 'Shader':
         file.write('"%s"' % node_shader_handle(nt, node))
+    elif shader_type == 'LightSource':
+        file.write('"%s"' % handle)
     file.write('\n')
 
     # Export built in parameters
@@ -469,10 +476,10 @@ def node_gather_inputs(nt, node):
     return input_nodes
 
 
-def export_shader_nodetree(file, scene, mat):
-    nt = bpy.data.node_groups[mat.renderman.nodetree]
+def export_shader_nodetree(file, scene, id, output_node='OutputShaderNode', handle=None):
+    nt = bpy.data.node_groups[id.renderman.nodetree]
 
-    out = next((n for n in nt.nodes if n.type == 'OutputShaderNode'), None)
+    out = next((n for n in nt.nodes if n.type == output_node), None)
     if out is None: return
     
     # Top level shader types, in output node
@@ -485,7 +492,7 @@ def export_shader_nodetree(file, scene, mat):
             shader_node_rib(file, scene, nt, node)
 
         # top level shader itself
-        shader_node_rib(file, scene, nt, inode, shader_type=isocket.name)
+        shader_node_rib(file, scene, nt, inode, shader_type=isocket.name, handle=handle)
 
         file.write('\n')
 
@@ -506,4 +513,5 @@ def init():
             generate_node_type(scene, s)
 
     bpy.app.handlers.load_post.append(load_handler)
+    bpy.app.handlers.load_pre.append(load_handler)
 
