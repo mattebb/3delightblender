@@ -145,15 +145,7 @@ class integrator(
 
         if (ray_depth > 0 )
             max_samples = 2; //indirect_sample_factor / ray_depth;
-/*
-        if (shd->type == "diffuse")
-            max_samples = max_samples * diffuse_factor;
-        else if (shd->type == "specular")
-            max_samples = max_samples * specular_factor;
-        else if (shd->type == "transmission")
-            max_samples = max_samples * transmission_factor;
-            
-*/
+
         varying float samples[max_samples];
 
         // Sample the light
@@ -163,12 +155,10 @@ class integrator(
             if (mis_sample_light == 1 ) {
                 lights[i]->light(L, Cl, Ns, _l_Li, _l_L, _l_pdf, "nsamp", max_samples);
                 shd->eval_bsdf(Ns, wo, _l_L, max_samples, _l_bsdf_f, _l_bsdf_pdf);
-                    //lights[i]->visibility(P, _l_L, _l_pdf, _l_Li, max_samples, _l_vis);
             }
             if (mis_sample_bsdf == 1 ) {
                 shd->sample_bsdf(Ns, wo, max_samples, _bl_wi, _bl_f, _bl_pdf);
                 lights[i]->eval_light(P, _bl_wi, max_samples, _bl_L, _bl_Li, _bl_Lpdf);
-                    //lights[i]->visibility(P, _bl_L, _bl_pdf, _bl_Li, max_samples, _bl_vis);
             }
 
             varying float samples_taken = 0;
@@ -186,18 +176,13 @@ class integrator(
                     if (_l_Li[s] != black && _l_pdf[s] > 0) {
                     
                         if (_l_bsdf_f[s] != black) {
-                            //varying color Li = _l_Li[s] * transmission(Pt, Pt + _l_L[s]);
                             varying color Li = _l_Li[s] * visibility(Pt, _l_L[s], lights[i]);
-                            //varying color Li = _l_Li[s] * lights[i]->vis(Pt, _l_L[s]);
-                            //varying color Li = _l_Li[s] * _l_vis[s];
                             
                             float dot_i = abs(normalize(_l_L[s]) . Ns);
                             
                             varying float weight;
-                            //uniform float has_isdelta;
                             uniform float isdelta = lights[i]->isdelta;
-                            //has_isdelta = getvar(lights[i], "isdelta", isdelta);
-
+                            
                             if (isdelta == 1)
                                 weight = 1;
                             if (mis_sample_light == 1 && mis_sample_bsdf == 0)
@@ -215,11 +200,8 @@ class integrator(
                     // MIS: sampling BSDF
                     if (lights[i]->isdelta != 1 && _bl_f[s] != black && _bl_pdf[s] > 0) {
                         if (_bl_Lpdf[s] > 0) {
-                            //varying color Li = _bl_Li[s] * transmission(Pt, Pt + _bl_L[s]);
                             varying color Li = _l_Li[s] * visibility(Pt, _l_L[s], lights[i]);
-                            //varying color Li = _l_Li[s] * lights[i]->vis(Pt, _bl_L[s]);
-                            //varying color Li = _bl_Li[s] * _bl_vis[s];
-
+                            
                             float dot_i = abs(normalize(_bl_L[s]) . Ns);
 
                             varying float weight = power(1, _bl_pdf[s], 1, _bl_Lpdf[s]);
@@ -233,43 +215,9 @@ class integrator(
                 }
 
                 samples_taken += 1;
-
                 CLi += Csamp;
-
-                #if 0
-                samples[s] = lum(Csamp);
-                varying float j;
-                varying float Lavg=0;
-                for (j=0; j<s; j+=1) {
-                    Lavg += samples[j];
-                }
-                Lavg /= s;
-                varying float breakloop= 0;
-                varying float maxContrast=0.0001;
-                for (j=0; j<s; j+=1) {
-                    if (abs(samples[s] - Lavg) / Lavg < maxContrast) {
-                        breakloop = 1;
-                        break;
-                    }
-                }
-                if (breakloop) break;
-                #endif
-
-                #if 0
-                // adaptive sampling
-                if (samples_taken > max_samples/2) {
-                    color mean =  CLi / samples_taken;
-                    color var = (CLisq / samples_taken) - mean*mean;
-                    if (lum(var) < 0.0001) break;
-                    Cvar += var;
-                }
-                #endif
-
-
             }
             Ci += CLi / samples_taken;
-            //Ci = (samples_taken/max_samples);
-            //Ci = mix(Ci, ctransform("HSV", "RGB", color((s/max_samples)*0.5,1,1)) , 0.1);
         }
 
         /*
