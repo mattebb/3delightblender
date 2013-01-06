@@ -32,6 +32,7 @@ import blf
 from .shader_parameters import exclude_lamp_params
 
 # helper functions for parameters
+from .shader_parameters import shaderparameters_from_class
 from .shader_parameters import get_shader_pointerproperty
 from .shader_parameters import rna_to_shaderparameters
 from .shader_parameters import shader_type_initialised
@@ -615,11 +616,12 @@ class WORLD_PT_3Delight_integrator(ShaderPanel, bpy.types.Panel):
         op.id_type = 'WORLD'
         
         if hasattr(rm, 'integrator2'):
-            self._draw_params(scene, rm.integrator2, col)
+            for sp in shaderparameters_from_class(rm.integrator2):
+                col.prop(rm.integrator2, sp.pyname)
 
 
 # BBM addition begin
-
+'''
 class WORLD_PT_3Delight_coshaders(ShaderPanel, bpy.types.Panel):
     bl_context = "world"
     bl_label = "World Co-shaders"
@@ -656,7 +658,7 @@ class WORLD_PT_3Delight_coshaders(ShaderPanel, bpy.types.Panel):
             self._draw_shader_menu_params(layout, context, item)  
 		 
 # BBM addition end
-
+'''
 # unused atm
 ''' 
 class MATERIAL_MT_3Delight_preview_specials(bpy.types.Menu):
