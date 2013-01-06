@@ -668,9 +668,7 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
     integrator = PointerProperty(
                 type=RendermanIntegrator, name="Integrator Settings")
 	
-    integrator2 = None
-    
-	# BBM addition begin
+    # BBM addition begin
     #coshaders = CollectionProperty(type=RendermanCoshader, name="World Co-Shaders")
     #coshaders_index = IntProperty(min=-1, default=-1)
 	# BBM addition end

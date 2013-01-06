@@ -87,15 +87,13 @@ class SHADING_OT_init_parameters(bpy.types.Operator):
         from .shader_parameters import shader_class
 
         if id_type == 'WORLD':
-            print('hasattr int', hasattr(context.world.renderman, attribute))
             shd_class = shader_class(scene, shader_name)
-            pointerprop = PointerProperty(
-                type=shd_class, name="%s Shader Params" % shader_name)
+            
+            rm = context.world.renderman
 
-            print('type is world')
-            setattr(context.world.renderman, attribute, pointerprop)
+            from .properties import RendermanWorldSettings
 
-            print('hasattr int', hasattr(context.world.renderman, attribute))
+            rmtype.integrator2 = PointerProperty(type=shd_class, name="Shader Params")
 
         return {'FINISHED'}
 

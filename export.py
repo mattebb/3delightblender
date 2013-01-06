@@ -50,6 +50,7 @@ addon_version = bl_info['version']
 from .shader_parameters import exclude_lamp_params
 
 # helper functions for parameters
+from .shader_parameters import shaderparameters_from_class
 from .shader_parameters import path_win_to_unixy
 from .shader_parameters import rna_to_shaderparameters
 from .shader_parameters import get_parameters_shaderinfo
@@ -737,6 +738,9 @@ def export_material(file, rpass, scene, mat):
     export_shader_init(file, rpass, mat)
 
     if mat.renderman.nodetree != '':
+        file.write('        Color %s\n' % rib(mat.diffuse_color))
+        file.write('        Opacity %s\n' % rib([mat.alpha for i in range(3)]))
+        
         export_shader_nodetree(file, scene, mat)
     else:
         #export_shader(file, scene, rpass, mat, 'shader') # BBM addition
@@ -1520,8 +1524,13 @@ def export_archive(scene, objects, filepath="", archive_motion=True, animated=Tr
 def export_integrator(file, rpass, scene):
     rm = scene.world.renderman
 
-    file.write('        Shader "integrator" "inte" \n')    
+    file.write('        Shader "integrator" "inte" \n')
 
+
+    for sp in shaderparameters_from_class(rm.integrator2):
+        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+
+    '''
     parameterlist = rna_to_shaderparameters(scene, rm.integrator, 'surface')
     for sp in parameterlist:
 		# BBM addition begin
@@ -1530,6 +1539,7 @@ def export_integrator(file, rpass, scene):
         else:
 		# BBM addition end
             file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+    '''
 
 # BBM addition begin
 def export_world_coshaders(file, rpass, scene):

@@ -348,7 +348,7 @@ def update_parameter(propname, vis_name):
     
 
 # Helpers for dealing with shader parameters
-class ShaderParameter():
+class ShaderParameter(object):
     
 	# BBM replace
     #def __init__(self, name="", data_type="", value=None, shader_type="", length=1):
@@ -383,6 +383,71 @@ class ShaderParameter():
         self.is_coshader = is_coshader
         self.is_array = is_array
 		# BBM addition end
+
+    @classmethod
+    def fromParamObject(self, obj, name):
+        sp = self()
+
+        prop = getattr(obj, name)
+
+        typename = type(prop).__name__
+        rnatypename = obj.rna_type.properties[name].type
+        subtypename = obj.rna_type.properties[name].subtype
+
+        sp.pyname = name
+        sp.name = pyname_to_slname(name)
+        sp.value = prop
+        sp.meta = obj.meta[sp.pyname] if sp.pyname in obj.meta.keys() else ''
+
+        sp.is_array = obj.is_array[sp.pyname] if sp.pyname in obj.is_array.keys() else ''
+        sp.is_coshader = obj.is_coshader[sp.pyname] if sp.pyname in obj.is_coshader.keys() else ''
+        
+        # inspect python/RNA types and convert to renderman types
+        if rnatypename == 'FLOAT':
+            if typename.lower() == 'color':
+                sp.data_type = 'color'
+            elif typename.lower() == 'vector':
+                if subtypename == 'TRANSLATION':
+                    sp.data_type = 'point'
+                elif subtypename == 'XYZ':
+                    sp.data_type = 'vector'
+                elif subtypename == 'EULER':
+                    sp.data_type = 'normal'
+            else:
+                sp.data_type = 'float'
+        elif rnatypename == 'INT':
+            sp.data_type = 'float'
+        elif rnatypename == 'COLLECTION':
+            sp.data_type = 'string'
+            sp.gadgettype = 'optionmenu'
+        elif rnatypename == 'BOOLEAN':
+            sp.data_type = 'float'
+            sp.value = float(prop)
+        elif rnatypename == 'ENUM':
+            
+            if sp.value.isnumeric():
+                # enum values must be stored as string, convert to float
+                sp.data_type = 'float'
+                sp.value = float(sp.value)
+                sp.gadgettype = 'optionmenu'
+            else:
+                sp.data_type = 'string'
+                sp.gadgettype = 'optionmenu'                
+                
+        elif rnatypename == 'STRING':
+            sp.data_type = 'string'
+
+            # check to see if this is the name of a blender texture block
+            # if not, it will be left empty.
+            texpath = get_texture_optpath(sp.value, scene.frame_current)
+
+            if texpath != '':
+                sp.value = path_win_to_unixy(user_path(texpath, scene=scene))
+            else:
+                sp.value = path_win_to_unixy(user_path(sp.value, scene=scene))
+
+
+        return sp
 
     def __repr__(self):
         return "shader %s type: %s data_type: %s, value: %s, length: %s" %  \
@@ -704,9 +769,15 @@ def shader_class(scene, name):
     new_class.prop_names = class_add_parameters(new_class, parameters)
 
     bpy.utils.register_class(new_class)
-
     return new_class
 
+def shaderparameters_from_class(param_object):
+    parameters = []
+    for p in param_object.prop_names:
+        sp = ShaderParameter.fromParamObject(param_object, p)
+        parameters.append( sp )
+
+    return parameters
 
 def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
 
