@@ -86,12 +86,12 @@ class integrator(
     }
 
     public void integrate(output color Ci, Oi;
-                        uniform string shadername) {
+                        uniform shader shd) {
  
+        
         varying normal Ns = shadingnormal(N);
         uniform float i, s;
 
-        shader shd = getshader(shadername);
         shader lights[] = getlights();
         uniform float nlights = arraylength(lights);
 
@@ -100,27 +100,34 @@ class integrator(
         vector L;   // unused
         color Cl;   // unused
         Ci=0;
+
+        //Ci = shd->mycolor();
+        //Ci = myc;
+        //Oi = 1;
+        //return;
+
+
         varying vector wo = -I;
         
         // for sampling light        
-        vector _l_L[]; // P -> light sampled vector
-        float _l_pdf[]; // light sampled pdf
-        color _l_Li[];  // light sampled value
+        varying vector _l_L[]; // P -> light sampled vector
+        varying float _l_pdf[]; // light sampled pdf
+        varying color _l_Li[];  // light sampled value
 
-        color _l_bsdf_f[];  // corresponding bsdf value
-        float _l_bsdf_pdf[];    // corresponding bsdf pdf
+        varying color _l_bsdf_f[];  // corresponding bsdf value
+        varying float _l_bsdf_pdf[];    // corresponding bsdf pdf
 
         // for sampling bsdf
-        vector _bl_wi[];    // P -> light bsdf sampled outgoing direction
-        float _bl_pdf[];    // bsdf sampled pdf
-        color _bl_f[];      // bsdf sampled value
+        varying vector _bl_wi[];    // P -> light bsdf sampled outgoing direction
+        varying float _bl_pdf[];    // bsdf sampled pdf
+        varying color _bl_f[];      // bsdf sampled value
         
-        vector _bl_L[];     // corresponding P -> light sampled vector
-        color _bl_Li[];     // corresponding light value
-        float _bl_Lpdf[];   // corresponding light pdf
+        varying vector _bl_L[];     // corresponding P -> light sampled vector
+        varying color _bl_Li[];     // corresponding light value
+        varying float _bl_Lpdf[];   // corresponding light pdf
 
-        color _l_vis[];     // visibility
-        color _bl_vis[];     // visibility
+        varying color _l_vis[];     // visibility
+        varying color _bl_vis[];     // visibility
 
         
 
@@ -133,7 +140,8 @@ class integrator(
         else if (shd->type == "SPECULAR")
             mis_sample_light = 0;
 
-        varying float max_samples = clamp((maxsamples*area), minsamples, maxsamples);
+        //varying float max_samples = clamp((maxsamples*area), minsamples, maxsamples);
+        uniform float max_samples = maxsamples;
 
         if (ray_depth > 0 )
             max_samples = 2; //indirect_sample_factor / ray_depth;
@@ -167,7 +175,7 @@ class integrator(
             varying point Pt;
 
             for (s = 0; s < max_samples; s += 1) {
-                color Csamp=0;
+                varying color Csamp=0;
 
                 // Jitter across micropolygon area for anti-aliasing
                 Pt = P + (float random()-0.5)*Du(P)*du + (float random()-0.5)*Dv(P)*dv;
@@ -264,6 +272,8 @@ class integrator(
             //Ci = mix(Ci, ctransform("HSV", "RGB", color((s/max_samples)*0.5,1,1)) , 0.1);
         }
 
+        /*
+
         uniform float trace_indirect=0;
         if (shd->type == "diffuse" && diffuse_depth < diffuse_bounces)
             trace_indirect = 1;
@@ -287,6 +297,7 @@ class integrator(
             }
             Ci += CLi / max_samples;
         }
+        */
 
         // Set Ci and Oi
         Ci *= Os;

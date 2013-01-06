@@ -120,7 +120,7 @@ light_area(
     
     float pdf(point P; vector V; output vector L;)
     {
-        float thit = intersect(P, V);
+        varying float thit = intersect(P, V);
                 
         if (thit < 0)
             return zero;
@@ -130,7 +130,7 @@ light_area(
         // convert to solid angle
         float distsq = lengthsq(L);
         float costheta = -zdir . normalize(L);
-        float pdf = distsq   / (costheta*area);
+        varying float pdf = distsq   / (costheta*area);
         
         return pdf;
     }
@@ -174,8 +174,6 @@ light_area(
        resize(_L, nsamples);
        resize(_pdf, nsamples);
 
-       color Le;
-              
        for (s = 0; s < nsamples; s += 1) {
             su = random();
             sv = random();

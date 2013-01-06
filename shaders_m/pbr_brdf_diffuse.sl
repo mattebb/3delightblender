@@ -97,10 +97,19 @@ class pbr_brdf_diffuse (
     }
 
 
+    public color mycolor()
+    {
+        color xx = color(.2,.6,1);
+        return xx;
+    }
+
     public void surface(output color Ci, Oi)
     {
-        shader int = getshader("inte");
-        uniform string shadername = "brdf_diffuse";
-        int->integrate(Ci, Oi, shadername);
+        shader inte = getshader("inte");
+        color cc, oo;
+        inte->integrate(cc, oo, this);
+
+        Ci = cc;
+        Oi = oo;
     }
 }
