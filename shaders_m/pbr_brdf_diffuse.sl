@@ -34,6 +34,15 @@ class pbr_brdf_diffuse (
                   )
 {
     public constant string type = "diffuse";
+    shadingGlobals SG;
+    color mycolor = (0.1,0.5,1.0);
+
+    public void begin()
+    {
+        SG->P = P;
+        SG->Ns = shadingnormal(N);
+        SG->Cs = Cs;
+    }
     
     public color f(varying normal Ns; varying vector wi;)
     {
@@ -105,9 +114,9 @@ class pbr_brdf_diffuse (
 
     public void surface(output color Ci, Oi)
     {
-        shader inte = getshader("inte");
-        color cc, oo;
-        inte->integrate(cc, oo, this);
+        uniform shader inte = getshader("inte");
+        varying color cc, oo;
+        inte->integrate(cc, oo, SG, this);
 
         Ci = cc;
         Oi = oo;

@@ -38,7 +38,6 @@ class
 light_area(
         uniform float intensity = 1;
         uniform color lightcolor = 1;
-        uniform float samples = 16;
         uniform float width = 1.0;
         uniform float height = 1.0;
         uniform string texturename = "";

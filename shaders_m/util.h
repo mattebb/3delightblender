@@ -35,6 +35,12 @@
 
 #define SCENE_BOUNDS    999999
 
+struct shadingGlobals{
+    varying point P = 0;
+    varying normal Ns = 0;
+    varying color Cs = 0;
+}
+
 void sample2d_stratified(float nsamples; output float s1[], s2[];)
 {
     // Compute the number of strata in r and phi directions.

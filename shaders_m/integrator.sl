@@ -85,28 +85,22 @@ class integrator(
         rayinfo("shadowdepth", transmission_depth);
     }
 
-    public void integrate(output color Ci, Oi;
+    public void integrate(output varying color Ci, Oi;
+                        shadingGlobals SG;
                         uniform shader shd) {
  
-        
+        Oi = 1.0;
         varying normal Ns = shadingnormal(N);
         uniform float i, s;
 
         shader lights[] = getlights();
         uniform float nlights = arraylength(lights);
 
-        color black = color(0,0,0);
+        uniform color black = color(0,0,0);
 
-        vector L;   // unused
-        color Cl;   // unused
-        Ci=0;
-
-        //Ci = shd->mycolor();
-        //Ci = myc;
-        //Oi = 1;
-        //return;
-
-
+        varying vector L;   // unused
+        varying color Cl;   // unused
+        
         varying vector wo = -I;
         
         // for sampling light        
@@ -133,8 +127,8 @@ class integrator(
 
         varying float area = area(transform("raster", P), "dicing");
                    
-        float mis_sample_light = sample_light;
-        float mis_sample_bsdf = sample_bsdf;
+        uniform float mis_sample_light = sample_light;
+        uniform float mis_sample_bsdf = sample_bsdf;
         if (shd->type == "DIFFUSE")
             mis_sample_bsdf = 0;
         else if (shd->type == "SPECULAR")
@@ -148,10 +142,12 @@ class integrator(
 
         varying float samples[max_samples];
 
+        varying color CLi = color(0,0,0);
+
         // Sample the light
         for (i = 0; i < nlights; i += 1) {
-            color CLi = 0;
-            
+            CLi = color(0);
+
             if (mis_sample_light == 1 ) {
                 lights[i]->light(L, Cl, Ns, _l_Li, _l_L, _l_pdf, "nsamp", max_samples);
                 shd->eval_bsdf(Ns, wo, _l_L, max_samples, _l_bsdf_f, _l_bsdf_pdf);
@@ -160,25 +156,31 @@ class integrator(
                 shd->sample_bsdf(Ns, wo, max_samples, _bl_wi, _bl_f, _bl_pdf);
                 lights[i]->eval_light(P, _bl_wi, max_samples, _bl_L, _bl_Li, _bl_Lpdf);
             }
-
+            
             varying float samples_taken = 0;
             varying point Pt;
 
+            // max_samples
             for (s = 0; s < max_samples; s += 1) {
-                varying color Csamp=0;
+                varying color Csamp = color(0,0,0);
 
                 // Jitter across micropolygon area for anti-aliasing
-                Pt = P + (float random()-0.5)*Du(P)*du + (float random()-0.5)*Dv(P)*dv;
+                Pt = P; //Pt = P + (float random()-0.5)*Du(P)*du + (float random()-0.5)*Dv(P)*dv;
 
                 if (mis_sample_light == 1) {
-                
+                    
+                    Csamp = color(0.1,0.02,0.1); //0.5,0.1,1.0);
+                    
+                    //Csamp += _l_pdf[s] * 0.00035;
+                    //Csamp += _l_bsdf_f[s];
+
                     // MIS: sampling light
                     if (_l_Li[s] != black && _l_pdf[s] > 0) {
                     
                         if (_l_bsdf_f[s] != black) {
-                            varying color Li = _l_Li[s] * visibility(Pt, _l_L[s], lights[i]);
+                            varying color Li = _l_Li[s] * 1; //visibility(Pt, _l_L[s], lights[i]);
                             
-                            float dot_i = abs(normalize(_l_L[s]) . Ns);
+                            varying float dot_i = abs(normalize(_l_L[s]) . Ns);
                             
                             varying float weight;
                             uniform float isdelta = lights[i]->isdelta;
@@ -191,11 +193,12 @@ class integrator(
                                 weight = power(1, _l_pdf[s], 1, _l_bsdf_pdf[s]);
                             
                             Csamp += _l_bsdf_f[s] * Li * dot_i * weight / _l_pdf[s];
+                            //Csamp += dot_i * Li * weight / _l_pdf[s];
                         }
                     }
                 }
                 
-                if (mis_sample_bsdf == 1) {
+                if (0) { //mis_sample_bsdf == 1) {
                 
                     // MIS: sampling BSDF
                     if (lights[i]->isdelta != 1 && _bl_f[s] != black && _bl_pdf[s] > 0) {
@@ -216,8 +219,12 @@ class integrator(
 
                 samples_taken += 1;
                 CLi += Csamp;
+                //Ci = Csamp;
             }
-            Ci += CLi / samples_taken;
+            Ci = CLi / samples_taken;
+            //Ci += CLi / samples_taken;
+            //Ci += CLi; // / max_samples;
+
         }
 
         /*
@@ -247,9 +254,10 @@ class integrator(
         }
         */
 
+
         // Set Ci and Oi
-        Ci *= Os;
-        Oi = Os;
+        Ci *= 1;    // Os
+        Oi = 1;
     }
 
 }
