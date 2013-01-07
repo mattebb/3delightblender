@@ -90,7 +90,7 @@ class SHADING_OT_init_parameters(bpy.types.Operator):
             shd_class = shader_class(scene, shader_name)
             
             rm = context.world.renderman
-
+            rmtype = type(rm)
             from .properties import RendermanWorldSettings
 
             rmtype.integrator2 = PointerProperty(type=shd_class, name="Shader Params")
