@@ -91,7 +91,7 @@ class integrator(
  
         Oi = 1.0;
         varying normal Ns = shadingnormal(N);
-        uniform float i, s;
+        varying float i=0, s=0;
 
         shader lights[] = getlights();
         uniform float nlights = arraylength(lights);
@@ -149,7 +149,7 @@ class integrator(
             CLi = color(0);
 
             if (mis_sample_light == 1 ) {
-                lights[i]->light(L, Cl, Ns, _l_Li, _l_L, _l_pdf, "nsamp", max_samples);
+                lights[i]->light(L, Cl, Ns, _l_Li, _l_L, _l_pdf, max_samples);
                 shd->eval_bsdf(Ns, wo, _l_L, max_samples, _l_bsdf_f, _l_bsdf_pdf);
             }
             if (mis_sample_bsdf == 1 ) {
@@ -162,6 +162,15 @@ class integrator(
 
             // max_samples
             for (s = 0; s < max_samples; s += 1) {
+            /*
+            varying vector Rd=0;
+            varying point Ro=0;
+            gather( "samplepattern", P, Ns, PI/2, max_samples,
+                    "ray:direction", Rd,
+                    "ray:origin", Ro) {
+
+            } else { 
+            */
                 varying color Csamp = color(0,0,0);
 
                 // Jitter across micropolygon area for anti-aliasing
@@ -178,7 +187,7 @@ class integrator(
                     if (_l_Li[s] != black && _l_pdf[s] > 0) {
                     
                         if (_l_bsdf_f[s] != black) {
-                            varying color Li = _l_Li[s] * 1; //visibility(Pt, _l_L[s], lights[i]);
+                            varying color Li = _l_Li[s] * visibility(Pt, _l_L[s], lights[i]);
                             
                             varying float dot_i = abs(normalize(_l_L[s]) . Ns);
                             
@@ -193,19 +202,18 @@ class integrator(
                                 weight = power(1, _l_pdf[s], 1, _l_bsdf_pdf[s]);
                             
                             Csamp += _l_bsdf_f[s] * Li * dot_i * weight / _l_pdf[s];
-                            //Csamp += dot_i * Li * weight / _l_pdf[s];
                         }
                     }
                 }
                 
-                if (0) { //mis_sample_bsdf == 1) {
+                if (mis_sample_bsdf == 1) {
                 
                     // MIS: sampling BSDF
-                    if (lights[i]->isdelta != 1 && _b_f[s] != black && _b_pdf[s] > 0) {
-                        if (_b_Lpdf[s] > 0) {
-                            varying color Li = _l_Li[s] * visibility(Pt, _l_L[s], lights[i]);
+                    //if (lights[i]->isdelta != 1 && _b_f[s] != black && _b_pdf[s] > 0) {
+                    //    if (_b_Lpdf[s] > 0) {
+                            varying color Li = _b_Li[s] * visibility(Pt, _b_L[s], lights[i]);
                             
-                            float dot_i = abs(normalize(_b_L[s]) . Ns);
+                            varying float dot_i = abs(normalize(_b_L[s]) . Ns);
 
                             varying float weight = power(1, _b_pdf[s], 1, _b_Lpdf[s]);
                             
@@ -213,8 +221,11 @@ class integrator(
                                 weight = 1;
                             
                             Csamp += _b_f[s] * Li * dot_i * weight / _b_pdf[s]; 
-                        }
-                    }
+                            //Csamp += color(_b_L[s]);
+                            //Csamp += Li;
+                            //Csamp += _b_Lpdf[s];
+                    //    }
+                    //}
                 }
 
                 samples_taken += 1;
@@ -242,6 +253,7 @@ class integrator(
           
             shd->sample_bsdf(Ns, wo, maxsamples, _b_wi, _b_f, _b_pdf);
 
+            //varying float s=0;
             for (s = 0; s < max_samples; s += 1) {
                 if (_b_f[s] != black && _b_pdf[s] > 0) {
                     varying color Li = trace(P, _b_wi[s], "raytype", shd->type);

@@ -42,6 +42,7 @@ class pbr_brdf_diffuse (
         SG->P = P;
         SG->Ns = shadingnormal(N);
         SG->Cs = Cs;
+        SG->dPdu = dPdu;
     }
     
     public color f(varying normal Ns; varying vector wi;)
@@ -74,7 +75,8 @@ class pbr_brdf_diffuse (
         
             wi[i] = warp_hemicosine(s1, s2);
             wi[i] = align_ortho(wi[i], N, dPdu );
-            
+            //wi[i] = vector(s1,s2,random());
+
             f[i] = f(N, wi[i]);
             pdf[i] = pdf(N, wi[i], I);
         }

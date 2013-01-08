@@ -223,15 +223,14 @@ light_env(
                        output color _Li[];
                        output vector _L[];
                        output float _pdf[];
-                       uniform float nsamp = 32;
+                       uniform float nsamples;
                        )
     {
         vector rnd;
         varying point samplepos;
         varying float r1, r2;
         uniform float s;
-        uniform float nsamples=nsamp;
-
+        
         resize(_Li, nsamples);
         resize(_L, nsamples);
         resize(_pdf, nsamples);

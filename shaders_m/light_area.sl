@@ -101,9 +101,10 @@ light_area(
         if (length(L) < 0.001)
             return black;
         
-        if (texturename != "") {
+        if (texturename == "") {
              Le = lightcolor*intensity;
              return Le;
+
         }
 
         point Pl = P + L;
@@ -122,14 +123,14 @@ light_area(
         varying float thit = intersect(P, V);
                 
         if (thit < 0)
-            return zero;
+            return 0;
         
         L = V*thit;       
         
         // convert to solid angle
-        float distsq = lengthsq(L);
-        float costheta = -zdir . normalize(L);
-        varying float pdf = distsq   / (costheta*area);
+        varying float distsq = lengthsq(L);
+        varying float costheta = -zdir . normalize(L);
+        varying float pdf = distsq / (costheta*area);
         
         return pdf;
     }
@@ -161,14 +162,13 @@ light_area(
                        output color _Li[];
                        output vector _L[];
                        output float _pdf[];
-                       uniform float nsamp = 32;
+                       uniform float nsamples;
                        )
     {
        varying point samplepos;
        varying float su, sv;
        uniform float s;
-       uniform float nsamples=nsamp;
-       
+              
        resize(_Li, nsamples);   // note use of resizable arrays
        resize(_L, nsamples);
        resize(_pdf, nsamples);

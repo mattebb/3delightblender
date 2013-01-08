@@ -39,6 +39,7 @@ struct shadingGlobals{
     varying point P = 0;
     varying normal Ns = 0;
     varying color Cs = 0;
+    varying vector dPdu = 0;
 }
 
 void sample2d_stratified(float nsamples; output float s1[], s2[];)
