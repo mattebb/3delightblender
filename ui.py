@@ -116,7 +116,7 @@ class CollectionPanel():
     def _draw_collection(self, context, layout, ptr, name, operator, opcontext, prop_coll, collection_index):
         layout.label(name)
         row = layout.row()
-        row.template_list(ptr, prop_coll, ptr, collection_index, rows=1)
+        row.template_list("UI_UL_list", "", ptr, prop_coll, ptr, collection_index, rows=1)
         col = row.column(align=True)
         
         op = col.operator(operator, icon="ZOOMIN", text="")
@@ -801,7 +801,7 @@ class MATERIAL_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
         rm = mat.renderman
         self._draw_shader_menu_params(layout, context, rm)
 
-
+'''
 class MATERIAL_PT_3Delight_shader_coshaders(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Co-Shaders"
@@ -841,7 +841,7 @@ class MATERIAL_PT_3Delight_shader_coshaders(ShaderPanel, bpy.types.Panel):
             layout.prop(item, "name")   
             self._draw_shader_menu_params(layout, context, item)         
             
-        
+'''
 
 class WORLD_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
@@ -1118,6 +1118,7 @@ class DATA_PT_3Delight_lamp(ShaderPanel, bpy.types.Panel):
         #self._draw_params(scene, lamp.renderman, layout)
 
 # BBM addition begin
+'''
 class DATA_PT_3Delight_lamp_coshaders(ShaderPanel, bpy.types.Panel):
     bl_context = "data"
     bl_label = "Light Co-Shaders"
@@ -1154,6 +1155,7 @@ class DATA_PT_3Delight_lamp_coshaders(ShaderPanel, bpy.types.Panel):
             layout.prop(item, "name")
             self.shader_type = 'shader' # Now we set it back to 'shader' because we want to get the coshaders, no the lights.
             self._draw_shader_menu_params(layout, context, item)  
+'''
 # BBM addition end
 
 class DATA_PT_3Delight_lamp_shadow(bpy.types.Panel):
