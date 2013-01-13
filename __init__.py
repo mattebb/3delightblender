@@ -26,8 +26,8 @@
 bl_info = {
     "name": "3Delight",
     "author": "Matt Ebb",
-    "version": (0, 9, 0),
-    "blender": (2, 6, 2),
+    "version": (1, 8, 0),
+    "blender": (2, 6, 6),
     "location": "Info Header (engine dropdown)",
     "description": "3Delight (renderman) integration",
     "warning": "",
@@ -37,13 +37,17 @@ bl_info = {
 
 if "bpy" in locals():
     import imp
+    imp.reload(preferences)
     imp.reload(properties)
     imp.reload(ui)
     imp.reload(operators)
     imp.reload(export)
+    imp.reload(nodes)
+
     #imp.reload(draw)
 else:
     import bpy
+    from . import preferences
     from . import properties
     from . import ui
     from . import operators
@@ -89,6 +93,7 @@ class Render3Delight(bpy.types.RenderEngine):
 
 
 def register():
+    preferences.register()
     properties.register()
     operators.register()
     export.register()
@@ -98,6 +103,7 @@ def register():
 
 
 def unregister():
+    preferences.unregister()
     properties.unregister()
     ui.unregister()
     operators.unregister()

@@ -299,7 +299,6 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
                 default='$OUT/archives')
 
 
-
 class RendermanSceneSettings(bpy.types.PropertyGroup):
 
 

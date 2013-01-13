@@ -499,6 +499,8 @@ def export_shader_nodetree(file, scene, id, output_node='OutputShaderNode', hand
 
 
 def init():
+    return
+    
     scene = bpy.data.scenes[0]
     for s in shaders_in_path(scene, None, threaded=False):
         generate_node_type(scene, s)
