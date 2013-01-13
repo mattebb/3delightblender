@@ -104,7 +104,6 @@ light_area(
         if (texturename == "") {
              Le = lightcolor*intensity;
              return Le;
-
         }
 
         point Pl = P + L;
