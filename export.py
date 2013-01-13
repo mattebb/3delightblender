@@ -736,10 +736,15 @@ def export_material(file, rpass, scene, mat):
     export_sss_bake(file, rpass, mat)
     
     export_shader_init(file, rpass, mat)
+    
+    rm = mat.renderman
 
-    if mat.renderman.nodetree != '':
+    if rm.nodetree != '':
         file.write('        Color %s\n' % rib(mat.diffuse_color))
         file.write('        Opacity %s\n' % rib([mat.alpha for i in range(3)]))
+            
+        if rm.displacementbound > 0.0:
+            file.write('        Attribute "displacementbound" "sphere" %f \n' % rm.displacementbound)
         
         export_shader_nodetree(file, scene, mat)
     else:
