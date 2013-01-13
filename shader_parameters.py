@@ -487,8 +487,7 @@ def get_parameters_shaderinfo(shader_path_list, shader_name, data_type):
             default = str(param['default'])
         elif param['data_type'] == 'shader':
             is_coshader = True
-            #
-
+            default = ""
         
         else:   # XXX support other parameter types
             continue
