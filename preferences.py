@@ -34,8 +34,8 @@ class RendermanPreferencePath(bpy.types.PropertyGroup):
 
 
 class RendermanPreferences(AddonPreferences):
-    bl_idname = __name__
-
+    bl_idname = __package__
+    
     shader_paths = CollectionProperty(type=RendermanPreferencePath, name="Shader Paths")
     shader_paths_index = IntProperty(min=-1, default=-1)
 
@@ -83,7 +83,7 @@ class RendermanPreferences(AddonPreferences):
                 description="Path to tdlmake executable",
                 subtype='FILE_PATH',
                 default="tdlmake")
-
+    
     def draw(self, context):
         layout = self.layout
 
