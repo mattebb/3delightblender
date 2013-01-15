@@ -270,33 +270,31 @@ def guess_3dl_path():
     return guess    
 
 # Default exporter specific env vars
-def init_exporter_env(scene):
-    rm = scene.renderman
-    
+def init_exporter_env(prefs):
     if 'OUT' not in os.environ.keys():
-        os.environ['OUT'] = rm.env_vars.out
+        os.environ['OUT'] = prefs.env_vars.out
 
     if 'SHD' not in os.environ.keys():
-        os.environ['SHD'] = rm.env_vars.shd
+        os.environ['SHD'] = prefs.env_vars.shd
        
     if 'PTC' not in os.environ.keys():
-        os.environ['PTC'] = rm.env_vars.ptc
+        os.environ['PTC'] = prefs.env_vars.ptc
     
     if 'ARC' not in os.environ.keys():
-        os.environ['ARC'] = rm.env_vars.arc
+        os.environ['ARC'] = prefs.env_vars.arc
         
     
         
-def init_env(scene):
+def init_env(prefs):
 
-    init_exporter_env(scene)
+    init_exporter_env(prefs)
 
 
     if 'DELIGHT' in os.environ.keys():
         return
 
     # try user set (or guessed) path
-    DELIGHT = scene.renderman.path_3delight
+    DELIGHT = prefs.path_3delight
     
     # try 3Delight environment file
     env_txt = path_from_3dl_env_txt()

@@ -125,10 +125,10 @@ class OutputLightShaderNode(bpy.types.Node, RendermanShaderNode):
 
 # Generate dynamic types
 
-def generate_node_type(scene, name):
+def generate_node_type(prefs, name):
     ''' Dynamically generate a node type from shader '''
 
-    path_list = get_path_list(scene.renderman, 'shader')
+    path_list = get_path_list(prefs, 'shader')
     name, parameters = get_parameters_shaderinfo(path_list, name, '')
 
     # print('generating node: %s' % name)
@@ -499,11 +499,11 @@ def export_shader_nodetree(file, scene, id, output_node='OutputShaderNode', hand
 
 
 def init():
-    return
-    
-    scene = bpy.data.scenes[0]
-    for s in shaders_in_path(scene, None, threaded=False):
-        generate_node_type(scene, s)
+    user_preferences = bpy.context.user_preferences
+    prefs = user_preferences.addons[__package__].preferences
+
+    for s in shaders_in_path(prefs, None, threaded=False):
+        generate_node_type(prefs, s)
 
     from bpy.app.handlers import persistent
 
@@ -512,7 +512,7 @@ def init():
         scene = bpy.data.scenes[0]
         for s in shaders_in_path(scene, None, threaded=False):
 
-            generate_node_type(scene, s)
+            generate_node_type(prefs, s)
 
     bpy.app.handlers.load_post.append(load_handler)
     bpy.app.handlers.load_pre.append(load_handler)

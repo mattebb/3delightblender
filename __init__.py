@@ -47,9 +47,10 @@ if "bpy" in locals():
     #imp.reload(draw)
 else:
     import bpy
+    from . import ui
     from . import preferences
     from . import properties
-    from . import ui
+    
     from . import operators
     from . import export
     from . import nodes

@@ -47,47 +47,42 @@ shader_cache = {}
 shaderscan_lock = threading.Lock()
 
 class BgShaderScan(threading.Thread):
-    def __init__(self, lock, path_list, scene_name, material):
+    def __init__(self, lock, path_list, material):
         threading.Thread.__init__(self)
         self.lock = lock
         self.path_list = path_list
-        self.scene_name = scene_name
         self.material = material
         self.daemon = True   
     
     def run(self):
         global shader_cache
-        scn = self.scene_name
         regenerate = False
         
         # limit to only one BG thread at a time, exit rather than wait
         if not self.lock.acquire(blocking=False):
             return
 
-        # create a new cache for this scene if non-existent
-        if not self.scene_name in shader_cache.keys():
-            shader_cache[scn] = {}
-            shader_cache[scn]['dirs'] = {}
-            shader_cache[scn]['shaders'] = {}
-            
-            # initialise some common ones
-            shader_cache[scn]['shaders']['surface'] = []
-            shader_cache[scn]['shaders']['displacement'] = []
-            shader_cache[scn]['shaders']['interior'] = []
-            shader_cache[scn]['shaders']['atmosphere'] = []
-			#BBM addition begin
-            shader_cache[scn]['shaders']['shader'] = []
-            shader_cache[scn]['shaders']['light'] = []
-			#BBM addition end
+        # global shader cache for all scenes
+        shader_cache = {}
+        shader_cache['dirs'] = {}
+        shader_cache['shaders'] = {}
+        
+        # initialise some common ones
+        shader_cache['shaders']['surface'] = []
+        shader_cache['shaders']['displacement'] = []
+        shader_cache['shaders']['interior'] = []
+        shader_cache['shaders']['atmosphere'] = []
+        shader_cache['shaders']['shader'] = []
+        shader_cache['shaders']['light'] = []
                     
         # check to see if any dirs have been modified since the last scan, 
         # and if so prepare to regenerate
         for path in self.path_list:
             #print(path)
-            if not path in shader_cache[scn]['dirs'].keys():
-                shader_cache[scn]['dirs'][path] = 0.0
+            if not path in shader_cache['dirs'].keys():
+                shader_cache['dirs'][path] = 0.0
 
-            if shader_cache[scn]['dirs'][path] < os.path.getmtime(path):
+            if shader_cache['dirs'][path] < os.path.getmtime(path):
                 regenerate = True
                 break
 
@@ -100,13 +95,13 @@ class BgShaderScan(threading.Thread):
         
         shaders = {}
         # we need to regenerate, so rebuild entire shader list from all paths
-        for k in shader_cache[scn]['shaders'].keys():
-            shader_cache[scn]['shaders'][k] = ['Loading...']
+        for k in shader_cache['shaders'].keys():
+            shader_cache['shaders'][k] = ['Loading...']
             shaders[k] = []
         
         for path in self.path_list:
             # store the time of this scan
-            shader_cache[scn]['dirs'][path] = os.path.getmtime(path)
+            shader_cache['dirs'][path] = os.path.getmtime(path)
 
             # now store the updated shader contents
             for f in os.listdir(path):           
@@ -131,7 +126,7 @@ class BgShaderScan(threading.Thread):
                     shaders[sdltype].append(sdlname)
         
         # set the new shader cache
-        shader_cache[scn]['shaders'] = shaders
+        shader_cache['shaders'] = shaders
         
         self.lock.release()
         
@@ -145,12 +140,11 @@ class BgShaderScan(threading.Thread):
                 pass
 
 # scans valid paths on disk for shaders, and caches for later retrieval
-def shaders_in_path(scene, idblock, shader_type='', threaded=True):
+def shaders_in_path(prefs, idblock, shader_type='', threaded=True):
     global shaderscan_lock
     global shader_cache
 
-    #scene = context.scene
-    init_env(scene)
+    init_env(prefs)
     
     if type(idblock) == bpy.types.Material:
         material = idblock
@@ -159,9 +153,9 @@ def shaders_in_path(scene, idblock, shader_type='', threaded=True):
     else:
         material = None
     
-    path_list = get_path_list_converted(scene.renderman, 'shader')
+    path_list = get_path_list_converted(prefs, 'shader')
     
-    scanthread = BgShaderScan(shaderscan_lock, path_list, scene.name, material)
+    scanthread = BgShaderScan(shaderscan_lock, path_list, material)
     if threaded:
         scanthread.start()
     else:
@@ -169,11 +163,11 @@ def shaders_in_path(scene, idblock, shader_type='', threaded=True):
         scanthread.run()
 
 
-    if scene.name in shader_cache:
-        if shader_type != '' and shader_type in shader_cache[scene.name]['shaders'].keys():
-            return sorted(shader_cache[scene.name]['shaders'][shader_type], key=str.lower)
+    if shader_cache != {}:
+        if shader_type != '' and shader_type in shader_cache['shaders'].keys():
+            return sorted(shader_cache['shaders'][shader_type], key=str.lower)
         else:
-            shaderlist = [l for l in shader_cache[scene.name]['shaders'].values()]
+            shaderlist = [l for l in shader_cache['shaders'].values()]
             print('SHADER LIST ----------')
             print(shaderlist)
             return [item for sublist in shaderlist for item in sublist] 

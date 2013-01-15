@@ -465,24 +465,6 @@ class RENDER_PT_renderman_grouping(CollectionPanel, bpy.types.Panel):
                                         "scene", "grouping_membership", "grouping_membership_index")
 
 
-class RENDER_PT_3Delight_environment(bpy.types.Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "render"
-    bl_label = "Environment Variables"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-        env = rm.env_vars
-        
-        layout.prop(env, "out")
-        layout.prop(env, "shd")
-        layout.prop(env, "ptc")
-        layout.prop(env, "arc")
-
 class RENDER_PT_3Delight_paths(CollectionPanel, bpy.types.Panel):
     bl_context = "render"
     bl_label = "Search Paths"
@@ -516,6 +498,7 @@ class RENDER_PT_3Delight_paths(CollectionPanel, bpy.types.Panel):
         layout.prop(rm, "path_shader_compiler")
         layout.prop(rm, "path_shader_info")
         layout.prop(rm, "path_texture_optimiser")
+        
 '''
 class RENDER_PT_3Delight_render_passes(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'

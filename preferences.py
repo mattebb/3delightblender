@@ -25,12 +25,39 @@
 
 import bpy
 from bpy.types import AddonPreferences
-from bpy.props import CollectionProperty, BoolProperty, StringProperty, IntProperty
+from bpy.props import CollectionProperty, BoolProperty, StringProperty, IntProperty, PointerProperty
 
 from .util import guess_3dl_path
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
     name = StringProperty(name="", subtype='DIR_PATH')
+
+
+class RendermanEnvVarSettings(bpy.types.PropertyGroup):
+    
+    out = StringProperty(
+                name="OUT (Output Root)",
+                description="Default RIB export path root",
+                subtype='DIR_PATH',
+                default='//renderman-{blend}')
+    
+    shd = StringProperty(
+                name="SHD (Shadow Maps)",
+                description="SHD environment variable",
+                subtype='DIR_PATH',
+                default='$OUT/shadowmaps')
+    
+    ptc = StringProperty(
+                name="PTC (Point Clouds)",
+                description="PTC environment variable",
+                subtype='DIR_PATH',
+                default='$OUT/pointclouds')
+
+    arc = StringProperty(
+                name="ARC (Archives)",
+                description="ARC environment variable",
+                subtype='DIR_PATH',
+                default='$OUT/archives')
 
 
 class RendermanPreferences(AddonPreferences):
@@ -84,6 +111,11 @@ class RendermanPreferences(AddonPreferences):
                 subtype='FILE_PATH',
                 default="tdlmake")
     
+                
+    env_vars = PointerProperty(
+                type=RendermanEnvVarSettings,
+                name="Environment Variable Settings")
+
     def draw(self, context):
         layout = self.layout
 
@@ -108,14 +140,23 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(self, "path_shader_info")
         layout.prop(self, "path_texture_optimiser")
 
+        env = self.env_vars
+        
+        layout.prop(env, "out")
+        layout.prop(env, "shd")
+        layout.prop(env, "ptc")
+        layout.prop(env, "arc")
+
 
 def register():
     bpy.utils.register_class(RendermanPreferencePath)
+    bpy.utils.register_class(RendermanEnvVarSettings)
     bpy.utils.register_class(RendermanPreferences)
 
 
 def unregister():
     bpy.utils.unregister_class(RendermanPreferences)
+    bpy.utils.unregister_class(RendermanEnvVarSettings)
     bpy.utils.unregister_class(RendermanPreferencePath)
     
 

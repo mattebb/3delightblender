@@ -272,32 +272,6 @@ class RendermanPass(bpy.types.PropertyGroup):
     light_shaders         = BoolProperty(name="Light Shaders", description="Render light shaders")
 
 
-class RendermanEnvVarSettings(bpy.types.PropertyGroup):
-    
-    out = StringProperty(
-                name="OUT (Output Root)",
-                description="Default RIB export path root",
-                subtype='DIR_PATH',
-                default='//renderman-{blend}')
-    
-    shd = StringProperty(
-                name="SHD (Shadow Maps)",
-                description="SHD environment variable",
-                subtype='DIR_PATH',
-                default='$OUT/shadowmaps')
-    
-    ptc = StringProperty(
-                name="PTC (Point Clouds)",
-                description="PTC environment variable",
-                subtype='DIR_PATH',
-                default='$OUT/pointclouds')
-
-    arc = StringProperty(
-                name="ARC (Archives)",
-                description="ARC environment variable",
-                subtype='DIR_PATH',
-                default='$OUT/archives')
-
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
 
@@ -504,9 +478,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     grouping_membership_index = IntProperty(min=-1, default=-1)
                 
                 
-    env_vars = PointerProperty(
-                type=RendermanEnvVarSettings,
-                name="Environment Variable Settings")
     
     shader_paths = CollectionProperty(type=RendermanPath, name="Shader Paths")
     shader_paths_index = IntProperty(min=-1, default=-1)
@@ -1418,7 +1389,7 @@ classes = [atmosphereShaders,
             RendermanTextureSettings,
             RendermanLightSettings,
             RendermanParticleSettings,
-            RendermanEnvVarSettings,
+            
             RendermanSceneSettings,
             RendermanWorldSettings,
             RendermanMeshGeometrySettings,
