@@ -47,13 +47,15 @@ if "bpy" in locals():
     #imp.reload(draw)
 else:
     import bpy
-    from . import ui
     from . import preferences
     from . import properties
     
     from . import operators
     from . import export
     from . import nodes
+
+    from . import ui
+    
     #from . import draw
 
 
@@ -100,7 +102,8 @@ def register():
     export.register()
     #draw.register()
     bpy.utils.register_module(__name__)
-    nodes.init()
+    ui.register()
+    #nodes.init()
 
 
 def unregister():
