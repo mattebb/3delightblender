@@ -678,7 +678,7 @@ class MATERIAL_PT_3Delight_preview(bpy.types.Panel):
         if mat.renderman.nodetree != '':
             layout.prop_search(mat.renderman, "nodetree", bpy.data, "node_groups")
         else:
-            layout.operator('shading.add_renderman_nodetree')
+            layout.operator('shading.add_renderman_nodetree').idtype = "material"
             
         #col = row.column()
         #col.scale_x = 1.5
@@ -740,7 +740,7 @@ class MATERIAL_PT_3Delight_shader_surface(ShaderPanel, bpy.types.Panel):
         
         layout.separator()
         
-        self._draw_shader_menu_params(layout, context, rm)
+        #self._draw_shader_menu_params(layout, context, rm)
 
 
         
@@ -758,7 +758,7 @@ class MATERIAL_PT_3Delight_shader_displacement(ShaderPanel, bpy.types.Panel):
         row = layout.row()
         row.prop(rm, "displacementbound")
 		# BBM addition end
-        self._draw_shader_menu_params(layout, context, rm)
+        # self._draw_shader_menu_params(layout, context, rm)
 
 class MATERIAL_PT_3Delight_shader_interior(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
@@ -770,7 +770,7 @@ class MATERIAL_PT_3Delight_shader_interior(ShaderPanel, bpy.types.Panel):
         layout = self.layout
         mat = context.material
         rm = mat.renderman
-        self._draw_shader_menu_params(layout, context, rm)
+        # self._draw_shader_menu_params(layout, context, rm)
 
 class MATERIAL_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
@@ -782,7 +782,7 @@ class MATERIAL_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
         layout = self.layout
         mat = context.material
         rm = mat.renderman
-        self._draw_shader_menu_params(layout, context, rm)
+        # self._draw_shader_menu_params(layout, context, rm)
 
 '''
 class MATERIAL_PT_3Delight_shader_coshaders(ShaderPanel, bpy.types.Panel):
@@ -1097,7 +1097,7 @@ class DATA_PT_3Delight_lamp(ShaderPanel, bpy.types.Panel):
         col = split.column()
         col.prop(lamp, "energy")
 		
-        self._draw_shader_menu_params(layout, context, rm) # BBM modification
+        # self._draw_shader_menu_params(layout, context, rm) # BBM modification
         #self._draw_params(scene, lamp.renderman, layout)
 
 # BBM addition begin

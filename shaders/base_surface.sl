@@ -76,6 +76,7 @@ class base_surface(
         
         // brdf
         uniform float numOfBrdfCosh = arraylength( brdf_coshaders );
+
         for( iter = 0; iter < numOfBrdfCosh; iter +=1 )
         {
             if( brdf_coshaders[iter] != null )

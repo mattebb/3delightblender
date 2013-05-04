@@ -30,7 +30,7 @@
 //
 // Surface shader class definition
 //
-class brdf_glossy (
+class pbr_brdf_glossy (
                   uniform string texturename = "";
                   uniform float Kd = 0.5;
                   uniform float roughness=0.5;

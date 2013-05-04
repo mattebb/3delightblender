@@ -46,7 +46,7 @@
 0 4 "brdf_specular"
 0 4 "btdf_specular"
 0 4 "integrate"
-0 4 "bsdf_glass"
+0 4 "pbr_bsdf_glass"
 0
 0
 0

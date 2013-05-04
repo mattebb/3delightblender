@@ -78,26 +78,31 @@ class RendermanShaderSocket(bpy.types.NodeSocket):
     '''Renderman co-shader input/output'''
     bl_idname = 'RendermanShaderSocket'
     bl_label = 'Renderman Shader Socket'
-    bl_color = (0.1, 1.0, 0.2, 0.75)
-
+    
     ui_open = bpy.props.BoolProperty(name='UI Open')
 
     # Optional function for drawing the socket input value
     def draw_value(self, context, layout, node):
         layout.label(self.name)
+
+    def draw_color(self, context, node):
+        return (0.1, 1.0, 0.2, 0.75)
+
 
 
 class RendermanShaderArraySocket(bpy.types.NodeSocket):
     '''Renderman co-shader array input/output'''
     bl_idname = 'RendermanShaderArraySocket'
     bl_label = 'Renderman Shader Array Socket'
-    bl_color = (0.1, 1.0, 0.5, 0.75)
-
+    
     ui_open = bpy.props.BoolProperty(name='UI Open')
 
     # Optional function for drawing the socket input value
     def draw_value(self, context, layout, node):
         layout.label(self.name)
+
+    def draw_color(self, context, node):
+        return (0.1, 1.0, 0.5, 0.75)
 
 
 # Base class for all custom nodes in this tree type.
@@ -510,7 +515,7 @@ def init():
     @persistent
     def load_handler(dummy):
         scene = bpy.data.scenes[0]
-        for s in shaders_in_path(scene, None, threaded=False):
+        for s in shaders_in_path(prefs, None, threaded=False):
 
             generate_node_type(prefs, s)
 
