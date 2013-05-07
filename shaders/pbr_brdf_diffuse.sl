@@ -35,22 +35,15 @@ class pbr_brdf_diffuse (
                   )
 {
     public constant string type = "diffuse";
-
     shadingGeo SG;
     varying color surfColor = 1;
 
     public void begin()
     {
-        SG->P = P;
-        SG->Ns = shadingnormal(N);
-        SG->I = I;
-        SG->dPdu = dPdu;
-        SG->dPdv = dPdv;
-        SG->Cs = Cs;
+        INIT_SG();
 
         if( shdColor != null )
             surfColor = shdColor->getColor(P);
-
     }
     
     public color f(varying normal Ns; varying vector wi;)
@@ -83,12 +76,8 @@ class pbr_brdf_diffuse (
         
             vector v = warp_hemicosine(s1, s2);
             v = align_ortho(normalize(v), Ns, SG->dPdu );
-            //v = vector(random(), random(), random());
-            //v = vector "world" (1,0,0);
-            //v = normalize(v);
-            
-            wi[i] = v;
 
+            wi[i] = v;
             f[i] = f(Ns, wi[i]);
             pdf[i] = pdf(Ns, wi[i], I);
         }

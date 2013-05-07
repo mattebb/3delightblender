@@ -365,6 +365,14 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 name="Raytrace Approximation",
                 description="Threshold for using approximated geometry during ray tracing. Higher values use more approximated geometry.",
                 min=0.0, max=1024.0, default=10.0)
+    use_statistics = BoolProperty(
+                name="Statistics",
+                description="Print statistics to /tmp/stats.txt after render",
+                default=False)
+    statistics_level = IntProperty(
+                name="Statistics Level",
+                description="Verbosity level of output statistics",
+                min=0, max=3, default=1)
 
     recompile_shaders = BoolProperty(
                 name="Recompile Shaders",

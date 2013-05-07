@@ -26,13 +26,19 @@
 */
 
 #include "util.h"
-
+#include "integrator.h"
 
 class pbr_brdf_specular (
                     )
 {
 
     public constant string type = "specular";
+    shadingGeo SG;
+    
+    public void begin()
+    {
+        INIT_SG();
+    }
     
     public void sample_bsdf(normal N; vector wo; uniform float nsamp;
                             output vector wi[];
@@ -71,18 +77,18 @@ class pbr_brdf_specular (
         }
     }
 
-
     public void surface(output color Ci, Oi)
     {
-        shader int = getshader("inte");
-        uniform string shadername = "brdf_specular";
-        int->integrate(Ci, Oi, shadername);
+        varying color cc, oo;
+        //shader int = getshader("inte");
+        //uniform string shadername = "brdf_specular";
+        //int->integrate(Ci, Oi, shadername);
+        //Ci *= Os;
+        //Oi = Os;
 
-        //Ci = color(1,0,0);
+        integrate(cc, oo, SG, this);
 
-        // Set Ci and Oi
-        Ci *= Os;
-        Oi = Os;
-        
+        Ci = cc;
+        Oi = oo;
     }
 }

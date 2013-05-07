@@ -164,34 +164,30 @@ void integrate(output varying color Ci, Oi;
             // Jitter across micropolygon area for anti-aliasing
             Pt = P + (float random()-0.5)*Du(P)*du + (float random()-0.5)*Dv(P)*dv;
 
-            if (mis_sample_light == 1) {
-                // MIS: sampling light
+            if (mis_sample_light == 1) {        // MIS: sampling light
                 if (_l_Li[s] != black && _l_bsdf_f[s] != black && _l_pdf[s] > 0) {
                 
-                    varying color Li = _l_Li[s];// * visibility(Pt, _l_L[s], lights[i]);
+                    varying color Li = _l_Li[s] * visibility(Pt, _l_L[s], lights[i]);
                     varying float dot_i = abs(normalize(_l_L[s]) . Ns);
                     varying float weight;
                     uniform float isdelta = lights[i]->isdelta;
                     
-                    if (isdelta == 1)
-                        weight = 1;
-                    if (mis_sample_light == 1 && mis_sample_bsdf == 0)
+                    if ((isdelta == 1) || 
+                        (mis_sample_light == 1 && mis_sample_bsdf == 0))
                         weight = 1;
                     else
                         weight = power(1, _l_pdf[s], 1, _l_bsdf_pdf[s]);
                     
                     Csamp += _l_bsdf_f[s] * Li * dot_i * weight / _l_pdf[s];
-                    
                 }
             }
             
-            if (mis_sample_bsdf == 1) {
-                // MIS: sampling BSDF
+            if (mis_sample_bsdf == 1) {          // MIS: sampling BSDF
                 if (lights[i]->isdelta != 1 && _b_f[s] != black && _b_pdf[s] > 0) {
 
                     if (_b_Lpdf[s] > 0) {
                     
-                        varying color Li = _b_Li[s];// * visibility(Pt, _b_L[s], lights[i]);
+                        varying color Li = _b_Li[s] * visibility(Pt, _b_L[s], lights[i]);
                         varying float dot_i = abs(normalize(_b_L[s]) . Ns);
                         varying float weight = power(1, _b_pdf[s], 1, _b_Lpdf[s]);
                         if (mis_sample_light == 0 && mis_sample_bsdf == 1)

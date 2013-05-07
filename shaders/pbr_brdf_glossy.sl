@@ -26,20 +26,36 @@
 */
 
 #include "util.h"
+#include "integrator.h"
 
 //
 // Surface shader class definition
 //
 class pbr_brdf_glossy (
-                  uniform string texturename = "";
-                  uniform float Kd = 0.5;
-                  uniform float roughness=0.5;
+                shader shdColor = null;
+                uniform string texturename = "";
+                uniform float Kd = 0.5;
+                uniform float roughness=0.5;
                   )
 {
     public constant string type = "specular";
-
     float exp = (2 / (roughness*roughness)) - 2;
 
+    shadingGeo SG;
+    varying color surfColor = 1;
+
+    public void begin()
+    {
+        SG->P = P;
+        SG->Ns = shadingnormal(N);
+        SG->I = I;
+        SG->dPdu = dPdu;
+        SG->dPdv = dPdv;
+        SG->Cs = Cs;
+
+        if( shdColor != null )
+            surfColor = shdColor->getColor(P);
+    }
 
     public float D(normal N; vector wh;)
     {
@@ -168,14 +184,17 @@ class pbr_brdf_glossy (
     
     public void surface(output color Ci, Oi) {
         
-        shader int = getshader("inte");
-        uniform string shadername = "brdf_glossy";
-        int->integrate(Ci, Oi, shadername);
+        //shader int = getshader("inte");
+        //uniform string shadername = "brdf_glossy";
+        //int->integrate(Ci, Oi, shadername);
+        //Ci *= Os;
+        //Oi = Os;
 
+        varying color cc, oo;
+        integrate(cc, oo, SG, this);
+        Ci = cc;
+        Oi = oo;
 
         
-        // Set Ci and Oi
-        Ci *= Os;
-        Oi = Os;
     }
 }

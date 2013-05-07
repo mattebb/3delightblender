@@ -1663,6 +1663,8 @@ def export_render_settings(file, rpass, scene):
     file.write('Attribute "trace" "integer maxdiffusedepth" [%d]\n' % rm.max_diffuse_depth)
     file.write('Option "limits" "integer eyesplits" %d\n' % rm.max_eye_splits)
     file.write('Option "trace" "float approximation" %f\n' % rm.trace_approximation)
+    if rm.use_statistics:
+        file.write('Option "statistics" "endofframe" %d "filename" "/tmp/stats.txt" \n' % rm.statistics_level    )
     
     rpass.resolution = render_get_resolution(r)
 

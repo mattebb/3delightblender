@@ -575,6 +575,10 @@ class RENDER_PT_3Delight_performance(bpy.types.Panel):
         col.prop(rm, "max_diffuse_depth")
         col.prop(rm, "max_eye_splits")
         col.prop(rm, "trace_approximation")
+        col.prop(rm, "use_statistics")
+        subcol = col.column()
+        subcol.active = rm.use_statistics
+        subcol.prop(rm, "statistics_level")
         #col.prop(rm, "recompile_shaders")
 
 
