@@ -88,6 +88,8 @@ class RendermanShaderSocket(bpy.types.NodeSocket):
     def draw_color(self, context, node):
         return (0.1, 1.0, 0.2, 0.75)
 
+    def draw(self, a,b,c,d):
+        pass
 
 
 class RendermanShaderArraySocket(bpy.types.NodeSocket):
@@ -103,6 +105,9 @@ class RendermanShaderArraySocket(bpy.types.NodeSocket):
 
     def draw_color(self, context, node):
         return (0.1, 1.0, 0.5, 0.75)
+
+    def draw(self, a,b,c,d):
+        pass
 
 
 # Base class for all custom nodes in this tree type.
@@ -505,7 +510,11 @@ def export_shader_nodetree(file, scene, id, output_node='OutputShaderNode', hand
 
 def init():
     user_preferences = bpy.context.user_preferences
-    prefs = user_preferences.addons[__package__].preferences
+    addon = user_preferences.addons.get(__package__)
+    if addon is None:
+        addon = user_preferences.addons.new()
+        addon.module = __package__
+    prefs = addon.preferences
 
     for s in shaders_in_path(prefs, None, threaded=False):
         generate_node_type(prefs, s)

@@ -116,7 +116,7 @@ class CollectionPanel():
     def _draw_collection(self, context, layout, ptr, name, operator, opcontext, prop_coll, collection_index):
         layout.label(name)
         row = layout.row()
-        row.template_list("UI_UL_list", "", ptr, prop_coll, ptr, collection_index, rows=1)
+        row.template_list("UI_UL_list", "3DELIGHT", ptr, prop_coll, ptr, collection_index, rows=1)
         col = row.column(align=True)
         
         op = col.operator(operator, icon="ZOOMIN", text="")
@@ -138,7 +138,7 @@ class CollectionPanel():
 
 
 
-class InlineRibPanel(CollectionPanel, bpy.types.Panel):
+class InlineRibPanel(CollectionPanel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_label = "Inline RIB"
@@ -692,7 +692,7 @@ class MATERIAL_PT_3Delight_preview(bpy.types.Panel):
 from .nodes import draw_nodes_properties_ui
 
 
-class ShaderNodePanel(bpy.types.Panel):
+class ShaderNodePanel():
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_label = 'Node Panel'
