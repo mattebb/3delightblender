@@ -1529,11 +1529,13 @@ def export_archive(scene, objects, filepath="", archive_motion=True, animated=Tr
 def export_integrator(file, rpass, scene):
     rm = scene.world.renderman
 
+    '''
     file.write('        Shader "integrator" "inte" \n')
 
-
+    
     for sp in shaderparameters_from_class(rm.integrator2):
         file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+    '''
 
     '''
     parameterlist = rna_to_shaderparameters(scene, rm.integrator, 'surface')

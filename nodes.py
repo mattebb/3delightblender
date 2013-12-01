@@ -24,6 +24,10 @@
 # ##### END MIT LICENSE BLOCK #####
 
 import bpy
+
+import nodeitems_utils
+from nodeitems_utils import NodeCategory, NodeItem
+
 from .shader_parameters import class_add_parameters
 from .shader_parameters import get_parameters_shaderinfo
 from .shader_parameters import ptr_to_shaderparameters
@@ -88,7 +92,8 @@ class RendermanShaderSocket(bpy.types.NodeSocket):
     def draw_color(self, context, node):
         return (0.1, 1.0, 0.2, 0.75)
 
-    def draw(self, a,b,c,d):
+    def draw(self, context, layout, node, text):
+        layout.label(text)
         pass
 
 
@@ -185,10 +190,6 @@ def generate_node_type(prefs, name):
     print(ntype, ntype.bl_rna.identifier)
 
     RendermanShaderTree.nodetypes[typename] = ntype
-
-
-
-
 
 
 def node_shader_handle(nt, node):
@@ -507,27 +508,41 @@ def export_shader_nodetree(file, scene, id, output_node='OutputShaderNode', hand
         file.write('\n')
 
 
+# our own base class with an appropriate poll function,
+# so the categories only show up in our own tree type
+class RendermanShaderNodeCategory(NodeCategory):
+    @classmethod
+    def poll(cls, context):
+        return context.space_data.tree_type == 'RendermanShaderTree'
 
-def init():
+def register():
     user_preferences = bpy.context.user_preferences
-    addon = user_preferences.addons.get(__package__)
-    if addon is None:
-        addon = user_preferences.addons.new()
-        addon.module = __package__
-    prefs = addon.preferences
+    prefs = user_preferences.addons[__package__].preferences
 
+
+    #from bpy.app.handlers import persistent
+
+    #@persistent
+    #def load_handler(dummy):
     for s in shaders_in_path(prefs, None, threaded=False):
         generate_node_type(prefs, s)
 
-    from bpy.app.handlers import persistent
 
-    @persistent
-    def load_handler(dummy):
-        scene = bpy.data.scenes[0]
-        for s in shaders_in_path(prefs, None, threaded=False):
 
-            generate_node_type(prefs, s)
+    nodeitems = [NodeItem(nt) for nt in RendermanShaderTree.nodetypes.keys()]
 
-    bpy.app.handlers.load_post.append(load_handler)
-    bpy.app.handlers.load_pre.append(load_handler)
+    # all categories in a list
+    node_categories = [
+        # identifier, label, items list
+        RendermanShaderNodeCategory("SOMENODES", "Some Nodes",  
+            items=nodeitems )
+        ]
+    print( "aasss --", nodeitems )
+    nodeitems_utils.register_node_categories("RENDERMANSHADERNODES", node_categories)
 
+    #bpy.app.handlers.load_post.append(load_handler)
+    #bpy.app.handlers.load_pre.append(load_handler)
+
+
+def unregister():
+    pass

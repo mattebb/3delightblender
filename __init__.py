@@ -100,7 +100,7 @@ def register():
     export.register()
     #draw.register()
     bpy.utils.register_module(__name__)
-    nodes.init()
+    nodes.register()
 
 
 def unregister():
@@ -109,6 +109,7 @@ def unregister():
     ui.unregister()
     operators.unregister()
     export.unregister()
+    nodes.unregister()
     #draw.unregister()
     bpy.utils.unregister_module(__name__)
 
