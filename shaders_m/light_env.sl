@@ -217,7 +217,7 @@ light_env(
         }
     }
     
-    public void light( output vector L;         // unused
+    public void lightddd( output vector L;         // unused
                        output color Cl;         // unused
                        varying normal Ns;
                        output color _Li[];
@@ -288,5 +288,21 @@ light_env(
        // Clear L and Cl, even though they're unused.
        L = (0,0,0);
        Cl = (0,0,0);
+   }
+
+   public void light( output vector L;
+                       output color Cl;
+                       )
+    {
+        vector rnd;
+        varying point samplepos;
+        varying float r1, r2;
+        uniform float s;
+        color Le;
+        color black=0;
+
+        L = vector(random(), random(), random());
+        float vis = trace(P, L);
+        Cl = 1.0 * vis;
    }
 }

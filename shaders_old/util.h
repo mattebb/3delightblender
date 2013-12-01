@@ -44,6 +44,37 @@ struct shadingGeo{
     varying vector I = 0;
 }
 
+
+// Compute normalized shading normal with appropriate orientation.
+// We ensure that the normal faces forward if Sides is 2 or if the
+// shader evaluation is caused by a ray hit.
+//
+normal
+shadingnormal(normal N)
+{
+    extern vector I;
+    normal Ns = normalize(N);
+    /*
+    uniform float sides = 2;
+    uniform float raydepth;
+    attribute("Sides", sides);
+    rayinfo("depth", raydepth);
+    if (sides == 2 || raydepth > 0)
+        Ns = faceforward(Ns, I, Ns);
+    */
+    return Ns;
+}
+
+
+#define INIT_SG() {             \
+    SG->P = P;                  \
+    SG->Ns = shadingnormal(N);  \
+    SG->I = I;                  \
+    SG->dPdu = dPdu;            \
+    SG->dPdv = dPdv;            \
+    SG->Cs = Cs;                \
+}
+
 void sample2d_stratified(float nsamples; output float s1[], s2[];)
 {
     // Compute the number of strata in r and phi directions.
@@ -227,26 +258,6 @@ vector align_ortho(vector v; normal N; vector u)
     
     v_out = v[0] * udir + v[1] * vdir + v[2] * ndir;
     return v_out;
-}
-
-// Compute normalized shading normal with appropriate orientation.
-// We ensure that the normal faces forward if Sides is 2 or if the
-// shader evaluation is caused by a ray hit.
-//
-normal
-shadingnormal(normal N)
-{
-    extern vector I;
-    normal Ns = normalize(N);
-    /*
-    uniform float sides = 2;
-    uniform float raydepth;
-    attribute("Sides", sides);
-    rayinfo("depth", raydepth);
-    if (sides == 2 || raydepth > 0)
-        Ns = faceforward(Ns, I, Ns);
-    */
-    return Ns;
 }
 
 
