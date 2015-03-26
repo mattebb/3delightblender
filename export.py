@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2011 Matt Ebb
+# Copyright (c) 2015 Brian Savery
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -596,12 +596,25 @@ def export_light(rpass, scene, file, ob):
     file.write('    AttributeBegin\n')
     file.write('    TransformBegin\n')
     file.write('            Transform %s\n' % rib(m))
+    file.write('            ShadingRate 100\n')
+
+    shapes = {
+            "POINT":("sphere","Sphere .1 -.1 .1 360"),
+            "SUN":("disk", 'Geometry "distantlight"'),
+            "SPOT":("spot", 'Disk 0 0.5 360'),
+            "AREA":("rect", 'Geometry "rectlight"'),
+            "HEMI":("env", 'Geometry "envsphere"')
+        }
+
+    if lamp.type == "HEMI":
+        file.write('    AreaLightSource "PxrEnvMapLight" "%s" "color envtint" %s' % (lamp.name, rib(lamp.color)))
+    else:
+        file.write('    AreaLightSource "PxrAreaLight" "%s" "color lightcolor" %s "string shape" ["%s"]' % ( lamp.name, rib(lamp.color),shapes[lamp.type][0]))
+    file.write(' "float exposure" [%s]\n' % 
+            rib(lamp.energy))
+    file.write('    %s\n' % shapes[lamp.type][1])
     
-    
-    if rm.emit_photons and lamp.type in ('SPOT', 'POINT', 'SUN'):
-        file.write('        Attribute "light" "string emitphotons" [ "on" ]\n' )
-	
-	# BBM addition begin
+    # BBM addition begin
 	# export light coshaders
     '''
     file.write('\n        ## Light Co-shaders\n')
@@ -652,59 +665,59 @@ def export_light(rpass, scene, file, ob):
     # file.write('            "%s" \n' % ob.name) # handle
     '''
     
-    if rm.nodetree != '':
-        print('export nodetree ')
-        export_shader_nodetree(file, scene, lamp, output_node='OutputLightShaderNode', handle=ob.name)
-        params = []
+  #   if rm.nodetree != '':
+  #       print('export nodetree ')
+  #       export_shader_nodetree(file, scene, lamp, output_node='OutputLightShaderNode', handle=ob.name)
+  #       params = []
 
-    # parameter list
-    for sp in params:
-        # special exceptions since they're not an actual properties on lamp datablock
-        if sp.name == 'from':
-            value = rib(loc)
-        elif sp.name == 'to': 
-            value = rib(lvec)
+  #   # parameter list
+  #   for sp in params:
+  #       # special exceptions since they're not an actual properties on lamp datablock
+  #       if sp.name == 'from':
+  #           value = rib(loc)
+  #       elif sp.name == 'to': 
+  #           value = rib(lvec)
 
 
-        elif sp.meta == 'shadow_map_path':
-            if shader_requires_shadowmap(scene, rm, 'light'):
-                path = rib_path(shadowmap_path(scene, ob))
-                print(path)
-                file.write('        "string %s" "%s" \n' % (sp.name, path))
+  #       elif sp.meta == 'shadow_map_path':
+  #           if shader_requires_shadowmap(scene, rm, 'light'):
+  #               path = rib_path(shadowmap_path(scene, ob))
+  #               print(path)
+  #               file.write('        "string %s" "%s" \n' % (sp.name, path))
 
-            ''' XXX old shaders
+  #           ''' XXX old shaders
 
         
-        elif sp.name == 'coneangle':
-            if hasattr(lamp, "spot_size"):
-                coneangle = lamp.spot_size / 2.0
-                value = rib(coneangle)
-            else:
-                value = rib(45)
+  #       elif sp.name == 'coneangle':
+  #           if hasattr(lamp, "spot_size"):
+  #               coneangle = lamp.spot_size / 2.0
+  #               value = rib(coneangle)
+  #           else:
+  #               value = rib(45)
         
-        elif sp.name in ('shadowmap', 'shadowname', 'shadowmapname'):
-            if rm.shadow_method == 'SHADOW_MAP':
-                shadowmapname = rib_path(shadowmap_path(scene, ob))
-                file.write('        "string %s" "%s" \n' % (sp.name, shadowmapname))
-            elif rm.shadow_method == 'RAYTRACED':
-                file.write('        "string %s" ["raytrace"] \n' % sp.name)
+  #       elif sp.name in ('shadowmap', 'shadowname', 'shadowmapname'):
+  #           if rm.shadow_method == 'SHADOW_MAP':
+  #               shadowmapname = rib_path(shadowmap_path(scene, ob))
+  #               file.write('        "string %s" "%s" \n' % (sp.name, shadowmapname))
+  #           elif rm.shadow_method == 'RAYTRACED':
+  #               file.write('        "string %s" ["raytrace"] \n' % sp.name)
             
-            continue
-            '''
-        # more exceptions, use blender's built in equivalent parameters (eg. spot size)
-        elif sp.name in exclude_lamp_params.keys():
-            value = rib(getattr(lamp, exclude_lamp_params[sp.name]))
+  #           continue
+  #           '''
+  #       # more exceptions, use blender's built in equivalent parameters (eg. spot size)
+  #       elif sp.name in exclude_lamp_params.keys():
+  #           value = rib(getattr(lamp, exclude_lamp_params[sp.name]))
         
-        # otherwise use the stored raw shader parameters
-        else:
-            value = rib(sp.value)
+  #       # otherwise use the stored raw shader parameters
+  #       else:
+  #           value = rib(sp.value)
 
-		# BBM addition begin
-        if sp.is_array:
-            file.write('        "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
-        else:
-		# BBM addition end
-            file.write('        "%s %s" %s\n' % (sp.data_type, sp.name, value))
+		# # BBM addition begin
+  #       if sp.is_array:
+  #           file.write('        "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
+  #       else:
+		# # BBM addition end
+  #           file.write('        "%s %s" %s\n' % (sp.data_type, sp.name, value))
 
     file.write('    TransformEnd\n')
     file.write('    AttributeEnd\n')
@@ -970,9 +983,25 @@ def export_shader(file, scene, rpass, idblock, shader_type):
         
         if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
         
-        file.write('        Color %s\n' % rib(mat.diffuse_color))
-        file.write('        Opacity %s\n' % rib([mat.alpha for i in range(3)]))
-        file.write('        Surface "%s" \n' % rm.surface_shaders.active)
+        file.write('        Bxdf "PxrDisney" "%s" ' % mat.name)
+        file.write('"color baseColor" %s ' % rib(mat.diffuse_color) )
+        if mat.emit:
+            file.write('"color emitColor" %s ' % rib(mat.diffuse_color) )
+        if mat.subsurface_scattering.use:
+            file.write('"float subsurface" [%s] ' % rib(mat.subsurface_scattering.scale) )
+            file.write('"color subsurfaceColor" %s ' % rib(mat.subsurface_scattering.color) )
+        if mat.raytrace_mirror.use:
+            file.write('"float metallic" [%s] ' % rib(mat.raytrace_mirror.reflect_factor) )
+        file.write('"float specular" [%s] ' % rib(mat.specular_intensity) )
+        
+        roughness = mat.specular_hardness/100.0
+
+        file.write('"float roughness" [%f] \n' % roughness )
+
+
+        #file.write('        Color %s\n' % rib(mat.diffuse_color))
+        #file.write('        Opacity %s\n' % rib([mat.alpha for i in range(3)]))
+        #file.write('        Surface "%s" \n' % mat.name)
         
     elif shader_type == 'displacement':
         if rm.displacement_shaders.active == '' or not rpass.displacement_shaders: return
@@ -1527,26 +1556,23 @@ def export_archive(scene, objects, filepath="", archive_motion=True, animated=Tr
 
 
 def export_integrator(file, rpass, scene):
-    rm = scene.world.renderman
+    rm = scene.renderman
 
-    '''
-    file.write('        Shader "integrator" "inte" \n')
+    file.write('  Integrator "%s" "integrator"\n' %(rm.integrator))
 
     
-    for sp in shaderparameters_from_class(rm.integrator2):
-        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-    '''
-
-    '''
-    parameterlist = rna_to_shaderparameters(scene, rm.integrator, 'surface')
-    for sp in parameterlist:
-		# BBM addition begin
-        if sp.is_array:
-            file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
-        else:
-		# BBM addition end
-            file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-    '''
+  #   for sp in shaderparameters_from_class(rm.integrator2):
+  #       file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+    
+  #   parameterlist = rna_to_shaderparameters(scene, rm.integrator, 'surface')
+  #   for sp in parameterlist:
+		# # BBM addition begin
+  #       if sp.is_array:
+  #           file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
+  #       else:
+		# # BBM addition end
+  #           file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+    
 
 # BBM addition begin
 def export_world_coshaders(file, rpass, scene):
@@ -2092,7 +2118,7 @@ def export_hider(file, rpass, scene):
         
     elif rm.hider == 'raytrace':
         file.write('Hider "raytrace" \n')
-        file.write('    "int progressive" [%d] \n' % rm.raytrace_progressive)
+        #file.write('    "int progressive" [%d] \n' % rm.raytrace_progressive)
 	
 	
 def export_inline_rib(file, rpass, scene, lamp=None ):
@@ -2120,7 +2146,8 @@ def write_rib(rpass, scene, info_callback):
     
     # precalculate motion blur data
     motion = export_motion(rpass, scene)
-    
+    print("Writing rib " + rpass.paths['rib_output'])
+
     file = open(rpass.paths['rib_output'], "w")
     
     export_header(file)
@@ -2128,6 +2155,8 @@ def write_rib(rpass, scene, info_callback):
     
     export_display(file, rpass, scene)
     export_hider(file, rpass, scene)
+    export_integrator(file, rpass, scene)
+    
     export_inline_rib(file, rpass, scene)
     
     scene.frame_set(scene.frame_current)
@@ -2141,7 +2170,6 @@ def write_rib(rpass, scene, info_callback):
 
     #export_global_illumination_lights(file, rpass, scene)
     #export_world_coshaders(file, rpass, scene) # BBM addition
-    export_integrator(file, rpass, scene)
     export_scene_lights(file, rpass, scene)
     export_objects(file, rpass, scene, motion)
     
@@ -2152,6 +2180,8 @@ def write_rib(rpass, scene, info_callback):
 def initialise_paths(scene):
     paths = {}
     paths['rman_binary'] = scene.renderman.path_renderer
+    paths['rmantree'] = scene.renderman.path_rmantree
+    
     paths['texture_optimiser'] = scene.renderman.path_texture_optimiser
     
     paths['blender_exporter'] = os.path.dirname(os.path.realpath(__file__))
@@ -2248,7 +2278,7 @@ def update_preview(engine, data, scene):
 
 def update_scene(engine, data, scene):
     
-    init_env(scene)
+    init_env(scene.renderman)
     
     engine.rpass = RPass(scene, renderable_objects(scene), initialise_paths(scene))
 
@@ -2309,7 +2339,10 @@ def render_rib(engine):
     cmd = [engine.rpass.paths['rman_binary']] + engine.rpass.options + [engine.rpass.paths['rib_output']]
     
     cdir = os.path.dirname(engine.rpass.paths['rib_output'])
-    process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE)
+    environ = os.environ.copy()
+    environ['RMANTREE'] = engine.rpass.paths['rmantree']
+    
+    process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE, env=environ)
 
 
     # Wait for the file to be created

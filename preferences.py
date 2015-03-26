@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2013 Matt Ebb
+# Copyright (c) 2015 Brian Savery
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@ import bpy
 from bpy.types import AddonPreferences
 from bpy.props import CollectionProperty, BoolProperty, StringProperty, IntProperty, PointerProperty
 
-from .util import guess_3dl_path
+from .util import guess_rmantree
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
     name = StringProperty(name="", subtype='DIR_PATH')
@@ -77,39 +77,39 @@ class RendermanPreferences(AddonPreferences):
 
 
     use_default_paths = BoolProperty(
-                name="Use 3Delight default paths",
-                description="Includes paths for default shaders etc. from 3Delight install",
-                default=False)
+                name="Use PRMan default paths",
+                description="Includes paths for default shaders etc. from RenderMan Pro Server install",
+                default=True)
     use_builtin_paths = BoolProperty(
                 name="Use built in paths",
-                description="Includes paths for default shaders etc. from Blender->3Delight exporter",
-                default=True)
+                description="Includes paths for default shaders etc. from blenderman exporter",
+                default=False)
 
-    path_3delight = StringProperty(
-                name="3Delight Path",
-                description="Path to 3Delight installation folder",
+    path_rmantree = StringProperty(
+                name="RMANTREE Path",
+                description="Path to RenderMan Pro Server installation folder",
                 subtype='DIR_PATH',
-                default=guess_3dl_path())
+                default=guess_rmantree())
     path_renderer = StringProperty(
                 name="Renderer Path",
                 description="Path to renderer executable",
                 subtype='FILE_PATH',
-                default="renderdl")
+                default="prman")
     path_shader_compiler = StringProperty(
                 name="Shader Compiler Path",
                 description="Path to shader compiler executable",
                 subtype='FILE_PATH',
-                default="shaderdl")
+                default="shader")
     path_shader_info = StringProperty(
                 name="Shader Info Path",
                 description="Path to shaderinfo executable",
                 subtype='FILE_PATH',
-                default="shaderinfo")
+                default="sloinfo")
     path_texture_optimiser = StringProperty(
                 name="Texture Optimiser Path",
                 description="Path to tdlmake executable",
                 subtype='FILE_PATH',
-                default="tdlmake")
+                default="txmake")
     
                 
     env_vars = PointerProperty(
@@ -134,7 +134,7 @@ class RendermanPreferences(AddonPreferences):
         self._draw_collection(context, layout, self, "Archive Paths:", "collection.add_remove",
                                         "scene", "archive_paths", "archive_paths_index")
         '''
-        layout.prop(self, "path_3delight")
+        layout.prop(self, "path_rmantree")
         layout.prop(self, "path_renderer")
         layout.prop(self, "path_shader_compiler")
         layout.prop(self, "path_shader_info")

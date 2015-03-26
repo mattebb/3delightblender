@@ -1,3 +1,15 @@
+v0.1.1 25/03/2015
+* Forked 3delight_blender code to blenderman
+* Changed env variables to use RMANTREE for RenderMan 19.0
+* Changed RIB output for 19.0 specific construct (integrator, bxdf, etc)
+* TODO - proper shader network support of bxdf/pattern via args files
+        - integrator settings and general settings cleanup
+        - move to prman python plugin for rib integration
+        - lights integration
+        - general code cleanup
+
+!!!!! ------------ blenderman fork -------------- !!!!!
+
 v0.7.5 - 25/04/2012
 * Enabled editable output paths, including RIB file export, shadow maps, and point clouds. These path properties support using environment variables, or other blender data variables that are built in to the exporter. Environment variables can be read from outside blender, or default environment variables can be edited from within the Environment Variables panel in Render Properties.
 More info at: http://mattebb.com/3delightblender/documentation/

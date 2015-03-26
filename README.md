@@ -1,4 +1,4 @@
-3delightblender
+blenderman
 ===============
 
-3Delight/Blender render addon
+Blender render addon for RenderMan 19.0

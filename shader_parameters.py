@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2011 Matt Ebb
+# Copyright (c) 2015 Brian Savery
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -780,7 +780,7 @@ def shaderparameters_from_class(param_object):
 
 def rna_type_initialise(scene, rmptr, shader_type, replace_existing):
 
-    init_env(scene)
+    init_env(scene.renderman)
     
     # BBM addition begin
     # account for world coshaders (path different from Lamps and Objects)

@@ -24,15 +24,13 @@
 # ##### END MIT LICENSE BLOCK #####
 
 bl_info = {
-    "name": "3Delight",
-    "author": "Matt Ebb",
-    "version": (1, 8, 0),
+    "name": "blenderman",
+    "author": "Brian Savery",
+    "version": (0, 1, 1),
     "blender": (2, 6, 6),
     "location": "Info Header (engine dropdown)",
-    "description": "3Delight (renderman) integration",
+    "description": "RenderMan 19.0 integration",
     "warning": "",
-    "wiki_url": "http://mattebb.com/3delightblender/",
-    "tracker_url": "https://github.com/mattebb/3delightblender",
     "category": "Render"}
 
 if "bpy" in locals():
@@ -57,9 +55,9 @@ else:
     #from . import draw
 
 
-class Render3Delight(bpy.types.RenderEngine):
-    bl_idname = '3DELIGHT_RENDER'
-    bl_label = "3Delight"
+class Blenderman(bpy.types.RenderEngine):
+    bl_idname = 'BLENDERMAN'
+    bl_label = "BlenderMan"
     bl_use_preview = True
     
     draw_callbacks = {}
@@ -100,7 +98,7 @@ def register():
     export.register()
     #draw.register()
     bpy.utils.register_module(__name__)
-    nodes.register()
+    #nodes.register()
 
 
 def unregister():

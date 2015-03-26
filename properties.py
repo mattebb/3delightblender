@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2011 Matt Ebb
+# Copyright (c) 2015 Brian Savery
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 import bpy
 #from .properties_shader import RendermanCoshader, coshaderShaders
 
-from .util import guess_3dl_path
+from .util import guess_rmantree
 
 from .shader_scan import shaders_in_path
 
@@ -428,10 +428,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     hider = EnumProperty(
                 name="Hider",
                 description="Algorithm to use for determining hidden surfaces",
-                items=[('hidden', 'Hidden', 'Default hidden surface method'),
+                items=[#('hidden', 'Hidden', 'Default hidden surface method'),
                         ('raytrace', 'Raytrace', 'Use ray tracing on the first hit'),
-                        ('photon', 'Photon', 'Generate a photon map')],
-                default='hidden')
+                        #('photon', 'Photon', 'Generate a photon map')
+                    ],
+                default='raytrace')
     
     hidden_depthfilter = EnumProperty(
                 name="Depth Filter",
@@ -471,6 +472,14 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 name="Progressive Rendering",
                 description="Enables progressive rendering. This is only visible with some display drivers (such as idisplay)",
                 default=False)
+    integrator = EnumProperty(
+                name="Integrator",
+                description="Integrator for rendering",
+                items=[('PxrPathTracer', 'Path Tracer', 'Uni-Directional Path Tracer'),
+                        ('PxrVCM', 'VCM', 'Bi-directional Path Tracer'),
+                        ('PxrDirectLighting', 'Direct Lighting', 'Only Direct Lighting')],
+                default='PxrPathTracer')
+
 	
     # Rib Box Properties
     bty_inlinerib_texts = CollectionProperty(type=RendermanInlineRIB, name="Beauty-pass Inline RIB")
@@ -503,37 +512,37 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     use_default_paths = BoolProperty(
                 name="Use 3Delight default paths",
                 description="Includes paths for default shaders etc. from 3Delight install",
-                default=False)
+                default=True)
     use_builtin_paths = BoolProperty(
                 name="Use built in paths",
                 description="Includes paths for default shaders etc. from Blender->3Delight exporter",
-                default=True)
+                default=False)
 
-    path_3delight = StringProperty(
-                name="3Delight Path",
-                description="Path to 3Delight installation folder",
+    path_rmantree = StringProperty(
+                name="RMANTREE Path",
+                description="Path to RenderManProServer installation folder",
                 subtype='DIR_PATH',
-                default=guess_3dl_path())
+                default=guess_rmantree())
     path_renderer = StringProperty(
                 name="Renderer Path",
                 description="Path to renderer executable",
                 subtype='FILE_PATH',
-                default="renderdl")
+                default="prman")
     path_shader_compiler = StringProperty(
                 name="Shader Compiler Path",
                 description="Path to shader compiler executable",
                 subtype='FILE_PATH',
-                default="shaderdl")
+                default="shader")
     path_shader_info = StringProperty(
                 name="Shader Info Path",
                 description="Path to shaderinfo executable",
                 subtype='FILE_PATH',
-                default="shaderinfo")
+                default="sloinfo")
     path_texture_optimiser = StringProperty(
                 name="Texture Optimiser Path",
                 description="Path to tdlmake executable",
                 subtype='FILE_PATH',
-                default="tdlmake")
+                default="txmake")
 
     render_passes = CollectionProperty(type=RendermanPass, name="Render Passes")
     render_passes_index = IntProperty(min=-1, default=-1)

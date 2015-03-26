@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2011 Matt Ebb
+# Copyright (c) 2015 Brian Savery
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,8 @@ class BlenderVersionError(Exception):
     pass
 
 def bpy_newer_257():
-    if (bpy.app.version[1] < 57 or (bpy.app.version[1] == 57 and bpy.app.version[2] == 0)):
+    if (bpy.app.version[1] < 57 or (bpy.app.version[1] == 57 
+            and bpy.app.version[2] == 0)):
         raise BlenderVersionError
 
 def clamp(i, low, high):
@@ -64,7 +65,8 @@ def get_path_list(rm, type):
         paths.append('@')
         
     if rm.use_builtin_paths:
-        paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), "%ss" % type))
+        paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 
+                        "%ss" % type))
         
     for p in getattr(rm, "%s_paths" % type):
         paths.append(bpy.path.abspath(p.name))
@@ -80,9 +82,9 @@ def path_list_convert(path_list, to_unix=False):
         
         p = os.path.expanduser(p)
         
-        if p == '@' or p.find('$') != -1:
+        if p.find('$') != -1:
             # path contains environment variables
-            p = p.replace('@', os.path.expandvars('$DL_SHADERS_PATH'))
+            #p = p.replace('@', os.path.expandvars('$DL_SHADERS_PATH'))
             
             # convert path separators from : to ;
             p = path_delimit_to_semicolons(p)
@@ -190,7 +192,8 @@ def user_path(path, scene=None, ob=None):
 def rib(v):
 
     # float, int
-    if type(v) in (float, int, mathutils.Vector, mathutils.Color): # BBM modified from if to elif
+    if type(v) in (float, int, mathutils.Vector, mathutils.Color): 
+        # BBM modified from if to elif
         vlen = 1
         
         if hasattr(v, '__len__'):
@@ -220,108 +223,78 @@ def rib(v):
     
 
 def rib_ob_bounds(ob_bb):
-    return ( ob_bb[0][0], ob_bb[7][0], bb[0][1], ob_bb[7][1], bb[0][2], ob_bb[7][2] )
+    return ( ob_bb[0][0], ob_bb[7][0], bb[0][1], 
+            ob_bb[7][1], bb[0][2], ob_bb[7][2] )
 
 def rib_path(path, escape_slashes=False):
-    return path_win_to_unixy(bpy.path.abspath(path), escape_slashes=escape_slashes)
+    return path_win_to_unixy(bpy.path.abspath(path), 
+            escape_slashes=escape_slashes)
     
     
      
 # ------------- Environment Variables -------------   
 
-def path_from_3dl_env_txt():
-    DELIGHT = ''
+def rmantree_from_env():
+    RMANTREE = ''
+
+    if 'RMANTREE' in os.environ.keys():
+        RMANTREE = os.environ['RMANTREE']
     
-    # check 3delight environment file
-    envfile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "3delight_env.txt")
-    if os.path.exists(envfile):
-        f = open(envfile)
-        for line in f:
-            s = line.split("=")
-            if s[0] == 'DELIGHT' and s[1].strip() != '':
-                DELIGHT = s[1]
-                break
-        f.close()
+    return RMANTREE
 
-    return DELIGHT
-
-def guess_3dl_path():
-    guess = path_from_3dl_env_txt()
+def guess_rmantree():
+    guess = rmantree_from_env()
     if guess != '': return guess
     
+    base = ""
     if platform.system() == 'Windows':
         # default installation path
-        if os.path.exists('C:\Program Files\3Delight'):
-            guess = 'C:\Program Files\3Delight'
-
+        base = 'C:\Program Files\Pixar'
+    
     elif platform.system() == 'Darwin':        
-        # scan /Applications/Graphics looking for most recent installed 3delight version
-        lastver = 0.0
-        for f in os.listdir('/Applications/Graphics'):
-            if f[:9] != '3Delight-': continue
+        base = '/Applications/Pixar'
+
+    elif platform.system() == 'Linux':
+        base = '/opt/pixar'
+
+    latestver = 0.0
+    for d in os.listdir(base):
+        if "RenderManProServer" in d:
+            vstr = d.split('-')[1]
+            vf = float(vstr[:4])
             
-            vstr = f.rsplit('3Delight-')[1]
-            vf = float(vstr.rsplit('.', 1)[0] + vstr.rsplit('.', 1)[1])
-            
-            if vf > lastver:
-                lastver = vf
-                guess = os.path.join('/Applications/Graphics', f)            
+            if vf > latestver:
+                latestver = vf
+                guess = os.path.join(base, d)            
                 
     return guess    
 
 # Default exporter specific env vars
-def init_exporter_env(prefs):
+def init_exporter_env(rm):
+    rm = scene.renderman
+    
     if 'OUT' not in os.environ.keys():
-        os.environ['OUT'] = prefs.env_vars.out
+        os.environ['OUT'] = rm.env_vars.out
 
     if 'SHD' not in os.environ.keys():
-        os.environ['SHD'] = prefs.env_vars.shd
+        os.environ['SHD'] = rm.env_vars.shd
        
     if 'PTC' not in os.environ.keys():
-        os.environ['PTC'] = prefs.env_vars.ptc
+        os.environ['PTC'] = rm.env_vars.ptc
     
     if 'ARC' not in os.environ.keys():
-        os.environ['ARC'] = prefs.env_vars.arc
+        os.environ['ARC'] = rm.env_vars.arc
         
     
         
-def init_env(prefs):
+def init_env(rm):
 
-    init_exporter_env(prefs)
-
-
-    if 'DELIGHT' in os.environ.keys():
-        return
+    #init_exporter_env(scene.renderman)
 
     # try user set (or guessed) path
-    DELIGHT = prefs.path_3delight
-    
-    # try 3Delight environment file
-    env_txt = path_from_3dl_env_txt()
-    if env_txt != '': DELIGHT = env_txt
-
-    # 3Delight-specific env vars
-    if DELIGHT != '':
-        # only add these as envvars if they're not already set
-        if 'DELIGHT' not in os.environ.keys():
-            os.environ['DELIGHT'] = DELIGHT
-        if 'DL_DISPLAYS_PATH' not in os.environ.keys():
-            os.environ['DL_DISPLAYS_PATH'] = os.path.join(DELIGHT, "displays")
-        if 'DL_SHADERS_PATH' not in os.environ.keys():
-            os.environ['DL_SHADERS_PATH'] = os.path.join(DELIGHT, "shaders")
-            
-        if platform.system() == 'Darwin':
-            if 'DYLD_LIBRARY_PATH' not in os.environ.keys():
-                os.environ['DYLD_LIBRARY_PATH'] = os.path.join(DELIGHT, "lib")
-        
-        if platform.system() == 'Linux':
-            if 'LD_LIBRARY_PATH' not in os.environ.keys():
-                os.environ['LD_LIBRARY_PATH'] = os.path.join(DELIGHT, "lib")
-        
-        pathsep = ';' if platform.system() == 'Windows' else ':'
-        
-        if 'PATH' in os.environ.keys():
-            os.environ['PATH'] += pathsep + os.path.join(DELIGHT, "bin")
-        else:
-            os.environ['PATH'] = os.path.join(DELIGHT, "bin")
-    
+    RMANTREE = rm.path_rmantree
+    pathsep = ';' if platform.system() == 'Windows' else ':'
+    if 'PATH' in os.environ.keys():
+        os.environ['PATH'] += pathsep + os.path.join(RMANTREE, "bin")
+    else:
+        os.environ['PATH'] = os.path.join(RMANTREE, "bin")

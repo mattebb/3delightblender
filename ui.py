@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2011 Matt Ebb
+# Copyright (c) 2015 Brian Savery
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -434,7 +434,7 @@ class RENDER_PT_renderman_hider(bpy.types.Panel):
         elif rm.hider == 'raytrace':
             col = layout.column()
             col.active = rm.display_driver == 'idisplay'
-            col.prop(rm, "raytrace_progressive")
+            col.prop(rm, "integrator")
 
 class RENDER_PT_inlineRIB(InlineRibPanel, bpy.types.Panel):
     bl_context = "render"
@@ -493,7 +493,7 @@ class RENDER_PT_3Delight_paths(CollectionPanel, bpy.types.Panel):
         self._draw_collection(context, layout, rm, "Archive Paths:", "collection.add_remove",
                                         "scene", "archive_paths", "archive_paths_index")
 
-        layout.prop(rm, "path_3delight")
+        layout.prop(rm, "path_rmantree")
         layout.prop(rm, "path_renderer")
         layout.prop(rm, "path_shader_compiler")
         layout.prop(rm, "path_shader_info")
