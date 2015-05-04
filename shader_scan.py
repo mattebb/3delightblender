@@ -27,6 +27,7 @@ import threading
 import os
 import subprocess
 import time
+import fnmatch
 
 import bpy
 from .util import init_env
@@ -41,10 +42,9 @@ def shader_visbility_annotation(annotations):
                 return False
     return True
 
-# Setup for scanning for available shaders to display in the UI
-# This is done in a background thread to avoid blocking the UI while scanning files
-shader_cache = {}
-shaderscan_lock = threading.Lock()
+# Setup for scanning for available patterns and bxdfs to display in the UI
+bxdf_cache = {}
+pattern_cache = {}
 
 class BgShaderScan(threading.Thread):
     def __init__(self, lock, path_list, material):
@@ -140,36 +140,37 @@ class BgShaderScan(threading.Thread):
                 pass
 
 # scans valid paths on disk for shaders, and caches for later retrieval
-def shaders_in_path(prefs, idblock, shader_type='', threaded=True):
-    global shaderscan_lock
-    global shader_cache
-
+def args_files_in_path(prefs, idblock, shader_type='', threaded=True):
     init_env(prefs)
+
+    print("scanning for args files!")
     
-    if type(idblock) == bpy.types.Material:
-        material = idblock
-    #if hasattr(context, "material"):
-    #    material = context.material
-    else:
-        material = None
+    # if type(idblock) == bpy.types.Material:
+    #     material = idblock
+    # #if hasattr(context, "material"):
+    # #    material = context.material
+    # else:
+    #     material = None
     
+    args = {}
+
     path_list = get_path_list_converted(prefs, 'shader')
+    for path in path_list:
+        print("Scanning " + path)
+        for root, dirnames, filenames in os.walk(path):
+            for filename in fnmatch.filter(filenames, '*.args'):
+                args[filename.split('.')[0]] = os.path.join(root, filename)
     
-    scanthread = BgShaderScan(shaderscan_lock, path_list, material)
-    if threaded:
-        scanthread.start()
-    else:
-        print('run')
-        scanthread.run()
+    return args
+    
 
-
-    if shader_cache != {}:
-        if shader_type != '' and shader_type in shader_cache['shaders'].keys():
-            return sorted(shader_cache['shaders'][shader_type], key=str.lower)
-        else:
-            shaderlist = [l for l in shader_cache['shaders'].values()]
-            print('SHADER LIST ----------')
-            print(shaderlist)
-            return [item for sublist in shaderlist for item in sublist] 
-    else:
-        return ['Loading...']
+    # if shader_cache != {}:
+    #     if shader_type != '' and shader_type in shader_cache['shaders'].keys():
+    #         return sorted(shader_cache['shaders'][shader_type], key=str.lower)
+    #     else:
+    #         shaderlist = [l for l in shader_cache['shaders'].values()]
+    #         print('SHADER LIST ----------')
+    #         print(shaderlist)
+    #         return [item for sublist in shaderlist for item in sublist] 
+    # else:
+    #     return ['Loading...']

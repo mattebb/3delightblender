@@ -28,7 +28,7 @@ import bpy
 
 from .util import guess_rmantree
 
-from .shader_scan import shaders_in_path
+from .shader_scan import args_files_in_path
 
 from .shader_parameters import rna_type_initialise
 
@@ -40,7 +40,7 @@ IntProperty, FloatProperty, FloatVectorProperty, CollectionProperty
 
 def shader_list_items(self, context, shader_type):
     defaults = [('null', 'None', ''), ('custom', 'Custom', '')]
-    return defaults + [ (s, s, '') for s in shaders_in_path(context.scene, context.material, shader_type=shader_type)]
+    return defaults + [ (s, s, '') for s in args_files_in_path(context.scene, context.material, shader_type=shader_type)]
     
 def shader_list_update(self, context, shader_type):
     # don't overwrite active when set to custom

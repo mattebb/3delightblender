@@ -28,6 +28,7 @@ import mathutils
 import re
 import os
 import platform
+import sys
 
 
 class BlenderVersionError(Exception):
@@ -63,6 +64,10 @@ def get_path_list(rm, type):
     paths = []
     if rm.use_default_paths:
         paths.append('@')
+        if type == 'shader':
+            paths.append('/Applications/Pixar/RenderManProServer-19.0/lib/RIS/pattern')
+            paths.append('/Applications/Pixar/RenderManProServer-19.0/lib/RIS/bxdf')
+            paths.append('/Applications/Pixar/RenderManProServer-19.0/lib/rsl/shaders')
         
     if rm.use_builtin_paths:
         paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -73,13 +78,11 @@ def get_path_list(rm, type):
 
     return paths
 
-
 # Convert env variables to full paths.
 def path_list_convert(path_list, to_unix=False):
     paths = []
     
     for p in path_list:
-        
         p = os.path.expanduser(p)
         
         if p.find('$') != -1:
@@ -293,6 +296,9 @@ def init_env(rm):
 
     # try user set (or guessed) path
     RMANTREE = rm.path_rmantree
+    RMANTREE_BIN = os.path.join(RMANTREE, 'bin')
+    if RMANTREE_BIN not in sys.path:
+        sys.path.append(RMANTREE_BIN)
     pathsep = ';' if platform.system() == 'Windows' else ':'
     if 'PATH' in os.environ.keys():
         os.environ['PATH'] += pathsep + os.path.join(RMANTREE, "bin")

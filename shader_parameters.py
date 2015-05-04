@@ -35,7 +35,7 @@ from .util import path_win_to_unixy
 from .util import user_path
 from .util import get_sequence_path
 
-from .shader_scan import shaders_in_path
+from .shader_scan import args_files_in_path
 
 #import properties_shader
 from .properties_shader import RendermanCoshader
@@ -88,7 +88,7 @@ class coshaderShaders(bpy.types.PropertyGroup):
     def coshader_shader_list_update(self, context):
         shader_list_update(self, context, 'shader')
 
-    shader_list = EnumProperty(
+    shader_list = sp_optionmenu_to_string(
                 name="Active Co-Shader",
                 description="Shader name to use for coshader",
                 update=coshader_shader_list_update,
@@ -171,19 +171,16 @@ def pyname_to_slname(name):
         name = name[2:]
     return name
 
-def sp_optionmenu_to_string(sp):
-
-    if sp.data_type == 'float':
-        return [(str(sp.optionmenu.index(opt)), opt, "") for opt in sp.optionmenu]
-    elif sp.data_type == 'string':
-        return [(opt.lower(), opt, "") for opt in sp.optionmenu]
+def sp_optionmenu_to_string(options, type):
+    return [(opt.attrib['value'], opt.attrib['name'], 
+            '') for opt in options.findall('string')]
 
 #BBM addition begin
 
 def sp_shaderlist_to_string(scene, rm):
     # XXX def shader_list_items(self, context, type):
     defaults = [('null', 'None', '')]
-    shader_list = defaults + [ (s, s, '') for s in shaders_in_path(scene, None, shader_type='shader')]
+    shader_list = defaults + [ (s, s, '') for s in args_files_in_path(scene, None, shader_type='shader')]
     
 
 def old_sp_shaderlist_to_string( rm ):
@@ -653,7 +650,7 @@ def rna_to_shaderparameters(scene, rmptr, shader_type):
     
     return ptr_to_shaderparameters(scene, sptr)
 
-def class_add_parameters(new_class, shaderparameters):
+def class_add_properties(new_class, shaderparameters):
     parameter_names = []
 
     new_class.meta = {}
@@ -665,75 +662,96 @@ def class_add_parameters(new_class, shaderparameters):
     # Generate RNA properties for each shader parameter  
     for sp in shaderparameters:
         options = {'ANIMATABLE'}
+        param_name = sp.attrib['name']
+        param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
+        param_widget = sp.attrib['widget'] if 'widget' in sp.attrib else None
 
-        parameter_names.append( sp.pyname )
+        parameter_names.append( param_name )
         
-        new_class.meta[sp.pyname] = sp.meta
+        #new_class.meta[param_name] = sp.meta
         # BBM addition begin
-        new_class.is_array[sp.pyname] = sp.is_array
-        new_class.is_coshader[sp.pyname] = sp.is_coshader
+        new_class.is_array[param_name] = 'isDynamicArray' in sp.attrib
+        #new_class.is_coshader[sp.pyname] = sp.is_coshader
         # BBM addition end
-        
-        if sp.hide:
-            options.add('HIDDEN')
-       
-        if sp.data_type == 'float':
-            if sp.gadgettype == 'checkbox':
-                setattr(new_class, sp.pyname, bpy.props.BoolProperty(name=sp.label, default=bool(sp.value),
-                                        options=options, description=sp.hint, update=sp.update))
+        param_type = sp.attrib['type']
+        param_help = ""
+        #print(sp.attrib)
+        param_default = sp.attrib['default'] if 'default' in sp.attrib else None
+        if sp.find('help'):
+            param_help = sp.find('help').text
+
+        if param_type == 'float':
+            param_default = float(param_default[:-1]) if 'f' in param_default else float(param_default)
+            if param_widget == 'checkbox':
+                setattr(new_class, param_name, bpy.props.BoolProperty(name=param_label, 
+                    default=bool(param_default), description=param_help))
                                                 
-            elif sp.gadgettype == 'optionmenu':
-                setattr(new_class, sp.pyname, bpy.props.EnumProperty(name=sp.label, items=sp_optionmenu_to_string(sp),
-                                        default=str(int(sp.value)),
-                                        options=options, description=sp.hint, update=sp.update))
-
-            elif sp.gadgettype == 'floatslider':
-                setattr(new_class, sp.pyname, bpy.props.FloatProperty(name=sp.label, default=sp.value, precision=3,
-                                        min=sp.min, max=sp.max, subtype="FACTOR",
-                                        options=options, description=sp.hint, update=sp.update))
-            
-            # BBM Addition begin
-            elif sp.gadgettype.startswith('intfield'):
-                setattr(new_class, sp.pyname, bpy.props.IntProperty(name=sp.label, default=int(sp.value),
-                                        options=options, description=sp.hint, update=sp.update))
+            elif param_widget == 'mapper':
+                setattr(new_class, param_name, bpy.props.EnumProperty(name=param_label, 
+                        items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'float'),
+                                        default=str(param_default),
+                                        description=param_help))
+                
+            elif param_widget == 'default':
+                param_min = float(sp.attrib['min']) if 'min' in sp.attrib else 0.0
+                param_max = float(sp.attrib['max']) if 'max' in sp.attrib else 1.0
+                setattr(new_class, param_name, bpy.props.FloatProperty(name=param_label, 
+                        default=param_default, precision=3,
+                        min=param_min, max=param_max,
+                        description=param_help))
+                
+        if param_type == 'int':
+            param_default = int(param_default)
+            if param_widget == 'checkbox':
+                setattr(new_class, param_name, bpy.props.BoolProperty(name=param_label, 
+                    default=bool(param_default), description=param_help))
+                                                
+            elif param_widget == 'mapper':
+                setattr(new_class, param_name, bpy.props.EnumProperty(name=param_label, 
+                        items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'int'),
+                                        default=str(param_default),
+                                        description=param_help))
+            elif param_widget == 'default':
+                param_min = int(sp.attrib['min']) if 'min' in sp.attrib else 0
+                param_max = int(sp.attrib['max']) if 'max' in sp.attrib else 2**31-1
+                setattr(new_class, param_name, bpy.props.IntProperty(name=param_label, 
+                        default=param_default, 
+                        min=param_min,
+                        max=param_max,
+                        description=param_help))
+                
+        elif param_type == 'color':
+            if param_default == 'null':
+                param_default = '0 0 0'
+            param_default = [float(c) for c in param_default.split()]
+            setattr(new_class, param_name, bpy.props.FloatVectorProperty(name=param_label, 
+                                        default=param_default, size=3,
+                                        subtype="COLOR",
+                                        description=param_help))
+        elif param_type == 'string':
+            if '__' in param_name:
+                param_name = param_name[2:]
+            if param_widget == 'fileInput':
+                setattr(new_class, param_name, bpy.props.StringProperty(name=param_label, 
+                                default=param_default, subtype="FILE_NAME",
+                                description=param_help))
+            elif param_widget == 'mapper':
+                setattr(new_class, param_name, bpy.props.EnumProperty(name=param_label, 
+                        default=param_default, description=param_help, 
+                        items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'string')))
+            elif param_widget == 'default':
+                setattr(new_class, param_name, bpy.props.StringProperty(name=param_label, 
+                                default=param_default, 
+                                description=param_help))
                                         
-            elif sp.gadgettype.startswith('intslider'):
-                setattr(new_class, sp.pyname, bpy.props.IntProperty(name=sp.label, default=int(sp.value),
-                                        min=int(sp.min), max=int(sp.max), subtype="FACTOR",
-                                        options=options, description=sp.hint, update=sp.update))
-            # BBM add end
+        elif param_type == 'vector' or param_type == 'normal':
+            param_default = [float(v) for v in param_default.split()]
+            setattr(new_class, param_name, bpy.props.FloatVectorProperty(name=param_label, 
+                                        default=param_default, size=3,
+                                        subtype="EULER",
+                                        description=param_help))
             
-            elif sp.length == 3:
-                setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3,
-                                        min=sp.min, max=sp.max,
-                                        options=options, description=sp.hint, update=sp.update))
-            else:
-                setattr(new_class, sp.pyname, bpy.props.FloatProperty(name=sp.label, default=sp.value, precision=3,
-                                        options=options, description=sp.hint, update=sp.update))
 
-        elif sp.data_type == 'color':
-            setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3,
-                                        min=sp.min, soft_min=0.0, max=sp.max, soft_max=1.0, subtype="COLOR",
-                                        options=options, description=sp.hint, update=sp.update))
-        elif sp.data_type == 'string':
-            if sp.gadgettype == 'inputfile':
-                setattr(new_class, sp.pyname, bpy.props.StringProperty(name=sp.label, default=sp.value, subtype="FILE_PATH",
-                                        options=options, description=sp.hint, update=sp.update))
-            else:
-                setattr(new_class, sp.pyname, bpy.props.StringProperty(name=sp.label, default=sp.value,
-                                        options=options, description=sp.hint, update=sp.update))
-                                        
-        elif sp.data_type == 'point':
-            setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="TRANSLATION",
-                                        options=options, description=sp.hint, update=sp.update))
-        
-        elif sp.data_type == 'vector':
-            setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="XYZ",
-                                        options=options, description=sp.hint, update=sp.update))
-
-        elif sp.data_type == 'normal':
-            setattr(new_class, sp.pyname, bpy.props.FloatVectorProperty(name=sp.label, default=sp.value, size=3, subtype="EULER",
-                                        options=options, description=sp.hint, update=sp.update))
         '''
         #BBM addition begin
         elif sp.data_type == 'shader':
@@ -751,6 +769,49 @@ def class_add_parameters(new_class, shaderparameters):
 
     return parameter_names
 
+def node_add_inputs(node, shaderparameters):
+    
+
+    # Generate RNA properties for each shader parameter  
+    for sp in shaderparameters:
+        param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
+        param_type = sp.attrib['type']
+        param_name = sp.attrib['name']
+        
+        if param_type == 'float':
+            param_default = float(param_default[:-1]) if 'f' in param_default else float(param_default)
+            socket = node.inputs.new('NodeSocketFloat', param_label)
+            socket.default = node[param_name]
+        elif param_type == 'int':
+            param_default = int(param_default)
+            socket = node.inputs.new('NodeSocketInt', param_label)
+            socket.default = node[param_name]
+        elif param_type == 'string':
+            socket = node.inputs.new('NodeSocketString', param_label)
+            socket.default = node[param_name]
+        elif param_type == 'color':
+            if param_default == 'null':
+                param_default = '0 0 0'
+            param_default = [float(c) for c in param_default.split()]
+            socket = node.inputs.new('NodeSocketColor', param_label)
+            socket.default = node[param_name]
+        elif param_type == 'vector' or param_type == 'float':
+            param_default = [float(v) for v in param_default.split()]
+            socket = node.inputs.new('NodeSocketVector', param_label)
+            socket.default = node[param_name]
+
+
+def node_add_outputs(node, shaderparameters):
+    
+    # Generate RNA properties for each shader parameter  
+    for sp in shaderparameters:
+        param_name = sp.attrib['name']
+        tag = sp.find('*/tag')
+        if tag.attrib['value'] == 'float':
+            node.outputs.new('NodeSocketFloat', param_name)
+        else:
+            node.outputs.new('NodeSocketColor', param_name)
+ 
 def shader_class_name(shader_name):
     return '%sParams' % shader_name[:21]
 

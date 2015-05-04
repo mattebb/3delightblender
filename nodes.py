@@ -24,14 +24,17 @@
 # ##### END MIT LICENSE BLOCK #####
 
 import bpy
+import xml.etree.ElementTree as ET
 
 import nodeitems_utils
 from nodeitems_utils import NodeCategory, NodeItem
 
-from .shader_parameters import class_add_parameters
+from .shader_parameters import class_add_properties
+from .shader_parameters import node_add_inputs
+from .shader_parameters import node_add_outputs
 from .shader_parameters import get_parameters_shaderinfo
 from .shader_parameters import ptr_to_shaderparameters
-from .shader_scan import shaders_in_path
+from .shader_scan import args_files_in_path
 from .util import get_path_list
 from .util import rib
 
@@ -44,16 +47,16 @@ def add_nodetype(layout, nodetype):
 
 # Default Types
 
-class RendermanShaderTree(bpy.types.NodeTree):
+class RendermanPatternGraph(bpy.types.NodeTree):
     '''A node tree comprised of renderman co-shader nodes'''
-    bl_idname = 'RendermanShaderTree'
-    bl_label = 'Renderman Shader Tree'
+    bl_idname = 'RendermanPatternGraph'
+    bl_label = 'Renderman Pattern Graph'
     bl_icon = 'TEXTURE_SHADED'
     nodetypes = {}
 
     @classmethod
     def poll(cls, context):
-        return context.scene.render.engine == '3DELIGHT_RENDER'
+        return context.scene.render.engine == 'PRMAN_RENDER'
 
     # Return a node tree from the context to be used in the editor
     @classmethod
@@ -78,10 +81,9 @@ class RendermanShaderTree(bpy.types.NodeTree):
             add_nodetype(layout, nt)
 
 # Custom socket type
-class RendermanShaderSocket(bpy.types.NodeSocket):
-    '''Renderman co-shader input/output'''
-    bl_idname = 'RendermanShaderSocket'
-    bl_label = 'Renderman Shader Socket'
+class RendermanPatternSocket(bpy.types.NodeSocket):
+    bl_idname = 'RendermanPatternSocket'
+    bl_label = 'Renderman Pattern Socket'
     
     ui_open = bpy.props.BoolProperty(name='UI Open')
 
@@ -97,75 +99,65 @@ class RendermanShaderSocket(bpy.types.NodeSocket):
         pass
 
 
-class RendermanShaderArraySocket(bpy.types.NodeSocket):
-    '''Renderman co-shader array input/output'''
-    bl_idname = 'RendermanShaderArraySocket'
-    bl_label = 'Renderman Shader Array Socket'
-    
-    ui_open = bpy.props.BoolProperty(name='UI Open')
-
-    # Optional function for drawing the socket input value
-    def draw_value(self, context, layout, node):
-        layout.label(self.name)
-
-    def draw_color(self, context, node):
-        return (0.1, 1.0, 0.5, 0.75)
-
-    def draw(self, a,b,c,d):
-        pass
-
-
 # Base class for all custom nodes in this tree type.
 # Defines a poll function to enable instantiation.
-class RendermanShaderNode:
+class RendermanShadingNode:
     @classmethod
     def poll(cls, ntree):
-        return ntree.bl_idname == 'RendermanShaderTree'
+        return ntree.bl_idname == 'RendermanPatternGraph'
 
 
 # Final output node, used as a dummy to find top level shaders
-class OutputShaderNode(bpy.types.Node, RendermanShaderNode):
+class RendermanBxdfNode(bpy.types.Node, RendermanShadingNode):
     bl_label = 'Output'
-    def init(self, context):
-        self.inputs.new('RendermanShaderSocket', "Surface")
-        self.inputs.new('RendermanShaderSocket', "Displacement")
-        self.inputs.new('RendermanShaderSocket', "Interior")
-        self.inputs.new('RendermanShaderSocket', "Atmosphere")
+    #def init(self, context):
+        #self.inputs.new('RendermanPatternSocket', "Bxdf")
+        #self.inputs.new('RendermanShaderSocket', "Displacement")
+        #self.inputs.new('RendermanShaderSocket', "Interior")
+        #self.inputs.new('RendermanShaderSocket', "Atmosphere")
 
-class OutputLightShaderNode(bpy.types.Node, RendermanShaderNode):
+# Final output node, used as a dummy to find top level shaders
+class RendermanPatternNode(bpy.types.Node, RendermanShadingNode):
+    pass
+    #def init(self, context):
+        #self.inputs.new('RendermanPatternSocket', "Bxdf")
+        #self.inputs.new('RendermanShaderSocket', "Displacement")
+        #self.inputs.new('RendermanShaderSocket', "Interior")
+        #self.inputs.new('RendermanShaderSocket', "Atmosphere")
+
+class RendermanLightNode(bpy.types.Node, RendermanShadingNode):
     bl_label = 'Output'
-    def init(self, context):
-        self.inputs.new('RendermanShaderSocket', "LightSource")
+    #def init(self, context):
+        #self.inputs.new('RendermanShaderSocket', "LightSource")
         
 
 # Generate dynamic types
+def generate_node_type(prefs, name, args):
+    ''' Dynamically generate a node type from pattern '''
 
-def generate_node_type(prefs, name):
-    ''' Dynamically generate a node type from shader '''
-
-    path_list = get_path_list(prefs, 'shader')
-    name, parameters = get_parameters_shaderinfo(path_list, name, '')
+    #path_list = get_path_list(prefs, 'rixplugin')
+    #name, parameters = get_args(path_list, name, '')
 
     # print('generating node: %s' % name)
-
-    typename = '%sShaderNode' % name[:16]
-    ntype = type(typename, (bpy.types.Node, RendermanShaderNode), {})
+    nodeType = args.find("shaderType/tag").attrib['value']
+    typename = '%s%sNode' % (name, nodeType.capitalize())
+    nodeDict = {'bxdf':RendermanBxdfNode, 
+                'pattern': RendermanPatternNode,
+                'light': RendermanLightNode}
+    ntype = type(typename, (nodeDict[nodeType],), {})
     ntype.bl_label = name
     ntype.typename = typename
+    ntype.rman_type = nodeType
 
     def init(self, context):
-        self.outputs.new('RendermanShaderSocket', "Shader")
-        for sp in [p for p in parameters if p.data_type == 'shader']:
-            if sp.meta['array']:
-                self.inputs.new('RendermanShaderArraySocket', sp.name)
-            else:
-                self.inputs.new('RendermanShaderSocket', sp.name)
-
+        node_add_inputs(self, [p for p in args.findall('./param')])
+        node_add_outputs(self, [p for p in args.findall('./output')])
+    
     def draw_buttons(self, context, layout):
         #for p in self.prop_names:
         #    layout.prop(self, p)
 
-        for sp in [p for p in parameters if p.meta['array']]:
+        for sp in [p for p in args.params if p.meta['array']]:
             row = layout.row(align=True)
             row.label(sp.name)
             row.operator("node.add_array_socket", text='', icon='ZOOMIN').array_name = sp.name
@@ -180,16 +172,19 @@ def generate_node_type(prefs, name):
             split.prop(self, p, text='')
 
     ntype.init = init
-    ntype.draw_buttons = draw_buttons
-    ntype.draw_buttons_ext = draw_buttons_ext
+    #ntype.draw_buttons = draw_buttons
+    #ntype.draw_buttons_ext = draw_buttons_ext
     
-    ntype.shader_name = bpy.props.StringProperty(name='Shader Name', default=name, options={'HIDDEN'})
-    ntype.prop_names = class_add_parameters(ntype, [p for p in parameters if p.data_type != 'shader'])
+    print('Generating ', name)
+    ntype.plugin_name = bpy.props.StringProperty(name='Plugin Name', default=name, options={'HIDDEN'})
+    ntype.prop_names = class_add_properties(ntype, [p for p in args.findall('./param')])
+    class_add_properties(ntype, [p for p in args.findall('./param')])
+
+    #print(ntype, ntype.bl_rna.identifier)
     bpy.utils.register_class(ntype)
 
-    print(ntype, ntype.bl_rna.identifier)
-
-    RendermanShaderTree.nodetypes[typename] = ntype
+    
+    RendermanPatternGraph.nodetypes[typename] = ntype
 
 
 def node_shader_handle(nt, node):
@@ -290,7 +285,7 @@ class NODE_OT_add_input_node(bpy.types.Operator):
 
     def node_type_items(self, context):
         items = []
-        for nodetype in RendermanShaderTree.nodetypes.values():
+        for nodetype in RendermanPatternGraph.nodetypes.values():
             items.append( (nodetype.typename, nodetype.bl_label, nodetype.bl_label) )
         items.append( ('REMOVE', 'Remove', 'Remove the node connected to this socket'))
         items.append( ('DISCONNECT', 'Disconnect', 'Disconnect the node connected to this socket'))
@@ -425,45 +420,37 @@ class NODE_OT_remove_array_socket(bpy.types.Operator):
         return {'FINISHED'}
 
 
+def convert_types(some_type):
+    if some_type == 'RGBA':
+        return "color"
+    elif some_type == 'VECTOR':
+        return 'vector'
+    elif some_type == 'INT':
+        return 'int'
+    elif some_type == 'VALUE':
+        return 'float'
+    else:
+        return 'string'
+
 # Export to rib
 
-def shader_node_rib(file, scene, nt, node, shader_type='Shader', handle=None):
-    file.write('\n')
+def shader_node_rib(ri, scene, node):
+    params = {}
+    # for each input 
+    for i in node.inputs:
+        if i.is_linked:
+            from_socket = i.links[0].from_socket
+            params['reference %s %s' % (convert_types(i.type), i.identifier)] = \
+                ["%s:%s" % (from_socket.node.bl_idname, identifier)]        
+        elif i.is_property_set():
+            params['%s %s' % (convert_types(i.type), i.identifier)] = \
+                [rib(value(i))] 
+        
+    if type(node) == "RendermanPatternGraph":
+        ri.Pattern(node.rman_type, node.bl_idname, params)
+    else:
+        ri.Bxdf(node.rman_type, node.bl_idname, params)
 
-    file.write('        %s "%s" ' % (shader_type, node.shader_name))
-    if shader_type == 'Shader':
-        file.write('"%s"' % node_shader_handle(nt, node))
-    elif shader_type == 'LightSource':
-        file.write('"%s"' % handle)
-    file.write('\n')
-
-    # Export built in parameters
-    parameterlist = ptr_to_shaderparameters(scene, node)
-    for sp in parameterlist:
-        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-
-
-    # Export shader inputs
-    sockets = linked_sockets(node.inputs)
-    arrays = [s for s in sockets if s.bl_idname == 'RendermanShaderArraySocket']
-
-    # export shader array socket shader references
-    for i, arraysocket in enumerate(arrays):
-        # check to see if we've already processed a socket with this name
-        # so we don't double up
-        if [s.name for s in arrays].index(arraysocket.name) < i:
-            continue
-
-        arrayinputs = [socket_node_input(nt, s) for s in sockets if s.name == arraysocket.name]
-        handles = ['"%s"' % node_shader_handle(nt, n) for n in arrayinputs]
-        count = [s.name for s in arrays].count(arraysocket.name)
-
-        file.write('            "string %s[%d]" %s \n' % (arraysocket.name, count, rib(handles)) )
-
-    # export remaining non-array socket shader references
-    for socket in [s for s in sockets if s not in arrays]:
-        inode = socket_node_input(nt, socket)
-        file.write('            "string %s" "%s" \n' % (socket.name, node_shader_handle(nt,inode)))
 
 
 def node_gather_inputs(nt, node):
@@ -487,33 +474,23 @@ def node_gather_inputs(nt, node):
     return input_nodes
 
 
-def export_shader_nodetree(file, scene, id, output_node='OutputShaderNode', handle=None):
+def export_shader_nodetree(ri, scene, id, output_node='RendermanBxdfNode', handle=None):
     nt = bpy.data.node_groups[id.renderman.nodetree]
 
     out = next((n for n in nt.nodes if n.type == output_node), None)
     if out is None: return
     
-    # Top level shader types, in output node
-    for isocket in linked_sockets(out.inputs):
+    ri.ArchiveRecord('comment', "Shader Graph")
+    shader_node_rib(ri, scene, out)
 
-        inode = socket_node_input(nt, isocket)
-
-        # node inputs to top level shader
-        for node in node_gather_inputs(nt, inode):
-            shader_node_rib(file, scene, nt, node)
-
-        # top level shader itself
-        shader_node_rib(file, scene, nt, inode, shader_type=isocket.name, handle=handle)
-
-        file.write('\n')
-
+    
 
 # our own base class with an appropriate poll function,
 # so the categories only show up in our own tree type
-class RendermanShaderNodeCategory(NodeCategory):
+class RendermanPatternNodeCategory(NodeCategory):
     @classmethod
     def poll(cls, context):
-        return context.space_data.tree_type == 'RendermanShaderTree'
+        return context.space_data.tree_type == 'RendermanPatternGraph'
 
 def register():
     user_preferences = bpy.context.user_preferences
@@ -524,20 +501,19 @@ def register():
 
     #@persistent
     #def load_handler(dummy):
-    for s in shaders_in_path(prefs, None, threaded=False):
-        generate_node_type(prefs, s)
+    for name, arg_file in args_files_in_path(prefs, None).items():
+        generate_node_type(prefs, name, ET.parse(arg_file).getroot())
 
 
 
-    nodeitems = [NodeItem(nt) for nt in RendermanShaderTree.nodetypes.keys()]
+    nodeitems = [NodeItem(nt) for nt in RendermanPatternGraph.nodetypes.keys()]
 
     # all categories in a list
     node_categories = [
         # identifier, label, items list
-        RendermanShaderNodeCategory("SOMENODES", "Some Nodes",  
+        RendermanPatternNodeCategory("BLENDERMAN", "BlenderMan Nodes",  
             items=nodeitems )
         ]
-    print( "aasss --", nodeitems )
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES", node_categories)
 
     #bpy.app.handlers.load_post.append(load_handler)

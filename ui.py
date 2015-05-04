@@ -44,49 +44,49 @@ from .shader_parameters import shader_requires_shadowmap
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
-properties_render.RENDER_PT_render.COMPAT_ENGINES.add('3DELIGHT_RENDER')
-properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('3DELIGHT_RENDER')
-properties_render.RENDER_PT_output.COMPAT_ENGINES.add('3DELIGHT_RENDER')
-properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('3DELIGHT_RENDER')
+properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_render
 
 import bl_ui.properties_material as properties_material
-properties_material.MATERIAL_PT_context_material.COMPAT_ENGINES.add('3DELIGHT_RENDER')
-# properties_material.MATERIAL_PT_preview.COMPAT_ENGINES.add('3DELIGHT_RENDER')
-properties_material.MATERIAL_PT_custom_props.COMPAT_ENGINES.add('3DELIGHT_RENDER')
+properties_material.MATERIAL_PT_context_material.COMPAT_ENGINES.add('PRMAN_RENDER')
+# properties_material.MATERIAL_PT_preview.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_material.MATERIAL_PT_custom_props.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_material
 
 import bl_ui.properties_data_lamp as properties_data_lamp
-properties_data_lamp.DATA_PT_context_lamp.COMPAT_ENGINES.add('3DELIGHT_RENDER')
-properties_data_lamp.DATA_PT_spot.COMPAT_ENGINES.add('3DELIGHT_RENDER')
+properties_data_lamp.DATA_PT_context_lamp.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_data_lamp.DATA_PT_spot.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_data_lamp
 
 # enable all existing panels for these contexts
 import bl_ui.properties_data_mesh as properties_data_mesh
 for member in dir(properties_data_mesh):
     subclass = getattr(properties_data_mesh, member)
-    try: subclass.COMPAT_ENGINES.add('3DELIGHT_RENDER')
+    try: subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
     except: pass
 del properties_data_mesh
 
 import bl_ui.properties_object as properties_object
 for member in dir(properties_object):
     subclass = getattr(properties_object, member)
-    try: subclass.COMPAT_ENGINES.add('3DELIGHT_RENDER')
+    try: subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
     except: pass
 del properties_object
 
 import bl_ui.properties_data_mesh as properties_data_mesh
 for member in dir(properties_data_mesh):
     subclass = getattr(properties_data_mesh, member)
-    try: subclass.COMPAT_ENGINES.add('3DELIGHT_RENDER')
+    try: subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
     except: pass
 del properties_data_mesh
 
 import bl_ui.properties_data_camera as properties_data_camera
 for member in dir(properties_data_camera):
     subclass = getattr(properties_data_camera, member)
-    try: subclass.COMPAT_ENGINES.add('3DELIGHT_RENDER')
+    try: subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
     except: pass
 del properties_data_camera
 
@@ -95,7 +95,7 @@ for member in dir(properties_particle):
     if member == 'PARTICLE_PT_render': continue
 
     subclass = getattr(properties_particle, member)
-    try: subclass.COMPAT_ENGINES.add('3DELIGHT_RENDER')
+    try: subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
     except:  pass
 del properties_particle
 
@@ -111,12 +111,12 @@ class CollectionPanel():
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (rd.engine in {'3DELIGHT_RENDER'})
+        return (rd.engine in {'PRMAN_RENDER'})
 
     def _draw_collection(self, context, layout, ptr, name, operator, opcontext, prop_coll, collection_index):
         layout.label(name)
         row = layout.row()
-        row.template_list("UI_UL_list", "3DELIGHT", ptr, prop_coll, ptr, collection_index, rows=1)
+        row.template_list("UI_UL_list", "PRMAN", ptr, prop_coll, ptr, collection_index, rows=1)
         col = row.column(align=True)
         
         op = col.operator(operator, icon="ZOOMIN", text="")
@@ -151,7 +151,7 @@ class InlineRibPanel(CollectionPanel):
 class ShaderPanel():
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
-    COMPAT_ENGINES = {'3DELIGHT_RENDER'}
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
     
     shader_type = 'surface'
     param_exclude = {}
@@ -275,11 +275,11 @@ class ShaderPanel():
         rd = context.scene.render
       
         if cls.bl_context == 'data' and cls.shader_type == 'light':
-            return (hasattr(context, "lamp") and context.lamp != None and rd.engine in {'3DELIGHT_RENDER'})
+            return (hasattr(context, "lamp") and context.lamp != None and rd.engine in {'PRMAN_RENDER'})
         elif cls.bl_context == 'world':
-            return (hasattr(context, "world") and context.world != None and rd.engine in {'3DELIGHT_RENDER'})
+            return (hasattr(context, "world") and context.world != None and rd.engine in {'PRMAN_RENDER'})
         elif cls.bl_context == 'material':
-            return (hasattr(context, "material") and context.material != None and rd.engine in {'3DELIGHT_RENDER'})
+            return (hasattr(context, "material") and context.material != None and rd.engine in {'PRMAN_RENDER'})
 
 
 
@@ -292,7 +292,7 @@ class ShaderPanel():
 narrowui = 180
 
 
-class RENDER_PT_3Delight_sampling(bpy.types.Panel):
+class RENDER_PT_renderman_sampling(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "render"
@@ -301,7 +301,7 @@ class RENDER_PT_3Delight_sampling(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (rd.engine in {'3DELIGHT_RENDER'})
+        return (rd.engine in {'PRMAN_RENDER'})
 
     def draw(self, context):
         layout = self.layout
@@ -350,7 +350,7 @@ class RENDER_PT_3Delight_sampling(bpy.types.Panel):
         scol.prop(rm, "shutter_efficiency_open")
         scol.prop(rm, "shutter_efficiency_close")
 
-class MESH_PT_3Delight_prim_vars(CollectionPanel, bpy.types.Panel):
+class MESH_PT_renderman_prim_vars(CollectionPanel, bpy.types.Panel):
     bl_context = "data"
     bl_label = "Primitive Variables"
 
@@ -373,7 +373,7 @@ class MESH_PT_3Delight_prim_vars(CollectionPanel, bpy.types.Panel):
     def poll(cls, context):
         rd = context.scene.render
         if not context.mesh: return False
-        return (rd.engine in {'3DELIGHT_RENDER'})
+        return (rd.engine in {'PRMAN_RENDER'})
 
     def draw(self, context):
         layout = self.layout
@@ -433,7 +433,7 @@ class RENDER_PT_renderman_hider(bpy.types.Panel):
             layout.prop(rm, "hidden_maxvpdepth")
         elif rm.hider == 'raytrace':
             col = layout.column()
-            col.active = rm.display_driver == 'idisplay'
+            #col.active = rm.display_driver == 'idisplay'
             col.prop(rm, "integrator")
 
 class RENDER_PT_inlineRIB(InlineRibPanel, bpy.types.Panel):
@@ -465,7 +465,7 @@ class RENDER_PT_renderman_grouping(CollectionPanel, bpy.types.Panel):
                                         "scene", "grouping_membership", "grouping_membership_index")
 
 
-class RENDER_PT_3Delight_paths(CollectionPanel, bpy.types.Panel):
+class RENDER_PT_renderman_paths(CollectionPanel, bpy.types.Panel):
     bl_context = "render"
     bl_label = "Search Paths"
     bl_options = {'DEFAULT_CLOSED'}
@@ -500,7 +500,7 @@ class RENDER_PT_3Delight_paths(CollectionPanel, bpy.types.Panel):
         layout.prop(rm, "path_texture_optimiser")
         
 '''
-class RENDER_PT_3Delight_render_passes(bpy.types.Panel):
+class RENDER_PT_renderman_render_passes(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "render"
@@ -510,7 +510,7 @@ class RENDER_PT_3Delight_render_passes(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (rd.engine in {'3DELIGHT_RENDER'})
+        return (rd.engine in {'PRMAN_RENDER'})
 
     def _draw_collection(self, layout, ptr, name, operator, prop_coll, collection_index):
         layout.label(name)
@@ -550,12 +550,12 @@ class RENDER_PT_3Delight_render_passes(bpy.types.Panel):
         
         layout.separator()
 '''
-class RENDER_PT_3Delight_performance(bpy.types.Panel):
+class RENDER_PT_renderman_performance(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "render"
     bl_label = "Performance"
-    COMPAT_ENGINES = {'3DELIGHT_RENDER'}
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
     bl_options = {'DEFAULT_CLOSED'}
     
     @classmethod
@@ -582,7 +582,7 @@ class RENDER_PT_3Delight_performance(bpy.types.Panel):
         #col.prop(rm, "recompile_shaders")
 
 
-class WORLD_PT_3Delight_integrator(ShaderPanel, bpy.types.Panel):
+class WORLD_PT_renderman_integrator(ShaderPanel, bpy.types.Panel):
     bl_context = "world"
     bl_label = "Integrator"
     shader_type = 'surface'
@@ -609,7 +609,7 @@ class WORLD_PT_3Delight_integrator(ShaderPanel, bpy.types.Panel):
 
 # BBM addition begin
 '''
-class WORLD_PT_3Delight_coshaders(ShaderPanel, bpy.types.Panel):
+class WORLD_PT_renderman_coshaders(ShaderPanel, bpy.types.Panel):
     bl_context = "world"
     bl_label = "World Co-shaders"
     shader_type = 'shader'
@@ -648,8 +648,8 @@ class WORLD_PT_3Delight_coshaders(ShaderPanel, bpy.types.Panel):
 '''
 # unused atm
 ''' 
-class MATERIAL_MT_3Delight_preview_specials(bpy.types.Menu):
-    bl_label = "3Delight Preview Specials"
+class MATERIAL_MT_renderman_preview_specials(bpy.types.Menu):
+    bl_label = "renderman Preview Specials"
 
     def draw(self, context):
         layout = self.layout
@@ -660,13 +660,13 @@ class MATERIAL_MT_3Delight_preview_specials(bpy.types.Menu):
         col.prop(rm, "preview_render_shadow")
 '''        
 
-class MATERIAL_PT_3Delight_preview(bpy.types.Panel):
+class MATERIAL_PT_renderman_preview(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     
     bl_context = "material"
     bl_label = "Preview"
-    COMPAT_ENGINES = {'3DELIGHT_RENDER'}
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
 
     @classmethod
     def poll(cls, context):
@@ -687,7 +687,7 @@ class MATERIAL_PT_3Delight_preview(bpy.types.Panel):
         #col = row.column()
         #col.scale_x = 1.5
         #col.prop(rm, "preview_render_type", text="", expand=True)
-        #col.menu("MATERIAL_MT_3Delight_preview_specials", icon='DOWNARROW_HLT', text="")
+        #col.menu("MATERIAL_MT_renderman_preview_specials", icon='DOWNARROW_HLT', text="")
         
 from .nodes import draw_nodes_properties_ui
 
@@ -698,7 +698,7 @@ class ShaderNodePanel():
     bl_label = 'Node Panel'
 
     bl_context = ""
-    COMPAT_ENGINES = {'3DELIGHT_RENDER'}
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
 
     @classmethod
     def poll(cls, context):
@@ -711,7 +711,7 @@ class ShaderNodePanel():
         return False
 
 
-class MATERIAL_PT_3Delight_shader_surface_node(ShaderNodePanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_surface_node(ShaderNodePanel, bpy.types.Panel):
     bl_label = "Surface Shader Nodes"
     bl_context = "material"
 
@@ -719,7 +719,7 @@ class MATERIAL_PT_3Delight_shader_surface_node(ShaderNodePanel, bpy.types.Panel)
         nt = bpy.data.node_groups[context.material.renderman.nodetree]
         draw_nodes_properties_ui(self.layout, context, nt, input_name='Surface')
 
-class MATERIAL_PT_3Delight_shader_displacement_node(ShaderNodePanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_displacement_node(ShaderNodePanel, bpy.types.Panel):
     bl_label = "Displacement Shader Nodes"
     bl_context = "material"
 
@@ -728,7 +728,7 @@ class MATERIAL_PT_3Delight_shader_displacement_node(ShaderNodePanel, bpy.types.P
         draw_nodes_properties_ui(self.layout, context, nt, input_name='Displacement')
 
 
-class MATERIAL_PT_3Delight_shader_surface(ShaderPanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_surface(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Surface Shader"
     shader_type = 'surface'
@@ -749,7 +749,7 @@ class MATERIAL_PT_3Delight_shader_surface(ShaderPanel, bpy.types.Panel):
 
         
         
-class MATERIAL_PT_3Delight_shader_displacement(ShaderPanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Displacement Shader"
     shader_type = 'displacement'
@@ -764,7 +764,7 @@ class MATERIAL_PT_3Delight_shader_displacement(ShaderPanel, bpy.types.Panel):
 		# BBM addition end
         # self._draw_shader_menu_params(layout, context, rm)
 
-class MATERIAL_PT_3Delight_shader_interior(ShaderPanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_interior(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Interior"
     shader_type = 'interior'
@@ -776,7 +776,7 @@ class MATERIAL_PT_3Delight_shader_interior(ShaderPanel, bpy.types.Panel):
         rm = mat.renderman
         # self._draw_shader_menu_params(layout, context, rm)
 
-class MATERIAL_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_atmosphere(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Atmosphere"
     shader_type = 'atmosphere'
@@ -789,7 +789,7 @@ class MATERIAL_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
         # self._draw_shader_menu_params(layout, context, rm)
 
 '''
-class MATERIAL_PT_3Delight_shader_coshaders(ShaderPanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_coshaders(ShaderPanel, bpy.types.Panel):
     bl_context = "material"
     bl_label = "Co-Shaders"
 	#BBM repalced
@@ -830,7 +830,7 @@ class MATERIAL_PT_3Delight_shader_coshaders(ShaderPanel, bpy.types.Panel):
             
 '''
 
-class WORLD_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
+class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "world"
@@ -850,7 +850,7 @@ class WORLD_PT_3Delight_shader_atmosphere(ShaderPanel, bpy.types.Panel):
         
         self._draw_params(scene, world.renderman, layout)
 
-class MATERIAL_PT_3Delight_sss(bpy.types.Panel):
+class MATERIAL_PT_renderman_sss(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "material"
@@ -860,7 +860,7 @@ class MATERIAL_PT_3Delight_sss(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (context.material and rd.engine in {'3DELIGHT_RENDER'})
+        return (context.material and rd.engine in {'PRMAN_RENDER'})
 
     def draw_header(self, context):
         rm = context.material.renderman
@@ -892,7 +892,7 @@ class MATERIAL_PT_3Delight_sss(bpy.types.Panel):
             row.label("Requires a shader with subsurface support", icon="INFO")
         
 
-class MATERIAL_PT_3Delight_photons(bpy.types.Panel):
+class MATERIAL_PT_renderman_photons(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "material"
@@ -902,7 +902,7 @@ class MATERIAL_PT_3Delight_photons(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (context.material and rd.engine in {'3DELIGHT_RENDER'})
+        return (context.material and rd.engine in {'PRMAN_RENDER'})
 
     def draw(self, context):
         layout = self.layout
@@ -915,7 +915,7 @@ class TexturePanel3dl():
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "texture"
-    COMPAT_ENGINES = {'3DELIGHT_RENDER'}
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
     
     @classmethod
     def poll(cls, context):
@@ -923,7 +923,7 @@ class TexturePanel3dl():
         rd = context.scene.render
         return tex and (tex.type != 'NONE') and (context.scene.render.engine in cls.COMPAT_ENGINES)
 
-class TEXTURE_PT_3Delight_back(TexturePanel3dl, bpy.types.Panel):
+class TEXTURE_PT_renderman_back(TexturePanel3dl, bpy.types.Panel):
     bl_label = ""
     bl_options = {'HIDE_HEADER'}
 
@@ -931,7 +931,7 @@ class TEXTURE_PT_3Delight_back(TexturePanel3dl, bpy.types.Panel):
         layout = self.layout
         layout.operator("space.back_to_shader", icon='BACK')
 
-class TEXTURE_PT_3Delight_image(TexturePanel3dl, bpy.types.Panel):
+class TEXTURE_PT_renderman_image(TexturePanel3dl, bpy.types.Panel):
     bl_label = "Image Texture"
     
     def trim_path(self, context, path):
@@ -974,7 +974,7 @@ class TEXTURE_PT_3Delight_image(TexturePanel3dl, bpy.types.Panel):
 
 
 
-class TEXTURE_PT_3Delight_image_sampling(TexturePanel3dl, bpy.types.Panel):
+class TEXTURE_PT_renderman_image_sampling(TexturePanel3dl, bpy.types.Panel):
     bl_label = "Sampling"
 
     def draw(self, context):
@@ -1005,7 +1005,7 @@ class TEXTURE_PT_3Delight_image_sampling(TexturePanel3dl, bpy.types.Panel):
         row.prop(rm, "filter_width_t", text="T")
         col.prop(rm, "filter_blur")
         
-class TEXTURE_PT_3Delight_image_color(TexturePanel3dl, bpy.types.Panel):
+class TEXTURE_PT_renderman_image_color(TexturePanel3dl, bpy.types.Panel):
     bl_label = "Color"
     
     def draw(self, context):
@@ -1025,7 +1025,7 @@ class TEXTURE_PT_3Delight_image_color(TexturePanel3dl, bpy.types.Panel):
         col.prop(rm, "output_color_depth", text="Color Depth")
         col.prop(rm, "output_compression", text="Compression")
 
-class TEXTURE_PT_3Delight_image_generate(TexturePanel3dl, bpy.types.Panel):
+class TEXTURE_PT_renderman_image_generate(TexturePanel3dl, bpy.types.Panel):
     bl_label = "Auto-Generate Optimized"
 
     def draw_header(self, context):
@@ -1047,7 +1047,7 @@ class TEXTURE_PT_3Delight_image_generate(TexturePanel3dl, bpy.types.Panel):
 
 
 
-class DATA_PT_3Delight_node_shader_lamp(ShaderNodePanel, bpy.types.Panel):
+class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, bpy.types.Panel):
     bl_label = "Light Shader Nodes"
     bl_context = 'data'
 
@@ -1058,7 +1058,7 @@ class DATA_PT_3Delight_node_shader_lamp(ShaderNodePanel, bpy.types.Panel):
         nt = bpy.data.node_groups[lamp.renderman.nodetree]
         draw_nodes_properties_ui(self.layout, context, nt, input_name='LightSource', output_node='OutputLightShaderNode')
 
-class DATA_PT_3Delight_lamp(ShaderPanel, bpy.types.Panel):
+class DATA_PT_renderman_lamp(ShaderPanel, bpy.types.Panel):
     bl_context = "data"
     bl_label = "Lamp"
     shader_type = 'light'
@@ -1106,7 +1106,7 @@ class DATA_PT_3Delight_lamp(ShaderPanel, bpy.types.Panel):
 
 # BBM addition begin
 '''
-class DATA_PT_3Delight_lamp_coshaders(ShaderPanel, bpy.types.Panel):
+class DATA_PT_renderman_lamp_coshaders(ShaderPanel, bpy.types.Panel):
     bl_context = "data"
     bl_label = "Light Co-Shaders"
     shader_type = 'light' # right, this is a hack, if it is set to 'shader' as it should be, this section doesn't appear in the ui. This really shows my poor comprehension od Blender API
@@ -1145,7 +1145,7 @@ class DATA_PT_3Delight_lamp_coshaders(ShaderPanel, bpy.types.Panel):
 '''
 # BBM addition end
 
-class DATA_PT_3Delight_lamp_shadow(bpy.types.Panel):
+class DATA_PT_renderman_lamp_shadow(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "data"
@@ -1164,7 +1164,7 @@ class DATA_PT_3Delight_lamp_shadow(bpy.types.Panel):
     def poll(cls, context):
         rd = context.scene.render
         scene = context.scene
-        if rd.engine not in {'3DELIGHT_RENDER'}:
+        if rd.engine not in {'PRMAN_RENDER'}:
             return False
 
         if not context.lamp: return False
@@ -1228,14 +1228,14 @@ class DATA_PT_3Delight_lamp_shadow(bpy.types.Panel):
 
 
 
-class DATA_PT_3Delight_lamp_shadow_ribBox(InlineRibPanel, bpy.types.Panel):
+class DATA_PT_renderman_lamp_shadow_ribBox(InlineRibPanel, bpy.types.Panel):
     bl_context = "data"
     bl_label = "Shadow Map Inline RIB"
     
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        if rd.engine not in {'3DELIGHT_RENDER'}: return False
+        if rd.engine not in {'PRMAN_RENDER'}: return False
         if not context.lamp: return False
 
         rm = context.lamp.renderman
@@ -1249,7 +1249,7 @@ class DATA_PT_3Delight_lamp_shadow_ribBox(InlineRibPanel, bpy.types.Panel):
                                         "Inline RIB:", "collection.add_remove",
                                         "lamp", "shd_inlinerib_texts", "shd_inlinerib_index")
 
-class OBJECT_PT_3Delight_object_geometry(bpy.types.Panel):
+class OBJECT_PT_renderman_object_geometry(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1258,7 +1258,7 @@ class OBJECT_PT_3Delight_object_geometry(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (context.object and rd.engine in {'3DELIGHT_RENDER'})
+        return (context.object and rd.engine in {'PRMAN_RENDER'})
 
     def draw(self, context):
         layout = self.layout
@@ -1333,7 +1333,7 @@ class OBJECT_PT_3Delight_object_geometry(bpy.types.Panel):
         sub.prop(rm, "motion_segments")        
 
                 
-class OBJECT_PT_3Delight_object_render_shading(bpy.types.Panel):
+class OBJECT_PT_renderman_object_render_shading(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1342,7 +1342,7 @@ class OBJECT_PT_3Delight_object_render_shading(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (context.object and rd.engine in {'3DELIGHT_RENDER'})
+        return (context.object and rd.engine in {'PRMAN_RENDER'})
 
     def draw(self, context):
         layout = self.layout
@@ -1364,7 +1364,7 @@ class OBJECT_PT_3Delight_object_render_shading(bpy.types.Panel):
         col.prop(rm, "geometric_approx_focus")
 
 
-class OBJECT_PT_3Delight_object_render(CollectionPanel, bpy.types.Panel):
+class OBJECT_PT_renderman_object_render(CollectionPanel, bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1373,7 +1373,7 @@ class OBJECT_PT_3Delight_object_render(CollectionPanel, bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (context.object and rd.engine in {'3DELIGHT_RENDER'})
+        return (context.object and rd.engine in {'PRMAN_RENDER'})
 
     def draw_item(self, layout, context, item):
         ob = context.object
@@ -1419,7 +1419,7 @@ class OBJECT_PT_3Delight_object_render(CollectionPanel, bpy.types.Panel):
         self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
                                         "object", "trace_set", "trace_set_index")
 
-class OBJECT_PT_3Delight_object_lightlinking(CollectionPanel, bpy.types.Panel):
+class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1428,7 +1428,7 @@ class OBJECT_PT_3Delight_object_lightlinking(CollectionPanel, bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (context.object and rd.engine in {'3DELIGHT_RENDER'})
+        return (context.object and rd.engine in {'PRMAN_RENDER'})
 
 
     def draw_item(self, layout, context, item):
@@ -1453,12 +1453,12 @@ class OBJECT_PT_3Delight_object_lightlinking(CollectionPanel, bpy.types.Panel):
 
 from bl_ui.properties_particle import ParticleButtonsPanel
 
-class PARTICLE_PT_3Delight_particle(ParticleButtonsPanel, bpy.types.Panel):
+class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "particle"
     bl_label = "Render"
-    COMPAT_ENGINES = {'3DELIGHT_RENDER'}
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
 
     def draw(self, context):
         layout = self.layout
@@ -1489,7 +1489,7 @@ class PARTICLE_PT_3Delight_particle(ParticleButtonsPanel, bpy.types.Panel):
         subcol.prop(rm, "width")
 
 
-class PARTICLE_PT_3Delight_prim_vars(CollectionPanel, bpy.types.Panel):
+class PARTICLE_PT_renderman_prim_vars(CollectionPanel, bpy.types.Panel):
     bl_context = "particle"
     bl_label = "Primitive Variables"
 
@@ -1504,7 +1504,7 @@ class PARTICLE_PT_3Delight_prim_vars(CollectionPanel, bpy.types.Panel):
     def poll(cls, context):
         rd = context.scene.render
         if not context.particle_system: return False
-        return (rd.engine in {'3DELIGHT_RENDER'})
+        return (rd.engine in {'PRMAN_RENDER'})
 
     def draw(self, context):
         layout = self.layout
@@ -1517,9 +1517,7 @@ class PARTICLE_PT_3Delight_prim_vars(CollectionPanel, bpy.types.Panel):
         layout.prop(rm, "export_default_size")
 
 def register():
-    pass
-     #bpy.utils.register_module(__name__)
+    bpy.utils.register_module(__name__)
 
 def unregister():
-    pass
-     #bpy.utils.unregister_module(__name__)
+    bpy.utils.unregister_module(__name__)

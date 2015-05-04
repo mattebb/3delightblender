@@ -67,7 +67,9 @@ from .nodes import export_shader_nodetree
 
 class RPass:    
     def __init__(self, scene, objects=[], paths={}, type="", motion_blur=False):
-        
+        #import prman
+        #ri = prman.Ri()
+        print(ri)
         self.type = type if type != "" else "default"
         self.objects = objects
         self.archives = archive_objects(scene)

@@ -24,7 +24,7 @@
 # ##### END MIT LICENSE BLOCK #####
 
 bl_info = {
-    "name": "blenderman",
+    "name": "BlenderMan",
     "author": "Brian Savery",
     "version": (0, 1, 1),
     "blender": (2, 6, 6),
@@ -56,7 +56,7 @@ else:
 
 
 class Blenderman(bpy.types.RenderEngine):
-    bl_idname = 'BLENDERMAN'
+    bl_idname = 'PRMAN_RENDER'
     bl_label = "BlenderMan"
     bl_use_preview = True
     
@@ -96,9 +96,10 @@ def register():
     properties.register()
     operators.register()
     export.register()
+    #ui.register()
     #draw.register()
     bpy.utils.register_module(__name__)
-    #nodes.register()
+    nodes.register()
 
 
 def unregister():
