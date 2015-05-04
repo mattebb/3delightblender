@@ -447,7 +447,8 @@ def get_mesh_vgroup(ob, mesh, name=""):
     return weights
 
 
-def export_primvars(file, ob, geo, interpolation=""):
+def get_primvars(ob, geo, interpolation=""):
+    primvars = {}
     if ob.type != 'MESH':
         return
 
@@ -459,32 +460,34 @@ def export_primvars(file, ob, geo, interpolation=""):
     if rm.export_smooth_normals and ob.renderman.primitive in ('AUTO', 'POLYGON_MESH', 'SUBDIVISION_MESH'):
         N = get_mesh_vertex_N(geo)
         if N is not None:
-            file.write('            "varying normal N" %s \n' % rib(N) )
+            primvars["varying normal N"] = N
     if rm.export_default_uv:
         uvs = get_mesh_uv(geo)
         if uvs is not None:
-            file.write('            "%s float[2] st" %s \n' % (interpolation, rib(uvs)) )
+            primvars["%s float[2] st" % interpolation] = uvs
     if rm.export_default_vcol:
         vcols = get_mesh_vcol(geo)
         if vcols is not None:
-            file.write('            "%s color Cs" %s \n' % (interpolation, rib(vcols)) )
+            primvars["%s color Cs" % interpolation] = rib(vcols)
     
     # custom prim vars
     for p in rm.prim_vars:
         if p.data_source == 'VERTEX_COLOR':
             vcols = get_mesh_vcol(geo, p.data_name)
             if vcols is not None:
-                file.write('            "%s color %s" %s \n' % (interpolation, p.name, rib(vcols)) )
+                primvars["%s color %s" % (interpolation, p.name)] = rib(vcols)
 
         elif p.data_source == 'UV_TEXTURE':
             uvs = get_mesh_uv(geo, p.data_name)
             if uvs is not None:
-                file.write('            "%s float[2] %s" %s \n' % (interpolation, p.name, rib(uvs)) )
+                primvars["%s float[2] %s" % (interpolation, p.name)] = uvs
 
         elif p.data_source == 'VERTEX_GROUP':
             weights = get_mesh_vgroup(ob, geo, p.data_name)
             if weights is not None:
-                file.write('            "vertex float %s" %s \n' % (p.name, rib(weights)) )
+                primvars["vertex float %s" % p.name] = weights
+
+    return primvars
     
 def export_primvars_particle(file, scene, psys):
     rm = psys.settings.renderman
@@ -584,7 +587,7 @@ def shadowmap_path(scene, ob):
     return path
     
 
-def export_light(rpass, scene, file, ob):
+def export_light(rpass, scene, ri, ob):
     lamp = ob.data
     rm = lamp.renderman
 
@@ -595,26 +598,41 @@ def export_light(rpass, scene, file, ob):
     
     params = []
     
-    file.write('    AttributeBegin\n')
-    file.write('    TransformBegin\n')
-    file.write('            Transform %s\n' % rib(m))
-    file.write('            ShadingRate 100\n')
+    ri.AttributeBegin()
+    ri.TransformBegin()
+    ri.Transform(rib(m))
+    ri.ShadingRate(100)
+
+    def point():
+        ri.Sphere(.1, -.1, .1, 360)
+
+    def geometry(type):
+        ri.Geometry(type)
+
+    def spot():
+        ri.Disk(0, 0.5, 360)
 
     shapes = {
-            "POINT":("sphere","Sphere .1 -.1 .1 360"),
-            "SUN":("disk", 'Geometry "distantlight"'),
-            "SPOT":("spot", 'Disk 0 0.5 360'),
-            "AREA":("rect", 'Geometry "rectlight"'),
-            "HEMI":("env", 'Geometry "envsphere"')
+            "POINT":("sphere", point),
+            "SUN":("disk", lambda: geometry('distantlight')),
+            "SPOT":("spot", spot),
+            "AREA":("rect", lambda: geometry('rectlight')),
+            "HEMI":("env", lambda: geometry('envsphere'))
         }
 
+    name = "PxrAreaLight"
+    handle = lamp.name
+    params = {ri.HANDLEID: lamp.name, "float exposure":[lamp.energy]}
+    
     if lamp.type == "HEMI":
-        file.write('    AreaLightSource "PxrEnvMapLight" "%s" "color envtint" %s' % (lamp.name, rib(lamp.color)))
+        light_type = "PxrEnvMapLight"  
+        params["color envtint"] = rib(lamp.color)
     else:
-        file.write('    AreaLightSource "PxrAreaLight" "%s" "color lightcolor" %s "string shape" ["%s"]' % ( lamp.name, rib(lamp.color),shapes[lamp.type][0]))
-    file.write(' "float exposure" [%s]\n' % 
-            rib(lamp.energy))
-    file.write('    %s\n' % shapes[lamp.type][1])
+        params["color lightcolor"] = rib(lamp.color)
+        params["string shape"] = [shapes[lamp.type][0]]
+    
+    ri.AreaLightSource(name, params)
+    shapes[lamp.type][1]()
     
     # BBM addition begin
 	# export light coshaders
@@ -721,52 +739,51 @@ def export_light(rpass, scene, file, ob):
 		# # BBM addition end
   #           file.write('        "%s %s" %s\n' % (sp.data_type, sp.name, value))
 
-    file.write('    TransformEnd\n')
-    file.write('    AttributeEnd\n')
+    ri.TransformEnd()
+    ri.AttributeEnd()
     
-    file.write('    Illuminate "%s" %d \n' % (ob.name, rm.illuminates_by_default))
-    file.write('    \n')
+    ri.Illuminate(handle, rm.illuminates_by_default)
 
-def export_sss_bake(file, rpass, mat):
-    rm = mat.renderman
+# '''def export_sss_bake(file, rpass, mat):
+#     rm = mat.renderman
     
-    if not rm.sss_do_bake: return
+#     if not rm.sss_do_bake: return
     
-    group = mat.name if rm.sss_group == "" else rm.sss_group
+#     group = mat.name if rm.sss_group == "" else rm.sss_group
     
-    file.write('        \n')
-    file.write('        Attribute "visibility" "string subsurface" "%s" \n\n' % group)
+#     file.write('        \n')
+#     file.write('        Attribute "visibility" "string subsurface" "%s" \n\n' % group)
     
-    file.write('        Attribute "subsurface" \n')
-    file.write('            "color meanfreepath" %s \n' % rib(rm.sss_meanfreepath))
-    if rm.sss_use_reflectance:
-        file.write('            "color reflectance" %s \n' % rib(rm.sss_reflectance))
-    file.write('            "refractionindex" %s \n' % rm.sss_ior)
-    file.write('            "shadingrate" %s \n' % rm.sss_shadingrate)
-    file.write('            "scale" %s \n' % rm.sss_scale)
-    file.write('        \n')
+#     file.write('        Attribute "subsurface" \n')
+#     file.write('            "color meanfreepath" %s \n' % rib(rm.sss_meanfreepath))
+#     if rm.sss_use_reflectance:
+#         file.write('            "color reflectance" %s \n' % rib(rm.sss_reflectance))
+#     file.write('            "refractionindex" %s \n' % rm.sss_ior)
+#     file.write('            "shadingrate" %s \n' % rm.sss_shadingrate)
+#     file.write('            "scale" %s \n' % rm.sss_scale)
+#     file.write('        \n')'''
     
-def export_material(file, rpass, scene, mat):
+def export_material(ri, rpass, scene, mat):
 
-    export_sss_bake(file, rpass, mat)
+    #export_sss_bake(file, rpass, mat)
     
-    export_shader_init(file, rpass, mat)
+    #export_shader_init(ri, rpass, mat)
     
     rm = mat.renderman
 
     if rm.nodetree != '':
-        file.write('        Color %s\n' % rib(mat.diffuse_color))
-        file.write('        Opacity %s\n' % rib([mat.alpha for i in range(3)]))
+        #ri.write('        Color %s\n' % rib(mat.diffuse_color))
+        #ri.write('        Opacity %s\n' % rib([mat.alpha for i in range(3)]))
             
-        if rm.displacementbound > 0.0:
-            file.write('        Attribute "displacementbound" "sphere" %f \n' % rm.displacementbound)
+        #if rm.displacementbound > 0.0:
+            #ri.write('        Attribute "displacementbound" "sphere" %f \n' % rm.displacementbound)
         
-        export_shader_nodetree(file, scene, mat)
+        export_shader_nodetree(ri, scene, mat)
     else:
         #export_shader(file, scene, rpass, mat, 'shader') # BBM addition
-        export_shader(file, scene, rpass, mat, 'surface')
-        export_shader(file, scene, rpass, mat, 'displacement')
-        export_shader(file, scene, rpass, mat, 'interior')
+        export_shader(ri, scene, rpass, mat, 'surface')
+        export_shader(ri, scene, rpass, mat, 'displacement')
+        export_shader(ri, scene, rpass, mat, 'interior')
     
     '''
     # allow overriding with global world atmosphere shader
@@ -778,8 +795,10 @@ def export_material(file, rpass, scene, mat):
     #file.write('        Shader "brdf_specular" "brdf_specular" \n')
     #file.write('        Shader "btdf_specular" "btdf_specular" \n')
 
+def export_motion_begin(ri, scene, ob):
+    ri.MotionBegin([rib(get_ob_subframes(scene, ob))])
 
-def export_strands(file, rpass, scene, ob, motion):
+def export_strands(ri, rpass, scene, ob, motion):
 
     for psys in ob.particle_systems:
         pname = psys_motion_name(ob, psys)    
@@ -797,22 +816,18 @@ def export_strands(file, rpass, scene, ob, motion):
         motion_blur = pname in motion['deformation']
             
         if motion_blur:
-            file.write('        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
+            export_motion_begin(ri, scene, ob)
             samples = motion['deformation'][pname]
         else:
             samples = [get_strands(ob, psys)]
         
         for nverts, P in samples:
-        
-            file.write('    Basis "catmull-rom" 1 "catmull-rom" 1\n')
-            file.write('    Curves "cubic" \n')
-            file.write('        %s \n' % rib(nverts))
-            file.write('        "nonperiodic" \n')
-            file.write('        "P" %s \n' % rib(P))
-            file.write('        "constantwidth" [ %f ] \n' % rm.width)
+            
+            ri.Basis("catmull-rom", 1, "catmull-rom", 1)
+            ri.Curves("cubic", nverts, "nonperiodic", {"P": rib(P), "constantwidth": rm.width})
 
         if motion_blur:
-            file.write('        MotionEnd\n')
+            ri.MotionEnd()
 
 def geometry_source_rib(scene, ob):
     rm = ob.renderman
@@ -871,7 +886,7 @@ def export_particle_instances(file, rpass, scene, ob, psys, motion):
     for i in range(len( [ p for p in psys.particles if valid_particle(p, cfra) ] )):
         
         if motion_blur:
-            file.write('        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
+            export_motion_begin(ri, scene, ob)
             samples = motion['deformation'][pname]
         else:
             samples = [get_particles(scene, ob, psys)]
@@ -898,7 +913,7 @@ def export_particle_points(file, scene, ob, psys, motion):
     motion_blur = pname in motion['deformation']
     
     if motion_blur:
-        file.write('        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
+        export_motion_begin(ri, scene, ob)
         samples = motion['deformation'][pname]
     else:
         samples = [get_particles(scene, ob, psys)]
@@ -944,28 +959,30 @@ def export_particles(file, rpass, scene, ob, motion):
         
         
         file.write('AttributeEnd\n\n')
-        
-def export_scene_lights(file, rpass, scene):
-    if not rpass.light_shaders: return
+    
+def export_comment(ri, comment):
+    ri.ArchiveRecord('comment', comment)
 
-    file.write('    ## Lights \n\n')
+def export_scene_lights(ri, rpass, scene):
+    #if not rpass.light_shaders: return
+
+    export_comment(ri,'Lights')
     
     for ob in [o for o in rpass.objects if o.type == 'LAMP']:
-        export_light(rpass, scene, file, ob)
-
-    file.write('    \n')
-
-
-def export_shader_init(file, rpass, mat):
+        export_light(rpass, scene, ri, ob)
+    
+'''def export_shader_init(ri, rpass, mat):
     rm = mat.renderman
 
     if rpass.emit_photons:
         file.write('        Attribute "photon" "string shadingmodel" "%s" \n' % rm.photon_shadingmodel)
+'''
 
-def export_shader(file, scene, rpass, idblock, shader_type):
+def export_shader(ri, scene, rpass, idblock, shader_type):
     rm = idblock.renderman
-    file.write('\n        # %s\n' % shader_type ) # BBM addition
+    export_comment(ri, shader_type) # BBM addition
 	
+    '''
     parameterlist = rna_to_shaderparameters(scene, rm, shader_type)
 
     for sp in parameterlist:
@@ -979,32 +996,32 @@ def export_shader(file, scene, rpass, idblock, shader_type):
                     file.write('        Shader "%s" "%s"\n' % (item.value, idblock.name+'_'+sp.name) )
             else:
                 file.write('        Shader "%s" "%s"\n' % (sp.value, sp.value)) #idblock.name+'_'+sp.name) )
+    '''
 
     if shader_type == 'surface':
         mat = idblock
         
         if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
         
-        file.write('        Bxdf "PxrDisney" "%s" ' % mat.name)
-        file.write('"color baseColor" %s ' % rib(mat.diffuse_color) )
+        name = mat.name
+        params = {"color baseColor": rib(mat.diffuse_color),
+                "float specular": mat.specular_intensity}
+
         if mat.emit:
-            file.write('"color emitColor" %s ' % rib(mat.diffuse_color) )
+            params["color emitColor"] = rib(mat.diffuse_color)
         if mat.subsurface_scattering.use:
-            file.write('"float subsurface" [%s] ' % rib(mat.subsurface_scattering.scale) )
-            file.write('"color subsurfaceColor" %s ' % rib(mat.subsurface_scattering.color) )
+            params["float subsurface"] = mat.subsurface_scattering.scale
+            params["color subsurfaceColor"] = rib(mat.subsurface_scattering.color)
         if mat.raytrace_mirror.use:
-            file.write('"float metallic" [%s] ' % rib(mat.raytrace_mirror.reflect_factor) )
-        file.write('"float specular" [%s] ' % rib(mat.specular_intensity) )
+            params["float metallic"] = mat.raytrace_mirror.reflect_factor
+        ri.Bxdf("PxrDisney", mat.name, params)
         
-        roughness = mat.specular_hardness/100.0
-
-        file.write('"float roughness" [%f] \n' % roughness )
-
 
         #file.write('        Color %s\n' % rib(mat.diffuse_color))
         #file.write('        Opacity %s\n' % rib([mat.alpha for i in range(3)]))
         #file.write('        Surface "%s" \n' % mat.name)
-        
+      
+    '''  
     elif shader_type == 'displacement':
         if rm.displacement_shaders.active == '' or not rpass.displacement_shaders: return
         
@@ -1033,7 +1050,7 @@ def export_shader(file, scene, rpass, idblock, shader_type):
         file.write('        Atmosphere "%s" \n' % rm.atmosphere_shaders.active)
     
 
-    '''
+    
     # BBM addition begin
     elif shader_type == 'shader':
         for cosh_item in rm.coshaders.items():
@@ -1052,7 +1069,7 @@ def export_shader(file, scene, rpass, idblock, shader_type):
                         file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
         return
 	# BBM addition end
-    '''
+    
 
     # parameter list
     for sp in parameterlist:
@@ -1072,6 +1089,8 @@ def export_shader(file, scene, rpass, idblock, shader_type):
     #    for sp in parameterlist:
     #        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
 	# BBM removed end
+
+    '''
 
 def detect_primitive(ob):
     rm = ob.renderman
@@ -1105,7 +1124,7 @@ def get_curve(curve):
             P.extend( bp.handle_right )
             width.append( bp.radius )
         
-        basis = '"bezier" 3 "bezier" 3'
+        basis = ["bezier", 3, "bezier", 3]
         if spline.use_cyclic_u:
             period = 'periodic'
             # wrap the initial handle around to the end, to begin on the CV
@@ -1120,7 +1139,7 @@ def get_curve(curve):
 
     return splines
 
-def export_curve(file, scene, ob, motion):
+def export_curve(ri, scene, ob, motion):
     if ob.type != 'CURVE':
         return
     curve  = ob.data
@@ -1128,7 +1147,7 @@ def export_curve(file, scene, ob, motion):
     motion_blur = ob.name in motion['deformation']
     
     if motion_blur:
-        file.write('        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
+        export_motion_begin(ri, scene, ob)
         samples = motion['deformation'][ob.name]
     else:
         samples = [get_curve(curve)]
@@ -1136,24 +1155,20 @@ def export_curve(file, scene, ob, motion):
     for spline_samples in samples:
         for P, width, npt, basis, period in spline_samples:
 
-            file.write('        Basis %s\n' % basis)
-            file.write('        Curves "cubic" \n')
-            file.write('            [ %s ] \n' % rib(npt))
-            file.write('            "%s" \n' % period)
-            file.write('            "P" %s \n' % rib(P))
-            file.write('            "width" %s \n' % rib(width))
-            #file.write('        "constantwidth" [ %f ] \n' % 0.2)
+            ri.Basis(basis[0], basis[1], basis[2], basis[3])
+            ri.Curves("cubic", npt, period, {"P": rib(P), "width": width})
+            
             
     if motion_blur:
-        file.write('        MotionEnd\n')
+        ri.MotionEnd()
 
-def export_subdivision_mesh(file, scene, ob, motion):
+def export_subdivision_mesh(ri, scene, ob, motion):
     mesh = create_mesh(scene, ob)
     
     motion_blur = ob.name in motion['deformation']
     
     if motion_blur:
-        file.write('        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
+        export_motion_begin(ri, scene, ob)
         samples = motion['deformation'][ob.name]
     else:
         samples = [get_mesh(mesh)]
@@ -1166,9 +1181,7 @@ def export_subdivision_mesh(file, scene, ob, motion):
         intargs = []
         floatargs = []
 
-        file.write('        SubdivisionMesh "catmull-clark" \n')
-        file.write('            %s\n' % rib(nverts))
-        file.write('            %s\n' % rib(verts))
+        ri.SubdivisionMesh("catmull-clark", nverts, verts)
         if len(creases) > 0:
             for c in creases:
                 tags.append( '"crease"' )
@@ -1190,27 +1203,24 @@ def export_subdivision_mesh(file, scene, ob, motion):
             
     bpy.data.meshes.remove(mesh)
 
-def export_polygon_mesh(file, scene, ob, motion):
+def export_polygon_mesh(ri, scene, ob, motion):
     mesh = create_mesh(scene, ob)
     
     motion_blur = ob.name in motion['deformation']
     
     if motion_blur:
-        file.write('        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
+        export_motion_begin(ri, scene, ob)
         samples = motion['deformation'][ob.name]
     else:
         samples = [get_mesh(mesh)]
         
     for nverts, verts, P in samples:
-
-        file.write('        PointsPolygons \n')
-        file.write('            %s\n' % rib(nverts))
-        file.write('            %s\n' % rib(verts))
-        file.write('            "P" %s\n' % rib(P))
-        export_primvars(file, ob, mesh, "facevarying")
+        primvars = get_primvars(ob, mesh, "facevarying")
+        primvars['P'] = P
+        ri.PointsPolygons(nverts, verts, primvars)
         
     if motion_blur:
-        file.write('        MotionEnd\n')
+        ri.MotionEnd()
             
     bpy.data.meshes.remove(mesh)
 
@@ -1268,7 +1278,7 @@ def export_torus(file, scene, ob, motion):
 def is_dupli(ob):
     return ob.type == 'EMPTY' and ob.dupli_type != 'NONE'
 
-def export_geometry_data(file, rpass, scene, ob, motion, force_prim=''):
+def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
 
     # handle duplis
     if is_dupli(ob):
@@ -1278,7 +1288,7 @@ def export_geometry_data(file, rpass, scene, ob, motion, force_prim=''):
         
         for dupob, dupob_mat in dupobs:
             if is_renderable(scene, dupob):
-                export_object(file, rpass, scene, dupob, motion)
+                export_object(ri, rpass, scene, dupob, motion)
         
         ob.dupli_list_clear()
         return
@@ -1293,48 +1303,48 @@ def export_geometry_data(file, rpass, scene, ob, motion, force_prim=''):
 
     if ob.data and ob.data.materials:
         for mat in [mat for mat in ob.data.materials if mat != None]:
-            export_material(file, rpass, scene, mat)
+            export_material(ri, rpass, scene, mat)
             break
     
     if prim == 'SPHERE':
-        export_sphere(file, scene, ob, motion)
+        export_sphere(ri, scene, ob, motion)
     elif prim == 'CYLINDER':
-        export_cylinder(file, scene, ob, motion)
+        export_cylinder(ri, scene, ob, motion)
     elif prim == 'CONE':
-        export_cone(file, scene, ob, motion)
+        export_cone(ri, scene, ob, motion)
     elif prim == 'DISK':
-        export_disk(file, scene, ob, motion)
+        export_disk(ri, scene, ob, motion)
     elif prim == 'TORUS':
-        export_torus(file, scene, ob, motion)
+        export_torus(ri, scene, ob, motion)
     
     # curve only
     elif prim == 'CURVE':
-        export_curve(file, scene, ob, motion) 
+        export_curve(ri, scene, ob, motion) 
         
     # mesh only
     elif prim == 'POLYGON_MESH':
-        export_polygon_mesh(file, scene, ob, motion)
+        export_polygon_mesh(ri, scene, ob, motion)
     elif prim == 'SUBDIVISION_MESH':
-        export_subdivision_mesh(file, scene, ob, motion)
+        export_subdivision_mesh(ri, scene, ob, motion)
     elif prim == 'POINTS':
-        export_points(file, scene, ob, motion)
+        export_points(ri, scene, ob, motion)
   
-def export_geometry(file, rpass, scene, ob, motion):
+def export_geometry(ri, rpass, scene, ob, motion):
     rm = ob.renderman
     
     if rm.geometry_source == 'BLENDER_SCENE_DATA':
         if ob in rpass.archives:
             archive_path = rib_path(auto_archive_path(rpass.paths, [ob]))        
             if os.path.exists(archive_path):
-                file.write('        ReadArchive "%s"\n' % archive_path)
+                ri.write('        ReadArchive "%s"\n' % archive_path)
         else:
-            export_geometry_data(file, rpass, scene, ob, motion)
+            export_geometry_data(ri, rpass, scene, ob, motion)
 
     else:    
-        file.write(geometry_source_rib(scene, ob))
+        ri.write(geometry_source_rib(scene, ob))
 
 
-def export_object(file, rpass, scene, ob, motion):
+def export_object(ri, rpass, scene, ob, motion):
     rm = ob.renderman
 
     if ob.type in ('LAMP', 'CAMERA'): return
@@ -1344,74 +1354,74 @@ def export_object(file, rpass, scene, ob, motion):
     else:
         mat = ob.matrix_world
 
-    file.write('    AttributeBegin\n')
-    file.write('        Attribute "identifier" "name" [ "%s" ]\n' % ob.name)
+    ri.AttributeBegin()
+    ri.Attribute("identifier", {"name": ob.name})
 
     # Shading
     if rm.shadingrate_override:
-        file.write('        ShadingRate %f\n' % rm.shadingrate)
-    file.write('        GeometricApproximation "motionfactor"  %d \n' % int(rm.geometric_approx_motion))
-    file.write('        GeometricApproximation "focusfactor"  %d \n' % int(rm.geometric_approx_focus))
+        ri.ShadingRate(rm.shadingrate)
+ #    file.write('        GeometricApproximation "motionfactor"  %d \n' % int(rm.geometric_approx_motion))
+ #    file.write('        GeometricApproximation "focusfactor"  %d \n' % int(rm.geometric_approx_focus))
         
-    file.write('        ShadingInterpolation "%s"\n' % rm.shadinginterpolation)
+ #    file.write('        ShadingInterpolation "%s"\n' % rm.shadinginterpolation)
     
-    file.write('        Matte  %d \n' % int(rm.matte))
+ #    file.write('        Matte  %d \n' % int(rm.matte))
     
-    file.write('        Attribute "visibility" \n')
-    file.write('            "integer camera" [ %d ]\n' % int(rm.visibility_camera))
-    file.write('            "integer diffuse" [ %d ]\n' % int(rm.visibility_trace_diffuse))
-    file.write('            "integer specular" [ %d ]\n' % int(rm.visibility_trace_specular))
-    file.write('            "integer photon" [ %d ]\n' % int(rm.visibility_photons))
-    file.write('            "integer transmission" [ %d ]\n' % int(rm.visibility_trace_transmission))
+ #    file.write('        Attribute "visibility" \n')
+ #    file.write('            "integer camera" [ %d ]\n' % int(rm.visibility_camera))
+ #    file.write('            "integer diffuse" [ %d ]\n' % int(rm.visibility_trace_diffuse))
+ #    file.write('            "integer specular" [ %d ]\n' % int(rm.visibility_trace_specular))
+ #    file.write('            "integer photon" [ %d ]\n' % int(rm.visibility_photons))
+ #    file.write('            "integer transmission" [ %d ]\n' % int(rm.visibility_trace_transmission))
     
-    file.write('        Attribute "shade" "string diffusehitmode" [ "%s" ] \n' % rm.trace_diffuse_hitmode)
-    file.write('        Attribute "shade" "string specularhitmode" [ "%s" ] \n' % rm.trace_specular_hitmode)
-    file.write('        Attribute "shade" "string transmissionhitmode" [ "%s" ] \n' % rm.trace_transmission_hitmode)
+ #    file.write('        Attribute "shade" "string diffusehitmode" [ "%s" ] \n' % rm.trace_diffuse_hitmode)
+ #    file.write('        Attribute "shade" "string specularhitmode" [ "%s" ] \n' % rm.trace_specular_hitmode)
+ #    file.write('        Attribute "shade" "string transmissionhitmode" [ "%s" ] \n' % rm.trace_transmission_hitmode)
     
-    file.write('        Attribute "trace" "displacements" [ %d ] \n' % int(rm.trace_displacements))
-    file.write('        Attribute "trace" "samplemotion" [ %d ] \n' % int(rm.trace_samplemotion))
+ #    file.write('        Attribute "trace" "displacements" [ %d ] \n' % int(rm.trace_displacements))
+ #    file.write('        Attribute "trace" "samplemotion" [ %d ] \n' % int(rm.trace_samplemotion))
 
-    if rm.export_coordsys:
-        file.write('        CoordinateSystem "%s" \n' % ob.name)
+ #    if rm.export_coordsys:
+ #        file.write('        CoordinateSystem "%s" \n' % ob.name)
     
-	# Light Linking
-    if rpass.light_shaders:
-        file.write('\n        # Light Linking\n')
-        for light in rm.light_linking:
-            light_name = light.light
-            if is_renderable(scene, scene.objects[light_name]):
-                if light.illuminate.split(' ')[-1] == 'ON':
-                    file.write('        Illuminate "%s" 1 \n' % light_name)
-                elif light.illuminate.split(' ')[-1] == 'OFF':
-                    file.write('        Illuminate "%s" 0 \n' % light_name)
+	# # Light Linking
+ #    if rpass.light_shaders:
+ #        file.write('\n        # Light Linking\n')
+ #        for light in rm.light_linking:
+ #            light_name = light.light
+ #            if is_renderable(scene, scene.objects[light_name]):
+ #                if light.illuminate.split(' ')[-1] == 'ON':
+ #                    file.write('        Illuminate "%s" 1 \n' % light_name)
+ #                elif light.illuminate.split(' ')[-1] == 'OFF':
+ #                    file.write('        Illuminate "%s" 0 \n' % light_name)
 
-    # Trace Sets
-    file.write('\n        # Trace Sets\n')
-    for set in rm.trace_set:
-        set_name = set.group
-        set_mode = '+'
-        if set.mode.startswith('exclude'):
-            set_mode = '-'
-        file.write('        Attribute "grouping" "string membership" ["%s%s"] \n' % (set_mode,set_name))
+ #    # Trace Sets
+ #    file.write('\n        # Trace Sets\n')
+ #    for set in rm.trace_set:
+ #        set_name = set.group
+ #        set_mode = '+'
+ #        if set.mode.startswith('exclude'):
+ #            set_mode = '-'
+ #        file.write('        Attribute "grouping" "string membership" ["%s%s"] \n' % (set_mode,set_name))
 	
     # Transformation
     if ob.name in motion['transformation']:
-        file.write('\n        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
+        export_motion_begin(ri,scene, ob)
         
         for sample in motion['transformation'][ob.name]:
-            file.write('            Transform %s\n' % rib(sample))
+            ri.Transform(rib(sample))
             
-        file.write('        MotionEnd\n')
+        ri.MotionEnd()
     else:
-        file.write('        Transform %s\n' % rib(mat))
+        ri.Transform(rib(mat))
 
-    export_geometry(file, rpass, scene, ob, motion)
-    export_strands(file, rpass, scene, ob, motion)
+    export_geometry(ri, rpass, scene, ob, motion)
+    #export_strands(file, rpass, scene, ob, motion)
     
-    file.write('    AttributeEnd\n\n')
+    ri.AttributeEnd()
     
     # Particles live in worldspace, export as separate object
-    export_particles(file, rpass, scene, ob, motion)
+    #export_particles(file, rpass, scene, ob, motion)
 
 def empty_motion():
     motion = {}
@@ -1518,13 +1528,13 @@ def export_motion(rpass, scene):
     return motion
 
 
-def export_objects(file, rpass, scene, motion):
+def export_objects(ri, rpass, scene, motion):
 
-    file.write('    ## Objects \n\n')
+    export_comment(ri, "Objects")
 
     # export the objects to RIB recursively
     for ob in rpass.objects:
-        export_object(file, rpass, scene, ob, motion)
+        export_object(ri, rpass, scene, ob, motion)
 
 
 def export_archive(scene, objects, filepath="", archive_motion=True, animated=True, frame_start=1, frame_end=3):
@@ -1557,10 +1567,10 @@ def export_archive(scene, objects, filepath="", archive_motion=True, animated=Tr
     return file.name
 
 
-def export_integrator(file, rpass, scene):
+def export_integrator(ri, rpass, scene):
     rm = scene.renderman
 
-    file.write('  Integrator "%s" "integrator"\n' %(rm.integrator))
+    ri.Integrator(rm.integrator, "integrator")
 
     
   #   for sp in shaderparameters_from_class(rm.integrator2):
@@ -1683,11 +1693,11 @@ def render_get_aspect(r, camera=None):
     return xaspect, yaspect, aspectratio
 
 
-def export_render_settings(file, rpass, scene):
+def export_render_settings(ri, rpass, scene):
     rm = scene.renderman
     r = scene.render
     
-    file.write('Option "render" "integer nthreads" %d\n' % rm.threads)
+    '''file.write('Option "render" "integer nthreads" %d\n' % rm.threads)
     file.write('Option "trace" "integer maxdepth" [%d]\n' % rm.max_trace_depth)
     file.write('Attribute "trace" "integer maxspeculardepth" [%d]\n' % rm.max_specular_depth)
     file.write('Attribute "trace" "integer maxdiffusedepth" [%d]\n' % rm.max_diffuse_depth)
@@ -1696,13 +1706,14 @@ def export_render_settings(file, rpass, scene):
     if rm.use_statistics:
         file.write('Option "statistics" "endofframe" %d "filename" "/tmp/stats.txt" \n' % rm.statistics_level    )
     
+    
+    '''
     rpass.resolution = render_get_resolution(r)
-
-    file.write('Format %d %d %f\n' % (rpass.resolution[0], rpass.resolution[1], 1.0))
-    file.write('PixelSamples %d %d \n' % (rm.pixelsamples_x, rm.pixelsamples_y))
-    file.write('PixelFilter "%s" %d %d \n' % (rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y))
-    file.write('ShadingRate %f \n' % rm.shadingrate )
-    file.write('\n')
+    ri.Format(rpass.resolution[0], rpass.resolution[1], 1.0)
+    ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
+    ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
+    ri.ShadingRate(rm.shadingrate )
+    
 
 def export_render_settings_preview(file, rpass, scene):
     r = scene.render
@@ -1712,11 +1723,11 @@ def export_render_settings_preview(file, rpass, scene):
     file.write('PixelSamples 2 2 \n')
     file.write('PixelFilter "sinc" 2 2 \n')
 
-def export_camera_matrix(file, scene, ob, motion):
+def export_camera_matrix(ri, scene, ob, motion):
     motion_blur = ob.name in motion['transformation']
     
     if motion_blur:
-        file.write('        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
+        export_motion_begin(ri, scene, ob)
         samples = motion['transformation'][ob.name]
     else:
         samples = [ob.matrix_world]
@@ -1733,12 +1744,12 @@ def export_camera_matrix(file, scene, ob, motion):
             l = Matrix.Translation(-loc)
             m = s * r * l
 
-            file.write('Transform %s\n' % rib(m))
+            ri.Transform(rib(m))
 
     if motion_blur:
-        file.write('        MotionEnd\n')
+        ri.MotionEnd()
 
-def export_camera(file, scene, motion):
+def export_camera(ri, scene, motion):
     
     if not scene.camera or scene.camera.type != 'CAMERA':
         return
@@ -1755,13 +1766,13 @@ def export_camera(file, scene, motion):
             dof_distance = (ob.location - cam.dof_object.location).length
         else:
             dof_distance = cam.dof_distance
-        file.write('DepthOfField %f 1.0 %f\n' % (rm.fstop, dof_distance))
+        ri.DepthOfField(rm.fstop, 1.0, dof_distance)
         
     if scene.renderman.motion_blur:
-        file.write('Shutter %f %f\n' % (rm.shutter_open, rm.shutter_close))
-        file.write('Option "shutter" "efficiency" [ %f %f ] \n' % (rm.shutter_efficiency_open, rm.shutter_efficiency_close))
+        ri.Shutter(rm.shutter_open, rm.shutter_close)
+        #ri.Option "shutter" "efficiency" [ %f %f ] \n' % (rm.shutter_efficiency_open, rm.shutter_efficiency_close))
 
-    file.write('Clipping %f %f\n' % (cam.clip_start, cam.clip_end))
+    ri.Clipping(cam.clip_start, cam.clip_end)
     
     if cam.type == 'PERSP':
         lens= cam.lens
@@ -1770,18 +1781,17 @@ def export_camera(file, scene, motion):
 
         fov= 360.0*math.atan((sensor*0.5)/lens/aspectratio)/math.pi
 
-        file.write('Projection "perspective" "fov" %f\n' % fov)
+        ri.Projection("perspective", {"fov": fov})
     else:
         lens= cam.ortho_scale
         xaspect= xaspect*lens/(aspectratio*2.0)
         yaspect= yaspect*lens/(aspectratio*2.0)
-        file.write('Projection "orthographic"\n')
+        ri.Projection("orthographic")
 
-    file.write('ScreenWindow %f %f %f %f\n' % (-xaspect, xaspect, -yaspect, yaspect))
+    ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
 
-    export_camera_matrix(file, scene, ob, motion)
-    file.write('\n')
-
+    export_camera_matrix(ri, scene, ob, motion)
+    
 def export_camera_render_preview(file, scene):
     r = scene.render
 
@@ -1839,16 +1849,14 @@ def export_camera_shadowmap(file, scene, ob, motion):
     file.write('\n')
             
 
-def export_searchpaths(file, paths):
-    file.write('Option "searchpath" "string shader" "%s"\n' % ':'.join(path_list_convert(paths['shader'], to_unix=True)))
-    file.write('Option "searchpath" "string texture" "%s"\n' % ':'.join(path_list_convert(paths['texture'], to_unix=True)))
-    file.write('Option "searchpath" "string procedural" "%s"\n' % ':'.join(path_list_convert(paths['procedural'], to_unix=True)))
-    file.write('Option "searchpath" "string archive" "%s"\n' % ':'.join(path_list_convert(paths['archive'], to_unix=True)))
-    file.write('\n')
+def export_searchpaths(ri, paths):
+    ri.Option("searchpath", {"string shader": ["%s" % ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
+    ri.Option("searchpath", {"string texture": ["%s" % ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
+    ri.Option("searchpath", {"string procedural": ["%s" % ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})
+    ri.Option("searchpath", {"string archive": ["%s" % ':'.join(path_list_convert(paths['archive'], to_unix=True))]})
 
-def export_header(file):
-    file.write('# Generated by 3Delight exporter for Blender, v%s.%s.%s \n' % (addon_version[0], addon_version[1], addon_version[2]))
-    file.write('# By Matt Ebb - matt (at) mattebb (dot) com\n\n')
+def export_header(ri):
+    export_comment(ri, 'Generated by blenderman, v%s.%s.%s \n' % (addon_version[0], addon_version[1], addon_version[2]))
 
 def ptc_generate_required(scene):
     rm = scene.world.renderman
@@ -2094,21 +2102,21 @@ def write_preview_rib(rpass, scene):
     file.write('WorldEnd\n\n')
     file.write('FrameEnd\n\n')
 
-def export_display(file, rpass, scene):
+def export_display(ri, rpass, scene):
     rm = scene.renderman
     
     if rm.display_driver == 'AUTO':
         # temporary tiff display to be read back into blender render result
-        file.write('Display "%s" "tiff" "rgba" "quantize" [0 0 0 0] \n\n' % os.path.basename(rpass.paths['render_output']))
+        ri.Display(os.path.basename(rpass.paths['render_output']), "tiff", "rgba", {"quantize": [0, 0, 0, 0]})
     elif rm.display_driver == 'idisplay':
         rpass.options.append('-id')
     elif rm.display_driver == 'tiff':
-        file.write('Display "%s" "tiff" "rgba" "quantize" [0 0 0 0] \n\n' % rib_path(user_path(rm.path_display_driver_image, scene=scene)))
+        ri.Display(rib_path(user_path(rm.path_display_driver_image, scene=scene)), "tiff", "rgba", {"quantize": [0, 0, 0, 0]})
 
-def export_hider(file, rpass, scene):
+def export_hider(ri, rpass, scene):
     rm = scene.renderman
     
-    if rm.hider == 'hidden':
+    '''if rm.hider == 'hidden':
         file.write('Hider "hidden" \n')
         file.write('    "string depthfilter" "%s" \n' % rm.hidden_depthfilter)
         file.write('    "integer jitter" [%d] \n' % rm.hidden_jitter)
@@ -2116,14 +2124,14 @@ def export_hider(file, rpass, scene):
         file.write('    "integer extrememotiondof" [%d] \n' % rm.hidden_extrememotiondof)
         file.write('    "integer maxvpdepth" [%d] \n' % rm.hidden_maxvpdepth)
         if rm.hidden_depthfilter == 'midpoint':
-            file.write('"float midpointratio" [%f] \n' % rm.hidden_midpointratio)
+            file.write('"float midpointratio" [%f] \n' % rm.hidden_midpointratio)'''
         
-    elif rm.hider == 'raytrace':
-        file.write('Hider "raytrace" \n')
+    if rm.hider == 'raytrace':
+        ri.Hider(rm.hider)
         #file.write('    "int progressive" [%d] \n' % rm.raytrace_progressive)
 	
 	
-def export_inline_rib(file, rpass, scene, lamp=None ):
+def export_inline_rib(ri, rpass, scene, lamp=None ):
     rm = scene.renderman
 	
     if lamp != None and rpass.type == 'shadowmap':
@@ -2134,50 +2142,52 @@ def export_inline_rib(file, rpass, scene, lamp=None ):
     else:
         txts = rm.bty_inlinerib_texts
 
-    file.write( '\n# Inline RIB \n' )
+    export_comment(ri,'Inline RIB' )
 
-    for txt in txts:
-        textblock = bpy.data.texts[txt.name]
-        for l in textblock.lines:
-            file.write( '%s \n' % l.body )    
+    #for txt in txts:
+    #    textblock = bpy.data.texts[txt.name]
+    #    for l in textblock.lines:
+    #        file.write( '%s \n' % l.body )    
 
-    file.write( '\n' )
+    #    file.write( '\n' )
 
 def write_rib(rpass, scene, info_callback):
     info_callback('Generating RIB')
     
     # precalculate motion blur data
     motion = export_motion(rpass, scene)
-    print("Writing rib " + rpass.paths['rib_output'])
-
-    file = open(rpass.paths['rib_output'], "w")
     
-    export_header(file)
-    export_searchpaths(file, rpass.paths)
+    import prman
+    ri = prman.Ri()
+    ri.Begin(rpass.paths['rib_output'])
     
-    export_display(file, rpass, scene)
-    export_hider(file, rpass, scene)
-    export_integrator(file, rpass, scene)
+    export_header(ri)
+    export_searchpaths(ri, rpass.paths)
     
-    export_inline_rib(file, rpass, scene)
+    export_display(ri, rpass, scene)
+    export_hider(ri, rpass, scene)
+    export_integrator(ri, rpass, scene)
+    
+    export_inline_rib(ri, rpass, scene)
     
     scene.frame_set(scene.frame_current)
-    file.write('FrameBegin %d\n\n' % scene.frame_current)
+    ri.FrameBegin(scene.frame_current)
     
-    export_camera(file, scene, motion)
-    export_render_settings(file, rpass, scene)
-    #export_global_illumination_settings(file, rpass, scene)
+    export_camera(ri, scene, motion)
+    export_render_settings(ri, rpass, scene)
+    #export_global_illumination_settings(ri, rpass, scene)
     
-    file.write('WorldBegin\n\n')
+    ri.WorldBegin()
 
-    #export_global_illumination_lights(file, rpass, scene)
-    #export_world_coshaders(file, rpass, scene) # BBM addition
-    export_scene_lights(file, rpass, scene)
-    export_objects(file, rpass, scene, motion)
+    #export_global_illumination_lights(ri, rpass, scene)
+    #export_world_coshaders(ri, rpass, scene) # BBM addition
+    export_scene_lights(ri, rpass, scene)
+    export_objects(ri, rpass, scene, motion)
     
-    file.write('WorldEnd\n\n')
+    ri.WorldEnd()
 
-    file.write('FrameEnd\n\n')
+    ri.FrameEnd()
+    ri.End()
 
 def initialise_paths(scene):
     paths = {}

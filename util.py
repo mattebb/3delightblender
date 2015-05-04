@@ -195,33 +195,19 @@ def user_path(path, scene=None, ob=None):
 def rib(v):
 
     # float, int
-    if type(v) in (float, int, mathutils.Vector, mathutils.Color): 
+    if type(v) in (mathutils.Vector, mathutils.Color): 
         # BBM modified from if to elif
-        vlen = 1
+        return list(v)
         
-        if hasattr(v, '__len__'):
-            vlen = len(v)
-        if vlen > 1:
-            return '[ ' + ' '.join([str(i) for i in v]) + ' ]'
-
-        else:
-            return str(v)
-    
-    # string
-    elif type(v) == str:
-        return '"%s"' % v
-        
-    # list, tuple
-    elif type(v) in (list, tuple):
-        return "[ " + " ".join(str(i) for i in v) + " ]"
-    
     # matrix
     elif type(v) == mathutils.Matrix:
-        return '[ %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f ]' % \
-            (v[0][0], v[1][0], v[2][0], v[3][0], \
-             v[0][1], v[1][1], v[2][1], v[3][1], \
-             v[0][2], v[1][2], v[2][2], v[3][2], \
-             v[0][3], v[1][3], v[2][3], v[3][3])
+        return [v[0][0], v[1][0], v[2][0], v[3][0], 
+             v[0][1], v[1][1], v[2][1], v[3][1], 
+             v[0][2], v[1][2], v[2][2], v[3][2], 
+             v[0][3], v[1][3], v[2][3], v[3][3]]
+
+    else:
+        return v
 
     
 
