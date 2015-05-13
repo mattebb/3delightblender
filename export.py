@@ -65,50 +65,6 @@ from .shader_parameters import tex_optimised_path
 
 from .nodes import export_shader_nodetree
 
-class RPass:    
-    def __init__(self, scene, objects=[], paths={}, type="", motion_blur=False):
-        #import prman
-        #ri = prman.Ri()
-        print(ri)
-        self.type = type if type != "" else "default"
-        self.objects = objects
-        self.archives = archive_objects(scene)
-        self.paths = paths
-        
-        self.do_render = True
-        self.options = []
-
-        self.emit_photons = False
-    
-        self.resolution = []
-        self.motion_blur = scene.renderman.motion_blur
-        
-        self.surface_shaders = True
-        self.displacement_shaders = True
-        self.interior_shaders = True
-        self.atmosphere_shaders = True
-        self.light_shaders = True    
-        
-        if type == 'shadowmap':
-            self.interior_shaders = False
-            self.atmosphere_shaders = False
-            self.light_shaders = False
-
-            # force motion blur on for shadows for the time being
-            self.motion_blur = True
-        elif type == 'ptc_indirect':
-            self.motion_blur = False
-    
-    
-    '''
-    def print_options(self, file):
-        #if self.type == 'ptc_indirect':            
-        #    file.write('Option "user" "uniform string delight_renderpass_type" "bakePass" \n')            
-        #file.write('Option "user" "uniform string delight_renderpass_name" "%s" \n' % self.type)
-        pass
-    '''
-
-
 
 # ------------- Texture optimisation -------------
 
@@ -193,28 +149,6 @@ def make_optimised_texture_3dl(tex, texture_optimiser, srcpath, optpath):
     cmd.append(optpath)
     
     proc = subprocess.Popen(cmd).wait()
-
-def auto_optimise_textures(paths, scene):
-    
-    rm_textures = [tex for tex in bpy.data.textures if tex.renderman.auto_generate_texture == True]
-    
-    for tex in rm_textures:
-        rm = tex.renderman
-        srcpath = tex_source_path(tex, scene.frame_current)
-        optpath = tex_optimised_path(tex, scene.frame_current)
-        generate = False
-        
-        if not os.path.exists(srcpath):
-            continue
-        
-        if rm.generate_if_nonexistent and not os.path.exists(optpath):
-            generate = True
-        elif rm.generate_if_older and os.path.getmtime(optpath) < os.path.getmtime(srcpath):
-            generate = True
-        
-        if not generate: continue
-        
-        make_optimised_texture_3dl(tex, paths['texture_optimiser'], srcpath, optpath)
 
 # ------------- Filtering -------------
 
@@ -489,41 +423,45 @@ def get_primvars(ob, geo, interpolation=""):
 
     return primvars
     
-def export_primvars_particle(file, scene, psys):
+def get_primvars_particle(file, scene, psys):
+    primvars = {}
     rm = psys.settings.renderman
     cfra = scene.frame_current
     
     for p in rm.prim_vars:
-        vars = []
+        pvars = []
         
         if p.data_source in ('VELOCITY', 'ANGULAR_VELOCITY'):
             if p.data_source == 'VELOCITY':
                 for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
-                    vars.extend ( pa.velocity )
+                    pvars.extend ( pa.velocity )
             elif p.data_source == 'ANGULAR_VELOCITY':
                 for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
-                    vars.extend ( pa.angular_velocity )
+                    pvars.extend ( pa.angular_velocity )
 
-            file.write('            "varying float[3] %s" %s \n' % (p.name, rib(vars)) )
+            primvars["varying float[3] %s" % p.name] = pvars
 
         elif p.data_source in ('SIZE', 'AGE', 'BIRTH_TIME', 'DIE_TIME', 'LIFE_TIME'):
             if p.data_source == 'SIZE':
                 for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
-                    vars.append ( pa.size )
+                    pvars.append ( pa.size )
             elif p.data_source == 'AGE':
                 for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
-                    vars.append ( (cfra - pa.birth_time) / pa.lifetime )
+                    pvars.append ( (cfra - pa.birth_time) / pa.lifetime )
             elif p.data_source == 'BIRTH_TIME':
                 for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
-                    vars.append ( pa.birth_time )
+                    pvars.append ( pa.birth_time )
             elif p.data_source == 'DIE_TIME':
                 for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
-                    vars.append ( pa.die_time )
+                    pvars.append ( pa.die_time )
             elif p.data_source == 'LIFE_TIME':
                 for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
-                    vars.append ( pa.lifetime )
+                    pvars.append ( pa.lifetime )
 
-            file.write('            "varying float %s" %s \n' % (p.name, rib(vars)) )
+            primvars["varying float %s" % p.name] = pvars
+
+    return primvars
+
 
 
 def get_fluid_mesh(scene, ob):
@@ -570,21 +508,6 @@ def create_mesh(scene, ob, matrix=None):
 
 
 
-
-
-
-# RIB Exporting functions
-
-def shadowmap_path(scene, ob):
-    if ob.type != 'LAMP': return ''
-    rm = ob.data.renderman
-    path = user_path(rm.path_shadow_map, scene=scene, ob=ob)
-    
-    if rm.shadow_transparent:
-        path += '.dsm'
-    else:
-        path += '.tdl'
-    return path
     
 
 def export_light(rpass, scene, ri, ob):
@@ -744,31 +667,9 @@ def export_light(rpass, scene, ri, ob):
     
     ri.Illuminate(handle, rm.illuminates_by_default)
 
-# '''def export_sss_bake(file, rpass, mat):
-#     rm = mat.renderman
-    
-#     if not rm.sss_do_bake: return
-    
-#     group = mat.name if rm.sss_group == "" else rm.sss_group
-    
-#     file.write('        \n')
-#     file.write('        Attribute "visibility" "string subsurface" "%s" \n\n' % group)
-    
-#     file.write('        Attribute "subsurface" \n')
-#     file.write('            "color meanfreepath" %s \n' % rib(rm.sss_meanfreepath))
-#     if rm.sss_use_reflectance:
-#         file.write('            "color reflectance" %s \n' % rib(rm.sss_reflectance))
-#     file.write('            "refractionindex" %s \n' % rm.sss_ior)
-#     file.write('            "shadingrate" %s \n' % rm.sss_shadingrate)
-#     file.write('            "scale" %s \n' % rm.sss_scale)
-#     file.write('        \n')'''
     
 def export_material(ri, rpass, scene, mat):
 
-    #export_sss_bake(file, rpass, mat)
-    
-    #export_shader_init(ri, rpass, mat)
-    
     rm = mat.renderman
 
     if rm.nodetree != '':
@@ -785,18 +686,9 @@ def export_material(ri, rpass, scene, mat):
         export_shader(ri, scene, rpass, mat, 'displacement')
         export_shader(ri, scene, rpass, mat, 'interior')
     
-    '''
-    # allow overriding with global world atmosphere shader
-    if mat.renderman.inherit_world_atmosphere:
-        export_shader(file, scene, rpass, scene.world, 'atmosphere')
-    else:
-        export_shader(file, scene, rpass, mat, 'atmosphere')
-    ''' 
-    #file.write('        Shader "brdf_specular" "brdf_specular" \n')
-    #file.write('        Shader "btdf_specular" "btdf_specular" \n')
-
+    
 def export_motion_begin(ri, scene, ob):
-    ri.MotionBegin([rib(get_ob_subframes(scene, ob))])
+    ri.MotionBegin(get_ob_subframes(scene, ob))
 
 def export_strands(ri, rpass, scene, ob, motion):
 
@@ -829,15 +721,14 @@ def export_strands(ri, rpass, scene, ob, motion):
         if motion_blur:
             ri.MotionEnd()
 
-def geometry_source_rib(scene, ob):
+def geometry_source_rib(ri, scene, ob):
     rm = ob.renderman
     anim = rm.archive_anim_settings
     blender_frame = scene.frame_current
-    rib = ""
     
     if rm.geometry_source == 'ARCHIVE':
         archive_path = rib_path(get_sequence_path(rm.path_archive, blender_frame, anim))
-        rib = '        ReadArchive "%s"\n' % archive_path
+        ri.ReadArchive(archive_path)
         
     else:
         if rm.procedural_bounds == 'MANUAL':
@@ -849,22 +740,21 @@ def geometry_source_rib(scene, ob):
         
         if rm.geometry_source == 'DELAYED_LOAD_ARCHIVE':
             archive_path = rib_path(get_sequence_path(rm.path_archive, blender_frame, anim))
-            rib = '        Procedural "DelayedReadArchive" ["%s"] %s\n' \
-                                    % (archive_path, rib(bounds))
+            ri.Procedural("DelayedReadArchive", archive_path, rib(bounds))
         
         elif rm.geometry_source == 'PROCEDURAL_RUN_PROGRAM':
             path_runprogram = rib_path(rm.path_runprogram)
-            rib = '        Procedural "RunProgram" ["%s" "%s"] %s\n' \
-                                    % (path_runprogram, rm.path_runprogram_args, rib(bounds))
+            ri.Procedural("RunProgram", [path_runprogram, 
+                                            rm.path_runprogram_args], 
+                                        rib(bounds))
         
         elif rm.geometry_source == 'DYNAMIC_LOAD_DSO':
             path_dso = rib_path(rm.path_dso)
-            rib = '        Procedural "DynamicLoad" ["%s" "%s"] %s\n' \
-                                    % (path_dso, rm.path_dso_initial_data, rib(bounds))
+            ri.Procedural("DynamicLoad", [path_dso, rm.path_dso_initial_data], 
+                                        rib(bounds))
 
-    return rib
 
-def export_particle_instances(file, rpass, scene, ob, psys, motion):
+def export_particle_instances(ri, rpass, scene, ob, psys, motion):
     rm = psys.settings.renderman
     pname = psys_motion_name(ob, psys)
     
@@ -874,11 +764,7 @@ def export_particle_instances(file, rpass, scene, ob, psys, motion):
     except:
         return
     
-    if instance_ob.renderman.geometry_source == 'BLENDER_SCENE_DATA':
-        archive_path = rib_path(auto_archive_path(rpass.paths, [instance_ob]))
-        instance_geometry_rib = '            ReadArchive "%s"\n' % archive_path
-    else:
-        instance_geometry_rib = geometry_source_rib(scene, instance_ob)
+    
     
     motion_blur = pname in motion['deformation']
     cfra = scene.frame_current
@@ -897,16 +783,21 @@ def export_particle_instances(file, rpass, scene, ob, psys, motion):
             rot = Quaternion((rot[i*4+0], rot[i*4+1], rot[i*4+2], rot[i*4+3]))
             mtx = Matrix.Translation(loc) * rot.to_matrix().to_4x4() * Matrix.Scale(width[i], 4)
             
-            file.write('                Transform %s \n' % rib(mtx))
+            ri.Transform(rib(mtx))
         
         if motion_blur:
-            file.write('            MotionEnd\n')
+            ri.MotionEnd()
 
-        file.write( instance_geometry_rib )
+        if instance_ob.renderman.geometry_source == 'BLENDER_SCENE_DATA':
+            archive_path = rib_path(auto_archive_path(rpass.paths, 
+                                                        [instance_ob]))
+            ri.ReadArchive(archive_path)
+        else:
+            geometry_source_rib(ri, scene, instance_ob)
         
 
 
-def export_particle_points(file, scene, ob, psys, motion):
+def export_particle_points(ri, scene, ob, psys, motion):
     rm = psys.settings.renderman
     pname = psys_motion_name(ob, psys)
     
@@ -919,21 +810,19 @@ def export_particle_points(file, scene, ob, psys, motion):
         samples = [get_particles(scene, ob, psys)]
     
     for P, rot, width in samples:
-        
-        file.write('        Points \n')
-        file.write('            "P" %s \n' % rib(P))
-        file.write('            "uniform string type" [ "%s" ] \n' % rm.particle_type)
+        params = get_primvars_particle(scene, psys)
+        params[ri.P] =  rib(P)
+        params["uniform string type"] = rm.particle_type
         if rm.constant_width:
-            file.write('            "constantwidth" [%f] \n' % rm.width)
+            params["constantwidth"] = rm.width
         elif rm.export_default_size:
-            file.write('            "varying float width" %s \n' % rib(width))
-
-        export_primvars_particle(file, scene, psys)
-
+            params["varying float width"] = width
+        ri.Points(params)
+    
     if motion_blur:
-        file.write('        MotionEnd\n')
+        ri.MotionEnd()
 
-def export_particles(file, rpass, scene, ob, motion):
+def export_particles(ri, rpass, scene, ob, motion):
 
     for psys in ob.particle_systems:
         rm = psys.settings.renderman
@@ -942,23 +831,23 @@ def export_particles(file, rpass, scene, ob, motion):
         if psys.settings.type != 'EMITTER':
             continue
     
-        file.write('    AttributeBegin\n')
-        file.write('        Attribute "identifier" "name" [ "%s" ]\n' % pname)
+        ri.AttributeBegin()
+        ri.Attribute("identifier", {"name": pname})
         
         # use 'material_id' index to decide which material
         if ob.data.materials:
             if ob.data.materials[rm.material_id-1] != None:
                 mat = ob.data.materials[rm.material_id-1]
-                export_material(file, rpass, scene, mat)
+                export_material(ri, rpass, scene, mat)
         
         # Write object instances or points
         if rm.particle_type == 'OBJECT':
-            export_particle_instances(file, rpass, scene, ob, psys, motion)
+            export_particle_instances(ri, rpass, scene, ob, psys, motion)
         else:
-            export_particle_points(file, scene, ob, psys, motion)
+            export_particle_points(ri, scene, ob, psys, motion)
         
         
-        file.write('AttributeEnd\n\n')
+        ri.AttributeEnd()
     
 def export_comment(ri, comment):
     ri.ArchiveRecord('comment', comment)
@@ -1181,7 +1070,6 @@ def export_subdivision_mesh(ri, scene, ob, motion):
         intargs = []
         floatargs = []
 
-        ri.SubdivisionMesh("catmull-clark", nverts, verts)
         if len(creases) > 0:
             for c in creases:
                 tags.append( '"crease"' )
@@ -1189,17 +1077,17 @@ def export_subdivision_mesh(ri, scene, ob, motion):
                 intargs.extend( [c[0], c[1]] )
                 floatargs.append( c[2] )
 
-        tags.append('"interpolateboundary"')
+        tags.append('interpolateboundary')
         nargs.extend( [0, 0] )
         
-        file.write('            %s %s %s %s \n' % (rib(tags), rib(nargs), rib(intargs), rib(floatargs)) )
-                
-        file.write('            "P" %s\n' % rib(P))
-        export_primvars(file, ob, mesh, "facevertex")
-        
+        primvars = get_primvars(ob, mesh, "facevertex")
+        primvars[ri.P] = P
 
+        ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs, intargs,
+            floatargs, primvars)
+    
     if motion_blur:
-        file.write('        MotionEnd\n')
+        ri.MotionEnd()
             
     bpy.data.meshes.remove(mesh)
 
@@ -1224,7 +1112,7 @@ def export_polygon_mesh(ri, scene, ob, motion):
             
     bpy.data.meshes.remove(mesh)
 
-def export_points(file, scene, ob, motion):
+def export_points(ri, scene, ob, motion):
     rm = ob.renderman
     
     mesh = create_mesh(scene, ob)
@@ -1232,48 +1120,47 @@ def export_points(file, scene, ob, motion):
     motion_blur = ob.name in motion['deformation']
     
     if motion_blur:
-        file.write('        MotionBegin %s\n' % rib(get_ob_subframes(scene, ob)))
+        export_motion_begin(ri,scene, ob)
         samples = motion['deformation'][ob.name]
     else:
         samples = [get_mesh(mesh)]
         
     for nverts, verts, P in samples:
-
-        file.write('        Points \n')
-        file.write('            "P" %s\n' % rib(P))
-        file.write('            "uniform string type" [ "%s" ] \n' % rm.primitive_point_type)
-        file.write('            "constantwidth" [ %f ] \n' % rm.primitive_point_width)
+        params = {
+            ri.P: rib(P),
+            "uniform string type": rm.primitive_point_type,
+            "constantwidth": rm.primitive_point_width
+        }
+        ri.Points(params)
             
     if motion_blur:
-        file.write('        MotionEnd\n')
+        ri.MotionEnd()
             
     bpy.data.meshes.remove(mesh)
 
 
-def export_sphere(file, scene, ob, motion):
+def export_sphere(ri, scene, ob, motion):
     rm = ob.renderman
-    file.write('        Sphere %f %f %f %f \n' %
-        (rm.primitive_radius, rm.primitive_zmin, rm.primitive_zmax, rm.primitive_sweepangle))
+    ri.Sphere(rm.primitive_radius, rm.primitive_zmin, rm.primitive_zmax, 
+            rm.primitive_sweepangle)
         
-def export_cylinder(file, scene, ob, motion):
+def export_cylinder(ri, scene, ob, motion):
     rm = ob.renderman
-    file.write('        Cylinder %f %f %f %f \n' %
-        (rm.primitive_radius, rm.primitive_zmin, rm.primitive_zmax, rm.primitive_sweepangle))
+    ri.Cylinder(rm.primitive_radius, rm.primitive_zmin, rm.primitive_zmax, 
+            rm.primitive_sweepangle)
         
-def export_cone(file, scene, ob, motion):
+def export_cone(ri, scene, ob, motion):
     rm = ob.renderman
-    file.write('        Cone %f %f %f \n' %
-        (rm.primitive_height, rm.primitive_radius, rm.primitive_sweepangle))
+    ri.Cone(rm.primitive_height, rm.primitive_radius, rm.primitive_sweepangle)
 
-def export_disk(file, scene, ob, motion):
+def export_disk(ri, scene, ob, motion):
     rm = ob.renderman
-    file.write('        Disk %f %f %f \n' %
-        (rm.primitive_height, rm.primitive_radius, rm.primitive_sweepangle))
+    ri.Disk(rm.primitive_height, rm.primitive_radius, rm.primitive_sweepangle)
 
-def export_torus(file, scene, ob, motion):
+def export_torus(ri, scene, ob, motion):
     rm = ob.renderman
-    file.write('        Torus %f %f %f %f %f \n' %
-        (rm.primitive_majorradius, rm.primitive_minorradius, rm.primitive_phimin, rm.primitive_phimax, rm.primitive_sweepangle))
+    ri.Torus(rm.primitive_majorradius, rm.primitive_minorradius, 
+            rm.primitive_phimin, rm.primitive_phimax, rm.primitive_sweepangle)
 
 def is_dupli(ob):
     return ob.type == 'EMPTY' and ob.dupli_type != 'NONE'
@@ -1336,7 +1223,7 @@ def export_geometry(ri, rpass, scene, ob, motion):
         if ob in rpass.archives:
             archive_path = rib_path(auto_archive_path(rpass.paths, [ob]))        
             if os.path.exists(archive_path):
-                ri.write('        ReadArchive "%s"\n' % archive_path)
+                ri.ReadArchive(archive_path)
         else:
             export_geometry_data(ri, rpass, scene, ob, motion)
 
@@ -1416,12 +1303,12 @@ def export_object(ri, rpass, scene, ob, motion):
         ri.Transform(rib(mat))
 
     export_geometry(ri, rpass, scene, ob, motion)
-    #export_strands(file, rpass, scene, ob, motion)
+    export_strands(ri, rpass, scene, ob, motion)
     
     ri.AttributeEnd()
     
     # Particles live in worldspace, export as separate object
-    #export_particles(file, rpass, scene, ob, motion)
+    export_particles(ri, rpass, scene, ob, motion)
 
 def empty_motion():
     motion = {}
@@ -1498,12 +1385,12 @@ def export_motion(rpass, scene):
     motion = empty_motion()
     origframe = scene.frame_current
     
-    if not rpass.motion_blur:
+    if not scene.renderman.motion_blur:
         return motion
 
     # get a de-duplicated set of all possible numbers of motion segments 
     # from renderable objects in the scene, and global scene settings
-    all_segs = [ob.renderman.motion_segments for ob in rpass.objects if ob.renderman.motion_segments_override]
+    all_segs = [ob.renderman.motion_segments for ob in scene.objects if ob.renderman.motion_segments_override]
     all_segs.append(scene.renderman.motion_segments)
     all_segs = set(all_segs)
     
@@ -1513,9 +1400,9 @@ def export_motion(rpass, scene):
     for segs in all_segs:
 
         if segs == scene.renderman.motion_segments:
-            motion_obs = [ob for ob in rpass.objects if not ob.renderman.motion_segments_override]
+            motion_obs = [ob for ob in scene.objects if not ob.renderman.motion_segments_override]
         else:
-            motion_obs = [ob for ob in rpass.objects if ob.renderman.motion_segments == segs]
+            motion_obs = [ob for ob in scene.objects if ob.renderman.motion_segments == segs]
 
         # prepare list of frames/sub-frames in advance, ordered from future to present,
         # to prevent too many scene updates (since loop ends on current frame/subframe)
@@ -1536,7 +1423,7 @@ def export_objects(ri, rpass, scene, motion):
     for ob in rpass.objects:
         export_object(ri, rpass, scene, ob, motion)
 
-
+#TODO take in an ri object and write out archive
 def export_archive(scene, objects, filepath="", archive_motion=True, animated=True, frame_start=1, frame_end=3):
 
     init_env(scene)
@@ -1586,82 +1473,6 @@ def export_integrator(ri, rpass, scene):
   #           file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
     
 
-# BBM addition begin
-def export_world_coshaders(file, rpass, scene):
-    rm = scene.world.renderman
-
-    file.write('    ## World Co-shaders\n')
-    for cosh_item in rm.coshaders.items():
-        coshader_handle = cosh_item[0]
-        coshader_name = cosh_item[1].shader_shaders.active
-        file.write('    Shader "%s" "%s"\n' % (coshader_name, coshader_handle) )
-        parameterlist = rna_to_shaderparameters(scene, cosh_item[1], 'shader')
-        for sp in parameterlist:
-            if sp.is_array:
-                file.write('        "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
-            else:
-                file.write('        "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-				
-# BBM addition end
-
-def export_global_illumination_lights(file, rpass, scene):
-    rm = scene.world.renderman
-    
-    #if scene.renderman.recompile_shaders:
-        #shader_recompile(scene, rm.gi_primary.light_shaders.active)
-        #shader_recompile(scene, rm.gi_secondary.light_shaders.active)
-    
-    if not rm.global_illumination: return
-    
-    file.write('    ## GI lights \n\n')
-    
-    file.write('    AttributeBegin\n')
-    file.write('    Attribute "light" "emitphotons" [ "%s" ] \n' % ('on' if rm.gi_primary.light_shaders.active == 'gi_photon' else 'off'))
-    file.write('    LightSource "%s" "indirectambient" \n' % rm.gi_primary.light_shaders.active)
-    
-    parameterlist = rna_to_shaderparameters(scene, rm.gi_primary, 'light')
-   
-    # parameter list
-    for sp in parameterlist:
-		# BBM addition begin
-        if sp.is_array:
-            file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
-        else:
-		# BBM addition end
-            file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-        
-    file.write('    AttributeEnd\n')
-    file.write('    Illuminate "indirectambient" 1 \n');
-    file.write('\n');
-
-def export_global_illumination_settings(file, rpass, scene):
-    rm = scene.world.renderman
-    gi_primary = rm.gi_primary
-    gi_secondary = rm.gi_secondary
-    
-    if not rm.global_illumination: return
-    
-    file.write('Option "user" "string gi_primary" [ "%s" ] \n' % gi_primary.light_shaders.active)
-    file.write('Option "user" "string gi_secondary" [ "%s" ] \n' % gi_secondary.light_shaders.active)
-
-    if gi_primary.light_shaders.active == 'gi_pointcloud':
-        if rpass.type == 'ptc_indirect':
-            file.write('Option "user" "string delight_gi_ptc_bake_path" [ "%s" ] \n' % rib_path(rpass.paths["gi_ptc_bake_path"]))
-            
-    if gi_secondary.light_shaders.active == 'gi_photon' or \
-        gi_primary.light_shaders.active == 'gi_photon':
-
-        # XXX todo, figure out decisions for photon emission
-        
-        file.write('Option "photon" "integer emit" [ %d ] \n' % gi_secondary.photon_count)
-        
-        file.write('Attribute "photon" \n')
-        file.write('    "string globalmap" [ "%s" ] \n' %  gi_secondary.photon_map_global)
-        file.write('    "string causticmap" [ "%s" ] \n' %  gi_secondary.photon_map_caustic)
-        
-    file.write('\n\n')
-
-
 def render_get_resolution(r):
     xres= int(r.resolution_x*r.resolution_percentage*0.01)
     yres= int(r.resolution_y*r.resolution_percentage*0.01)
@@ -1710,7 +1521,7 @@ def export_render_settings(ri, rpass, scene):
     '''
     rpass.resolution = render_get_resolution(r)
     ri.Format(rpass.resolution[0], rpass.resolution[1], 1.0)
-    ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
+    #ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
     ri.ShadingRate(rm.shadingrate )
     
@@ -1806,51 +1617,6 @@ def export_camera_render_preview(ri, scene):
                 0.040019, -0.661400, 6.220541, 1.000000])           
 
 
-def export_camera_shadowmap(file, scene, ob, motion):
-    lamp = ob.data
-    rm = lamp.renderman
-    srm = scene.renderman
-    
-    file.write('Format %d %d %f\n' % (int(rm.shadow_map_resolution), int(rm.shadow_map_resolution), 1.0))
-    
-    if rm.shadow_transparent:
-        file.write('PixelSamples %d %d \n' % 
-                    (rm.pixelsamples_x, rm.pixelsamples_y))
-        file.write('PixelFilter "box" 1 1 \n')
-
-    file.write('ShadingRate %f \n' % rm.shadingrate )
-    file.write('\n') 
-    
-    if rm.light_shaders.active != '':
-        params = rna_to_shaderparameters(scene, rm, 'light')
-        for sp in params:
-            if sp.meta == 'distant_scale':
-                xaspect = yaspect = sp.value / 2.0
-                file.write('Projection "orthographic"\n')
-                file.write('ScreenWindow %f %f %f %f\n' % (-xaspect, xaspect, -yaspect, yaspect))
-                
-    '''
-    if lamp.type == 'SPOT':
-        file.write('Clipping %f %f\n' % (lamp.shadow_buffer_clip_start, lamp.shadow_buffer_clip_end))
-        file.write('Projection "perspective" "fov" %f\n' % (lamp.spot_size*(180.0/math.pi)))
-    elif lamp.type == 'SUN':
-        file.write('Clipping %f %f\n' % (1, lamp.distance))
-        lens= lamp.renderman.ortho_scale
-        xaspect= lens/2.0
-        yaspect= lens/2.0
-        file.write('Projection "orthographic"\n')    
-        file.write('ScreenWindow %f %f %f %f\n' % (-xaspect, xaspect, -yaspect, yaspect))
-    '''
-    if scene.renderman.motion_blur:
-        file.write('Shutter %f %f\n' % (srm.shutter_open, srm.shutter_close))
-        file.write('Option "shutter" "efficiency" [ %f %f ] \n' % 
-            (srm.shutter_efficiency_open, srm.shutter_efficiency_close))    
-    
-    export_camera_matrix(file, scene, ob, motion)
-    
-    file.write('\n')
-            
-
 def export_searchpaths(ri, paths):
     ri.Option("searchpath", {"string shader": ["%s" % ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
     ri.Option("searchpath", {"string texture": ["%s" % ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
@@ -1859,142 +1625,6 @@ def export_searchpaths(ri, paths):
 
 def export_header(ri):
     export_comment(ri, 'Generated by blenderman, v%s.%s.%s \n' % (addon_version[0], addon_version[1], addon_version[2]))
-
-def ptc_generate_required(scene):
-    rm = scene.world.renderman
-    if not rm.global_illumination: return False
-    if not rm.gi_primary.light_shaders.active == 'gi_pointcloud': return False
-    if not rm.gi_secondary.ptc_generate_auto: return False
-    return True
-
-def shadowmap_generate_required(scene, ob):
-    if ob.type != 'LAMP': return False
-    
-    rm = ob.data.renderman
-
-    if shader_requires_shadowmap(scene, rm, 'light'):
-        return True
-    
-    '''
-    if not ob.data.type in ('SPOT', 'SUN'): return False
-    if not rm.shadow_method == 'SHADOW_MAP': return False
-    if not rm.shadow_map_generate_auto: return False
-    '''
-    return False
-
-
-def make_ptc_indirect(paths, scene, info_callback):
-    if not ptc_generate_required(scene):
-        return
-    
-    info_callback('Creating Point Clouds')
-    
-    rm = scene.world.renderman
-    
-    rpass = RPass(scene, renderable_objects(scene), paths, "ptc_indirect")
-    
-    # prepare paths for point cloud and rib output
-    paths['gi_ptc_bake_path'] = user_path(rm.gi_secondary.ptc_path, scene=scene)
-    ptc_rib = os.path.splitext(paths['gi_ptc_bake_path'])[0] + '.rib'
-    
-    paths['pointcloud_dir'] = os.path.dirname(paths['gi_ptc_bake_path'])
-    if not os.path.exists(paths['pointcloud_dir']):
-        os.mkdir(paths['pointcloud_dir'])
-
-    file = open(ptc_rib, "w")
-    
-    motion = empty_motion()
-    
-    export_header(file)
-    export_searchpaths(file, paths)
-    export_inline_rib(file, rpass, scene)
-    
-    scene.frame_set(scene.frame_current)
-    file.write('FrameBegin %d\n\n' % scene.frame_current)
-    
-    export_camera(file, scene, motion)
-    export_render_settings(file, rpass, scene)
-    export_global_illumination_settings(file, rpass, scene)
-
-    # uses ptc_write_vol atmosphere shader on all surfaces 
-    # to bake shading to a point cloud
-    
-    # ptc related attributes
-    file.write('Attribute "cull" "hidden" [0] \n')
-    file.write('Attribute "cull" "backfacing" [0] \n')
-    file.write('Attribute "dice" "rasterorient" [0] \n')
-    file.write('PixelSamples 1 1 \n')
-    file.write('PixelFilter "box" 1 1 \n')
-    file.write('ShadingRate %f \n' % rm.gi_secondary.ptc_shadingrate)
-
-    file.write('WorldBegin\n\n')
-    
-    export_global_illumination_lights(file, rpass, scene)
-    export_scene_lights(file, rpass, scene)    
-    export_objects(file, rpass, scene, motion)
-    
-    file.write('WorldEnd\n\n')
-    file.write('FrameEnd\n\n')
-    
-    file.close()
-    
-    # render and bake the pointcloud
-    # set cwd to pointcloud_dir to work around windows paths issue -
-    # bake3d() doesn't seem to like baking windows absolute paths, so we use relative
-    proc = subprocess.Popen([rpass.paths['rman_binary'], ptc_rib], cwd=rpass.paths['export_dir']).wait()
-
-def make_shadowmaps(paths, scene, info_callback):
-
-    info_callback('Creating Shadow maps')
-
-    render_objects = [o for o in renderable_objects(scene) if o.renderman.visibility_shadowmaps]
-    
-    rpass = RPass(scene, render_objects, paths, "shadowmap")    
-    
-    shadow_lamps = [ob for ob in rpass.objects if shadowmap_generate_required(scene, ob) ]
-    
-    for ob in shadow_lamps:
-        rm = ob.data.renderman
-        
-        # prepare paths for shadow map and rib output
-        paths['shadow_map'] = shadowmap_path(scene, ob)
-        paths['shadowmap_dir'] = os.path.dirname(paths['shadow_map'])        
-        if not os.path.exists(rpass.paths['shadowmap_dir']):
-            os.mkdir(rpass.paths['shadowmap_dir'])
-        
-        shadow_rib = os.path.splitext(paths['shadow_map'])[0] + '.rib'
-        file = open(shadow_rib, "w")
-        
-        export_header(file)
-        export_searchpaths(file, rpass.paths)
-        
-        if rm.shadow_transparent:
-            file.write('Display "%s" "dsm" "rgbaz" \n\n' % rib_path( paths['shadow_map'], escape_slashes=True ))
-        else:
-            file.write('Display "%s" "shadowmap" "z" \n\n' % rib_path( paths['shadow_map'], escape_slashes=True ))
-        
-
-        export_inline_rib(file, rpass, scene, lamp=ob.data)
-        
-        scene.frame_set(scene.frame_current)
-        file.write('FrameBegin %d\n\n' % scene.frame_current)
-        
-        motion = export_motion(rpass, scene) 
-        
-        export_camera_shadowmap(file, scene, ob, motion)
-        
-        file.write('WorldBegin\n\n')
-        
-        export_objects(file, rpass, scene, motion)
-        
-        file.write('WorldEnd\n\n')
-        file.write('FrameEnd\n\n')
-        
-        file.close()
-        
-        # render the shadow map
-        proc = subprocess.Popen([rpass.paths['rman_binary'], shadow_rib]).wait()
-
 
 def find_preview_material(scene):
     for o in renderable_objects(scene):
@@ -2052,56 +1682,7 @@ def preview_model(ri,mat):
         ri.PointsPolygons([4, 4, 4, 4, 4, 4, ],
             [0, 1, 2, 3, 4, 7, 6, 5, 0, 4, 5, 1, 1, 5, 6, 2, 2, 6, 7, 3, 4, 0, 3, 7],
             {ri.P: [1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1]})
-      
 
-def write_preview_rib(rpass, scene):
-
-    previewdir = os.path.join(rpass.paths['blender_exporter'], "preview")
-    preview_rib_data_path = rib_path(os.path.join(previewdir, "preview_scene.rib"))
-    
-    rpass.paths['rib_output'] = os.path.join(previewdir, "preview.rib")
-    rpass.paths['render_output'] = os.path.join(previewdir, "preview.tif")
-    rpass.paths['export_dir'] = os.path.dirname(rpass.paths['rib_output'])
-    
-    if not os.path.exists(rpass.paths['export_dir']):
-        os.mkdir(rpass.paths['export_dir'])
-    
-    file = open(rpass.paths['rib_output'], "w")
-    
-    export_header(file)
-    export_searchpaths(file, rpass.paths)
-    
-    # temporary tiff display to be read back into blender render result
-    file.write('Display "%s" "tiff" "rgba" "quantize" [0 0 0 0] \n\n' % os.path.basename(rpass.paths['render_output']))
-    
-    file.write('FrameBegin 1 \n\n')
-    
-    export_camera_render_preview(file, scene)
-    export_render_settings_preview(file, rpass, scene)
-
-    file.write('WorldBegin\n\n')
-    
-    # preview scene: walls, lights
-    file.write('        ReadArchive "%s" \n\n' % preview_rib_data_path)
-    
-    # preview model and material
-    file.write('    AttributeBegin\n')
-    file.write('    Attribute "identifier" "name" [ "Preview" ] \n')
-    file.write('        Translate 0 0 0.75 \n')
-    file.write('        Attribute "visibility" \n \
-            "integer camera" [ 1 ] \n \
-            "integer trace" [ 1 ] \n \
-            "integer photon" [ 1 ] \n \
-            "string transmission" ["opaque"] \n ')
-    file.write('        Attribute "trace" "displacements" [1] \n')
-    
-    mat = find_preview_material(scene)
-    export_material(file, rpass, scene, mat)
-    file.write( preview_model(mat)  )
-    file.write('    AttributeEnd\n')
-    
-    file.write('WorldEnd\n\n')
-    file.write('FrameEnd\n\n')
 
 def export_display(ri, rpass, scene):
     rm = scene.renderman
@@ -2127,32 +1708,12 @@ def export_hider(ri, rpass, scene):
         if rm.hidden_depthfilter == 'midpoint':
             file.write('"float midpointratio" [%f] \n' % rm.hidden_midpointratio)'''
         
+    hider_params = {'string integrationmode': 'path'}
     if rm.hider == 'raytrace':
-        ri.Hider(rm.hider)
+        ri.Hider(rm.hider, hider_params)
         #file.write('    "int progressive" [%d] \n' % rm.raytrace_progressive)
-	
-	
-def export_inline_rib(ri, rpass, scene, lamp=None ):
-    rm = scene.renderman
-	
-    if lamp != None and rpass.type == 'shadowmap':
-        rm = lamp.renderman
-        txts = rm.shd_inlinerib_texts
-    elif rpass.type == 'ptc_indirect':
-        txts = rm.bak_inlinerib_texts
-    else:
-        txts = rm.bty_inlinerib_texts
 
-    export_comment(ri,'Inline RIB' )
-
-    #for txt in txts:
-    #    textblock = bpy.data.texts[txt.name]
-    #    for l in textblock.lines:
-    #        file.write( '%s \n' % l.body )    
-
-    #    file.write( '\n' )
-
-def write_rib(rpass, scene):
+def write_rib(rpass, scene, ri):
     #info_callback('Generating RIB')
     
     # precalculate motion blur data
@@ -2162,9 +1723,6 @@ def write_rib(rpass, scene):
 
     motion = export_motion(rpass, scene)
     
-    import prman
-    prman.Init([])
-    ri = prman.Ri()
     ri.Begin(rpass.paths['rib_output'])
     
     export_header(ri)
@@ -2188,15 +1746,17 @@ def write_rib(rpass, scene):
     #export_global_illumination_lights(ri, rpass, scene)
     #export_world_coshaders(ri, rpass, scene) # BBM addition
     export_scene_lights(ri, rpass, scene)
+
+    #default bxdf
+    ri.Bxdf("PxrDisney", "default")
     export_objects(ri, rpass, scene, motion)
     
     ri.WorldEnd()
 
     ri.FrameEnd()
     ri.End()
-    prman.Cleanup()
 
-def write_preview_rib(rpass, scene):
+def write_preview_rib(rpass, scene, ri):
 
     previewdir = os.path.join(rpass.paths['export_dir'], "preview")
     preview_rib_data_path = rib_path(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -2209,10 +1769,8 @@ def write_preview_rib(rpass, scene):
     if not os.path.exists(previewdir):
         os.mkdir(previewdir)
     
-    print('writing rib to ' + rpass.paths['rib_output'])
-    import prman
-    prman.Init([])
-    ri = prman.Ri()
+    #print('writing rib to ' + rpass.paths['rib_output'])
+    
     ri.Begin(rpass.paths['rib_output'])
     
     export_header(ri)
@@ -2252,31 +1810,7 @@ def write_preview_rib(rpass, scene):
     ri.WorldEnd()
     ri.FrameEnd()
     ri.End()
-    prman.Cleanup()
-
-def initialise_paths(scene):
-    paths = {}
-    paths['rman_binary'] = scene.renderman.path_renderer
-    paths['rmantree'] = scene.renderman.path_rmantree
     
-    paths['texture_optimiser'] = scene.renderman.path_texture_optimiser
-    
-    paths['blender_exporter'] = os.path.dirname(os.path.realpath(__file__))
-   
-    paths['rib_output'] = user_path(scene.renderman.path_rib_output, scene=scene)
-    paths['export_dir'] = os.path.dirname(paths['rib_output'])
-    
-    if not os.path.exists(paths['export_dir']):
-        os.mkdir(paths['export_dir'])
-    
-    paths['render_output'] = os.path.join(paths['export_dir'], 'buffer.tif')
-    
-    paths['shader'] = get_path_list_converted(scene.renderman, 'shader')
-    paths['texture'] = get_path_list_converted(scene.renderman, 'texture')
-    paths['procedural'] = get_path_list_converted(scene.renderman, 'procedural')
-    paths['archive'] = get_path_list_converted(scene.renderman, 'archive')
-    
-    return paths
 
 def anim_archive_path(filepath, frame):
     if filepath.find("#") != -1:
@@ -2285,202 +1819,8 @@ def anim_archive_path(filepath, frame):
         ribpath = os.path.splitext(filepath)[0] + "." + str(frame).zfill(4) + os.path.splitext(filepath)[1]
     return ribpath
 
-'''
-def export_ptc(scene, objects, filepath=""):
-    
-    paths = initialise_paths(scene)    
-    rpass = RPass(scene, objects, paths)
-    motion = empty_motion()
-    
-    file = open(filepath, "w")
-    
-    export_header(file)
-    
-    file.write('WorldBegin\n\n')
-    
-    export_geometry_data(file, rpass, scene, ob, motion, force_prim='POINTS')
-    
-    file.write('WorldEnd\n\n')
-    
-    file.close()
-'''    
 
 def write_auto_archives(paths, scene, info_callback):
     for ob in archive_objects(scene):
         export_archive(scene, [ob], archive_motion=True, frame_start=scene.frame_current, frame_end=scene.frame_current)
     
-
-def available_licenses():
-    output = subprocess.check_output(["licutils", "serverlicenses"]).decode().split('\n')
-        
-    if len(output) < 1:
-        return false
-    
-    total = int(output[5].rpartition(':')[2])
-    used = int(output[6].rpartition(':')[2])
-    print("total licenses %d , used licenses: %d" % (total, used))
-    return (total - used)
-    
-
-
-
-
-
-
-
-
-def init(engine):
-    pass
-
-def free(engine):
-    if hasattr(engine, "rpass"):
-        del engine.rpass
-    
-def update_preview(engine, data, scene):
-    
-    init_env(data.scenes[0])
-    
-    # XXX use this bpy.data.scenes[0] hack to take paths from 
-    # the first scene, rather than the preview scene.
-    # Not reliable, need to be fixed properly!
-    engine.rpass = RPass(scene, renderable_objects(scene), initialise_paths(data.scenes[0]))
-    
-    auto_optimise_textures(engine.rpass.paths, scene)
-    
-    # preview render update function is still blocked
-    # rna_types_initialise(scene)
-
-    write_preview_rib(engine.rpass, scene)
-
-
-def update_scene(engine, data, scene):
-    
-    init_env(scene.renderman)
-    
-    engine.rpass = RPass(scene, renderable_objects(scene), initialise_paths(scene))
-
-    def info_callback(txt):
-        engine.update_stats("", "3Delight: " + txt)
-    
-    auto_optimise_textures(engine.rpass.paths, scene)
-
-    rna_types_initialise(scene)
-
-    write_auto_archives(engine.rpass.paths, scene, info_callback)
-
-    make_ptc_indirect(engine.rpass.paths, scene, info_callback)
-    make_shadowmaps(engine.rpass.paths, scene, info_callback)
-    
-    write_rib(engine.rpass, scene, info_callback)
-
-    engine.rpass.do_render = True if scene.renderman.output_action == 'EXPORT_RENDER' else False
-
-
-# hopefully temporary
-def update(engine, data, scene):
-    if engine.is_preview:
-        update_preview(engine, data, scene)
-    else:
-        update_scene(engine, data, scene)
-
-# hopefully temporary
-def render(engine):
-    if engine.is_preview:
-        render_preview(engine)
-    else:
-        render_scene(engine)
-
-
-def render_scene(engine):
-    if engine.rpass.do_render:
-        render_rib(engine)
-    
-def render_preview(engine):
-    pass
-    #render_rib(engine)
-
-
-def render_rib(engine):
-    DELAY = 0.1
-
-    try:
-        os.remove(engine.rpass.paths['render_output']) # so as not to load the old file
-    except:
-        pass
-    
-    render_output = engine.rpass.paths['render_output']
-    
-#XXX    engine.rpass.options.append('-q')
-    #engine.rpass.options.append('-Progress')
-    
-    cmd = [engine.rpass.paths['rman_binary']] + engine.rpass.options + [engine.rpass.paths['rib_output']]
-    
-    cdir = os.path.dirname(engine.rpass.paths['rib_output'])
-    environ = os.environ.copy()
-    environ['RMANTREE'] = engine.rpass.paths['rmantree']
-    
-    process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE, env=environ)
-
-
-    # Wait for the file to be created
-    while not os.path.exists(render_output):
-        if engine.test_break():
-            try:
-                process.kill()
-            except:
-                pass
-            break
-
-        if process.poll() != None:
-            engine.update_stats("", "3Delight: Failed")
-            break
-
-        time.sleep(DELAY)
-    
-    if os.path.exists(render_output):
-        engine.update_stats("", "3Delight: Rendering")
-    
-        prev_size = -1
-    
-        def update_image():
-            result = engine.begin_result(0, 0, engine.rpass.resolution[0], engine.rpass.resolution[1])
-            lay = result.layers[0]
-            # possible the image wont load early on.
-            try:
-                lay.load_from_file(render_output)
-            except:
-                pass
-            engine.end_result(result)
-
-
-        # Update while rendering
-        while True:    
-            if process.poll() is not None:
-                update_image()
-                break
-    
-            # user exit
-            if engine.test_break():
-                try:
-                    process.kill()
-                except:
-                    pass
-                break
-    
-            # check if the file updated
-            new_size = os.path.getsize(render_output)
-    
-            if new_size != prev_size:
-                update_image()
-                prev_size = new_size
-    
-            time.sleep(DELAY)
-
-
-def register():
-    pass
-     #bpy.utils.register_module(__name__)
-
-def unregister():
-    pass
-     #bpy.utils.unregister_module(__name__)

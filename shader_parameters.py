@@ -674,7 +674,7 @@ def class_generate_sockets(node_name, shaderparameters):
         options = {'ANIMATABLE'}
         param_name = sp.attrib['name']
         param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
-        param_widget = sp.attrib['widget'] if 'widget' in sp.attrib else 'default'
+        param_widget = sp.attrib['widget'].lower() if 'widget' in sp.attrib else 'default'
 
         #new_class.meta[param_name] = sp.meta
         # BBM addition begin
@@ -750,7 +750,9 @@ def class_generate_sockets(node_name, shaderparameters):
                                         default=param_default, size=3,
                                         subtype="COLOR",
                                         description=param_help)
-        elif param_type == 'string':
+        elif param_type == 'string' or param_type == 'struct':
+            if param_default == None:
+                param_default = ''
             if '__' in param_name:
                 param_name = param_name[2:]
             if param_widget == 'fileInput':
@@ -761,7 +763,7 @@ def class_generate_sockets(node_name, shaderparameters):
                 socket_default = bpy.props.EnumProperty(name=param_label, 
                         default=param_default, description=param_help, 
                         items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'string'))
-            elif param_widget == 'default':
+            elif param_widget == 'default' or param_widget == 'string':
                 socket_default = bpy.props.StringProperty(name=param_label, 
                                 default=param_default, 
                                 description=param_help)
@@ -812,6 +814,8 @@ def node_add_outputs(node, shaderparameters):
         tag = sp.find('*/tag')
         if tag.attrib['value'] == 'float':
             node.outputs.new('NodeSocketFloat', param_name)
+        if tag.attrib['value'] == 'struct':
+            node.outputs.new('NodeSocketString', param_name)
         else:
             node.outputs.new('NodeSocketColor', param_name)
  

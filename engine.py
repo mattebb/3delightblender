@@ -32,6 +32,7 @@ import time
 import subprocess
 import mathutils
 from mathutils import Matrix, Vector, Quaternion
+import prman
 
 from . import bl_info
 
@@ -69,8 +70,7 @@ from .export import write_rib, write_preview_rib
 
 def init():
     pass
-    #prman.Init([])
-
+    
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
     #TODO add support for regions (rerendering)
     engine.render_pass = RPass(scene)
@@ -102,6 +102,12 @@ class RPass:
         
         self.do_render = True
         self.options = []
+        prman.Init()
+        self.ri = prman.Ri()
+
+    def __del__(self):
+        del self.ri
+        prman.Cleanup()
 
 
     def initialize_paths(self, scene):
@@ -184,7 +190,7 @@ class RPass:
             while True:    
                 if process.poll() != None:
                     update_image()
-                    print('done rendering')
+                    #print('done rendering')
                     break
         
                 # user exit
@@ -208,9 +214,9 @@ class RPass:
         self.scene = scene
 
     def gen_rib(self):
-        write_rib(self, self.scene)
+        write_rib(self, self.scene, self.ri)
 
     def gen_preview_rib(self):
-        write_preview_rib(self, self.scene)
+        write_preview_rib(self, self.scene, self.ri)
 
 
