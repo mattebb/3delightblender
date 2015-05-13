@@ -1,0 +1,29 @@
+    AttributeBegin
+        ShadingRate 10
+        AreaLightSource "PxrStdEnvDayLight" "Lamp" "float exposure" [1]
+        Attribute "visibility" "int camera" [0]
+        Attribute "visibility" "int indirect" [0] "int transmission" [0]
+        Sides 1
+        Attribute "dice" "string offscreenstrategy" ["sphericalprojection"]
+        ReverseOrientation 
+        Opacity [1 1 1]
+        Sides 1
+        Geometry "envsphere" "constant float[2] resolution" [256 256]
+    AttributeEnd
+    Illuminate "Lamp" 1 
+    
+    AttributeBegin
+        Attribute "identifier" "name" [ "Cube" ]
+        #Transform [ 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 ]
+        Sides 2
+        Attribute "visibility" 
+            "integer camera" [ 1 ]
+            "integer trace" [ 1 ]
+            "int transmission" [0]
+        Bxdf "PxrLMDiffuse" "walls"
+        PointsPolygons 
+            [ 4 4 4 4 4 4 ]
+            [ 0 1 2 3 4 7 6 5 0 4 5 1 1 5 6 2 2 6 7 3 4 0 3 7 ]
+            "P" [ 4.0 4.0 0.0 4.0 -4.0 0.0 -4.0 -4.0 0.0 -4.0 4.0 0.0 4.0 4.0 4.0 4.0 -4.0 4.0 -4.0 -4.0 4.0 -4.0 4.0 4.0 ]
+            "facevarying float[2] st" [ 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0 0.0 1.0 1.0 1.0 1.0 0.0 0.0 0.0 ]
+    AttributeEnd

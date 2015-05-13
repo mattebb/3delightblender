@@ -27,90 +27,83 @@ bl_info = {
     "name": "BlenderMan",
     "author": "Brian Savery",
     "version": (0, 1, 1),
-    "blender": (2, 6, 6),
-    "location": "Info Header (engine dropdown)",
-    "description": "RenderMan 19.0 integration",
+    "blender": (2, 74, 0),
+    "location": "Info Header, render engine menu",
+    "description": "RenderMan 20.0 integration",
     "warning": "",
     "category": "Render"}
 
-if "bpy" in locals():
-    import imp
-    imp.reload(preferences)
-    imp.reload(properties)
-    imp.reload(ui)
-    imp.reload(operators)
-    imp.reload(export)
-    imp.reload(nodes)
+import bpy
+#import prman
+import sys
 
-    #imp.reload(draw)
-else:
-    import bpy
-    from . import ui
-    from . import preferences
-    from . import properties
-    
-    from . import operators
-    from . import export
-    from . import nodes
-    #from . import draw
-
+from . import engine
 
 class Blenderman(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
     bl_label = "BlenderMan"
     bl_use_preview = True
-    
-    draw_callbacks = {}
+    bl_use_save_buffers = True
 
     def __init__(self):
-        export.init(self)
-        
+        #print('initing')
+        self.render_pass = None
         
     def __del__(self):
-        export.free(self)
+        #print('deleting')
+        engine.free(self)
         
 
     # main scene render
     def update(self, data, scene):
-        export.update(self, data, scene)
+        if self.is_preview:
+            #print('preview')
+            if not self.render_pass:
+                engine.create(self, data, scene)
+        else:
+            if not self.render_pass:
+                engine.create(self, data, scene)
+            else:
+                engine.reset(self, data, scene)
+        
+        engine.update(self, data, scene)
+        #print('updated scene, wrote rib')
 
     def render(self, scene):
-        export.render(self)
+        #print('rendering')
+        engine.render(self)
+        #print('done rendering')
 
-    # preview render - nonexistent yet
-    #def preview_update(self, context, id):
-    #    export.update_preview(self, data, scene)
-    #
-    #def preview_render(self):
-    #    export.render_preview(self)
-
-    # viewport render
-    # def view_update(self, context):
-    #    pass   
-    # def view_draw(self, context):
-    #    pass
-
+    #TODO
+    # view_update for rerendering
+    # view_draw for rerendering
 
 def register():
+    from . import ui
+    from . import preferences
+    from . import properties
+    from . import operators
+    from . import nodes
+
     preferences.register()
     properties.register()
     operators.register()
-    export.register()
-    #ui.register()
-    #draw.register()
-    bpy.utils.register_module(__name__)
+    ui.register()
     nodes.register()
-
+    bpy.utils.register_module(__name__)
+    
 
 def unregister():
-    preferences.unregister()
-    properties.unregister()
-    ui.unregister()
-    operators.unregister()
-    export.unregister()
-    nodes.unregister()
-    #draw.unregister()
+    from . import ui
+    from . import preferences
+    from . import properties
+    from . import operators
+    from . import nodes
+
+    preferences.register()
+    properties.register()
+    operators.register()
+    ui.register()
+    nodes.register()
     bpy.utils.unregister_module(__name__)
 
-if __name__ == "__main__":
-    register()

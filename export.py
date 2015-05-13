@@ -625,7 +625,7 @@ def export_light(rpass, scene, ri, ob):
     params = {ri.HANDLEID: lamp.name, "float exposure":[lamp.energy]}
     
     if lamp.type == "HEMI":
-        light_type = "PxrEnvMapLight"  
+        name = "PxrEnvMapLight"  
         params["color envtint"] = rib(lamp.color)
     else:
         params["color lightcolor"] = rib(lamp.color)
@@ -1001,7 +1001,7 @@ def export_shader(ri, scene, rpass, idblock, shader_type):
     if shader_type == 'surface':
         mat = idblock
         
-        if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
+        #if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
         
         name = mat.name
         params = {"color baseColor": rib(mat.diffuse_color),
@@ -1715,13 +1715,12 @@ def export_render_settings(ri, rpass, scene):
     ri.ShadingRate(rm.shadingrate )
     
 
-def export_render_settings_preview(file, rpass, scene):
+def export_render_settings_preview(ri, rpass, scene):
     r = scene.render
     rpass.resolution = render_get_resolution(r)
     
-    file.write('Format %d %d %f\n' % (rpass.resolution[0], rpass.resolution[1], 1.0))
-    file.write('PixelSamples 2 2 \n')
-    file.write('PixelFilter "sinc" 2 2 \n')
+    ri.Format(rpass.resolution[0], rpass.resolution[1], 1.0)
+    ri.PixelFilter("sinc", 2, 2)
 
 def export_camera_matrix(ri, scene, ob, motion):
     motion_blur = ob.name in motion['transformation']
@@ -1792,17 +1791,20 @@ def export_camera(ri, scene, motion):
 
     export_camera_matrix(ri, scene, ob, motion)
     
-def export_camera_render_preview(file, scene):
+def export_camera_render_preview(ri, scene):
     r = scene.render
 
     xaspect, yaspect, aspectratio = render_get_aspect(r)
 
-    file.write('Clipping 0.100000 100.000000 \n')
-    file.write('Projection "perspective" "fov" 28.841546 \n')
-    file.write('ScreenWindow %f %f %f %f\n' % (-xaspect, xaspect, -yaspect, yaspect))
+    ri.Clipping(0.100000, 100.000000)
+    ri.Projection("perspective", {"fov": 28.841546})
+    ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
 
-    file.write('Transform [ 0.685881 -0.317370 -0.654862 0.000000 0.727634 0.312469 0.610666 0.000000 -0.010817 0.895343 -0.445245 0.000000 0.040019 -0.661400 6.220541 1.000000 ] \n')
-    
+    ri.Transform([0.685881, -0.317370, -0.654862, 0.000000, 
+                0.727634, 0.312469, 0.610666, 0.000000, 
+                -0.010817, 0.895343, -0.445245, 0.000000, 
+                0.040019, -0.661400, 6.220541, 1.000000])           
+
 
 def export_camera_shadowmap(file, scene, ob, motion):
     lamp = ob.data
@@ -2041,17 +2043,16 @@ def find_preview_material(scene):
     
 # --------------- End Hopefully temporary --------------- #
 
-def preview_model(mat):
+def preview_model(ri,mat):
     if mat.preview_render_type == 'SPHERE':
-        return '        Sphere 1 -1 1 360 \n'
+        ri.Sphere(1, -1, 1, 360)
     else: # CUBE
-        return '        Scale 0.75 0.75 0.75 \n \
-        Translate 0.0 0.0 0.01 \n \
-        PointsPolygons \n \
-        [ 4 4 4 4 4 4 ] \n \
-        [ 0 1 2 3 4 7 6 5 0 4 5 1 1 5 6 2 2 6 7 3 4 0 3 7 ] \n \
-        "P" [ 1 1 -1  1 -1 -1  -1 -1 -1  -1 1 -1  1 1 1  1 -1 1  -1 -1 1  -1 1 1 ] \n'
-        
+        ri.Scale(0.75, 0.75, 0.75)
+        ri.Translate(0.0,0.0,0.01)
+        ri.PointsPolygons([4, 4, 4, 4, 4, 4, ],
+            [0, 1, 2, 3, 4, 7, 6, 5, 0, 4, 5, 1, 1, 5, 6, 2, 2, 6, 7, 3, 4, 0, 3, 7],
+            {ri.P: [1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1]})
+      
 
 def write_preview_rib(rpass, scene):
 
@@ -2151,24 +2152,29 @@ def export_inline_rib(ri, rpass, scene, lamp=None ):
 
     #    file.write( '\n' )
 
-def write_rib(rpass, scene, info_callback):
-    info_callback('Generating RIB')
+def write_rib(rpass, scene):
+    #info_callback('Generating RIB')
     
     # precalculate motion blur data
+    rpass.motion_blur = None
+    rpass.objects = renderable_objects(scene)
+    rpass.archives = []
+
     motion = export_motion(rpass, scene)
     
     import prman
+    prman.Init([])
     ri = prman.Ri()
     ri.Begin(rpass.paths['rib_output'])
     
     export_header(ri)
-    export_searchpaths(ri, rpass.paths)
+    #export_searchpaths(ri, rpass.paths)
     
     export_display(ri, rpass, scene)
     export_hider(ri, rpass, scene)
     export_integrator(ri, rpass, scene)
     
-    export_inline_rib(ri, rpass, scene)
+    #export_inline_rib(ri, rpass, scene)
     
     scene.frame_set(scene.frame_current)
     ri.FrameBegin(scene.frame_current)
@@ -2188,6 +2194,65 @@ def write_rib(rpass, scene, info_callback):
 
     ri.FrameEnd()
     ri.End()
+    prman.Cleanup()
+
+def write_preview_rib(rpass, scene):
+
+    previewdir = os.path.join(rpass.paths['export_dir'], "preview")
+    preview_rib_data_path = rib_path(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                'preview', "preview_scene.rib"))
+    
+    rpass.paths['rib_output'] = os.path.join(previewdir, "preview.rib")
+    rpass.paths['render_output'] = os.path.join(previewdir, "preview.tif")
+    rpass.paths['export_dir'] = os.path.dirname(rpass.paths['rib_output'])
+    
+    if not os.path.exists(previewdir):
+        os.mkdir(previewdir)
+    
+    print('writing rib to ' + rpass.paths['rib_output'])
+    import prman
+    prman.Init([])
+    ri = prman.Ri()
+    ri.Begin(rpass.paths['rib_output'])
+    
+    export_header(ri)
+    #export_searchpaths(ri, rpass.paths)
+    
+    # temporary tiff display to be read back into blender render result
+    ri.FrameBegin(1)
+    ri.Display(os.path.basename(rpass.paths['render_output']), "tiff", "rgb",{ri.DISPLAYQUANTIZE: [0, 0, 0, 0]})
+    export_hider(ri, rpass, scene)
+    export_integrator(ri, rpass, scene)
+    
+
+    export_camera_render_preview(ri, scene)
+    export_render_settings_preview(ri, rpass, scene)
+
+    ri.WorldBegin()
+    
+    # preview scene: walls, lights
+    ri.ReadArchive(preview_rib_data_path)
+    
+    # preview model and material
+    ri.AttributeBegin()
+    ri.Attribute("identifier", {"name":[ "Preview" ]})
+    ri.Translate(0,0,0.75)
+    # file.write('        Attribute "visibility" \n \
+    #         "integer camera" [ 1 ] \n \
+    #         "integer trace" [ 1 ] \n \
+    #         "integer photon" [ 1 ] \n \
+    #         "string transmission" ["opaque"] \n ')
+    # file.write('        Attribute "trace" "displacements" [1] \n')
+    
+    mat = find_preview_material(scene)
+    export_material(ri, rpass, scene, mat)
+    preview_model(ri,mat)
+    ri.AttributeEnd()
+    
+    ri.WorldEnd()
+    ri.FrameEnd()
+    ri.End()
+    prman.Cleanup()
 
 def initialise_paths(scene):
     paths = {}

@@ -65,9 +65,9 @@ def get_path_list(rm, type):
     if rm.use_default_paths:
         paths.append('@')
         if type == 'shader':
-            paths.append('/Applications/Pixar/RenderManProServer-19.0/lib/RIS/pattern')
-            paths.append('/Applications/Pixar/RenderManProServer-19.0/lib/RIS/bxdf')
-            paths.append('/Applications/Pixar/RenderManProServer-19.0/lib/rsl/shaders')
+            paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'pattern'))
+            paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'bxdf'))
+            paths.append(os.path.join(guess_rmantree(), 'lib', 'rsl', 'shaders'))
         
     if rm.use_builtin_paths:
         paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 
@@ -259,20 +259,21 @@ def guess_rmantree():
     return guess    
 
 # Default exporter specific env vars
-def init_exporter_env(rm):
+def init_exporter_env(scene):
     rm = scene.renderman
     
     if 'OUT' not in os.environ.keys():
-        os.environ['OUT'] = rm.env_vars.out
+        #os.environ['OUT'] = rm.env_vars.out
+        os.environ['OUT'] = "/tmp/blenderman"
 
-    if 'SHD' not in os.environ.keys():
-        os.environ['SHD'] = rm.env_vars.shd
+    # if 'SHD' not in os.environ.keys():
+    #     os.environ['SHD'] = rm.env_vars.shd
        
-    if 'PTC' not in os.environ.keys():
-        os.environ['PTC'] = rm.env_vars.ptc
+    # if 'PTC' not in os.environ.keys():
+    #     os.environ['PTC'] = rm.env_vars.ptc
     
-    if 'ARC' not in os.environ.keys():
-        os.environ['ARC'] = rm.env_vars.arc
+    # if 'ARC' not in os.environ.keys():
+    #     os.environ['ARC'] = rm.env_vars.arc
         
     
         
@@ -281,7 +282,7 @@ def init_env(rm):
     #init_exporter_env(scene.renderman)
 
     # try user set (or guessed) path
-    RMANTREE = rm.path_rmantree
+    RMANTREE = guess_rmantree()
     RMANTREE_BIN = os.path.join(RMANTREE, 'bin')
     if RMANTREE_BIN not in sys.path:
         sys.path.append(RMANTREE_BIN)

@@ -1517,7 +1517,9 @@ class PARTICLE_PT_renderman_prim_vars(CollectionPanel, bpy.types.Panel):
         layout.prop(rm, "export_default_size")
 
 def register():
-    bpy.utils.register_module(__name__)
+    pass
+    #bpy.utils.register_module(__name__)
 
 def unregister():
-    bpy.utils.unregister_module(__name__)
+    pass
+    #bpy.utils.unregister_module(__name__)

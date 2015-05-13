@@ -39,7 +39,7 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
                 name="OUT (Output Root)",
                 description="Default RIB export path root",
                 subtype='DIR_PATH',
-                default='//renderman-{blend}')
+                default='/tmp/blenderman')
     
     shd = StringProperty(
                 name="SHD (Shadow Maps)",

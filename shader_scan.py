@@ -142,21 +142,10 @@ class BgShaderScan(threading.Thread):
 # scans valid paths on disk for shaders, and caches for later retrieval
 def args_files_in_path(prefs, idblock, shader_type='', threaded=True):
     init_env(prefs)
-
-    print("scanning for args files!")
-    
-    # if type(idblock) == bpy.types.Material:
-    #     material = idblock
-    # #if hasattr(context, "material"):
-    # #    material = context.material
-    # else:
-    #     material = None
-    
     args = {}
 
     path_list = get_path_list_converted(prefs, 'shader')
     for path in path_list:
-        print("Scanning " + path)
         for root, dirnames, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, '*.args'):
                 args[filename.split('.')[0]] = os.path.join(root, filename)
