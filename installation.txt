@@ -3,18 +3,18 @@ BlenderMan Installation Instructions
 
 Frist, get and install the Non-Commercial Version of RenderMan from Pixar.  Package and 
 installation instructions at: http://rendermansite.pixar.com/view/get-renderman 
-You need to install at a minimum RenderMan Pro Server 19.0
+You need to install at a minimum RenderMan Pro Server 20.0
 
 Unpack and move the blenderman folder into your blender addons folder. You can then enable the addon in the Addons tab of blender user preferences
 
 RenderMan normally bases everything off a variable RMANTREE which is set to your installation
-folder, eg /Applications/Pixar/RenderManProServer-19.0 on OSX.  
+folder, eg /Applications/Pixar/RenderManProServer-20.0 on OSX.  
 
 BlenderMan will try and guess the appropriate RenderMan version to use and the location of
 the folder.  However, if you installed in a non-standard location, set the RMANTREE 
 environment variable when starting blender.
 
-The only other thing 
+The only other thing is that you should set your pythonpath variable to $RMANTREE/bin
 
 Brian Savery, March 24, 2015
 (based on orignial plugin written by Matt Ebb for 3Delight)
