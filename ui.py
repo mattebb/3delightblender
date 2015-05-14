@@ -26,6 +26,7 @@
 import bpy
 import math
 import blf
+from bpy.types import Panel
 
 
 # global dictionaries
@@ -51,7 +52,8 @@ properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_render
 
 import bl_ui.properties_material as properties_material
-properties_material.MATERIAL_PT_context_material.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_material.MATERIAL_PT_context_material.COMPAT_ENGINES.add(\
+    'PRMAN_RENDER')
 # properties_material.MATERIAL_PT_preview.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_material.MATERIAL_PT_custom_props.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_material
@@ -104,6 +106,7 @@ del properties_particle
 # ------- Subclassed Panel Types -------
 
 
+
 class CollectionPanel():
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -113,10 +116,12 @@ class CollectionPanel():
         rd = context.scene.render
         return (rd.engine in {'PRMAN_RENDER'})
 
-    def _draw_collection(self, context, layout, ptr, name, operator, opcontext, prop_coll, collection_index):
+    def _draw_collection(self, context, layout, ptr, name, operator, 
+                        opcontext, prop_coll, collection_index):
         layout.label(name)
         row = layout.row()
-        row.template_list("UI_UL_list", "PRMAN", ptr, prop_coll, ptr, collection_index, rows=1)
+        row.template_list("UI_UL_list", "PRMAN", ptr, prop_coll, ptr, 
+                        collection_index, rows=1)
         col = row.column(align=True)
         
         op = col.operator(operator, icon="ZOOMIN", text="")
@@ -132,7 +137,8 @@ class CollectionPanel():
         op.collection_index = collection_index
         op.action = 'REMOVE'
         
-        if hasattr(ptr, prop_coll) and len(getattr(ptr, prop_coll)) > 0 and getattr(ptr, collection_index) >= 0:
+        if hasattr(ptr, prop_coll) and len(getattr(ptr, prop_coll)) > 0 and \
+                getattr(ptr, collection_index) >= 0:
             item = getattr(ptr, prop_coll)[getattr(ptr, collection_index)]
             self.draw_item(layout, context, item)
 
@@ -291,18 +297,21 @@ class ShaderPanel():
 
 narrowui = 180
 
-
-class RENDER_PT_renderman_sampling(bpy.types.Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
+class PRManButtonsPanel():
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
     bl_context = "render"
-    bl_label = "Sampling"
-    
+
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
+
+
+class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
+    bl_label = "Sampling"
+    
     def draw(self, context):
         layout = self.layout
         scene = context.scene
@@ -346,11 +355,8 @@ class RENDER_PT_renderman_sampling(bpy.types.Panel):
         scol.prop(rm, "shutter_open")
         scol.prop(rm, "shutter_close")
         
-        scol = sub.column(align=True)
-        scol.prop(rm, "shutter_efficiency_open")
-        scol.prop(rm, "shutter_efficiency_close")
 
-class MESH_PT_renderman_prim_vars(CollectionPanel, bpy.types.Panel):
+class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
     bl_context = "data"
     bl_label = "Primitive Variables"
 
@@ -388,14 +394,10 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, bpy.types.Panel):
         layout.prop(rm, "export_smooth_normals")
         
 
-class RENDER_PT_renderman_output(bpy.types.Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "render"
+class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
     bl_label = "Renderman Output"
     bl_options = {'DEFAULT_CLOSED'}
     
-
     def draw(self, context):
         layout = self.layout
         scene = context.scene
@@ -408,10 +410,7 @@ class RENDER_PT_renderman_output(bpy.types.Panel):
             layout.prop(rm, "path_display_driver_image")
 
 
-class RENDER_PT_renderman_hider(bpy.types.Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "render"
+class RENDER_PT_renderman_hider(PRManButtonsPanel, Panel):
     bl_label = "Hider"
     bl_options = {'DEFAULT_CLOSED'}
     
@@ -436,7 +435,7 @@ class RENDER_PT_renderman_hider(bpy.types.Panel):
             #col.active = rm.display_driver == 'idisplay'
             col.prop(rm, "integrator")
 
-class RENDER_PT_inlineRIB(InlineRibPanel, bpy.types.Panel):
+class RENDER_PT_inlineRIB(InlineRibPanel, Panel):
     bl_context = "render"
     bl_label = "Inline RIB"
     
@@ -446,27 +445,26 @@ class RENDER_PT_inlineRIB(InlineRibPanel, bpy.types.Panel):
                                         "Inline RIB:", "collection.add_remove",
                                         "scene", "bty_inlinerib_texts", "bty_inlinerib_index")    
 
-class RENDER_PT_renderman_grouping(CollectionPanel, bpy.types.Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "render"
-    bl_label = "Trace Sets"
-    bl_options = {'DEFAULT_CLOSED'}
+# class RENDER_PT_renderman_grouping(CollectionPanel, Panel):
+#     bl_space_type = 'PROPERTIES'
+#     bl_region_type = 'WINDOW'
+#     bl_context = "render"
+#     bl_label = "Trace Sets"
+#     bl_options = {'DEFAULT_CLOSED'}
     
-    def draw_item(self, layout, context, item):
-        layout.prop(item, "name")
+#     def draw_item(self, layout, context, item):
+#         layout.prop(item, "name")
 	
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
+#     def draw(self, context):
+#         layout = self.layout
+#         scene = context.scene
+#         rm = scene.renderman
         
-        self._draw_collection(context, layout, rm, "Trace Sets:", "collection.add_remove",
-                                        "scene", "grouping_membership", "grouping_membership_index")
+#         self._draw_collection(context, layout, rm, "Trace Sets:", "collection.add_remove",
+#                                         "scene", "grouping_membership", "grouping_membership_index")
 
 
-class RENDER_PT_renderman_paths(CollectionPanel, bpy.types.Panel):
-    bl_context = "render"
+class RENDER_PT_renderman_paths(CollectionPanel, PRManButtonsPanel, Panel):
     bl_label = "Search Paths"
     bl_options = {'DEFAULT_CLOSED'}
 
@@ -481,17 +479,21 @@ class RENDER_PT_renderman_paths(CollectionPanel, bpy.types.Panel):
         layout.prop(rm, "use_default_paths")
         layout.prop(rm, "use_builtin_paths")
         
-        self._draw_collection(context, layout, rm, "Shader Paths:", "collection.add_remove",
-                                        "scene", "shader_paths", "shader_paths_index")
+        self._draw_collection(context, layout, rm, "Shader Paths:", 
+            "collection.add_remove", "scene", "shader_paths", 
+            "shader_paths_index")
         
-        self._draw_collection(context, layout, rm, "Texture Paths:", "collection.add_remove",
-                                        "scene", "texture_paths", "texture_paths_index")
+        self._draw_collection(context, layout, rm, "Texture Paths:", 
+            "collection.add_remove", "scene", "texture_paths", 
+            "texture_paths_index")
         
-        self._draw_collection(context, layout, rm, "Procedural Paths:", "collection.add_remove",
-                                        "scene", "procedural_paths", "procedural_paths_index")
+        self._draw_collection(context, layout, rm, "Procedural Paths:", 
+            "collection.add_remove", "scene", "procedural_paths", 
+            "procedural_paths_index")
         
-        self._draw_collection(context, layout, rm, "Archive Paths:", "collection.add_remove",
-                                        "scene", "archive_paths", "archive_paths_index")
+        self._draw_collection(context, layout, rm, "Archive Paths:", 
+            "collection.add_remove", "scene", "archive_paths", 
+            "archive_paths_index")
 
         layout.prop(rm, "path_rmantree")
         layout.prop(rm, "path_renderer")
@@ -500,7 +502,7 @@ class RENDER_PT_renderman_paths(CollectionPanel, bpy.types.Panel):
         layout.prop(rm, "path_texture_optimiser")
         
 '''
-class RENDER_PT_renderman_render_passes(bpy.types.Panel):
+class RENDER_PT_renderman_render_passes(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "render"
@@ -550,17 +552,9 @@ class RENDER_PT_renderman_render_passes(bpy.types.Panel):
         
         layout.separator()
 '''
-class RENDER_PT_renderman_performance(bpy.types.Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "render"
+class RENDER_PT_renderman_performance(PRManButtonsPanel, Panel):
     bl_label = "Performance"
-    COMPAT_ENGINES = {'PRMAN_RENDER'}
     bl_options = {'DEFAULT_CLOSED'}
-    
-    @classmethod
-    def poll(cls, context):
-        return (context.scene.render.engine in cls.COMPAT_ENGINES)
     
     def draw(self, context):
         layout = self.layout
@@ -582,7 +576,7 @@ class RENDER_PT_renderman_performance(bpy.types.Panel):
         #col.prop(rm, "recompile_shaders")
 
 
-class WORLD_PT_renderman_integrator(ShaderPanel, bpy.types.Panel):
+class WORLD_PT_renderman_integrator(ShaderPanel, Panel):
     bl_context = "world"
     bl_label = "Integrator"
     shader_type = 'surface'
@@ -609,7 +603,7 @@ class WORLD_PT_renderman_integrator(ShaderPanel, bpy.types.Panel):
 
 # BBM addition begin
 '''
-class WORLD_PT_renderman_coshaders(ShaderPanel, bpy.types.Panel):
+class WORLD_PT_renderman_coshaders(ShaderPanel, Panel):
     bl_context = "world"
     bl_label = "World Co-shaders"
     shader_type = 'shader'
@@ -660,7 +654,7 @@ class MATERIAL_MT_renderman_preview_specials(bpy.types.Menu):
         col.prop(rm, "preview_render_shadow")
 '''        
 
-class MATERIAL_PT_renderman_preview(bpy.types.Panel):
+class MATERIAL_PT_renderman_preview(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     
@@ -711,7 +705,7 @@ class ShaderNodePanel():
         return False
 
 
-class MATERIAL_PT_renderman_shader_surface_node(ShaderNodePanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_surface_node(ShaderNodePanel, Panel):
     bl_label = "Surface Shader Nodes"
     bl_context = "material"
 
@@ -719,7 +713,7 @@ class MATERIAL_PT_renderman_shader_surface_node(ShaderNodePanel, bpy.types.Panel
         nt = bpy.data.node_groups[context.material.renderman.nodetree]
         draw_nodes_properties_ui(self.layout, context, nt, input_name='Surface')
 
-class MATERIAL_PT_renderman_shader_displacement_node(ShaderNodePanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_displacement_node(ShaderNodePanel, Panel):
     bl_label = "Displacement Shader Nodes"
     bl_context = "material"
 
@@ -728,7 +722,7 @@ class MATERIAL_PT_renderman_shader_displacement_node(ShaderNodePanel, bpy.types.
         draw_nodes_properties_ui(self.layout, context, nt, input_name='Displacement')
 
 
-class MATERIAL_PT_renderman_shader_surface(ShaderPanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
     bl_context = "material"
     bl_label = "Surface Shader"
     shader_type = 'surface'
@@ -749,7 +743,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, bpy.types.Panel):
 
         
         
-class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
     bl_context = "material"
     bl_label = "Displacement Shader"
     shader_type = 'displacement'
@@ -764,7 +758,7 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, bpy.types.Panel):
 		# BBM addition end
         # self._draw_shader_menu_params(layout, context, rm)
 
-class MATERIAL_PT_renderman_shader_interior(ShaderPanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_interior(ShaderPanel, Panel):
     bl_context = "material"
     bl_label = "Interior"
     shader_type = 'interior'
@@ -776,7 +770,7 @@ class MATERIAL_PT_renderman_shader_interior(ShaderPanel, bpy.types.Panel):
         rm = mat.renderman
         # self._draw_shader_menu_params(layout, context, rm)
 
-class MATERIAL_PT_renderman_shader_atmosphere(ShaderPanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
     bl_context = "material"
     bl_label = "Atmosphere"
     shader_type = 'atmosphere'
@@ -789,7 +783,7 @@ class MATERIAL_PT_renderman_shader_atmosphere(ShaderPanel, bpy.types.Panel):
         # self._draw_shader_menu_params(layout, context, rm)
 
 '''
-class MATERIAL_PT_renderman_shader_coshaders(ShaderPanel, bpy.types.Panel):
+class MATERIAL_PT_renderman_shader_coshaders(ShaderPanel, Panel):
     bl_context = "material"
     bl_label = "Co-Shaders"
 	#BBM repalced
@@ -830,7 +824,7 @@ class MATERIAL_PT_renderman_shader_coshaders(ShaderPanel, bpy.types.Panel):
             
 '''
 
-class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, bpy.types.Panel):
+class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "world"
@@ -850,7 +844,7 @@ class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, bpy.types.Panel):
         
         self._draw_params(scene, world.renderman, layout)
 
-class MATERIAL_PT_renderman_sss(bpy.types.Panel):
+class MATERIAL_PT_renderman_sss(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "material"
@@ -892,7 +886,7 @@ class MATERIAL_PT_renderman_sss(bpy.types.Panel):
             row.label("Requires a shader with subsurface support", icon="INFO")
         
 
-class MATERIAL_PT_renderman_photons(bpy.types.Panel):
+class MATERIAL_PT_renderman_photons(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "material"
@@ -923,7 +917,7 @@ class TexturePanel3dl():
         rd = context.scene.render
         return tex and (tex.type != 'NONE') and (context.scene.render.engine in cls.COMPAT_ENGINES)
 
-class TEXTURE_PT_renderman_back(TexturePanel3dl, bpy.types.Panel):
+class TEXTURE_PT_renderman_back(TexturePanel3dl, Panel):
     bl_label = ""
     bl_options = {'HIDE_HEADER'}
 
@@ -931,7 +925,7 @@ class TEXTURE_PT_renderman_back(TexturePanel3dl, bpy.types.Panel):
         layout = self.layout
         layout.operator("space.back_to_shader", icon='BACK')
 
-class TEXTURE_PT_renderman_image(TexturePanel3dl, bpy.types.Panel):
+class TEXTURE_PT_renderman_image(TexturePanel3dl, Panel):
     bl_label = "Image Texture"
     
     def trim_path(self, context, path):
@@ -974,7 +968,7 @@ class TEXTURE_PT_renderman_image(TexturePanel3dl, bpy.types.Panel):
 
 
 
-class TEXTURE_PT_renderman_image_sampling(TexturePanel3dl, bpy.types.Panel):
+class TEXTURE_PT_renderman_image_sampling(TexturePanel3dl, Panel):
     bl_label = "Sampling"
 
     def draw(self, context):
@@ -1005,7 +999,7 @@ class TEXTURE_PT_renderman_image_sampling(TexturePanel3dl, bpy.types.Panel):
         row.prop(rm, "filter_width_t", text="T")
         col.prop(rm, "filter_blur")
         
-class TEXTURE_PT_renderman_image_color(TexturePanel3dl, bpy.types.Panel):
+class TEXTURE_PT_renderman_image_color(TexturePanel3dl, Panel):
     bl_label = "Color"
     
     def draw(self, context):
@@ -1025,7 +1019,7 @@ class TEXTURE_PT_renderman_image_color(TexturePanel3dl, bpy.types.Panel):
         col.prop(rm, "output_color_depth", text="Color Depth")
         col.prop(rm, "output_compression", text="Compression")
 
-class TEXTURE_PT_renderman_image_generate(TexturePanel3dl, bpy.types.Panel):
+class TEXTURE_PT_renderman_image_generate(TexturePanel3dl, Panel):
     bl_label = "Auto-Generate Optimized"
 
     def draw_header(self, context):
@@ -1047,7 +1041,7 @@ class TEXTURE_PT_renderman_image_generate(TexturePanel3dl, bpy.types.Panel):
 
 
 
-class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, bpy.types.Panel):
+class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
     bl_label = "Light Shader Nodes"
     bl_context = 'data'
 
@@ -1058,7 +1052,7 @@ class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, bpy.types.Panel):
         nt = bpy.data.node_groups[lamp.renderman.nodetree]
         draw_nodes_properties_ui(self.layout, context, nt, input_name='LightSource', output_node='OutputLightShaderNode')
 
-class DATA_PT_renderman_lamp(ShaderPanel, bpy.types.Panel):
+class DATA_PT_renderman_lamp(ShaderPanel, Panel):
     bl_context = "data"
     bl_label = "Lamp"
     shader_type = 'light'
@@ -1106,7 +1100,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, bpy.types.Panel):
 
 # BBM addition begin
 '''
-class DATA_PT_renderman_lamp_coshaders(ShaderPanel, bpy.types.Panel):
+class DATA_PT_renderman_lamp_coshaders(ShaderPanel, Panel):
     bl_context = "data"
     bl_label = "Light Co-Shaders"
     shader_type = 'light' # right, this is a hack, if it is set to 'shader' as it should be, this section doesn't appear in the ui. This really shows my poor comprehension od Blender API
@@ -1145,7 +1139,7 @@ class DATA_PT_renderman_lamp_coshaders(ShaderPanel, bpy.types.Panel):
 '''
 # BBM addition end
 
-class DATA_PT_renderman_lamp_shadow(bpy.types.Panel):
+class DATA_PT_renderman_lamp_shadow(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "data"
@@ -1228,7 +1222,7 @@ class DATA_PT_renderman_lamp_shadow(bpy.types.Panel):
 
 
 
-class DATA_PT_renderman_lamp_shadow_ribBox(InlineRibPanel, bpy.types.Panel):
+class DATA_PT_renderman_lamp_shadow_ribBox(InlineRibPanel, Panel):
     bl_context = "data"
     bl_label = "Shadow Map Inline RIB"
     
@@ -1249,7 +1243,7 @@ class DATA_PT_renderman_lamp_shadow_ribBox(InlineRibPanel, bpy.types.Panel):
                                         "Inline RIB:", "collection.add_remove",
                                         "lamp", "shd_inlinerib_texts", "shd_inlinerib_index")
 
-class OBJECT_PT_renderman_object_geometry(bpy.types.Panel):
+class OBJECT_PT_renderman_object_geometry(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1333,7 +1327,7 @@ class OBJECT_PT_renderman_object_geometry(bpy.types.Panel):
         sub.prop(rm, "motion_segments")        
 
                 
-class OBJECT_PT_renderman_object_render_shading(bpy.types.Panel):
+class OBJECT_PT_renderman_object_render_shading(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1364,7 +1358,7 @@ class OBJECT_PT_renderman_object_render_shading(bpy.types.Panel):
         col.prop(rm, "geometric_approx_focus")
 
 
-class OBJECT_PT_renderman_object_render(CollectionPanel, bpy.types.Panel):
+class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1419,7 +1413,7 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, bpy.types.Panel):
         self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
                                         "object", "trace_set", "trace_set_index")
 
-class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, bpy.types.Panel):
+class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1453,7 +1447,7 @@ class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, bpy.types.Panel):
 
 from bl_ui.properties_particle import ParticleButtonsPanel
 
-class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, bpy.types.Panel):
+class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "particle"
@@ -1489,7 +1483,7 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, bpy.types.Panel):
         subcol.prop(rm, "width")
 
 
-class PARTICLE_PT_renderman_prim_vars(CollectionPanel, bpy.types.Panel):
+class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):
     bl_context = "particle"
     bl_label = "Primitive Variables"
 

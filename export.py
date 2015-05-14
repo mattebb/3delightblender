@@ -24,45 +24,22 @@
 # ##### END MIT LICENSE BLOCK #####
 
 import bpy
-import bpy_types
 import math
 import os
-import time
-import subprocess
-import mathutils
 from mathutils import Matrix, Vector, Quaternion
 
 from . import bl_info
 
-from .util import bpy_newer_257
-from .util import BlenderVersionError
 from .util import rib, rib_path, rib_ob_bounds
 from .util import make_frame_path
 from .util import init_env
 from .util import get_sequence_path
 from .util import user_path
-from .util import get_path_list_converted
 from .util import path_list_convert
 
 addon_version = bl_info['version']
 
-# global dictionaries
-from .shader_parameters import exclude_lamp_params
-
 # helper functions for parameters
-from .shader_parameters import shaderparameters_from_class
-from .shader_parameters import path_win_to_unixy
-from .shader_parameters import rna_to_shaderparameters
-from .shader_parameters import get_parameters_shaderinfo
-from .shader_parameters import rna_types_initialise
-
-from .shader_parameters import shader_recompile
-
-from .shader_parameters import shader_requires_shadowmap
-
-from .shader_parameters import tex_source_path
-from .shader_parameters import tex_optimised_path
-
 from .nodes import export_shader_nodetree
 
 
@@ -94,7 +71,8 @@ def make_optimised_texture_3dl(tex, texture_optimiser, srcpath, optpath):
     if rm.filter_type != 'DEFAULT':
         cmd.append('-filter')
         cmd.append(rm.filter_type)
-    if rm.filter_type in ('catmull-rom', 'bessel') and rm.filter_window != 'DEFAULT':
+    if rm.filter_type in ('catmull-rom', 'bessel') and \
+            rm.filter_window != 'DEFAULT':
         cmd.append('-window')
         cmd.append(rm.filter_window)
 
@@ -168,8 +146,8 @@ def renderable_objects(scene):
 
 
 # ------------- Archive Helpers -------------
-
-# Generate an automatic path to write an archive when 'Export as Archive' is enabled
+# Generate an automatic path to write an archive when 
+#'Export as Archive' is enabled
 def auto_archive_path(paths, objects, create_folder=False):
     filename = objects[0].name + ".rib"
     
@@ -232,8 +210,10 @@ def is_subdmesh(ob):
 # XXX do this better, perhaps by hooking into modifier type data in RNA?
 # Currently assumes too much is deforming when it isn't
 def is_deforming(ob):
-    deforming_modifiers = ['ARMATURE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE', 'HOOK', 'LATTICE', 'MESH_DEFORM',
-                            'SHRINKWRAP', 'SIMPLE_DEFORM', 'SMOOTH', 'WAVE', 'SOFT_BODY', 'SURFACE']
+    deforming_modifiers = ['ARMATURE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE', 
+                            'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP', 
+                            'SIMPLE_DEFORM', 'SMOOTH', 'WAVE', 'SOFT_BODY', 
+                            'SURFACE']
     if ob.modifiers:        
         # special cases for auto subd/displace detection
         if len(ob.modifiers) == 1 and is_subd_last(ob):
@@ -346,14 +326,16 @@ def get_mesh_uv(mesh, name=""):
     
     for uvloop in uv_loop_layer.data:
         uvs.append( uvloop.uv.x )
-        uvs.append( 1.0 - uvloop.uv.y )     # renderman expects UVs flipped vertically from blender
+        uvs.append( 1.0 - uvloop.uv.y )     
+        # renderman expects UVs flipped vertically from blender
 
     return uvs
 
 
 # requires facevertex interpolation
 def get_mesh_vcol(mesh, name=""):
-    vcol_layer = mesh.vertex_colors[name] if name != "" else mesh.vertex_colors.active
+    vcol_layer = mesh.vertex_colors[name] if name != "" \
+         else mesh.vertex_colors.active
     cols = []
     
     if vcol_layer == None:
@@ -376,7 +358,8 @@ def get_mesh_vgroup(ob, mesh, name=""):
         if len(v.groups) == 0:
             weights.append(0.0)
         else:
-            weights.extend( [g.weight for g in v.groups if g.group == vgroup.index ] )
+            weights.extend( [g.weight for g in v.groups \
+                    if g.group == vgroup.index ] )
             
     return weights
 
@@ -391,7 +374,8 @@ def get_primvars(ob, geo, interpolation=""):
     interpolation = 'facevertex' if interpolation == '' else interpolation
     
     # default hard-coded prim vars
-    if rm.export_smooth_normals and ob.renderman.primitive in ('AUTO', 'POLYGON_MESH', 'SUBDIVISION_MESH'):
+    if rm.export_smooth_normals and ob.renderman.primitive in \
+            ('AUTO', 'POLYGON_MESH', 'SUBDIVISION_MESH'):
         N = get_mesh_vertex_N(geo)
         if N is not None:
             primvars["varying normal N"] = N
@@ -433,29 +417,37 @@ def get_primvars_particle(file, scene, psys):
         
         if p.data_source in ('VELOCITY', 'ANGULAR_VELOCITY'):
             if p.data_source == 'VELOCITY':
-                for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
+                for pa in \
+                        [p for p in psys.particles if valid_particle(p, cfra)]:
                     pvars.extend ( pa.velocity )
             elif p.data_source == 'ANGULAR_VELOCITY':
-                for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
+                for pa in \
+                        [p for p in psys.particles if valid_particle(p, cfra)]:
                     pvars.extend ( pa.angular_velocity )
 
             primvars["varying float[3] %s" % p.name] = pvars
 
-        elif p.data_source in ('SIZE', 'AGE', 'BIRTH_TIME', 'DIE_TIME', 'LIFE_TIME'):
+        elif p.data_source in \
+                ('SIZE', 'AGE', 'BIRTH_TIME', 'DIE_TIME', 'LIFE_TIME'):
             if p.data_source == 'SIZE':
-                for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
+                for pa in \
+                        [p for p in psys.particles if valid_particle(p, cfra)]:
                     pvars.append ( pa.size )
             elif p.data_source == 'AGE':
-                for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
+                for pa in \
+                        [p for p in psys.particles if valid_particle(p, cfra)]:
                     pvars.append ( (cfra - pa.birth_time) / pa.lifetime )
             elif p.data_source == 'BIRTH_TIME':
-                for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
+                for pa in \
+                        [p for p in psys.particles if valid_particle(p, cfra)]:
                     pvars.append ( pa.birth_time )
             elif p.data_source == 'DIE_TIME':
-                for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
+                for pa in \
+                        [p for p in psys.particles if valid_particle(p, cfra)]:
                     pvars.append ( pa.die_time )
             elif p.data_source == 'LIFE_TIME':
-                for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
+                for pa in \
+                        [p for p in psys.particles if valid_particle(p, cfra)]:
                     pvars.append ( pa.lifetime )
 
             primvars["varying float %s" % p.name] = pvars
@@ -476,17 +468,22 @@ def get_fluid_mesh(scene, ob):
     bpy.data.meshes.remove(mesh)
     
     # use fluid vertex velocity vectors to reconstruct moving points
-    P = [P[i] + fluidmeshverts[int(i/3)].velocity[i%3] * subframe * 0.5 for i in range(len(P))]
+    P = [P[i] + fluidmeshverts[int(i/3)].velocity[i%3] * subframe * 0.5 for \
+        i in range(len(P))]
     
     return (nverts, verts, P)
     
 def get_subd_creases(mesh):
     creases = []
     
-    # only do creases 1 edge at a time for now, detecting chains might be tricky..
+    # only do creases 1 edge at a time for now, 
+    #detecting chains might be tricky..
     for e in mesh.edges:
         if e.crease > 0.0:
-            creases.append( (e.vertices[0], e.vertices[1], e.crease*e.crease * 10) ) # squared, to match blender appareance better : range 0 - 10 (infinitely sharp)
+            creases.append( (e.vertices[0], e.vertices[1], 
+                                e.crease*e.crease * 10) ) 
+            # squared, to match blender appareance better 
+            #: range 0 - 10 (infinitely sharp)
     return creases
 
 def create_mesh(scene, ob, matrix=None):
@@ -514,10 +511,11 @@ def export_light(rpass, scene, ri, ob):
     lamp = ob.data
     rm = lamp.renderman
 
-    m = ob.parent.matrix_world * ob.matrix_local if ob.parent else ob.matrix_world
+    m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
+        else ob.matrix_world
 
     loc = m.to_translation()
-    lvec = loc - (m.to_quaternion() * mathutils.Vector((0,0,1)))
+    lvec = loc - (m.to_quaternion() * Vector((0,0,1)))
     
     params = []
     
@@ -716,7 +714,8 @@ def export_strands(ri, rpass, scene, ob, motion):
         for nverts, P in samples:
             
             ri.Basis("catmull-rom", 1, "catmull-rom", 1)
-            ri.Curves("cubic", nverts, "nonperiodic", {"P": rib(P), "constantwidth": rm.width})
+            ri.Curves("cubic", nverts, "nonperiodic", 
+                        {"P": rib(P), "constantwidth": rm.width})
 
         if motion_blur:
             ri.MotionEnd()
@@ -727,7 +726,8 @@ def geometry_source_rib(ri, scene, ob):
     blender_frame = scene.frame_current
     
     if rm.geometry_source == 'ARCHIVE':
-        archive_path = rib_path(get_sequence_path(rm.path_archive, blender_frame, anim))
+        archive_path = \
+            rib_path(get_sequence_path(rm.path_archive, blender_frame, anim))
         ri.ReadArchive(archive_path)
         
     else:
@@ -739,7 +739,8 @@ def geometry_source_rib(ri, scene, ob):
             bounds = rib_ob_bounds(ob.bound_box)
         
         if rm.geometry_source == 'DELAYED_LOAD_ARCHIVE':
-            archive_path = rib_path(get_sequence_path(rm.path_archive, blender_frame, anim))
+            archive_path = rib_path(get_sequence_path(rm.path_archive, 
+                                                        blender_frame, anim))
             ri.Procedural("DelayedReadArchive", archive_path, rib(bounds))
         
         elif rm.geometry_source == 'PROCEDURAL_RUN_PROGRAM':
@@ -769,7 +770,8 @@ def export_particle_instances(ri, rpass, scene, ob, psys, motion):
     motion_blur = pname in motion['deformation']
     cfra = scene.frame_current
 
-    for i in range(len( [ p for p in psys.particles if valid_particle(p, cfra) ] )):
+    for i in range(len( [ p for p in psys.particles \
+                                    if valid_particle(p, cfra) ] )):
         
         if motion_blur:
             export_motion_begin(ri, scene, ob)
@@ -781,7 +783,8 @@ def export_particle_instances(ri, rpass, scene, ob, psys, motion):
 
             loc = Vector((P[i*3+0], P[i*3+1], P[i*3+2]))
             rot = Quaternion((rot[i*4+0], rot[i*4+1], rot[i*4+2], rot[i*4+3]))
-            mtx = Matrix.Translation(loc) * rot.to_matrix().to_4x4() * Matrix.Scale(width[i], 4)
+            mtx = Matrix.Translation(loc) * rot.to_matrix().to_4x4() \
+                    * Matrix.Scale(width[i], 4)
             
             ri.Transform(rib(mtx))
         
@@ -900,7 +903,8 @@ def export_shader(ri, scene, rpass, idblock, shader_type):
             params["color emitColor"] = rib(mat.diffuse_color)
         if mat.subsurface_scattering.use:
             params["float subsurface"] = mat.subsurface_scattering.scale
-            params["color subsurfaceColor"] = rib(mat.subsurface_scattering.color)
+            params["color subsurfaceColor"] = \
+                rib(mat.subsurface_scattering.color)
         if mat.raytrace_mirror.use:
             params["float metallic"] = mat.raytrace_mirror.reflect_factor
         ri.Bxdf("PxrDisney", mat.name, params)
@@ -1350,7 +1354,8 @@ def export_motion_ob(scene, motion, ob):
             motion['deformation'][pname] = []
         
         if psys.settings.type == 'EMITTER':
-            motion['deformation'][pname].insert(0, get_particles(scene, ob, psys));
+            motion['deformation'][pname].insert(0, 
+                                            get_particles(scene, ob, psys));
         if psys.settings.type == 'HAIR':
             motion['deformation'][pname].insert(0, get_strands(ob, psys));
 
@@ -1390,22 +1395,28 @@ def export_motion(rpass, scene):
 
     # get a de-duplicated set of all possible numbers of motion segments 
     # from renderable objects in the scene, and global scene settings
-    all_segs = [ob.renderman.motion_segments for ob in scene.objects if ob.renderman.motion_segments_override]
+    all_segs = [ob.renderman.motion_segments for ob in scene.objects \
+                                if ob.renderman.motion_segments_override]
     all_segs.append(scene.renderman.motion_segments)
     all_segs = set(all_segs)
     
     # the aim here is to do only a minimal number of scene updates, 
     # so we process objects in batches of equal numbers of segments
-    # and update the scene only once for each of those unique fractional frames per segment set
+    # and update the scene only once for each of those unique fractional 
+    #frames per segment set
     for segs in all_segs:
 
         if segs == scene.renderman.motion_segments:
-            motion_obs = [ob for ob in scene.objects if not ob.renderman.motion_segments_override]
+            motion_obs = [ob for ob in scene.objects \
+                                if not ob.renderman.motion_segments_override]
         else:
-            motion_obs = [ob for ob in scene.objects if ob.renderman.motion_segments == segs]
+            motion_obs = [ob for ob in scene.objects \
+                                if ob.renderman.motion_segments == segs]
 
-        # prepare list of frames/sub-frames in advance, ordered from future to present,
-        # to prevent too many scene updates (since loop ends on current frame/subframe)
+        # prepare list of frames/sub-frames in advance, 
+        #ordered from future to present,
+        # to prevent too many scene updates 
+        #(since loop ends on current frame/subframe)
         for sub in get_subframes(segs):
             scene.frame_set(origframe, 1.0-sub)
             
@@ -1424,9 +1435,10 @@ def export_objects(ri, rpass, scene, motion):
         export_object(ri, rpass, scene, ob, motion)
 
 #TODO take in an ri object and write out archive
-def export_archive(scene, objects, filepath="", archive_motion=True, animated=True, frame_start=1, frame_end=3):
+def export_archive(scene, objects, filepath="", archive_motion=True, 
+                    animated=True, frame_start=1, frame_end=3):
 
-    init_env(scene)
+    #init_env(scene)
     paths = initialise_paths(scene)    
     rpass = RPass(scene, objects, paths)
     
@@ -1439,7 +1451,8 @@ def export_archive(scene, objects, filepath="", archive_motion=True, animated=Tr
     for frame in range(frame_start, frame_end+1):
         scene.frame_set(frame)
         
-        motion = export_motion(rpass, scene) if archive_motion else empty_motion()
+        motion = export_motion(rpass, scene) \
+                    if archive_motion else empty_motion()
         ribpath = anim_archive_path(filepath, frame) if animated else filepath
 
         
@@ -1587,7 +1600,8 @@ def export_camera(ri, scene, motion):
     if cam.type == 'PERSP':
         lens= cam.lens
         
-        sensor = cam.sensor_height if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+        sensor = cam.sensor_height \
+            if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
 
         fov= 360.0*math.atan((sensor*0.5)/lens/aspectratio)/math.pi
 
@@ -1618,13 +1632,18 @@ def export_camera_render_preview(ri, scene):
 
 
 def export_searchpaths(ri, paths):
-    ri.Option("searchpath", {"string shader": ["%s" % ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
-    ri.Option("searchpath", {"string texture": ["%s" % ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
-    ri.Option("searchpath", {"string procedural": ["%s" % ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})
-    ri.Option("searchpath", {"string archive": ["%s" % ':'.join(path_list_convert(paths['archive'], to_unix=True))]})
+    ri.Option("searchpath", {"string shader": ["%s" % \
+        ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
+    ri.Option("searchpath", {"string texture": ["%s" % \
+        ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
+    ri.Option("searchpath", {"string procedural": ["%s" % \
+        ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})
+    ri.Option("searchpath", {"string archive": ["%s" % \
+        ':'.join(path_list_convert(paths['archive'], to_unix=True))]})
 
 def export_header(ri):
-    export_comment(ri, 'Generated by blenderman, v%s.%s.%s \n' % (addon_version[0], addon_version[1], addon_version[2]))
+    export_comment(ri, 'Generated by PRMan for Blender, v%s.%s.%s \n' % \
+            (addon_version[0], addon_version[1], addon_version[2]))
 
 def find_preview_material(scene):
     for o in renderable_objects(scene):
@@ -1656,11 +1675,13 @@ def find_preview_material(scene):
     for object in renderable_objects(scene):
         for mat in get_instance_materials(object):
             if mat is not None:
-                if not object.name in objects_materials.keys(): objects_materials[object] = []
+                if not object.name in objects_materials.keys(): 
+                    objects_materials[object] = []
                 objects_materials[object].append(mat)
 
     # find objects that are likely to be the preview objects
-    preview_objects = [o for o in objects_materials.keys() if o.name.startswith('preview')]
+    preview_objects = [o for o in objects_materials.keys() \
+                        if o.name.startswith('preview')]
     if len(preview_objects) < 1:
         return
 
@@ -1680,8 +1701,10 @@ def preview_model(ri,mat):
         ri.Scale(0.75, 0.75, 0.75)
         ri.Translate(0.0,0.0,0.01)
         ri.PointsPolygons([4, 4, 4, 4, 4, 4, ],
-            [0, 1, 2, 3, 4, 7, 6, 5, 0, 4, 5, 1, 1, 5, 6, 2, 2, 6, 7, 3, 4, 0, 3, 7],
-            {ri.P: [1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1]})
+            [0, 1, 2, 3, 4, 7, 6, 5, 0, 4, 5, 1,
+             1, 5, 6, 2, 2, 6, 7, 3, 4, 0, 3, 7],
+            {ri.P: [1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 
+                    1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1]})
 
 
 def export_display(ri, rpass, scene):
@@ -1689,11 +1712,13 @@ def export_display(ri, rpass, scene):
     
     if rm.display_driver == 'AUTO':
         # temporary tiff display to be read back into blender render result
-        ri.Display(os.path.basename(rpass.paths['render_output']), "tiff", "rgba", {"quantize": [0, 0, 0, 0]})
+        ri.Display(os.path.basename(rpass.paths['render_output']), \
+            "tiff", "rgba", {"quantize": [0, 0, 0, 0]})
     elif rm.display_driver == 'idisplay':
         rpass.options.append('-id')
     elif rm.display_driver == 'tiff':
-        ri.Display(rib_path(user_path(rm.path_display_driver_image, scene=scene)), "tiff", "rgba", {"quantize": [0, 0, 0, 0]})
+        ri.Display(rib_path(user_path(rm.path_display_driver_image, 
+                scene=scene)), "tiff", "rgba", {"quantize": [0, 0, 0, 0]})
 
 def export_hider(ri, rpass, scene):
     rm = scene.renderman
@@ -1759,7 +1784,8 @@ def write_rib(rpass, scene, ri):
 def write_preview_rib(rpass, scene, ri):
 
     previewdir = os.path.join(rpass.paths['export_dir'], "preview")
-    preview_rib_data_path = rib_path(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    preview_rib_data_path = \
+        rib_path(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 'preview', "preview_scene.rib"))
     
     rpass.paths['rib_output'] = os.path.join(previewdir, "preview.rib")
@@ -1778,7 +1804,8 @@ def write_preview_rib(rpass, scene, ri):
     
     # temporary tiff display to be read back into blender render result
     ri.FrameBegin(1)
-    ri.Display(os.path.basename(rpass.paths['render_output']), "tiff", "rgb",{ri.DISPLAYQUANTIZE: [0, 0, 0, 0]})
+    ri.Display(os.path.basename(rpass.paths['render_output']), "tiff", "rgb",
+                                {ri.DISPLAYQUANTIZE: [0, 0, 0, 0]})
     export_hider(ri, rpass, scene)
     export_integrator(ri, rpass, scene)
     
@@ -1816,11 +1843,13 @@ def anim_archive_path(filepath, frame):
     if filepath.find("#") != -1:
         ribpath = make_frame_path(filepath, fr)
     else:
-        ribpath = os.path.splitext(filepath)[0] + "." + str(frame).zfill(4) + os.path.splitext(filepath)[1]
+        ribpath = os.path.splitext(filepath)[0] + "." + str(frame).zfill(4) + \
+                    os.path.splitext(filepath)[1]
     return ribpath
 
 
 def write_auto_archives(paths, scene, info_callback):
     for ob in archive_objects(scene):
-        export_archive(scene, [ob], archive_motion=True, frame_start=scene.frame_current, frame_end=scene.frame_current)
+        export_archive(scene, [ob], archive_motion=True, 
+                frame_start=scene.frame_current, frame_end=scene.frame_current)
     

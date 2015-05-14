@@ -264,7 +264,7 @@ def init_exporter_env(scene):
     
     if 'OUT' not in os.environ.keys():
         #os.environ['OUT'] = rm.env_vars.out
-        os.environ['OUT'] = "/tmp/blenderman"
+        os.environ['OUT'] = "/tmp/prman_for_blender"
 
     # if 'SHD' not in os.environ.keys():
     #     os.environ['SHD'] = rm.env_vars.shd

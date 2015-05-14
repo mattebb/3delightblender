@@ -1,4 +1,4 @@
-blenderman
+PRMan for Blender
 ===============
 
 Blender render addon for RenderMan 20.0

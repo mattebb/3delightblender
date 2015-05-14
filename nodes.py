@@ -498,7 +498,7 @@ def register():
     # all categories in a list
     node_categories = [
         # identifier, label, items list
-        RendermanPatternNodeCategory("BLENDERMAN", "BlenderMan Nodes",  
+        RendermanPatternNodeCategory("PRMan", "PRMan Nodes",  
             items=nodeitems )
         ]
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES", node_categories)

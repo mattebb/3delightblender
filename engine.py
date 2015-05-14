@@ -163,13 +163,13 @@ class RPass:
                 break
 
             if process.poll() != None:
-                engine.update_stats("", "BlenderMan: Failed render")
+                engine.update_stats("", "PRMan: Failed render")
                 break
 
             time.sleep(DELAY)
         
         if os.path.exists(render_output):
-            engine.update_stats("", "BlenderMan: Rendering")
+            engine.update_stats("", "PRMan: Rendering")
         
             prev_size = -1
         
@@ -190,7 +190,7 @@ class RPass:
             while True:    
                 if process.poll() != None:
                     update_image()
-                    #print('done rendering')
+                    engine.update_stats("", "PRMan: Done Rendering")
                     break
         
                 # user exit

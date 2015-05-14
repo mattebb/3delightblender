@@ -39,7 +39,7 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
                 name="OUT (Output Root)",
                 description="Default RIB export path root",
                 subtype='DIR_PATH',
-                default='/tmp/blenderman')
+                default='/tmp/prman_for_blender')
     
     shd = StringProperty(
                 name="SHD (Shadow Maps)",
@@ -82,7 +82,7 @@ class RendermanPreferences(AddonPreferences):
                 default=True)
     use_builtin_paths = BoolProperty(
                 name="Use built in paths",
-                description="Includes paths for default shaders etc. from blenderman exporter",
+                description="Includes paths for default shaders etc. from PRMan exporter",
                 default=False)
 
     path_rmantree = StringProperty(

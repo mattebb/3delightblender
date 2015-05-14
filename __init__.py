@@ -24,7 +24,7 @@
 # ##### END MIT LICENSE BLOCK #####
 
 bl_info = {
-    "name": "BlenderMan",
+    "name": "PRMan Render Engine",
     "author": "Brian Savery",
     "version": (0, 1, 1),
     "blender": (2, 74, 0),
@@ -39,9 +39,9 @@ import sys
 
 from . import engine
 
-class Blenderman(bpy.types.RenderEngine):
+class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
-    bl_label = "BlenderMan"
+    bl_label = "PRMan Render"
     bl_use_preview = True
     bl_use_save_buffers = True
 
@@ -74,6 +74,7 @@ class Blenderman(bpy.types.RenderEngine):
         engine.render(self)
         #print('done rendering')
 
+    
     #TODO
     # view_update for rerendering
     # view_draw for rerendering
