@@ -313,18 +313,34 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     bl_label = "Sampling"
     
     def draw(self, context):
+        
+
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
         
         #layout.prop(rm, "display_driver")
+        col = layout.column()
+        col.prop(rm, "pixel_variance")
+        row = col.row(align=True)
+        row.prop(rm, "min_samples", text="Min Samples")
+        row.prop(rm, "max_samples", text="Max Samples")
+        layout.separator()
+        col.prop(rm, "integrator")
+        #find args for integrators here!
+        integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
         
+        #for each property add it to ui
+        for objkey in integrator_settings.bl_rna.properties.keys(): # This is somewhat ugly, but works best!!
+            if objkey not in ['rna_type', 'name']:
+                col.prop(integrator_settings, objkey)
+
+
+        layout.separator()
+
         split = layout.split()
         col = split.column()
-        col.label("Pixel Samples:")
-        row = col.row(align=True)
-        row.prop(rm, "pixelsamples_x", text="X")
-        row.prop(rm, "pixelsamples_y", text="Y")
+        col.prop(rm, "shadingrate")
         
         col.separator()
         
@@ -335,8 +351,6 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row.prop(rm, "pixelfilter_y", text="Size Y")
         
         col.separator()
-        
-        col.prop(rm, "shadingrate")
         
         col = split.column()
         col.prop(rm, "depth_of_field")
@@ -354,6 +368,7 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         scol = sub.column(align=True)
         scol.prop(rm, "shutter_open")
         scol.prop(rm, "shutter_close")
+
         
 
 class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
@@ -410,40 +425,40 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
             layout.prop(rm, "path_display_driver_image")
 
 
-class RENDER_PT_renderman_hider(PRManButtonsPanel, Panel):
-    bl_label = "Hider"
-    bl_options = {'DEFAULT_CLOSED'}
+# class RENDER_PT_renderman_hider(PRManButtonsPanel, Panel):
+#     bl_label = "Hider"
+#     bl_options = {'DEFAULT_CLOSED'}
     
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
+#     def draw(self, context):
+#         layout = self.layout
+#         scene = context.scene
+#         rm = scene.renderman
         
-        layout.prop(rm, "hider")
+#         layout.prop(rm, "hider")
         
-        if rm.hider == 'hidden':
-            layout.prop(rm, "hidden_depthfilter")
-            if rm.hidden_depthfilter == 'midpoint':
-                layout.prop(rm, "hidden_midpointratio")
+#         if rm.hider == 'hidden':
+#             layout.prop(rm, "hidden_depthfilter")
+#             if rm.hidden_depthfilter == 'midpoint':
+#                 layout.prop(rm, "hidden_midpointratio")
 
-            layout.prop(rm, "hidden_jitter")
-            layout.prop(rm, "hidden_samplemotion")
-            layout.prop(rm, "hidden_extrememotiondof")
-            layout.prop(rm, "hidden_maxvpdepth")
-        elif rm.hider == 'raytrace':
-            col = layout.column()
-            #col.active = rm.display_driver == 'idisplay'
-            col.prop(rm, "integrator")
+#             layout.prop(rm, "hidden_jitter")
+#             layout.prop(rm, "hidden_samplemotion")
+#             layout.prop(rm, "hidden_extrememotiondof")
+#             layout.prop(rm, "hidden_maxvpdepth")
+#         elif rm.hider == 'raytrace':
+#             col = layout.column()
+#             #col.active = rm.display_driver == 'idisplay'
+#             col.prop(rm, "integrator")
 
-class RENDER_PT_inlineRIB(InlineRibPanel, Panel):
-    bl_context = "render"
-    bl_label = "Inline RIB"
+# class RENDER_PT_inlineRIB(InlineRibPanel, Panel):
+#     bl_context = "render"
+#     bl_label = "Inline RIB"
     
-    def draw(self, context):
-        layout = self.layout
-        self._draw_collection(context, layout, context.scene.renderman, 
-                                        "Inline RIB:", "collection.add_remove",
-                                        "scene", "bty_inlinerib_texts", "bty_inlinerib_index")    
+#     def draw(self, context):
+#         layout = self.layout
+#         self._draw_collection(context, layout, context.scene.renderman, 
+#                                         "Inline RIB:", "collection.add_remove",
+#                                         "scene", "bty_inlinerib_texts", "bty_inlinerib_index")    
 
 # class RENDER_PT_renderman_grouping(CollectionPanel, Panel):
 #     bl_space_type = 'PROPERTIES'
@@ -464,42 +479,42 @@ class RENDER_PT_inlineRIB(InlineRibPanel, Panel):
 #                                         "scene", "grouping_membership", "grouping_membership_index")
 
 
-class RENDER_PT_renderman_paths(CollectionPanel, PRManButtonsPanel, Panel):
-    bl_label = "Search Paths"
-    bl_options = {'DEFAULT_CLOSED'}
+# class RENDER_PT_renderman_paths(CollectionPanel, PRManButtonsPanel, Panel):
+#     bl_label = "Search Paths"
+#     bl_options = {'DEFAULT_CLOSED'}
 
-    def draw_item(self, layout, context, item):
-        layout.prop(item, "name")
+#     def draw_item(self, layout, context, item):
+#         layout.prop(item, "name")
 
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
+#     def draw(self, context):
+#         layout = self.layout
+#         scene = context.scene
+#         rm = scene.renderman
         
-        layout.prop(rm, "use_default_paths")
-        layout.prop(rm, "use_builtin_paths")
+#         layout.prop(rm, "use_default_paths")
+#         layout.prop(rm, "use_builtin_paths")
         
-        self._draw_collection(context, layout, rm, "Shader Paths:", 
-            "collection.add_remove", "scene", "shader_paths", 
-            "shader_paths_index")
+#         self._draw_collection(context, layout, rm, "Shader Paths:", 
+#             "collection.add_remove", "scene", "shader_paths", 
+#             "shader_paths_index")
         
-        self._draw_collection(context, layout, rm, "Texture Paths:", 
-            "collection.add_remove", "scene", "texture_paths", 
-            "texture_paths_index")
+#         self._draw_collection(context, layout, rm, "Texture Paths:", 
+#             "collection.add_remove", "scene", "texture_paths", 
+#             "texture_paths_index")
         
-        self._draw_collection(context, layout, rm, "Procedural Paths:", 
-            "collection.add_remove", "scene", "procedural_paths", 
-            "procedural_paths_index")
+#         self._draw_collection(context, layout, rm, "Procedural Paths:", 
+#             "collection.add_remove", "scene", "procedural_paths", 
+#             "procedural_paths_index")
         
-        self._draw_collection(context, layout, rm, "Archive Paths:", 
-            "collection.add_remove", "scene", "archive_paths", 
-            "archive_paths_index")
+#         self._draw_collection(context, layout, rm, "Archive Paths:", 
+#             "collection.add_remove", "scene", "archive_paths", 
+#             "archive_paths_index")
 
-        layout.prop(rm, "path_rmantree")
-        layout.prop(rm, "path_renderer")
-        layout.prop(rm, "path_shader_compiler")
-        layout.prop(rm, "path_shader_info")
-        layout.prop(rm, "path_texture_optimiser")
+#         layout.prop(rm, "path_rmantree")
+#         layout.prop(rm, "path_renderer")
+#         layout.prop(rm, "path_shader_compiler")
+#         layout.prop(rm, "path_shader_info")
+#         layout.prop(rm, "path_texture_optimiser")
         
 '''
 class RENDER_PT_renderman_render_passes(Panel):
@@ -552,28 +567,28 @@ class RENDER_PT_renderman_render_passes(Panel):
         
         layout.separator()
 '''
-class RENDER_PT_renderman_performance(PRManButtonsPanel, Panel):
-    bl_label = "Performance"
-    bl_options = {'DEFAULT_CLOSED'}
+# class RENDER_PT_renderman_performance(PRManButtonsPanel, Panel):
+#     bl_label = "Performance"
+#     bl_options = {'DEFAULT_CLOSED'}
     
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
+#     def draw(self, context):
+#         layout = self.layout
+#         scene = context.scene
+#         rm = scene.renderman
         
-        split = layout.split()
-        col = split.column()
-        col.prop(rm, "threads")
-        col.prop(rm, "max_trace_depth")
-        col.prop(rm, "max_specular_depth")
-        col.prop(rm, "max_diffuse_depth")
-        col.prop(rm, "max_eye_splits")
-        col.prop(rm, "trace_approximation")
-        col.prop(rm, "use_statistics")
-        subcol = col.column()
-        subcol.active = rm.use_statistics
-        subcol.prop(rm, "statistics_level")
-        #col.prop(rm, "recompile_shaders")
+#         split = layout.split()
+#         col = split.column()
+#         col.prop(rm, "threads")
+#         col.prop(rm, "max_trace_depth")
+#         col.prop(rm, "max_specular_depth")
+#         col.prop(rm, "max_diffuse_depth")
+#         col.prop(rm, "max_eye_splits")
+#         col.prop(rm, "trace_approximation")
+#         col.prop(rm, "use_statistics")
+#         subcol = col.column()
+#         subcol.active = rm.use_statistics
+#         subcol.prop(rm, "statistics_level")
+#         #col.prop(rm, "recompile_shaders")
 
 
 class WORLD_PT_renderman_integrator(ShaderPanel, Panel):

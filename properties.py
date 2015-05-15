@@ -24,6 +24,8 @@
 # ##### END MIT LICENSE BLOCK #####
 
 import bpy
+import os
+import xml.etree.ElementTree as ET
 #from .properties_shader import RendermanCoshader, coshaderShaders
 
 from .util import guess_rmantree
@@ -65,6 +67,125 @@ def shader_active_update(self, context, shader_type, location="material"):
         rna_type_initialise(context.scene, coshader, shader_type, True)
         # BBM
 
+
+#get the names of args files in rmantree/lib/ris/integrator/args
+def get_integrator_names():
+    rmantree=guess_rmantree()
+    args_path = os.path.join(rmantree, 'lib', 'RIS', 'integrator', 'args')
+    return [(f.split('.')[0], f.split('.')[0][3:], '')  for f in os.listdir(args_path)]
+
+
+class RendermanIntegratorSettings(bpy.types.PropertyGroup):
+
+    pass
+
+def register_integrator_settings(scene_settings_cls):
+    rmantree=guess_rmantree()
+    args_path = os.path.join(rmantree, 'lib', 'RIS', 'integrator', 'args')
+    items = []
+    for f in os.listdir(args_path):
+        name = f.split('.')[0]
+        typename = '%sIntegratorSettings' % name
+        ntype = type(typename, (RendermanIntegratorSettings,), {})
+        ntype.bl_label = name
+        ntype.typename = typename
+        #do some parsing and get props
+        args_xml = ET.parse(os.path.join(args_path, f)).getroot()
+        for p in args_xml.findall('./param'):
+            param_name = p.attrib['name']
+            param_label = param_name
+            param_widget = p.attrib['widget'].lower() if 'widget' in p.attrib else 'default'
+
+            prop = None
+
+            param_type = p.attrib['type']
+            param_help = ""
+            param_default = p.attrib['default'] if 'default' in p.attrib else None
+            if p.find('help'):
+                param_help = p.find('help').text
+
+            if param_type == 'float':
+                param_default = float(param_default[:-1]) if 'f' in param_default else float(param_default)
+                if param_widget == 'checkbox':
+                    prop = bpy.props.BoolProperty(name=param_label, 
+                        default=bool(param_default), description=param_help)
+                                                    
+                elif param_widget == 'mapper':
+                    prop = bpy.props.EnumProperty(name=param_label, 
+                            items=sp_optionmenu_to_string(p.find("hintdict[@name='options']"), 'float'),
+                                            default=str(param_default),
+                                            description=param_help)
+                    
+                elif param_widget == 'default':
+                    param_min = float(p.attrib['min']) if 'min' in p.attrib else 0.0
+                    param_max = float(p.attrib['max']) if 'max' in p.attrib else 1.0
+                    prop = bpy.props.FloatProperty(name=param_label, 
+                            default=param_default, precision=3,
+                            min=param_min, max=param_max,
+                            description=param_help)
+                    
+            elif param_type == 'int' or param_type == 'integer':
+                param_default = int(param_default)
+                if param_widget == 'checkbox':
+                    prop = bpy.props.BoolProperty(name=param_label, 
+                        default=bool(param_default), description=param_help)
+                                                    
+                elif param_widget == 'mapper':
+                    prop = bpy.props.EnumProperty(name=param_label, 
+                            items=sp_optionmenu_to_string(p.find("hintdict[@name='options']"), 'int'),
+                                            default=str(param_default),
+                                            description=param_help)
+                elif param_widget == 'default':
+                    param_min = int(p.attrib['min']) if 'min' in p.attrib else 0
+                    param_max = int(p.attrib['max']) if 'max' in p.attrib else 2**31-1
+                    prop = bpy.props.IntProperty(name=param_label, 
+                            default=param_default, 
+                            min=param_min,
+                            max=param_max,
+                            description=param_help)
+                    
+            elif param_type == 'color':
+                if param_default == 'null':
+                    param_default = '0 0 0'
+                param_default = [float(c) for c in param_default.split()]
+                prop = bpy.props.FloatVectorProperty(name=param_label, 
+                                            default=param_default, size=3,
+                                            subtype="COLOR",
+                                            description=param_help)
+            elif param_type == 'string' or param_type == 'struct':
+                if param_default == None:
+                    param_default = ''
+                if '__' in param_name:
+                    param_name = param_name[2:]
+                if param_widget == 'fileInput':
+                    prop = bpy.props.StringProperty(name=param_label, 
+                                    default=param_default, subtype="FILE_NAME",
+                                    description=param_help)
+                elif param_widget == 'popup':
+                    prop = bpy.props.EnumProperty(name=param_label, 
+                            default=param_default, description=param_help, 
+                            items=[(op, op, '') for op in p.attrib['options'].split('|')])
+                elif param_widget == 'default' or param_widget == 'string':
+                    prop = bpy.props.StringProperty(name=param_label, 
+                                    default=param_default, 
+                                    description=param_help)
+                                            
+            elif param_type == 'vector' or param_type == 'normal':
+                param_default = [float(v) for v in param_default.split()]
+                socket_default = bpy.props.FloatVectorProperty(name=param_label, 
+                                            default=param_default, size=3,
+                                            subtype="EULER",
+                                            description=param_help)
+
+            setattr(ntype, param_name, prop)
+
+        bpy.utils.register_class(ntype)
+        setattr(scene_settings_cls, "%s_settings" % name, 
+            PointerProperty(type=ntype, name="%s Settings" % name)
+            )
+        #items.append(PointerProperty(type=ntype, name="%s Settings" % name))
+
+    #return items
 
 
 class atmosphereShaders(bpy.types.PropertyGroup):
@@ -300,6 +421,20 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 description="Size of the pixel filter in X dimension",
                 min=0, max=16, default=2)
 
+    pixel_variance = FloatProperty(
+                name="Pixel Variance",
+                description=" Sets a maximum for the estimated variance of the pixel value from the true value of the pixel.",
+                min=0, max=1, default=.005)
+
+    min_samples = IntProperty(
+                name="Min Samples",
+                description="The minimum number of camera samples per pixel",
+                min=0, default=32)
+    max_samples = IntProperty(
+                name="Max Samples",
+                description="The minimum number of camera samples per pixel",
+                min=0, default=512)
+
     shadingrate = FloatProperty(
                 name="Shading Rate",
                 description="Maximum distance between shading samples (lower = more detailed shading)",
@@ -475,12 +610,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     integrator = EnumProperty(
                 name="Integrator",
                 description="Integrator for rendering",
-                items=[('PxrPathTracer', 'Path Tracer', 'Uni-Directional Path Tracer'),
-                        ('PxrVCM', 'VCM', 'Bi-directional Path Tracer'),
-                        ('PxrDirectLighting', 'Direct Lighting', 'Only Direct Lighting')],
+                items=get_integrator_names(),
                 default='PxrPathTracer')
-
-	
+    
     # Rib Box Properties
     bty_inlinerib_texts = CollectionProperty(type=RendermanInlineRIB, name="Beauty-pass Inline RIB")
     bty_inlinerib_index = IntProperty(min=-1, default=-1)
@@ -547,10 +679,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     render_passes = CollectionProperty(type=RendermanPass, name="Render Passes")
     render_passes_index = IntProperty(min=-1, default=-1)
 
-
-
-
-
+    
 
 gi_primary_types = [
             ('gi_pointcloud', 'Point Cloud', ''),
@@ -563,6 +692,9 @@ gi_secondary_types = [
             ('none', 'None', '')
 # XXX: multiple bounces            ('gi_raytrace', 'Ray Tracing', '')
             ]
+
+class IntegratorSettings(bpy.types.PropertyGroup):
+    pass
 
 
 class GIPrimaryShaders(bpy.types.PropertyGroup):
@@ -1381,6 +1513,8 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     trace_set = CollectionProperty(type=TraceSet, name='Trace Set')
     trace_set_index = IntProperty(min=-1, default=-1)
 
+
+
 # collection of property group classes that need to be registered on module startup
 classes = [atmosphereShaders,
             displacementShaders,
@@ -1406,6 +1540,7 @@ classes = [atmosphereShaders,
             RendermanTextureSettings,
             RendermanLightSettings,
             RendermanParticleSettings,
+            RendermanIntegratorSettings,
             
             RendermanSceneSettings,
             RendermanWorldSettings,
@@ -1415,6 +1550,8 @@ classes = [atmosphereShaders,
            ]
 
 def register():
+
+    register_integrator_settings(RendermanSceneSettings)
 
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -1436,6 +1573,8 @@ def register():
     bpy.types.Object.renderman = PointerProperty(
                 type=RendermanObjectSettings, name="Renderman Object Settings")
 
+    #add the integrator settings from args files
+    #register_integrators(bpy.types.Scene.renderman.integrator_settings)
 
 
 def unregister():
