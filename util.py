@@ -219,7 +219,14 @@ def rib_path(path, escape_slashes=False):
     return path_win_to_unixy(bpy.path.abspath(path), 
             escape_slashes=escape_slashes)
     
-    
+#return a list of properties set on this group
+def get_properties(prop_group):
+    props = []
+    for (key, prop) in prop_group.bl_rna.properties.items(): 
+        # This is somewhat ugly, but works best!!
+            if key not in ['rna_type', 'name']:
+                props.append(prop)
+    return props
      
 # ------------- Environment Variables -------------   
 

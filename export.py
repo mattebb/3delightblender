@@ -36,6 +36,7 @@ from .util import init_env
 from .util import get_sequence_path
 from .util import user_path
 from .util import path_list_convert
+from .util import get_properties
 
 addon_version = bl_info['version']
 
@@ -1466,11 +1467,35 @@ def export_archive(scene, objects, filepath="", archive_motion=True,
     
     return file.name
 
+#takes a list of bpy.types.properties and converts to params for rib
+def property_group_to_params(prop_group):
+    params = {}
+
+    type_map = {
+        "FloatProperty": 'float',
+        "IntProperty": 'int',
+        "StringProperty": 'string',
+        "EnumProperty": 'string',
+        "BoolProperty": 'bool',
+    }
+
+    for (key, value) in prop_group.bl_rna.properties.items(): 
+        # This is somewhat ugly, but works best!!
+            if key not in ['rna_type', 'name']:
+                val = prop_group.get(key)
+                if val:
+                    param_type = "%s %s" % (type(val).__name__, key)
+                    params[param_type] = val
+    
+    return params
 
 def export_integrator(ri, rpass, scene):
     rm = scene.renderman
 
-    ri.Integrator(rm.integrator, "integrator")
+    integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
+    params = property_group_to_params(integrator_settings)
+    
+    ri.Integrator(rm.integrator, "integrator", params)
 
     
   #   for sp in shaderparameters_from_class(rm.integrator2):
@@ -1733,10 +1758,13 @@ def export_hider(ri, rpass, scene):
         if rm.hidden_depthfilter == 'midpoint':
             file.write('"float midpointratio" [%f] \n' % rm.hidden_midpointratio)'''
         
-    hider_params = {'string integrationmode': 'path'}
+    ri.PixelVariance(rm.pixel_variance)
+    hider_params = {'string integrationmode': 'path', 
+                    'int maxsamples': rm.max_samples,
+                    'int minsamples': rm.min_samples,}
     if rm.hider == 'raytrace':
         ri.Hider(rm.hider, hider_params)
-        #file.write('    "int progressive" [%d] \n' % rm.raytrace_progressive)
+        
 
 def write_rib(rpass, scene, ri):
     #info_callback('Generating RIB')
