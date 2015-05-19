@@ -71,7 +71,7 @@ def shader_active_update(self, context, shader_type, location="material"):
 #get the names of args files in rmantree/lib/ris/integrator/args
 def get_integrator_names():
     rmantree=guess_rmantree()
-    args_path = os.path.join(rmantree, 'lib', 'RIS', 'integrator', 'args')
+    args_path = os.path.join(rmantree, 'lib', 'RIS', 'integrator', 'Args')
     return [(f.split('.')[0], f.split('.')[0][3:], '')  for f in os.listdir(args_path)]
 
 
