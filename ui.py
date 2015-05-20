@@ -448,6 +448,9 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
             layout.prop(rm, "path_display_driver_image")
 
 
+
+
+
 # class RENDER_PT_renderman_hider(PRManButtonsPanel, Panel):
 #     bl_label = "Hider"
 #     bl_options = {'DEFAULT_CLOSED'}

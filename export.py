@@ -1569,6 +1569,7 @@ def export_render_settings(ri, rpass, scene, preview=False):
     #ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
     ri.ShadingRate(rm.shadingrate )
+    ri.Attribute("trace", depths)
 
 
 def export_camera_matrix(ri, scene, ob, motion):
@@ -1841,6 +1842,8 @@ def write_preview_rib(rpass, scene, ri):
     ri.FrameBegin(1)
     ri.Display(os.path.basename(rpass.paths['render_output']), "tiff", "rgb",
                                 {ri.DISPLAYQUANTIZE: [0, 0, 0, 0]})
+    
+
     export_hider(ri, rpass, scene, preview=True)
     export_integrator(ri, rpass, scene)
     
