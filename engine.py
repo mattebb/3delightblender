@@ -170,6 +170,7 @@ class RPass:
         
         if os.path.exists(render_output):
             engine.update_stats("", "PRMan: Rendering")
+            do_update = self.scene.renderman.display_driver == 'blender'
         
             prev_size = -1
         
@@ -189,7 +190,8 @@ class RPass:
             # Update while rendering
             while True:    
                 if process.poll() != None:
-                    update_image()
+                    if do_update:
+                        update_image()
                     engine.update_stats("", "PRMan: Done Rendering")
                     break
         
@@ -205,7 +207,8 @@ class RPass:
                 new_size = os.path.getsize(render_output)
         
                 if new_size != prev_size:
-                    update_image()
+                    if do_update:
+                        update_image()
                     prev_size = new_size
         
                 time.sleep(DELAY)

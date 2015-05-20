@@ -563,11 +563,8 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     
     def display_driver_items(self, context):
         if self.output_action == 'EXPORT_RENDER':
-            items = [('AUTO', 'Automatic', 'Render to a temporary file, to be read back into Blender\'s Render Result'),
-                    ('idisplay', 'idisplay', 'External 3Delight framebuffer display')]
-        elif self.output_action == 'EXPORT':
-            items = [('tiff', 'Tiff', '')]
-                    #('openexr', 'OpenEXR', '')]
+            items = [('blender', 'Automatic', 'Render to a temporary file, to be read back into Blender\'s Render Result'),
+                    ('it', 'it', 'External framebuffer display (must have RMS installed)')]#,('tiff', 'Tiff', ''), ('openexr', 'OpenEXR', '')]
         return items
         
     display_driver = EnumProperty(
@@ -628,7 +625,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     raytrace_progressive = BoolProperty(
                 name="Progressive Rendering",
-                description="Enables progressive rendering. This is only visible with some display drivers (such as idisplay)",
+                description="Enables progressive rendering. This is only visible with some display drivers (such as it)",
                 default=False)
     integrator = EnumProperty(
                 name="Integrator",

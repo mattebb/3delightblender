@@ -1736,15 +1736,17 @@ def preview_model(ri,mat):
 def export_display(ri, rpass, scene):
     rm = scene.renderman
     
-    if rm.display_driver == 'AUTO':
+    if rm.display_driver == 'blender':
         # temporary tiff display to be read back into blender render result
         ri.Display(os.path.basename(rpass.paths['render_output']), \
             "tiff", "rgba", {"quantize": [0, 0, 0, 0]})
-    elif rm.display_driver == 'idisplay':
-        rpass.options.append('-id')
-    elif rm.display_driver == 'tiff':
+    elif rm.display_driver == 'it':
+        ri.Display(os.path.basename(rpass.paths['render_output']), \
+            "it", "rgba", {"quantize": [0, 0, 0, 0]})
+    else:
+        extension_map = {'tiff':'tiff', 'openexr': 'exr'}
         ri.Display(rib_path(user_path(rm.path_display_driver_image, 
-                scene=scene)), "tiff", "rgba", {"quantize": [0, 0, 0, 0]})
+                scene=scene)), rm.display_driver, "rgba", {"quantize": [0, 0, 0, 0]})
 
 def export_hider(ri, rpass, scene, preview=False):
     rm = scene.renderman

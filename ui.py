@@ -444,7 +444,7 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
         layout.prop(rm, "path_rib_output")
         layout.prop(rm, "output_action")
         layout.prop(rm, "display_driver")
-        if rm.display_driver not in ('idisplay', 'AUTO'):
+        if rm.display_driver not in ('it', 'blender'):
             layout.prop(rm, "path_display_driver_image")
 
 
