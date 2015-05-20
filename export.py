@@ -1542,7 +1542,7 @@ def render_get_aspect(r, camera=None):
     return xaspect, yaspect, aspectratio
 
 
-def export_render_settings(ri, rpass, scene):
+def export_render_settings(ri, rpass, scene, preview=False):
     rm = scene.renderman
     r = scene.render
     
@@ -1557,19 +1557,19 @@ def export_render_settings(ri, rpass, scene):
     
     
     '''
+
+    depths = {'int maxdiffusedepth': rm.max_diffuse_depth,
+            'int maxspeculardepth': rm.max_specular_depth}
+    if preview:
+        depths = {'int maxdiffusedepth': rm.preview_max_diffuse_depth,
+            'int maxspeculardepth': rm.preview_max_specular_depth}
+
     rpass.resolution = render_get_resolution(r)
     ri.Format(rpass.resolution[0], rpass.resolution[1], 1.0)
     #ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
     ri.ShadingRate(rm.shadingrate )
-    
 
-def export_render_settings_preview(ri, rpass, scene):
-    r = scene.render
-    rpass.resolution = render_get_resolution(r)
-    
-    ri.Format(rpass.resolution[0], rpass.resolution[1], 1.0)
-    ri.PixelFilter("sinc", 2, 2)
 
 def export_camera_matrix(ri, scene, ob, motion):
     motion_blur = ob.name in motion['transformation']
@@ -1745,7 +1745,7 @@ def export_display(ri, rpass, scene):
         ri.Display(rib_path(user_path(rm.path_display_driver_image, 
                 scene=scene)), "tiff", "rgba", {"quantize": [0, 0, 0, 0]})
 
-def export_hider(ri, rpass, scene):
+def export_hider(ri, rpass, scene, preview=False):
     rm = scene.renderman
     
     '''if rm.hider == 'hidden':
@@ -1757,11 +1757,18 @@ def export_hider(ri, rpass, scene):
         file.write('    "integer maxvpdepth" [%d] \n' % rm.hidden_maxvpdepth)
         if rm.hidden_depthfilter == 'midpoint':
             file.write('"float midpointratio" [%f] \n' % rm.hidden_midpointratio)'''
-        
-    ri.PixelVariance(rm.pixel_variance)
+    pv = rm.pixel_variance
     hider_params = {'string integrationmode': 'path', 
                     'int maxsamples': rm.max_samples,
                     'int minsamples': rm.min_samples,}
+
+    if preview:
+        hider_params['int maxsamples'] = rm.preview_max_samples
+        hider_params['int minsamples'] = rm.preview_min_samples
+        pv = rm.preview_pixel_variance
+
+    ri.PixelVariance(pv)
+    
     if rm.hider == 'raytrace':
         ri.Hider(rm.hider, hider_params)
         
@@ -1834,12 +1841,12 @@ def write_preview_rib(rpass, scene, ri):
     ri.FrameBegin(1)
     ri.Display(os.path.basename(rpass.paths['render_output']), "tiff", "rgb",
                                 {ri.DISPLAYQUANTIZE: [0, 0, 0, 0]})
-    export_hider(ri, rpass, scene)
+    export_hider(ri, rpass, scene, preview=True)
     export_integrator(ri, rpass, scene)
     
 
     export_camera_render_preview(ri, scene)
-    export_render_settings_preview(ri, rpass, scene)
+    export_render_settings(ri, rpass, scene, preview=True)
 
     ri.WorldBegin()
     

@@ -325,6 +325,9 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row = col.row(align=True)
         row.prop(rm, "min_samples", text="Min Samples")
         row.prop(rm, "max_samples", text="Max Samples")
+        row = col.row(align=True)
+        row.prop(rm, "max_specular_depth", text="Specular Depth")
+        row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
         layout.separator()
         col.prop(rm, "integrator")
         #find args for integrators here!
@@ -369,6 +372,26 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         scol.prop(rm, "shutter_open")
         scol.prop(rm, "shutter_close")
 
+class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
+    bl_label = "Preview Sampling"
+    
+    def draw(self, context):
+        
+
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+        
+        #layout.prop(rm, "display_driver")
+        col = layout.column()
+        col.prop(rm, "preview_pixel_variance")
+        row = col.row(align=True)
+        row.prop(rm, "preview_min_samples", text="Min Samples")
+        row.prop(rm, "preview_max_samples", text="Max Samples")
+        row = col.row(align=True)
+        row.prop(rm, "preview_max_specular_depth", text="Specular Depth")
+        row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
+        
         
 
 class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
@@ -684,15 +707,13 @@ class MATERIAL_PT_renderman_preview(Panel):
     def draw(self, context):
         layout = self.layout
         mat = context.material
-
         row = layout.row()
-        row.template_preview(context.material, show_buttons=1)
-
-        if mat.renderman.nodetree != '':
-            layout.prop_search(mat.renderman, "nodetree", bpy.data, "node_groups")
-        else:
-            layout.operator('shading.add_renderman_nodetree').idtype = "material"
-            
+        if mat:
+            row.template_preview(context.material, show_buttons=1)
+            if mat.renderman.nodetree != '':
+                layout.prop_search(mat.renderman, "nodetree", bpy.data, "node_groups")
+            else:
+                layout.operator('shading.add_renderman_nodetree').idtype = "material"
         #col = row.column()
         #col.scale_x = 1.5
         #col.prop(rm, "preview_render_type", text="", expand=True)
@@ -713,7 +734,7 @@ class ShaderNodePanel():
     def poll(cls, context):
         if context.scene.render.engine not in cls.COMPAT_ENGINES: return False
         if cls.bl_context == 'material':
-            if context.material.renderman.nodetree != '': return True
+            if context.material and context.material.renderman.nodetree != '': return True
         if cls.bl_context == 'data':
             if not context.lamp: return False
             if context.lamp.renderman.nodetree != '': return True

@@ -530,6 +530,29 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                     ('EXPORT', 'Export RIB Only', 'Generate RIB file only')],
                 default='EXPORT_RENDER')
 
+    #preview settings
+    preview_pixel_variance = FloatProperty(
+                name="Pixel Variance",
+                description=" Sets a maximum for the estimated variance of the pixel value from the true value of the pixel.",
+                min=0, max=1, default=.01)
+
+    preview_min_samples = IntProperty(
+                name="Min Samples",
+                description="The minimum number of camera samples per pixel",
+                min=0, default=1)
+    preview_max_samples = IntProperty(
+                name="Max Samples",
+                description="The minimum number of camera samples per pixel",
+                min=0, default=16)
+
+    preview_max_specular_depth = IntProperty(
+                name="Max Specular Depth",
+                description="Maximum number of specular ray bounces",
+                min=0, max=32, default=2)
+    preview_max_diffuse_depth = IntProperty(
+                name="Max Diffuse Depth",
+                description="Maximum number of diffuse ray bounces",
+                min=0, max=32, default=1)
     '''
     def display_driver_update(self, context):
         if self.output_action = "custom":
