@@ -81,7 +81,7 @@ class RendermanIntegratorSettings(bpy.types.PropertyGroup):
 
 def register_integrator_settings(scene_settings_cls):
     rmantree=guess_rmantree()
-    args_path = os.path.join(rmantree, 'lib', 'RIS', 'integrator', 'args')
+    args_path = os.path.join(rmantree, 'lib', 'RIS', 'integrator', 'Args')
     items = []
     for f in os.listdir(args_path):
         name = f.split('.')[0]
