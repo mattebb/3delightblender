@@ -33,15 +33,9 @@ from bpy.types import Panel
 from .shader_parameters import exclude_lamp_params
 
 # helper functions for parameters
-from .shader_parameters import shaderparameters_from_class
-from .shader_parameters import get_shader_pointerproperty
-from .shader_parameters import rna_to_shaderparameters
-from .shader_parameters import shader_type_initialised
 from .shader_parameters import tex_optimised_path
 from .shader_parameters import tex_source_path
 
-from .shader_parameters import shader_supports_shadowmap
-from .shader_parameters import shader_requires_shadowmap
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
@@ -624,29 +618,21 @@ class RENDER_PT_renderman_render_passes(Panel):
 #         #col.prop(rm, "recompile_shaders")
 
 
-class WORLD_PT_renderman_integrator(ShaderPanel, Panel):
-    bl_context = "world"
-    bl_label = "Integrator"
-    shader_type = 'surface'
+# class WORLD_PT_renderman_integrator(ShaderPanel, Panel):
+#     bl_context = "world"
+#     bl_label = "Integrator"
+#     shader_type = 'surface'
     
 
-    def draw(self, context):
-        layout = self.layout
-        world = context.world
-        rm = world.renderman
-        scene = context.scene
+#     def draw(self, context):
+#         layout = self.layout
+#         world = context.world
+#         rm = world.renderman
+#         scene = context.scene
         
-        col = layout.column()
-        col.prop(rm.integrator.surface_shaders, "active")
+#         col = layout.column()
+#         col.prop(rm.integrator.surface_shaders, "active")
 
-        op = col.operator("shading.init_parameters")
-        op.shader_name= 'integrator'
-        op.attribute = 'integrator2'
-        op.id_type = 'WORLD'
-        
-        if hasattr(rm, 'integrator2'):
-            for sp in shaderparameters_from_class(rm.integrator2):
-                col.prop(rm.integrator2, sp.pyname)
 
 
 # BBM addition begin
@@ -804,29 +790,29 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
 		# BBM addition end
         # self._draw_shader_menu_params(layout, context, rm)
 
-class MATERIAL_PT_renderman_shader_interior(ShaderPanel, Panel):
-    bl_context = "material"
-    bl_label = "Interior"
-    shader_type = 'interior'
-    bl_options = {'DEFAULT_CLOSED'}
+# class MATERIAL_PT_renderman_shader_interior(ShaderPanel, Panel):
+#     bl_context = "material"
+#     bl_label = "Interior"
+#     shader_type = 'interior'
+#     bl_options = {'DEFAULT_CLOSED'}
 
-    def draw(self, context):
-        layout = self.layout
-        mat = context.material
-        rm = mat.renderman
-        # self._draw_shader_menu_params(layout, context, rm)
+#     def draw(self, context):
+#         layout = self.layout
+#         mat = context.material
+#         rm = mat.renderman
+#         # self._draw_shader_menu_params(layout, context, rm)
 
-class MATERIAL_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
-    bl_context = "material"
-    bl_label = "Atmosphere"
-    shader_type = 'atmosphere'
-    bl_options = {'DEFAULT_CLOSED'}
+# class MATERIAL_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
+#     bl_context = "material"
+#     bl_label = "Atmosphere"
+#     shader_type = 'atmosphere'
+#     bl_options = {'DEFAULT_CLOSED'}
     
-    def draw(self, context):
-        layout = self.layout
-        mat = context.material
-        rm = mat.renderman
-        # self._draw_shader_menu_params(layout, context, rm)
+#     def draw(self, context):
+#         layout = self.layout
+#         mat = context.material
+#         rm = mat.renderman
+#         # self._draw_shader_menu_params(layout, context, rm)
 
 '''
 class MATERIAL_PT_renderman_shader_coshaders(ShaderPanel, Panel):
@@ -969,219 +955,219 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
         col.prop(rl, "use_pass_emit", text="Emission")
         #col.prop(rl, "use_pass_ambient_occlusion")
 
-class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "world"
-    bl_label = "Atmosphere"
-    shader_type = 'atmosphere'
+# class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
+#     bl_space_type = 'PROPERTIES'
+#     bl_region_type = 'WINDOW'
+#     bl_context = "world"
+#     bl_label = "Atmosphere"
+#     shader_type = 'atmosphere'
     
-    def draw(self, context):
-        layout = self.layout
-        world = context.world
-        rm = world.renderman
-        scene = context.scene
+#     def draw(self, context):
+#         layout = self.layout
+#         world = context.world
+#         rm = world.renderman
+#         scene = context.scene
         
-        layout.label(text="Atmosphere Shader")
-        layout.prop(rm.atmosphere_shaders, "active", text="")
+#         layout.label(text="Atmosphere Shader")
+#         layout.prop(rm.atmosphere_shaders, "active", text="")
         
-        layout.separator()
+#         layout.separator()
         
-        self._draw_params(scene, world.renderman, layout)
+#         self._draw_params(scene, world.renderman, layout)
 
-class MATERIAL_PT_renderman_sss(Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "material"
-    bl_label = "Subsurface Scattering"
-    bl_options = {'DEFAULT_CLOSED'}
+# class MATERIAL_PT_renderman_sss(Panel):
+#     bl_space_type = 'PROPERTIES'
+#     bl_region_type = 'WINDOW'
+#     bl_context = "material"
+#     bl_label = "Subsurface Scattering"
+#     bl_options = {'DEFAULT_CLOSED'}
 
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return (context.material and rd.engine in {'PRMAN_RENDER'})
+#     @classmethod
+#     def poll(cls, context):
+#         rd = context.scene.render
+#         return (context.material and rd.engine in {'PRMAN_RENDER'})
 
-    def draw_header(self, context):
-        rm = context.material.renderman
-        self.layout.prop(rm, "sss_do_bake", text="")
+#     def draw_header(self, context):
+#         rm = context.material.renderman
+#         self.layout.prop(rm, "sss_do_bake", text="")
 
-    def draw(self, context):
-        layout = self.layout
-        rm = context.material.renderman
+#     def draw(self, context):
+#         layout = self.layout
+#         rm = context.material.renderman
         
-        split = layout.split()
-        split.active = rm.sss_do_bake
-        col = split.column()
-        col.prop(rm, "sss_ior")
-        col.prop(rm, "sss_scale")
+#         split = layout.split()
+#         split.active = rm.sss_do_bake
+#         col = split.column()
+#         col.prop(rm, "sss_ior")
+#         col.prop(rm, "sss_scale")
         
-        col.prop(rm, "sss_use_reflectance")
-        sub = col.column()
-        sub.active = rm.sss_use_reflectance
-        sub.prop(rm, "sss_reflectance", text="")
+#         col.prop(rm, "sss_use_reflectance")
+#         sub = col.column()
+#         sub.active = rm.sss_use_reflectance
+#         sub.prop(rm, "sss_reflectance", text="")
         
-        col.prop(rm, "sss_meanfreepath", expand=True)
+#         col.prop(rm, "sss_meanfreepath", expand=True)
         
-        col = split.column()
-        col.prop(rm, "sss_shadingrate")
-        col.prop(rm, "sss_group")
+#         col = split.column()
+#         col.prop(rm, "sss_shadingrate")
+#         col.prop(rm, "sss_group")
         
-        if rm.sss_do_bake:
-            row = layout.row()
-            row.label("Requires a shader with subsurface support", icon="INFO")
+#         if rm.sss_do_bake:
+#             row = layout.row()
+#             row.label("Requires a shader with subsurface support", icon="INFO")
         
 
-class MATERIAL_PT_renderman_photons(Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "material"
-    bl_label = "Photons"
-    bl_options = {'DEFAULT_CLOSED'}
+# class MATERIAL_PT_renderman_photons(Panel):
+#     bl_space_type = 'PROPERTIES'
+#     bl_region_type = 'WINDOW'
+#     bl_context = "material"
+#     bl_label = "Photons"
+#     bl_options = {'DEFAULT_CLOSED'}
 
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return (context.material and rd.engine in {'PRMAN_RENDER'})
+#     @classmethod
+#     def poll(cls, context):
+#         rd = context.scene.render
+#         return (context.material and rd.engine in {'PRMAN_RENDER'})
 
-    def draw(self, context):
-        layout = self.layout
-        rm = context.material.renderman
+#     def draw(self, context):
+#         layout = self.layout
+#         rm = context.material.renderman
         
-        col = layout.column()
-        col.prop(rm, "photon_shadingmodel")
+#         col = layout.column()
+#         col.prop(rm, "photon_shadingmodel")
 
-class TexturePanel3dl():
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "texture"
-    COMPAT_ENGINES = {'PRMAN_RENDER'}
+# class TexturePanel3dl():
+#     bl_space_type = 'PROPERTIES'
+#     bl_region_type = 'WINDOW'
+#     bl_context = "texture"
+#     COMPAT_ENGINES = {'PRMAN_RENDER'}
     
-    @classmethod
-    def poll(cls, context):
-        tex = context.texture
-        rd = context.scene.render
-        return tex and (tex.type != 'NONE') and (context.scene.render.engine in cls.COMPAT_ENGINES)
+#     @classmethod
+#     def poll(cls, context):
+#         tex = context.texture
+#         rd = context.scene.render
+#         return tex and (tex.type != 'NONE') and (context.scene.render.engine in cls.COMPAT_ENGINES)
 
-class TEXTURE_PT_renderman_back(TexturePanel3dl, Panel):
-    bl_label = ""
-    bl_options = {'HIDE_HEADER'}
+# class TEXTURE_PT_renderman_back(TexturePanel3dl, Panel):
+#     bl_label = ""
+#     bl_options = {'HIDE_HEADER'}
 
-    def draw(self, context):
-        layout = self.layout
-        layout.operator("space.back_to_shader", icon='BACK')
+#     def draw(self, context):
+#         layout = self.layout
+#         layout.operator("space.back_to_shader", icon='BACK')
 
-class TEXTURE_PT_renderman_image(TexturePanel3dl, Panel):
-    bl_label = "Image Texture"
+# class TEXTURE_PT_renderman_image(TexturePanel3dl, Panel):
+#     bl_label = "Image Texture"
     
-    def trim_path(self, context, path):
-        size = blf.dimensions(0, path)[0]
+#     def trim_path(self, context, path):
+#         size = blf.dimensions(0, path)[0]
         
-        if size > context.region.width - 160:
-            while size > context.region.width - 160:
-                path = path[1:]
-                size = blf.dimensions(0, path)[0]
+#         if size > context.region.width - 160:
+#             while size > context.region.width - 160:
+#                 path = path[1:]
+#                 size = blf.dimensions(0, path)[0]
             
-            return '...' + path
-        else:
-            return path
+#             return '...' + path
+#         else:
+#             return path
 
-    def draw(self, context):
-        layout = self.layout
-        tex = context.texture
-        scene = context.scene
-        rm = tex.renderman
-        anim = rm.anim_settings
+#     def draw(self, context):
+#         layout = self.layout
+#         tex = context.texture
+#         scene = context.scene
+#         rm = tex.renderman
+#         anim = rm.anim_settings
         
-        col = layout.column()
-        col.prop(tex, "name")
-        col.prop(rm, "file_path")
+#         col = layout.column()
+#         col.prop(tex, "name")
+#         col.prop(rm, "file_path")
 
-        col.separator()
-        col.prop(rm, "format")
-        col.separator()
+#         col.separator()
+#         col.prop(rm, "format")
+#         col.separator()
         
-        col.prop(anim, "animated_sequence")
-        if anim.animated_sequence:
-            col.prop(anim, "blender_start")
-            row = col.row()
-            row.prop(anim, "sequence_in")
-            row.prop(anim, "sequence_out")
+#         col.prop(anim, "animated_sequence")
+#         if anim.animated_sequence:
+#             col.prop(anim, "blender_start")
+#             row = col.row()
+#             row.prop(anim, "sequence_in")
+#             row.prop(anim, "sequence_out")
             
-            col.label("Current: %s" % self.trim_path(context, tex_source_path(tex, scene.frame_current)))
+#             col.label("Current: %s" % self.trim_path(context, tex_source_path(tex, scene.frame_current)))
                     
-        col.label("Generated Path: %s" % self.trim_path(context, tex_optimised_path(tex, scene.frame_current)))
+#         col.label("Generated Path: %s" % self.trim_path(context, tex_optimised_path(tex, scene.frame_current)))
 
 
 
-class TEXTURE_PT_renderman_image_sampling(TexturePanel3dl, Panel):
-    bl_label = "Sampling"
+# class TEXTURE_PT_renderman_image_sampling(TexturePanel3dl, Panel):
+#     bl_label = "Sampling"
 
-    def draw(self, context):
-        layout = self.layout
-        rm = context.texture.renderman
+#     def draw(self, context):
+#         layout = self.layout
+#         rm = context.texture.renderman
         
         
-        split = layout.split()
+#         split = layout.split()
         
-        col = split.column()
-        col.label("Wrapping:")
-        col.prop(rm, "wrap_s", text="S")
-        col.prop(rm, "wrap_t", text="T")
+#         col = split.column()
+#         col.label("Wrapping:")
+#         col.prop(rm, "wrap_s", text="S")
+#         col.prop(rm, "wrap_t", text="T")
         
-        col.prop(rm, "flip_s")
-        col.prop(rm, "flip_t")
+#         col.prop(rm, "flip_s")
+#         col.prop(rm, "flip_t")
         
         
-        col = split.column()
-        col.label("Downsampling Filter:")
-        col.prop(rm, "filter_type", text="")
-        if rm.filter_type in ('catmull-rom', 'bessel'):
-            col.prop(rm, "filter_window")
+#         col = split.column()
+#         col.label("Downsampling Filter:")
+#         col.prop(rm, "filter_type", text="")
+#         if rm.filter_type in ('catmull-rom', 'bessel'):
+#             col.prop(rm, "filter_window")
 
-        col.label("Filter Width:")
-        row = col.row(align=True)
-        row.prop(rm, "filter_width_s", text="S")
-        row.prop(rm, "filter_width_t", text="T")
-        col.prop(rm, "filter_blur")
+#         col.label("Filter Width:")
+#         row = col.row(align=True)
+#         row.prop(rm, "filter_width_s", text="S")
+#         row.prop(rm, "filter_width_t", text="T")
+#         col.prop(rm, "filter_blur")
         
-class TEXTURE_PT_renderman_image_color(TexturePanel3dl, Panel):
-    bl_label = "Color"
+# class TEXTURE_PT_renderman_image_color(TexturePanel3dl, Panel):
+#     bl_label = "Color"
     
-    def draw(self, context):
-        layout = self.layout
-        rm = context.texture.renderman
+#     def draw(self, context):
+#         layout = self.layout
+#         rm = context.texture.renderman
         
-        col = layout.column()
+#         col = layout.column()
         
-        col.label("Source:")
-        col.prop(rm, "input_color_space", text="Color Space")
-        if rm.input_color_space == 'GAMMA':
-            col.prop(rm, "input_gamma", text="Gamma")
+#         col.label("Source:")
+#         col.prop(rm, "input_color_space", text="Color Space")
+#         if rm.input_color_space == 'GAMMA':
+#             col.prop(rm, "input_gamma", text="Gamma")
             
-        col.separator()
+#         col.separator()
         
-        col.label("Output:")
-        col.prop(rm, "output_color_depth", text="Color Depth")
-        col.prop(rm, "output_compression", text="Compression")
+#         col.label("Output:")
+#         col.prop(rm, "output_color_depth", text="Color Depth")
+#         col.prop(rm, "output_compression", text="Compression")
 
-class TEXTURE_PT_renderman_image_generate(TexturePanel3dl, Panel):
-    bl_label = "Auto-Generate Optimized"
+# class TEXTURE_PT_renderman_image_generate(TexturePanel3dl, Panel):
+#     bl_label = "Auto-Generate Optimized"
 
-    def draw_header(self, context):
-        rm = context.texture.renderman
-        self.layout.prop(rm, "auto_generate_texture", text="")
+#     def draw_header(self, context):
+#         rm = context.texture.renderman
+#         self.layout.prop(rm, "auto_generate_texture", text="")
 
-    def draw(self, context):
-        layout = self.layout
-        rm = context.texture.renderman
+#     def draw(self, context):
+#         layout = self.layout
+#         rm = context.texture.renderman
         
-        col = layout.column()
-        col.active = rm.auto_generate_texture
-        col.label("Auto-generate optimized texture if output is:")
-        col.prop(rm, "generate_if_nonexistent", text="Non-existent in folder")
-        col.prop(rm, "generate_if_older", text="Older than source texture")
-        col.separator()
-        col.operator("texture.generate_optimised", text="Generate Now", icon='FILE_IMAGE')
+#         col = layout.column()
+#         col.active = rm.auto_generate_texture
+#         col.label("Auto-generate optimized texture if output is:")
+#         col.prop(rm, "generate_if_nonexistent", text="Non-existent in folder")
+#         col.prop(rm, "generate_if_older", text="Older than source texture")
+#         col.separator()
+#         col.operator("texture.generate_optimised", text="Generate Now", icon='FILE_IMAGE')
 
 
 
@@ -1284,109 +1270,109 @@ class DATA_PT_renderman_lamp_coshaders(ShaderPanel, Panel):
 '''
 # BBM addition end
 
-class DATA_PT_renderman_lamp_shadow(Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "data"
-    bl_label = "Shadow"
+# class DATA_PT_renderman_lamp_shadow(Panel):
+#     bl_space_type = 'PROPERTIES'
+#     bl_region_type = 'WINDOW'
+#     bl_context = "data"
+#     bl_label = "Shadow"
     
-    def _check_mapsize(self, lamp):
-        if lamp.type != 'SPOT' or lamp.renderman.shadow_method != 'SHADOW_MAP':
-            return
+#     def _check_mapsize(self, lamp):
+#         if lamp.type != 'SPOT' or lamp.renderman.shadow_method != 'SHADOW_MAP':
+#             return
     
-        # round shadow map size to nearest power of 2
-        bufsize = lamp.shadow_buffer_size
-        exp = int(math.log(bufsize, 2))
-        lamp.shadow_buffer_size = int(math.pow(2, exp))
+#         # round shadow map size to nearest power of 2
+#         bufsize = lamp.shadow_buffer_size
+#         exp = int(math.log(bufsize, 2))
+#         lamp.shadow_buffer_size = int(math.pow(2, exp))
     
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        scene = context.scene
-        if rd.engine not in {'PRMAN_RENDER'}:
-            return False
+#     @classmethod
+#     def poll(cls, context):
+#         rd = context.scene.render
+#         scene = context.scene
+#         if rd.engine not in {'PRMAN_RENDER'}:
+#             return False
 
-        if not context.lamp: return False
+#         if not context.lamp: return False
 
-        rm = context.lamp.renderman
-        if not shader_supports_shadowmap(scene, rm, 'light'): return False
+#         rm = context.lamp.renderman
+#         if not shader_supports_shadowmap(scene, rm, 'light'): return False
 
-        return True
-        '''
-        if rm.light_shaders.active == '':
-            if lamp.type not in ('SPOT', 'SUN', 'POINT'): return False
-        else:
-            if rm.light_shaders.active.find('shadow') == -1: return False
-        return True
-        '''
+#         return True
+#         '''
+#         if rm.light_shaders.active == '':
+#             if lamp.type not in ('SPOT', 'SUN', 'POINT'): return False
+#         else:
+#             if rm.light_shaders.active.find('shadow') == -1: return False
+#         return True
+#         '''
 
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        lamp = context.lamp
-        ob = context.object
-        rm = lamp.renderman
-        wide_ui = context.region.width > narrowui
+#     def draw(self, context):
+#         layout = self.layout
+#         scene = context.scene
+#         lamp = context.lamp
+#         ob = context.object
+#         rm = lamp.renderman
+#         wide_ui = context.region.width > narrowui
 
-        # layout.prop(rm, "shadow_method", expand=True)
+#         # layout.prop(rm, "shadow_method", expand=True)
 
 
-        # Shadowmap rendering is handled by 3delight/blender.
-        # Shaders can (will) tell the addon whether to
-        # enable this functionality or not
-        if shader_requires_shadowmap(scene, rm, 'light'):
-            layout.prop(rm, "shadow_map_generate_auto")
+#         # Shadowmap rendering is handled by 3delight/blender.
+#         # Shaders can (will) tell the addon whether to
+#         # enable this functionality or not
+#         if shader_requires_shadowmap(scene, rm, 'light'):
+#             layout.prop(rm, "shadow_map_generate_auto")
             
-            col = layout.column()
-            col.active = rm.shadow_map_generate_auto
-            col.prop(rm, "shadow_transparent")
-            col.prop(rm, "shadow_map_resolution")
-            col.prop(rm, "shadingrate")
+#             col = layout.column()
+#             col.active = rm.shadow_map_generate_auto
+#             col.prop(rm, "shadow_transparent")
+#             col.prop(rm, "shadow_map_resolution")
+#             col.prop(rm, "shadingrate")
             
-            if rm.shadow_transparent:
-                row = col.row()
-                row.prop(rm, "pixelsamples_x")
-                row.prop(rm, "pixelsamples_y")
+#             if rm.shadow_transparent:
+#                 row = col.row()
+#                 row.prop(rm, "pixelsamples_x")
+#                 row.prop(rm, "pixelsamples_y")
             
-            # XXX TODO remove dependence on blender light types
-            if lamp.type == 'SPOT':
-                split = col.split()
-                subcol = split.column()
-                subcol.prop(lamp, "shadow_buffer_clip_start", text="Clip Start")
-                subcol = split.column()
-                subcol.prop(lamp, "shadow_buffer_clip_end", text="Clip End")  
-            elif lamp.type == 'SUN':
-                subcol = col.column()
-                subcol.prop(rm, "ortho_scale")
-                subcol.prop(lamp, "distance")
-            col.separator()
-            col.prop(rm, "path_shadow_map")
+#             # XXX TODO remove dependence on blender light types
+#             if lamp.type == 'SPOT':
+#                 split = col.split()
+#                 subcol = split.column()
+#                 subcol.prop(lamp, "shadow_buffer_clip_start", text="Clip Start")
+#                 subcol = split.column()
+#                 subcol.prop(lamp, "shadow_buffer_clip_end", text="Clip End")  
+#             elif lamp.type == 'SUN':
+#                 subcol = col.column()
+#                 subcol.prop(rm, "ortho_scale")
+#                 subcol.prop(lamp, "distance")
+#             col.separator()
+#             col.prop(rm, "path_shadow_map")
             
-        elif rm.shadow_method == 'RAYTRACED':
-            pass
+#         elif rm.shadow_method == 'RAYTRACED':
+#             pass
 
 
 
-class DATA_PT_renderman_lamp_shadow_ribBox(InlineRibPanel, Panel):
-    bl_context = "data"
-    bl_label = "Shadow Map Inline RIB"
+# class DATA_PT_renderman_lamp_shadow_ribBox(InlineRibPanel, Panel):
+#     bl_context = "data"
+#     bl_label = "Shadow Map Inline RIB"
     
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        if rd.engine not in {'PRMAN_RENDER'}: return False
-        if not context.lamp: return False
+#     @classmethod
+#     def poll(cls, context):
+#         rd = context.scene.render
+#         if rd.engine not in {'PRMAN_RENDER'}: return False
+#         if not context.lamp: return False
 
-        rm = context.lamp.renderman
-        if not shader_supports_shadowmap(context.scene, rm, 'light'): return False
-        return True
+#         rm = context.lamp.renderman
+#         if not shader_supports_shadowmap(context.scene, rm, 'light'): return False
+#         return True
 
 
-    def draw(self, context):
-        layout = self.layout
-        self._draw_collection(context, layout, context.lamp.renderman, 
-                                        "Inline RIB:", "collection.add_remove",
-                                        "lamp", "shd_inlinerib_texts", "shd_inlinerib_index")
+#     def draw(self, context):
+#         layout = self.layout
+#         self._draw_collection(context, layout, context.lamp.renderman, 
+#                                         "Inline RIB:", "collection.add_remove",
+#                                         "lamp", "shd_inlinerib_texts", "shd_inlinerib_index")
 
 class OBJECT_PT_renderman_object_geometry(Panel):
     bl_space_type = 'PROPERTIES'

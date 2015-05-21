@@ -29,6 +29,7 @@ import re
 import os
 import platform
 import sys
+import fnmatch
 
 
 class BlenderVersionError(Exception):
@@ -59,6 +60,17 @@ def getattr_recursive(ptr, attrstring):
 def path_delimit_to_semicolons(winpath):
     return re.sub(r'(:)(?=[A-Za-z]|\/)', r';', winpath)
 
+def args_files_in_path(prefs, idblock, shader_type='', threaded=True):
+    init_env(prefs)
+    args = {}
+
+    path_list = get_path_list_converted(prefs, 'shader')
+    for path in path_list:
+        for root, dirnames, filenames in os.walk(path):
+            for filename in fnmatch.filter(filenames, '*.args'):
+                args[filename.split('.')[0]] = os.path.join(root, filename)
+    
+    return args
 
 def get_path_list(rm, type):
     paths = []

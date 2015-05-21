@@ -30,9 +30,9 @@ import xml.etree.ElementTree as ET
 
 from .util import guess_rmantree
 
-from .shader_scan import args_files_in_path
+from .util import args_files_in_path
 
-from .shader_parameters import rna_type_initialise
+#from .shader_parameters import rna_type_initialise
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, \
 IntProperty, FloatProperty, FloatVectorProperty, CollectionProperty
@@ -188,27 +188,6 @@ def register_integrator_settings(scene_settings_cls):
     #return items
 
 
-class atmosphereShaders(bpy.types.PropertyGroup):
-    def atmosphere_shader_active_update(self, context):
-        shader_active_update(self, context, 'atmosphere')
-        
-    active = StringProperty(
-                name="Active Atmosphere Shader",
-                description="Shader name to use for atmosphere",
-                default="")
-    
-    def atmosphere_shader_list_items(self, context):
-        return shader_list_items(self, context, 'atmosphere')
-    
-    def atmosphere_shader_list_update(self, context):
-        shader_list_update(self, context, 'atmosphere')
-
-    shader_list = EnumProperty(
-                name="Active atmosphere Shader",
-                description="Shader name to use for surface",
-                update=atmosphere_shader_list_update,
-                items=atmosphere_shader_list_items)
-    
 class displacementShaders(bpy.types.PropertyGroup):
 
     def displacement_shader_active_update(self, context):
@@ -257,30 +236,6 @@ class surfaceShaders(bpy.types.PropertyGroup):
                 items=surface_shader_list_items
                 )
 
-class interiorShaders(bpy.types.PropertyGroup):
-    
-    def interior_shader_active_update(self, context):
-        shader_active_update(self, context, 'interior')
-    
-    active = StringProperty(
-                name="Active Interior Shader",
-                description="Shader name to use for interior",
-                update=interior_shader_active_update,
-                default="null")
-
-    def interior_shader_list_items(self, context):
-        return shader_list_items(self, context, 'interior')
-    
-    def interior_shader_list_update(self, context):
-        shader_list_update(self, context, 'interior')
-
-    shader_list = EnumProperty(
-                name="Active Interior Shader",
-                description="Shader name to use for surface",
-                update=interior_shader_list_update,
-                items=interior_shader_list_items)
-
-#BBM modification begin
 
 class lightShaders(bpy.types.PropertyGroup):
 	
@@ -389,7 +344,6 @@ class RendermanPass(bpy.types.PropertyGroup):
     motion_blur           = BoolProperty(name="Motion Blur")
     surface_shaders       = BoolProperty(name="Surface Shaders", description="Render surface shaders")
     displacement_shaders  = BoolProperty(name="Displacement Shaders", description="Render displacement shaders")
-    atmosphere_shaders    = BoolProperty(name="Atmosphere Shaders", description="Render atmosphere shaders")
     light_shaders         = BoolProperty(name="Light Shaders", description="Render light shaders")
 
 
@@ -717,95 +671,11 @@ class IntegratorSettings(bpy.types.PropertyGroup):
     pass
 
 
-class GIPrimaryShaders(bpy.types.PropertyGroup):
-    active = EnumProperty(
-                name="Primary GI Method",
-                description="GI method for primary bounces",
-                items=gi_primary_types,
-                default=gi_primary_types[0][0])
-                
-class GISecondaryShaders(bpy.types.PropertyGroup):
-    active = EnumProperty(
-                name="Secondary GI Method",
-                description="GI method for secondary bounces",
-                items=gi_secondary_types,
-                default=gi_secondary_types[1][0])
 
-class IntegratorShaders(bpy.types.PropertyGroup):
-    active = EnumProperty(
-                name="Integrator",
-                description="Integrator to use for light calculation",
-                items=[('integrator', 'Ray Tracing Integrator', '')],
-                default='integrator')
-
-
-class RendermanGIPrimary(bpy.types.PropertyGroup):
-
-    light_shaders = PointerProperty(
-                type=GIPrimaryShaders, name="Primary GI Shader Settings")
-
-class RendermanGISecondary(bpy.types.PropertyGroup):
-    
-    light_shaders = PointerProperty(
-                type=GISecondaryShaders, name="Secondary GI Shader Settings")
-
-class RendermanIntegrator(bpy.types.PropertyGroup):
-    
-    surface_shaders = PointerProperty(
-                type=IntegratorShaders, name="Integrator Shader Settings")
-
-
-# Photon Secondary bounce (render) properties
-    photon_count = IntProperty(
-                name="Photon Count",
-                description="Number of photons to emit",
-                default=10000)
-    photon_map_global = StringProperty(
-                name="Global Photon Map",
-                description="Name of gloabl photon map",
-                default="DefaultGlobal")
-    photon_map_caustic = StringProperty(
-                name="Global Caustic Map",
-                description="Name of gloabl caustics map",
-                default="DefaultCaustic")
-    
-    ptc_generate_auto = BoolProperty(
-                name="Generate Point Cloud Automatically",
-                description="Generate a point cloud before each render, when point cloud global illumation is enabled",
-                default=True)
-    ptc_path = StringProperty(
-                name="Point Cloud Path",
-                description="Path to the temporary pointcloud file",
-                default="$PTC/{scene}.ptc",
-                subtype='FILE_PATH')
-    ptc_coordsys = StringProperty(
-                name="Point Cloud Coordinate system",
-                description="Coordinate system to bake the point cloud in",
-                default="world")
-    ptc_shadingrate = FloatProperty(
-                name="Point Cloud Shading Rate",
-                description="Controls the amount of fine detail in the baked point cloud",
-                default=6)
-                
 
 class RendermanWorldSettings(bpy.types.PropertyGroup):
-
-    atmosphere_shaders = PointerProperty(
-                type=atmosphereShaders, name="Atmosphere Shader Settings")
-  
-    global_illumination = BoolProperty(
-                name="Global Illumination",
-                description="",
-                default=False)
-
-    gi_primary = PointerProperty(
-                type=RendermanGIPrimary, name="Primary GI Settings")
+    pass
     
-    gi_secondary = PointerProperty(
-                type=RendermanGISecondary, name="Secondary GI Settings")
-
-    integrator = PointerProperty(
-                type=RendermanIntegrator, name="Integrator Settings")
 	
     # BBM addition begin
     #coshaders = CollectionProperty(type=RendermanCoshader, name="World Co-Shaders")
@@ -819,21 +689,21 @@ class RendermanMaterialSettings(bpy.types.PropertyGroup):
                 description="Name of the shader node tree for this material",
                 default="")
 
-    surface_shaders = PointerProperty( 
-                type=surfaceShaders,
-                name="Surface Shader Settings")
+    # surface_shaders = PointerProperty( 
+    #             type=surfaceShaders,
+    #             name="Surface Shader Settings")
 
     displacement_shaders = PointerProperty(
                 type=displacementShaders,
                 name="Displacement Shader Settings")
 
-    interior_shaders = PointerProperty(
-                type=interiorShaders,
-                name="Interior Shader Settings")
+    # interior_shaders = PointerProperty(
+    #             type=interiorShaders,
+    #             name="Interior Shader Settings")
 
-    atmosphere_shaders = PointerProperty(
-                type=atmosphereShaders,
-                name="Atmosphere Shader Settings")
+    # atmosphere_shaders = PointerProperty(
+    #             type=atmosphereShaders,
+    #             name="Atmosphere Shader Settings")
 	
     #coshaders = CollectionProperty(type=RendermanCoshader, name="Material Co-Shaders")
     #coshaders_index = IntProperty(min=-1, default=-1)
@@ -845,20 +715,20 @@ class RendermanMaterialSettings(bpy.types.PropertyGroup):
                 precision=4,
                 default=0.5)
 
-    photon_shadingmodel = EnumProperty(
-                name="Photon Shading Model",
-                description="How the object appears to photons",
-                items=[('matte', 'Matte', 'Diffuse reflection'),
-                    ('chrome', 'Chrome', 'Perfect specular reflection'),
-                    ('water', 'Water', 'Perfect specular transmission'),
-                    ('glass', 'Glass', 'Perfect specular reflection/transmission'),
-                    ('transparent', 'Transparent', 'Pass through photons without refraction')], 
-                default='matte')
+    # photon_shadingmodel = EnumProperty(
+    #             name="Photon Shading Model",
+    #             description="How the object appears to photons",
+    #             items=[('matte', 'Matte', 'Diffuse reflection'),
+    #                 ('chrome', 'Chrome', 'Perfect specular reflection'),
+    #                 ('water', 'Water', 'Perfect specular transmission'),
+    #                 ('glass', 'Glass', 'Perfect specular reflection/transmission'),
+    #                 ('transparent', 'Transparent', 'Pass through photons without refraction')], 
+    #             default='matte')
 
-    inherit_world_atmosphere = BoolProperty(
-                name="Inherit from World",
-                description="Override this material's atmosphere shader with the world atmosphere shader",
-                default=True)
+    # inherit_world_atmosphere = BoolProperty(
+    #             name="Inherit from World",
+    #             description="Override this material's atmosphere shader with the world atmosphere shader",
+    #             default=True)
 
     preview_render_type = EnumProperty(
                 name="Preview Render Type",
@@ -871,47 +741,6 @@ class RendermanMaterialSettings(bpy.types.PropertyGroup):
                 description="Render a raytraced shadow in the material preview",
                 default=True)
 
-
-    # SSS Baking properties
-    sss_do_bake = BoolProperty(
-                name="Bake Subsurface Scattering",
-                description="Bake this object/group to a point cloud for SSS computation",
-                default=False)
-    sss_scale = FloatProperty(
-                name="Scale",
-                description="Conversion factor from scene scale to sss parameters (defined in millimetres)",
-                precision=4,
-                default=0.001)
-    sss_ior = FloatProperty(
-                name="IOR",
-                description="Index of refraction (higher values are denser)",
-                default=1.3)
-    sss_meanfreepath = FloatVectorProperty(
-                name="Radius",
-                description="The average distance that light will travel in the medium",
-                subtype="COLOR",
-                size=3,
-                default=[1.0,1.0,1.0])
-    sss_use_reflectance = BoolProperty(
-                name="Use SSS Reflectance",
-                description="Override default diffuse color with this color for SSS calculations",
-                default=False)
-    sss_reflectance = FloatVectorProperty(
-                name="Reflectance",
-                description="Diffuse reflectance",
-                subtype="COLOR",
-                size=3,
-                min=0,
-                max=0.99,
-                default=[0.8,0.8,0.8])
-    sss_shadingrate = FloatProperty(
-                name="SSS Shading Rate",
-                description="Controls the amount of irradiance samples taken during the precomputation phase",
-                default=8)
-    sss_group = StringProperty(
-                name="Subsurface Group",
-                description="Define a group of objects to be considered as the one solid object for SSS calculation. Default empty: this material only",
-                default="")
 
 class RendermanAnimSequenceSettings(bpy.types.PropertyGroup):
     animated_sequence = BoolProperty(
@@ -1536,10 +1365,8 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
 
 
 # collection of property group classes that need to be registered on module startup
-classes = [atmosphereShaders,
-            displacementShaders,
+classes = [displacementShaders,
             surfaceShaders,
-            interiorShaders,
             lightShaders,
             RendermanPath,
 			RendermanInlineRIB,
@@ -1549,12 +1376,6 @@ classes = [atmosphereShaders,
             RendermanPass,
             RendermanMeshPrimVar,
             RendermanParticlePrimVar,
-            GIPrimaryShaders,
-            GISecondaryShaders,
-            IntegratorShaders,
-            RendermanIntegrator,
-            RendermanGIPrimary,
-            RendermanGISecondary,
             RendermanMaterialSettings,
             RendermanAnimSequenceSettings,
             RendermanTextureSettings,

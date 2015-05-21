@@ -33,9 +33,6 @@ IntProperty, FloatProperty, FloatVectorProperty, CollectionProperty
 from .util import init_env
 from .util import getattr_recursive
 
-from .shader_parameters import rna_type_initialise
-from .shader_parameters import rna_types_initialise
-from .shader_parameters import get_shader_pointerproperty
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
 
@@ -69,103 +66,6 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         return {'FINISHED'}
 
-class SHADING_OT_init_parameters(bpy.types.Operator):
-    bl_idname = "shading.init_parameters"
-    bl_label = "Init Parameters"
-    bl_description = "Generate the Shader's parameters after changes"
-
-    shader_name = StringProperty(name="Shader Name")
-    attribute = StringProperty(name="Attribute to assign shader parameters to")
-    id_type = StringProperty(name="Type of ID data")
-
-    def execute(self, context):
-        shader_name = self.properties.shader_name
-        attribute = self.properties.attribute
-        id_type = self.properties.id_type
-        scene = context.scene
-
-        from .shader_parameters import shader_class
-
-        if id_type == 'WORLD':
-            shd_class = shader_class(scene, shader_name)
-            
-            rm = context.world.renderman
-            rmtype = type(rm)
-            from .properties import RendermanWorldSettings
-
-            rmtype.integrator2 = PointerProperty(type=shd_class, name="Shader Params")
-
-        return {'FINISHED'}
-
-
-
-
-class SHADING_OT_refresh_shader_parameters(bpy.types.Operator):
-    ''''''
-    bl_idname = "shading.refresh_shader_parameters"
-    bl_label = "Refresh Shader Parameters"
-    bl_description = "Re-generate the Shader's parameters after changes"
-
-    shader_type = StringProperty(name="Shader Type",
-        description="Type of shader to refresh (eg. surface, displacement, ...)",
-        default="")
-
-    initialise_all = bpy.props.BoolProperty(name='Initialise all Shaders', 
-        description='Initialise all shaders connected to blender data', default=False)
-        
-    def execute(self, context):
-        shader_type = self.properties.shader_type
-        scene = context.scene
-
-        # initialise all shaders
-        if self.properties.initialise_all:
-            rna_types_initialise(scene)
-            return {'FINISHED'}
-
-        # refresh parameters on active shader
-        if shader_type in ('surface', 'displacement', 'interior'):
-            ptr = context.material.renderman
-        elif shader_type == 'light':
-            ptr = context.lamp.renderman
-        elif shader_type == 'atmosphere':
-            ptr = context.world.renderman
-		
-        rna_type_initialise(scene, rm, shader_type, True)
-		
-		# I should really be updating the single parameter rather than the whole param list!!!
-        rna_type_initialise(scene, ptr, shader_type, True)
-        return {'FINISHED'}
-
-# BBM addition begin
-class SHADING_OT_refresh_coshader_list(bpy.types.Operator):
-    ''''''
-    bl_idname = "shading.refresh_coshader_list"
-    bl_label = "Refresh Coshader List"
-    bl_description = "Re-generates the available coshaders list"
-
-    shader_type = StringProperty(name="Shader Type",
-        description="Type of current coshader",
-        default="")
-
-    parameter_name = StringProperty(name="Param Name",
-        description="Name of coshader param to be updated",
-        default="")
-	
-    def execute(self, context):
-        shader_type = self.properties.shader_type
-        param_name = self.properties.parameter_name
-        #is_world_coshader = self.properties.is_world_coshader
-        scene = context.scene
-        if bpy.context.active_object.name in bpy.data.lamps.keys(): # lamp
-            lamp = bpy.data.lamps.get(bpy.context.active_object.name)
-            rm = lamp.renderman
-        else: # material
-            rm = bpy.context.active_object.active_material.renderman
-        print('----- refresh coshader list START')
-        rna_type_initialise(scene, rm, shader_type, True)
-        print('----- refresh coshader list END')
-        return {'FINISHED'}
-# BBM addition end
 
 class ExportRIBArchive(bpy.types.Operator, ExportHelper):
     ''''''

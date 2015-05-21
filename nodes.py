@@ -32,9 +32,7 @@ from nodeitems_utils import NodeCategory, NodeItem
 from .shader_parameters import class_generate_sockets
 from .shader_parameters import node_add_inputs
 from .shader_parameters import node_add_outputs
-from .shader_parameters import get_parameters_shaderinfo
-from .shader_parameters import ptr_to_shaderparameters
-from .shader_scan import args_files_in_path
+from .util import args_files_in_path
 from .util import get_path_list
 from .util import rib
 from operator import attrgetter
@@ -188,20 +186,6 @@ def generate_node_type(prefs, name, args):
     RendermanPatternGraph.nodetypes[typename] = ntype
 
 
-def node_shader_handle(nt, node):
-    return '%s_%s' % (nt.name, node.name)
-
-def socket_node_input(nt, socket):
-    return next((l.from_node for l in nt.links if l.to_socket == socket), None)
-
-def socket_socket_input(nt, socket):
-    return next((l.from_socket for l in nt.links if l.to_socket == socket and socket.is_linked), None)
-
-def linked_sockets(sockets):
-    if sockets == None:
-        return []
-    return [i for i in sockets if i.is_linked == True]
-
 
 
 # UI
@@ -346,79 +330,8 @@ class NODE_OT_add_input_node(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class NODE_OT_refresh_shader_parameters(bpy.types.Operator):
-    bl_idname = 'node.refresh_shader_parameters'
-    bl_label = 'Refresh Shader Parameters'
-    
-    def execute(self, context):
-        node = context.node
-        for i in node.inputs:
-            node.inputs.remove(i)
-        for o in node.outputs:
-            node.outputs.remove(o)
-
-        node.init(context)
-        return {'FINISHED'}
-    
-
 def rindex(l, item):
     return len(l)-1 - l[-1::-1].index(item) # slice notation reverses sequence
-
-class NODE_OT_add_array_socket(bpy.types.Operator):
-    bl_idname = 'node.add_array_socket'
-    bl_label = 'Add Array Socket'
-
-    array_name = bpy.props.StringProperty(name="Array Name",
-        description="Name of the shader array to add an additional socket to",
-        default="")
-
-    def execute(self, context):
-        node = context.node
-        array_name = self.properties.array_name
-    
-        nt = bpy.data.node_groups[context.active_object.material_slots[0].material.renderman.nodetree]
-
-        # copy existing inputs, in order to manipulate
-        inputs_data = [{'name':s.name, 'type':s.bl_idname, 'linked_output':socket_socket_input(nt, s)} for s in node.inputs]
-        
-        # add new input in requested position
-        names = [d['name'] for d in inputs_data]
-        idx = rindex(names, array_name)
-        inputs_data.insert(idx+1, { 'name':inputs_data[idx]['name'], 
-                                    'type':inputs_data[idx]['type'],
-                                    'linked_output':None
-                                    })
-        
-        # clear old sockets
-        for input in node.inputs:
-            node.inputs.remove(input)
-
-        # recreate with new ordering, and restore previous links
-        for i in inputs_data:
-            socket = node.inputs.new(i['type'], i['name'])
-            socket.array = True
-            if i['linked_output'] is not None:
-                nt.links.new(i['linked_output'], socket)
-
-        return {'FINISHED'}
-
-class NODE_OT_remove_array_socket(bpy.types.Operator):
-    bl_idname = 'node.remove_array_socket'
-    bl_label = 'Remove Array Socket'
-
-    array_name = bpy.props.StringProperty(name="Array Name",
-        description="Name of the shader array to add an additional socket to",
-        default="")
-
-    def execute(self, context):
-        node = context.node
-        array_name = self.properties.array_name    
-        nt = bpy.data.node_groups[context.active_object.material_slots[0].material.renderman.nodetree]
-
-        last_array_socket = [s for s in node.inputs if s.name == array_name][-1]
-        node.inputs.remove(last_array_socket)
-
-        return {'FINISHED'}
 
 
 def convert_types(some_type):
@@ -454,27 +367,6 @@ def shader_node_rib(ri, scene, node):
         #print(params)
         ri.Bxdf(node.bl_label, node.bl_idname, params)
 
-
-
-def node_gather_inputs(nt, node):
-    '''
-    Recursively gather a list of nodes by traversing the node tree backwards
-    from an initial node and following the links connected to its inputs
-    '''
-    input_nodes = []
-    
-    for isocket in linked_sockets(node.inputs):
-
-        # find input node via searching nodetree.links
-        input_node = socket_node_input(nt, isocket)
-
-        # recursively add the current node's inputs to the front of the list
-        input_nodes = node_gather_inputs(nt, input_node) + input_nodes
-
-        # and add the current input node itself
-        if input_node not in input_nodes:
-            input_nodes.append(input_node)
-    return input_nodes
 
 
 def export_shader_nodetree(ri, scene, id, output_node='bxdf', handle=None):

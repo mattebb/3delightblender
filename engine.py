@@ -50,22 +50,6 @@ from random import randint
 addon_version = bl_info['version']
 
 # global dictionaries
-from .shader_parameters import exclude_lamp_params
-
-# helper functions for parameters
-from .shader_parameters import shaderparameters_from_class
-from .shader_parameters import path_win_to_unixy
-from .shader_parameters import rna_to_shaderparameters
-from .shader_parameters import rna_types_initialise
-
-from .shader_parameters import shader_recompile
-
-from .shader_parameters import shader_requires_shadowmap
-
-from .shader_parameters import tex_source_path
-from .shader_parameters import tex_optimised_path
-
-from .nodes import export_shader_nodetree
 from .export import write_rib, write_preview_rib
 
 def init():
