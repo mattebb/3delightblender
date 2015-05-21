@@ -117,7 +117,7 @@ class RPass:
     
     
     def render(self, engine):
-        DELAY = 0.1
+        DELAY = 1
         render_output = self.paths['render_output']
         if os.path.exists(render_output):
             try:
@@ -126,9 +126,13 @@ class RPass:
                 print('error removing ' + render_output)
         
         #create command and start process
+
+        options = self.options
+        if self.scene.renderman.display_driver == 'blender':
+            options = options + ['-checkpoint', '1.0s']
         cmd = [os.path.join(self.paths['rmantree'], 'bin', \
                 self.paths['rman_binary'])] + self.options + \
-                [self.paths['rib_output']]
+                options + [self.paths['rib_output']]
         
         cdir = os.path.dirname(self.paths['rib_output'])
         environ = os.environ.copy()
