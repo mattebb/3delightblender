@@ -37,6 +37,7 @@ from .shader_parameters import ptr_to_shaderparameters
 from .shader_scan import args_files_in_path
 from .util import get_path_list
 from .util import rib
+from operator import attrgetter
 
 NODE_LAYOUT_SPLIT = 0.5
 
@@ -488,18 +489,29 @@ def register():
 
     #@persistent
     #def load_handler(dummy):
+    categories = {}
+
     for name, arg_file in args_files_in_path(prefs, None).items():
         generate_node_type(prefs, name, ET.parse(arg_file).getroot())
 
-
-
-    nodeitems = [NodeItem(nt) for nt in RendermanPatternGraph.nodetypes.keys()]
+    pattern_nodeitems = []
+    bxdf_nodeitems = []
+    for name, node_type in RendermanPatternGraph.nodetypes.items():
+        node_item = NodeItem(name, label=node_type.bl_label)
+        if node_type.renderman_node_type == 'pattern':
+            pattern_nodeitems.append(node_item)
+        elif node_type.renderman_node_type == 'bxdf':
+            bxdf_nodeitems.append(node_item)
+        
 
     # all categories in a list
     node_categories = [
         # identifier, label, items list
-        RendermanPatternNodeCategory("PRMan", "PRMan Nodes",  
-            items=nodeitems )
+        RendermanPatternNodeCategory("PRMan_bxdf", "PRMan Bxdfs",  
+            items=sorted(bxdf_nodeitems, key=attrgetter('_label')) ),
+        RendermanPatternNodeCategory("PRMan_patterns", "PRMan Patterns",  
+            items=sorted(pattern_nodeitems, key=attrgetter('_label')) )
+
         ]
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES", node_categories)
 
