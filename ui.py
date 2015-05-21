@@ -51,6 +51,13 @@ properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_render
 
+import bl_ui.properties_render as properties_render
+properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
+del properties_render
+
 import bl_ui.properties_material as properties_material
 properties_material.MATERIAL_PT_context_material.COMPAT_ENGINES.add(\
     'PRMAN_RENDER')
@@ -862,6 +869,110 @@ class MATERIAL_PT_renderman_shader_coshaders(ShaderPanel, Panel):
             self._draw_shader_menu_params(layout, context, item)         
             
 '''
+class RENDER_PT_layers(PRManButtonsPanel, Panel):
+    bl_label = "Layer List"
+    bl_context = "render_layer"
+    bl_options = {'HIDE_HEADER'}
+
+    def draw(self, context):
+        layout = self.layout
+
+        scene = context.scene
+        rd = scene.render
+        rl = rd.layers.active
+
+        row = layout.row()
+        row.template_list("RENDERLAYER_UL_renderlayers", "", rd, "layers", rd.layers, "active_index", rows=2)
+
+        col = row.column(align=True)
+        col.operator("scene.render_layer_add", icon='ZOOMIN', text="")
+        col.operator("scene.render_layer_remove", icon='ZOOMOUT', text="")
+
+        row = layout.row()
+        if rl:
+            row.prop(rl, "name")
+        row.prop(rd, "use_single_layer", text="", icon_only=True)
+
+
+class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
+    bl_label = "Layer"
+    bl_context = "render_layer"
+
+    def draw(self, context):
+        layout = self.layout
+
+        scene = context.scene
+        rd = scene.render
+        rl = rd.layers.active
+
+        split = layout.split()
+
+        col = split.column()
+        col.prop(scene, "layers", text="Scene")
+        col.prop(rl, "layers_exclude", text="Exclude")
+
+        col = split.column()
+        col.prop(rl, "layers", text="Layer")
+        col.prop(rl, "layers_zmask", text="Mask Layer")
+
+        split = layout.split()
+
+        col = split.column()
+        col.label(text="Material:")
+        col.prop(rl, "material_override", text="")
+        col.separator()
+        col.prop(rl, "samples")
+
+        col = split.column()
+        #col.prop(rl, "use_sky", "Use Environment")
+        #col.prop(rl, "use_solid", "Use Surfaces")
+        #col.prop(rl, "use_strand", "Use Hair")
+
+class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
+    bl_label = "Passes"
+    bl_context = "render_layer"
+    #bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+
+        scene = context.scene
+        rd = scene.render
+        rl = rd.layers.active
+
+        split = layout.split()
+
+        col = split.column()
+        col.prop(rl, "use_pass_combined")
+        col.prop(rl, "use_pass_z")
+        #col.prop(rl, "use_pass_mist")
+        col.prop(rl, "use_pass_normal")
+        col.prop(rl, "use_pass_vector")
+        col.prop(rl, "use_pass_uv")
+        col.prop(rl, "use_pass_object_index")
+        col.prop(rl, "use_pass_material_index")
+        col.prop(rl, "use_pass_shadow")
+
+        col = split.column()
+        col.label(text="Diffuse:")
+        row = col.row(align=True)
+        row.prop(rl, "use_pass_diffuse_direct", text="Direct", toggle=True)
+        row.prop(rl, "use_pass_diffuse_indirect", text="Indirect", toggle=True)
+        row.prop(rl, "use_pass_diffuse_color", text="Color", toggle=True)
+        col.label(text="Glossy:")
+        row = col.row(align=True)
+        row.prop(rl, "use_pass_glossy_direct", text="Direct", toggle=True)
+        row.prop(rl, "use_pass_glossy_indirect", text="Indirect", toggle=True)
+        row.prop(rl, "use_pass_glossy_color", text="Color", toggle=True)
+        col.label(text="Transmission:")
+        row = col.row(align=True)
+        row.prop(rl, "use_pass_transmission_direct", text="Direct", toggle=True)
+        row.prop(rl, "use_pass_transmission_indirect", text="Indirect", toggle=True)
+        row.prop(rl, "use_pass_transmission_color", text="Color", toggle=True)
+
+        col.prop(rl, "use_pass_emit", text="Emission")
+        col.prop(rl, "use_pass_environment")
+        col.prop(rl, "use_pass_ambient_occlusion")
 
 class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
     bl_space_type = 'PROPERTIES'
