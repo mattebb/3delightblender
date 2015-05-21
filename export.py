@@ -1737,6 +1737,41 @@ def export_display(ri, rpass, scene):
     rm = scene.renderman
     
     active_layer = scene.render.layers.active
+    aovs = [
+        #(name, do?, declare type/name, source)
+        ("z", active_layer.use_pass_z, None, None),
+        ("N", active_layer.use_pass_normal, None, None),
+        ("dPdtime", active_layer.use_pass_vector, None, None),
+        ("u,v", active_layer.use_pass_uv, None, None),
+        ("id", active_layer.use_pass_uv, "float", None),
+        #("lpe:shadows", active_layer.use_pass_shadow, "color", None),
+        #("reflection", active_layer.use_pass_shadow, "float id"),
+        ("lpe:diffuse", active_layer.use_pass_diffuse_direct, "color", None),
+        #("lpe:diffusedirect", active_layer.use_pass_diffuse_direct, "color", None),
+        ("lpe:indirectdiffuse", active_layer.use_pass_diffuse_indirect, 
+            "color", None),
+        ("albedo", active_layer.use_pass_diffuse_color, "color", 
+            "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O"),
+        ("lpe:specular", active_layer.use_pass_specular, "color", None),
+        #("lpe:diffuse", active_layer.use_pass_diffuse_direct, "color", None),
+        ("lpe:indirectspecular", active_layer.use_pass_glossy_indirect, 
+            "color", None),
+        #specular COLOR???("lpe:indirectdiffuse", active_layer.use_pass_diffuse_indirect, "color", None),
+        ("lpe:subsurface", active_layer.use_pass_subsurface_indirect, 
+            "color", None),
+        ("lpe:refraction", active_layer.use_pass_refraction, "color", None),
+        ("lpe:emission", active_layer.use_pass_emit, "color", None),
+        #("lpe:ambient occlusion", active_layer.use_pass_emit, "color", None),
+        
+    ]
+
+    #declare display channels
+    for aov, doit, declare_type, source in aovs:
+        if doit and declare_type:
+            params = {}
+            if source:
+                params['string source'] = source
+            ri.DisplayChannel('%s %s' % (declare_type, aov), params)
 
     dspy_driver = "tiff"
     main_display = os.path.basename(rpass.paths['render_output'])
@@ -1752,15 +1787,7 @@ def export_display(ri, rpass, scene):
                 {"quantize": [0, 0, 0, 0]})
 
     #now do aovs
-    #TODO ADD MORE AOVS
-    aovs = [
-        ("z", active_layer.use_pass_z),
-        ("N", active_layer.use_pass_normal),
-        ("dPdtime", active_layer.use_pass_vector),
-        ("u,v", active_layer.use_pass_uv)
-    ]
-
-    for aov, doit in aovs:
+    for aov, doit, declare, source in aovs:
         if doit:
             ri.Display('+' + image_base + '.%s.' % aov + ext, dspy_driver, aov, 
                 {"quantize": [0, 0, 0, 0]})

@@ -950,29 +950,24 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
         col.prop(rl, "use_pass_vector")
         col.prop(rl, "use_pass_uv")
         col.prop(rl, "use_pass_object_index")
-        col.prop(rl, "use_pass_material_index")
-        col.prop(rl, "use_pass_shadow")
+        #col.prop(rl, "use_pass_shadow")
+        #col.prop(rl, "use_pass_reflection")
 
         col = split.column()
         col.label(text="Diffuse:")
         row = col.row(align=True)
         row.prop(rl, "use_pass_diffuse_direct", text="Direct", toggle=True)
         row.prop(rl, "use_pass_diffuse_indirect", text="Indirect", toggle=True)
-        row.prop(rl, "use_pass_diffuse_color", text="Color", toggle=True)
-        col.label(text="Glossy:")
+        row.prop(rl, "use_pass_diffuse_color", text="Albedo", toggle=True)
+        col.label(text="Specular:")
         row = col.row(align=True)
         row.prop(rl, "use_pass_glossy_direct", text="Direct", toggle=True)
         row.prop(rl, "use_pass_glossy_indirect", text="Indirect", toggle=True)
-        row.prop(rl, "use_pass_glossy_color", text="Color", toggle=True)
-        col.label(text="Transmission:")
-        row = col.row(align=True)
-        row.prop(rl, "use_pass_transmission_direct", text="Direct", toggle=True)
-        row.prop(rl, "use_pass_transmission_indirect", text="Indirect", toggle=True)
-        row.prop(rl, "use_pass_transmission_color", text="Color", toggle=True)
-
+        
+        col.prop(rl, "use_pass_subsurface_indirect", text="Subsurface")
+        col.prop(rl, "use_pass_refraction", text="Refraction")
         col.prop(rl, "use_pass_emit", text="Emission")
-        col.prop(rl, "use_pass_environment")
-        col.prop(rl, "use_pass_ambient_occlusion")
+        #col.prop(rl, "use_pass_ambient_occlusion")
 
 class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
     bl_space_type = 'PROPERTIES'

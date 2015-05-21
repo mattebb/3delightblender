@@ -757,7 +757,7 @@ def class_generate_sockets(node_name, shaderparameters):
                 param_name = param_name[2:]
             if param_widget == 'fileInput':
                 socket_default = bpy.props.StringProperty(name=param_label, 
-                                default=param_default, subtype="FILE_NAME",
+                                default=param_default, subtype="FILE_PATH",
                                 description=param_help)
             elif param_widget == 'mapper':
                 socket_default = bpy.props.EnumProperty(name=param_label, 
