@@ -85,14 +85,42 @@ class RendermanPatternGraph(bpy.types.NodeTree):
 
 # Base class for all custom nodes in this tree type.
 # Defines a poll function to enable instantiation.
-class RendermanShadingNode:
+class RendermanShadingNode(bpy.types.Node):
+    prop_names = []
+    bl_label = 'Output'
+
     @classmethod
     def poll(cls, ntree):
         return ntree.bl_idname == 'RendermanPatternGraph'
 
+    # def draw_buttons(self, context, layout):
+    #     row = layout.row(align=True)
+    #     row.label("buttons")
+    #     #print(self.prop_names)
+    #     # for p in self.prop_names:
+    #     #     layout.prop(self, p)
+
+    #     # for sp in [p for p in args.params if p.meta['array']]:
+    #     #     row = layout.row(align=True)
+    #     #     row.label(sp.name)
+    #     #     row.operator("node.add_array_socket", text='', icon='ZOOMIN').array_name = sp.name
+    #     #     row.operator("node.remove_array_socket", text='', icon='ZOOMOUT').array_name = sp.name
+    
+    # def draw_buttons_ext(self, context, layout):
+    #     row = layout.row(align=True)
+    #     row.label("buttons ext")
+    #     layout.operator('node.refresh_shader_parameters', icon='FILE_REFRESH')
+    #     #print(self.prop_names)
+    #     # for p in self.prop_names:
+    #     #     layout.prop(self, p)
+    #     # for p in self.prop_names:
+    #     #     split = layout.split(NODE_LAYOUT_SPLIT)
+    #     #     split.label(p+':')
+    #     #     split.prop(self, p, text='')
+
 
 # Final output node, used as a dummy to find top level shaders
-class RendermanBxdfNode(bpy.types.Node, RendermanShadingNode):
+class RendermanBxdfNode(RendermanShadingNode):
     bl_label = 'Output'
     renderman_node_type = 'bxdf'
     #def init(self, context):
@@ -102,7 +130,7 @@ class RendermanBxdfNode(bpy.types.Node, RendermanShadingNode):
         #self.inputs.new('RendermanShaderSocket', "Atmosphere")
 
 # Final output node, used as a dummy to find top level shaders
-class RendermanPatternNode(bpy.types.Node, RendermanShadingNode):
+class RendermanPatternNode(RendermanShadingNode):
     bl_label = 'Texture'
     renderman_node_type = 'pattern'
     #def init(self, context):
@@ -111,7 +139,7 @@ class RendermanPatternNode(bpy.types.Node, RendermanShadingNode):
         #self.inputs.new('RendermanShaderSocket', "Interior")
         #self.inputs.new('RendermanShaderSocket', "Atmosphere")
 
-class RendermanLightNode(bpy.types.Node, RendermanShadingNode):
+class RendermanLightNode(RendermanShadingNode):
     bl_label = 'Output'
     renderman_node_type = 'light'
     #def init(self, context):
@@ -136,27 +164,14 @@ def generate_node_type(prefs, name, args):
     ntype.typename = typename
     ntype.rman_type = nodeType
 
+    inputs = [p for p in args.findall('./param')]
+    outputs = [p for p in args.findall('.//output')]
+
     def init(self, context):
-        node_add_inputs(self, name, [p for p in args.findall('./param')])
-        node_add_outputs(self, [p for p in args.findall('./output')])
+        node_add_inputs(self, name, inputs)
+        node_add_outputs(self, outputs)
     
-    def draw_buttons(self, context, layout):
-        #for p in self.prop_names:
-        #    layout.prop(self, p)
-
-        for sp in [p for p in args.params if p.meta['array']]:
-            row = layout.row(align=True)
-            row.label(sp.name)
-            row.operator("node.add_array_socket", text='', icon='ZOOMIN').array_name = sp.name
-            row.operator("node.remove_array_socket", text='', icon='ZOOMOUT').array_name = sp.name
     
-    def draw_buttons_ext(self, context, layout):
-        layout.operator('node.refresh_shader_parameters', icon='FILE_REFRESH')
-
-        for p in self.prop_names:
-            split = layout.split(NODE_LAYOUT_SPLIT)
-            split.label(p+':')
-            split.prop(self, p, text='')
 
     ntype.init = init
     #ntype.draw_buttons = draw_buttons
@@ -164,8 +179,8 @@ def generate_node_type(prefs, name, args):
     
     ntype.plugin_name = bpy.props.StringProperty(name='Plugin Name', default=name, options={'HIDDEN'})
     #ntype.prop_names = class_add_properties(ntype, [p for p in args.findall('./param')])
-    class_generate_sockets(name, [p for p in args.findall('./param')])
-
+    ntype.prop_names = class_generate_sockets(ntype, inputs)
+    
     #print(ntype, ntype.bl_rna.identifier)
     bpy.utils.register_class(ntype)
 

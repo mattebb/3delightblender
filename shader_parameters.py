@@ -668,8 +668,14 @@ class RendermanNodeSocket(bpy.types.NodeSocket):
     def draw_color( self, context, node):
         return (0.8, 0.8, 0.5, 1)
 
+#some args have 1.0f, some dont.  Python doesn't know what to do!
+def parse_float(fs):
+    return float(fs[:-1]) if 'f' in fs else float(fs)
 
-def class_generate_sockets(node_name, shaderparameters):
+def class_generate_sockets(node_type, shaderparameters):
+    
+    node_name = node_type.bl_label
+    prop_names = []
     for sp in shaderparameters:
         options = {'ANIMATABLE'}
         param_name = sp.attrib['name']
@@ -682,17 +688,13 @@ def class_generate_sockets(node_name, shaderparameters):
         # BBM addition end
 
         typename = "Renderman.%s.%s" %(node_name,param_name)
-        socket_type = type(typename, (RendermanNodeSocket,), {})
-        socket_type.bl_idname = typename
-        socket_type.bl_label = param_label
-        socket_type.renderman_name = param_name
+        
 
         #socket_type.typename = typename
         #socket_type.draw = draw
         #socket_type.draw_color = draw_color
 
         param_type = sp.attrib['type']
-        socket_type.renderman_type = param_type
         param_help = ""
         #print(sp.attrib)
         socket_value = None
@@ -703,7 +705,7 @@ def class_generate_sockets(node_name, shaderparameters):
             param_help = sp.find('help').text
 
         if param_type == 'float':
-            param_default = float(param_default[:-1]) if 'f' in param_default else float(param_default)
+            param_default = parse_float(param_default)
             if param_widget == 'checkbox':
                 socket_default = bpy.props.BoolProperty(name=param_label, 
                     default=bool(param_default), description=param_help)
@@ -711,19 +713,19 @@ def class_generate_sockets(node_name, shaderparameters):
             elif param_widget == 'mapper':
                 socket_default = bpy.props.EnumProperty(name=param_label, 
                         items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'float'),
-                                        default=str(param_default),
+                                        default=sp.attrib['default'],
                                         description=param_help)
                 
             else:
-                param_min = float(sp.attrib['min']) if 'min' in sp.attrib else 0.0
-                param_max = float(sp.attrib['max']) if 'max' in sp.attrib else 1.0
+                param_min = parse_float(sp.attrib['min']) if 'min' in sp.attrib else 0.0
+                param_max = parse_float(sp.attrib['max']) if 'max' in sp.attrib else 1.0
                 socket_default = bpy.props.FloatProperty(name=param_label, 
                         default=param_default, precision=3,
                         min=param_min, max=param_max,
                         description=param_help)
                 
         if param_type == 'int':
-            param_default = int(param_default)
+            param_default = int(param_default) if param_default else 0
             if param_widget == 'checkbox':
                 socket_default = bpy.props.BoolProperty(name=param_label, 
                     default=bool(param_default), description=param_help)
@@ -731,7 +733,7 @@ def class_generate_sockets(node_name, shaderparameters):
             elif param_widget == 'mapper':
                 socket_default = bpy.props.EnumProperty(name=param_label, 
                         items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'int'),
-                                        default=str(param_default),
+                                        default=sp.attrib['default'],
                                         description=param_help)
             else:
                 param_min = int(sp.attrib['min']) if 'min' in sp.attrib else 0
@@ -745,7 +747,7 @@ def class_generate_sockets(node_name, shaderparameters):
         elif param_type == 'color':
             if param_default == 'null':
                 param_default = '0 0 0'
-            param_default = [float(c) for c in param_default.split()]
+            param_default = [float(c) for c in param_default.replace(',', ' ').split()]
             socket_default = bpy.props.FloatVectorProperty(name=param_label, 
                                         default=param_default, size=3,
                                         subtype="COLOR",
@@ -755,7 +757,7 @@ def class_generate_sockets(node_name, shaderparameters):
                 param_default = ''
             if '__' in param_name:
                 param_name = param_name[2:]
-            if param_widget == 'fileInput':
+            if param_widget == 'fileinput':
                 socket_default = bpy.props.StringProperty(name=param_label, 
                                 default=param_default, subtype="FILE_PATH",
                                 description=param_help)
@@ -769,30 +771,31 @@ def class_generate_sockets(node_name, shaderparameters):
                                 description=param_help)
                                         
         elif param_type == 'vector' or param_type == 'normal':
+            if param_default == None:
+                param_default = '0 0 0'
             param_default = [float(v) for v in param_default.split()]
             socket_default = bpy.props.FloatVectorProperty(name=param_label, 
                                         default=param_default, size=3,
                                         subtype="EULER",
                                         description=param_help)
-
+        connectable = True
+        tags = sp.find('tags')
+        if tags and tags.find('tag').attrib['value'] == "__noconnection":
+            connectable = False
+        
+        socket_type = type(typename, (RendermanNodeSocket,), {})
+        socket_type.bl_idname = typename
+        socket_type.bl_label = param_label
+        socket_type.renderman_name = param_name
+        socket_type.renderman_type = param_type
+        
         setattr(socket_type, 'default_value', socket_default)
         setattr(socket_type, 'value', socket_default)
-        bpy.utils.register_class(socket_type)
+        setattr(socket_type, 'connectable', connectable)
 
-        '''
-        #BBM addition begin
-        elif sp.data_type == 'shader':
-            if sp.is_array == 0:
-                setattr(new_class, sp.pyname, bpy.props.EnumProperty(name=sp.label, items=sp_shaderlist_to_string( scene, rmptr ),
-                                        options=options, description=sp.hint, update=sp.update))
-        
-            else:
-                setattr(new_class, sp.pyname, bpy.props.CollectionProperty(name=sp.label, type=RendermanCoshader, options=options, description=sp.hint))
-                setattr(new_class , 'bl_hidden_%s_index' % sp.pyname, bpy.props.IntProperty(name=sp.label, default=int(-1), subtype="FACTOR",
-                                        options=options, description=sp.hint, update=sp.update))
-                setattr(new_class, 'bl_hidden_%s_menu' % sp.pyname, bpy.props.EnumProperty(name=sp.label, items=sp_shaderlist_to_string( scene, rmptr ),
-                                        options=options, description=sp.hint, update=sp.update))
-        '''
+        bpy.utils.register_class(socket_type)
+    
+
 
 
 def node_add_inputs(node, node_name, shaderparameters):
