@@ -714,7 +714,7 @@ def class_generate_sockets(node_name, shaderparameters):
                                         default=str(param_default),
                                         description=param_help)
                 
-            elif param_widget == 'default':
+            else:
                 param_min = float(sp.attrib['min']) if 'min' in sp.attrib else 0.0
                 param_max = float(sp.attrib['max']) if 'max' in sp.attrib else 1.0
                 socket_default = bpy.props.FloatProperty(name=param_label, 
@@ -733,7 +733,7 @@ def class_generate_sockets(node_name, shaderparameters):
                         items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'int'),
                                         default=str(param_default),
                                         description=param_help)
-            elif param_widget == 'default':
+            else:
                 param_min = int(sp.attrib['min']) if 'min' in sp.attrib else 0
                 param_max = int(sp.attrib['max']) if 'max' in sp.attrib else 2**31-1
                 socket_default = bpy.props.IntProperty(name=param_label, 
@@ -763,7 +763,7 @@ def class_generate_sockets(node_name, shaderparameters):
                 socket_default = bpy.props.EnumProperty(name=param_label, 
                         default=param_default, description=param_help, 
                         items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'string'))
-            elif param_widget == 'default' or param_widget == 'string':
+            else:
                 socket_default = bpy.props.StringProperty(name=param_label, 
                                 default=param_default, 
                                 description=param_help)
