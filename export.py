@@ -1754,9 +1754,9 @@ def export_display(ri, rpass, scene):
     #now do aovs
     #TODO ADD MORE AOVS
     aovs = [
-        ("z", active_layer.use_pass_z)
-        ("N", active_layer.use_pass_normal)
-        ("dPdtime", active_layer.use_pass_vector)
+        ("z", active_layer.use_pass_z),
+        ("N", active_layer.use_pass_normal),
+        ("dPdtime", active_layer.use_pass_vector),
         ("u,v", active_layer.use_pass_uv)
     ]
 
