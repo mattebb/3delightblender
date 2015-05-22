@@ -46,18 +46,15 @@ class PRManRender(bpy.types.RenderEngine):
     bl_use_save_buffers = True
 
     def __init__(self):
-        #print('initing')
         self.render_pass = None
         
     def __del__(self):
-        #print('deleting')
         engine.free(self)
         
 
     # main scene render
     def update(self, data, scene):
         if self.is_preview:
-            #print('preview')
             if not self.render_pass:
                 engine.create(self, data, scene)
         else:
@@ -67,14 +64,18 @@ class PRManRender(bpy.types.RenderEngine):
                 engine.reset(self, data, scene)
         
         engine.update(self, data, scene)
-        #print('updated scene, wrote rib')
-
+        
     def render(self, scene):
-        #print('rendering')
         engine.render(self)
-        #print('done rendering')
+        
+    def view_update(self, context=None):
+        if not self.render_pass:
+            engine.create(self, data, context.scene)
+            engine.start_interactive(self)
+        else:
+            engine.update_interactive(context)
 
-    
+        
     #TODO
     # view_update for rerendering
     # view_draw for rerendering

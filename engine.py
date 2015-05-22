@@ -61,6 +61,8 @@ def create(engine, data, scene, region=0, space_data=0, region_data=0):
 
 def free(engine):
     if hasattr(engine, 'render_pass'):
+        if engine.render_pass.is_interactive_running:
+            engine.render_pass.end_interactive()
         if engine.render_pass:
             del engine.render_pass
 
@@ -76,6 +78,13 @@ def update(engine, data, scene):
         engine.render_pass.gen_preview_rib()
     else:
         engine.render_pass.gen_rib()
+
+#assumes you have already set the scene
+def start_interactive(engine):
+    engine.render_pass.start_interactive()
+
+def update_interactive(context):
+    engine.render_pass.issue_edits(context)
 
 
 class RPass:    
@@ -204,10 +213,26 @@ class RPass:
     def set_scene(self, scene):
         self.scene = scene
 
+    #start the interactive session.  Basically the same as ribgen, only 
+    #save the file
+    def start_interactive(self):
+        pass
+
+    #search through context.scene for is_updated
+    #use edit world begin
+    def issue_edits(context):
+        pass
+
+    #ri.end
+    def end_interactive(self):
+        pass
+
     def gen_rib(self):
         write_rib(self, self.scene, self.ri)
 
     def gen_preview_rib(self):
         write_preview_rib(self, self.scene, self.ri)
+
+
 
 
