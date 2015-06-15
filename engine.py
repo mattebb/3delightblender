@@ -94,6 +94,7 @@ class RPass:
         self.initialize_paths(scene)
         
         self.do_render = True
+        self.is_interactive_running = False
         self.options = []
         prman.Init()
         self.ri = prman.Ri()
