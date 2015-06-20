@@ -737,38 +737,25 @@ class ShaderNodePanel():
         return False
 
 
-class MATERIAL_PT_renderman_shader_surface_node(ShaderNodePanel, Panel):
-    bl_label = "Surface Shader Nodes"
-    bl_context = "material"
-
-    def draw(self, context):
-        nt = bpy.data.node_groups[context.material.renderman.nodetree]
-        draw_nodes_properties_ui(self.layout, context, nt, input_name='Surface')
-
-class MATERIAL_PT_renderman_shader_displacement_node(ShaderNodePanel, Panel):
-    bl_label = "Displacement Shader Nodes"
-    bl_context = "material"
-
-    def draw(self, context):
-        nt = bpy.data.node_groups[context.material.renderman.nodetree]
-        draw_nodes_properties_ui(self.layout, context, nt, input_name='Displacement')
-
-
 class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
     bl_context = "material"
-    bl_label = "Surface Shader"
-    shader_type = 'surface'
+    bl_label = "Bxdf"
+    shader_type = 'Bxdf'
 
     def draw(self, context):
-        layout = self.layout
-        mat = context.material
-        rm = mat.renderman
-        
-        row = layout.row()
-        row.prop(mat, "diffuse_color")
-        row.prop(mat, "alpha")
-        
-        layout.separator()
+        if context.material.renderman and context.material.renderman.nodetree:
+            nt = bpy.data.node_groups[context.material.renderman.nodetree]
+            draw_nodes_properties_ui(self.layout, context, nt, input_name=self.shader_type)
+        else:
+            #if no nodetree we use pxrdisney
+            layout = self.layout
+            mat = context.material
+            rm = mat.renderman
+            
+            row = layout.row()
+            row.prop(mat, "diffuse_color")
+            
+            layout.separator()
         
         #self._draw_shader_menu_params(layout, context, rm)
 

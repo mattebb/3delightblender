@@ -100,6 +100,7 @@ class RendermanNodeSocket(bpy.types.NodeSocket):
 
     default_value = None
     value = None
+    ui_open = None
 
     # Optional function for drawing the socket input value
     def draw(self, context, layout, node, text):
@@ -235,6 +236,7 @@ def class_generate_sockets(node_type, shaderparameters):
         setattr(socket_type, 'default_value', socket_default)
         setattr(socket_type, 'value', socket_default)
         setattr(socket_type, 'connectable', connectable)
+        setattr(socket_type, 'ui_open', bpy.props.BoolProperty(name='UI Open', default=True))
 
         bpy.utils.register_class(socket_type)
     
@@ -242,8 +244,6 @@ def class_generate_sockets(node_type, shaderparameters):
 
 
 def node_add_inputs(node, node_name, shaderparameters):
-    
-
     for sp in shaderparameters:
         param_type = sp.attrib['type']
         param_name = sp.attrib['name']

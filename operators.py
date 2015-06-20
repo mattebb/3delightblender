@@ -59,8 +59,12 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         nt.use_fake_user = True
         idblock.renderman.nodetree = nt.name
 
-        #if idtype == 'material':
-        #    nt.nodes.new('OutputShaderNode')
+        if idtype == 'material':
+            output = nt.nodes.new('RendermanOutputNode')
+            default = nt.nodes.new('PxrDisneyBxdfNode')
+            default.location = output.location
+            default.location[0] -= 300
+            nt.links.new(default.outputs[0], output.inputs[0])
         #else:
         #    nt.nodes.new('OutputLightShaderNode')
 
