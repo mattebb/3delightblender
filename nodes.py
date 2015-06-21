@@ -524,14 +524,14 @@ def shader_node_rib(ri, scene, node):
 
 
 
-def export_shader_nodetree(ri, scene, id, output_node='bxdf', handle=None):
+def export_shader_nodetree(ri, scene, id, output_node='output', handle=None):
     nt = bpy.data.node_groups[id.renderman.nodetree]
 
     out = next((n for n in nt.nodes if n.renderman_node_type == output_node), None)
     if out is None: return
     
     ri.ArchiveRecord('comment', "Shader Graph")
-    shader_node_rib(ri, scene, out)
+    shader_node_rib(ri, scene, out.inputs['Bxdf'])
 
     
 
