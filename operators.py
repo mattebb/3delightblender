@@ -65,8 +65,24 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             default.location = output.location
             default.location[0] -= 300
             nt.links.new(default.outputs[0], output.inputs[0])
-        #else:
-        #    nt.nodes.new('OutputLightShaderNode')
+        else:
+            
+            light_type = idblock.type
+            light_shader = 'PxrStdAreaLightLightNode'
+            if light_type == 'SUN':
+                light_shader = 'PxrStdEnvDayLightLightNode'
+            elif light_type == 'HEMI':
+                light_shader = 'PxrStdEnvMapLightLightNode'
+
+            output = nt.nodes.new('RendermanOutputNode')
+            default = nt.nodes.new(light_shader)
+            default.location = output.location
+            default.location[0] -= 300
+            nt.links.new(default.outputs[0], output.inputs[1])
+            #default = nt.nodes.new('PxrAreaLightNode')
+            #default.location = output.location
+            #default.location[0] -= 300
+            #nt.links.new(default.outputs[0], output.inputs[0])
 
         return {'FINISHED'}
 

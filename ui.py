@@ -715,7 +715,8 @@ class MATERIAL_PT_renderman_preview(Panel):
         #col.prop(rm, "preview_render_type", text="", expand=True)
         #col.menu("MATERIAL_MT_renderman_preview_specials", icon='DOWNARROW_HLT', text="")
         
-from .nodes import draw_nodes_properties_ui
+from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
+
 
 
 class ShaderNodePanel():
@@ -1159,17 +1160,6 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
 
 
 
-class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
-    bl_label = "Light Shader Nodes"
-    bl_context = 'data'
-
-    def draw(self, context):
-        layout = self.layout
-        lamp = context.lamp
-        
-        nt = bpy.data.node_groups[lamp.renderman.nodetree]
-        draw_nodes_properties_ui(self.layout, context, nt, input_name='LightSource', output_node='OutputLightShaderNode')
-
 class DATA_PT_renderman_lamp(ShaderPanel, Panel):
     bl_context = "data"
     bl_label = "Lamp"
@@ -1181,37 +1171,60 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
 
         lamp = context.lamp
 
+        
+
         if lamp.renderman.nodetree == '':
+            layout.prop(lamp, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype='lamp'
             return
+        else:
+            layout.prop(lamp.renderman, "renderman_type", expand=True)
+            layout.prop(lamp.renderman, "shadingrate")
+            
         
         layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
         
 
-        rm = context.lamp.renderman
-        scene = context.scene
-        wide_ui = context.region.width > narrowui
+class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
+    bl_label = "Light Shader"
+    bl_context = 'data'
 
-        col = layout.column()
-        col.prop(rm.light_shaders, "active")
-        sub = col.column()
-        sub.active = rm.light_shaders.active not in \
-            ('shadowspot', 'spotlight', 'pointlight', 'h_distantshadow', 'ambientlight')
-
-        if wide_ui:            
-            sub.row().prop(lamp, "type", expand=True)
-        else:
-            sub.prop(lamp, "type", text="")
-
-        split = layout.split()
-
-        col = split.column()
-        col.prop(lamp, "color", text="")
-        col.prop(rm, "illuminates_by_default")
-        col.prop(rm, "emit_photons")
+    def draw(self, context):
+        layout = self.layout
+        lamp = context.lamp
         
-        col = split.column()
-        col.prop(lamp, "energy")
+        nt = bpy.data.node_groups[lamp.renderman.nodetree]
+        output_node = next((n for n in nt.nodes if n.renderman_node_type == 'output'), None)
+        lamp_node = output_node.inputs['Light'].links[0].from_node
+        if lamp_node:
+            draw_node_properties_recursive(self.layout, context, nt, lamp_node)
+
+
+
+        # rm = context.lamp.renderman
+        # scene = context.scene
+        # wide_ui = context.region.width > narrowui
+
+        # col = layout.column()
+        # col.prop(rm.light_shaders, "active")
+        # sub = col.column()
+        # sub.active = rm.light_shaders.active not in \
+        #     ('shadowspot', 'spotlight', 'pointlight', 'h_distantshadow', 'ambientlight')
+
+        # if wide_ui:            
+        #     sub.row().prop(lamp, "type", expand=True)
+        # else:
+        #     sub.prop(lamp, "type", text="")
+
+        # split = layout.split()
+
+        # col = split.column()
+        # col.prop(lamp, "color", text="")
+        # col.prop(rm, "illuminates_by_default")
+        # col.prop(rm, "emit_photons")
+        
+        # col = split.column()
+        # col.prop(lamp, "energy")
 		
         # self._draw_shader_menu_params(layout, context, rm) # BBM modification
         #self._draw_params(scene, lamp.renderman, layout)

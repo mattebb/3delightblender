@@ -517,13 +517,13 @@ def export_light(rpass, scene, ri, ob):
 
     loc = m.to_translation()
     lvec = loc - (m.to_quaternion() * Vector((0,0,1)))
-    
+
     params = []
     
     ri.AttributeBegin()
     ri.TransformBegin()
     ri.Transform(rib(m))
-    ri.ShadingRate(100)
+    ri.ShadingRate(rm.shadingrate)
 
     def point():
         ri.Sphere(.1, -.1, .1, 360)
@@ -553,7 +553,10 @@ def export_light(rpass, scene, ri, ob):
         params["color lightcolor"] = rib(lamp.color)
         params["string shape"] = [shapes[lamp.type][0]]
     
-    ri.AreaLightSource(name, params)
+    if rm.nodetree != '':
+        export_shader_nodetree(ri, scene, lamp, output_node_type="Light", handle=handle)
+    else:
+        ri.AreaLightSource(name, params)
     shapes[lamp.type][1]()
     
     # BBM addition begin

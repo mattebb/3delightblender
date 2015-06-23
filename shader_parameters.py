@@ -101,6 +101,7 @@ class RendermanNodeSocket(bpy.types.NodeSocket):
     default_value = None
     value = None
     ui_open = None
+    is_array = False
 
     # Optional function for drawing the socket input value
     def draw(self, context, layout, node, text):
@@ -116,9 +117,10 @@ class RendermanNodeSocket(bpy.types.NodeSocket):
 def parse_float(fs):
     return float(fs[:-1]) if 'f' in fs else float(fs)
 
-def class_generate_sockets(node_type, shaderparameters):
+def class_generate_sockets(node_type, shaderparameters, node_connectable=True):
     
     node_name = node_type.bl_label
+    #print (node_name)
     prop_names = []
     for sp in shaderparameters:
         options = {'ANIMATABLE'}
@@ -137,38 +139,52 @@ def class_generate_sockets(node_type, shaderparameters):
         #socket_type.typename = typename
         #socket_type.draw = draw
         #socket_type.draw_color = draw_color
-
-        param_type = sp.attrib['type']
+        param_type = 'float' #for default. Some args files are sloppy
+        if 'type' in sp.attrib:
+            param_type = sp.attrib['type']
         param_help = ""
         #print(sp.attrib)
         socket_value = None
         socket_default = None
+        is_array = False
+
+        #fix for "integer" types in args
+        if param_type == 'integer':
+            param_type = 'int'
 
         param_default = sp.attrib['default'] if 'default' in sp.attrib else None
         if sp.find('help'):
             param_help = sp.find('help').text
 
         if param_type == 'float':
-            param_default = parse_float(param_default)
-            if param_widget == 'checkbox':
-                socket_default = bpy.props.BoolProperty(name=param_label, 
-                    default=bool(param_default), description=param_help)
-                                                
-            elif param_widget == 'mapper':
-                socket_default = bpy.props.EnumProperty(name=param_label, 
-                        items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'float'),
-                                        default=sp.attrib['default'],
-                                        description=param_help)
-                
+            if 'arraySize' in sp.attrib.keys():
+                param_default = tuple(float(f) for f in sp.attrib['default'].split(','))
+                is_array = len(param_default)
+                socket_default = bpy.props.FloatVectorProperty(name=param_label, 
+                            default=param_default, precision=3,
+                            min=param_min, max=param_max, size=len(param_default),
+                            description=param_help)
             else:
-                param_min = parse_float(sp.attrib['min']) if 'min' in sp.attrib else 0.0
-                param_max = parse_float(sp.attrib['max']) if 'max' in sp.attrib else 1.0
-                socket_default = bpy.props.FloatProperty(name=param_label, 
-                        default=param_default, precision=3,
-                        min=param_min, max=param_max,
-                        description=param_help)
+                param_default = parse_float(param_default)
+                if param_widget == 'checkbox':
+                    socket_default = bpy.props.BoolProperty(name=param_label, 
+                        default=bool(param_default), description=param_help)
+                                                    
+                elif param_widget == 'mapper':
+                    socket_default = bpy.props.EnumProperty(name=param_label, 
+                            items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'float'),
+                                            default=sp.attrib['default'],
+                                            description=param_help)
+                    
+                else:
+                    param_min = parse_float(sp.attrib['min']) if 'min' in sp.attrib else 0.0
+                    param_max = parse_float(sp.attrib['max']) if 'max' in sp.attrib else 1.0
+                    socket_default = bpy.props.FloatProperty(name=param_label, 
+                            default=param_default, precision=3,
+                            min=param_min, max=param_max,
+                            description=param_help)
                 
-        if param_type == 'int':
+        elif param_type == 'int':
             param_default = int(param_default) if param_default else 0
             if param_widget == 'checkbox':
                 socket_default = bpy.props.BoolProperty(name=param_label, 
@@ -199,8 +215,8 @@ def class_generate_sockets(node_type, shaderparameters):
         elif param_type == 'string' or param_type == 'struct':
             if param_default == None:
                 param_default = ''
-            if '__' in param_name:
-                param_name = param_name[2:]
+            #if '__' in param_name:
+            #    param_name = param_name[2:]
             if param_widget == 'fileinput':
                 socket_default = bpy.props.StringProperty(name=param_label, 
                                 default=param_default, subtype="FILE_PATH",
@@ -222,9 +238,17 @@ def class_generate_sockets(node_type, shaderparameters):
                                         default=param_default, size=3,
                                         subtype="EULER",
                                         description=param_help)
-        connectable = True
+        elif param_type == 'int[2]':
+            param_type = 'int'
+            param_default = tuple(int(i) for i in sp.attrib['default'].split(','))
+            is_array = 2
+            socket_default = bpy.props.IntVectorProperty(name=param_label, 
+                                        default=param_default, size=2,
+                                        description=param_help)
+        connectable = node_connectable
         tags = sp.find('tags')
-        if tags and tags.find('tag').attrib['value'] == "__noconnection":
+        if tags and tags.find('tag').attrib['value'] == "__nonconnection" or \
+            ("connectable" in sp.attrib and sp.attrib['connectable'] == 'false'):
             connectable = False
         
         socket_type = type(typename, (RendermanNodeSocket,), {})
@@ -235,6 +259,7 @@ def class_generate_sockets(node_type, shaderparameters):
         
         setattr(socket_type, 'default_value', socket_default)
         setattr(socket_type, 'value', socket_default)
+        setattr(socket_type, 'is_array', is_array)
         setattr(socket_type, 'connectable', connectable)
         setattr(socket_type, 'ui_open', bpy.props.BoolProperty(name='UI Open', default=True))
 
@@ -245,7 +270,9 @@ def class_generate_sockets(node_type, shaderparameters):
 
 def node_add_inputs(node, node_name, shaderparameters):
     for sp in shaderparameters:
-        param_type = sp.attrib['type']
+        param_type = 'float'
+        if 'type' in sp.attrib.keys():
+            param_type = sp.attrib['type']
         param_name = sp.attrib['name']
         param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
         socket_typename = "Renderman.%s.%s" %(node_name,param_name)

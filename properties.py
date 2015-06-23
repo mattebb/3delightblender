@@ -906,6 +906,54 @@ class RendermanTextureSettings(bpy.types.PropertyGroup):
                 default=True)
 
 class RendermanLightSettings(bpy.types.PropertyGroup):
+    
+    #do this to keep the nice viewport update
+    def update_light_type(self, context):
+        lamp = context.lamp
+        if lamp.renderman.renderman_type in ['SKY', 'ENV']:
+            lamp.type = 'HEMI'
+        else:
+            lamp.type = lamp.renderman.renderman_type
+
+        light_type = lamp.renderman.renderman_type
+        #use pxr area light for everything but env, sky
+        light_shader = 'PxrStdAreaLightLightNode'
+        if light_type == 'ENV':
+            light_shader = 'PxrStdEnvMapLightLightNode'
+        elif light_type == 'SKY':
+            light_shader = 'PxrStdEnvDayLightLightNode'
+
+        #find the existing or make a new light shader node
+        nt = bpy.data.node_groups[lamp.renderman.nodetree]
+        output = None
+        for node in nt.nodes:
+            if node.renderman_node_type == 'output':
+                output = node
+                break
+        for node in nt.nodes:
+            if hasattr(node, 'typename') and node.typename == light_shader:
+                nt.links.remove(output.inputs['Light'].links[0])
+                nt.links.new(node.outputs[0], output.inputs['Light'])
+                break
+        else:
+            light = nt.nodes.new(light_shader)
+            light.location = output.location
+            light.location[0] -= 300
+            nt.links.remove(output.inputs['Light'].links[0])
+            nt.links.new(light.outputs[0], output.inputs['Light'])
+        
+
+
+    renderman_type = EnumProperty(
+            name="Light Type", 
+            update=update_light_type,
+            items=[('AREA', 'Area', 'Area Light'),
+                    ('ENV', 'Environment', 'Environment Light'),
+                    ('SKY', 'Sky', 'Simulated Sky'), 
+                    ('SPOT', 'Spot', 'Spot Light'),
+                    ('POINT', 'Point', 'Point Light')],
+                default='AREA'
+        )
 
     nodetree = StringProperty(
                 name="Node Tree",
@@ -961,9 +1009,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                 min=0, max=16, default=2)
 
     shadingrate = FloatProperty(
-                name="Shading Rate",
-                description="Maximum distance between shading samples when rendering a shadow map (lower = more detailed shading)",
-                default=1.0)         
+                name="Light Shading Rate",
+                description="Shading Rate for lights.  Keep this high unless needed for using detailed maps",
+                default=100.0)         
 
     ortho_scale = FloatProperty(
                 name="Ortho Scale",

@@ -207,7 +207,7 @@ def user_path(path, scene=None, ob=None):
 def rib(v):
 
     # float, int
-    if type(v) in (mathutils.Vector, mathutils.Color): 
+    if type(v) in (mathutils.Vector, mathutils.Color) or v.__class__.__name__ == 'bpy_prop_array': 
         # BBM modified from if to elif
         return list(v)
         
@@ -217,7 +217,11 @@ def rib(v):
              v[0][1], v[1][1], v[2][1], v[3][1], 
              v[0][2], v[1][2], v[2][2], v[3][2], 
              v[0][3], v[1][3], v[2][3], v[3][3]]
-
+    elif type(v) == mathutils.Matrix:
+        return [v[0][0], v[1][0], v[2][0], v[3][0], 
+             v[0][1], v[1][1], v[2][1], v[3][1], 
+             v[0][2], v[1][2], v[2][2], v[3][2], 
+             v[0][3], v[1][3], v[2][3], v[3][3]]
     else:
         return v
 
