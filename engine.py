@@ -24,7 +24,6 @@
 # ##### END MIT LICENSE BLOCK #####
 #import prman
 import bpy
-#import prman
 import bpy_types
 import math
 import os
@@ -32,7 +31,6 @@ import time
 import subprocess
 import mathutils
 from mathutils import Matrix, Vector, Quaternion
-import prman
 
 from . import bl_info
 
@@ -44,13 +42,19 @@ from .util import init_exporter_env
 from .util import get_sequence_path
 from .util import user_path
 from .util import get_path_list_converted
-from .util import path_list_convert
+from .util import path_list_convert, guess_rmantree, set_pythonpath
 from random import randint
+import sys
 
 addon_version = bl_info['version']
 
 # global dictionaries
 from .export import write_rib, write_preview_rib
+
+#set pythonpath
+set_pythonpath(os.path.join(guess_rmantree(), 'bin'))
+print(sys.path)
+import prman
 
 def init():
     pass

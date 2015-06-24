@@ -257,6 +257,9 @@ def rmantree_from_env():
     
     return RMANTREE
 
+def set_pythonpath(path):
+    sys.path.append(path)
+
 def guess_rmantree():
     guess = rmantree_from_env()
     if guess != '': return guess
@@ -278,7 +281,7 @@ def guess_rmantree():
             vstr = d.split('-')[1]
             vf = float(vstr[:4])
             
-            if vf > latestver:
+            if vf >= latestver:
                 latestver = vf
                 guess = os.path.join(base, d)            
                 
