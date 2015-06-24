@@ -339,7 +339,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
     #print(dir(node.node_props))
 
     def draw_props(props, layout):
-        for name, renderman_type in props.prop_names:
+        for name, renderman_type, renderman_name in props.prop_names:
             #if this is a property group draw the sub group if open
             prop = getattr(props, name)
             if type(prop) == bpy.types.PropertyGroup:
@@ -635,20 +635,20 @@ def convert_types(some_type):
 #generate param list
 def gen_params(ri, node, props):
     params = {}
-    for name, renderman_type in props.prop_names:
+    for name, renderman_type, renderman_name in props.prop_names:
         prop = getattr(props, name)
         #if property group recurse
-        if type(prop) == bpy.types.PropertyGroup:
-            params = params & gen_params(ri, node, prop)
+        if renderman_type == 'page':
+            params.update(gen_params(ri, node, prop))
         #if input socket is linked reference that
         elif name in node.inputs and node.inputs[name].is_linked:
             from_socket = node.inputs[name].links[0].from_socket
             shader_node_rib(ri, from_socket.node)
-            params['reference %s %s' % (renderman_type, name)] = \
+            params['reference %s %s' % (renderman_type, renderman_name)] = \
                 ["%s:%s" % (from_socket.node.bl_idname, from_socket.identifier)]        
         #else output rib
         else:
-            params['%s %s' % (renderman_type, name)] = \
+            params['%s %s' % (renderman_type, renderman_name)] = \
                     rib(prop, type_hint=renderman_type) 
 
     return params

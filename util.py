@@ -225,6 +225,8 @@ def rib(v, type_hint=None):
              v[0][3], v[1][3], v[2][3], v[3][3]]
     elif type_hint == 'int':
         return int(v)
+    elif type_hint == 'float':
+        return float(v)
     else:
         return v
 

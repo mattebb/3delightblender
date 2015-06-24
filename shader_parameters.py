@@ -127,16 +127,14 @@ def class_generate_properties(parent_name, shaderparameters):
     for sp in shaderparameters:
         options = {'ANIMATABLE'}
         param_name = sp.attrib['name']
-        
+        renderman_name = param_name
         #HACK! blender doesn't like names with __
         if param_name[0] == '_':
             param_name = param_name[1:]
         if param_name[0] == '_':
             param_name = param_name[1:]
-        #print(param_name)
-
+        
         param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
-        #print(param_label)
         param_widget = sp.attrib['widget'].lower() if 'widget' in sp.attrib else 'default'
 
         param_type = 'float' #for default. Some args files are sloppy
@@ -153,7 +151,7 @@ def class_generate_properties(parent_name, shaderparameters):
             sub_group_name = "%s_%s" % (parent_name, param_name)
             sub_group_type = class_generate_properties(sub_group_name, sp.findall('param'))
             setattr(prop_group_type, param_name, bpy.props.PointerProperty(type=sub_group_type))
-            prop_names.append((param_name, 'page'))
+            prop_names.append((param_name, 'page', None))
             continue
 
         if param_type == 'float':
@@ -257,7 +255,7 @@ def class_generate_properties(parent_name, shaderparameters):
         
         #finally set the prop on the group
         setattr(prop_group_type, param_name, prop)
-        prop_names.append((param_name, renderman_type))
+        prop_names.append((param_name, renderman_type, renderman_name))
 
     setattr(prop_group_type, 'prop_names', prop_names)
     bpy.utils.register_class(prop_group_type)
