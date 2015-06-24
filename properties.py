@@ -126,6 +126,8 @@ def register_integrator_settings(scene_settings_cls):
                     
             elif param_type == 'int' or param_type == 'integer':
                 param_default = int(param_default)
+                if name == 'PxrPathTracer' and param_label in ['numBxdfSamples', 'numLightSamples']:
+                    param_default = 8
                 if param_widget == 'checkbox':
                     prop = bpy.props.BoolProperty(name=param_label, 
                         default=bool(param_default), description=param_help)
@@ -493,11 +495,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     preview_min_samples = IntProperty(
                 name="Preview Min Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=1)
+                min=0, default=4)
     preview_max_samples = IntProperty(
                 name="Preview Max Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=16)
+                min=0, default=32)
 
     preview_max_specular_depth = IntProperty(
                 name="Max Preview Specular Depth",

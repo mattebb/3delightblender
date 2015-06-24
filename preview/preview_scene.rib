@@ -1,6 +1,6 @@
     AttributeBegin
-        ShadingRate 10
-        AreaLightSource "PxrStdEnvDayLight" "Lamp" "float exposure" [1]
+        ShadingRate 100
+        AreaLightSource "PxrStdEnvDayLight" "Lamp" "float exposure" [1.5]
         Attribute "visibility" "int camera" [0]
         Attribute "visibility" "int indirect" [0] "int transmission" [0]
         Sides 1
@@ -8,7 +8,7 @@
         ReverseOrientation 
         Opacity [1 1 1]
         Sides 1
-        Geometry "envsphere" "constant float[2] resolution" [256 256]
+        Geometry "envsphere" "constant float[2] resolution" [1024 512]
     AttributeEnd
     Illuminate "Lamp" 1 
     
