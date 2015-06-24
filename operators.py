@@ -415,4 +415,6 @@ def register():
 
 
 def unregister():
-    pass
+    bpy.types.INFO_MT_file_export.remove(export_archive_menu_func)
+    bpy.types.TEXT_MT_text.remove(compile_shader_menu_func)
+    bpy.types.TEXT_MT_toolbox.remove(compile_shader_menu_func)

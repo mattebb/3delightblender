@@ -678,4 +678,5 @@ def register():
 
 
 def unregister():
-    pass
+	nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
+	#bpy.utils.unregister_module(__name__)

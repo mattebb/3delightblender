@@ -102,10 +102,10 @@ def unregister():
     from . import operators
     from . import nodes
 
-    preferences.register()
-    properties.register()
-    operators.register()
-    ui.register()
-    nodes.register()
+    preferences.unregister()
+    properties.unregister()
+    operators.unregister()
+    ui.unregister()
+    nodes.unregister()
     bpy.utils.unregister_module(__name__)
 
