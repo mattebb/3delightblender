@@ -478,6 +478,13 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 description="Path to generated .rib files",
                 subtype='FILE_PATH',
                 default="$OUT/{scene}.rib")
+
+    path_texture_output = StringProperty(
+                name="Teture Output Path",
+                description="Path to generated .tex files",
+                subtype='FILE_PATH',
+                default="$OUT/textures")
+
     
     output_action = EnumProperty(
                 name="Action",

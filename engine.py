@@ -49,7 +49,7 @@ import sys
 addon_version = bl_info['version']
 
 # global dictionaries
-from .export import write_rib, write_preview_rib
+from .export import write_rib, write_preview_rib, get_texture_list, get_texture_list_preview
 
 #set pythonpath
 set_pythonpath(os.path.join(guess_rmantree(), 'bin'))
@@ -110,9 +110,12 @@ class RPass:
     def initialize_paths(self, scene):
         self.paths = {}
         self.paths['rman_binary'] = scene.renderman.path_renderer
+        self.paths['path_texture_optimiser'] = scene.renderman.path_texture_optimiser
         self.paths['rmantree'] = scene.renderman.path_rmantree
         
         self.paths['rib_output'] = user_path(scene.renderman.path_rib_output, 
+                                            scene=scene)
+        self.paths['texture_output'] = user_path(scene.renderman.path_texture_output, 
                                             scene=scene)
         self.paths['export_dir'] = user_path(os.path.dirname( \
                 self.paths['rib_output']), scene=scene)
@@ -232,10 +235,29 @@ class RPass:
         pass
 
     def gen_rib(self):
+        self.convert_textures(get_texture_list(self.scene))
         write_rib(self, self.scene, self.ri)
 
     def gen_preview_rib(self):
+        self.convert_textures(get_texture_list_preview(self.scene))
         write_preview_rib(self, self.scene, self.ri)
+
+    def convert_textures(self, texture_list):
+        if not os.path.exists(self.paths['texture_output']):
+            os.mkdir(self.paths['texture_output'])
+
+        for in_file, out_file in texture_list:
+            cmd = [os.path.join(self.paths['rmantree'], 'bin', \
+                self.paths['path_texture_optimiser']), in_file,
+                os.path.join(self.paths['texture_output'], out_file)]
+            
+            cdir = os.path.dirname(self.paths['texture_output'])
+            environ = os.environ.copy()
+            environ['RMANTREE'] = self.paths['rmantree']
+            process = subprocess.Popen(cmd, cwd=cdir, 
+                                    stdout=subprocess.PIPE, env=environ)
+            process.communicate()
+
 
 
 

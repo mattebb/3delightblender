@@ -118,154 +118,165 @@ def parse_float(fs):
     return float(fs[:-1]) if 'f' in fs else float(fs)
 
 
-def class_generate_properties(parent_name, shaderparameters):
-    prop_group_name = "%s_props" % (parent_name)
-    prop_group_type = type(prop_group_name, (bpy.types.PropertyGroup,), {})
-    setattr(prop_group_type, 'ui_open', bpy.props.BoolProperty(name='UI Open', default=True))
+def class_generate_properties(node, parent_name, shaderparameters):
     prop_names = []
+    prop_meta = {}
 
     for sp in shaderparameters:
-        options = {'ANIMATABLE'}
-        param_name = sp.attrib['name']
-        renderman_name = param_name
-        #HACK! blender doesn't like names with __
-        if param_name[0] == '_':
-            param_name = param_name[1:]
-        if param_name[0] == '_':
-            param_name = param_name[1:]
-        
-        param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
-        param_widget = sp.attrib['widget'].lower() if 'widget' in sp.attrib else 'default'
-
-        param_type = 'float' #for default. Some args files are sloppy
-        if 'type' in sp.attrib:
-            param_type = sp.attrib['type']
-        param_help = ""
-        param_default = sp.attrib['default'] if 'default' in sp.attrib else None
-        
-        #I guess multiline tooltips never worked
-        for s in sp:
-            if s.tag == 'help' and s.text:
-                lines = s.text.split('\n')
-                for line in lines:
-                    param_help = param_help + line.strip(' \t\n\r')
-                
-        
-        #if this is a page recurse
         if sp.tag == 'page':
-            sub_group_name = "%s_%s" % (parent_name, param_name)
-            sub_group_type = class_generate_properties(sub_group_name, sp.findall('param'))
-            setattr(prop_group_type, param_name, bpy.props.PointerProperty(type=sub_group_type))
-            prop_names.append((param_name, 'page', None))
-            continue
+            sub_params = []
+            #don't add the sub group to prop names, they'll be gotten through recursion
+            for sub_param in sp.findall('param'):
+                name,meta,prop = generate_property(sub_param)
+                #another fix for sloppy args files
+                if name == sp.attrib['name']:
+                    name = name + '_prop'
+                sub_params.append(name)
+                prop_meta[name] = meta
+                setattr(node, name, prop)
+            prop_names.append(sp.attrib['name'])
+            prop_meta[sp.attrib['name']] = {'renderman_type':'page'}
+            setattr(node, sp.attrib['name'], sub_params)
+        else:
+            name,meta,prop = generate_property(sp)
+            prop_names.append(name)
+            prop_meta[name] = meta
+            setattr(node, name, prop)
 
-        if param_type == 'float':
-            if 'arraySize' in sp.attrib.keys():
-                param_default = tuple(float(f) for f in sp.attrib['default'].split(','))
-                prop = bpy.props.FloatVectorProperty(name=param_label, 
-                            default=param_default, precision=3,
-                            size=len(param_default),
-                            description=param_help)
+    setattr(node, 'prop_names', prop_names)
+    setattr(node, 'prop_meta', prop_meta)
 
-            else:
-                param_default = parse_float(param_default)
-                if param_widget == 'checkbox':
-                    prop = bpy.props.BoolProperty(name=param_label, 
-                        default=bool(param_default), description=param_help)
-                                                    
-                elif param_widget == 'mapper':
-                    prop = bpy.props.EnumProperty(name=param_label, 
-                            items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")),
-                                            default=sp.attrib['default'],
-                                            description=param_help)
-                    
-                else:
-                    param_min = parse_float(sp.attrib['min']) if 'min' in sp.attrib else 0.0
-                    param_max = parse_float(sp.attrib['max']) if 'max' in sp.attrib else 1.0
-                    prop = bpy.props.FloatProperty(name=param_label, 
-                            default=param_default, precision=3,
-                            min=param_min, max=param_max,
-                            description=param_help)
-            renderman_type = 'float'
-                
-        elif param_type == 'int' or param_type == 'integer':
-            param_default = int(param_default) if param_default else 0
+#map args params to props
+def generate_property(sp):
+    options = {'ANIMATABLE'}
+    param_name = sp.attrib['name']
+    renderman_name = param_name
+    #HACK! blender doesn't like names with __
+    if param_name[0] == '_':
+        param_name = param_name[1:]
+    if param_name[0] == '_':
+        param_name = param_name[1:]
+    
+    param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
+    param_widget = sp.attrib['widget'].lower() if 'widget' in sp.attrib else 'default'
+
+    param_type = 'float' #for default. Some args files are sloppy
+    if 'type' in sp.attrib:
+        param_type = sp.attrib['type']
+    param_help = ""
+    param_default = sp.attrib['default'] if 'default' in sp.attrib else None
+    
+    prop_meta = sp.attrib
+    renderman_type = param_type
+    prop = None
+
+    #I guess multiline tooltips never worked
+    for s in sp:
+        if s.tag == 'help' and s.text:
+            lines = s.text.split('\n')
+            for line in lines:
+                param_help = param_help + line.strip(' \t\n\r')
+            
+    if param_type == 'float':
+        if 'arraySize' in sp.attrib.keys():
+            param_default = tuple(float(f) for f in sp.attrib['default'].split(','))
+            prop = bpy.props.FloatVectorProperty(name=param_label, 
+                        default=param_default, precision=3,
+                        size=len(param_default),
+                        description=param_help)
+
+        else:
+            param_default = parse_float(param_default)
             if param_widget == 'checkbox':
                 prop = bpy.props.BoolProperty(name=param_label, 
                     default=bool(param_default), description=param_help)
-
                                                 
             elif param_widget == 'mapper':
                 prop = bpy.props.EnumProperty(name=param_label, 
                         items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")),
                                         default=sp.attrib['default'],
-                                        description=param_help )
-            else:
-                param_min = int(sp.attrib['min']) if 'min' in sp.attrib else 0
-                param_max = int(sp.attrib['max']) if 'max' in sp.attrib else 2**31-1
-                prop = bpy.props.IntProperty(name=param_label, 
-                        default=param_default, 
-                        min=param_min,
-                        max=param_max,
-                        description=param_help)
-            renderman_type = 'int'
+                                        description=param_help)
                 
-        elif param_type == 'color':
-            if param_default == 'null':
-                param_default = '0 0 0'
-            param_default = [float(c) for c in param_default.replace(',', ' ').split()]
-            prop = bpy.props.FloatVectorProperty(name=param_label, 
-                                        default=param_default, size=3,
-                                        subtype="COLOR",
-                                        description=param_help)
-            renderman_type = 'color'
-        elif param_type == 'string' or param_type == 'struct':
-            if param_default == None:
-                param_default = ''
-            #if '__' in param_name:
-            #    param_name = param_name[2:]
-            if param_widget == 'fileinput':
-                prop = bpy.props.StringProperty(name=param_label, 
-                                default=param_default, subtype="FILE_PATH",
-                                description=param_help)
-            elif param_widget == 'mapper':
-                prop = bpy.props.EnumProperty(name=param_label, 
-                        default=param_default, description=param_help, 
-                        items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")))
             else:
-                prop = bpy.props.StringProperty(name=param_label, 
-                                default=param_default, 
-                                description=param_help)
-            renderman_type = 'string'
-                                        
-        elif param_type == 'vector' or param_type == 'normal':
-            if param_default == None:
-                param_default = '0 0 0'
-            param_default = [float(v) for v in param_default.split()]
-            prop = bpy.props.FloatVectorProperty(name=param_label, 
-                                        default=param_default, size=3,
-                                        subtype="EULER",
-                                        description=param_help)
-            renderman_type = param_type
-        elif param_type == 'int[2]':
-            param_type = 'int'
-            param_default = tuple(int(i) for i in sp.attrib['default'].split(','))
-            is_array = 2
-            prop = bpy.props.IntVectorProperty(name=param_label, 
-                                        default=param_default, size=2,
-                                        description=param_help)
-            renderman_type = 'int'
+                param_min = parse_float(sp.attrib['min']) if 'min' in sp.attrib else 0.0
+                param_max = parse_float(sp.attrib['max']) if 'max' in sp.attrib else 1.0
+                prop = bpy.props.FloatProperty(name=param_label, 
+                        default=param_default, precision=3,
+                        min=param_min, max=param_max,
+                        description=param_help)
+        renderman_type = 'float'
+            
+    elif param_type == 'int' or param_type == 'integer':
+        param_default = int(param_default) if param_default else 0
+        if param_widget == 'checkbox':
+            prop = bpy.props.BoolProperty(name=param_label, 
+                default=bool(param_default), description=param_help)
 
-        #if this is a page make a new prop group
-        
-        #finally set the prop on the group
-        setattr(prop_group_type, param_name, prop)
-        prop_names.append((param_name, renderman_type, renderman_name))
-
-    setattr(prop_group_type, 'prop_names', prop_names)
-    bpy.utils.register_class(prop_group_type)
-    return prop_group_type
+                                            
+        elif param_widget == 'mapper':
+            prop = bpy.props.EnumProperty(name=param_label, 
+                    items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")),
+                                    default=sp.attrib['default'],
+                                    description=param_help )
+        else:
+            param_min = int(sp.attrib['min']) if 'min' in sp.attrib else 0
+            param_max = int(sp.attrib['max']) if 'max' in sp.attrib else 2**31-1
+            prop = bpy.props.IntProperty(name=param_label, 
+                    default=param_default, 
+                    min=param_min,
+                    max=param_max,
+                    description=param_help)
+        renderman_type = 'int'
+            
+    elif param_type == 'color':
+        if param_default == 'null':
+            param_default = '0 0 0'
+        param_default = [float(c) for c in param_default.replace(',', ' ').split()]
+        prop = bpy.props.FloatVectorProperty(name=param_label, 
+                                    default=param_default, size=3,
+                                    subtype="COLOR",
+                                    description=param_help)
+        renderman_type = 'color'
+    elif param_type == 'string' or param_type == 'struct':
+        if param_default == None:
+            param_default = ''
+        #if '__' in param_name:
+        #    param_name = param_name[2:]
+        if param_widget == 'fileinput':
+            prop = bpy.props.StringProperty(name=param_label, 
+                            default=param_default, subtype="FILE_PATH",
+                            description=param_help)
+        elif param_widget == 'mapper':
+            prop = bpy.props.EnumProperty(name=param_label, 
+                    default=param_default, description=param_help, 
+                    items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")))
+        else:
+            prop = bpy.props.StringProperty(name=param_label, 
+                            default=param_default, 
+                            description=param_help)
+        renderman_type = 'string'
+                                    
+    elif param_type == 'vector' or param_type == 'normal':
+        if param_default == None:
+            param_default = '0 0 0'
+        param_default = [float(v) for v in param_default.split()]
+        prop = bpy.props.FloatVectorProperty(name=param_label, 
+                                    default=param_default, size=3,
+                                    subtype="EULER",
+                                    description=param_help)
+        renderman_type = param_type
+    elif param_type == 'int[2]':
+        param_type = 'int'
+        param_default = tuple(int(i) for i in sp.attrib['default'].split(','))
+        is_array = 2
+        prop = bpy.props.IntVectorProperty(name=param_label, 
+                                    default=param_default, size=2,
+                                    description=param_help)
+        renderman_type = 'int'
     
+    prop_meta['renderman_type'] = renderman_type
+    prop_meta['renderman_name'] = renderman_name
+    return (param_name, prop_meta, prop)
 
 #map types in args files to socket types
 socket_map = {
@@ -292,7 +303,7 @@ def node_add_inputs(node, node_name, shaderparameters):
             param_type = sp.attrib['type']
         param_name = sp.attrib['name']
         socket = node.inputs.new(socket_map[param_type], param_name)
-        #setattr(socket, 'ui_open', bpy.props.BoolProperty(name='UI Open', default=True))
+        socket.link_limit = 1
 
 #add output sockets
 def node_add_outputs(node, shaderparameters):
