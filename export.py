@@ -554,7 +554,7 @@ def export_light(rpass, scene, ri, ob):
         params["string shape"] = [shapes[lamp.type][0]]
     
     if rm.nodetree != '':
-        export_shader_nodetree(ri, scene, lamp, output_node_type="Light", handle=handle)
+        export_shader_nodetree(ri, lamp, output_node_type="Light", handle=handle)
     else:
         ri.AreaLightSource(name, params)
     shapes[lamp.type][1]()
@@ -681,7 +681,7 @@ def export_material(ri, rpass, scene, mat):
         #if rm.displacementbound > 0.0:
             #ri.write('        Attribute "displacementbound" "sphere" %f \n' % rm.displacementbound)
         
-        export_shader_nodetree(ri, scene, mat)
+        export_shader_nodetree(ri, mat)
     else:
         #export_shader(file, scene, rpass, mat, 'shader') # BBM addition
         export_shader(ri, scene, rpass, mat, 'surface')

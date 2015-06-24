@@ -88,7 +88,7 @@ def get_texture_optpath(name, frame):
         return ""
 
 
-def sp_optionmenu_to_string(options, type):
+def sp_optionmenu_to_string(options):
     return [(opt.attrib['value'], opt.attrib['name'], 
             '') for opt in options.findall('string')]
 
@@ -117,180 +117,186 @@ class RendermanNodeSocket(bpy.types.NodeSocket):
 def parse_float(fs):
     return float(fs[:-1]) if 'f' in fs else float(fs)
 
-def class_generate_sockets(node_type, shaderparameters, node_connectable=True):
-    
-    node_name = node_type.bl_label
-    #print (node_name)
+
+def class_generate_properties(parent_name, shaderparameters):
+    prop_group_name = "%s_props" % (parent_name)
+    prop_group_type = type(prop_group_name, (bpy.types.PropertyGroup,), {})
+    setattr(prop_group_type, 'ui_open', bpy.props.BoolProperty(name='UI Open', default=True))
     prop_names = []
+
     for sp in shaderparameters:
         options = {'ANIMATABLE'}
         param_name = sp.attrib['name']
+        
+        #HACK! blender doesn't like names with __
+        if param_name[0] == '_':
+            param_name = param_name[1:]
+        if param_name[0] == '_':
+            param_name = param_name[1:]
+        #print(param_name)
+
         param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
+        #print(param_label)
         param_widget = sp.attrib['widget'].lower() if 'widget' in sp.attrib else 'default'
 
-        #new_class.meta[param_name] = sp.meta
-        # BBM addition begin
-        #new_class.is_coshader[sp.pyname] = sp.is_coshader
-        # BBM addition end
-
-        typename = "Renderman.%s.%s" %(node_name,param_name)
-        
-
-        #socket_type.typename = typename
-        #socket_type.draw = draw
-        #socket_type.draw_color = draw_color
         param_type = 'float' #for default. Some args files are sloppy
         if 'type' in sp.attrib:
             param_type = sp.attrib['type']
         param_help = ""
-        #print(sp.attrib)
-        socket_value = None
-        socket_default = None
-        is_array = False
-
-        #fix for "integer" types in args
-        if param_type == 'integer':
-            param_type = 'int'
-
+        
         param_default = sp.attrib['default'] if 'default' in sp.attrib else None
         if sp.find('help'):
             param_help = sp.find('help').text
 
+        #if this is a page recurse
+        if sp.tag == 'page':
+            sub_group_name = "%s_%s" % (parent_name, param_name)
+            sub_group_type = class_generate_properties(sub_group_name, sp.findall('param'))
+            setattr(prop_group_type, param_name, bpy.props.PointerProperty(type=sub_group_type))
+            prop_names.append((param_name, 'page'))
+            continue
+
         if param_type == 'float':
             if 'arraySize' in sp.attrib.keys():
                 param_default = tuple(float(f) for f in sp.attrib['default'].split(','))
-                is_array = len(param_default)
-                socket_default = bpy.props.FloatVectorProperty(name=param_label, 
+                prop = bpy.props.FloatVectorProperty(name=param_label, 
                             default=param_default, precision=3,
-                            min=param_min, max=param_max, size=len(param_default),
+                            size=len(param_default),
                             description=param_help)
+
             else:
                 param_default = parse_float(param_default)
                 if param_widget == 'checkbox':
-                    socket_default = bpy.props.BoolProperty(name=param_label, 
+                    prop = bpy.props.BoolProperty(name=param_label, 
                         default=bool(param_default), description=param_help)
                                                     
                 elif param_widget == 'mapper':
-                    socket_default = bpy.props.EnumProperty(name=param_label, 
-                            items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'float'),
+                    prop = bpy.props.EnumProperty(name=param_label, 
+                            items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")),
                                             default=sp.attrib['default'],
                                             description=param_help)
                     
                 else:
                     param_min = parse_float(sp.attrib['min']) if 'min' in sp.attrib else 0.0
                     param_max = parse_float(sp.attrib['max']) if 'max' in sp.attrib else 1.0
-                    socket_default = bpy.props.FloatProperty(name=param_label, 
+                    prop = bpy.props.FloatProperty(name=param_label, 
                             default=param_default, precision=3,
                             min=param_min, max=param_max,
                             description=param_help)
+            renderman_type = 'float'
                 
-        elif param_type == 'int':
+        elif param_type == 'int' or param_type == 'integer':
             param_default = int(param_default) if param_default else 0
             if param_widget == 'checkbox':
-                socket_default = bpy.props.BoolProperty(name=param_label, 
+                prop = bpy.props.BoolProperty(name=param_label, 
                     default=bool(param_default), description=param_help)
+
                                                 
             elif param_widget == 'mapper':
-                socket_default = bpy.props.EnumProperty(name=param_label, 
-                        items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'int'),
+                prop = bpy.props.EnumProperty(name=param_label, 
+                        items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")),
                                         default=sp.attrib['default'],
-                                        description=param_help)
+                                        description=param_help )
             else:
                 param_min = int(sp.attrib['min']) if 'min' in sp.attrib else 0
                 param_max = int(sp.attrib['max']) if 'max' in sp.attrib else 2**31-1
-                socket_default = bpy.props.IntProperty(name=param_label, 
+                prop = bpy.props.IntProperty(name=param_label, 
                         default=param_default, 
                         min=param_min,
                         max=param_max,
                         description=param_help)
+            renderman_type = 'int'
                 
         elif param_type == 'color':
             if param_default == 'null':
                 param_default = '0 0 0'
             param_default = [float(c) for c in param_default.replace(',', ' ').split()]
-            socket_default = bpy.props.FloatVectorProperty(name=param_label, 
+            prop = bpy.props.FloatVectorProperty(name=param_label, 
                                         default=param_default, size=3,
                                         subtype="COLOR",
                                         description=param_help)
+            renderman_type = 'color'
         elif param_type == 'string' or param_type == 'struct':
             if param_default == None:
                 param_default = ''
             #if '__' in param_name:
             #    param_name = param_name[2:]
             if param_widget == 'fileinput':
-                socket_default = bpy.props.StringProperty(name=param_label, 
+                prop = bpy.props.StringProperty(name=param_label, 
                                 default=param_default, subtype="FILE_PATH",
                                 description=param_help)
             elif param_widget == 'mapper':
-                socket_default = bpy.props.EnumProperty(name=param_label, 
+                prop = bpy.props.EnumProperty(name=param_label, 
                         default=param_default, description=param_help, 
-                        items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']"), 'string'))
+                        items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")))
             else:
-                socket_default = bpy.props.StringProperty(name=param_label, 
+                prop = bpy.props.StringProperty(name=param_label, 
                                 default=param_default, 
                                 description=param_help)
+            renderman_type = 'string'
                                         
         elif param_type == 'vector' or param_type == 'normal':
             if param_default == None:
                 param_default = '0 0 0'
             param_default = [float(v) for v in param_default.split()]
-            socket_default = bpy.props.FloatVectorProperty(name=param_label, 
+            prop = bpy.props.FloatVectorProperty(name=param_label, 
                                         default=param_default, size=3,
                                         subtype="EULER",
                                         description=param_help)
+            renderman_type = param_type
         elif param_type == 'int[2]':
             param_type = 'int'
             param_default = tuple(int(i) for i in sp.attrib['default'].split(','))
             is_array = 2
-            socket_default = bpy.props.IntVectorProperty(name=param_label, 
+            prop = bpy.props.IntVectorProperty(name=param_label, 
                                         default=param_default, size=2,
                                         description=param_help)
-        connectable = node_connectable
-        tags = sp.find('tags')
-        if tags and tags.find('tag').attrib['value'] == "__nonconnection" or \
-            ("connectable" in sp.attrib and sp.attrib['connectable'] == 'false'):
-            connectable = False
-        
-        socket_type = type(typename, (RendermanNodeSocket,), {})
-        socket_type.bl_idname = typename
-        socket_type.bl_label = param_label
-        socket_type.renderman_name = param_name
-        socket_type.renderman_type = param_type
-        
-        setattr(socket_type, 'default_value', socket_default)
-        setattr(socket_type, 'value', socket_default)
-        setattr(socket_type, 'is_array', is_array)
-        setattr(socket_type, 'connectable', connectable)
-        setattr(socket_type, 'ui_open', bpy.props.BoolProperty(name='UI Open', default=True))
+            renderman_type = 'int'
 
-        bpy.utils.register_class(socket_type)
+        #if this is a page make a new prop group
+        
+        #finally set the prop on the group
+        setattr(prop_group_type, param_name, prop)
+        prop_names.append((param_name, renderman_type))
+
+    setattr(prop_group_type, 'prop_names', prop_names)
+    bpy.utils.register_class(prop_group_type)
+    return prop_group_type
     
 
+#map types in args files to socket types
+socket_map = {
+    'float':'RendermanNodeSocketFloat',
+    'color':'RendermanNodeSocketColor',
+    'string':'RendermanNodeSocketString',
+    'int':'RendermanNodeSocketInt', 
+    'integer':'RendermanNodeSocketInt', 
+    'struct':'RendermanNodeSocketString',
+    'normal':'RendermanNodeSocketVector'
+}
 
-
+#add input sockets
 def node_add_inputs(node, node_name, shaderparameters):
     for sp in shaderparameters:
+        #if this is not connectable don't add socket
+        tags = sp.find('tags')
+        if tags and tags.find('tag').attrib['value'] == "__nonconnection" or \
+            ("connectable" in sp.attrib and sp.attrib['connectable'].lower() == 'false'):
+            continue
+
         param_type = 'float'
         if 'type' in sp.attrib.keys():
             param_type = sp.attrib['type']
         param_name = sp.attrib['name']
-        param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
-        socket_typename = "Renderman.%s.%s" %(node_name,param_name)
-        socket = node.inputs.new(socket_typename, param_label)
-        
+        socket = node.inputs.new(socket_map[param_type], param_name)
+        #setattr(socket, 'ui_open', bpy.props.BoolProperty(name='UI Open', default=True))
 
+#add output sockets
 def node_add_outputs(node, shaderparameters):
     
     # Generate RNA properties for each shader parameter  
     for sp in shaderparameters:
         param_name = sp.attrib['name']
         tag = sp.find('*/tag')
-        if tag.attrib['value'] == 'float':
-            node.outputs.new('NodeSocketFloat', param_name)
-        if tag.attrib['value'] == 'struct':
-            node.outputs.new('NodeSocketString', param_name)
-        else:
-            node.outputs.new('NodeSocketColor', param_name)
- 
-
+        node.outputs.new(socket_map[tag.attrib['value']], param_name)
     
