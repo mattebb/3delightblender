@@ -53,7 +53,6 @@ from .export import write_rib, write_preview_rib
 
 #set pythonpath
 set_pythonpath(os.path.join(guess_rmantree(), 'bin'))
-print(sys.path)
 import prman
 
 def init():
