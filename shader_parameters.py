@@ -141,11 +141,16 @@ def class_generate_properties(parent_name, shaderparameters):
         if 'type' in sp.attrib:
             param_type = sp.attrib['type']
         param_help = ""
-        
         param_default = sp.attrib['default'] if 'default' in sp.attrib else None
-        if sp.find('help'):
-            param_help = sp.find('help').text
-
+        
+        #I guess multiline tooltips never worked
+        for s in sp:
+            if s.tag == 'help' and s.text:
+                lines = s.text.split('\n')
+                for line in lines:
+                    param_help = param_help + line.strip(' \t\n\r')
+                
+        
         #if this is a page recurse
         if sp.tag == 'page':
             sub_group_name = "%s_%s" % (parent_name, param_name)
