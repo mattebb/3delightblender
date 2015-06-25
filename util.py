@@ -30,6 +30,7 @@ import os
 import platform
 import sys
 import fnmatch
+from extensions_framework import util as efutil
 
 
 class BlenderVersionError(Exception):
@@ -89,6 +90,10 @@ def get_path_list(rm, type):
         paths.append(bpy.path.abspath(p.name))
 
     return paths
+
+
+def get_real_path(path):
+	return os.path.realpath(efutil.filesystem_path(path))
 
 # Convert env variables to full paths.
 def path_list_convert(path_list, to_unix=False):
