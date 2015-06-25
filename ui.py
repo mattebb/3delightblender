@@ -766,7 +766,7 @@ class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
     shader_type = 'Light'
 
     def draw(self, context):
-        if context.material.renderman.nodetree != "":
+        if context.material.renderman.nodetree:
             nt = bpy.data.node_groups[context.material.renderman.nodetree]
             draw_nodes_properties_ui(self.layout, context, nt, input_name=self.shader_type)
         
