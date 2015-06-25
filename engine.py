@@ -43,6 +43,7 @@ from .util import get_sequence_path
 from .util import user_path
 from .util import get_path_list_converted
 from .util import path_list_convert, guess_rmantree, set_pythonpath
+from .util import get_real_path
 from random import randint
 import sys
 
@@ -247,14 +248,20 @@ class RPass:
             os.mkdir(self.paths['texture_output'])
 
         for in_file, out_file in texture_list:
+            
+            in_file = get_real_path(in_file)
+           
             cmd = [os.path.join(self.paths['rmantree'], 'bin', \
                 self.paths['path_texture_optimiser']), in_file,
                 os.path.join(self.paths['texture_output'], out_file)]
             
-            cdir = os.path.dirname(self.paths['texture_output'])
+            #cdir = os.path.dirname(self.paths['texture_output'])
+            
+            Blendcdir = bpy.path.abspath("//")
+            
             environ = os.environ.copy()
             environ['RMANTREE'] = self.paths['rmantree']
-            process = subprocess.Popen(cmd, cwd=cdir, 
+            process = subprocess.Popen(cmd, cwd=Blendcdir, 
                                     stdout=subprocess.PIPE, env=environ)
             process.communicate()
 
