@@ -34,7 +34,6 @@ bl_info = {
     "category": "Render"}
 
 import bpy
-#import prman
 import sys
 
 from . import engine
