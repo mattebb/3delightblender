@@ -703,6 +703,8 @@ def get_textures_for_node(node):
     
 def get_textures(id):
     textures = []
+    if id.renderman.nodetree == '':
+        return textures
     nt = bpy.data.node_groups[id.renderman.nodetree]
 
     out = next((n for n in nt.nodes if n.renderman_node_type == 'output'), None)
