@@ -260,8 +260,9 @@ def generate_node_type(prefs, name, args):
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
         elif self.renderman_node_type == 'light':
-            #only make the color connectable
-            light_inputs = [p for p in inputs if p.attrib['name'] == 'lightColor']
+            #only make a few sockets connectable
+            connectable_sockets = ['lightColor', 'intensity', 'exposure', 'sunTint', 'skyTint', 'envTint']
+            light_inputs = [p for p in inputs if p.attrib['name'] in connectable_sockets]
             node_add_inputs(self, name, light_inputs)
             self.outputs.new('RendermanShaderSocket', "Light")
         elif self.renderman_node_type == 'displacement':
@@ -347,6 +348,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
     #    split.prop(node, p, text='')
 
     layout.context_pointer_set("node", node)
+    layout.context_pointer_set("nodetree", nt)
     #node.draw_buttons(context, layout)
     #print(dir(node.node_props))
 

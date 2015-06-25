@@ -248,17 +248,20 @@ class RPass:
             os.mkdir(self.paths['texture_output'])
 
         for in_file, out_file in texture_list:
-            
+            print (in_file, out_file)
             in_file = get_real_path(in_file)
            
             cmd = [os.path.join(self.paths['rmantree'], 'bin', \
                 self.paths['path_texture_optimiser']), in_file,
                 os.path.join(self.paths['texture_output'], out_file)]
             
+            print(cmd)
             #cdir = os.path.dirname(self.paths['texture_output'])
             
             Blendcdir = bpy.path.abspath("//")
-            
+            if Blendcdir == '':
+                Blendcdir = None
+
             environ = os.environ.copy()
             environ['RMANTREE'] = self.paths['rmantree']
             process = subprocess.Popen(cmd, cwd=Blendcdir, 

@@ -171,6 +171,9 @@ def generate_property(sp):
     renderman_type = param_type
     prop = None
 
+    if 'coshaderPort' in prop_meta and prop_meta['coshaderPort'] == 'True':
+        param_type = 'shader'
+
     #I guess multiline tooltips never worked
     for s in sp:
         if s.tag == 'help' and s.text:
@@ -240,6 +243,13 @@ def generate_property(sp):
                                     subtype="COLOR",
                                     description=param_help)
         renderman_type = 'color'
+    elif param_type == 'shader':
+        param_default = ''
+        prop = bpy.props.StringProperty(name=param_label, 
+                            default=param_default, 
+                            description=param_help)
+        renderman_type = 'string'
+
     elif param_type == 'string' or param_type == 'struct':
         if param_default == None:
             param_default = ''
