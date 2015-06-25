@@ -126,7 +126,6 @@ def make_optimised_texture_3dl(tex, texture_optimiser, srcpath, optpath):
     # Filenames
     cmd.append(srcpath)
     cmd.append(optpath)
-    print ("Executing: ")
     
     
     
