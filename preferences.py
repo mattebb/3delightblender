@@ -24,6 +24,7 @@
 # ##### END MIT LICENSE BLOCK #####
 
 import bpy
+import sys
 from bpy.types import AddonPreferences
 from bpy.props import CollectionProperty, BoolProperty, StringProperty, IntProperty, PointerProperty
 
@@ -35,25 +36,34 @@ class RendermanPreferencePath(bpy.types.PropertyGroup):
 
 class RendermanEnvVarSettings(bpy.types.PropertyGroup):
     
-    out = StringProperty(
-                name="OUT (Output Root)",
-                description="Default RIB export path root",
-                subtype='DIR_PATH',
-                default='/tmp/prman_for_blender')
-    
-    shd = StringProperty(
+	
+	if sys.platform == ("win32"):
+		out = StringProperty(
+			name="OUT (Output Root)",
+			description="Default RIB export path root",
+			subtype='DIR_PATH',
+			default='/./tmp\prman_for_blender')
+	
+	else:
+		out = StringProperty(
+			name="OUT (Output Root)",
+			description="Default RIB export path root",
+			subtype='DIR_PATH',
+			default='/tmp/prman_for_blender')
+	
+	shd = StringProperty(
                 name="SHD (Shadow Maps)",
                 description="SHD environment variable",
                 subtype='DIR_PATH',
                 default='$OUT/shadowmaps')
     
-    ptc = StringProperty(
+	ptc = StringProperty(
                 name="PTC (Point Clouds)",
                 description="PTC environment variable",
                 subtype='DIR_PATH',
                 default='$OUT/pointclouds')
 
-    arc = StringProperty(
+	arc = StringProperty(
                 name="ARC (Archives)",
                 description="ARC environment variable",
                 subtype='DIR_PATH',
