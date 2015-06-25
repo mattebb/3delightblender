@@ -27,6 +27,7 @@ import os
 import subprocess
 import bpy
 import re
+import sys
 
 from .util import init_env
 from .util import get_path_list
@@ -198,8 +199,10 @@ def generate_property(sp):
                                         description=param_help)
                 
             else:
-                param_min = parse_float(sp.attrib['min']) if 'min' in sp.attrib else 0.0
-                param_max = parse_float(sp.attrib['max']) if 'max' in sp.attrib else 1.0
+                param_min = parse_float(sp.attrib['min']) if 'min' in sp.attrib else sys.float_info.min
+                param_max = parse_float(sp.attrib['max']) if 'max' in sp.attrib else sys.float_info.max
+                param_min = parse_float(sp.attrib['slidermin']) if 'slidermin' in sp.attrib else param_min
+                param_max = parse_float(sp.attrib['slidermax']) if 'slidermax' in sp.attrib else param_max
                 prop = bpy.props.FloatProperty(name=param_label, 
                         default=param_default, precision=3,
                         min=param_min, max=param_max,

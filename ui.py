@@ -760,7 +760,15 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
         
         #self._draw_shader_menu_params(layout, context, rm)
 
+class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
+    bl_context = "material"
+    bl_label = "Light Emission"
+    shader_type = 'Light'
 
+    def draw(self, context):
+        nt = bpy.data.node_groups[context.material.renderman.nodetree]
+        draw_nodes_properties_ui(self.layout, context, nt, input_name=self.shader_type)
+        
         
         
 class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
