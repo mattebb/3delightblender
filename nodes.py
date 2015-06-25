@@ -193,6 +193,7 @@ class RendermanOutputNode(RendermanShadingNode):
     def init(self, context):
         input = self.inputs.new('RendermanShaderSocket', 'Bxdf')
         input = self.inputs.new('RendermanShaderSocket', 'Light')
+        input = self.inputs.new('RendermanShaderSocket', 'Displacement')
         #input.default_value = bpy.props.EnumProperty(items=[('PxrDisney', 'PxrDisney', 
         #    '')])
 
@@ -202,6 +203,14 @@ class RendermanOutputNode(RendermanShadingNode):
 class RendermanBxdfNode(RendermanShadingNode):
     bl_label = 'Bxdf'
     renderman_node_type = 'bxdf'
+    #def init(self, context):
+        #self.inputs.new('RendermanShaderSocket', "Displacement")
+        #self.inputs.new('RendermanShaderSocket', "Interior")
+        #self.inputs.new('RendermanShaderSocket', "Atmosphere")
+
+class RendermanDisplacementNode(RendermanShadingNode):
+    bl_label = 'Displacement'
+    renderman_node_type = 'displacement'
     #def init(self, context):
         #self.inputs.new('RendermanShaderSocket', "Displacement")
         #self.inputs.new('RendermanShaderSocket', "Interior")
@@ -236,6 +245,7 @@ def generate_node_type(prefs, name, args):
     typename = '%s%sNode' % (name, nodeType.capitalize())
     nodeDict = {'bxdf':RendermanBxdfNode, 
                 'pattern': RendermanPatternNode,
+                'displacement': RendermanDisplacementNode,
                 'light': RendermanLightNode}
     ntype = type(typename, (nodeDict[nodeType],), {})
     ntype.bl_label = name
@@ -250,7 +260,15 @@ def generate_node_type(prefs, name, args):
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
         elif self.renderman_node_type == 'light':
+            #only make the color connectable
+            light_inputs = [p for p in inputs if p.attrib['name'] == 'lightColor']
+            node_add_inputs(self, name, light_inputs)
             self.outputs.new('RendermanShaderSocket', "Light")
+        elif self.renderman_node_type == 'displacement':
+            #only make the color connectable
+            self.outputs.new('RendermanShaderSocket', "Displacement")
+            node_add_inputs(self, name, inputs)
+        #else pattern
         else:
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
@@ -291,16 +309,11 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf', output_node
 
     split = layout.split(0.35)
     split.label(socket.name+':')
-    if input_name=='Bxdf':
-        if socket.is_linked:
-            split.operator_menu_enum("node.add_bxdf", "bxdf_type", text=node.bl_label)
-        else:
-            split.operator_menu_enum("node.add_bxdf", "bxdf_type", text='None')
+    
+    if socket.is_linked:
+        split.operator_menu_enum("node.add_%s" % input_name.lower(), "node_type", text=node.bl_label)
     else:
-        if socket.is_linked:
-            split.operator_menu_enum("node.add_light", "light_type", text=node.bl_label)
-        else:
-            split.operator_menu_enum("node.add_light", "light_type", text='None')
+        split.operator_menu_enum("node.add_%s" % input_name.lower(), "node_type", text='None')
 
     if node is not None:
         draw_node_properties_recursive(layout, context, nt, node)
@@ -354,7 +367,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 row = split.row()
                 row.prop(socket, "ui_open", icon=icon, text='', icon_only=True, emboss=False)            
                 indented_label(row, socket.name+':')
-                split.operator_menu_enum("node.add_pattern", "pattern_type", text=input_node.bl_label, icon='DOT')
+                split.operator_menu_enum("node.add_pattern", "node_type", text=input_node.bl_label, icon='DOT')
 
                 if socket.ui_open:
                     draw_node_properties_recursive(layout, context, nt, input_node, level=level+1)
@@ -371,7 +384,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     #indented_label(row, socket.name+':')
                     row.prop(node, prop_name)
                     if prop_name in node.inputs:
-                        row.operator_menu_enum("node.add_pattern", "pattern_type", text='', icon='DOT')
+                        row.operator_menu_enum("node.add_pattern", "node_type", text='', icon='DOT')
     
     draw_props(node.prop_names, layout)
     layout.separator()
@@ -379,152 +392,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
     
 
 # Operators
-
-class NODE_OT_add_input_node(bpy.types.Operator):
-    '''
-    For generating cycles-style ui menus to add new nodes,
-    connected to a given input socket.
-    '''
-
-    bl_idname = 'node.add_bxdf'
-    bl_label = 'Add Bxdf Node'
-
-    def bxdf_type_items(self, context):
-        items = []
-        for nodetype in RendermanPatternGraph.nodetypes.values():
-            if nodetype.renderman_node_type == 'bxdf':
-                items.append( (nodetype.typename, nodetype.bl_label, nodetype.bl_label) )
-        items = sorted(items, key=itemgetter(1))
-        items.append( ('REMOVE', 'Remove', 'Remove the node connected to this socket'))
-        items.append( ('DISCONNECT', 'Disconnect', 'Disconnect the node connected to this socket'))
-        return items
-
-    bxdf_type = bpy.props.EnumProperty(name="Node Type",
-        description='Node type to add to this socket',
-        items=bxdf_type_items)
-
-
-    def execute(self, context):
-        new_type = self.properties.bxdf_type
-        if new_type == 'DEFAULT':
-            return {'CANCELLED'}
-
-        nt = context.nodetree
-        node = context.node
-        socket = context.socket
-        input_node = socket_node_input(nt, socket)
-
-        if new_type == 'REMOVE':
-            nt.nodes.remove(input_node)
-            return {'FINISHED'}
-
-        if new_type == 'DISCONNECT':
-            link = next((l for l in nt.links if l.to_socket == socket), None)
-            nt.links.remove(link)
-            return {'FINISHED'}
-
-        # add a new node to existing socket
-        if input_node is None:
-            newnode = nt.nodes.new(new_type)
-            newnode.location = node.location
-            newnode.location[0] -= 300
-            newnode.selected = False
-            nt.links.new(newnode.outputs[0], socket)
-
-        # replace input node with a new one
-        else:
-            output_names = []
-            for in_socket in node.inputs:
-                if socket_node_input(nt, in_socket) == input_node:
-                    output_names.append( socket_socket_input(nt, in_socket).name )
-                else:
-                    output_names.append(None)
-
-            newnode = nt.nodes.new(new_type)
-            input = node.inputs[0]
-            old_node = input.links[0].from_node
-            nt.links.new(newnode.outputs[0], socket)
-            newnode.location = old_node.location
-            
-            nt.nodes.remove(old_node)
-
-            
-
-        return {'FINISHED'}
-
-class NODE_OT_add_light_node(bpy.types.Operator):
-    '''
-    For generating cycles-style ui menus to add new nodes,
-    connected to a given input socket.
-    '''
-
-    bl_idname = 'node.add_light'
-    bl_label = 'Add Light Node'
-
-    def light_type_items(self, context):
-        items = []
-        for nodetype in RendermanPatternGraph.nodetypes.values():
-            if nodetype.renderman_node_type == 'light':
-                items.append( (nodetype.typename, nodetype.bl_label, nodetype.bl_label) )
-        items = sorted(items, key=itemgetter(1))
-        items.append( ('REMOVE', 'Remove', 'Remove the node connected to this socket'))
-        items.append( ('DISCONNECT', 'Disconnect', 'Disconnect the node connected to this socket'))
-        return items
-
-    light_type = bpy.props.EnumProperty(name="Node Type",
-        description='Node type to add to this socket',
-        items=light_type_items)
-
-
-    def execute(self, context):
-        new_type = self.properties.light_type
-        if new_type == 'DEFAULT':
-            return {'CANCELLED'}
-
-        nt = context.nodetree
-        node = context.node
-        socket = context.socket
-        input_node = socket_node_input(nt, socket)
-
-        if new_type == 'REMOVE':
-            nt.nodes.remove(input_node)
-            return {'FINISHED'}
-
-        if new_type == 'DISCONNECT':
-            link = next((l for l in nt.links if l.to_socket == socket), None)
-            nt.links.remove(link)
-            return {'FINISHED'}
-
-        # add a new node to existing socket
-        if input_node is None:
-            newnode = nt.nodes.new(new_type)
-            newnode.location = node.location
-            newnode.location[0] -= 300
-            newnode.selected = False
-            nt.links.new(newnode.outputs['Light'], socket)
-
-        # replace input node with a new one
-        else:
-            output_names = []
-            for in_socket in node.inputs:
-                if socket_node_input(nt, in_socket) == input_node:
-                    output_names.append( socket_socket_input(nt, in_socket).name )
-                else:
-                    output_names.append(None)
-
-            newnode = nt.nodes.new(new_type)
-            input = node.inputs['Light']
-            old_node = input.links[0].from_node
-            nt.links.new(newnode.outputs['Light'], socket)
-            newnode.location = old_node.location
-            
-            nt.nodes.remove(old_node)
-
-            
-
-        return {'FINISHED'}
-
-#connect the nodes in some sensible manner (color output to color input etc)
+#connect the pattern nodes in some sensible manner (color output to color input etc)
 #TODO more robust
 def link_node(nt, from_node, in_socket):
     out_socket = None
@@ -539,33 +407,28 @@ def link_node(nt, from_node, in_socket):
     if out_socket:
         nt.links.new(out_socket, in_socket)
 
-class NODE_OT_add_pattern_node(bpy.types.Operator):
+class Add_Node:
     '''
     For generating cycles-style ui menus to add new nodes,
     connected to a given input socket.
     '''
-
-    bl_idname = 'node.add_pattern'
-    bl_label = 'Add Pattern Node'
-
-
-    def pattern_type_items(self, context):
+    def get_type_items(self, context):
         items = []
         for nodetype in RendermanPatternGraph.nodetypes.values():
-            if nodetype.renderman_node_type == 'pattern':
+            if nodetype.renderman_node_type == self.input_type.lower():
                 items.append( (nodetype.typename, nodetype.bl_label, nodetype.bl_label) )
         items = sorted(items, key=itemgetter(1))
         items.append( ('REMOVE', 'Remove', 'Remove the node connected to this socket'))
         items.append( ('DISCONNECT', 'Disconnect', 'Disconnect the node connected to this socket'))
         return items
 
-    pattern_type = bpy.props.EnumProperty(name="Node Type",
+    node_type = bpy.props.EnumProperty(name="Node Type",
         description='Node type to add to this socket',
-        items=pattern_type_items)
+        items=get_type_items)
 
 
     def execute(self, context):
-        new_type = self.properties.pattern_type
+        new_type = self.properties.node_type
         if new_type == 'DEFAULT':
             return {'CANCELLED'}
 
@@ -575,7 +438,7 @@ class NODE_OT_add_pattern_node(bpy.types.Operator):
         input_node = socket_node_input(nt, socket)
 
         if new_type == 'REMOVE':
-            nt.nodes.remove(node)
+            nt.nodes.remove(input_node)
             return {'FINISHED'}
 
         if new_type == 'DISCONNECT':
@@ -589,38 +452,67 @@ class NODE_OT_add_pattern_node(bpy.types.Operator):
             newnode.location = node.location
             newnode.location[0] -= 300
             newnode.selected = False
-            link_node(nt, newnode, socket)
+            if self.input_type == 'Pattern':
+                link_node(nt, newnode, socket)
+            else:
+                nt.links.new(newnode.outputs[self.input_type], socket)
 
         # replace input node with a new one
         else:
-            #output_names = []
-            #for in_socket in node.inputs:
-            #    if socket_node_input(nt, in_socket) == input_node:
-            #        output_names.append( socket_socket_input(nt, in_socket).name )
-            #    else:
-            #        output_names.append(None)
-
             newnode = nt.nodes.new(new_type)
-            input = node.inputs[0]
+            input = node.inputs[self.input_type]
             old_node = input.links[0].from_node
-            link_node(nt, newnode, socket)
+            if self.input_type == 'Pattern':
+                link_node(nt, newnode, socket)
+            else:
+                nt.links.new(newnode.outputs[self.input_type], socket)
             newnode.location = old_node.location
             
             nt.nodes.remove(old_node)
-
         return {'FINISHED'}
 
+class NODE_OT_add_bxdf(bpy.types.Operator, Add_Node):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
 
-def rindex(l, item):
-    return len(l)-1 - l[-1::-1].index(item) # slice notation reverses sequence
+    bl_idname = 'node.add_bxdf'
+    bl_label = 'Add Bxdf Node'
+    input_type = bpy.props.StringProperty(default='Bxdf')
+
+class NODE_OT_add_displacement(bpy.types.Operator, Add_Node):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
+    bl_idname = 'node.add_displacement'
+    bl_label = 'Add Displacement Node'
+    input_type = bpy.props.StringProperty(default='Displacement')
+
+class NODE_OT_add_light(bpy.types.Operator, Add_Node):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
+    bl_idname = 'node.add_light'
+    bl_label = 'Add Light Node'
+    input_type = bpy.props.StringProperty(default='Light')
+
+class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
+    bl_idname = 'node.add_pattern'
+    bl_label = 'Add Pattern Node'
+    input_type = bpy.props.StringProperty(default='Pattern')
 
 
-def convert_types(some_type):
-    some_type = some_type.__class__.__name__
-    if some_type == 'Euler':
-        return "vector"
-    else:
-        return some_type.lower()
+#### Rib export
 
 #generate param list
 def gen_params(ri, node):
@@ -656,8 +548,12 @@ def shader_node_rib(ri, node, handle=None):
     if node.renderman_node_type == "pattern":
         ri.Pattern(node.bl_label, node.bl_idname, params)
     elif node.renderman_node_type == "light":
+        #must be off for light sources
+        ri.Attribute("visibility", {'int transmission':0, 'int indirect':0})
         params[ri.HANDLEID] = handle
         ri.AreaLightSource(node.bl_label, params)
+    elif node.renderman_node_type == "displacement":
+        ri.Displacement(node.bl_label, params)
     else:
         ri.Bxdf(node.bl_label, node.bl_idname, params)
 
@@ -667,7 +563,8 @@ def get_tex_file_name(prop):
     else:
         return prop
 
-def export_shader_nodetree(ri, id, output_node_type='Bxdf', handle=None):
+#for an input node output all "nodes"
+def export_shader_nodetree(ri, id, handle=None):
     nt = bpy.data.node_groups[id.renderman.nodetree]
     if not handle:
         handle = id.name
@@ -703,6 +600,8 @@ def get_textures_for_node(node):
     
 def get_textures(id):
     textures = []
+    if id.renderman.nodetree == "":
+        return textures
     nt = bpy.data.node_groups[id.renderman.nodetree]
 
     out = next((n for n in nt.nodes if n.renderman_node_type == 'output'), None)
@@ -728,8 +627,7 @@ def register():
     bpy.utils.register_class(RendermanNodeSocketInt)   
     bpy.utils.register_class(RendermanNodeSocketString)
     bpy.utils.register_class(RendermanNodeSocketVector)       
-
-
+    
     user_preferences = bpy.context.user_preferences
     prefs = user_preferences.addons[__package__].preferences
 

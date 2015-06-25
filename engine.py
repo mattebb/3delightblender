@@ -127,8 +127,8 @@ class RPass:
         self.paths['render_output'] = os.path.join(self.paths['export_dir'], 
                                         'buffer.tif')
         
-        #self.paths['shader'] = get_path_list_converted(scene.renderman, 'shader')
-        #self.paths['texture'] = get_path_list_converted(scene.renderman, 'texture')
+        self.paths['shader'] = get_path_list_converted(scene.renderman, 'shader')
+        self.paths['texture'] = [self.paths['texture_output']]
         #self.paths['procedural'] = get_path_list_converted(scene.renderman, 'procedural')
         #self.paths['archive'] = get_path_list_converted(scene.renderman, 'archive')
     

@@ -152,7 +152,7 @@ def generate_property(sp):
     options = {'ANIMATABLE'}
     param_name = sp.attrib['name']
     renderman_name = param_name
-    #HACK! blender doesn't like names with __
+    #blender doesn't like names with __ but we save the "renderman_name with the real one"
     if param_name[0] == '_':
         param_name = param_name[1:]
     if param_name[0] == '_':
@@ -276,6 +276,7 @@ def generate_property(sp):
                                     default=param_default, size=2,
                                     description=param_help)
         renderman_type = 'int'
+        prop_meta['arraySize'] = 2
     
     prop_meta['renderman_type'] = renderman_type
     prop_meta['renderman_name'] = renderman_name
@@ -289,7 +290,8 @@ socket_map = {
     'int':'RendermanNodeSocketInt', 
     'integer':'RendermanNodeSocketInt', 
     'struct':'RendermanNodeSocketString',
-    'normal':'RendermanNodeSocketVector'
+    'normal':'RendermanNodeSocketVector',
+    'vector':'RendermanNodeSocketVector'
 }
 
 #add input sockets

@@ -556,7 +556,7 @@ def export_light(rpass, scene, ri, ob):
         params["string shape"] = [shapes[lamp.type][0]]
     
     if rm.nodetree != '':
-        export_shader_nodetree(ri, lamp, output_node_type="Light", handle=handle)
+        export_shader_nodetree(ri, lamp, handle=handle)
     else:
         ri.AreaLightSource(name, params)
     shapes[lamp.type][1]()
@@ -682,7 +682,7 @@ def export_material(ri, rpass, scene, mat):
             
         #if rm.displacementbound > 0.0:
             #ri.write('        Attribute "displacementbound" "sphere" %f \n' % rm.displacementbound)
-        
+        ri.Attribute('displacementbound', {'sphere':rm.displacementbound})
         export_shader_nodetree(ri, mat)
     else:
         #export_shader(file, scene, rpass, mat, 'shader') # BBM addition
@@ -1586,7 +1586,8 @@ def export_render_settings(ri, rpass, scene, preview=False):
     '''
 
     depths = {'int maxdiffusedepth': rm.max_diffuse_depth,
-            'int maxspeculardepth': rm.max_specular_depth}
+            'int maxspeculardepth': rm.max_specular_depth,
+            'int displacements': 1}
     if preview:
         depths = {'int maxdiffusedepth': rm.preview_max_diffuse_depth,
             'int maxspeculardepth': rm.preview_max_specular_depth}
@@ -1685,10 +1686,10 @@ def export_camera_render_preview(ri, scene):
 
 
 def export_searchpaths(ri, paths):
-    #ri.Option("searchpath", {"string shader": ["%s" % \
-    #    ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
+    ri.Option("searchpath", {"string shader": ["%s" % \
+        ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
     ri.Option("searchpath", {"string texture": ["%s" % \
-        ':'.join(path_list_convert([paths['texture_output']], to_unix=True))]})
+        ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
     
     #ri.Option("searchpath", {"string procedural": ["%s" % \
     #    ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})
