@@ -127,6 +127,8 @@ def make_optimised_texture_3dl(tex, texture_optimiser, srcpath, optpath):
     cmd.append(srcpath)
     cmd.append(optpath)
     
+    
+    
     proc = subprocess.Popen(cmd).wait()
 
 # ------------- Filtering -------------
@@ -872,6 +874,7 @@ def get_texture_list(scene):
             for mat in [mat for mat in o.data.materials if mat != None]:
                 textures = textures + get_textures(mat)
 
+    
     return textures
 
 def get_texture_list_preview(scene):
@@ -1686,6 +1689,7 @@ def export_searchpaths(ri, paths):
     #    ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
     ri.Option("searchpath", {"string texture": ["%s" % \
         ':'.join(path_list_convert([paths['texture_output']], to_unix=True))]})
+    
     #ri.Option("searchpath", {"string procedural": ["%s" % \
     #    ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})
     #ri.Option("searchpath", {"string archive": ["%s" % \

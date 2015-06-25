@@ -251,10 +251,13 @@ class RPass:
                 self.paths['path_texture_optimiser']), in_file,
                 os.path.join(self.paths['texture_output'], out_file)]
             
-            cdir = os.path.dirname(self.paths['texture_output'])
+            #cdir = os.path.dirname(self.paths['texture_output'])
+            
+            Blendcdir = bpy.path.abspath("//")
+            
             environ = os.environ.copy()
             environ['RMANTREE'] = self.paths['rmantree']
-            process = subprocess.Popen(cmd, cwd=cdir, 
+            process = subprocess.Popen(cmd, cwd=Blendcdir, 
                                     stdout=subprocess.PIPE, env=environ)
             process.communicate()
 
