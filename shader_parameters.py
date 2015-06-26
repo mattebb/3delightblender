@@ -152,7 +152,7 @@ def generate_property(sp):
     options = {'ANIMATABLE'}
     param_name = sp.attrib['name']
     renderman_name = param_name
-    #HACK! blender doesn't like names with __
+    #blender doesn't like names with __ but we save the "renderman_name with the real one"
     if param_name[0] == '_':
         param_name = param_name[1:]
     if param_name[0] == '_':
@@ -170,6 +170,9 @@ def generate_property(sp):
     prop_meta = sp.attrib
     renderman_type = param_type
     prop = None
+
+    if 'coshaderPort' in prop_meta and prop_meta['coshaderPort'] == 'True':
+        param_type = 'shader'
 
     #I guess multiline tooltips never worked
     for s in sp:
@@ -240,6 +243,13 @@ def generate_property(sp):
                                     subtype="COLOR",
                                     description=param_help)
         renderman_type = 'color'
+    elif param_type == 'shader':
+        param_default = ''
+        prop = bpy.props.StringProperty(name=param_label, 
+                            default=param_default, 
+                            description=param_help)
+        renderman_type = 'string'
+
     elif param_type == 'string' or param_type == 'struct':
         if param_default == None:
             param_default = ''
@@ -276,6 +286,7 @@ def generate_property(sp):
                                     default=param_default, size=2,
                                     description=param_help)
         renderman_type = 'int'
+        prop_meta['arraySize'] = 2
     
     prop_meta['renderman_type'] = renderman_type
     prop_meta['renderman_name'] = renderman_name
@@ -289,7 +300,8 @@ socket_map = {
     'int':'RendermanNodeSocketInt', 
     'integer':'RendermanNodeSocketInt', 
     'struct':'RendermanNodeSocketString',
-    'normal':'RendermanNodeSocketVector'
+    'normal':'RendermanNodeSocketVector',
+    'vector':'RendermanNodeSocketVector'
 }
 
 #add input sockets

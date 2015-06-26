@@ -774,16 +774,16 @@ class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
         
 class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
     bl_context = "material"
-    bl_label = "Displacement Shader"
-    shader_type = 'displacement'
+    bl_label = "Displacement"
+    shader_type = 'Displacement'
 
     def draw(self, context):
-        layout = self.layout
-        mat = context.material
-        rm = mat.renderman
+        if context.material.renderman.nodetree != "":
+            nt = bpy.data.node_groups[context.material.renderman.nodetree]
+            draw_nodes_properties_ui(self.layout, context, nt, input_name=self.shader_type)
 		# BBM addition begin
-        row = layout.row()
-        row.prop(rm, "displacementbound")
+        row = self.layout.row()
+        row.prop(context.material.renderman, "displacementbound")
 		# BBM addition end
         # self._draw_shader_menu_params(layout, context, rm)
 

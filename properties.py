@@ -1376,7 +1376,7 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     trace_displacements = BoolProperty(
                 name="Trace Displacements",
                 description="Enable high resolution displaced geometry for ray tracing",
-                default=False)
+                default=True)
                 
     trace_samplemotion = BoolProperty(
                 name="Trace Motion Blur",
