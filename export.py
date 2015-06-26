@@ -1752,6 +1752,8 @@ def find_preview_material(scene):
 def preview_model(ri,mat):
     if mat.preview_render_type == 'SPHERE':
         ri.Sphere(1, -1, 1, 360)
+    #elif mat.preview_render_type == 'FLAT': #FLAT PLANE
+    
     else: # CUBE
         ri.Scale(0.75, 0.75, 0.75)
         ri.Translate(0.0,0.0,0.01)
