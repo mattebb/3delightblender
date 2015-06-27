@@ -747,6 +747,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
     shader_type = 'Bxdf'
 
     def draw(self, context):
+        mat = context.material
         if context.material.renderman and context.material.renderman.nodetree:
             nt = bpy.data.node_groups[context.material.renderman.nodetree]
             draw_nodes_properties_ui(self.layout, context, nt, input_name=self.shader_type)
