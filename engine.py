@@ -252,12 +252,14 @@ class RPass:
         for in_file, out_file in texture_list:
             #print (in_file, out_file)
             in_file = get_real_path(in_file)
-            if os.path.isfile(os.path.join(self.paths['texture_output'], out_file)) and self.rm.always_generate_textures == False:
+            out_file_path = os.path.join(self.paths['texture_output'], out_file)
+            
+            if os.path.isfile(out_file_path) and self.rm.always_generate_textures == False and os.path.getmtime(in_file) <= os.path.getmtime(out_file_path):
                 print("TEXTURE %s EXISTS!" % out_file)
             else:
                 cmd = [os.path.join(self.paths['rmantree'], 'bin', \
                     self.paths['path_texture_optimiser']), in_file,
-                    os.path.join(self.paths['texture_output'], out_file)]
+                    out_file_path]
                 #print("TXMAKE STARTED!")
                 #print(cmd)
                 #cdir = os.path.dirname(self.paths['texture_output'])
