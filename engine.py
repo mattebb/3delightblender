@@ -146,7 +146,7 @@ class RPass:
         
         #create command and start process
 
-        options = self.options
+        options = self.options + ['-checkpoint', '0.9', '-progress', '-t:-1']
         if self.scene.renderman.display_driver == 'blender':
             options = options + ['-checkpoint', '1.0s']
         cmd = [os.path.join(self.paths['rmantree'], 'bin', \
