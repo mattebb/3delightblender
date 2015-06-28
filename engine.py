@@ -97,6 +97,8 @@ class RPass:
         init_exporter_env(scene)
         self.initialize_paths(scene)
         
+        self.rm = scene.renderman
+        
         self.do_render = True
         self.is_interactive_running = False
         self.options = []
@@ -248,25 +250,29 @@ class RPass:
             os.mkdir(self.paths['texture_output'])
 
         for in_file, out_file in texture_list:
-            print (in_file, out_file)
+            #print (in_file, out_file)
             in_file = get_real_path(in_file)
-           
-            cmd = [os.path.join(self.paths['rmantree'], 'bin', \
-                self.paths['path_texture_optimiser']), in_file,
-                os.path.join(self.paths['texture_output'], out_file)]
+            out_file_path = os.path.join(self.paths['texture_output'], out_file)
             
-            print(cmd)
-            #cdir = os.path.dirname(self.paths['texture_output'])
-            
-            Blendcdir = bpy.path.abspath("//")
-            if Blendcdir == '':
-                Blendcdir = None
+            if os.path.isfile(out_file_path) and self.rm.always_generate_textures == False and os.path.getmtime(in_file) <= os.path.getmtime(out_file_path):
+                print("TEXTURE %s EXISTS!" % out_file)
+            else:
+                cmd = [os.path.join(self.paths['rmantree'], 'bin', \
+                    self.paths['path_texture_optimiser']), in_file,
+                    out_file_path]
+                #print("TXMAKE STARTED!")
+                #print(cmd)
+                #cdir = os.path.dirname(self.paths['texture_output'])
+                
+                Blendcdir = bpy.path.abspath("//")
+                if Blendcdir == '':
+                    Blendcdir = None
 
-            environ = os.environ.copy()
-            environ['RMANTREE'] = self.paths['rmantree']
-            process = subprocess.Popen(cmd, cwd=Blendcdir, 
-                                    stdout=subprocess.PIPE, env=environ)
-            process.communicate()
+                environ = os.environ.copy()
+                environ['RMANTREE'] = self.paths['rmantree']
+                process = subprocess.Popen(cmd, cwd=Blendcdir, 
+                                        stdout=subprocess.PIPE, env=environ)
+                process.communicate()
 
 
 

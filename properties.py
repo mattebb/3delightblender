@@ -493,6 +493,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                     ('EXPORT', 'Export RIB Only', 'Generate RIB file only')],
                 default='EXPORT_RENDER')
 
+    always_generate_textures = BoolProperty(
+                name="Always Recompile Textures",
+                description="Recompile used textures at export time to the current rib folder. Leave this unchecked to speed up re-render times",
+                default=True)
     #preview settings
     preview_pixel_variance = FloatProperty(
                 name="Preview Pixel Variance",

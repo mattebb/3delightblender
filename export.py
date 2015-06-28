@@ -1752,6 +1752,12 @@ def find_preview_material(scene):
 def preview_model(ri,mat):
     if mat.preview_render_type == 'SPHERE':
         ri.Sphere(1, -1, 1, 360)
+    elif mat.preview_render_type == 'FLAT': #FLAT PLANE
+        #ri.Scale(0.75, 0.75, 0.75)
+        ri.Translate(0.0, 0.0, 0.01)
+        ri.PointsPolygons([4,], 
+            [0, 1, 2, 3],
+            {ri.P: [0, -1, -1,  0, 1, -1,  0, 1, 1,  0, -1, 1]})
     else: # CUBE
         ri.Scale(0.75, 0.75, 0.75)
         ri.Translate(0.0,0.0,0.01)
@@ -1761,6 +1767,8 @@ def preview_model(ri,mat):
             {ri.P: [1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 
                     1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1]})
 
+    
+    
 
 def export_display(ri, rpass, scene):
     rm = scene.renderman
