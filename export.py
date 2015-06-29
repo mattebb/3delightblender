@@ -1037,7 +1037,8 @@ def get_curve(curve):
     for spline in curve.splines:
         P = []
         width = []
-        npt = len(spline.bezier_points)*3
+        npt = []
+        
         
         for bp in spline.bezier_points:
             P.extend( bp.handle_left )
@@ -1050,10 +1051,11 @@ def get_curve(curve):
             period = 'periodic'
             # wrap the initial handle around to the end, to begin on the CV
             P = P[3:] + P[:3]
+            npt += [len(spline.bezier_points)*3]
         else:
-            period = 'nonperiodic'
+            period = "nonperiodic"
             # remove the two unused handles
-            npt -= 2
+            npt += [len(spline.bezier_points)*3-2]
             P = P[3:-3]
             appel = 34
             appel = str(appel)
@@ -1078,14 +1080,16 @@ def export_curve(ri, rpass, scene, ob, motion):
     
     for spline_samples in samples:
         for P, width, npt, basis, period in spline_samples:
-            print("BASIS: ")
-            print("Basis zero: ", basis[0] ,"Basis one: ", basis[1] ,"Basis two: ", basis [2] ,"Basis three: ", basis[3])
+            #print("BASIS: ")
+            #print("Basis zero: ", basis[0] ,"Basis one: ", basis[1] ,"Basis two: ", basis [2] ,"Basis three: ", basis[3])
+            
+            #print("!!Number of Points: ", npt)
+            #print("!!Points: ", P)
+            #nptS = str(npt)
+            #print("!!Type: ", nptS)
+            
             ri.Basis(basis[0], basis[1], basis[2], basis[3])
-            print("!!Number of Points: ", str(npt))
-            print("!!Points: ", P)
-            nptS = str(npt)
-            print("!!Type: ", nptS)
-            ri.Curves("cubic", nptS, period, {"P": rib(P), "width": width})
+            ri.Curves("cubic", npt, period, {"P": rib(P), "width": width})
             
             
     if motion_blur:
@@ -1764,6 +1768,12 @@ def preview_model(ri,mat):
         #ri.Scale(0.75, 0.75, 0.75)
         ri.Translate(0.0, 0.0, 0.01)
         ri.PointsPolygons([4,], 
+            [0, 1, 2, 3],
+            {ri.P: [0, -1, -1,  0, 1, -1,  0, 1, 1,  0, -1, 1]})
+    elif mat.preview_render_type == 'CURVE': #Curve
+        #ri.Scale(0.75, 0.75, 0.75)
+        ri.Translate(0.0, 0.0, 0.01)
+        ri.Curve([4,], 
             [0, 1, 2, 3],
             {ri.P: [0, -1, -1,  0, 1, -1,  0, 1, 1,  0, -1, 1]})
     else: # CUBE
