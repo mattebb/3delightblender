@@ -43,6 +43,12 @@ addon_version = bl_info['version']
 # helper functions for parameters
 from .nodes import export_shader_nodetree, get_textures
 
+# ------------- Atom's helper functions for naming duplis -------------
+GLOBAL_ZERO_PADDING = 5
+def returnNameForNumber(passedInteger):
+    temp_number = str(passedInteger)
+    post_fix = temp_number.zfill(GLOBAL_ZERO_PADDING)
+    return post_fix
 
 # ------------- Texture optimisation -------------
 
@@ -292,7 +298,6 @@ def get_particles(scene, ob, psys):
 
 # Mesh data access
 def get_mesh(mesh):
-    print("get_mesh: [%s]." % mesh.name)
     nverts = []
     verts = []
     P = []
@@ -1197,18 +1202,22 @@ def is_dupli(ob):
     return ob.type == 'EMPTY' and ob.dupli_type != 'NONE'
 
 def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
-
     # handle duplis
     if is_dupli(ob):
-        ob.dupli_list_create(scene)
-        
-        dupobs = [(dob.object, dob.matrix) for dob in ob.dupli_list]
-        
-        for dupob, dupob_mat in dupobs:
-            if is_renderable(scene, dupob):
-                export_object(ri, rpass, scene, dupob, motion)
-        
-        ob.dupli_list_clear()
+        if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
+            print ("export_geometry_data: detected dupli on [%s, %s]" % (ob.name, ob.dupli_type))
+            ob.dupli_list_create(scene)
+            dupobs = [(dob.object, dob.matrix.copy()) for dob in ob.dupli_list]	# Atom 061115
+            
+            for dupob, dupob_mat in dupobs:
+                if is_renderable(scene, dupob):
+                    #print ("export_geometry_data: creating dupli object[%s]." % dupob.name)
+                    dupli_name = "%s_%s_p%s" % (ob.name, dupob.object.name, returnNameForNumber(dupob.index))
+                    export_object(file, rpass, scene, dupob, motion, dupob_mat, dupli_name)	# Atom 061115
+            ob.dupli_list_clear()
+            return
+        else:
+            print ("export_geometry_data: Unsupported dupli type!")
         return
         
     if force_prim == '':
@@ -1243,9 +1252,6 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
             export_polygon_mesh(ri, scene, ob, motion)
         else:
             export_curve(ri, scene, ob, motion) 
-
-        #print ("export_geometry_data: exporting [%s] as [%s]." % (ob.name,ob.type))
-        #export_curve(ri, scene, ob, motion)
  
     # mesh only
     elif prim == 'POLYGON_MESH':
@@ -1270,18 +1276,24 @@ def export_geometry(ri, rpass, scene, ob, motion):
         ri.write(geometry_source_rib(scene, ob))
 
 
-def export_object(ri, rpass, scene, ob, motion):
+def export_object(ri, rpass, scene, ob, motion, mtx = None, dupli_name = None):
     rm = ob.renderman
 
     if ob.type in ('LAMP', 'CAMERA'): return
-    
-    if ob.parent:
-        mat = ob.parent.matrix_world * ob.matrix_local
+
+    if mtx != None:
+        mat = mtx
     else:
-        mat = ob.matrix_world
+        if ob.parent:
+            mat = ob.parent.matrix_world * ob.matrix_local
+        else:
+            mat = ob.matrix_world
 
     ri.AttributeBegin()
-    ri.Attribute("identifier", {"name": ob.name})
+    if dupli_name != None:
+        ri.Attribute("identifier", {"name": dupli_name})
+    else:
+        ri.Attribute("identifier", {"name": ob.name})
 
     # Shading
     if rm.shadingrate_override:
@@ -1417,15 +1429,51 @@ def export_motion(rpass, scene):
                         
     return motion
 
-
 def export_objects(ri, rpass, scene, motion):
-
+    SUPPORTED_INSTANCE_TYPES = ['MESH','CURVE','FONT']
     export_comment(ri, "Objects")
 
     # export the objects to RIB recursively
     for ob in rpass.objects:
-        print ("export_objects: Exporting [%s]." % ob.name)
-        export_object(ri, rpass, scene, ob, motion)
+        if ob.type in SUPPORTED_INSTANCE_TYPES:
+            if ob.type == 'CURVE' or ob.type == 'FONT':
+                # If this curve is extruded or beveled it can produce faces from a to_mesh call.
+                l = ob.data.extrude + ob.data.bevel_depth
+            else:
+                try:
+                    l = len(ob.data.polygons)
+                except:
+                    l = 0
+            if l > 0:
+                if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
+                    # handle duplis
+                    print("export_objects: checking [%s] dupli type [%s]." % (ob.name, ob.dupli_type))
+                    if ob.parent and ob.parent.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
+                        # Skip creating this object because it is child of a dupli object.
+                        pass
+                    else:
+                        if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
+                            print ("export_geometry_data: detected dupli on [%s, %s]" % (ob.name, ob.dupli_type))
+                            ob.dupli_list_create(scene)
+                            dupobs = [(dob.object, dob.matrix.copy(), dob.index) for dob in ob.dupli_list]	# Atom 061115
+                            
+                            for dupob, dupob_mat, dupob_index in dupobs:
+                                if is_renderable(scene, dupob):
+                                    dupli_name = "%s_%s_d%s" % (ob.name, dupob.name, returnNameForNumber(dupob_index))
+                                    export_object(ri, rpass, scene, dupob, motion, dupob_mat, dupli_name)	# Atom 061115
+                            ob.dupli_list_clear()
+                        else:
+                            print ("export_geometry_data: Unsupported dupli type!")
+                else:
+                    if ob.parent and ob.parent.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
+                        # Skip creating this object because it is child of a dupli object.
+                        pass
+                    else:
+                        print("export_objects: processing [%s, %s]." % (ob.name, ob.type))
+                        export_object(ri, rpass, scene, ob, motion)
+            else:
+                # Curve produces no faces, no need to render.
+                pass
 
 #TODO take in an ri object and write out archive
 def export_archive(scene, objects, filepath="", archive_motion=True, 
