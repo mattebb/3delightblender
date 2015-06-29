@@ -860,6 +860,7 @@ def export_comment(ri, comment):
 
 def get_texture_list(scene):
     #if not rpass.light_shaders: return
+    SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT']
     textures = []
     for o in renderable_objects(scene):
         if o.type == 'CAMERA':
@@ -867,11 +868,11 @@ def get_texture_list(scene):
         elif o.type == 'LAMP':
             if o.data.renderman.nodetree != '':
                 textures = textures + get_textures(o.data)
-        else:
+        elif o.type in SUPPORTED_MATERIAL_TYPES:
             for mat in [mat for mat in o.data.materials if mat != None]:
                 textures = textures + get_textures(mat)
-
-    
+        else:
+            print ("get_texture_list: unsupported object type [%s]." % o.type)
     return textures
 
 def get_texture_list_preview(scene):
