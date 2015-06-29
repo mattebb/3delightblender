@@ -292,6 +292,7 @@ def get_particles(scene, ob, psys):
 
 # Mesh data access
 def get_mesh(mesh):
+    print("get_mesh: [%s]." % mesh.name)
     nverts = []
     verts = []
     P = []
@@ -369,8 +370,8 @@ def get_mesh_vgroup(ob, mesh, name=""):
 
 def get_primvars(ob, geo, interpolation=""):
     primvars = {}
-    if ob.type != 'MESH':
-        return
+    #if ob.type != 'MESH':
+    #    return
 
     rm = ob.data.renderman
     
@@ -499,7 +500,7 @@ def create_mesh(scene, ob, matrix=None):
     #    ob.modifiers[len(ob.modifiers)-2].show_render = False
     #    ob.modifiers[len(ob.modifiers)-1].show_render = False
     
-    mesh = ob.to_mesh(scene, True, 'RENDER')    
+    mesh = ob.to_mesh(scene, True, 'RENDER', calc_tessface=True, calc_undeformed=True)    
     
     if matrix != None:
         mesh.transform(matrix)
@@ -1037,25 +1038,25 @@ def get_curve(curve):
     for spline in curve.splines:
         P = []
         width = []
-        npt = []
+        npt += len(spline.bezier_points)*3
         
         
         for bp in spline.bezier_points:
             P.extend( bp.handle_left )
             P.extend( bp.co )
             P.extend( bp.handle_right )
-            width.append( bp.radius )
+            width.append( bp.radius * 0.01)
         
         basis = ["BezierBasis", 3, "BezierBasis", 3]
         if spline.use_cyclic_u:
             period = 'periodic'
             # wrap the initial handle around to the end, to begin on the CV
             P = P[3:] + P[:3]
-            npt += [len(spline.bezier_points)*3]
+            
         else:
             period = "nonperiodic"
             # remove the two unused handles
-            npt += [len(spline.bezier_points)*3-2]
+            npt -=2
             P = P[3:-3]
             appel = 34
             appel = str(appel)
@@ -1066,34 +1067,26 @@ def get_curve(curve):
     return splines
 
 def export_curve(ri, rpass, scene, ob, motion):
-    if ob.type != 'CURVE':
-        return
-    curve  = ob.data
+    if ob.type == 'CURVE':
+        curve  = ob.data
 
-    motion_blur = ob.name in motion['deformation']
-    
-    if motion_blur:
-        export_motion_begin(ri, scene, ob)
-        samples = motion['deformation'][ob.name]
+        motion_blur = ob.name in motion['deformation']
+        
+        if motion_blur:
+            export_motion_begin(ri, scene, ob)
+            samples = motion['deformation'][ob.name]
+        else:
+            samples = [get_curve(curve)]
+        
+        for spline_samples in samples:
+            for P, width, npt, basis, period in spline_samples:
+                ri.Basis(basis[0], basis[1], basis[2], basis[3])
+                ri.Curves("cubic", [npt], period, {"P": rib(P), "width": width})
+      
+        if motion_blur:
+            ri.MotionEnd()
     else:
-        samples = [get_curve(curve)]
-    
-    for spline_samples in samples:
-        for P, width, npt, basis, period in spline_samples:
-            #print("BASIS: ")
-            #print("Basis zero: ", basis[0] ,"Basis one: ", basis[1] ,"Basis two: ", basis [2] ,"Basis three: ", basis[3])
-            
-            #print("!!Number of Points: ", npt)
-            #print("!!Points: ", P)
-            #nptS = str(npt)
-            #print("!!Type: ", nptS)
-            
-            ri.Basis(basis[0], basis[1], basis[2], basis[3])
-            ri.Curves("cubic", npt, period, {"P": rib(P), "width": width})
-            
-            
-    if motion_blur:
-        ri.MotionEnd()
+        print ("export_curve: recieved a non-supported object type of [%s]." % ob.type)
 
 def export_subdivision_mesh(ri, scene, ob, motion):
     mesh = create_mesh(scene, ob)
@@ -1248,9 +1241,14 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
     elif prim == 'TORUS':
         export_torus(ri, scene, ob, motion)
     
-    # curve only
-    elif prim == 'CURVE':
-        export_curve(ri, rpass, scene, ob, motion) 
+    # curve or font
+    elif prim == 'CURVE' or prim == 'FONT':
+        # If this curve is extruded or beveled it can produce faces from a to_mesh call.
+        l = ob.data.extrude + ob.data.bevel_depth
+        if l > 0:
+            export_polygon_mesh(ri, scene, ob, motion)
+        else:
+            export_curve(ri, scene, ob, motion) 
         
     # mesh only
     elif prim == 'POLYGON_MESH':
@@ -1291,50 +1289,7 @@ def export_object(ri, rpass, scene, ob, motion):
     # Shading
     if rm.shadingrate_override:
         ri.ShadingRate(rm.shadingrate)
- #    file.write('        GeometricApproximation "motionfactor"  %d \n' % int(rm.geometric_approx_motion))
- #    file.write('        GeometricApproximation "focusfactor"  %d \n' % int(rm.geometric_approx_focus))
-        
- #    file.write('        ShadingInterpolation "%s"\n' % rm.shadinginterpolation)
-    
- #    file.write('        Matte  %d \n' % int(rm.matte))
-    
- #    file.write('        Attribute "visibility" \n')
- #    file.write('            "integer camera" [ %d ]\n' % int(rm.visibility_camera))
- #    file.write('            "integer diffuse" [ %d ]\n' % int(rm.visibility_trace_diffuse))
- #    file.write('            "integer specular" [ %d ]\n' % int(rm.visibility_trace_specular))
- #    file.write('            "integer photon" [ %d ]\n' % int(rm.visibility_photons))
- #    file.write('            "integer transmission" [ %d ]\n' % int(rm.visibility_trace_transmission))
-    
- #    file.write('        Attribute "shade" "string diffusehitmode" [ "%s" ] \n' % rm.trace_diffuse_hitmode)
- #    file.write('        Attribute "shade" "string specularhitmode" [ "%s" ] \n' % rm.trace_specular_hitmode)
- #    file.write('        Attribute "shade" "string transmissionhitmode" [ "%s" ] \n' % rm.trace_transmission_hitmode)
-    
- #    file.write('        Attribute "trace" "displacements" [ %d ] \n' % int(rm.trace_displacements))
- #    file.write('        Attribute "trace" "samplemotion" [ %d ] \n' % int(rm.trace_samplemotion))
 
- #    if rm.export_coordsys:
- #        file.write('        CoordinateSystem "%s" \n' % ob.name)
-    
-	# # Light Linking
- #    if rpass.light_shaders:
- #        file.write('\n        # Light Linking\n')
- #        for light in rm.light_linking:
- #            light_name = light.light
- #            if is_renderable(scene, scene.objects[light_name]):
- #                if light.illuminate.split(' ')[-1] == 'ON':
- #                    file.write('        Illuminate "%s" 1 \n' % light_name)
- #                elif light.illuminate.split(' ')[-1] == 'OFF':
- #                    file.write('        Illuminate "%s" 0 \n' % light_name)
-
- #    # Trace Sets
- #    file.write('\n        # Trace Sets\n')
- #    for set in rm.trace_set:
- #        set_name = set.group
- #        set_mode = '+'
- #        if set.mode.startswith('exclude'):
- #            set_mode = '-'
- #        file.write('        Attribute "grouping" "string membership" ["%s%s"] \n' % (set_mode,set_name))
-	
     # Transformation
     if ob.name in motion['transformation']:
         export_motion_begin(ri,scene, ob)
@@ -1473,6 +1428,7 @@ def export_objects(ri, rpass, scene, motion):
     # export the objects to RIB recursively
     for ob in rpass.objects:
         export_object(ri, rpass, scene, ob, motion)
+        print("export_objects: Exporting [%s]." % ob.name)
 
 #TODO take in an ri object and write out archive
 def export_archive(scene, objects, filepath="", archive_motion=True, 

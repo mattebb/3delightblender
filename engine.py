@@ -28,7 +28,7 @@ import bpy_types
 import math
 import os
 import time
-import subprocess
+from subprocess import Popen, PIPE
 import mathutils
 from mathutils import Matrix, Vector, Quaternion
 
@@ -142,85 +142,101 @@ class RPass:
             try:
                 os.remove(render_output) # so as not to load the old file
             except:
-                print('error removing ' + render_output)
-        
-        #create command and start process
+                print('ERROR: Unable to remove previous render [%s].' % render_output)
+                
+        def format_seconds_to_hhmmss(seconds):
+            hours = seconds // (60*60)
+            seconds %= (60*60)
+            minutes = seconds // 60
+            seconds %= 60
+            return "%02i:%02i:%02i" % (hours, minutes, seconds)
 
-        options = self.options + [' -checkpoint ' ' 0.9 ' ' -progress ' ' -t:-1 ']
-        #if self.scene.renderman.display_driver == 'blender':
-            #options = options + ['-checkpoint', '1.0s']
+        def update_image():
+            image_scale = 0.01 * self.scene.render.resolution_percentage 
+            result = engine.begin_result(0, 0, self.scene.render.resolution_x*image_scale, self.scene.render.resolution_y*image_scale)
+            lay = result.layers[0]
+            # possible the image wont load early on.
+            try:
+                lay.load_from_file(render_output)
+            except:
+                pass
+            engine.end_result(result)
+
+        #create command and start process
+        options = self.options
+        if self.scene.renderman.display_driver == 'blender':
+            options = options + ['-checkpoint', '0.9', '-progress', '-t:-1']
         cmd = [os.path.join(self.paths['rmantree'], 'bin', \
-                self.paths['rman_binary'])], options, [self.paths['rib_output']]
+                self.paths['rman_binary'])] + self.options + \
+                options + [self.paths['rib_output']]
         
         cdir = os.path.dirname(self.paths['rib_output'])
         environ = os.environ.copy()
         environ['RMANTREE'] = self.paths['rmantree']
-        print ("CMD!: ")
-        print (cmd)
-        process = subprocess.Popen(cmd, cwd=cdir, 
-                                    stdout=subprocess.PIPE, env=environ)
 
+        # Launch the command to begin rendering.
+        try:
+            process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE, env=environ)
+            isProblem = False
+        except:
+            engine.update_stats("","Problem launching PRMan. Is a PATH specified, are support libraries installed?")
+            isProblem = True
 
-        # Wait for the file to be created
-        while not os.path.exists(render_output):
-            if engine.test_break():
-                try:
-                    process.kill()
-                except:
-                    pass
-                break
-
-            if process.poll() != None:
-                engine.update_stats("", "PRMan: Failed render")
-                break
-
-            time.sleep(DELAY)
-        
-        if os.path.exists(render_output):
-            engine.update_stats("", "PRMan: Rendering")
-            do_update = self.scene.renderman.display_driver == 'blender'
-        
-            prev_size = -1
-        
-            def update_image():
-                result = engine.begin_result(0, 0, 
-                            self.scene.render.resolution_x, 
-                            self.scene.render.resolution_y)
-                lay = result.layers[0]
-                # possible the image wont load early on.
-                try:
-                    lay.load_from_file(render_output)
-                except:
-                    pass
-                engine.end_result(result)
-
-
-            # Update while rendering
-            while True:    
-                if process.poll() != None:
-                    if do_update:
-                        update_image()
-                    engine.update_stats("", "PRMan: Done Rendering")
-                    break
-        
-                # user exit
+        if isProblem == False:
+            # Wait for the file to be created.
+            t1 = time.time()
+            s = '.'
+            while not os.path.exists(render_output):
+                engine.update_stats("", ("PRMan: Waiting for display buffer image to be created" + s))
                 if engine.test_break():
                     try:
                         process.kill()
                     except:
                         pass
                     break
-        
-                # check if the file updated
-                new_size = os.path.getsize(render_output)
-        
-                if new_size != prev_size:
-                    if do_update:
-                        update_image()
-                    prev_size = new_size
-        
-                time.sleep(DELAY)
 
+                if process.poll() != None:
+                    engine.update_stats("", "PRMan: Failed")
+                    break
+
+                time.sleep(DELAY)
+                s = s + "."
+
+            if os.path.exists(render_output):
+                prev_size = -1
+
+                # Update while rendering
+                
+                cnt = 0
+                while True:
+                    t2 = time.time()
+                    engine.update_stats("", "PRMan: Rendering...NOTE: PRMan does not provide usable progress information. (elapsed time: "+  format_seconds_to_hhmmss( t2-t1 ) + ")")
+                    if process.poll() is not None:
+                        update_image()
+                        break
+
+                    # user exit
+                    if engine.test_break():
+                        try:
+                            process.kill()
+                        except:
+                            pass
+                        break
+                        
+                    # check if the file updated
+                    new_size = os.path.getsize(render_output)
+
+                    if new_size != prev_size:
+                        update_image()
+                        prev_size = new_size
+
+                    time.sleep(DELAY)
+
+            else:
+                print("Export path [" + render_output + "] does not exist.")
+        else:
+            print("Problem launching PRMan. Is a PATH specified, are support libraries installed?")
+    
     def set_scene(self, scene):
         self.scene = scene
 
@@ -274,8 +290,3 @@ class RPass:
                 process = subprocess.Popen(cmd, cwd=Blendcdir, 
                                         stdout=subprocess.PIPE, env=environ)
                 process.communicate()
-
-
-
-
-

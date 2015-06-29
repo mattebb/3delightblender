@@ -385,11 +385,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     min_samples = IntProperty(
                 name="Min Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=32)
+                min=0, default=6)
     max_samples = IntProperty(
                 name="Max Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=512)
+                min=0, default=64)
 
     shadingrate = FloatProperty(
                 name="Shading Rate",
@@ -1472,6 +1472,8 @@ def register():
                 type=RendermanParticleSettings, name="Renderman Particle Settings")
     bpy.types.Mesh.renderman = PointerProperty(
                 type=RendermanMeshGeometrySettings, name="Renderman Mesh Geometry Settings")
+    bpy.types.Curve.renderman = PointerProperty(
+                type=RendermanCurveGeometrySettings, name="Renderman Curve Geometry Settings")
     bpy.types.Object.renderman = PointerProperty(
                 type=RendermanObjectSettings, name="Renderman Object Settings")
 
