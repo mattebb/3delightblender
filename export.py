@@ -292,6 +292,7 @@ def get_particles(scene, ob, psys):
 
 # Mesh data access
 def get_mesh(mesh):
+    print("get_mesh: [%s]." % mesh.name)
     nverts = []
     verts = []
     P = []
@@ -369,11 +370,11 @@ def get_mesh_vgroup(ob, mesh, name=""):
 
 def get_primvars(ob, geo, interpolation=""):
     primvars = {}
-    if ob.type != 'MESH':
-        return
-
-    rm = ob.data.renderman
+    #if ob.type != 'MESH':
+    #    return
     
+    rm = ob.data.renderman
+
     interpolation = 'facevertex' if interpolation == '' else interpolation
     
     # default hard-coded prim vars
@@ -499,16 +500,12 @@ def create_mesh(scene, ob, matrix=None):
     #    ob.modifiers[len(ob.modifiers)-2].show_render = False
     #    ob.modifiers[len(ob.modifiers)-1].show_render = False
     
-    mesh = ob.to_mesh(scene, True, 'RENDER')    
-    
+    mesh = ob.to_mesh(scene, True, 'RENDER', calc_tessface=True, calc_undeformed=True)    
     if matrix != None:
         mesh.transform(matrix)
 
     return mesh
-
-
-
-    
+ 
 
 def export_light(rpass, scene, ri, ob):
     lamp = ob.data
@@ -562,7 +559,7 @@ def export_light(rpass, scene, ri, ob):
     shapes[lamp.type][1]()
     
     # BBM addition begin
-	# export light coshaders
+    # export light coshaders
     '''
     file.write('\n        ## Light Co-shaders\n')
     for cosh_item in rm.coshaders.items():
@@ -575,11 +572,11 @@ def export_light(rpass, scene, ri, ob):
                 file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
             else:
                 file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-	
+    
     file.write('\n        ## Light shader\n')
     '''
     # BBM addition end
-	
+    
     '''
     # user defined light shader
     if rm.nodetree == '' and rm.light_shaders.active != '':
@@ -659,11 +656,11 @@ def export_light(rpass, scene, ri, ob):
   #       else:
   #           value = rib(sp.value)
 
-		# # BBM addition begin
+        # # BBM addition begin
   #       if sp.is_array:
   #           file.write('        "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
   #       else:
-		# # BBM addition end
+        # # BBM addition end
   #           file.write('        "%s %s" %s\n' % (sp.data_type, sp.name, value))
 
     ri.TransformEnd()
@@ -901,7 +898,7 @@ def export_scene_lights(ri, rpass, scene):
 def export_shader(ri, scene, rpass, idblock, shader_type):
     rm = idblock.renderman
     export_comment(ri, shader_type) # BBM addition
-	
+    
     '''
     parameterlist = rna_to_shaderparameters(scene, rm, shader_type)
 
@@ -989,19 +986,19 @@ def export_shader(ri, scene, rpass, idblock, shader_type):
                     else:
                         file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
         return
-	# BBM addition end
+    # BBM addition end
     
 
     # parameter list
     for sp in parameterlist:
-		# BBM addition begin
+        # BBM addition begin
         if sp.value == 'null':
             continue
 
         if sp.is_array:
             file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
         else:
-		# BBM addition end
+        # BBM addition end
             file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
 
     # BBM removed begin
@@ -1009,7 +1006,7 @@ def export_shader(ri, scene, rpass, idblock, shader_type):
     #    file.write('        Shader "%s" "%s" \n' % (rm.surface_shaders.active, rm.surface_shaders.active))
     #    for sp in parameterlist:
     #        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-	# BBM removed end
+    # BBM removed end
 
     '''
 
@@ -1043,9 +1040,10 @@ def get_curve(curve):
             P.extend( bp.handle_left )
             P.extend( bp.co )
             P.extend( bp.handle_right )
-            width.append( bp.radius )
+            width.append( bp.radius * 0.01 )
         
-        basis = ["bezier", 3, "bezier", 3]
+        #basis = ["bezier", 3, "bezier", 3]
+        basis = ["BezierBasis", 3, "BezierBasis", 3]
         if spline.use_cyclic_u:
             period = 'periodic'
             # wrap the initial handle around to the end, to begin on the CV
@@ -1061,27 +1059,26 @@ def get_curve(curve):
     return splines
 
 def export_curve(ri, scene, ob, motion):
-    if ob.type != 'CURVE':
-        return
-    curve  = ob.data
+    if ob.type == 'CURVE':
+        curve  = ob.data
 
-    motion_blur = ob.name in motion['deformation']
-    
-    if motion_blur:
-        export_motion_begin(ri, scene, ob)
-        samples = motion['deformation'][ob.name]
+        motion_blur = ob.name in motion['deformation']
+        
+        if motion_blur:
+            export_motion_begin(ri, scene, ob)
+            samples = motion['deformation'][ob.name]
+        else:
+            samples = [get_curve(curve)]
+        
+        for spline_samples in samples:
+            for P, width, npt, basis, period in spline_samples:
+                ri.Basis(basis[0], basis[1], basis[2], basis[3])
+                ri.Curves("cubic", [npt], period, {"P": rib(P), "width": width})
+      
+        if motion_blur:
+            ri.MotionEnd()
     else:
-        samples = [get_curve(curve)]
-    
-    for spline_samples in samples:
-        for P, width, npt, basis, period in spline_samples:
-
-            ri.Basis(basis[0], basis[1], basis[2], basis[3])
-            ri.Curves("cubic", npt, period, {"P": rib(P), "width": width})
-            
-            
-    if motion_blur:
-        ri.MotionEnd()
+        print ("export_curve: recieved a non-supported object type of [%s]." % ob.type)
 
 def export_subdivision_mesh(ri, scene, ob, motion):
     mesh = create_mesh(scene, ob)
@@ -1136,6 +1133,7 @@ def export_polygon_mesh(ri, scene, ob, motion):
         
     for nverts, verts, P in samples:
         primvars = get_primvars(ob, mesh, "facevarying")
+        print(primvars)
         primvars['P'] = P
         ri.PointsPolygons(nverts, verts, primvars)
         
@@ -1237,9 +1235,17 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
         export_torus(ri, scene, ob, motion)
     
     # curve only
-    elif prim == 'CURVE':
-        export_curve(ri, scene, ob, motion) 
-        
+    elif prim == 'CURVE' or prim == 'FONT':
+        # If this curve is extruded or beveled it can produce faces from a to_mesh call.
+        l = ob.data.extrude + ob.data.bevel_depth
+        if l > 0:
+            export_polygon_mesh(ri, scene, ob, motion)
+        else:
+            export_curve(ri, scene, ob, motion) 
+
+        #print ("export_geometry_data: exporting [%s] as [%s]." % (ob.name,ob.type))
+        #export_curve(ri, scene, ob, motion)
+ 
     # mesh only
     elif prim == 'POLYGON_MESH':
         export_polygon_mesh(ri, scene, ob, motion)
@@ -1279,50 +1285,7 @@ def export_object(ri, rpass, scene, ob, motion):
     # Shading
     if rm.shadingrate_override:
         ri.ShadingRate(rm.shadingrate)
- #    file.write('        GeometricApproximation "motionfactor"  %d \n' % int(rm.geometric_approx_motion))
- #    file.write('        GeometricApproximation "focusfactor"  %d \n' % int(rm.geometric_approx_focus))
-        
- #    file.write('        ShadingInterpolation "%s"\n' % rm.shadinginterpolation)
-    
- #    file.write('        Matte  %d \n' % int(rm.matte))
-    
- #    file.write('        Attribute "visibility" \n')
- #    file.write('            "integer camera" [ %d ]\n' % int(rm.visibility_camera))
- #    file.write('            "integer diffuse" [ %d ]\n' % int(rm.visibility_trace_diffuse))
- #    file.write('            "integer specular" [ %d ]\n' % int(rm.visibility_trace_specular))
- #    file.write('            "integer photon" [ %d ]\n' % int(rm.visibility_photons))
- #    file.write('            "integer transmission" [ %d ]\n' % int(rm.visibility_trace_transmission))
-    
- #    file.write('        Attribute "shade" "string diffusehitmode" [ "%s" ] \n' % rm.trace_diffuse_hitmode)
- #    file.write('        Attribute "shade" "string specularhitmode" [ "%s" ] \n' % rm.trace_specular_hitmode)
- #    file.write('        Attribute "shade" "string transmissionhitmode" [ "%s" ] \n' % rm.trace_transmission_hitmode)
-    
- #    file.write('        Attribute "trace" "displacements" [ %d ] \n' % int(rm.trace_displacements))
- #    file.write('        Attribute "trace" "samplemotion" [ %d ] \n' % int(rm.trace_samplemotion))
 
- #    if rm.export_coordsys:
- #        file.write('        CoordinateSystem "%s" \n' % ob.name)
-    
-	# # Light Linking
- #    if rpass.light_shaders:
- #        file.write('\n        # Light Linking\n')
- #        for light in rm.light_linking:
- #            light_name = light.light
- #            if is_renderable(scene, scene.objects[light_name]):
- #                if light.illuminate.split(' ')[-1] == 'ON':
- #                    file.write('        Illuminate "%s" 1 \n' % light_name)
- #                elif light.illuminate.split(' ')[-1] == 'OFF':
- #                    file.write('        Illuminate "%s" 0 \n' % light_name)
-
- #    # Trace Sets
- #    file.write('\n        # Trace Sets\n')
- #    for set in rm.trace_set:
- #        set_name = set.group
- #        set_mode = '+'
- #        if set.mode.startswith('exclude'):
- #            set_mode = '-'
- #        file.write('        Attribute "grouping" "string membership" ["%s%s"] \n' % (set_mode,set_name))
-	
     # Transformation
     if ob.name in motion['transformation']:
         export_motion_begin(ri,scene, ob)
@@ -1460,6 +1423,7 @@ def export_objects(ri, rpass, scene, motion):
 
     # export the objects to RIB recursively
     for ob in rpass.objects:
+        print ("export_objects: Exporting [%s]." % ob.name)
         export_object(ri, rpass, scene, ob, motion)
 
 #TODO take in an ri object and write out archive
@@ -1530,11 +1494,11 @@ def export_integrator(ri, rpass, scene):
     
   #   parameterlist = rna_to_shaderparameters(scene, rm.integrator, 'surface')
   #   for sp in parameterlist:
-		# # BBM addition begin
+        # # BBM addition begin
   #       if sp.is_array:
   #           file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
   #       else:
-		# # BBM addition end
+        # # BBM addition end
   #           file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
     
 
@@ -1712,16 +1676,16 @@ def find_preview_material(scene):
 # --------------- Hopefully temporary --------------- #
 
 def get_instance_materials(ob):
-	obmats = []
-	# Grab materials attached to object instances ...
-	if hasattr(ob, 'material_slots'):
-		for ms in ob.material_slots:
-			obmats.append(ms.material)
-	# ... and to the object's mesh data
-	if hasattr(ob.data, 'materials'):
-		for m in ob.data.materials:
-			obmats.append(m)
-	return obmats
+    obmats = []
+    # Grab materials attached to object instances ...
+    if hasattr(ob, 'material_slots'):
+        for ms in ob.material_slots:
+            obmats.append(ms.material)
+    # ... and to the object's mesh data
+    if hasattr(ob.data, 'materials'):
+        for m in ob.data.materials:
+            obmats.append(m)
+    return obmats
 
 def find_preview_material(scene):
     # taken from mitsuba exporter
@@ -1752,6 +1716,12 @@ def find_preview_material(scene):
 def preview_model(ri,mat):
     if mat.preview_render_type == 'SPHERE':
         ri.Sphere(1, -1, 1, 360)
+    elif mat.preview_render_type == 'FLAT': #FLAT PLANE
+        #ri.Scale(0.75, 0.75, 0.75)
+        ri.Translate(0.0, 0.0, 0.01)
+        ri.PointsPolygons([4,], 
+            [0, 1, 2, 3],
+            {ri.P: [0, -1, -1,  0, 1, -1,  0, 1, 1,  0, -1, 1]})
     else: # CUBE
         ri.Scale(0.75, 0.75, 0.75)
         ri.Translate(0.0,0.0,0.01)
@@ -1761,6 +1731,8 @@ def preview_model(ri,mat):
             {ri.P: [1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, 
                     1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1]})
 
+    
+    
 
 def export_display(ri, rpass, scene):
     rm = scene.renderman
