@@ -240,15 +240,15 @@ class surfaceShaders(bpy.types.PropertyGroup):
 
 
 class lightShaders(bpy.types.PropertyGroup):
-	
+    
     def light_shader_active_update(self, context):
         shader_active_update(self, context, 'light')
-	
+    
     active = StringProperty(
                 name="Active Light Shader",
                 description="Shader name to use for light",
                 default="")
-	
+    
     def light_shader_list_items(self, context):
         return shader_list_items(self, context, 'light')
 
@@ -308,8 +308,8 @@ class LightLinking(bpy.types.PropertyGroup):
                 name="Illuminate",
                 update=update_name,
                 items=[ ('DEFAULT', 'Default', ''),
-				        ('ON', 'On', ''),
-				        ('OFF', 'Off', '')] )
+                        ('ON', 'On', ''),
+                        ('OFF', 'Off', '')] )
 
 
 class TraceSet(bpy.types.PropertyGroup):
@@ -329,8 +329,8 @@ class TraceSet(bpy.types.PropertyGroup):
                             )
     mode = EnumProperty(  name="Include/Exclude",
                                 update=update_name,
-	                            items=[ ('included in', 'Include', ''),
-								        ('excluded from', 'Exclude', '')]
+                                items=[ ('included in', 'Include', ''),
+                                        ('excluded from', 'Exclude', '')]
                              )
 
 # hmmm, re-evaluate this idea later...
@@ -385,11 +385,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     min_samples = IntProperty(
                 name="Min Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=32)
+                min=0, default=6)
     max_samples = IntProperty(
                 name="Max Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=512)
+                min=0, default=64)
 
     shadingrate = FloatProperty(
                 name="Shading Rate",
@@ -493,6 +493,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                     ('EXPORT', 'Export RIB Only', 'Generate RIB file only')],
                 default='EXPORT_RENDER')
 
+    always_generate_textures = BoolProperty(
+                name="Always Recompile Textures",
+                description="Recompile used textures at export time to the current rib folder. Leave this unchecked to speed up re-render times",
+                default=True)
     #preview settings
     preview_pixel_variance = FloatProperty(
                 name="Preview Pixel Variance",
@@ -599,13 +603,13 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     # Rib Box Properties
     bty_inlinerib_texts = CollectionProperty(type=RendermanInlineRIB, name="Beauty-pass Inline RIB")
     bty_inlinerib_index = IntProperty(min=-1, default=-1)
-	
-	
+    
+    
     bak_inlinerib_texts = CollectionProperty(type=RendermanInlineRIB, name="Bake-pass Inline RIB")
     bak_inlinerib_index = IntProperty(min=-1, default=-1)
     
-	
-	# Trace Sets (grouping membership)
+    
+    # Trace Sets (grouping membership)
     grouping_membership = CollectionProperty(type=RendermanGrouping, name="Trace Sets")
     grouping_membership_index = IntProperty(min=-1, default=-1)
                 
@@ -685,11 +689,11 @@ class IntegratorSettings(bpy.types.PropertyGroup):
 class RendermanWorldSettings(bpy.types.PropertyGroup):
     pass
     
-	
+    
     # BBM addition begin
     #coshaders = CollectionProperty(type=RendermanCoshader, name="World Co-Shaders")
     #coshaders_index = IntProperty(min=-1, default=-1)
-	# BBM addition end
+    # BBM addition end
 
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
     
@@ -713,10 +717,10 @@ class RendermanMaterialSettings(bpy.types.PropertyGroup):
     # atmosphere_shaders = PointerProperty(
     #             type=atmosphereShaders,
     #             name="Atmosphere Shader Settings")
-	
+    
     #coshaders = CollectionProperty(type=RendermanCoshader, name="Material Co-Shaders")
     #coshaders_index = IntProperty(min=-1, default=-1)
-	
+    
 
     displacementbound = FloatProperty(
                 name="Displacement Bound",
@@ -1026,22 +1030,22 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                 name="Ortho Scale",
                 description="Scale factor for orthographic shadow maps",
                 default=1.0)
-				
+                
     # Rib Box Properties
     shd_inlinerib_texts = CollectionProperty(type=RendermanInlineRIB, name='Shadow map pass Inline RIB')
     shd_inlinerib_index = IntProperty(min=-1, default=-1)
-	
-	# illuminate
+    
+    # illuminate
     illuminates_by_default = BoolProperty(
                 name="Illuminates by default",
                 description="Illuminates by default",
                 default=True)
 
     
-	# BBM addition begin
+    # BBM addition begin
     #coshaders = CollectionProperty(type=RendermanCoshader, name="Light Co-Shaders")
     #coshaders_index = IntProperty(min=-1, default=-1)
-	# BBM addition end
+    # BBM addition end
 
 
 class RendermanMeshPrimVar(bpy.types.PropertyGroup):
@@ -1139,7 +1143,6 @@ class RendermanMeshGeometrySettings(bpy.types.PropertyGroup):
     prim_vars_index = IntProperty(min=-1, default=-1)
 
 class RendermanCurveGeometrySettings(bpy.types.PropertyGroup):
-    '''
     export_default_uv = BoolProperty(
                 name="Export Default UVs",
                 description="Export the active UV set as the default 'st' primitive variable",
@@ -1155,7 +1158,7 @@ class RendermanCurveGeometrySettings(bpy.types.PropertyGroup):
 
     prim_vars = CollectionProperty(type=RendermanMeshPrimVar, name="Primitive Variables")
     prim_vars_index = IntProperty(min=-1, default=-1)
-    '''
+
          
 class RendermanObjectSettings(bpy.types.PropertyGroup):
 
@@ -1410,8 +1413,8 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 description="How the object appears to transmission-like rays",
                 items=transmission_items,
                 default=transmission_default)
-	
-	# Light-Linking
+    
+    # Light-Linking
     light_linking = CollectionProperty(type=LightLinking, name='Light Linking')
     light_linking_index = IntProperty(min=-1, default=-1)
     
@@ -1426,9 +1429,9 @@ classes = [displacementShaders,
             surfaceShaders,
             lightShaders,
             RendermanPath,
-			RendermanInlineRIB,
+            RendermanInlineRIB,
             RendermanGrouping,
-			LightLinking,
+            LightLinking,
             TraceSet,
             RendermanPass,
             RendermanMeshPrimVar,
@@ -1468,6 +1471,8 @@ def register():
                 type=RendermanParticleSettings, name="Renderman Particle Settings")
     bpy.types.Mesh.renderman = PointerProperty(
                 type=RendermanMeshGeometrySettings, name="Renderman Mesh Geometry Settings")
+    bpy.types.Curve.renderman = PointerProperty(
+                type=RendermanCurveGeometrySettings, name="Renderman Curve Geometry Settings")
     bpy.types.Object.renderman = PointerProperty(
                 type=RendermanObjectSettings, name="Renderman Object Settings")
 
