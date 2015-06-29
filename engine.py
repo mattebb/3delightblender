@@ -146,16 +146,17 @@ class RPass:
         
         #create command and start process
 
-        options = self.options + ['-checkpoint', '0.9', '-progress', '-t:-1']
-        if self.scene.renderman.display_driver == 'blender':
-            options = options + ['-checkpoint', '1.0s']
+        options = self.options + [' -checkpoint ' ' 0.9 ' ' -progress ' ' -t:-1 ']
+        #if self.scene.renderman.display_driver == 'blender':
+            #options = options + ['-checkpoint', '1.0s']
         cmd = [os.path.join(self.paths['rmantree'], 'bin', \
-                self.paths['rman_binary'])] + self.options + \
-                options + [self.paths['rib_output']]
+                self.paths['rman_binary'])], options, [self.paths['rib_output']]
         
         cdir = os.path.dirname(self.paths['rib_output'])
         environ = os.environ.copy()
         environ['RMANTREE'] = self.paths['rmantree']
+        print ("CMD!: ")
+        print (cmd)
         process = subprocess.Popen(cmd, cwd=cdir, 
                                     stdout=subprocess.PIPE, env=environ)
 

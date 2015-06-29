@@ -1045,7 +1045,7 @@ def get_curve(curve):
             P.extend( bp.handle_right )
             width.append( bp.radius )
         
-        basis = ["bezier", 3, "bezier", 3]
+        basis = ["BezierBasis", 3, "BezierBasis", 3]
         if spline.use_cyclic_u:
             period = 'periodic'
             # wrap the initial handle around to the end, to begin on the CV
@@ -1055,12 +1055,15 @@ def get_curve(curve):
             # remove the two unused handles
             npt -= 2
             P = P[3:-3]
+            appel = 34
+            appel = str(appel)
+            print (appel)
 
         splines.append( (P, width, npt, basis, period) )
 
     return splines
 
-def export_curve(ri, scene, ob, motion):
+def export_curve(ri, rpass, scene, ob, motion):
     if ob.type != 'CURVE':
         return
     curve  = ob.data
@@ -1075,9 +1078,14 @@ def export_curve(ri, scene, ob, motion):
     
     for spline_samples in samples:
         for P, width, npt, basis, period in spline_samples:
-
+            print("BASIS: ")
+            print("Basis zero: ", basis[0] ,"Basis one: ", basis[1] ,"Basis two: ", basis [2] ,"Basis three: ", basis[3])
             ri.Basis(basis[0], basis[1], basis[2], basis[3])
-            ri.Curves("cubic", npt, period, {"P": rib(P), "width": width})
+            print("!!Number of Points: ", str(npt))
+            print("!!Points: ", P)
+            nptS = str(npt)
+            print("!!Type: ", nptS)
+            ri.Curves("cubic", nptS, period, {"P": rib(P), "width": width})
             
             
     if motion_blur:
@@ -1238,7 +1246,7 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
     
     # curve only
     elif prim == 'CURVE':
-        export_curve(ri, scene, ob, motion) 
+        export_curve(ri, rpass, scene, ob, motion) 
         
     # mesh only
     elif prim == 'POLYGON_MESH':
@@ -1336,7 +1344,7 @@ def export_object(ri, rpass, scene, ob, motion):
 
     export_geometry(ri, rpass, scene, ob, motion)
     export_strands(ri, rpass, scene, ob, motion)
-    
+    export_curve(ri, rpass, scene, ob, motion)
     ri.AttributeEnd()
     
     # Particles live in worldspace, export as separate object
