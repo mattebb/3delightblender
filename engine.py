@@ -28,6 +28,7 @@ import bpy_types
 import math
 import os
 import time
+import subprocess
 from subprocess import Popen, PIPE
 import mathutils
 from mathutils import Matrix, Vector, Quaternion
@@ -133,8 +134,7 @@ class RPass:
         self.paths['texture'] = [self.paths['texture_output']]
         #self.paths['procedural'] = get_path_list_converted(scene.renderman, 'procedural')
         #self.paths['archive'] = get_path_list_converted(scene.renderman, 'archive')
-    
-    
+
     def render(self, engine):
         DELAY = 1
         render_output = self.paths['render_output']
@@ -152,7 +152,7 @@ class RPass:
             return "%02i:%02i:%02i" % (hours, minutes, seconds)
 
         def update_image():
-            image_scale = 0.01 * self.scene.render.resolution_percentage 
+            image_scale = 100.0/self.scene.render.resolution_percentage
             result = engine.begin_result(0, 0, self.scene.render.resolution_x*image_scale, self.scene.render.resolution_y*image_scale)
             lay = result.layers[0]
             # possible the image wont load early on.
@@ -236,7 +236,7 @@ class RPass:
                 print("Export path [" + render_output + "] does not exist.")
         else:
             print("Problem launching PRMan. Is a PATH specified, are support libraries installed?")
-    
+
     def set_scene(self, scene):
         self.scene = scene
 
@@ -290,3 +290,8 @@ class RPass:
                 process = subprocess.Popen(cmd, cwd=Blendcdir, 
                                         stdout=subprocess.PIPE, env=environ)
                 process.communicate()
+
+
+
+
+

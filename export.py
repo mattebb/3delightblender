@@ -43,6 +43,12 @@ addon_version = bl_info['version']
 # helper functions for parameters
 from .nodes import export_shader_nodetree, get_textures
 
+# ------------- Atom's helper functions for naming duplis -------------
+GLOBAL_ZERO_PADDING = 5
+def returnNameForNumber(passedInteger):
+    temp_number = str(passedInteger)
+    post_fix = temp_number.zfill(GLOBAL_ZERO_PADDING)
+    return post_fix
 
 # ------------- Texture optimisation -------------
 
@@ -292,7 +298,6 @@ def get_particles(scene, ob, psys):
 
 # Mesh data access
 def get_mesh(mesh):
-    print("get_mesh: [%s]." % mesh.name)
     nverts = []
     verts = []
     P = []
@@ -372,9 +377,9 @@ def get_primvars(ob, geo, interpolation=""):
     primvars = {}
     #if ob.type != 'MESH':
     #    return
-
-    rm = ob.data.renderman
     
+    rm = ob.data.renderman
+
     interpolation = 'facevertex' if interpolation == '' else interpolation
     
     # default hard-coded prim vars
@@ -501,15 +506,11 @@ def create_mesh(scene, ob, matrix=None):
     #    ob.modifiers[len(ob.modifiers)-1].show_render = False
     
     mesh = ob.to_mesh(scene, True, 'RENDER', calc_tessface=True, calc_undeformed=True)    
-    
     if matrix != None:
         mesh.transform(matrix)
 
     return mesh
-
-
-
-    
+ 
 
 def export_light(rpass, scene, ri, ob):
     lamp = ob.data
@@ -563,7 +564,7 @@ def export_light(rpass, scene, ri, ob):
     shapes[lamp.type][1]()
     
     # BBM addition begin
-	# export light coshaders
+    # export light coshaders
     '''
     file.write('\n        ## Light Co-shaders\n')
     for cosh_item in rm.coshaders.items():
@@ -576,11 +577,11 @@ def export_light(rpass, scene, ri, ob):
                 file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
             else:
                 file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-	
+    
     file.write('\n        ## Light shader\n')
     '''
     # BBM addition end
-	
+    
     '''
     # user defined light shader
     if rm.nodetree == '' and rm.light_shaders.active != '':
@@ -660,11 +661,11 @@ def export_light(rpass, scene, ri, ob):
   #       else:
   #           value = rib(sp.value)
 
-		# # BBM addition begin
+        # # BBM addition begin
   #       if sp.is_array:
   #           file.write('        "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
   #       else:
-		# # BBM addition end
+        # # BBM addition end
   #           file.write('        "%s %s" %s\n' % (sp.data_type, sp.name, value))
 
     ri.TransformEnd()
@@ -708,7 +709,7 @@ def export_strands(ri, rpass, scene, ob, motion):
         if ob.data.materials and len(ob.data.materials) > 0:
             if ob.data.materials[rm.material_id-1] != None:
                 mat = ob.data.materials[rm.material_id-1]
-                export_material(ri, rpass, scene, mat)
+                export_material(file, rpass, scene, mat)
         
         motion_blur = pname in motion['deformation']
             
@@ -720,7 +721,7 @@ def export_strands(ri, rpass, scene, ob, motion):
         
         for nverts, P in samples:
             
-            ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
+            ri.Basis("catmull-rom", 1, "catmull-rom", 1)
             ri.Curves("cubic", nverts, "nonperiodic", 
                         {"P": rib(P), "constantwidth": rm.width})
 
@@ -864,6 +865,7 @@ def export_comment(ri, comment):
 
 def get_texture_list(scene):
     #if not rpass.light_shaders: return
+    SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT']
     textures = []
     for o in renderable_objects(scene):
         if o.type == 'CAMERA':
@@ -871,11 +873,11 @@ def get_texture_list(scene):
         elif o.type == 'LAMP':
             if o.data.renderman.nodetree != '':
                 textures = textures + get_textures(o.data)
-        else:
+        elif o.type in SUPPORTED_MATERIAL_TYPES:
             for mat in [mat for mat in o.data.materials if mat != None]:
                 textures = textures + get_textures(mat)
-
-    
+        else:
+            print ("get_texture_list: unsupported object type [%s]." % o.type)
     return textures
 
 def get_texture_list_preview(scene):
@@ -902,7 +904,7 @@ def export_scene_lights(ri, rpass, scene):
 def export_shader(ri, scene, rpass, idblock, shader_type):
     rm = idblock.renderman
     export_comment(ri, shader_type) # BBM addition
-	
+    
     '''
     parameterlist = rna_to_shaderparameters(scene, rm, shader_type)
 
@@ -990,19 +992,19 @@ def export_shader(ri, scene, rpass, idblock, shader_type):
                     else:
                         file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
         return
-	# BBM addition end
+    # BBM addition end
     
 
     # parameter list
     for sp in parameterlist:
-		# BBM addition begin
+        # BBM addition begin
         if sp.value == 'null':
             continue
 
         if sp.is_array:
             file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
         else:
-		# BBM addition end
+        # BBM addition end
             file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
 
     # BBM removed begin
@@ -1010,7 +1012,7 @@ def export_shader(ri, scene, rpass, idblock, shader_type):
     #    file.write('        Shader "%s" "%s" \n' % (rm.surface_shaders.active, rm.surface_shaders.active))
     #    for sp in parameterlist:
     #        file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
-	# BBM removed end
+    # BBM removed end
 
     '''
 
@@ -1038,35 +1040,31 @@ def get_curve(curve):
     for spline in curve.splines:
         P = []
         width = []
-        npt += len(spline.bezier_points)*3
-        
+        npt = len(spline.bezier_points)*3
         
         for bp in spline.bezier_points:
             P.extend( bp.handle_left )
             P.extend( bp.co )
             P.extend( bp.handle_right )
-            width.append( bp.radius * 0.01)
+            width.append( bp.radius * 0.01 )
         
+        #basis = ["bezier", 3, "bezier", 3]
         basis = ["BezierBasis", 3, "BezierBasis", 3]
         if spline.use_cyclic_u:
             period = 'periodic'
             # wrap the initial handle around to the end, to begin on the CV
             P = P[3:] + P[:3]
-            
         else:
-            period = "nonperiodic"
+            period = 'nonperiodic'
             # remove the two unused handles
-            npt -=2
+            npt -= 2
             P = P[3:-3]
-            appel = 34
-            appel = str(appel)
-            print (appel)
 
         splines.append( (P, width, npt, basis, period) )
 
     return splines
 
-def export_curve(ri, rpass, scene, ob, motion):
+def export_curve(ri, scene, ob, motion):
     if ob.type == 'CURVE':
         curve  = ob.data
 
@@ -1141,6 +1139,7 @@ def export_polygon_mesh(ri, scene, ob, motion):
         
     for nverts, verts, P in samples:
         primvars = get_primvars(ob, mesh, "facevarying")
+        print(primvars)
         primvars['P'] = P
         ri.PointsPolygons(nverts, verts, primvars)
         
@@ -1203,18 +1202,22 @@ def is_dupli(ob):
     return ob.type == 'EMPTY' and ob.dupli_type != 'NONE'
 
 def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
-
     # handle duplis
     if is_dupli(ob):
-        ob.dupli_list_create(scene)
-        
-        dupobs = [(dob.object, dob.matrix) for dob in ob.dupli_list]
-        
-        for dupob, dupob_mat in dupobs:
-            if is_renderable(scene, dupob):
-                export_object(ri, rpass, scene, dupob, motion)
-        
-        ob.dupli_list_clear()
+        if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
+            print ("export_geometry_data: detected dupli on [%s, %s]" % (ob.name, ob.dupli_type))
+            ob.dupli_list_create(scene)
+            dupobs = [(dob.object, dob.matrix.copy()) for dob in ob.dupli_list]	# Atom 061115
+            
+            for dupob, dupob_mat in dupobs:
+                if is_renderable(scene, dupob):
+                    #print ("export_geometry_data: creating dupli object[%s]." % dupob.name)
+                    dupli_name = "%s_%s_p%s" % (ob.name, dupob.object.name, returnNameForNumber(dupob.index))
+                    export_object(file, rpass, scene, dupob, motion, dupob_mat, dupli_name)	# Atom 061115
+            ob.dupli_list_clear()
+            return
+        else:
+            print ("export_geometry_data: Unsupported dupli type!")
         return
         
     if force_prim == '':
@@ -1241,7 +1244,7 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
     elif prim == 'TORUS':
         export_torus(ri, scene, ob, motion)
     
-    # curve or font
+    # curve only
     elif prim == 'CURVE' or prim == 'FONT':
         # If this curve is extruded or beveled it can produce faces from a to_mesh call.
         l = ob.data.extrude + ob.data.bevel_depth
@@ -1249,7 +1252,7 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
             export_polygon_mesh(ri, scene, ob, motion)
         else:
             export_curve(ri, scene, ob, motion) 
-        
+ 
     # mesh only
     elif prim == 'POLYGON_MESH':
         export_polygon_mesh(ri, scene, ob, motion)
@@ -1273,18 +1276,24 @@ def export_geometry(ri, rpass, scene, ob, motion):
         ri.write(geometry_source_rib(scene, ob))
 
 
-def export_object(ri, rpass, scene, ob, motion):
+def export_object(ri, rpass, scene, ob, motion, mtx = None, dupli_name = None):
     rm = ob.renderman
 
     if ob.type in ('LAMP', 'CAMERA'): return
-    
-    if ob.parent:
-        mat = ob.parent.matrix_world * ob.matrix_local
+
+    if mtx != None:
+        mat = mtx
     else:
-        mat = ob.matrix_world
+        if ob.parent:
+            mat = ob.parent.matrix_world * ob.matrix_local
+        else:
+            mat = ob.matrix_world
 
     ri.AttributeBegin()
-    ri.Attribute("identifier", {"name": ob.name})
+    if dupli_name != None:
+        ri.Attribute("identifier", {"name": dupli_name})
+    else:
+        ri.Attribute("identifier", {"name": ob.name})
 
     # Shading
     if rm.shadingrate_override:
@@ -1303,7 +1312,7 @@ def export_object(ri, rpass, scene, ob, motion):
 
     export_geometry(ri, rpass, scene, ob, motion)
     export_strands(ri, rpass, scene, ob, motion)
-    export_curve(ri, rpass, scene, ob, motion)
+    
     ri.AttributeEnd()
     
     # Particles live in worldspace, export as separate object
@@ -1420,15 +1429,51 @@ def export_motion(rpass, scene):
                         
     return motion
 
-
 def export_objects(ri, rpass, scene, motion):
-
+    SUPPORTED_INSTANCE_TYPES = ['MESH','CURVE','FONT']
     export_comment(ri, "Objects")
 
     # export the objects to RIB recursively
     for ob in rpass.objects:
-        export_object(ri, rpass, scene, ob, motion)
-        print("export_objects: Exporting [%s]." % ob.name)
+        if ob.type in SUPPORTED_INSTANCE_TYPES:
+            if ob.type == 'CURVE' or ob.type == 'FONT':
+                # If this curve is extruded or beveled it can produce faces from a to_mesh call.
+                l = ob.data.extrude + ob.data.bevel_depth
+            else:
+                try:
+                    l = len(ob.data.polygons)
+                except:
+                    l = 0
+            if l > 0:
+                if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
+                    # handle duplis
+                    print("export_objects: checking [%s] dupli type [%s]." % (ob.name, ob.dupli_type))
+                    if ob.parent and ob.parent.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
+                        # Skip creating this object because it is child of a dupli object.
+                        pass
+                    else:
+                        if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
+                            print ("export_geometry_data: detected dupli on [%s, %s]" % (ob.name, ob.dupli_type))
+                            ob.dupli_list_create(scene)
+                            dupobs = [(dob.object, dob.matrix.copy(), dob.index) for dob in ob.dupli_list]	# Atom 061115
+                            
+                            for dupob, dupob_mat, dupob_index in dupobs:
+                                if is_renderable(scene, dupob):
+                                    dupli_name = "%s_%s_d%s" % (ob.name, dupob.name, returnNameForNumber(dupob_index))
+                                    export_object(ri, rpass, scene, dupob, motion, dupob_mat, dupli_name)	# Atom 061115
+                            ob.dupli_list_clear()
+                        else:
+                            print ("export_geometry_data: Unsupported dupli type!")
+                else:
+                    if ob.parent and ob.parent.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
+                        # Skip creating this object because it is child of a dupli object.
+                        pass
+                    else:
+                        print("export_objects: processing [%s, %s]." % (ob.name, ob.type))
+                        export_object(ri, rpass, scene, ob, motion)
+            else:
+                # Curve produces no faces, no need to render.
+                pass
 
 #TODO take in an ri object and write out archive
 def export_archive(scene, objects, filepath="", archive_motion=True, 
@@ -1498,11 +1543,11 @@ def export_integrator(ri, rpass, scene):
     
   #   parameterlist = rna_to_shaderparameters(scene, rm.integrator, 'surface')
   #   for sp in parameterlist:
-		# # BBM addition begin
+        # # BBM addition begin
   #       if sp.is_array:
   #           file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
   #       else:
-		# # BBM addition end
+        # # BBM addition end
   #           file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
     
 
@@ -1680,16 +1725,16 @@ def find_preview_material(scene):
 # --------------- Hopefully temporary --------------- #
 
 def get_instance_materials(ob):
-	obmats = []
-	# Grab materials attached to object instances ...
-	if hasattr(ob, 'material_slots'):
-		for ms in ob.material_slots:
-			obmats.append(ms.material)
-	# ... and to the object's mesh data
-	if hasattr(ob.data, 'materials'):
-		for m in ob.data.materials:
-			obmats.append(m)
-	return obmats
+    obmats = []
+    # Grab materials attached to object instances ...
+    if hasattr(ob, 'material_slots'):
+        for ms in ob.material_slots:
+            obmats.append(ms.material)
+    # ... and to the object's mesh data
+    if hasattr(ob.data, 'materials'):
+        for m in ob.data.materials:
+            obmats.append(m)
+    return obmats
 
 def find_preview_material(scene):
     # taken from mitsuba exporter
@@ -1724,12 +1769,6 @@ def preview_model(ri,mat):
         #ri.Scale(0.75, 0.75, 0.75)
         ri.Translate(0.0, 0.0, 0.01)
         ri.PointsPolygons([4,], 
-            [0, 1, 2, 3],
-            {ri.P: [0, -1, -1,  0, 1, -1,  0, 1, 1,  0, -1, 1]})
-    elif mat.preview_render_type == 'CURVE': #Curve
-        #ri.Scale(0.75, 0.75, 0.75)
-        ri.Translate(0.0, 0.0, 0.01)
-        ri.Curve([4,], 
             [0, 1, 2, 3],
             {ri.P: [0, -1, -1,  0, 1, -1,  0, 1, 1,  0, -1, 1]})
     else: # CUBE

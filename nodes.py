@@ -623,6 +623,7 @@ def get_textures(id):
         
     return textures
 
+
 # our own base class with an appropriate poll function,
 # so the categories only show up in our own tree type
 class RendermanPatternNodeCategory(NodeCategory):
@@ -685,5 +686,5 @@ def register():
 
 
 def unregister():
-	nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
-	#bpy.utils.unregister_module(__name__)
+    nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
+    #bpy.utils.unregister_module(__name__)
