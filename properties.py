@@ -38,7 +38,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumPropert
 IntProperty, FloatProperty, FloatVectorProperty, CollectionProperty
 
 # Shader parameters storage
-# -------------------------
+# --------------------------
 
 def shader_list_items(self, context, shader_type):
     defaults = [('null', 'None', ''), ('custom', 'Custom', '')]
