@@ -33,6 +33,7 @@ IntProperty, FloatProperty, FloatVectorProperty, CollectionProperty
 from .util import init_env
 from .util import getattr_recursive
 
+
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
 

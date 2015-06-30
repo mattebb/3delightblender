@@ -32,6 +32,8 @@ import sys
 import fnmatch
 from extensions_framework import util as efutil
 
+EnableDebugging = False
+
 
 class BlenderVersionError(Exception):
     pass
@@ -51,6 +53,21 @@ def getattr_recursive(ptr, attrstring):
         ptr = getattr(ptr, attr)
 
     return ptr
+
+
+def debug(warrningLevel, *output):
+	if(EnableDebugging == True):
+		msg = ' '.join(['%s'%a for a in output])
+		if(warrningLevel == "info"):
+			print ("INFO: " , msg)
+		elif(warrningLevel == "warning"):
+			print ("WARNNING: " , msg)
+		elif(warrningLevel == "error"):
+			print ("ERROR: " , msg)
+		else:
+			print ("DEBUG: " , msg)
+	else:
+		pass
 
 
 # -------------------- Path Handling -----------------------------

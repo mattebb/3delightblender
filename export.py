@@ -37,6 +37,7 @@ from .util import get_sequence_path
 from .util import user_path
 from .util import path_list_convert
 from .util import get_properties
+from .util import debug
 
 addon_version = bl_info['version']
 
@@ -56,7 +57,7 @@ def returnNameForNumber(passedInteger):
 def make_optimised_texture_3dl(tex, texture_optimiser, srcpath, optpath):
     rm = tex.renderman
 
-    print("Optimising Texture: %s --> %s" % (tex.name, optpath))
+    debug("info", "Optimising Texture: %s --> %s" % (tex.name, optpath))
 
     cmd = [texture_optimiser]
 
@@ -877,7 +878,7 @@ def get_texture_list(scene):
             for mat in [mat for mat in o.data.materials if mat != None]:
                 textures = textures + get_textures(mat)
         else:
-            print ("get_texture_list: unsupported object type [%s]." % o.type)
+            debug("warning" , "get_texture_list: unsupported object type [%s]." % o.type)
     return textures
 
 def get_texture_list_preview(scene):
@@ -1084,7 +1085,7 @@ def export_curve(ri, scene, ob, motion):
         if motion_blur:
             ri.MotionEnd()
     else:
-        print ("export_curve: recieved a non-supported object type of [%s]." % ob.type)
+        debug ("warning" , "export_curve: recieved a non-supported object type of [%s]." % ob.type)
 
 def export_subdivision_mesh(ri, scene, ob, motion):
     mesh = create_mesh(scene, ob)
@@ -1139,7 +1140,7 @@ def export_polygon_mesh(ri, scene, ob, motion):
         
     for nverts, verts, P in samples:
         primvars = get_primvars(ob, mesh, "facevarying")
-        print(primvars)
+        debug("info" ,primvars)
         primvars['P'] = P
         ri.PointsPolygons(nverts, verts, primvars)
         
@@ -1205,7 +1206,7 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
     # handle duplis
     if is_dupli(ob):
         if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
-            print ("export_geometry_data: detected dupli on [%s, %s]" % (ob.name, ob.dupli_type))
+            debug ("info","export_geometry_data: detected dupli on [%s, %s]" % (ob.name, ob.dupli_type))
             ob.dupli_list_create(scene)
             dupobs = [(dob.object, dob.matrix.copy()) for dob in ob.dupli_list]	# Atom 061115
             
@@ -1217,7 +1218,7 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
             ob.dupli_list_clear()
             return
         else:
-            print ("export_geometry_data: Unsupported dupli type!")
+            debug ("error","export_geometry_data: Unsupported dupli type!")
         return
         
     if force_prim == '':
@@ -1447,13 +1448,13 @@ def export_objects(ri, rpass, scene, motion):
             if l > 0:
                 if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
                     # handle duplis
-                    print("export_objects: checking [%s] dupli type [%s]." % (ob.name, ob.dupli_type))
+                    debug("info","export_objects: checking [%s] dupli type [%s]." % (ob.name, ob.dupli_type))
                     if ob.parent and ob.parent.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
                         # Skip creating this object because it is child of a dupli object.
                         pass
                     else:
                         if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
-                            print ("export_geometry_data: detected dupli on [%s, %s]" % (ob.name, ob.dupli_type))
+                            debug ("info","export_geometry_data: detected dupli on [%s, %s]" % (ob.name, ob.dupli_type))
                             ob.dupli_list_create(scene)
                             dupobs = [(dob.object, dob.matrix.copy(), dob.index) for dob in ob.dupli_list]	# Atom 061115
                             
@@ -1463,13 +1464,13 @@ def export_objects(ri, rpass, scene, motion):
                                     export_object(ri, rpass, scene, dupob, motion, dupob_mat, dupli_name)	# Atom 061115
                             ob.dupli_list_clear()
                         else:
-                            print ("export_geometry_data: Unsupported dupli type!")
+                            debug ("error" , "export_geometry_data: Unsupported dupli type!")
                 else:
                     if ob.parent and ob.parent.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
                         # Skip creating this object because it is child of a dupli object.
                         pass
                     else:
-                        print("export_objects: processing [%s, %s]." % (ob.name, ob.type))
+                        debug("info","export_objects: processing [%s, %s]." % (ob.name, ob.type))
                         export_object(ri, rpass, scene, ob, motion)
             else:
                 # Curve produces no faces, no need to render.

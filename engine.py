@@ -45,6 +45,7 @@ from .util import user_path
 from .util import get_path_list_converted
 from .util import path_list_convert, guess_rmantree, set_pythonpath
 from .util import get_real_path
+from .util import debug
 from random import randint
 import sys
 
@@ -142,7 +143,7 @@ class RPass:
             try:
                 os.remove(render_output) # so as not to load the old file
             except:
-                print('ERROR: Unable to remove previous render [%s].' % render_output)
+                debug("error", "Unable to remove previous render" , render_output)
                 
         def format_seconds_to_hhmmss(seconds):
             hours = seconds // (60*60)
@@ -233,9 +234,9 @@ class RPass:
                     time.sleep(DELAY)
 
             else:
-                print("Export path [" + render_output + "] does not exist.")
+                debug("error","Export path [" + render_output + "] does not exist.")
         else:
-            print("Problem launching PRMan. Is a PATH specified, are support libraries installed?")
+            debug("error","Problem launching PRMan. Is a PATH specified, are support libraries installed?")
 
     def set_scene(self, scene):
         self.scene = scene
@@ -272,14 +273,13 @@ class RPass:
             out_file_path = os.path.join(self.paths['texture_output'], out_file)
             
             if os.path.isfile(out_file_path) and self.rm.always_generate_textures == False and os.path.getmtime(in_file) <= os.path.getmtime(out_file_path):
-                print("TEXTURE %s EXISTS!" % out_file)
+                debug("info" , "TEXTURE %s EXISTS!" % out_file)
             else:
                 cmd = [os.path.join(self.paths['rmantree'], 'bin', \
                     self.paths['path_texture_optimiser']), in_file,
                     out_file_path]
-                #print("TXMAKE STARTED!")
-                #print(cmd)
-                #cdir = os.path.dirname(self.paths['texture_output'])
+                debug("info", "TXMAKE STARTED!", cmd)
+                
                 
                 Blendcdir = bpy.path.abspath("//")
                 if Blendcdir == '':

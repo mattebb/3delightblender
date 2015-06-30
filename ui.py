@@ -447,7 +447,7 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
         layout.prop(rm, "display_driver")
         if rm.display_driver not in ('it', 'blender'):
             layout.prop(rm, "path_display_driver_image")
-
+        layout.prop(rm, "always_generate_textures")
 
 
 
@@ -691,7 +691,7 @@ class MATERIAL_MT_renderman_preview_specials(bpy.types.Menu):
 class MATERIAL_PT_renderman_preview(Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
-    
+    bl_options = {'DEFAULT_CLOSED'}
     bl_context = "material"
     bl_label = "Preview"
     COMPAT_ENGINES = {'PRMAN_RENDER'}
@@ -708,8 +708,7 @@ class MATERIAL_PT_renderman_preview(Panel):
             row.template_preview(context.material, show_buttons=1)
             if mat.renderman.nodetree != '':
                 layout.prop_search(mat.renderman, "nodetree", bpy.data, "node_groups")
-            else:
-                layout.operator('shading.add_renderman_nodetree').idtype = "material"
+            
         #col = row.column()
         #col.scale_x = 1.5
         #col.prop(rm, "preview_render_type", text="", expand=True)
@@ -744,6 +743,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
     shader_type = 'Bxdf'
 
     def draw(self, context):
+        mat = context.material
         if context.material.renderman and context.material.renderman.nodetree:
             nt = bpy.data.node_groups[context.material.renderman.nodetree]
             draw_nodes_properties_ui(self.layout, context, nt, input_name=self.shader_type)
@@ -757,7 +757,8 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             row.prop(mat, "diffuse_color")
             
             layout.separator()
-        
+        if mat and mat.renderman.nodetree == '':
+            layout.operator('shading.add_renderman_nodetree').idtype = "material"
         #self._draw_shader_menu_params(layout, context, rm)
 
 class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
