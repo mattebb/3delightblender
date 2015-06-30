@@ -709,7 +709,7 @@ def export_strands(ri, rpass, scene, ob, motion):
         if ob.data.materials and len(ob.data.materials) > 0:
             if ob.data.materials[rm.material_id-1] != None:
                 mat = ob.data.materials[rm.material_id-1]
-                export_material(file, rpass, scene, mat)
+                export_material(ri, rpass, scene, mat)
         
         motion_blur = pname in motion['deformation']
             
@@ -721,7 +721,7 @@ def export_strands(ri, rpass, scene, ob, motion):
         
         for nverts, P in samples:
             
-            ri.Basis("catmull-rom", 1, "catmull-rom", 1)
+            ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
             ri.Curves("cubic", nverts, "nonperiodic", 
                         {"P": rib(P), "constantwidth": rm.width})
 
