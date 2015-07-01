@@ -445,10 +445,9 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
         layout.prop(rm, "path_rib_output")
         layout.prop(rm, "output_action")
         layout.prop(rm, "display_driver")
-        layout.prop(rm, "always_generate_textures")
         if rm.display_driver not in ('it', 'blender'):
             layout.prop(rm, "path_display_driver_image")
-
+        layout.prop(rm, "always_generate_textures")
 
 
 
@@ -709,15 +708,12 @@ class MATERIAL_PT_renderman_preview(Panel):
             row.template_preview(context.material, show_buttons=1)
             if mat.renderman.nodetree != '':
                 layout.prop_search(mat.renderman, "nodetree", bpy.data, "node_groups")
-            else:
-                pass
+            
         #col = row.column()
         #col.scale_x = 1.5
         #col.prop(rm, "preview_render_type", text="", expand=True)
         #col.menu("MATERIAL_MT_renderman_preview_specials", icon='DOWNARROW_HLT', text="")
         
-
-
 from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
 
 
@@ -761,11 +757,8 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             row.prop(mat, "diffuse_color")
             
             layout.separator()
-        if mat:
-            if mat.renderman.nodetree == '':
-                layout.operator('shading.add_renderman_nodetree').idtype = "material"
-            else:
-                pass
+        if mat and mat.renderman.nodetree == '':
+            layout.operator('shading.add_renderman_nodetree').idtype = "material"
         #self._draw_shader_menu_params(layout, context, rm)
 
 class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):

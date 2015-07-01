@@ -30,6 +30,7 @@ from bpy.props import CollectionProperty, BoolProperty, StringProperty, IntPrope
 
 from .util import guess_rmantree
 
+
 class RendermanPreferencePath(bpy.types.PropertyGroup):
     name = StringProperty(name="", subtype='DIR_PATH')
 

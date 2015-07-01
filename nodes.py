@@ -35,6 +35,7 @@ from .shader_parameters import node_add_outputs
 from .util import args_files_in_path
 from .util import get_path_list
 from .util import rib
+
 from operator import attrgetter, itemgetter
 import os.path
 
@@ -567,17 +568,21 @@ def get_tex_file_name(prop):
 
 #for an input node output all "nodes"
 def export_shader_nodetree(ri, id, handle=None):
-    nt = bpy.data.node_groups[id.renderman.nodetree]
-    if not handle:
-        handle = id.name
+	try:
+		nt = bpy.data.node_groups[id.renderman.nodetree]
+	except:
+		nt = None
+	if nt:
+		if not handle:
+			handle = id.name
 
-    out = next((n for n in nt.nodes if n.renderman_node_type == 'output'), None)
-    if out is None: return
-    
-    ri.ArchiveRecord('comment', "Shader Graph")
-    for out_type,socket in out.inputs.items():
-        if socket.is_linked:
-            shader_node_rib(ri, socket.links[0].from_node, handle=handle)
+		out = next((n for n in nt.nodes if n.renderman_node_type == 'output'), None)
+		if out is None: return
+		
+		ri.ArchiveRecord('comment', "Shader Graph")
+		for out_type,socket in out.inputs.items():
+			if socket.is_linked:
+				shader_node_rib(ri, socket.links[0].from_node, handle=handle)
 
 
 def get_textures_for_node(node):
@@ -604,16 +609,21 @@ def get_textures(id):
     textures = []
     if id.renderman.nodetree == "":
         return textures
-    nt = bpy.data.node_groups[id.renderman.nodetree]
+    try:
+        nt = bpy.data.node_groups[id.renderman.nodetree]
+    except:
+        nt = None
 
-    out = next((n for n in nt.nodes if n.renderman_node_type == 'output'), None)
-    if out is None: return
-    
-    for name,inp in out.inputs.items():
-        if inp.is_linked:
-            textures = textures + get_textures_for_node(inp.links[0].from_node)
-    
+    if nt:
+        out = next((n for n in nt.nodes if n.renderman_node_type == 'output'), None)
+        if out is None: return
+        
+        for name,inp in out.inputs.items():
+            if inp.is_linked:
+                textures = textures + get_textures_for_node(inp.links[0].from_node)
+        
     return textures
+
 
 # our own base class with an appropriate poll function,
 # so the categories only show up in our own tree type
@@ -677,5 +687,5 @@ def register():
 
 
 def unregister():
-	nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
-	#bpy.utils.unregister_module(__name__)
+    nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
+    #bpy.utils.unregister_module(__name__)

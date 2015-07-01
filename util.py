@@ -31,6 +31,8 @@ import platform
 import sys
 import fnmatch
 from extensions_framework import util as efutil
+from mathutils import Matrix, Vector
+EnableDebugging = False
 
 
 class BlenderVersionError(Exception):
@@ -51,6 +53,21 @@ def getattr_recursive(ptr, attrstring):
         ptr = getattr(ptr, attr)
 
     return ptr
+
+
+def debug(warrningLevel, *output):
+	if(EnableDebugging == True):
+		msg = ' '.join(['%s'%a for a in output])
+		if(warrningLevel == "info"):
+			print ("INFO: " , msg)
+		elif(warrningLevel == "warning"):
+			print ("WARNNING: " , msg)
+		elif(warrningLevel == "error"):
+			print ("ERROR: " , msg)
+		else:
+			print ("DEBUG: " , msg)
+	else:
+		pass
 
 
 # -------------------- Path Handling -----------------------------
@@ -255,6 +272,12 @@ def get_properties(prop_group):
                 props.append(prop)
     return props
      
+
+def convert_vector_worldspace(vec, ob):
+    wmatx = ob.matrix_world
+    vec = vec * wmatx
+    
+    return vec
 # ------------- Environment Variables -------------   
 
 def rmantree_from_env():
