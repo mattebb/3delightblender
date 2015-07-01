@@ -31,7 +31,7 @@ import platform
 import sys
 import fnmatch
 from extensions_framework import util as efutil
-
+from mathutils import Matrix, Vector
 EnableDebugging = False
 
 
@@ -272,6 +272,12 @@ def get_properties(prop_group):
                 props.append(prop)
     return props
      
+
+def convert_vector_worldspace(vec, ob):
+    wmatx = ob.matrix_world
+    vec = vec * wmatx
+    
+    return vec
 # ------------- Environment Variables -------------   
 
 def rmantree_from_env():

@@ -385,11 +385,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     min_samples = IntProperty(
                 name="Min Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=6)
+                min=0, default=32)
     max_samples = IntProperty(
                 name="Max Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=64)
+                min=0, default=512)
 
     shadingrate = FloatProperty(
                 name="Shading Rate",

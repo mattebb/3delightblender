@@ -26,6 +26,8 @@
 import bpy
 import math
 import os
+import mathutils
+
 from mathutils import Matrix, Vector, Quaternion
 
 from . import bl_info
@@ -251,11 +253,10 @@ def psys_motion_name(ob, psys):
 
 
 # ------------- Geometry Access -------------
-def get_strands(ob, psys):
+def get_strands(scene,ob, psys):
     nstrands = 0
     nvertices = []
     P = []
-    
     for particle in psys.particles:
         hair = particle.hair_keys
         nvertices += [len(hair)+2]
@@ -264,14 +265,52 @@ def get_strands(ob, psys):
         # hair keys are stored as local offsets from the 
         # particle location (on surface)
         for key in particle.hair_keys:
+            #print("ORIGINAL: ", key.co )
             P.extend( key.co )
-            
             # double up start and end points
             if i == 0 or i == len(hair)-1:
                 P.extend( key.co )
             i += 1
-            
     return (nvertices, P)
+'''
+    psys.set_resolution(scene, ob, 'RENDER')
+    steps = psys.settings.render_step + 1
+    num_parents = len(psys.particles)
+    num_children = len(psys.child_particles)
+    
+    for particle in psys.particles:
+        hairGuide = particle.hair_keys
+        nvertices += [steps + 2]
+        for key in particle.hair_keys:
+            masterStrandsV = Vector(key.co)
+
+    psys.set_resolution(scene, ob, 'RENDER')
+    steps = psys.settings.render_step + 1
+    num_parents = len(psys.particles)
+    num_children = len(psys.child_particles)
+    world = ob.matrix_world
+    world = world.to_4x4().inverted().transposed()
+    print (psys.settings.hair_length)
+    #world = world[0] * psys.settings.length
+    print("WORLD MATRIX: ", world)
+    for p in range(0, num_parents + num_children):
+        nvertices += [steps + 2]
+        for step in range(0, steps):
+            co = psys.co_hair(ob, p, step)
+            print ("CO IS: ", co)
+            #point = co * world
+            
+            print ("POINT IS: ", co)
+            P.extend(point)
+            
+            
+            if step == 0 or step == steps - 1:
+                P.extend(point)
+    psys.set_resolution(scene, ob, 'PREVIEW')
+    return (nvertices, P)
+    '''
+            
+
 
 # only export particles that are alive, 
 # or have been born since the last frame
@@ -718,7 +757,7 @@ def export_strands(ri, rpass, scene, ob, motion):
             export_motion_begin(ri, scene, ob)
             samples = motion['deformation'][pname]
         else:
-            samples = [get_strands(ob, psys)]
+            samples = [get_strands(scene ,ob, psys)]
         
         for nverts, P in samples:
             
@@ -866,7 +905,7 @@ def export_comment(ri, comment):
 
 def get_texture_list(scene):
     #if not rpass.light_shaders: return
-    SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT']
+    SUPPORTED_MESH_TYPES = ['MESH','CURVE','FONT']
     textures = []
     for o in renderable_objects(scene):
         if o.type == 'CAMERA':
@@ -874,7 +913,7 @@ def get_texture_list(scene):
         elif o.type == 'LAMP':
             if o.data.renderman.nodetree != '':
                 textures = textures + get_textures(o.data)
-        elif o.type in SUPPORTED_MATERIAL_TYPES:
+        elif o.type in SUPPORTED_MESH_TYPES:
             for mat in [mat for mat in o.data.materials if mat != None]:
                 textures = textures + get_textures(mat)
         else:
@@ -1362,7 +1401,7 @@ def export_motion_ob(scene, motion, ob):
             motion['deformation'][pname].insert(0, 
                                             get_particles(scene, ob, psys));
         if psys.settings.type == 'HAIR':
-            motion['deformation'][pname].insert(0, get_strands(ob, psys));
+            motion['deformation'][pname].insert(0, get_strands(scene, ob, psys));
 
     if prim in ('POLYGON_MESH', 'SUBDIVISION_MESH', 'POINTS'):
         # fluid sim deformation - special case
