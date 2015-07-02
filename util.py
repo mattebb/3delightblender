@@ -256,8 +256,8 @@ def rib(v, type_hint=None):
     
 
 def rib_ob_bounds(ob_bb):
-    return ( ob_bb[0][0], ob_bb[7][0], bb[0][1], 
-            ob_bb[7][1], bb[0][2], ob_bb[7][2] )
+    return ( ob_bb[0][0], ob_bb[7][0], ob_bb[0][1],
+            ob_bb[7][1], ob_bb[0][2], ob_bb[7][2] )
 
 def rib_path(path, escape_slashes=False):
     return path_win_to_unixy(bpy.path.abspath(path), 
@@ -323,8 +323,14 @@ def init_exporter_env(scene):
     rm = scene.renderman
     
     if 'OUT' not in os.environ.keys():
-        #os.environ['OUT'] = rm.env_vars.out
-        os.environ['OUT'] = "/tmp/prman_for_blender"
+         # A safety check, some systems may not have /tmp. (like new OS builds)
+        if not os.path.exists("/tmp"):
+            os.mkdir("/tmp")
+            
+        # Name our output folder the same as our BLEND file, minus the extension.
+        blend_file_name = os.path.basename(bpy.data.filepath)
+        render_folder_name = blend_file_name.replace(".blend","")
+        os.environ['OUT'] = "/tmp/%s" % render_folder_name
 
     # if 'SHD' not in os.environ.keys():
     #     os.environ['SHD'] = rm.env_vars.shd
