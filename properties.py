@@ -1110,11 +1110,29 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                 description="Override particle sizes with constant width value",
                 default=True)
 
+    base_width = FloatProperty(
+                name="Base Width",
+                description="The width of the base of hair",
+                precision=4,
+                default=1.00)
+
+    tip_width = FloatProperty(
+                name="Tip Width",
+                description="The width of the tip of hair",
+                precision=4,
+                default=0.00)
+
     width = FloatProperty(
                 name="Width",
                 description="With used for constant width across all particles",
                 precision=4,
                 default=0.05)
+
+    width_offset = FloatProperty(
+                name="Width Offset",
+                description="Offset from the root to start the thickness variation",
+                precision=4,
+                default=0.00)
 
     export_default_size = BoolProperty(
                 name="Export Default size",
