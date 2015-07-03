@@ -1340,8 +1340,11 @@ def export_polygon_mesh(ri, scene, ob, motion):
     for nverts, verts, P in samples:
         primvars = get_primvars(ob, mesh, "facevarying")
         primvars['P'] = P
-        ri.PointsPolygons(nverts, verts, primvars)
-        
+        try:
+            ri.PointsPolygons(nverts, verts, primvars)
+        except:
+            debug("error", "Cannont export mesh: ", ob.name , " check mesh for vertices that are not forming a face.")
+            return
     if motion_blur:
         ri.MotionEnd()
             
