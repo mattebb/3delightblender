@@ -32,7 +32,7 @@ import sys
 import fnmatch
 from extensions_framework import util as efutil
 from mathutils import Matrix, Vector
-EnableDebugging = False
+EnableDebugging = True
 
 
 class BlenderVersionError(Exception):
@@ -57,15 +57,25 @@ def getattr_recursive(ptr, attrstring):
 
 def debug(warrningLevel, *output):
 	if(EnableDebugging == True):
-		msg = ' '.join(['%s'%a for a in output])
-		if(warrningLevel == "info"):
-			print ("INFO: " , msg)
-		elif(warrningLevel == "warning"):
-			print ("WARNNING: " , msg)
-		elif(warrningLevel == "error"):
-			print ("ERROR: " , msg)
+		if type(output) == str:
+			msg = ' '.join(['%s'%a for a in output])
+			if(warrningLevel == "info"):
+				print ("INFO: " , output)
+			elif(warrningLevel == "warning"):
+				print ("WARNNING: " , output)
+			elif(warrningLevel == "error"):
+				print ("ERROR: " , output)
+			else:
+				print ("DEBUG: " , output)
 		else:
-			print ("DEBUG: " , msg)
+			if(warrningLevel == "info"):
+				print ("INFO: " , output)
+			elif(warrningLevel == "warning"):
+				print ("WARNNING: " , output)
+			elif(warrningLevel == "error"):
+				print ("ERROR: " , output)
+			else:
+				print ("DEBUG: " , output)
 	else:
 		pass
 
