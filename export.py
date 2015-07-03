@@ -103,7 +103,7 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.TransformEnd()
         ri.AttributeEnd()
         export_comment(ri, '.')		# I wish I could just export a \n newline character instead. 
-def exportObjectArchive(ri, rpass, scene, ob, mtx = None, object_name = None, instance_handle = None):
+def exportObjectArchive(ri, rpass, scene, ob, mtx = None, object_name = None, instance_handle = None, matNum = None):
     if mtx:
         ri.AttributeBegin()
         ri.Attribute("identifier", {"name": object_name})
@@ -112,6 +112,8 @@ def exportObjectArchive(ri, rpass, scene, ob, mtx = None, object_name = None, in
         if ob.data and ob.data.materials:
             for mat in [mat for mat in ob.data.materials if mat != None]:
                 export_material(ri, rpass, scene, mat)
+            if instance_handle == object_name + "HAIR":
+                export_material(ri, rpass, scene, ob.data.materials[matNum])
         ri.ReadArchive(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
@@ -899,15 +901,16 @@ def export_strands(ri, rpass, scene, ob, motion):
     for psys in ob.particle_systems:
         pname = psys_motion_name(ob, psys)    
         rm = psys.settings.renderman
-
+        
         if psys.settings.type != 'HAIR':
             continue
         
         # use 'material_id' index to decide which material
-        if ob.data.materials and len(ob.data.materials) > 0:
-            if ob.data.materials[rm.material_id-1] != None:
-                mat = ob.data.materials[rm.material_id-1]
-                export_material(ri, rpass, scene, mat)
+        #if ob.data.materials and len(ob.data.materials) > 0:
+            #if ob.data.materials[rm.material_id-1] != None:
+                #mat = ob.data.materials[rm.material_id-1]
+                #debug("info", "Material is %s" , mat)
+                #export_material(ri, rpass, scene, mat)
         
         motion_blur = pname in motion['deformation']
             
@@ -1712,9 +1715,14 @@ def export_objects(ri, rpass, scene, motion):
                         # This object has duplis.
                         reviewObjectForDuplis (scene, ob.name, "", candidate_duplis)	# Should pass pset.name not "" for multi-psys support.
                     else:
+                        pass
                         # Scan for hair based particle systems.
                         
-                        export_strands(ri, rpass, scene, ob, motion)
+                        
+                        
+                        
+                        
+                        #export_strands(ri, rpass, scene, ob, motion)
                                 
                         #        pset = psys.settings
                         #        if pset.type == 'HAIR' and pset.render_type == 'PATH': 
@@ -1893,6 +1901,17 @@ def export_objects(ri, rpass, scene, motion):
                     export_polygon_mesh(ri,scene,ob_temp,motion)
                     ri.ArchiveEnd()
                     export_comment(ri, '.')
+                    if ob_temp.particle_systems:
+                        debug("info" , "The object has a particle system" , ob_temp)
+                        
+                        for psys in ob_temp.particle_systems:
+                            if psys.settings.type == 'HAIR':
+                                debug("info" , "The object has a particle system hair" , ob_temp)
+                                strand_name = handle_name + "HAIR"
+                                ri.ArchiveBegin(strand_name)
+                                export_strands(ri, rpass, scene, ob_temp, motion)
+                                ri.ArchiveEnd()
+                    export_comment(ri, '.')
                     exported_datablocks.append(ob_name)
                 else:
                     debug ("warning","Skipping creating another instance of [%s], it already exists as an Archive in the RIB." % handle_name)
@@ -1927,6 +1946,11 @@ def export_objects(ri, rpass, scene, motion):
                     if instance_handle != None:
                         # We have a handle so it is ok to reference this with an object shader/transform.
                         exportObjectArchive(ri, rpass, scene, ob_temp, returnMatrixForObject(ob_temp), ob_name, instance_handle)
+                        if ob_temp.particle_systems:
+                            for psys in ob_temp.particle_systems:
+                                if psys.settings.type == 'HAIR':
+                                    hair_handle = instance_handle + "HAIR"
+                                    exportObjectArchive(ri, rpass, scene, ob_temp, returnMatrixForObject(ob_temp), ob_name, hair_handle, psys.settings.renderman.material_id - 1)
                         exported_objects.append(ob_name)
                     else:
                         debug ("warning","Could not locate handle for [%s]" % ob_name)
