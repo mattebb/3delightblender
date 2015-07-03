@@ -24,12 +24,9 @@
 # ##### END MIT LICENSE BLOCK #####
 
 import bpy
-import math
+import math, mathutils
 import os
-import struct
-import mathutils
-
-
+import time
 from mathutils import Matrix, Vector, Quaternion
 
 from . import bl_info
@@ -48,12 +45,171 @@ addon_version = bl_info['version']
 # helper functions for parameters
 from .nodes import export_shader_nodetree, get_textures
 
-# ------------- Atom's helper functions for naming duplis -------------
+# ------------- Atom's helper functions -------------
 GLOBAL_ZERO_PADDING = 5
+SUPPORTED_INSTANCE_TYPES = ['MESH','CURVE','FONT']			# Objects that can be exported as a polymesh via Blender to_mesh() method. ['MESH','CURVE','FONT']
+SUPPORTED_DUPLI_TYPES = ['FACES', 'VERTS', 'GROUP']			# Supported dupli types.
+MATERIAL_TYPES = ['MESH', 'CURVE','FONT']					# These object types can have materials.
+EXCLUDED_OBJECT_TYPES = ['LAMP', 'CAMERA', 'ARMATURE']		# Objects without to_mesh() conversion capabilities.
+VOLUMETRIC_LIGHT_TYPES = ['SPOT','AREA','POINT']			# Only these light types affect volumes.
+MATERIAL_PREFIX = "mat_"
+TEXTURE_PREFIX = "tex_"
+MESH_PREFIX = "me_"
+CURVE_PREFIX = "cu_"
+GROUP_PREFIX = "group_"
+MESHLIGHT_PREFIX = "meshlight_"
+PSYS_PREFIX = "psys_"
+DUPLI_PREFIX = "dupli_"
+DUPLI_SOURCE_PREFIX = "dup_src_"
+
+def rounded_tuple(tup):
+    return tuple(round(value,4) for value in tup) 
 def returnNameForNumber(passedInteger):
     temp_number = str(passedInteger)
     post_fix = temp_number.zfill(GLOBAL_ZERO_PADDING)
     return post_fix
+def returnMatrixForObject(passedOb):
+    if passedOb.parent:
+        mtx = passedOb.parent.matrix_world * passedOb.matrix_local
+    else:
+        mtx = passedOb.matrix_world
+    return mtx
+def uniquifyList(seq, idfun=None): 
+    #http://www.peterbe.com/plog/uniqifiers-benchmark
+    # f5 order preserving
+   if idfun is None:
+       def idfun(x): return x
+   seen = {}
+   result = []
+   for item in seq:
+       marker = idfun(item)
+       if marker in seen: continue
+       seen[marker] = 1
+       result.append(item)
+   return result
+def printList(passedList):
+    for item in passedList:
+        debug ("info",item)
+def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, instance_handle = None):
+    if mtx:
+        ri.AttributeBegin()
+        ri.Attribute("identifier", {"name": dupli_name})
+        ri.TransformBegin()
+        ri.Transform(rib(mtx))
+        if ob.data and ob.data.materials:
+            for mat in [mat for mat in ob.data.materials if mat != None]:
+                export_material(ri, rpass, scene, mat)
+        ri.ObjectInstance(instance_handle)
+        ri.TransformEnd()
+        ri.AttributeEnd()
+        export_comment(ri, '.')		# I wish I could just export a \n newline character instead. 
+def exportObjectArchive(ri, rpass, scene, ob, mtx = None, object_name = None, instance_handle = None):
+    if mtx:
+        ri.AttributeBegin()
+        ri.Attribute("identifier", {"name": object_name})
+        ri.TransformBegin()
+        ri.Transform(rib(mtx))
+        if ob.data and ob.data.materials:
+            for mat in [mat for mat in ob.data.materials if mat != None]:
+                export_material(ri, rpass, scene, mat)
+        ri.ReadArchive(instance_handle)
+        ri.TransformEnd()
+        ri.AttributeEnd()
+        export_comment(ri, '.')		# I wish I could just export a \n newline character instead.  
+def removeMeshFromMemory (passedName):
+    # Extra test because this can crash Blender if not done correctly.
+    result = False
+    mesh = bpy.data.meshes.get(passedName)
+    if mesh != None:
+        if mesh.users == 0:
+            try:
+                mesh.user_clear()
+                can_continue = True
+            except:
+                can_continue = False
+            
+            if can_continue == True:
+                try:
+                    bpy.data.meshes.remove(mesh)
+                    result = True
+                except:
+                    result = False
+            else:
+                # Unable to clear users, something is holding a reference to it.
+                # Can't risk removing. Favor leaving it in memory instead of risking a crash.
+                result = False
+    else:
+        # We could not fetch it, it does not exist in memory, essentially removed.
+        result = True
+    return result
+def removeObjectFromMemory (passedName):
+    # Extra test because this can crash Blender if not done correctly.
+    result = False
+    ob = bpy.data.objects.get(passedName)
+    if ob != None:
+        if ob.users == 0:
+            try:
+                ob.user_clear()
+                can_continue = True
+            except:
+                can_continue = False
+            
+            if can_continue == True:
+                try:
+                    bpy.data.objects.remove(ob)
+                    result = True
+                except:
+                    result = False
+            else:
+                # Unable to clear users, something is holding a reference to it.
+                # Can't risk removing. Favor leaving it in memory instead of risking a crash.
+                result = False
+    else:
+        # We could not fetch it, it does not exist in memory, essentially removed.
+        result = True
+    return result 
+def returnNewMeshFromFaces(passedNewName, passedMesh, passedMaterialIndex = -1):
+    # Take the passed mesh and make a new mesh that is made up of only with the vertices that the faces require.
+    # You can optionaly include only faces for a specific material index.
+    # (i.e. remove unused vertices.)
+    me_result = None    
+    if passedMesh != None:
+        #to_console("returnNewMeshFromFaces: create a mesh made up of faces with material " + str(passedMaterialIndex))
+        #Get the material based upon the passedMaterialIndex.
+        if passedMaterialIndex == -1:
+            # Default to the first one.
+            mat = passedMesh.materials[0]
+        else:
+            # User specified another material.
+            mat = passedMesh.materials[passedMaterialIndex]
+        if mat != None:
+            vert_list = []
+            face_list =[]
+            c = 0
+            for face in passedMesh.polygons:
+                can_proceed = False
+                if passedMaterialIndex == -1: can_proceed = True
+                if face.material_index == passedMaterialIndex: can_proceed = True
+                if can_proceed == True:
+                    x = []
+                    for vert in face.vertices:
+                        vertex = passedMesh.vertices[vert]
+                        vert_list.append(rounded_tuple(vertex.co.to_tuple()))
+                        x.append(c)
+                        c =c + 1
+                    face_list.append(x)
+            
+            if len(face_list) > 0:
+                me_result = bpy.data.meshes.new(passedNewName)       # Create a new blank mesh.
+                try:
+                    me_result.from_pydata(vert_list,[],face_list)    # Give this empty mesh a list of verts and faces to call it's own.
+                    me_result.update(calc_edges=True)
+                    me_result.materials.append(mat)
+                except:
+                    me_result = None
+    return me_result
+
+
 
 # ------------- Texture optimisation -------------
 
@@ -61,7 +217,7 @@ def returnNameForNumber(passedInteger):
 def make_optimised_texture_3dl(tex, texture_optimiser, srcpath, optpath):
     rm = tex.renderman
 
-    debug("info", "Optimising Texture: %s --> %s" % (tex.name, optpath))
+    debug("info","Optimising Texture: %s --> %s" % (tex.name, optpath))
 
     cmd = [texture_optimiser]
 
@@ -255,6 +411,7 @@ def psys_motion_name(ob, psys):
 
 
 # ------------- Geometry Access -------------
+
 def get_strands(ri, scene,ob, psys):
     tip_width = psys.settings.renderman.tip_width
     base_width = psys.settings.renderman.base_width
@@ -263,12 +420,12 @@ def get_strands(ri, scene,ob, psys):
     if psys.settings.renderman.constant_width:
         widthString = "constantwidth"
         hair_width = psys.settings.renderman.width
-        print(widthString, hair_width)
+        debug("info",widthString, hair_width)
     else:
         widthString = "width"
         hair_width = [base_width, tip_width]
         #hair_width.append(tip_width)
-        print(widthString,hair_width)
+        debug("info",widthString,hair_width)
     
     
     hair_length = psys.settings.hair_length
@@ -312,8 +469,7 @@ def get_strands(ri, scene,ob, psys):
         
         ri.Curves("cubic", [nverts], "nonperiodic", {"P": rib(points), widthString: hair_width})
         j += 1
-        
-    
+    psys.set_resolution(scene, ob, 'PREVIEW')
 
 # only export particles that are alive, 
 # or have been born since the last frame
@@ -740,7 +896,6 @@ def export_motion_begin(ri, scene, ob):
     ri.MotionBegin(get_ob_subframes(scene, ob))
 
 def export_strands(ri, rpass, scene, ob, motion):
-
     for psys in ob.particle_systems:
         pname = psys_motion_name(ob, psys)    
         rm = psys.settings.renderman
@@ -760,12 +915,12 @@ def export_strands(ri, rpass, scene, ob, motion):
             export_motion_begin(ri, scene, ob)
             samples = motion['deformation'][pname]
         else:
-            get_strands(ri, scene ,ob, psys)
+            get_strands(ri, scene,ob, psys)
         
         #for nverts, P in samples:
             
-            #ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
-            #ri.Curves("cubic", [nverts], "nonperiodic", 
+            #ri.Basis("catmull-rom", 1, "catmull-rom", 1)
+            #ri.Curves("cubic", nverts, "nonperiodic", 
                         #{"P": rib(P), "constantwidth": rm.width})
 
         if motion_blur:
@@ -815,8 +970,6 @@ def export_particle_instances(ri, rpass, scene, ob, psys, motion):
         instance_ob = bpy.data.objects[rm.particle_instance_object]
     except:
         return
-    
-    
     
     motion_blur = pname in motion['deformation']
     cfra = scene.frame_current
@@ -908,7 +1061,7 @@ def export_comment(ri, comment):
 
 def get_texture_list(scene):
     #if not rpass.light_shaders: return
-    SUPPORTED_MESH_TYPES = ['MESH','CURVE','FONT']
+    SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT']
     textures = []
     for o in renderable_objects(scene):
         if o.type == 'CAMERA':
@@ -916,11 +1069,11 @@ def get_texture_list(scene):
         elif o.type == 'LAMP':
             if o.data.renderman.nodetree != '':
                 textures = textures + get_textures(o.data)
-        elif o.type in SUPPORTED_MESH_TYPES:
+        elif o.type in SUPPORTED_MATERIAL_TYPES:
             for mat in [mat for mat in o.data.materials if mat != None]:
                 textures = textures + get_textures(mat)
         else:
-            debug("warning" , "get_texture_list: unsupported object type [%s]." % o.type)
+            debug ("error","get_texture_list: unsupported object type [%s]." % o.type)
     return textures
 
 def get_texture_list_preview(scene):
@@ -1127,7 +1280,7 @@ def export_curve(ri, scene, ob, motion):
         if motion_blur:
             ri.MotionEnd()
     else:
-        debug ("warning" , "export_curve: recieved a non-supported object type of [%s]." % ob.type)
+        debug ("error","export_curve: recieved a non-supported object type of [%s]." % ob.type)
 
 def export_subdivision_mesh(ri, scene, ob, motion):
     mesh = create_mesh(scene, ob)
@@ -1170,6 +1323,7 @@ def export_subdivision_mesh(ri, scene, ob, motion):
     bpy.data.meshes.remove(mesh)
 
 def export_polygon_mesh(ri, scene, ob, motion):
+    debug("info","export_polygon_mesh [%s]" % ob.name)
     mesh = create_mesh(scene, ob)
     
     motion_blur = ob.name in motion['deformation']
@@ -1182,7 +1336,6 @@ def export_polygon_mesh(ri, scene, ob, motion):
         
     for nverts, verts, P in samples:
         primvars = get_primvars(ob, mesh, "facevarying")
-        debug("info" ,primvars)
         primvars['P'] = P
         ri.PointsPolygons(nverts, verts, primvars)
         
@@ -1243,26 +1396,14 @@ def export_torus(ri, scene, ob, motion):
 
 def is_dupli(ob):
     return ob.type == 'EMPTY' and ob.dupli_type != 'NONE'
-
+    
+def is_dupli_source(ob):
+    # Is this object the source mesh for other duplis?
+    result = False
+    if ob.parent and ob.parent.dupli_type in SUPPORTED_DUPLI_TYPES: result = True	
+    return result
+    
 def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
-    # handle duplis
-    if is_dupli(ob):
-        if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
-            debug ("info","export_geometry_data: detected dupli on [%s, %s]" % (ob.name, ob.dupli_type))
-            ob.dupli_list_create(scene)
-            dupobs = [(dob.object, dob.matrix.copy()) for dob in ob.dupli_list]	# Atom 061115
-            
-            for dupob, dupob_mat in dupobs:
-                if is_renderable(scene, dupob):
-                    #print ("export_geometry_data: creating dupli object[%s]." % dupob.name)
-                    dupli_name = "%s_%s_p%s" % (ob.name, dupob.object.name, returnNameForNumber(dupob.index))
-                    export_object(file, rpass, scene, dupob, motion, dupob_mat, dupli_name)	# Atom 061115
-            ob.dupli_list_clear()
-            return
-        else:
-            debug ("error","export_geometry_data: Unsupported dupli type!")
-        return
-        
     if force_prim == '':
         prim = detect_primitive(ob)
     else:
@@ -1315,8 +1456,9 @@ def export_geometry(ri, rpass, scene, ob, motion):
         else:
             export_geometry_data(ri, rpass, scene, ob, motion)
 
-    else:    
-        ri.write(geometry_source_rib(scene, ob))
+    else:
+        pass
+        #ri.write(geometry_source_rib(scene, ob))
 
 
 def export_object(ri, rpass, scene, ob, motion, mtx = None, dupli_name = None):
@@ -1404,7 +1546,7 @@ def export_motion_ob(scene, motion, ob):
             motion['deformation'][pname].insert(0, 
                                             get_particles(scene, ob, psys));
         if psys.settings.type == 'HAIR':
-            motion['deformation'][pname].insert(0, get_strands(scene, ob, psys));
+            motion['deformation'][pname].insert(0, get_strands(ri, scene, ob, psys));
 
     if prim in ('POLYGON_MESH', 'SUBDIVISION_MESH', 'POINTS'):
         # fluid sim deformation - special case
@@ -1473,50 +1615,469 @@ def export_motion(rpass, scene):
     return motion
 
 def export_objects(ri, rpass, scene, motion):
-    SUPPORTED_INSTANCE_TYPES = ['MESH','CURVE','FONT']
-    export_comment(ri, "Objects")
+    # Lists that hold names of candidates to consider for export.
+    candidate_datablocks = []
+    candidate_objects = []
+    candidate_multi_material_datablocks = []
+    candidate_multi_material_objects = []
+    candidate_lights = []
+    candidate_duplis = []
+    candidate_groups = []
+    
+    # Lists that hold names of datablocks that are already exported.
+    exported_datablocks = []
+    exported_objects = []
+    exported_lights = []
+    exported_duplis = []
+    exported_groups = []
+    
+    # List to hold handles for archives and instances.
+    candidate_instance_sources = []
+    candidate_instance_handles = []
+    candidate_archive_handles = []
+    
+    def returnHandleForName(passed_list, passed_name):
+        # Expects list items to contain two entries: name,handle.
+        for name,handle in passed_list:
+            if name == passed_name:
+                return handle
+        return None
 
-    # export the objects to RIB recursively
-    for ob in rpass.objects:
-        if ob.type in SUPPORTED_INSTANCE_TYPES:
-            if ob.type == 'CURVE' or ob.type == 'FONT':
+    def reviewObjectForDuplis (scene, ob_name, parent_name, candidate_duplis):
+        ob = bpy.data.objects.get(ob_name)
+        if ob:
+            ob.dupli_list_create(scene, 'RENDER')
+            for dob in ob.dupli_list:
+                if dob.object != None:
+                    if dob.hide:
+                        # User has hidden the child object from rendering...
+                        debug ("info","skipping export of [%s], it is hidden from rendering." % dob.object.name)
+                    else:
+                        # NOTE: parent_name is only really needed for particles because multiple systems on the same emitter can be in use.
+                        dupli_name = "%s_%s_p%s" % (ob.name, ("%s~%s" % (parent_name,dob.object.name)), returnNameForNumber(dob.index))
+                        if dob.object.type in SUPPORTED_INSTANCE_TYPES:
+                            # This export object will ginstance the above datablock at the new world location.
+                            candidate_duplis.append((dob.object.name, dob.object.type, dob.matrix.copy(), dupli_name))
+                        elif dob.object.type == 'LAMP':
+                            candidate_duplis.append((dob.object.name, dob.object.type, dob.matrix.copy(), dupli_name))
+                        else:
+                            debug ("warning","unsupported export type of [%s] found in dupli_list." % dob.object.type)
+                else:
+                    debug ("warning","None type object in dupli_list?")
+            ob.dupli_list_clear()
+        else:
+            debug ("info","reviewObjectForDuplis: passed object [%s] is not in memory." % ob_name)
+
+    # Begin first pass scan of the scene and populate various lists based upon objects discovered.
+    for ob in renderable_objects(scene):
+        debug ("info","PRMan: Scanning object [%s][%s]" % (ob.name, ob.type))
+        if ob.type == 'EMPTY':
+            # Support OBJECT and GROUP based duplication for Empties.
+            if ob.dupli_type == 'GROUP' and ob.dupli_group != None:
+                candidate_groups.append((ob.dupli_group.name))			# NOTE: The group will take care of exporting any datablocks.
+                reviewObjectForDuplis (scene, ob.name, "", candidate_duplis)
+            if ob.dupli_type == 'OBJECT' and ob.dupli_object != None:
+                candidate_instance_sources.append(ob.dupli_object.name)
+                reviewObjectForDuplis (scene, ob.name, "", candidate_duplis)
+                
+        elif ob.type == 'LAMP':
+            # Not supporting dupli-group for lamp type objects at this time.
+            candidate_lights.append((ob.name, ob.type))
+
+        elif ob.type in SUPPORTED_INSTANCE_TYPES:
+            if ob.parent and ob.parent.dupli_type in SUPPORTED_DUPLI_TYPES:
+                # Skip rendering this object because it a child of a dupli object.
+                # Add it as an instance source, however.
+                candidate_instance_sources.append(ob.name)
+            else:
+                if ob.dupli_type in SUPPORTED_DUPLI_TYPES:
+                    # This object has duplis.
+                    reviewObjectForDuplis (scene, ob.name, "", candidate_duplis)
+
+                if ob.particle_systems:
+                    # NOTE: Support multiple particle systems.
+                    contains_duplis = False
+                    for psys in ob.particle_systems: 
+                        if psys != None:
+                            pset = psys.settings
+                            if pset.use_render_emitter:
+                                # User wants to render the emitter as well as the particles.
+                                # In a multiple particle system situation any duplicate emitter objects will be filtered by uniquifyList.
+                                candidate_objects.append((ob.name, ob.type))
+                                candidate_datablocks.append((ob.name, ob.type))
+                            if pset.render_type == 'OBJECT' and pset.dupli_object != None: contains_duplis = True
+                            if pset.render_type == 'GROUP' and pset.dupli_group != None: contains_duplis = True
+
+                    if contains_duplis:
+                        # This object has duplis.
+                        reviewObjectForDuplis (scene, ob.name, "", candidate_duplis)	# Should pass pset.name not "" for multi-psys support.
+                    else:
+                        # Scan for hair based particle systems.
+                        
+                        export_strands(ri, rpass, scene, ob, motion)
+                                
+                        #        pset = psys.settings
+                        #        if pset.type == 'HAIR' and pset.render_type == 'PATH': 
+                        #            export_comment(ri,'--> Hair strands from emitter [%s].\n' % ob.name)
+                        #            size = pset.particle_size / 10
+                        #            psys.set_resolution(scene, ob, 'RENDER')	# Set the render resolution of the particle system
+                        #            steps = 2 ** pset.render_step + 1
+                        #            transform = ob.matrix_world.inverted()
+                        #            count_strands_parent = len(psys.particles)
+                        #            count_strands_children = len(psys.child_particles)
+                        #            
+                        #            # to_mesh based version of hair support, likely to evolve and become more effcient.
+                        #            # Make a curve object that we are going to pass to exportPolymesh which will issue a to_mesh.
+                        #            cu_datablock = bpy.data.curves.new("cu_strand_placeholder",'CURVE')
+                        #            temp_ob_curve = bpy.data.objects.new("strand_placeholder",cu_datablock)
+    
+                        #            for strand_index in range(0, count_strands_parent + count_strands_children):
+                        #                hair_name = 'hair_p%s' % returnNameForNumber(strand_index)
+                        #                debug ("info","PRMan: Generating hair strand [%s] of %i" % (hair_name,(count_strands_parent + count_strands_children)))
+
+                        #                temp_curve = bpy.data.curves.new("%s%s" % (CURVE_PREFIX, hair_name),'CURVE')    # Create a new curve.
+                        #                temp_curve.dimensions = '3D'
+                        #                temp_curve.fill_mode = 'FULL'
+                        #                temp_curve.bevel_depth = size
+                        #                #temp_curve.bevel_resolution = 0
+                        #                temp_curve.render_resolution_u = 1	#pset.draw_step
+                        #                temp_curve.resolution_u = 1
+                        #                spline = temp_curve.splines.new('BEZIER')           # Add an empty spline to the curve.
+                        #                points = spline.bezier_points
+                        #                spline.use_endpoint_u = True
+                        #                spline.use_cyclic_u = False
+                        #                strand_radius = 1.0
+                        #                strand_radius_delta = strand_radius/steps
+                        #                # Populate the points.
+                        #                for step in range(0, steps):
+                        #                    co = psys.co_hair(ob, strand_index, step)
+                        #                    if co.length_squared == 0:
+                        #                        # A zero length means we should stop.
+                        #                        break
+                        #                    else:
+                        #                        if step > 0: spline.bezier_points.add(1) 
+                        #                        points[step].co = mathutils.Vector((co.x, co.y, co.z)) 
+                        #                        points[step].radius = strand_radius
+                        #                        strand_radius -= strand_radius_delta
+
+                        #                temp_ob_curve.data = temp_curve					# Assign new curve datablock to temp curve object.
+                        #                try:
+                        #                    # Transfer the emitter material to the strand.
+                        #                    temp_ob_curve.data.materials.append(ob.data.materials[0])	
+                        #                except:
+                        #                    # Problem, strand will inherit the default material.
+                        #                    pass
+                        #                temp_ob_curve.name = hair_name
+                        #                export_polygon_mesh(ri,scene,temp_ob_curve,motion)
+                        #                temp_ob_curve.data = cu_datablock				# Restore the temporary blank curve datablock.
+                        #                bpy.data.curves.remove(temp_curve)				# Remove the datablock we just exported.
+                        #            psys.set_resolution(scene, ob, 'PREVIEW')			# Restore the render resolution of the particle system
+                        #            
+                        #            # Remove these temporary assets from memory.
+                        #            bpy.data.objects.remove(temp_ob_curve)
+                        #            bpy.data.curves.remove(cu_datablock)
+                elif ob.dupli_type in SUPPORTED_DUPLI_TYPES:
+                    # Dupli source meshes should not get rendered.
+                    # But we do need to fetch the list of duplis they represent.
+                    if ob.parent:
+                        parent_name = ob.parent.name
+                    else:
+                        parent_name = ""
+                    reviewObjectForDuplis(scene, ob.name, parent_name, candidate_duplis)
+                else:
+                    l = len(ob.data.materials)
+                    if l > 1:
+                        debug ("info","Adding multi material object and datablock [%s]." % ob.name)
+                        candidate_multi_material_objects.append((ob.name, ob.type))
+                        candidate_multi_material_datablocks.append((ob.name, ob.type))
+                    else:
+                        debug ("info","Adding single material object and datablock [%s]." % ob.name)
+                        candidate_objects.append((ob.name, ob.type))
+                        candidate_datablocks.append((ob.name, ob.type))
+
+        elif ob.type == 'CURVE':
+            candidate_objects.append((ob.name, ob.type))
+        else:
+            debug ("warning","Unsupported object type [%s]." % ob.type)
+    # End first pass through objects in the scene.
+
+    # Lists that hold names of candidates to consider for export.
+    debug ("info","\ncandidate_datablocks")
+    printList(candidate_datablocks)
+    debug ("info","\ncandidate_objects")
+    printList(candidate_objects)
+    debug ("info","\ncandidate_lights")
+    printList(candidate_lights)
+    debug ("info","\ncandidate_duplis")
+    debug ("info", len(candidate_duplis))
+    #printList(candidate_duplis)
+    debug ("info","\ncandidate_groups")
+    printList(candidate_groups)
+    debug ("info","\ncandidate_multi_material_objects")
+    printList(candidate_multi_material_objects)
+    debug ("info","\ncandidate_multi_material_datablocks")
+    printList(candidate_multi_material_datablocks)
+    
+    # Lists that hold names of datablocks that are already exported.
+    debug ("info","\nexported_datablocks")
+    printList(exported_datablocks)
+    debug ("info","\nexported_objects")
+    printList(exported_objects)
+    debug ("info","\nexported_lights")
+    printList(exported_lights)
+    debug ("info","\nexported_duplis")
+    debug ("info", len(exported_duplis))
+    #printList(exported_duplis)
+    debug ("info","\nexported_groups")
+    printList(exported_groups)
+    
+    debug ("info","\ncandidate_instance_sources")
+    printList(candidate_instance_sources)
+    debug ("info","\ncandidate_instance_handles")
+    printList(candidate_instance_handles)
+    debug ("info","\ncandidate_archive_handles")
+    printList(candidate_archive_handles)
+
+    unique_groups = uniquifyList(candidate_groups)
+    # Groups can reference objects that are not on renderable layers so review the objects in groups to add to the candidate list.
+    for group_name in unique_groups:
+        grp = bpy.data.groups.get(group_name)
+        if grp != None:
+            if len(grp.objects):
+                for grp_ob in grp.objects:
+                    if grp_ob.type in SUPPORTED_INSTANCE_TYPES:
+                        candidate_datablocks.append((grp_ob.name, grp_ob.type))
+                    elif grp_ob.type == 'LAMP':
+                        candidate_lights.append((grp_ob.name, grp_ob.type))
+            else:
+                debug ("warning","group [%s] declared but contains no objects." % group_name)
+        else:
+            debug ("warning","referenced group [%s] is None." % group_name)
+
+    # Export scene lights.
+    export_comment(ri, '.')  
+    export_comment(ri, '--> Generate scene lights.\n')
+    unique_lights = uniquifyList(candidate_lights)
+    for ob_name, ob_type in unique_lights:
+        ob_temp = bpy.data.objects.get(ob_name)
+        if ob_temp != None:
+            if ob_type == 'LAMP':
+                export_light(rpass, scene, ri, ob_temp)
+                exported_lights.append(ob_temp.name)
+        
+    # Export datablocks for archiving.
+    export_comment(ri, '.')  
+    export_comment(ri, '--> Generate inline archives from Blender datablocks.\n')
+    unique_datablocks = uniquifyList(candidate_datablocks)
+    debug ("info","unique_datablocks: %s" % unique_datablocks)
+    for ob_name, ob_type in unique_datablocks:
+        ob_temp = bpy.data.objects.get(ob_name)
+        if ob_temp != None:
+            if ob_type == 'CURVE' or ob_type == 'FONT':
                 # If this curve is extruded or beveled it can produce faces from a to_mesh call.
-                l = ob.data.extrude + ob.data.bevel_depth
+                l = ob_temp.data.extrude + ob_temp.data.bevel_depth
             else:
                 try:
-                    l = len(ob.data.polygons)
+                    l = len(ob_temp.data.polygons)
                 except:
                     l = 0
             if l > 0:
-                if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
-                    # handle duplis
-                    debug("info","export_objects: checking [%s] dupli type [%s]." % (ob.name, ob.dupli_type))
-                    if ob.parent and ob.parent.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
-                        # Skip creating this object because it is child of a dupli object.
-                        pass
-                    else:
-                        if ob.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
-                            debug ("info","export_geometry_data: detected dupli on [%s, %s]" % (ob.name, ob.dupli_type))
-                            ob.dupli_list_create(scene)
-                            dupobs = [(dob.object, dob.matrix.copy(), dob.index) for dob in ob.dupli_list]	# Atom 061115
-                            
-                            for dupob, dupob_mat, dupob_index in dupobs:
-                                if is_renderable(scene, dupob):
-                                    dupli_name = "%s_%s_d%s" % (ob.name, dupob.name, returnNameForNumber(dupob_index))
-                                    export_object(ri, rpass, scene, dupob, motion, dupob_mat, dupli_name)	# Atom 061115
-                            ob.dupli_list_clear()
-                        else:
-                            debug ("error" , "export_geometry_data: Unsupported dupli type!")
+                # Check if this archive handle already exists.
+                handle_name = ob_temp.data.name
+                archive_handle = returnHandleForName(candidate_archive_handles,handle_name)
+                if archive_handle == None:
+                    # No matching handle has been written to the RIB file yet, we are first.
+                    # Export this polymesh data as an archive to be referenced later on.
+                    ri.ArchiveBegin(handle_name)
+                    candidate_archive_handles.append((ob_name, handle_name))
+                    export_polygon_mesh(ri,scene,ob_temp,motion)
+                    ri.ArchiveEnd()
+                    export_comment(ri, '.')
+                    exported_datablocks.append(ob_name)
                 else:
-                    if ob.parent and ob.parent.dupli_type in {'FACES', 'VERTS', 'GROUP'}:
-                        # Skip creating this object because it is child of a dupli object.
-                        pass
-                    else:
-                        debug("info","export_objects: processing [%s, %s]." % (ob.name, ob.type))
-                        export_object(ri, rpass, scene, ob, motion)
+                    debug ("warning","Skipping creating another instance of [%s], it already exists as an Archive in the RIB." % handle_name)
             else:
-                # Curve produces no faces, no need to render.
-                pass
+                debug ("warning","Datablock [%s] has no faces, skipping export?" % ob_name)
+        else:
+            debug ("warning","[%s] in unique_datablocks but not in memory?" % ob_name)
+
+    # Export objects that reference archives.
+    export_comment(ri, '.')  
+    export_comment(ri, '--> Generate objects that reference archives.\n')
+    debug ("info","candidate_archive_handles: %s" % candidate_archive_handles)
+    debug ("info","candidate_objects: %s" % candidate_objects)
+    unique_objects = uniquifyList(candidate_objects)
+    debug ("info","unique_objects: %s" % unique_objects)
+    for ob_name, ob_type in unique_objects:
+        debug ("info","fetching [%s]" % ob_name)
+        ob_temp = bpy.data.objects.get(ob_name)
+        if ob_temp != None:
+            if ob_temp.type in SUPPORTED_INSTANCE_TYPES:
+                if ob_temp.type == 'CURVE' or ob_temp.type == 'FONT':
+                    # If this curve is extruded or beveled it can produce faces from a to_mesh call.
+                    l = ob_temp.data.extrude + ob_temp.data.bevel_depth
+                else:
+                    try:
+                        l = len(ob_temp.data.polygons)
+                    except:
+                        l = 0
+                if l > 0:
+                    # See if we have already written out this datablock by fetching it's handle.
+                    instance_handle = returnHandleForName(candidate_archive_handles,ob_name)
+                    if instance_handle != None:
+                        # We have a handle so it is ok to reference this with an object shader/transform.
+                        exportObjectArchive(ri, rpass, scene, ob_temp, returnMatrixForObject(ob_temp), ob_name, instance_handle)
+                        exported_objects.append(ob_name)
+                    else:
+                        debug ("warning","Could not locate handle for [%s]" % ob_name)
+                else:
+                    debug ("warning","Object [%s] has no faces, skipping export?" % ob_name)
+            elif ob_type == 'CURVE':
+                export_curve(ri, scene, ob_temp, motion)
+            else:
+                debug ("warning","unsupported object [%s] detected for export." % ob_name)
+        else:
+            debug ("warning","object [%s] in list but not in memory?" % ob_name)
+
+    export_comment(ri, '.')  
+    export_comment(ri, '--> Generate instance based objects.')
+    #Get the object name of every possible particle or dupli source.
+    for ob_name, ob_type, m, dupli_name in candidate_duplis:
+        ob_temp = bpy.data.objects.get(ob_name)
+        if ob_temp != None:
+            candidate_instance_sources.append(ob_name)
+            
+    # This list must be unique for instance handles must be unique within Renderman.		
+    unique_instance_sources = uniquifyList(candidate_instance_sources)
+    debug ("info","unique_instance_sources: %s" % unique_instance_sources)
+    
+    # Create an object instance handle for each object in the instance list.
+    for candidate in unique_instance_sources:
+        ob_temp = bpy.data.objects.get(candidate)
+        if ob_temp != None:
+            # Remember, what we are instancing is the datablock, not the object.
+            handle_name = ob_temp.data.name
+            instance_handle = returnHandleForName(candidate_instance_handles,handle_name)
+            if instance_handle == None:
+                result = ri.ObjectBegin()
+                export_geometry(ri, rpass, scene, ob_temp, motion)
+                ri.ObjectEnd()
+                candidate_instance_handles.append((handle_name,result))
+            else:
+                debug ("warning","handle for [%s] already exists." % candidate)
+        else:
+            debug ("error","unique_instance [%s] in list but not in memory." % candidate)
+    #print("candidate_instance_handles: %s" % candidate_instance_handles)
+        
+    export_comment(ri, '.')  
+    export_comment(ri, '--> Generate objects that reference instances. (i.e. duplis or particles)') 
+    # Export dupli objects as instances. (This list contains objects that are generated from other objects, like duplivert, dupligroup, dupliface, particles)
+    for ob_name, ob_type, m, dupli_name in candidate_duplis:
+        ob_temp = bpy.data.objects.get(ob_name)
+        if ob_temp != None:
+            if ob_type in SUPPORTED_INSTANCE_TYPES:
+                if ob_type == 'CURVE' or ob_type == 'FONT':
+                    # If this curve is extruded or beveled it can produce faces from a to_mesh call.
+                    l = ob_temp.data.extrude + ob_temp.data.bevel_depth
+                else:
+                    try:
+                        l = len(ob_temp.data.polygons)
+                    except:
+                        l = 0
+                if l > 0:
+                    handle_name = ob_temp.data.name
+                    #print("candidate_instance_handles: %s" %candidate_instance_handles)
+                    instance_handle = returnHandleForName(candidate_instance_handles,handle_name)
+                    if instance_handle != None:
+                        exportObjectInstance(ri, rpass, scene, ob_temp, m, dupli_name, instance_handle)
+                        exported_objects.append(dupli_name)
+                    else:
+                        debug ("warning","instance handle for [%s] [%s] not available?" % (ob_name,handle_name))
+                else:
+                    debug ("warning","Dupli [%s] has no faces, skipping export?" % ob_name)
+            elif ob_type == 'LAMP':
+                #exportLight (ri, scene, ob_temp, m, dupli_name)
+                exported_objects.append(dupli_name)
+            else:
+                debug ("warning","Unsupported export type [%s] in dupli_list." % ob_type)
+        else:
+            debug ("error","None object in dupli export list...?")
+        ob_temp = None
+        
+    export_comment(ri, '.')  
+    export_comment(ri, '--> Generate multi-material objects.')
+    for ob_candidate_name,ob_candidate_type in candidate_multi_material_objects:
+        ob_temp = bpy.data.objects.get(ob_candidate_name)
+        if ob_temp != None:
+            if ob_temp.type == 'MESH':
+                debug ("info","processing multi-material mesh [%s]." % ob_candidate_name)
+                # The mesh with modifiers applied.
+                me_source = ob_temp.to_mesh(scene,True,'RENDER')
+                m = len(me_source.materials)
+                #m = 1 #Atom 07042012 temporary disable.
+                if m > 1:
+                    #Atom 04302012.
+                    #export_comment(ri, 'Atom: Create a mesh for every material applied.\n')
+                
+                    # A list of all the vertices.
+                    list_verts = []
+                    for vertex in me_source.vertices:
+                        list_verts.append(rounded_tuple(vertex.co.to_tuple()))
+
+                    # Fetch the vertex and face list from the provided mesh type object.
+                    list_faces_by_material = []
+                    for face in me_source.polygons:
+                        x = [f for f in face.vertices]
+                        list_faces_by_material.append([face.material_index,x])
+                    c = 0
+                    for mat in me_source.materials:
+                        me_name = "me_" + str(int(c))+ "-PIX_" + ob_candidate_name
+                        me = returnNewMeshFromFaces(me_name,me_source,c)
+                        if me != None:
+                            ob_name = str(int(c))+ "-PIX_" + ob_candidate_name
+                            tempOb = bpy.data.objects.new(ob_name, me)      # Make new object linked to this special mesh.
+                            scene.objects.link(tempOb)                      # Link it to the scene.
+                            try:
+                                tempOb.location = ob_temp.location               # Transfer location to this new object.
+                                tempOb.rotation_euler = ob_temp.rotation_euler   # Transfer rotation to this new object.
+                                tempOb.scale = ob_temp.scale                     # Transfer scale to this new object.
+                            except:
+                                debug ("error","export_objects: error transform mapping for multi-material object.")
+                            try:
+                                tempOb.material_slots[0].material = mat		# Assign this material as the material for the new object.
+                                #print(tempOb.name + " gets material [" + mat.name + "].")
+                            except:
+                                debug ("error","export objects: error assigning material.")
+                            
+                            scene.update()                                  # Required or new object remains at world origin. 
+                            # And while I have your attention, the scene.update() is the cause of slowdown and excessive UI refresh that can occur.
+                            # The only reason for the update is to refresh the transform matrix.
+                            # Because of dupli support we can now override the object matrix with a passed matrix.
+                            # This means if we can come up with a way to contrive/calculated a matrix  we can pass it to export_object and we would not need scene.update().
+                            # (i.e. ToDo)            
+                            # Export this newly generated object.
+                            export_object(ri, rpass, scene, tempOb, motion)
+                            
+                            # Try to remove these temp items from memory.
+                            scene.objects.unlink(tempOb)                    # Remove the object from the scene.
+                            '''
+                            if tempOb.data != None:
+                                l = len(tempOb.data.materials)
+                                if l > 0:
+                                    tempOb.data.materials.pop(l-1)          # Remove the material from the object.
+                            
+                            r = removeObjectFromMemory(ob_name)
+                            if r == False:
+                                print("export_objects: problem removing OBJECT [" + ob_name + "] from memory.")
+                            r = removeMeshFromMemory(me_name)
+                            if r == False:
+                                print("export_objects: problem removing MESH [" + me_name + "] from memory.")
+                            '''
+                        else:
+                            debug ("warning","export_objects: problem creating MESH [" + me_name + "] in memory.")
+                        c = c + 1
+            else:
+                debug ("error","Unsupported multi-material object type [%s]." % ob.type)
 
 #TODO take in an ri object and write out archive
 def export_archive(scene, objects, filepath="", archive_motion=True, 
@@ -1753,9 +2314,10 @@ def export_searchpaths(ri, paths):
     #    ':'.join(path_list_convert(paths['archive'], to_unix=True))]})
 
 def export_header(ri):
-    export_comment(ri, 'Generated by PRMan for Blender, v%s.%s.%s \n' % \
-            (addon_version[0], addon_version[1], addon_version[2]))
-
+    render_name = os.path.basename(bpy.data.filepath)
+    export_comment(ri, 'Generated by PRMan for Blender, v%s.%s.%s \n' % (addon_version[0], addon_version[1], addon_version[2]))
+    export_comment(ri, 'From File: %s on %s\n' % (render_name, time.strftime("%A %c")))
+    
 def find_preview_material(scene):
     for o in renderable_objects(scene):
         if o.type not in ('MESH', 'EMPTY'):
@@ -1913,9 +2475,6 @@ def export_hider(ri, rpass, scene, preview=False):
     
     if rm.hider == 'raytrace':
         ri.Hider(rm.hider, hider_params)
-  
-
-
 
 def write_rib(rpass, scene, ri):
     #info_callback('Generating RIB')
@@ -1949,7 +2508,7 @@ def write_rib(rpass, scene, ri):
 
     #export_global_illumination_lights(ri, rpass, scene)
     #export_world_coshaders(ri, rpass, scene) # BBM addition
-    export_scene_lights(ri, rpass, scene)
+    #export_scene_lights(ri, rpass, scene)
 
     #default bxdf
     ri.Bxdf("PxrDisney", "default")
