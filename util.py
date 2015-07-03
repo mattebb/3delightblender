@@ -273,9 +273,16 @@ def get_properties(prop_group):
     return props
      
 
-def convert_vector_worldspace(vec, ob):
-    wmatx = ob.matrix_world
+def get_global_worldspace(vec, ob):
+    wmatx = ob.matrix_world.to_4x4().inverted()
     vec = vec * wmatx
+    
+    return vec
+
+
+def get_local_worldspace(vec, ob):
+    lmatx = ob.matrix_local.to_4x4().inverted()
+    vec = vec * lmatx
     
     return vec
 # ------------- Environment Variables -------------   

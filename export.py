@@ -26,7 +26,9 @@
 import bpy
 import math
 import os
+import struct
 import mathutils
+
 
 from mathutils import Matrix, Vector, Quaternion
 
@@ -253,64 +255,65 @@ def psys_motion_name(ob, psys):
 
 
 # ------------- Geometry Access -------------
-def get_strands(scene,ob, psys):
-    nstrands = 0
-    nvertices = []
-    P = []
-    for particle in psys.particles:
-        hair = particle.hair_keys
-        nvertices += [len(hair)+2]
-        i=0
-        
-        # hair keys are stored as local offsets from the 
-        # particle location (on surface)
-        for key in particle.hair_keys:
-            #print("ORIGINAL: ", key.co )
-            P.extend( key.co )
-            # double up start and end points
-            if i == 0 or i == len(hair)-1:
-                P.extend( key.co )
-            i += 1
-    return (nvertices, P)
-'''
-    psys.set_resolution(scene, ob, 'RENDER')
-    steps = psys.settings.render_step + 1
-    num_parents = len(psys.particles)
-    num_children = len(psys.child_particles)
+def get_strands(ri, scene,ob, psys):
+    tip_width = psys.settings.renderman.tip_width
+    base_width = psys.settings.renderman.base_width
     
-    for particle in psys.particles:
-        hairGuide = particle.hair_keys
-        nvertices += [steps + 2]
-        for key in particle.hair_keys:
-            masterStrandsV = Vector(key.co)
+    
+    if psys.settings.renderman.constant_width:
+        widthString = "constantwidth"
+        hair_width = psys.settings.renderman.width
+        print(widthString, hair_width)
+    else:
+        widthString = "width"
+        hair_width = [base_width, tip_width]
+        #hair_width.append(tip_width)
+        print(widthString,hair_width)
+    
+    
+    hair_length = psys.settings.hair_length
+    
 
+    
     psys.set_resolution(scene, ob, 'RENDER')
-    steps = psys.settings.render_step + 1
+    steps = 2 ** psys.settings.render_step 
+    
     num_parents = len(psys.particles)
     num_children = len(psys.child_particles)
-    world = ob.matrix_world
-    world = world.to_4x4().inverted().transposed()
-    print (psys.settings.hair_length)
-    #world = world[0] * psys.settings.length
-    print("WORLD MATRIX: ", world)
-    for p in range(0, num_parents + num_children):
-        nvertices += [steps + 2]
-        for step in range(0, steps):
-            co = psys.co_hair(ob, p, step)
-            print ("CO IS: ", co)
-            #point = co * world
-            
-            print ("POINT IS: ", co)
-            P.extend(point)
-            
-            
-            if step == 0 or step == steps - 1:
-                P.extend(point)
-    psys.set_resolution(scene, ob, 'PREVIEW')
-    return (nvertices, P)
-    '''
-            
 
+    
+    total_hair_count = num_parents + num_children
+    thicknessflag = 0
+    width_offset = psys.settings.renderman.width_offset
+    
+    wmatx = ob.matrix_world.to_4x4().inverted()
+    
+    
+    
+    ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
+    j = 0
+    for pindex in range(total_hair_count):
+        points = []
+        nverts = 0
+        i = 0
+        
+        for step in range(0, steps + 1):
+            co = psys.co_hair(ob, pindex, step)
+            
+            if not co.length_squared == 0:
+                points.extend(wmatx * psys.co_hair(ob, pindex, step))
+                if i == 0 or i == steps:
+                    points.extend(wmatx * psys.co_hair(ob, pindex, step))
+                    nverts += 1
+            nverts += 1
+            i += 1
+        debug("info","Exporting ",j , "Strands and ", nverts ," Vertices")
+        
+        
+        ri.Curves("cubic", [nverts], "nonperiodic", {"P": rib(points), widthString: hair_width})
+        j += 1
+        
+    
 
 # only export particles that are alive, 
 # or have been born since the last frame
@@ -757,13 +760,13 @@ def export_strands(ri, rpass, scene, ob, motion):
             export_motion_begin(ri, scene, ob)
             samples = motion['deformation'][pname]
         else:
-            samples = [get_strands(scene ,ob, psys)]
+            get_strands(ri, scene ,ob, psys)
         
-        for nverts, P in samples:
+        #for nverts, P in samples:
             
-            ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
-            ri.Curves("cubic", nverts, "nonperiodic", 
-                        {"P": rib(P), "constantwidth": rm.width})
+            #ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
+            #ri.Curves("cubic", [nverts], "nonperiodic", 
+                        #{"P": rib(P), "constantwidth": rm.width})
 
         if motion_blur:
             ri.MotionEnd()
