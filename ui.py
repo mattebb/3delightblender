@@ -1622,6 +1622,11 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
         subcol = col.column()
         subcol.active = rm.constant_width
         subcol.prop(rm, "width")
+        subcol2 = col.column()
+        subcol2.active = not rm.constant_width
+        subcol2.prop(rm, "base_width")
+        subcol2.prop(rm, "tip_width")
+        #subcol2.prop(rm, "width_offset")
 
 
 class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):
