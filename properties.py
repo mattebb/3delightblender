@@ -433,9 +433,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
 
     threads = IntProperty(
-                name="Threads",
-                description="Number of processor threads to use",
-                min=1, max=32, default=2)
+                name="Rendering Threads",
+                description="Number of processor threads to use.  Note, 0 uses all cores, -1 uses all cores but one.",
+                min=-32, max=32, default=-1)
     max_trace_depth = IntProperty(
                 name="Max Trace Depth",
                 description="Maximum number of ray bounces (0 disables ray tracing)",
@@ -545,6 +545,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 subtype='FILE_PATH',
                 default="$OUT/renders/{scene}_####.tif")
     
+    update_frequency = FloatProperty(
+                name="Update frequency",
+                description="Number of seconds between display update when rendering to Blender",
+                min=0.0, default=5.0)
     
     # Hider properties
     hider = EnumProperty(
