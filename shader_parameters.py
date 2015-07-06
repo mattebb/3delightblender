@@ -126,7 +126,8 @@ def class_generate_properties(node, parent_name, shaderparameters):
     for sp in shaderparameters:
         if sp.tag == 'page':
             sub_params = []
-            #don't add the sub group to prop names, they'll be gotten through recursion
+            #don't add the sub group to prop names, 
+            #they'll be gotten through recursion
             for sub_param in sp.findall('param'):
                 name,meta,prop = generate_property(sub_param)
                 #another fix for sloppy args files
@@ -152,14 +153,16 @@ def generate_property(sp):
     options = {'ANIMATABLE'}
     param_name = sp.attrib['name']
     renderman_name = param_name
-    #blender doesn't like names with __ but we save the "renderman_name with the real one"
+    #blender doesn't like names with __ but we save the 
+    #"renderman_name with the real one"
     if param_name[0] == '_':
         param_name = param_name[1:]
     if param_name[0] == '_':
         param_name = param_name[1:]
     
     param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
-    param_widget = sp.attrib['widget'].lower() if 'widget' in sp.attrib else 'default'
+    param_widget = sp.attrib['widget'].lower() if 'widget' in sp.attrib \
+        else 'default'
 
     param_type = 'float' #for default. Some args files are sloppy
     if 'type' in sp.attrib:
@@ -183,7 +186,8 @@ def generate_property(sp):
             
     if param_type == 'float':
         if 'arraySize' in sp.attrib.keys():
-            param_default = tuple(float(f) for f in sp.attrib['default'].split(','))
+            param_default = tuple(float(f) for f in \
+                sp.attrib['default'].split(','))
             prop = bpy.props.FloatVectorProperty(name=param_label, 
                         default=param_default, precision=3,
                         size=len(param_default),
@@ -197,15 +201,20 @@ def generate_property(sp):
                                                 
             elif param_widget == 'mapper':
                 prop = bpy.props.EnumProperty(name=param_label, 
-                        items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")),
-                                        default=sp.attrib['default'],
-                                        description=param_help)
+                    items=sp_optionmenu_to_string(\
+                        sp.find("hintdict[@name='options']")),
+                    default=sp.attrib['default'],
+                    description=param_help)
                 
             else:
-                param_min = parse_float(sp.attrib['min']) if 'min' in sp.attrib else sys.float_info.min
-                param_max = parse_float(sp.attrib['max']) if 'max' in sp.attrib else sys.float_info.max
-                param_min = parse_float(sp.attrib['slidermin']) if 'slidermin' in sp.attrib else param_min
-                param_max = parse_float(sp.attrib['slidermax']) if 'slidermax' in sp.attrib else param_max
+                param_min = parse_float(sp.attrib['min']) if 'min' \
+                    in sp.attrib else sys.float_info.min
+                param_max = parse_float(sp.attrib['max']) if 'max' \
+                    in sp.attrib else sys.float_info.max
+                param_min = parse_float(sp.attrib['slidermin']) if 'slidermin' \
+                    in sp.attrib else param_min
+                param_max = parse_float(sp.attrib['slidermax']) if 'slidermax' \
+                    in sp.attrib else param_max
                 prop = bpy.props.FloatProperty(name=param_label, 
                         default=param_default, precision=3,
                         min=param_min, max=param_max,
@@ -221,9 +230,10 @@ def generate_property(sp):
                                             
         elif param_widget == 'mapper':
             prop = bpy.props.EnumProperty(name=param_label, 
-                    items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")),
-                                    default=sp.attrib['default'],
-                                    description=param_help )
+                    items=sp_optionmenu_to_string(\
+                            sp.find("hintdict[@name='options']")),
+                            default=sp.attrib['default'],
+                            description=param_help )
         else:
             param_min = int(sp.attrib['min']) if 'min' in sp.attrib else 0
             param_max = int(sp.attrib['max']) if 'max' in sp.attrib else 2**31-1
@@ -237,7 +247,8 @@ def generate_property(sp):
     elif param_type == 'color':
         if param_default == 'null':
             param_default = '0 0 0'
-        param_default = [float(c) for c in param_default.replace(',', ' ').split()]
+        param_default = [float(c) for c in \
+            param_default.replace(',', ' ').split()]
         prop = bpy.props.FloatVectorProperty(name=param_label, 
                                     default=param_default, size=3,
                                     subtype="COLOR",
@@ -262,7 +273,8 @@ def generate_property(sp):
         elif param_widget == 'mapper':
             prop = bpy.props.EnumProperty(name=param_label, 
                     default=param_default, description=param_help, 
-                    items=sp_optionmenu_to_string(sp.find("hintdict[@name='options']")))
+                    items=sp_optionmenu_to_string(\
+                        sp.find("hintdict[@name='options']")))
         else:
             prop = bpy.props.StringProperty(name=param_label, 
                             default=param_default, 
@@ -310,7 +322,8 @@ def node_add_inputs(node, node_name, shaderparameters):
         #if this is not connectable don't add socket
         tags = sp.find('tags')
         if tags and tags.find('tag').attrib['value'] == "__nonconnection" or \
-            ("connectable" in sp.attrib and sp.attrib['connectable'].lower() == 'false'):
+            ("connectable" in sp.attrib and \
+                sp.attrib['connectable'].lower() == 'false'):
             continue
 
         param_type = 'float'
