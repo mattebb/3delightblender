@@ -415,17 +415,17 @@ def psys_motion_name(ob, psys):
 def get_strands(ri, scene,ob, psys):
     tip_width = psys.settings.renderman.tip_width
     base_width = psys.settings.renderman.base_width
-    
-    
-    if psys.settings.renderman.constant_width:
+    conwidth = psys.settings.renderman.constant_width
+    steps = 2 ** psys.settings.render_step 
+    if conwidth:
         widthString = "constantwidth"
         hair_width = psys.settings.renderman.width
         debug("info",widthString, hair_width)
     else:
-        widthString = "width"
-        hair_width = [base_width, tip_width]
-        #hair_width.append(tip_width)
-        debug("info",widthString,hair_width)
+        widthString = "vertex float width"
+        #hair_width = [base_width]
+        hair_decriment = base_width / (steps)
+        
     
     
     hair_length = psys.settings.hair_length
@@ -433,7 +433,7 @@ def get_strands(ri, scene,ob, psys):
 
     
     psys.set_resolution(scene, ob, 'RENDER')
-    steps = 2 ** psys.settings.render_step 
+    
     
     num_parents = len(psys.particles)
     num_children = len(psys.child_particles)
@@ -451,6 +451,7 @@ def get_strands(ri, scene,ob, psys):
     j = 0
     for pindex in range(total_hair_count):
         points = []
+        hair_width = [base_width]
         nverts = 0
         i = 0
         
@@ -462,10 +463,20 @@ def get_strands(ri, scene,ob, psys):
                 if i == 0 or i == steps:
                     points.extend(wmatx * psys.co_hair(ob, pindex, step))
                     nverts += 1
+            
+            if not conwidth :
+                if i == 0:
+                    hair_width.append(hair_width[0])
+                elif i == steps:
+                    hair_width.append(hair_width[i] - hair_decriment)
+                    hair_width.append(hair_width[i + 1])
+                else:
+                    hair_width.append(hair_width[i] - hair_decriment)
             nverts += 1
             i += 1
         debug("info","Exporting ",j , "Strands and ", nverts ," Vertices")
-        
+        debug("info", "WIDTH:",widthString,hair_width)
+        debug("info", "POINTS:",points)
         
         ri.Curves("cubic", [nverts], "nonperiodic", {"P": rib(points), widthString: hair_width})
         j += 1
@@ -2437,7 +2448,26 @@ def export_display(ri, rpass, scene):
         #("lpe:ambient occlusion", active_layer.use_pass_emit, "color", None),
         
     ]
+    #Set bucket shape.
+    if rm.bucket_shape == 'SPIRAL':
+        settings = scene.render
 
+        if rm.bucket_sprial_x <= settings.resolution_x and rm.bucket_sprial_y <= settings.resolution_y:
+            if rm.bucket_sprial_x == -1 and rm.bucket_sprial_y == -1:
+                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ]})
+            elif rm.bucket_sprial_x == -1:
+                halfX = settings.resolution_x / 2
+                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [halfX ,rm.bucket_sprial_y]})
+            elif rm.bucket_sprial_y == -1:
+                halfY = settings.resolution_y / 2
+                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [rm.bucket_sprial_y, halfY ]})
+            else:
+                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [rm.bucket_sprial_x ,rm.bucket_sprial_y]})
+        else:
+            debug("info", "OUTSLIDE LOOP")
+            ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ]})
+    else:
+        ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ]})
     #declare display channels
     for aov, doit, declare_type, source in aovs:
         if doit and declare_type:

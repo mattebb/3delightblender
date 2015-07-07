@@ -393,6 +393,28 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 description="The minimum number of camera samples per pixel",
                 min=0, default=512)
 
+    bucket_shape = EnumProperty(
+                name="Bucket Shape",
+                description="Bucket shape to use when rendering",
+                items=[('HORIZONTAL', 'Horizontal', 'Render scanline from top to bottom'),
+                       ('VERTICAL', 'Vertical', 'Render scanline from left to right'),
+                       ('ZIGZAG-X', 'Reverse Horizontal', 'Exatialy the same as Horizontal but reverses after each scan'),
+                       ('ZIGZAG-Y', 'Reverse Vertical', 'Exatialy the same as Vertical but reverses after each scan'),
+                       ('SPACEFILL', 'Hilber spacefilling curve', 'Renders the buckets along a hilbert spacefilling curve'),
+                       ('SPIRAL', 'Spiral rendering', 'Renders in a spiral from the center of the image or a custom defined point'),
+                       ('RANDOM', 'Random', 'Renders buckets in a random order WARRNING: Inefficient memory footprint')],
+                default='HORIZONTAL')
+    
+    bucket_sprial_x = IntProperty(
+                name="X",
+                description="X coordinate of bucket spiral start",
+                min=-1, default=-1)
+
+    bucket_sprial_y = IntProperty(
+                name="Y",
+                description="Y coordinate of bucket spiral start",
+                min=-1, default=-1)
+
     shadingrate = FloatProperty(
                 name="Shading Rate",
                 description="Maximum distance between shading samples (lower = more detailed shading)",
