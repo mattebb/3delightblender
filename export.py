@@ -102,7 +102,6 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.ObjectInstance(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
-        export_comment(ri, '.')		# I wish I could just export a \n newline character instead. 
 def exportObjectArchive(ri, rpass, scene, ob, mtx = None, object_name = None, instance_handle = None, matNum = None):
     if mtx:
         ri.AttributeBegin()
@@ -117,7 +116,6 @@ def exportObjectArchive(ri, rpass, scene, ob, mtx = None, object_name = None, in
         ri.ReadArchive(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
-        export_comment(ri, '.')		# I wish I could just export a \n newline character instead.  
 def removeMeshFromMemory (passedName):
     # Extra test because this can crash Blender if not done correctly.
     result = False
@@ -1088,7 +1086,7 @@ def get_texture_list_preview(scene):
 def export_scene_lights(ri, rpass, scene):
     #if not rpass.light_shaders: return
 
-    export_comment(ri,'Lights')
+    export_comment(ri,'##Lights')
     
     for ob in [o for o in rpass.objects if o.type == 'LAMP']:
         export_light(rpass, scene, ri, ob)
@@ -1866,8 +1864,7 @@ def export_objects(ri, rpass, scene, motion):
             debug ("warning","referenced group [%s] is None." % group_name)
 
     # Export scene lights.
-    export_comment(ri, '.')  
-    export_comment(ri, '--> Generate scene lights.\n')
+    export_comment(ri, '## LIGHTS')
     unique_lights = uniquifyList(candidate_lights)
     for ob_name, ob_type in unique_lights:
         ob_temp = bpy.data.objects.get(ob_name)
@@ -1877,8 +1874,7 @@ def export_objects(ri, rpass, scene, motion):
                 exported_lights.append(ob_temp.name)
         
     # Export datablocks for archiving.
-    export_comment(ri, '.')  
-    export_comment(ri, '--> Generate inline archives from Blender datablocks.\n')
+    export_comment(ri, '## INLINE ARCHIVES')
     unique_datablocks = uniquifyList(candidate_datablocks)
     debug ("info","unique_datablocks: %s" % unique_datablocks)
     for ob_name, ob_type in unique_datablocks:
@@ -1903,7 +1899,6 @@ def export_objects(ri, rpass, scene, motion):
                     candidate_archive_handles.append((ob_name, handle_name))
                     export_polygon_mesh(ri,scene,ob_temp,motion)
                     ri.ArchiveEnd()
-                    export_comment(ri, '.')
                     if ob_temp.particle_systems:
                         debug("info" , "The object has a particle system" , ob_temp)
                         
@@ -1914,7 +1909,6 @@ def export_objects(ri, rpass, scene, motion):
                                 ri.ArchiveBegin(strand_name)
                                 export_strands(ri, rpass, scene, ob_temp, motion)
                                 ri.ArchiveEnd()
-                    export_comment(ri, '.')
                     exported_datablocks.append(ob_name)
                 else:
                     debug ("warning","Skipping creating another instance of [%s], it already exists as an Archive in the RIB." % handle_name)
@@ -1924,8 +1918,7 @@ def export_objects(ri, rpass, scene, motion):
             debug ("warning","[%s] in unique_datablocks but not in memory?" % ob_name)
 
     # Export objects that reference archives.
-    export_comment(ri, '.')  
-    export_comment(ri, '--> Generate objects that reference archives.\n')
+    export_comment(ri, '## OBJECTS')
     debug ("info","candidate_archive_handles: %s" % candidate_archive_handles)
     debug ("info","candidate_objects: %s" % candidate_objects)
     unique_objects = uniquifyList(candidate_objects)
@@ -1966,8 +1959,7 @@ def export_objects(ri, rpass, scene, motion):
         else:
             debug ("warning","object [%s] in list but not in memory?" % ob_name)
 
-    export_comment(ri, '.')  
-    export_comment(ri, '--> Generate instance based objects.')
+    export_comment(ri, '## INSTANCE MASTERS')
     #Get the object name of every possible particle or dupli source.
     for ob_name, ob_type, m, dupli_name in candidate_duplis:
         ob_temp = bpy.data.objects.get(ob_name)
@@ -1996,8 +1988,7 @@ def export_objects(ri, rpass, scene, motion):
             debug ("error","unique_instance [%s] in list but not in memory." % candidate)
     #print("candidate_instance_handles: %s" % candidate_instance_handles)
         
-    export_comment(ri, '.')  
-    export_comment(ri, '--> Generate objects that reference instances. (i.e. duplis or particles)') 
+    export_comment(ri, '## INSTANCES') 
     # Export dupli objects as instances. (This list contains objects that are generated from other objects, like duplivert, dupligroup, dupliface, particles)
     for ob_name, ob_type, m, dupli_name in candidate_duplis:
         ob_temp = bpy.data.objects.get(ob_name)
@@ -2031,8 +2022,7 @@ def export_objects(ri, rpass, scene, motion):
             debug ("error","None object in dupli export list...?")
         ob_temp = None
         
-    export_comment(ri, '.')  
-    export_comment(ri, '--> Generate multi-material objects.')
+    export_comment(ri, '## MULTI-MATERIAL OBJECTS')
     for ob_candidate_name,ob_candidate_type in candidate_multi_material_objects:
         ob_temp = bpy.data.objects.get(ob_candidate_name)
         if ob_temp != None:
@@ -2344,6 +2334,7 @@ def export_header(ri):
     render_name = os.path.basename(bpy.data.filepath)
     export_comment(ri, 'Generated by PRMan for Blender, v%s.%s.%s \n' % (addon_version[0], addon_version[1], addon_version[2]))
     export_comment(ri, 'From File: %s on %s\n' % (render_name, time.strftime("%A %c")))
+    ri.Option("rib", {"string asciistyle": "indented,wide"})
     
 def find_preview_material(scene):
     for o in renderable_objects(scene):

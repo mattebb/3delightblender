@@ -448,6 +448,9 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
         if rm.display_driver not in ('it', 'blender'):
             layout.prop(rm, "path_display_driver_image")
         layout.prop(rm, "always_generate_textures")
+        layout.prop(rm, "threads")
+        if rm.display_driver == 'blender':
+            layout.prop(rm, "update_frequency")
 
 
 

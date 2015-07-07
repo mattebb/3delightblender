@@ -34,21 +34,23 @@ from .util import args_files_in_path
 
 #from .shader_parameters import rna_type_initialise
 
-from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, \
-IntProperty, FloatProperty, FloatVectorProperty, CollectionProperty
+from bpy.props import PointerProperty, StringProperty, BoolProperty, \
+EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
+CollectionProperty
 
 # Shader parameters storage
 # --------------------------
 
 def shader_list_items(self, context, shader_type):
     defaults = [('null', 'None', ''), ('custom', 'Custom', '')]
-    return defaults + [ (s, s, '') for s in args_files_in_path(context.scene, context.material, shader_type=shader_type)]
+    return defaults + [ (s, s, '') for s in args_files_in_path(context.scene, 
+        context.material, shader_type=shader_type)]
     
 def shader_list_update(self, context, shader_type):
     # don't overwrite active when set to custom
     if self.shader_list != "custom":
-        # For safety, we keep the active shader property separate as a string property,
-        # and update when chosen from the shader list
+        # For safety, we keep the active shader property separate as a string 
+        #property, and update when chosen from the shader list
         self.active = str(self.shader_list)
 
 def shader_active_update(self, context, shader_type, location="material"):
@@ -72,11 +74,11 @@ def shader_active_update(self, context, shader_type, location="material"):
 def get_integrator_names():
     rmantree=guess_rmantree()
     args_path = os.path.join(rmantree, 'lib', 'RIS', 'integrator', 'Args')
-    return [(f.split('.')[0], f.split('.')[0][3:], '')  for f in os.listdir(args_path)]
+    return [(f.split('.')[0], f.split('.')[0][3:], '') \
+        for f in os.listdir(args_path)]
 
 
 class RendermanIntegratorSettings(bpy.types.PropertyGroup):
-
     pass
 
 def register_integrator_settings(scene_settings_cls):
@@ -433,9 +435,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
 
     threads = IntProperty(
-                name="Threads",
-                description="Number of processor threads to use",
-                min=1, max=32, default=2)
+                name="Rendering Threads",
+                description="Number of processor threads to use.  Note, 0 uses all cores, -1 uses all cores but one.",
+                min=-32, max=32, default=-1)
     max_trace_depth = IntProperty(
                 name="Max Trace Depth",
                 description="Maximum number of ray bounces (0 disables ray tracing)",
@@ -545,6 +547,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 subtype='FILE_PATH',
                 default="$OUT/renders/{scene}_####.tif")
     
+    update_frequency = FloatProperty(
+                name="Update frequency",
+                description="Number of seconds between display update when rendering to Blender",
+                min=0.0, default=5.0)
     
     # Hider properties
     hider = EnumProperty(

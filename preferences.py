@@ -26,7 +26,8 @@
 import bpy
 import sys
 from bpy.types import AddonPreferences
-from bpy.props import CollectionProperty, BoolProperty, StringProperty, IntProperty, PointerProperty
+from bpy.props import CollectionProperty, BoolProperty, StringProperty
+from bpy.props import IntProperty, PointerProperty
 
 from .util import guess_rmantree
 
@@ -74,53 +75,57 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
 class RendermanPreferences(AddonPreferences):
     bl_idname = __package__
     
-    shader_paths = CollectionProperty(type=RendermanPreferencePath, name="Shader Paths")
+    shader_paths = CollectionProperty(type=RendermanPreferencePath, 
+        name="Shader Paths")
     shader_paths_index = IntProperty(min=-1, default=-1)
 
-    texture_paths = CollectionProperty(type=RendermanPreferencePath, name="Texture Paths")
+    texture_paths = CollectionProperty(type=RendermanPreferencePath, 
+        name="Texture Paths")
     texture_paths_index = IntProperty(min=-1, default=-1)
 
-    procedural_paths = CollectionProperty(type=RendermanPreferencePath, name="Procedural Paths")
+    procedural_paths = CollectionProperty(type=RendermanPreferencePath, 
+        name="Procedural Paths")
     procedural_paths_index = IntProperty(min=-1, default=-1)
 
-    archive_paths = CollectionProperty(type=RendermanPreferencePath, name="Archive Paths")
+    archive_paths = CollectionProperty(type=RendermanPreferencePath, 
+        name="Archive Paths")
     archive_paths_index = IntProperty(min=-1, default=-1)
 
 
     use_default_paths = BoolProperty(
-                name="Use PRMan default paths",
-                description="Includes paths for default shaders etc. from RenderMan Pro Server install",
-                default=True)
+        name="Use PRMan default paths",
+        description="Includes paths for default shaders etc. from RenderMan Pro Server install",
+        default=True)
     use_builtin_paths = BoolProperty(
-                name="Use built in paths",
-                description="Includes paths for default shaders etc. from PRMan exporter",
-                default=False)
+        name="Use built in paths",
+        description="Includes paths for default shaders etc. from PRMan exporter",
+        default=False)
 
     path_rmantree = StringProperty(
-                name="RMANTREE Path",
-                description="Path to RenderMan Pro Server installation folder",
-                subtype='DIR_PATH',
-                default=guess_rmantree())
+        name="RMANTREE Path",
+        description="Path to RenderMan Pro Server installation folder",
+        subtype='DIR_PATH',
+        default=guess_rmantree())
     path_renderer = StringProperty(
-                name="Renderer Path",
-                description="Path to renderer executable",
-                subtype='FILE_PATH',
-                default="prman")
+        name="Renderer Path",
+        description="Path to renderer executable",
+        subtype='FILE_PATH',
+        default="prman")
     path_shader_compiler = StringProperty(
-                name="Shader Compiler Path",
-                description="Path to shader compiler executable",
-                subtype='FILE_PATH',
-                default="shader")
+        name="Shader Compiler Path",
+        description="Path to shader compiler executable",
+        subtype='FILE_PATH',
+        default="shader")
     path_shader_info = StringProperty(
-                name="Shader Info Path",
-                description="Path to shaderinfo executable",
-                subtype='FILE_PATH',
-                default="sloinfo")
+        name="Shader Info Path",
+        description="Path to shaderinfo executable",
+        subtype='FILE_PATH',
+        default="sloinfo")
     path_texture_optimiser = StringProperty(
-                name="Texture Optimiser Path",
-                description="Path to tdlmake executable",
-                subtype='FILE_PATH',
-                default="txmake")
+        name="Texture Optimiser Path",
+        description="Path to tdlmake executable",
+        subtype='FILE_PATH',
+        default="txmake")
     
                 
     env_vars = PointerProperty(
