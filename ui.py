@@ -330,6 +330,11 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row.prop(rm, "max_specular_depth", text="Specular Depth")
         row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
         layout.separator()
+        col.prop(rm, "bucket_shape")
+        if rm.bucket_shape == 'SPIRAL':
+            row = col.row(align=True)
+            row.prop(rm, "bucket_sprial_x", text="X")
+            row.prop(rm, "bucket_sprial_y", text="Y")
         col.prop(rm, "integrator")
         #find args for integrators here!
         integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
