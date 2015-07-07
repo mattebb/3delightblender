@@ -1351,13 +1351,17 @@ def export_polygon_mesh(ri, scene, ob, motion):
         primvars['P'] = P
         try:
             ri.PointsPolygons(nverts, verts, primvars)
+            is_error = False
         except:
+            # Activate the texture space for the offending object so it stands out in the viewport.
+            ob.show_texture_space = True
             debug("error", "Cannont export mesh: ", ob.name , " check mesh for vertices that are not forming a face.")
-            return
-    if motion_blur:
-        ri.MotionEnd()
-            
+            is_error = True
+    if is_error == False:
+        if motion_blur:
+            ri.MotionEnd()
     bpy.data.meshes.remove(mesh)
+
 
 def export_points(ri, scene, ob, motion):
     rm = ob.renderman
@@ -2457,10 +2461,11 @@ def export_display(ri, rpass, scene):
                 ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ]})
             elif rm.bucket_sprial_x == -1:
                 halfX = settings.resolution_x / 2
-                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [halfX ,rm.bucket_sprial_y]})
+                debug("info", halfX)
+                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [int(halfX) ,rm.bucket_sprial_y]})
             elif rm.bucket_sprial_y == -1:
                 halfY = settings.resolution_y / 2
-                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [rm.bucket_sprial_y, halfY ]})
+                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [rm.bucket_sprial_y, int(halfY) ]})
             else:
                 ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [rm.bucket_sprial_x ,rm.bucket_sprial_y]})
         else:
