@@ -1351,13 +1351,17 @@ def export_polygon_mesh(ri, scene, ob, motion):
         primvars['P'] = P
         try:
             ri.PointsPolygons(nverts, verts, primvars)
+            is_error = False
         except:
+            # Activate the texture space for the offending object so it stands out in the viewport.
+            ob.show_texture_space = True
             debug("error", "Cannont export mesh: ", ob.name , " check mesh for vertices that are not forming a face.")
-            return
-    if motion_blur:
-        ri.MotionEnd()
-            
+            is_error = True
+    if is_error == False:
+        if motion_blur:
+            ri.MotionEnd()
     bpy.data.meshes.remove(mesh)
+
 
 def export_points(ri, scene, ob, motion):
     rm = ob.renderman
