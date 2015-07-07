@@ -2457,10 +2457,11 @@ def export_display(ri, rpass, scene):
                 ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ]})
             elif rm.bucket_sprial_x == -1:
                 halfX = settings.resolution_x / 2
-                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [halfX ,rm.bucket_sprial_y]})
+                debug("info", halfX)
+                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [int(halfX) ,rm.bucket_sprial_y]})
             elif rm.bucket_sprial_y == -1:
                 halfY = settings.resolution_y / 2
-                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [rm.bucket_sprial_y, halfY ]})
+                ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [rm.bucket_sprial_y, int(halfY) ]})
             else:
                 ri.Option("bucket", {"string order": [ rm.bucket_shape.lower() ], "orderorigin": [rm.bucket_sprial_x ,rm.bucket_sprial_y]})
         else:
