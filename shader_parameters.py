@@ -252,6 +252,7 @@ def generate_property(sp):
         prop = bpy.props.FloatVectorProperty(name=param_label, 
                                     default=param_default, size=3,
                                     subtype="COLOR",
+                                    soft_min = 0.0, soft_max = 1.0,
                                     description=param_help)
         renderman_type = 'color'
     elif param_type == 'shader':
