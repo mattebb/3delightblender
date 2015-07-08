@@ -11,8 +11,10 @@ RenderMan normally bases everything off a variable RMANTREE which is set to your
 folder, eg /Applications/Pixar/RenderManProServer-20.0 on OSX.  
 
 PRMan for Blender will try and guess the appropriate RenderMan version to use and the location of
-the folder.  However, if you installed in a non-standard location, set the RMANTREE 
-environment variable when starting blender.
+the folder.  If you are installing PRMan to the standard location you shouldn't have to do anything!
+
+However, if you installed in a non-standard location, set the RMANTREE 
+environment variable before starting blender.
 
 The only other thing is that you should set your pythonpath variable to $RMANTREE/bin
 
