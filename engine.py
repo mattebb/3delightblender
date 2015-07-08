@@ -231,9 +231,9 @@ class RPass:
                         engine.update_progress(float(perc)/100.0)
                     else:
                         if line and "ERROR" in str(line):
-                            engine.report({"ERROR"}, "PRMan: " + line)
+                            engine.report({"ERROR"}, "PRMan: %s " % line)
                         elif line and "WARNING" in str(line):
-                            engine.report({"WARNING"}, "PRMan: " + line)
+                            engine.report({"WARNING"}, "PRMan: %s " % line)
 
                     if process.poll() is not None:
                         update_image()
