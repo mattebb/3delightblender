@@ -8,7 +8,7 @@ You need to install at a minimum RenderMan Pro Server 20.0
 Unpack and move the PRMan folder into your blender addons folder. You can then enable the addon in the Addons tab of blender user preferences
 
 RenderMan normally bases everything off a variable RMANTREE which is set to your installation
-folder, eg /Applications/Pixar/RenderManProServer-20.0 on OSX.  
+folder, eg /Applications/Pixar/RenderManProServer-20.0 on OSX and C:\Program Files\Pixar\RenderManProServer-20.0 on Windows.
 
 PRMan for Blender will try and guess the appropriate RenderMan version to use and the location of
 the folder.  If you are installing PRMan to the standard location you shouldn't have to do anything!
@@ -16,7 +16,8 @@ the folder.  If you are installing PRMan to the standard location you shouldn't 
 However, if you installed in a non-standard location, set the RMANTREE 
 environment variable before starting blender.
 
-The only other thing is that you should set your pythonpath variable to $RMANTREE/bin
+This step should not be nessacery in newer versions of the plugin but if you have trouble with the plugin than 
+you should set your pythonpath variable to $RMANTREE/bin
 
 Brian Savery, March 24, 2015
 (based on orignial plugin written by Matt Ebb for 3Delight)
