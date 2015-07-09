@@ -448,6 +448,7 @@ def get_strands(ri, scene,ob, psys):
     
     
     ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
+    ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
     j = 0
     for pindex in range(total_hair_count):
         points = []
@@ -1912,7 +1913,7 @@ def export_objects(ri, rpass, scene, motion):
                     # Export this polymesh data as an archive to be referenced later on.
                     ri.ArchiveBegin(handle_name)
                     candidate_archive_handles.append((ob_name, handle_name))
-                    export_geometry(ri, rpass, scene, ob_temp, motion)
+                    export_geometry(ri, rpass, scene, ob_temp,motion)
                     ri.ArchiveEnd()
                     if ob_temp.particle_systems:
                         debug("info" , "The object has a particle system" , ob_temp)
