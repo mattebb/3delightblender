@@ -554,20 +554,27 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     
     def display_driver_items(self, context):
         if self.output_action == 'EXPORT_RENDER':
-            items = [('blender', 'Automatic', 'Render to a temporary file, to be read back into Blender\'s Render Result'),
+            items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
+                    ('tiff', 'Tiff', 'Render to a TIFF file, to be read back into Blender\'s Render Result'),
+                    ('png', 'PNG', 'Render to a PNG file, to be read back into Blender\'s Render Result'),
                     ('it', 'it', 'External framebuffer display (must have RMS installed)')]#,('tiff', 'Tiff', ''), ('openexr', 'OpenEXR', '')]
         return items
         
     display_driver = EnumProperty(
                 name="Display Driver",
-                description="Renderman display driver destination for output pixels",
+                description="File Type for output pixels, 'it' will send to an external framebuffer",
                 items=display_driver_items)
+
+    do_denoise = BoolProperty(
+                name="Denoise Image",
+                description="Denoise the image.  This will let set your sampling values low and get faster render times and runs denoise to remove the noise as a post process.",
+                default=False)
     
     path_display_driver_image = StringProperty(
                 name="Display Image",
                 description="Render output path to export as the Display in the RIB file. When later rendering the RIB file manually, this will be the raw render result directly from the renderer, and won't pass through blender's render pipeline",
                 subtype='FILE_PATH',
-                default="$OUT/renders/{scene}_####.tif")
+                default="$OUT/images/{scene}_####.{file_type}")
     
     update_frequency = FloatProperty(
                 name="Update frequency",

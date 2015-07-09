@@ -98,7 +98,9 @@ def update_interactive(context):
 class RPass:    
     def __init__(self, scene):
         self.scene = scene
-        init_exporter_env(scene)
+        #pass addon prefs to init_envs
+        init_exporter_env( \
+        bpy.context.user_preferences.addons[__name__.split('.')[0]].preferences)
         self.initialize_paths(scene)
         
         self.rm = scene.renderman
@@ -130,10 +132,10 @@ class RPass:
                 self.paths['rib_output']), scene=scene)
         
         if not os.path.exists(self.paths['export_dir']):
-            os.mkdir(self.paths['export_dir'])
+            os.makedirs(self.paths['export_dir'])
         
-        self.paths['render_output'] = os.path.join(self.paths['export_dir'], 
-                                        'buffer.tif')
+        self.paths['render_output'] = user_path( \
+            scene.renderman.path_display_driver_image, scene=scene)
         
         self.paths['shader'] = get_path_list_converted(scene.renderman, \
                                                         'shader')
@@ -144,13 +146,16 @@ class RPass:
     def render(self, engine):
         DELAY = 1
         render_output = self.paths['render_output']
+        images_dir = os.path.split(render_output)[0]
+        if not os.path.exists(images_dir):
+            os.makedirs(images_dir)
         if os.path.exists(render_output):
             try:
                 os.remove(render_output) # so as not to load the old file
             except:
                 debug("error", "Unable to remove previous render" , 
                     render_output)
-                
+
         def format_seconds_to_hhmmss(seconds):
             hours = seconds // (60 * 60)
             seconds %= (60 * 60)
@@ -172,15 +177,14 @@ class RPass:
             engine.end_result(result)
 
         #create command and start process
-        options = self.options
+        options = self.options + ['-Progress']
         prman_executable = os.path.join(self.paths['rmantree'], 'bin', \
                 self.paths['rman_binary'])
-        if self.rm.display_driver == 'blender':
+        if self.rm.display_driver in ['openexr','tiff']:
             options = options + ['-checkpoint', 
-                "%.2fs" % self.rm.update_frequency, '-Progress']
+                "%.2fs" % self.rm.update_frequency]
         cmd = [prman_executable] + options + ["-t:%d" % self.rm.threads] + \
                 [self.paths['rib_output']]
-        
         cdir = os.path.dirname(self.paths['rib_output'])
         environ = os.environ.copy()
         environ['RMANTREE'] = self.paths['rmantree']
@@ -199,7 +203,8 @@ class RPass:
             # Wait for the file to be created.
             t1 = time.time()
             s = '.'
-            while not os.path.exists(render_output):
+            while not os.path.exists(render_output) and \
+                self.rm.display_driver != 'it':
                 engine.update_stats("", ("PRMan: Starting Rendering" + s))
                 if engine.test_break():
                     try:
@@ -214,15 +219,16 @@ class RPass:
 
                 time.sleep(DELAY)
                 s = s + '.'
+                
 
-            if os.path.exists(render_output):
-                prev_size = -1
-
+            if os.path.exists(render_output) or self.rm.display_driver == 'it':
+                
+                if self.rm.display_driver != 'it':
+                    prev_mod_time = os.path.getmtime(render_output)
+                engine.update_stats("", ("PRMan: Rendering."))
                 # Update while rendering
                 
-                cnt = 0
                 while True:
-                    #check for progress and errors/warnings
                     line = process.stderr.readline()
                     if line and "R90000" in str(line):
                         #these come in as bytes
@@ -234,9 +240,12 @@ class RPass:
                             engine.report({"ERROR"}, "PRMan: %s " % line)
                         elif line and "WARNING" in str(line):
                             engine.report({"WARNING"}, "PRMan: %s " % line)
-
+                        elif line and "SEVERE" in str(line):
+                            engine.report({"ERROR"}, "PRMan: %s " % line)
+                    
                     if process.poll() is not None:
-                        update_image()
+                        if self.rm.display_driver != 'it':
+                            update_image()
                         t2 = time.time()
                         engine.report({"INFO"}, "PRMan: Done Rendering." +
                             " (elapsed time: " + 
@@ -248,25 +257,78 @@ class RPass:
                     if engine.test_break():
                         try:
                             process.kill()
+                            isProblem = True
+                            engine.report({"INFO"}, 
+                                "PRMan: Rendering Cancelled.")
                         except:
                             pass
                         break
                         
                     # check if the file updated
-                    new_size = os.path.getsize(render_output)
+                    if self.rm.display_driver != 'it':
+                        new_mod_time = os.path.getmtime(render_output)
 
-                    if new_size != prev_size:
-                        update_image()
-                        prev_size = new_size
+                        if new_mod_time != prev_mod_time:
+                            update_image()
+                            prev_mod_time = new_mod_time
 
-                    time.sleep(DELAY)
-
+                    
             else:
                 debug("error", "Export path [" + render_output + 
                     "] does not exist.")
         else:
             debug("error", 
                 "Problem launching PRMan from %s." % prman_executable)
+
+        #launch the denoise process if turned on
+        if self.rm.do_denoise and not isProblem:
+            base, ext = render_output.rsplit('.', 1)
+            #denoise data has the name .denoise.exr
+            denoise_data = base + '.denoise.' + 'exr'
+            filtered_name = base + '.denoise_filtered.' + 'exr'
+            if os.path.exists(denoise_data):
+                try:
+                    #denoise to _filtered
+                    cmd = [ os.path.join(self.paths['rmantree'], 'bin', 
+                            'denoise'), denoise_data]
+
+                    engine.update_stats("", ("PRMan: Denoising image"))
+                    process = subprocess.Popen(cmd, cwd=images_dir, 
+                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+                        env=environ)
+                    process.wait()
+                    if os.path.exists(filtered_name):
+                        engine.report({"INFO"}, "PRMan: Done Denoising.")
+                        if self.rm.display_driver != 'it':
+                            image_scale = 100.0 / \
+                                self.scene.render.resolution_percentage
+                            result = engine.begin_result(0, 0, 
+                                self.scene.render.resolution_x * image_scale, 
+                                self.scene.render.resolution_y * image_scale)
+                            lay = result.layers[0]
+                            # possible the image wont load early on.
+                            try:
+                                lay.load_from_file(filtered_name)
+                            except:
+                                pass
+                            engine.end_result(result)
+                        else:
+                            #if using it just "sho" the result
+                            environ['RMANFB'] = 'it'
+                            cmd = [ os.path.join(self.paths['rmantree'], 'bin', 
+                                'sho'), '-native', filtered_name]
+                            process = subprocess.Popen(cmd, cwd=images_dir, 
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+                                env=environ)
+                            process.wait()
+                    else:
+                        engine.report({"ERROR"}, "PRMan: Error Denoising.")
+                except:
+                    engine.report({"ERROR"},
+                        "Problem launching denoise from %s." % prman_executable)
+            else:
+                engine.report({"ERROR"},
+                        "Cannot denoise file %s. Does not exist" % denoise_data)
 
     def set_scene(self, scene):
         self.scene = scene

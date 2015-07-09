@@ -56,21 +56,20 @@ def getattr_recursive(ptr, attrstring):
 
 
 def debug(warningLevel, *output):
-	if warningLevel == 'warning' or warningLevel == 'error':
-		if(warningLevel == "warning"):
-			print ("WARNNING: " , output)
-		elif(warningLevel == "error"):
-			print ("ERROR: " , output)
-	else:
-		if(EnableDebugging == True):
-			if(warningLevel == "info"):
-				print ("INFO: " , output)
-			else:
-				print ("DEBUG: " , output)
-		else:
-			pass
 
-
+    if warningLevel == 'warning' or warningLevel == 'error':
+        if(warningLevel == "warning"):
+            print ("WARNING: " , output)
+        elif(warningLevel == "error"):
+            print ("ERROR: " , output)
+    else:
+        if(EnableDebugging == True):
+            if(warningLevel == "info"):
+                print ("INFO: " , output)
+            else:
+                print ("DEBUG: " , output)
+        else:
+            pass
 
 # -------------------- Path Handling -----------------------------
 
@@ -211,6 +210,7 @@ def user_path(path, scene=None, ob=None):
         
     if scene != None:
         path = path.replace('{scene}', scene.name)
+        path = path.replace('{file_type}', scene.renderman.display_driver[-3:])
     if ob != None:
         path = path.replace('{object}', ob.name)
 
@@ -328,18 +328,10 @@ def guess_rmantree():
     return guess    
 
 # Default exporter specific env vars
-def init_exporter_env(scene):
-    rm = scene.renderman
+def init_exporter_env(prefs):
     
     if 'OUT' not in os.environ.keys():
-         # A safety check, some systems may not have /tmp. (like new OS builds)
-        if not os.path.exists("/tmp"):
-            os.mkdir("/tmp")
-            
-        # Name our output folder the same as our BLEND file, minus the extension.
-        blend_file_name = os.path.basename(bpy.data.filepath)
-        render_folder_name = blend_file_name.replace(".blend","")
-        os.environ['OUT'] = "/tmp/%s" % render_folder_name
+        os.environ['OUT'] = prefs.env_vars.out
 
     # if 'SHD' not in os.environ.keys():
     #     os.environ['SHD'] = rm.env_vars.shd
