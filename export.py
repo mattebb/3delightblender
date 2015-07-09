@@ -2482,17 +2482,11 @@ def export_display(ri, rpass, scene):
                 params['string source'] = source
             ri.DisplayChannel('%s %s' % (declare_type, aov), params)
 
-    dspy_driver = "tiff"
-    main_display = os.path.basename(rpass.paths['render_output'])
-    if rm.display_driver != 'blender':
-        dspy_driver = rm.display_driver
-        main_display = user_path(rm.path_display_driver_image, 
+    dspy_driver = rm.display_driver
+    main_display = user_path(rm.path_display_driver_image, 
                 scene=scene)
-        
     image_base, ext = main_display.rsplit('.', 1)
-    if dspy_driver == "openexr":
-        ext = 'exr'
-    ri.Display(image_base + '.' + ext, dspy_driver, "rgba", 
+    ri.Display(main_display, dspy_driver, "rgba", 
                 {"quantize": [0, 0, 0, 0]})
 
     #now do aovs
@@ -2500,6 +2494,43 @@ def export_display(ri, rpass, scene):
         if doit:
             ri.Display('+' + image_base + '.%s.' % aov + ext, dspy_driver, aov, 
                 {"quantize": [0, 0, 0, 0]})
+
+    if rm.do_denoise:
+        #add display channels for denoising
+        denoise_aovs = [
+        #(name, declare type/name, source, statistics, filter)
+            ("Ci", 'color', None, None, None),
+            ("a", 'float', None, None, None),
+            ("mse", 'color', 'color Ci', 'mse', None),
+            ("albedo", 'color', 'lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O', None, None), 
+            ("diffuse", 'color', 'color lpe:C(D[DS]*[LO])|O', None, None), 
+            ("diffuse_mse", 'color', 'color lpe:C(D[DS]*[LO])|O', 'mse', None), 
+            ("specular", 'color', 'color lpe:CS[DS]*[LO]', None, None), 
+            ("specular_mse", 'color', 'color lpe:CS[DS]*[LO]', 'mse', None), 
+            ("z", 'float', 'float z', None, "gaussian"), 
+            ("z_var", 'float', 'float z', "variance", "gaussian"), 
+            ("normal", 'normal', 'normal Nn', None, None), 
+            ("normal_var", 'normal', 'normal Nn', "variance", None), 
+            ("forward", 'vector', 'vector motionFore', None, None), 
+            ("backward", 'vector', 'vector motionBack', None, None)
+        ]
+
+        for aov, declare_type, source, statistics, filter_type in denoise_aovs:
+            params = {}
+            if source:
+                params['string source'] = source
+            if statistics:
+                params['string statistics'] = statistics
+            if filter_type:
+                params['string filter'] = filter_type    
+            ri.DisplayChannel('%s %s' % (declare_type, aov), params)
+
+        #output denoise_data.exr
+        ri.Display('+' + image_base + '.denoise.exr', 'openexr', 
+            "Ci,a,mse,albedo,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
+            {"int asrgba": 1})
+        
+
 
 
 def export_hider(ri, rpass, scene, preview=False):

@@ -1,4 +1,9 @@
 
+v0.2.1 7/09/2015
+* Added Denoise under the RenderMan Output Settings
+* Changed output directory to go under Documents (or My Documents on Windows)/prman_for_blender
+	- can be changed under the addon preferences
+
 v0.2.0 7/07/2015
 * Basic functionality for RIS rendering present including
 	- Lights
