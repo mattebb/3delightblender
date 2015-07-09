@@ -1,5 +1,13 @@
+
+v0.2.0 7/07/2015
+* Basic functionality for RIS rendering present including
+	- Lights
+	- Node based material trees
+	- Hair and other geometry support
+	- AOV (Render Passes)
+
 v0.1.1 25/03/2015
-* Forked 3delight_blender code to blenderman
+* Forked 3delight_blender code to prman for blender
 * Changed env variables to use RMANTREE for RenderMan 19.0
 * Changed RIB output for 19.0 specific construct (integrator, bxdf, etc)
 * TODO - proper shader network support of bxdf/pattern via args files
@@ -8,7 +16,7 @@ v0.1.1 25/03/2015
         - lights integration
         - general code cleanup
 
-!!!!! ------------ blenderman fork -------------- !!!!!
+!!!!! ------------ blender to prman fork -------------- !!!!!
 
 v0.7.5 - 25/04/2012
 * Enabled editable output paths, including RIB file export, shadow maps, and point clouds. These path properties support using environment variables, or other blender data variables that are built in to the exporter. Environment variables can be read from outside blender, or default environment variables can be edited from within the Environment Variables panel in Render Properties.
