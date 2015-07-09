@@ -55,29 +55,20 @@ def getattr_recursive(ptr, attrstring):
     return ptr
 
 
-def debug(warrningLevel, *output):
-	if(EnableDebugging == True):
-		if type(output) == str:
-			msg = ' '.join(['%s'%a for a in output])
-			if(warrningLevel == "info"):
-				print ("INFO: " , output)
-			elif(warrningLevel == "warning"):
-				print ("WARNNING: " , output)
-			elif(warrningLevel == "error"):
-				print ("ERROR: " , output)
-			else:
-				print ("DEBUG: " , output)
-		else:
-			if(warrningLevel == "info"):
-				print ("INFO: " , output)
-			elif(warrningLevel == "warning"):
-				print ("WARNNING: " , output)
-			elif(warrningLevel == "error"):
-				print ("ERROR: " , output)
-			else:
-				print ("DEBUG: " , output)
-	else:
-		pass
+def debug(warningLevel, *output):
+    if warningLevel == 'warning' or warningLevel == 'error':
+        if(warningLevel == "warning"):
+            print ("WARNING: " , output)
+        elif(warningLevel == "error"):
+            print ("ERROR: " , output)
+    else:
+        if(EnableDebugging == True):
+            if(warningLevel == "info"):
+                print ("INFO: " , output)
+            else:
+                print ("DEBUG: " , output)
+        else:
+            pass
 
 
 # -------------------- Path Handling -----------------------------
