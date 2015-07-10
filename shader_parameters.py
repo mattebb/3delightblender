@@ -139,6 +139,9 @@ def class_generate_properties(node, parent_name, shaderparameters):
             prop_names.append(sp.attrib['name'])
             prop_meta[sp.attrib['name']] = {'renderman_type':'page'}
             setattr(node, sp.attrib['name'], sub_params)
+            ui_label = "%s_ui_open" % sp.attrib['name']
+            setattr(node, ui_label, bpy.props.BoolProperty(name=ui_label, 
+                    default=True))
         else:
             name,meta,prop = generate_property(sp)
             prop_names.append(name)
@@ -276,6 +279,11 @@ def generate_property(sp):
                     default=param_default, description=param_help, 
                     items=sp_optionmenu_to_string(\
                         sp.find("hintdict[@name='options']")))
+        elif param_widget == 'popup':
+            options = [(o, o, '') for o in sp.attrib['options'].split('|')]
+            prop = bpy.props.EnumProperty(name=param_label, 
+                    default=param_default, description=param_help, 
+                    items=options)
         else:
             prop = bpy.props.StringProperty(name=param_label, 
                             default=param_default, 

@@ -348,8 +348,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
             
             if socket and socket.is_linked:
                 input_node = socket_node_input(nt, socket)
-                icon = 'DISCLOSURE_TRI_DOWN' if socket.ui_open \
-                    else 'DISCLOSURE_TRI_RIGHT'
+                icon = 'TRIA_DOWN' if socket.ui_open \
+                    else 'TRIA_RIGHT'
                 
                 split = layout.split(NODE_LAYOUT_SPLIT)
                 row = split.row()
@@ -367,9 +367,19 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 row = layout.row()
                 #split = layout.split(NODE_LAYOUT_SPLIT)
                 if prop_meta['renderman_type'] == 'page':
-                    row.label(prop_name)
-                    box = row.box()
-                    draw_props(prop, box)
+                    ui_prop = prop_name + "_ui_open"
+                    ui_open = getattr(node, ui_prop)
+                    icon = 'TRIA_DOWN' if ui_open \
+                        else 'TRIA_RIGHT'
+
+                    split = layout.split(NODE_LAYOUT_SPLIT)
+                    row = split.row()
+                    row.prop(node, ui_prop, icon=icon, text='', 
+                            icon_only=True, emboss=False)            
+                    indented_label(row, prop_name+':')
+                    
+                    if ui_open:
+                        draw_props(prop, layout)
                 else:
                     row.label('', icon='BLANK1')
                     #indented_label(row, socket.name+':')

@@ -1414,10 +1414,9 @@ def export_smoke(ri, scene, ob, motion):
     if not smoke_data:
         return
     
-    density = [d*10.0 for d in smoke_data.density_grid]
     params = {
         "varying float density": smoke_data.density_grid,
-        "varying float flame": smoke_data.flame_grid
+        "varying float flame": smoke_data.flame_grid,
     }
     ri.Volume("box", [-1,1,-1,1,-1,1], rib(smoke_data.domain_resolution), params)
 
