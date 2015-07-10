@@ -483,7 +483,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 min=0, max=16, default=2)
     pixelfilter_y = IntProperty(
                 name="Filter Size Y",
-                description="Size of the pixel filter in X dimension",
+                description="Size of the pixel filter in Y dimension",
                 min=0, max=16, default=2)
 
     pixel_variance = FloatProperty(
@@ -497,7 +497,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 min=0, default=32)
     max_samples = IntProperty(
                 name="Max Samples",
-                description="The minimum number of camera samples per pixel",
+                description="The maximum number of camera samples per pixel",
                 min=0, default=512)
 
     bucket_shape = EnumProperty(
@@ -505,8 +505,8 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 description="Bucket shape to use when rendering",
                 items=[('HORIZONTAL', 'Horizontal', 'Render scanline from top to bottom'),
                        ('VERTICAL', 'Vertical', 'Render scanline from left to right'),
-                       ('ZIGZAG-X', 'Reverse Horizontal', 'Exatialy the same as Horizontal but reverses after each scan'),
-                       ('ZIGZAG-Y', 'Reverse Vertical', 'Exatialy the same as Vertical but reverses after each scan'),
+                       ('ZIGZAG-X', 'Reverse Horizontal', 'Exactly the same as Horizontal but reverses after each scan'),
+                       ('ZIGZAG-Y', 'Reverse Vertical', 'Exactly the same as Vertical but reverses after each scan'),
                        ('SPACEFILL', 'Hilber spacefilling curve', 'Renders the buckets along a hilbert spacefilling curve'),
                        ('SPIRAL', 'Spiral rendering', 'Renders in a spiral from the center of the image or a custom defined point'),
                        ('RANDOM', 'Random', 'Renders buckets in a random order WARRNING: Inefficient memory footprint')],
@@ -640,7 +640,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 min=0, default=4)
     preview_max_samples = IntProperty(
                 name="Preview Max Samples",
-                description="The minimum number of camera samples per pixel",
+                description="The maximum number of camera samples per pixel",
                 min=0, default=32)
 
     preview_max_specular_depth = IntProperty(
