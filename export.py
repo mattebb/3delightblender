@@ -2347,8 +2347,7 @@ def export_camera(ri, scene, motion):
     
     if cam.renderman.use_physical_camera:
         #use pxr Camera
-        params = property_group_to_params(cam.renderman)
-        del params['int use_physical_camera']
+        params = property_group_to_params(cam.renderman.PxrCamera_settings)
         if 'float fov' not in params:
             lens= cam.lens
             sensor = cam.sensor_height \
