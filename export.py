@@ -1110,6 +1110,10 @@ def export_scene_lights(ri, rpass, scene):
         file.write('        Attribute "photon" "string shadingmodel" "%s" \n' % rm.photon_shadingmodel)
 '''
 
+def export_default_bxdf(ri):
+    #default bxdf a nice grey plastic
+    ri.Bxdf("PxrDisney", "default", {'color baseColor': [0.18, 0.18, 0.18]})
+
 def export_shader(ri, scene, rpass, idblock, shader_type):
     rm = idblock.renderman
     export_comment(ri, shader_type) # BBM addition
@@ -1921,7 +1925,10 @@ def export_objects(ri, rpass, scene, motion):
             if ob_type == 'LAMP':
                 export_light(rpass, scene, ri, ob_temp)
                 exported_lights.append(ob_temp.name)
-        
+    
+    #default bxdf AFTER lights
+    export_default_bxdf(ri)
+
     # Export datablocks for archiving.
     export_comment(ri, '## INLINE ARCHIVES')
     unique_datablocks = uniquifyList(candidate_datablocks)
@@ -2642,8 +2649,6 @@ def write_rib(rpass, scene, ri):
     #export_world_coshaders(ri, rpass, scene) # BBM addition
     #export_scene_lights(ri, rpass, scene)
 
-    #default bxdf
-    ri.Bxdf("PxrDisney", "default")
     export_objects(ri, rpass, scene, motion)
     
     ri.WorldEnd()
