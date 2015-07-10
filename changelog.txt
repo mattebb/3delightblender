@@ -1,4 +1,7 @@
 
+v0.2.2 7/09/2015
+* Added Support for PxrCamera physical attributes.  In the camera properties click "Use physical Camera"
+
 v0.2.1 7/09/2015
 * Added Denoise under the RenderMan Output Settings
 * Changed output directory to go under Documents (or My Documents on Windows)/prman_for_blender

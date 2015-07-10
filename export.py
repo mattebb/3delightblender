@@ -1822,6 +1822,8 @@ def export_objects(ri, rpass, scene, motion):
 
         elif ob.type == 'CURVE':
             candidate_objects.append((ob.name, ob.type))
+        elif ob.type == 'CAMERA':
+            pass
         else:
             debug ("warning","Unsupported object type [%s]." % ob.type)
     # End first pass through objects in the scene.
@@ -2301,14 +2303,23 @@ def export_camera(ri, scene, motion):
 
     ri.Clipping(cam.clip_start, cam.clip_end)
     
-    if cam.type == 'PERSP':
+    if cam.renderman.use_physical_camera:
+        #use pxr Camera
+        params = property_group_to_params(cam.renderman)
+        del params['int use_physical_camera']
+        if 'float fov' not in params:
+            lens= cam.lens
+            sensor = cam.sensor_height \
+                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+            params['float fov'] = 360.0*math.atan((sensor*0.5)/lens/aspectratio)/math.pi
+        ri.Projection("PxrCamera", params)
+    elif cam.type == 'PERSP':
         lens= cam.lens
         
         sensor = cam.sensor_height \
             if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
 
-        fov= 360.0*math.atan((sensor*0.5)/lens/aspectratio)/math.pi
-
+        fov = 360.0*math.atan((sensor*0.5)/lens/aspectratio)/math.pi
         ri.Projection("perspective", {"fov": fov})
     else:
         lens= cam.ortho_scale
