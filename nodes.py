@@ -531,7 +531,7 @@ def gen_params(ri, node):
             shader_node_rib(ri, from_socket.node)
             params['reference %s %s' % (meta['renderman_type'], 
                     meta['renderman_name'])] = \
-                ["%s:%s" % (from_socket.node.bl_idname, from_socket.identifier)]        
+                ["%s:%s" % (from_socket.node.name, from_socket.identifier)]        
         #else output rib
         else:
             if 'options' in meta and meta['options'] == 'texture':
@@ -553,7 +553,7 @@ def gen_params(ri, node):
 def shader_node_rib(ri, node, handle=None):
     params = gen_params(ri, node)
     if node.renderman_node_type == "pattern":
-        ri.Pattern(node.bl_label, node.bl_idname, params)
+        ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
         #must be off for light sources
         ri.Attribute("visibility", {'int transmission':0, 'int indirect':0})
@@ -562,7 +562,7 @@ def shader_node_rib(ri, node, handle=None):
     elif node.renderman_node_type == "displacement":
         ri.Displacement(node.bl_label, params)
     else:
-        ri.Bxdf(node.bl_label, node.bl_idname, params)
+        ri.Bxdf(node.bl_label, node.name, params)
 
 def get_tex_file_name(prop):
     if prop != '' and prop.rsplit('.', 1) != 'tex':
