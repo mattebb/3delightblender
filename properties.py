@@ -103,8 +103,12 @@ def register_integrator_settings(scene_settings_cls):
             param_type = p.attrib['type']
             param_help = ""
             param_default = p.attrib['default'] if 'default' in p.attrib else None
-            if p.find('help'):
-                param_help = p.find('help').text
+            #I guess multiline tooltips never worked
+            for s in p:
+                if s.tag == 'help' and s.text:
+                    lines = s.text.split('\n')
+                    for line in lines:
+                        param_help = param_help + line.strip(' \t\n\r')
 
             if param_type == 'float':
                 param_default = float(param_default[:-1]) if 'f' in param_default else float(param_default)
@@ -350,7 +354,110 @@ class RendermanPass(bpy.types.PropertyGroup):
     displacement_shaders  = BoolProperty(name="Displacement Shaders", description="Render displacement shaders")
     light_shaders         = BoolProperty(name="Light Shaders", description="Render light shaders")
 
+class RendermanCameraSettings(bpy.types.PropertyGroup):
+    bl_label = "Renderman Camera Settings"
+    bl_idname = 'RendermanCameraSettings'
+    use_physical_camera = BoolProperty(name="Use Physical Camera", default=False)
 
+def register_camera_settings():
+    rmantree=guess_rmantree()
+    camera_args_file = os.path.join(rmantree, 'lib', 'RIS', 'projection', 
+        'Args', 'PxrCamera.args')
+    ntype = RendermanCameraSettings
+    #do some parsing and get props
+    args_xml = ET.parse(camera_args_file).getroot()
+    for p in args_xml.findall('.//param'):
+        param_name = p.attrib['name']
+        param_label = param_name
+        param_widget = p.attrib['widget'].lower() if 'widget' in p.attrib else 'default'
+
+        prop = None
+
+        param_type = p.attrib['type']
+        param_help = ""
+        param_default = p.attrib['default'] if 'default' in p.attrib else None
+        for s in p:
+            if s.tag == 'help' and s.text:
+                lines = s.text.split('\n')
+                for line in lines:
+                    param_help = param_help + line.strip(' \t\n\r')
+
+        if param_type == 'float':
+            param_default = float(param_default[:-1]) if 'f' in param_default else float(param_default)
+            if param_widget == 'checkbox':
+                prop = bpy.props.BoolProperty(name=param_label, 
+                    default=bool(param_default), description=param_help)
+                                                
+            elif param_widget == 'mapper':
+                prop = bpy.props.EnumProperty(name=param_label, 
+                        items=sp_optionmenu_to_string(p.find("hintdict[@name='options']"), 'float'),
+                                        default=str(param_default),
+                                        description=param_help)
+                
+            elif param_widget == 'default':
+                param_min = float(p.attrib['min']) if 'min' in p.attrib else 0.0
+                param_max = float(p.attrib['max']) if 'max' in p.attrib else 1.0
+                prop = bpy.props.FloatProperty(name=param_label, 
+                        default=param_default, precision=3,
+                        min=param_min, max=param_max,
+                        description=param_help)
+                
+        elif param_type == 'int' or param_type == 'integer':
+            param_default = int(param_default)
+            if param_widget == 'checkbox':
+                prop = bpy.props.BoolProperty(name=param_label, 
+                    default=bool(param_default), description=param_help)
+                                                
+            elif param_widget == 'mapper':
+                prop = bpy.props.EnumProperty(name=param_label, 
+                        items=sp_optionmenu_to_string(p.find("hintdict[@name='options']"), 'int'),
+                                        default=str(param_default),
+                                        description=param_help)
+            elif param_widget == 'default':
+                param_min = int(p.attrib['min']) if 'min' in p.attrib else 0
+                param_max = int(p.attrib['max']) if 'max' in p.attrib else 2**31-1
+                prop = bpy.props.IntProperty(name=param_label, 
+                        default=param_default, 
+                        min=param_min,
+                        max=param_max,
+                        description=param_help)
+                
+        elif param_type == 'color':
+            if param_default == 'null':
+                param_default = '0 0 0'
+            param_default = [float(c) for c in param_default.split()]
+            prop = bpy.props.FloatVectorProperty(name=param_label, 
+                                        default=param_default, size=3,
+                                        subtype="COLOR",
+                                        description=param_help)
+        elif param_type == 'string' or param_type == 'struct':
+            if param_default == None:
+                param_default = ''
+            if '__' in param_name:
+                param_name = param_name[2:]
+            if param_widget == 'fileInput':
+                prop = bpy.props.StringProperty(name=param_label, 
+                                default=param_default, subtype="FILE_NAME",
+                                description=param_help)
+            elif param_widget == 'popup':
+                prop = bpy.props.EnumProperty(name=param_label, 
+                        default=param_default, description=param_help, 
+                        items=[(op, op, '') for op in p.attrib['options'].split('|')])
+            elif param_widget == 'default' or param_widget == 'string':
+                prop = bpy.props.StringProperty(name=param_label, 
+                                default=param_default, 
+                                description=param_help)
+                                        
+        elif param_type == 'vector' or param_type == 'normal':
+            param_default = [float(v) for v in param_default.split()]
+            socket_default = bpy.props.FloatVectorProperty(name=param_label, 
+                                        default=param_default, size=3,
+                                        subtype="EULER",
+                                        description=param_help)
+
+        setattr(ntype, param_name, prop)
+
+    bpy.utils.register_class(ntype)
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
 
@@ -1505,7 +1612,10 @@ classes = [displacementShaders,
 
 def register():
 
+    #dynamically find integrators from args
     register_integrator_settings(RendermanSceneSettings)
+    #dynamically find camera from args
+    register_camera_settings()
 
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -1528,6 +1638,8 @@ def register():
                 type=RendermanCurveGeometrySettings, name="Renderman Curve Geometry Settings")
     bpy.types.Object.renderman = PointerProperty(
                 type=RendermanObjectSettings, name="Renderman Object Settings")
+    bpy.types.Camera.renderman = PointerProperty(
+                type=RendermanCameraSettings, name="Renderman Camera Settings")
 
     #add the integrator settings from args files
     #register_integrators(bpy.types.Scene.renderman.integrator_settings)

@@ -1175,7 +1175,24 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
 #         col.separator()
 #         col.operator("texture.generate_optimised", text="Generate Now", icon='FILE_IMAGE')
 
+class DATA_PT_renderman_camera(ShaderPanel, Panel):
+    bl_context = "data"
+    bl_label = "RenderMan Camera"
+    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        if not context.camera: return False
+        return (rd.engine in {'PRMAN_RENDER'})
 
+    def draw(self, context):
+        layout = self.layout
+        cam = context.camera
+        layout.prop(cam.renderman, "use_physical_camera")
+        if cam.renderman.use_physical_camera == True:
+            for objkey in cam.renderman.bl_rna.properties.keys(): # This is somewhat ugly, but works best!!
+                if objkey not in ['rna_type', 'name', 'use_physical_camera']:
+                    layout.prop(cam.renderman, objkey)
 
 
 class DATA_PT_renderman_lamp(ShaderPanel, Panel):
@@ -1201,7 +1218,6 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
             
         
         layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
-        
 
 class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
     bl_label = "Light Shader"
