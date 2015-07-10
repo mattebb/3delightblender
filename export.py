@@ -1225,6 +1225,12 @@ def export_shader(ri, scene, rpass, idblock, shader_type):
 
     '''
 
+def is_smoke(ob):
+    for mod in ob.modifiers:
+        if mod.type == "SMOKE" and mod.domain_settings:
+            return True
+    return False 
+
 def detect_primitive(ob):
     rm = ob.renderman
     
@@ -1232,6 +1238,8 @@ def detect_primitive(ob):
         if ob.type == 'MESH':
             if is_subdmesh(ob):
                 return 'SUBDIVISION_MESH'
+            elif is_smoke(ob):
+                return 'SMOKE'
             else:
                 return 'POLYGON_MESH'
         elif ob.type == 'CURVE':
@@ -1390,6 +1398,25 @@ def export_points(ri, scene, ob, motion):
             
     bpy.data.meshes.remove(mesh)
 
+#make an ri Volume from the smoke modifier
+def export_smoke(ri, scene, ob, motion):
+    smoke_modifier = None
+    for mod in ob.modifiers:
+        if mod.type == "SMOKE":
+            smoke_modifier = mod
+            break
+    smoke_data = smoke_modifier.domain_settings
+    #the original object has the modifier too.
+    if not smoke_data:
+        return
+    
+    density = [d*10.0 for d in smoke_data.density_grid]
+    params = {
+        "varying float density": smoke_data.density_grid,
+        "varying float flame": smoke_data.flame_grid
+    }
+    ri.Volume("box", [-1,1,-1,1,-1,1], rib(smoke_data.domain_resolution), params)
+
 
 def export_sphere(ri, scene, ob, motion):
     rm = ob.renderman
@@ -1447,6 +1474,10 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
         export_disk(ri, scene, ob, motion)
     elif prim == 'TORUS':
         export_torus(ri, scene, ob, motion)
+    
+
+    elif prim == 'SMOKE':
+        export_smoke(ri, scene, ob, motion)
     
     # curve only
     elif prim == 'CURVE' or prim == 'FONT':
