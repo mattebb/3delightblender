@@ -2163,8 +2163,13 @@ def property_group_to_params(prop_group):
             if key not in ['rna_type', 'name']:
                 val = prop_group.get(key)
                 if val:
-                    param_type = "%s %s" % (type(val).__name__, key)
-                    params[param_type] = val
+                    val_type = type(val).__name__
+                    if val_type == 'IDPropertyArray':
+                        param_type = "color %s" % (key)
+                        params[param_type] = rib(val)
+                    else:
+                        param_type = "%s %s" % (type(val).__name__, key)
+                        params[param_type] = val
     
     return params
 
