@@ -359,7 +359,7 @@ class RPass:
         if not os.path.exists(self.paths['texture_output']):
             os.mkdir(self.paths['texture_output'])
 
-        for in_file, out_file in texture_list:
+        for in_file, out_file, options in texture_list:
             in_file = get_real_path(in_file)
             out_file_path = os.path.join(self.paths['texture_output'], out_file)
             
@@ -370,7 +370,7 @@ class RPass:
                     out_file)
             else:
                 cmd = [os.path.join(self.paths['rmantree'], 'bin', \
-                    self.paths['path_texture_optimiser']), in_file,
+                    self.paths['path_texture_optimiser'])] + options + [in_file,
                     out_file_path]
                 debug("info", "TXMAKE STARTED!", cmd)
                 

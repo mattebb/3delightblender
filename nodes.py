@@ -544,7 +544,9 @@ def gen_params(ri, node):
                 ["%s:%s" % (from_socket.node.name, from_socket.identifier)]        
         #else output rib
         else:
-            if 'options' in meta and meta['options'] == 'texture':
+            if 'options' in meta and meta['options'] == 'texture' or \
+                (node.renderman_node_type == 'light' and \
+                    'widget' in meta and meta['widget'] == 'fileInput'):
                 params['%s %s' % (meta['renderman_type'], 
                         meta['renderman_name'])] = \
                     rib(get_tex_file_name(prop), 
@@ -615,8 +617,13 @@ def get_textures_for_node(node):
         
         #else return a tuple of in name/outname
         else:
-            if 'options' in meta and meta['options'] == 'texture':# and prop != "" and prop.rsplit('.', 1) != 'tex':
-                textures.append((prop, get_tex_file_name(prop)))
+            if ('options' in meta and meta['options'] == 'texture') or \
+                (node.renderman_node_type == 'light' and \
+                    'widget' in meta and meta['widget'] == 'fileInput'): #fix for sloppy args files
+                if node.renderman_node_type == 'light' and "Env" in node.bl_label:
+                    textures.append((prop, get_tex_file_name(prop), ['-envlatl'])) #no options for now
+                else:
+                    textures.append((prop, get_tex_file_name(prop), [])) #no options for now
 
     return textures
     
