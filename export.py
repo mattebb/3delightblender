@@ -1414,10 +1414,9 @@ def export_smoke(ri, scene, ob, motion):
     if not smoke_data:
         return
     
-    density = [d*10.0 for d in smoke_data.density_grid]
     params = {
         "varying float density": smoke_data.density_grid,
-        "varying float flame": smoke_data.flame_grid
+        "varying float flame": smoke_data.flame_grid,
     }
     ri.Volume("box", [-1,1,-1,1,-1,1], rib(smoke_data.domain_resolution), params)
 
@@ -2348,8 +2347,7 @@ def export_camera(ri, scene, motion):
     
     if cam.renderman.use_physical_camera:
         #use pxr Camera
-        params = property_group_to_params(cam.renderman)
-        del params['int use_physical_camera']
+        params = property_group_to_params(cam.renderman.PxrCamera_settings)
         if 'float fov' not in params:
             lens= cam.lens
             sensor = cam.sensor_height \

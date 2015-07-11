@@ -27,6 +27,7 @@ import bpy
 import math
 import blf
 from bpy.types import Panel
+from .nodes import NODE_LAYOUT_SPLIT
 
 
 # global dictionaries
@@ -308,8 +309,6 @@ class PRManButtonsPanel():
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
 
-
-
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     bl_label = "Sampling"
     
@@ -340,9 +339,33 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
         
         #for each property add it to ui
-        for objkey in integrator_settings.bl_rna.properties.keys(): # This is somewhat ugly, but works best!!
-            if objkey not in ['rna_type', 'name']:
-                col.prop(integrator_settings, objkey)
+        def draw_props(prop_names, layout):
+            for prop_name in prop_names:
+                prop_meta = integrator_settings.prop_meta[prop_name]
+                prop = getattr(integrator_settings, prop_name)
+                row = layout.row()
+                
+                if prop_meta['renderman_type'] == 'page':
+                    ui_prop = prop_name + "_ui_open"
+                    ui_open = getattr(integrator_settings, ui_prop)
+                    icon = 'TRIA_DOWN' if ui_open \
+                        else 'TRIA_RIGHT'
+
+                    split = layout.split(NODE_LAYOUT_SPLIT)
+                    row = split.row()
+                    row.prop(integrator_settings, ui_prop, icon=icon, text='', 
+                            icon_only=True, emboss=False)            
+                    row.label(prop_name+':')
+                    
+                    if ui_open:
+                        draw_props(prop, layout)
+
+                else:
+                    row.label('', icon='BLANK1')
+                    #indented_label(row, socket.name+':')
+                    row.prop(integrator_settings, prop_name)
+        
+        draw_props(integrator_settings.prop_names, col)
 
 
         layout.separator()
@@ -1190,10 +1213,37 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
         cam = context.camera
         layout.prop(cam.renderman, "use_physical_camera")
         if cam.renderman.use_physical_camera == True:
-            for objkey in cam.renderman.bl_rna.properties.keys(): # This is somewhat ugly, but works best!!
-                if objkey not in ['rna_type', 'name', 'use_physical_camera']:
-                    layout.prop(cam.renderman, objkey)
+            pxrcamera = getattr(cam.renderman, "PxrCamera_settings")
+        
+            #for each property add it to ui
+            def draw_props(prop_names, layout):
+                for prop_name in prop_names:
+                    prop_meta = pxrcamera.prop_meta[prop_name]
+                    prop = getattr(pxrcamera, prop_name)
+                    row = layout.row()
+                    
+                    if prop_meta['renderman_type'] == 'page':
+                        ui_prop = prop_name + "_ui_open"
+                        ui_open = getattr(pxrcamera, ui_prop)
+                        icon = 'TRIA_DOWN' if ui_open \
+                            else 'TRIA_RIGHT'
 
+                        split = layout.split(NODE_LAYOUT_SPLIT)
+                        row = split.row()
+                        row.prop(pxrcamera, ui_prop, icon=icon, text='', 
+                                icon_only=True, emboss=False)            
+                        row.label(prop_name+':')
+                        
+                        if ui_open:
+                            draw_props(prop, layout)
+                    
+                    else:
+                        row.label('', icon='BLANK1')
+                        #indented_label(row, socket.name+':')
+                        row.prop(pxrcamera, prop_name)
+            
+            draw_props(pxrcamera.prop_names, layout)
+            
 
 class DATA_PT_renderman_lamp(ShaderPanel, Panel):
     bl_context = "data"
