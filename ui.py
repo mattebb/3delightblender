@@ -328,6 +328,8 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row = col.row(align=True)
         row.prop(rm, "max_specular_depth", text="Specular Depth")
         row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
+        row = col.row(align=True)
+        row.prop(rm, 'light_localization')
         layout.separator()
         col.prop(rm, "bucket_shape")
         if rm.bucket_shape == 'SPIRAL':

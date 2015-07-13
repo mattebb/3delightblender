@@ -2559,22 +2559,22 @@ def export_display(ri, rpass, scene):
             ("diffuse_mse", 'color', 'color lpe:C(D[DS]*[LO])|O', 'mse', None), 
             ("specular", 'color', 'color lpe:CS[DS]*[LO]', None, None), 
             ("specular_mse", 'color', 'color lpe:CS[DS]*[LO]', 'mse', None), 
-            ("z", 'float', 'float z', None, "gaussian"), 
-            ("z_var", 'float', 'float z', "variance", "gaussian"), 
+            ("z", 'float', 'float z', None, True), 
+            ("z_var", 'float', 'float z', "variance", True), 
             ("normal", 'normal', 'normal Nn', None, None), 
             ("normal_var", 'normal', 'normal Nn', "variance", None), 
             ("forward", 'vector', 'vector motionFore', None, None), 
             ("backward", 'vector', 'vector motionBack', None, None)
         ]
 
-        for aov, declare_type, source, statistics, filter_type in denoise_aovs:
+        for aov, declare_type, source, statistics, do_filter in denoise_aovs:
             params = {}
             if source:
                 params['string source'] = source
             if statistics:
                 params['string statistics'] = statistics
-            if filter_type:
-                params['string filter'] = filter_type    
+            if do_filter:
+                params['string filter'] = rm.pixelfilter    
             ri.DisplayChannel('%s %s' % (declare_type, aov), params)
 
         #output denoise_data.exr
@@ -2609,6 +2609,12 @@ def export_hider(ri, rpass, scene, preview=False):
         pv = rm.preview_pixel_variance
 
     ri.PixelVariance(pv)
+
+    if rm.light_localization:
+        ri.Option("shading",  {"int directlightinglocalizedsampling":4})
+
+    if rm.do_denoise:
+        hider_params['string pixelfiltermode'] = 'importance'
     
     if rm.hider == 'raytrace':
         ri.Hider(rm.hider, hider_params)

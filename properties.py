@@ -311,8 +311,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 name="Pixel Filter",
                 description="Filter to use to combine pixel samples",
                 items=[('box', 'Box', ''),
-                        ('sinc', 'Sinc', '')],
-                default='sinc')
+                        ('sinc', 'Sinc', ''), 
+                        ('gaussian', 'Gaussian', '')],
+                default='gaussian')
     pixelfilter_x = IntProperty(
                 name="Filter Size X",
                 description="Size of the pixel filter in X dimension",
@@ -327,14 +328,19 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 description=" Sets a maximum for the estimated variance of the pixel value from the true value of the pixel.",
                 min=0, max=1, default=.005)
 
+    light_localization = BoolProperty(
+                name="Light Localized Sampling",
+                description="Localized sampling can give much less noisy renders with similar render times, and may in fact be faster with many lights.",
+                default=True)
+
     min_samples = IntProperty(
                 name="Min Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=32)
+                min=0, default=4)
     max_samples = IntProperty(
                 name="Max Samples",
                 description="The maximum number of camera samples per pixel",
-                min=0, default=512)
+                min=0, default=128)
 
     bucket_shape = EnumProperty(
                 name="Bucket Shape",
@@ -414,7 +420,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     max_diffuse_depth = IntProperty(
                 name="Max Diffuse Depth",
                 description="Maximum number of diffuse ray bounces",
-                min=0, max=32, default=2)
+                min=0, max=32, default=1)
     max_eye_splits = IntProperty(
                 name="Max Eye Splits",
                 description="Maximum number of times a primitive crossing the eye plane is split before being discarded",

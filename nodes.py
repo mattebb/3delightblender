@@ -218,7 +218,7 @@ class RendermanPatternNode(RendermanShadingNode):
 class RendermanLightNode(RendermanShadingNode):
     bl_label = 'Output'
     renderman_node_type = 'light'
-        
+    
 
 # Generate dynamic types
 def generate_node_type(prefs, name, args):
@@ -266,6 +266,11 @@ def generate_node_type(prefs, name, args):
     
     ntype.plugin_name = bpy.props.StringProperty(name='Plugin Name', 
                             default=name, options={'HIDDEN'})
+    if nodeType == 'light':
+        ntype.light_shading_rate = bpy.props.FloatProperty(
+            name="Light Shading Rate",
+            description="Shading Rate for this light.  Leave this high unless detail is missing",
+            default=100.0)
     #ntype.prop_names = class_add_properties(ntype, [p for p in args.findall('./param')])
     #lights cant connect to a node tree in 20.0
     class_generate_properties(ntype, name, inputs)
@@ -298,10 +303,14 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
     layout.context_pointer_set("node", output_node)
     layout.context_pointer_set("socket", socket)
 
+    if input_name == 'Light' and node is not None and socket.is_linked:
+        layout.prop(node, 'light_shading_rate')
     split = layout.split(0.35)
     split.label(socket.name+':')
     
     if socket.is_linked:
+        #for lights draw the shading rate ui.
+        
         split.operator_menu_enum("node.add_%s" % input_name.lower(), 
                                 "node_type", text=node.bl_label)
     else:
@@ -569,6 +578,7 @@ def shader_node_rib(ri, node, handle=None):
     elif node.renderman_node_type == "light":
         #must be off for light sources
         ri.Attribute("visibility", {'int transmission':0, 'int indirect':0})
+        ri.ShadingRate(node.light_shading_rate)
         params[ri.HANDLEID] = handle
         ri.AreaLightSource(node.bl_label, params)
     elif node.renderman_node_type == "displacement":
