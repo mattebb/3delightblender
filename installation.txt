@@ -1,7 +1,8 @@
 PRMan for Blender Installation Instructions
 ------------------------------------------
 
-First, get and install the Non-Commercial Version of RenderMan from Pixar.  Package and 
+First, get and install the Non-Commercial Version of RenderMan from Pixar.  You MUST install
+RenderMan before loading the addon.  Package and 
 installation instructions at: http://rendermansite.pixar.com/view/get-renderman 
 You need to install at a minimum RenderMan Pro Server 20.0
 

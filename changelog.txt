@@ -1,3 +1,6 @@
+v0.2.3 7/13/2015
+* Performance improvements of default settings.
+* Integration of AtomicP's curve changes.
 
 v0.2.2 7/09/2015
 * Added Support for PxrCamera physical attributes.  In the camera properties click "Use physical Camera"

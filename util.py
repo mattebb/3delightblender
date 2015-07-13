@@ -324,7 +324,13 @@ def guess_rmantree():
             if vf >= latestver:
                 latestver = vf
                 guess = os.path.join(base, d)            
-                
+    
+    if not guess:
+        print('ERROR!!!  No RMANTREE found.  Did you install RenderMan Pro Server?  \
+            Or set your RMANTREE environment variable?')
+    elif latestver < 20.0:
+        print('ERROR!!!  You need RenderMan version 20.0 or above.')
+
     return guess    
 
 # Default exporter specific env vars

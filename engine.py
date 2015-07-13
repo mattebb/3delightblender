@@ -83,8 +83,10 @@ def reset(engine, data, scene):
 
 def update(engine, data, scene):
     if engine.is_preview:
+        engine.render_pass.display_driver = 'tif'
         engine.render_pass.gen_preview_rib()
     else:
+        engine.render_pass.display_driver = scene.renderman.display_driver
         engine.render_pass.gen_rib()
 
 #assumes you have already set the scene
@@ -204,7 +206,7 @@ class RPass:
             t1 = time.time()
             s = '.'
             while not os.path.exists(render_output) and \
-                self.rm.display_driver != 'it':
+                self.display_driver != 'it':
                 engine.update_stats("", ("PRMan: Starting Rendering" + s))
                 if engine.test_break():
                     try:
@@ -221,9 +223,9 @@ class RPass:
                 s = s + '.'
                 
 
-            if os.path.exists(render_output) or self.rm.display_driver == 'it':
+            if os.path.exists(render_output) or self.display_driver == 'it':
                 
-                if self.rm.display_driver != 'it':
+                if self.display_driver != 'it':
                     prev_mod_time = os.path.getmtime(render_output)
                 engine.update_stats("", ("PRMan: Rendering."))
                 # Update while rendering
@@ -244,7 +246,7 @@ class RPass:
                             engine.report({"ERROR"}, "PRMan: %s " % line)
                     
                     if process.poll() is not None:
-                        if self.rm.display_driver != 'it':
+                        if self.display_driver != 'it':
                             update_image()
                         t2 = time.time()
                         engine.report({"INFO"}, "PRMan: Done Rendering." +
@@ -265,7 +267,7 @@ class RPass:
                         break
                         
                     # check if the file updated
-                    if self.rm.display_driver != 'it':
+                    if self.display_driver != 'it':
                         new_mod_time = os.path.getmtime(render_output)
 
                         if new_mod_time != prev_mod_time:
@@ -299,7 +301,7 @@ class RPass:
                     process.wait()
                     if os.path.exists(filtered_name):
                         engine.report({"INFO"}, "PRMan: Done Denoising.")
-                        if self.rm.display_driver != 'it':
+                        if self.display_driver != 'it':
                             image_scale = 100.0 / \
                                 self.scene.render.resolution_percentage
                             result = engine.begin_result(0, 0, 

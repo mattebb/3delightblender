@@ -506,7 +506,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
             items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
                     ('tiff', 'Tiff', 'Render to a TIFF file, to be read back into Blender\'s Render Result'),
                     ('png', 'PNG', 'Render to a PNG file, to be read back into Blender\'s Render Result'),
-                    ('it', 'it', 'External framebuffer display (must have RMS installed)')]#,('tiff', 'Tiff', ''), ('openexr', 'OpenEXR', '')]
+                    ('it', 'it', 'External framebuffer display (must have RMS installed)')]
         return items
         
     display_driver = EnumProperty(

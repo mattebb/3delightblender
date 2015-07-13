@@ -209,7 +209,26 @@ def returnNewMeshFromFaces(passedNewName, passedMesh, passedMaterialIndex = -1):
                     me_result = None
     return me_result
 
-
+def hasFaces(ob_name):
+    l = 0
+    ob_temp = bpy.data.objects.get(ob_name)
+    if ob_temp:
+        if ob_temp.type == 'CURVE' or ob_temp.type == 'FONT':
+            # If this curve is extruded or beveled it can produce faces from a to_mesh call.
+            l = ob_temp.data.extrude + ob_temp.data.bevel_depth
+        else:
+            try:
+                l = len(ob_temp.data.polygons)
+            except:
+                l = 0
+        if l == 0:
+            # No faces. Perhaps it has edges that are using a modifier to define a surface.
+            if len(ob_temp.modifiers) > 0:
+                try:
+                    l = len(ob_temp.data.vertices)
+                except:
+                    l = 0
+    return l
 
 # ------------- Texture optimisation -------------
 
@@ -1935,15 +1954,7 @@ def export_objects(ri, rpass, scene, motion):
     for ob_name, ob_type in unique_datablocks:
         ob_temp = bpy.data.objects.get(ob_name)
         if ob_temp != None:
-            if ob_type == 'CURVE' or ob_type == 'FONT':
-                # If this curve is extruded or beveled it can produce faces from a to_mesh call.
-                l = ob_temp.data.extrude + ob_temp.data.bevel_depth
-            else:
-                try:
-                    l = len(ob_temp.data.polygons)
-                except:
-                    l = 0
-            if l > 0:
+            if hasFaces(ob_name):
                 # Check if this archive handle already exists.
                 handle_name = ob_temp.data.name
                 archive_handle = returnHandleForName(candidate_archive_handles,handle_name)
@@ -1983,15 +1994,7 @@ def export_objects(ri, rpass, scene, motion):
         ob_temp = bpy.data.objects.get(ob_name)
         if ob_temp != None:
             if ob_temp.type in SUPPORTED_INSTANCE_TYPES:
-                if ob_temp.type == 'CURVE' or ob_temp.type == 'FONT':
-                    # If this curve is extruded or beveled it can produce faces from a to_mesh call.
-                    l = ob_temp.data.extrude + ob_temp.data.bevel_depth
-                else:
-                    try:
-                        l = len(ob_temp.data.polygons)
-                    except:
-                        l = 0
-                if l > 0:
+                if hasFaces(ob_name):
                     # See if we have already written out this datablock by fetching it's handle.
                     instance_handle = returnHandleForName(candidate_archive_handles,ob_name)
                     if instance_handle != None:
