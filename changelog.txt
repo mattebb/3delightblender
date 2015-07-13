@@ -1,3 +1,9 @@
+v0.2.4 7/13/2015
+* Couple bug fixes:
+	- 'it' is autolaunched if you have RMSTREE in your path or RenderMan Studio installed
+	- some path issues with textures
+* Primary visibility for area lights (Environment lights in particular) is now on by default.
+
 v0.2.3 7/13/2015
 * Performance improvements of default settings.
 * Integration of AtomicP's curve changes.

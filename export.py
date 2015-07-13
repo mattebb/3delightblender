@@ -610,7 +610,7 @@ def get_primvars(ob, geo, interpolation=""):
     
     rm = ob.data.renderman
 
-    interpolation = 'facevertex' if interpolation == '' else interpolation
+    interpolation = 'facevarying' if interpolation == '' else interpolation
     
     # default hard-coded prim vars
     if rm.export_smooth_normals and ob.renderman.primitive in \
@@ -1355,9 +1355,8 @@ def export_subdivision_mesh(ri, scene, ob, motion):
         tags.append('interpolateboundary')
         nargs.extend( [0, 0] )
         
-        primvars = get_primvars(ob, mesh, "facevertex")
+        primvars = get_primvars(ob, mesh, "facevarying")
         primvars[ri.P] = P
-
         ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs, intargs,
             floatargs, primvars)
     
