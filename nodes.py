@@ -218,7 +218,6 @@ class RendermanPatternNode(RendermanShadingNode):
 class RendermanLightNode(RendermanShadingNode):
     bl_label = 'Output'
     renderman_node_type = 'light'
-    
 
 # Generate dynamic types
 def generate_node_type(prefs, name, args):
@@ -266,14 +265,19 @@ def generate_node_type(prefs, name, args):
     
     ntype.plugin_name = bpy.props.StringProperty(name='Plugin Name', 
                             default=name, options={'HIDDEN'})
+    #ntype.prop_names = class_add_properties(ntype, [p for p in args.findall('./param')])
+    #lights cant connect to a node tree in 20.0
+    class_generate_properties(ntype, name, inputs)
+
     if nodeType == 'light':
         ntype.light_shading_rate = bpy.props.FloatProperty(
             name="Light Shading Rate",
             description="Shading Rate for this light.  Leave this high unless detail is missing",
             default=100.0)
-    #ntype.prop_names = class_add_properties(ntype, [p for p in args.findall('./param')])
-    #lights cant connect to a node tree in 20.0
-    class_generate_properties(ntype, name, inputs)
+        ntype.light_primary_visibility = bpy.props.BoolProperty(
+            name="Light Primary Visibility",
+            description="Camera visibility for this light",
+            default=True)
 
     #print(ntype, ntype.bl_rna.identifier)
     bpy.utils.register_class(ntype)
@@ -304,6 +308,7 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
     layout.context_pointer_set("socket", socket)
 
     if input_name == 'Light' and node is not None and socket.is_linked:
+        layout.prop(node, 'light_primary_visibility')
         layout.prop(node, 'light_shading_rate')
     split = layout.split(0.35)
     split.label(socket.name+':')
@@ -576,9 +581,13 @@ def shader_node_rib(ri, node, handle=None):
     if node.renderman_node_type == "pattern":
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
+        primary_vis = node.light_primary_visibility
         #must be off for light sources
-        ri.Attribute("visibility", {'int transmission':0, 'int indirect':0})
+        ri.Attribute("visibility", {'int transmission':0, 'int indirect':0,
+                    'int camera':int(primary_vis)})
         ri.ShadingRate(node.light_shading_rate)
+        if primary_vis:
+            ri.Bxdf("PxrLightEmission", node.name)
         params[ri.HANDLEID] = handle
         ri.AreaLightSource(node.bl_label, params)
     elif node.renderman_node_type == "displacement":
@@ -586,6 +595,7 @@ def shader_node_rib(ri, node, handle=None):
     else:
         ri.Bxdf(node.bl_label, node.name, params)
 
+#return the output file name if this texture is to be txmade.
 def get_tex_file_name(prop):
     if prop != '' and prop.rsplit('.', 1) != 'tex':
         return os.path.basename(prop).rsplit('.', 2)[0] + '.tex'
@@ -630,10 +640,12 @@ def get_textures_for_node(node):
             if ('options' in meta and meta['options'] == 'texture') or \
                 (node.renderman_node_type == 'light' and \
                     'widget' in meta and meta['widget'] == 'fileInput'): #fix for sloppy args files
-                if node.renderman_node_type == 'light' and "Env" in node.bl_label:
-                    textures.append((prop, get_tex_file_name(prop), ['-envlatl'])) #no options for now
-                else:
-                    textures.append((prop, get_tex_file_name(prop), [])) #no options for now
+                out_file_name = get_tex_file_name(prop)
+                if out_file_name != prop: #if they don't match add this to the list
+                    if node.renderman_node_type == 'light' and "Env" in node.bl_label:
+                        textures.append((prop, out_file_name, ['-envlatl'])) #no options for now
+                    else:
+                        textures.append((prop, out_file_name, [])) #no options for now
 
     return textures
     

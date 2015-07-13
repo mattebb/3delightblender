@@ -45,7 +45,7 @@ from .util import get_sequence_path
 from .util import user_path
 from .util import get_path_list_converted
 from .util import path_list_convert, guess_rmantree, set_pythonpath
-from .util import get_real_path
+from .util import get_real_path, find_it_path
 from .util import debug
 from random import randint
 import sys
@@ -158,6 +158,16 @@ class RPass:
                 debug("error", "Unable to remove previous render" , 
                     render_output)
 
+        if self.display_driver == 'it':
+            it_path = find_it_path()
+            if not it_path:
+                engine.report({"ERROR"},
+                    "Could not find 'it'. Install RenderMan Studio or use a different display driver.")
+            else:
+                environ = os.environ.copy()
+                subprocess.Popen([it_path], env=environ)
+
+
         def format_seconds_to_hhmmss(seconds):
             hours = seconds // (60 * 60)
             seconds %= (60 * 60)
@@ -182,7 +192,7 @@ class RPass:
         options = self.options + ['-Progress']
         prman_executable = os.path.join(self.paths['rmantree'], 'bin', \
                 self.paths['rman_binary'])
-        if self.rm.display_driver in ['openexr','tiff']:
+        if self.display_driver in ['openexr','tiff']:
             options = options + ['-checkpoint', 
                 "%.2fs" % self.rm.update_frequency]
         cmd = [prman_executable] + options + ["-t:%d" % self.rm.threads] + \
