@@ -43,7 +43,7 @@ from .util import make_frame_path
 from .util import init_exporter_env
 from .util import get_sequence_path
 from .util import user_path
-from .util import get_path_list_converted
+from .util import get_path_list_converted, set_path
 from .util import path_list_convert, guess_rmantree, set_pythonpath, set_rmantree
 from .util import get_real_path, find_it_path
 from .util import debug
@@ -59,6 +59,7 @@ from .export import get_texture_list_preview, issue_edits, interactive_initial_r
 #set pythonpath
 set_rmantree(guess_rmantree())
 set_pythonpath(os.path.join(guess_rmantree(), 'bin'))
+set_path([os.path.join(guess_rmantree(), 'bin'), os.path.dirname(find_it_path())])
 import prman
 
 ipr = None
@@ -371,7 +372,7 @@ class RPass:
         write_rib(self, self.scene, self.ri)
         self.ri.End()
 
-        filename = "launch:prman? -ctrl $ctrlin $ctrlout -dspyserver " + find_it_path()
+        filename = "launch:prman? -ctrl $ctrlin $ctrlout -dspyserver it"
         
         self.ri.Begin(filename)
         

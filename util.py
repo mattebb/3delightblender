@@ -302,7 +302,10 @@ def set_pythonpath(path):
 
 def set_rmantree(rmantree):
     os.environ['RMANTREE'] = rmantree
-    os.environ['PATH'] = os.path.join(rmantree,'bin') + ":" + os.environ['PATH']
+
+def set_path(paths):
+    for path in paths:
+        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + path
 
 def guess_rmantree():
     guess = rmantree_from_env()
