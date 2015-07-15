@@ -29,6 +29,8 @@ import blf
 from bpy.types import Panel
 from .nodes import NODE_LAYOUT_SPLIT
 
+from . import engine
+
 
 # global dictionaries
 from .shader_parameters import exclude_lamp_params
@@ -423,7 +425,10 @@ class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
         row.prop(rm, "preview_max_specular_depth", text="Specular Depth")
         row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
         row = col.row(align=True)
-        row.operator('lighting.start_interactive')
+        if engine.ipr:
+            row.operator('lighting.start_interactive', text="Stop Interactive Rendering")
+        else:
+            row.operator('lighting.start_interactive', text="Start Interactive Rendering")
         
         
 

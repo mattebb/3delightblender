@@ -89,7 +89,10 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         return {'FINISHED'}
 
-class Start_Interactive(bpy.types.Operator):
+import bgl
+import blf
+
+class StartInteractive(bpy.types.Operator):
     ''''''
     bl_idname = "lighting.start_interactive"
     bl_label = "Start/Stop Interactive Rendering"
@@ -99,6 +102,20 @@ class Start_Interactive(bpy.types.Operator):
 
     def update(self, context):
         engine.ipr.issue_edits(context)
+        w = context.region.width
+        h = context.region.height
+
+        # Draw text in this region.
+        pos_x = w/2 - 100
+        pos_y = 20
+        blf.enable(0, blf.SHADOW)
+        blf.shadow_offset(0, 1, -1)
+        blf.shadow(0, 5, 0.0, 0.0, 0.0, 0.8)
+        blf.size(0, 32, 36)
+        blf.position(0, pos_x, pos_y, 0)
+        bgl.glColor4f(1.0, 0.0, 0.0, 1.0)
+        blf.draw(0, "%s" % ('PRMan Interactive Mode Running'))
+        blf.disable(0, blf.SHADOW)
 
     def invoke(self, context, event):
         if engine.ipr == None:
@@ -109,22 +126,11 @@ class Start_Interactive(bpy.types.Operator):
             bpy.types.SpaceView3D.draw_handler_remove(engine.ipr_handle, 'WINDOW')
             engine.ipr.end_interactive()
             engine.ipr = None
+            for area in context.screen.areas:
+                if area.type == 'VIEW_3D':
+                    area.tag_redraw()
         
         return {'FINISHED'}
-
-class Stop_Interactive(bpy.types.Operator):
-    ''''''
-    bl_idname = "lighting.stop_interactive"
-    bl_label = "Stop Interactive Rendering"
-    bl_description = "Stop Interactive Rendering."
-    
-    def invoke(self, context, event):
-        rpass = RPass(context.scene)
-        rpass.end_interactive()
-        return {'FINISHED'}
-
-
-
 
 class ExportRIBArchive(bpy.types.Operator, ExportHelper):
     ''''''
