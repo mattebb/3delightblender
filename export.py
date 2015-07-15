@@ -497,8 +497,9 @@ def get_strands(ri, scene,ob, psys):
         debug("info","Exporting ",j , "Strands and ", nverts ," Vertices")
         debug("info", "WIDTH:",widthString,hair_width)
         debug("info", "POINTS:",points)
-        
-        ri.Curves("cubic", [nverts], "nonperiodic", {"P": rib(points), widthString: hair_width})
+        #temp fix for curves not exporting
+        if nverts == len(points)/3:
+            ri.Curves("cubic", [nverts], "periodic", {"P": rib(points), widthString: hair_width})
         j += 1
     psys.set_resolution(scene, ob, 'PREVIEW')
 
@@ -999,7 +1000,7 @@ def get_texture_list(scene):
     SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT']
     textures = []
     for o in renderable_objects(scene):
-        if o.type == 'CAMERA':
+        if o.type == 'CAMERA' or o.type == '[EMPTY]':
             continue
         elif o.type == 'LAMP':
             if o.data.renderman.nodetree != '':
@@ -1954,15 +1955,7 @@ def export_objects(ri, rpass, scene, motion):
         ob_temp = bpy.data.objects.get(ob_name)
         if ob_temp != None:
             if ob_type in SUPPORTED_INSTANCE_TYPES:
-                if ob_type == 'CURVE' or ob_type == 'FONT':
-                    # If this curve is extruded or beveled it can produce faces from a to_mesh call.
-                    l = ob_temp.data.extrude + ob_temp.data.bevel_depth
-                else:
-                    try:
-                        l = len(ob_temp.data.polygons)
-                    except:
-                        l = 0
-                if l > 0:
+                if hasFaces(ob_name):
                     handle_name = ob_temp.data.name
                     #print("candidate_instance_handles: %s" %candidate_instance_handles)
                     instance_handle = returnHandleForName(candidate_instance_handles,handle_name)
