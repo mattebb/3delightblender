@@ -363,6 +363,10 @@ class RPass:
     #start the interactive session.  Basically the same as ribgen, only 
     #save the file
     def start_interactive(self):
+        if find_it_path() == None:
+            print("ERROR no 'it' installed.  Cannot start interactive rendering.")
+            return
+        
         self.is_interactive = True
         self.is_interactive_running = True
         self.ri.Begin(self.paths['rib_output'])

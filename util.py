@@ -305,7 +305,8 @@ def set_rmantree(rmantree):
 
 def set_path(paths):
     for path in paths:
-        os.environ['PATH'] = os.environ['PATH'] + os.pathsep + path
+        if path != None:
+            os.environ['PATH'] = os.environ['PATH'] + os.pathsep + path
 
 def guess_rmantree():
     guess = rmantree_from_env()
@@ -356,6 +357,7 @@ def find_it_path():
             base = '/opt/pixar'
 
         latestver = 0.0
+        guess = ''
         for d in os.listdir(base):
             if "RenderManStudio" in d:
                 vstr = d.split('-')[1]
