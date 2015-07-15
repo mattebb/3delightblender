@@ -1,3 +1,9 @@
+v0.2.5 7/13/2015
+* INTERACTIVE RENDERING IS HERE!!!!
+	- To start (for now), you have to have 'it' installed with the RenderMan Studio package.
+	- Go to the scene properties, in the interactive sampling section hit start interactive
+	- Only supports material edits, light moves/edits and camera moves for now.
+
 v0.2.4 7/13/2015
 * Couple bug fixes:
 	- 'it' is autolaunched if you have RMSTREE in your path or RenderMan Studio installed
