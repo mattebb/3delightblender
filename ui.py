@@ -404,7 +404,7 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         scol.prop(rm, "shutter_close")
 
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
-    bl_label = "Preview Sampling"
+    bl_label = "Interactive and Preview Sampling"
     
     def draw(self, context):
         
@@ -422,6 +422,8 @@ class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
         row = col.row(align=True)
         row.prop(rm, "preview_max_specular_depth", text="Specular Depth")
         row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
+        row = col.row(align=True)
+        row.operator('lighting.start_interactive')
         
         
 

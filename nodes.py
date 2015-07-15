@@ -578,6 +578,8 @@ def gen_params(ri, node):
 # Export to rib
 def shader_node_rib(ri, node, handle=None):
     params = gen_params(ri, node)
+    if handle:
+        params['__instanceid'] = handle
     if node.renderman_node_type == "pattern":
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
@@ -587,7 +589,7 @@ def shader_node_rib(ri, node, handle=None):
                     'int camera':int(primary_vis)})
         ri.ShadingRate(node.light_shading_rate)
         if primary_vis:
-            ri.Bxdf("PxrLightEmission", node.name)
+            ri.Bxdf("PxrLightEmission", node.name, {'__instanceid': handle})
         params[ri.HANDLEID] = handle
         ri.AreaLightSource(node.bl_label, params)
     elif node.renderman_node_type == "displacement":

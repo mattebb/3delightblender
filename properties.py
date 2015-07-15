@@ -297,7 +297,6 @@ class RendermanPass(bpy.types.PropertyGroup):
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
 
-
     pixelsamples_x = IntProperty(
                 name="Pixel Samples X",
                 description="Number of AA samples to take in X dimension",
@@ -476,14 +475,26 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 description=" Sets a maximum for the estimated variance of the pixel value from the true value of the pixel.",
                 min=0, max=1, default=.01)
 
+    preview_bucket_order = EnumProperty(
+                name="Preview Bucket Order",
+                description="Bucket order to use when rendering",
+                items=[('HORIZONTAL', 'Horizontal', 'Render scanline from top to bottom'),
+                       ('VERTICAL', 'Vertical', 'Render scanline from left to right'),
+                       ('ZIGZAG-X', 'Reverse Horizontal', 'Exactly the same as Horizontal but reverses after each scan'),
+                       ('ZIGZAG-Y', 'Reverse Vertical', 'Exactly the same as Vertical but reverses after each scan'),
+                       ('SPACEFILL', 'Hilber spacefilling curve', 'Renders the buckets along a hilbert spacefilling curve'),
+                       ('SPIRAL', 'Spiral rendering', 'Renders in a spiral from the center of the image or a custom defined point'),
+                       ('RANDOM', 'Random', 'Renders buckets in a random order WARRNING: Inefficient memory footprint')],
+                default='SPIRAL')
+
     preview_min_samples = IntProperty(
                 name="Preview Min Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=4)
+                min=0, default=0)
     preview_max_samples = IntProperty(
                 name="Preview Max Samples",
                 description="The maximum number of camera samples per pixel",
-                min=0, default=32)
+                min=0, default=16)
 
     preview_max_specular_depth = IntProperty(
                 name="Max Preview Specular Depth",

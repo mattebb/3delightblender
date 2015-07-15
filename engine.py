@@ -44,7 +44,7 @@ from .util import init_exporter_env
 from .util import get_sequence_path
 from .util import user_path
 from .util import get_path_list_converted
-from .util import path_list_convert, guess_rmantree, set_pythonpath
+from .util import path_list_convert, guess_rmantree, set_pythonpath, set_rmantree
 from .util import get_real_path, find_it_path
 from .util import debug
 from random import randint
@@ -54,11 +54,14 @@ addon_version = bl_info['version']
 
 # global dictionaries
 from .export import write_rib, write_preview_rib, get_texture_list
-from .export import get_texture_list_preview
+from .export import get_texture_list_preview, issue_edits, interactive_initial_rib
 
 #set pythonpath
+set_rmantree(guess_rmantree())
 set_pythonpath(os.path.join(guess_rmantree(), 'bin'))
 import prman
+
+ipr = None
 
 def init():
     pass
@@ -93,7 +96,7 @@ def update(engine, data, scene):
 def start_interactive(engine):
     engine.render_pass.start_interactive()
 
-def update_interactive(context):
+def update_interactive(engine, context):
     engine.render_pass.issue_edits(context)
 
 
@@ -109,13 +112,19 @@ class RPass:
         
         self.do_render = True
         self.is_interactive_running = False
+        self.is_interactive = False
         self.options = []
         prman.Init()
         self.ri = prman.Ri()
+        self.edit_num = 0
 
     def __del__(self):
+        if self.is_interactive_running:
+            self.ri.EditWorldEnd()
+            self.ri.End()
         del self.ri
-        prman.Cleanup()
+        if prman:
+            prman.Cleanup()
 
 
     def initialize_paths(self, scene):
@@ -142,6 +151,7 @@ class RPass:
         self.paths['shader'] = get_path_list_converted(scene.renderman, \
                                                         'shader')
         self.paths['texture'] = [self.paths['texture_output']]
+
         #self.paths['procedural'] = get_path_list_converted(scene.renderman, 'procedural')
         #self.paths['archive'] = get_path_list_converted(scene.renderman, 'archive')
 
@@ -305,12 +315,16 @@ class RPass:
                             'denoise'), denoise_data]
 
                     engine.update_stats("", ("PRMan: Denoising image"))
+                    t1 = time.time()
                     process = subprocess.Popen(cmd, cwd=images_dir, 
                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
                         env=environ)
                     process.wait()
+                    t2 = time.time()
                     if os.path.exists(filtered_name):
-                        engine.report({"INFO"}, "PRMan: Done Denoising.")
+                        engine.report({"INFO"}, "PRMan: Done Denoising." + 
+                            " (elapsed time: " + 
+                                format_seconds_to_hhmmss(t2-t1) + ")")
                         if self.display_driver != 'it':
                             image_scale = 100.0 / \
                                 self.scene.render.resolution_percentage
@@ -348,24 +362,64 @@ class RPass:
     #start the interactive session.  Basically the same as ribgen, only 
     #save the file
     def start_interactive(self):
-        pass
+        self.is_interactive = True
+        self.is_interactive_running = True
+        self.ri.Begin(self.paths['rib_output'])
 
-    #search through context.scene for is_updated
-    #use edit world begin
-    def issue_edits(context):
-        pass
+        
+        #export rib and bake
+        write_rib(self, self.scene, self.ri)
+        self.ri.End()
 
+        filename = "launch:prman? -ctrl $ctrlin $ctrlout -dspyserver " + find_it_path()
+        
+        self.ri.Begin(filename)
+        
+        interactive_initial_rib(self, self.scene, self.ri, prman)
+        
+        return
+
+    #find the changed object and send for edits
+    def issue_edits(self, context):
+        self.edit_num += 1
+        active = context.scene.objects.active
+        
+        self.ri.ArchiveRecord("structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
+        prman.RicFlush("%d" % self.edit_num, 1, self.ri.SUSPENDRENDERING)
+        issue_edits(self, self.ri, active, prman)
+        
+        #record the marker to rib and flush to that point
+        
+        
     #ri.end
     def end_interactive(self):
+        self.ri.EditWorldEnd()
+        self.ri.End()
+        self.is_interactive = False
+        self.is_interactive_running = False
         pass
 
     def gen_rib(self):
         self.convert_textures(get_texture_list(self.scene))
+        self.ri.Begin(self.paths['rib_output'])
         write_rib(self, self.scene, self.ri)
+        self.ri.End()
 
     def gen_preview_rib(self):
+        previewdir = os.path.join(self.paths['export_dir'], "preview")
+        
+        self.paths['rib_output'] = os.path.join(previewdir, "preview.rib")
+        self.paths['render_output'] = os.path.join(previewdir, "preview.tif")
+        self.paths['export_dir'] = os.path.dirname(self.paths['rib_output'])
+        
+        if not os.path.exists(previewdir):
+            os.mkdir(previewdir)
+        
         self.convert_textures(get_texture_list_preview(self.scene))
+        
+        self.ri.Begin(self.paths['rib_output'])
         write_preview_rib(self, self.scene, self.ri)
+        self.ri.End()
 
     def convert_textures(self, texture_list):
         if not os.path.exists(self.paths['texture_output']):

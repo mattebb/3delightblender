@@ -98,7 +98,7 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.Transform(rib(mtx))
         if ob.data and ob.data.materials:
             for mat in [mat for mat in ob.data.materials if mat != None]:
-                export_material(ri, rpass, scene, mat)
+                export_material(ri, rpass, scene, mat, dupli_name)
         ri.ObjectInstance(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
@@ -110,9 +110,9 @@ def exportObjectArchive(ri, rpass, scene, ob, mtx = None, object_name = None, in
         ri.Transform(rib(mtx))
         if ob.data and ob.data.materials:
             for mat in [mat for mat in ob.data.materials if mat != None]:
-                export_material(ri, rpass, scene, mat)
+                export_material(ri, rpass, scene, mat, object_name)
             if instance_handle == object_name + "HAIR":
-                export_material(ri, rpass, scene, ob.data.materials[matNum])
+                export_material(ri, rpass, scene, ob.data.materials[matNum], object_name)
         ri.ReadArchive(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
@@ -741,24 +741,23 @@ def create_mesh(scene, ob, matrix=None):
 
     return mesh
  
-
-def export_light(rpass, scene, ri, ob):
-    lamp = ob.data
-    rm = lamp.renderman
-
+def export_transform(ri, ob):
     m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
         else ob.matrix_world
-
-    loc = m.to_translation()
-    lvec = loc - (m.to_quaternion() * Vector((0,0,1)))
-
-    params = []
-    
-    ri.AttributeBegin()
-    ri.TransformBegin()
     ri.Transform(rib(m))
-    ri.ShadingRate(rm.shadingrate)
 
+def export_light_source(ri, lamp, shape):
+    name = "PxrAreaLight"
+    params = {ri.HANDLEID: lamp.name, "float exposure":[lamp.energy], "__instanceid": lamp.name}
+    if lamp.type == "HEMI":
+        name = "PxrEnvMapLight"  
+        params["color envtint"] = rib(lamp.color)
+    else:
+        params["color lightcolor"] = rib(lamp.color)
+        params["string shape"] = shape
+    ri.AreaLightSource(name, params)
+
+def export_light_shaders(ri, lamp, do_geometry=True):
     def point():
         ri.Sphere(.1, -.1, .1, 360)
 
@@ -776,135 +775,39 @@ def export_light(rpass, scene, ri, ob):
             "HEMI":("env", lambda: geometry('envsphere'))
         }
 
-    name = "PxrAreaLight"
     handle = lamp.name
-    params = {ri.HANDLEID: lamp.name, "float exposure":[lamp.energy]}
-    
-    if lamp.type == "HEMI":
-        name = "PxrEnvMapLight"  
-        params["color envtint"] = rib(lamp.color)
-    else:
-        params["color lightcolor"] = rib(lamp.color)
-        params["string shape"] = [shapes[lamp.type][0]]
-    
+    rm = lamp.renderman
+    #need this for rerendering
+    ri.Attribute('identifier', {'string name': handle})
+    #do the shader
     if rm.nodetree != '':
         export_shader_nodetree(ri, lamp, handle=handle)
     else:
-        ri.AreaLightSource(name, params)
-    shapes[lamp.type][1]()
+        export_light_source(ri, lamp, shapes[lamp.type][0])
     
-    # BBM addition begin
-    # export light coshaders
-    '''
-    file.write('\n        ## Light Co-shaders\n')
-    for cosh_item in rm.coshaders.items():
-        coshader_handle = cosh_item[0]
-        coshader_name = cosh_item[1].shader_shaders.active
-        file.write('        Shader "%s" \n            "%s"\n' % (coshader_name, coshader_handle) )
-        parameterlist = rna_to_shaderparameters(scene, cosh_item[1], 'shader')
-        for sp in parameterlist:
-            if sp.is_array:
-                file.write('            "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
-            else:
-                file.write('            "%s %s" %s\n' % (sp.data_type, sp.name, rib(sp.value)))
+    #now the geometry
+    if do_geometry:
+        shapes[lamp.type][1]()
+
+def export_light(rpass, scene, ri, ob):
+    lamp = ob.data
+    rm = lamp.renderman
+    params = []
     
-    file.write('\n        ## Light shader\n')
-    '''
-    # BBM addition end
+    ri.AttributeBegin()
+    ri.TransformBegin()
+    export_transform(ri, ob)
+    ri.ShadingRate(rm.shadingrate)
+
+    export_light_shaders(ri, lamp)
     
-    '''
-    # user defined light shader
-    if rm.nodetree == '' and rm.light_shaders.active != '':
-        file.write('        LightSource "%s" ' % rm.light_shaders.active)
-        
-        params = rna_to_shaderparameters(scene, rm, 'light')
-
-    # automatic shaders per blender lamp type
-    elif lamp.type == 'POINT':
-        file.write('        LightSource "pointlight" \n')
-        name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'pointlight', 'light')
-        
-    elif lamp.type == 'SPOT':
-        if rm.shadow_method == 'SHADOW_MAP':
-            file.write('        LightSource "shadowspot" \n')
-            name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'shadowspot', 'light')
-        
-        else:
-            file.write('        LightSource "spotlight" \n')
-            name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'spotlight', 'light')
-            
-    elif lamp.type == 'SUN':
-        file.write('        LightSource "h_distantshadow" \n')
-        name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'h_distantshadow', 'light')
-        
-    elif lamp.type == 'HEMI':
-        file.write('        LightSource "ambientlight" \n')
-        name, params = get_parameters_shaderinfo(rpass.paths['shader'], 'ambientlight', 'light')
-        
-    # file.write('            "%s" \n' % ob.name) # handle
-    '''
-    
-  #   if rm.nodetree != '':
-  #       print('export nodetree ')
-  #       export_shader_nodetree(file, scene, lamp, output_node='OutputLightShaderNode', handle=ob.name)
-  #       params = []
-
-  #   # parameter list
-  #   for sp in params:
-  #       # special exceptions since they're not an actual properties on lamp datablock
-  #       if sp.name == 'from':
-  #           value = rib(loc)
-  #       elif sp.name == 'to': 
-  #           value = rib(lvec)
-
-
-  #       elif sp.meta == 'shadow_map_path':
-  #           if shader_requires_shadowmap(scene, rm, 'light'):
-  #               path = rib_path(shadowmap_path(scene, ob))
-  #               print(path)
-  #               file.write('        "string %s" "%s" \n' % (sp.name, path))
-
-  #           ''' XXX old shaders
-
-        
-  #       elif sp.name == 'coneangle':
-  #           if hasattr(lamp, "spot_size"):
-  #               coneangle = lamp.spot_size / 2.0
-  #               value = rib(coneangle)
-  #           else:
-  #               value = rib(45)
-        
-  #       elif sp.name in ('shadowmap', 'shadowname', 'shadowmapname'):
-  #           if rm.shadow_method == 'SHADOW_MAP':
-  #               shadowmapname = rib_path(shadowmap_path(scene, ob))
-  #               file.write('        "string %s" "%s" \n' % (sp.name, shadowmapname))
-  #           elif rm.shadow_method == 'RAYTRACED':
-  #               file.write('        "string %s" ["raytrace"] \n' % sp.name)
-            
-  #           continue
-  #           '''
-  #       # more exceptions, use blender's built in equivalent parameters (eg. spot size)
-  #       elif sp.name in exclude_lamp_params.keys():
-  #           value = rib(getattr(lamp, exclude_lamp_params[sp.name]))
-        
-  #       # otherwise use the stored raw shader parameters
-  #       else:
-  #           value = rib(sp.value)
-
-        # # BBM addition begin
-  #       if sp.is_array:
-  #           file.write('        "%s %s[%d]" %s\n' % (sp.data_type, sp.name, len(sp.value), rib(sp.value,is_cosh_array=True)))
-  #       else:
-        # # BBM addition end
-  #           file.write('        "%s %s" %s\n' % (sp.data_type, sp.name, value))
-
     ri.TransformEnd()
     ri.AttributeEnd()
     
-    ri.Illuminate(handle, rm.illuminates_by_default)
+    ri.Illuminate(lamp.name, rm.illuminates_by_default)
 
     
-def export_material(ri, rpass, scene, mat):
+def export_material(ri, rpass, scene, mat, handle=None):
 
     rm = mat.renderman
 
@@ -915,7 +818,7 @@ def export_material(ri, rpass, scene, mat):
         #if rm.displacementbound > 0.0:
             #ri.write('        Attribute "displacementbound" "sphere" %f \n' % rm.displacementbound)
         ri.Attribute('displacementbound', {'sphere':rm.displacementbound})
-        export_shader_nodetree(ri, mat)
+        export_shader_nodetree(ri, mat, handle)
     else:
         #export_shader(file, scene, rpass, mat, 'shader') # BBM addition
         export_shader(ri, scene, rpass, mat, 'surface')
@@ -1077,7 +980,7 @@ def export_particles(ri, rpass, scene, ob, motion):
         if ob.data.materials:
             if ob.data.materials[rm.material_id-1] != None:
                 mat = ob.data.materials[rm.material_id-1]
-                export_material(ri, rpass, scene, mat)
+                export_material(ri, rpass, scene, mat, pname)
         
         # Write object instances or points
         if rm.particle_type == 'OBJECT':
@@ -1129,9 +1032,9 @@ def export_scene_lights(ri, rpass, scene):
         file.write('        Attribute "photon" "string shadingmodel" "%s" \n' % rm.photon_shadingmodel)
 '''
 
-def export_default_bxdf(ri):
+def export_default_bxdf(ri, name):
     #default bxdf a nice grey plastic
-    ri.Bxdf("PxrDisney", "default", {'color baseColor': [0.18, 0.18, 0.18]})
+    ri.Bxdf("PxrDisney", "default", {'color baseColor': [0.18, 0.18, 0.18], 'string __instanceid': name})
 
 def export_shader(ri, scene, rpass, idblock, shader_type):
     rm = idblock.renderman
@@ -1160,7 +1063,7 @@ def export_shader(ri, scene, rpass, idblock, shader_type):
         
         name = mat.name
         params = {"color baseColor": rib(mat.diffuse_color),
-                "float specular": mat.specular_intensity}
+                "float specular": mat.specular_intensity, 'string __instanceid': idblock.name}
 
         if mat.emit:
             params["color emitColor"] = rib(mat.diffuse_color)
@@ -1482,7 +1385,7 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
 
     if ob.data and ob.data.materials:
         for mat in [mat for mat in ob.data.materials if mat != None]:
-            export_material(ri, rpass, scene, mat)
+            export_material(ri, rpass, scene, mat, ob.data.name)
             break
     
     if prim == 'SPHERE':
@@ -1944,7 +1847,7 @@ def export_objects(ri, rpass, scene, motion):
                 exported_lights.append(ob_temp.name)
     
     #default bxdf AFTER lights
-    export_default_bxdf(ri)
+    export_default_bxdf(ri, 'default')
 
     # Export datablocks for archiving.
     export_comment(ri, '## INLINE ARCHIVES')
@@ -2212,10 +2115,13 @@ def property_group_to_params(prop_group):
     
     return params
 
-def export_integrator(ri, rpass, scene):
+def export_integrator(ri, rpass, scene, preview=False):
     rm = scene.renderman
+    integrator = rm.integrator
+    if preview or rpass.is_interactive:
+        integrator = "PxrPathTracer"
 
-    integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
+    integrator_settings = getattr(rm, "%s_settings" % integrator)
     params = property_group_to_params(integrator_settings)
     
     ri.Integrator(rm.integrator, "integrator", params)
@@ -2297,6 +2203,7 @@ def export_render_settings(ri, rpass, scene, preview=False):
 
 
 def export_camera_matrix(ri, scene, ob, motion):
+    
     motion_blur = ob.name in motion['transformation']
     
     if motion_blur:
@@ -2322,13 +2229,13 @@ def export_camera_matrix(ri, scene, ob, motion):
     if motion_blur:
         ri.MotionEnd()
 
-def export_camera(ri, scene, motion):
+def export_camera(ri, scene, motion, camera_to_use=None):
     
     if not scene.camera or scene.camera.type != 'CAMERA':
         return
         
     r = scene.render
-    ob = scene.camera    
+    ob = camera_to_use if camera_to_use else scene.camera   
     cam = ob.data
     rm = scene.renderman
     
@@ -2373,6 +2280,9 @@ def export_camera(ri, scene, motion):
     ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
 
     export_camera_matrix(ri, scene, ob, motion)
+    
+    if camera_to_use:
+        ri.Camera("world")
     
 def export_camera_render_preview(ri, scene):
     r = scene.render
@@ -2508,7 +2418,10 @@ def export_display(ri, rpass, scene):
         
     ]
     #Set bucket shape.
-    if rm.bucket_shape == 'SPIRAL':
+    if rpass.is_interactive:
+        ri.Option("bucket", {"string order": [ 'spiral']})
+
+    elif rm.bucket_shape == 'SPIRAL':
         settings = scene.render
 
         if rm.bucket_sprial_x <= settings.resolution_x and rm.bucket_sprial_y <= settings.resolution_y:
@@ -2549,7 +2462,7 @@ def export_display(ri, rpass, scene):
             ri.Display('+' + image_base + '.%s.' % aov + ext, dspy_driver, aov, 
                 {"quantize": [0, 0, 0, 0]})
 
-    if rm.do_denoise:
+    if rm.do_denoise and not rpass.is_interactive:
         #add display channels for denoising
         denoise_aovs = [
         #(name, declare type/name, source, statistics, filter)
@@ -2605,7 +2518,7 @@ def export_hider(ri, rpass, scene, preview=False):
                     'int minsamples': rm.min_samples,
                     'int incremental': 1}
 
-    if preview:
+    if preview or rpass.is_interactive:
         hider_params['int maxsamples'] = rm.preview_max_samples
         hider_params['int minsamples'] = rm.preview_min_samples
         pv = rm.preview_pixel_variance
@@ -2630,8 +2543,6 @@ def write_rib(rpass, scene, ri):
     rpass.archives = []
 
     motion = export_motion(rpass, scene)
-    
-    ri.Begin(rpass.paths['rib_output'])
     
     export_header(ri)
     export_searchpaths(ri, rpass.paths)
@@ -2660,26 +2571,12 @@ def write_rib(rpass, scene, ri):
     ri.WorldEnd()
 
     ri.FrameEnd()
-    ri.End()
-
+    
 def write_preview_rib(rpass, scene, ri):
-
-    previewdir = os.path.join(rpass.paths['export_dir'], "preview")
     preview_rib_data_path = \
-        rib_path(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                'preview', "preview_scene.rib"))
-    
-    rpass.paths['rib_output'] = os.path.join(previewdir, "preview.rib")
-    rpass.paths['render_output'] = os.path.join(previewdir, "preview.tif")
-    rpass.paths['export_dir'] = os.path.dirname(rpass.paths['rib_output'])
-    
-    if not os.path.exists(previewdir):
-        os.mkdir(previewdir)
-    
-    #print('writing rib to ' + rpass.paths['rib_output'])
-    
-    ri.Begin(rpass.paths['rib_output'])
-    
+            rib_path(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                    'preview', "preview_scene.rib"))
+        
     export_header(ri)
     export_searchpaths(ri, rpass.paths)
     
@@ -2690,7 +2587,7 @@ def write_preview_rib(rpass, scene, ri):
     
 
     export_hider(ri, rpass, scene, preview=True)
-    export_integrator(ri, rpass, scene)
+    export_integrator(ri, rpass, scene, preview=True)
     
 
     export_camera_render_preview(ri, scene)
@@ -2713,14 +2610,12 @@ def write_preview_rib(rpass, scene, ri):
     # file.write('        Attribute "trace" "displacements" [1] \n')
     
     mat = find_preview_material(scene)
-    export_material(ri, rpass, scene, mat)
+    export_material(ri, rpass, scene, mat, 'preview')
     preview_model(ri,mat)
     ri.AttributeEnd()
     
     ri.WorldEnd()
     ri.FrameEnd()
-    ri.End()
-    
 
 def anim_archive_path(filepath, frame):
     if filepath.find("#") != -1:
@@ -2735,4 +2630,62 @@ def write_auto_archives(paths, scene, info_callback):
     for ob in archive_objects(scene):
         export_archive(scene, [ob], archive_motion=True, 
                 frame_start=scene.frame_current, frame_end=scene.frame_current)
+
+def interactive_initial_rib(rpass, scene, ri, prman):
+    ri.Display('rerender', 'it', 'rgba')
+    export_hider(ri, rpass, scene, True)
+
+    ri.EditWorldBegin(rpass.paths['rib_output'], {"string rerenderer": "raytrace"})
+    ri.Option('rerender', {'int[2] lodrange': [0,3]})      
+    
+    ri.ArchiveRecord("structure", ri.STREAMMARKER + "_initial")
+    prman.RicFlush("_initial", 1, ri.FINISHRENDERING)
+
+#flush the current edit
+def edit_flush(ri, edit_num, prman):
+    ri.ArchiveRecord("structure", ri.STREAMMARKER + "%d" % edit_num)
+    prman.RicFlush("%d" % edit_num, 1, ri.SUSPENDRENDERING)
+
+def issue_light_transform_edit(ri, obj, edit_num):
+    ri.EditBegin('attribute', {'string scopename': obj.data.name})
+    export_transform(ri, obj)
+    ri.EditEnd()
+    
+
+def issue_light_shader_edit(ri, obj, edit_num):
+    ri.EditBegin('instance')
+    export_light_shaders(ri, obj.data, do_geometry=False) #can't update geometry in edits
+    ri.EditEnd()
+            
+def issue_camera_edit(ri, rpass, camera):
+    ri.EditBegin('option')
+    export_camera(ri, rpass.scene, {'transformation':[]}, camera_to_use=camera)
+    ri.EditEnd()
+
+def issue_shader_edit(ri, rpass, obj, edit_num):
+    mats_to_edit = []
+    if obj and obj.materials:
+        mats_to_edit = [mat for mat in obj.materials if mat != None]
+    
+    if len(mats_to_edit) > 0:
+        ri.EditBegin('instance')
+        for mat in mats_to_edit:
+            export_material(ri, rpass, rpass.scene, mat, obj.name)
+        ri.EditEnd()
+
+
+#test the active object type for edits to do
+def issue_edits(rpass, ri, active, prman):
+    if active.type == 'LAMP':
+        lamp = active.data
+        
+        issue_light_transform_edit(ri, active, rpass.edit_num)
+        issue_light_shader_edit(ri, active, rpass.edit_num)
+    
+    elif active.type == 'CAMERA':
+        issue_camera_edit(ri, rpass, active)
+    else:
+        #geometry can only edit shaders
+        issue_shader_edit(ri, rpass, active.data, rpass.edit_num)
+    
     

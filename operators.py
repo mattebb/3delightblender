@@ -39,6 +39,8 @@ from .shader_parameters import tex_optimised_path
 
 from .export import make_optimised_texture_3dl
 from .export import export_archive
+from .engine import RPass
+from . import engine
 
 from bpy_extras.io_utils import ExportHelper
 
@@ -86,6 +88,42 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             #nt.links.new(default.outputs[0], output.inputs[0])
 
         return {'FINISHED'}
+
+class Start_Interactive(bpy.types.Operator):
+    ''''''
+    bl_idname = "lighting.start_interactive"
+    bl_label = "Start/Stop Interactive Rendering"
+    bl_description = "Start/Stop Interactive Rendering, must have 'it' installed"
+    rpass = None
+    is_running = False
+
+    def update(self, context):
+        engine.ipr.issue_edits(context)
+
+    def invoke(self, context, event):
+        if engine.ipr == None:
+            engine.ipr = RPass(context.scene)
+            engine.ipr.start_interactive()
+            engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(self.update, (context,), 'WINDOW', 'POST_PIXEL')
+        else:
+            bpy.types.SpaceView3D.draw_handler_remove(engine.ipr_handle, 'WINDOW')
+            engine.ipr.end_interactive()
+            engine.ipr = None
+        
+        return {'FINISHED'}
+
+class Stop_Interactive(bpy.types.Operator):
+    ''''''
+    bl_idname = "lighting.stop_interactive"
+    bl_label = "Stop Interactive Rendering"
+    bl_description = "Stop Interactive Rendering."
+    
+    def invoke(self, context, event):
+        rpass = RPass(context.scene)
+        rpass.end_interactive()
+        return {'FINISHED'}
+
+
 
 
 class ExportRIBArchive(bpy.types.Operator, ExportHelper):
