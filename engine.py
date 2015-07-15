@@ -80,7 +80,7 @@ def free(engine):
             del engine.render_pass
 
 def render(engine):
-    if hasattr(engine, 'render_pass') and engine.render_pass == 'EXPORT_RENDER':
+    if hasattr(engine, 'render_pass') and engine.render_pass.do_render:
         engine.render_pass.render(engine)
 
 def reset(engine, data, scene):
@@ -112,7 +112,7 @@ class RPass:
         
         self.rm = scene.renderman
         
-        self.do_render = True
+        self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
         self.is_interactive_running = False
         self.is_interactive = False
         self.options = []
