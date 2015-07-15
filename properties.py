@@ -513,8 +513,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     '''
     
     def display_driver_items(self, context):
-        if self.output_action == 'EXPORT_RENDER':
-            items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
+        items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
                     ('tiff', 'Tiff', 'Render to a TIFF file, to be read back into Blender\'s Render Result'),
                     ('png', 'PNG', 'Render to a PNG file, to be read back into Blender\'s Render Result'),
                     ('it', 'it', 'External framebuffer display (must have RMS installed)')]

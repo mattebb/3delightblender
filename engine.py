@@ -80,7 +80,7 @@ def free(engine):
             del engine.render_pass
 
 def render(engine):
-    if hasattr(engine, 'render_pass'):
+    if hasattr(engine, 'render_pass') and engine.render_pass == 'EXPORT_RENDER':
         engine.render_pass.render(engine)
 
 def reset(engine, data, scene):
@@ -177,7 +177,7 @@ class RPass:
                     "Could not find 'it'. Install RenderMan Studio or use a different display driver.")
             else:
                 environ = os.environ.copy()
-                subprocess.Popen([it_path], env=environ)
+                subprocess.Popen([it_path], env=environ, shell=True)
 
 
         def format_seconds_to_hhmmss(seconds):

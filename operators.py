@@ -105,7 +105,7 @@ class StartInteractive(bpy.types.Operator):
         w = context.region.width
         h = context.region.height
 
-        # Draw text in this region.
+        # Draw text area that PRMan is running.
         pos_x = w/2 - 100
         pos_y = 20
         blf.enable(0, blf.SHADOW)
