@@ -177,7 +177,7 @@ class RPass:
                     "Could not find 'it'. Install RenderMan Studio or use a different display driver.")
             else:
                 environ = os.environ.copy()
-                subprocess.Popen([it_path], env=environ)
+                subprocess.Popen([it_path], env=environ, shell=True)
 
 
         def format_seconds_to_hhmmss(seconds):
