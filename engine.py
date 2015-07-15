@@ -59,7 +59,8 @@ from .export import get_texture_list_preview, issue_edits, interactive_initial_r
 #set pythonpath
 set_rmantree(guess_rmantree())
 set_pythonpath(os.path.join(guess_rmantree(), 'bin'))
-set_path([os.path.join(guess_rmantree(), 'bin'), os.path.dirname(find_it_path())])
+it_dir = os.path.dirname(find_it_path()) if find_it_path() else None
+set_path([os.path.join(guess_rmantree(), 'bin'), it_dir])
 import prman
 
 ipr = None
