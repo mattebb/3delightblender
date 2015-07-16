@@ -36,7 +36,7 @@ from .util import make_frame_path
 from .util import init_env
 from .util import get_sequence_path
 from .util import user_path
-from .util import path_list_convert
+from .util import path_list_convert, get_real_path
 from .util import get_properties
 from .util import debug
 
@@ -2645,7 +2645,11 @@ def issue_light_transform_edit(ri, obj):
     ri.EditEnd()
     
 
-def issue_light_shader_edit(ri, obj):
+def issue_light_shader_edit(ri, rpass, obj, prman):
+    if reissue_textures(ri, rpass, obj.data):
+        rpass.edit_num += 1
+        edit_flush(ri, rpass.edit_num, prman)
+
     ri.EditBegin('instance')
     export_light_shaders(ri, obj.data, do_geometry=False)
     ri.EditEnd()
@@ -2655,14 +2659,48 @@ def issue_camera_edit(ri, rpass, camera):
     export_camera(ri, rpass.scene, {'transformation':[]}, camera_to_use=camera)
     ri.EditEnd()
 
-def issue_shader_edit(ri, rpass, mats_to_edit):
+def issue_shader_edit(ri, rpass, mats_to_edit, prman):
+    tex_made = False
+    for mat in mats_to_edit:
+        if reissue_textures(ri, rpass, mat):
+            tex_made = True
+
+    #if texture made flush it
+    if tex_made:
+        rpass.edit_num += 1
+        edit_flush(ri, rpass.edit_num, prman)
+
     ri.EditBegin('instance')
     for mat in mats_to_edit:
         export_material(ri, rpass, rpass.scene, mat)
     ri.EditEnd()
 
+#search this material/lamp for textures to re txmake and do them
+def reissue_textures(ri, rpass, mat):
+    made_tex = False
+    if mat.renderman.nodetree != '':
+        textures = get_textures(mat)
+        
+        for in_file, out_file, options in textures:
+            in_file = get_real_path(in_file)
+            out_file_path = os.path.join(rpass.paths['texture_output'], out_file)
+            
+            if os.path.isfile(out_file_path) and \
+                rpass.rm.always_generate_textures == False and \
+                os.path.getmtime(in_file) <= os.path.getmtime(out_file_path):
+                #file is not dirty
+                pass
+            else:
+                made_tex = True
+                if "-envlatl" in options:
+                    ri.MakeLatLongEnvironment(in_file, out_file_path, "gaussian", 2, 2, {})
+                else:
+                    ri.MakeTexture(in_file, out_file_path, "periodic", "periodic", "separable-catmull-rom", 2, 2, {})
+                #mark as dirty to prman
+                ri.Resource(out_file_path, "texture", "lifetime", "obsolete")
+    return made_tex
 
-#test the active object type for edits to do
+#test the active object type for edits to do then do them
 def issue_edits(rpass, ri, active, prman):
     
     do_edit = active.is_updated
@@ -2694,13 +2732,13 @@ def issue_edits(rpass, ri, active, prman):
             
             nt = bpy.data.node_groups[lamp.renderman.nodetree]
             if nt.is_updated or nt.is_updated_data:
-                issue_light_shader_edit(ri, active)
+                issue_light_shader_edit(ri, rpass, active, prman)
     
         elif active.type == 'CAMERA' and active.is_updated:
             issue_camera_edit(ri, rpass, active)
         else:
             #geometry can only edit shaders
             if len(mats_to_edit) > 0:
-                issue_shader_edit(ri, rpass, mats_to_edit)
+                issue_shader_edit(ri, rpass, mats_to_edit, prman)
     
     

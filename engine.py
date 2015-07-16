@@ -377,7 +377,8 @@ class RPass:
         #export rib and bake
         write_rib(self, self.scene, self.ri)
         self.ri.End()
-
+        self.convert_textures(get_texture_list(self.scene))
+        
         filename = "launch:prman? -ctrl $ctrlin $ctrlout -dspyserver it"
         
         self.ri.Begin(filename)

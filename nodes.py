@@ -578,8 +578,7 @@ def gen_params(ri, node):
 # Export to rib
 def shader_node_rib(ri, node, handle=None):
     params = gen_params(ri, node)
-    if handle:
-        params['__instanceid'] = handle
+    params['__instanceid'] = node.name
     if node.renderman_node_type == "pattern":
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
@@ -589,7 +588,7 @@ def shader_node_rib(ri, node, handle=None):
                     'int camera':int(primary_vis)})
         ri.ShadingRate(node.light_shading_rate)
         if primary_vis:
-            ri.Bxdf("PxrLightEmission", node.name, {'__instanceid': handle})
+            ri.Bxdf("PxrLightEmission", node.name, {'__instanceid': node.name + ".PxrLightEmission"})
         params[ri.HANDLEID] = handle
         ri.AreaLightSource(node.bl_label, params)
     elif node.renderman_node_type == "displacement":
@@ -647,7 +646,8 @@ def get_textures_for_node(node):
                     if node.renderman_node_type == 'light' and "Env" in node.bl_label:
                         textures.append((prop, out_file_name, ['-envlatl'])) #no options for now
                     else:
-                        textures.append((prop, out_file_name, [])) #no options for now
+                        textures.append((prop, out_file_name, ['-smode', 'periodic', 
+                                                                '-tmode', 'periodic']))
 
     return textures
     
