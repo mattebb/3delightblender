@@ -425,11 +425,6 @@ class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
         row.prop(rm, "preview_max_specular_depth", text="Specular Depth")
         row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
         row = col.row(align=True)
-        if engine.ipr:
-            row.operator('lighting.start_interactive', text="Stop Interactive Rendering")
-        else:
-            row.operator('lighting.start_interactive', text="Start Interactive Rendering")
-        
         
 
 class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
@@ -726,7 +721,8 @@ class MATERIAL_MT_renderman_preview_specials(bpy.types.Menu):
         #col.prop(rm, "preview_render_type", expand=True)
         #col.separator()
         col.prop(rm, "preview_render_shadow")
-'''        
+'''  
+
 
 class MATERIAL_PT_renderman_preview(Panel):
     bl_space_type = 'PROPERTIES'
@@ -1741,7 +1737,43 @@ class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):
 
         layout.prop(rm, "export_default_size")
 
+#headers to draw the interactive start/stop buttons
+
+class DrawRenderHeaderInfo(bpy.types.Header):
+    bl_space_type = "INFO"
+
+    def draw(self, context):
+        if context.scene.render.engine != "PRMAN_RENDER":
+            return
+        layout = self.layout
+        
+        row = layout.row(align=True) 
+        row.operator("render.render", text="Render", icon='RENDER_STILL')
+        
+        if engine.ipr:
+            row.operator('lighting.start_interactive', text="Stop Interactive Rendering", icon='CANCEL')
+        else:
+            row.operator('lighting.start_interactive', text="Start Interactive Rendering", icon='PLAY')
+
+class DrawRenderHeaderImage(bpy.types.Header):
+    bl_space_type = "IMAGE_EDITOR"
+
+    def draw(self, context):
+        if context.scene.render.engine != "PRMAN_RENDER":
+            return
+        layout = self.layout
+        
+        row = layout.row(align=True) 
+        row.operator("render.render", text="Render", icon='RENDER_STILL')
+        
+        if engine.ipr:
+            row.operator('lighting.start_interactive', text="Stop Interactive Rendering", icon='CANCEL')
+        else:
+            row.operator('lighting.start_interactive', text="Start Interactive Rendering", icon='PLAY')
+
 def PRMan_menu_func(self, context):
+    if context.scene.render.engine != "PRMAN_RENDER":
+        return
     self.layout.separator()
     if engine.ipr:
         self.layout.operator('lighting.start_interactive', text="PRMan Stop Interactive Rendering")
