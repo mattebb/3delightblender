@@ -542,7 +542,7 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
 #### Rib export
 
 #generate param list
-def gen_params(ri, node):
+def gen_params(ri, node, handle):
     params = {}
     for prop_name,meta in node.prop_meta.items():
         prop = getattr(node, prop_name)
@@ -552,10 +552,10 @@ def gen_params(ri, node):
         #if input socket is linked reference that
         elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
             from_socket = node.inputs[prop_name].links[0].from_socket
-            shader_node_rib(ri, from_socket.node)
+            shader_node_rib(ri, from_socket.node, handle)
             params['reference %s %s' % (meta['renderman_type'], 
                     meta['renderman_name'])] = \
-                ["%s:%s" % (from_socket.node.name, from_socket.identifier)]        
+                ["%s.%s:%s" % (handle, from_socket.node.name, from_socket.identifier)]        
         #else output rib
         else:
             if 'options' in meta and meta['options'] == 'texture' or \
@@ -576,11 +576,15 @@ def gen_params(ri, node):
     return params
 
 # Export to rib
-def shader_node_rib(ri, node, handle=None):
-    params = gen_params(ri, node)
-    params['__instanceid'] = node.name
+def shader_node_rib(ri, node, handle):
+    params = gen_params(ri, node, handle)
+    #make a unique name, ex material001.pxrDisney
+    node_name = node.name
+    if handle:
+        node_name = handle + '.' + node_name
+    params['__instanceid'] = node_name
     if node.renderman_node_type == "pattern":
-        ri.Pattern(node.bl_label, node.name, params)
+        ri.Pattern(node.bl_label, node_name, params)
     elif node.renderman_node_type == "light":
         primary_vis = node.light_primary_visibility
         #must be off for light sources
@@ -588,13 +592,14 @@ def shader_node_rib(ri, node, handle=None):
                     'int camera':int(primary_vis)})
         ri.ShadingRate(node.light_shading_rate)
         if primary_vis:
-            ri.Bxdf("PxrLightEmission", node.name, {'__instanceid': node.name + ".PxrLightEmission"})
+            emission_handle = handle + '.PxrLightEmission' 
+            ri.Bxdf("PxrLightEmission", emission_handle, {'__instanceid': emission_handle})
         params[ri.HANDLEID] = handle
         ri.AreaLightSource(node.bl_label, params)
     elif node.renderman_node_type == "displacement":
         ri.Displacement(node.bl_label, params)
     else:
-        ri.Bxdf(node.bl_label, node.name, params)
+        ri.Bxdf(node.bl_label, node_name, params)
 
 #return the output file name if this texture is to be txmade.
 def get_tex_file_name(prop):
@@ -611,7 +616,7 @@ def export_shader_nodetree(ri, id, handle=None):
 		nt = None
 	if nt:
 		if not handle:
-			handle = id.name
+			handle = nt.name
 
 		out = next((n for n in nt.nodes if n.renderman_node_type == 'output'), 
                     None)
@@ -620,7 +625,7 @@ def export_shader_nodetree(ri, id, handle=None):
 		ri.ArchiveRecord('comment', "Shader Graph")
 		for out_type,socket in out.inputs.items():
 			if socket.is_linked:
-				shader_node_rib(ri, socket.links[0].from_node, handle=handle)
+				shader_node_rib(ri, socket.links[0].from_node, handle)
 
 
 def get_textures_for_node(node):

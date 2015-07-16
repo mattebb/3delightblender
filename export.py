@@ -782,7 +782,7 @@ def export_light_shaders(ri, lamp, do_geometry=True):
     ri.Attribute('identifier', {'string name': handle})
     #do the shader
     if rm.nodetree != '':
-        export_shader_nodetree(ri, lamp, handle=handle)
+        export_shader_nodetree(ri, lamp, handle)
     else:
         export_light_source(ri, lamp, shapes[lamp.type][0])
     
@@ -2239,7 +2239,7 @@ def export_camera(ri, scene, motion, camera_to_use=None):
             dof_distance = (ob.location - cam.dof_object.location).length
         else:
             dof_distance = cam.dof_distance
-        ri.DepthOfField(rm.fstop, 1.0, dof_distance)
+        ri.DepthOfField(rm.fstop, (cam.lens * 0.001), dof_distance)
         
     if scene.renderman.motion_blur:
         ri.Shutter(rm.shutter_open, rm.shutter_close)

@@ -1786,4 +1786,3 @@ def register():
     
 def unregister():
     pass
-    #bpy.utils.unregister_module(__name__)
