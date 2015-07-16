@@ -49,6 +49,7 @@ from .util import get_real_path, find_it_path
 from .util import debug
 from random import randint
 import sys
+from bpy.app.handlers import persistent
 
 addon_version = bl_info['version']
 
@@ -386,14 +387,10 @@ class RPass:
         return
 
     #find the changed object and send for edits
-    def issue_edits(self, context):
-        self.edit_num += 1
-        active = context.scene.objects.active
-        
-        self.ri.ArchiveRecord("structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
-        prman.RicFlush("%d" % self.edit_num, 1, self.ri.SUSPENDRENDERING)
-        issue_edits(self, self.ri, active, prman)
-        
+    def issue_edits(self, scene):
+        active = scene.objects.active
+        if active:
+            issue_edits(self, self.ri, active, prman)
         #record the marker to rib and flush to that point
         
         

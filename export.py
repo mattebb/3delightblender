@@ -2639,15 +2639,15 @@ def edit_flush(ri, edit_num, prman):
     ri.ArchiveRecord("structure", ri.STREAMMARKER + "%d" % edit_num)
     prman.RicFlush("%d" % edit_num, 1, ri.SUSPENDRENDERING)
 
-def issue_light_transform_edit(ri, obj, edit_num):
+def issue_light_transform_edit(ri, obj):
     ri.EditBegin('attribute', {'string scopename': obj.data.name})
     export_transform(ri, obj)
     ri.EditEnd()
     
 
-def issue_light_shader_edit(ri, obj, edit_num):
+def issue_light_shader_edit(ri, obj):
     ri.EditBegin('instance')
-    export_light_shaders(ri, obj.data, do_geometry=False) #can't update geometry in edits
+    export_light_shaders(ri, obj.data, do_geometry=False)
     ri.EditEnd()
             
 def issue_camera_edit(ri, rpass, camera):
@@ -2655,30 +2655,52 @@ def issue_camera_edit(ri, rpass, camera):
     export_camera(ri, rpass.scene, {'transformation':[]}, camera_to_use=camera)
     ri.EditEnd()
 
-def issue_shader_edit(ri, rpass, obj, edit_num):
-    mats_to_edit = []
-    if obj and obj.materials:
-        mats_to_edit = [mat for mat in obj.materials if mat != None]
-    
-    if len(mats_to_edit) > 0:
-        ri.EditBegin('instance')
-        for mat in mats_to_edit:
-            export_material(ri, rpass, rpass.scene, mat)
-        ri.EditEnd()
+def issue_shader_edit(ri, rpass, mats_to_edit):
+    ri.EditBegin('instance')
+    for mat in mats_to_edit:
+        export_material(ri, rpass, rpass.scene, mat)
+    ri.EditEnd()
 
 
 #test the active object type for edits to do
 def issue_edits(rpass, ri, active, prman):
-    if active.type == 'LAMP':
-        lamp = active.data
-        
-        issue_light_transform_edit(ri, active, rpass.edit_num)
-        issue_light_shader_edit(ri, active, rpass.edit_num)
     
-    elif active.type == 'CAMERA':
-        issue_camera_edit(ri, rpass, active)
-    else:
-        #geometry can only edit shaders
-        issue_shader_edit(ri, rpass, active.data, rpass.edit_num)
+    do_edit = active.is_updated
+    #first check out if there's edit to do    
+    mats_to_edit = []
+    if hasattr(active.data, 'materials'):
+        #update the light position and shaders if updated
+        for mat in active.data.materials:
+            if mat != None:
+                nt = bpy.data.node_groups[mat.renderman.nodetree]
+                if nt.is_updated:
+                    mats_to_edit.append(mat)
+        if len(mats_to_edit) > 0:
+            do_edit = True
+    elif active.type == 'LAMP':
+        nt = bpy.data.node_groups[active.data.renderman.nodetree]
+        if nt.is_updated or nt.is_updated_data:
+            do_edit = True
+
+    if do_edit:
+        rpass.edit_num += 1
+        
+        edit_flush(ri, rpass.edit_num, prman)
+        #only update lamp if shader is update or pos, seperately
+        if active.type == 'LAMP':
+            lamp = active.data
+            if active.is_updated:
+                issue_light_transform_edit(ri, active)
+            
+            nt = bpy.data.node_groups[lamp.renderman.nodetree]
+            if nt.is_updated or nt.is_updated_data:
+                issue_light_shader_edit(ri, active)
+    
+        elif active.type == 'CAMERA' and active.is_updated:
+            issue_camera_edit(ri, rpass, active)
+        else:
+            #geometry can only edit shaders
+            if len(mats_to_edit) > 0:
+                issue_shader_edit(ri, rpass, mats_to_edit)
     
     

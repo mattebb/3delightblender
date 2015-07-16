@@ -45,6 +45,7 @@ from . import engine
 from bpy_extras.io_utils import ExportHelper
 
 
+
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     ''''''
     bl_idname = "shading.add_renderman_nodetree"
@@ -100,8 +101,7 @@ class StartInteractive(bpy.types.Operator):
     rpass = None
     is_running = False
 
-    def update(self, context):
-        engine.ipr.issue_edits(context)
+    def draw(self, context):
         w = context.region.width
         h = context.region.height
 
@@ -121,9 +121,11 @@ class StartInteractive(bpy.types.Operator):
         if engine.ipr == None:
             engine.ipr = RPass(context.scene)
             engine.ipr.start_interactive()
-            engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(self.update, (context,), 'WINDOW', 'POST_PIXEL')
+            engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(self.draw, (context,), 'WINDOW', 'POST_PIXEL')
+            bpy.app.handlers.scene_update_post.append(engine.ipr.issue_edits)
         else:
             bpy.types.SpaceView3D.draw_handler_remove(engine.ipr_handle, 'WINDOW')
+            bpy.app.handlers.scene_update_post.remove(engine.ipr.issue_edits)
             engine.ipr.end_interactive()
             engine.ipr = None
             for area in context.screen.areas:

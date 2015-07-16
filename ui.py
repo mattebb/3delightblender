@@ -1741,10 +1741,17 @@ class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):
 
         layout.prop(rm, "export_default_size")
 
-def register():
-    pass
-    #bpy.utils.register_module(__name__)
+def PRMan_menu_func(self, context):
+    self.layout.separator()
+    if engine.ipr:
+        self.layout.operator('lighting.start_interactive', text="PRMan Stop Interactive Rendering")
+    else:
+        self.layout.operator('lighting.start_interactive', text="PRMan Start Interactive Rendering")
 
+
+def register():
+    bpy.types.INFO_MT_render.append(PRMan_menu_func)
+    
 def unregister():
     pass
     #bpy.utils.unregister_module(__name__)
