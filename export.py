@@ -98,7 +98,7 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.Transform(rib(mtx))
         if ob.data and ob.data.materials:
             for mat in [mat for mat in ob.data.materials if mat != None]:
-                export_material(ri, rpass, scene, mat, dupli_name)
+                export_material(ri, rpass, scene, mat)
         ri.ObjectInstance(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
@@ -110,9 +110,9 @@ def exportObjectArchive(ri, rpass, scene, ob, mtx = None, object_name = None, in
         ri.Transform(rib(mtx))
         if ob.data and ob.data.materials:
             for mat in [mat for mat in ob.data.materials if mat != None]:
-                export_material(ri, rpass, scene, mat, object_name)
+                export_material(ri, rpass, scene, mat)
             if instance_handle == object_name + "HAIR":
-                export_material(ri, rpass, scene, ob.data.materials[matNum], object_name)
+                export_material(ri, rpass, scene, ob.data.materials[matNum])
         ri.ReadArchive(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
@@ -981,7 +981,7 @@ def export_particles(ri, rpass, scene, ob, motion):
         if ob.data.materials:
             if ob.data.materials[rm.material_id-1] != None:
                 mat = ob.data.materials[rm.material_id-1]
-                export_material(ri, rpass, scene, mat, pname)
+                export_material(ri, rpass, scene, mat)
         
         # Write object instances or points
         if rm.particle_type == 'OBJECT':
@@ -1386,7 +1386,7 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
 
     if ob.data and ob.data.materials:
         for mat in [mat for mat in ob.data.materials if mat != None]:
-            export_material(ri, rpass, scene, mat, ob.data.name)
+            export_material(ri, rpass, scene, mat)
             break
     
     if prim == 'SPHERE':
@@ -2663,7 +2663,7 @@ def issue_shader_edit(ri, rpass, obj, edit_num):
     if len(mats_to_edit) > 0:
         ri.EditBegin('instance')
         for mat in mats_to_edit:
-            export_material(ri, rpass, rpass.scene, mat, obj.name)
+            export_material(ri, rpass, rpass.scene, mat)
         ri.EditEnd()
 
 
