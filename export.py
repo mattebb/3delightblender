@@ -2712,7 +2712,7 @@ def issue_edits(rpass, ri, active, prman):
     if hasattr(active.data, 'materials'):
         #update the light position and shaders if updated
         for mat in active.data.materials:
-            if mat != None:
+            if mat != None and mat.renderman.nodetree != '':
                 nt = bpy.data.node_groups[mat.renderman.nodetree]
                 if nt.is_updated:
                     mats_to_edit.append(mat)
