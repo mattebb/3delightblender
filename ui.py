@@ -118,7 +118,7 @@ class CollectionPanel():
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
     def _draw_collection(self, context, layout, ptr, name, operator, 
                         opcontext, prop_coll, collection_index):
@@ -450,7 +450,7 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
     def poll(cls, context):
         rd = context.scene.render
         if not context.mesh: return False
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
     def draw(self, context):
         layout = self.layout
@@ -589,7 +589,7 @@ class RENDER_PT_renderman_render_passes(Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
     def _draw_collection(self, layout, ptr, name, operator, prop_coll, collection_index):
         layout.label(name)
@@ -1211,7 +1211,7 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
     def poll(cls, context):
         rd = context.scene.render
         if not context.camera: return False
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
     def draw(self, context):
         layout = self.layout
@@ -1725,7 +1725,7 @@ class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):
     def poll(cls, context):
         rd = context.scene.render
         if not context.particle_system: return False
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
     def draw(self, context):
         layout = self.layout

@@ -742,9 +742,11 @@ def create_mesh(scene, ob, matrix=None):
 
     return mesh
  
-def export_transform(ri, ob):
+def export_transform(ri, ob, flip_x=False):
     m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
         else ob.matrix_world
+    if flip_x:
+        m[0] = -m[0]
     ri.Transform(rib(m))
 
 def export_light_source(ri, lamp, shape):
@@ -797,7 +799,7 @@ def export_light(rpass, scene, ri, ob):
     
     ri.AttributeBegin()
     ri.TransformBegin()
-    export_transform(ri, ob)
+    export_transform(ri, ob, lamp.type == 'HEMI' or lamp.type == 'SUN')
     ri.ShadingRate(rm.shadingrate)
 
     export_light_shaders(ri, lamp)
@@ -2640,8 +2642,9 @@ def edit_flush(ri, edit_num, prman):
     prman.RicFlush("%d" % edit_num, 1, ri.SUSPENDRENDERING)
 
 def issue_light_transform_edit(ri, obj):
+    lamp = obj.data
     ri.EditBegin('attribute', {'string scopename': obj.data.name})
-    export_transform(ri, obj)
+    export_transform(ri, obj, lamp.type == 'HEMI' or lamp.type == 'SUN')
     ri.EditEnd()
     
 
