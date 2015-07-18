@@ -691,7 +691,7 @@ classes = [
     RendermanNodeSocketFloat,
     RendermanNodeSocketInt,
     RendermanNodeSocketString,
-    RendermanNodeSocketVector,
+    RendermanNodeSocketVector
 ]
 
 
