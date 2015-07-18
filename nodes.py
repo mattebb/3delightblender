@@ -685,14 +685,21 @@ class RendermanPatternNodeCategory(NodeCategory):
     def poll(cls, context):
         return context.space_data.tree_type == 'RendermanPatternGraph'
 
+classes = [
+    RendermanShaderSocket,
+    RendermanNodeSocketColor,
+    RendermanNodeSocketFloat,
+    RendermanNodeSocketInt,
+    RendermanNodeSocketString,
+    RendermanNodeSocketVector,
+]
+
+
 def register():
-    bpy.utils.register_class(RendermanShaderSocket)    
-    bpy.utils.register_class(RendermanNodeSocketColor)  
-    bpy.utils.register_class(RendermanNodeSocketFloat)  
-    bpy.utils.register_class(RendermanNodeSocketInt)   
-    bpy.utils.register_class(RendermanNodeSocketString)
-    bpy.utils.register_class(RendermanNodeSocketVector)       
-    
+
+    for cls in classes:
+        bpy.utils.register_class(cls)
+ 
     user_preferences = bpy.context.user_preferences
     prefs = user_preferences.addons[__package__].preferences
 
@@ -742,3 +749,7 @@ def register():
 def unregister():
     nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
     #bpy.utils.unregister_module(__name__)
+
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
+
