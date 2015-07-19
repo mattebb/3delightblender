@@ -29,6 +29,8 @@ import blf
 from bpy.types import Panel
 from .nodes import NODE_LAYOUT_SPLIT
 
+from . import engine
+
 
 # global dictionaries
 from .shader_parameters import exclude_lamp_params
@@ -116,7 +118,7 @@ class CollectionPanel():
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
     def _draw_collection(self, context, layout, ptr, name, operator, 
                         opcontext, prop_coll, collection_index):
@@ -328,6 +330,8 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row = col.row(align=True)
         row.prop(rm, "max_specular_depth", text="Specular Depth")
         row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
+        row = col.row(align=True)
+        row.prop(rm, 'light_localization')
         layout.separator()
         col.prop(rm, "bucket_shape")
         if rm.bucket_shape == 'SPIRAL':
@@ -402,7 +406,7 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         scol.prop(rm, "shutter_close")
 
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
-    bl_label = "Preview Sampling"
+    bl_label = "Interactive and Preview Sampling"
     
     def draw(self, context):
         
@@ -420,7 +424,7 @@ class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
         row = col.row(align=True)
         row.prop(rm, "preview_max_specular_depth", text="Specular Depth")
         row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
-        
+        row = col.row(align=True)
         
 
 class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
@@ -446,7 +450,7 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
     def poll(cls, context):
         rd = context.scene.render
         if not context.mesh: return False
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
     def draw(self, context):
         layout = self.layout
@@ -585,7 +589,7 @@ class RENDER_PT_renderman_render_passes(Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
     def _draw_collection(self, layout, ptr, name, operator, prop_coll, collection_index):
         layout.label(name)
@@ -717,7 +721,8 @@ class MATERIAL_MT_renderman_preview_specials(bpy.types.Menu):
         #col.prop(rm, "preview_render_type", expand=True)
         #col.separator()
         col.prop(rm, "preview_render_shadow")
-'''        
+'''  
+
 
 class MATERIAL_PT_renderman_preview(Panel):
     bl_space_type = 'PROPERTIES'
@@ -1206,7 +1211,7 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
     def poll(cls, context):
         rd = context.scene.render
         if not context.camera: return False
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
     def draw(self, context):
         layout = self.layout
@@ -1281,6 +1286,8 @@ class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
         output_node = next((n for n in nt.nodes if n.renderman_node_type == 'output'), None)
         lamp_node = output_node.inputs['Light'].links[0].from_node
         if lamp_node:
+            layout.prop(lamp_node, 'light_primary_visibility')
+            layout.prop(lamp_node, 'light_shading_rate')
             draw_node_properties_recursive(self.layout, context, nt, lamp_node)
 
 
@@ -1718,7 +1725,7 @@ class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):
     def poll(cls, context):
         rd = context.scene.render
         if not context.particle_system: return False
-        return (rd.engine in {'PRMAN_RENDER'})
+        return rd.engine == 'PRMAN_RENDER'
 
     def draw(self, context):
         layout = self.layout
@@ -1730,10 +1737,52 @@ class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):
 
         layout.prop(rm, "export_default_size")
 
-def register():
-    pass
-    #bpy.utils.register_module(__name__)
+#headers to draw the interactive start/stop buttons
 
+class DrawRenderHeaderInfo(bpy.types.Header):
+    bl_space_type = "INFO"
+
+    def draw(self, context):
+        if context.scene.render.engine != "PRMAN_RENDER":
+            return
+        layout = self.layout
+        
+        row = layout.row(align=True) 
+        row.operator("render.render", text="Render", icon='RENDER_STILL')
+        
+        if engine.ipr:
+            row.operator('lighting.start_interactive', text="Stop Interactive Rendering", icon='CANCEL')
+        else:
+            row.operator('lighting.start_interactive', text="Start Interactive Rendering", icon='PLAY')
+
+class DrawRenderHeaderImage(bpy.types.Header):
+    bl_space_type = "IMAGE_EDITOR"
+
+    def draw(self, context):
+        if context.scene.render.engine != "PRMAN_RENDER":
+            return
+        layout = self.layout
+        
+        row = layout.row(align=True) 
+        row.operator("render.render", text="Render", icon='RENDER_STILL')
+        
+        if engine.ipr:
+            row.operator('lighting.start_interactive', text="Stop Interactive Rendering", icon='CANCEL')
+        else:
+            row.operator('lighting.start_interactive', text="Start Interactive Rendering", icon='PLAY')
+
+def PRMan_menu_func(self, context):
+    if context.scene.render.engine != "PRMAN_RENDER":
+        return
+    self.layout.separator()
+    if engine.ipr:
+        self.layout.operator('lighting.start_interactive', text="PRMan Stop Interactive Rendering")
+    else:
+        self.layout.operator('lighting.start_interactive', text="PRMan Start Interactive Rendering")
+
+
+def register():
+    bpy.types.INFO_MT_render.append(PRMan_menu_func)
+    
 def unregister():
     pass
-    #bpy.utils.unregister_module(__name__)

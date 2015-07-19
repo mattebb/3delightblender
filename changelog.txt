@@ -1,3 +1,19 @@
+v0.2.5 7/13/2015
+* INTERACTIVE RENDERING IS HERE!!!!
+	- To start (for now), you have to have 'it' installed with the RenderMan Studio package.
+	- Go to the scene properties, in the interactive sampling section hit start interactive
+	- Only supports material edits, light moves/edits and camera moves for now.
+
+v0.2.4 7/13/2015
+* Couple bug fixes:
+	- 'it' is autolaunched if you have RMSTREE in your path or RenderMan Studio installed
+	- some path issues with textures
+* Primary visibility for area lights (Environment lights in particular) is now on by default.
+* custom UV's now export correctly
+
+v0.2.3 7/13/2015
+* Performance improvements of default settings.
+* Integration of AtomicP's curve changes.
 
 v0.2.2 7/09/2015
 * Added Support for PxrCamera physical attributes.  In the camera properties click "Use physical Camera"

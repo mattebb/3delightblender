@@ -119,7 +119,13 @@ class RendermanNodeSocketString(bpy.types.NodeSocketString, RendermanSocket):
     '''Renderman string input/output'''
     bl_idname = 'RendermanNodeSocketString'
     bl_label = 'Renderman String Socket'
+
+class RendermanNodeSocketStruct(bpy.types.NodeSocketString, RendermanSocket):
+    '''Renderman struct input/output'''
+    bl_idname = 'RendermanNodeSocketStruct'
+    bl_label = 'Renderman Struct Socket'
     
+    struct_type = bpy.props.StringProperty(default='')
 
 class RendermanNodeSocketColor(bpy.types.NodeSocketColor, RendermanSocket):
     '''Renderman color input/output'''
@@ -218,7 +224,6 @@ class RendermanPatternNode(RendermanShadingNode):
 class RendermanLightNode(RendermanShadingNode):
     bl_label = 'Output'
     renderman_node_type = 'light'
-        
 
 # Generate dynamic types
 def generate_node_type(prefs, name, args):
@@ -270,6 +275,16 @@ def generate_node_type(prefs, name, args):
     #lights cant connect to a node tree in 20.0
     class_generate_properties(ntype, name, inputs)
 
+    if nodeType == 'light':
+        ntype.light_shading_rate = bpy.props.FloatProperty(
+            name="Light Shading Rate",
+            description="Shading Rate for this light.  Leave this high unless detail is missing",
+            default=100.0)
+        ntype.light_primary_visibility = bpy.props.BoolProperty(
+            name="Light Primary Visibility",
+            description="Camera visibility for this light",
+            default=True)
+
     #print(ntype, ntype.bl_rna.identifier)
     bpy.utils.register_class(ntype)
     
@@ -298,10 +313,15 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
     layout.context_pointer_set("node", output_node)
     layout.context_pointer_set("socket", socket)
 
+    if input_name == 'Light' and node is not None and socket.is_linked:
+        layout.prop(node, 'light_primary_visibility')
+        layout.prop(node, 'light_shading_rate')
     split = layout.split(0.35)
     split.label(socket.name+':')
     
     if socket.is_linked:
+        #for lights draw the shading rate ui.
+        
         split.operator_menu_enum("node.add_%s" % input_name.lower(), 
                                 "node_type", text=node.bl_label)
     else:
@@ -383,6 +403,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 else:
                     row.label('', icon='BLANK1')
                     #indented_label(row, socket.name+':')
+                    #don't draw prop for struct type
                     row.prop(node, prop_name)
                     if prop_name in node.inputs:
                         row.operator_menu_enum("node.add_pattern", "node_type", 
@@ -404,6 +425,8 @@ def link_node(nt, from_node, in_socket):
         out_socket = from_node.outputs.get('resultRGB', 
             next((s for s in from_node.outputs \
                 if type(s).__name__ == 'RendermanNodeSocketColor'), None))
+    elif type(in_socket).__name__ == 'RendermanNodeSocketStruct':
+        out_socket = from_node.outputs.get('result', None) 
     else:
         out_socket = from_node.outputs.get('resultF', 
             next((s for s in from_node.outputs \
@@ -544,6 +567,10 @@ def gen_params(ri, node):
                 ["%s:%s" % (from_socket.node.name, from_socket.identifier)]        
         #else output rib
         else:
+            #if struct is not linked continue
+            if meta['renderman_type'] == 'struct':
+                continue
+
             if 'options' in meta and meta['options'] == 'texture' or \
                 (node.renderman_node_type == 'light' and \
                     'widget' in meta and meta['widget'] == 'fileInput'):
@@ -564,11 +591,18 @@ def gen_params(ri, node):
 # Export to rib
 def shader_node_rib(ri, node, handle=None):
     params = gen_params(ri, node)
+    if handle:
+        params['__instanceid'] = handle
     if node.renderman_node_type == "pattern":
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
+        primary_vis = node.light_primary_visibility
         #must be off for light sources
-        ri.Attribute("visibility", {'int transmission':0, 'int indirect':0})
+        ri.Attribute("visibility", {'int transmission':0, 'int indirect':0,
+                    'int camera':int(primary_vis)})
+        ri.ShadingRate(node.light_shading_rate)
+        if primary_vis:
+            ri.Bxdf("PxrLightEmission", node.name, {'__instanceid': handle})
         params[ri.HANDLEID] = handle
         ri.AreaLightSource(node.bl_label, params)
     elif node.renderman_node_type == "displacement":
@@ -576,6 +610,7 @@ def shader_node_rib(ri, node, handle=None):
     else:
         ri.Bxdf(node.bl_label, node.name, params)
 
+#return the output file name if this texture is to be txmade.
 def get_tex_file_name(prop):
     if prop != '' and prop.rsplit('.', 1) != 'tex':
         return os.path.basename(prop).rsplit('.', 2)[0] + '.tex'
@@ -620,10 +655,12 @@ def get_textures_for_node(node):
             if ('options' in meta and meta['options'] == 'texture') or \
                 (node.renderman_node_type == 'light' and \
                     'widget' in meta and meta['widget'] == 'fileInput'): #fix for sloppy args files
-                if node.renderman_node_type == 'light' and "Env" in node.bl_label:
-                    textures.append((prop, get_tex_file_name(prop), ['-envlatl'])) #no options for now
-                else:
-                    textures.append((prop, get_tex_file_name(prop), [])) #no options for now
+                out_file_name = get_tex_file_name(prop)
+                if out_file_name != prop: #if they don't match add this to the list
+                    if node.renderman_node_type == 'light' and "Env" in node.bl_label:
+                        textures.append((prop, out_file_name, ['-envlatl'])) #no options for now
+                    else:
+                        textures.append((prop, out_file_name, [])) #no options for now
 
     return textures
     
@@ -656,14 +693,22 @@ class RendermanPatternNodeCategory(NodeCategory):
     def poll(cls, context):
         return context.space_data.tree_type == 'RendermanPatternGraph'
 
+classes = [
+    RendermanShaderSocket,
+    RendermanNodeSocketColor,
+    RendermanNodeSocketFloat,
+    RendermanNodeSocketInt,
+    RendermanNodeSocketString,
+    RendermanNodeSocketVector,
+    RendermanNodeSocketStruct
+]
+
+
 def register():
-    bpy.utils.register_class(RendermanShaderSocket)    
-    bpy.utils.register_class(RendermanNodeSocketColor)  
-    bpy.utils.register_class(RendermanNodeSocketFloat)  
-    bpy.utils.register_class(RendermanNodeSocketInt)   
-    bpy.utils.register_class(RendermanNodeSocketString)
-    bpy.utils.register_class(RendermanNodeSocketVector)       
-    
+
+    for cls in classes:
+        bpy.utils.register_class(cls)
+ 
     user_preferences = bpy.context.user_preferences
     prefs = user_preferences.addons[__package__].preferences
 
@@ -713,3 +758,7 @@ def register():
 def unregister():
     nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
     #bpy.utils.unregister_module(__name__)
+
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
+

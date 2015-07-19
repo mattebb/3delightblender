@@ -288,7 +288,7 @@ def generate_property(sp):
             prop = bpy.props.StringProperty(name=param_label, 
                             default=param_default, 
                             description=param_help)
-        renderman_type = 'string'
+        renderman_type = param_type
                                     
     elif param_type == 'vector' or param_type == 'normal':
         if param_default == None:
@@ -320,7 +320,7 @@ socket_map = {
     'string':'RendermanNodeSocketString',
     'int':'RendermanNodeSocketInt', 
     'integer':'RendermanNodeSocketInt', 
-    'struct':'RendermanNodeSocketString',
+    'struct':'RendermanNodeSocketStruct',
     'normal':'RendermanNodeSocketVector',
     'vector':'RendermanNodeSocketVector'
 }
@@ -328,6 +328,10 @@ socket_map = {
 #add input sockets
 def node_add_inputs(node, node_name, shaderparameters):
     for sp in shaderparameters:
+        #if this is a page recursively add inputs
+        if sp.tag == 'page':
+            node_add_inputs(node, node_name, sp.findall('param'))
+            continue
         #if this is not connectable don't add socket
         tags = sp.find('tags')
         if tags and tags.find('tag').attrib['value'] == "__nonconnection" or \
@@ -341,6 +345,14 @@ def node_add_inputs(node, node_name, shaderparameters):
         param_name = sp.attrib['name']
         socket = node.inputs.new(socket_map[param_type], param_name)
         socket.link_limit = 1
+        
+        #for struct type look for the type of connection
+        if param_type == 'struct' and tags:
+            tag = tags.findall('tag')[-1]
+            if 'and' in tag.attrib['value']:
+                socket.struct_type = tag.attrib['value'].split()[-1]
+            else:
+                socket.struct_type = tag.attrib['value']
 
 #add output sockets
 def node_add_outputs(node, shaderparameters):
@@ -349,5 +361,11 @@ def node_add_outputs(node, shaderparameters):
     for sp in shaderparameters:
         param_name = sp.attrib['name']
         tag = sp.find('*/tag')
-        node.outputs.new(socket_map[tag.attrib['value']], param_name)
+        socket = node.outputs.new(socket_map[tag.attrib['value']], param_name)
+
+        #for struct type look for the type of connection
+        if tag.attrib['value'] == 'struct':
+            socket.struct_type = sp.findall('*/tag')[-1].attrib['value']
+
+
     

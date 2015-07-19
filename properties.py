@@ -297,7 +297,6 @@ class RendermanPass(bpy.types.PropertyGroup):
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
 
-
     pixelsamples_x = IntProperty(
                 name="Pixel Samples X",
                 description="Number of AA samples to take in X dimension",
@@ -311,8 +310,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 name="Pixel Filter",
                 description="Filter to use to combine pixel samples",
                 items=[('box', 'Box', ''),
-                        ('sinc', 'Sinc', '')],
-                default='sinc')
+                        ('sinc', 'Sinc', ''), 
+                        ('gaussian', 'Gaussian', '')],
+                default='gaussian')
     pixelfilter_x = IntProperty(
                 name="Filter Size X",
                 description="Size of the pixel filter in X dimension",
@@ -327,14 +327,19 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 description=" Sets a maximum for the estimated variance of the pixel value from the true value of the pixel.",
                 min=0, max=1, default=.005)
 
+    light_localization = BoolProperty(
+                name="Light Localized Sampling",
+                description="Localized sampling can give much less noisy renders with similar render times, and may in fact be faster with many lights.",
+                default=True)
+
     min_samples = IntProperty(
                 name="Min Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=32)
+                min=0, default=4)
     max_samples = IntProperty(
                 name="Max Samples",
                 description="The maximum number of camera samples per pixel",
-                min=0, default=512)
+                min=0, default=128)
 
     bucket_shape = EnumProperty(
                 name="Bucket Shape",
@@ -414,7 +419,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     max_diffuse_depth = IntProperty(
                 name="Max Diffuse Depth",
                 description="Maximum number of diffuse ray bounces",
-                min=0, max=32, default=2)
+                min=0, max=32, default=1)
     max_eye_splits = IntProperty(
                 name="Max Eye Splits",
                 description="Maximum number of times a primitive crossing the eye plane is split before being discarded",
@@ -463,21 +468,33 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     always_generate_textures = BoolProperty(
                 name="Always Recompile Textures",
                 description="Recompile used textures at export time to the current rib folder. Leave this unchecked to speed up re-render times",
-                default=True)
+                default=False)
     #preview settings
     preview_pixel_variance = FloatProperty(
                 name="Preview Pixel Variance",
                 description=" Sets a maximum for the estimated variance of the pixel value from the true value of the pixel.",
                 min=0, max=1, default=.01)
 
+    preview_bucket_order = EnumProperty(
+                name="Preview Bucket Order",
+                description="Bucket order to use when rendering",
+                items=[('HORIZONTAL', 'Horizontal', 'Render scanline from top to bottom'),
+                       ('VERTICAL', 'Vertical', 'Render scanline from left to right'),
+                       ('ZIGZAG-X', 'Reverse Horizontal', 'Exactly the same as Horizontal but reverses after each scan'),
+                       ('ZIGZAG-Y', 'Reverse Vertical', 'Exactly the same as Vertical but reverses after each scan'),
+                       ('SPACEFILL', 'Hilber spacefilling curve', 'Renders the buckets along a hilbert spacefilling curve'),
+                       ('SPIRAL', 'Spiral rendering', 'Renders in a spiral from the center of the image or a custom defined point'),
+                       ('RANDOM', 'Random', 'Renders buckets in a random order WARRNING: Inefficient memory footprint')],
+                default='SPIRAL')
+
     preview_min_samples = IntProperty(
                 name="Preview Min Samples",
                 description="The minimum number of camera samples per pixel",
-                min=0, default=4)
+                min=0, default=0)
     preview_max_samples = IntProperty(
                 name="Preview Max Samples",
                 description="The maximum number of camera samples per pixel",
-                min=0, default=32)
+                min=0, default=16)
 
     preview_max_specular_depth = IntProperty(
                 name="Max Preview Specular Depth",
@@ -496,11 +513,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     '''
     
     def display_driver_items(self, context):
-        if self.output_action == 'EXPORT_RENDER':
-            items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
+        items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
                     ('tiff', 'Tiff', 'Render to a TIFF file, to be read back into Blender\'s Render Result'),
                     ('png', 'PNG', 'Render to a PNG file, to be read back into Blender\'s Render Result'),
-                    ('it', 'it', 'External framebuffer display (must have RMS installed)')]#,('tiff', 'Tiff', ''), ('openexr', 'OpenEXR', '')]
+                    ('it', 'it', 'External framebuffer display (must have RMS installed)')]
         return items
         
     display_driver = EnumProperty(
@@ -1484,3 +1500,6 @@ def register():
 
 def unregister():
     bpy.utils.unregister_module(__name__)
+
+    for cls in classes:
+        bpy.utils.unregister_class(cls)

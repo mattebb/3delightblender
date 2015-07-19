@@ -26,7 +26,7 @@
 bl_info = {
     "name": "PRMan Render Engine",
     "author": "Brian Savery",
-    "version": (0, 1, 1),
+    "version": (0, 2, 5),
     "blender": (2, 74, 0),
     "location": "Info Header, render engine menu",
     "description": "RenderMan 20.0 integration",
@@ -68,17 +68,24 @@ class PRManRender(bpy.types.RenderEngine):
         engine.render(self)
         
     def view_update(self, context=None):
+        print('view update')
+
+        for area in context.screen.areas:
+            if area.type == 'VIEW_3D' and area.spaces[0].viewport_shade == 'RENDERED':
+                area.spaces[0].viewport_shade = 'SOLID'
+                print('changing render')
+                do_update = True
         if not self.render_pass:
-            engine.create(self, data, context.scene)
+            engine.create(self, None, context.scene)
             engine.start_interactive(self)
         else:
-            engine.update_interactive(context)
-
+            engine.update_interactive(self, context)
         
-    #TODO
-    # view_update for rerendering
-    # view_draw for rerendering
-
+    
+    def view_draw(self, context=None):
+        pass
+        
+   
 def register():
     from . import ui
     from . import preferences
@@ -100,7 +107,7 @@ def unregister():
     from . import properties
     from . import operators
     from . import nodes
-
+    print('called')
     preferences.unregister()
     properties.unregister()
     operators.unregister()

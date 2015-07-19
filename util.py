@@ -300,6 +300,14 @@ def rmantree_from_env():
 def set_pythonpath(path):
     sys.path.append(path)
 
+def set_rmantree(rmantree):
+    os.environ['RMANTREE'] = rmantree
+
+def set_path(paths):
+    for path in paths:
+        if path != None:
+            os.environ['PATH'] = os.environ['PATH'] + os.pathsep + path
+
 def guess_rmantree():
     guess = rmantree_from_env()
     if guess != '': return guess
@@ -324,8 +332,59 @@ def guess_rmantree():
             if vf >= latestver:
                 latestver = vf
                 guess = os.path.join(base, d)            
-                
+    
+    if not guess:
+        print('ERROR!!!  No RMANTREE found.  Did you install RenderMan Pro Server?  \
+            Or set your RMANTREE environment variable?')
+    elif latestver < 20.0:
+        print('ERROR!!!  You need RenderMan version 20.0 or above.')
+
     return guess    
+
+def find_it_path():
+    rmstree = os.environ['RMSTREE'] if 'RMSTREE' in os.environ.keys() else ''
+    
+    if rmstree == '':
+        base = ""
+        if platform.system() == 'Windows':
+            # default installation path
+            base = 'C:\Program Files\Pixar'
+        
+        elif platform.system() == 'Darwin':        
+            base = '/Applications/Pixar'
+
+        elif platform.system() == 'Linux':
+            base = '/opt/pixar'
+
+        latestver = 0.0
+        guess = ''
+        for d in os.listdir(base):
+            if "RenderManStudio" in d:
+                vstr = d.split('-')[1]
+                vf = float(vstr[:4])
+                
+                if vf >= latestver:
+                    latestver = vf
+                    guess = os.path.join(base, d)            
+        rmstree = guess
+
+    if rmstree == '':
+        return None
+    else:
+        rmstree = os.path.join(rmstree, 'bin')
+        if platform.system() == 'Windows':
+            it_path = os.path.join(rmstree, 'it.exe')
+    
+        elif platform.system() == 'Darwin':        
+            it_path = os.path.join(rmstree, 'it.app', 'Contents', 'MacOS', 'it')
+
+        elif platform.system() == 'Linux':
+            it_path = os.path.join(rmstree, 'it')
+
+        if os.path.exists(it_path):
+            return it_path
+        else:
+            return None
 
 # Default exporter specific env vars
 def init_exporter_env(prefs):
