@@ -119,7 +119,13 @@ class RendermanNodeSocketString(bpy.types.NodeSocketString, RendermanSocket):
     '''Renderman string input/output'''
     bl_idname = 'RendermanNodeSocketString'
     bl_label = 'Renderman String Socket'
+
+class RendermanNodeSocketStruct(bpy.types.NodeSocketString, RendermanSocket):
+    '''Renderman struct input/output'''
+    bl_idname = 'RendermanNodeSocketStruct'
+    bl_label = 'Renderman Struct Socket'
     
+    struct_type = bpy.props.StringProperty(default='')
 
 class RendermanNodeSocketColor(bpy.types.NodeSocketColor, RendermanSocket):
     '''Renderman color input/output'''
@@ -397,6 +403,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 else:
                     row.label('', icon='BLANK1')
                     #indented_label(row, socket.name+':')
+                    #don't draw prop for struct type
                     row.prop(node, prop_name)
                     if prop_name in node.inputs:
                         row.operator_menu_enum("node.add_pattern", "node_type", 
@@ -418,6 +425,8 @@ def link_node(nt, from_node, in_socket):
         out_socket = from_node.outputs.get('resultRGB', 
             next((s for s in from_node.outputs \
                 if type(s).__name__ == 'RendermanNodeSocketColor'), None))
+    elif type(in_socket).__name__ == 'RendermanNodeSocketStruct':
+        out_socket = from_node.outputs.get('result', None) 
     else:
         out_socket = from_node.outputs.get('resultF', 
             next((s for s in from_node.outputs \
@@ -542,7 +551,7 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
 #### Rib export
 
 #generate param list
-def gen_params(ri, node, handle):
+def gen_params(ri, node):
     params = {}
     for prop_name,meta in node.prop_meta.items():
         prop = getattr(node, prop_name)
@@ -552,12 +561,16 @@ def gen_params(ri, node, handle):
         #if input socket is linked reference that
         elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
             from_socket = node.inputs[prop_name].links[0].from_socket
-            shader_node_rib(ri, from_socket.node, handle)
+            shader_node_rib(ri, from_socket.node)
             params['reference %s %s' % (meta['renderman_type'], 
                     meta['renderman_name'])] = \
-                ["%s.%s:%s" % (handle, from_socket.node.name, from_socket.identifier)]        
+                ["%s:%s" % (from_socket.node.name, from_socket.identifier)]        
         #else output rib
         else:
+            #if struct is not linked continue
+            if meta['renderman_type'] == 'struct':
+                continue
+
             if 'options' in meta and meta['options'] == 'texture' or \
                 (node.renderman_node_type == 'light' and \
                     'widget' in meta and meta['widget'] == 'fileInput'):
@@ -576,15 +589,12 @@ def gen_params(ri, node, handle):
     return params
 
 # Export to rib
-def shader_node_rib(ri, node, handle):
-    params = gen_params(ri, node, handle)
-    #make a unique name, ex material001.pxrDisney
-    node_name = node.name
+def shader_node_rib(ri, node, handle=None):
+    params = gen_params(ri, node)
     if handle:
-        node_name = handle + '.' + node_name
-    params['__instanceid'] = node_name
+        params['__instanceid'] = handle
     if node.renderman_node_type == "pattern":
-        ri.Pattern(node.bl_label, node_name, params)
+        ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
         primary_vis = node.light_primary_visibility
         #must be off for light sources
@@ -592,14 +602,13 @@ def shader_node_rib(ri, node, handle):
                     'int camera':int(primary_vis)})
         ri.ShadingRate(node.light_shading_rate)
         if primary_vis:
-            emission_handle = handle + '.PxrLightEmission' 
-            ri.Bxdf("PxrLightEmission", emission_handle, {'__instanceid': emission_handle})
+            ri.Bxdf("PxrLightEmission", node.name, {'__instanceid': handle})
         params[ri.HANDLEID] = handle
         ri.AreaLightSource(node.bl_label, params)
     elif node.renderman_node_type == "displacement":
         ri.Displacement(node.bl_label, params)
     else:
-        ri.Bxdf(node.bl_label, node_name, params)
+        ri.Bxdf(node.bl_label, node.name, params)
 
 #return the output file name if this texture is to be txmade.
 def get_tex_file_name(prop):
@@ -616,7 +625,7 @@ def export_shader_nodetree(ri, id, handle=None):
 		nt = None
 	if nt:
 		if not handle:
-			handle = nt.name
+			handle = id.name
 
 		out = next((n for n in nt.nodes if n.renderman_node_type == 'output'), 
                     None)
@@ -625,7 +634,7 @@ def export_shader_nodetree(ri, id, handle=None):
 		ri.ArchiveRecord('comment', "Shader Graph")
 		for out_type,socket in out.inputs.items():
 			if socket.is_linked:
-				shader_node_rib(ri, socket.links[0].from_node, handle)
+				shader_node_rib(ri, socket.links[0].from_node, handle=handle)
 
 
 def get_textures_for_node(node):
@@ -651,8 +660,7 @@ def get_textures_for_node(node):
                     if node.renderman_node_type == 'light' and "Env" in node.bl_label:
                         textures.append((prop, out_file_name, ['-envlatl'])) #no options for now
                     else:
-                        textures.append((prop, out_file_name, ['-smode', 'periodic', 
-                                                                '-tmode', 'periodic']))
+                        textures.append((prop, out_file_name, [])) #no options for now
 
     return textures
     
