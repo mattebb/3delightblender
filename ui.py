@@ -1698,15 +1698,15 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
         split = layout.split()
         col = split.column()
         
-        #if (psys.settings.type == 'EMITTER' and rm.particle_type == 'particle') or psys.settings.type == 'HAIR':
-        col.prop(rm, "constant_width")
-        subcol = col.column()
-        subcol.active = rm.constant_width
-        subcol.prop(rm, "width")
-        subcol2 = col.column()
-        subcol2.active = not rm.constant_width
-        subcol2.prop(rm, "base_width")
-        subcol2.prop(rm, "tip_width")
+        if psys.settings.type == 'HAIR':
+            col.prop(rm, "constant_width")
+            subcol = col.column()
+            subcol.active = rm.constant_width
+            subcol.prop(rm, "width")
+            subcol2 = col.column()
+            subcol2.active = not rm.constant_width
+            subcol2.prop(rm, "base_width")
+            subcol2.prop(rm, "tip_width")
         #subcol2.prop(rm, "width_offset")
 
 
