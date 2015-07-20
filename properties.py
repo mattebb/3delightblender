@@ -25,6 +25,7 @@
 
 import bpy
 import os
+#import sys
 import xml.etree.ElementTree as ET
 #from .properties_shader import RendermanCoshader, coshaderShaders
 
@@ -516,7 +517,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
                     ('tiff', 'Tiff', 'Render to a TIFF file, to be read back into Blender\'s Render Result'),
                     ('png', 'PNG', 'Render to a PNG file, to be read back into Blender\'s Render Result'),
-                    ('it', 'it', 'External framebuffer display (must have RMS installed)')]
+                    ('it', 'it', 'External framebuffer display (must have RMS installed)'),
+                    ('multires', 'multires', 'External render window that has high performance for re-render.')]
+        #if sys.platform == ("win32"):
+        #    items.append(('windows', 'windows', 'Display window for windows q for quite and s for save.'))
+        #else:
+        #    items.append(('x11', 'x11', 'Display window for linux systems q for quite and s for save.'))
         return items
         
     display_driver = EnumProperty(
@@ -1086,7 +1092,8 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                     ('blobby', 'Blobby', 'Implicit Surface (metaballs)'),
                     ('sphere', 'Sphere', 'Two-sided sphere primitive'),
                     ('disk', 'Disk', 'One-sided disk primitive'),
-                    ('OBJECT', 'Object', 'Instanced objects at each point')
+                    ('OBJECT', 'Object', 'Instanced objects at each point'),
+                    ('GROUP', 'Group', 'Instanced group at each point')
                     ]
 
     particle_type = EnumProperty(

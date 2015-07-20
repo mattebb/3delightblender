@@ -1691,6 +1691,8 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
             col.row().prop(rm, "particle_type", expand=True)
             if rm.particle_type == 'OBJECT':
                 col.prop_search(rm, "particle_instance_object", bpy.data, "objects", text="")
+            elif rm.particle_type == 'GROUP':
+                col.prop_search(rm, "particle_instance_object", bpy.data, "groups", text="")
 
         # XXX: if rm.type in ('sphere', 'disc', 'patch'):
         # implement patchaspectratio and patchrotation   
@@ -1698,15 +1700,15 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
         split = layout.split()
         col = split.column()
         
-        #if (psys.settings.type == 'EMITTER' and rm.particle_type == 'particle') or psys.settings.type == 'HAIR':
-        col.prop(rm, "constant_width")
-        subcol = col.column()
-        subcol.active = rm.constant_width
-        subcol.prop(rm, "width")
-        subcol2 = col.column()
-        subcol2.active = not rm.constant_width
-        subcol2.prop(rm, "base_width")
-        subcol2.prop(rm, "tip_width")
+        if psys.settings.type == 'HAIR':
+            col.prop(rm, "constant_width")
+            subcol = col.column()
+            subcol.active = rm.constant_width
+            subcol.prop(rm, "width")
+            subcol2 = col.column()
+            subcol2.active = not rm.constant_width
+            subcol2.prop(rm, "base_width")
+            subcol2.prop(rm, "tip_width")
         #subcol2.prop(rm, "width_offset")
 
 

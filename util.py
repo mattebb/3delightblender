@@ -56,6 +56,7 @@ def getattr_recursive(ptr, attrstring):
 
 
 def debug(warningLevel, *output):
+
     if warningLevel == 'warning' or warningLevel == 'error':
         if(warningLevel == "warning"):
             print ("WARNING: " , output)
@@ -69,7 +70,6 @@ def debug(warningLevel, *output):
                 print ("DEBUG: " , output)
         else:
             pass
-
 
 # -------------------- Path Handling -----------------------------
 

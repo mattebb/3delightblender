@@ -39,6 +39,7 @@ from .util import user_path
 from .util import path_list_convert, get_real_path
 from .util import get_properties
 from .util import debug
+from .util import find_it_path
 
 addon_version = bl_info['version']
 
@@ -2444,7 +2445,16 @@ def export_display(ri, rpass, scene):
                 params['string source'] = source
             ri.DisplayChannel('%s %s' % (declare_type, aov), params)
 
-    dspy_driver = rm.display_driver
+    if(rm.display_driver == 'it'):
+        if find_it_path() == None:
+            debug("error", "RMS is not installed IT not available!")
+            dspy_driver = 'multires'
+        else:
+            dspy_driver = rm.display_driver
+    else:
+        dspy_driver = rm.display_driver
+
+    
     main_display = user_path(rm.path_display_driver_image, 
                 scene=scene)
     image_base, ext = main_display.rsplit('.', 1)
