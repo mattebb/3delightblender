@@ -1691,6 +1691,8 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
             col.row().prop(rm, "particle_type", expand=True)
             if rm.particle_type == 'OBJECT':
                 col.prop_search(rm, "particle_instance_object", bpy.data, "objects", text="")
+            elif rm.particle_type == 'GROUP':
+                col.prop_search(rm, "particle_instance_object", bpy.data, "groups", text="")
 
         # XXX: if rm.type in ('sphere', 'disc', 'patch'):
         # implement patchaspectratio and patchrotation   

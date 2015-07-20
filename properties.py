@@ -1086,7 +1086,8 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                     ('blobby', 'Blobby', 'Implicit Surface (metaballs)'),
                     ('sphere', 'Sphere', 'Two-sided sphere primitive'),
                     ('disk', 'Disk', 'One-sided disk primitive'),
-                    ('OBJECT', 'Object', 'Instanced objects at each point')
+                    ('OBJECT', 'Object', 'Instanced objects at each point'),
+                    ('GROUP', 'Group', 'Instanced group at each point')
                     ]
 
     particle_type = EnumProperty(
