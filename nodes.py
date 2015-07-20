@@ -169,6 +169,22 @@ class RendermanShadingNode(bpy.types.Node):
     #all the properties of a shader will go here, also inputs/outputs 
     #on connectable props will have the same name
     #node_props = None
+    def draw_buttons(self, context, layout):
+        self.draw_nonconnectable_props(context, layout, self.prop_names)
+
+    def draw_buttons_ext(self, context, layout):
+        self.draw_nonconnectable_props(context, layout, self.prop_names)
+
+    def draw_nonconnectable_props(self, context, layout, prop_names):
+        for prop_name in prop_names:
+            prop_meta = self.prop_meta[prop_name]
+            if prop_name not in self.inputs:
+                if prop_meta['renderman_type'] == 'page':
+                    prop = getattr(self, prop_name)
+                    self.draw_nonconnectable_props(context, layout, prop)
+                else:
+                    layout.prop(self,prop_name)
+            
 
 
     @classmethod
@@ -205,6 +221,11 @@ class RendermanOutputNode(RendermanShadingNode):
         #input.default_value = bpy.props.EnumProperty(items=[('PxrDisney', 'PxrDisney', 
         #    '')])
 
+    def draw_buttons(self, context, layout):
+        return
+
+    def draw_buttons_ext(self, context, layout):
+        return
         
 
 # Final output node, used as a dummy to find top level shaders
