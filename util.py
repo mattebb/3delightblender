@@ -259,7 +259,7 @@ def rib(v, type_hint=None):
 
 def rib_ob_bounds(ob_bb):
     return ( ob_bb[0][0], ob_bb[7][0], ob_bb[0][1],
-            ob_bb[7][1], ob_bb[0][2], ob_bb[7][2] )
+            ob_bb[7][1], ob_bb[0][2], ob_bb[1][2] )
 
 def rib_path(path, escape_slashes=False):
     return path_win_to_unixy(bpy.path.abspath(path), 
@@ -404,8 +404,8 @@ def init_exporter_env(prefs):
     # if 'PTC' not in os.environ.keys():
     #     os.environ['PTC'] = rm.env_vars.ptc
     
-    # if 'ARC' not in os.environ.keys():
-    #     os.environ['ARC'] = rm.env_vars.arc
+    if 'ARC' not in os.environ.keys():
+        os.environ['ARC'] = prefs.env_vars.arc
         
     
         

@@ -150,13 +150,17 @@ class RPass:
         
         self.paths['render_output'] = user_path( \
             scene.renderman.path_display_driver_image, scene=scene)
-        
         self.paths['shader'] = get_path_list_converted(scene.renderman, \
                                                         'shader')
         self.paths['texture'] = [self.paths['texture_output']]
 
         #self.paths['procedural'] = get_path_list_converted(scene.renderman, 'procedural')
-        #self.paths['archive'] = get_path_list_converted(scene.renderman, 'archive')
+        archive_dir = os.path.dirname(user_path(scene.renderman.path_object_archive, 
+                                            scene=scene))
+        self.paths['archive'] = archive_dir
+        if not os.path.exists(archive_dir):
+            os.makedirs(archive_dir)
+
 
     def render(self, engine):
         DELAY = 1
@@ -372,17 +376,17 @@ class RPass:
         self.is_interactive = True
         self.is_interactive_running = True
         self.ri.Begin(self.paths['rib_output'])
-
+        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         
         #export rib and bake
         write_rib(self, self.scene, self.ri)
         self.ri.End()
         self.convert_textures(get_texture_list(self.scene))
-        
+
         filename = "launch:prman? -ctrl $ctrlin $ctrlout -dspyserver it"
         
         self.ri.Begin(filename)
-        
+        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.scene, self.ri, prman)
         
         return
@@ -406,6 +410,7 @@ class RPass:
     def gen_rib(self):
         self.convert_textures(get_texture_list(self.scene))
         self.ri.Begin(self.paths['rib_output'])
+        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         write_rib(self, self.scene, self.ri)
         self.ri.End()
 
@@ -422,6 +427,7 @@ class RPass:
         self.convert_textures(get_texture_list_preview(self.scene))
         
         self.ri.Begin(self.paths['rib_output'])
+        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         write_preview_rib(self, self.scene, self.ri)
         self.ri.End()
 

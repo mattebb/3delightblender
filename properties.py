@@ -25,7 +25,6 @@
 
 import bpy
 import os
-#import sys
 import xml.etree.ElementTree as ET
 #from .properties_shader import RendermanCoshader, coshaderShaders
 
@@ -452,6 +451,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 subtype='FILE_PATH',
                 default="$OUT/{scene}.rib")
 
+    path_object_archive = StringProperty(
+                name="Object archive RIB Output Path",
+                description="Path to generated rib file for an objects geometry",
+                subtype='FILE_PATH',
+                default="$ARC/{object}.rib")
+
     path_texture_output = StringProperty(
                 name="Teture Output Path",
                 description="Path to generated .tex files",
@@ -469,7 +474,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     always_generate_textures = BoolProperty(
                 name="Always Recompile Textures",
                 description="Recompile used textures at export time to the current rib folder. Leave this unchecked to speed up re-render times",
-                default=False)
+                default=True)
     #preview settings
     preview_pixel_variance = FloatProperty(
                 name="Preview Pixel Variance",
@@ -517,12 +522,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
                     ('tiff', 'Tiff', 'Render to a TIFF file, to be read back into Blender\'s Render Result'),
                     ('png', 'PNG', 'Render to a PNG file, to be read back into Blender\'s Render Result'),
-                    ('it', 'it', 'External framebuffer display (must have RMS installed)'),
-                    ('multires', 'multires', 'External render window that has high performance for re-render.')]
-        #if sys.platform == ("win32"):
-        #    items.append(('windows', 'windows', 'Display window for windows q for quite and s for save.'))
-        #else:
-        #    items.append(('x11', 'x11', 'Display window for linux systems q for quite and s for save.'))
+                    ('it', 'it', 'External framebuffer display (must have RMS installed)')]
         return items
         
     display_driver = EnumProperty(
@@ -1092,8 +1092,7 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                     ('blobby', 'Blobby', 'Implicit Surface (metaballs)'),
                     ('sphere', 'Sphere', 'Two-sided sphere primitive'),
                     ('disk', 'Disk', 'One-sided disk primitive'),
-                    ('OBJECT', 'Object', 'Instanced objects at each point'),
-                    ('GROUP', 'Group', 'Instanced group at each point')
+                    ('OBJECT', 'Object', 'Instanced objects at each point')
                     ]
 
     particle_type = EnumProperty(
@@ -1507,6 +1506,3 @@ def register():
 
 def unregister():
     bpy.utils.unregister_module(__name__)
-
-    for cls in classes:
-        bpy.utils.unregister_class(cls)

@@ -68,13 +68,6 @@ class PRManRender(bpy.types.RenderEngine):
         engine.render(self)
         
     def view_update(self, context=None):
-        print('view update')
-
-        for area in context.screen.areas:
-            if area.type == 'VIEW_3D' and area.spaces[0].viewport_shade == 'RENDERED':
-                area.spaces[0].viewport_shade = 'SOLID'
-                print('changing render')
-                do_update = True
         if not self.render_pass:
             engine.create(self, None, context.scene)
             engine.start_interactive(self)
@@ -107,7 +100,7 @@ def unregister():
     from . import properties
     from . import operators
     from . import nodes
-    print('called')
+    
     preferences.unregister()
     properties.unregister()
     operators.unregister()
