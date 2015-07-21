@@ -446,7 +446,8 @@ def get_strands(ri, scene,ob, psys):
         debug("info",widthString, hair_width)
     else:
         widthString = "vertex float width"
-        #hair_width = [base_width]
+        hair_width = []
+        hair_width.append(base_width)
         hair_decriment = base_width / (steps)
         
     
@@ -473,12 +474,15 @@ def get_strands(ri, scene,ob, psys):
     ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
     ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
     j = 0
+    points = []
+    
+    vertsArray = []
+    nverts = 0
     for pindex in range(total_hair_count):
-        points = []
-        hair_width = [base_width]
-        nverts = 0
+        if j != 0 and not conwidth:
+            hair_width.append(base_width)
         i = 0
-        
+        vertsInStrand = 0
         for step in range(0, steps + 1):
             co = psys.co_hair(ob, pindex, step)
             
@@ -487,24 +491,37 @@ def get_strands(ri, scene,ob, psys):
                 if i == 0 or i == steps:
                     points.extend(wmatx * psys.co_hair(ob, pindex, step))
                     nverts += 1
+                    vertsInStrand += 1
             
+            vertsInStrand += 1
             if not conwidth :
                 if i == 0:
-                    hair_width.append(hair_width[0])
+                    hair_width.append(hair_width[j])
                 elif i == steps:
                     hair_width.append(hair_width[i] - hair_decriment)
                     hair_width.append(hair_width[i + 1])
+                    vertsArray.append(vertsInStrand)
                 else:
                     hair_width.append(hair_width[i] - hair_decriment)
+            else:
+                if i == steps:
+                    vertsArray.append(vertsInStrand)
+                else:
+                    pass
+
             nverts += 1
+            
             i += 1
         debug("info","Exporting ",j , "Strands and ", nverts ," Vertices")
-        debug("info", "WIDTH:",widthString,hair_width)
-        debug("info", "POINTS:",points)
-        #temp fix for curves not exporting
-        if nverts == len(points)/3:
-            ri.Curves("cubic", [nverts], "periodic", {"P": rib(points), widthString: hair_width})
+        debug("info", "WIDTH:",widthString, hair_width)
+        debug("info", "VERTARRAY:",vertsArray)
+        
         j += 1
+    if nverts == len(points)/3:
+        ri.Curves("cubic", vertsArray, "periodic", {"P": rib(points), widthString: hair_width})
+    else:
+        debug("error", "Strands from, ", ob.name, "could not be exported!")
+        return
     psys.set_resolution(scene, ob, 'PREVIEW')
 
 # only export particles that are alive, 
