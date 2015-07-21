@@ -71,7 +71,7 @@ def init():
     
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
     #TODO add support for regions (rerendering)
-    engine.render_pass = RPass(scene, engine)
+    engine.render_pass = RPass(scene)
 
 def free(engine):
     if hasattr(engine, 'render_pass'):
@@ -93,7 +93,7 @@ def update(engine, data, scene):
         engine.render_pass.gen_preview_rib()
     else:
         engine.render_pass.display_driver = scene.renderman.display_driver
-        engine.render_pass.gen_rib()
+        engine.render_pass.gen_rib(engine=engine)
 
 #assumes you have already set the scene
 def start_interactive(engine):
@@ -111,15 +111,21 @@ def update_timestamp(scene):
         now = int(time.time())
         active.renderman.update_timestamp = now
     
+def format_seconds_to_hhmmss(seconds):
+    hours = seconds // (60 * 60)
+    seconds %= (60 * 60)
+    minutes = seconds // 60
+    seconds %= 60
+    return "%02i:%02i:%02i" % (hours, minutes, seconds)
+
 
 class RPass:    
-    def __init__(self, scene, engine):
+    def __init__(self, scene):
         self.scene = scene
         #pass addon prefs to init_envs
         init_exporter_env( \
         bpy.context.user_preferences.addons[__name__.split('.')[0]].preferences)
         self.initialize_paths(scene)
-        self.engine = engine
         self.rm = scene.renderman
         
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
@@ -198,13 +204,6 @@ class RPass:
                 environ = os.environ.copy()
                 subprocess.Popen([it_path], env=environ, shell=True)
 
-
-        def format_seconds_to_hhmmss(seconds):
-            hours = seconds // (60 * 60)
-            seconds %= (60 * 60)
-            minutes = seconds // 60
-            seconds %= 60
-            return "%02i:%02i:%02i" % (hours, minutes, seconds)
 
         def update_image():
             image_scale = 100.0 / self.scene.render.resolution_percentage
@@ -423,16 +422,18 @@ class RPass:
         self.is_interactive_running = False
         pass
 
-    def gen_rib(self):
+    def gen_rib(self, engine=None):
         time_start = time.time()
         self.convert_textures(get_texture_list(self.scene))
-        self.engine.report({"INFO"}, "Texture generation took %s seconds" % (time.time() - time_start))
+        if engine:
+            engine.report({"INFO"}, "Texture generation took %s" % format_seconds_to_hhmmss(time.time() - time_start))
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         write_rib(self, self.scene, self.ri)
         self.ri.End()
-        self.engine.report({"INFO"}, "RIB generation took %s seconds" % (time.time() - time_start))
+        if engine:
+            engine.report({"INFO"}, "RIB generation took %s" % format_seconds_to_hhmmss(time.time() - time_start))
 
     def gen_preview_rib(self):
         previewdir = os.path.join(self.paths['export_dir'], "preview")
