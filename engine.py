@@ -71,7 +71,7 @@ def init():
     
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
     #TODO add support for regions (rerendering)
-    engine.render_pass = RPass(scene)
+    engine.render_pass = RPass(scene, engine)
 
 def free(engine):
     if hasattr(engine, 'render_pass'):
@@ -93,9 +93,7 @@ def update(engine, data, scene):
         engine.render_pass.gen_preview_rib()
     else:
         engine.render_pass.display_driver = scene.renderman.display_driver
-        start_time = time.time()
         engine.render_pass.gen_rib()
-        print("EXPORT COMPLETED IN: %s SECONDS!" % (time.time() - start_time))
 
 #assumes you have already set the scene
 def start_interactive(engine):
@@ -106,13 +104,13 @@ def update_interactive(engine, context):
 
 
 class RPass:    
-    def __init__(self, scene):
+    def __init__(self, scene, engine):
         self.scene = scene
         #pass addon prefs to init_envs
         init_exporter_env( \
         bpy.context.user_preferences.addons[__name__.split('.')[0]].preferences)
         self.initialize_paths(scene)
-        
+        self.engine = engine
         self.rm = scene.renderman
         
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
@@ -406,10 +404,14 @@ class RPass:
         pass
 
     def gen_rib(self):
+        time_start = time.time()
         self.convert_textures(get_texture_list(self.scene))
+        self.engine.report({"INFO"}, "Texture generation took %s seconds" % (time.time() - time_start))
+        time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
         write_rib(self, self.scene, self.ri)
         self.ri.End()
+        self.engine.report({"INFO"}, "RIB generation took %s seconds" % (time.time() - time_start))
 
     def gen_preview_rib(self):
         previewdir = os.path.join(self.paths['export_dir'], "preview")
