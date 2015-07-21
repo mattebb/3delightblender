@@ -310,7 +310,13 @@ def set_path(paths):
 
 def guess_rmantree():
     guess = rmantree_from_env()
-    if guess != '': return guess
+    if guess != '': 
+        vstr = guess.split('-')[1]
+        vf = float(vstr[:4])
+
+        #if this is < 20.0 they have misconfigured their RMANTREE so lets find one
+        if vf >= 20.0:
+            return guess
     
     base = ""
     if platform.system() == 'Windows':
