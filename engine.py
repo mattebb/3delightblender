@@ -93,7 +93,9 @@ def update(engine, data, scene):
         engine.render_pass.gen_preview_rib()
     else:
         engine.render_pass.display_driver = scene.renderman.display_driver
+        start_time = time.time()
         engine.render_pass.gen_rib()
+        print("EXPORT COMPLETED IN: %s SECONDS!" % (time.time() - start_time))
 
 #assumes you have already set the scene
 def start_interactive(engine):
