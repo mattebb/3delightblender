@@ -102,6 +102,13 @@ def start_interactive(engine):
 def update_interactive(engine, context):
     engine.render_pass.issue_edits(context)
 
+#update the timestamp on an object
+def update_timestamp(scene):
+    active = scene.objects.active
+    if active and (active.is_updated or active.is_updated_data):
+        now = int(time.time())
+        active.renderman.update_timestamp = now
+    
 
 class RPass:    
     def __init__(self, scene):

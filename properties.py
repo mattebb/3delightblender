@@ -26,6 +26,7 @@
 import bpy
 import os
 import xml.etree.ElementTree as ET
+import time
 #from .properties_shader import RendermanCoshader, coshaderShaders
 
 from .util import guess_rmantree
@@ -1177,8 +1178,14 @@ class RendermanCurveGeometrySettings(bpy.types.PropertyGroup):
     prim_vars = CollectionProperty(type=RendermanMeshPrimVar, name="Primitive Variables")
     prim_vars_index = IntProperty(min=-1, default=-1)
 
-         
 class RendermanObjectSettings(bpy.types.PropertyGroup):
+
+
+    #for some odd reason blender truncates this as a float
+    update_timestamp = IntProperty(
+            name="Update Timestamp", default=int(time.time()),
+                description="Used for telling if an objects rib archive is dirty", subtype='UNSIGNED'
+        )
 
     geometry_source = EnumProperty(
                 name="Geometry Source",
