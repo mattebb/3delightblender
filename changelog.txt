@@ -1,3 +1,11 @@
+v0.2.6 7/13/2015
+* Cleanup ribgen a bit
+* Re-enabled Archive paths
+* Objects Geometry is output to a rib archive either under $SCENE/archives/static or $SCENE/archives/$FRAME_NUM if animated.
+* Objects Geometry is only output if the object is updated.  For example if a scene is created, rendered, then
+re-rendered, the geometry would not be re-ribgenned.  However if the object was updated in blender, it would update the rib.  This will greatly speed ribgens but may cause issues if somehow an object is updated but the timestamp not updated.
+In this case the archives directory can simply be removed, or the objects rib archive individually.  
+
 v0.2.5 7/13/2015
 * INTERACTIVE RENDERING IS HERE!!!!
 	- To start (for now), you have to have 'it' installed with the RenderMan Studio package.

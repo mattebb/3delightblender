@@ -452,11 +452,17 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 subtype='FILE_PATH',
                 default="$OUT/{scene}.rib")
 
-    path_object_archive = StringProperty(
+    path_object_archive_static = StringProperty(
                 name="Object archive RIB Output Path",
-                description="Path to generated rib file for an objects geometry",
+                description="Path to generated rib file for a non-deforming objects' geometry",
                 subtype='FILE_PATH',
-                default="$ARC/{object}.rib")
+                default="$ARC/static/{object}.rib")
+
+    path_object_archive_animated = StringProperty(
+                name="Object archive RIB Output Path",
+                description="Path to generated rib file for an animated objects geometry",
+                subtype='FILE_PATH',
+                default="$ARC/####/{object}.rib")
 
     path_texture_output = StringProperty(
                 name="Teture Output Path",

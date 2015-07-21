@@ -103,6 +103,8 @@ def update_interactive(engine, context):
     engine.render_pass.issue_edits(context)
 
 #update the timestamp on an object
+#note that this only logs the active object.  So it might not work say 
+#if a script updates objects.  We would need to iterate through all objects
 def update_timestamp(scene):
     active = scene.objects.active
     if active and (active.is_updated or active.is_updated_data):
@@ -162,12 +164,17 @@ class RPass:
         self.paths['texture'] = [self.paths['texture_output']]
 
         #self.paths['procedural'] = get_path_list_converted(scene.renderman, 'procedural')
-        archive_dir = os.path.dirname(user_path(scene.renderman.path_object_archive, 
+        static_archive_dir = os.path.dirname(user_path(scene.renderman.path_object_archive_static, 
                                             scene=scene))
-        self.paths['archive'] = archive_dir
-        if not os.path.exists(archive_dir):
-            os.makedirs(archive_dir)
-
+        frame_archive_dir = os.path.dirname(user_path(scene.renderman.path_object_archive_animated, 
+                                            scene=scene))
+        self.paths['static_archives'] = static_archive_dir
+        self.paths['frame_archives'] = frame_archive_dir
+        if not os.path.exists(self.paths['static_archives']):
+            os.makedirs(self.paths['static_archives'])
+        if not os.path.exists(self.paths['frame_archives']):
+            os.makedirs(self.paths['frame_archives'])
+        self.paths['archive'] = os.path.dirname(static_archive_dir)
 
     def render(self, engine):
         DELAY = 1
@@ -404,7 +411,9 @@ class RPass:
         if active:
             issue_edits(self, self.ri, active, prman)
         #record the marker to rib and flush to that point
-        
+        #also do the camera in case the camera is locked to display.
+        if scene.camera != active:
+            issue_edits(self, self.ri, active, prman)
         
     #ri.end
     def end_interactive(self):
