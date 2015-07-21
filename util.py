@@ -321,7 +321,7 @@ def guess_rmantree():
     base = ""
     if platform.system() == 'Windows':
         # default installation path
-        base = 'C:\Program Files\Pixar'
+        base = r'C:\Program Files\Pixar'	#or base = 'C:/Program Files/Pixar'
     
     elif platform.system() == 'Darwin':        
         base = '/Applications/Pixar'
@@ -361,7 +361,7 @@ def find_it_path():
         base = ""
         if platform.system() == 'Windows':
             # default installation path
-            base = 'C:\Program Files\Pixar'
+            base = r'C:\Program Files\Pixar'	#or base = 'C:/Program Files/Pixar'
         
         elif platform.system() == 'Darwin':        
             base = '/Applications/Pixar'
@@ -425,7 +425,7 @@ def init_env(rm):
     RMANTREE_BIN = os.path.join(RMANTREE, 'bin')
     if RMANTREE_BIN not in sys.path:
         sys.path.append(RMANTREE_BIN)
-    pathsep = ';' if platform.system() == 'Windows' else ':'
+    pathsep = os.pathsep
     if 'PATH' in os.environ.keys():
         os.environ['PATH'] += pathsep + os.path.join(RMANTREE, "bin")
     else:
