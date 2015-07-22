@@ -37,7 +37,7 @@ from .util import init_env
 from .util import get_sequence_path
 from .util import user_path
 from .util import path_list_convert, get_real_path
-from .util import get_properties
+from .util import get_properties, check_if_archive_dirty
 from .util import debug
 from .util import find_it_path
 
@@ -103,20 +103,23 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.ObjectInstance(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
-def exportObjectArchive(ri, rpass, scene, ob, mtx = None, object_name = None, instance_handle = None, matNum = None):
-    if mtx:
-        ri.AttributeBegin()
-        ri.Attribute("identifier", {"name": object_name})
-        ri.TransformBegin()
+def exportObjectArchive(ri, rpass, scene, ob, archive_filename, mtx = None, object_name = None, instance_handle = None, matNum = None):
+    ri.AttributeBegin()
+    ri.Attribute("identifier", {"name": instance_handle})
+    ri.TransformBegin()
+    if mtx: 
         ri.Transform(rib(mtx))
-        if ob.data and ob.data.materials:
-            for mat in [mat for mat in ob.data.materials if mat != None]:
-                export_material(ri, rpass, scene, mat)
-            if instance_handle == object_name + "HAIR":
-                export_material(ri, rpass, scene, ob.data.materials[matNum])
-        ri.ReadArchive(instance_handle)
-        ri.TransformEnd()
-        ri.AttributeEnd()
+    if ob.data and ob.data.materials:
+        if instance_handle == object_name + "HAIR":
+            export_material(ri, rpass, scene, ob.data.materials[matNum])
+        else:
+            export_material(ri, rpass, scene, ob.active_material)
+    #just get the relative path
+    params = {"float[6] bound": rib_ob_bounds(ob.bound_box),
+                 "string filename": os.path.relpath(archive_filename, rpass.paths['archive'])}
+    ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
+    ri.TransformEnd()
+    ri.AttributeEnd()
 def removeMeshFromMemory (passedName):
     # Extra test because this can crash Blender if not done correctly.
     result = False
@@ -838,8 +841,8 @@ def export_material(ri, rpass, scene, mat, handle=None):
             
         #if rm.displacementbound > 0.0:
             #ri.write('        Attribute "displacementbound" "sphere" %f \n' % rm.displacementbound)
-        ri.Attribute('displacementbound', {'sphere':rm.displacementbound})
-        export_shader_nodetree(ri, mat, handle)
+        #ri.Attribute('displacementbound', {'sphere':rm.displacementbound})
+        export_shader_nodetree(ri, mat, handle, disp_bound=rm.displacementbound )
     else:
         #export_shader(file, scene, rpass, mat, 'shader') # BBM addition
         export_shader(ri, scene, rpass, mat, 'surface')
@@ -1395,7 +1398,7 @@ def is_dupli_source(ob):
     if ob.parent and ob.parent.dupli_type in SUPPORTED_DUPLI_TYPES: result = True	
     return result
     
-def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
+def export_geometry_data(ri, rpass, scene, ob, motion, force_prim='', do_export_material=True):
     if force_prim == '':
         prim = detect_primitive(ob)
     else:
@@ -1404,7 +1407,7 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
     if prim == 'NONE':
         return
 
-    if ob.data and ob.data.materials:
+    if ob.data and ob.data.materials and do_export_material:
         for mat in [mat for mat in ob.data.materials if mat != None]:
             export_material(ri, rpass, scene, mat)
             break
@@ -1441,7 +1444,7 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
     elif prim == 'POINTS':
         export_points(ri, scene, ob, motion)
   
-def export_geometry(ri, rpass, scene, ob, motion):
+def export_geometry(ri, rpass, scene, ob, motion, do_export_material=True):
     rm = ob.renderman
     
     if rm.geometry_source == 'BLENDER_SCENE_DATA':
@@ -1450,7 +1453,7 @@ def export_geometry(ri, rpass, scene, ob, motion):
             if os.path.exists(archive_path):
                 ri.ReadArchive(archive_path)
         else:
-            export_geometry_data(ri, rpass, scene, ob, motion)
+            export_geometry_data(ri, rpass, scene, ob, motion, do_export_material=do_export_material)
 
     else:
         pass
@@ -1609,6 +1612,25 @@ def export_motion(rpass, scene):
                 export_motion_ob(scene, motion, ob)
                         
     return motion
+
+#return the filename for a readarchive that this object will be written into 
+#relative to archive directory if True
+def get_archive_filename(scene, obj, motion, relative=False, hair=False):
+    if not hair and obj.name in motion['deformation']:
+        return user_path(scene.renderman.path_object_archive_animated,
+                        scene, obj)
+    elif hair:
+        for psys in obj.particle_systems:
+            pname = psys_motion_name(obj, psys)  
+            if pname in motion['deformation']:
+                return user_path(scene.renderman.path_object_archive_animated,
+                        scene).replace('{object}', obj.name + 'HAIR')
+            return user_path(scene.renderman.path_object_archive_static,
+                        scene).replace('{object}', obj.name + 'HAIR')
+    else:
+        return user_path(scene.renderman.path_object_archive_static,
+                        scene, obj)
+
 
 def export_objects(ri, rpass, scene, motion):
     # Lists that hold names of candidates to consider for export.
@@ -1871,7 +1893,7 @@ def export_objects(ri, rpass, scene, motion):
     export_default_bxdf(ri, 'default')
 
     # Export datablocks for archiving.
-    export_comment(ri, '## INLINE ARCHIVES')
+    #export_comment(ri, '## ARCHIVES')
     unique_datablocks = uniquifyList(candidate_datablocks)
     debug ("info","unique_datablocks: %s" % unique_datablocks)
     for ob_name, ob_type in unique_datablocks:
@@ -1880,14 +1902,18 @@ def export_objects(ri, rpass, scene, motion):
             if hasFaces(ob_name):
                 # Check if this archive handle already exists.
                 handle_name = ob_temp.data.name
+                if is_smoke(ob_temp):
+                    handle_name = ob_temp.name
                 archive_handle = returnHandleForName(candidate_archive_handles,handle_name)
                 if archive_handle == None:
                     # No matching handle has been written to the RIB file yet, we are first.
                     # Export this polymesh data as an archive to be referenced later on.
-                    ri.ArchiveBegin(handle_name)
+                    archive_filename = get_archive_filename(scene, ob_temp, motion)
                     candidate_archive_handles.append((ob_name, handle_name))
-                    export_geometry(ri, rpass, scene, ob_temp,motion)
-                    ri.ArchiveEnd()
+                    if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
+                        ri.Begin(archive_filename)
+                        export_geometry(ri, rpass, scene, ob_temp, motion, do_export_material=False)
+                        ri.End()
                     if ob_temp.particle_systems:
                         debug("info" , "The object has a particle system" , ob_temp)
                         
@@ -1895,9 +1921,11 @@ def export_objects(ri, rpass, scene, motion):
                             if psys.settings.type == 'HAIR':
                                 debug("info" , "The object has a particle system hair" , ob_temp)
                                 strand_name = handle_name + "HAIR"
-                                ri.ArchiveBegin(strand_name)
-                                export_strands(ri, rpass, scene, ob_temp, motion)
-                                ri.ArchiveEnd()
+                                archive_filename = get_archive_filename(scene, ob_temp, motion, hair=True)
+                                if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
+                                    ri.Begin(archive_filename)
+                                    export_strands(ri, rpass, scene, ob_temp, motion)
+                                    ri.End()
                     exported_datablocks.append(ob_name)
                 else:
                     debug ("warning","Skipping creating another instance of [%s], it already exists as an Archive in the RIB." % handle_name)
@@ -1922,12 +1950,16 @@ def export_objects(ri, rpass, scene, motion):
                     instance_handle = returnHandleForName(candidate_archive_handles,ob_name)
                     if instance_handle != None:
                         # We have a handle so it is ok to reference this with an object shader/transform.
-                        exportObjectArchive(ri, rpass, scene, ob_temp, returnMatrixForObject(ob_temp), ob_name, instance_handle)
+                        archive_filename = get_archive_filename(scene, ob_temp, motion)
+                        exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, returnMatrixForObject(ob_temp), ob_name, instance_handle)
                         if ob_temp.particle_systems:
                             for psys in ob_temp.particle_systems:
                                 if psys.settings.type == 'HAIR':
                                     hair_handle = instance_handle + "HAIR"
-                                    exportObjectArchive(ri, rpass, scene, ob_temp, returnMatrixForObject(ob_temp), ob_name, hair_handle, psys.settings.renderman.material_id - 1)
+                                    archive_filename = get_archive_filename(scene, ob_temp, motion, hair=True)
+                                    exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename,
+                                        returnMatrixForObject(ob_temp), ob_name, hair_handle, 
+                                        psys.settings.renderman.material_id - 1)
                         exported_objects.append(ob_name)
                     else:
                         debug ("warning","Could not locate handle for [%s]" % ob_name)
@@ -1958,9 +1990,16 @@ def export_objects(ri, rpass, scene, motion):
             # Remember, what we are instancing is the datablock, not the object.
             handle_name = ob_temp.data.name
             instance_handle = returnHandleForName(candidate_instance_handles,handle_name)
+            
+            #export the archive then object begin
             if instance_handle == None:
+                archive_filename = get_archive_filename(scene, ob_temp, motion)
+                if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
+                    ri.Begin(archive_filename)
+                    export_geometry(ri, rpass, scene, ob_temp, motion, do_export_material=False)
+                    ri.End()
                 result = ri.ObjectBegin()
-                export_geometry(ri, rpass, scene, ob_temp, motion)
+                exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, None, ob_name, handle_name)
                 ri.ObjectEnd()
                 candidate_instance_handles.append((handle_name,result))
             else:
@@ -2320,14 +2359,13 @@ def export_searchpaths(ri, paths):
     
     #ri.Option("searchpath", {"string procedural": ["%s" % \
     #    ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})
-    #ri.Option("searchpath", {"string archive": ["%s" % \
-    #    ':'.join(path_list_convert(paths['archive'], to_unix=True))]})
+    ri.Option("searchpath", {"string archive": paths['archive']})
 
 def export_header(ri):
     render_name = os.path.basename(bpy.data.filepath)
     export_comment(ri, 'Generated by PRMan for Blender, v%s.%s.%s \n' % (addon_version[0], addon_version[1], addon_version[2]))
     export_comment(ri, 'From File: %s on %s\n' % (render_name, time.strftime("%A %c")))
-    ri.Option("rib", {"string asciistyle": "indented,wide"})
+    
     
 def find_preview_material(scene):
     for o in renderable_objects(scene):

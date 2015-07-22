@@ -1534,7 +1534,7 @@ class OBJECT_PT_renderman_object_geometry(Panel):
                 colf.prop(rm, "primitive_point_type")
                 colf.prop(rm, "primitive_point_width")
                     
-            col.prop(rm, "export_archive")
+            #col.prop(rm, "export_archive")
             #if rm.export_archive:                
             #    col.prop(rm, "export_archive_path")
         

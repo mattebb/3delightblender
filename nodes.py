@@ -610,7 +610,7 @@ def gen_params(ri, node):
     return params
 
 # Export to rib
-def shader_node_rib(ri, node, handle=None):
+def shader_node_rib(ri, node, handle=None, disp_bound=0.0):
     params = gen_params(ri, node)
     if handle:
         params['__instanceid'] = handle
@@ -627,6 +627,7 @@ def shader_node_rib(ri, node, handle=None):
         params[ri.HANDLEID] = handle
         ri.AreaLightSource(node.bl_label, params)
     elif node.renderman_node_type == "displacement":
+        ri.Attribute('displacementbound', {'sphere':disp_bound})
         ri.Displacement(node.bl_label, params)
     else:
         ri.Bxdf(node.bl_label, node.name, params)
@@ -639,7 +640,7 @@ def get_tex_file_name(prop):
         return prop
 
 #for an input node output all "nodes"
-def export_shader_nodetree(ri, id, handle=None):
+def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
 	try:
 		nt = bpy.data.node_groups[id.renderman.nodetree]
 	except:
@@ -655,7 +656,7 @@ def export_shader_nodetree(ri, id, handle=None):
 		ri.ArchiveRecord('comment', "Shader Graph")
 		for out_type,socket in out.inputs.items():
 			if socket.is_linked:
-				shader_node_rib(ri, socket.links[0].from_node, handle=handle)
+				shader_node_rib(ri, socket.links[0].from_node, handle=handle, disp_bound=disp_bound)
 
 
 def get_textures_for_node(node):

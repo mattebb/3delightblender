@@ -26,7 +26,7 @@
 bl_info = {
     "name": "PRMan Render Engine",
     "author": "Brian Savery",
-    "version": (0, 2, 5),
+    "version": (0, 2, 6),
     "blender": (2, 74, 0),
     "location": "Info Header, render engine menu",
     "description": "RenderMan 20.0 integration",
@@ -53,6 +53,9 @@ class PRManRender(bpy.types.RenderEngine):
 
     # main scene render
     def update(self, data, scene):
+        if engine.update_timestamp not in bpy.app.handlers.scene_update_pre:
+            bpy.app.handlers.scene_update_pre.append(engine.update_timestamp)
+
         if self.is_preview:
             if not self.render_pass:
                 engine.create(self, data, scene)
@@ -68,13 +71,6 @@ class PRManRender(bpy.types.RenderEngine):
         engine.render(self)
         
     def view_update(self, context=None):
-        print('view update')
-
-        for area in context.screen.areas:
-            if area.type == 'VIEW_3D' and area.spaces[0].viewport_shade == 'RENDERED':
-                area.spaces[0].viewport_shade = 'SOLID'
-                print('changing render')
-                do_update = True
         if not self.render_pass:
             engine.create(self, None, context.scene)
             engine.start_interactive(self)
@@ -92,7 +88,6 @@ def register():
     from . import properties
     from . import operators
     from . import nodes
-
     preferences.register()
     properties.register()
     operators.register()
@@ -100,18 +95,23 @@ def register():
     nodes.register()
     bpy.utils.register_module(__name__)
     
+    
 
 def unregister():
+    if engine.update_timestamp in bpy.app.handlers.scene_update_pre:
+        bpy.app.handlers.scene_update_pre.remove(engine.update_timestamp)
+
     from . import ui
     from . import preferences
     from . import properties
     from . import operators
     from . import nodes
-    print('called')
+
     preferences.unregister()
     properties.unregister()
     operators.unregister()
     ui.unregister()
     nodes.unregister()
     bpy.utils.unregister_module(__name__)
+    
 

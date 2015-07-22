@@ -259,7 +259,7 @@ def rib(v, type_hint=None):
 
 def rib_ob_bounds(ob_bb):
     return ( ob_bb[0][0], ob_bb[7][0], ob_bb[0][1],
-            ob_bb[7][1], ob_bb[0][2], ob_bb[7][2] )
+            ob_bb[7][1], ob_bb[0][2], ob_bb[1][2] )
 
 def rib_path(path, escape_slashes=False):
     return path_win_to_unixy(bpy.path.abspath(path), 
@@ -321,7 +321,7 @@ def guess_rmantree():
     base = ""
     if platform.system() == 'Windows':
         # default installation path
-        base = 'C:\Program Files\Pixar'
+        base = r'C:\Program Files\Pixar'	#or base = 'C:/Program Files/Pixar'
     
     elif platform.system() == 'Darwin':        
         base = '/Applications/Pixar'
@@ -347,6 +347,13 @@ def guess_rmantree():
 
     return guess    
 
+#return true if an archive is older than the timestamp
+def check_if_archive_dirty(update_time, archive_filename):
+    if update_time > 0 and os.path.exists(archive_filename) and int(os.path.getmtime(archive_filename)) > update_time:
+        return False
+    else:
+        return True
+
 def find_it_path():
     rmstree = os.environ['RMSTREE'] if 'RMSTREE' in os.environ.keys() else ''
     
@@ -354,7 +361,7 @@ def find_it_path():
         base = ""
         if platform.system() == 'Windows':
             # default installation path
-            base = 'C:\Program Files\Pixar'
+            base = r'C:\Program Files\Pixar'	#or base = 'C:/Program Files/Pixar'
         
         elif platform.system() == 'Darwin':        
             base = '/Applications/Pixar'
@@ -404,8 +411,8 @@ def init_exporter_env(prefs):
     # if 'PTC' not in os.environ.keys():
     #     os.environ['PTC'] = rm.env_vars.ptc
     
-    # if 'ARC' not in os.environ.keys():
-    #     os.environ['ARC'] = rm.env_vars.arc
+    if 'ARC' not in os.environ.keys():
+        os.environ['ARC'] = prefs.env_vars.arc
         
     
         
@@ -418,7 +425,7 @@ def init_env(rm):
     RMANTREE_BIN = os.path.join(RMANTREE, 'bin')
     if RMANTREE_BIN not in sys.path:
         sys.path.append(RMANTREE_BIN)
-    pathsep = ';' if platform.system() == 'Windows' else ':'
+    pathsep = os.pathsep
     if 'PATH' in os.environ.keys():
         os.environ['PATH'] += pathsep + os.path.join(RMANTREE, "bin")
     else:

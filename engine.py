@@ -71,7 +71,7 @@ def init():
     
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
     #TODO add support for regions (rerendering)
-    engine.render_pass = RPass(scene, engine)
+    engine.render_pass = RPass(scene)
 
 def free(engine):
     if hasattr(engine, 'render_pass'):
@@ -93,7 +93,7 @@ def update(engine, data, scene):
         engine.render_pass.gen_preview_rib()
     else:
         engine.render_pass.display_driver = scene.renderman.display_driver
-        engine.render_pass.gen_rib()
+        engine.render_pass.gen_rib(engine=engine)
 
 #assumes you have already set the scene
 def start_interactive(engine):
@@ -102,15 +102,30 @@ def start_interactive(engine):
 def update_interactive(engine, context):
     engine.render_pass.issue_edits(context)
 
+#update the timestamp on an object
+#note that this only logs the active object.  So it might not work say 
+#if a script updates objects.  We would need to iterate through all objects
+def update_timestamp(scene):
+    active = scene.objects.active
+    if active and (active.is_updated or active.is_updated_data):
+        now = int(time.time())
+        active.renderman.update_timestamp = now
+    
+def format_seconds_to_hhmmss(seconds):
+    hours = seconds // (60 * 60)
+    seconds %= (60 * 60)
+    minutes = seconds // 60
+    seconds %= 60
+    return "%02i:%02i:%02i" % (hours, minutes, seconds)
+
 
 class RPass:    
-    def __init__(self, scene, engine):
+    def __init__(self, scene):
         self.scene = scene
         #pass addon prefs to init_envs
         init_exporter_env( \
         bpy.context.user_preferences.addons[__name__.split('.')[0]].preferences)
         self.initialize_paths(scene)
-        self.engine = engine
         self.rm = scene.renderman
         
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
@@ -150,13 +165,22 @@ class RPass:
         
         self.paths['render_output'] = user_path( \
             scene.renderman.path_display_driver_image, scene=scene)
-        
         self.paths['shader'] = get_path_list_converted(scene.renderman, \
                                                         'shader')
         self.paths['texture'] = [self.paths['texture_output']]
 
         #self.paths['procedural'] = get_path_list_converted(scene.renderman, 'procedural')
-        #self.paths['archive'] = get_path_list_converted(scene.renderman, 'archive')
+        static_archive_dir = os.path.dirname(user_path(scene.renderman.path_object_archive_static, 
+                                            scene=scene))
+        frame_archive_dir = os.path.dirname(user_path(scene.renderman.path_object_archive_animated, 
+                                            scene=scene))
+        self.paths['static_archives'] = static_archive_dir
+        self.paths['frame_archives'] = frame_archive_dir
+        if not os.path.exists(self.paths['static_archives']):
+            os.makedirs(self.paths['static_archives'])
+        if not os.path.exists(self.paths['frame_archives']):
+            os.makedirs(self.paths['frame_archives'])
+        self.paths['archive'] = os.path.dirname(static_archive_dir)
 
     def render(self, engine):
         DELAY = 1
@@ -180,13 +204,6 @@ class RPass:
                 environ = os.environ.copy()
                 subprocess.Popen([it_path], env=environ, shell=True)
 
-
-        def format_seconds_to_hhmmss(seconds):
-            hours = seconds // (60 * 60)
-            seconds %= (60 * 60)
-            minutes = seconds // 60
-            seconds %= 60
-            return "%02i:%02i:%02i" % (hours, minutes, seconds)
 
         def update_image():
             image_scale = 100.0 / self.scene.render.resolution_percentage
@@ -372,17 +389,17 @@ class RPass:
         self.is_interactive = True
         self.is_interactive_running = True
         self.ri.Begin(self.paths['rib_output'])
-
+        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         
         #export rib and bake
         write_rib(self, self.scene, self.ri)
         self.ri.End()
         self.convert_textures(get_texture_list(self.scene))
-        
+
         filename = "launch:prman? -ctrl $ctrlin $ctrlout -dspyserver it"
         
         self.ri.Begin(filename)
-        
+        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.scene, self.ri, prman)
         
         return
@@ -393,7 +410,9 @@ class RPass:
         if active:
             issue_edits(self, self.ri, active, prman)
         #record the marker to rib and flush to that point
-        
+        #also do the camera in case the camera is locked to display.
+        if scene.camera != active:
+            issue_edits(self, self.ri, scene.camera, prman)
         
     #ri.end
     def end_interactive(self):
@@ -403,15 +422,18 @@ class RPass:
         self.is_interactive_running = False
         pass
 
-    def gen_rib(self):
+    def gen_rib(self, engine=None):
         time_start = time.time()
         self.convert_textures(get_texture_list(self.scene))
-        self.engine.report({"INFO"}, "Texture generation took %s seconds" % (time.time() - time_start))
+        if engine:
+            engine.report({"INFO"}, "Texture generation took %s" % format_seconds_to_hhmmss(time.time() - time_start))
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
+        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         write_rib(self, self.scene, self.ri)
         self.ri.End()
-        self.engine.report({"INFO"}, "RIB generation took %s seconds" % (time.time() - time_start))
+        if engine:
+            engine.report({"INFO"}, "RIB generation took %s" % format_seconds_to_hhmmss(time.time() - time_start))
 
     def gen_preview_rib(self):
         previewdir = os.path.join(self.paths['export_dir'], "preview")
@@ -426,6 +448,7 @@ class RPass:
         self.convert_textures(get_texture_list_preview(self.scene))
         
         self.ri.Begin(self.paths['rib_output'])
+        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         write_preview_rib(self, self.scene, self.ri)
         self.ri.End()
 
