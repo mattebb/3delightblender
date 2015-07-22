@@ -841,8 +841,8 @@ def export_material(ri, rpass, scene, mat, handle=None):
             
         #if rm.displacementbound > 0.0:
             #ri.write('        Attribute "displacementbound" "sphere" %f \n' % rm.displacementbound)
-        ri.Attribute('displacementbound', {'sphere':rm.displacementbound})
-        export_shader_nodetree(ri, mat, handle)
+        #ri.Attribute('displacementbound', {'sphere':rm.displacementbound})
+        export_shader_nodetree(ri, mat, handle, disp_bound=rm.displacementbound )
     else:
         #export_shader(file, scene, rpass, mat, 'shader') # BBM addition
         export_shader(ri, scene, rpass, mat, 'surface')
