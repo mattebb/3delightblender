@@ -331,7 +331,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     light_localization = BoolProperty(
                 name="Light Localized Sampling",
                 description="Localized sampling can give much less noisy renders with similar render times, and may in fact be faster with many lights.",
-                default=True)
+                default=False)
 
     min_samples = IntProperty(
                 name="Min Samples",
