@@ -412,7 +412,7 @@ class RPass:
         #record the marker to rib and flush to that point
         #also do the camera in case the camera is locked to display.
         if scene.camera != active:
-            issue_edits(self, self.ri, active, prman)
+            issue_edits(self, self.ri, scene.camera, prman)
         
     #ri.end
     def end_interactive(self):
