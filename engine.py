@@ -47,6 +47,7 @@ from .util import get_path_list_converted, set_path
 from .util import path_list_convert, guess_rmantree, set_pythonpath, set_rmantree
 from .util import get_real_path, find_it_path
 from .util import debug
+from .export import compile_osl
 from random import randint
 import sys
 from bpy.app.handlers import persistent
@@ -425,6 +426,7 @@ class RPass:
     def gen_rib(self, engine=None):
         time_start = time.time()
         self.convert_textures(get_texture_list(self.scene))
+        self.export_osl()
         if engine:
             engine.report({"INFO"}, "Texture generation took %s" % format_seconds_to_hhmmss(time.time() - time_start))
         time_start = time.time()
@@ -482,7 +484,10 @@ class RPass:
                                         stdout=subprocess.PIPE, env=environ)
                 process.communicate()
 
-
+    def export_osl(self):
+        ok = compile_osl("C:\OpenGL\Bnoise.osl", self.paths['texture_output'])
+        if ok:
+            debug('info', "OSL shader Bnoise compile succeeded!")
 
 
 
