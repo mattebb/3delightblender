@@ -447,21 +447,11 @@ def get_strands(ri, scene,ob, psys):
     else:
         widthString = "vertex float width"
         hair_width = []
-        hair_width.append(base_width)
-        hair_decriment = base_width / (steps)
         
-    
-    
-    hair_length = psys.settings.hair_length
-    
-
-    
     psys.set_resolution(scene, ob, 'RENDER')
-    
     
     num_parents = len(psys.particles)
     num_children = len(psys.child_particles)
-
     
     total_hair_count = num_parents + num_children
     thicknessflag = 0
@@ -469,59 +459,52 @@ def get_strands(ri, scene,ob, psys):
     
     wmatx = ob.matrix_world.to_4x4().inverted()
     
-    
-    
-    ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
-    ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
-    j = 0
     points = []
     
     vertsArray = []
     nverts = 0
+    zero_lengths = 0
     for pindex in range(total_hair_count):
-        if j != 0 and not conwidth:
-            hair_width.append(base_width)
-        i = 0
         vertsInStrand = 0
+        #walk through each strand
         for step in range(0, steps + 1):
-            co = psys.co_hair(ob, pindex, step)
+            pt = psys.co_hair(object=ob, particle_no=pindex, step=step)
             
-            if not co.length_squared == 0:
-                points.extend(wmatx * psys.co_hair(ob, pindex, step))
-                if i == 0 or i == steps:
-                    points.extend(wmatx * psys.co_hair(ob, pindex, step))
-                    nverts += 1
+            if not pt.length_squared == 0:
+                pt = wmatx * pt
+                points.extend(pt)
+                #double the first point
+                if vertsInStrand == 0:
+                    points.extend(pt)
                     vertsInStrand += 1
-            
-            vertsInStrand += 1
-            if not conwidth :
-                if i == 0:
-                    hair_width.append(hair_width[j])
-                elif i == steps:
-                    hair_width.append(hair_width[i] - hair_decriment)
-                    hair_width.append(hair_width[i + 1])
-                    vertsArray.append(vertsInStrand)
-                else:
-                    hair_width.append(hair_width[i] - hair_decriment)
+                vertsInStrand += 1
             else:
-                if i == steps:
-                    vertsArray.append(vertsInStrand)
-                else:
-                    pass
-
-            nverts += 1
+                #this strand ends prematurely
+                break
             
-            i += 1
-        debug("info","Exporting ",j , "Strands and ", nverts ," Vertices")
-        debug("info", "WIDTH:",widthString, hair_width)
-        debug("info", "VERTARRAY:",vertsArray)
+        if vertsInStrand > 0:
+            #for varying width make the width array
+            if not conwidth:
+                decr = (base_width - tip_width)/(vertsInStrand - 1)
+                hair_width.extend([base_width] + [(base_width - decr * i) for i in range(vertsInStrand-1)] + [tip_width])
+
+            #add the last point again
+            points.extend(points[-3:])
+            vertsInStrand += 1
+
+            vertsArray.append(vertsInStrand)
+            nverts += vertsInStrand
+        #debug("info","Exporting ",total_hair_count , "Strands and ", nverts ," Vertices")
+        #debug("info", "WIDTH:",widthString, hair_width)
+        #debug("info", "VERTARRAY:",vertsArray)
         
-        j += 1
     if nverts == len(points)/3:
+        ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
+        ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
         ri.Curves("cubic", vertsArray, "periodic", {"P": rib(points), widthString: hair_width})
     else:
         debug("error", "Strands from, ", ob.name, "could not be exported!")
-        return
+        
     psys.set_resolution(scene, ob, 'PREVIEW')
 
 # only export particles that are alive, 
@@ -1023,7 +1006,7 @@ def get_texture_list(scene):
     SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT']
     textures = []
     for o in renderable_objects(scene):
-        if o.type == 'CAMERA' or o.type == '[EMPTY]':
+        if o.type == 'CAMERA' or o.type == 'EMPTY':
             continue
         elif o.type == 'LAMP':
             if o.data.renderman.nodetree != '':
@@ -2067,41 +2050,25 @@ def export_objects(ri, rpass, scene, motion):
                             tempOb = bpy.data.objects.new(ob_name, me)      # Make new object linked to this special mesh.
                             scene.objects.link(tempOb)                      # Link it to the scene.
                             try:
-                                tempOb.location = ob_temp.location               # Transfer location to this new object.
-                                tempOb.rotation_euler = ob_temp.rotation_euler   # Transfer rotation to this new object.
-                                tempOb.scale = ob_temp.scale                     # Transfer scale to this new object.
-                            except:
-                                debug ("error","export_objects: error transform mapping for multi-material object.")
-                            try:
                                 tempOb.material_slots[0].material = mat		# Assign this material as the material for the new object.
                                 #print(tempOb.name + " gets material [" + mat.name + "].")
                             except:
                                 debug ("error","export objects: error assigning material.")
                             
-                            scene.update()                                  # Required or new object remains at world origin. 
-                            # And while I have your attention, the scene.update() is the cause of slowdown and excessive UI refresh that can occur.
-                            # The only reason for the update is to refresh the transform matrix.
-                            # Because of dupli support we can now override the object matrix with a passed matrix.
-                            # This means if we can come up with a way to contrive/calculated a matrix  we can pass it to export_object and we would not need scene.update().
-                            # (i.e. ToDo)            
-                            # Export this newly generated object.
-                            export_object(ri, rpass, scene, tempOb, motion)
+                            archive_filename = get_archive_filename(scene, tempOb, motion)
+                            if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
+                                ri.Begin(archive_filename)
+                                export_geometry(ri, rpass, scene, tempOb, motion, do_export_material=False)
+                                ri.End()
                             
-                            # Try to remove these temp items from memory.
-                            scene.objects.unlink(tempOb)                    # Remove the object from the scene.
-                            '''
-                            if tempOb.data != None:
-                                l = len(tempOb.data.materials)
-                                if l > 0:
-                                    tempOb.data.materials.pop(l-1)          # Remove the material from the object.
+                            if ob_temp.parent:
+                                matrix = ob_temp.parent.matrix_world * ob_temp.matrix_local
+                            else:
+                                matrix = ob_temp.matrix_world
+                            exportObjectArchive(ri, rpass, scene, tempOb, archive_filename, matrix, ob_name, ob_name)
                             
-                            r = removeObjectFromMemory(ob_name)
-                            if r == False:
-                                print("export_objects: problem removing OBJECT [" + ob_name + "] from memory.")
-                            r = removeMeshFromMemory(me_name)
-                            if r == False:
-                                print("export_objects: problem removing MESH [" + me_name + "] from memory.")
-                            '''
+                            scene.objects.unlink(tempOb)         # Remove the object from the scene.
+                            
                         else:
                             debug ("warning","export_objects: problem creating MESH [" + me_name + "] in memory.")
                         c = c + 1

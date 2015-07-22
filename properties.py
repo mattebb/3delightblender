@@ -1121,7 +1121,7 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                 name="Base Width",
                 description="The width of the base of hair",
                 precision=4,
-                default=1.00)
+                default=.01)
 
     tip_width = FloatProperty(
                 name="Tip Width",
@@ -1133,7 +1133,7 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                 name="Width",
                 description="With used for constant width across all particles",
                 precision=4,
-                default=0.05)
+                default=0.01)
 
     width_offset = FloatProperty(
                 name="Width Offset",
@@ -1518,4 +1518,6 @@ def register():
 
 
 def unregister():
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
     bpy.utils.unregister_module(__name__)
