@@ -69,18 +69,7 @@ class PRManRender(bpy.types.RenderEngine):
         
     def render(self, scene):
         engine.render(self)
-        
-    def view_update(self, context=None):
-        if not self.render_pass:
-            engine.create(self, None, context.scene)
-            engine.start_interactive(self)
-        else:
-            engine.update_interactive(self, context)
-        
     
-    def view_draw(self, context=None):
-        pass
-        
    
 def register():
     from . import ui
