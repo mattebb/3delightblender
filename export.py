@@ -463,7 +463,6 @@ def get_strands(ri, scene,ob, psys):
     
     vertsArray = []
     nverts = 0
-    zero_lengths = 0
     for pindex in range(total_hair_count):
         vertsInStrand = 0
         #walk through each strand
@@ -497,6 +496,18 @@ def get_strands(ri, scene,ob, psys):
         #debug("info","Exporting ",total_hair_count , "Strands and ", nverts ," Vertices")
         #debug("info", "WIDTH:",widthString, hair_width)
         #debug("info", "VERTARRAY:",vertsArray)
+
+        #if we get more than 100000 vertices, export ri.Curve and reset.  This is to avoid a maxint on the array length
+        if nverts > 100000 and nverts == len(points)/3:
+            print('re exporting')
+            ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
+            ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
+            ri.Curves("cubic", vertsArray, "periodic", {"P": rib(points), widthString: hair_width})
+            nverts = 0
+            points = []
+            vertsArray = []
+            if not conwidth:
+                hair_width = []
         
     if nverts == len(points)/3:
         ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
@@ -2070,7 +2081,7 @@ def export_objects(ri, rpass, scene, motion):
                             scene.objects.unlink(tempOb)         # Remove the object from the scene.
                             
                         else:
-                            debug ("warning","export_objects: problem creating MESH [" + me_name + "] in memory.")
+                            debug ("info","export_objects: problem creating MESH [" + me_name + "] in memory.  Possibly due to a material without faces.")
                         c = c + 1
             else:
                 debug ("error","Unsupported multi-material object type [%s]." % ob.type)
