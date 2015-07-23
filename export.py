@@ -499,7 +499,6 @@ def get_strands(ri, scene,ob, psys):
 
         #if we get more than 100000 vertices, export ri.Curve and reset.  This is to avoid a maxint on the array length
         if nverts > 100000 and nverts == len(points)/3:
-            print('re exporting')
             ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
             ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
             ri.Curves("cubic", vertsArray, "periodic", {"P": rib(points), widthString: hair_width})
