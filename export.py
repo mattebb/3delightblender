@@ -2691,7 +2691,6 @@ def compile_osl(inFile, outPath):
     FileNameNoEXT = os.path.splitext(FileName)[0]
     out_file = os.path.join(outPath, FileNameNoEXT)
     out_file += ".oso"
-    print(inFile ,FileName, FileNameNoEXT, out_file)
     ok = _cycles.osl_compile(inFile, out_file)
     
     return ok

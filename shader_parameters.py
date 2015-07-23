@@ -122,32 +122,53 @@ def parse_float(fs):
 def class_generate_properties(node, parent_name, shaderparameters):
     prop_names = []
     prop_meta = {}
-
+    #print("NODE: ", node, "PARENT_NAME: ", parent_name, "PARAMS: ", shaderparameters)
+    i = 0
     for sp in shaderparameters:
         if sp.tag == 'page':
-            sub_params = []
-            #don't add the sub group to prop names, 
-            #they'll be gotten through recursion
-            for sub_param in sp.findall('param'):
-                name,meta,prop = generate_property(sub_param)
-                #another fix for sloppy args files
-                if name == sp.attrib['name']:
-                    name = name + '_prop'
-                sub_params.append(name)
-                prop_meta[name] = meta
-                setattr(node, name, prop)
-            prop_names.append(sp.attrib['name'])
-            prop_meta[sp.attrib['name']] = {'renderman_type':'page'}
-            setattr(node, sp.attrib['name'], sub_params)
-            ui_label = "%s_ui_open" % sp.attrib['name']
-            setattr(node, ui_label, bpy.props.BoolProperty(name=ui_label, 
-                    default=True))
+            if parent_name == "PxrTexture":
+                pass
+            else:
+               sub_params = []
+               #don't add the sub group to prop names, 
+               #they'll be gotten through recursion
+               for sub_param in sp.findall('param'):
+                   name,meta,prop = generate_property(sub_param)
+                   #another fix for sloppy args files
+                   if name == sp.attrib['name']:
+                       name = name + '_prop'
+                   sub_params.append(name)
+                   prop_meta[name] = meta
+                   setattr(node, name, prop)
+               prop_names.append(sp.attrib['name'])
+               prop_meta[sp.attrib['name']] = {'renderman_type':'page'}
+               setattr(node, sp.attrib['name'], sub_params)
+               ui_label = "%s_ui_open" % sp.attrib['name']
+               setattr(node, ui_label, bpy.props.BoolProperty(name=ui_label, 
+                       default=True))
         else:
-            name,meta,prop = generate_property(sp)
-            prop_names.append(name)
-            prop_meta[name] = meta
-            setattr(node, name, prop)
-
+            if parent_name == "PxrOSL" and i == 0:
+                codeName = "shadercode"
+                codeProp = bpy.props.StringProperty(name='ShaderCode', default='', subtype="FILE_PATH", description='')
+                codeMeta = {'renderman_name' : 'filename' ,'name' : 'ShaderCode', 'renderman_type' : 'string' , 'default' : '', 'label' : 'ShaderCode', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
+                setattr(node, codeName, codeProp)
+                prop_names.append(codeName)
+                prop_meta["shadercode"] = codeMeta
+                #print("META: ", prop_meta["ShaderCode"])
+            else:
+                name,meta,prop = generate_property(sp)
+                prop_names.append(name)
+                prop_meta[name] = meta
+                if parent_name == "PxrTexture":
+                    print("TEXTUE_NAME: ",name,"TEXTURE_PROP: ",prop, "TEXTURE_META: ", meta)
+                if parent_name == "PxrOSL":
+                    print("OSL_NAME: ",name,"OSL_PROP: ",prop, "OSL_META: ", meta)
+                setattr(node, name, prop)
+            
+        i += 1
+    '''if parent_name == "PxrOSL":
+        print("METAS: " , prop_meta)'''
+    #print("PARENTNAME: ",parent_name,"NODE: ", node, "PROP_NAMES: ", prop_names, "PROP_META: ", prop_meta)
     setattr(node, 'prop_names', prop_names)
     setattr(node, 'prop_meta', prop_meta)
 

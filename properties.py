@@ -97,6 +97,7 @@ def register_integrator_settings(scene_settings_cls):
         args_xml = ET.parse(os.path.join(args_path, f)).getroot()
         inputs = [p for p in args_xml.findall('./param')] + \
             [p for p in args_xml.findall('./page')]
+        #print("INPUTS: ",inputs)
         class_generate_properties(ntype, name, inputs)
         #register and add to scene_settings
         bpy.utils.register_class(ntype)
