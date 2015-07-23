@@ -126,7 +126,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
     i = 0
     for sp in shaderparameters:
         if sp.tag == 'page':
-            if parent_name == "PxrTexture":
+            if parent_name == "PxrOSL":
                 pass
             else:
                sub_params = []
