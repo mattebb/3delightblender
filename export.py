@@ -99,7 +99,7 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.Transform(rib(mtx))
         if ob.data and ob.data.materials:
             for mat in [mat for mat in ob.data.materials if mat != None]:
-                export_material(ri, rpass, scene, mat)
+                export_material_archive(ri, mat.name)
         ri.ObjectInstance(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
@@ -117,12 +117,13 @@ def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = No
         ri.Transform(rib(mtx))
 
     if material:
-        export_material(ri, rpass, scene, material)
+        export_material_archive(ri, material.name)
     elif ob.data and ob.data.materials:
         if instance_handle == object_name + "HAIR":
-            export_material(ri, rpass, scene, ob.data.materials[matNum])
+            export_material_archive(ri, ob.data.materials[matNum].name)
         else:
-            export_material(ri, rpass, scene, ob.active_material)
+            if ob.data.materials[0]:
+                export_material_archive(ri, ob.data.materials[0].name)
     #just get the relative path
     params = {"float[6] bound": rib_ob_bounds(ob.bound_box),
                  "string filename": os.path.relpath(archive_filename, rpass.paths['archive'])}
@@ -849,6 +850,9 @@ def export_material(ri, rpass, scene, mat, handle=None):
         export_shader(ri, scene, rpass, mat, 'surface')
         export_shader(ri, scene, rpass, mat, 'displacement')
         export_shader(ri, scene, rpass, mat, 'interior')
+
+def export_material_archive(ri, mat_name):
+    ri.ReadArchive('material.'+mat_name)
     
     
 def export_motion_begin(ri, scene, ob):
@@ -1423,7 +1427,7 @@ def is_dupli_source(ob):
     if ob.parent and ob.parent.dupli_type in SUPPORTED_DUPLI_TYPES: result = True	
     return result
     
-def export_geometry_data(ri, rpass, scene, ob, motion, force_prim='', do_export_material=True):
+def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
     if force_prim == '':
         prim = detect_primitive(ob)
     else:
@@ -1432,11 +1436,6 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim='', do_export_
     if prim == 'NONE':
         return
 
-    if ob.data and ob.data.materials and do_export_material:
-        for mat in [mat for mat in ob.data.materials if mat != None]:
-            export_material(ri, rpass, scene, mat)
-            break
-    
     if prim == 'SPHERE':
         export_sphere(ri, scene, ob, motion)
     elif prim == 'CYLINDER':
@@ -1469,7 +1468,7 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim='', do_export_
     elif prim == 'POINTS':
         export_points(ri, scene, ob, motion)
   
-def export_geometry(ri, rpass, scene, ob, motion, do_export_material=True):
+def export_geometry(ri, rpass, scene, ob, motion):
     rm = ob.renderman
     
     if rm.geometry_source == 'BLENDER_SCENE_DATA':
@@ -1478,7 +1477,7 @@ def export_geometry(ri, rpass, scene, ob, motion, do_export_material=True):
             if os.path.exists(archive_path):
                 ri.ReadArchive(archive_path)
         else:
-            export_geometry_data(ri, rpass, scene, ob, motion, do_export_material=do_export_material)
+            export_geometry_data(ri, rpass, scene, ob, motion)
 
     else:
         pass
@@ -1678,6 +1677,9 @@ def export_objects(ri, rpass, scene, motion):
     candidate_instance_sources = []
     candidate_instance_handles = []
     candidate_archive_handles = []
+
+    # list to hold materials to output
+    candidate_material_handles = bpy.data.materials.keys()
     
     def returnHandleForName(passed_list, passed_name):
         # Expects list items to contain two entries: name,handle.
@@ -1916,6 +1918,16 @@ def export_objects(ri, rpass, scene, motion):
     
     #default bxdf AFTER lights
     export_default_bxdf(ri, 'default')
+    #export archive of materials
+    archive_filename = user_path(scene.renderman.path_object_archive_static,
+                                scene).replace('{object}', 'materials')
+    ri.Begin(archive_filename)
+    for mat_name in candidate_material_handles:
+        ri.ArchiveBegin('material.' + mat_name)
+        export_material(ri, rpass, scene, bpy.data.materials[mat_name])
+        ri.ArchiveEnd()
+    ri.End()
+    ri.ReadArchive(archive_filename)
 
     # Export datablocks for archiving.
     #export_comment(ri, '## ARCHIVES')
@@ -1937,7 +1949,7 @@ def export_objects(ri, rpass, scene, motion):
                     candidate_archive_handles.append((ob_name, handle_name))
                     if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
                         ri.Begin(archive_filename)
-                        export_geometry(ri, rpass, scene, ob_temp, motion, do_export_material=False)
+                        export_geometry(ri, rpass, scene, ob_temp, motion)
                         ri.End()
                     if ob_temp.particle_systems:
                         debug("info" , "The object has a particle system" , ob_temp)
@@ -2021,7 +2033,7 @@ def export_objects(ri, rpass, scene, motion):
                 archive_filename = get_archive_filename(scene, ob_temp, motion)
                 if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
                     ri.Begin(archive_filename)
-                    export_geometry(ri, rpass, scene, ob_temp, motion, do_export_material=False)
+                    export_geometry(ri, rpass, scene, ob_temp, motion)
                     ri.End()
                 result = ri.ObjectBegin()
                 exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion, None, ob_name, handle_name)
