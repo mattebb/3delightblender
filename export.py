@@ -103,13 +103,22 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.ObjectInstance(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
-def exportObjectArchive(ri, rpass, scene, ob, archive_filename, mtx = None, object_name = None, instance_handle = None, matNum = None):
+def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = None, object_name = None, instance_handle = None, matNum = None, material=None):
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": instance_handle})
-    ri.TransformBegin()
-    if mtx: 
+    if ob.name in motion['transformation']:
+        export_motion_begin(ri,scene, ob)
+        
+        for sample in motion['transformation'][ob.name]:
+            ri.Transform(rib(sample))
+            
+        ri.MotionEnd()
+    elif mtx:
         ri.Transform(rib(mtx))
-    if ob.data and ob.data.materials:
+
+    if material:
+        export_material(ri, rpass, scene, material)
+    elif ob.data and ob.data.materials:
         if instance_handle == object_name + "HAIR":
             export_material(ri, rpass, scene, ob.data.materials[matNum])
         else:
@@ -118,7 +127,6 @@ def exportObjectArchive(ri, rpass, scene, ob, archive_filename, mtx = None, obje
     params = {"float[6] bound": rib_ob_bounds(ob.bound_box),
                  "string filename": os.path.relpath(archive_filename, rpass.paths['archive'])}
     ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
-    ri.TransformEnd()
     ri.AttributeEnd()
 def removeMeshFromMemory (passedName):
     # Extra test because this can crash Blender if not done correctly.
@@ -1321,6 +1329,22 @@ def export_polygon_mesh(ri, scene, ob, motion):
             ri.MotionEnd()
     bpy.data.meshes.remove(mesh)
 
+def export_simple_polygon_mesh(ri, name, mesh):
+    debug("info","export_polygon_mesh [%s]" % name)
+    
+    samples = [get_mesh(mesh)]
+        
+    for nverts, verts, P in samples:
+        primvars = {'P': P}
+        try:
+            ri.PointsPolygons(nverts, verts, primvars)
+            is_error = False
+        except:
+            # Activate the texture space for the offending object so it stands out in the viewport.
+            debug("error", "Cannont export mesh: ", name , " check mesh for vertices that are not forming a face.")
+            is_error = True
+    
+
 
 def export_points(ri, scene, ob, motion):
     rm = ob.renderman
@@ -1952,13 +1976,13 @@ def export_objects(ri, rpass, scene, motion):
                     if instance_handle != None:
                         # We have a handle so it is ok to reference this with an object shader/transform.
                         archive_filename = get_archive_filename(scene, ob_temp, motion)
-                        exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, returnMatrixForObject(ob_temp), ob_name, instance_handle)
+                        exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion, returnMatrixForObject(ob_temp), ob_name, instance_handle)
                         if ob_temp.particle_systems:
                             for psys in ob_temp.particle_systems:
                                 if psys.settings.type == 'HAIR':
                                     hair_handle = instance_handle + "HAIR"
                                     archive_filename = get_archive_filename(scene, ob_temp, motion, hair=True)
-                                    exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename,
+                                    exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion,
                                         returnMatrixForObject(ob_temp), ob_name, hair_handle, 
                                         psys.settings.renderman.material_id - 1)
                         exported_objects.append(ob_name)
@@ -2000,7 +2024,7 @@ def export_objects(ri, rpass, scene, motion):
                     export_geometry(ri, rpass, scene, ob_temp, motion, do_export_material=False)
                     ri.End()
                 result = ri.ObjectBegin()
-                exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, None, ob_name, handle_name)
+                exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion, None, ob_name, handle_name)
                 ri.ObjectEnd()
                 candidate_instance_handles.append((handle_name,result))
             else:
@@ -2065,27 +2089,27 @@ def export_objects(ri, rpass, scene, motion):
                         me = returnNewMeshFromFaces(me_name,me_source,c)
                         if me != None:
                             ob_name = str(int(c))+ "-PIX_" + ob_candidate_name
-                            tempOb = bpy.data.objects.new(ob_name, me)      # Make new object linked to this special mesh.
-                            scene.objects.link(tempOb)                      # Link it to the scene.
-                            try:
-                                tempOb.material_slots[0].material = mat		# Assign this material as the material for the new object.
+                            #tempOb = bpy.data.objects.new(ob_name, me)      # Make new object linked to this special mesh.
+                            #scene.objects.link(tempOb)                      # Link it to the scene.
+                            #try:
+                                #tempOb.material_slots[0].material = mat		# Assign this material as the material for the new object.
                                 #print(tempOb.name + " gets material [" + mat.name + "].")
-                            except:
-                                debug ("error","export objects: error assigning material.")
+                            #except:
+                                #debug ("error","export objects: error assigning material.")
                             
-                            archive_filename = get_archive_filename(scene, tempOb, motion)
+                            archive_filename = user_path(scene.renderman.path_object_archive_static,
+                                            scene).replace('{object}', ob_name)
                             if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
                                 ri.Begin(archive_filename)
-                                export_geometry(ri, rpass, scene, tempOb, motion, do_export_material=False)
+                                #just export the mesh
+                                export_simple_polygon_mesh(ri, me_name, me)
                                 ri.End()
                             
                             if ob_temp.parent:
                                 matrix = ob_temp.parent.matrix_world * ob_temp.matrix_local
                             else:
                                 matrix = ob_temp.matrix_world
-                            exportObjectArchive(ri, rpass, scene, tempOb, archive_filename, matrix, ob_name, ob_name)
-                            
-                            scene.objects.unlink(tempOb)         # Remove the object from the scene.
+                            exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion, matrix, ob_name, ob_name, material=mat)
                             
                         else:
                             debug ("info","export_objects: problem creating MESH [" + me_name + "] in memory.  Possibly due to a material without faces.")
