@@ -166,13 +166,18 @@ class RendermanPropertyGroup(bpy.types.PropertyGroup):
 # Defines a poll function to enable instantiation.
 class RendermanShadingNode(bpy.types.Node):
     bl_label = 'Output'
-
+    
+    OSL_names = []
+    OSL_props = []
+    OSL_meta = []
+    
     #all the properties of a shader will go here, also inputs/outputs 
     #on connectable props will have the same name
     #node_props = None
     def draw_buttons(self, context, layout):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
         if self.name == "PxrOSL":
+            #layout.prop(self, bpy.props.StringProperty(name='ShaderCode2', default='', subtype="FILE_PATH", description=''))
             layout.operator("node.refresh_osl_shader")
 
     def draw_buttons_ext(self, context, layout):
@@ -187,8 +192,8 @@ class RendermanShadingNode(bpy.types.Node):
                     self.draw_nonconnectable_props(context, layout, prop)
                 else:
                     layout.prop(self,prop_name)
-    def printTest(self, text):
-        print(text)
+    def RefreshNodes(self, text):
+        debug('info', text)
 
 
     @classmethod

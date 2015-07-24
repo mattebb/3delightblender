@@ -110,23 +110,19 @@ class refresh_osl_shader(bpy.types.Operator):
         FileNameNoEXT = os.path.splitext(FileName)[0]
         FileNameOSO = FileNameNoEXT 
         FileNameOSO += ".oso"
-        print("OUT =: ",user_path(prefs.env_vars.out))
-        #print("OSL Refresh called: ", node, " SCENE: ", scene,"IMPORTPATH: ",oso_path, "EXPORTPATH: ", export_path)
+        
+        
         ok = compile_osl(oso_path, os.path.join(user_path(prefs.env_vars.out) , "textures"))
         
-        #ok, oso_out_path = _cycles.osl_compile(oso_path, debug)
+        
         
         if ok:
             print("Node Compiled")
+            node.RefreshNodes("TEXTTEST!")
         else:
-            print("ERROR: NODE GEN FAILED")
+            debug("error", "NODE COMPILATION FAILED")
         
-        node.RefreshNodes("TEXTTEST!")
-        #ok = _cycles.osl_update_node(node.id_data.as_pointer(), node.as_pointer(), os.path.join(user_path(prefs.env_vars.out) , "textures", FileNameOSO))
-        #if ok:
-        #    print("Node Changed")
-        #else:
-        #    print("ERROR: NODE CHANGE FAILED")
+        
         return {'FINISHED'}
 class update_args(bpy.types.Operator):
     bl_idname = "properties.update_args"
