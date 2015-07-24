@@ -508,7 +508,7 @@ def get_strands(ri, scene,ob, psys):
             if not conwidth:
                 hair_width = []
         
-    if nverts == len(points)/3:
+    if nverts != 0 and nverts == len(points)/3:
         ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
         ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
         ri.Curves("cubic", vertsArray, "periodic", {"P": rib(points), widthString: hair_width})
@@ -553,7 +553,7 @@ def get_mesh(mesh):
     for p in mesh.polygons:
         nverts.append( p.loop_total )
         verts.extend( p.vertices )
-        
+    
     return (nverts, verts, P)
 
 def get_mesh_vertex_N(mesh):
@@ -1277,8 +1277,16 @@ def export_subdivision_mesh(ri, scene, ob, motion):
         
         primvars = get_primvars(ob, mesh, "facevarying")
         primvars[ri.P] = P
-        ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs, intargs,
-            floatargs, primvars)
+        try:
+            ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs, intargs,
+                floatargs, primvars)
+        except:
+            #usually here we have stray vertices on the mesh. So just cull them!
+            P = P[:3*max(verts)+3]
+            primvars[ri.P] = P
+            debug("warning","Stray vertices on mesh %s.  They were removed" % ob.name)
+            ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs, intargs,
+                floatargs, primvars)
     
     if motion_blur:
         ri.MotionEnd()
