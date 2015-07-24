@@ -513,7 +513,7 @@ class Add_Node:
         # replace input node with a new one
         else:
             newnode = nt.nodes.new(new_type)
-            input = node.inputs[self.input_type]
+            input = socket
             old_node = input.links[0].from_node
             if self.input_type == 'Pattern':
                 link_node(nt, newnode, socket)
