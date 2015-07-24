@@ -103,7 +103,7 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.ObjectInstance(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
-def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = None, object_name = None, instance_handle = None, matNum = None, material=None):
+def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = None, object_name = None, instance_handle = None, matNum = 0, material=None):
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": instance_handle})
     if ob.name in motion['transformation']:
@@ -119,11 +119,8 @@ def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = No
     if material:
         export_material_archive(ri, material.name)
     elif ob.data and ob.data.materials:
-        if instance_handle == object_name + "HAIR":
+        if ob.data.materials[matNum]:
             export_material_archive(ri, ob.data.materials[matNum].name)
-        else:
-            if ob.data.materials[0]:
-                export_material_archive(ri, ob.data.materials[0].name)
     #just get the relative path
     params = {"float[6] bound": rib_ob_bounds(ob.bound_box),
                  "string filename": os.path.relpath(archive_filename, rpass.paths['archive'])}
@@ -537,7 +534,7 @@ def get_particles(scene, ob, psys):
     width = []
     
     cfra = scene.frame_current
-    
+    psys.set_resolution(scene, ob, 'RENDER')
     for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
         
         P.extend( pa.location )
@@ -547,7 +544,7 @@ def get_particles(scene, ob, psys):
             width.append(0.0)
         else:
             width.append(pa.size)
-    
+    psys.set_resolution(scene, ob, 'PREVIEW')
     return (P, rot, width)
 
 # Mesh data access
@@ -670,7 +667,7 @@ def get_primvars(ob, geo, interpolation=""):
 
     return primvars
     
-def get_primvars_particle(file, scene, psys):
+def get_primvars_particle(scene, psys):
     primvars = {}
     rm = psys.settings.renderman
     cfra = scene.frame_current
@@ -925,7 +922,7 @@ def geometry_source_rib(ri, scene, ob):
                                         rib(bounds))
 
 
-def export_particle_instances(ri, rpass, scene, ob, psys, motion):
+def export_particle_instances(ri, scene, ob, psys, motion):
     rm = psys.settings.renderman
     pname = psys_motion_name(ob, psys)
     
@@ -993,32 +990,30 @@ def export_particle_points(ri, scene, ob, psys, motion):
     if motion_blur:
         ri.MotionEnd()
 
-def export_particles(ri, rpass, scene, ob, motion):
 
-    for psys in ob.particle_systems:
-        rm = psys.settings.renderman
-        pname = psys_motion_name(ob, psys)
-        
-        if psys.settings.type != 'EMITTER':
-            continue
+#only for emitter types for now 
+def export_particles(ri, scene, ob, motion, psys):
+
+    rm = psys.settings.renderman
+    pname = psys_motion_name(ob, psys)
     
-        ri.AttributeBegin()
-        ri.Attribute("identifier", {"name": pname})
-        
-        # use 'material_id' index to decide which material
-        if ob.data.materials:
-            if ob.data.materials[rm.material_id-1] != None:
-                mat = ob.data.materials[rm.material_id-1]
-                export_material(ri, rpass, scene, mat)
-        
-        # Write object instances or points
-        if rm.particle_type == 'OBJECT':
-            export_particle_instances(ri, rpass, scene, ob, psys, motion)
-        else:
-            export_particle_points(ri, scene, ob, psys, motion)
-        
-        
-        ri.AttributeEnd()
+    ri.AttributeBegin()
+    ri.Attribute("identifier", {"name": pname})
+    
+    # use 'material_id' index to decide which material
+    #if ob.data.materials:
+    #    if ob.data.materials[rm.material_id-1] != None:
+    #        mat = ob.data.materials[rm.material_id-1]
+    #        export_material(ri, rpass, scene, mat)
+    
+    # Write object instances or points
+    if rm.particle_type == 'OBJECT':
+        pass
+        export_particle_instances(ri, scene, ob, psys, motion)
+    else:
+        export_particle_points(ri, scene, ob, psys, motion)
+    
+    ri.AttributeEnd()
     
 def export_comment(ri, comment):
     ri.ArchiveRecord('comment', comment)
@@ -1639,18 +1634,17 @@ def export_motion(rpass, scene):
 
 #return the filename for a readarchive that this object will be written into 
 #relative to archive directory if True
-def get_archive_filename(scene, obj, motion, relative=False, hair=False):
-    if not hair and obj.name in motion['deformation']:
+def get_archive_filename(scene, obj, motion, psys=None):
+    if psys:
+        pname = psys_motion_name(obj, psys)  
+        if pname in motion['deformation']:
+            return user_path(scene.renderman.path_object_archive_animated,
+                    scene).replace('{object}', '%s.%s.%s' % (obj.name, psys.name, psys.settings.type))
+        return user_path(scene.renderman.path_object_archive_static,
+                    scene).replace('{object}', '%s.%s.%s' % (obj.name, psys.name, psys.settings.type))
+    elif obj.name in motion['deformation']:
         return user_path(scene.renderman.path_object_archive_animated,
                         scene, obj)
-    elif hair:
-        for psys in obj.particle_systems:
-            pname = psys_motion_name(obj, psys)  
-            if pname in motion['deformation']:
-                return user_path(scene.renderman.path_object_archive_animated,
-                        scene).replace('{object}', obj.name + 'HAIR')
-            return user_path(scene.renderman.path_object_archive_static,
-                        scene).replace('{object}', obj.name + 'HAIR')
     else:
         return user_path(scene.renderman.path_object_archive_static,
                         scene, obj)
@@ -1958,11 +1952,20 @@ def export_objects(ri, rpass, scene, motion):
                             if psys.settings.type == 'HAIR':
                                 debug("info" , "The object has a particle system hair" , ob_temp)
                                 strand_name = handle_name + "HAIR"
-                                archive_filename = get_archive_filename(scene, ob_temp, motion, hair=True)
+                                archive_filename = get_archive_filename(scene, ob_temp, motion, psys)
                                 if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
                                     ri.Begin(archive_filename)
                                     export_strands(ri, rpass, scene, ob_temp, motion)
                                     ri.End()
+                            elif psys.settings.type == 'EMITTER':
+                                debug("info" , "The object has a particle system Emitter" , ob_temp)
+                                particle_name = handle_name + "PARTICLES"
+                                archive_filename = get_archive_filename(scene, ob_temp, motion, psys)
+                                if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
+                                    ri.Begin(archive_filename)
+                                    export_particles(ri, scene, ob_temp, motion, psys)
+                                    ri.End()
+
                     exported_datablocks.append(ob_name)
                 else:
                     debug ("warning","Skipping creating another instance of [%s], it already exists as an Archive in the RIB." % handle_name)
@@ -1993,9 +1996,16 @@ def export_objects(ri, rpass, scene, motion):
                             for psys in ob_temp.particle_systems:
                                 if psys.settings.type == 'HAIR':
                                     hair_handle = instance_handle + "HAIR"
-                                    archive_filename = get_archive_filename(scene, ob_temp, motion, hair=True)
+                                    archive_filename = get_archive_filename(scene, ob_temp, motion, psys)
                                     exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion,
                                         returnMatrixForObject(ob_temp), ob_name, hair_handle, 
+                                        psys.settings.renderman.material_id - 1)
+                                if psys.settings.type == 'EMITTER':
+                                    particle_name = instance_handle + "PARTICLES"
+                                    archive_filename = get_archive_filename(scene, ob_temp, motion, psys)
+                                    
+                                    exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion,
+                                        returnMatrixForObject(ob_temp), ob_name, particle_name, 
                                         psys.settings.renderman.material_id - 1)
                         exported_objects.append(ob_name)
                     else:
