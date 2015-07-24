@@ -26,13 +26,14 @@
 import bpy
 import os
 import subprocess
-
+import _cycles
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, \
 IntProperty, FloatProperty, FloatVectorProperty, CollectionProperty
 
 from .util import init_env
 from .util import getattr_recursive
-
+from .util import user_path
+from .util import get_real_path
 
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
@@ -40,6 +41,7 @@ from .shader_parameters import tex_optimised_path
 from .export import make_optimised_texture_3dl
 from .export import export_archive
 from .engine import RPass
+from .export import compile_osl
 from . import engine
 
 from bpy_extras.io_utils import ExportHelper
@@ -93,6 +95,51 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 import bgl
 import blf
 
+class refresh_osl_shader(bpy.types.Operator):
+    bl_idname = "node.refresh_osl_shader"
+    bl_label = "Refresh OSL Node"
+    bl_description = "Refreshes the OSL node !!! This takes a few seconds!!!"
+    
+    def invoke(self, context, event):
+        node = context.node
+        prefs = bpy.context.user_preferences.addons[__package__].preferences
+        scene = context.scene
+        export_path = os.path.expandvars(user_path(scene.renderman.path_texture_output))
+        oso_path = user_path(getattr(node, 'shadercode')) #os.path.normpath(os.path.abspath(getattr(node, 'shadercode')))
+        FileName = os.path.basename(oso_path)
+        FileNameNoEXT = os.path.splitext(FileName)[0]
+        FileNameOSO = FileNameNoEXT 
+        FileNameOSO += ".oso"
+        print("OUT =: ",user_path(prefs.env_vars.out))
+        #print("OSL Refresh called: ", node, " SCENE: ", scene,"IMPORTPATH: ",oso_path, "EXPORTPATH: ", export_path)
+        ok = compile_osl(oso_path, os.path.join(user_path(prefs.env_vars.out) , "textures"))
+        
+        #ok, oso_out_path = _cycles.osl_compile(oso_path, debug)
+        
+        if ok:
+            print("Node Compiled")
+        else:
+            print("ERROR: NODE GEN FAILED")
+        
+        node.RefreshNodes("TEXTTEST!")
+        #ok = _cycles.osl_update_node(node.id_data.as_pointer(), node.as_pointer(), os.path.join(user_path(prefs.env_vars.out) , "textures", FileNameOSO))
+        #if ok:
+        #    print("Node Changed")
+        #else:
+        #    print("ERROR: NODE CHANGE FAILED")
+        return {'FINISHED'}
+class update_args(bpy.types.Operator):
+    bl_idname = "properties.update_args"
+    bl_label = "Refresh Renderman Nodes"
+    bl_description = "Refreshes the rendman nodes !!! This takes a few seconds!!!"
+    
+    def invoke(self, context, event):
+        properties.reregister()
+        print("REGISTERED")
+        #register_integrator_settings(RendermanSceneSettings)
+        #register_camera_settings()
+        return {'FINISHED'}
+    
 class StartInteractive(bpy.types.Operator):
     ''''''
     bl_idname = "lighting.start_interactive"

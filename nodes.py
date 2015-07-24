@@ -27,6 +27,7 @@ import bpy
 import xml.etree.ElementTree as ET
 
 import nodeitems_utils
+
 from nodeitems_utils import NodeCategory, NodeItem
 
 from .shader_parameters import class_generate_properties
@@ -171,6 +172,8 @@ class RendermanShadingNode(bpy.types.Node):
     #node_props = None
     def draw_buttons(self, context, layout):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
+        if self.name == "PxrOSL":
+            layout.operator("node.refresh_osl_shader")
 
     def draw_buttons_ext(self, context, layout):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
@@ -184,7 +187,8 @@ class RendermanShadingNode(bpy.types.Node):
                     self.draw_nonconnectable_props(context, layout, prop)
                 else:
                     layout.prop(self,prop_name)
-            
+    def printTest(self, text):
+        print(text)
 
 
     @classmethod
