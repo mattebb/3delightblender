@@ -767,7 +767,8 @@ def export_transform(ri, ob, flip_x=False):
     m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
         else ob.matrix_world
     if flip_x:
-        m[0] = -m[0]
+        m = m.copy()
+        m[0] *= -1.0
     ri.Transform(rib(m))
 
 def export_light_source(ri, lamp, shape):
@@ -1859,7 +1860,7 @@ def export_objects(ri, rpass, scene, motion):
         else:
             debug ("warning","Unsupported object type [%s]." % ob.type)
     # End first pass through objects in the scene.
-
+    
     # Lists that hold names of candidates to consider for export.
     debug ("info","\ncandidate_datablocks")
     printList(candidate_datablocks)
@@ -1898,6 +1899,7 @@ def export_objects(ri, rpass, scene, motion):
     printList(candidate_archive_handles)
 
     unique_groups = uniquifyList(candidate_groups)
+    
     # Groups can reference objects that are not on renderable layers so review the objects in groups to add to the candidate list.
     for group_name in unique_groups:
         grp = bpy.data.groups.get(group_name)
@@ -1912,7 +1914,6 @@ def export_objects(ri, rpass, scene, motion):
                 debug ("warning","group [%s] declared but contains no objects." % group_name)
         else:
             debug ("warning","referenced group [%s] is None." % group_name)
-
     # Export scene lights.
     export_comment(ri, '## LIGHTS')
     unique_lights = uniquifyList(candidate_lights)
@@ -1982,7 +1983,7 @@ def export_objects(ri, rpass, scene, motion):
 
                     exported_datablocks.append(ob_name)
                 else:
-                    debug ("warning","Skipping creating another instance of [%s], it already exists as an Archive in the RIB." % handle_name)
+                    debug ("info","Skipping creating another archive of [%s], it already exists as an Archive in the RIB." % handle_name)
             else:
                 debug ("warning","Datablock [%s] has no faces, skipping export?" % ob_name)
         else:
@@ -2023,7 +2024,7 @@ def export_objects(ri, rpass, scene, motion):
                                         psys.settings.renderman.material_id - 1)
                         exported_objects.append(ob_name)
                     else:
-                        debug ("warning","Could not locate handle for [%s]" % ob_name)
+                        debug ("info","Could not locate handle for [%s] it probably wasn't archive" % ob_name)
                 else:
                     debug ("warning","Object [%s] has no faces, skipping export?" % ob_name)
             elif ob_type == 'CURVE':
@@ -2077,6 +2078,7 @@ def export_objects(ri, rpass, scene, motion):
         #output readArchive
         ri.ReadArchive(archive_filename)       
         
+    #for multi-material objects put them all in one rib
     export_comment(ri, '## MULTI-MATERIAL OBJECTS')
     for ob_candidate_name,ob_candidate_type in candidate_multi_material_objects:
         ob_temp = bpy.data.objects.get(ob_candidate_name)
@@ -2087,7 +2089,9 @@ def export_objects(ri, rpass, scene, motion):
                 me_source = ob_temp.to_mesh(scene,True,'RENDER')
                 m = len(me_source.materials)
                 #m = 1 #Atom 07042012 temporary disable.
-                if m > 1:
+                archive_filename = get_archive_filename(scene, ob_temp, motion)
+                if m > 1  and \
+                    check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
                     #Atom 04302012.
                     #export_comment(ri, 'Atom: Create a mesh for every material applied.\n')
                     # A list of all the vertices.
@@ -2101,41 +2105,35 @@ def export_objects(ri, rpass, scene, motion):
                         x = [f for f in face.vertices]
                         list_faces_by_material.append([face.material_index,x])
                     c = 0
+                    ri.Begin(archive_filename)
+
                     for mat in me_source.materials:
                         me_name = "me_" + str(int(c))+ "-PIX_" + ob_candidate_name
                         me = returnNewMeshFromFaces(me_name,me_source,c)
                         if me != None:
                             ob_name = str(int(c))+ "-PIX_" + ob_candidate_name
-                            #tempOb = bpy.data.objects.new(ob_name, me)      # Make new object linked to this special mesh.
-                            #scene.objects.link(tempOb)                      # Link it to the scene.
-                            #try:
-                                #tempOb.material_slots[0].material = mat		# Assign this material as the material for the new object.
-                                #print(tempOb.name + " gets material [" + mat.name + "].")
-                            #except:
-                                #debug ("error","export objects: error assigning material.")
                             
-                            archive_filename = user_path(scene.renderman.path_object_archive_static,
-                                            scene).replace('{object}', ob_name)
-                            if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
-                                ri.Begin(archive_filename)
-                                #just export the mesh
-                                export_simple_polygon_mesh(ri, me_name, me)
-                                ri.End()
+                            ri.AttributeBegin()
+                            #just export the mesh
+                            export_material_archive(ri, mat.name)
+                            export_simple_polygon_mesh(ri, me_name, me)
+                            ri.AttributeEnd()
                                 
-                            
-                            if ob_temp.parent:
-                                matrix = ob_temp.parent.matrix_world * ob_temp.matrix_local
-                            else:
-                                matrix = ob_temp.matrix_world
-                            exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion, matrix, ob_name, ob_name, material=mat)
                             bpy.data.meshes.remove(me)
                         else:
                             debug ("info","export_objects: problem creating MESH [" + me_name + "] in memory.  Possibly due to a material without faces.")
                         c = c + 1
-                    update_timestamp(rpass, ob_temp)
+                    ri.End()
+
+                if ob_temp.parent:
+                    matrix = ob_temp.parent.matrix_world * ob_temp.matrix_local
+                else:
+                    matrix = ob_temp.matrix_world
+                exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion, matrix, ob_name, ob_name, material=None)
+                            
+                update_timestamp(rpass, ob_temp)
             else:
                 debug ("error","Unsupported multi-material object type [%s]." % ob.type)
-
 
 #update the timestamp on an object from the time the rib writing started:
 def update_timestamp(rpass, obj):
