@@ -53,9 +53,6 @@ class PRManRender(bpy.types.RenderEngine):
 
     # main scene render
     def update(self, data, scene):
-        if engine.update_timestamp not in bpy.app.handlers.scene_update_pre:
-            bpy.app.handlers.scene_update_pre.append(engine.update_timestamp)
-
         if self.is_preview:
             if not self.render_pass:
                 engine.create(self, data, scene)
@@ -66,6 +63,11 @@ class PRManRender(bpy.types.RenderEngine):
                 engine.reset(self, data, scene)
         
         engine.update(self, data, scene)
+
+        #add in the update_handler
+        if engine.update_timestamp not in bpy.app.handlers.scene_update_pre:
+            bpy.app.handlers.scene_update_pre.append(engine.update_timestamp)
+
         
     def render(self, scene):
         engine.render(self)

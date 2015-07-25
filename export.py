@@ -97,9 +97,9 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.Attribute("identifier", {"name": dupli_name})
         ri.TransformBegin()
         ri.Transform(rib(mtx))
-        if ob.data and ob.data.materials:
-            for mat in [mat for mat in ob.data.materials if mat != None]:
-                export_material_archive(ri, mat.name)
+        #only output the material if not the same as master
+        if ob.data and ob.data.materials and ob.data.materials[0]:
+            export_material_archive(ri, ob.data.materials[0].name)
         ri.ObjectInstance(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
@@ -219,23 +219,22 @@ def returnNewMeshFromFaces(passedNewName, passedMesh, passedMaterialIndex = -1):
                     me_result = None
     return me_result
 
-def hasFaces(ob_name):
+def hasFaces(ob):
     l = 0
-    ob_temp = bpy.data.objects.get(ob_name)
-    if ob_temp:
-        if ob_temp.type == 'CURVE' or ob_temp.type == 'FONT':
+    if ob:
+        if ob.type == 'CURVE' or ob.type == 'FONT':
             # If this curve is extruded or beveled it can produce faces from a to_mesh call.
-            l = ob_temp.data.extrude + ob_temp.data.bevel_depth
+            l = ob.data.extrude + ob.data.bevel_depth
         else:
             try:
-                l = len(ob_temp.data.polygons)
+                l = len(ob.data.polygons)
             except:
                 l = 0
         if l == 0:
             # No faces. Perhaps it has edges that are using a modifier to define a surface.
-            if len(ob_temp.modifiers) > 0:
+            if len(ob.modifiers) > 0:
                 try:
-                    l = len(ob_temp.data.vertices)
+                    l = len(ob.data.vertices)
                 except:
                     l = 0
     return l
@@ -1649,15 +1648,23 @@ def get_archive_filename(scene, obj, motion, psys=None):
         return user_path(scene.renderman.path_object_archive_static,
                         scene, obj)
 
+def duplis_updated_from_master(master, duplis):
+    master_time = master.renderman.update_timestamp
+    for dupli_name, dupli_type, m in duplis:
+        if bpy.data.objects.get(dupli_name).renderman.update_timestamp > master_time:
+            return True
+    return False
 
 def export_objects(ri, rpass, scene, motion):
+    update_time = time.time()
+
     # Lists that hold names of candidates to consider for export.
     candidate_datablocks = []
     candidate_objects = []
     candidate_multi_material_datablocks = []
     candidate_multi_material_objects = []
     candidate_lights = []
-    candidate_duplis = []
+    candidate_duplis = {}
     candidate_groups = []
     
     # Lists that hold names of datablocks that are already exported.
@@ -1696,9 +1703,13 @@ def export_objects(ri, rpass, scene, motion):
                         dupli_name = "%s_%s_p%s" % (ob.name, ("%s~%s" % (parent_name,dob.object.name)), returnNameForNumber(dob.index))
                         if dob.object.type in SUPPORTED_INSTANCE_TYPES:
                             # This export object will ginstance the above datablock at the new world location.
-                            candidate_duplis.append((dob.object.name, dob.object.type, dob.matrix.copy(), dupli_name))
+                            if dob.object.name not in candidate_duplis:
+                                candidate_duplis[dob.object.name] = []
+                            candidate_duplis[dob.object.name].append((dob.object.type, dob.matrix.copy(), dupli_name))
                         elif dob.object.type == 'LAMP':
-                            candidate_duplis.append((dob.object.name, dob.object.type, dob.matrix.copy(), dupli_name))
+                            if dob.object.name not in candidate_duplis:
+                                candidate_duplis[dob.object.name] = []
+                            candidate_duplis[dob.object.name].append((dob.object.type, dob.matrix.copy(), dupli_name))
                         else:
                             debug ("warning","unsupported export type of [%s] found in dupli_list." % dob.object.type)
                 else:
@@ -1930,7 +1941,7 @@ def export_objects(ri, rpass, scene, motion):
     for ob_name, ob_type in unique_datablocks:
         ob_temp = bpy.data.objects.get(ob_name)
         if ob_temp != None:
-            if hasFaces(ob_name):
+            if hasFaces(ob_temp):
                 # Check if this archive handle already exists.
                 handle_name = ob_temp.data.name
                 if is_smoke(ob_temp):
@@ -1945,6 +1956,7 @@ def export_objects(ri, rpass, scene, motion):
                         ri.Begin(archive_filename)
                         export_geometry(ri, rpass, scene, ob_temp, motion)
                         ri.End()
+                        update_timestamp(rpass, ob_temp)
                     if ob_temp.particle_systems:
                         debug("info" , "The object has a particle system" , ob_temp)
                         
@@ -1985,7 +1997,7 @@ def export_objects(ri, rpass, scene, motion):
         ob_temp = bpy.data.objects.get(ob_name)
         if ob_temp != None:
             if ob_temp.type in SUPPORTED_INSTANCE_TYPES:
-                if hasFaces(ob_name):
+                if hasFaces(ob_temp):
                     # See if we have already written out this datablock by fetching it's handle.
                     instance_handle = returnHandleForName(candidate_archive_handles,ob_name)
                     if instance_handle != None:
@@ -2019,67 +2031,49 @@ def export_objects(ri, rpass, scene, motion):
         else:
             debug ("warning","object [%s] in list but not in memory?" % ob_name)
 
-    export_comment(ri, '## INSTANCE MASTERS')
+    export_comment(ri, '## INSTANCES')
     #Get the object name of every possible particle or dupli source.
-    for ob_name, ob_type, m, dupli_name in candidate_duplis:
-        ob_temp = bpy.data.objects.get(ob_name)
-        if ob_temp != None:
-            candidate_instance_sources.append(ob_name)
-            
-    # This list must be unique for instance handles must be unique within Renderman.		
-    unique_instance_sources = uniquifyList(candidate_instance_sources)
-    debug ("info","unique_instance_sources: %s" % unique_instance_sources)
+    debug ("info","unique_instance_sources: %s" % candidate_duplis.keys())
     
-    # Create an object instance handle for each object in the instance list.
-    for candidate in unique_instance_sources:
-        ob_temp = bpy.data.objects.get(candidate)
-        if ob_temp != None:
-            # Remember, what we are instancing is the datablock, not the object.
-            handle_name = ob_temp.data.name
-            instance_handle = returnHandleForName(candidate_instance_handles,handle_name)
-            
-            #export the archive then object begin
-            if instance_handle == None:
-                archive_filename = get_archive_filename(scene, ob_temp, motion)
-                if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
-                    ri.Begin(archive_filename)
-                    export_geometry(ri, rpass, scene, ob_temp, motion)
-                    ri.End()
-                result = ri.ObjectBegin()
-                exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion, None, ob_name, handle_name)
-                ri.ObjectEnd()
-                candidate_instance_handles.append((handle_name,result))
-            else:
-                debug ("warning","handle for [%s] already exists." % candidate)
-        else:
-            debug ("error","unique_instance [%s] in list but not in memory." % candidate)
-    #print("candidate_instance_handles: %s" % candidate_instance_handles)
+    for master_name, duplis in candidate_duplis.items():
+        ob_master = bpy.data.objects.get(master_name)
+        if ob_master == None:
+            debug ("warning","instance master not found: %s" % master_name)
+            continue
         
-    export_comment(ri, '## INSTANCES') 
-    # Export dupli objects as instances. (This list contains objects that are generated from other objects, like duplivert, dupligroup, dupliface, particles)
-    for ob_name, ob_type, m, dupli_name in candidate_duplis:
-        ob_temp = bpy.data.objects.get(ob_name)
-        if ob_temp != None:
-            if ob_type in SUPPORTED_INSTANCE_TYPES:
-                if hasFaces(ob_name):
-                    handle_name = ob_temp.data.name
-                    #print("candidate_instance_handles: %s" %candidate_instance_handles)
-                    instance_handle = returnHandleForName(candidate_instance_handles,handle_name)
-                    if instance_handle != None:
-                        exportObjectInstance(ri, rpass, scene, ob_temp, m, dupli_name, instance_handle)
+        #create archive name of master name
+        archive_filename = user_path(scene.renderman.path_object_archive_static,
+                                            scene).replace('{object}', master_name+'.' + 'INSTANCES')
+        #check if dirty or any dupli updated
+        if check_if_archive_dirty(ob_master.renderman.update_timestamp, archive_filename):
+            #output object begin of master
+            update_timestamp(rpass, ob_master)
+            ri.Begin(archive_filename)
+            instance_handle = ri.ObjectBegin()
+            export_geometry(ri, rpass, scene, ob_master, motion)
+            if len(ob_master.data.materials) > 0:
+                export_material_archive(ri, ob_master.data.materials[0].name)
+            ri.ObjectEnd()
+            #for each dupli
+            for dupli_type, m, dupli_name in duplis:
+                #output object instance
+                #ob_dupli = bpy.data.objects.get(master_name)
+                if dupli_type in SUPPORTED_INSTANCE_TYPES:
+                    if hasFaces(ob_master):
+                        handle_name = ob_master.data.name
+                        #print("candidate_instance_handles: %s" %candidate_instance_handles)
+                        exportObjectInstance(ri, rpass, scene, ob_master, m, dupli_name, instance_handle)
                         exported_objects.append(dupli_name)
                     else:
-                        debug ("warning","instance handle for [%s] [%s] not available?" % (ob_name,handle_name))
+                        debug ("warning","Dupli [%s] has no faces, skipping export?" % master_name)
+                elif dupli_type == 'LAMP':
+                    #exportLight (ri, scene, ob_temp, m, dupli_name)
+                    exported_objects.append(dupli_name)
                 else:
-                    debug ("warning","Dupli [%s] has no faces, skipping export?" % ob_name)
-            elif ob_type == 'LAMP':
-                #exportLight (ri, scene, ob_temp, m, dupli_name)
-                exported_objects.append(dupli_name)
-            else:
-                debug ("warning","Unsupported export type [%s] in dupli_list." % ob_type)
-        else:
-            debug ("error","None object in dupli export list...?")
-        ob_temp = None
+                    debug ("warning","Unsupported export type [%s] in dupli_list." % dupli_type)
+            ri.End()
+        #output readArchive
+        ri.ReadArchive(archive_filename)       
         
     export_comment(ri, '## MULTI-MATERIAL OBJECTS')
     for ob_candidate_name,ob_candidate_type in candidate_multi_material_objects:
@@ -2094,7 +2088,6 @@ def export_objects(ri, rpass, scene, motion):
                 if m > 1:
                     #Atom 04302012.
                     #export_comment(ri, 'Atom: Create a mesh for every material applied.\n')
-                
                     # A list of all the vertices.
                     list_verts = []
                     for vertex in me_source.vertices:
@@ -2126,18 +2119,26 @@ def export_objects(ri, rpass, scene, motion):
                                 #just export the mesh
                                 export_simple_polygon_mesh(ri, me_name, me)
                                 ri.End()
+                                
                             
                             if ob_temp.parent:
                                 matrix = ob_temp.parent.matrix_world * ob_temp.matrix_local
                             else:
                                 matrix = ob_temp.matrix_world
                             exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion, matrix, ob_name, ob_name, material=mat)
-                            
+                            bpy.data.meshes.remove(me)
                         else:
                             debug ("info","export_objects: problem creating MESH [" + me_name + "] in memory.  Possibly due to a material without faces.")
                         c = c + 1
+                    update_timestamp(rpass, ob_temp)
             else:
                 debug ("error","Unsupported multi-material object type [%s]." % ob.type)
+
+
+#update the timestamp on an object from the time the rib writing started:
+def update_timestamp(rpass, obj):
+    if obj and rpass.update_time:
+        obj.renderman.update_timestamp = rpass.update_time
 
 #TODO take in an ri object and write out archive
 def export_archive(scene, objects, filepath="", archive_motion=True, 

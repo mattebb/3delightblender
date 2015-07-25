@@ -88,6 +88,7 @@ def reset(engine, data, scene):
     engine.render_pass.set_scene(scene)
 
 def update(engine, data, scene):
+    engine.render_pass.update_time = int(time.time())
     if engine.is_preview:
         engine.render_pass.display_driver = 'tif'
         engine.render_pass.gen_preview_rib()
@@ -135,6 +136,7 @@ class RPass:
         prman.Init()
         self.ri = prman.Ri()
         self.edit_num = 0
+        self.update_time = None
 
     def __del__(self):
         if self.is_interactive_running:
