@@ -97,9 +97,10 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.Attribute("identifier", {"name": dupli_name})
         ri.TransformBegin()
         ri.Transform(rib(mtx))
-        #only output the material if not the same as master
-        if ob.data and ob.data.materials and ob.data.materials[0]:
-            export_material_archive(ri, ob.data.materials[0].name)
+        if hasattr(ob.data, 'materials'):
+            #only output the material if not the same as master
+            if ob.data and ob.data.materials and ob.data.materials[0]:
+                export_material_archive(ri, ob.data.materials[0].name)
         ri.ObjectInstance(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
@@ -116,11 +117,12 @@ def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = No
     elif mtx:
         ri.Transform(rib(mtx))
 
-    if material:
-        export_material_archive(ri, material.name)
-    elif ob.data and ob.data.materials:
-        if ob.data.materials[matNum]:
-            export_material_archive(ri, ob.data.materials[matNum].name)
+    if hasattr(ob.data, 'materials'):
+        if material:
+            export_material_archive(ri, material.name)
+        elif ob.data and ob.data.materials:
+            if ob.data.materials[matNum]:
+                export_material_archive(ri, ob.data.materials[matNum].name)
     #just get the relative path
     params = {"float[6] bound": rib_ob_bounds(ob.bound_box),
                  "string filename": os.path.relpath(archive_filename, rpass.paths['archive'])}
