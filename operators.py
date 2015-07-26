@@ -42,6 +42,7 @@ from .export import make_optimised_texture_3dl
 from .export import export_archive
 from .engine import RPass
 from .export import compile_osl
+from .export import debug
 from . import engine
 
 from bpy_extras.io_utils import ExportHelper

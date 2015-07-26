@@ -121,10 +121,14 @@ def parse_float(fs):
 
 def class_generate_properties(node, parent_name, shaderparameters):
     prop_names = []
+    
     prop_meta = {}
     #print("NODE: ", node, "PARENT_NAME: ", parent_name, "PARAMS: ", shaderparameters)
     i = 0
     for sp in shaderparameters:
+        #if parent_name == "PxrOSL":
+            #print("PARAMETER: ", sp)
+        
         if sp.tag == 'page':
             if parent_name == "PxrOSL":
                 pass
@@ -139,6 +143,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                        name = name + '_prop'
                    sub_params.append(name)
                    prop_meta[name] = meta
+                   #print("NODE: ", node)
                    setattr(node, name, prop)
                prop_names.append(sp.attrib['name'])
                prop_meta[sp.attrib['name']] = {'renderman_type':'page'}
@@ -156,18 +161,14 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 prop_meta["shadercode"] = codeMeta
                 #print("META: ", prop_meta["ShaderCode"])
             else:
+                #print("SP: ", sp, "TYPE: ", type(sp))
                 name,meta,prop = generate_property(sp)
                 prop_names.append(name)
                 prop_meta[name] = meta
-                if parent_name == "PxrTexture":
-                    print("TEXTUE_NAME: ",name,"TEXTURE_PROP: ",prop, "TEXTURE_META: ", meta)
-                if parent_name == "PxrOSL":
-                    print("OSL_NAME: ",name,"OSL_PROP: ",prop, "OSL_META: ", meta)
                 setattr(node, name, prop)
             
         i += 1
-    '''if parent_name == "PxrOSL":
-        print("METAS: " , prop_meta)'''
+    
     #print("PARENTNAME: ",parent_name,"NODE: ", node, "PROP_NAMES: ", prop_names, "PROP_META: ", prop_meta)
     setattr(node, 'prop_names', prop_names)
     setattr(node, 'prop_meta', prop_meta)
@@ -176,6 +177,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
 def generate_property(sp):
     options = {'ANIMATABLE'}
     param_name = sp.attrib['name']
+    print("NAME: ", sp.attrib['name'],  "ATTRIBS: " , sp.attrib)
     renderman_name = param_name
     #blender doesn't like names with __ but we save the 
     #"renderman_name with the real one"

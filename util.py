@@ -32,7 +32,7 @@ import sys
 import fnmatch
 from extensions_framework import util as efutil
 from mathutils import Matrix, Vector
-EnableDebugging = True
+EnableDebugging = False
 
 
 class BlenderVersionError(Exception):

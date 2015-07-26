@@ -426,9 +426,9 @@ class RPass:
     def gen_rib(self, engine=None):
         time_start = time.time()
         self.convert_textures(get_texture_list(self.scene))
-        self.export_osl(engine)
+        
         if engine:
-            engine.report({"INFO"}, "Texture and Shader generation took %s" % format_seconds_to_hhmmss(time.time() - time_start))
+            engine.report({"INFO"}, "Texture generation took %s" % format_seconds_to_hhmmss(time.time() - time_start))
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
@@ -484,11 +484,6 @@ class RPass:
                                         stdout=subprocess.PIPE, env=environ)
                 process.communicate()
 
-    def export_osl(self, engine):
-        ok = compile_osl("C:\OpenGL\carbonfiber.osl", self.paths['texture_output'])
-        if ok:
-            engine.report({"INFO"}, "OSL Shader Exported Correctly!")
-            debug('info', "OSL shader compile succeeded!")
-
+    
 
 

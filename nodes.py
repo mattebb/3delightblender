@@ -33,6 +33,8 @@ from nodeitems_utils import NodeCategory, NodeItem
 from .shader_parameters import class_generate_properties
 from .shader_parameters import node_add_inputs
 from .shader_parameters import node_add_outputs
+from .shader_parameters import socket_map
+from .shader_parameters import generate_property
 from .util import args_files_in_path
 from .util import get_path_list
 from .util import rib
@@ -167,17 +169,19 @@ class RendermanPropertyGroup(bpy.types.PropertyGroup):
 class RendermanShadingNode(bpy.types.Node):
     bl_label = 'Output'
     
-    OSL_names = []
+    OSL_names = ["TEST"]
     OSL_props = []
     OSL_meta = []
-    
     #all the properties of a shader will go here, also inputs/outputs 
     #on connectable props will have the same name
     #node_props = None
+    def init(self, context):
+        if self.bl_label == "PxrOSL":
+            for socket in self.outputs:
+                self.outputs.remove(socket)
     def draw_buttons(self, context, layout):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
-        if self.name == "PxrOSL":
-            #layout.prop(self, bpy.props.StringProperty(name='ShaderCode2', default='', subtype="FILE_PATH", description=''))
+        if self.bl_label == "PxrOSL":
             layout.operator("node.refresh_osl_shader")
 
     def draw_buttons_ext(self, context, layout):
@@ -185,6 +189,8 @@ class RendermanShadingNode(bpy.types.Node):
 
     def draw_nonconnectable_props(self, context, layout, prop_names):
         for prop_name in prop_names:
+            #if self.bl_label == "PxrOSL":
+                #print("PROPNAMES: ",prop_name," ATRIBUTE: ",getattr(self, prop_name))
             prop_meta = self.prop_meta[prop_name]
             if prop_name not in self.inputs:
                 if prop_meta['renderman_type'] == 'page':
@@ -193,9 +199,24 @@ class RendermanShadingNode(bpy.types.Node):
                 else:
                     layout.prop(self,prop_name)
     def RefreshNodes(self, text):
-        debug('info', text)
+        self.update()
+        testSocket = self.outputs.new(socket_map["color"], "testSocket")
+        sp.attrib = {}
+        
+        #setattr(self, )
+        print(socket_map["float"])
+        #print("SELF: ", self)
+        #self.prop_names = ["shadercode", "testprop"]
+        #self.prop_meta["testprop"] = {'renderman_name' : 'filename' ,'name' : 'TestProp', 'renderman_type' : 'string' , 'default' : '', 'label' : 'TestProp', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
+        #codeProp = bpy.props.StringProperty(name='TestProp', default='', subtype="FILE_PATH", description='')
+        #setattr(self, "testprop", codeProp)
+        #setattr(self, 'prop_names', self.prop_names)
+        #setattr(self, 'prop_meta', self.prop_meta)
+        
 
-
+    def update(self):
+        
+        print("UPDATING: ", self.name)
     @classmethod
     def poll(cls, ntree):
         return ntree.bl_idname == 'RendermanPatternGraph'
@@ -291,6 +312,8 @@ def generate_node_type(prefs, name, args):
             self.outputs.new('RendermanShaderSocket', "Displacement")
             node_add_inputs(self, name, inputs)
         #else pattern
+        elif name == "PxrOSL":
+            pass
         else:
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
