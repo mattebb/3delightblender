@@ -201,10 +201,13 @@ class RendermanShadingNode(bpy.types.Node):
     def RefreshNodes(self, text):
         self.update()
         testSocket = self.outputs.new(socket_map["color"], "testSocket")
-        sp.attrib = {}
-        
-        #setattr(self, )
-        print(socket_map["float"])
+        tsmeta = {'renderman_name' : 'filename' ,'name' : 'ShaderCode', 'renderman_type' : 'string' , 'default' : '', 'label' : 'ShaderCode', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
+        tsprop = bpy.props.FloatVectorProperty(name='testSocket', default='1. 1. 1.', subtype="COLOR",soft_min = 0.0, soft_max = 1.0, description='')
+        self.prop_names.append("testSocket")
+        self.prop_meta["testSocket"] = tsmeta
+        setattr(self, "testSocket", tsprop)
+        print (getattr(self, "shadercode"), getattr(self, "testSocket"))
+        #print(socket_map["float"])
         #print("SELF: ", self)
         #self.prop_names = ["shadercode", "testprop"]
         #self.prop_meta["testprop"] = {'renderman_name' : 'filename' ,'name' : 'TestProp', 'renderman_type' : 'string' , 'default' : '', 'label' : 'TestProp', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}

@@ -139,6 +139,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                for sub_param in sp.findall('param'):
                    name,meta,prop = generate_property(sub_param)
                    #another fix for sloppy args files
+                   
                    if name == sp.attrib['name']:
                        name = name + '_prop'
                    sub_params.append(name)
@@ -158,11 +159,12 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 codeMeta = {'renderman_name' : 'filename' ,'name' : 'ShaderCode', 'renderman_type' : 'string' , 'default' : '', 'label' : 'ShaderCode', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
                 setattr(node, codeName, codeProp)
                 prop_names.append(codeName)
-                prop_meta["shadercode"] = codeMeta
+                prop_meta[codeName] = codeMeta
                 #print("META: ", prop_meta["ShaderCode"])
             else:
                 #print("SP: ", sp, "TYPE: ", type(sp))
                 name,meta,prop = generate_property(sp)
+                print("PROP: ", prop, "META: ", meta, "NAME:", name)
                 prop_names.append(name)
                 prop_meta[name] = meta
                 setattr(node, name, prop)
@@ -177,7 +179,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
 def generate_property(sp):
     options = {'ANIMATABLE'}
     param_name = sp.attrib['name']
-    print("NAME: ", sp.attrib['name'],  "ATTRIBS: " , sp.attrib)
+    #print("NAME: ", sp.attrib['name'],  "ATTRIBS: " , sp.attrib)
     renderman_name = param_name
     #blender doesn't like names with __ but we save the 
     #"renderman_name with the real one"
