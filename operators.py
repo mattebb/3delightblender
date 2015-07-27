@@ -34,6 +34,7 @@ from .util import init_env
 from .util import getattr_recursive
 from .util import user_path
 from .util import get_real_path
+from .util import readOSO
 
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
@@ -105,20 +106,23 @@ class refresh_osl_shader(bpy.types.Operator):
         node = context.node
         prefs = bpy.context.user_preferences.addons[__package__].preferences
         scene = context.scene
-        export_path = os.path.expandvars(user_path(scene.renderman.path_texture_output))
-        oso_path = user_path(getattr(node, 'shadercode')) #os.path.normpath(os.path.abspath(getattr(node, 'shadercode')))
-        FileName = os.path.basename(oso_path)
+        
+        osl_path = user_path(getattr(node, 'shadercode')) #os.path.normpath(os.path.abspath(getattr(node, 'shadercode')))
+        FileName = os.path.basename(osl_path)
         FileNameNoEXT = os.path.splitext(FileName)[0]
         FileNameOSO = FileNameNoEXT 
         FileNameOSO += ".oso"
+        export_path = os.path.join(user_path(prefs.env_vars.out),"textures", FileNameOSO)
         
         
-        ok = compile_osl(oso_path, os.path.join(user_path(prefs.env_vars.out) , "textures"))
+        ok = compile_osl(osl_path, os.path.join(user_path(prefs.env_vars.out) , "textures"))
         
         
         
         if ok:
             print("Node Compiled")
+            prop_names, shader_meta = readOSO(export_path)
+            print("PROP_NAMES: ", prop_names, "SHADER_META: ", shader_meta)
             node.RefreshNodes("TEXTTEST!")
         else:
             debug("error", "NODE COMPILATION FAILED")

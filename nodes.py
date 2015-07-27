@@ -38,6 +38,7 @@ from .shader_parameters import generate_property
 from .util import args_files_in_path
 from .util import get_path_list
 from .util import rib
+from .util import debug
 
 from operator import attrgetter, itemgetter
 import os.path
@@ -168,7 +169,7 @@ class RendermanPropertyGroup(bpy.types.PropertyGroup):
 # Defines a poll function to enable instantiation.
 class RendermanShadingNode(bpy.types.Node):
     bl_label = 'Output'
-    
+    testInput = bpy.props.FloatVectorProperty(name='testInput', default=(1.0, 1.0, 1.0), size=3, subtype="COLOR",soft_min = 0.0, soft_max = 1.0, description='')
     OSL_names = ["TEST"]
     OSL_props = []
     OSL_meta = []
@@ -200,18 +201,15 @@ class RendermanShadingNode(bpy.types.Node):
                     layout.prop(self,prop_name)
     def RefreshNodes(self, text):
         self.update()
-        testSocket = self.outputs.new(socket_map["color"], "testSocket")
-        tsmeta = {'renderman_name' : 'filename' ,'name' : 'ShaderCode', 'renderman_type' : 'string' , 'default' : '', 'label' : 'ShaderCode', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
-        tsprop = bpy.props.FloatVectorProperty(name='testSocket', default='1. 1. 1.', subtype="COLOR",soft_min = 0.0, soft_max = 1.0, description='')
-        self.prop_names.append("testSocket")
-        self.prop_meta["testSocket"] = tsmeta
-        setattr(self, "testSocket", tsprop)
-        print (getattr(self, "shadercode"), getattr(self, "testSocket"))
-        #print(socket_map["float"])
-        #print("SELF: ", self)
-        #self.prop_names = ["shadercode", "testprop"]
-        #self.prop_meta["testprop"] = {'renderman_name' : 'filename' ,'name' : 'TestProp', 'renderman_type' : 'string' , 'default' : '', 'label' : 'TestProp', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
-        #codeProp = bpy.props.StringProperty(name='TestProp', default='', subtype="FILE_PATH", description='')
+        
+        testOutput = self.outputs.new(socket_map["color"], "testOutput")
+        tsmeta = {'renderman_name' : 'filename' ,'name' : 'testInput', 'renderman_type' : 'string' , 'default' : '', 'label' : 'ShaderCode', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
+        #tsprop = bpy.props.FloatVectorProperty(name='testInput', default=(1.0, 1.0, 1.0), size=3, subtype="COLOR",soft_min = 0.0, soft_max = 1.0, description='')
+        #self.prop_names.append("testInput")
+        #self.prop_meta["testInput"] = tsmeta
+        #setattr(self, "testInput", tsprop)
+        #print (getattr(self, "shadercode"), getattr(self, "testInput"))
+        #Inputsocket = self.inputs.new(socket_map['color'], 'testInput')
         #setattr(self, "testprop", codeProp)
         #setattr(self, 'prop_names', self.prop_names)
         #setattr(self, 'prop_meta', self.prop_meta)
@@ -219,7 +217,7 @@ class RendermanShadingNode(bpy.types.Node):
 
     def update(self):
         
-        print("UPDATING: ", self.name)
+        debug("info","UPDATING: ", self.name)
     @classmethod
     def poll(cls, ntree):
         return ntree.bl_idname == 'RendermanPatternGraph'
@@ -330,7 +328,8 @@ def generate_node_type(prefs, name, args):
     #ntype.prop_names = class_add_properties(ntype, [p for p in args.findall('./param')])
     #lights cant connect to a node tree in 20.0
     class_generate_properties(ntype, name, inputs)
-
+    if name == 'PxrOSL':
+        print("NTYPE: ",ntype, "PROPS: " ,ntype.prop_names, "ShaderCode", getattr(ntype, "shadercode"))
     if nodeType == 'light':
         ntype.light_shading_rate = bpy.props.FloatProperty(
             name="Light Shading Rate",

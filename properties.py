@@ -1089,6 +1089,11 @@ class RendermanParticlePrimVar(bpy.types.PropertyGroup):
                     ]   # XXX: Would be nice to have particle ID, needs adding in RNA
                     )
 
+class oslProps(bpy.types.PropertyGroup):
+    shaderString = StringProperty(
+                name="Shader",
+                description="OSL shader to use",
+                default="")
 class RendermanParticleSettings(bpy.types.PropertyGroup):
 
     material_id = IntProperty(
@@ -1474,7 +1479,7 @@ classes = [displacementShaders,
             RendermanLightSettings,
             RendermanParticleSettings,
             RendermanIntegratorSettings,
-            
+            oslProps,
             RendermanCameraSettings,
             RendermanSceneSettings,
             RendermanWorldSettings,

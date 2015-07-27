@@ -164,7 +164,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
             else:
                 #print("SP: ", sp, "TYPE: ", type(sp))
                 name,meta,prop = generate_property(sp)
-                print("PROP: ", prop, "META: ", meta, "NAME:", name)
+                #print("PROP: ", prop, "META: ", meta, "NAME:", name)
                 prop_names.append(name)
                 prop_meta[name] = meta
                 setattr(node, name, prop)
