@@ -104,7 +104,8 @@ def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, in
         ri.ObjectInstance(instance_handle)
         ri.TransformEnd()
         ri.AttributeEnd()
-def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = None, object_name = None, instance_handle = None, matNum = 0, material=None):
+def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = None, 
+        object_name = None, instance_handle = None, matNum = 0, material=None, bounds=None):
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": instance_handle})
     if ob.name in motion['transformation']:
@@ -126,6 +127,8 @@ def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = No
     #just get the relative path
     params = {"float[6] bound": rib_ob_bounds(ob.bound_box),
                  "string filename": os.path.relpath(archive_filename, rpass.paths['archive'])}
+    if bounds:
+        params["float[6] bound"] = bounds
     ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
     ri.AttributeEnd()
 def removeMeshFromMemory (passedName):
@@ -529,6 +532,17 @@ def get_strands(ri, scene,ob, psys):
 def valid_particle(pa, cfra):
     return not (pa.birth_time > cfra or (pa.birth_time + pa.die_time) < cfra)
 
+def get_particle_bounds(particles, cfra):
+    xs = []
+    ys = []
+    zs = []
+    for p in particles:
+        if valid_particle(p, cfra):
+            xs.append(p.location[0])
+            ys.append(p.location[1])
+            zs.append(p.location[2])
+    return [min(xs), max(xs), min(ys), max(ys), min(zs), max(zs)]
+
 def get_particles(scene, ob, psys):
     P = []
     rot = []
@@ -536,8 +550,9 @@ def get_particles(scene, ob, psys):
     
     cfra = scene.frame_current
     psys.set_resolution(scene, ob, 'RENDER')
+    i=0
     for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
-        
+        i+=1
         P.extend( pa.location )
         rot.extend( pa.rotation )
         
@@ -933,38 +948,42 @@ def export_particle_instances(ri, scene, ob, psys, motion):
         instance_ob = bpy.data.objects[rm.particle_instance_object]
     except:
         return
+
+    instance_handle = ri.ObjectBegin()
+    export_geometry(ri, scene, instance_ob, motion)
+    if len(instance_ob.data.materials) > 0:
+        export_material_archive(ri, instance_ob.data.materials[0].name)
+    ri.ObjectEnd()
     
     motion_blur = pname in motion['deformation']
     cfra = scene.frame_current
+    width = rm.width 
 
-    for i in range(len( [ p for p in psys.particles \
-                                    if valid_particle(p, cfra) ] )):
+    for p in [ p for p in psys.particles if valid_particle(p, cfra) ]:
         
-        if motion_blur:
-            export_motion_begin(ri, scene, ob)
-            samples = motion['deformation'][pname]
-        else:
-            samples = [get_particles(scene, ob, psys)]
+        #if motion_blur:
+        #    export_motion_begin(ri, scene, ob)
         
-        for P, rot, width in samples:
+        ri.AttributeBegin()
+        #ri.Attribute("identifier", {"name": dupli_name})
+        ri.TransformBegin()
 
-            loc = Vector((P[i*3+0], P[i*3+1], P[i*3+2]))
-            rot = Quaternion((rot[i*4+0], rot[i*4+1], rot[i*4+2], rot[i*4+3]))
-            mtx = Matrix.Translation(loc) * rot.to_matrix().to_4x4() \
-                    * Matrix.Scale(width[i], 4)
+        loc = p.location
+        rot = p.rotation
+        mtx = Matrix.Translation(loc) * rot.to_matrix().to_4x4() \
+                    * Matrix.Scale(width, 4)
             
-            ri.Transform(rib(mtx))
+        #ri.Transform(rib(mtx))
+        ri.Transform(rib(mtx))
         
-        if motion_blur:
-            ri.MotionEnd()
+        #if hasattr(ob.data, 'materials'):
+        #    #only output the material if not the same as master
+        #    if ob.data and ob.data.materials and ob.data.materials[0]:
+        #        export_material_archive(ri, ob.data.materials[0].name)
+        ri.ObjectInstance(instance_handle)
+        ri.TransformEnd()
+        ri.AttributeEnd()
 
-        if instance_ob.renderman.geometry_source == 'BLENDER_SCENE_DATA':
-            archive_path = rib_path(auto_archive_path(rpass.paths, 
-                                                        [instance_ob]))
-            ri.ReadArchive(archive_path)
-        else:
-            geometry_source_rib(ri, scene, instance_ob)
-        
 
 
 def export_particle_points(ri, scene, ob, psys, motion):
@@ -978,7 +997,6 @@ def export_particle_points(ri, scene, ob, psys, motion):
         samples = motion['deformation'][pname]
     else:
         samples = [get_particles(scene, ob, psys)]
-    
     for P, rot, width in samples:
         params = get_primvars_particle(scene, psys)
         params[ri.P] =  rib(P)
@@ -994,7 +1012,7 @@ def export_particle_points(ri, scene, ob, psys, motion):
 
 
 #only for emitter types for now 
-def export_particles(ri, scene, ob, motion, psys):
+def export_particles(ri, rpass, scene, ob, motion, psys):
 
     rm = psys.settings.renderman
     pname = psys_motion_name(ob, psys)
@@ -1010,7 +1028,6 @@ def export_particles(ri, scene, ob, motion, psys):
     
     # Write object instances or points
     if rm.particle_type == 'OBJECT':
-        pass
         export_particle_instances(ri, scene, ob, psys, motion)
     else:
         export_particle_points(ri, scene, ob, psys, motion)
@@ -1424,7 +1441,7 @@ def is_dupli_source(ob):
     if ob.parent and ob.parent.dupli_type in SUPPORTED_DUPLI_TYPES: result = True	
     return result
     
-def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
+def export_geometry_data(ri, scene, ob, motion, force_prim=''):
     if force_prim == '':
         prim = detect_primitive(ob)
     else:
@@ -1465,16 +1482,11 @@ def export_geometry_data(ri, rpass, scene, ob, motion, force_prim=''):
     elif prim == 'POINTS':
         export_points(ri, scene, ob, motion)
   
-def export_geometry(ri, rpass, scene, ob, motion):
+def export_geometry(ri, scene, ob, motion):
     rm = ob.renderman
     
     if rm.geometry_source == 'BLENDER_SCENE_DATA':
-        if ob in rpass.archives:
-            archive_path = rib_path(auto_archive_path(rpass.paths, [ob]))        
-            if os.path.exists(archive_path):
-                ri.ReadArchive(archive_path)
-        else:
-            export_geometry_data(ri, rpass, scene, ob, motion)
+        export_geometry_data(ri, scene, ob, motion)
 
     else:
         pass
@@ -1515,7 +1527,7 @@ def export_object(ri, rpass, scene, ob, motion, mtx = None, dupli_name = None):
     else:
         ri.Transform(rib(mat))
 
-    export_geometry(ri, rpass, scene, ob, motion)
+    export_geometry(ri, scene, ob, motion)
     export_strands(ri, rpass, scene, ob, motion)
     
     ri.AttributeEnd()
@@ -1768,72 +1780,6 @@ def export_objects(ri, rpass, scene, motion):
                         pass
                         # Scan for hair based particle systems.
                         
-                        
-                        
-                        
-                        
-                        #export_strands(ri, rpass, scene, ob, motion)
-                                
-                        #        pset = psys.settings
-                        #        if pset.type == 'HAIR' and pset.render_type == 'PATH': 
-                        #            export_comment(ri,'--> Hair strands from emitter [%s].\n' % ob.name)
-                        #            size = pset.particle_size / 10
-                        #            psys.set_resolution(scene, ob, 'RENDER')	# Set the render resolution of the particle system
-                        #            steps = 2 ** pset.render_step + 1
-                        #            transform = ob.matrix_world.inverted()
-                        #            count_strands_parent = len(psys.particles)
-                        #            count_strands_children = len(psys.child_particles)
-                        #            
-                        #            # to_mesh based version of hair support, likely to evolve and become more effcient.
-                        #            # Make a curve object that we are going to pass to exportPolymesh which will issue a to_mesh.
-                        #            cu_datablock = bpy.data.curves.new("cu_strand_placeholder",'CURVE')
-                        #            temp_ob_curve = bpy.data.objects.new("strand_placeholder",cu_datablock)
-    
-                        #            for strand_index in range(0, count_strands_parent + count_strands_children):
-                        #                hair_name = 'hair_p%s' % returnNameForNumber(strand_index)
-                        #                debug ("info","PRMan: Generating hair strand [%s] of %i" % (hair_name,(count_strands_parent + count_strands_children)))
-
-                        #                temp_curve = bpy.data.curves.new("%s%s" % (CURVE_PREFIX, hair_name),'CURVE')    # Create a new curve.
-                        #                temp_curve.dimensions = '3D'
-                        #                temp_curve.fill_mode = 'FULL'
-                        #                temp_curve.bevel_depth = size
-                        #                #temp_curve.bevel_resolution = 0
-                        #                temp_curve.render_resolution_u = 1	#pset.draw_step
-                        #                temp_curve.resolution_u = 1
-                        #                spline = temp_curve.splines.new('BEZIER')           # Add an empty spline to the curve.
-                        #                points = spline.bezier_points
-                        #                spline.use_endpoint_u = True
-                        #                spline.use_cyclic_u = False
-                        #                strand_radius = 1.0
-                        #                strand_radius_delta = strand_radius/steps
-                        #                # Populate the points.
-                        #                for step in range(0, steps):
-                        #                    co = psys.co_hair(ob, strand_index, step)
-                        #                    if co.length_squared == 0:
-                        #                        # A zero length means we should stop.
-                        #                        break
-                        #                    else:
-                        #                        if step > 0: spline.bezier_points.add(1) 
-                        #                        points[step].co = mathutils.Vector((co.x, co.y, co.z)) 
-                        #                        points[step].radius = strand_radius
-                        #                        strand_radius -= strand_radius_delta
-
-                        #                temp_ob_curve.data = temp_curve					# Assign new curve datablock to temp curve object.
-                        #                try:
-                        #                    # Transfer the emitter material to the strand.
-                        #                    temp_ob_curve.data.materials.append(ob.data.materials[0])	
-                        #                except:
-                        #                    # Problem, strand will inherit the default material.
-                        #                    pass
-                        #                temp_ob_curve.name = hair_name
-                        #                export_polygon_mesh(ri,scene,temp_ob_curve,motion)
-                        #                temp_ob_curve.data = cu_datablock				# Restore the temporary blank curve datablock.
-                        #                bpy.data.curves.remove(temp_curve)				# Remove the datablock we just exported.
-                        #            psys.set_resolution(scene, ob, 'PREVIEW')			# Restore the render resolution of the particle system
-                        #            
-                        #            # Remove these temporary assets from memory.
-                        #            bpy.data.objects.remove(temp_ob_curve)
-                        #            bpy.data.curves.remove(cu_datablock)
                 elif ob.dupli_type in SUPPORTED_DUPLI_TYPES:
                     # Dupli source meshes should not get rendered.
                     # But we do need to fetch the list of duplis they represent.
@@ -1937,6 +1883,8 @@ def export_objects(ri, rpass, scene, motion):
     ri.End()
     ri.ReadArchive(archive_filename)
 
+    lazy_ribgen = scene.renderman.lazy_rib_gen
+
     # Export datablocks for archiving.
     #export_comment(ri, '## ARCHIVES')
     unique_datablocks = uniquifyList(candidate_datablocks)
@@ -1955,9 +1903,9 @@ def export_objects(ri, rpass, scene, motion):
                     # Export this polymesh data as an archive to be referenced later on.
                     archive_filename = get_archive_filename(scene, ob_temp, motion)
                     candidate_archive_handles.append((ob_name, handle_name))
-                    if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
+                    if not lazy_ribgen or check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
                         ri.Begin(archive_filename)
-                        export_geometry(ri, rpass, scene, ob_temp, motion)
+                        export_geometry(ri, scene, ob_temp, motion)
                         ri.End()
                         update_timestamp(rpass, ob_temp)
                     if ob_temp.particle_systems:
@@ -1968,7 +1916,7 @@ def export_objects(ri, rpass, scene, motion):
                                 debug("info" , "The object has a particle system hair" , ob_temp)
                                 strand_name = handle_name + "HAIR"
                                 archive_filename = get_archive_filename(scene, ob_temp, motion, psys)
-                                if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
+                                if not lazy_ribgen or check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
                                     ri.Begin(archive_filename)
                                     export_strands(ri, rpass, scene, ob_temp, motion)
                                     ri.End()
@@ -1976,7 +1924,7 @@ def export_objects(ri, rpass, scene, motion):
                                 debug("info" , "The object has a particle system Emitter" , ob_temp)
                                 particle_name = handle_name + "PARTICLES"
                                 archive_filename = get_archive_filename(scene, ob_temp, motion, psys)
-                                if check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
+                                if not lazy_ribgen or check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
                                     ri.Begin(archive_filename)
                                     export_particles(ri, scene, ob_temp, motion, psys)
                                     ri.End()
@@ -2018,10 +1966,9 @@ def export_objects(ri, rpass, scene, motion):
                                 if psys.settings.type == 'EMITTER':
                                     particle_name = instance_handle + "PARTICLES"
                                     archive_filename = get_archive_filename(scene, ob_temp, motion, psys)
-                                    
                                     exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion,
-                                        returnMatrixForObject(ob_temp), ob_name, particle_name, 
-                                        psys.settings.renderman.material_id - 1)
+                                        Matrix.Identity(4), ob_name, particle_name, 
+                                        psys.settings.renderman.material_id - 1, bounds=get_particle_bounds(psys.particles, scene.frame_current))
                         exported_objects.append(ob_name)
                     else:
                         debug ("info","Could not locate handle for [%s] it probably wasn't archive" % ob_name)
@@ -2048,12 +1995,12 @@ def export_objects(ri, rpass, scene, motion):
         archive_filename = user_path(scene.renderman.path_object_archive_static,
                                             scene).replace('{object}', master_name+'.' + 'INSTANCES')
         #check if dirty or any dupli updated
-        if check_if_archive_dirty(ob_master.renderman.update_timestamp, archive_filename):
+        if not lazy_ribgen or check_if_archive_dirty(ob_master.renderman.update_timestamp, archive_filename):
             #output object begin of master
             update_timestamp(rpass, ob_master)
             ri.Begin(archive_filename)
             instance_handle = ri.ObjectBegin()
-            export_geometry(ri, rpass, scene, ob_master, motion)
+            export_geometry(ri, scene, ob_master, motion)
             if len(ob_master.data.materials) > 0:
                 export_material_archive(ri, ob_master.data.materials[0].name)
             ri.ObjectEnd()
@@ -2091,7 +2038,7 @@ def export_objects(ri, rpass, scene, motion):
                 #m = 1 #Atom 07042012 temporary disable.
                 archive_filename = get_archive_filename(scene, ob_temp, motion)
                 if m > 1  and \
-                    check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
+                    not lazy_ribgen or check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
                     #Atom 04302012.
                     #export_comment(ri, 'Atom: Create a mesh for every material applied.\n')
                     # A list of all the vertices.
@@ -2166,7 +2113,7 @@ def export_archive(scene, objects, filepath="", archive_motion=True,
         export_header(file)
         
         for ob in rpass.objects:
-            export_geometry_data(file, rpass, scene, ob, motion)
+            export_geometry_data(file, scene, ob, motion)
     
         file.close()
     

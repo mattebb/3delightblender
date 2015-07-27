@@ -478,6 +478,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                     ('EXPORT', 'Export RIB Only', 'Generate RIB file only')],
                 default='EXPORT_RENDER')
 
+    lazy_rib_gen = BoolProperty(
+                name="Cache Rib Generation",
+                description="On unchanged objects, don't re-emit rib.  Will result in faster spooling of renders.",
+                default=False)
+
     always_generate_textures = BoolProperty(
                 name="Always Recompile Textures",
                 description="Recompile used textures at export time to the current rib folder. Leave this unchecked to speed up re-render times",

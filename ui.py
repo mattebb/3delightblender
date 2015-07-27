@@ -480,6 +480,7 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
         layout.prop(rm, "do_denoise")
         layout.prop(rm, "path_display_driver_image")    
         layout.prop(rm, "always_generate_textures")
+        layout.prop(rm, "lazy_rib_gen")
         layout.prop(rm, "threads")
         if rm.display_driver == 'blender':
             layout.prop(rm, "update_frequency")
@@ -1700,6 +1701,7 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
                 col.prop_search(rm, "particle_instance_object", bpy.data, "objects", text="")
             elif rm.particle_type == 'GROUP':
                 col.prop_search(rm, "particle_instance_object", bpy.data, "groups", text="")
+            col.row().prop(rm, "width")
 
         # XXX: if rm.type in ('sphere', 'disc', 'patch'):
         # implement patchaspectratio and patchrotation   
