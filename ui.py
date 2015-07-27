@@ -374,36 +374,36 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
 
         layout.separator()
 
-        split = layout.split()
-        col = split.column()
-        col.prop(rm, "shadingrate")
+        row = layout.row()
+        row.prop(rm, "shadingrate")
         
-        col.separator()
+        layout.separator()
         
-        col.label("Pixel Filter:")
-        col.prop(rm, "pixelfilter", text="")
-        row = col.row(align=True)
+        row = layout.row()
+        row.label("Pixel Filter:")
+        row.prop(rm, "pixelfilter", text="")
+        row = layout.row()
         row.prop(rm, "pixelfilter_x", text="Size X")
         row.prop(rm, "pixelfilter_y", text="Size Y")
         
-        col.separator()
         
-        col = split.column()
-        col.prop(rm, "depth_of_field")
-        sub = col.column(align=True)
-        sub.enabled = rm.depth_of_field
-        sub.prop(rm, "fstop")
+class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
+    bl_label = "Motion Blur"
+    
+    def draw(self, context):
+        rm = context.scene.renderman
         
-        col.separator()
-        
-        col.prop(rm, "motion_blur")
-        sub = col.column(align=False)
+        layout = self.layout
+        row = layout.row()
+        row.prop(rm, "motion_blur")
+        sub = layout.row()
         sub.enabled = rm.motion_blur
         sub.prop(rm, "motion_segments")
         
-        scol = sub.column(align=True)
-        scol.prop(rm, "shutter_open")
-        scol.prop(rm, "shutter_close")
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "shutter_open")
+        row.prop(rm, "shutter_close")
 
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
     bl_label = "Interactive and Preview Sampling"
@@ -1216,6 +1216,13 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
     def draw(self, context):
         layout = self.layout
         cam = context.camera
+        scene = context.scene
+        row = layout.row()
+        row.prop(scene.renderman, "depth_of_field")
+        sub = row.row()
+        sub.enabled = scene.renderman.depth_of_field
+        sub.prop(scene.renderman, "fstop")
+            
         layout.prop(cam.renderman, "use_physical_camera")
         if cam.renderman.use_physical_camera == True:
             pxrcamera = getattr(cam.renderman, "PxrCamera_settings")
