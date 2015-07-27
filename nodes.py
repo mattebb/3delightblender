@@ -189,7 +189,10 @@ class RendermanShadingNode(bpy.types.Node):
 
     @classmethod
     def poll(cls, ntree):
-        return ntree.bl_idname == 'RendermanPatternGraph'
+        if hasattr(ntree, 'bl_idname'):
+            return ntree.bl_idname == 'RendermanPatternGraph'
+        else:
+            return True
 
     
     #     # for sp in [p for p in args.params if p.meta['array']]:
@@ -285,6 +288,22 @@ def generate_node_type(prefs, name, args):
         else:
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
+
+        #if a texture make a manifold 2d to go along.
+        if self.plugin_name == 'PxrTexture':
+            context_copy = bpy.context.copy()
+            context_copy['area'] = next(area for area in bpy.context.screen.areas if area.type=='NODE_EDITOR')
+            context_copy['link_to_socket'] = self.inputs['manifold']
+            context_copy['link_from_socket'] = None
+
+            bpy.ops.node.add_and_link_node(context_copy,
+                      type="PxrManifold2DPatternNode", link_socket_index = 0
+                      )
+
+            manifold = bpy.context.active_node
+            manifold.location[0] = self.location[0] - 300
+            manifold.location[1] = self.location[1]
+
 
     ntype.init = init
     #ntype.draw_buttons = draw_buttons
@@ -682,7 +701,7 @@ def get_textures_for_node(node):
                     if node.renderman_node_type == 'light' and "Env" in node.bl_label:
                         textures.append((prop, out_file_name, ['-envlatl'])) #no options for now
                     else:
-                        textures.append((prop, out_file_name, [])) #no options for now
+                        textures.append((prop, out_file_name, ['-smode', 'periodic', '-tmode', 'periodic'])) #no options for now
 
     return textures
     
