@@ -50,7 +50,7 @@ from .nodes import export_shader_nodetree, get_textures
 GLOBAL_ZERO_PADDING = 5
 SUPPORTED_INSTANCE_TYPES = ['MESH','CURVE','FONT']			# Objects that can be exported as a polymesh via Blender to_mesh() method. ['MESH','CURVE','FONT']
 SUPPORTED_DUPLI_TYPES = ['FACES', 'VERTS', 'GROUP']			# Supported dupli types.
-MATERIAL_TYPES = ['MESH', 'CURVE','FONT']					# These object types can have materials.
+MATERIAL_TYPES = ['MESH', 'CURVE','FONT', 'META']					# These object types can have materials.
 EXCLUDED_OBJECT_TYPES = ['LAMP', 'CAMERA', 'ARMATURE']		# Objects without to_mesh() conversion capabilities.
 VOLUMETRIC_LIGHT_TYPES = ['SPOT','AREA','POINT']			# Only these light types affect volumes.
 MATERIAL_PREFIX = "mat_"
@@ -828,6 +828,49 @@ def export_light(rpass, scene, ri, ob):
     
     ri.Illuminate(lamp.name, rm.illuminates_by_default)
 
+def export_blobs(ri, obs):
+
+    debug("info",">> exporting blobby...")
+
+    ri.AttributeBegin()
+
+
+    #material
+    #ob_mat = bpy.data.objects.get(obs[0][0])
+    #if len(ob_mat.data.materials) > 0:
+    #    export_material_archive(ri, ob_mat.data.materials[0].name)
+    
+
+    op = []
+    tform = [];
+
+    #opcodes
+    count = len(obs)
+    for i in range(count):
+        op.append(1001) #blobby ellipsoid
+        op.append(i * 16)  
+
+    #transform
+    for ob_name, ob_type in obs:
+        ob_temp = bpy.data.objects.get(ob_name)
+        ri.Attribute('identifier', {'string name': ob_name})
+        m = ob_temp.matrix_world
+        #i need to multiply scale of blobs by 2
+        tform = tform + rib(m)
+
+    op.append(0) #blob operation:add
+    op.append(count)
+    for n in range(count):
+        op.append(n)
+
+    st = ('',)
+    parm = {}
+
+    ri.Blobby(count, op, tform, st, parm)
+
+    
+    ri.AttributeEnd()
+
     
 def export_material(ri, rpass, scene, mat, handle=None):
 
@@ -1019,7 +1062,7 @@ def export_comment(ri, comment):
 
 def get_texture_list(scene):
     #if not rpass.light_shaders: return
-    SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT']
+    SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT', 'META']
     textures = []
     for o in renderable_objects(scene):
         if o.type == 'CAMERA' or o.type == 'EMPTY':
@@ -1666,6 +1709,7 @@ def export_objects(ri, rpass, scene, motion):
     candidate_lights = []
     candidate_duplis = {}
     candidate_groups = []
+    candidate_blobs = []
     
     # Lists that hold names of datablocks that are already exported.
     exported_datablocks = []
@@ -1733,6 +1777,10 @@ def export_objects(ri, rpass, scene, motion):
         elif ob.type == 'LAMP':
             # Not supporting dupli-group for lamp type objects at this time.
             candidate_lights.append((ob.name, ob.type))
+
+        elif ob.type == 'META':
+            # Metaballs/blobby
+            candidate_blobs.append((ob.name, ob.type))
 
         elif ob.type in SUPPORTED_INSTANCE_TYPES:
             if ob.parent and ob.parent.dupli_type in SUPPORTED_DUPLI_TYPES:
@@ -1870,6 +1918,8 @@ def export_objects(ri, rpass, scene, motion):
     #printList(candidate_duplis)
     debug ("info","\ncandidate_groups")
     printList(candidate_groups)
+    debug ("info","\ncandidate_blobs")
+    printList(candidate_blobs)
     debug ("info","\ncandidate_multi_material_objects")
     printList(candidate_multi_material_objects)
     debug ("info","\ncandidate_multi_material_datablocks")
@@ -1920,6 +1970,9 @@ def export_objects(ri, rpass, scene, motion):
             if ob_type == 'LAMP':
                 export_light(rpass, scene, ri, ob_temp)
                 exported_lights.append(ob_temp.name)
+
+    if len(candidate_blobs):
+        export_blobs(ri, candidate_blobs)
     
     #default bxdf AFTER lights
     export_default_bxdf(ri, 'default')
