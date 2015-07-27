@@ -642,7 +642,7 @@ def get_primvars(ob, geo, interpolation=""):
             primvars["varying normal N"] = N
     if rm.export_default_uv:
         uvs = get_mesh_uv(geo)
-        if uv and len(uvs) > 0:
+        if uvs and len(uvs) > 0:
             primvars["%s float[2] st" % interpolation] = uvs
     if rm.export_default_vcol:
         vcols = get_mesh_vcol(geo)
