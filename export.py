@@ -638,32 +638,32 @@ def get_primvars(ob, geo, interpolation=""):
     if rm.export_smooth_normals and ob.renderman.primitive in \
             ('AUTO', 'POLYGON_MESH', 'SUBDIVISION_MESH'):
         N = get_mesh_vertex_N(geo)
-        if len(N) > 0:
+        if N and len(N) > 0:
             primvars["varying normal N"] = N
     if rm.export_default_uv:
         uvs = get_mesh_uv(geo)
-        if len(uvs) > 0:
+        if uv and len(uvs) > 0:
             primvars["%s float[2] st" % interpolation] = uvs
     if rm.export_default_vcol:
         vcols = get_mesh_vcol(geo)
-        if len(vcols) > 0:
+        if vcols and len(vcols) > 0:
             primvars["%s color Cs" % interpolation] = rib(vcols)
     
     # custom prim vars
     for p in rm.prim_vars:
         if p.data_source == 'VERTEX_COLOR':
             vcols = get_mesh_vcol(geo, p.data_name)
-            if len(vcols) > 0:
+            if vcols and len(vcols) > 0:
                 primvars["%s color %s" % (interpolation, p.name)] = rib(vcols)
 
         elif p.data_source == 'UV_TEXTURE':
             uvs = get_mesh_uv(geo, p.data_name)
-            if len(uvs) > 0:
+            if uvs and len(uvs) > 0:
                 primvars["%s float[2] %s" % (interpolation, p.name)] = uvs
 
         elif p.data_source == 'VERTEX_GROUP':
             weights = get_mesh_vgroup(ob, geo, p.data_name)
-            if len(weights) > 0:
+            if weights and len(weights) > 0:
                 primvars["vertex float %s" % p.name] = weights
 
     return primvars
