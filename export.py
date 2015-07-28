@@ -109,7 +109,7 @@ def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = No
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": instance_handle})
     if ob.renderman.do_holdout:
-            ri.Attribute("identifier", {"string lpegroup": "holdout"})
+            ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
     if ob.name in motion['transformation']:
         export_motion_begin(ri,scene, ob)
         
