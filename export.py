@@ -855,8 +855,18 @@ def export_blobs(ri, obs):
         ob_temp = bpy.data.objects.get(ob_name)
         ri.Attribute('identifier', {'string name': ob_name})
         m = ob_temp.matrix_world
+
         #i need to multiply scale of blobs by 2
-        tform = tform + rib(m)
+        l, r, s = m.decompose()
+        ll = Matrix.Translation(l)
+        rr = r.to_matrix().to_4x4()
+        ss = Matrix(((2, 0, 0, 0),
+        (0, 2, 0, 0),
+        (0, 0, 2, 0),
+        (0, 0, 0, 1)))
+        mm = ll * rr * ss
+
+        tform = tform + rib(mm)
 
     op.append(0) #blob operation:add
     op.append(count)
