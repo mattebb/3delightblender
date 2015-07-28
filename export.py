@@ -464,7 +464,6 @@ def get_strands(ri, scene,ob, psys):
     
     num_parents = len(psys.particles)
     num_children = len(psys.child_particles)
-    
     total_hair_count = num_parents + num_children
     thicknessflag = 0
     width_offset = psys.settings.renderman.width_offset
@@ -513,7 +512,7 @@ def get_strands(ri, scene,ob, psys):
         if nverts > 100000 and nverts == len(points)/3:
             ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
             ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
-            ri.Curves("cubic", vertsArray, "periodic", {"P": rib(points), widthString: hair_width})
+            ri.Curves("cubic", vertsArray, "nonperiodic", {"P": rib(points), widthString: hair_width})
             nverts = 0
             points = []
             vertsArray = []
@@ -523,7 +522,7 @@ def get_strands(ri, scene,ob, psys):
     if nverts != 0 and nverts == len(points)/3:
         ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
         ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
-        ri.Curves("cubic", vertsArray, "periodic", {"P": rib(points), widthString: hair_width})
+        ri.Curves("cubic", vertsArray, "nonperiodic", {"P": rib(points), widthString: hair_width})
     else:
         debug("error", "Strands from, ", ob.name, "could not be exported!")
         
