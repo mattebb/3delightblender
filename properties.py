@@ -1479,7 +1479,7 @@ classes = [displacementShaders,
             RendermanLightSettings,
             RendermanParticleSettings,
             RendermanIntegratorSettings,
-            oslProps,
+            
             RendermanCameraSettings,
             RendermanSceneSettings,
             RendermanWorldSettings,

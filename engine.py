@@ -47,7 +47,6 @@ from .util import get_path_list_converted, set_path
 from .util import path_list_convert, guess_rmantree, set_pythonpath, set_rmantree
 from .util import get_real_path, find_it_path
 from .util import debug
-from .export import compile_osl
 from random import randint
 import sys
 from bpy.app.handlers import persistent

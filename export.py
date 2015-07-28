@@ -27,7 +27,6 @@ import bpy
 import math, mathutils
 import os
 import time
-import _cycles
 from mathutils import Matrix, Vector, Quaternion
 
 from . import bl_info
@@ -2695,14 +2694,7 @@ def anim_archive_path(filepath, frame):
                     os.path.splitext(filepath)[1]
     return ribpath
 
-def compile_osl(inFile, outPath):
-    FileName = os.path.basename(inFile)
-    FileNameNoEXT = os.path.splitext(FileName)[0]
-    out_file = os.path.join(outPath, FileNameNoEXT)
-    out_file += ".oso"
-    ok = _cycles.osl_compile(inFile, out_file)
-    
-    return ok
+
 
 def write_auto_archives(paths, scene, info_callback):
     for ob in archive_objects(scene):

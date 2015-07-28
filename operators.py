@@ -26,7 +26,7 @@
 import bpy
 import os
 import subprocess
-import _cycles
+
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, \
 IntProperty, FloatProperty, FloatVectorProperty, CollectionProperty
 
@@ -42,7 +42,6 @@ from .shader_parameters import tex_optimised_path
 from .export import make_optimised_texture_3dl
 from .export import export_archive
 from .engine import RPass
-from .export import compile_osl
 from .export import debug
 from . import engine
 
@@ -103,31 +102,9 @@ class refresh_osl_shader(bpy.types.Operator):
     bl_description = "Refreshes the OSL node !!! This takes a few seconds!!!"
     
     def invoke(self, context, event):
-        node = context.node
-        prefs = bpy.context.user_preferences.addons[__package__].preferences
-        scene = context.scene
-        
-        osl_path = user_path(getattr(node, 'shadercode')) #os.path.normpath(os.path.abspath(getattr(node, 'shadercode')))
-        FileName = os.path.basename(osl_path)
-        FileNameNoEXT = os.path.splitext(FileName)[0]
-        FileNameOSO = FileNameNoEXT 
-        FileNameOSO += ".oso"
-        export_path = os.path.join(user_path(prefs.env_vars.out),"textures", FileNameOSO)
-        
-        
-        ok = compile_osl(osl_path, os.path.join(user_path(prefs.env_vars.out) , "textures"))
-        
-        
-        
-        if ok:
-            print("Node Compiled")
-            prop_names, shader_meta = readOSO(export_path)
-            print("PROP_NAMES: ", prop_names, "SHADER_META: ", shader_meta)
-            node.RefreshNodes("TEXTTEST!")
-        else:
-            debug("error", "NODE COMPILATION FAILED")
-        
-        
+        #print("CONTEXT: ", context, "CONTEXT_NODE: ", context.node)
+        context.node.compileShader = True
+        context.node.update()
         return {'FINISHED'}
 class update_args(bpy.types.Operator):
     bl_idname = "properties.update_args"
