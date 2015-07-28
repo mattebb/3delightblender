@@ -108,6 +108,8 @@ def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = No
         object_name = None, instance_handle = None, matNum = 0, material=None, bounds=None):
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": instance_handle})
+    if ob.renderman.do_holdout:
+            ri.Attribute("identifier", {"string lpegroup": "holdout"})
     if ob.name in motion['transformation']:
         export_motion_begin(ri,scene, ob)
         
@@ -550,9 +552,7 @@ def get_particles(scene, ob, psys):
     
     cfra = scene.frame_current
     psys.set_resolution(scene, ob, 'RENDER')
-    i=0
     for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
-        i+=1
         P.extend( pa.location )
         rot.extend( pa.rotation )
         
@@ -959,29 +959,30 @@ def export_particle_instances(ri, scene, ob, psys, motion):
     cfra = scene.frame_current
     width = rm.width 
 
-    for p in [ p for p in psys.particles if valid_particle(p, cfra) ]:
-        
-        #if motion_blur:
-        #    export_motion_begin(ri, scene, ob)
+    for i in range(len( [ p for p in psys.particles \
+                                    if valid_particle(p, cfra) ] )):
         
         ri.AttributeBegin()
-        #ri.Attribute("identifier", {"name": dupli_name})
-        ri.TransformBegin()
-
-        loc = p.location
-        rot = p.rotation
-        mtx = Matrix.Translation(loc) * rot.to_matrix().to_4x4() \
-                    * Matrix.Scale(width, 4)
-            
-        #ri.Transform(rib(mtx))
-        ri.Transform(rib(mtx))
         
-        #if hasattr(ob.data, 'materials'):
-        #    #only output the material if not the same as master
-        #    if ob.data and ob.data.materials and ob.data.materials[0]:
-        #        export_material_archive(ri, ob.data.materials[0].name)
+        if motion_blur:
+            export_motion_begin(ri, scene, ob)
+            samples = motion['deformation'][pname]
+        else:
+            samples = [get_particles(scene, ob, psys)]
+        
+        for P, rot, width in samples:
+
+            loc = Vector((P[i*3+0], P[i*3+1], P[i*3+2]))
+            rot = Quaternion((rot[i*4+0], rot[i*4+1], rot[i*4+2], rot[i*4+3]))
+            mtx = Matrix.Translation(loc) * rot.to_matrix().to_4x4() \
+                    * Matrix.Scale(width[i], 4)
+            
+            ri.Transform(rib(mtx))
+        
+        if motion_blur:
+            ri.MotionEnd()
+
         ri.ObjectInstance(instance_handle)
-        ri.TransformEnd()
         ri.AttributeEnd()
 
 
@@ -1926,7 +1927,7 @@ def export_objects(ri, rpass, scene, motion):
                                 archive_filename = get_archive_filename(scene, ob_temp, motion, psys)
                                 if not lazy_ribgen or check_if_archive_dirty(ob_temp.renderman.update_timestamp, archive_filename):
                                     ri.Begin(archive_filename)
-                                    export_particles(ri, scene, ob_temp, motion, psys)
+                                    export_particles(ri, rpass, scene, ob_temp, motion, psys)
                                     ri.End()
 
                     exported_datablocks.append(ob_name)
@@ -2445,8 +2446,13 @@ def export_display(ri, rpass, scene):
         ("lpe:refraction", active_layer.use_pass_refraction, "color", None),
         ("lpe:emission", active_layer.use_pass_emit, "color", None),
         #("lpe:ambient occlusion", active_layer.use_pass_emit, "color", None),
-        
+        ("allshadows", rm.holdout_settings.do_collector_shadow, "color", "color lpe:holdout;shadowcollector"),
+        ("allreflections", rm.holdout_settings.do_collector_reflection, "color", "color lpe:holdout;reflectioncollector"),
+        ("allindirectdiffuse", rm.holdout_settings.do_collector_indirectdiffuse, "color", "color lpe:holdout;indirectdiffusecollector"),
+        ("allsubsurface", rm.holdout_settings.do_collector_subsurface, "color", "color lpe:holdout;subsurfacecollector"),
+        ("allrefractions", rm.holdout_settings.do_collector_refraction, "color", "color lpe:holdout;refractioncollector")
     ]
+
     #Set bucket shape.
     if rpass.is_interactive:
         ri.Option("bucket", {"string order": [ 'spiral']})
@@ -2498,8 +2504,10 @@ def export_display(ri, rpass, scene):
     #now do aovs
     for aov, doit, declare, source in aovs:
         if doit:
-            ri.Display('+' + image_base + '.%s.' % aov + ext, dspy_driver, aov, 
-                {"quantize": [0, 0, 0, 0]})
+            params = {"quantize": [0, 0, 0, 0]}
+            if source and 'holdout' in source:
+                params['int asrgba'] = 1
+            ri.Display('+' + image_base + '.%s.' % aov + ext, dspy_driver, aov, params)
 
     if rm.do_denoise and not rpass.is_interactive:
         #add display channels for denoising
@@ -2728,24 +2736,10 @@ def reissue_textures(ri, rpass, mat):
     if mat.renderman.nodetree != '':
         textures = get_textures(mat)
         
-        for in_file, out_file, options in textures:
-            in_file = get_real_path(in_file)
-            out_file_path = os.path.join(rpass.paths['texture_output'], out_file)
-            
-            if os.path.isfile(out_file_path) and \
-                rpass.rm.always_generate_textures == False and \
-                os.path.getmtime(in_file) <= os.path.getmtime(out_file_path):
-                #file is not dirty
-                pass
-            else:
-                made_tex = True
-                if "-envlatl" in options:
-                    ri.MakeLatLongEnvironment(in_file, out_file_path, "gaussian", 2, 2, {})
-                else:
-                    ri.MakeTexture(in_file, out_file_path, "periodic", "periodic", "separable-catmull-rom", 2, 2, {})
-                #mark as dirty to prman
-                ri.Resource(out_file_path, "texture", "lifetime", "obsolete")
-    return made_tex
+        files = rpass.convert_textures(textures)
+        if len(files) > 0:
+            return True
+    return False
 
 #test the active object type for edits to do then do them
 def issue_edits(rpass, ri, active, prman):

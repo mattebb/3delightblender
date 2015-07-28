@@ -988,6 +988,17 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
         col.prop(rl, "use_pass_subsurface_indirect", text="Subsurface")
         col.prop(rl, "use_pass_refraction", text="Refraction")
         col.prop(rl, "use_pass_emit", text="Emission")
+
+        layout.separator()
+        row = layout.row()
+        row.label('Holdouts')
+        rm = scene.renderman.holdout_settings
+        layout.prop(rm, 'do_collector_shadow')
+        layout.prop(rm, 'do_collector_reflection')
+        layout.prop(rm, 'do_collector_refraction')
+        layout.prop(rm, 'do_collector_indirectdiffuse')
+        layout.prop(rm, 'do_collector_subsurface')
+
         #col.prop(rl, "use_pass_ambient_occlusion")
 
 # class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
@@ -1554,8 +1565,13 @@ class OBJECT_PT_renderman_object_geometry(Panel):
         row.prop(rm, "motion_segments_override", text="")
         sub = row.row()
         sub.active = rm.motion_segments_override
-        sub.prop(rm, "motion_segments")        
+        sub.prop(rm, "motion_segments")    
 
+        row = col.row()
+        row.prop(rm, 'do_holdout')    
+        sub = col.row()
+        sub.enabled = rm.do_holdout
+        sub.prop(rm, 'lpe_group')
                 
 class OBJECT_PT_renderman_object_render_shading(Panel):
     bl_space_type = 'PROPERTIES'

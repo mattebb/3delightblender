@@ -591,7 +591,7 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
 #### Rib export
 
 #generate param list
-def gen_params(ri, node):
+def gen_params(ri, node, mat_name=None):
     params = {}
     for prop_name,meta in node.prop_meta.items():
         prop = getattr(node, prop_name)
@@ -601,7 +601,7 @@ def gen_params(ri, node):
         #if input socket is linked reference that
         elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
             from_socket = node.inputs[prop_name].links[0].from_socket
-            shader_node_rib(ri, from_socket.node)
+            shader_node_rib(ri, from_socket.node, mat_name=mat_name)
             params['reference %s %s' % (meta['renderman_type'], 
                     meta['renderman_name'])] = \
                 ["%s:%s" % (from_socket.node.name, from_socket.identifier)]        
@@ -629,10 +629,9 @@ def gen_params(ri, node):
     return params
 
 # Export to rib
-def shader_node_rib(ri, node, handle=None, disp_bound=0.0):
-    params = gen_params(ri, node)
-    if handle:
-        params['__instanceid'] = handle
+def shader_node_rib(ri, node, mat_name, disp_bound=0.0):
+    params = gen_params(ri, node, mat_name)
+    params['__instanceid'] = mat_name + '.' + node.name
     if node.renderman_node_type == "pattern":
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
@@ -642,8 +641,8 @@ def shader_node_rib(ri, node, handle=None, disp_bound=0.0):
                     'int camera':int(primary_vis)})
         ri.ShadingRate(node.light_shading_rate)
         if primary_vis:
-            ri.Bxdf("PxrLightEmission", node.name, {'__instanceid': handle})
-        params[ri.HANDLEID] = handle
+            ri.Bxdf("PxrLightEmission", node.name, {'__instanceid': params['__instanceid']})
+        params[ri.HANDLEID] = mat_name
         ri.AreaLightSource(node.bl_label, params)
     elif node.renderman_node_type == "displacement":
         ri.Attribute('displacementbound', {'sphere':disp_bound})
@@ -675,7 +674,7 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
 		ri.ArchiveRecord('comment', "Shader Graph")
 		for out_type,socket in out.inputs.items():
 			if socket.is_linked:
-				shader_node_rib(ri, socket.links[0].from_node, handle=handle, disp_bound=disp_bound)
+				shader_node_rib(ri, socket.links[0].from_node, mat_name=handle, disp_bound=disp_bound)
 
 
 def get_textures_for_node(node):

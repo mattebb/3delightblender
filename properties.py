@@ -295,8 +295,35 @@ class RendermanPass(bpy.types.PropertyGroup):
     displacement_shaders  = BoolProperty(name="Displacement Shaders", description="Render displacement shaders")
     light_shaders         = BoolProperty(name="Light Shaders", description="Render light shaders")
 
+class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
+    do_collector_shadow = BoolProperty(
+                name="Collect Shadow Holdout",
+                description="Collect shadow data on objects tagged as holdout.",
+                default=False)
+
+    do_collector_reflection = BoolProperty(
+                name="Collect Reflection Holdout",
+                description="Collect reflection data on objects tagged as holdout.",
+                default=False)
+
+    do_collector_indirectdiffuse = BoolProperty(
+                name="Collect IndirectDiffuse Holdout",
+                description="Collect indirectdiffuse data on objects tagged as holdout.",
+                default=False)
+
+    do_collector_subsurface = BoolProperty(
+                name="Collect Subsurface Holdout",
+                description="Collect subsurface data on objects tagged as holdout.",
+                default=False)
+
+    do_collector_refraction = BoolProperty(
+                name="Collect Refraction Holdout",
+                description="Collect refraction data on objects tagged as holdout.",
+                default=False)
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
+    holdout_settings = PointerProperty(type = RendermanRenderLayerSettings, name='holdout settings'
+        )
 
     pixelsamples_x = IntProperty(
                 name="Pixel Samples X",
@@ -1198,6 +1225,16 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 description="Used for telling if an objects rib archive is dirty", subtype='UNSIGNED'
         )
 
+    do_holdout = BoolProperty(
+                name="Holdout Object",
+                description="Collect holdout data for this object",
+                default=False)
+
+    lpe_group = StringProperty(
+                name="Holdout Group",
+                description="Group name for collecting holdouts.",
+                default="collector")
+
     geometry_source = EnumProperty(
                 name="Geometry Source",
                 description="Where to get the geometry data for this object",
@@ -1478,14 +1515,15 @@ classes = [displacementShaders,
             RendermanLightSettings,
             RendermanParticleSettings,
             RendermanIntegratorSettings,
-            
+            RendermanRenderLayerSettings,
+           
             RendermanCameraSettings,
             RendermanSceneSettings,
             RendermanWorldSettings,
             RendermanMeshGeometrySettings,
             RendermanCurveGeometrySettings,
-            RendermanObjectSettings
-           ]
+            RendermanObjectSettings,
+        ]
 
 def register():
 
@@ -1517,6 +1555,8 @@ def register():
                 type=RendermanObjectSettings, name="Renderman Object Settings")
     bpy.types.Camera.renderman = PointerProperty(
                 type=RendermanCameraSettings, name="Renderman Camera Settings")
+    #bpy.types.SceneRenderLayer.renderman = PointerProperty(
+    #            type=RendermanRenderLayerSettings, name="Renderman RenderLayer Settings")
 
     #add the integrator settings from args files
     #register_integrators(bpy.types.Scene.renderman.integrator_settings)
