@@ -1407,7 +1407,7 @@ def export_smoke(ri, scene, ob, motion):
     if not smoke_data:
         return
     color_grid = []
-    print(min(smoke_data.flame_grid), max(smoke_data.flame_grid))
+    #print(min(smoke_data.flame_grid), max(smoke_data.flame_grid))
     for i in range(int(len(smoke_data.color_grid)/4)):
         color_grid += [smoke_data.color_grid[i*4], smoke_data.color_grid[i*4 + 1], smoke_data.color_grid[i*4+2]]
     params = {
