@@ -48,7 +48,7 @@ from .nodes import export_shader_nodetree, get_textures
 
 # ------------- Atom's helper functions -------------
 GLOBAL_ZERO_PADDING = 5
-SUPPORTED_INSTANCE_TYPES = ['MESH','CURVE','FONT']			# Objects that can be exported as a polymesh via Blender to_mesh() method. ['MESH','CURVE','FONT']
+SUPPORTED_INSTANCE_TYPES = ['MESH','CURVE','FONT', 'SURFACE']			# Objects that can be exported as a polymesh via Blender to_mesh() method. ['MESH','CURVE','FONT']
 SUPPORTED_DUPLI_TYPES = ['FACES', 'VERTS', 'GROUP']			# Supported dupli types.
 MATERIAL_TYPES = ['MESH', 'CURVE','FONT']					# These object types can have materials.
 EXCLUDED_OBJECT_TYPES = ['LAMP', 'CAMERA', 'ARMATURE']		# Objects without to_mesh() conversion capabilities.
@@ -232,6 +232,8 @@ def hasFaces(ob):
         if ob.type == 'CURVE' or ob.type == 'FONT':
             # If this curve is extruded or beveled it can produce faces from a to_mesh call.
             l = ob.data.extrude + ob.data.bevel_depth
+        elif ob.type == 'SURFACE':
+            l = 1
         else:
             try:
                 l = len(ob.data.polygons)
@@ -1042,7 +1044,7 @@ def export_comment(ri, comment):
 
 def get_texture_list(scene):
     #if not rpass.light_shaders: return
-    SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT']
+    SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT', 'SURFACE']
     textures = []
     for o in renderable_objects(scene):
         if o.type == 'CAMERA' or o.type == 'EMPTY':
@@ -1404,10 +1406,14 @@ def export_smoke(ri, scene, ob, motion):
     #the original object has the modifier too.
     if not smoke_data:
         return
-    
+    color_grid = []
+    print(min(smoke_data.flame_grid), max(smoke_data.flame_grid))
+    for i in range(int(len(smoke_data.color_grid)/4)):
+        color_grid += [smoke_data.color_grid[i*4], smoke_data.color_grid[i*4 + 1], smoke_data.color_grid[i*4+2]]
     params = {
         "varying float density": smoke_data.density_grid,
         "varying float flame": smoke_data.flame_grid,
+        "varying color smoke_color": color_grid
     }
     ri.Volume("box", [-1,1,-1,1,-1,1], rib(smoke_data.domain_resolution), params)
 
