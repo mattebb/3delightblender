@@ -1127,6 +1127,12 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                 description="Material ID to use for particle shading",
                 default=1)
 
+    use_object_material = BoolProperty(
+            name="Use Master Object's Material",
+            description="Use the master object's material for instancing",
+            default=False
+        )
+
     particle_type_items = [('particle', 'Particle', 'Point primitive'),
                     ('blobby', 'Blobby', 'Implicit Surface (metaballs)'),
                     ('sphere', 'Sphere', 'Two-sided sphere primitive'),

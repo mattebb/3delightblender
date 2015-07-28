@@ -953,6 +953,9 @@ def export_particle_instances(ri, scene, ob, psys, motion):
     if len(instance_ob.data.materials) > 0:
         export_material_archive(ri, instance_ob.data.materials[0].name)
     ri.ObjectEnd()
+
+    if rm.use_object_material and len(instance_ob.data.materials) > 0:
+        export_material_archive(ri, instance_ob.data.materials[0].name)
     
     motion_blur = pname in motion['deformation']
     cfra = scene.frame_current
