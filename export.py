@@ -848,43 +848,36 @@ def export_light(rpass, scene, ri, ob):
 
 def export_blobs(ri, obs):
 
-    debug("info",">> exporting blobby...")
+    debug("info",">> exporting RiBlobby...")
 
-    ri.AttributeBegin()
-
-
-    #material
-    #ob_mat = bpy.data.objects.get(obs[0][0])
-    #if len(ob_mat.data.materials) > 0:
-    #    export_material_archive(ri, ob_mat.data.materials[0].name)
-    
+    export_comment(ri, '## METABALLS')
+    ri.AttributeBegin()     
 
     op = []
     tform = [];
+    ri.Attribute('identifier', {'string name': 'Metaballs'})
 
     #opcodes
     count = len(obs)
     for i in range(count):
-        op.append(1001) #blobby ellipsoid
+        op.append(1001) #only blobby ellipsoids for now...
         op.append(i * 16)  
 
-    #transform
+    ob_mat = {}
+
+    #transform 
     for ob_name, ob_type in obs:
-        ob_temp = bpy.data.objects.get(ob_name)
-        ri.Attribute('identifier', {'string name': ob_name})
+        ob_temp = bpy.data.objects.get(ob_name) 
+        ob_mat = ob_temp
         m = ob_temp.matrix_world
 
-        #i need to multiply scale of blobs by 2
-        l, r, s = m.decompose()
-        ll = Matrix.Translation(l)
-        rr = r.to_matrix().to_4x4()
-        ss = Matrix(((2, 0, 0, 0),
-        (0, 2, 0, 0),
-        (0, 0, 2, 0),
-        (0, 0, 0, 1)))
-        mm = ll * rr * ss
-
-        tform = tform + rib(mm)
+        # multiply only the scale of blobs by 2 (matches Blender threshold=0.800)
+        sc = Matrix(((2, 0, 0, 0),
+            (0, 2, 0, 0),
+            (0, 0, 2, 0),
+            (0, 0, 0, 1)))
+        m2 = m*sc
+        tform = tform + rib(m2)
 
     op.append(0) #blob operation:add
     op.append(count)
@@ -896,6 +889,12 @@ def export_blobs(ri, obs):
 
     ri.Blobby(count, op, tform, st, parm)
 
+    #material
+    ob_mat = bpy.data.objects.get(obs[0][0])
+    if len(ob_mat.data.materials) > 0:
+        export_material_archive(ri, ob_mat.data.materials[0].name)   
+
+    #export_shader_nodetree(ri, ob_mat)
     
     ri.AttributeEnd()
 
