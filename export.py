@@ -836,13 +836,11 @@ def export_light(rpass, scene, ri, ob):
     params = []
     
     ri.AttributeBegin()
-    ri.TransformBegin()
     export_transform(ri, ob, lamp.type == 'HEMI' or lamp.type == 'SUN')
     ri.ShadingRate(rm.shadingrate)
 
     export_light_shaders(ri, lamp)
     
-    ri.TransformEnd()
     ri.AttributeEnd()
     
     ri.Illuminate(lamp.name, rm.illuminates_by_default)
@@ -2704,7 +2702,7 @@ def edit_flush(ri, edit_num, prman):
 def issue_light_transform_edit(ri, obj):
     lamp = obj.data
     ri.EditBegin('attribute', {'string scopename': obj.data.name})
-    export_transform(ri, obj, lamp.type == 'HEMI' or lamp.type == 'SUN')
+    export_transform(ri, obj, obj.type == 'LAMP' and (lamp.type == 'HEMI' or lamp.type == 'SUN'))
     ri.EditEnd()
     
 
@@ -2722,7 +2720,7 @@ def issue_camera_edit(ri, rpass, camera):
     export_camera(ri, rpass.scene, {'transformation':[]}, camera_to_use=camera)
     ri.EditEnd()
 
-def issue_shader_edit(ri, rpass, mats_to_edit, prman):
+def issue_shader_edit(ri, rpass, mats_to_edit, prman, obj, do_instance=False):
     tex_made = False
     for mat in mats_to_edit:
         if reissue_textures(ri, rpass, mat):
@@ -2733,7 +2731,10 @@ def issue_shader_edit(ri, rpass, mats_to_edit, prman):
         rpass.edit_num += 1
         edit_flush(ri, rpass.edit_num, prman)
 
-    ri.EditBegin('instance')
+    if do_instance:
+        ri.EditBegin('instance')
+    else:
+        ri.EditBegin('attribute', {'string scopename': obj.name})
     for mat in mats_to_edit:
         export_material(ri, rpass, rpass.scene, mat)
     ri.EditEnd()
@@ -2747,6 +2748,17 @@ def reissue_textures(ri, rpass, mat):
         files = rpass.convert_textures(textures)
         if len(files) > 0:
             return True
+    return False
+
+#return true if an object has an emissive connection
+def is_emissive(object):
+    if hasattr(object.data, 'materials'):
+        #update the light position and shaders if updated
+        for mat in object.data.materials:
+            if mat != None and mat.renderman.nodetree != '':
+                nt = bpy.data.node_groups[mat.renderman.nodetree]
+                if 'Output' in nt.nodes and nt.nodes['Output'].inputs['Light'].is_linked:
+                    return True
     return False
 
 #test the active object type for edits to do then do them
@@ -2787,7 +2799,12 @@ def issue_edits(rpass, ri, active, prman):
             issue_camera_edit(ri, rpass, active)
         else:
             #geometry can only edit shaders
-            if len(mats_to_edit) > 0:
-                issue_shader_edit(ri, rpass, mats_to_edit, prman)
+            
+            if is_emissive(active):
+                if active.is_updated:
+                    issue_light_transform_edit(ri, active)
+                issue_shader_edit(ri, rpass, mats_to_edit, prman, active, do_instance=True)
+            elif len(mats_to_edit) > 0:
+                issue_shader_edit(ri, rpass, mats_to_edit, prman, active)
     
     
