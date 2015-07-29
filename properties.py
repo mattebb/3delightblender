@@ -705,6 +705,7 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
 
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
     
+    
     nodetree = StringProperty(
                 name="Node Tree",
                 description="Name of the shader node tree for this material",
@@ -1459,7 +1460,14 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     trace_set = CollectionProperty(type=TraceSet, name='Trace Set')
     trace_set_index = IntProperty(min=-1, default=-1)
 
-
+class testProps(bpy.types.PropertyGroup):
+    testProp = bpy.props.IntProperty(name="testProp",description="This is my int",min=0, max=16, default=2)
+    testDic = {}
+    def moreProps(text):
+        testProps.testProp2 = bpy.props.IntProperty(name="testProp2",description="This is my int",min=0, max=16, default=5)
+        #setattr()
+        setattr(testProps, "Gordon", bpy.props.IntProperty(name="Gordon",description="This is my int",min=0, max=16, default=1))
+        testProps.testDic["Test"] = testProps.testProp2
 
 # collection of property group classes that need to be registered on module startup
 classes = [displacementShaders,
@@ -1485,7 +1493,8 @@ classes = [displacementShaders,
             RendermanWorldSettings,
             RendermanMeshGeometrySettings,
             RendermanCurveGeometrySettings,
-            RendermanObjectSettings
+            RendermanObjectSettings,
+            testProps
            ]
 
 def register():
@@ -1500,6 +1509,7 @@ def register():
 
     bpy.types.Scene.renderman = PointerProperty(
                 type=RendermanSceneSettings, name="Renderman Scene Settings")
+    bpy.types.Scene.OSLProps = PointerProperty(type=testProps, name="Renderman OSL Settings")
     bpy.types.World.renderman = PointerProperty(
                 type=RendermanWorldSettings, name="Renderman World Settings")
     bpy.types.Material.renderman = PointerProperty(

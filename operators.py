@@ -103,7 +103,8 @@ class refresh_osl_shader(bpy.types.Operator):
     
     def invoke(self, context, event):
         #print("CONTEXT: ", context, "CONTEXT_NODE: ", context.node)
-        context.node.compileShader = True
+        #context.node.compileShader = True
+        context.node.RefreshNodes(context)
         context.node.update()
         return {'FINISHED'}
 class update_args(bpy.types.Operator):

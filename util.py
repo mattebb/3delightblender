@@ -74,15 +74,18 @@ def readOSO(filePath):
                 name = listLine[2]
                 type = listLine[1]
                 if type == "point" or type == "vector" or type == "normal" or type == "color":
+                    defaultString = []
+                    defaultString.append(listLine[3])
+                    defaultString.append(listLine[4])
+                    defaultString.append(listLine[5])
                     default = []
-                    default.append(listLine[3])
-                    default.append(listLine[4])
-                    default.append(listLine[5])
+                    for element in defaultString:
+                        default.append(float(element))
                 elif type == "matrix":
                     default = []
                     x = 3
-                    while x <= 18:
-                        default.append(listLine[x])
+                    while x <= 18: 
+                        default.append(float(listLine[x]))
                         x += 1
                 else:
                     default = listLine[3]

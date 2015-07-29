@@ -44,7 +44,7 @@ from .util import user_path
 from .util import get_real_path
 from .util import readOSO
 
-
+from .properties import testProps
 
 from operator import attrgetter, itemgetter
 import os.path
@@ -104,7 +104,19 @@ class RendermanSocket:
     def draw(self, context, layout, node, text):
         if self.is_linked or self.is_output:
             layout.label(text)
+        elif node.bl_label == "PxrOSL":
+            #setattr(node, self.name ,OSLProps.getProps(self.name))
+            #testPropsss = bpy.props.PointerProperty(type=testProps, name = "OSLProps")
+            #oslProps = context.scene.OSLProps
+            #print("NODE: ",node,"OSL_SOCKET_UPDATE", oslProps.testProp, "GETATTR: ", getattr(oslProps, "testProp"))
+            #oslProps3 = context.scene.OSLProps3
+            oslProps2 = context.scene.OSLProps2
+            #print("GET TESTATTR:", getattr(oslProps3, "testingProp"))
+            #print("GET TEST PROPS: ", getattr(node, "InternalTestProps"))
+            #self.propOSL = bpy.props.FloatProperty(name= "Test", default = 0, precision = 3)
+            layout.prop(oslProps2, self.name)
         else:
+            #print("RENDERMANSOCKET: ", node, self.name)
             layout.prop(node, self.name)
         
 
@@ -180,11 +192,6 @@ class RendermanShadingNode(bpy.types.Node):
     #all the properties of a shader will go here, also inputs/outputs 
     #on connectable props will have the same name
     #node_props = None
-    def init(self, context):
-        if self.bl_label == "PxrOSL":
-            print("SELF INIT: ", self)
-            for socket in self.outputs:
-                self.outputs.remove(socket)
     def draw_buttons(self, context, layout):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
         if self.bl_label == "PxrOSL":
@@ -196,9 +203,10 @@ class RendermanShadingNode(bpy.types.Node):
         #print("SELF DRAW: ", self)
         
         for prop_name in prop_names:
-            print("GETATTR: ", self, "::::" ,prop_name)
+            #print("GETATTR: ", self, "::::" ,prop_name)
             if self.bl_label == "PxrOSL":
                 if prop_name != 'shadercode':
+                    prop = getattr(self, prop_name)
                     layout.prop(self, prop_name)
                 else:
                     prop = getattr(self, prop_name)
@@ -211,35 +219,9 @@ class RendermanShadingNode(bpy.types.Node):
                         self.draw_nonconnectable_props(context, layout, prop)
                     else:
                         layout.prop(self,prop_name)
-    def RefreshNodes(self,OSL_prop_names, OSL_shader_meta):
-        self.update()
-        bpy.utils.unregister_class(OSLProps)
-        print("PROP_NAMES: ", OSL_prop_names, "SHADER_META: ", OSL_shader_meta)
-        testOutput = self.outputs.new(socket_map["color"], "testOutput")
-        tsmeta = {'renderman_name' : 'filename' ,'name' : 'testInput', 'renderman_type' : 'string' , 'default' : '', 'label' : 'ShaderCode', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
+    def RefreshNodes(self, context):
         
-        bpy.utils.register_class(OSLProps)
-       
-        self.OSLProps = bpy.props.PointerProperty(type=OSLProps)
-        
-        OSLProps.setProps(self, "testString")
-        
-        tsprop = bpy.props.FloatVectorProperty(name='testInput', default=(1.0, 1.0, 1.0), size=3, subtype="COLOR",soft_min = 0.0, soft_max = 1.0, description='')
-
-
-    def compile_osl(self, inFile, outPath):
-        FileName = os.path.basename(inFile)
-        FileNameNoEXT = os.path.splitext(FileName)[0]
-        out_file = os.path.join(outPath, FileNameNoEXT)
-        out_file += ".oso"
-        ok = _cycles.osl_compile(inFile, out_file)
-        
-        return ok
-    
-    def update(self):
-        debug("info","UPDATING: ", self.name)
-        #if self.compileShader
-        #print("COMPILESHADER: ", self.compileShader)
+        print("REFRESHNODES_SELF: ", self, "OTHER: ", self.bl_label)
         #Compile shader
         node = self
         prefs = bpy.context.user_preferences.addons[__package__].preferences
@@ -259,60 +241,116 @@ class RendermanShadingNode(bpy.types.Node):
         
         if ok:
             print("Node Compiled")
+            print("ACTIVENODE: ", context.active_node, "ACTIVEOBJECT: ", context.active_object, "ACTIVEMATERIAL: ", context.active_object.active_material)
             self.outputs.clear()
             self.inputs.clear()
+            #bpy.utils.unregister_class(OSLProps)
+            #bpy.utils.register_class(OSLProps)
             prop_names, shader_meta = readOSO(export_path)
-            OSLProps.setProps(self, prop_names, shader_meta)
+            self.label = shader_meta["shader"]
+            self.OSLPROPSPOINTER = OSLProps
+            self.OSLPROPSPOINTER.setProps(self, prop_names, shader_meta)
+            
+            #setattr(bpy.)
+            bpy.types.Scene.OSLProps2 = bpy.props.PointerProperty(type=self.OSLPROPSPOINTER, name="Renderman OSL Settings2")
+            #bpy.types.Scene.OSLProps3 = bpy.props.PointerProperty(type=self.TESTOSLPROPS, name="INSTANCE test")
+            
+
+            print("SELF: ", self, "PARENT: ", self.parent)
+            testProps.moreProps("TestText")
+            
         else:
             debug("error", "NODE COMPILATION FAILED")
         
         #print (getattr(self, "shadercode"), getattr(self, "testInput"))
         #print(getattr(OSLProps, "myInt"))
         #print(getattr(self, "myTestProp"))
+        #self.update()
+        #bpy.utils.unregister_class(OSLProps)
+        #print("PROP_NAMES: ", OSL_prop_names, "SHADER_META: ", OSL_shader_meta)
+        #testOutput = self.outputs.new(socket_map["color"], "testOutput")
+        #tsmeta = {'renderman_name' : 'filename' ,'name' : 'testInput', 'renderman_type' : 'string' , 'default' : '', 'label' : 'ShaderCode', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
+        
+        #bpy.utils.register_class(OSLProps)
+       
+        #self.OSLProps = bpy.props.PointerProperty(type=OSLProps)
+        
+        #OSLProps.setProps(self, "testString")
+        
+        #tsprop = bpy.props.FloatVectorProperty(name='testInput', default=(1.0, 1.0, 1.0), size=3, subtype="COLOR",soft_min = 0.0, soft_max = 1.0, description='')
+
+
+    def compile_osl(self, inFile, outPath):
+        FileName = os.path.basename(inFile)
+        FileNameNoEXT = os.path.splitext(FileName)[0]
+        out_file = os.path.join(outPath, FileNameNoEXT)
+        out_file += ".oso"
+        ok = _cycles.osl_compile(inFile, out_file)
+        
+        return ok
+    
+    def update(self):
+        debug("info","UPDATING: ", self.name)
+        print("COMPILE? ", self.compileShader)
+        #if self.compileShader
+        #print("COMPILESHADER: ", self.compileShader)
+        
     @classmethod
     def poll(cls, ntree):
         return ntree.bl_idname == 'RendermanPatternGraph'
 
 class OSLProps(bpy.types.PropertyGroup):
     myInt = bpy.props.IntProperty(name="myInt",description="This is my int",min=0, max=16, default=2)
+    propDic = {}
     def setProps(self, prop_names, shader_meta):
-        print("SELF OSLProps: ", self) #"PROP_NAMES: ",prop_names, "SHADER_META" ,shader_meta, 
+        OSLProps.testingProp = bpy.props.IntProperty(name="testingProp",description="This is my int",min=0, max=16, default=2)
+        #print("SELF OSLProps: ", self) #"PROP_NAMES: ",prop_names, "SHADER_META" ,shader_meta, 
         for prop_name in prop_names:
             #print ("PROP_NAME: ",prop_name )
             if shader_meta[prop_name]["IO"] == "out":
                 self.outputs.new(socket_map[shader_meta[prop_name]["type"]], prop_name)
             else:
+    
+                if shader_meta[prop_name]["type"] == "float":
+                    floatResult = float(shader_meta[prop_name]["default"])
+                    setattr(OSLProps, prop_name, bpy.props.FloatProperty(name= prop_name, default = floatResult, precision = 3))
+                    OSLProps.propDic[prop_name] = bpy.props.FloatProperty(name= prop_name, default = shader_meta[prop_name]["default"], precision = 3)
+                    #print("META: ", shader_meta[prop_name])
+                elif shader_meta[prop_name]["type"] == "int":
+                    setattr(OSLProps, prop_name, bpy.props.IntProperty(name= prop_name, default = shader_meta[prop_name]["default"]))
+                    OSLProps.propDic[prop_name] = bpy.props.IntProperty(name= prop_name, default = shader_meta[prop_name]["default"])
+                elif shader_meta[prop_name]["type"] == "color":
+                    print("PROP: ", prop_name, "DEFAULT: ", shader_meta[prop_name]["default"])
+                    setattr(OSLProps, prop_name, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'COLOR', soft_min = 0.0, soft_max = 1.0))
+                elif shader_meta[prop_name]["type"] == "point":
+                    setattr(OSLProps, prop_name, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'XYZ'))
+                elif shader_meta[prop_name]["type"] == "vector":
+                    setattr(OSLProps, prop_name, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'DIRECTION'))
+                elif shader_meta[prop_name]["type"] == "normal":
+                    setattr(OSLProps, prop_name, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'XYZ'))
+                elif shader_meta[prop_name]["type"] == "matrix":
+                    print("PROP: ", prop_name, "DEFAULT: ", shader_meta[prop_name]["default"])
+                    setattr(OSLProps, prop_name, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], size= 16,)) #subtype = 'MATRIX'
+                elif shader_meta[prop_name]["type"] == "string":
+                    setattr(OSLProps, prop_name, bpy.props.StringProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype='FILE_PATH'))
+                else:
+                    setattr(OSLProps, prop_name, bpy.props.StringProperty(name= prop_name, default = shader_meta[prop_name]["default"]))
                 if shader_meta[prop_name]["type"] == "matrix" or shader_meta[prop_name]["type"] == "point":
                     self.inputs.new(socket_map["struct"], prop_name)
                 elif shader_meta[prop_name]["type"] == "void":
                     pass
                 else:
                     self.inputs.new(socket_map[shader_meta[prop_name]["type"]], prop_name)
-                if shader_meta[prop_name]["type"] == "float":
-                    setattr(self, prop_name, bpy.props.FloatProperty(name= prop_name, default = shader_meta[prop_name]["default"], precision = 3))
-                    print("META: ", shader_meta[prop_name])
-                elif shader_meta[prop_name]["type"] == "int":
-                    setattr(self, prop_name, bpy.props.IntProperty(name= prop_name, default = shader_meta[prop_name]["default"]))
-                elif shader_meta[prop_name]["type"] == "color":
-                    setattr(self, prop_name, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'COLOR'))
-                elif shader_meta[prop_name]["type"] == "point":
-                    setattr(self, prop_name, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'XYZ'))
-                elif shader_meta[prop_name]["type"] == "vector":
-                    setattr(self, prop_name, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'DIRECTION'))
-                elif shader_meta[prop_name]["type"] == "normal":
-                    setattr(self, prop_name, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'XYZ'))
-                elif shader_meta[prop_name]["type"] == "matrix":
-                    setattr(self, prop_name, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'MATRIX’'))
-                elif shader_meta[prop_name]["type"] == "string":
-                    setattr(self, prop_name, bpy.props.StringProperty(name= prop_name, default = shader_meta[prop_name]["default"]))
-                else:
-                    setattr(self, prop_name, bpy.props.StringProperty(name= prop_name, default = shader_meta[prop_name]["default"]))
-                print("SETATTR: ", self, "::::" ,prop_name)
+                
+                #print("SETATTR: ", self, "::::" ,prop_name)
+        #bpy.types.Scene.OSL = 
+    def getProps(prop_name):
+        return bpy.props.FloatProperty(name= prop_name, default = 0, precision = 3)
+        #setattr(self, 'prop_names', prop_names)
                 #print("GETATTR: ", getattr(self, prop_name))
-        #bpy.utils.unregister_class(self)
-        #bpy.utils.register_class(self)
-            
-            
+                #self.diffuseTexture = bpy.props.StringProperty(name= prop_name, default = shader_meta[prop_name]["default"])
+    #def register()
+
 
     #     # for sp in [p for p in args.params if p.meta['array']]:
     #     #     row = layout.row(align=True)
@@ -405,7 +443,8 @@ def generate_node_type(prefs, name, args):
             node_add_inputs(self, name, inputs)
         #else pattern
         elif name == "PxrOSL":
-            pass
+            print("SELF INIT: ", self)
+            self.outputs.clear()
         else:
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
@@ -847,7 +886,8 @@ classes = [
     RendermanNodeSocketInt,
     RendermanNodeSocketString,
     RendermanNodeSocketVector,
-    RendermanNodeSocketStruct
+    RendermanNodeSocketStruct,
+    OSLProps
 ]
 
 
