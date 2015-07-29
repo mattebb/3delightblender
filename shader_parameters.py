@@ -119,29 +119,52 @@ def parse_float(fs):
     return float(fs[:-1]) if 'f' in fs else float(fs)
 
 
+def generate_page(sp, node):
+    param_names = []
+    prop_meta = {}
+    props = []
+    #don't add the sub group to prop names, 
+    #they'll be gotten through recursion
+    for sub_param in sp.findall('param') + sp.findall('page'):
+        if sub_param.tag == 'page':
+            sub_names, sub_meta, sub_props = generate_page(sub_param, node)
+            props.append(sub_names)
+            props.append(sub_props)
+            prop_meta.update(sub_meta)
+            prop_meta[sub_param.attrib['name']] = {'renderman_type':'page'}
+            param_names.append(sub_param.attrib['name'])
+            ui_label = "%s_ui_open" % sub_param.attrib['name']
+            setattr(node, ui_label, bpy.props.BoolProperty(name=ui_label, 
+                    default=False))
+            for i in range(len(sub_names)):
+                setattr(node, sub_names[i], sub_props[i])
+        else:
+            name,meta,prop = generate_property(sub_param)
+            #another fix for sloppy args files
+            if name == sp.attrib['name']:
+                name = name + '_prop'
+            param_names.append(name)
+            prop_meta[name] = meta
+            props.append(prop)
+
+    return param_names, prop_meta, props
+
 def class_generate_properties(node, parent_name, shaderparameters):
     prop_names = []
     prop_meta = {}
 
     for sp in shaderparameters:
         if sp.tag == 'page':
-            sub_params = []
-            #don't add the sub group to prop names, 
-            #they'll be gotten through recursion
-            for sub_param in sp.findall('param'):
-                name,meta,prop = generate_property(sub_param)
-                #another fix for sloppy args files
-                if name == sp.attrib['name']:
-                    name = name + '_prop'
-                sub_params.append(name)
-                prop_meta[name] = meta
-                setattr(node, name, prop)
+            sub_param_names, sub_params_meta, sub_props = generate_page(sp, node)
             prop_names.append(sp.attrib['name'])
             prop_meta[sp.attrib['name']] = {'renderman_type':'page'}
-            setattr(node, sp.attrib['name'], sub_params)
+            setattr(node, sp.attrib['name'], sub_param_names)
             ui_label = "%s_ui_open" % sp.attrib['name']
             setattr(node, ui_label, bpy.props.BoolProperty(name=ui_label, 
-                    default=True))
+                    default=False))
+            prop_meta.update(sub_params_meta)
+            for i in range(len(sub_param_names)):
+                setattr(node, sub_param_names[i], sub_props[i])
         else:
             name,meta,prop = generate_property(sp)
             prop_names.append(name)

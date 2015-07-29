@@ -180,8 +180,20 @@ class RendermanShadingNode(bpy.types.Node):
             prop_meta = self.prop_meta[prop_name]
             if prop_name not in self.inputs:
                 if prop_meta['renderman_type'] == 'page':
-                    prop = getattr(self, prop_name)
-                    self.draw_nonconnectable_props(context, layout, prop)
+                    ui_prop = prop_name + "_ui_open"
+                    ui_open = getattr(self, ui_prop)
+                    icon = 'TRIA_DOWN' if ui_open \
+                        else 'TRIA_RIGHT'
+
+                    split = layout.split(NODE_LAYOUT_SPLIT)
+                    row = split.row()
+                    row.prop(self, ui_prop, icon=icon, text='', 
+                            icon_only=True, emboss=False)            
+                    row.label(prop_name+':')
+                    
+                    if ui_open:
+                        prop = getattr(self, prop_name)
+                        self.draw_nonconnectable_props(context, layout, prop)
                 else:
                     layout.prop(self,prop_name)
             
