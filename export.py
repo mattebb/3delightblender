@@ -2805,6 +2805,6 @@ def issue_edits(rpass, ri, active, prman):
                     issue_light_transform_edit(ri, active)
                 issue_shader_edit(ri, rpass, mats_to_edit, prman, active, do_instance=True)
             elif len(mats_to_edit) > 0:
-                issue_shader_edit(ri, rpass, mats_to_edit, prman, active)
+                issue_shader_edit(ri, rpass, mats_to_edit, prman, active, do_instance=True)
     
     
