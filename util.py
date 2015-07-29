@@ -412,9 +412,10 @@ def guess_rmantree():
 
 #return true if an archive is older than the timestamp
 def check_if_archive_dirty(update_time, archive_filename):
-    if update_time > 0 and os.path.exists(archive_filename) and int(os.path.getmtime(archive_filename)) > update_time:
+    if update_time > 0 and os.path.exists(archive_filename) and os.path.getmtime(archive_filename) >= update_time:
         return False
     else:
+        #print('+ ' + archive_filename, os.path.getmtime(archive_filename), update_time)
         return True
 
 def find_it_path():

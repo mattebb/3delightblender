@@ -374,36 +374,36 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
 
         layout.separator()
 
-        split = layout.split()
-        col = split.column()
-        col.prop(rm, "shadingrate")
+        row = layout.row()
+        row.prop(rm, "shadingrate")
         
-        col.separator()
+        layout.separator()
         
-        col.label("Pixel Filter:")
-        col.prop(rm, "pixelfilter", text="")
-        row = col.row(align=True)
+        row = layout.row()
+        row.label("Pixel Filter:")
+        row.prop(rm, "pixelfilter", text="")
+        row = layout.row()
         row.prop(rm, "pixelfilter_x", text="Size X")
         row.prop(rm, "pixelfilter_y", text="Size Y")
         
-        col.separator()
         
-        col = split.column()
-        col.prop(rm, "depth_of_field")
-        sub = col.column(align=True)
-        sub.enabled = rm.depth_of_field
-        sub.prop(rm, "fstop")
+class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
+    bl_label = "Motion Blur"
+    
+    def draw(self, context):
+        rm = context.scene.renderman
         
-        col.separator()
-        
-        col.prop(rm, "motion_blur")
-        sub = col.column(align=False)
+        layout = self.layout
+        row = layout.row()
+        row.prop(rm, "motion_blur")
+        sub = layout.row()
         sub.enabled = rm.motion_blur
         sub.prop(rm, "motion_segments")
         
-        scol = sub.column(align=True)
-        scol.prop(rm, "shutter_open")
-        scol.prop(rm, "shutter_close")
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "shutter_open")
+        row.prop(rm, "shutter_close")
 
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
     bl_label = "Interactive and Preview Sampling"
@@ -480,6 +480,7 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
         layout.prop(rm, "do_denoise")
         layout.prop(rm, "path_display_driver_image")    
         layout.prop(rm, "always_generate_textures")
+        layout.prop(rm, "lazy_rib_gen")
         layout.prop(rm, "threads")
         if rm.display_driver == 'blender':
             layout.prop(rm, "update_frequency")
@@ -987,6 +988,17 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
         col.prop(rl, "use_pass_subsurface_indirect", text="Subsurface")
         col.prop(rl, "use_pass_refraction", text="Refraction")
         col.prop(rl, "use_pass_emit", text="Emission")
+
+        layout.separator()
+        row = layout.row()
+        row.label('Holdouts')
+        rm = scene.renderman.holdout_settings
+        layout.prop(rm, 'do_collector_shadow')
+        layout.prop(rm, 'do_collector_reflection')
+        layout.prop(rm, 'do_collector_refraction')
+        layout.prop(rm, 'do_collector_indirectdiffuse')
+        layout.prop(rm, 'do_collector_subsurface')
+
         #col.prop(rl, "use_pass_ambient_occlusion")
 
 # class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
@@ -1216,6 +1228,13 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
     def draw(self, context):
         layout = self.layout
         cam = context.camera
+        scene = context.scene
+        row = layout.row()
+        row.prop(scene.renderman, "depth_of_field")
+        sub = row.row()
+        sub.enabled = scene.renderman.depth_of_field
+        sub.prop(scene.renderman, "fstop")
+            
         layout.prop(cam.renderman, "use_physical_camera")
         if cam.renderman.use_physical_camera == True:
             pxrcamera = getattr(cam.renderman, "PxrCamera_settings")
@@ -1534,7 +1553,7 @@ class OBJECT_PT_renderman_object_geometry(Panel):
                 colf.prop(rm, "primitive_point_type")
                 colf.prop(rm, "primitive_point_width")
                     
-            #col.prop(rm, "export_archive")
+            col.prop(rm, "export_archive")
             #if rm.export_archive:                
             #    col.prop(rm, "export_archive_path")
         
@@ -1546,8 +1565,13 @@ class OBJECT_PT_renderman_object_geometry(Panel):
         row.prop(rm, "motion_segments_override", text="")
         sub = row.row()
         sub.active = rm.motion_segments_override
-        sub.prop(rm, "motion_segments")        
+        sub.prop(rm, "motion_segments")    
 
+        row = col.row()
+        row.prop(rm, 'do_holdout')    
+        sub = col.row()
+        sub.enabled = rm.do_holdout
+        sub.prop(rm, 'lpe_group')
                 
 class OBJECT_PT_renderman_object_render_shading(Panel):
     bl_space_type = 'PROPERTIES'
@@ -1685,14 +1709,26 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
         rm = psys.settings.renderman
         
         col = layout.column()
-        col.prop(rm, "material_id")
         
         if psys.settings.type == 'EMITTER':
             col.row().prop(rm, "particle_type", expand=True)
             if rm.particle_type == 'OBJECT':
                 col.prop_search(rm, "particle_instance_object", bpy.data, "objects", text="")
+                col.prop(rm, 'use_object_material')
             elif rm.particle_type == 'GROUP':
                 col.prop_search(rm, "particle_instance_object", bpy.data, "groups", text="")
+            
+
+            if rm.particle_type == 'OBJECT' and rm.use_object_material:
+                pass
+            else:
+                col.prop(rm, "material_id")
+            col.row().prop(rm, "width")
+
+            
+        else:
+            col.prop(rm, "material_id")
+        
 
         # XXX: if rm.type in ('sphere', 'disc', 'patch'):
         # implement patchaspectratio and patchrotation   

@@ -296,8 +296,35 @@ class RendermanPass(bpy.types.PropertyGroup):
     displacement_shaders  = BoolProperty(name="Displacement Shaders", description="Render displacement shaders")
     light_shaders         = BoolProperty(name="Light Shaders", description="Render light shaders")
 
+class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
+    do_collector_shadow = BoolProperty(
+                name="Collect Shadow Holdout",
+                description="Collect shadow data on objects tagged as holdout.",
+                default=False)
+
+    do_collector_reflection = BoolProperty(
+                name="Collect Reflection Holdout",
+                description="Collect reflection data on objects tagged as holdout.",
+                default=False)
+
+    do_collector_indirectdiffuse = BoolProperty(
+                name="Collect IndirectDiffuse Holdout",
+                description="Collect indirectdiffuse data on objects tagged as holdout.",
+                default=False)
+
+    do_collector_subsurface = BoolProperty(
+                name="Collect Subsurface Holdout",
+                description="Collect subsurface data on objects tagged as holdout.",
+                default=False)
+
+    do_collector_refraction = BoolProperty(
+                name="Collect Refraction Holdout",
+                description="Collect refraction data on objects tagged as holdout.",
+                default=False)
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
+    holdout_settings = PointerProperty(type = RendermanRenderLayerSettings, name='holdout settings'
+        )
 
     pixelsamples_x = IntProperty(
                 name="Pixel Samples X",
@@ -478,6 +505,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 items=[('EXPORT_RENDER', 'Export RIB and Render', 'Generate RIB file and render it with the renderer'),
                     ('EXPORT', 'Export RIB Only', 'Generate RIB file only')],
                 default='EXPORT_RENDER')
+
+    lazy_rib_gen = BoolProperty(
+                name="Cache Rib Generation",
+                description="On unchanged objects, don't re-emit rib.  Will result in faster spooling of renders.",
+                default=False)
 
     always_generate_textures = BoolProperty(
                 name="Always Recompile Textures",
@@ -1102,6 +1134,12 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                 description="Material ID to use for particle shading",
                 default=1)
 
+    use_object_material = BoolProperty(
+            name="Use Master Object's Material",
+            description="Use the master object's material for instancing",
+            default=False
+        )
+
     particle_type_items = [('particle', 'Particle', 'Point primitive'),
                     ('blobby', 'Blobby', 'Implicit Surface (metaballs)'),
                     ('sphere', 'Sphere', 'Two-sided sphere primitive'),
@@ -1199,6 +1237,16 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
             name="Update Timestamp", default=int(time.time()),
                 description="Used for telling if an objects rib archive is dirty", subtype='UNSIGNED'
         )
+
+    do_holdout = BoolProperty(
+                name="Holdout Object",
+                description="Collect holdout data for this object",
+                default=False)
+
+    lpe_group = StringProperty(
+                name="Holdout Group",
+                description="Group name for collecting holdouts.",
+                default="collector")
 
     geometry_source = EnumProperty(
                 name="Geometry Source",
@@ -1487,15 +1535,15 @@ classes = [displacementShaders,
             RendermanLightSettings,
             RendermanParticleSettings,
             RendermanIntegratorSettings,
-            
+            RendermanRenderLayerSettings,
+           
             RendermanCameraSettings,
             RendermanSceneSettings,
             RendermanWorldSettings,
             RendermanMeshGeometrySettings,
             RendermanCurveGeometrySettings,
-            RendermanObjectSettings,
-            testProps
-           ]
+            RendermanObjectSettings
+        ]
 
 def register():
 
@@ -1509,7 +1557,6 @@ def register():
 
     bpy.types.Scene.renderman = PointerProperty(
                 type=RendermanSceneSettings, name="Renderman Scene Settings")
-    bpy.types.Scene.OSLProps = PointerProperty(type=testProps, name="Renderman OSL Settings")
     bpy.types.World.renderman = PointerProperty(
                 type=RendermanWorldSettings, name="Renderman World Settings")
     bpy.types.Material.renderman = PointerProperty(
@@ -1528,6 +1575,8 @@ def register():
                 type=RendermanObjectSettings, name="Renderman Object Settings")
     bpy.types.Camera.renderman = PointerProperty(
                 type=RendermanCameraSettings, name="Renderman Camera Settings")
+    #bpy.types.SceneRenderLayer.renderman = PointerProperty(
+    #            type=RendermanRenderLayerSettings, name="Renderman RenderLayer Settings")
 
     #add the integrator settings from args files
     #register_integrators(bpy.types.Scene.renderman.integrator_settings)

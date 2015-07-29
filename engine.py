@@ -88,6 +88,7 @@ def reset(engine, data, scene):
     engine.render_pass.set_scene(scene)
 
 def update(engine, data, scene):
+    engine.render_pass.update_time = int(time.time())
     if engine.is_preview:
         engine.render_pass.display_driver = 'tif'
         engine.render_pass.gen_preview_rib()
@@ -135,6 +136,7 @@ class RPass:
         prman.Init()
         self.ri = prman.Ri()
         self.edit_num = 0
+        self.update_time = None
 
     def __del__(self):
         if self.is_interactive_running:
@@ -457,6 +459,7 @@ class RPass:
         if not os.path.exists(self.paths['texture_output']):
             os.mkdir(self.paths['texture_output'])
 
+        files_converted = []
         for in_file, out_file, options in texture_list:
             in_file = get_real_path(in_file)
             out_file_path = os.path.join(self.paths['texture_output'], out_file)
@@ -482,6 +485,9 @@ class RPass:
                 process = subprocess.Popen(cmd, cwd=Blendcdir, 
                                         stdout=subprocess.PIPE, env=environ)
                 process.communicate()
+                files_converted.append(out_file_path)
+
+        return files_converted
 
     
 
