@@ -846,30 +846,35 @@ def export_light(rpass, scene, ri, ob):
     
     ri.Illuminate(lamp.name, rm.illuminates_by_default)
 
-def export_blobs(ri, obs):
+def export_blobs(ri, scene, obs):
 
     debug("info",">> exporting RiBlobby...")
 
     export_comment(ri, '## METABALLS')
-    ri.AttributeBegin()     
 
-    op = []
-    tform = [];
+    archive_filename = user_path(scene.renderman.path_object_archive_static,
+                                scene).replace('{object}', 'materials')
+    ri.ReadArchive(archive_filename)
+
+    ri.AttributeBegin()     
+    ri.TransformBegin()
     ri.Attribute('identifier', {'string name': 'Metaballs'})
 
     #opcodes
+    op = []
     count = len(obs)
     for i in range(count):
         op.append(1001) #only blobby ellipsoids for now...
-        op.append(i * 16)  
-
-    ob_mat = {}
+        op.append(i * 16)      
 
     #transform 
+    tform = []
+    ob_mat = ''
     for ob_name, ob_type in obs:
         ob_temp = bpy.data.objects.get(ob_name) 
-        ob_mat = ob_temp
         m = ob_temp.matrix_world
+        if (ob_mat == ''):
+            ob_mat = ob_name
 
         # multiply only the scale of blobs by 2 (matches Blender threshold=0.800)
         sc = Matrix(((2, 0, 0, 0),
@@ -885,17 +890,12 @@ def export_blobs(ri, obs):
         op.append(n)
 
     st = ('',)
-    parm = {}
+    parm = {}    
 
-    ri.Blobby(count, op, tform, st, parm)
+    export_material_archive(ri, ob_temp.data.materials[0].name)
+    ri.Blobby(count, op, tform, st, parm)    
 
-    #material
-    ob_mat = bpy.data.objects.get(obs[0][0])
-    if len(ob_mat.data.materials) > 0:
-        export_material_archive(ri, ob_mat.data.materials[0].name)   
-
-    #export_shader_nodetree(ri, ob_mat)
-    
+    ri.TransformEnd()
     ri.AttributeEnd()
 
     
@@ -1931,7 +1931,7 @@ def export_objects(ri, rpass, scene, motion):
                 exported_lights.append(ob_temp.name)
 
     if len(candidate_blobs):
-        export_blobs(ri, candidate_blobs)
+        export_blobs(ri, scene, candidate_blobs)
     
     #default bxdf AFTER lights
     export_default_bxdf(ri, 'default')
