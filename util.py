@@ -120,11 +120,14 @@ def readOSO(filePath):
     return prop_names, shader_meta
 def debug(warningLevel, *output):
 
-    if warningLevel == 'warning' or warningLevel == 'error':
+    if warningLevel == 'warning' or warningLevel == 'error' or warningLevel == 'osl':
         if(warningLevel == "warning"):
             print ("WARNING: " , output)
         elif(warningLevel == "error"):
             print ("ERROR: " , output)
+        elif(warningLevel == "osl"):
+            for item in output:
+                print ("OSL INFO: ", item)
     else:
         if(EnableDebugging == True):
             if(warningLevel == "info"):
