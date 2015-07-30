@@ -44,7 +44,7 @@ from .util import find_it_path
 addon_version = bl_info['version']
 
 # helper functions for parameters
-from .nodes import export_shader_nodetree, get_textures
+from .nodes import export_shader_nodetree, get_textures, shader_node_rib
 
 # ------------- Atom's helper functions -------------
 GLOBAL_ZERO_PADDING = 5
@@ -2705,44 +2705,15 @@ def issue_light_transform_edit(ri, obj):
     export_transform(ri, obj, obj.type == 'LAMP' and (lamp.type == 'HEMI' or lamp.type == 'SUN'))
     ri.EditEnd()
     
-
-def issue_light_shader_edit(ri, rpass, obj, prman):
-    if reissue_textures(ri, rpass, obj.data):
-        rpass.edit_num += 1
-        edit_flush(ri, rpass.edit_num, prman)
-
-    ri.EditBegin('instance')
-    export_light_shaders(ri, obj.data, do_geometry=False)
-    ri.EditEnd()
-            
 def issue_camera_edit(ri, rpass, camera):
     ri.EditBegin('option')
     export_camera(ri, rpass.scene, {'transformation':[]}, camera_to_use=camera)
     ri.EditEnd()
 
-def issue_shader_edit(ri, rpass, mats_to_edit, prman, obj, do_instance=False):
-    tex_made = False
-    for mat in mats_to_edit:
-        if reissue_textures(ri, rpass, mat):
-            tex_made = True
-
-    #if texture made flush it
-    if tex_made:
-        rpass.edit_num += 1
-        edit_flush(ri, rpass.edit_num, prman)
-
-    if do_instance:
-        ri.EditBegin('instance')
-    else:
-        ri.EditBegin('attribute', {'string scopename': obj.name})
-    for mat in mats_to_edit:
-        export_material(ri, rpass, rpass.scene, mat)
-    ri.EditEnd()
-
 #search this material/lamp for textures to re txmake and do them
 def reissue_textures(ri, rpass, mat):
     made_tex = False
-    if mat.renderman.nodetree != '':
+    if mat != None:
         textures = get_textures(mat)
         
         files = rpass.convert_textures(textures)
@@ -2762,49 +2733,76 @@ def is_emissive(object):
     return False
 
 #test the active object type for edits to do then do them
-def issue_edits(rpass, ri, active, prman):
-    
-    do_edit = active.is_updated
-    #first check out if there's edit to do    
-    mats_to_edit = []
-    if hasattr(active.data, 'materials'):
-        #update the light position and shaders if updated
-        for mat in active.data.materials:
-            if mat != None and mat.renderman.nodetree != '':
-                nt = bpy.data.node_groups[mat.renderman.nodetree]
-                if nt.is_updated:
-                    mats_to_edit.append(mat)
-        if len(mats_to_edit) > 0:
-            do_edit = True
-    elif active.type == 'LAMP':
-        nt = bpy.data.node_groups[active.data.renderman.nodetree]
-        if nt.is_updated or nt.is_updated_data:
-            do_edit = True
-
-    if do_edit:
+def issue_transform_edits(rpass, ri, active, prman):
+    if active.is_updated:
         rpass.edit_num += 1
         
         edit_flush(ri, rpass.edit_num, prman)
         #only update lamp if shader is update or pos, seperately
         if active.type == 'LAMP':
             lamp = active.data
-            if active.is_updated:
-                issue_light_transform_edit(ri, active)
+            issue_light_transform_edit(ri, active)
             
-            nt = bpy.data.node_groups[lamp.renderman.nodetree]
-            if nt.is_updated or nt.is_updated_data:
-                issue_light_shader_edit(ri, rpass, active, prman)
-    
         elif active.type == 'CAMERA' and active.is_updated:
             issue_camera_edit(ri, rpass, active)
         else:
-            #geometry can only edit shaders
-            
             if is_emissive(active):
-                if active.is_updated:
-                    issue_light_transform_edit(ri, active)
-                issue_shader_edit(ri, rpass, mats_to_edit, prman, active, do_instance=True)
-            elif len(mats_to_edit) > 0:
-                issue_shader_edit(ri, rpass, mats_to_edit, prman, active, do_instance=True)
-    
-    
+                issue_light_transform_edit(ri, active)
+
+def find_material_objs(nt):
+    mat = bpy.context.object.active_material
+    objs = []
+    #return mat, obj
+    for obj in bpy.data.objects:
+        for slot in obj.material_slots:
+            if slot.material == mat:
+                objs.append(obj)
+
+    return mat,objs
+
+#test the active object type for edits to do then do them
+def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
+    if node == None:
+        mat,objs = find_material_objs(nt)
+
+        #do an attribute full rebind
+        tex_made = False
+        if reissue_textures(ri, rpass, mat):
+            tex_made = True
+
+        #if texture made flush it
+        if tex_made:
+            rpass.edit_num += 1
+            edit_flush(ri, rpass.edit_num, prman)
+        rpass.edit_num += 1
+        edit_flush(ri, rpass.edit_num, prman)
+        mat,objs = find_material_objs(nt)
+        for obj in objs:
+            ri.EditBegin('attribute', {'string scopename': obj.name})
+            export_material(ri, rpass, rpass.scene, mat)
+            ri.EditEnd()
+
+    else:
+        mat = bpy.context.object.active_material
+        #if this is a lamp use that for the mat/name
+        if mat == None and bpy.data.scenes[0].objects.active.type == 'LAMP':
+            mat = bpy.data.scenes[0].objects.active.data
+        if mat == None:
+            return
+        mat_name = mat.name
+
+        #do an attribute full rebind
+        tex_made = False
+        if reissue_textures(ri, rpass, mat):
+            tex_made = True
+
+        #if texture made flush it
+        if tex_made:
+            rpass.edit_num += 1
+            edit_flush(ri, rpass.edit_num, prman)
+        rpass.edit_num += 1
+        edit_flush(ri, rpass.edit_num, prman)
+        ri.EditBegin('instance')
+        shader_node_rib(ri, node, mat.name, recurse=False)
+        ri.EditEnd()
+

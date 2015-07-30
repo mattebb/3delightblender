@@ -35,6 +35,7 @@ from .shader_parameters import node_add_outputs
 from .util import args_files_in_path
 from .util import get_path_list
 from .util import rib
+#from .engine import ipr
 
 from operator import attrgetter, itemgetter
 import os.path
@@ -76,11 +77,11 @@ class RendermanPatternGraph(bpy.types.NodeTree):
                 return bpy.data.node_groups[la.renderman.nodetree], la, la
         return (None, None, None)
     
-    #def draw_add_menu(self, context, layout):
-    #    add_nodetype(layout, OutputShaderNode)
-    #    for nt in self.nodetypes.values():
-    #        add_nodetype(layout, nt)
-
+    #when a connection is made or removed see if we're in IPR mode and issue updates
+    def update(self):
+        from . import engine
+        if self.is_updated and engine.ipr != None and engine.ipr.is_interactive_running:
+            engine.ipr.issue_shader_edits(nt = self)
 
 class RendermanSocket:
     ui_open = bpy.props.BoolProperty(name='UI Open', default=True)
@@ -196,9 +197,7 @@ class RendermanShadingNode(bpy.types.Node):
                         self.draw_nonconnectable_props(context, layout, prop)
                 else:
                     layout.prop(self,prop_name)
-            
-
-
+    
     @classmethod
     def poll(cls, ntree):
         if hasattr(ntree, 'bl_idname'):
@@ -603,7 +602,7 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
 #### Rib export
 
 #generate param list
-def gen_params(ri, node, mat_name=None):
+def gen_params(ri, node, mat_name=None, recurse=True):
     params = {}
     for prop_name,meta in node.prop_meta.items():
         prop = getattr(node, prop_name)
@@ -613,7 +612,8 @@ def gen_params(ri, node, mat_name=None):
         #if input socket is linked reference that
         elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
             from_socket = node.inputs[prop_name].links[0].from_socket
-            shader_node_rib(ri, from_socket.node, mat_name=mat_name)
+            if recurse:
+                shader_node_rib(ri, from_socket.node, mat_name=mat_name)
             params['reference %s %s' % (meta['renderman_type'], 
                     meta['renderman_name'])] = \
                 ["%s:%s" % (from_socket.node.name, from_socket.identifier)]        
@@ -641,8 +641,8 @@ def gen_params(ri, node, mat_name=None):
     return params
 
 # Export to rib
-def shader_node_rib(ri, node, mat_name, disp_bound=0.0):
-    params = gen_params(ri, node, mat_name)
+def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
+    params = gen_params(ri, node, mat_name, recurse)
     params['__instanceid'] = mat_name + '.' + node.name
     if node.renderman_node_type == "pattern":
         ri.Pattern(node.bl_label, node.name, params)
