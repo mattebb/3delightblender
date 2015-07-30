@@ -48,8 +48,8 @@ class PRManRender(bpy.types.RenderEngine):
         self.render_pass = None
         
     def __del__(self):
-        engine.free(self)
-        
+        if self.render_pass != None:
+            engine.free(self)
 
     # main scene render
     def update(self, data, scene):
@@ -72,7 +72,8 @@ class PRManRender(bpy.types.RenderEngine):
 
         
     def render(self, scene):
-        engine.render(self)
+        if self.render_pass != None:
+            engine.render(self)
     
    
 def register():

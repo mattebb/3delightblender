@@ -77,11 +77,6 @@ class RendermanPatternGraph(bpy.types.NodeTree):
                 return bpy.data.node_groups[la.renderman.nodetree], la, la
         return (None, None, None)
     
-    #when a connection is made or removed see if we're in IPR mode and issue updates
-    def update(self):
-        from . import engine
-        if self.is_updated and engine.ipr != None and engine.ipr.is_interactive_running:
-            engine.ipr.issue_shader_edits(nt = self)
 
 class RendermanSocket:
     ui_open = bpy.props.BoolProperty(name='UI Open', default=True)
@@ -228,12 +223,11 @@ class RendermanOutputNode(RendermanShadingNode):
     bl_label = 'Output'
     renderman_node_type = 'output'
     bl_icon = 'MATERIAL'
+    node_tree = None
     def init(self, context):
         input = self.inputs.new('RendermanShaderSocket', 'Bxdf')
         input = self.inputs.new('RendermanShaderSocket', 'Light')
         input = self.inputs.new('RendermanShaderSocket', 'Displacement')
-        #input.default_value = bpy.props.EnumProperty(items=[('PxrDisney', 'PxrDisney', 
-        #    '')])
 
     def draw_buttons(self, context, layout):
         return
@@ -241,6 +235,13 @@ class RendermanOutputNode(RendermanShadingNode):
     def draw_buttons_ext(self, context, layout):
         return
         
+    #when a connection is made or removed see if we're in IPR mode and issue updates
+    def update(self):
+        from . import engine
+        if engine.ipr != None and engine.ipr.is_interactive_running:
+            nt, mat, something_else = RendermanPatternGraph.get_from_context(bpy.context)
+            engine.ipr.issue_shader_edits(nt = nt)
+    
 
 # Final output node, used as a dummy to find top level shaders
 class RendermanBxdfNode(RendermanShadingNode):
