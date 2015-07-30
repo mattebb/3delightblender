@@ -976,6 +976,11 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             light_shader = 'PxrStdEnvMapLightLightNode'
         elif light_type == 'SKY':
             light_shader = 'PxrStdEnvDayLightLightNode'
+        elif light_type == 'AREA':
+            try:
+                lamp.size = 1.0
+            except:
+                pass
 
         #find the existing or make a new light shader node
         nt = bpy.data.node_groups[lamp.renderman.nodetree]

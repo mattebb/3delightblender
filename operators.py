@@ -80,7 +80,9 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 light_shader = 'PxrStdEnvDayLightLightNode'
             elif light_type == 'HEMI':
                 light_shader = 'PxrStdEnvMapLightLightNode'
-
+            elif light_type == 'AREA':
+                context.lamp.size = 1.0
+            
             output = nt.nodes.new('RendermanOutputNode')
             default = nt.nodes.new(light_shader)
             default.location = output.location
@@ -105,7 +107,6 @@ class refresh_osl_shader(bpy.types.Operator):
         #print("CONTEXT: ", context, "CONTEXT_NODE: ", context.node)
         #context.node.compileShader = True
         context.node.RefreshNodes(context)
-        context.node.update()
         return {'FINISHED'}
 class update_args(bpy.types.Operator):
     bl_idname = "properties.update_args"
