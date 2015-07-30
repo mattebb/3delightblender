@@ -26,7 +26,7 @@
 bl_info = {
     "name": "PRMan Render Engine",
     "author": "Brian Savery",
-    "version": (0, 2, 7),
+    "version": (0, 2, 8),
     "blender": (2, 74, 0),
     "location": "Info Header, render engine menu",
     "description": "RenderMan 20.0 integration",

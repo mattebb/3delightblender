@@ -1709,15 +1709,26 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
         rm = psys.settings.renderman
         
         col = layout.column()
-        col.prop(rm, "material_id")
         
         if psys.settings.type == 'EMITTER':
             col.row().prop(rm, "particle_type", expand=True)
             if rm.particle_type == 'OBJECT':
                 col.prop_search(rm, "particle_instance_object", bpy.data, "objects", text="")
+                col.prop(rm, 'use_object_material')
             elif rm.particle_type == 'GROUP':
                 col.prop_search(rm, "particle_instance_object", bpy.data, "groups", text="")
+            
+
+            if rm.particle_type == 'OBJECT' and rm.use_object_material:
+                pass
+            else:
+                col.prop(rm, "material_id")
             col.row().prop(rm, "width")
+
+            
+        else:
+            col.prop(rm, "material_id")
+        
 
         # XXX: if rm.type in ('sphere', 'disc', 'patch'):
         # implement patchaspectratio and patchrotation   

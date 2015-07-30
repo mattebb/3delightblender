@@ -54,8 +54,8 @@ from bpy.app.handlers import persistent
 addon_version = bl_info['version']
 
 # global dictionaries
-from .export import write_rib, write_preview_rib, get_texture_list
-from .export import get_texture_list_preview, issue_edits, interactive_initial_rib
+from .export import write_rib, write_preview_rib, get_texture_list, issue_shader_edits
+from .export import get_texture_list_preview, issue_transform_edits, interactive_initial_rib
 
 #set pythonpath
 set_rmantree(guess_rmantree())
@@ -407,21 +407,24 @@ class RPass:
         return
 
     #find the changed object and send for edits
-    def issue_edits(self, scene):
+    def issue_transform_edits(self, scene):
         active = scene.objects.active
-        if active:
-            issue_edits(self, self.ri, active, prman)
+        if active and active.is_updated: 
+            issue_transform_edits(self, self.ri, active, prman)
         #record the marker to rib and flush to that point
         #also do the camera in case the camera is locked to display.
-        if scene.camera != active:
-            issue_edits(self, self.ri, scene.camera, prman)
+        if scene.camera != active and scene.camera.is_updated:
+            issue_transform_edits(self, self.ri, scene.camera, prman)
+
+    def issue_shader_edits(self, nt=None, node=None):
+        issue_shader_edits(self, self.ri, prman, nt, node)
         
     #ri.end
     def end_interactive(self):
-        self.ri.EditWorldEnd()
-        self.ri.End()
         self.is_interactive = False
         self.is_interactive_running = False
+        self.ri.EditWorldEnd()
+        self.ri.End()
         pass
 
     def gen_rib(self, engine=None):
