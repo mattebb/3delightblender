@@ -104,22 +104,9 @@ class refresh_osl_shader(bpy.types.Operator):
     bl_description = "Refreshes the OSL node !!! This takes a few seconds!!!"
     
     def invoke(self, context, event):
-        #print("CONTEXT: ", context, "CONTEXT_NODE: ", context.node)
-        #context.node.compileShader = True
         context.node.RefreshNodes(context)
         return {'FINISHED'}
-class update_args(bpy.types.Operator):
-    bl_idname = "properties.update_args"
-    bl_label = "Refresh Renderman Nodes"
-    bl_description = "Refreshes the rendman nodes !!! This takes a few seconds!!!"
-    
-    def invoke(self, context, event):
-        properties.reregister()
-        print("REGISTERED")
-        #register_integrator_settings(RendermanSceneSettings)
-        #register_camera_settings()
-        return {'FINISHED'}
-    
+
 class StartInteractive(bpy.types.Operator):
     ''''''
     bl_idname = "lighting.start_interactive"
