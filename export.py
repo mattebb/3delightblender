@@ -867,11 +867,9 @@ def export_blobs(ri, scene, obs):
         ob_temp = bpy.data.objects.get(ob_name) 
         name_segs = ob_name.split('.')
         fam_name =name_segs[0]
-        debug("info","... family "+fam_name)
         if fam_name not in blob_families:
             blob_families[fam_name] = {}
 
-        debug("info","...storing " + ob_name)
         blob_families[fam_name][ob_name] = ob_temp
 
     # output each blob family as separate RiBlobby
@@ -890,7 +888,6 @@ def export_blobs(ri, scene, obs):
         #opcodes
         op = []        
         count = len(fam_blobs)
-        debug("info","found " + str(count) + " blobs in " + family)
         for i in range(count):
             op.append(1001) #only blobby ellipsoids for now...
             op.append(i * 16)
