@@ -62,6 +62,7 @@ MESHLIGHT_PREFIX = "meshlight_"
 PSYS_PREFIX = "psys_"
 DUPLI_PREFIX = "dupli_"
 DUPLI_SOURCE_PREFIX = "dup_src_"
+BLOB_PREFIX = "blob_"
 
 def rounded_tuple(tup):
     return tuple(round(value,4) for value in tup) 
@@ -855,47 +856,73 @@ def export_blobs(ri, scene, obs):
                                 scene).replace('{object}', 'materials')
     ri.ReadArchive(archive_filename)
 
-    ri.AttributeBegin()     
-    ri.TransformBegin()
-    ri.Attribute('identifier', {'string name': 'Metaballs'})
-
-    #opcodes
-    op = []
-    count = len(obs)
-    for i in range(count):
-        op.append(1001) #only blobby ellipsoids for now...
-        op.append(i * 16)      
-
-    #transform 
-    tform = []
-    ob_mat = ''
+    # We need to organize Blender blobs by "families."
+    # Each blob family is grouped by initial name string of the object BEFORE the period.
+    # The master blob for each family is the one WITHOUT a period in the name at all,
+    # and contains the material definition to be used for all members of the family.
+    # Blobs of different families may merge in the Blender viewport, but should NOT merge 
+    # in the rendered output.
+    blob_families = {}
     for ob_name, ob_type in obs:
         ob_temp = bpy.data.objects.get(ob_name) 
-        m = ob_temp.matrix_world
-        if (ob_mat == ''):
-            ob_mat = ob_name
+        name_segs = ob_name.split('.')
+        fam_name =name_segs[0]
+        debug("info","... family "+fam_name)
+        if fam_name not in blob_families:
+            blob_families[fam_name] = {}
 
-        # multiply only the scale of blobs by 2 (matches Blender threshold=0.800)
-        sc = Matrix(((2, 0, 0, 0),
-            (0, 2, 0, 0),
-            (0, 0, 2, 0),
-            (0, 0, 0, 1)))
-        m2 = m*sc
-        tform = tform + rib(m2)
+        debug("info","...storing " + ob_name)
+        blob_families[fam_name][ob_name] = ob_temp
 
-    op.append(0) #blob operation:add
-    op.append(count)
-    for n in range(count):
-        op.append(n)
+    # output each blob family as separate RiBlobby
+    for family, fam_blobs in blob_families.items():        
 
-    st = ('',)
-    parm = {}    
+        ri.AttributeBegin()     
+        ri.TransformBegin()
+        ri.Attribute('identifier', {'string name': BLOB_PREFIX + family})
 
-    export_material_archive(ri, ob_temp.data.materials[0].name)
-    ri.Blobby(count, op, tform, st, parm)    
+        # family master obj
+        fam_master = bpy.data.objects.get(family)
 
-    ri.TransformEnd()
-    ri.AttributeEnd()
+        #transform 
+        tform = []
+
+        #opcodes
+        op = []        
+        count = len(fam_blobs)
+        debug("info","found " + str(count) + " blobs in " + family)
+        for i in range(count):
+            op.append(1001) #only blobby ellipsoids for now...
+            op.append(i * 16)
+
+        for ob_name in fam_blobs:
+            ob_temp = bpy.data.objects.get(ob_name)
+            m = ob_temp.matrix_world
+
+            # multiply only the scale of blobs by 2 (matches Blender threshold=0.800)
+            sc = Matrix(((2, 0, 0, 0),
+                (0, 2, 0, 0),
+                (0, 0, 2, 0),
+                (0, 0, 0, 1)))
+            m2 = m*sc
+            tform = tform + rib(m2)
+
+        op.append(0) #blob operation:add
+        op.append(count)
+        for n in range(count):
+            op.append(n)
+
+        st = ('',)
+        parm = {}    
+
+        export_material_archive(ri, fam_master.data.materials[0].name)
+        ri.Blobby(count, op, tform, st, parm)    
+
+        ri.TransformEnd()
+        ri.AttributeEnd()
+    #end family
+
+    
 
     
 def export_material(ri, rpass, scene, mat, handle=None):
