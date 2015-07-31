@@ -94,16 +94,10 @@ def printList(passedList):
 def exportObjectInstance(ri, rpass, scene, ob, mtx = None, dupli_name = None, instance_handle = None):
     if mtx:
         ri.AttributeBegin()
-        ri.Attribute("identifier", {"name": dupli_name})
-        ri.TransformBegin()
         ri.Transform(rib(mtx))
-        if hasattr(ob.data, 'materials'):
-            #only output the material if not the same as master
-            if ob.data and ob.data.materials and ob.data.materials[0]:
-                export_material_archive(ri, ob.data.materials[0].name)
         ri.ObjectInstance(instance_handle)
-        ri.TransformEnd()
         ri.AttributeEnd()
+
 def exportObjectArchive(ri, rpass, scene, ob, archive_filename, motion, mtx = None, 
         object_name = None, instance_handle = None, matNum = 0, material=None, bounds=None):
     ri.AttributeBegin()
@@ -521,7 +515,7 @@ def get_strands(ri, scene,ob, psys):
             if not conwidth:
                 hair_width = []
         
-    if nverts != 0 and nverts == len(points)/3:
+    if nverts != 0 and nverts == len(points)/3 and nverts > 3:
         ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
         ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
         ri.Curves("cubic", vertsArray, "nonperiodic", {"P": rib(points), widthString: hair_width})
@@ -938,7 +932,7 @@ def geometry_source_rib(ri, scene, ob):
                                         rib(bounds))
 
 
-def export_particle_instances(ri, scene, ob, psys, motion):
+def export_particle_instances(ri, rpass, scene, ob, psys, motion):
     rm = psys.settings.renderman
     pname = psys_motion_name(ob, psys)
     
@@ -949,13 +943,16 @@ def export_particle_instances(ri, scene, ob, psys, motion):
         return
 
     instance_handle = ri.ObjectBegin()
-    export_geometry(ri, scene, instance_ob, motion)
-    if len(instance_ob.data.materials) > 0:
-        export_material_archive(ri, instance_ob.data.materials[0].name)
+    master_archive_filename = get_archive_filename(scene, instance_ob, motion)
+    exportObjectArchive(ri, rpass, scene, instance_ob, master_archive_filename, 
+        motion, returnMatrixForObject(instance_ob), rm.particle_instance_object, 
+        rm.particle_instance_object)
     ri.ObjectEnd()
 
-    if rm.use_object_material and len(instance_ob.data.materials) > 0:
-        export_material_archive(ri, instance_ob.data.materials[0].name)
+    if not rm.use_object_material:
+        export_material_archive(ri, ob.data.materials[rm.material_id -1].name)
+    else:
+        ri.Bxdf("null", "null", {})
     
     motion_blur = pname in motion['deformation']
     cfra = scene.frame_current
@@ -984,6 +981,7 @@ def export_particle_instances(ri, scene, ob, psys, motion):
         if motion_blur:
             ri.MotionEnd()
 
+        #ri.Bxdf("null", "null", {})
         ri.ObjectInstance(instance_handle)
         ri.AttributeEnd()
 
@@ -1031,7 +1029,7 @@ def export_particles(ri, rpass, scene, ob, motion, psys):
     
     # Write object instances or points
     if rm.particle_type == 'OBJECT':
-        export_particle_instances(ri, scene, ob, psys, motion)
+        export_particle_instances(ri, rpass, scene, ob, psys, motion)
     else:
         export_particle_points(ri, scene, ob, psys, motion)
     
@@ -1714,29 +1712,32 @@ def export_objects(ri, rpass, scene, motion):
     def reviewObjectForDuplis (scene, ob_name, parent_name, candidate_duplis):
         ob = bpy.data.objects.get(ob_name)
         if ob:
-            ob.dupli_list_create(scene, 'RENDER')
-            for dob in ob.dupli_list:
-                if dob.object != None:
-                    if dob.hide:
-                        # User has hidden the child object from rendering...
-                        debug ("info","skipping export of [%s], it is hidden from rendering." % dob.object.name)
-                    else:
-                        # NOTE: parent_name is only really needed for particles because multiple systems on the same emitter can be in use.
-                        dupli_name = "%s_%s_p%s" % (ob.name, ("%s~%s" % (parent_name,dob.object.name)), returnNameForNumber(dob.index))
-                        if dob.object.type in SUPPORTED_INSTANCE_TYPES:
-                            # This export object will ginstance the above datablock at the new world location.
-                            if dob.object.name not in candidate_duplis:
-                                candidate_duplis[dob.object.name] = []
-                            candidate_duplis[dob.object.name].append((dob.object.type, dob.matrix.copy(), dupli_name))
-                        elif dob.object.type == 'LAMP':
-                            if dob.object.name not in candidate_duplis:
-                                candidate_duplis[dob.object.name] = []
-                            candidate_duplis[dob.object.name].append((dob.object.type, dob.matrix.copy(), dupli_name))
+            try:
+                ob.dupli_list_create(scene, 'RENDER')
+                for dob in ob.dupli_list:
+                    if dob.object != None:
+                        if dob.hide:
+                            # User has hidden the child object from rendering...
+                            debug ("info","skipping export of [%s], it is hidden from rendering." % dob.object.name)
                         else:
-                            debug ("warning","unsupported export type of [%s] found in dupli_list." % dob.object.type)
-                else:
-                    debug ("warning","None type object in dupli_list?")
-            ob.dupli_list_clear()
+                            # NOTE: parent_name is only really needed for particles because multiple systems on the same emitter can be in use.
+                            dupli_name = "%s_%s_p%s" % (ob.name, ("%s~%s" % (parent_name,dob.object.name)), returnNameForNumber(dob.index))
+                            if dob.object.type in SUPPORTED_INSTANCE_TYPES:
+                                # This export object will ginstance the above datablock at the new world location.
+                                if dob.object.name not in candidate_duplis:
+                                    candidate_duplis[dob.object.name] = []
+                                candidate_duplis[dob.object.name].append((dob.object.type, dob.matrix.copy(), dupli_name))
+                            elif dob.object.type == 'LAMP':
+                                if dob.object.name not in candidate_duplis:
+                                    candidate_duplis[dob.object.name] = []
+                                candidate_duplis[dob.object.name].append((dob.object.type, dob.matrix.copy(), dupli_name))
+                            else:
+                                debug ("warning","unsupported export type of [%s] found in dupli_list." % dob.object.type)
+                    else:
+                        debug ("warning","None type object in dupli_list?")
+                ob.dupli_list_clear()
+            except:
+                debug ("warning","Object does not have duplis?")
         else:
             debug ("info","reviewObjectForDuplis: passed object [%s] is not in memory." % ob_name)
 
@@ -1813,7 +1814,21 @@ def export_objects(ri, rpass, scene, motion):
         else:
             debug ("warning","Unsupported object type [%s]." % ob.type)
     # End first pass through objects in the scene.
-    
+
+    #make sure we emit rib for instance masters
+    for master_name, duplis in candidate_duplis.items():
+        ob = bpy.data.objects.get(master_name)
+        l = len(ob.data.materials)
+        if l > 1:
+            debug ("info","Adding multi material object and datablock [%s]." % ob.name)
+            candidate_multi_material_objects.append((ob.name, ob.type))
+            candidate_multi_material_datablocks.append((ob.name, ob.type))
+        else:
+            debug ("info","Adding single material object and datablock [%s]." % ob.name)
+            candidate_objects.append((ob.name, ob.type))
+            candidate_datablocks.append((ob.name, ob.type))
+
+
     # Lists that hold names of candidates to consider for export.
     debug ("info","\ncandidate_datablocks")
     printList(candidate_datablocks)
@@ -1852,6 +1867,7 @@ def export_objects(ri, rpass, scene, motion):
     printList(candidate_archive_handles)
 
     unique_groups = uniquifyList(candidate_groups)
+    #get all the dupli masters and add to a 
     
     # Groups can reference objects that are not on renderable layers so review the objects in groups to add to the candidate list.
     for group_name in unique_groups:
@@ -1954,7 +1970,7 @@ def export_objects(ri, rpass, scene, motion):
         debug ("info","fetching [%s]" % ob_name)
         ob_temp = bpy.data.objects.get(ob_name)
         if ob_temp != None:
-            if ob_temp.type in SUPPORTED_INSTANCE_TYPES:
+            if ob_temp.type in SUPPORTED_INSTANCE_TYPES and ob_name not in candidate_duplis:
                 if hasFaces(ob_temp):
                     # See if we have already written out this datablock by fetching it's handle.
                     instance_handle = returnHandleForName(candidate_archive_handles,ob_name)
@@ -1983,7 +1999,7 @@ def export_objects(ri, rpass, scene, motion):
                     debug ("warning","Object [%s] has no faces, skipping export?" % ob_name)
             elif ob_type == 'CURVE':
                 export_curve(ri, scene, ob_temp, motion)
-            else:
+            elif ob_name not in candidate_duplis:
                 debug ("warning","unsupported object [%s] detected for export." % ob_name)
         else:
             debug ("warning","object [%s] in list but not in memory?" % ob_name)
@@ -2007,11 +2023,11 @@ def export_objects(ri, rpass, scene, motion):
             update_timestamp(rpass, ob_master)
             ri.Begin(archive_filename)
             instance_handle = ri.ObjectBegin()
-            export_geometry(ri, scene, ob_master, motion)
-            if len(ob_master.data.materials) > 0:
-                export_material_archive(ri, ob_master.data.materials[0].name)
+            master_archive_filename = get_archive_filename(scene, ob_master, motion)
+            exportObjectArchive(ri, rpass, scene, ob_master, master_archive_filename, motion, Matrix.Identity(4), master_name, master_name)
             ri.ObjectEnd()
             #for each dupli
+            ri.Bxdf('null', 'null', {})
             for dupli_type, m, dupli_name in duplis:
                 #output object instance
                 #ob_dupli = bpy.data.objects.get(master_name)
@@ -2083,7 +2099,9 @@ def export_objects(ri, rpass, scene, motion):
                     matrix = ob_temp.parent.matrix_world * ob_temp.matrix_local
                 else:
                     matrix = ob_temp.matrix_world
-                exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion, matrix, ob_name, ob_name, material=None)
+                if ob_candidate_name not in candidate_duplis:
+                    exportObjectArchive(ri, rpass, scene, ob_temp, archive_filename, motion, 
+                        matrix, ob_name, ob_name, material=None)
                             
                 update_timestamp(rpass, ob_temp)
             else:
