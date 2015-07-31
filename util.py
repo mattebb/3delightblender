@@ -59,9 +59,6 @@ def readOSO(filePath):
     shader_meta = {}
     prop_names =[]
     with open(filePath, encoding='utf-8') as osofile:
-        print("FILE OPEN: ", osofile.name)
-        #if "surface" in osofile:
-        #    print("SURFACE IN OSOFILE!!")
         for line in osofile:
             if line.startswith("surface") or line.startswith("shader"):
                 line_number += 1
@@ -92,7 +89,6 @@ def readOSO(filePath):
                 prop_names.append(name)
                 prop_meta = {"type" : type, "default" :  default, "IO" : "in"}
                 shader_meta[name] = prop_meta
-                #print("SHADER: ", shader_meta)
             elif line.startswith("oparam"):
                 line_number += 1
                 listLine = line.split()

@@ -103,10 +103,11 @@ class RendermanSocket:
     def draw(self, context, layout, node, text):
         if self.is_linked or self.is_output:
             layout.label(text)
-        elif node.bl_label == "PxrOSL":
+        elif node.bl_idname == "PxrOSLPatternNode":
             if hasattr(context.scene, "OSLProps"):
                 oslProps = context.scene.OSLProps
-                storageLocation = node.name + self.name
+                mat = context.object.active_material.name
+                storageLocation = mat + node.name + self.name
                 if hasattr(oslProps, storageLocation):
                     layout.prop(oslProps, storageLocation)
         else:
@@ -186,7 +187,7 @@ class RendermanShadingNode(bpy.types.Node):
     #node_props = None
     def draw_buttons(self, context, layout):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
-        if self.bl_label == "PxrOSL":
+        if self.bl_idname == "PxrOSLPatternNode":
             layout.operator("node.refresh_osl_shader")
     def draw_buttons_ext(self, context, layout):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
@@ -196,7 +197,7 @@ class RendermanShadingNode(bpy.types.Node):
         
         for prop_name in prop_names:
             #print("GETATTR: ", self, "::::" ,prop_name)
-            if self.bl_label == "PxrOSL":
+            if self.bl_idname == "PxrOSLPatternNode":
                 if prop_name != 'shadercode':
                     prop = getattr(self, prop_name)
                     layout.prop(self, prop_name)
@@ -244,7 +245,7 @@ class RendermanShadingNode(bpy.types.Node):
             self.label = shader_meta["shader"]
             #Generate new inputs and outputs
             self.OSLPROPSPOINTER = OSLProps
-            self.OSLPROPSPOINTER.setProps(self, prop_names, shader_meta)
+            self.OSLPROPSPOINTER.setProps(self, prop_names, shader_meta, context)
             
             
             
@@ -262,7 +263,15 @@ class RendermanShadingNode(bpy.types.Node):
     
     def update(self):
         debug("info","UPDATING: ", self.name)
-        
+        '''if self.name == "PxrOSL" and hasattr(bpy.types.Scene, "OSLProps"):
+                compileLocation = self.name + "Compile"
+                if hasattr(bpy.types.Scene.OSLProps, compileLocation):
+                    if getattr(bpy.types.Scene.OSLProps, compileLocation) == True:
+                        self.RefreshNodes()
+                    else:
+                        pass
+                else:
+                    self.RefreshNodes()'''
     @classmethod
     def poll(cls, ntree):
         if hasattr(ntree, 'bl_idname'):
@@ -272,32 +281,45 @@ class RendermanShadingNode(bpy.types.Node):
 
 class OSLProps(bpy.types.PropertyGroup):
     #Set props takes in self, a list of prop_names, and shader_meta data. Look at the readOSO function (located in util.py) if you need to know the layout.
-    def setProps(self, prop_names, shader_meta):
-        
+    def setProps(self, prop_names, shader_meta, context):
+        mat = context.object.active_material.name
+        setattr(OSLProps, mat + self.name + "shader", shader_meta["shader"])
+        #print("OSLProps: ", self.name + "shader", shader_meta["shader"])
+        setattr(OSLProps, mat + self.name + "prop_namesOSL", prop_names)
         for prop_name in prop_names:
-            
+            storageLocation = mat + self.name + prop_name
             if shader_meta[prop_name]["IO"] == "out":
+                setattr(OSLProps, storageLocation + "type", "OUT")
                 self.outputs.new(socket_map[shader_meta[prop_name]["type"]], prop_name)
             else:
-                storageLocation = self.name + prop_name
+                
                 if shader_meta[prop_name]["type"] == "float":
                     floatResult = float(shader_meta[prop_name]["default"])
+                    setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.FloatProperty(name= prop_name, default = floatResult, precision = 3))
                 elif shader_meta[prop_name]["type"] == "int":
+                    setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.IntProperty(name= prop_name, default = shader_meta[prop_name]["default"]))
                 elif shader_meta[prop_name]["type"] == "color":
+                    setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'COLOR', soft_min = 0.0, soft_max = 1.0))
                 elif shader_meta[prop_name]["type"] == "point":
+                    setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'XYZ'))
                 elif shader_meta[prop_name]["type"] == "vector":
+                    setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'DIRECTION'))
                 elif shader_meta[prop_name]["type"] == "normal":
+                    setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype = 'XYZ'))
                 elif shader_meta[prop_name]["type"] == "matrix":
+                    setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], size= 16,)) #subtype = 'MATRIX' This does not work do not use!!!!
                 elif shader_meta[prop_name]["type"] == "string":
+                    setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.StringProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype='FILE_PATH'))
                 else:
+                    setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.StringProperty(name= prop_name, default = shader_meta[prop_name]["default"]))
                 if shader_meta[prop_name]["type"] == "matrix" or shader_meta[prop_name]["type"] == "point":
                     self.inputs.new(socket_map["struct"], prop_name)
@@ -306,6 +328,8 @@ class OSLProps(bpy.types.PropertyGroup):
                 else:
                     self.inputs.new(socket_map[shader_meta[prop_name]["type"]], prop_name)
         debug('osl', "Shader: ", shader_meta["shader"], "Properties: ", prop_names, "Shader meta data: ", shader_meta)
+        compileLocation = self.name + "Compile"
+        setattr(OSLProps, compileLocation, False)
 
 
     #     # for sp in [p for p in args.params if p.meta['array']]:
@@ -707,10 +731,31 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
 #generate param list
 def gen_params(ri, node, mat_name=None):
     params = {}
-    print("NODES: ",node.type, node.name)
-    if node.type == "PxrOSL":
-        print("Exporting OSL node")
-        
+    print("NODES: ",node.bl_idname, node.name)
+    if node.bl_idname == "PxrOSLPatternNode" and mat_name != 'preview':
+        print("Exporting OSL node: ", node.bl_idname)
+        getLocation = bpy.context.scene.OSLProps
+        prop_namesOSL = getattr(getLocation, mat_name + node.name + "prop_namesOSL")
+        params['%s' % ("shader")] = getattr(getLocation, mat_name + node.name + "shader")
+        for prop_name in prop_namesOSL:
+            if prop_name == "shadercode":
+                print("THERE IS SHADERCODE!")
+            else:
+                if getattr(getLocation, mat_name +  node.name + prop_name + "type") == "OUT":
+                    pass
+                elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
+                    from_socket = node.inputs[prop_name].links[0].from_socket
+                    shader_node_rib(ri, from_socket.node, mat_name=mat_name)
+                    params['reference %s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
+                            prop_name)] = \
+                        ["%s:%s" % (from_socket.node.name, from_socket.identifier)]
+                else:
+                    print("PROPS: ", prop_namesOSL)
+                    print("Prop", getattr(getLocation, mat_name + node.name + prop_name))
+                    print("Shader", getattr(getLocation, mat_name + node.name + "shader"))
+                    params['%s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
+                                prop_name)] = \
+                                rib(getattr(getLocation, mat_name + node.name + prop_name), type_hint=getattr(getLocation, mat_name + node.name + prop_name + "type"))
     else:
         for prop_name,meta in node.prop_meta.items():
             prop = getattr(node, prop_name)
@@ -744,7 +789,7 @@ def gen_params(ri, node, mat_name=None):
                     params['%s %s' % (meta['renderman_type'], 
                             meta['renderman_name'])] = \
                         rib(prop, type_hint=meta['renderman_type']) 
-    print("PARAMS", node.name,params)
+    #print("PARAMS", node.name,params)
     return params
 
 # Export to rib
