@@ -167,8 +167,8 @@ class RPass:
         
         self.paths['render_output'] = user_path( \
             scene.renderman.path_display_driver_image, scene=scene)
-        self.paths['shader'] = get_path_list_converted(scene.renderman, \
-                                                        'shader')
+        self.paths['shader'] = [user_path(scene.renderman.out_dir, scene=scene)] + \
+                                    get_path_list_converted(scene.renderman, 'shader')
         self.paths['texture'] = [self.paths['texture_output']]
 
         #self.paths['procedural'] = get_path_list_converted(scene.renderman, 'procedural')

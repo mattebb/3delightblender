@@ -2350,7 +2350,7 @@ def export_camera_render_preview(ri, scene):
 
 
 def export_searchpaths(ri, paths):
-    ri.Option("searchpath", {"string shader": ["./shaders:@ %s" % \
+    ri.Option("searchpath", {"string shader": ["%s" % \
         ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
     ri.Option("searchpath", {"string texture": ["%s" % \
         ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
