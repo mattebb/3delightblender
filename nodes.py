@@ -105,8 +105,8 @@ class RendermanSocket:
                 if hasattr(oslProps, storageLocation):
                     layout.prop(oslProps, storageLocation)
                 else:
-                    print("SOCKET SELF: ", self)
-                    node.RefreshNodes(context, node)
+                    pass
+                    #node.RefreshNodes(context, node)
         else:
             layout.prop(node, self.name)
         
