@@ -151,26 +151,40 @@ def generate_page(sp, node):
 
 def class_generate_properties(node, parent_name, shaderparameters):
     prop_names = []
+    
     prop_meta = {}
-
+    i = 0
     for sp in shaderparameters:
         if sp.tag == 'page':
-            sub_param_names, sub_params_meta, sub_props = generate_page(sp, node)
-            prop_names.append(sp.attrib['name'])
-            prop_meta[sp.attrib['name']] = {'renderman_type':'page'}
-            setattr(node, sp.attrib['name'], sub_param_names)
-            ui_label = "%s_ui_open" % sp.attrib['name']
-            setattr(node, ui_label, bpy.props.BoolProperty(name=ui_label, 
-                    default=False))
-            prop_meta.update(sub_params_meta)
-            for i in range(len(sub_param_names)):
-                setattr(node, sub_param_names[i], sub_props[i])
+            if parent_name == "PxrOSL":
+                pass
+            else:
+                sub_param_names, sub_params_meta, sub_props = generate_page(sp, node)
+                prop_names.append(sp.attrib['name'])
+                prop_meta[sp.attrib['name']] = {'renderman_type':'page'}
+                setattr(node, sp.attrib['name'], sub_param_names)
+                ui_label = "%s_ui_open" % sp.attrib['name']
+                setattr(node, ui_label, bpy.props.BoolProperty(name=ui_label, 
+                        default=False))
+                prop_meta.update(sub_params_meta)
+                for i in range(len(sub_param_names)):
+                    setattr(node, sub_param_names[i], sub_props[i])
         else:
-            name,meta,prop = generate_property(sp)
-            prop_names.append(name)
-            prop_meta[name] = meta
-            setattr(node, name, prop)
-
+            if parent_name == "PxrOSL" and i == 0:
+                codeName = "shadercode"
+                codeProp = bpy.props.StringProperty(name='ShaderCode', default='', subtype="FILE_PATH", description='')
+                codeMeta = {'renderman_name' : 'filename' ,'name' : 'ShaderCode', 'renderman_type' : 'string' , 'default' : '', 'label' : 'ShaderCode', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
+                setattr(node, codeName, codeProp)
+                prop_names.append(codeName)
+                prop_meta[codeName] = codeMeta
+                #print("META: ", prop_meta["ShaderCode"])
+            else:
+                name,meta,prop = generate_property(sp)
+                prop_names.append(name)
+                prop_meta[name] = meta
+                setattr(node, name, prop)
+            
+        i += 1
     setattr(node, 'prop_names', prop_names)
     setattr(node, 'prop_meta', prop_meta)
 
@@ -184,6 +198,7 @@ def update_func(self, context):
 def generate_property(sp):
     options = {'ANIMATABLE'}
     param_name = sp.attrib['name']
+    #print("NAME: ", sp.attrib['name'],  "ATTRIBS: " , sp.attrib)
     renderman_name = param_name
     #blender doesn't like names with __ but we save the 
     #"renderman_name with the real one"

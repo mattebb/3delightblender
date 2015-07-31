@@ -2350,7 +2350,7 @@ def export_camera_render_preview(ri, scene):
 
 
 def export_searchpaths(ri, paths):
-    ri.Option("searchpath", {"string shader": ["%s" % \
+    ri.Option("searchpath", {"string shader": ["./shaders:@ %s" % \
         ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
     ri.Option("searchpath", {"string texture": ["%s" % \
         ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
@@ -2689,6 +2689,7 @@ def anim_archive_path(filepath, frame):
         ribpath = os.path.splitext(filepath)[0] + "." + str(frame).zfill(4) + \
                     os.path.splitext(filepath)[1]
     return ribpath
+
 
 
 def write_auto_archives(paths, scene, info_callback):

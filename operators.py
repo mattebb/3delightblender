@@ -32,7 +32,9 @@ IntProperty, FloatProperty, FloatVectorProperty, CollectionProperty
 
 from .util import init_env
 from .util import getattr_recursive
-
+from .util import user_path
+from .util import get_real_path
+from .util import readOSO
 
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
@@ -40,6 +42,7 @@ from .shader_parameters import tex_optimised_path
 from .export import make_optimised_texture_3dl
 from .export import export_archive
 from .engine import RPass
+from .export import debug
 from . import engine
 
 from bpy_extras.io_utils import ExportHelper
@@ -77,7 +80,9 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 light_shader = 'PxrStdEnvDayLightLightNode'
             elif light_type == 'HEMI':
                 light_shader = 'PxrStdEnvMapLightLightNode'
-
+            elif light_type == 'AREA':
+                context.lamp.size = 1.0
+            
             output = nt.nodes.new('RendermanOutputNode')
             default = nt.nodes.new(light_shader)
             default.location = output.location
@@ -92,6 +97,15 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
 import bgl
 import blf
+
+class refresh_osl_shader(bpy.types.Operator):
+    bl_idname = "node.refresh_osl_shader"
+    bl_label = "Refresh OSL Node"
+    bl_description = "Refreshes the OSL node !!! This takes a few seconds!!!"
+    
+    def invoke(self, context, event):
+        context.node.RefreshNodes(context)
+        return {'FINISHED'}
 
 class StartInteractive(bpy.types.Operator):
     ''''''

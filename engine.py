@@ -430,6 +430,7 @@ class RPass:
     def gen_rib(self, engine=None):
         time_start = time.time()
         self.convert_textures(get_texture_list(self.scene))
+        
         if engine:
             engine.report({"INFO"}, "Texture generation took %s" % format_seconds_to_hhmmss(time.time() - time_start))
         time_start = time.time()
@@ -491,7 +492,6 @@ class RPass:
 
         return files_converted
 
-
-
+    
 
 
