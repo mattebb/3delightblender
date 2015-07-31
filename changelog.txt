@@ -1,3 +1,7 @@
+v0.3.0 7/31/2015
+* OSL nodes experimental support!  Currently does not support IPR
+* example files directory (will be more added)
+
 v0.2.7 7/13/2015
 * IPR stability and speed is increased significantly.
 * Collapsing of parameters in node tree.
