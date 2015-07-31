@@ -2189,30 +2189,24 @@ def export_archive(scene, objects, filepath="", archive_motion=True,
     return file.name
 
 #takes a list of bpy.types.properties and converts to params for rib
-def property_group_to_params(prop_group):
+def property_group_to_params(node):
     params = {}
+    for prop_name,meta in node.prop_meta.items():
+        prop = getattr(node, prop_name)
+        #if property group recurse
+        if meta['renderman_type'] == 'page':
+            continue
+        #if input socket is linked reference that
+        else:
+            #if struct is not linked continue
+            if 'arraySize' in meta:
+                params['%s[%d] %s' % (meta['renderman_type'], len(prop), 
+                        meta['renderman_name'])] = rib(prop) 
+            else:
+                params['%s %s' % (meta['renderman_type'], 
+                        meta['renderman_name'])] = \
+                    rib(prop, type_hint=meta['renderman_type']) 
 
-    type_map = {
-        "FloatProperty": 'float',
-        "IntProperty": 'int',
-        "StringProperty": 'string',
-        "EnumProperty": 'string',
-        "BoolProperty": 'bool',
-    }
-
-    for (key, value) in prop_group.bl_rna.properties.items(): 
-        # This is somewhat ugly, but works best!!
-            if key not in ['rna_type', 'name']:
-                val = prop_group.get(key)
-                if val:
-                    val_type = type(val).__name__
-                    if val_type == 'IDPropertyArray':
-                        param_type = "color %s" % (key)
-                        params[param_type] = rib(val)
-                    else:
-                        param_type = "%s %s" % (type(val).__name__, key)
-                        params[param_type] = val
-    
     return params
 
 def export_integrator(ri, rpass, scene, preview=False):
