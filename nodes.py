@@ -110,6 +110,9 @@ class RendermanSocket:
                 storageLocation = mat + node.name + self.name
                 if hasattr(oslProps, storageLocation):
                     layout.prop(oslProps, storageLocation)
+                else:
+                    print("SOCKET SELF: ", self)
+                    node.RefreshNodes(context, node)
         else:
             layout.prop(node, self.name)
         
@@ -216,10 +219,13 @@ class RendermanShadingNode(bpy.types.Node):
     def copy(self, node):
         self.inputs.clear()
         self.outputs.clear()
-    def RefreshNodes(self, context):
+    def RefreshNodes(self, context, nodeOR=None):
         
         #Compile shader
-        node = self
+        if hasattr(context, "node"):
+            node = context.node
+        else:
+            node = nodeOR
         prefs = bpy.context.user_preferences.addons[__package__].preferences
         
         osl_path = user_path(getattr(node, 'shadercode')) #os.path.normpath(os.path.abspath(getattr(node, 'shadercode')))
@@ -229,23 +235,30 @@ class RendermanShadingNode(bpy.types.Node):
         FileNameOSO += ".oso"
         export_path = os.path.join(user_path(prefs.env_vars.out),"shaders", FileNameOSO)
         
-        out_path = os.path.join(user_path(prefs.env_vars.out) , "shaders")
-        if not os.path.exists(out_path):
+        out_path = user_path(prefs.env_vars.out)
+        compile_path = os.path.join(user_path(prefs.env_vars.out), "shaders")
+        if os.path.exists(out_path):
+            pass
+        else:
             os.mkdir(out_path)
-        ok = self.compile_osl(osl_path, out_path)
+        if os.path.exists(os.path.join(out_path , "shaders")):
+            pass
+        else:
+            os.mkdir(os.path.join(out_path , "shaders"))
+        ok = node.compile_osl(osl_path, compile_path)
         
         if ok:
             debug('osl',"Shader Compiled Successfully!")
             #Reset the inputs and outputs
-            self.outputs.clear()
+            node.outputs.clear()
             self.inputs.clear()
             #Read in new properties
             prop_names, shader_meta = readOSO(export_path)
             #Set node name to shader name
-            self.label = shader_meta["shader"]
+            node.label = shader_meta["shader"]
             #Generate new inputs and outputs
-            self.OSLPROPSPOINTER = OSLProps
-            self.OSLPROPSPOINTER.setProps(self, prop_names, shader_meta, context)
+            node.OSLPROPSPOINTER = OSLProps
+            node.OSLPROPSPOINTER.setProps(self, prop_names, shader_meta, context)
             
             
             
@@ -316,6 +329,7 @@ class OSLProps(bpy.types.PropertyGroup):
                     setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], size= 16,)) #subtype = 'MATRIX' This does not work do not use!!!!
                 elif shader_meta[prop_name]["type"] == "string":
+                    debug('osl',"TEXTURES ARE NOT SUPPORTED AT THE MOMENT!!!")
                     setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.StringProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype='FILE_PATH'))
                 else:
@@ -753,6 +767,8 @@ def gen_params(ri, node, mat_name=None):
                     print("PROPS: ", prop_namesOSL)
                     print("Prop", getattr(getLocation, mat_name + node.name + prop_name))
                     print("Shader", getattr(getLocation, mat_name + node.name + "shader"))
+                    if getattr(getLocation, mat_name + node.name + prop_name + "type") == "string" and getattr(getLocation, mat_name + node.name + prop_name) != "":
+                        debug('osl',"TEXTURES ARE NOT SUPPORTED AT THE MOMENT!!!")
                     params['%s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
                                 prop_name)] = \
                                 rib(getattr(getLocation, mat_name + node.name + prop_name), type_hint=getattr(getLocation, mat_name + node.name + prop_name + "type"))

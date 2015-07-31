@@ -498,6 +498,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 subtype='FILE_PATH',
                 default="$OUT/textures")
 
+    out_dir = StringProperty(
+                name="Shader Output Path", 
+                description="Path to compiled .oso files",
+                subtype='FILE_PATH' ,
+                default="$OUT/shaders:@")
     
     output_action = EnumProperty(
                 name="Action",

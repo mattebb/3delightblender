@@ -2348,6 +2348,7 @@ def export_searchpaths(ri, paths):
     #ri.Option("searchpath", {"string procedural": ["%s" % \
     #    ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})
     ri.Option("searchpath", {"string archive": paths['archive']})
+    ri.Option("searchpath", {"string archive": ["./shaders"]})
 
 def export_header(ri):
     render_name = os.path.basename(bpy.data.filepath)
