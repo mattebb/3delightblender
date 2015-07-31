@@ -749,7 +749,6 @@ def gen_params(ri, node, mat_name=None, recurse=True):
     params = {}
     # If node is OSL node get properties from dynamic location.
     if node.bl_idname == "PxrOSLPatternNode" and mat_name != 'preview':
-        print("Exporting OSL node: ", node.bl_idname)
         getLocation = bpy.context.scene.OSLProps
         prop_namesOSL = getattr(getLocation, mat_name + node.name + "prop_namesOSL")
         params['%s' % ("shader")] = getattr(getLocation, mat_name + node.name + "shader")
@@ -766,9 +765,6 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                             prop_name)] = \
                         ["%s:%s" % (from_socket.node.name, from_socket.identifier)]
                 else:
-                    print("PROPS: ", prop_namesOSL)
-                    print("Prop", getattr(getLocation, mat_name + node.name + prop_name))
-                    print("Shader", getattr(getLocation, mat_name + node.name + "shader"))
                     if getattr(getLocation, mat_name + node.name + prop_name + "type") == "string" and getattr(getLocation, mat_name + node.name + prop_name) != "":
                         debug('osl',"TEXTURES ARE NOT SUPPORTED AT THE MOMENT!!!")
                     params['%s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
