@@ -26,7 +26,7 @@
 bl_info = {
     "name": "PRMan Render Engine",
     "author": "Brian Savery",
-    "version": (0, 2, 7),
+    "version": (0, 3, 0),
     "blender": (2, 74, 0),
     "location": "Info Header, render engine menu",
     "description": "RenderMan 20.0 integration",
@@ -48,11 +48,13 @@ class PRManRender(bpy.types.RenderEngine):
         self.render_pass = None
         
     def __del__(self):
-        engine.free(self)
-        
+        if self.render_pass != None:
+            engine.free(self)
 
     # main scene render
     def update(self, data, scene):
+        if(engine.ipr):
+            return
         if self.is_preview:
             if not self.render_pass:
                 engine.create(self, data, scene)
@@ -70,7 +72,8 @@ class PRManRender(bpy.types.RenderEngine):
 
         
     def render(self, scene):
-        engine.render(self)
+        if self.render_pass != None:
+            engine.render(self)
     
    
 def register():

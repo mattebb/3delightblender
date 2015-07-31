@@ -44,7 +44,7 @@ from .util import find_it_path
 addon_version = bl_info['version']
 
 # helper functions for parameters
-from .nodes import export_shader_nodetree, get_textures
+from .nodes import export_shader_nodetree, get_textures, shader_node_rib
 
 # ------------- Atom's helper functions -------------
 GLOBAL_ZERO_PADDING = 5
@@ -836,13 +836,11 @@ def export_light(rpass, scene, ri, ob):
     params = []
     
     ri.AttributeBegin()
-    ri.TransformBegin()
     export_transform(ri, ob, lamp.type == 'HEMI' or lamp.type == 'SUN')
     ri.ShadingRate(rm.shadingrate)
 
     export_light_shaders(ri, lamp)
     
-    ri.TransformEnd()
     ri.AttributeEnd()
     
     ri.Illuminate(lamp.name, rm.illuminates_by_default)
@@ -2129,30 +2127,24 @@ def export_archive(scene, objects, filepath="", archive_motion=True,
     return file.name
 
 #takes a list of bpy.types.properties and converts to params for rib
-def property_group_to_params(prop_group):
+def property_group_to_params(node):
     params = {}
+    for prop_name,meta in node.prop_meta.items():
+        prop = getattr(node, prop_name)
+        #if property group recurse
+        if meta['renderman_type'] == 'page':
+            continue
+        #if input socket is linked reference that
+        else:
+            #if struct is not linked continue
+            if 'arraySize' in meta:
+                params['%s[%d] %s' % (meta['renderman_type'], len(prop), 
+                        meta['renderman_name'])] = rib(prop) 
+            else:
+                params['%s %s' % (meta['renderman_type'], 
+                        meta['renderman_name'])] = \
+                    rib(prop, type_hint=meta['renderman_type']) 
 
-    type_map = {
-        "FloatProperty": 'float',
-        "IntProperty": 'int',
-        "StringProperty": 'string',
-        "EnumProperty": 'string',
-        "BoolProperty": 'bool',
-    }
-
-    for (key, value) in prop_group.bl_rna.properties.items(): 
-        # This is somewhat ugly, but works best!!
-            if key not in ['rna_type', 'name']:
-                val = prop_group.get(key)
-                if val:
-                    val_type = type(val).__name__
-                    if val_type == 'IDPropertyArray':
-                        param_type = "color %s" % (key)
-                        params[param_type] = rib(val)
-                    else:
-                        param_type = "%s %s" % (type(val).__name__, key)
-                        params[param_type] = val
-    
     return params
 
 def export_integrator(ri, rpass, scene, preview=False):
@@ -2706,44 +2698,18 @@ def edit_flush(ri, edit_num, prman):
 def issue_light_transform_edit(ri, obj):
     lamp = obj.data
     ri.EditBegin('attribute', {'string scopename': obj.data.name})
-    export_transform(ri, obj, lamp.type == 'HEMI' or lamp.type == 'SUN')
+    export_transform(ri, obj, obj.type == 'LAMP' and (lamp.type == 'HEMI' or lamp.type == 'SUN'))
     ri.EditEnd()
     
-
-def issue_light_shader_edit(ri, rpass, obj, prman):
-    if reissue_textures(ri, rpass, obj.data):
-        rpass.edit_num += 1
-        edit_flush(ri, rpass.edit_num, prman)
-
-    ri.EditBegin('instance')
-    export_light_shaders(ri, obj.data, do_geometry=False)
-    ri.EditEnd()
-            
 def issue_camera_edit(ri, rpass, camera):
     ri.EditBegin('option')
     export_camera(ri, rpass.scene, {'transformation':[]}, camera_to_use=camera)
     ri.EditEnd()
 
-def issue_shader_edit(ri, rpass, mats_to_edit, prman):
-    tex_made = False
-    for mat in mats_to_edit:
-        if reissue_textures(ri, rpass, mat):
-            tex_made = True
-
-    #if texture made flush it
-    if tex_made:
-        rpass.edit_num += 1
-        edit_flush(ri, rpass.edit_num, prman)
-
-    ri.EditBegin('instance')
-    for mat in mats_to_edit:
-        export_material(ri, rpass, rpass.scene, mat)
-    ri.EditEnd()
-
 #search this material/lamp for textures to re txmake and do them
 def reissue_textures(ri, rpass, mat):
     made_tex = False
-    if mat.renderman.nodetree != '':
+    if mat != None:
         textures = get_textures(mat)
         
         files = rpass.convert_textures(textures)
@@ -2751,45 +2717,88 @@ def reissue_textures(ri, rpass, mat):
             return True
     return False
 
-#test the active object type for edits to do then do them
-def issue_edits(rpass, ri, active, prman):
-    
-    do_edit = active.is_updated
-    #first check out if there's edit to do    
-    mats_to_edit = []
-    if hasattr(active.data, 'materials'):
+#return true if an object has an emissive connection
+def is_emissive(object):
+    if hasattr(object.data, 'materials'):
         #update the light position and shaders if updated
-        for mat in active.data.materials:
+        for mat in object.data.materials:
             if mat != None and mat.renderman.nodetree != '':
                 nt = bpy.data.node_groups[mat.renderman.nodetree]
-                if nt.is_updated:
-                    mats_to_edit.append(mat)
-        if len(mats_to_edit) > 0:
-            do_edit = True
-    elif active.type == 'LAMP':
-        nt = bpy.data.node_groups[active.data.renderman.nodetree]
-        if nt.is_updated or nt.is_updated_data:
-            do_edit = True
+                if 'Output' in nt.nodes and nt.nodes['Output'].inputs['Light'].is_linked:
+                    return True
+    return False
 
-    if do_edit:
+#test the active object type for edits to do then do them
+def issue_transform_edits(rpass, ri, active, prman):
+    if active.is_updated:
         rpass.edit_num += 1
         
         edit_flush(ri, rpass.edit_num, prman)
         #only update lamp if shader is update or pos, seperately
         if active.type == 'LAMP':
             lamp = active.data
-            if active.is_updated:
-                issue_light_transform_edit(ri, active)
+            issue_light_transform_edit(ri, active)
             
-            nt = bpy.data.node_groups[lamp.renderman.nodetree]
-            if nt.is_updated or nt.is_updated_data:
-                issue_light_shader_edit(ri, rpass, active, prman)
-    
         elif active.type == 'CAMERA' and active.is_updated:
             issue_camera_edit(ri, rpass, active)
         else:
-            #geometry can only edit shaders
-            if len(mats_to_edit) > 0:
-                issue_shader_edit(ri, rpass, mats_to_edit, prman)
-    
-    
+            if is_emissive(active):
+                issue_light_transform_edit(ri, active)
+
+def find_material_objs(nt):
+    mat = bpy.context.object.active_material
+    objs = []
+    #return mat, obj
+    for obj in bpy.data.objects:
+        for slot in obj.material_slots:
+            if slot.material == mat:
+                objs.append(obj)
+
+    return mat,objs
+
+#test the active object type for edits to do then do them
+def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
+    if node == None:
+        mat,objs = find_material_objs(nt)
+
+        #do an attribute full rebind
+        tex_made = False
+        if reissue_textures(ri, rpass, mat):
+            tex_made = True
+
+        #if texture made flush it
+        if tex_made:
+            rpass.edit_num += 1
+            edit_flush(ri, rpass.edit_num, prman)
+        rpass.edit_num += 1
+        edit_flush(ri, rpass.edit_num, prman)
+        mat,objs = find_material_objs(nt)
+        for obj in objs:
+            ri.EditBegin('attribute', {'string scopename': obj.name})
+            export_material(ri, rpass, rpass.scene, mat)
+            ri.EditEnd()
+
+    else:
+        mat = bpy.context.object.active_material
+        #if this is a lamp use that for the mat/name
+        if mat == None and bpy.data.scenes[0].objects.active.type == 'LAMP':
+            mat = bpy.data.scenes[0].objects.active.data
+        if mat == None:
+            return
+        mat_name = mat.name
+
+        #do an attribute full rebind
+        tex_made = False
+        if reissue_textures(ri, rpass, mat):
+            tex_made = True
+
+        #if texture made flush it
+        if tex_made:
+            rpass.edit_num += 1
+            edit_flush(ri, rpass.edit_num, prman)
+        rpass.edit_num += 1
+        edit_flush(ri, rpass.edit_num, prman)
+        ri.EditBegin('instance')
+        shader_node_rib(ri, node, mat.name, recurse=False)
+        ri.EditEnd()
+

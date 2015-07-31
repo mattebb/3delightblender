@@ -136,10 +136,10 @@ class StartInteractive(bpy.types.Operator):
             engine.ipr = RPass(context.scene)
             engine.ipr.start_interactive()
             engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(self.draw, (context,), 'WINDOW', 'POST_PIXEL')
-            bpy.app.handlers.scene_update_post.append(engine.ipr.issue_edits)
+            bpy.app.handlers.scene_update_post.append(engine.ipr.issue_transform_edits)
         else:
             bpy.types.SpaceView3D.draw_handler_remove(engine.ipr_handle, 'WINDOW')
-            bpy.app.handlers.scene_update_post.remove(engine.ipr.issue_edits)
+            bpy.app.handlers.scene_update_post.remove(engine.ipr.issue_transform_edits)
             engine.ipr.end_interactive()
             engine.ipr = None
             for area in context.screen.areas:
