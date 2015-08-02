@@ -43,6 +43,7 @@ from .util import debug
 from .util import user_path
 from .util import get_real_path
 from .util import readOSO
+from .util import export_textures_lazy
 
 from operator import attrgetter, itemgetter
 import os.path
@@ -228,8 +229,10 @@ class RendermanShadingNode(bpy.types.Node):
         #Compile shader if from socket get node information anther way
         if hasattr(context, "node"):
             node = context.node
+            #print("Manual NODE: ",node)
         else:
             node = nodeOR
+            #print("Auto NODE: ", node)
         prefs = bpy.context.user_preferences.addons[__package__].preferences
         
         osl_path = user_path(getattr(node, 'shadercode'))
@@ -766,8 +769,27 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                         ["%s:%s" % (from_socket.node.name, from_socket.identifier)]
                 else:
                     if getattr(getLocation, mat_name + node.name + prop_name + "type") == "string" and getattr(getLocation, mat_name + node.name + prop_name) != "":
-                        debug('osl',"TEXTURES ARE NOT SUPPORTED AT THE MOMENT!!!")
-                    params['%s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
+                        textureParam = getattr(getLocation, mat_name + node.name + prop_name)
+                        success , txfile = export_textures_lazy(textureParam)
+                        if success:
+                            textureName = os.path.splitext(os.path.basename(textureParam))[0] 
+                            textureName += ".tx"
+                            params['%s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
+                                prop_name)] = \
+                                rib(textureName, type_hint=getattr(getLocation, mat_name + node.name + prop_name + "type"))
+                            debug('osl',"TEXTURE EXPORTED: ", textureParam)
+                        else:
+                            if txfile:
+                                textureName = os.path.basename(textureParam)
+                                params['%s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
+                                    prop_name)] = \
+                                    rib(textureName, type_hint=getattr(getLocation, mat_name + node.name + prop_name + "type"))
+                                debug('osl',"TEXTURE EXPORTED: ", textureParam)
+                            else:
+                                debug('osl', "INVALID TEXTURE LOCATION: ", textureParam)
+                        
+                    else:
+                        params['%s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
                                 prop_name)] = \
                                 rib(getattr(getLocation, mat_name + node.name + prop_name), type_hint=getattr(getLocation, mat_name + node.name + prop_name + "type"))
     else:
