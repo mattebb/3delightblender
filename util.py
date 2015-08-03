@@ -30,6 +30,8 @@ import os
 import platform
 import sys
 import fnmatch
+import subprocess
+from subprocess import Popen, PIPE
 from extensions_framework import util as efutil
 from mathutils import Matrix, Vector
 EnableDebugging = False

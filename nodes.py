@@ -228,8 +228,10 @@ class RendermanShadingNode(bpy.types.Node):
         #Compile shader if from socket get node information anther way
         if hasattr(context, "node"):
             node = context.node
+            #print("Manual NODE: ",node)
         else:
             node = nodeOR
+            #print("Auto NODE: ", node)
         prefs = bpy.context.user_preferences.addons[__package__].preferences
         
         osl_path = user_path(getattr(node, 'shadercode'))
@@ -325,7 +327,6 @@ class OSLProps(bpy.types.PropertyGroup):
                     setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.FloatVectorProperty(name= prop_name, default = shader_meta[prop_name]["default"], size= 16,)) #subtype = 'MATRIX' This does not work do not use!!!!
                 elif shader_meta[prop_name]["type"] == "string":
-                    debug('osl',"TEXTURES ARE NOT SUPPORTED AT THE MOMENT!!!")
                     setattr(OSLProps, storageLocation + "type", shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation, bpy.props.StringProperty(name= prop_name, default = shader_meta[prop_name]["default"], subtype='FILE_PATH'))
                 else:
@@ -766,8 +767,14 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                         ["%s:%s" % (from_socket.node.name, from_socket.identifier)]
                 else:
                     if getattr(getLocation, mat_name + node.name + prop_name + "type") == "string" and getattr(getLocation, mat_name + node.name + prop_name) != "":
-                        debug('osl',"TEXTURES ARE NOT SUPPORTED AT THE MOMENT!!!")
-                    params['%s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
+                        textureParam = getattr(getLocation, mat_name + node.name + prop_name)
+                        textureName = os.path.splitext(os.path.basename(textureParam))[0] 
+                        textureName += ".tex"
+                        params['%s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
+                            prop_name)] = \
+                            rib(textureName, type_hint=getattr(getLocation, mat_name + node.name + prop_name + "type"))
+                    else:
+                        params['%s %s' % (getattr(getLocation, mat_name + node.name + prop_name + "type"), 
                                 prop_name)] = \
                                 rib(getattr(getLocation, mat_name + node.name + prop_name), type_hint=getattr(getLocation, mat_name + node.name + prop_name + "type"))
     else:
@@ -855,30 +862,42 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
 				shader_node_rib(ri, socket.links[0].from_node, mat_name=handle, disp_bound=disp_bound)
 
 
-def get_textures_for_node(node):
+def get_textures_for_node(node, matName=""):
     textures = []
-    for prop_name,meta in node.prop_meta.items():
-        prop = getattr(node, prop_name)
+    if node.bl_idname == "PxrOSLPatternNode":
+        context = bpy.context
+        OSLProps = context.scene.OSLProps
+        LocationString = matName + node.name + "prop_namesOSL"
+        for prop_name in getattr(OSLProps, LocationString):
+            storageLocation = matName + node.name + prop_name
+            if hasattr(OSLProps, storageLocation + "type"):
+                if getattr(OSLProps, storageLocation + "type") == "string":
+                    prop = getattr(OSLProps, storageLocation)
+                    out_file_name = get_tex_file_name(prop)
+                    textures.append((prop, out_file_name, ['-smode', 'periodic', '-tmode', 'periodic']))
+    else:
+        for prop_name,meta in node.prop_meta.items():
+            prop = getattr(node, prop_name)
+            
+            if meta['renderman_type'] == 'page':
+                continue
         
-        if meta['renderman_type'] == 'page':
-            continue
+            #if input socket is linked reference that
+            elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
+                from_socket = node.inputs[prop_name].links[0].from_socket
+                textures = textures + get_textures_for_node(from_socket.node, matName)
         
-        #if input socket is linked reference that
-        elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
-            from_socket = node.inputs[prop_name].links[0].from_socket
-            textures = textures + get_textures_for_node(from_socket.node)
-        
-        #else return a tuple of in name/outname
-        else:
-            if ('options' in meta and meta['options'] == 'texture') or \
-                (node.renderman_node_type == 'light' and \
-                    'widget' in meta and meta['widget'] == 'fileInput'): #fix for sloppy args files
-                out_file_name = get_tex_file_name(prop)
-                if out_file_name != prop: #if they don't match add this to the list
-                    if node.renderman_node_type == 'light' and "Env" in node.bl_label:
-                        textures.append((prop, out_file_name, ['-envlatl'])) #no options for now
-                    else:
-                        textures.append((prop, out_file_name, ['-smode', 'periodic', '-tmode', 'periodic'])) #no options for now
+            #else return a tuple of in name/outname
+            else:
+                if ('options' in meta and meta['options'] == 'texture') or \
+                    (node.renderman_node_type == 'light' and \
+                        'widget' in meta and meta['widget'] == 'fileInput'): #fix for sloppy args files
+                    out_file_name = get_tex_file_name(prop)
+                    if out_file_name != prop: #if they don't match add this to the list
+                        if node.renderman_node_type == 'light' and "Env" in node.bl_label:
+                            textures.append((prop, out_file_name, ['-envlatl'])) #no options for now
+                        else:
+                            textures.append((prop, out_file_name, ['-smode', 'periodic', '-tmode', 'periodic'])) #no options for now
 
     return textures
     
@@ -899,7 +918,7 @@ def get_textures(id):
         for name,inp in out.inputs.items():
             if inp.is_linked:
                 textures = textures + \
-                    get_textures_for_node(inp.links[0].from_node)
+                    get_textures_for_node(inp.links[0].from_node, id.name)
         
     return textures
 

@@ -2691,7 +2691,6 @@ def anim_archive_path(filepath, frame):
     return ribpath
 
 
-
 def write_auto_archives(paths, scene, info_callback):
     for ob in archive_objects(scene):
         export_archive(scene, [ob], archive_motion=True, 
