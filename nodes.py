@@ -106,7 +106,7 @@ class RendermanSocket:
                     layout.prop(oslProps, storageLocation)
                 else:
                     pass
-                    #node.RefreshNodes(context, node)
+                    rebuild_OSL_nodes(context.scene, context)
         else:
             layout.prop(node, self.name)
         
@@ -223,13 +223,15 @@ class RendermanShadingNode(bpy.types.Node):
     def copy(self, node):
         self.inputs.clear()
         self.outputs.clear()
-    def RefreshNodes(self, context, nodeOR=None):
+    def RefreshNodes(self, context, nodeOR=None, materialOverride=None):
         
         #Compile shader if from socket get node information anther way
         if hasattr(context, "node"):
+            print("CONTEXT NODE: ", context.node.name)
             node = context.node
             #print("Manual NODE: ",node)
         else:
+            print("OTHER METHOD: ", nodeOR.name)
             node = nodeOR
             #print("Auto NODE: ", node)
         prefs = bpy.context.user_preferences.addons[__package__].preferences
@@ -257,14 +259,14 @@ class RendermanShadingNode(bpy.types.Node):
             debug('osl',"Shader Compiled Successfully!")
             #Reset the inputs and outputs
             node.outputs.clear()
-            self.inputs.clear()
+            node.inputs.clear()
             #Read in new properties
             prop_names, shader_meta = readOSO(export_path)
             #Set node name to shader name
             node.label = shader_meta["shader"]
             #Generate new inputs and outputs
             node.OSLPROPSPOINTER = OSLProps
-            node.OSLPROPSPOINTER.setProps(self, prop_names, shader_meta, context)
+            node.OSLPROPSPOINTER.setProps(node, prop_names, shader_meta, context, materialOverride)
             
             
             
@@ -292,8 +294,11 @@ class RendermanShadingNode(bpy.types.Node):
 
 class OSLProps(bpy.types.PropertyGroup):
     #Set props takes in self, a list of prop_names, and shader_meta data. Look at the readOSO function (located in util.py) if you need to know the layout.
-    def setProps(self, prop_names, shader_meta, context):
-        mat = context.object.active_material.name
+    def setProps(self, prop_names, shader_meta, context, materialOverride):
+        if materialOverride != None:
+            mat = materialOverride.name
+        else:
+            mat = context.object.active_material.name
         setattr(OSLProps, mat + self.name + "shader", shader_meta["shader"])
         #print("OSLProps: ", self.name + "shader", shader_meta["shader"])
         setattr(OSLProps, mat + self.name + "prop_namesOSL", prop_names)
@@ -921,6 +926,38 @@ def get_textures(id):
                     get_textures_for_node(inp.links[0].from_node, id.name)
         
     return textures
+
+
+def rebuild_OSL_nodes(scene, context):
+    SUPPORTED_MATERIAL_TYPES = ['MESH','CURVE','FONT', 'SURFACE']
+    for o in scene.objects:
+        if o.type == 'CAMERA' or o.type == 'EMPTY':
+            continue
+        elif o.type in SUPPORTED_MATERIAL_TYPES:
+            for mat in [mat for mat in o.data.materials if mat != None]:
+                try:
+                    call_nodes(mat, context)
+                except:
+                    debug ("error","rebuild_nodes: Supported material type error [%s]." % o.type)
+        else:
+            debug ("error","rebuild_nodes: unsupported object type [%s]." % o.type)
+
+def call_nodes(mat, context):
+    textures = []
+    if mat.renderman.nodetree == "":
+        pass
+    try:
+        nt = bpy.data.node_groups[mat.renderman.nodetree]
+    except:
+        nt = None
+
+    if nt:
+        for node in nt.nodes:
+            if node.bl_idname == "PxrOSLPatternNode":
+                node.RefreshNodes(context, node , mat)
+            else:
+                pass
+
 
 
 # our own base class with an appropriate poll function,
