@@ -155,48 +155,6 @@ def args_files_in_path(prefs, idblock, shader_type='', threaded=True):
     
     return args
 
-def export_textures_lazy(in_file):
-    scene = bpy.context.scene
-    paths = scene.renderman
-    texture_output_path = user_path( \
-                                    scene.renderman.path_texture_output, 
-                                    scene=scene)
-    if not os.path.exists(texture_output_path):
-        os.mkdir(texture_output_path)
-
-    out_file = os.path.splitext(os.path.basename(in_file))[0] 
-    out_file += ".tx"
-    if os.path.basename(in_file) == out_file:
-        success = False
-        txfile = True
-    else:
-        print("OUT_FILE", out_file)
-        in_file = get_real_path(in_file)
-        out_file_path = os.path.join(user_path( \
-                                            scene.renderman.path_texture_output, 
-                                            scene=scene), out_file)
-
-        cmd = [os.path.join(scene.renderman.path_rmantree, 'bin', \
-            scene.renderman.path_texture_optimiser)] + [in_file,
-            out_file_path]
-        debug("info", "TXMAKE STARTED!", cmd)
-            
-            
-        Blendcdir = bpy.path.abspath("//")
-        if Blendcdir == '':
-            Blendcdir = None
-
-        environ = os.environ.copy()
-        environ['RMANTREE'] = scene.renderman.path_rmantree
-        process = subprocess.Popen(cmd, cwd=Blendcdir, 
-                                stdout=subprocess.PIPE, env=environ)
-        process.communicate()
-        success = True
-        txfile = False
-    
-    return success, txfile
-
-
 def get_path_list(rm, type):
     paths = []
     if rm.use_default_paths:
