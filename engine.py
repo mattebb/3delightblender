@@ -177,11 +177,13 @@ class RPass:
         frame_archive_dir = os.path.dirname(user_path(scene.renderman.path_object_archive_animated, 
                                             scene=scene))
         self.paths['static_archives'] = static_archive_dir
-        self.paths['frame_archives'] = frame_archive_dir
+        self.paths['frame_archives'] = [frame_archive_dir]
+        
         if not os.path.exists(self.paths['static_archives']):
             os.makedirs(self.paths['static_archives'])
-        if not os.path.exists(self.paths['frame_archives']):
-            os.makedirs(self.paths['frame_archives'])
+        for frame_path in self.paths['frame_archives']:
+            if not os.path.exists(frame_path):
+                os.makedirs(frame_path)
         self.paths['archive'] = os.path.dirname(static_archive_dir)
 
     def render(self, engine):
