@@ -1,5 +1,15 @@
+v0.4.0 8/3/2015
+* OSL should now support IPR
+* more example files
+* RIB generation rewrite.  ~6x speedup creating rib for gooseberry benchmark
+    * uv's across multi-material objects should now work
+    * multi-material objects now use the same geometry instead of splitting it. 
+    * however the current limitation is that multi-material objects can't be emissive
+* Metaball support (Thanks to @rendermouse!)
+* better deformation and multi-segment motion blur ribs.
+
 v0.3.0 7/31/2015
-* OSL nodes experimental support!  Currently does not support IPR
+* OSL nodes experimental support!  Currently does not support IPR thanks to @mwy5310
 * example files directory (will be more added)
 
 v0.2.7 7/13/2015
