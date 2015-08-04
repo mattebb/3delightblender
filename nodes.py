@@ -821,6 +821,7 @@ def gen_params(ri, node, mat_name=None, recurse=True):
 # Export to rib
 def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
     params = gen_params(ri, node, mat_name, recurse)
+    instance = mat_name + '.' + node.name
     params['__instanceid'] = mat_name + '.' + node.name
     if node.renderman_node_type == "pattern":
         ri.Pattern(node.bl_label, node.name, params)
@@ -838,7 +839,7 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
         ri.Attribute('displacementbound', {'sphere':disp_bound})
         ri.Displacement(node.bl_label, params)
     else:
-        ri.Bxdf(node.bl_label, node.name, params)
+        ri.Bxdf(node.bl_label, instance, params)
 
 #return the output file name if this texture is to be txmade.
 def get_tex_file_name(prop):
@@ -865,6 +866,22 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
 		for out_type,socket in out.inputs.items():
 			if socket.is_linked:
 				shader_node_rib(ri, socket.links[0].from_node, mat_name=handle, disp_bound=disp_bound)
+
+#return the bxdf name for this mat if there is one, else return defualt
+def get_bxdf_name(mat):
+    if mat.renderman.nodetree not in bpy.data.node_groups:
+        return "default"
+    nt = bpy.data.node_groups[mat.renderman.nodetree]
+    out = next((n for n in nt.nodes if n.renderman_node_type == 'output'), 
+                None)
+    if out is None: return "default"
+    
+    bxdf_socket = out.inputs['Bxdf']
+    if bxdf_socket.is_linked:
+        return "%s.%s" % (mat.name, bxdf_socket.links[0].from_node.name)
+    else:
+        return "default"
+    
 
 
 def get_textures_for_node(node, matName=""):

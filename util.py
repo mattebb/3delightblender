@@ -147,7 +147,7 @@ def args_files_in_path(prefs, idblock, shader_type='', threaded=True):
     init_env(prefs)
     args = {}
 
-    path_list = get_path_list_converted(prefs, 'shader')
+    path_list = get_path_list_converted(prefs, 'args')
     for path in path_list:
         for root, dirnames, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, '*.args'):
@@ -159,18 +159,30 @@ def get_path_list(rm, type):
     paths = []
     if rm.use_default_paths:
         paths.append('@')
-        if type == 'shader':
+        #here for getting args
+        if type == 'args':
             paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'pattern'))
             paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'bxdf'))
             paths.append(os.path.join(guess_rmantree(), 'lib', 'rsl', 'shaders'))
+
+        if type == 'shader':
+            #paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'pattern'))
+            #paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'bxdf'))
+            #paths.append(os.path.join(guess_rmantree(), 'lib', 'rsl', 'shaders'))
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shaders'))
-        
+        #we need this for bxdf blend for now.
+        if type == 'rixplugin':
+            paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'r19', 'bxdf'))
+            
+
+
     if rm.use_builtin_paths:
         paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), 
                         "%ss" % type))
-        
-    for p in getattr(rm, "%s_paths" % type):
-        paths.append(bpy.path.abspath(p.name))
+    
+    if hasattr(rm, "%s_paths" % type):    
+        for p in getattr(rm, "%s_paths" % type):
+            paths.append(bpy.path.abspath(p.name))
 
     return paths
 
