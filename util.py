@@ -164,7 +164,7 @@ def get_path_list(rm, type):
             paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'pattern'))
             paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'bxdf'))
             paths.append(os.path.join(guess_rmantree(), 'lib', 'rsl', 'shaders'))
-
+            paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shaders'))
         if type == 'shader':
             #paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'pattern'))
             #paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'bxdf'))
