@@ -1086,7 +1086,7 @@ def export_points(ri, scene, ob, motion):
     bpy.data.meshes.remove(mesh)
 
 #make an ri Volume from the smoke modifier
-def export_smoke(ri, scene, ob, motion):
+def export_smoke(ri, ob):
     smoke_modifier = None
     for mod in ob.modifiers:
         if mod.type == "SMOKE":
@@ -1177,7 +1177,7 @@ def export_geometry_data(ri, scene, ob, data=None):
     
 
     elif prim == 'SMOKE':
-        export_smoke(ri, ob, data)
+        export_smoke(ri, ob)
 
     # curve only
     elif prim == 'CURVE' or prim == 'FONT':
@@ -1220,14 +1220,13 @@ def get_motion_ob(scene, motion, ob, base_frame=None):
         motion['transformation'][ob.name].append( mat.copy())
 
     # recursive dupli sub-objects
-    if is_dupli(ob):
-        ob.dupli_list_create(scene)
-
-        dupobs = [(dob.object, dob.matrix) for dob in ob.dupli_list]
-        for dupob, dupob_mat in dupobs:
-            if not dupob.hide_render:
-                get_motion_ob(scene, motion, dupob, base_frame=base_frame)
-        ob.dupli_list_clear()
+    #if is_dupli(ob):
+    #    ob.dupli_list_create(scene)
+    #    dupobs = [(dob.object, dob.matrix) for dob in ob.dupli_list]
+    #    for dupob, dupob_mat in dupobs:
+    #        if not dupob.hide_render:
+    #            get_motion_ob(scene, motion, dupob, base_frame=base_frame)
+    #    ob.dupli_list_clear()
 
     # particles
     for psys in ob.particle_systems:
@@ -1313,7 +1312,7 @@ def get_motion(scene):
 
 
 def export_duplis(ri, scene, ob, motion):
-    ob.dupli_list_create(scene)
+    ob.dupli_list_create(scene, "RENDER")
 
     #gather list of object masters
     object_masters = {}
@@ -1324,6 +1323,7 @@ def export_duplis(ri, scene, ob, motion):
             mat = dupob.object.active_material
             if mat:
                 export_material_archive(ri, mat)
+            ri.Transform(rib(Matrix.Identity(4)))
             ri.ReadArchive(get_archive_filename(scene, motion, data_name(dupob.object, scene),
             relative=True))
             ri.ObjectEnd()
@@ -1332,6 +1332,7 @@ def export_duplis(ri, scene, ob, motion):
     for dupob in ob.dupli_list:
         dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name, 
             dupob.index)
+        instance_handle = object_masters[dupob.object.name]
         export_object_instance(ri, dupob.matrix, dupli_name, instance_handle)
 
     ob.dupli_list_clear()
@@ -1453,15 +1454,15 @@ def export_dupli_read_archive(ri, scene, ob, motion):
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": name})
     
-    if name in motion['transformation']:
-        export_motion_begin(ri,scene, ob)
-        
-        for sample in motion['transformation'][name]:
-            ri.Transform(rib(sample))
-            
-        ri.MotionEnd()
-    else:
-        export_transform(ri, ob)
+    # if name in motion['transformation']:
+    #     export_motion_begin(ri,scene, ob)
+       
+    #     for sample in motion['transformation'][name]:
+    #         ri.Transform(rib(sample))
+           
+    #     ri.MotionEnd()
+    # else:
+    #     export_transform(ri, ob)
     #we want these relative paths of the archive
     archive_filename = get_archive_filename(scene, motion, name, relative=True)
 
@@ -1484,7 +1485,7 @@ def export_mesh_archive(ri, scene, ob, name, motion,
 
     #if lazy rib gen is on, and archive is up to date..
     #we can skip archiving
-    if lazy_ribgen and not check_if_archive_dirty(ob.renderman.timestamp, 
+    if lazy_ribgen and not check_if_archive_dirty(ob.renderman.update_timestamp, 
                                 archive_filename):
         pass
     else:
@@ -1530,7 +1531,7 @@ def export_dupli_archive(ri, scene, ob, motion, lazy_ribgen):
 
     #if lazy rib gen is on, and archive is up to date..
     #we can skip archiving
-    if lazy_ribgen and not check_if_archive_dirty(ob.renderman.timestamp, 
+    if lazy_ribgen and not check_if_archive_dirty(ob.renderman.update_timestamp, 
                                 archive_filename):
         pass
     else:
@@ -1556,7 +1557,7 @@ def export_materials_archive(ri, rpass, scene):
 def map_objects_to_data(objects, scene):
     data_map = {}
     for ob in objects:
-        if ob.data == None:
+        if ob.data == None or ob.type in ['CAMERA', 'LAMP']:
             continue
         name = data_name(ob, scene)
         if name in data_map:
@@ -1814,6 +1815,9 @@ def export_searchpaths(ri, paths):
         ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
     ri.Option("searchpath", {"string texture": ["%s" % \
         ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
+    #need this for multi-material
+    ri.Option("searchpath", {"string rixplugin": ["%s" % \
+        ':'.join(path_list_convert(paths['rixplugin'], to_unix=True))]})
     
     #ri.Option("searchpath", {"string procedural": ["%s" % \
     #    ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})

@@ -169,6 +169,8 @@ class RPass:
             scene.renderman.path_display_driver_image, scene=scene)
         self.paths['shader'] = get_path_list_converted(scene.renderman, \
                                                         'shader')
+        self.paths['rixplugin'] = get_path_list_converted(scene.renderman, \
+                                                        'rixplugin')
         self.paths['texture'] = [self.paths['texture_output']]
 
         #self.paths['procedural'] = get_path_list_converted(scene.renderman, 'procedural')
