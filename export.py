@@ -778,7 +778,7 @@ def geometry_source_rib(ri, scene, ob):
                                         rib(bounds))
 
 
-def export_particle_instances(ri, scene, psys, points):
+def export_particle_instances(ri, scene, psys, ob, points):
     rm = psys.settings.renderman
     
     master_ob = bpy.data.objects[rm.particle_instance_object]
@@ -795,16 +795,24 @@ def export_particle_instances(ri, scene, psys, points):
     
     width = rm.width 
 
-    (P, rot, point_width) = points
-    for i in range(len(point_width)):
+    
+    num_points = len(points[0][2])
+    for i in range(num_points):
         ri.AttributeBegin()
-        loc = Vector((P[i*3+0], P[i*3+1], P[i*3+2]))
-        rotation = Quaternion((rot[i*4+0], rot[i*4+1], rot[i*4+2], rot[i*4+3]))
-        scale = width if rm.constant_width else point_width[i]
-        mtx = Matrix.Translation(loc) * rotation.to_matrix().to_4x4() \
-                * Matrix.Scale(scale, 4)
         
-        ri.Transform(rib(mtx))
+        if len(points) > 1:
+            export_motion_begin(ri, scene, ob)
+        
+        for (P, rot, point_width) in points:
+            loc = Vector((P[i*3+0], P[i*3+1], P[i*3+2]))
+            rotation = Quaternion((rot[i*4+0], rot[i*4+1], rot[i*4+2], rot[i*4+3]))
+            scale = width if rm.constant_width else point_width[i]
+            mtx = Matrix.Translation(loc) * rotation.to_matrix().to_4x4() \
+                    * Matrix.Scale(scale, 4)
+            
+            ri.Transform(rib(mtx))
+        if len(points) > 1:
+            ri.MotionEnd()
         
         ri.ObjectInstance(instance_handle)
         ri.AttributeEnd()
@@ -836,7 +844,7 @@ def export_particles(ri, scene, ob, psys, data=None):
 
     # Write object instances or points
     if rm.particle_type == 'OBJECT':
-        export_particle_instances(ri, scene, psys, points)
+        export_particle_instances(ri, scene, psys, ob, points)
     else:
         export_particle_points(ri, scene, psys, ob, points)
 
@@ -1307,7 +1315,6 @@ def get_motion(scene):
     # and update the scene only once for each of those unique fractional 
     #frames per segment set
     for segs in all_segs:
-
         if segs == scene.renderman.motion_segments:
             motion_obs = [ob for ob in scene.objects \
                                 if not ob.renderman.motion_segments_override]
@@ -1512,7 +1519,7 @@ def export_mesh_archive(ri, scene, ob, name, motion,
         if data != None:
             export_motion_begin(ri, scene, ob)
             for sample in data:
-                export_geometry_data(ri, scene, ob, data=data)
+                export_geometry_data(ri, scene, ob, data=sample)
             ri.MotionEnd()
         else:
             export_geometry_data(ri, scene, ob, data=None)
