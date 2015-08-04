@@ -286,6 +286,10 @@ def psys_name(ob, psys):
 #get a name for the data block.  if it's modified by the obj we need it 
 #specified 
 def data_name(ob, scene):
+    #if this is a blob return the family name
+    if ob.type == 'META':
+        return ob.name.split('.')[0]
+
     if ob.data.users > 1 and (ob.is_modified(scene, "RENDER") or \
         ob.is_deform_modified(scene, "RENDER") or\
         ob.renderman.primitive != 'AUTO' or\
@@ -950,8 +954,10 @@ def detect_primitive(ob):
                 return 'POLYGON_MESH'
         elif ob.type == 'CURVE':
             return 'CURVE'
-        elif ob.type in ('SURFACE', 'META', 'FONT'):
+        elif ob.type in ('SURFACE', 'FONT'):
             return 'POLYGON_MESH'
+        elif ob.type == "META":
+            return "META"
         else:
             return 'NONE'
     else:
@@ -1155,6 +1161,47 @@ def export_particle_system(ri, scene, ob, psys, data=None):
         else:
             export_hair(ri, scene, ob, psys, data)
 
+#many thanks to @rendermouse for this code
+def export_blobby_family(ri, scene, ob):
+    family = data_name(ob, scene)
+    fam_blobs = [ob for ob in scene.objects if ob.type == 'META' and \
+        (ob.name == family or ob.name.split('.')[0] == family)]
+
+    # family master obj
+    fam_master = bpy.data.objects.get(family)
+
+    #transform 
+    tform = []
+
+    #opcodes
+    op = []        
+    count = len(fam_blobs)
+    for i in range(count):
+        op.append(1001) #only blobby ellipsoids for now...
+        op.append(i * 16)
+
+    for ob_temp in fam_blobs:
+        m = ob_temp.matrix_world
+
+        # multiply only the scale of blobs by 2 (matches Blender threshold=0.800)
+        sc = Matrix(((2, 0, 0, 0),
+            (0, 2, 0, 0),
+            (0, 0, 2, 0),
+            (0, 0, 0, 1)))
+        m2 = m*sc
+        tform = tform + rib(m2)
+
+    op.append(0) #blob operation:add
+    op.append(count)
+    for n in range(count):
+        op.append(n)
+
+    st = ('',)
+    parm = {}    
+
+    ri.Blobby(count, op, tform, st, parm)    
+
+    
 
 def export_geometry_data(ri, scene, ob, data=None):
     prim = ob.renderman.primitive if ob.renderman.primitive != 'AUTO' \
@@ -1175,6 +1222,8 @@ def export_geometry_data(ri, scene, ob, data=None):
     elif prim == 'TORUS':
         export_torus(ri, ob)
     
+    elif prim == 'META':
+        export_blobby_family(ri, scene, ob)
 
     elif prim == 'SMOKE':
         export_smoke(ri, ob)
@@ -1581,7 +1630,7 @@ def export_objects(ri, rpass, scene, motion):
             motion, lazy_ribgen)
         for ob in objects:
             update_timestamp(rpass, ob)
-
+        
     #particles are their own data block output their archives
     psys_exported = []
     for ob in scene.objects:
@@ -1607,6 +1656,10 @@ def export_objects(ri, rpass, scene, motion):
     #finally read those objects into the scene    
     for ob in renderable_objects(scene):
         if ob.type in ['CAMERA', 'LAMP']:
+            continue
+
+        #for meta balls skip the ones that aren't the family master:
+        if ob.type == 'META' and data_name(ob, scene) != ob.name:
             continue
         #particle systems will be exported in here own archive
         if not ob.parent:
