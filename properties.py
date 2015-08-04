@@ -97,6 +97,7 @@ def register_integrator_settings(scene_settings_cls):
         args_xml = ET.parse(os.path.join(args_path, f)).getroot()
         inputs = [p for p in args_xml.findall('./param')] + \
             [p for p in args_xml.findall('./page')]
+        #print("INPUTS: ",inputs)
         class_generate_properties(ntype, name, inputs)
         #register and add to scene_settings
         bpy.utils.register_class(ntype)
@@ -497,6 +498,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 subtype='FILE_PATH',
                 default="$OUT/textures")
 
+    out_dir = StringProperty(
+                name="Shader Output Path", 
+                description="Path to compiled .oso files",
+                subtype='FILE_PATH' ,
+                default="./shaders")
     
     output_action = EnumProperty(
                 name="Action",
@@ -736,6 +742,7 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
 
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
     
+    
     nodetree = StringProperty(
                 name="Node Tree",
                 description="Name of the shader node tree for this material",
@@ -974,6 +981,11 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             light_shader = 'PxrStdEnvMapLightLightNode'
         elif light_type == 'SKY':
             light_shader = 'PxrStdEnvDayLightLightNode'
+        elif light_type == 'AREA':
+            try:
+                lamp.size = 1.0
+            except:
+                pass
 
         #find the existing or make a new light shader node
         nt = bpy.data.node_groups[lamp.renderman.nodetree]
@@ -1120,6 +1132,11 @@ class RendermanParticlePrimVar(bpy.types.PropertyGroup):
                     ]   # XXX: Would be nice to have particle ID, needs adding in RNA
                     )
 
+class oslProps(bpy.types.PropertyGroup):
+    shaderString = StringProperty(
+                name="Shader",
+                description="OSL shader to use",
+                default="")
 class RendermanParticleSettings(bpy.types.PropertyGroup):
 
     material_id = IntProperty(
@@ -1501,7 +1518,14 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     trace_set = CollectionProperty(type=TraceSet, name='Trace Set')
     trace_set_index = IntProperty(min=-1, default=-1)
 
-
+class testProps(bpy.types.PropertyGroup):
+    testProp = bpy.props.IntProperty(name="testProp",description="This is my int",min=0, max=16, default=2)
+    testDic = {}
+    def moreProps(text):
+        testProps.testProp2 = bpy.props.IntProperty(name="testProp2",description="This is my int",min=0, max=16, default=5)
+        #setattr()
+        setattr(testProps, "Gordon", bpy.props.IntProperty(name="Gordon",description="This is my int",min=0, max=16, default=1))
+        testProps.testDic["Test"] = testProps.testProp2
 
 # collection of property group classes that need to be registered on module startup
 classes = [displacementShaders,
@@ -1528,7 +1552,7 @@ classes = [displacementShaders,
             RendermanWorldSettings,
             RendermanMeshGeometrySettings,
             RendermanCurveGeometrySettings,
-            RendermanObjectSettings,
+            RendermanObjectSettings
         ]
 
 def register():

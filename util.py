@@ -30,6 +30,8 @@ import os
 import platform
 import sys
 import fnmatch
+import subprocess
+from subprocess import Popen, PIPE
 from extensions_framework import util as efutil
 from mathutils import Matrix, Vector
 EnableDebugging = False
@@ -54,14 +56,76 @@ def getattr_recursive(ptr, attrstring):
 
     return ptr
 
-
+def readOSO(filePath):
+    line_number = 0
+    shader_meta = {}
+    prop_names =[]
+    with open(filePath, encoding='utf-8') as osofile:
+        for line in osofile:
+            if line.startswith("surface") or line.startswith("shader"):
+                line_number += 1
+                listLine = line.split()
+                #print("SHADER: ", listLine[1])
+                shader_meta["shader"] = listLine[1]
+            elif line.startswith("param"):
+                line_number += 1
+                listLine = line.split()
+                name = listLine[2]
+                type = listLine[1]
+                if type == "point" or type == "vector" or type == "normal" or type == "color":
+                    defaultString = []
+                    defaultString.append(listLine[3])
+                    defaultString.append(listLine[4])
+                    defaultString.append(listLine[5])
+                    default = []
+                    for element in defaultString:
+                        default.append(float(element))
+                elif type == "matrix":
+                    default = []
+                    x = 3
+                    while x <= 18: 
+                        default.append(float(listLine[x]))
+                        x += 1
+                else:
+                    default = listLine[3]
+                prop_names.append(name)
+                prop_meta = {"type" : type, "default" :  default, "IO" : "in"}
+                shader_meta[name] = prop_meta
+            elif line.startswith("oparam"):
+                line_number += 1
+                listLine = line.split()
+                name = listLine[2]
+                type = listLine[1]
+                if type == "point" or type == "vector" or type == "normal" or type == "color":
+                    default = []
+                    default.append(listLine[3])
+                    default.append(listLine[4])
+                    default.append(listLine[5])
+                elif type == "matrix":
+                    default = []
+                    x = 3
+                    while x <= 18:
+                        default.append(listLine[x])
+                        x += 1
+                else:
+                    default = listLine[3]
+                prop_names.append(name)
+                prop_meta = {"type" : type, "default" :  default, "IO" : "out"}
+                shader_meta[name] = prop_meta
+                #print("SHADER: ", shader_meta)
+            else:
+                line_number += 1
+    return prop_names, shader_meta
 def debug(warningLevel, *output):
 
-    if warningLevel == 'warning' or warningLevel == 'error':
+    if warningLevel == 'warning' or warningLevel == 'error' or warningLevel == 'osl':
         if(warningLevel == "warning"):
             print ("WARNING: " , output)
         elif(warningLevel == "error"):
             print ("ERROR: " , output)
+        elif(warningLevel == "osl"):
+            for item in output:
+                print ("OSL INFO: ", item)
     else:
         if(EnableDebugging == True):
             if(warningLevel == "info"):

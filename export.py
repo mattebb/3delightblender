@@ -84,7 +84,6 @@ def export_object_instance(ri, mtx=None, dupli_name = None,
         ri.ObjectInstance(instance_handle)
         ri.AttributeEnd()
 
-
 # ------------- Texture optimisation -------------
 
 # 3Delight specific tdlmake stuff
@@ -441,36 +440,6 @@ def get_mesh(mesh):
     
     return (nverts, verts, P)
 
-    #I WISH we could use this glorious algorithm for multi-material support.
-    # meshes_by_mat = []
-    # for i in range(len(mesh.materials)):
-    #     meshes_by_mat.append(([], [] , []))
-
-    # if len(mesh.materials) == 0:
-    #     meshes_by_mat.append(([], [] , []))
-    
-    # for p in mesh.polygons:
-    #     meshes_by_mat[p.material_index][0].append( p.loop_total ) #nverts
-    #     meshes_by_mat[p.material_index][1].extend( p.vertices ) #verts
-    
-    # #don't do this for single material meshes, its slower!
-    # if len(meshes_by_mat) == 1:
-    #     for v in mesh.vertices:
-    #         meshes_by_mat[0][2].extend( v.co )
-    # else:
-    #     #get the set of vertices in this sub mesh and get those P's. 
-    #     #then reset vert indices
-    #     for mat_mesh in meshes_by_mat:
-    #         unique_verts = sorted(set(mat_mesh[1]))
-    #         vert_mapping = [0] * len(mesh.vertices)
-    #         for i,v_index in enumerate(unique_verts):
-    #             vert_mapping[v_index] = i
-    #             mat_mesh[2].extend(mesh.vertices[v_index].co)
-    #         for i, vert_old in enumerate(mat_mesh[1]):
-    #             mat_mesh[1][i] = vert_mapping[vert_old]
-
-
-    # return meshes_by_mat
 
 def get_mesh_vertex_N(mesh):
     N = []
@@ -1478,7 +1447,6 @@ def export_object_read_archive(ri, scene, ob, motion):
         export_object_read_archive(ri, scene, child, motion)
     ri.AttributeEnd()
 
-
 #export the readarchive for an object or psys if supplied
 def export_particle_read_archive(ri, scene, ob, motion, psys):
     name = psys_name(ob, psys)
@@ -1657,7 +1625,6 @@ def export_objects(ri, rpass, scene, motion):
     for ob in renderable_objects(scene):
         if ob.type in ['CAMERA', 'LAMP']:
             continue
-
         #for meta balls skip the ones that aren't the family master:
         if ob.type == 'META' and data_name(ob, scene) != ob.name:
             continue
@@ -1671,37 +1638,30 @@ def export_objects(ri, rpass, scene, motion):
     for dupli_ob in dupli_obs_exported:
         export_dupli_read_archive(ri, scene, dupli_ob, motion)
 
-
 #update the timestamp on an object from the time the rib writing started:
 def update_timestamp(rpass, obj):
     if obj and rpass.update_time:
         obj.renderman.update_timestamp = rpass.update_time
 
 #takes a list of bpy.types.properties and converts to params for rib
-def property_group_to_params(prop_group):
+def property_group_to_params(node):
     params = {}
+    for prop_name,meta in node.prop_meta.items():
+        prop = getattr(node, prop_name)
+        #if property group recurse
+        if meta['renderman_type'] == 'page':
+            continue
+        #if input socket is linked reference that
+        else:
+            #if struct is not linked continue
+            if 'arraySize' in meta:
+                params['%s[%d] %s' % (meta['renderman_type'], len(prop), 
+                        meta['renderman_name'])] = rib(prop) 
+            else:
+                params['%s %s' % (meta['renderman_type'], 
+                        meta['renderman_name'])] = \
+                    rib(prop, type_hint=meta['renderman_type']) 
 
-    type_map = {
-        "FloatProperty": 'float',
-        "IntProperty": 'int',
-        "StringProperty": 'string',
-        "EnumProperty": 'string',
-        "BoolProperty": 'bool',
-    }
-
-    for (key, value) in prop_group.bl_rna.properties.items(): 
-        # This is somewhat ugly, but works best!!
-            if key not in ['rna_type', 'name']:
-                val = prop_group.get(key)
-                if val:
-                    val_type = type(val).__name__
-                    if val_type == 'IDPropertyArray':
-                        param_type = "color %s" % (key)
-                        params[param_type] = rib(val)
-                    else:
-                        param_type = "%s %s" % (type(val).__name__, key)
-                        params[param_type] = val
-    
     return params
 
 def export_integrator(ri, rpass, scene, preview=False):

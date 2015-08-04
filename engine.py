@@ -167,8 +167,8 @@ class RPass:
         
         self.paths['render_output'] = user_path( \
             scene.renderman.path_display_driver_image, scene=scene)
-        self.paths['shader'] = get_path_list_converted(scene.renderman, \
-                                                        'shader')
+        self.paths['shader'] = [user_path(scene.renderman.out_dir, scene=scene)] + \
+                                    get_path_list_converted(scene.renderman, 'shader')
         self.paths['rixplugin'] = get_path_list_converted(scene.renderman, \
                                                         'rixplugin')
         self.paths['texture'] = [self.paths['texture_output']]
@@ -434,6 +434,7 @@ class RPass:
     def gen_rib(self, engine=None):
         time_start = time.time()
         self.convert_textures(get_texture_list(self.scene))
+        
         if engine:
             engine.report({"INFO"}, "Texture generation took %s" % format_seconds_to_hhmmss(time.time() - time_start))
         time_start = time.time()
@@ -495,7 +496,6 @@ class RPass:
 
         return files_converted
 
-
-
+    
 
 
