@@ -1519,7 +1519,7 @@ def export_mesh_archive(ri, scene, ob, name, motion,
         if data != None:
             export_motion_begin(ri, scene, ob)
             for sample in data:
-                export_geometry_data(ri, scene, ob, data=data)
+                export_geometry_data(ri, scene, ob, data=sample)
             ri.MotionEnd()
         else:
             export_geometry_data(ri, scene, ob, data=None)
