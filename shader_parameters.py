@@ -171,13 +171,27 @@ def class_generate_properties(node, parent_name, shaderparameters):
                     setattr(node, sub_param_names[i], sub_props[i])
         else:
             if parent_name == "PxrOSL" and i == 0:
+                #Enum for internal external or type selection
+                EnumName = "codetypeswitch"
+                EnumProp = bpy.props.EnumProperty(items= (('EXT', "External", ""), ('INT', "Internal", "")), name="Shader Location", default='INT')
+                EnumMeta = {'renderman_name' : 'filename' ,'name' : 'codetypeswitch', 'renderman_type' : 'string' , 'default' : '', 'label' : 'codetypeswitch', 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
+                setattr(node, EnumName, EnumProp)
+                prop_names.append(EnumName)
+                prop_meta[EnumName] = EnumMeta
+                #Internal file search prop
+                InternalName = "internalSearch"
+                InternalProp = bpy.props.StringProperty(name = "Shader to use", description = "Storage space for internal text data block", default = "")
+                InternalMeta = {'renderman_name' : 'filename' ,'name' : 'internalSearch', 'renderman_type' : 'string' , 'default' : '', 'label' : 'internalSearch', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
+                setattr(node, InternalName, InternalProp)
+                prop_names.append(InternalName)
+                prop_meta[InternalName] = InternalMeta
+                #External file
                 codeName = "shadercode"
-                codeProp = bpy.props.StringProperty(name='ShaderCode', default='', subtype="FILE_PATH", description='')
+                codeProp = bpy.props.StringProperty(name='External File', default='', subtype="FILE_PATH", description='')
                 codeMeta = {'renderman_name' : 'filename' ,'name' : 'ShaderCode', 'renderman_type' : 'string' , 'default' : '', 'label' : 'ShaderCode', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
                 setattr(node, codeName, codeProp)
                 prop_names.append(codeName)
                 prop_meta[codeName] = codeMeta
-                #print("META: ", prop_meta["ShaderCode"])
             else:
                 name,meta,prop = generate_property(sp)
                 prop_names.append(name)
