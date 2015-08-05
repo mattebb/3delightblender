@@ -1380,8 +1380,9 @@ def get_archive_filename(scene, motion, name, relative=False):
 
 #here we would export object attributes like holdout, sr, etc
 def export_object_attributes(ri, ob):
-    pass
-
+    if ob.renderman.do_holdout:
+        ri.Attribute("identifier", {"string lpegroup":ob.renderman.lpe_group})
+        
 #for each mat in this mesh, call it, then do some shading wizardry to 
 #switch between them with PxrBxdfBlend
 def export_multi_material(ri, mesh):

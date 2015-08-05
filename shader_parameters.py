@@ -245,7 +245,7 @@ def generate_property(sp):
             for line in lines:
                 param_help = param_help + line.strip(' \t\n\r')
             
-    if param_type == 'float':
+    if 'float' in param_type:
         if 'arraySize' in sp.attrib.keys():
             param_default = tuple(float(f) for f in \
                 sp.attrib['default'].split(','))
@@ -366,6 +366,7 @@ def generate_property(sp):
                                     description=param_help, update=update_func)
         renderman_type = 'int'
         prop_meta['arraySize'] = 2
+
     
     prop_meta['renderman_type'] = renderman_type
     prop_meta['renderman_name'] = renderman_name
