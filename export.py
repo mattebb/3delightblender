@@ -1538,7 +1538,7 @@ def export_particle_archive(ri, scene, ob, psys, motion, lazy_ribgen):
 
     #if lazy rib gen is on, and archive is up to date..
     #we can skip archiving
-    if lazy_ribgen and not check_if_archive_dirty(timestamp, 
+    if lazy_ribgen and not check_if_archive_dirty(ob.renderman.update_timestamp, 
                                 archive_filename):
         pass
     else:
