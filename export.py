@@ -1432,7 +1432,7 @@ def export_object_read_archive(ri, scene, ob, motion):
             ri.Transform(rib(sample))
             
         ri.MotionEnd()
-    else:
+    elif ob.type != 'META':
         export_transform(ri, ob)
     #now the material
     mat = ob.active_material
