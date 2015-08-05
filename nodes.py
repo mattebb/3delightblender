@@ -27,6 +27,7 @@ import bpy
 import _cycles
 import xml.etree.ElementTree as ET
 
+
 import nodeitems_utils
 
 from nodeitems_utils import NodeCategory, NodeItem
@@ -190,16 +191,17 @@ class RendermanShadingNode(bpy.types.Node):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 
     def draw_nonconnectable_props(self, context, layout, prop_names):
-        
-        for prop_name in prop_names:
-            if self.bl_idname == "PxrOSLPatternNode":
-                if prop_name != 'shadercode':
-                    prop = getattr(self, prop_name)
-                    layout.prop(self, prop_name)
-                else:
-                    prop = getattr(self, prop_name)
-                    layout.prop(self, prop_name)
-            else: 
+        if self.bl_idname == "PxrOSLPatternNode":
+            prop = getattr(self, "codetypeswitch")
+            layout.prop(self, "codetypeswitch")
+            if getattr(self, "codetypeswitch") == 'INT':
+                prop = getattr(self, "internalSearch")
+                layout.prop_search(self, "internalSearch", bpy.data, "texts", text = "")
+            elif getattr(self, "codetypeswitch") == 'EXT':
+                prop = getattr(self, "shadercode")
+                layout.prop(self, "shadercode")
+        else:
+            for prop_name in prop_names:
                 prop_meta = self.prop_meta[prop_name]
                 if prop_name not in self.inputs:
                     if prop_meta['renderman_type'] == 'page':
@@ -225,9 +227,8 @@ class RendermanShadingNode(bpy.types.Node):
         self.outputs.clear()
     def RefreshNodes(self, context, nodeOR=None, materialOverride=None):
         
-        #Compile shader if from socket get node information anther way
+        #Compile shader.        If the call was from socket draw get the node information anther way.
         if hasattr(context, "node"):
-            print("CONTEXT NODE: ", context.node.name)
             node = context.node
             #print("Manual NODE: ",node)
         else:
@@ -235,13 +236,6 @@ class RendermanShadingNode(bpy.types.Node):
             node = nodeOR
             #print("Auto NODE: ", node)
         prefs = bpy.context.user_preferences.addons[__package__].preferences
-        
-        osl_path = user_path(getattr(node, 'shadercode'))
-        FileName = os.path.basename(osl_path)
-        FileNameNoEXT = os.path.splitext(FileName)[0]
-        FileNameOSO = FileNameNoEXT 
-        FileNameOSO += ".oso"
-        export_path = os.path.join(user_path(prefs.env_vars.out),"shaders", FileNameOSO)
         
         out_path = user_path(prefs.env_vars.out)
         compile_path = os.path.join(user_path(prefs.env_vars.out), "shaders")
@@ -253,7 +247,38 @@ class RendermanShadingNode(bpy.types.Node):
             pass
         else:
             os.mkdir(os.path.join(out_path , "shaders"))
-        ok = node.compile_osl(osl_path, compile_path)
+        if getattr(node, "codetypeswitch") == "EXT":
+            osl_path = user_path(getattr(node, 'shadercode'))
+            FileName = os.path.basename(osl_path)
+            FileNameNoEXT = os.path.splitext(FileName)[0]
+            FileNameOSO = FileNameNoEXT 
+            FileNameOSO += ".oso"
+            export_path = os.path.join(user_path(prefs.env_vars.out),"shaders", FileNameOSO)
+            ok = node.compile_osl(osl_path, compile_path)
+        elif getattr(node, "codetypeswitch") == "INT" and node.internalSearch:
+            script = bpy.data.texts[node.internalSearch]
+            print("Script", script)
+            osl_path = bpy.path.abspath(script.filepath, library = script.library)
+            if script.is_in_memory or script.is_dirty or script.is_modified or not os.path.exists(osl_path):
+                import tempfile
+                osl_file = tempfile.NamedTemporaryFile(mode='w', suffix=".osl", delete=False)
+                osl_file.write(script.as_string())
+                osl_file.close()
+                FileNameOSO = script.name
+                FileNameOSO += ".oso"
+                ok = node.compile_osl(osl_file.name, compile_path, script.name)
+                export_path = os.path.join(user_path(prefs.env_vars.out),"shaders", FileNameOSO)
+                os.remove(osl_file.name)
+            else:
+                ok = node.compile_osl(osl_path, compile_path)
+                FileName = os.path.basename(osl_path)
+                FileNameNoEXT = os.path.splitext(FileName)[0]
+                FileNameOSO = FileNameNoEXT 
+                FileNameOSO += ".oso"
+                export_path = os.path.join(user_path(prefs.env_vars.out),"shaders", FileNameOSO)
+        else:
+            ok = False
+            debug("osl", "Shader cannot be compiled. Shader name not specified")
         # If Shader compiled successfully then update node.
         if ok:
             debug('osl',"Shader Compiled Successfully!")
@@ -273,11 +298,15 @@ class RendermanShadingNode(bpy.types.Node):
         else:
             debug("osl", "NODE COMPILATION FAILED")
         
-    def compile_osl(self, inFile, outPath):
-        FileName = os.path.basename(inFile)
-        FileNameNoEXT = os.path.splitext(FileName)[0]
-        out_file = os.path.join(outPath, FileNameNoEXT)
-        out_file += ".oso"
+    def compile_osl(self, inFile, outPath, nameOverride = ""):
+        if nameOverride == "":
+            FileName = os.path.basename(inFile)
+            FileNameNoEXT = os.path.splitext(FileName)[0]
+            out_file = os.path.join(outPath, FileNameNoEXT)
+            out_file += ".oso"
+        else:
+            out_file = os.path.join(outPath, nameOverride)
+            out_file += ".oso"
         ok = _cycles.osl_compile(inFile, out_file)
         
         return ok
@@ -759,7 +788,7 @@ def gen_params(ri, node, mat_name=None, recurse=True):
         prop_namesOSL = getattr(getLocation, mat_name + node.name + "prop_namesOSL")
         params['%s' % ("shader")] = getattr(getLocation, mat_name + node.name + "shader")
         for prop_name in prop_namesOSL:
-            if prop_name == "shadercode":
+            if prop_name == "shadercode" or prop_name == "codetypeswitch" or prop_name == "internalSearch":
                     pass
             else:
                 if getattr(getLocation, mat_name +  node.name + prop_name + "type") == "OUT":
