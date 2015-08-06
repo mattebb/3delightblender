@@ -381,7 +381,8 @@ socket_map = {
     'integer':'RendermanNodeSocketInt', 
     'struct':'RendermanNodeSocketStruct',
     'normal':'RendermanNodeSocketVector',
-    'vector':'RendermanNodeSocketVector'
+    'vector':'RendermanNodeSocketVector',
+    'void': 'RendermanNodeSocketStruct'
 }
 
 #add input sockets

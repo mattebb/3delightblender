@@ -86,6 +86,10 @@ def readOSO(filePath):
                     while x <= 18: 
                         default.append(float(listLine[x]))
                         x += 1
+                elif type == "closure":
+                    debug('error', "Closure types are not supported")
+                    type = "void"
+                    name = listLine[3]
                 else:
                     default = listLine[3]
                 prop_names.append(name)
@@ -107,6 +111,10 @@ def readOSO(filePath):
                     while x <= 18:
                         default.append(listLine[x])
                         x += 1
+                elif type == "closure":
+                    debug('error', "Closure types are not supported")
+                    type = "void"
+                    name = listLine[3]
                 else:
                     default = listLine[3]
                 prop_names.append(name)
