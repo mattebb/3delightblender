@@ -264,7 +264,8 @@ class RendermanShadingNode(bpy.types.Node):
                 osl_file = tempfile.NamedTemporaryFile(mode='w', suffix=".osl", delete=False)
                 osl_file.write(script.as_string())
                 osl_file.close()
-                FileNameOSO = script.name
+                FileNameNoEXT = os.path.splitext(script.name)[0]
+                FileNameOSO = FileNameNoEXT
                 FileNameOSO += ".oso"
                 ok = node.compile_osl(osl_file.name, compile_path, script.name)
                 export_path = os.path.join(user_path(prefs.env_vars.out),"shaders", FileNameOSO)
@@ -304,9 +305,12 @@ class RendermanShadingNode(bpy.types.Node):
             FileNameNoEXT = os.path.splitext(FileName)[0]
             out_file = os.path.join(outPath, FileNameNoEXT)
             out_file += ".oso"
+            print("NAME NONOVERRIDE: ", out_file)
         else:
-            out_file = os.path.join(outPath, nameOverride)
+            FileNameNoEXT = os.path.splitext(nameOverride)[0]
+            out_file = os.path.join(outPath, FileNameNoEXT)
             out_file += ".oso"
+            print("NAME: ", out_file)
         ok = _cycles.osl_compile(inFile, out_file)
         
         return ok
