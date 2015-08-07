@@ -256,7 +256,7 @@ def is_deforming(ob):
     deforming_modifiers = ['ARMATURE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE', 
                             'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP', 
                             'SIMPLE_DEFORM', 'SMOOTH', 'WAVE', 'SOFT_BODY', 
-                            'SURFACE']
+                            'SURFACE', 'MESH_CACHE']
     if ob.modifiers:        
         # special cases for auto subd/displace detection
         if len(ob.modifiers) == 1 and is_subd_last(ob):
