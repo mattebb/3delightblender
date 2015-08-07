@@ -256,7 +256,7 @@ def is_deforming(ob):
     deforming_modifiers = ['ARMATURE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE', 
                             'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP', 
                             'SIMPLE_DEFORM', 'SMOOTH', 'WAVE', 'SOFT_BODY', 
-                            'SURFACE']
+                            'SURFACE', 'MESH_CACHE']
     if ob.modifiers:        
         # special cases for auto subd/displace detection
         if len(ob.modifiers) == 1 and is_subd_last(ob):
@@ -619,7 +619,7 @@ def get_fluid_mesh(scene, ob):
     
     mesh = create_mesh(scene, ob)
     (nverts, verts, P) = get_mesh(mesh)
-    bpy.data.meshes.remove(mesh)
+    removeMeshFromMemory(mesh.name)
     
     # use fluid vertex velocity vectors to reconstruct moving points
     P = [P[i] + fluidmeshverts[int(i/3)].velocity[i%3] * subframe * 0.5 for \
@@ -993,7 +993,7 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
     #if this is empty continue:
     if nverts == []:
         debug("error empty subdiv mesh %s" % ob.name)
-        bpy.data.meshes.remove(mesh)
+        removeMeshFromMemory(mesh.name)
         return
     tags = []
     nargs = []
@@ -1019,7 +1019,7 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
     except:
         print('sudiv problem', ob.name)
     
-    bpy.data.meshes.remove(mesh)
+    removeMeshFromMemory(mesh.name)
 
 def export_polygon_mesh(ri, scene, ob, data=None):
     debug("info","export_polygon_mesh [%s]" % ob.name)
@@ -1034,13 +1034,40 @@ def export_polygon_mesh(ri, scene, ob, data=None):
     #if this is empty continue:
     if nverts == []:
         debug("error empty poly mesh %s" % ob.name)
-        bpy.data.meshes.remove(mesh)
+        removeMeshFromMemory(mesh.name)
         return
     primvars = get_primvars(ob, mesh, "facevarying")
     primvars['P'] = P
     #if this is a multi_material mesh output materials
     ri.PointsPolygons(nverts, verts, primvars)
-    bpy.data.meshes.remove(mesh)
+    removeMeshFromMemory(mesh.name)
+
+def removeMeshFromMemory (passedName):
+    # Extra test because this can crash Blender if not done correctly.
+    result = False
+    mesh = bpy.data.meshes.get(passedName)
+    if mesh != None:
+        if mesh.users == 0:
+            try:
+                mesh.user_clear()
+                can_continue = True
+            except:
+                can_continue = False
+            
+            if can_continue == True:
+                try:
+                    bpy.data.meshes.remove(mesh)
+                    result = True
+                except:
+                    result = False
+            else:
+                # Unable to clear users, something is holding a reference to it.
+                # Can't risk removing. Favor leaving it in memory instead of risking a crash.
+                result = False
+    else:
+        # We could not fetch it, it does not exist in memory, essentially removed.
+        result = True
+    return result
 
 def export_points(ri, scene, ob, motion):
     rm = ob.renderman
@@ -1066,7 +1093,7 @@ def export_points(ri, scene, ob, motion):
     if motion_blur:
         ri.MotionEnd()
             
-    bpy.data.meshes.remove(mesh)
+    removeMeshFromMemory(mesh.name)
 
 #make an ri Volume from the smoke modifier
 def export_smoke(ri, ob):
