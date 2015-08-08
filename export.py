@@ -1383,17 +1383,19 @@ def export_object_attributes(ri, ob):
     if ob.renderman.do_holdout:
         ri.Attribute("identifier", {"string lpegroup":ob.renderman.lpe_group})
     
+    #shading attributes
     if ob.renderman.shadingrate_override:
-        ri.Attribute("shade", {"float shadingrate":ob.renderman.shadingrate})
+        ri.ShadingRate(ob.renderman.shadingrate)
 
     if ob.renderman.shadinginterpolation != 'smooth':
-        ri.Attribute("volume", {"string depthinterpolation":ob.renderman.shadinginterpolation})
+        ri.ShadingInterpolation(ob.renderman.shadinginterpolation)
 
     if ob.renderman.geometric_approx_motion != 1.0:
         ri.Attribute("Ri", {"float motionfactor":ob.renderman.geometric_approx_motion})
 
     if ob.renderman.geometric_approx_focus != 1.0:
         ri.Attribute("Ri", {"float focusfactor":ob.renderman.geometric_approx_focus})
+
 
 #for each mat in this mesh, call it, then do some shading wizardry to 
 #switch between them with PxrBxdfBlend
