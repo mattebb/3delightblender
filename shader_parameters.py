@@ -197,7 +197,13 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 prop_names.append(name)
                 prop_meta[name] = meta
                 setattr(node, name, prop)
-            
+                if name == "filename":
+                    optionsNames, optionsMeta, optionsProps = generate_txmake_options(parent_name)
+                    for Texname in optionsNames:
+                        prop_names.append(Texname)
+                        prop_meta[Texname] = optionsMeta[Texname]
+                        setattr(node, Texname, optionsProps[Texname])
+                        #print("NAME: ", Texname, "META: ", optionsMeta[Texname], "PROPS: ", optionsProps[Texname])
         i += 1
     setattr(node, 'prop_names', prop_names)
     setattr(node, 'prop_meta', prop_meta)
@@ -372,6 +378,25 @@ def generate_property(sp):
     prop_meta['renderman_name'] = renderman_name
     return (param_name, prop_meta, prop)
 
+
+def generate_txmake_options(parent_name):
+    optionsMeta = {}
+    optionsProps = {}
+    txmake = txmake_options()
+    for option in txmake.index:
+        optionObject = getattr(txmake, option)
+        #print("OPTIONS: ", option, "OBJECT: ", optionObject)
+        #for things in getattr(txmake, option):
+            #print("THINGS: ", things)
+        if optionObject['type'] == "bool":
+            name = optionObject['name']
+            optionsProps[name] = "" #bpy.props.BoolProperty(name = optionObject['dispName'], default = optionObject['default'], description = optionObject['help'])
+        elif optionObject['type'] == "enum":
+            #print("NAME: ", optionObject["name"],"TYPE: ", type(optionObject["name"]), "OPTIONSPROPS: ", optionsProps)
+            optionsProps[optionObject["name"]] = bpy.props.EnumProperty(name= optionObject["dispName"], default= optionObject["default"], description=optionObject["help"], items=optionObject["items"])
+            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'string' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
+    return txmake.index, optionsMeta, optionsProps
+
 #map types in args files to socket types
 socket_map = {
     'float':'RendermanNodeSocketFloat',
@@ -384,6 +409,16 @@ socket_map = {
     'vector':'RendermanNodeSocketVector',
     'void': 'RendermanNodeSocketStruct'
 }
+
+class txmake_options(): 
+    index = ["smode", "tmode", "outFileType", "dataType"]
+    smode = {'name' : "smode" , 'type':"enum", "default" : "PER", "items" : [("PER", "Periodic", ""), ("CMP" , "Clamp", "")] , "dispName" : "Smode", "help" : "The X dimension tiling"}
+    tmode = {'name' : "tmode", 'type':"enum", "default" : "PER", "items" : [("PER", "Periodic", ""), ("CMP" , "Clamp", "")] , "dispName" : "Tmode", "help" : "The Y dimension tiling"}
+    outFileType = {'name' : "outFileType", 'type':"enum", "default" : "TIF", "items" : [("PXR", "Pixar", ""), ("OEXR" , "OpenEXR", ""), ("TIF", "TIFF", "")] , "dispName" : "Out File Type", "help" : "The type of output image that txmake creates"}
+    dataType = {'name' : "dataType", 'type':"enum", "default" : "FLT", "items" : [("FLT", "Float", ""), ("BYT" , "Byte", ""), ("SHR", "Short", ""), ("HAF", "Half", "")] , "dispName" : "Data Type", "help" : "The data storage txmake uses"}
+            #'shadow' : {"type" : "bool", "default" : "False", "dispName" : "Shadow"},
+            #'sblur' : {"type" : "float", "default" : 0 , "dispName" : "Sblur"},
+            #'Tblur' : {"type" : "float", "default" : 0 , "dispName" : "Tblur"}
 
 #add input sockets
 def node_add_inputs(node, node_name, shaderparameters):
