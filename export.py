@@ -1409,7 +1409,40 @@ def get_archive_filename(scene, motion, name, relative=False):
 def export_object_attributes(ri, ob):
     if ob.renderman.do_holdout:
         ri.Attribute("identifier", {"string lpegroup":ob.renderman.lpe_group})
-        
+    
+    #shading attributes
+    if ob.renderman.shadingrate_override:
+        ri.ShadingRate(ob.renderman.shadingrate)
+
+    if ob.renderman.shadinginterpolation != 'smooth':
+        ri.ShadingInterpolation(ob.renderman.shadinginterpolation)
+
+    if ob.renderman.geometric_approx_motion != 1.0:
+        ri.Attribute("Ri", {"float motionfactor":ob.renderman.geometric_approx_motion})
+
+    if ob.renderman.geometric_approx_focus != 1.0:
+        ri.Attribute("Ri", {"float focusfactor":ob.renderman.geometric_approx_focus})
+
+    #visibility attributes
+    params = {}
+    if not ob.renderman.visibility_camera:
+        params["int camera"] = 0
+
+    if not ob.renderman.visibility_trace_diffuse:
+        params["int diffuse"] = 0
+
+    if not ob.renderman.visibility_trace_specular:
+        params["int specular"] = 0
+
+    if not ob.renderman.visibility_trace_transmission:
+        params["int transmission"] = 0
+
+    ri.Attribute("visibility", params)
+    
+    if ob.renderman.matte:
+        ri.Matte(ob.renderman.matte)
+
+
 #for each mat in this mesh, call it, then do some shading wizardry to 
 #switch between them with PxrBxdfBlend
 def export_multi_material(ri, mesh):
