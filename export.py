@@ -1381,6 +1381,9 @@ def export_duplis(ri, scene, ob, motion):
             ri.ObjectEnd()
             object_masters[dupob.object.name] = instance_handle
 
+    #export "null" bxdf to clear material for object mater
+    ri.Bxdf("null", "null")
+
     for dupob in ob.dupli_list:
         dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name, 
             dupob.index)
@@ -1659,22 +1662,18 @@ def export_objects(ri, rpass, scene, motion):
     lazy_ribgen = scene.renderman.lazy_rib_gen
     objects = renderable_objects(scene)
     data_object_map = map_objects_to_data(objects, scene)
-    
     #for each mesh used output an archive
     for mesh_name,objects in data_object_map.items():
         export_mesh_archive(ri, scene, objects[0], mesh_name, 
             motion, lazy_ribgen)
-        for ob in objects:
-            update_timestamp(rpass, ob)
         
     #particles are their own data block output their archives
     psys_exported = []
     for ob in scene.objects:
         for psys in ob.particle_systems:
             if psys.settings.render_type not in ['OBJECT', 'GROUP']:
-                export_particle_archive(ri, scene,ob,psys, motion, lazy_ribgen)
+                export_particle_archive(ri, scene, ob,psys, motion, lazy_ribgen)
                 psys_exported.append((psys, ob))
-
     #look for duplis
     dupli_obs_exported = []
     for ob in scene.objects:
@@ -1688,7 +1687,6 @@ def export_objects(ri, rpass, scene, motion):
                     export_dupli_archive(ri, scene, ob, motion, lazy_ribgen)
                     dupli_obs_exported.append(ob)
                     break
-    
     #finally read those objects into the scene    
     for ob in renderable_objects(scene):
         if ob.type in ['CAMERA', 'LAMP']:
@@ -1705,7 +1703,7 @@ def export_objects(ri, rpass, scene, motion):
 
     for dupli_ob in dupli_obs_exported:
         export_dupli_read_archive(ri, scene, dupli_ob, motion)
-
+    
 #update the timestamp on an object from the time the rib writing started:
 def update_timestamp(rpass, obj):
     if obj and rpass.update_time:
@@ -2145,7 +2143,7 @@ def write_rib(rpass, scene, ri):
     rpass.archives = []
 
     motion = get_motion(scene)
-
+    
     export_header(ri)
     export_searchpaths(ri, rpass.paths)
     
