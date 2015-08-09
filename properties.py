@@ -1406,7 +1406,7 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     geometric_approx_focus = FloatProperty(
                 name="Focus Approximation",
                 description="Shading Rate is scaled proportionally to the radius of DoF circle of confusion, multiplied by this value",
-                default=1.0)
+                default=-1.0)
 
     motion_segments_override = BoolProperty(
                 name="Override Motion Segments",
@@ -1435,27 +1435,36 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     visibility_trace_diffuse = BoolProperty(
                 name="Visible to Diffuse Rays",
                 description="Visibility to Diffuse Rays (eg. gather(), indirectdiffuse() and occlusion())",
+                default=False)
+    visibility_trace_specular = BoolProperty(
+                name="Visible to Specular Rays",
+                description="Visibility to Specular Rays (eg. gather(), trace() and environment())",
+                default=False)
+    visibility_trace_indirect = BoolProperty(
+                name="All Indirect",
+                description="Sets all the indirect transport modes at once (specular & diffuse)",
                 default=True)
+    visibility_trace_transmission = BoolProperty(
+                name="Visible to Transmission Rays",
+                description="Visibility to Transmission Rays (eg. shadow() and transmission())",
+                default=True)
+    visibility_trace_midpoint = BoolProperty(
+                name="Apply Midpoint Depth Filter",
+                description="Controls the visibility of the current object to the 'midpoint' depth filter",
+                default=False)
+
     trace_diffuse_hitmode = EnumProperty(
                 name="Diffuse Hit Mode",
                 description="How the surface calculates are result when hit by diffuse rays",
                 items=[('primitive', 'Primitive', 'Returns the un-shaded primitive object color (Cs)'),
                         ('shader', 'Shader', 'Runs the object\'s shader to return a color (Ci)')],
-                default='shader')
-    visibility_trace_specular = BoolProperty(
-                name="Visible to Specular Rays",
-                description="Visibility to Specular Rays (eg. gather(), trace() and environment())",
-                default=True)
+                default='shader')    
     trace_specular_hitmode = EnumProperty(
                 name="Diffuse Hit Mode",
                 description="How the surface calculates are result when hit by diffuse rays",
                 items=[('primitive', 'Primitive', 'Returns the un-shaded primitive object color (Cs)'),
                         ('shader', 'Shader', 'Runs the object\'s shader to return a color (Ci)')],
-                default='shader')
-    visibility_trace_transmission = BoolProperty(
-                name="Visible to Transmission Rays",
-                description="Visibility to Transmission Rays (eg. shadow() and transmission())",
-                default=True)
+                default='shader')    
     trace_transmission_hitmode = EnumProperty(
                 name="Transmission Hit Mode",
                 description="How the surface calculates are result when hit by diffuse rays",
@@ -1471,7 +1480,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 description="Visibility to Shadow Maps",
                 default=True)
 
-
     trace_displacements = BoolProperty(
                 name="Trace Displacements",
                 description="Enable high resolution displaced geometry for ray tracing",
@@ -1481,7 +1489,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 name="Trace Motion Blur",
                 description="Rays cast from this object can intersect other motion blur objects",
                 default=False)
-
 
     photon_reflectance = FloatVectorProperty(
                 name="Photon Reflectance",

@@ -1631,33 +1631,21 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
         rm = ob.renderman
         
         col = layout.column()
-        col.prop(rm, "visibility_camera", text="Camera")
         row = col.row()
-        row.prop(rm, "visibility_trace_diffuse", text="Diffuse Rays")
-        row.prop(rm, "trace_diffuse_hitmode", text="")
-        
+        row.prop(rm, "visibility_camera", text="Camera")
+        row.prop(rm, "visibility_trace_diffuse", text="Diffuse Rays")  
         row = col.row()
         row.prop(rm, "visibility_trace_specular", text="Specular Rays")
-        row.prop(rm, "trace_specular_hitmode", text="")
-        
+        row.prop(rm, "visibility_trace_indirect", text="Indirect")          
         row = col.row()
         row.prop(rm, "visibility_trace_transmission", text="Transmission Rays")
-        row.prop(rm, "trace_transmission_hitmode", text="")
+        row.prop(rm, "visibility_trace_midpoint", text="Use Midpoint Filter")       
+        row = col.row()
+        row.prop(rm, "matte")
         
-        col.prop(rm, "visibility_photons", text="Photons")
-        col.prop(rm, "visibility_shadowmaps", text="Shadow Maps")
         
-        col.prop(rm, "trace_displacements")
-        col.prop(rm, "trace_samplemotion")
-        
-        col.separator()
-        
-        col.prop(rm, "matte")
-        
-        col.separator()
-        
-        self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
-                                        "object", "trace_set", "trace_set_index")
+        #self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
+        #                                "object", "trace_set", "trace_set_index")
 
 class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, Panel):
     bl_space_type = 'PROPERTIES'

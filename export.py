@@ -1407,37 +1407,52 @@ def get_archive_filename(scene, motion, name, relative=False):
 
 #here we would export object attributes like holdout, sr, etc
 def export_object_attributes(ri, ob):
+
+    #save space! don't export default attribute settings to the RIB
+
     if ob.renderman.do_holdout:
         ri.Attribute("identifier", {"string lpegroup":ob.renderman.lpe_group})
     
     #shading attributes
+
     if ob.renderman.shadingrate_override:
         ri.ShadingRate(ob.renderman.shadingrate)
 
-    if ob.renderman.shadinginterpolation != 'smooth':
+    #Blender default is 'smooth', RIS default is 'constant'?
+    if ob.renderman.shadinginterpolation == 'smooth':
         ri.ShadingInterpolation(ob.renderman.shadinginterpolation)
 
-    if ob.renderman.geometric_approx_motion != 1.0:
-        ri.Attribute("Ri", {"float motionfactor":ob.renderman.geometric_approx_motion})
+    approx_params = {}
+    #output motionfactor always, could not find documented default value
+    approx_params["float motionfactor"] = ob.renderman.geometric_approx_motion
 
-    if ob.renderman.geometric_approx_focus != 1.0:
-        ri.Attribute("Ri", {"float focusfactor":ob.renderman.geometric_approx_focus})
+    if ob.renderman.geometric_approx_focus != -1.0:
+        approx_params["float focusfactor"] = ob.renderman.geometric_approx_focus
+
+    ri.Attribute("Ri", approx_params)
 
     #visibility attributes
-    params = {}
+    vis_params = {}
     if not ob.renderman.visibility_camera:
         params["int camera"] = 0
 
-    if not ob.renderman.visibility_trace_diffuse:
-        params["int diffuse"] = 0
+    if ob.renderman.visibility_trace_diffuse:
+        vis_params["int diffuse"] = 1
 
-    if not ob.renderman.visibility_trace_specular:
-        params["int specular"] = 0
+    if ob.renderman.visibility_trace_specular:
+        vis_params["int specular"] = 1
+
+    if not ob.renderman.visibility_trace_indirect:
+        vis_params["int indirect"] = 0
 
     if not ob.renderman.visibility_trace_transmission:
-        params["int transmission"] = 0
+        vis_params["int transmission"] = 0
 
-    ri.Attribute("visibility", params)
+    if ob.renderman.visibility_trace_midpoint:
+        vis_params["int midpoint"] = 1
+
+    if len(vis_params) > 0 :
+        ri.Attribute("visibility", vis_params)
     
     if ob.renderman.matte:
         ri.Matte(ob.renderman.matte)
