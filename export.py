@@ -1457,8 +1457,8 @@ def export_object_attributes(ri, ob):
     if ob.renderman.matte:
         ri.Matte(ob.renderman.matte)
 
-    if not bpy.data.meshes[ob.name].show_double_sided:
-        ri.Sides(1)
+    #if not bpy.data.meshes[ob.name].show_double_sided:
+    #    ri.Sides(1)
 
     #ray tracing attributes
     if ob.renderman.raytrace_override:
