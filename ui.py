@@ -1647,6 +1647,47 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
         #self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
         #                                "object", "trace_set", "trace_set_index")
 
+class OBJECT_PT_renderman_object_raytracing(Panel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+    bl_label = "Renderman Ray Tracing"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return (context.object and rd.engine in {'PRMAN_RENDER'})
+
+    def draw(self, context):
+        layout = self.layout        
+        ob = context.object
+        rm = ob.renderman        
+
+        layout.prop(rm, "raytrace_override", text="Override Ray Tracing")
+        layout.label("For advanced Renderman users only!", icon="ERROR")
+
+        col = layout.column()
+        col.active = rm.raytrace_override 
+        row = col.row()                  
+        row.prop(rm, "raytrace_maxdiffusedepth", text="Max Diffuse Depth")
+        row = col.row()
+        row.prop(rm, "raytrace_maxspeculardepth", text="Max Specular Depth")
+        row = col.row()
+        row.prop(rm, "raytrace_truedisplacements", text="True Displacements")
+        row = col.row()
+        row.prop(rm, "raytrace_autobias", text="Ray Origin Auto Bias")
+        row = col.row()
+        row.prop(rm, "raytrace_bias", text="Ray Origin Bias Amount")
+        row.active = not rm.raytrace_autobias
+        row = col.row()
+        row.prop(rm, "raytrace_samplemotion", text="Sample Motion Blur")
+        row = col.row()
+        row.prop(rm, "raytrace_decimationrate", text="Decimation Rate")
+        row = col.row()
+        row.prop(rm, "raytrace_intersectpriority", text="Intersection Priority")
+
+
 class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -1677,6 +1718,8 @@ class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, Panel):
         
         self._draw_collection(context, layout, rm, "Light Link:", "collection.add_remove",
                                         "object", "light_linking", "light_linking_index")
+
+
 
 
 from bl_ui.properties_particle import ParticleButtonsPanel

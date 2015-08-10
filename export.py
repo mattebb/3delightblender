@@ -1434,7 +1434,7 @@ def export_object_attributes(ri, ob):
     #visibility attributes
     vis_params = {}
     if not ob.renderman.visibility_camera:
-        params["int camera"] = 0
+        vis_params["int camera"] = 0
 
     if ob.renderman.visibility_trace_diffuse:
         vis_params["int diffuse"] = 1
@@ -1457,6 +1457,38 @@ def export_object_attributes(ri, ob):
     if ob.renderman.matte:
         ri.Matte(ob.renderman.matte)
 
+    if not bpy.data.meshes[ob.name].show_double_sided:
+        ri.Sides(1)
+
+    #ray tracing attributes
+    if ob.renderman.raytrace_override:
+
+        trace_params = {}
+
+        if ob.renderman.raytrace_maxdiffusedepth != 1:
+            trace_params["int maxdiffusedepth"] = ob.renderman.raytrace_maxdiffusedepth
+
+        if ob.renderman.raytrace_maxspeculardepth != 2:
+            trace_params["int maxspeculardepth"] = ob.renderman.raytrace_maxdiffusedepth
+
+        if ob.renderman.raytrace_truedisplacements:
+            trace_params["int displacements"] = 1
+
+        if not ob.renderman.raytrace_autobias:
+            trace_params["int autobias"] = 0
+            if ob.renderman.raytrace_bias != 0.01:
+                trace_params["float bias"] = ob.renderman.raytrace_bias
+
+        if ob.renderman.raytrace_samplemotion:
+            trace_params["int samplemotion"] = 1
+
+        if ob.renderman.raytrace_decimationrate != 1:
+            trace_params["int decimationrate"] = ob.renderman.raytrace_decimationrate
+
+        if ob.renderman.raytrace_intersectpriority != 0:
+            trace_params["int intersectpriority"] = ob.renderman.raytrace_intersectpriority
+
+        ri.Attribute("trace", trace_params)
 
 #for each mat in this mesh, call it, then do some shading wizardry to 
 #switch between them with PxrBxdfBlend
