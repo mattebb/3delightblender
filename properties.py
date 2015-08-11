@@ -1391,9 +1391,10 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 description="Size of the rendered points",
                 default=0.1)
 
-    shadingrate_override = BoolProperty(
-                name="Override Shading Rate",
-                description="Override the global shading rate for this object",
+
+    shading_override = BoolProperty(
+                name="Override Default Object Shading",
+                description="Override the default shading attributes for this object",
                 default=False)
     shadingrate = FloatProperty(
                 name="Shading Rate",
@@ -1416,13 +1417,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 name="Motion Segments",
                 description="Number of motion segments to take for multi-segment motion blur",
                 min=1, max=16, default=1)
-                
-    shadinginterpolation = EnumProperty(
-                name="Shading Interpolation",
-                description="Method of interpolating shade samples across micropolygons",
-                items=[('constant', 'Constant', 'Flat shaded micropolygons'),
-                        ('smooth', 'Smooth', 'Gourard shaded micropolygons')],
-                default='smooth')
 
     matte = BoolProperty(
                 name="Matte Object",
@@ -1432,14 +1426,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 name="Visible to Camera",
                 description="Visibility to Camera",
                 default=True)
-    visibility_trace_diffuse = BoolProperty(
-                name="Visible to Diffuse Rays",
-                description="Visibility to Diffuse Rays (eg. gather(), indirectdiffuse() and occlusion())",
-                default=False)
-    visibility_trace_specular = BoolProperty(
-                name="Visible to Specular Rays",
-                description="Visibility to Specular Rays (eg. gather(), trace() and environment())",
-                default=False)
     visibility_trace_indirect = BoolProperty(
                 name="All Indirect",
                 description="Sets all the indirect transport modes at once (specular & diffuse)",
@@ -1448,15 +1434,10 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 name="Visible to Transmission Rays",
                 description="Visibility to Transmission Rays (eg. shadow() and transmission())",
                 default=True)
-    visibility_trace_midpoint = BoolProperty(
-                name="Apply Midpoint Depth Filter",
-                description="Controls the visibility of the current object to the 'midpoint' depth filter",
-                default=False)
-
 
     raytrace_override = BoolProperty(
                 name="Ray Trace Override",
-                description="Override default Renderman ray tracing behavior with these settings",
+                description="Override default Renderman ray tracing behavior. Recommended for advanced users only.",
                 default=False)
     raytrace_maxdiffusedepth = IntProperty(
                 name="Max Diffuse Depth",
@@ -1466,10 +1447,10 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 name="Max Specular Depth",
                 description="Limit the number of specular bounces",
                 min=1, max=16, default=2)
-    raytrace_truedisplacements = BoolProperty(
-                name="True Displacements",
-                description="Show true displacement in rendered results",
-                default=False)
+    raytrace_tracedisplacements = BoolProperty(
+                name="Trace Displacements",
+                description="Ray Trace true displacement in rendered results",
+                default=True)
     raytrace_autobias = BoolProperty(
                 name="Ray Origin Auto Bias",
                 description="Bias value is automatically computed",
@@ -1490,8 +1471,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 name="Intersect Priority",
                 description="Dictates a priority used when ray tracing overlapping materials",
                 default=0)
-
-
     
     # Light-Linking
     light_linking = CollectionProperty(type=LightLinking, name='Light Linking')

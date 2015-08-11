@@ -1565,13 +1565,8 @@ class OBJECT_PT_renderman_object_geometry(Panel):
         row.prop(rm, "motion_segments_override", text="")
         sub = row.row()
         sub.active = rm.motion_segments_override
-        sub.prop(rm, "motion_segments")    
-
-        row = col.row()
-        row.prop(rm, 'do_holdout')    
-        sub = col.row()
-        sub.enabled = rm.do_holdout
-        sub.prop(rm, 'lpe_group')
+        sub.prop(rm, "motion_segments")
+        
                 
 class OBJECT_PT_renderman_object_render_shading(Panel):
     bl_space_type = 'PROPERTIES'
@@ -1590,18 +1585,26 @@ class OBJECT_PT_renderman_object_render_shading(Panel):
         rm = ob.renderman
         
         col = layout.column()
-        col.prop(rm, "shadinginterpolation", text="Interpolation")
         
         row = col.row()
-        row.prop(rm, "shadingrate_override", text="")
-        sub = row.row()
-        sub.active = rm.shadingrate_override
-        sub.prop(rm, "shadingrate")
 
+        row.prop(rm, 'do_holdout')    
+        sub = col.row()
+        sub.enabled = rm.do_holdout
+        sub.prop(rm, 'lpe_group')
+        
         col.separator()
+        row = col.row()
+        row.prop(rm, 'shading_override')
 
-        col.prop(rm, "geometric_approx_motion")
-        col.prop(rm, "geometric_approx_focus")
+        colgroup = layout.column()
+        colgroup.enabled = rm.shading_override        
+        row = colgroup.row()
+        row.prop(rm, "shadingrate")
+        row = colgroup.row()
+        row.prop(rm, "geometric_approx_motion")
+        row = colgroup.row()
+        row.prop(rm, "geometric_approx_focus")
 
 
 class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
@@ -1633,19 +1636,14 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
         col = layout.column()
         row = col.row()
         row.prop(rm, "visibility_camera", text="Camera")
-        row.prop(rm, "visibility_trace_diffuse", text="Diffuse Rays")  
+        row.prop(rm, "visibility_trace_indirect", text="Indirect")  
         row = col.row()
-        row.prop(rm, "visibility_trace_specular", text="Specular Rays")
-        row.prop(rm, "visibility_trace_indirect", text="Indirect")          
-        row = col.row()
-        row.prop(rm, "visibility_trace_transmission", text="Transmission Rays")
-        row.prop(rm, "visibility_trace_midpoint", text="Use Midpoint Filter")       
-        row = col.row()
+        row.prop(rm, "visibility_trace_transmission", text="Transmission")   
         row.prop(rm, "matte")
         
         
-        #self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
-        #                                "object", "trace_set", "trace_set_index")
+        self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
+                                      "object", "trace_set", "trace_set_index")
 
 class OBJECT_PT_renderman_object_raytracing(Panel):
     bl_space_type = 'PROPERTIES'
@@ -1664,8 +1662,7 @@ class OBJECT_PT_renderman_object_raytracing(Panel):
         ob = context.object
         rm = ob.renderman        
 
-        layout.prop(rm, "raytrace_override", text="Override Ray Tracing")
-        layout.label("For advanced Renderman users only!", icon="ERROR")
+        layout.prop(rm, "raytrace_override", text="Override Default Ray Tracing")
 
         col = layout.column()
         col.active = rm.raytrace_override 
@@ -1674,7 +1671,7 @@ class OBJECT_PT_renderman_object_raytracing(Panel):
         row = col.row()
         row.prop(rm, "raytrace_maxspeculardepth", text="Max Specular Depth")
         row = col.row()
-        row.prop(rm, "raytrace_truedisplacements", text="True Displacements")
+        row.prop(rm, "raytrace_tracedisplacements", text="Trace Displacements")
         row = col.row()
         row.prop(rm, "raytrace_autobias", text="Ray Origin Auto Bias")
         row = col.row()

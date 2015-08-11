@@ -1410,46 +1410,33 @@ def export_object_attributes(ri, ob):
 
     #save space! don't export default attribute settings to the RIB
 
-    if ob.renderman.do_holdout:
-        ri.Attribute("identifier", {"string lpegroup":ob.renderman.lpe_group})
-    
     #shading attributes
 
-    if ob.renderman.shadingrate_override:
+    if ob.renderman.do_holdout:
+        ri.Attribute("identifier", {"string lpegroup":ob.renderman.lpe_group})    
+
+    if ob.renderman.shading_override:    
         ri.ShadingRate(ob.renderman.shadingrate)
 
-    #Blender default is 'smooth', RIS default is 'constant'?
-    if ob.renderman.shadinginterpolation == 'smooth':
-        ri.ShadingInterpolation(ob.renderman.shadinginterpolation)
+        approx_params = {}
+        #output motionfactor always, could not find documented default value?
+        approx_params["float motionfactor"] = ob.renderman.geometric_approx_motion
 
-    approx_params = {}
-    #output motionfactor always, could not find documented default value
-    approx_params["float motionfactor"] = ob.renderman.geometric_approx_motion
+        if ob.renderman.geometric_approx_focus != -1.0:
+            approx_params["float focusfactor"] = ob.renderman.geometric_approx_focus
 
-    if ob.renderman.geometric_approx_focus != -1.0:
-        approx_params["float focusfactor"] = ob.renderman.geometric_approx_focus
-
-    ri.Attribute("Ri", approx_params)
+        ri.Attribute("Ri", approx_params)
 
     #visibility attributes
     vis_params = {}
     if not ob.renderman.visibility_camera:
         vis_params["int camera"] = 0
 
-    if ob.renderman.visibility_trace_diffuse:
-        vis_params["int diffuse"] = 1
-
-    if ob.renderman.visibility_trace_specular:
-        vis_params["int specular"] = 1
-
     if not ob.renderman.visibility_trace_indirect:
         vis_params["int indirect"] = 0
 
     if not ob.renderman.visibility_trace_transmission:
         vis_params["int transmission"] = 0
-
-    if ob.renderman.visibility_trace_midpoint:
-        vis_params["int midpoint"] = 1
 
     if len(vis_params) > 0 :
         ri.Attribute("visibility", vis_params)
@@ -1469,10 +1456,10 @@ def export_object_attributes(ri, ob):
             trace_params["int maxdiffusedepth"] = ob.renderman.raytrace_maxdiffusedepth
 
         if ob.renderman.raytrace_maxspeculardepth != 2:
-            trace_params["int maxspeculardepth"] = ob.renderman.raytrace_maxdiffusedepth
+            trace_params["int maxspeculardepth"] = ob.renderman.raytrace_maxspeculardepth
 
-        if ob.renderman.raytrace_truedisplacements:
-            trace_params["int displacements"] = 1
+        if not ob.renderman.raytrace_tracedisplacements:
+            trace_params["int displacements"] = 0
 
         if not ob.renderman.raytrace_autobias:
             trace_params["int autobias"] = 0
