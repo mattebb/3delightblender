@@ -151,7 +151,6 @@ def generate_page(sp, node):
 
 def class_generate_properties(node, parent_name, shaderparameters):
     prop_names = []
-    
     prop_meta = {}
     i = 0
     for sp in shaderparameters:
@@ -171,7 +170,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                     setattr(node, sub_param_names[i], sub_props[i])
         else:
             if parent_name == "PxrOSL" and i == 0:
-                #Enum for internal external or type selection
+                #Enum for internal, external type selection
                 EnumName = "codetypeswitch"
                 EnumProp = bpy.props.EnumProperty(items= (('EXT', "External", ""), ('INT', "Internal", "")), name="Shader Location", default='INT')
                 EnumMeta = {'renderman_name' : 'filename' ,'name' : 'codetypeswitch', 'renderman_type' : 'string' , 'default' : '', 'label' : 'codetypeswitch', 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
@@ -185,7 +184,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 setattr(node, InternalName, InternalProp)
                 prop_names.append(InternalName)
                 prop_meta[InternalName] = InternalMeta
-                #External file
+                #External file prop
                 codeName = "shadercode"
                 codeProp = bpy.props.StringProperty(name='External File', default='', subtype="FILE_PATH", description='')
                 codeMeta = {'renderman_name' : 'filename' ,'name' : 'ShaderCode', 'renderman_type' : 'string' , 'default' : '', 'label' : 'ShaderCode', 'type': 'string', 'options': '', 'widget' : 'fileinput', 'connectable' : 'false'}
@@ -199,11 +198,17 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 setattr(node, name, prop)
                 if name == "filename":
                     optionsNames, optionsMeta, optionsProps = generate_txmake_options(parent_name)
+                    #make texoptions hider
+                    prop_names.append("texoptions")
+                    prop_meta["texoptions"] = {'renderman_type':'page'}
+                    setattr(node, "texoptions", optionsNames)
+                    ui_label = "%s_ui_open" % "texoptions"
+                    setattr(node, ui_label, bpy.props.BoolProperty(name=ui_label, 
+                            default=False))
+                    prop_meta.update(optionsMeta)
                     for Texname in optionsNames:
-                        prop_names.append(Texname)
-                        prop_meta[Texname] = optionsMeta[Texname]
+                        setattr(node, Texname + "_ui_open", optionsProps[Texname])
                         setattr(node, Texname, optionsProps[Texname])
-                        #print("NAME: ", Texname, "META: ", optionsMeta[Texname], "PROPS: ", optionsProps[Texname])
         i += 1
     setattr(node, 'prop_names', prop_names)
     setattr(node, 'prop_meta', prop_meta)
@@ -394,7 +399,7 @@ def generate_txmake_options(parent_name):
         elif optionObject['type'] == "enum":
             #print("NAME: ", optionObject["name"],"TYPE: ", type(optionObject["name"]), "OPTIONSPROPS: ", optionsProps)
             optionsProps[optionObject["name"]] = bpy.props.EnumProperty(name= optionObject["dispName"], default= optionObject["default"], description=optionObject["help"], items=optionObject["items"])
-            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'string' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
+            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'enum' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
     return txmake.index, optionsMeta, optionsProps
 
 #map types in args files to socket types
@@ -411,14 +416,11 @@ socket_map = {
 }
 
 class txmake_options(): 
-    index = ["smode", "tmode", "outFileType", "dataType"]
-    smode = {'name' : "smode" , 'type':"enum", "default" : "PER", "items" : [("PER", "Periodic", ""), ("CMP" , "Clamp", "")] , "dispName" : "Smode", "help" : "The X dimension tiling"}
-    tmode = {'name' : "tmode", 'type':"enum", "default" : "PER", "items" : [("PER", "Periodic", ""), ("CMP" , "Clamp", "")] , "dispName" : "Tmode", "help" : "The Y dimension tiling"}
-    outFileType = {'name' : "outFileType", 'type':"enum", "default" : "TIF", "items" : [("PXR", "Pixar", ""), ("OEXR" , "OpenEXR", ""), ("TIF", "TIFF", "")] , "dispName" : "Out File Type", "help" : "The type of output image that txmake creates"}
-    dataType = {'name' : "dataType", 'type':"enum", "default" : "FLT", "items" : [("FLT", "Float", ""), ("BYT" , "Byte", ""), ("SHR", "Short", ""), ("HAF", "Half", "")] , "dispName" : "Data Type", "help" : "The data storage txmake uses"}
-            #'shadow' : {"type" : "bool", "default" : "False", "dispName" : "Shadow"},
-            #'sblur' : {"type" : "float", "default" : 0 , "dispName" : "Sblur"},
-            #'Tblur' : {"type" : "float", "default" : 0 , "dispName" : "Tblur"}
+    index = ["smode", "tmode", "format", "dataType"]
+    smode = {'name' : "smode" , 'type':"enum", "default" : "periodic", "items" : [("periodic", "Periodic", ""), ("clamp" , "Clamp", "")] , "dispName" : "Smode", "help" : "The X dimension tiling" , "exportType" : "name"}
+    tmode = {'name' : "tmode", 'type':"enum", "default" : "periodic", "items" : [("periodic", "Periodic", ""), ("clamp" , "Clamp", "")] , "dispName" : "Tmode", "help" : "The Y dimension tiling", "exportType" : "name"}
+    format = {'name' : "format", 'type':"enum", "default" : "tiff", "items" : [("pixar", "Pixar", ""), ("openexr" , "OpenEXR", ""), ("tiff", "TIFF", "")] , "dispName" : "Out File Type", "help" : "The type of output image that txmake creates" , "exportType" : "name"}
+    dataType = {'name' : "dataType", 'type':"enum", "default" : "float", "items" : [("float", "Float", ""), ("byte" , "Byte", ""), ("short", "Short", ""), ("half", "Half", "")] , "dispName" : "Data Type", "help" : "The data storage txmake uses" , "exportType" : "noname"}
 
 #add input sockets
 def node_add_inputs(node, node_name, shaderparameters):
