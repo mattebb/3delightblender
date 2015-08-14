@@ -168,6 +168,19 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 prop_meta.update(sub_params_meta)
                 for i in range(len(sub_param_names)):
                     setattr(node, sub_param_names[i], sub_props[i])
+                    if sub_param_names[i] == "filename":
+                        optionsNames, optionsMeta, optionsProps = generate_txmake_options(parent_name)
+                        #make texoptions hider
+                        prop_names.append("texoptions")
+                        prop_meta["texoptions"] = {'renderman_type':'page'}
+                        setattr(node, "texoptions", optionsNames)
+                        ui_label = "%s_ui_open" % "texoptions"
+                        setattr(node, ui_label, bpy.props.BoolProperty(name=ui_label, 
+                                default=False))
+                        prop_meta.update(optionsMeta)
+                        for Texname in optionsNames:
+                            setattr(node, Texname + "_ui_open", optionsProps[Texname])
+                            setattr(node, Texname, optionsProps[Texname])
         else:
             if parent_name == "PxrOSL" and i == 0:
                 #Enum for internal, external type selection
@@ -196,6 +209,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 prop_names.append(name)
                 prop_meta[name] = meta
                 setattr(node, name, prop)
+                #If a texture is involved and not an environment texture add options
                 if name == "filename":
                     optionsNames, optionsMeta, optionsProps = generate_txmake_options(parent_name)
                     #make texoptions hider

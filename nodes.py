@@ -233,7 +233,6 @@ class RendermanShadingNode(bpy.types.Node):
             node = context.node
             #print("Manual NODE: ",node)
         else:
-            print("OTHER METHOD: ", nodeOR.name)
             node = nodeOR
             #print("Auto NODE: ", node)
         prefs = bpy.context.user_preferences.addons[__package__].preferences
@@ -258,7 +257,6 @@ class RendermanShadingNode(bpy.types.Node):
             ok = node.compile_osl(osl_path, compile_path)
         elif getattr(node, "codetypeswitch") == "INT" and node.internalSearch:
             script = bpy.data.texts[node.internalSearch]
-            print("Script", script)
             osl_path = bpy.path.abspath(script.filepath, library = script.library)
             if script.is_in_memory or script.is_dirty or script.is_modified or not os.path.exists(osl_path):
                 import tempfile
@@ -306,12 +304,10 @@ class RendermanShadingNode(bpy.types.Node):
             FileNameNoEXT = os.path.splitext(FileName)[0]
             out_file = os.path.join(outPath, FileNameNoEXT)
             out_file += ".oso"
-            print("NAME NONOVERRIDE: ", out_file)
         else:
             FileNameNoEXT = os.path.splitext(nameOverride)[0]
             out_file = os.path.join(outPath, FileNameNoEXT)
             out_file += ".oso"
-            print("NAME: ", out_file)
         ok = _cycles.osl_compile(inFile, out_file)
         
         return ok
@@ -819,7 +815,7 @@ def gen_params(ri, node, mat_name=None, recurse=True):
     else:
         for prop_name,meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
-                print("Texture Option found: " , prop_name)
+                pass
             else:
                 prop = getattr(node, prop_name)
                 #if property group recurse
@@ -937,9 +933,8 @@ def get_textures_for_node(node, matName=""):
     else:
         for prop_name,meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
-                print("Texture Option found: " , prop_name)
+                pass
             else:
-                print("ELSE: ", prop_name)
                 prop = getattr(node, prop_name)
             
                 if meta['renderman_type'] == 'page':
@@ -960,17 +955,18 @@ def get_textures_for_node(node, matName=""):
                             if node.renderman_node_type == 'light' and "Env" in node.bl_label:
                                 textures.append((prop, out_file_name, ['-envlatl'])) #no options for now
                             else:
-                                optionsList = []
-                                for option in txmake_options.index:
-                                    partsOfOption = getattr(txmake_options, option)
-                                    if partsOfOption["exportType"] == "name":
-                                        optionsList.append("-" + option)
-                                        optionsList.append(getattr(node, option))
-                                    else:
-                                        optionsList.append("-" + getattr(node, option))
-                                print("OPTION LIST: ", optionsList)
-                                textures.append((prop, out_file_name, ['-smode', 'periodic', '-tmode', 'periodic'])) #no options for now
-
+                                if hasattr(node, "smode"):
+                                    optionsList = []
+                                    for option in txmake_options.index:
+                                        partsOfOption = getattr(txmake_options, option)
+                                        if partsOfOption["exportType"] == "name":
+                                            optionsList.append("-" + option)
+                                            optionsList.append(getattr(node, option))
+                                        else:
+                                            optionsList.append("-" + getattr(node, option))
+                                    textures.append((prop, out_file_name, optionsList)) #no options for now
+                                else:
+                                    textures.append((prop, out_file_name, ['-smode', 'periodic', '-tmode', 'periodic'])) #no options for now
     return textures
     
 def get_textures(id):
