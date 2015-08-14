@@ -287,7 +287,7 @@ def psys_name(ob, psys):
 def data_name(ob, scene):
     #if this is a blob return the family name
     if ob.type == 'META':
-        return ob.name.split('.')[0]
+        return ob.name.split('.')[0] + "-META"
 
     if ob.data.users > 1 and (ob.is_modified(scene, "RENDER") or \
         ob.is_deform_modified(scene, "RENDER") or\
@@ -1166,31 +1166,31 @@ def export_particle_system(ri, scene, ob, psys, data=None):
             export_hair(ri, scene, ob, psys, data)
 
 #many thanks to @rendermouse for this code
-def export_blobby_family(ri, scene, ob):
-    family = data_name(ob, scene)
-    fam_blobs = [ob for ob in scene.objects if ob.type == 'META' and \
-        (ob.name == family or ob.name.split('.')[0] == family)]
+def export_blobs(ri, scene, ob):
 
-    # family master obj
-    fam_master = bpy.data.objects.get(family)
+    # ob is of type MetaBall
+    # MetaBall.elements is a collection of type MetaElement
+    # MetaElement stores location vector in 'co'.    
 
     #transform 
     tform = []
 
     #opcodes
     op = []        
-    count = len(fam_blobs)
+    count = len(ob.elements)
     for i in range(count):
         op.append(1001) #only blobby ellipsoids for now...
         op.append(i * 16)
 
-    for ob_temp in fam_blobs:
-        m = ob_temp.matrix_world
+    for meta_el in ob.elements:
+        
+        loc = meta_el.co
+        m = Matrix.Translation(loc)
 
         # multiply only the scale of blobs by 2 (matches Blender threshold=0.800)
-        sc = Matrix(((2, 0, 0, 0),
-            (0, 2, 0, 0),
-            (0, 0, 2, 0),
+        sc = Matrix(((meta_el.radius, 0, 0, 0),
+            (0, meta_el.radius, 0, 0),
+            (0, 0, meta_el.radius, 0),
             (0, 0, 0, 1)))
         m2 = m*sc
         tform = tform + rib(m2)
@@ -1204,7 +1204,6 @@ def export_blobby_family(ri, scene, ob):
     parm = {}    
 
     ri.Blobby(count, op, tform, st, parm)    
-
     
 
 def export_geometry_data(ri, scene, ob, data=None):
@@ -1226,8 +1225,8 @@ def export_geometry_data(ri, scene, ob, data=None):
     elif prim == 'TORUS':
         export_torus(ri, ob)
     
-    elif prim == 'META':
-        export_blobby_family(ri, scene, ob)
+    #elif prim == 'META':
+    #    export_blobby_family(ri, scene, ob)
 
     elif prim == 'SMOKE':
         export_smoke(ri, ob)
@@ -1514,6 +1513,7 @@ def get_bounding_box(ob):
 
 #export the readarchive for an object or psys if supplied
 def export_object_read_archive(ri, scene, ob, motion):
+
     name = ob.name
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": name})
@@ -1527,8 +1527,12 @@ def export_object_read_archive(ri, scene, ob, motion):
             ri.Transform(rib(sample))
             
         ri.MotionEnd()
-    elif ob.type != 'META':
+
+    
+
+    else:
         export_transform(ri, ob)
+
     #now the material
     mat = ob.active_material
     if mat:
@@ -1585,6 +1589,20 @@ def export_dupli_read_archive(ri, scene, ob, motion):
     #we want these relative paths of the archive
     archive_filename = get_archive_filename(scene, motion, name, relative=True)
 
+    ri.ReadArchive(archive_filename)
+       
+    ri.AttributeEnd()
+
+def export_blob_read_archive(ri, scene, ob, motion):
+    name = ob.name
+    family = ob.name.split('.')[0]
+    ri.AttributeBegin()
+    ri.Attribute("identifier", {"name": family + "-META"})
+
+    #we want these relative paths of the archive
+    archive_filename = get_archive_filename(scene, motion, name, relative=True)
+    for mat in bpy.data.objects[family].data.materials:
+        export_material_archive(ri, mat)
     ri.ReadArchive(archive_filename)
        
     ri.AttributeEnd()
@@ -1658,6 +1676,22 @@ def export_dupli_archive(ri, scene, ob, motion, lazy_ribgen):
         export_duplis(ri, scene, ob, motion)
         ri.End()
 
+#export the archives for a blob.
+def export_blob_archive(ri, scene, ob, motion, lazy_ribgen):
+    name = ob.name
+    family = name.split('.')[0]
+    archive_filename = get_archive_filename(scene, motion, family + '-META')
+    
+    #if lazy rib gen is on, and archive is up to date..
+    #we can skip archiving
+    if lazy_ribgen and not check_if_archive_dirty(ob.renderman.update_timestamp, 
+                                archive_filename):
+        pass
+    else:
+        ri.Begin(archive_filename)
+        export_blobs(ri, scene, ob)
+        ri.End()
+
 #export an archive with all the materials and read it back in
 def export_materials_archive(ri, rpass, scene):
     archive_filename = user_path(scene.renderman.path_object_archive_static,
@@ -1701,13 +1735,19 @@ def export_objects(ri, rpass, scene, motion):
         for ob in objects:
             update_timestamp(rpass, ob)
         
-    #particles are their own data block output their archives
+    #particles are their own data block, output their archives
     psys_exported = []
     for ob in scene.objects:
         for psys in ob.particle_systems:
             if psys.settings.render_type not in ['OBJECT', 'GROUP']:
                 export_particle_archive(ri, scene,ob,psys, motion, lazy_ribgen)
                 psys_exported.append((psys, ob))
+
+    #metaballs are their own data block, output their archives
+    blobs_exported = []
+    for ob in bpy.data.metaballs:        
+        export_blob_archive(ri, scene, ob, motion, lazy_ribgen)
+        blobs_exported.append(ob)
 
     #look for duplis
     dupli_obs_exported = []
@@ -1727,12 +1767,11 @@ def export_objects(ri, rpass, scene, motion):
     for ob in renderable_objects(scene):
         if ob.type in ['CAMERA', 'LAMP']:
             continue
-        #for meta balls skip the ones that aren't the family master:
-        if ob.type == 'META' and data_name(ob, scene) != ob.name:
-            continue
+
         #particle systems will be exported in here own archive
         if not ob.parent:
             export_object_read_archive(ri, scene, ob, motion)
+
     
     for psys, ob in psys_exported:
         export_particle_read_archive(ri, scene, ob, motion, psys)
