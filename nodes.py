@@ -36,6 +36,7 @@ from .shader_parameters import class_generate_properties
 from .shader_parameters import node_add_inputs
 from .shader_parameters import node_add_outputs
 from .shader_parameters import socket_map
+from .shader_parameters import txmake_options
 from .shader_parameters import generate_property
 from .util import args_files_in_path
 from .util import get_path_list
@@ -232,7 +233,6 @@ class RendermanShadingNode(bpy.types.Node):
             node = context.node
             #print("Manual NODE: ",node)
         else:
-            print("OTHER METHOD: ", nodeOR.name)
             node = nodeOR
             #print("Auto NODE: ", node)
         prefs = bpy.context.user_preferences.addons[__package__].preferences
@@ -257,7 +257,6 @@ class RendermanShadingNode(bpy.types.Node):
             ok = node.compile_osl(osl_path, compile_path)
         elif getattr(node, "codetypeswitch") == "INT" and node.internalSearch:
             script = bpy.data.texts[node.internalSearch]
-            print("Script", script)
             osl_path = bpy.path.abspath(script.filepath, library = script.library)
             if script.is_in_memory or script.is_dirty or script.is_modified or not os.path.exists(osl_path):
                 import tempfile
@@ -305,12 +304,10 @@ class RendermanShadingNode(bpy.types.Node):
             FileNameNoEXT = os.path.splitext(FileName)[0]
             out_file = os.path.join(outPath, FileNameNoEXT)
             out_file += ".oso"
-            print("NAME NONOVERRIDE: ", out_file)
         else:
             FileNameNoEXT = os.path.splitext(nameOverride)[0]
             out_file = os.path.join(outPath, FileNameNoEXT)
             out_file += ".oso"
-            print("NAME: ", out_file)
         ok = _cycles.osl_compile(inFile, out_file)
         
         return ok
@@ -817,38 +814,41 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                                 rib(getattr(getLocation, mat_name + node.name + prop_name), type_hint=getattr(getLocation, mat_name + node.name + prop_name + "type"))
     else:
         for prop_name,meta in node.prop_meta.items():
-            prop = getattr(node, prop_name)
-            #if property group recurse
-            if meta['renderman_type'] == 'page':
-                continue
-            #if input socket is linked reference that
-            elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
-                from_socket = node.inputs[prop_name].links[0].from_socket
-                if recurse:
-                    shader_node_rib(ri, from_socket.node, mat_name=mat_name)
-                params['reference %s %s' % (meta['renderman_type'], 
-                        meta['renderman_name'])] = \
-                    ["%s:%s" % (from_socket.node.name, from_socket.identifier)]        
-            #else output rib
+            if prop_name in txmake_options.index:
+                pass
             else:
-                #if struct is not linked continue
-                if meta['renderman_type'] == 'struct':
+                prop = getattr(node, prop_name)
+                #if property group recurse
+                if meta['renderman_type'] == 'page':
                     continue
-                    
-                if 'options' in meta and meta['options'] == 'texture' or \
-                    (node.renderman_node_type == 'light' and \
-                        'widget' in meta and meta['widget'] == 'fileInput'):
-                    params['%s %s' % (meta['renderman_type'], 
+                #if input socket is linked reference that
+                elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
+                    from_socket = node.inputs[prop_name].links[0].from_socket
+                    if recurse:
+                        shader_node_rib(ri, from_socket.node, mat_name=mat_name)
+                    params['reference %s %s' % (meta['renderman_type'], 
                             meta['renderman_name'])] = \
-                        rib(get_tex_file_name(prop), 
-                            type_hint=meta['renderman_type']) 
-                elif 'arraySize' in meta:
-                    params['%s[%d] %s' % (meta['renderman_type'], len(prop), 
-                            meta['renderman_name'])] = rib(prop) 
+                        ["%s:%s" % (from_socket.node.name, from_socket.identifier)]        
+                #else output rib
                 else:
-                    params['%s %s' % (meta['renderman_type'], 
-                            meta['renderman_name'])] = \
-                        rib(prop, type_hint=meta['renderman_type']) 
+                    #if struct is not linked continue
+                    if meta['renderman_type'] == 'struct':
+                        continue
+                        
+                    if 'options' in meta and meta['options'] == 'texture' or \
+                        (node.renderman_node_type == 'light' and \
+                            'widget' in meta and meta['widget'] == 'fileInput'):
+                        params['%s %s' % (meta['renderman_type'], 
+                                meta['renderman_name'])] = \
+                            rib(get_tex_file_name(prop), 
+                                type_hint=meta['renderman_type']) 
+                    elif 'arraySize' in meta:
+                        params['%s[%d] %s' % (meta['renderman_type'], len(prop), 
+                                meta['renderman_name'])] = rib(prop) 
+                    else:
+                        params['%s %s' % (meta['renderman_type'], 
+                                meta['renderman_name'])] = \
+                            rib(prop, type_hint=meta['renderman_type']) 
     return params
 
 # Export to rib
@@ -932,28 +932,41 @@ def get_textures_for_node(node, matName=""):
                     textures.append((prop, out_file_name, ['-smode', 'periodic', '-tmode', 'periodic']))
     else:
         for prop_name,meta in node.prop_meta.items():
-            prop = getattr(node, prop_name)
-            
-            if meta['renderman_type'] == 'page':
-                continue
-        
-            #if input socket is linked reference that
-            elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
-                from_socket = node.inputs[prop_name].links[0].from_socket
-                textures = textures + get_textures_for_node(from_socket.node, matName)
-        
-            #else return a tuple of in name/outname
+            if prop_name in txmake_options.index:
+                pass
             else:
-                if ('options' in meta and meta['options'] == 'texture') or \
-                    (node.renderman_node_type == 'light' and \
-                        'widget' in meta and meta['widget'] == 'fileInput'): #fix for sloppy args files
-                    out_file_name = get_tex_file_name(prop)
-                    if out_file_name != prop: #if they don't match add this to the list
-                        if node.renderman_node_type == 'light' and "Env" in node.bl_label:
-                            textures.append((prop, out_file_name, ['-envlatl'])) #no options for now
-                        else:
-                            textures.append((prop, out_file_name, ['-smode', 'periodic', '-tmode', 'periodic'])) #no options for now
-
+                prop = getattr(node, prop_name)
+            
+                if meta['renderman_type'] == 'page':
+                    continue
+        
+                #if input socket is linked reference that
+                elif prop_name in node.inputs and node.inputs[prop_name].is_linked:
+                    from_socket = node.inputs[prop_name].links[0].from_socket
+                    textures = textures + get_textures_for_node(from_socket.node, matName)
+        
+                #else return a tuple of in name/outname
+                else:
+                    if ('options' in meta and meta['options'] == 'texture') or \
+                        (node.renderman_node_type == 'light' and \
+                            'widget' in meta and meta['widget'] == 'fileInput'): #fix for sloppy args files
+                        out_file_name = get_tex_file_name(prop)
+                        if out_file_name != prop: #if they don't match add this to the list
+                            if node.renderman_node_type == 'light' and "Env" in node.bl_label:
+                                textures.append((prop, out_file_name, ['-envlatl'])) #no options for now
+                            else:
+                                if hasattr(node, "smode"):
+                                    optionsList = []
+                                    for option in txmake_options.index:
+                                        partsOfOption = getattr(txmake_options, option)
+                                        if partsOfOption["exportType"] == "name":
+                                            optionsList.append("-" + option)
+                                            optionsList.append(getattr(node, option))
+                                        else:
+                                            optionsList.append("-" + getattr(node, option))
+                                    textures.append((prop, out_file_name, optionsList)) #no options for now
+                                else:
+                                    textures.append((prop, out_file_name, ['-smode', 'periodic', '-tmode', 'periodic'])) #no options for now
     return textures
     
 def get_textures(id):

@@ -389,7 +389,7 @@ class RPass:
     #save the file
     def start_interactive(self):
         if find_it_path() == None:
-            print("ERROR no 'it' installed.  Cannot start interactive rendering.")
+            debug('error', "ERROR no 'it' installed.  Cannot start interactive rendering.")
             return
         
         self.is_interactive = True

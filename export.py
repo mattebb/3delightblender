@@ -1023,7 +1023,7 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
                 ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs, intargs,
                     floatargs, primvars)
     except:
-        print('sudiv problem', ob.name)
+        debug('error', 'sudiv problem', ob.name)
     
     removeMeshFromMemory(mesh.name)
 
