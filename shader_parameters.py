@@ -404,16 +404,13 @@ def generate_txmake_options(parent_name):
     txmake = txmake_options()
     for option in txmake.index:
         optionObject = getattr(txmake, option)
-        #print("OPTIONS: ", option, "OBJECT: ", optionObject)
-        #for things in getattr(txmake, option):
-            #print("THINGS: ", things)
         if optionObject['type'] == "bool":
-            name = optionObject['name']
-            optionsProps[name] = "" #bpy.props.BoolProperty(name = optionObject['dispName'], default = optionObject['default'], description = optionObject['help'])
+            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_typ{'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'enum' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
+            optionsProps[optionObject["name"]] = "" bpy.props.BoolProperty(name = optionObject['dispName'], default = optionObject['default'], description = optionObject['help'])
         elif optionObject['type'] == "enum":
             #print("NAME: ", optionObject["name"],"TYPE: ", type(optionObject["name"]), "OPTIONSPROPS: ", optionsProps)
             optionsProps[optionObject["name"]] = bpy.props.EnumProperty(name= optionObject["dispName"], default= optionObject["default"], description=optionObject["help"], items=optionObject["items"])
-            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'enum' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
+            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_typ{'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'enum' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
     return txmake.index, optionsMeta, optionsProps
 
 #map types in args files to socket types
