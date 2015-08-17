@@ -322,6 +322,7 @@ def get_strands(scene, ob, psys):
     
     num_parents = len(psys.particles)
     num_children = len(psys.child_particles)
+    print(num_parents, num_children)
     total_hair_count = num_parents + num_children
     thicknessflag = 0
     width_offset = psys.settings.renderman.width_offset
@@ -333,6 +334,8 @@ def get_strands(scene, ob, psys):
     vertsArray = []
     nverts = 0
     for pindex in range(total_hair_count):
+        if not psys.settings.show_guide_hairs and pindex < num_parents:
+            continue
         vertsInStrand = 0
         #walk through each strand
         for step in range(0, steps + 1):
