@@ -1498,6 +1498,11 @@ def export_object_attributes(ri, ob):
     if ob.renderman.matte:
         ri.Matte(ob.renderman.matte)
 
+    # light linking
+    for link in ob.renderman.light_linking:
+        if link.illuminate != "DEFAULT":
+            ri.Illuminate(link.light, link.illuminate == 'ON')
+
 
 #for each mat in this mesh, call it, then do some shading wizardry to 
 #switch between them with PxrBxdfBlend
