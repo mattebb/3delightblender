@@ -402,7 +402,10 @@ class RPass:
         self.ri.End()
         self.convert_textures(get_texture_list(self.scene))
 
-        filename = "launch:prman? -t:-1 -cwd %s -ctrl $ctrlin $ctrlout -dspyserver it" % self.paths['export_dir']
+        if sys.platform == 'win32':
+            filename = "launch:prman? -t:-1 -cwd \"%s\" -ctrl $ctrlin $ctrlout -dspyserver it" % self.paths['export_dir']
+        else:
+            filename = "launch:prman? -t:-1 -cwd %s -ctrl $ctrlin $ctrlout -dspyserver it" % self.paths['export_dir']
         
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
