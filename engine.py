@@ -389,7 +389,7 @@ class RPass:
     #save the file
     def start_interactive(self):
         if find_it_path() == None:
-            print("ERROR no 'it' installed.  Cannot start interactive rendering.")
+            debug('error', "ERROR no 'it' installed.  Cannot start interactive rendering.")
             return
         
         self.is_interactive = True
@@ -402,7 +402,7 @@ class RPass:
         self.ri.End()
         self.convert_textures(get_texture_list(self.scene))
 
-        filename = "launch:prman? -ctrl $ctrlin $ctrlout -dspyserver it"
+        filename = "launch:prman? -t:-1 -cwd %s -ctrl $ctrlin $ctrlout -dspyserver it" % self.paths['export_dir']
         
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
