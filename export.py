@@ -1901,6 +1901,10 @@ def export_camera(ri, scene, motion, camera_to_use=None):
         #ri.Option "shutter" "efficiency" [ %f %f ] \n' % (rm.shutter_efficiency_open, rm.shutter_efficiency_close))
 
     ri.Clipping(cam.clip_start, cam.clip_end)
+
+    if scene.render.use_border:
+        ri.CropWindow(scene.render.border_min_x, scene.render.border_max_x,
+                      scene.render.border_min_y, scene.render.border_max_y)
     
     if cam.renderman.use_physical_camera:
         #use pxr Camera
