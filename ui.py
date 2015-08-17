@@ -1617,16 +1617,6 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
     def poll(cls, context):
         rd = context.scene.render
         return (context.object and rd.engine in {'PRMAN_RENDER'})
-
-    def draw_item(self, layout, context, item):
-        ob = context.object
-        rm = bpy.data.objects[ob.name].renderman
-        ll = rm.light_linking
-        index = rm.light_linking_index
-        
-        col = layout.column()
-        col.prop(item, "group")
-        col.prop(item, "mode")
         
     def draw(self, context):
         layout = self.layout
@@ -1641,11 +1631,8 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
         row.prop(rm, "visibility_trace_transmission", text="Transmission")   
         row.prop(rm, "matte")
         
-        
-        self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
-                                      "object", "trace_set", "trace_set_index")
 
-class OBJECT_PT_renderman_object_raytracing(Panel):
+class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1657,10 +1644,23 @@ class OBJECT_PT_renderman_object_raytracing(Panel):
         rd = context.scene.render
         return (context.object and rd.engine in {'PRMAN_RENDER'})
 
+    def draw_item(self, layout, context, item):
+        ob = context.object
+        rm = bpy.data.objects[ob.name].renderman
+        ll = rm.light_linking
+        index = rm.light_linking_index
+        
+        col = layout.column()
+        col.prop(item, "group")
+        col.prop(item, "mode")
+
     def draw(self, context):
         layout = self.layout        
         ob = context.object
         rm = ob.renderman        
+
+        self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
+                                      "object", "trace_set", "trace_set_index")
 
         layout.prop(rm, "raytrace_override", text="Override Default Ray Tracing")
 
