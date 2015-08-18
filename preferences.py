@@ -56,22 +56,22 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
             default='$HOME/Documents/prman_for_blender/{blend}')
 
     shd = StringProperty(
-                name="SHD (Shadow Maps)",
-                description="SHD environment variable",
-                subtype='DIR_PATH',
-                default='$OUT/shadowmaps')
+        name="SHD (Shadow Maps)",
+        description="SHD environment variable",
+        subtype='DIR_PATH',
+        default='$OUT/shadowmaps')
 
     ptc = StringProperty(
-                name="PTC (Point Clouds)",
-                description="PTC environment variable",
-                subtype='DIR_PATH',
-                default='$OUT/pointclouds')
+        name="PTC (Point Clouds)",
+        description="PTC environment variable",
+        subtype='DIR_PATH',
+        default='$OUT/pointclouds')
 
     arc = StringProperty(
-                name="ARC (Archives)",
-                description="ARC environment variable",
-                subtype='DIR_PATH',
-                default='$OUT/archives')
+        name="ARC (Archives)",
+        description="ARC environment variable",
+        subtype='DIR_PATH',
+        default='$OUT/archives')
 
 
 class RendermanPreferences(AddonPreferences):
@@ -131,8 +131,8 @@ class RendermanPreferences(AddonPreferences):
         default="txmake")
 
     env_vars = PointerProperty(
-                type=RendermanEnvVarSettings,
-                name="Environment Variable Settings")
+        type=RendermanEnvVarSettings,
+        name="Environment Variable Settings")
 
     def draw(self, context):
         layout = self.layout
@@ -142,13 +142,10 @@ class RendermanPreferences(AddonPreferences):
         '''
         self._draw_collection(context, layout, self, "Shader Paths:", "collection.add_remove",
                                         "scene", "shader_paths", "shader_paths_index")
-        
         self._draw_collection(context, layout, self, "Texture Paths:", "collection.add_remove",
                                         "scene", "texture_paths", "texture_paths_index")
-        
         self._draw_collection(context, layout, self, "Procedural Paths:", "collection.add_remove",
                                         "scene", "procedural_paths", "procedural_paths_index")
-        
         self._draw_collection(context, layout, self, "Archive Paths:", "collection.add_remove",
                                         "scene", "archive_paths", "archive_paths_index")
         '''

@@ -139,18 +139,18 @@ def debug(warningLevel, *output):
     if warningLevel == 'warning' or warningLevel == 'error' or \
             warningLevel == 'osl':
         if(warningLevel == "warning"):
-            print ("WARNING: ", output)
+            print("WARNING: ", output)
         elif(warningLevel == "error"):
-            print ("ERROR: ", output)
+            print("ERROR: ", output)
         elif(warningLevel == "osl"):
             for item in output:
-                print ("OSL INFO: ", item)
+                print("OSL INFO: ", item)
     else:
         if EnableDebugging:
             if(warningLevel == "info"):
-                print ("INFO: ", output)
+                print("INFO: ", output)
             else:
-                print ("DEBUG: ", output)
+                print("DEBUG: ", output)
         else:
             pass
 
@@ -188,9 +188,11 @@ def get_path_list(rm, type):
             paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'bxdf'))
             paths.append(os.path.join(guess_rmantree(), 'lib', 'rsl',
                                       'shaders'))
-            paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shaders'))
+            paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         'shaders'))
         if type == 'shader':
-            paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'shaders'))
+            paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         'shaders'))
         # we need this for bxdf blend for now.
         if type == 'rixplugin':
             paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'r19',
@@ -275,7 +277,6 @@ def get_sequence_path(path, blender_frame, anim):
 
 
 def user_path(path, scene=None, ob=None):
-
     '''
     # bit more complicated system to allow accessing scene or object attributes.
     # let's stay simple for now...
@@ -371,8 +372,8 @@ def get_properties(prop_group):
     props = []
     for (key, prop) in prop_group.bl_rna.properties.items():
         # This is somewhat ugly, but works best!!
-            if key not in ['rna_type', 'name']:
-                props.append(prop)
+        if key not in ['rna_type', 'name']:
+            props.append(prop)
     return props
 
 
@@ -425,7 +426,8 @@ def guess_rmantree():
     base = ""
     if platform.system() == 'Windows':
         # default installation path
-        base = r'C:\Program Files\Pixar'    # or base = 'C:/Program Files/Pixar'
+        # or base = 'C:/Program Files/Pixar'
+        base = r'C:\Program Files\Pixar'
 
     elif platform.system() == 'Darwin':
         base = '/Applications/Pixar'
@@ -493,7 +495,8 @@ def find_it_path():
         if platform.system() == 'Windows':
             it_path = os.path.join(rmstree, 'it.exe')
         elif platform.system() == 'Darwin':
-            it_path = os.path.join(rmstree, 'it.app', 'Contents', 'MacOS', 'it')
+            it_path = os.path.join(
+                rmstree, 'it.app', 'Contents', 'MacOS', 'it')
         elif platform.system() == 'Linux':
             it_path = os.path.join(rmstree, 'it')
         if os.path.exists(it_path):

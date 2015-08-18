@@ -25,8 +25,6 @@
 import bpy
 import sys
 
-from . import engine
-
 bl_info = {
     "name": "PRMan Render Engine",
     "author": "Brian Savery",
@@ -36,6 +34,8 @@ bl_info = {
     "description": "RenderMan 20.0 integration",
     "warning": "",
     "category": "Render"}
+
+from . import engine
 
 
 class PRManRender(bpy.types.RenderEngine):

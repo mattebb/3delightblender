@@ -52,6 +52,7 @@ from bpy_extras.io_utils import ExportHelper
 
 
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
+
     ''''''
     bl_idname = "shading.add_renderman_nodetree"
     bl_label = "Add Renderman Nodetree"
@@ -106,6 +107,7 @@ class refresh_osl_shader(bpy.types.Operator):
 
 
 class StartInteractive(bpy.types.Operator):
+
     ''''''
     bl_idname = "lighting.start_interactive"
     bl_label = "Start/Stop Interactive Rendering"
@@ -119,7 +121,7 @@ class StartInteractive(bpy.types.Operator):
         h = context.region.height
 
         # Draw text area that PRMan is running.
-        pos_x = w/2 - 100
+        pos_x = w / 2 - 100
         pos_y = 20
         blf.enable(0, blf.SHADOW)
         blf.shadow_offset(0, 1, -1)
@@ -130,15 +132,15 @@ class StartInteractive(bpy.types.Operator):
         blf.draw(0, "%s" % ('PRMan Interactive Mode Running'))
         blf.disable(0, blf.SHADOW)
 
-    def invoke(self, context, event):
+    def invoke(self, context, event=None):
         if engine.ipr is None:
             engine.ipr = RPass(context.scene)
             engine.ipr.start_interactive()
-            engine.ipr_handle = \
-                bpy.types.SpaceView3D.draw_handler_add(self.draw, (context,),
-                                                       'WINDOW', 'POST_PIXEL')
+            engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
+                self.draw, (context,), 'WINDOW', 'POST_PIXEL')
             bpy.app.handlers.scene_update_post.append(
                 engine.ipr.issue_transform_edits)
+            bpy.app.handlers.load_pre.append(self.invoke)
         else:
             bpy.types.SpaceView3D.draw_handler_remove(
                 engine.ipr_handle, 'WINDOW')
@@ -146,14 +148,15 @@ class StartInteractive(bpy.types.Operator):
                 engine.ipr.issue_transform_edits)
             engine.ipr.end_interactive()
             engine.ipr = None
-            for area in context.screen.areas:
-                if area.type == 'VIEW_3D':
-                    area.tag_redraw()
-
+            if context:
+                for area in context.screen.areas:
+                    if area.type == 'VIEW_3D':
+                        area.tag_redraw()
         return {'FINISHED'}
 
 
 class ExportRIBArchive(bpy.types.Operator, ExportHelper):
+
     ''''''
     bl_idname = "export_shape.rib"
     bl_label = "Export RIB Archive (.rib)"
@@ -163,12 +166,12 @@ class ExportRIBArchive(bpy.types.Operator, ExportHelper):
     filter_glob = StringProperty(default="*.rib", options={'HIDDEN'})
 
     archive_motion = BoolProperty(name='Export Motion Data',
-        description='Exports a MotionBegin/End block for any sub-frame (motion blur) animation data',
-        default=True)
+                                  description='Exports a MotionBegin/End block for any sub-frame (motion blur) animation data',
+                                  default=True)
 
     animated = BoolProperty(name='Animated Frame Sequence',
-        description='Exports a sequence of rib files for a frame range',
-        default=False)
+                            description='Exports a sequence of rib files for a frame range',
+                            default=False)
     frame_start = IntProperty(
         name="Start Frame",
         description="The first frame of the sequence to export",
@@ -191,14 +194,15 @@ class ExportRIBArchive(bpy.types.Operator, ExportHelper):
 
 
 class TEXT_OT_compile_shader(bpy.types.Operator):
+
     ''''''
     bl_idname = "text.compile_shader"
     bl_label = "Compile Shader"
     bl_description = "Compile a renderman shader to byte code"
 
     add_to_path = BoolProperty(name='Add shader to shader path',
-        description='Add the shader\'s directory to the shader path',
-        default=False)
+                               description='Add the shader\'s directory to the shader path',
+                               default=False)
 
     @classmethod
     def poll(self, context):
@@ -254,17 +258,18 @@ class TEXT_OT_compile_shader(bpy.types.Operator):
 
 
 class TEXTURE_OT_convert_to_texture(bpy.types.Operator):
+
     ''''''
     bl_idname = "texture.convert_to_texture"
     bl_label = "Convert to Texture"
     bl_description = "Open this file path property as a texture"
 
     propname = StringProperty(name="Property Name",
-        description="Name of the property containing the file path",
-        default="")
+                              description="Name of the property containing the file path",
+                              default="")
     shader_type = StringProperty(name="Shader Type",
-        description="Type of shader to refresh (eg. surface, displacement, ...)",
-        default="")
+                                 description="Type of shader to refresh (eg. surface, displacement, ...)",
+                                 default="")
 
     def switch_context(self, context, tex):
         space = context.space_data
@@ -317,7 +322,8 @@ class TEXTURE_OT_convert_to_texture(bpy.types.Operator):
         tex.renderman.auto_generate_texture = True
         tex.use_fake_user = True
 
-        if os.path.splitext(tex.renderman.file_path)[1].lower() in ('.hdr', '.exr'):
+        if os.path.splitext(tex.renderman.file_path)[1].lower() in \
+                ('.hdr', '.exr'):
             tex.renderman.input_color_space = 'linear'
             tex.renderman.output_color_depth = 'FLOAT'
 
@@ -329,6 +335,7 @@ class TEXTURE_OT_convert_to_texture(bpy.types.Operator):
 
 
 class TEXTURE_OT_generate_optimised(bpy.types.Operator):
+
     ''''''
     bl_idname = "texture.generate_optimised"
     bl_label = "Generate Optimised Texture"
@@ -340,11 +347,13 @@ class TEXTURE_OT_generate_optimised(bpy.types.Operator):
         srcpath = tex_source_path(tex, scene.frame_current)
         optpath = tex_optimised_path(tex, scene.frame_current)
 
-        make_optimised_texture_3dl(tex, scene.renderman.path_texture_optimiser, srcpath, optpath)
+        make_optimised_texture_3dl(
+            tex, scene.renderman.path_texture_optimiser, srcpath, optpath)
         return {'FINISHED'}
 
 
 class SPACE_OT_back_to_shader(bpy.types.Operator):
+
     ''''''
     bl_idname = "space.back_to_shader"
     bl_label = "Back to Shader Properties"
@@ -361,14 +370,15 @@ class SPACE_OT_back_to_shader(bpy.types.Operator):
 
 # stupid blocking render operator for testing
 class SCREEN_OT_blocking_render(bpy.types.Operator):
+
     ''''''
     bl_idname = "render.blocking_render"
     bl_label = "Blocking Render"
 
     animation = bpy.props.BoolProperty(attr="animation",
-        name="Animation",
-        description="Render an Animation",
-        default=False)
+                                       name="Animation",
+                                       description="Render an Animation",
+                                       default=False)
 
     def execute(self, context):
         bpy.ops.render.render(animation=self.properties.animation)
@@ -403,38 +413,38 @@ class TEXT_OT_add_inline_rib(bpy.types.Operator):
 '''
 
 
-# ### Yuck, this should be built in to blender...
+# Yuck, this should be built in to blender...
 class COLLECTION_OT_add_remove(bpy.types.Operator):
     bl_label = "Add or Remove Paths"
     bl_idname = "collection.add_remove"
 
     action = EnumProperty(
-                name="Action",
-                description="Either add or remove properties",
-                items=[('ADD', 'Add', ''),
-                        ('REMOVE', 'Remove', '')],
-                default='ADD')
+        name="Action",
+        description="Either add or remove properties",
+        items=[('ADD', 'Add', ''),
+               ('REMOVE', 'Remove', '')],
+        default='ADD')
     context = StringProperty(
-                name="Context",
-                description="Name of context member to find renderman pointer in",
-                default="")
+        name="Context",
+        description="Name of context member to find renderman pointer in",
+        default="")
     collection = StringProperty(
-                name="Collection",
-                description="The collection to manipulate",
-                default="")
+        name="Collection",
+        description="The collection to manipulate",
+        default="")
     collection_index = StringProperty(
-                name="Index Property",
-                description="The property used as a collection index",
-                default="")
+        name="Index Property",
+        description="The property used as a collection index",
+        default="")
     defaultname = StringProperty(
-                name="Default Name",
-                description="Default name to give this collection item",
-                default="")
+        name="Default Name",
+        description="Default name to give this collection item",
+        default="")
     # BBM addition begin
     is_shader_param = BoolProperty(name='Is shader parameter', default=False)
     shader_type = StringProperty(
-                name="shader type",
-                default='surface')
+        name="shader type",
+        default='surface')
     # BBM addition end
 
     def invoke(self, context, event):
@@ -472,13 +482,15 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
             # BBM addition end
         elif self.properties.action == 'REMOVE':
             collection.remove(index)
-            setattr(rm, coll_idx, index-1)
+            setattr(rm, coll_idx, index - 1)
 
         return {'FINISHED'}
 
 # Menus
-export_archive_menu_func = (lambda self, context: self.layout.operator(ExportRIBArchive.bl_idname, text="RIB Archive (.rib)"))
-compile_shader_menu_func = (lambda self, context: self.layout.operator(TEXT_OT_compile_shader.bl_idname))
+export_archive_menu_func = (lambda self, context: self.layout.operator(
+    ExportRIBArchive.bl_idname, text="RIB Archive (.rib)"))
+compile_shader_menu_func = (lambda self, context: self.layout.operator(
+    TEXT_OT_compile_shader.bl_idname))
 
 
 def register():
