@@ -905,6 +905,7 @@ def get_texture_list(scene):
     # if not rpass.light_shaders: return
     SUPPORTED_MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT', 'SURFACE']
     textures = []
+    mats_to_scan = []
     for o in renderable_objects(scene):
         if o.type == 'CAMERA' or o.type == 'EMPTY':
             continue
@@ -913,16 +914,15 @@ def get_texture_list(scene):
                 textures = textures + get_textures(o.data)
         elif o.type in SUPPORTED_MATERIAL_TYPES:
             for mat in [mat for mat in o.data.materials if mat is not None]:
-                textures = textures + get_textures(mat)
+                if mat not in mats_to_scan:
+                    mats_to_scan.append(mat)
         else:
             debug("error",
                   "get_texture_list: unsupported object type [%s]." % o.type)
-    # cull duplicates
-    textures_out = []
-    for tex_set in textures:
-        if tex_set not in textures_out:
-            textures_out.append(tex_set)
-    return textures_out
+    # cull duplicates by only doing mats once 
+    for mat in mats_to_scan:
+        textures.extend(get_textures(mat))
+    return textures
 
 
 def get_texture_list_preview(scene):
