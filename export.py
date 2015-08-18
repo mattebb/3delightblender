@@ -347,7 +347,6 @@ def get_strands(scene, ob, psys):
 
     num_parents = len(psys.particles)
     num_children = len(psys.child_particles)
-    print(num_parents, num_children)
     total_hair_count = num_parents + num_children
     thicknessflag = 0
     width_offset = psys.settings.renderman.width_offset
@@ -451,9 +450,6 @@ def get_particles(scene, ob, psys, valid_frame=None):
     psys.set_resolution(scene, ob, 'PREVIEW')
     return (P, rot, width)
 
-# Mesh data access to support multi-material objects we need to break this up
-# by faces
-
 
 def get_mesh(mesh):
     nverts = []
@@ -467,6 +463,9 @@ def get_mesh(mesh):
         nverts.append(p.loop_total)
         verts.extend(p.vertices)
 
+    if len(verts) > 0:
+        P = P[:int(max(verts) + 1) * 3]
+    #return the P's minus any unconnected
     return (nverts, verts, P)
 
 
