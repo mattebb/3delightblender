@@ -107,6 +107,11 @@ class refresh_osl_shader(bpy.types.Operator):
         context.node.RefreshNodes(context)
         return {'FINISHED'}
 
+def remove_ipr_if_running():
+    if engine.ipr is not None:
+        engine.ipr.end_interactive()
+        engine.ipr = None
+
 class StartInteractive(bpy.types.Operator):
     ''''''
     bl_idname = "lighting.start_interactive"
@@ -131,20 +136,22 @@ class StartInteractive(bpy.types.Operator):
         blf.draw(0, "%s" % ('PRMan Interactive Mode Running'))
         blf.disable(0, blf.SHADOW)
 
-    def invoke(self, context, event):
+    def invoke(self, context, event=None):
         if engine.ipr == None:
             engine.ipr = RPass(context.scene)
             engine.ipr.start_interactive()
             engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(self.draw, (context,), 'WINDOW', 'POST_PIXEL')
             bpy.app.handlers.scene_update_post.append(engine.ipr.issue_transform_edits)
+            bpy.app.handlers.load_pre.append(self.invoke)
         else:
             bpy.types.SpaceView3D.draw_handler_remove(engine.ipr_handle, 'WINDOW')
             bpy.app.handlers.scene_update_post.remove(engine.ipr.issue_transform_edits)
             engine.ipr.end_interactive()
             engine.ipr = None
-            for area in context.screen.areas:
-                if area.type == 'VIEW_3D':
-                    area.tag_redraw()
+            if context:
+                for area in context.screen.areas:
+                    if area.type == 'VIEW_3D':
+                        area.tag_redraw()
         
         return {'FINISHED'}
 
