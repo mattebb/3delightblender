@@ -1673,9 +1673,9 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
         row = col.row()
         row.prop(rm, "raytrace_tracedisplacements", text="Trace Displacements")
         row = col.row()
-        row.prop(rm, "raytrace_autobias", text="Ray Origin Auto Bias")
+        row.prop(rm, "raytrace_autobias", text="Ray Trace Auto Bias")
         row = col.row()
-        row.prop(rm, "raytrace_bias", text="Ray Origin Bias Amount")
+        row.prop(rm, "raytrace_bias", text="Ray Trace Bias Amount")
         row.active = not rm.raytrace_autobias
         row = col.row()
         row.prop(rm, "raytrace_samplemotion", text="Sample Motion Blur")

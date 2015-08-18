@@ -1452,11 +1452,11 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 description="Ray Trace true displacement in rendered results",
                 default=True)
     raytrace_autobias = BoolProperty(
-                name="Ray Origin Auto Bias",
+                name="Ray Trace Auto Bias",
                 description="Bias value is automatically computed",
                 default=True)
     raytrace_bias = FloatProperty(
-                name="Ray Origin Bias Amount",
+                name="Ray Trace Bias Amount",
                 description="Offset applied to the ray origin, moving it slightly away from the surface launch point in the ray direction",
                 default=0.01)
     raytrace_samplemotion = BoolProperty(
