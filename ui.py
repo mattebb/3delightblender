@@ -673,7 +673,6 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
         layout = self.layout
 
         lamp = context.lamp
-
         if lamp.renderman.nodetree == '':
             layout.prop(lamp, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype = 'lamp'
@@ -683,6 +682,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
             layout.prop(lamp.renderman, "shadingrate")
 
         layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
+        layout.prop(lamp.renderman, 'illuminates_by_default')
 
 
 class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
