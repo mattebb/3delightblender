@@ -917,7 +917,12 @@ def get_texture_list(scene):
         else:
             debug("error",
                   "get_texture_list: unsupported object type [%s]." % o.type)
-    return textures
+    # cull duplicates
+    textures_out = []
+    for tex_set in textures:
+        if tex_set not in textures_out:
+            textures_out.append(tex_set)
+    return textures_out
 
 
 def get_texture_list_preview(scene):
