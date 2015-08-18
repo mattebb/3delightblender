@@ -381,7 +381,7 @@ def get_strands(scene, ob, psys):
             if not conwidth:
                 decr = (base_width - tip_width) / (vertsInStrand - 1)
                 hair_width.extend([base_width] + [(base_width - decr * i)
-                                            for i in range(vertsInStrand - 1)] +
+                                                  for i in range(vertsInStrand - 1)] +
                                   [tip_width])
 
             # add the last point again
@@ -465,7 +465,7 @@ def get_mesh(mesh):
 
     if len(verts) > 0:
         P = P[:int(max(verts) + 1) * 3]
-    #return the P's minus any unconnected
+    # return the P's minus any unconnected
     return (nverts, verts, P)
 
 
@@ -1110,7 +1110,7 @@ def split_multi_mesh(nverts, verts, primvars):
             if "facevarying float[2] st" in primvars:
                 meshes[mat_id][2]["facevarying float[2] st"].extend(
                     primvars["facevarying float[2] st"][vert_index * 2:
-                                                vert_index * 2 + num_verts * 2])
+                                                        vert_index * 2 + num_verts * 2])
             vert_index += num_verts
 
         # now sort the verts and replace
@@ -1799,6 +1799,7 @@ def export_materials_archive(ri, rpass, scene):
     ri.Begin(archive_filename)
     for mat_name, mat in bpy.data.materials.items():
         ri.ArchiveBegin('material.' + mat_name)
+        ri.Attribute("identifier", {"name": mat_name})
         export_material(ri, mat)
         ri.ArchiveEnd()
     ri.End()
@@ -2053,16 +2054,15 @@ def export_camera(ri, scene, motion, camera_to_use=None):
         screen_min_y = yaspect - 2.0 * scene.render.border_max_y * yaspect
         screen_max_y = yaspect - 2.0 * scene.render.border_min_y * yaspect
         ri.ScreenWindow(screen_min_x, screen_max_x, screen_min_y, screen_max_y)
-        res_x = resolution[0] * (scene.render.border_max_x - 
+        res_x = resolution[0] * (scene.render.border_max_x -
                                  scene.render.border_min_x)
-        res_y = resolution[1] * (scene.render.border_max_y - 
+        res_y = resolution[1] * (scene.render.border_max_y -
                                  scene.render.border_min_y)
         ri.Format(int(res_x), int(res_y), 1.0)
     else:
         ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
         ri.Format(resolution[0], resolution[1], 1.0)
-    
-    
+
     export_camera_matrix(ri, scene, ob, motion)
 
     if camera_to_use:
@@ -2088,12 +2088,12 @@ def export_camera_render_preview(ri, scene):
 
 def export_searchpaths(ri, paths):
     ri.Option("searchpath", {"string shader": ["%s" %
-                ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
+                                               ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
     ri.Option("searchpath", {"string texture": ["%s" %
-                ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
+                                                ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
     # need this for multi-material
     ri.Option("searchpath", {"string rixplugin": ["%s" %
-                ':'.join(path_list_convert(paths['rixplugin'], to_unix=True))]})
+                                                  ':'.join(path_list_convert(paths['rixplugin'], to_unix=True))]})
 
     # ri.Option("searchpath", {"string procedural": ["%s" % \
     #    ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})
@@ -2522,24 +2522,10 @@ def issue_transform_edits(rpass, ri, active, prman):
                 issue_light_transform_edit(ri, active)
 
 
-def find_material_objs(nt):
-    mat = bpy.context.object.active_material
-    objs = []
-    # return mat, obj
-    for obj in bpy.data.objects:
-        for slot in obj.material_slots:
-            if slot.material == mat:
-                objs.append(obj)
-
-    return mat, objs
-
 # test the active object type for edits to do then do them
-
-
 def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
     if node is None:
-        mat, objs = find_material_objs(nt)
-
+        mat = bpy.context.object.active_material
         # do an attribute full rebind
         tex_made = False
         if reissue_textures(ri, rpass, mat):
@@ -2551,11 +2537,10 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             edit_flush(ri, rpass.edit_num, prman)
         rpass.edit_num += 1
         edit_flush(ri, rpass.edit_num, prman)
-        mat, objs = find_material_objs(nt)
-        for obj in objs:
-            ri.EditBegin('attribute', {'string scopename': obj.name})
-            export_material(ri, mat)
-            ri.EditEnd()
+        # for obj in objs:
+        ri.EditBegin('attribute', {'string scopename': mat.name})
+        export_material(ri, mat)
+        ri.EditEnd()
 
     else:
         mat = bpy.context.object.active_material
@@ -2566,7 +2551,6 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             return
         mat_name = mat.name
 
-        # do an attribute full rebind
         tex_made = False
         if reissue_textures(ri, rpass, mat):
             tex_made = True
