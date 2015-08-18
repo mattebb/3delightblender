@@ -1957,8 +1957,6 @@ def export_render_settings(ri, rpass, scene, preview=False):
         depths = {'int maxdiffusedepth': rm.preview_max_diffuse_depth,
                   'int maxspeculardepth': rm.preview_max_specular_depth}
 
-    rpass.resolution = render_get_resolution(r)
-    ri.Format(rpass.resolution[0], rpass.resolution[1], 1.0)
     # ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
     ri.ShadingRate(rm.shadingrate)
@@ -2019,7 +2017,7 @@ def export_camera(ri, scene, motion, camera_to_use=None):
 
     ri.Clipping(cam.clip_start, cam.clip_end)
 
-    if scene.render.use_border:
+    if scene.render.use_border and not scene.render.use_crop_to_border:
         ri.CropWindow(scene.render.border_min_x, scene.render.border_max_x,
                       scene.render.border_min_y, scene.render.border_max_y)
 
@@ -2047,8 +2045,24 @@ def export_camera(ri, scene, motion, camera_to_use=None):
         yaspect = yaspect * lens / (aspectratio * 2.0)
         ri.Projection("orthographic")
 
-    ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
-
+    # convert the crop border to screen window, flip y
+    resolution = render_get_resolution(scene.render)
+    if scene.render.use_border and scene.render.use_crop_to_border:
+        screen_min_x = -xaspect + 2.0 * scene.render.border_min_x * xaspect
+        screen_max_x = -xaspect + 2.0 * scene.render.border_max_x * xaspect
+        screen_min_y = yaspect - 2.0 * scene.render.border_max_y * yaspect
+        screen_max_y = yaspect - 2.0 * scene.render.border_min_y * yaspect
+        ri.ScreenWindow(screen_min_x, screen_max_x, screen_min_y, screen_max_y)
+        res_x = resolution[0] * (scene.render.border_max_x - 
+                                 scene.render.border_min_x)
+        res_y = resolution[1] * (scene.render.border_max_y - 
+                                 scene.render.border_min_y)
+        ri.Format(int(res_x), int(res_y), 1.0)
+    else:
+        ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
+        ri.Format(resolution[0], resolution[1], 1.0)
+    
+    
     export_camera_matrix(ri, scene, ob, motion)
 
     if camera_to_use:
@@ -2063,6 +2077,8 @@ def export_camera_render_preview(ri, scene):
     ri.Clipping(0.100000, 100.000000)
     ri.Projection("perspective", {"fov": 28.841546})
     ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
+    resolution = render_get_resolution(scene.render)
+    ri.Format(resolution[0], resolution[1], 1.0)
 
     ri.Transform([0.685881, -0.317370, -0.654862, 0.000000,
                   0.727634, 0.312469, 0.610666, 0.000000,
