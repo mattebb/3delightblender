@@ -2080,22 +2080,19 @@ def export_camera_render_preview(ri, scene):
     xaspect, yaspect, aspectratio = render_get_aspect(r)
 
     ri.Clipping(0.100000, 100.000000)
-    ri.Projection("perspective", {"fov": 28.841546})
+    ri.Projection("perspective", {"fov": 37.8493})
     ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
     resolution = render_get_resolution(scene.render)
     ri.Format(resolution[0], resolution[1], 1.0)
-
-    ri.Transform([0.685881, -0.317370, -0.654862, 0.000000,
-                  0.727634, 0.312469, 0.610666, 0.000000,
-                  -0.010817, 0.895343, -0.445245, 0.000000,
-                  0.040019, -0.661400, 6.220541, 1.000000])
-
+    ri.Transform([ 0, -0.25, -1, 0,  1, 0, 0, 0, 0, 
+                1, -0.25, 0,  0, -1.125, 5.5, 1 ])
+    
 
 def export_searchpaths(ri, paths):
     ri.Option("searchpath", {"string shader": ["%s" %
                                                ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
     ri.Option("searchpath", {"string texture": ["%s" %
-                                                ':'.join(path_list_convert(paths['texture'], to_unix=True))]})
+                                                ':'.join(path_list_convert(paths['texture']+["@"], to_unix=True))]})
     # need this for multi-material
     ri.Option("searchpath", {"string rixplugin": ["%s" %
                                                   ':'.join(path_list_convert(paths['rixplugin'], to_unix=True))]})
@@ -2406,8 +2403,9 @@ def write_preview_rib(rpass, scene, ri):
     ri.Display(os.path.basename(rpass.paths['render_output']), "tiff", "rgb",
                {ri.DISPLAYQUANTIZE: [0, 0, 0, 0]})
 
-    export_hider(ri, rpass, scene, preview=True)
-    export_integrator(ri, rpass, scene, preview=True)
+    temp_scene = bpy.data.scenes[0]
+    export_hider(ri, rpass, temp_scene, preview=True)
+    export_integrator(ri, rpass, temp_scene, preview=True)
 
     export_camera_render_preview(ri, scene)
     export_render_settings(ri, rpass, scene, preview=True)
