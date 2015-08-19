@@ -192,7 +192,7 @@ class RendermanShadingNode(bpy.types.Node):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 
     def draw_nonconnectable_props(self, context, layout, prop_names):
-        if self.bl_idname == "PxrOSLPatternNode":
+        if self.bl_idname == "PxrOSLPatternNode" or self.bl_idname == "PxrSeExprPatternNode":
             prop = getattr(self, "codetypeswitch")
             layout.prop(self, "codetypeswitch")
             if getattr(self, "codetypeswitch") == 'INT':

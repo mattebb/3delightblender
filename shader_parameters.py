@@ -155,7 +155,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
     i = 0
     for sp in shaderparameters:
         if sp.tag == 'page':
-            if parent_name == "PxrOSL":
+            if parent_name == "PxrOSL" or parent_name == "PxrSeExpr":
                 pass
             else:
                 sub_param_names, sub_params_meta, sub_props = generate_page(sp, node)
@@ -182,7 +182,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                             setattr(node, Texname + "_ui_open", optionsProps[Texname])
                             setattr(node, Texname, optionsProps[Texname])
         else:
-            if parent_name == "PxrOSL" and i == 0:
+            if (parent_name == "PxrOSL" and i == 0) or (parent_name == "PxrSeExpr" and i == 0):
                 #Enum for internal, external type selection
                 EnumName = "codetypeswitch"
                 EnumProp = bpy.props.EnumProperty(items= (('EXT', "External", ""), ('INT', "Internal", "")), name="Shader Location", default='INT')
@@ -405,12 +405,12 @@ def generate_txmake_options(parent_name):
     for option in txmake.index:
         optionObject = getattr(txmake, option)
         if optionObject['type'] == "bool":
-            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_typ{'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'enum' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
-            optionsProps[optionObject["name"]] = "" bpy.props.BoolProperty(name = optionObject['dispName'], default = optionObject['default'], description = optionObject['help'])
+            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'enum' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
+            optionsProps[optionObject["name"]] = bpy.props.BoolProperty(name = optionObject['dispName'], default = optionObject['default'], description = optionObject['help'])
         elif optionObject['type'] == "enum":
             #print("NAME: ", optionObject["name"],"TYPE: ", type(optionObject["name"]), "OPTIONSPROPS: ", optionsProps)
             optionsProps[optionObject["name"]] = bpy.props.EnumProperty(name= optionObject["dispName"], default= optionObject["default"], description=optionObject["help"], items=optionObject["items"])
-            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_typ{'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'enum' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
+            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'enum' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
     return txmake.index, optionsMeta, optionsProps
 
 #map types in args files to socket types
