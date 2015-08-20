@@ -87,7 +87,10 @@ def free(engine):
 
 def render(engine):
     if hasattr(engine, 'render_pass') and engine.render_pass.do_render:
-        engine.render_pass.render(engine)
+        if engine.is_preview:
+            engine.render_pass.preview_render(engine)
+        else:
+            engine.render_pass.render(engine)
 
 
 def reset(engine, data, scene):
@@ -196,6 +199,53 @@ class RPass:
             if not os.path.exists(frame_path):
                 os.makedirs(frame_path)
         self.paths['archive'] = os.path.dirname(static_archive_dir)
+
+    def preview_render(self, engine):
+        render_output = self.paths['render_output']
+        images_dir = os.path.split(render_output)[0]
+        if not os.path.exists(images_dir):
+            os.makedirs(images_dir)
+        if os.path.exists(render_output):
+            try:
+                os.remove(render_output)  # so as not to load the old file
+            except:
+                debug("error", "Unable to remove previous render",
+                      render_output)
+
+        def update_image():
+            render = self.scene.render
+            image_scale = 100.0 / render.resolution_percentage
+            result = engine.begin_result(0, 0,
+                                         render.resolution_x * image_scale,
+                                         render.resolution_y * image_scale)
+            lay = result.layers[0]
+            # possible the image wont load early on.
+            try:
+                lay.load_from_file(render_output)
+            except:
+                pass
+            engine.end_result(result)
+
+        # create command and start process
+        options = self.options
+        prman_executable = os.path.join(self.paths['rmantree'], 'bin',
+                                        self.paths['rman_binary'])
+        cmd = [prman_executable] + options + ["-t:%d" % self.rm.threads] + \
+            [self.paths['rib_output']]
+        cdir = os.path.dirname(self.paths['rib_output'])
+        environ = os.environ.copy()
+        environ['RMANTREE'] = self.paths['rmantree']
+
+        # Launch the command to begin rendering.
+        try:
+            process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE, env=environ)
+            process.communicate()
+            update_image()
+        except:
+            engine.report({"ERROR"},
+                          "Problem launching PRMan from %s." % prman_executable)
+            isProblem = True
 
     def render(self, engine):
         DELAY = 1
