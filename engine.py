@@ -457,7 +457,7 @@ class RPass:
         self.convert_textures(get_texture_list(self.scene))
 
         if engine:
-            engine.report({"INFO"}, "Texture generation took %s" %
+           engine.report({"INFO"}, "Texture generation took %s" %
                           format_seconds_to_hhmmss(time.time() - time_start))
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])

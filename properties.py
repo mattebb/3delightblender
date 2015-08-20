@@ -35,7 +35,7 @@ from .shader_parameters import class_generate_properties
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
-    CollectionProperty
+    CollectionProperty, BoolVectorProperty
 
 # Shader parameters storage
 # --------------------------
@@ -315,37 +315,62 @@ class RendermanPass(bpy.types.PropertyGroup):
     light_shaders = BoolProperty(
         name="Light Shaders", description="Render light shaders")
 
+class RendermanAOV(bpy.types.PropertyGroup):
+    def built_in_channel_types(self, context):
+        items = [('custom', 'Custom', 'Custom Type'),
+                 ('P', 'P', 'Camera Hit Point'),
+                 ('PRadius', 'P Radius', 'Camera Hit Point radius'),
+                 ('Nn', 'Normalized N', 'Normalized Normal'),
+                 ('Ngn', 'Normalized geo N', 'Normalized Geometric Normal'),
+                 ('Tn', 'Normalized Tangent', 'Normalized Shading Tangent'),
+                 ('Vn', 'Normalized V', 'Normalized View vector'),
+                 ('VLen', 'Hit distance', 'Distance to camera ray hit'),
+                 ('curvature', 'Curvature', 'Local surface Curvature'),
+                 ('__Pworld', 'World Space P', 'P in world space'),
+                 ('__Nworld', 'World Space N', 'Normalized Normal in world space'),
+                 ]
+        return items
 
-class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
-    do_collector_shadow = BoolProperty(
-        name="Collect Shadow Holdout",
-        description="Collect shadow data on objects tagged as holdout.",
-        default=False)
+    def update_type(self, context):
+        types = self.built_in_channel_types(context)
+        for item in types:
+            if self.channel_type == item[0] and self.channel_type != 'custom':
+                self.name = self.channel_type
 
-    do_collector_reflection = BoolProperty(
-        name="Collect Reflection Holdout",
-        description="Collect reflection data on objects tagged as holdout.",
-        default=False)
+    show_advanced = BoolProperty(name='Advanced', default=False)
 
-    do_collector_indirectdiffuse = BoolProperty(
-        name="Collect IndirectDiffuse Holdout",
-        description="Collect indirectdiffuse data on objects tagged as holdout.",
-        default=False)
+    channel_type = EnumProperty(name="Channel type",
+        description="The type for this aov, setting to custom will allow a custom LPE",
+        items=built_in_channel_types, update=update_type)
+    name = StringProperty(
+        name="Channel Name",
+        description="Name for the Channel in the output file")
+    custom_lpe = StringProperty(
+        name="lpe String",
+        description="Custom lpe code")
 
-    do_collector_subsurface = BoolProperty(
-        name="Collect Subsurface Holdout",
-        description="Collect subsurface data on objects tagged as holdout.",
-        default=False)
+    lpe_group = StringProperty(
+        name = "lpe Group",
+        description="Object Group to use for this channel (default is all)",
+        default=""
+        )
 
-    do_collector_refraction = BoolProperty(
-        name="Collect Refraction Holdout",
-        description="Collect refraction data on objects tagged as holdout.",
-        default=False)
+    lpe_light_group = StringProperty(
+        name = "lpe Light Group",
+        description="Light Group to use for this channel (default is all)",
+        default=""
+        )
 
+class RendermanAOVList(bpy.types.PropertyGroup):
+    render_layer = StringProperty()
+    custom_aovs = CollectionProperty(type=RendermanAOV,
+                                       name='Custom AOVs')
+    custom_aov_index = IntProperty(min=-1, default=-1)
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
-    holdout_settings = PointerProperty(type=RendermanRenderLayerSettings,
-                                       name='holdout settings')
+    aov_lists = CollectionProperty(type=RendermanAOVList,
+                                       name='Custom AOVs')
+    aov_list_index = IntProperty(min=-1, default=-1)
 
     pixelsamples_x = IntProperty(
         name="Pixel Samples X",
@@ -380,7 +405,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     light_localization = BoolProperty(
         name="Light Localized Sampling",
         description="Localized sampling can give much less noisy renders with similar render times, and may in fact be faster with many lights.",
-        default=False)
+        default=True)
 
     min_samples = IntProperty(
         name="Min Samples",
@@ -392,8 +417,8 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         min=0, default=128)
 
     bucket_shape = EnumProperty(
-        name="Bucket Shape",
-        description="Bucket shape to use when rendering",
+        name="Bucket Order",
+        description="Order buckets are rendered in",
         items=[('HORIZONTAL', 'Horizontal', 'Render scanline from top to bottom'),
                ('VERTICAL', 'Vertical',
                 'Render scanline from left to right'),
@@ -538,12 +563,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     lazy_rib_gen = BoolProperty(
         name="Cache Rib Generation",
         description="On unchanged objects, don't re-emit rib.  Will result in faster spooling of renders.",
-        default=False)
+        default=True)
 
     always_generate_textures = BoolProperty(
         name="Always Recompile Textures",
         description="Recompile used textures at export time to the current rib folder. Leave this unchecked to speed up re-render times",
-        default=True)
+        default=False)
     # preview settings
     preview_pixel_variance = FloatProperty(
         name="Preview Pixel Variance",
@@ -607,7 +632,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items=display_driver_items)
 
     do_denoise = BoolProperty(
-        name="Denoise Image",
+        name="Denoise Post-Process",
         description="Denoise the image.  This will let set your sampling values low and get faster render times and runs denoise to remove the noise as a post process.",
         default=False)
 
@@ -678,6 +703,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Integrator for rendering",
         items=get_integrator_names(),
         default='PxrPathTracer')
+
+    show_integrator_settings = BoolProperty(
+        name="Integration Settings",
+        description="Show Integrator Settings",
+        default=False
+        )
 
     # Rib Box Properties
     bty_inlinerib_texts = CollectionProperty(
@@ -1560,8 +1591,8 @@ classes = [displacementShaders,
            RendermanLightSettings,
            RendermanParticleSettings,
            RendermanIntegratorSettings,
-           RendermanRenderLayerSettings,
-
+           RendermanAOV,
+           RendermanAOVList,
            RendermanCameraSettings,
            RendermanSceneSettings,
            RendermanWorldSettings,
@@ -1603,13 +1634,7 @@ def register():
         type=RendermanObjectSettings, name="Renderman Object Settings")
     bpy.types.Camera.renderman = PointerProperty(
         type=RendermanCameraSettings, name="Renderman Camera Settings")
-    # bpy.types.SceneRenderLayer.renderman = PointerProperty(
-    # type=RendermanRenderLayerSettings, name="Renderman RenderLayer
-    # Settings")
-
-    # add the integrator settings from args files
-    # register_integrators(bpy.types.Scene.renderman.integrator_settings)
-
+    
 
 def unregister():
     for cls in classes:

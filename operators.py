@@ -452,7 +452,7 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
         # BBM modification
         if not self.properties.is_shader_param:
             id = getattr_recursive(context, self.properties.context)
-            rm = id.renderman
+            rm = id.renderman if hasattr(id, 'renderman') else id
         else:
             if context.active_object.name in bpy.data.lamps.keys():
                 rm = bpy.data.lamps[context.active_object.name].renderman
@@ -485,6 +485,19 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
             setattr(rm, coll_idx, index - 1)
 
         return {'FINISHED'}
+
+class OT_add_aov_list(bpy.types.Operator):
+    bl_idname = 'renderman.add_aov_list'
+    bl_label = 'Add aov list'
+    
+    def execute(self, context):
+        scene = context.scene
+        scene.renderman.aov_lists.add()
+        active_layer = scene.render.layers.active
+        # this sucks.  but can't find any other way to refer to render layer
+        scene.renderman.aov_lists[-1].render_layer = active_layer.name
+        return {'FINISHED'}
+
 
 # Menus
 export_archive_menu_func = (lambda self, context: self.layout.operator(
