@@ -1398,9 +1398,10 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         description="Size of the rendered points",
         default=0.1)
 
-    shadingrate_override = BoolProperty(
-        name="Override Shading Rate",
-        description="Override the global shading rate for this object",
+
+    shading_override = BoolProperty(
+                name="Override Default Object Shading",
+                description="Override the default shading attributes for this object",
         default=False)
     shadingrate = FloatProperty(
         name="Shading Rate",
@@ -1413,7 +1414,7 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     geometric_approx_focus = FloatProperty(
         name="Focus Approximation",
         description="Shading Rate is scaled proportionally to the radius of DoF circle of confusion, multiplied by this value",
-        default=1.0)
+                default=-1.0)
 
     motion_segments_override = BoolProperty(
         name="Override Motion Segments",
@@ -1424,13 +1425,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         description="Number of motion segments to take for multi-segment motion blur",
         min=1, max=16, default=1)
 
-    shadinginterpolation = EnumProperty(
-        name="Shading Interpolation",
-        description="Method of interpolating shade samples across micropolygons",
-        items=[('constant', 'Constant', 'Flat shaded micropolygons'),
-               ('smooth', 'Smooth', 'Gourard shaded micropolygons')],
-        default='smooth')
-
     matte = BoolProperty(
         name="Matte Object",
         description="Render the object as a matte cutout (alpha 0.0 in final frame)",
@@ -1439,83 +1433,51 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Visible to Camera",
         description="Visibility to Camera",
         default=True)
-    visibility_trace_diffuse = BoolProperty(
-        name="Visible to Diffuse Rays",
-        description="Visibility to Diffuse Rays (eg. gather(), indirectdiffuse() and occlusion())",
-        default=True)
-    trace_diffuse_hitmode = EnumProperty(
-        name="Diffuse Hit Mode",
-        description="How the surface calculates are result when hit by diffuse rays",
-        items=[('primitive', 'Primitive', 'Returns the un-shaded primitive object color (Cs)'),
-               ('shader', 'Shader', 'Runs the object\'s shader to return a color (Ci)')],
-        default='shader')
-    visibility_trace_specular = BoolProperty(
-        name="Visible to Specular Rays",
-        description="Visibility to Specular Rays (eg. gather(), trace() and environment())",
-        default=True)
-    trace_specular_hitmode = EnumProperty(
-        name="Diffuse Hit Mode",
-        description="How the surface calculates are result when hit by diffuse rays",
-        items=[('primitive', 'Primitive', 'Returns the un-shaded primitive object color (Cs)'),
-               ('shader', 'Shader', 'Runs the object\'s shader to return a color (Ci)')],
-        default='shader')
+    visibility_trace_indirect = BoolProperty(
+                name="All Indirect",
+                description="Sets all the indirect transport modes at once (specular & diffuse)",
+                default=True)
     visibility_trace_transmission = BoolProperty(
         name="Visible to Transmission Rays",
         description="Visibility to Transmission Rays (eg. shadow() and transmission())",
         default=True)
-    trace_transmission_hitmode = EnumProperty(
-        name="Transmission Hit Mode",
-        description="How the surface calculates are result when hit by diffuse rays",
-        items=[('primitive', 'Primitive', 'Returns the un-shaded primitive object color (Cs)'),
-               ('shader', 'Shader', 'Runs the object\'s shader to return a color (Ci)')],
-        default='shader')
-    visibility_photons = BoolProperty(
-        name="Visible to Photons",
-        description="Visibility to Photons",
-        default=True)
-    visibility_shadowmaps = BoolProperty(
-        name="Visible to Shadow Maps",
-        description="Visibility to Shadow Maps",
-        default=True)
 
-    trace_displacements = BoolProperty(
+    raytrace_override = BoolProperty(
+                name="Ray Trace Override",
+                description="Override default Renderman ray tracing behavior. Recommended for advanced users only.",
+                default=False)
+    raytrace_maxdiffusedepth = IntProperty(
+                name="Max Diffuse Depth",
+                description="Limit the number of diffuse bounces",
+                min=1, max=16, default=1)
+    raytrace_maxspeculardepth = IntProperty(
+                name="Max Specular Depth",
+                description="Limit the number of specular bounces",
+                min=1, max=16, default=2)
+    raytrace_tracedisplacements = BoolProperty(
         name="Trace Displacements",
         description="Enable high resolution displaced geometry for ray tracing",
         default=True)
-
-    trace_samplemotion = BoolProperty(
-        name="Trace Motion Blur",
-        description="Rays cast from this object can intersect other motion blur objects",
-        default=False)
-
-    photon_reflectance = FloatVectorProperty(
-        name="Photon Reflectance",
-        description="Tint color for photon bounces",
-        subtype="COLOR",
-        size=3,
-                default=[1.0, 1.0, 1.0])
-
-    export_coordsys = BoolProperty(
-        name="Export Coordinate System",
-        description="Export a named coordinate system set to this object's name",
-        default=False)
-    coordsys = StringProperty(
-        name="Coordinate System Name",
-        description="Export a named coordinate system with this name",
-        default="CoordSys")
-
-    transmission_items = [('transparent', 'Transparent', 'Does not cast shadows on any other object'),
-                          ('opaque', 'Opaque',
-                           'Casts a shadow as a completely opaque object'),
-                          ('Os', 'Opacity',
-                           'Casts a shadow according to the opacity value (RiOpacity or Os)'),
-                          ('shader', 'Shader', 'Casts shadows according to the opacity value computed by the surface shader')]
-    transmission_default = 'opaque'
-    transmission = EnumProperty(
-        name="Transmission",
-        description="How the object appears to transmission-like rays",
-        items=transmission_items,
-        default=transmission_default)
+    raytrace_autobias = BoolProperty(
+                name="Ray Trace Auto Bias",
+                description="Bias value is automatically computed",
+                default=True)
+    raytrace_bias = FloatProperty(
+                name="Ray Trace Bias Amount",
+                description="Offset applied to the ray origin, moving it slightly away from the surface launch point in the ray direction",
+                default=0.01)
+    raytrace_samplemotion = BoolProperty(
+                name="Sample Motion Blur",
+                description="Motion blur of other objects hit by rays launched from this object will be used",
+                default=False)
+    raytrace_decimationrate = IntProperty(
+                name="Decimation Rate",
+                description="Specifies the tessellation decimation for ray tracing. The most useful values are 1, 2, 4, and 16",
+                default=1)
+    raytrace_intersectpriority = IntProperty(
+                name="Intersect Priority",
+                description="Dictates a priority used when ray tracing overlapping materials",
+                default=0)
 
     # Light-Linking
     light_linking = CollectionProperty(type=LightLinking, name='Light Linking')

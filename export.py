@@ -1306,44 +1306,71 @@ def export_particle_system(ri, scene, ob, psys, data=None):
 
 
 def export_blobby_family(ri, scene, ob):
+
+    # we are searching the global metaball collection for all mballs
+    # linked to the current object context, so we can export them 
+    # all as one family in RiBlobby
+
     family = data_name(ob, scene)
-    fam_blobs = [ob for ob in scene.objects if ob.type == 'META' and
-                 (ob.name == family or ob.name.split('.')[0] == family)]
+    master = bpy.data.objects[family]
 
-    # family master obj
-    fam_master = bpy.data.objects.get(family)
+    fam_blobs = []
 
-    # transform
+    for mball in bpy.data.metaballs:
+        fam_blobs.extend([el for el in mball.elements if get_mball_parent(el.id_data).name.split('.')[0] == family])
+
+    #transform 
     tform = []
 
-    # opcodes
-    op = []
+    #opcodes
+    op = []        
+
     count = len(fam_blobs)
     for i in range(count):
-        op.append(1001)  # only blobby ellipsoids for now...
+        op.append(1001) #only blobby ellipsoids for now...
         op.append(i * 16)
 
-    for ob_temp in fam_blobs:
-        m = ob_temp.matrix_world
+    for meta_el in fam_blobs:    
 
-        # multiply only the scale of blobs by 2 (matches Blender
-        # threshold=0.800)
-        sc = Matrix(((2, 0, 0, 0),
-                     (0, 2, 0, 0),
-                     (0, 0, 2, 0),
-                     (0, 0, 0, 1)))
-        m2 = m * sc
-        tform = tform + rib(m2)
+        # Because all meta elements are stored in a single collection,
+        # these elements have a link to their parent MetaBall, but NOT the actual tree parent object.
+        # So I have to go find the parent that owns it.  We need the tree parent in order
+        # to get any world transforms that alter position of the metaball.
+        parent = get_mball_parent(meta_el.id_data)
 
-    op.append(0)  # blob operation:add
+        m = {}
+        loc = meta_el.co
+
+        # mballs that are only linked to the master by name have their own position,
+        # and have to be transformed relative to the master
+        ploc,prot,psc = parent.matrix_world.decompose()
+
+        m = Matrix.Translation(loc)
+
+        sc = Matrix(((meta_el.radius, 0, 0, 0),
+            (0, meta_el.radius, 0, 0),
+            (0, 0, meta_el.radius, 0),
+            (0, 0, 0, 1)))
+
+        ro = prot.to_matrix().to_4x4()
+
+        m2 = m*sc*ro
+        tform = tform + rib(parent.matrix_world * m2)
+
+    op.append(0) #blob operation:add
     op.append(count)
     for n in range(count):
         op.append(n)
 
     st = ('',)
-    parm = {}
+    parm = {}    
 
-    ri.Blobby(count, op, tform, st, parm)
+    ri.Blobby(count, op, tform, st, parm)    
+
+def get_mball_parent(mball):
+    for ob in bpy.data.objects:
+        if ob.data == mball:            
+            return ob
 
 
 def export_geometry_data(ri, scene, ob, data=None):
@@ -1557,42 +1584,40 @@ def get_archive_filename(scene, motion, name, relative=False):
     return path.replace('{object}', name)
 
 # here we would export object attributes like holdout, sr, etc
-
-
 def export_object_attributes(ri, ob):
+
+    #save space! don't export default attribute settings to the RIB
+
+    #shading attributes
+
     if ob.renderman.do_holdout:
         ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
 
-    # shading attributes
-    if ob.renderman.shadingrate_override:
+    if ob.renderman.shading_override:    
         ri.ShadingRate(ob.renderman.shadingrate)
 
-    if ob.renderman.shadinginterpolation != 'smooth':
-        ri.ShadingInterpolation(ob.renderman.shadinginterpolation)
+        approx_params = {}
+        #output motionfactor always, could not find documented default value?
+        approx_params["float motionfactor"] = ob.renderman.geometric_approx_motion
 
-    if ob.renderman.geometric_approx_motion != 1.0:
-        ri.Attribute(
-            "Ri", {"float motionfactor": ob.renderman.geometric_approx_motion})
+        if ob.renderman.geometric_approx_focus != -1.0:
+            approx_params["float focusfactor"] = ob.renderman.geometric_approx_focus
 
-    if ob.renderman.geometric_approx_focus != 1.0:
-        ri.Attribute(
-            "Ri", {"float focusfactor": ob.renderman.geometric_approx_focus})
+        ri.Attribute("Ri", approx_params)
 
     # visibility attributes
-    params = {}
+    vis_params = {}
     if not ob.renderman.visibility_camera:
-        params["int camera"] = 0
+        vis_params["int camera"] = 0
 
-    if not ob.renderman.visibility_trace_diffuse:
-        params["int diffuse"] = 0
-
-    if not ob.renderman.visibility_trace_specular:
-        params["int specular"] = 0
+    if not ob.renderman.visibility_trace_indirect:
+        vis_params["int indirect"] = 0
 
     if not ob.renderman.visibility_trace_transmission:
-        params["int transmission"] = 0
+        vis_params["int transmission"] = 0
 
-    ri.Attribute("visibility", params)
+    if len(vis_params) > 0 :
+        ri.Attribute("visibility", vis_params)
 
     if ob.renderman.matte:
         ri.Matte(ob.renderman.matte)
@@ -1602,6 +1627,38 @@ def export_object_attributes(ri, ob):
         if link.illuminate != "DEFAULT":
             ri.Illuminate(link.light, link.illuminate == 'ON')
 
+    #if not bpy.data.meshes[ob.name].show_double_sided:
+    #    ri.Sides(1)
+
+    #ray tracing attributes
+    if ob.renderman.raytrace_override:
+
+        trace_params = {}
+
+        if ob.renderman.raytrace_maxdiffusedepth != 1:
+            trace_params["int maxdiffusedepth"] = ob.renderman.raytrace_maxdiffusedepth
+
+        if ob.renderman.raytrace_maxspeculardepth != 2:
+            trace_params["int maxspeculardepth"] = ob.renderman.raytrace_maxspeculardepth
+
+        if not ob.renderman.raytrace_tracedisplacements:
+            trace_params["int displacements"] = 0
+
+        if not ob.renderman.raytrace_autobias:
+            trace_params["int autobias"] = 0
+            if ob.renderman.raytrace_bias != 0.01:
+                trace_params["float bias"] = ob.renderman.raytrace_bias
+
+        if ob.renderman.raytrace_samplemotion:
+            trace_params["int samplemotion"] = 1
+
+        if ob.renderman.raytrace_decimationrate != 1:
+            trace_params["int decimationrate"] = ob.renderman.raytrace_decimationrate
+
+        if ob.renderman.raytrace_intersectpriority != 0:
+            trace_params["int intersectpriority"] = ob.renderman.raytrace_intersectpriority
+
+        ri.Attribute("trace", trace_params)
 
 # for each mat in this mesh, call it, then do some shading wizardry to
 # switch between them with PxrBxdfBlend
