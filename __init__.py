@@ -19,9 +19,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-# 
+#
 #
 # ##### END MIT LICENSE BLOCK #####
+import bpy
+import sys
 
 bl_info = {
     "name": "PRMan Render Engine",
@@ -33,10 +35,8 @@ bl_info = {
     "warning": "",
     "category": "Render"}
 
-import bpy
-import sys
-
 from . import engine
+
 
 class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
@@ -46,10 +46,10 @@ class PRManRender(bpy.types.RenderEngine):
 
     def __init__(self):
         self.render_pass = None
-        
+
     def __del__(self):
         if hasattr(self, "render_pass"):
-            if self.render_pass != None:
+            if self.render_pass is not None:
                 engine.free(self)
 
     # main scene render
@@ -64,19 +64,18 @@ class PRManRender(bpy.types.RenderEngine):
                 engine.create(self, data, scene)
             else:
                 engine.reset(self, data, scene)
-        
+
         engine.update(self, data, scene)
 
-        #add in the update_handler
+        # add in the update_handler
         if engine.update_timestamp not in bpy.app.handlers.scene_update_pre:
             bpy.app.handlers.scene_update_pre.append(engine.update_timestamp)
 
-        
     def render(self, scene):
-        if self.render_pass != None:
+        if self.render_pass is not None:
             engine.render(self)
-    
-   
+
+
 def register():
     from . import ui
     from . import preferences
@@ -89,8 +88,7 @@ def register():
     ui.register()
     nodes.register()
     bpy.utils.register_module(__name__)
-    
-    
+
 
 def unregister():
     if engine.update_timestamp in bpy.app.handlers.scene_update_pre:
@@ -108,5 +106,3 @@ def unregister():
     ui.unregister()
     nodes.unregister()
     bpy.utils.unregister_module(__name__)
-    
-

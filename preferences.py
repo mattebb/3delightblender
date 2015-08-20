@@ -19,7 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-# 
+#
 #
 # ##### END MIT LICENSE BLOCK #####
 
@@ -38,70 +38,70 @@ class RendermanPreferencePath(bpy.types.PropertyGroup):
 
 
 class RendermanEnvVarSettings(bpy.types.PropertyGroup):
-    
-	
-	if sys.platform == ("win32"):
-		outpath = os.path.join("C:", "Users" ,os.getlogin(),"Documents","PRMan")
-		out = StringProperty(
-			name="OUT (Output Root)",
-			description="Default RIB export path root",
-			subtype='DIR_PATH',
-			default='$USERPROFILE\My Documents\prman_for_blender\{blend}')
-	
-	else:
-		outpath = os.path.join(os.environ.get('HOME'), "Documents" , "PRMan")
-		out = StringProperty(
-			name="OUT (Output Root)",
-			description="Default RIB export path root",
-			subtype='DIR_PATH',
-			default='$HOME/Documents/prman_for_blender/{blend}')
-	
-	shd = StringProperty(
-                name="SHD (Shadow Maps)",
-                description="SHD environment variable",
-                subtype='DIR_PATH',
-                default='$OUT/shadowmaps')
-    
-	ptc = StringProperty(
-                name="PTC (Point Clouds)",
-                description="PTC environment variable",
-                subtype='DIR_PATH',
-                default='$OUT/pointclouds')
+    if sys.platform == ("win32"):
+        outpath = os.path.join("C:", "Users", os.getlogin(), "Documents",
+                               "PRMan")
+        out = StringProperty(
+            name="OUT (Output Root)",
+            description="Default RIB export path root",
+            subtype='DIR_PATH',
+            default='$USERPROFILE\My Documents\prman_for_blender\{blend}')
 
-	arc = StringProperty(
-                name="ARC (Archives)",
-                description="ARC environment variable",
-                subtype='DIR_PATH',
-                default='$OUT/archives')
+    else:
+        outpath = os.path.join(os.environ.get('HOME'), "Documents", "PRMan")
+        out = StringProperty(
+            name="OUT (Output Root)",
+            description="Default RIB export path root",
+            subtype='DIR_PATH',
+            default='$HOME/Documents/prman_for_blender/{blend}')
+
+    shd = StringProperty(
+        name="SHD (Shadow Maps)",
+        description="SHD environment variable",
+        subtype='DIR_PATH',
+        default='$OUT/shadowmaps')
+
+    ptc = StringProperty(
+        name="PTC (Point Clouds)",
+        description="PTC environment variable",
+        subtype='DIR_PATH',
+        default='$OUT/pointclouds')
+
+    arc = StringProperty(
+        name="ARC (Archives)",
+        description="ARC environment variable",
+        subtype='DIR_PATH',
+        default='$OUT/archives')
 
 
 class RendermanPreferences(AddonPreferences):
     bl_idname = __package__
-    
-    shader_paths = CollectionProperty(type=RendermanPreferencePath, 
-        name="Shader Paths")
+
+    shader_paths = CollectionProperty(type=RendermanPreferencePath,
+                                      name="Shader Paths")
     shader_paths_index = IntProperty(min=-1, default=-1)
 
-    texture_paths = CollectionProperty(type=RendermanPreferencePath, 
-        name="Texture Paths")
+    texture_paths = CollectionProperty(type=RendermanPreferencePath,
+                                       name="Texture Paths")
     texture_paths_index = IntProperty(min=-1, default=-1)
 
-    procedural_paths = CollectionProperty(type=RendermanPreferencePath, 
-        name="Procedural Paths")
+    procedural_paths = CollectionProperty(type=RendermanPreferencePath,
+                                          name="Procedural Paths")
     procedural_paths_index = IntProperty(min=-1, default=-1)
 
-    archive_paths = CollectionProperty(type=RendermanPreferencePath, 
-        name="Archive Paths")
+    archive_paths = CollectionProperty(type=RendermanPreferencePath,
+                                       name="Archive Paths")
     archive_paths_index = IntProperty(min=-1, default=-1)
-
 
     use_default_paths = BoolProperty(
         name="Use PRMan default paths",
-        description="Includes paths for default shaders etc. from RenderMan Pro Server install",
+        description="Includes paths for default shaders etc. from RenderMan Pro\
+            Server install",
         default=True)
     use_builtin_paths = BoolProperty(
         name="Use built in paths",
-        description="Includes paths for default shaders etc. from PRMan exporter",
+        description="Includes paths for default shaders etc. from PRMan\
+            exporter",
         default=False)
 
     path_rmantree = StringProperty(
@@ -129,11 +129,10 @@ class RendermanPreferences(AddonPreferences):
         description="Path to tdlmake executable",
         subtype='FILE_PATH',
         default="txmake")
-    
-                
+
     env_vars = PointerProperty(
-                type=RendermanEnvVarSettings,
-                name="Environment Variable Settings")
+        type=RendermanEnvVarSettings,
+        name="Environment Variable Settings")
 
     def draw(self, context):
         layout = self.layout
@@ -143,13 +142,10 @@ class RendermanPreferences(AddonPreferences):
         '''
         self._draw_collection(context, layout, self, "Shader Paths:", "collection.add_remove",
                                         "scene", "shader_paths", "shader_paths_index")
-        
         self._draw_collection(context, layout, self, "Texture Paths:", "collection.add_remove",
                                         "scene", "texture_paths", "texture_paths_index")
-        
         self._draw_collection(context, layout, self, "Procedural Paths:", "collection.add_remove",
                                         "scene", "procedural_paths", "procedural_paths_index")
-        
         self._draw_collection(context, layout, self, "Archive Paths:", "collection.add_remove",
                                         "scene", "archive_paths", "archive_paths_index")
         '''
@@ -160,7 +156,6 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(self, "path_texture_optimiser")
 
         env = self.env_vars
-        
         layout.prop(env, "out")
         layout.prop(env, "shd")
         layout.prop(env, "ptc")
@@ -177,6 +172,3 @@ def unregister():
     bpy.utils.unregister_class(RendermanPreferences)
     bpy.utils.unregister_class(RendermanEnvVarSettings)
     bpy.utils.unregister_class(RendermanPreferencePath)
-    
-
-
