@@ -2132,15 +2132,12 @@ def export_camera_render_preview(ri, scene):
 def export_searchpaths(ri, paths):
     ri.Option("searchpath", {"string shader": ["%s" %
                                                ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
+    rel_tex_paths = [os.path.relpath(path, paths['export_dir']) for path in paths['texture']]
     ri.Option("searchpath", {"string texture": ["%s" %
-                                                ':'.join(path_list_convert(paths['texture'] + ["@"], to_unix=True))]})
-    # need this for multi-material
-    ri.Option("searchpath", {"string rixplugin": ["%s" %
-                                                  ':'.join(path_list_convert(paths['rixplugin'], to_unix=True))]})
-
+                                                ':'.join(path_list_convert(rel_tex_paths + ["@"], to_unix=True))]})
     # ri.Option("searchpath", {"string procedural": ["%s" % \
     #    ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})
-    ri.Option("searchpath", {"string archive": paths['archive']})
+    ri.Option("searchpath", {"string archive": os.path.relpath(paths['archive'], paths['export_dir'])})
 
 
 def export_header(ri):
@@ -2334,6 +2331,7 @@ def export_display(ri, rpass, scene):
 
     main_display = user_path(rm.path_display_driver_image,
                              scene=scene)
+    main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
     ri.Display(main_display, dspy_driver, "rgba",
                {"quantize": [0, 0, 0, 0]})
