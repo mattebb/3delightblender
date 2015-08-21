@@ -1303,15 +1303,19 @@ def export_particle_system(ri, scene, ob, psys, data=None):
             export_hair(ri, scene, ob, psys, data)
 
 # many thanks to @rendermouse for this code
-
-
 def export_blobby_family(ri, scene, ob):
-    family = data_name(ob, scene)
-    fam_blobs = [ob for ob in scene.objects if ob.type == 'META' and
-                 (ob.name == family or ob.name.split('.')[0] == family)]
 
-    # family master obj
-    fam_master = bpy.data.objects.get(family)
+    # we are searching the global metaball collection for all mballs
+    # linked to the current object context, so we can export them 
+    # all as one family in RiBlobby
+
+    family = data_name(ob, scene)
+    master = bpy.data.objects[family]
+
+    fam_blobs = []
+
+    for mball in bpy.data.metaballs:
+        fam_blobs.extend([el for el in mball.elements if get_mball_parent(el.id_data).name.split('.')[0] == family])
 
     # transform
     tform = []
@@ -1323,17 +1327,32 @@ def export_blobby_family(ri, scene, ob):
         op.append(1001)  # only blobby ellipsoids for now...
         op.append(i * 16)
 
-    for ob_temp in fam_blobs:
-        m = ob_temp.matrix_world
+    for meta_el in fam_blobs:    
 
-        # multiply only the scale of blobs by 2 (matches Blender
-        # threshold=0.800)
-        sc = Matrix(((2, 0, 0, 0),
-                     (0, 2, 0, 0),
-                     (0, 0, 2, 0),
+        # Because all meta elements are stored in a single collection,
+        # these elements have a link to their parent MetaBall, but NOT the actual tree parent object.
+        # So I have to go find the parent that owns it.  We need the tree parent in order
+        # to get any world transforms that alter position of the metaball.
+        parent = get_mball_parent(meta_el.id_data)
+
+        m = {}
+        loc = meta_el.co
+
+        # mballs that are only linked to the master by name have their own position,
+        # and have to be transformed relative to the master
+        ploc,prot,psc = parent.matrix_world.decompose()
+
+        m = Matrix.Translation(loc)
+
+        sc = Matrix(((meta_el.radius, 0, 0, 0),
+            (0, meta_el.radius, 0, 0),
+            (0, 0, meta_el.radius, 0),
                      (0, 0, 0, 1)))
-        m2 = m * sc
-        tform = tform + rib(m2)
+
+        ro = prot.to_matrix().to_4x4()
+
+        m2 = m*sc*ro
+        tform = tform + rib(parent.matrix_world * m2)
 
     op.append(0)  # blob operation:add
     op.append(count)
@@ -1345,6 +1364,10 @@ def export_blobby_family(ri, scene, ob):
 
     ri.Blobby(count, op, tform, st, parm)
 
+def get_mball_parent(mball):
+    for ob in bpy.data.objects:
+        if ob.data == mball:            
+            return ob
 
 def export_geometry_data(ri, scene, ob, data=None):
     prim = ob.renderman.primitive if ob.renderman.primitive != 'AUTO' \
