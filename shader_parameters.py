@@ -439,13 +439,8 @@ def generate_txmake_options(parent_name):
     for option in txmake.index:
         optionObject = getattr(txmake, option)
         if optionObject['type'] == "bool":
-<<<<<<< HEAD
             optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'enum' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
             optionsProps[optionObject["name"]] = bpy.props.BoolProperty(name = optionObject['dispName'], default = optionObject['default'], description = optionObject['help'])
-=======
-            name = optionObject['name']
-            optionsProps[name] = ""
->>>>>>> 85bcec303187975eadc02a65054e957a366091fb
         elif optionObject['type'] == "enum":
             optionsProps[optionObject["name"]] = EnumProperty(
                 name=optionObject["dispName"],
@@ -541,9 +536,3 @@ def node_add_outputs(node, shaderparameters):
         # for struct type look for the type of connection
         if tag.attrib['value'] == 'struct':
             socket.struct_type = sp.findall('*/tag')[-1].attrib['value']
-<<<<<<< HEAD
-
-
-    
-=======
->>>>>>> 85bcec303187975eadc02a65054e957a366091fb
