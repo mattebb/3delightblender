@@ -2198,7 +2198,7 @@ def export_display(ri, rpass, scene):
     rm = scene.renderman
 
     active_layer = scene.render.layers.active
-    
+
     # built in aovs
     aovs = [
         # (name, do?, declare type/name, source)
@@ -2207,11 +2207,11 @@ def export_display(ri, rpass, scene):
         ("dPdtime", active_layer.use_pass_vector, None, None),
         ("u,v", active_layer.use_pass_uv, None, None),
         ("id", active_layer.use_pass_object_index, "float", None),
-        ("shadows", active_layer.use_pass_shadow, "color", 
+        ("shadows", active_layer.use_pass_shadow, "color",
          "color lpe:shadowcollector"),
         ("reflection", active_layer.use_pass_reflection, "color",
          "color lpe:reflectioncollector"),
-        ("diffuse", active_layer.use_pass_diffuse_direct, "color", 
+        ("diffuse", active_layer.use_pass_diffuse_direct, "color",
          "color lpe:diffuse"),
         ("indirectdiffuse", active_layer.use_pass_diffuse_indirect,
          "color", "color lpe:indirectdiffuse"),
@@ -2289,7 +2289,7 @@ def export_display(ri, rpass, scene):
             LG_string = "'%s'" % aov.lpe_light_group if aov.lpe_light_group != '' else ""
             source = source.replace("%G", G_string)
             source = source.replace("%LG", LG_string)
-        
+
         params = {"string source": "color " + source}
         ri.DisplayChannel('varying color %s' % (aov.name), params)
 
@@ -2316,7 +2316,7 @@ def export_display(ri, rpass, scene):
                        aov + ext, dspy_driver, aov, params)
 
     for aov in custom_aovs:
-        ri.Display('+' + image_base + '.%s.' % aov.name + ext, dspy_driver, 
+        ri.Display('+' + image_base + '.%s.' % aov.name + ext, dspy_driver,
                    aov.name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
 
     if rm.do_denoise and not rpass.is_interactive:

@@ -322,14 +322,19 @@ class RendermanAOV(bpy.types.PropertyGroup):
         items = [('custom', 'Custom', 'Custom Type'),
                  ("lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics"),
                  ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
-                 ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)", "Reflection", "Reflection"),
+                 ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
+                  "Reflection", "Reflection"),
                  ("lpe:C<D%G><L.%LG>", "Diffuse", "Diffuse"),
-                 ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)", "Indirectdiffuse", "IndirectDiffuse"),
+                 ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
+                  "Indirectdiffuse", "IndirectDiffuse"),
                  ("lpe:C<.S%S><L.%LG>", "Specular", "Specular"),
-                 ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)", "Indirectspecular", "Indirectspecular"),
-                 ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)", "Subsurface", "Subsurface"),
-                 ("lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)", "Refraction", "Refraction"),
-        ]
+                 ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
+                  "Indirectspecular", "Indirectspecular"),
+                 ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
+                  "Subsurface", "Subsurface"),
+                 ("lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
+                  "Refraction", "Refraction"),
+                 ]
         return items
 
     def update_type(self, context):
