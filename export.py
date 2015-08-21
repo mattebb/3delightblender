@@ -2320,6 +2320,23 @@ def export_display(ri, rpass, scene):
                 params['string source'] = source
             ri.DisplayChannel('%s %s' % (declare_type, aov), params)
 
+    for aov in custom_aovs:
+        source = aov.channel_type
+        if aov.channel_type == 'custom':
+            source = aov.custom_lpe
+            # looks like someone didn't set an lpe string
+            if source == '':
+                continue
+        else:
+            # light groups need to be surrounded with '' in lpes
+            G_string = "'%s'" % aov.lpe_group if aov.lpe_group != '' else ""
+            LG_string = "'%s'" % aov.lpe_light_group if aov.lpe_light_group != '' else ""
+            source = source.replace("%G", G_string)
+            source = source.replace("%LG", LG_string)
+
+        params = {"string source": "color " + source}
+        ri.DisplayChannel('varying color %s' % (aov.name), params)
+
     if(rm.display_driver == 'it'):
         if find_it_path() is None:
             debug("error", "RMS is not installed IT not available!")
