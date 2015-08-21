@@ -905,6 +905,7 @@ def get_texture_list(scene):
     # if not rpass.light_shaders: return
     SUPPORTED_MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT', 'SURFACE']
     textures = []
+    mats_to_scan = []
     for o in renderable_objects(scene):
         if o.type == 'CAMERA' or o.type == 'EMPTY':
             continue
@@ -913,16 +914,15 @@ def get_texture_list(scene):
                 textures = textures + get_textures(o.data)
         elif o.type in SUPPORTED_MATERIAL_TYPES:
             for mat in [mat for mat in o.data.materials if mat is not None]:
-                textures = textures + get_textures(mat)
+                if mat not in mats_to_scan:
+                    mats_to_scan.append(mat)
         else:
             debug("error",
                   "get_texture_list: unsupported object type [%s]." % o.type)
-    # cull duplicates
-    textures_out = []
-    for tex_set in textures:
-        if tex_set not in textures_out:
-            textures_out.append(tex_set)
-    return textures_out
+    # cull duplicates by only doing mats once
+    for mat in mats_to_scan:
+        textures.extend(get_textures(mat))
+    return textures
 
 
 def get_texture_list_preview(scene):
@@ -1303,8 +1303,6 @@ def export_particle_system(ri, scene, ob, psys, data=None):
             export_hair(ri, scene, ob, psys, data)
 
 # many thanks to @rendermouse for this code
-
-
 def export_blobby_family(ri, scene, ob):
 
     # we are searching the global metaball collection for all mballs
@@ -1319,15 +1317,14 @@ def export_blobby_family(ri, scene, ob):
     for mball in bpy.data.metaballs:
         fam_blobs.extend([el for el in mball.elements if get_mball_parent(el.id_data).name.split('.')[0] == family])
 
-    #transform 
+    # transform
     tform = []
 
-    #opcodes
-    op = []        
-
+    # opcodes
+    op = []
     count = len(fam_blobs)
     for i in range(count):
-        op.append(1001) #only blobby ellipsoids for now...
+        op.append(1001)  # only blobby ellipsoids for now...
         op.append(i * 16)
 
     for meta_el in fam_blobs:    
@@ -1350,28 +1347,27 @@ def export_blobby_family(ri, scene, ob):
         sc = Matrix(((meta_el.radius, 0, 0, 0),
             (0, meta_el.radius, 0, 0),
             (0, 0, meta_el.radius, 0),
-            (0, 0, 0, 1)))
+                     (0, 0, 0, 1)))
 
         ro = prot.to_matrix().to_4x4()
 
         m2 = m*sc*ro
         tform = tform + rib(parent.matrix_world * m2)
 
-    op.append(0) #blob operation:add
+    op.append(0)  # blob operation:add
     op.append(count)
     for n in range(count):
         op.append(n)
 
     st = ('',)
-    parm = {}    
+    parm = {}
 
-    ri.Blobby(count, op, tform, st, parm)    
+    ri.Blobby(count, op, tform, st, parm)
 
 def get_mball_parent(mball):
     for ob in bpy.data.objects:
         if ob.data == mball:            
             return ob
-
 
 def export_geometry_data(ri, scene, ob, data=None):
     prim = ob.renderman.primitive if ob.renderman.primitive != 'AUTO' \
@@ -1583,82 +1579,70 @@ def get_archive_filename(scene, motion, name, relative=False):
         path = user_path(path, scene)
     return path.replace('{object}', name)
 
+
 # here we would export object attributes like holdout, sr, etc
 def export_object_attributes(ri, ob):
-
-    #save space! don't export default attribute settings to the RIB
-
-    #shading attributes
+    # save space! don't export default attribute settings to the RIB
+    # shading attributes
 
     if ob.renderman.do_holdout:
         ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
 
-    if ob.renderman.shading_override:    
+    if ob.renderman.shading_override:
         ri.ShadingRate(ob.renderman.shadingrate)
-
         approx_params = {}
-        #output motionfactor always, could not find documented default value?
-        approx_params["float motionfactor"] = ob.renderman.geometric_approx_motion
-
+        # output motionfactor always, could not find documented default value?
+        approx_params[
+            "float motionfactor"] = ob.renderman.geometric_approx_motion
         if ob.renderman.geometric_approx_focus != -1.0:
-            approx_params["float focusfactor"] = ob.renderman.geometric_approx_focus
-
+            approx_params[
+                "float focusfactor"] = ob.renderman.geometric_approx_focus
         ri.Attribute("Ri", approx_params)
 
     # visibility attributes
     vis_params = {}
     if not ob.renderman.visibility_camera:
         vis_params["int camera"] = 0
-
     if not ob.renderman.visibility_trace_indirect:
         vis_params["int indirect"] = 0
-
     if not ob.renderman.visibility_trace_transmission:
         vis_params["int transmission"] = 0
-
-    if len(vis_params) > 0 :
+    if len(vis_params) > 0:
         ri.Attribute("visibility", vis_params)
-
     if ob.renderman.matte:
         ri.Matte(ob.renderman.matte)
+
+    # ray tracing attributes
+    if ob.renderman.raytrace_override:
+        trace_params = {}
+        if ob.renderman.raytrace_maxdiffusedepth != 1:
+            trace_params[
+                "int maxdiffusedepth"] = ob.renderman.raytrace_maxdiffusedepth
+        if ob.renderman.raytrace_maxspeculardepth != 2:
+            trace_params[
+                "int maxspeculardepth"] = ob.renderman.raytrace_maxspeculardepth
+        if not ob.renderman.raytrace_tracedisplacements:
+            trace_params["int displacements"] = 0
+        if not ob.renderman.raytrace_autobias:
+            trace_params["int autobias"] = 0
+            if ob.renderman.raytrace_bias != 0.01:
+                trace_params["float bias"] = ob.renderman.raytrace_bias
+        if ob.renderman.raytrace_samplemotion:
+            trace_params["int samplemotion"] = 1
+        if ob.renderman.raytrace_decimationrate != 1:
+            trace_params[
+                "int decimationrate"] = ob.renderman.raytrace_decimationrate
+        if ob.renderman.raytrace_intersectpriority != 0:
+            trace_params[
+                "int intersectpriority"] = ob.renderman.raytrace_intersectpriority
+
+        ri.Attribute("trace", trace_params)
 
     # light linking
     for link in ob.renderman.light_linking:
         if link.illuminate != "DEFAULT":
             ri.Illuminate(link.light, link.illuminate == 'ON')
 
-    #if not bpy.data.meshes[ob.name].show_double_sided:
-    #    ri.Sides(1)
-
-    #ray tracing attributes
-    if ob.renderman.raytrace_override:
-
-        trace_params = {}
-
-        if ob.renderman.raytrace_maxdiffusedepth != 1:
-            trace_params["int maxdiffusedepth"] = ob.renderman.raytrace_maxdiffusedepth
-
-        if ob.renderman.raytrace_maxspeculardepth != 2:
-            trace_params["int maxspeculardepth"] = ob.renderman.raytrace_maxspeculardepth
-
-        if not ob.renderman.raytrace_tracedisplacements:
-            trace_params["int displacements"] = 0
-
-        if not ob.renderman.raytrace_autobias:
-            trace_params["int autobias"] = 0
-            if ob.renderman.raytrace_bias != 0.01:
-                trace_params["float bias"] = ob.renderman.raytrace_bias
-
-        if ob.renderman.raytrace_samplemotion:
-            trace_params["int samplemotion"] = 1
-
-        if ob.renderman.raytrace_decimationrate != 1:
-            trace_params["int decimationrate"] = ob.renderman.raytrace_decimationrate
-
-        if ob.renderman.raytrace_intersectpriority != 0:
-            trace_params["int intersectpriority"] = ob.renderman.raytrace_intersectpriority
-
-        ri.Attribute("trace", trace_params)
 
 # for each mat in this mesh, call it, then do some shading wizardry to
 # switch between them with PxrBxdfBlend
@@ -2082,7 +2066,7 @@ def export_camera(ri, scene, motion, camera_to_use=None):
 
     if scene.render.use_border and not scene.render.use_crop_to_border:
         ri.CropWindow(scene.render.border_min_x, scene.render.border_max_x,
-                      scene.render.border_min_y, scene.render.border_max_y)
+                      1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y)
 
     if cam.renderman.use_physical_camera:
         # use pxr Camera
@@ -2113,8 +2097,8 @@ def export_camera(ri, scene, motion, camera_to_use=None):
     if scene.render.use_border and scene.render.use_crop_to_border:
         screen_min_x = -xaspect + 2.0 * scene.render.border_min_x * xaspect
         screen_max_x = -xaspect + 2.0 * scene.render.border_max_x * xaspect
-        screen_min_y = yaspect - 2.0 * scene.render.border_max_y * yaspect
-        screen_max_y = yaspect - 2.0 * scene.render.border_min_y * yaspect
+        screen_min_y = -yaspect + 2.0 * (scene.render.border_min_y) * yaspect
+        screen_max_y = -yaspect + 2.0 * (scene.render.border_max_y) * yaspect
         ri.ScreenWindow(screen_min_x, screen_max_x, screen_min_y, screen_max_y)
         res_x = resolution[0] * (scene.render.border_max_x -
                                  scene.render.border_min_x)
@@ -2141,15 +2125,15 @@ def export_camera_render_preview(ri, scene):
     ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
     resolution = render_get_resolution(scene.render)
     ri.Format(resolution[0], resolution[1], 1.0)
-    ri.Transform([ 0, -0.25, -1, 0,  1, 0, 0, 0, 0, 
-                1, -0.25, 0,  0, -1.125, 5.5, 1 ])
-    
+    ri.Transform([0, -0.25, -1, 0,  1, 0, 0, 0, 0,
+                  1, -0.25, 0,  0, -1.125, 5.5, 1])
+
 
 def export_searchpaths(ri, paths):
     ri.Option("searchpath", {"string shader": ["%s" %
                                                ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
     ri.Option("searchpath", {"string texture": ["%s" %
-                                                ':'.join(path_list_convert(paths['texture']+["@"], to_unix=True))]})
+                                                ':'.join(path_list_convert(paths['texture'] + ["@"], to_unix=True))]})
     # need this for multi-material
     ri.Option("searchpath", {"string rixplugin": ["%s" %
                                                   ':'.join(path_list_convert(paths['rixplugin'], to_unix=True))]})
@@ -2242,43 +2226,43 @@ def export_display(ri, rpass, scene):
     rm = scene.renderman
 
     active_layer = scene.render.layers.active
+
+    # built in aovs
     aovs = [
         # (name, do?, declare type/name, source)
         ("z", active_layer.use_pass_z, None, None),
         ("N", active_layer.use_pass_normal, None, None),
         ("dPdtime", active_layer.use_pass_vector, None, None),
         ("u,v", active_layer.use_pass_uv, None, None),
-        ("id", active_layer.use_pass_uv, "float", None),
-        # ("lpe:shadows", active_layer.use_pass_shadow, "color", None),
-        # ("reflection", active_layer.use_pass_shadow, "float id"),
-        ("lpe:diffuse", active_layer.use_pass_diffuse_direct, "color", None),
-        # ("lpe:diffusedirect", active_layer.use_pass_diffuse_direct, "color", None),
-        ("lpe:indirectdiffuse", active_layer.use_pass_diffuse_indirect,
-         "color", None),
+        ("id", active_layer.use_pass_object_index, "float", None),
+        ("shadows", active_layer.use_pass_shadow, "color",
+         "color lpe:shadowcollector"),
+        ("reflection", active_layer.use_pass_reflection, "color",
+         "color lpe:reflectioncollector"),
+        ("diffuse", active_layer.use_pass_diffuse_direct, "color",
+         "color lpe:diffuse"),
+        ("indirectdiffuse", active_layer.use_pass_diffuse_indirect,
+         "color", "color lpe:indirectdiffuse"),
         ("albedo", active_layer.use_pass_diffuse_color, "color",
          "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O"),
-        ("lpe:specular", active_layer.use_pass_specular, "color", None),
-        # ("lpe:diffuse", active_layer.use_pass_diffuse_direct, "color", None),
-        ("lpe:indirectspecular", active_layer.use_pass_glossy_indirect,
-         "color", None),
-        # specular COLOR???("lpe:indirectdiffuse",
-        # active_layer.use_pass_diffuse_indirect, "color", None),
-        ("lpe:subsurface", active_layer.use_pass_subsurface_indirect,
-         "color", None),
-        ("lpe:refraction", active_layer.use_pass_refraction, "color", None),
-        ("lpe:emission", active_layer.use_pass_emit, "color", None),
-        # ("lpe:ambient occlusion", active_layer.use_pass_emit, "color", None),
-        ("allshadows", rm.holdout_settings.do_collector_shadow,
-         "color", "color lpe:holdout;shadowcollector"),
-        ("allreflections", rm.holdout_settings.do_collector_reflection,
-         "color", "color lpe:holdout;reflectioncollector"),
-        ("allindirectdiffuse", rm.holdout_settings.do_collector_indirectdiffuse,
-         "color", "color lpe:holdout;indirectdiffusecollector"),
-        ("allsubsurface", rm.holdout_settings.do_collector_subsurface,
-         "color", "color lpe:holdout;subsurfacecollector"),
-        ("allrefractions", rm.holdout_settings.do_collector_refraction,
-         "color", "color lpe:holdout;refractioncollector")
+        ("specular", active_layer.use_pass_specular, "color",
+         "color lpe:specular"),
+        ("indirectspecular", active_layer.use_pass_glossy_indirect,
+         "color", "color lpe:indirectspecular"),
+        ("subsurface", active_layer.use_pass_subsurface_indirect,
+         "color", "color lpe:subsurface"),
+        ("refraction", active_layer.use_pass_refraction, "color",
+         "color lpe:refraction"),
+        ("emission", active_layer.use_pass_emit, "color",
+         "color lpe:emission"),
     ]
+
+    # custom aovs
+    custom_aovs = []
+    for aov_list in rm.aov_lists:
+        if active_layer.name == aov_list.render_layer:
+            custom_aovs = aov_list.custom_aovs
+            break
 
     # Set bucket shape.
     if rpass.is_interactive:
@@ -2355,11 +2339,13 @@ def export_display(ri, rpass, scene):
     # now do aovs
     for aov, doit, declare, source in aovs:
         if doit:
-            params = {"quantize": [0, 0, 0, 0]}
-            if source and 'holdout' in source:
-                params['int asrgba'] = 1
+            params = {"quantize": [0, 0, 0, 0], "int asrgba": 1}
             ri.Display('+' + image_base + '.%s.' %
                        aov + ext, dspy_driver, aov, params)
+
+    for aov in custom_aovs:
+        ri.Display('+' + image_base + '.%s.' % aov.name + ext, dspy_driver,
+                   aov.name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
 
     if rm.do_denoise and not rpass.is_interactive:
         # add display channels for denoising

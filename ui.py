@@ -43,14 +43,7 @@ from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
 import bl_ui.properties_render as properties_render
 properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
-del properties_render
-
-import bl_ui.properties_render as properties_render
-properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
+# properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_render
 
@@ -179,8 +172,25 @@ class PRManButtonsPanel():
         return rd.engine == 'PRMAN_RENDER'
 
 
+class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
+    bl_label = "Output"
+    # bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+
+        layout.prop(rm, "display_driver")
+        layout.prop(rm, "path_display_driver_image")
+        # if rm.display_driver in ['tiff', 'openexr']:
+        #    layout.prop(rm, "combine_aovs")
+        layout.prop(rm, "do_denoise")
+
+
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     bl_label = "Sampling"
+    # bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
 
@@ -198,13 +208,7 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row.prop(rm, "max_specular_depth", text="Specular Depth")
         row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
         row = col.row(align=True)
-        row.prop(rm, 'light_localization')
         layout.separator()
-        col.prop(rm, "bucket_shape")
-        if rm.bucket_shape == 'SPIRAL':
-            row = col.row(align=True)
-            row.prop(rm, "bucket_sprial_x", text="X")
-            row.prop(rm, "bucket_sprial_y", text="Y")
         col.prop(rm, "integrator")
         # find args for integrators here!
         integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
@@ -224,8 +228,8 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
 
                     split = layout.split(NODE_LAYOUT_SPLIT)
                     row = split.row()
-                    row.prop(integrator_settings, ui_prop, icon=icon, text='',
-                             icon_only=True, emboss=False)
+                    row.prop(integrator_settings, ui_prop, icon=icon, text=text,
+                             icon_only=True, emboss=True)
                     row.label(prop_name + ':')
 
                     if ui_open:
@@ -236,25 +240,20 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
                     # indented_label(row, socket.name+':')
                     row.prop(integrator_settings, prop_name)
 
-        draw_props(integrator_settings.prop_names, col)
+        icon = 'TRIA_DOWN' if rm.show_integrator_settings \
+            else 'TRIA_RIGHT'
+        text = rm.integrator + " Settings:"
 
-        layout.separator()
-
-        row = layout.row()
-        row.prop(rm, "shadingrate")
-
-        layout.separator()
-
-        row = layout.row()
-        row.label("Pixel Filter:")
-        row.prop(rm, "pixelfilter", text="")
-        row = layout.row()
-        row.prop(rm, "pixelfilter_x", text="Size X")
-        row.prop(rm, "pixelfilter_y", text="Size Y")
+        row = col.row()
+        row.prop(rm, "show_integrator_settings", icon=icon, text=text,
+                 icon_only=True, emboss=False)
+        if rm.show_integrator_settings:
+            draw_props(integrator_settings.prop_names, col)
 
 
 class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
     bl_label = "Motion Blur"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         rm = context.scene.renderman
@@ -274,6 +273,7 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
 
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
     bl_label = "Interactive and Preview Sampling"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
 
@@ -290,6 +290,51 @@ class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
         row.prop(rm, "preview_max_specular_depth", text="Specular Depth")
         row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
         row = col.row(align=True)
+
+
+class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
+    bl_label = "Advanced"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+
+        layout.separator()
+
+        row = layout.row()
+        row.prop(rm, "shadingrate")
+
+        layout.separator()
+
+        row = layout.row()
+        row.label("Pixel Filter:")
+        row.prop(rm, "pixelfilter", text="")
+        row = layout.row()
+        row.prop(rm, "pixelfilter_x", text="Size X")
+        row.prop(rm, "pixelfilter_y", text="Size Y")
+
+        layout.separator()
+        row = layout.row()
+        row.prop(rm, 'light_localization')
+
+        layout.separator()
+        row = layout.row()
+        row.prop(rm, "bucket_shape")
+        if rm.bucket_shape == 'SPIRAL':
+            row = layout.row(align=True)
+            row.prop(rm, "bucket_sprial_x", text="X")
+            row.prop(rm, "bucket_sprial_y", text="Y")
+
+        layout.separator()
+        layout.prop(rm, "output_action")
+        layout.prop(rm, "path_rib_output")
+
+        layout.separator()
+        layout.prop(rm, "always_generate_textures")
+        layout.prop(rm, "lazy_rib_gen")
+        layout.prop(rm, "threads")
 
 
 class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
@@ -330,27 +375,6 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
         layout.prop(rm, "export_default_uv")
         layout.prop(rm, "export_default_vcol")
         layout.prop(rm, "export_smooth_normals")
-
-
-class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
-    bl_label = "Renderman Output"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        layout.prop(rm, "path_rib_output")
-        layout.prop(rm, "output_action")
-        layout.prop(rm, "display_driver")
-        layout.prop(rm, "do_denoise")
-        layout.prop(rm, "path_display_driver_image")
-        layout.prop(rm, "always_generate_textures")
-        layout.prop(rm, "lazy_rib_gen")
-        layout.prop(rm, "threads")
-        if rm.display_driver == 'blender':
-            layout.prop(rm, "update_frequency")
 
 
 class MATERIAL_PT_renderman_preview(Panel):
@@ -575,15 +599,15 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
         col.prop(rl, "use_pass_refraction", text="Refraction")
         col.prop(rl, "use_pass_emit", text="Emission")
 
-        layout.separator()
-        row = layout.row()
-        row.label('Holdouts')
-        rm = scene.renderman.holdout_settings
-        layout.prop(rm, 'do_collector_shadow')
-        layout.prop(rm, 'do_collector_reflection')
-        layout.prop(rm, 'do_collector_refraction')
-        layout.prop(rm, 'do_collector_indirectdiffuse')
-        layout.prop(rm, 'do_collector_subsurface')
+        # layout.separator()
+        #row = layout.row()
+        # row.label('Holdouts')
+        #rm = scene.renderman.holdout_settings
+        #layout.prop(rm, 'do_collector_shadow')
+        #layout.prop(rm, 'do_collector_reflection')
+        #layout.prop(rm, 'do_collector_refraction')
+        #layout.prop(rm, 'do_collector_indirectdiffuse')
+        #layout.prop(rm, 'do_collector_subsurface')
 
         # col.prop(rl, "use_pass_ambient_occlusion")
 
@@ -774,12 +798,12 @@ class OBJECT_PT_renderman_object_geometry(Panel):
                 colf.prop(rm, "primitive_point_type")
                 colf.prop(rm, "primitive_point_width")
 
-            col.prop(rm, "export_archive")
+            # col.prop(rm, "export_archive")
             # if rm.export_archive:
             #    col.prop(rm, "export_archive_path")
 
         col = layout.column()
-        col.prop(rm, "export_coordsys")
+        # col.prop(rm, "export_coordsys")
 
         row = col.row()
         row.prop(rm, "motion_segments_override", text="")
@@ -788,77 +812,13 @@ class OBJECT_PT_renderman_object_geometry(Panel):
         sub.prop(rm, "motion_segments")
 
 
-class OBJECT_PT_renderman_object_render_shading(Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "object"
-    bl_label = "Renderman Shading"
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return (context.object and rd.engine in {'PRMAN_RENDER'})
-
-    def draw(self, context):
-        layout = self.layout
-        ob = context.object
-        rm = ob.renderman
-
-        col = layout.column()
-
-        row = col.row()
-
-        row.prop(rm, 'do_holdout')    
-        sub = col.row()
-        sub.enabled = rm.do_holdout
-        sub.prop(rm, 'lpe_group')
-
-        col.separator()
-        row = col.row()
-        row.prop(rm, 'shading_override')
-
-        colgroup = layout.column()
-        colgroup.enabled = rm.shading_override        
-        row = colgroup.row()
-        row.prop(rm, "shadingrate")
-        row = colgroup.row()
-        row.prop(rm, "geometric_approx_motion")
-        row = colgroup.row()
-        row.prop(rm, "geometric_approx_focus")
-
-
 class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
-    bl_label = "Renderman Visibility"
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return (context.object and rd.engine in {'PRMAN_RENDER'})
-
-    def draw(self, context):
-        layout = self.layout
-        ob = context.object
-        rm = ob.renderman
-        
-        col = layout.column()
-        row = col.row()
-        row.prop(rm, "visibility_camera", text="Camera")
-        row.prop(rm, "visibility_trace_indirect", text="Indirect")  
-        row = col.row()
-        row.prop(rm, "visibility_trace_transmission", text="Transmission")   
-        row.prop(rm, "matte")
-        
-
-class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "object"
-    bl_label = "Renderman Ray Tracing"
+    bl_label = "Shading and Visibility"
     bl_options = {'DEFAULT_CLOSED'}
-    
+
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
@@ -879,13 +839,67 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
         ob = context.object
         rm = ob.renderman
 
-        self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
-                                      "object", "trace_set", "trace_set_index")
+        col = layout.column()
+        row = col.row()
+        row.prop(rm, "visibility_camera", text="Camera")
+        row.prop(rm, "visibility_trace_indirect", text="Indirect")
+        row = col.row()
+        row.prop(rm, "visibility_trace_transmission", text="Transmission")
+        row.prop(rm, "matte")
 
-        layout.prop(rm, "raytrace_override", text="Override Default Ray Tracing")
+        col.separator()
+
+        row = col.row()
+        row.prop(rm, 'do_holdout')
+        sub = col.row()
+        sub.enabled = rm.do_holdout
+        sub.prop(rm, 'lpe_group')
+
+        col.separator()
+
+        row = col.row()
+        row.prop(rm, 'shading_override')
+
+        colgroup = layout.column()
+        colgroup.enabled = rm.shading_override
+        row = colgroup.row()
+        row.prop(rm, "shadingrate")
+        row = colgroup.row()
+        row.prop(rm, "geometric_approx_motion")
+        row = colgroup.row()
+        row.prop(rm, "geometric_approx_focus")
+
+
+class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+    bl_label = "Ray Tracing"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return (context.object and rd.engine in {'PRMAN_RENDER'})
+
+    def draw_item(self, layout, context, item):
+        col = layout.column()
+        col.prop(item, "group")
+        col.prop(item, "mode")
+
+    def draw(self, context):
+        layout = self.layout
+        ob = context.object
+        rm = ob.renderman
+
+        self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
+                              "object", "trace_set", "trace_set_index")
+
+        layout.prop(
+            rm, "raytrace_override", text="Override Default Ray Tracing")
 
         col = layout.column()
-        col.active = rm.raytrace_override 
+        col.active = rm.raytrace_override
         row = col.row()
         row.prop(rm, "raytrace_maxdiffusedepth", text="Max Diffuse Depth")
         row = col.row()
@@ -893,16 +907,17 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
         row = col.row()
         row.prop(rm, "raytrace_tracedisplacements", text="Trace Displacements")
         row = col.row()
-        row.prop(rm, "raytrace_autobias", text="Ray Trace Auto Bias")
+        row.prop(rm, "raytrace_autobias", text="Ray Origin Auto Bias")
         row = col.row()
-        row.prop(rm, "raytrace_bias", text="Ray Trace Bias Amount")
+        row.prop(rm, "raytrace_bias", text="Ray Origin Bias Amount")
         row.active = not rm.raytrace_autobias
         row = col.row()
         row.prop(rm, "raytrace_samplemotion", text="Sample Motion Blur")
         row = col.row()
         row.prop(rm, "raytrace_decimationrate", text="Decimation Rate")
         row = col.row()
-        row.prop(rm, "raytrace_intersectpriority", text="Intersection Priority")
+        row.prop(
+            rm, "raytrace_intersectpriority", text="Intersection Priority")
 
 
 class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, Panel):
@@ -935,6 +950,53 @@ class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, Panel):
         self._draw_collection(context, layout, rm, "Light Link:",
                               "collection.add_remove", "object",
                               "light_linking", "light_linking_index")
+
+
+class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
+    bl_label = "RenderMan AOVs"
+    bl_context = "render_layer"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine in {'PRMAN_RENDER'}
+
+    def draw_item(self, layout, context, item):
+        scene = context.scene
+        rm = scene.renderman
+        #ll = rm.light_linking
+        row = layout.row()
+        #row.prop(item, "layers")
+        col = layout.column()
+        col.prop(item, "name")
+        col.prop(item, "channel_type")
+        if item.channel_type == "custom":
+            col.prop(item, 'custom_lpe')
+        col.prop(item, "show_advanced")
+        col = col.column()
+        col.enabled = item.show_advanced
+        col.prop(item, 'lpe_group')
+        col.prop(item, 'lpe_light_group')
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+        aov_list = None
+        active_layer = scene.render.layers.active
+        for l in rm.aov_lists:
+            if l.render_layer == active_layer.name:
+                aov_list = l
+                break
+        if aov_list is None:
+            layout.operator('renderman.add_aov_list')
+        else:
+            layout.context_pointer_set("aov_list", aov_list)
+            self._draw_collection(context, layout, aov_list, "AOVs",
+                                  "collection.add_remove", "aov_list",
+                                  "custom_aovs", "custom_aov_index")
 
 
 class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):

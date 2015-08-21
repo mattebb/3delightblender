@@ -327,7 +327,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
                  ("lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse"),
                  ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
                   "Indirectdiffuse", "IndirectDiffuse"),
-                 ("lpe:C<.S%S><L.%LG>", "Specular", "Specular"),
+                 ("lpe:C<.S%G><L.%LG>", "Specular", "Specular"),
                  ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
                   "Indirectspecular", "Indirectspecular"),
                  ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
