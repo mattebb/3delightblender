@@ -2126,7 +2126,7 @@ def export_camera_render_preview(ri, scene):
     resolution = render_get_resolution(scene.render)
     ri.Format(resolution[0], resolution[1], 1.0)
     ri.Transform([0, -0.25, -1, 0,  1, 0, 0, 0, 0,
-                  1, -0.25, 0,  0, -1.125, 5.5, 1])
+                  1, -0.25, 0,  0, -.75, 3.25, 1])
 
 
 def export_searchpaths(ri, paths):
@@ -2203,23 +2203,25 @@ def find_preview_material(scene):
 # --------------- End Hopefully temporary --------------- #
 
 
-def preview_model(ri, mat):
+def preview_model(ri, scene, mat):
     if mat.preview_render_type == 'SPHERE':
         ri.Sphere(1, -1, 1, 360)
     elif mat.preview_render_type == 'FLAT':  # FLAT PLANE
         # ri.Scale(0.75, 0.75, 0.75)
-        ri.Translate(0.0, 0.0, 0.01)
+        #ri.Translate(0.0, 0.0, 0.01)
         ri.PointsPolygons([4, ],
                           [0, 1, 2, 3],
                           {ri.P: [0, -1, -1,  0, 1, -1,  0, 1, 1,  0, -1, 1]})
-    else:  # CUBE
-        ri.Scale(0.75, 0.75, 0.75)
-        ri.Translate(0.0, 0.0, 0.01)
-        ri.PointsPolygons([4, 4, 4, 4, 4, 4, ],
-                          [0, 1, 2, 3, 4, 7, 6, 5, 0, 4, 5, 1,
-                           1, 5, 6, 2, 2, 6, 7, 3, 4, 0, 3, 7],
-                          {ri.P: [1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1,
-                                  1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1]})
+    elif mat.preview_render_type == 'CUBE':
+        ri.Scale(.75, .75, .75)
+        export_geometry_data(ri, scene, scene.objects['previewcube'], data=None)
+    elif mat.preview_render_type == 'HAIR':
+        return # skipping for now
+    else:
+        ri.Scale(2, 2 , 2)
+        ri.Rotate(90, 0, 0, 1)
+        ri.Rotate(45, 1, 0, 0)
+        export_geometry_data(ri, scene, scene.objects['preview.002'], data=None)
 
 
 def export_display(ri, rpass, scene):
@@ -2482,7 +2484,7 @@ def write_preview_rib(rpass, scene, ri):
 
     mat = find_preview_material(scene)
     export_material(ri, mat, 'preview')
-    preview_model(ri, mat)
+    preview_model(ri, scene, mat)
     ri.AttributeEnd()
 
     ri.WorldEnd()
