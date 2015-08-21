@@ -35,7 +35,7 @@ from .shader_parameters import class_generate_properties
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
-    CollectionProperty
+    CollectionProperty, BoolVectorProperty
 
 # Shader parameters storage
 # --------------------------
@@ -316,36 +316,69 @@ class RendermanPass(bpy.types.PropertyGroup):
         name="Light Shaders", description="Render light shaders")
 
 
-class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
-    do_collector_shadow = BoolProperty(
-        name="Collect Shadow Holdout",
-        description="Collect shadow data on objects tagged as holdout.",
-        default=False)
+class RendermanAOV(bpy.types.PropertyGroup):
 
-    do_collector_reflection = BoolProperty(
-        name="Collect Reflection Holdout",
-        description="Collect reflection data on objects tagged as holdout.",
-        default=False)
+    def built_in_channel_types(self, context):
+        items = [('custom', 'Custom', 'Custom Type'),
+                 ("lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics"),
+                 ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
+                 ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
+                  "Reflection", "Reflection"),
+                 ("lpe:C<D%G><L.%LG>", "Diffuse", "Diffuse"),
+                 ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
+                  "Indirectdiffuse", "IndirectDiffuse"),
+                 ("lpe:C<.S%S><L.%LG>", "Specular", "Specular"),
+                 ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
+                  "Indirectspecular", "Indirectspecular"),
+                 ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
+                  "Subsurface", "Subsurface"),
+                 ("lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
+                  "Refraction", "Refraction"),
+                 ]
+        return items
 
-    do_collector_indirectdiffuse = BoolProperty(
-        name="Collect IndirectDiffuse Holdout",
-        description="Collect indirectdiffuse data on objects tagged as holdout.",
-        default=False)
+    def update_type(self, context):
+        types = self.built_in_channel_types(context)
+        for item in types:
+            if self.channel_type == item[0] and self.channel_type != 'custom':
+                self.name = 'Custom_' + item[1]
 
-    do_collector_subsurface = BoolProperty(
-        name="Collect Subsurface Holdout",
-        description="Collect subsurface data on objects tagged as holdout.",
-        default=False)
+    show_advanced = BoolProperty(name='Advanced', default=False)
 
-    do_collector_refraction = BoolProperty(
-        name="Collect Refraction Holdout",
-        description="Collect refraction data on objects tagged as holdout.",
-        default=False)
+    channel_type = EnumProperty(name="Channel type",
+                                description="The type for this aov, setting to custom will allow a custom LPE",
+                                items=built_in_channel_types, update=update_type)
+    name = StringProperty(
+        name="Channel Name",
+        description="Name for the Channel in the output file")
+    custom_lpe = StringProperty(
+        name="lpe String",
+        description="Custom lpe code")
+
+    lpe_group = StringProperty(
+        name="lpe Group",
+        description="Object Group to use for this channel (default is all)",
+        default=""
+    )
+
+    lpe_light_group = StringProperty(
+        name="lpe Light Group",
+        description="Light Group to use for this channel (default is all)",
+        default=""
+    )
+
+
+class RendermanAOVList(bpy.types.PropertyGroup):
+    render_layer = StringProperty()
+    custom_aovs = CollectionProperty(type=RendermanAOV,
+                                     name='Custom AOVs')
+    custom_aov_index = IntProperty(min=-1, default=-1)
 
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
-    holdout_settings = PointerProperty(type=RendermanRenderLayerSettings,
-                                       name='holdout settings')
+    aov_lists = CollectionProperty(type=RendermanAOVList,
+                                   name='Custom AOVs')
+    aov_list_index = IntProperty(min=-1, default=-1)
 
     pixelsamples_x = IntProperty(
         name="Pixel Samples X",
@@ -380,7 +413,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     light_localization = BoolProperty(
         name="Light Localized Sampling",
         description="Localized sampling can give much less noisy renders with similar render times, and may in fact be faster with many lights.",
-        default=False)
+        default=True)
 
     min_samples = IntProperty(
         name="Min Samples",
@@ -392,8 +425,8 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         min=0, default=128)
 
     bucket_shape = EnumProperty(
-        name="Bucket Shape",
-        description="Bucket shape to use when rendering",
+        name="Bucket Order",
+        description="Order buckets are rendered in",
         items=[('HORIZONTAL', 'Horizontal', 'Render scanline from top to bottom'),
                ('VERTICAL', 'Vertical',
                 'Render scanline from left to right'),
@@ -538,12 +571,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     lazy_rib_gen = BoolProperty(
         name="Cache Rib Generation",
         description="On unchanged objects, don't re-emit rib.  Will result in faster spooling of renders.",
-        default=False)
+        default=True)
 
     always_generate_textures = BoolProperty(
         name="Always Recompile Textures",
         description="Recompile used textures at export time to the current rib folder. Leave this unchecked to speed up re-render times",
-        default=True)
+        default=False)
     # preview settings
     preview_pixel_variance = FloatProperty(
         name="Preview Pixel Variance",
@@ -607,7 +640,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items=display_driver_items)
 
     do_denoise = BoolProperty(
-        name="Denoise Image",
+        name="Denoise Post-Process",
         description="Denoise the image.  This will let set your sampling values low and get faster render times and runs denoise to remove the noise as a post process.",
         default=False)
 
@@ -678,6 +711,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Integrator for rendering",
         items=get_integrator_names(),
         default='PxrPathTracer')
+
+    show_integrator_settings = BoolProperty(
+        name="Integration Settings",
+        description="Show Integrator Settings",
+        default=False
+    )
 
     # Rib Box Properties
     bty_inlinerib_texts = CollectionProperty(
@@ -1398,9 +1437,9 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         description="Size of the rendered points",
         default=0.1)
 
-    shadingrate_override = BoolProperty(
-        name="Override Shading Rate",
-        description="Override the global shading rate for this object",
+    shading_override = BoolProperty(
+        name="Override Default Shading Rate",
+        description="Override the default shading rate for this object.",
         default=False)
     shadingrate = FloatProperty(
         name="Shading Rate",
@@ -1413,7 +1452,7 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     geometric_approx_focus = FloatProperty(
         name="Focus Approximation",
         description="Shading Rate is scaled proportionally to the radius of DoF circle of confusion, multiplied by this value",
-        default=1.0)
+        default=-1.0)
 
     motion_segments_override = BoolProperty(
         name="Override Motion Segments",
@@ -1436,47 +1475,54 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         description="Render the object as a matte cutout (alpha 0.0 in final frame)",
         default=False)
     visibility_camera = BoolProperty(
-        name="Visible to Camera",
-        description="Visibility to Camera",
+        name="Visible to Camera Rays",
+        description="Visibility to Camera Rays",
         default=True)
-    visibility_trace_diffuse = BoolProperty(
-        name="Visible to Diffuse Rays",
-        description="Visibility to Diffuse Rays (eg. gather(), indirectdiffuse() and occlusion())",
+    visibility_trace_indirect = BoolProperty(
+        name="All Indirect Rays",
+        description="Sets all the indirect transport modes at once (specular & diffuse)",
         default=True)
-    trace_diffuse_hitmode = EnumProperty(
-        name="Diffuse Hit Mode",
-        description="How the surface calculates are result when hit by diffuse rays",
-        items=[('primitive', 'Primitive', 'Returns the un-shaded primitive object color (Cs)'),
-               ('shader', 'Shader', 'Runs the object\'s shader to return a color (Ci)')],
-        default='shader')
-    visibility_trace_specular = BoolProperty(
-        name="Visible to Specular Rays",
-        description="Visibility to Specular Rays (eg. gather(), trace() and environment())",
-        default=True)
-    trace_specular_hitmode = EnumProperty(
-        name="Diffuse Hit Mode",
-        description="How the surface calculates are result when hit by diffuse rays",
-        items=[('primitive', 'Primitive', 'Returns the un-shaded primitive object color (Cs)'),
-               ('shader', 'Shader', 'Runs the object\'s shader to return a color (Ci)')],
-        default='shader')
     visibility_trace_transmission = BoolProperty(
         name="Visible to Transmission Rays",
         description="Visibility to Transmission Rays (eg. shadow() and transmission())",
         default=True)
-    trace_transmission_hitmode = EnumProperty(
-        name="Transmission Hit Mode",
-        description="How the surface calculates are result when hit by diffuse rays",
-        items=[('primitive', 'Primitive', 'Returns the un-shaded primitive object color (Cs)'),
-               ('shader', 'Shader', 'Runs the object\'s shader to return a color (Ci)')],
-        default='shader')
-    visibility_photons = BoolProperty(
-        name="Visible to Photons",
-        description="Visibility to Photons",
+
+    raytrace_override = BoolProperty(
+        name="Ray Trace Override",
+        description="Override default Renderman ray tracing behavior. Recommended for advanced users only.",
+        default=False)
+    raytrace_maxdiffusedepth = IntProperty(
+        name="Max Diffuse Depth",
+        description="Limit the number of diffuse bounces",
+        min=1, max=16, default=1)
+    raytrace_maxspeculardepth = IntProperty(
+        name="Max Specular Depth",
+        description="Limit the number of specular bounces",
+        min=1, max=16, default=2)
+    raytrace_tracedisplacements = BoolProperty(
+        name="Trace Displacements",
+        description="Ray Trace true displacement in rendered results",
         default=True)
-    visibility_shadowmaps = BoolProperty(
-        name="Visible to Shadow Maps",
-        description="Visibility to Shadow Maps",
+    raytrace_autobias = BoolProperty(
+        name="Ray Origin Auto Bias",
+        description="Bias value is automatically computed",
         default=True)
+    raytrace_bias = FloatProperty(
+        name="Ray Origin Bias Amount",
+        description="Offset applied to the ray origin, moving it slightly away from the surface launch point in the ray direction",
+        default=0.01)
+    raytrace_samplemotion = BoolProperty(
+        name="Sample Motion Blur",
+        description="Motion blur of other objects hit by rays launched from this object will be used",
+        default=False)
+    raytrace_decimationrate = IntProperty(
+        name="Decimation Rate",
+        description="Specifies the tessellation decimation for ray tracing. The most useful values are 1, 2, 4, and 16",
+        default=1)
+    raytrace_intersectpriority = IntProperty(
+        name="Intersect Priority",
+        description="Dictates a priority used when ray tracing overlapping materials",
+        default=0)
 
     trace_displacements = BoolProperty(
         name="Trace Displacements",
@@ -1488,13 +1534,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         description="Rays cast from this object can intersect other motion blur objects",
         default=False)
 
-    photon_reflectance = FloatVectorProperty(
-        name="Photon Reflectance",
-        description="Tint color for photon bounces",
-        subtype="COLOR",
-        size=3,
-                default=[1.0, 1.0, 1.0])
-
     export_coordsys = BoolProperty(
         name="Export Coordinate System",
         description="Export a named coordinate system set to this object's name",
@@ -1503,19 +1542,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Coordinate System Name",
         description="Export a named coordinate system with this name",
         default="CoordSys")
-
-    transmission_items = [('transparent', 'Transparent', 'Does not cast shadows on any other object'),
-                          ('opaque', 'Opaque',
-                           'Casts a shadow as a completely opaque object'),
-                          ('Os', 'Opacity',
-                           'Casts a shadow according to the opacity value (RiOpacity or Os)'),
-                          ('shader', 'Shader', 'Casts shadows according to the opacity value computed by the surface shader')]
-    transmission_default = 'opaque'
-    transmission = EnumProperty(
-        name="Transmission",
-        description="How the object appears to transmission-like rays",
-        items=transmission_items,
-        default=transmission_default)
 
     # Light-Linking
     light_linking = CollectionProperty(type=LightLinking, name='Light Linking')
@@ -1560,8 +1586,8 @@ classes = [displacementShaders,
            RendermanLightSettings,
            RendermanParticleSettings,
            RendermanIntegratorSettings,
-           RendermanRenderLayerSettings,
-
+           RendermanAOV,
+           RendermanAOVList,
            RendermanCameraSettings,
            RendermanSceneSettings,
            RendermanWorldSettings,
@@ -1603,12 +1629,6 @@ def register():
         type=RendermanObjectSettings, name="Renderman Object Settings")
     bpy.types.Camera.renderman = PointerProperty(
         type=RendermanCameraSettings, name="Renderman Camera Settings")
-    # bpy.types.SceneRenderLayer.renderman = PointerProperty(
-    # type=RendermanRenderLayerSettings, name="Renderman RenderLayer
-    # Settings")
-
-    # add the integrator settings from args files
-    # register_integrators(bpy.types.Scene.renderman.integrator_settings)
 
 
 def unregister():
