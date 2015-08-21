@@ -303,8 +303,12 @@ def generate_property(sp):
 
     if 'float' in param_type:
         if 'arraySize' in sp.attrib.keys():
-            param_default = tuple(float(f) for f in
+            if "," in sp.attrib['default']:
+                param_default = tuple(float(f) for f in
                                   sp.attrib['default'].split(','))
+            else:
+                param_default = tuple(float(f) for f in
+                                  sp.attrib['default'].split())
             prop = FloatVectorProperty(name=param_label,
                                        default=param_default, precision=3,
                                        size=len(param_default),
