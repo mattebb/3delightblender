@@ -324,7 +324,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
                  ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
                  ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
                   "Reflection", "Reflection"),
-                 ("lpe:C<D%G><L.%LG>", "Diffuse", "Diffuse"),
+                 ("lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse"),
                  ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
                   "Indirectdiffuse", "IndirectDiffuse"),
                  ("lpe:C<.S%S><L.%LG>", "Specular", "Specular"),
