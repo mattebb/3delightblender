@@ -1,3 +1,9 @@
+v0.5.0 8/20/2015
+* Bunch of UI cleanup (object properties from @rendermouse)
+* Backed out some multi-material changes until we have a proper bxdf switch node
+* Custom AOVs as well as specifying a lpe light group or object group works (please let me know any issues with this)
+* Little prettier shader swatch previews
+
 v0.4.0 8/3/2015
 * OSL should now support IPR
 * more example files
