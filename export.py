@@ -2284,7 +2284,7 @@ def export_display(ri, rpass, scene):
     for aov in custom_aovs:
         source = aov.channel_type
         if aov.channel_type == 'custom':
-            source = aov.lpe_string
+            source = aov.custom_lpe
             # looks like someone didn't set an lpe string
             if source == '':
                 continue
