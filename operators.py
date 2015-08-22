@@ -86,6 +86,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 light_shader = 'PxrStdEnvMapLightLightNode'
             elif light_type == 'AREA':
                 context.lamp.size = 1.0
+            else:
+                idblock.type = "AREA"
 
             output = nt.nodes.new('RendermanOutputNode')
             default = nt.nodes.new(light_shader)
