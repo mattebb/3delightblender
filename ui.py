@@ -1029,11 +1029,11 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
             if rm.particle_type == 'OBJECT' and rm.use_object_material:
                 pass
             else:
-                col.prop(rm, "material_id")
+                col.prop(psys.settings, "material_slot")
             col.row().prop(rm, "width")
 
         else:
-            col.prop(rm, "material_id")
+            col.prop(psys.settings, "material_slot")
 
         # XXX: if rm.type in ('sphere', 'disc', 'patch'):
         # implement patchaspectratio and patchrotation
