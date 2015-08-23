@@ -921,7 +921,9 @@ def get_texture_list(scene):
                   "get_texture_list: unsupported object type [%s]." % o.type)
     # cull duplicates by only doing mats once
     for mat in mats_to_scan:
-        textures.extend(get_textures(mat))
+        new_textures = get_textures(mat)
+        if new_textures:
+            textures.extend(new_textures)
     return textures
 
 
