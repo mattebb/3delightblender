@@ -930,7 +930,6 @@ def export_particles(ri, scene, ob, psys, data=None):
 
     rm = psys.settings.renderman
     points = data if data is not None else [get_particles(scene, ob, psys)]
-    print(rm.particle_type)
     # Write object instances or points
     if rm.particle_type == 'particle':
         export_particle_points(ri, scene, psys, ob, points)

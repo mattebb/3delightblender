@@ -611,26 +611,6 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
 
         # col.prop(rl, "use_pass_ambient_occlusion")
 
-# class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
-#     bl_space_type = 'PROPERTIES'
-#     bl_region_type = 'WINDOW'
-#     bl_context = "world"
-#     bl_label = "Atmosphere"
-#     shader_type = 'atmosphere'
-
-#     def draw(self, context):
-#         layout = self.layout
-#         world = context.world
-#         rm = world.renderman
-#         scene = context.scene
-
-#         layout.label(text="Atmosphere Shader")
-#         layout.prop(rm.atmosphere_shaders, "active", text="")
-
-#         layout.separator()
-
-#         self._draw_params(scene, world.renderman, layout)
-
 
 class DATA_PT_renderman_camera(ShaderPanel, Panel):
     bl_context = "data"
