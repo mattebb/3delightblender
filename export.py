@@ -2111,8 +2111,8 @@ def export_camera(ri, scene, motion, camera_to_use=None):
 
     export_camera_matrix(ri, scene, ob, motion)
 
-    if camera_to_use:
-        ri.Camera("world")
+    ri.Camera("world", {'float[2] shutteropening': [rm.shutter_efficiency_open,
+                                                    rm.shutter_efficiency_open]})
 
 
 def export_camera_render_preview(ri, scene):
