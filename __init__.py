@@ -19,99 +19,90 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-# 
+#
 #
 # ##### END MIT LICENSE BLOCK #####
+import bpy
+import sys
 
 bl_info = {
-    "name": "3Delight",
-    "author": "Matt Ebb",
-    "version": (1, 8, 0),
-    "blender": (2, 6, 6),
-    "location": "Info Header (engine dropdown)",
-    "description": "3Delight (renderman) integration",
+    "name": "PRMan Render Engine",
+    "author": "Brian Savery",
+    "version": (0, 5, 0),
+    "blender": (2, 74, 0),
+    "location": "Info Header, render engine menu",
+    "description": "RenderMan 20.0 integration",
     "warning": "",
-    "wiki_url": "http://mattebb.com/3delightblender/",
-    "tracker_url": "https://github.com/mattebb/3delightblender",
     "category": "Render"}
 
-if "bpy" in locals():
-    import imp
-    imp.reload(preferences)
-    imp.reload(properties)
-    imp.reload(ui)
-    imp.reload(operators)
-    imp.reload(export)
-    imp.reload(nodes)
-
-    #imp.reload(draw)
-else:
-    import bpy
-    from . import ui
-    from . import preferences
-    from . import properties
-    
-    from . import operators
-    from . import export
-    from . import nodes
-    #from . import draw
+from . import engine
 
 
-class Render3Delight(bpy.types.RenderEngine):
-    bl_idname = '3DELIGHT_RENDER'
-    bl_label = "3Delight"
+class PRManRender(bpy.types.RenderEngine):
+    bl_idname = 'PRMAN_RENDER'
+    bl_label = "PRMan Render"
     bl_use_preview = True
-    
-    draw_callbacks = {}
+    bl_use_save_buffers = True
 
     def __init__(self):
-        export.init(self)
-        
-        
+        self.render_pass = None
+
     def __del__(self):
-        export.free(self)
-        
+        if hasattr(self, "render_pass"):
+            if self.render_pass is not None:
+                engine.free(self)
 
     # main scene render
     def update(self, data, scene):
-        export.update(self, data, scene)
+        if(engine.ipr):
+            return
+        if self.is_preview:
+            if not self.render_pass:
+                engine.create(self, data, scene)
+        else:
+            if not self.render_pass:
+                engine.create(self, data, scene)
+            else:
+                engine.reset(self, data, scene)
+
+        engine.update(self, data, scene)
+
+        # add in the update_handler
+        if engine.update_timestamp not in bpy.app.handlers.scene_update_pre:
+            bpy.app.handlers.scene_update_pre.append(engine.update_timestamp)
 
     def render(self, scene):
-        export.render(self)
-
-    # preview render - nonexistent yet
-    #def preview_update(self, context, id):
-    #    export.update_preview(self, data, scene)
-    #
-    #def preview_render(self):
-    #    export.render_preview(self)
-
-    # viewport render
-    # def view_update(self, context):
-    #    pass   
-    # def view_draw(self, context):
-    #    pass
+        if self.render_pass is not None:
+            engine.render(self)
 
 
 def register():
+    from . import ui
+    from . import preferences
+    from . import properties
+    from . import operators
+    from . import nodes
     preferences.register()
     properties.register()
     operators.register()
-    export.register()
-    #draw.register()
-    bpy.utils.register_module(__name__)
+    ui.register()
     nodes.register()
+    bpy.utils.register_module(__name__)
 
 
 def unregister():
+    if engine.update_timestamp in bpy.app.handlers.scene_update_pre:
+        bpy.app.handlers.scene_update_pre.remove(engine.update_timestamp)
+
+    from . import ui
+    from . import preferences
+    from . import properties
+    from . import operators
+    from . import nodes
+
     preferences.unregister()
     properties.unregister()
-    ui.unregister()
     operators.unregister()
-    export.unregister()
+    ui.unregister()
     nodes.unregister()
-    #draw.unregister()
     bpy.utils.unregister_module(__name__)
-
-if __name__ == "__main__":
-    register()

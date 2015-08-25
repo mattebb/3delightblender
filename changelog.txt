@@ -1,3 +1,87 @@
+v0.5.0 8/20/2015
+* Bunch of UI cleanup (object properties from @rendermouse)
+* Backed out some multi-material changes until we have a proper bxdf switch node
+* Custom AOVs as well as specifying a lpe light group or object group works (please let me know any issues with this)
+* Little prettier shader swatch previews
+* Crop windows/borders work.  
+
+v0.4.0 8/3/2015
+* OSL should now support IPR
+* more example files
+* RIB generation rewrite.  ~6x speedup creating rib for gooseberry benchmark
+    * uv's across multi-material objects should now work
+    * multi-material objects now use the same geometry instead of splitting it. 
+    * however the current limitation is that multi-material objects can't be emissive
+* Metaball support (Thanks to @rendermouse!)
+* better deformation and multi-segment motion blur ribs.
+
+v0.3.0 7/31/2015
+* OSL nodes experimental support!  Currently does not support IPR thanks to @mwy5310
+* example files directory (will be more added)
+
+v0.2.7 7/13/2015
+* IPR stability and speed is increased significantly.
+* Collapsing of parameters in node tree.
+
+v0.2.7 7/13/2015
+* Bunch of bug fixes and speedups to rib gen
+* Move DOF settings to camera
+* Textures are made to repeat (periodic) by default
+* Motion Blur settings are now in a separate panel
+* PxrTexture Nodes get an automatic Manifold attached.
+
+v0.2.6 7/13/2015
+* Cleanup ribgen a bit
+* Re-enabled Archive paths
+* Objects Geometry is output to a rib archive either under $SCENE/archives/static or $SCENE/archives/$FRAME_NUM if animated.
+* Objects Geometry is only output if the object is updated.  For example if a scene is created, rendered, then
+re-rendered, the geometry would not be re-ribgenned.  However if the object was updated in blender, it would update the rib.  This will greatly speed ribgens but may cause issues if somehow an object is updated but the timestamp not updated.
+In this case the archives directory can simply be removed, or the objects rib archive individually.  
+
+v0.2.5 7/13/2015
+* INTERACTIVE RENDERING IS HERE!!!!
+	- To start (for now), you have to have 'it' installed with the RenderMan Studio package.
+	- Go to the scene properties, in the interactive sampling section hit start interactive
+	- Only supports material edits, light moves/edits and camera moves for now.
+
+v0.2.4 7/13/2015
+* Couple bug fixes:
+	- 'it' is autolaunched if you have RMSTREE in your path or RenderMan Studio installed
+	- some path issues with textures
+* Primary visibility for area lights (Environment lights in particular) is now on by default.
+* custom UV's now export correctly
+
+v0.2.3 7/13/2015
+* Performance improvements of default settings.
+* Integration of AtomicP's curve changes.
+
+v0.2.2 7/09/2015
+* Added Support for PxrCamera physical attributes.  In the camera properties click "Use physical Camera"
+
+v0.2.1 7/09/2015
+* Added Denoise under the RenderMan Output Settings
+* Changed output directory to go under Documents (or My Documents on Windows)/prman_for_blender
+	- can be changed under the addon preferences
+
+v0.2.0 7/07/2015
+* Basic functionality for RIS rendering present including
+	- Lights
+	- Node based material trees
+	- Hair and other geometry support
+	- AOV (Render Passes)
+
+v0.1.1 25/03/2015
+* Forked 3delight_blender code to prman for blender
+* Changed env variables to use RMANTREE for RenderMan 19.0
+* Changed RIB output for 19.0 specific construct (integrator, bxdf, etc)
+* TODO - proper shader network support of bxdf/pattern via args files
+        - integrator settings and general settings cleanup
+        - move to prman python plugin for rib integration
+        - lights integration
+        - general code cleanup
+
+!!!!! ------------ blender to prman fork -------------- !!!!!
+
 v0.7.5 - 25/04/2012
 * Enabled editable output paths, including RIB file export, shadow maps, and point clouds. These path properties support using environment variables, or other blender data variables that are built in to the exporter. Environment variables can be read from outside blender, or default environment variables can be edited from within the Environment Variables panel in Render Properties.
 More info at: http://mattebb.com/3delightblender/documentation/
