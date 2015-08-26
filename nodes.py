@@ -1098,7 +1098,7 @@ def get_textures_for_node(node, matName=""):
 
 def get_textures(id):
     textures = []
-    if id.renderman.nodetree == "":
+    if id is None or id.renderman.nodetree == "":
         return textures
     try:
         nt = bpy.data.node_groups[id.renderman.nodetree]
