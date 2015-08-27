@@ -680,16 +680,18 @@ def get_subd_creases(mesh):
 def create_mesh(scene, ob):
     # 2 special cases to ignore:
     # subsurf last or subsurf 2nd last +displace last
-
-    # if is_subd_last(ob):
-    #    ob.modifiers[len(ob.modifiers)-1].show_render = False
+    reset_subd_mod = False
+    if is_subd_last(ob) and ob.modifiers[len(ob.modifiers)-1].show_render:
+        reset_subd_mod = True
+        ob.modifiers[len(ob.modifiers)-1].show_render = False
     # elif is_subd_displace_last(ob):
     #    ob.modifiers[len(ob.modifiers)-2].show_render = False
     #    ob.modifiers[len(ob.modifiers)-1].show_render = False
-
-    return ob.to_mesh(scene, True, 'RENDER', calc_tessface=True,
+    mesh = ob.to_mesh(scene, True, 'RENDER', calc_tessface=True,
                       calc_undeformed=True)
-
+    if reset_subd_mod:
+        ob.modifiers[len(ob.modifiers)-1].show_render = True
+    return mesh
 
 def export_transform(ri, ob, flip_x=False):
     m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
@@ -1052,7 +1054,6 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
     #    export_multi_material(ri, mesh)
 
     creases = get_subd_creases(mesh)
-
     (nverts, verts, P) = get_mesh(mesh)
     # if this is empty continue:
     if nverts == []:
@@ -1066,7 +1067,7 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
 
     if len(creases) > 0:
         for c in creases:
-            tags.append('"crease"')
+            tags.append('crease')
             nargs.extend([2, 1])
             intargs.extend([c[0], c[1]])
             floatargs.append(c[2])
@@ -2111,8 +2112,8 @@ def export_camera(ri, scene, motion, camera_to_use=None):
 
     export_camera_matrix(ri, scene, ob, motion)
 
-    if camera_to_use:
-        ri.Camera("world")
+    ri.Camera("world", {'float[2] shutteropening': [rm.shutter_efficiency_open,
+                                                    rm.shutter_efficiency_open]})
 
 
 def export_camera_render_preview(ri, scene):
