@@ -270,6 +270,12 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
         row.prop(rm, "shutter_open")
         row.prop(rm, "shutter_close")
 
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "shutter_efficiency_open")
+        row.prop(rm, "shutter_efficiency_close")
+
+
 
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
     bl_label = "Interactive and Preview Sampling"

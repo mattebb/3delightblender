@@ -358,21 +358,21 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         min=1, max=16, default=1)
     shutter_open = FloatProperty(
         name="Shutter Open",
-        description="Shutter open time",
+        description="Shutter open time (in frame time)",
         default=0.0)
     shutter_close = FloatProperty(
         name="Shutter Close",
-        description="Shutter close time",
+        description="Shutter close time (in frame time)",
         default=1.0)
 
     shutter_efficiency_open = FloatProperty(
-        name="Open Efficiency",
-        description="Shutter open efficiency - controls the shape of the shutter opening and closing for motion blur",
-        default=0.5)
+        name="Shutter open speed",
+        description="Shutter open efficiency - controls the speed of the shutter opening (in shutter opening).  0 means instantaneous.",
+        default=0.0)
     shutter_efficiency_close = FloatProperty(
-        name="Close Efficiency",
-        description="Shutter close efficiency - controls the shape of the shutter opening and closing for motion blur",
-        default=0.5)
+        name="Shutter close speed",
+        description="Shutter close efficiency - controls the speed of the shutter closing (in shutter opening).  1 means instantaneous.",
+        default=1.0)
 
     depth_of_field = BoolProperty(
         name="Depth of Field",
