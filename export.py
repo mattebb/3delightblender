@@ -826,16 +826,56 @@ def geometry_source_rib(ri, scene, ob):
                           rib(bounds))
 
 
-def export_particle_instances(ri, scene, psys, ob, points):
+def export_blobby_particles(ri, scene, psys, ob, points):
+    rm = psys.settings.renderman
+    if len(points) > 1:
+        export_motion_begin(ri, scene, ob)
+
+    for (P,rot,widths) in points:    
+        op = []
+        count = len(widths)
+        for i in range(count):
+            op.append(1001)  # only blobby ellipsoids for now...
+            op.append(i * 16)
+        tform = []
+        for i in range(count):
+            loc = Vector((P[i * 3 + 0], P[i * 3 + 1], P[i * 3 + 2]))
+            rotation = Quaternion((rot[i * 4 + 0], rot[i * 4 + 1],
+                                   rot[i * 4 + 2], rot[i * 4 + 3]))
+            scale = rm.width if rm.constant_width else widths[i]
+            mtx = Matrix.Translation(loc) * rotation.to_matrix().to_4x4() \
+                * Matrix.Scale(scale, 4)
+            tform.extend(rib(mtx))
+
+        op.append(0)  # blob operation:add
+        op.append(count)
+        for n in range(count):
+            op.append(n)
+
+        st = ('',)
+        parm = {}
+        ri.Blobby(count, op, tform, st, parm)
+    if len(points) > 1:
+        ri.MotionEnd()
+
+def export_particle_instances(ri, scene, psys, ob, points, type='OBJECT'):
     rm = psys.settings.renderman
 
-    master_ob = bpy.data.objects[rm.particle_instance_object]
-    # first call object Begin and read in archive of the master
-    master_archive = get_archive_filename(scene, None, data_name(
-        scene.objects[rm.particle_instance_object], scene),
-        relative=True)
+    if type == 'OBJECT':
+        master_ob = bpy.data.objects[rm.particle_instance_object]
+        # first call object Begin and read in archive of the master
+        master_archive = get_archive_filename(scene, None, data_name(
+            scene.objects[rm.particle_instance_object], scene),
+            relative=True)
+    
+
     instance_handle = ri.ObjectBegin()
-    ri.ReadArchive(master_archive)
+    if type == 'OBJECT':
+        ri.ReadArchive(master_archive)
+    elif type == 'sphere':
+        ri.Sphere(1.0, -1.0, 1.0, 360.0)
+    else:
+        ri.Disk(0, 1.0, 360.0)
     ri.ObjectEnd()
 
     if rm.use_object_material and len(master_ob.data.materials) > 0:
@@ -866,6 +906,7 @@ def export_particle_instances(ri, scene, psys, ob, points):
         ri.AttributeEnd()
 
 
+#
 def export_particle_points(ri, scene, psys, ob, points):
     rm = psys.settings.renderman
     if len(points) > 1:
@@ -891,12 +932,13 @@ def export_particles(ri, scene, ob, psys, data=None):
 
     rm = psys.settings.renderman
     points = data if data is not None else [get_particles(scene, ob, psys)]
-
     # Write object instances or points
-    if rm.particle_type == 'OBJECT':
-        export_particle_instances(ri, scene, psys, ob, points)
-    else:
+    if rm.particle_type == 'particle':
         export_particle_points(ri, scene, psys, ob, points)
+    elif rm.particle_type == 'blobby':
+        export_blobby_particles(ri, scene, psys, ob, points)
+    else:
+        export_particle_instances(ri, scene, psys, ob, points, type=rm.particle_type)    
 
 
 def export_comment(ri, comment):
@@ -923,7 +965,9 @@ def get_texture_list(scene):
                   "get_texture_list: unsupported object type [%s]." % o.type)
     # cull duplicates by only doing mats once
     for mat in mats_to_scan:
-        textures.extend(get_textures(mat))
+        new_textures = get_textures(mat)
+        if new_textures:
+            textures.extend(new_textures)
     return textures
 
 
@@ -1731,7 +1775,7 @@ def export_particle_read_archive(ri, scene, ob, motion, psys):
     ri.Attribute("identifier", {"name": name})
 
     # now the material
-    mat = ob.material_slots[psys.settings.renderman.material_id - 1].material
+    mat = ob.material_slots[psys.settings.material - 1].material
     if mat:
         export_material_archive(ri, mat)
 

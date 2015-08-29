@@ -220,6 +220,13 @@ class RendermanShadingNode(bpy.types.Node):
                 prop = getattr(self, "shadercode")
                 layout.prop(self, "shadercode")
         else:
+            # temp until we can create ramps natively
+            if self.plugin_name == 'PxrRamp':
+                nt = bpy.context.active_object.active_material.node_tree
+                if nt:
+                    layout.template_color_ramp(
+                        nt.nodes[self.color_ramp_dummy_name], 'color_ramp')
+
             for prop_name in prop_names:
                 prop_meta = self.prop_meta[prop_name]
                 if prop_name not in self.inputs:
@@ -556,6 +563,13 @@ def generate_node_type(prefs, name, args):
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
 
+        if name == "PxrRamp":
+            active_mat = bpy.context.active_object.active_material
+            if not active_mat.use_nodes:
+                active_mat.use_nodes = True
+            color_ramp = active_mat.node_tree.nodes.new('ShaderNodeValToRGB')
+            self.color_ramp_dummy_name = color_ramp.name
+
         # if a texture make a manifold 2d to go along.
         if self.plugin_name == 'PxrTexture':
             context_copy = bpy.context.copy()
@@ -573,6 +587,8 @@ def generate_node_type(prefs, name, args):
             manifold.location[1] = self.location[1]
 
     ntype.init = init
+    if name == 'PxrRamp':
+        ntype.color_ramp_dummy_name = StringProperty('color_ramp', default='')
 
     ntype.plugin_name = StringProperty(name='Plugin Name',
                                        default=name, options={'HIDDEN'})
@@ -717,6 +733,11 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         row.operator_menu_enum("node.add_pattern", "node_type",
                                                text='', icon='DOT')
 
+    if node.plugin_name == 'PxrRamp':
+        dummy_nt = bpy.context.active_object.active_material.node_tree
+        if dummy_nt:
+            layout.template_color_ramp(
+                dummy_nt.nodes[node.color_ramp_dummy_name], 'color_ramp')
     draw_props(node.prop_names, layout)
     layout.separator()
 
@@ -911,6 +932,8 @@ def gen_params(ri, node, mat_name=None, recurse=True):
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
                 pass
+            if node.name == 'PxrRamp' and prop_name in ['colors', 'positions']:
+                pass
             else:
                 prop = getattr(node, prop_name)
                 # if property group recurse
@@ -948,6 +971,25 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                         params['%s %s' % (meta['renderman_type'],
                                           meta['renderman_name'])] = \
                             rib(prop, type_hint=meta['renderman_type'])
+    if node.plugin_name == 'PxrRamp':
+        if mat_name not in bpy.data.materials:
+            return params
+        nt = bpy.data.materials[mat_name].node_tree
+        if nt:
+            dummy_ramp = nt.nodes[node.color_ramp_dummy_name]
+            colors = []
+            positions = []
+            # double the start and end points
+            positions.append(float(dummy_ramp.color_ramp.elements[0].position))
+            colors.extend(dummy_ramp.color_ramp.elements[0].color[:3])
+            for e in dummy_ramp.color_ramp.elements:
+                positions.append(float(e.position))
+                colors.extend(e.color[:3])
+            positions.append(float(dummy_ramp.color_ramp.elements[-1].position))
+            colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
+            params['color[%d] colors' % len(positions)] = colors
+            params['float[%d] positions' % len(positions)] = positions
+
     return params
 
 # Export to rib
