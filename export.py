@@ -680,16 +680,18 @@ def get_subd_creases(mesh):
 def create_mesh(scene, ob):
     # 2 special cases to ignore:
     # subsurf last or subsurf 2nd last +displace last
-
-    # if is_subd_last(ob):
-    #    ob.modifiers[len(ob.modifiers)-1].show_render = False
+    reset_subd_mod = False
+    if is_subd_last(ob) and ob.modifiers[len(ob.modifiers)-1].show_render:
+        reset_subd_mod = True
+        ob.modifiers[len(ob.modifiers)-1].show_render = False
     # elif is_subd_displace_last(ob):
     #    ob.modifiers[len(ob.modifiers)-2].show_render = False
     #    ob.modifiers[len(ob.modifiers)-1].show_render = False
-
-    return ob.to_mesh(scene, True, 'RENDER', calc_tessface=True,
+    mesh = ob.to_mesh(scene, True, 'RENDER', calc_tessface=True,
                       calc_undeformed=True)
-
+    if reset_subd_mod:
+        ob.modifiers[len(ob.modifiers)-1].show_render = True
+    return mesh
 
 def export_transform(ri, ob, flip_x=False):
     m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
@@ -824,16 +826,56 @@ def geometry_source_rib(ri, scene, ob):
                           rib(bounds))
 
 
-def export_particle_instances(ri, scene, psys, ob, points):
+def export_blobby_particles(ri, scene, psys, ob, points):
+    rm = psys.settings.renderman
+    if len(points) > 1:
+        export_motion_begin(ri, scene, ob)
+
+    for (P,rot,widths) in points:    
+        op = []
+        count = len(widths)
+        for i in range(count):
+            op.append(1001)  # only blobby ellipsoids for now...
+            op.append(i * 16)
+        tform = []
+        for i in range(count):
+            loc = Vector((P[i * 3 + 0], P[i * 3 + 1], P[i * 3 + 2]))
+            rotation = Quaternion((rot[i * 4 + 0], rot[i * 4 + 1],
+                                   rot[i * 4 + 2], rot[i * 4 + 3]))
+            scale = rm.width if rm.constant_width else widths[i]
+            mtx = Matrix.Translation(loc) * rotation.to_matrix().to_4x4() \
+                * Matrix.Scale(scale, 4)
+            tform.extend(rib(mtx))
+
+        op.append(0)  # blob operation:add
+        op.append(count)
+        for n in range(count):
+            op.append(n)
+
+        st = ('',)
+        parm = {}
+        ri.Blobby(count, op, tform, st, parm)
+    if len(points) > 1:
+        ri.MotionEnd()
+
+def export_particle_instances(ri, scene, psys, ob, points, type='OBJECT'):
     rm = psys.settings.renderman
 
-    master_ob = bpy.data.objects[rm.particle_instance_object]
-    # first call object Begin and read in archive of the master
-    master_archive = get_archive_filename(scene, None, data_name(
-        scene.objects[rm.particle_instance_object], scene),
-        relative=True)
+    if type == 'OBJECT':
+        master_ob = bpy.data.objects[rm.particle_instance_object]
+        # first call object Begin and read in archive of the master
+        master_archive = get_archive_filename(scene, None, data_name(
+            scene.objects[rm.particle_instance_object], scene),
+            relative=True)
+    
+
     instance_handle = ri.ObjectBegin()
-    ri.ReadArchive(master_archive)
+    if type == 'OBJECT':
+        ri.ReadArchive(master_archive)
+    elif type == 'sphere':
+        ri.Sphere(1.0, -1.0, 1.0, 360.0)
+    else:
+        ri.Disk(0, 1.0, 360.0)
     ri.ObjectEnd()
 
     if rm.use_object_material and len(master_ob.data.materials) > 0:
@@ -864,6 +906,7 @@ def export_particle_instances(ri, scene, psys, ob, points):
         ri.AttributeEnd()
 
 
+#
 def export_particle_points(ri, scene, psys, ob, points):
     rm = psys.settings.renderman
     if len(points) > 1:
@@ -889,12 +932,13 @@ def export_particles(ri, scene, ob, psys, data=None):
 
     rm = psys.settings.renderman
     points = data if data is not None else [get_particles(scene, ob, psys)]
-
     # Write object instances or points
-    if rm.particle_type == 'OBJECT':
-        export_particle_instances(ri, scene, psys, ob, points)
-    else:
+    if rm.particle_type == 'particle':
         export_particle_points(ri, scene, psys, ob, points)
+    elif rm.particle_type == 'blobby':
+        export_blobby_particles(ri, scene, psys, ob, points)
+    else:
+        export_particle_instances(ri, scene, psys, ob, points, type=rm.particle_type)    
 
 
 def export_comment(ri, comment):
@@ -921,7 +965,9 @@ def get_texture_list(scene):
                   "get_texture_list: unsupported object type [%s]." % o.type)
     # cull duplicates by only doing mats once
     for mat in mats_to_scan:
-        textures.extend(get_textures(mat))
+        new_textures = get_textures(mat)
+        if new_textures:
+            textures.extend(new_textures)
     return textures
 
 
@@ -1052,7 +1098,6 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
     #    export_multi_material(ri, mesh)
 
     creases = get_subd_creases(mesh)
-
     (nverts, verts, P) = get_mesh(mesh)
     # if this is empty continue:
     if nverts == []:
@@ -1066,7 +1111,7 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
 
     if len(creases) > 0:
         for c in creases:
-            tags.append('"crease"')
+            tags.append('crease')
             nargs.extend([2, 1])
             intargs.extend([c[0], c[1]])
             floatargs.append(c[2])
@@ -1303,15 +1348,19 @@ def export_particle_system(ri, scene, ob, psys, data=None):
             export_hair(ri, scene, ob, psys, data)
 
 # many thanks to @rendermouse for this code
-
-
 def export_blobby_family(ri, scene, ob):
-    family = data_name(ob, scene)
-    fam_blobs = [ob for ob in scene.objects if ob.type == 'META' and
-                 (ob.name == family or ob.name.split('.')[0] == family)]
 
-    # family master obj
-    fam_master = bpy.data.objects.get(family)
+    # we are searching the global metaball collection for all mballs
+    # linked to the current object context, so we can export them 
+    # all as one family in RiBlobby
+
+    family = data_name(ob, scene)
+    master = bpy.data.objects[family]
+
+    fam_blobs = []
+
+    for mball in bpy.data.metaballs:
+        fam_blobs.extend([el for el in mball.elements if get_mball_parent(el.id_data).name.split('.')[0] == family])
 
     # transform
     tform = []
@@ -1323,17 +1372,32 @@ def export_blobby_family(ri, scene, ob):
         op.append(1001)  # only blobby ellipsoids for now...
         op.append(i * 16)
 
-    for ob_temp in fam_blobs:
-        m = ob_temp.matrix_world
+    for meta_el in fam_blobs:    
 
-        # multiply only the scale of blobs by 2 (matches Blender
-        # threshold=0.800)
-        sc = Matrix(((2, 0, 0, 0),
-                     (0, 2, 0, 0),
-                     (0, 0, 2, 0),
+        # Because all meta elements are stored in a single collection,
+        # these elements have a link to their parent MetaBall, but NOT the actual tree parent object.
+        # So I have to go find the parent that owns it.  We need the tree parent in order
+        # to get any world transforms that alter position of the metaball.
+        parent = get_mball_parent(meta_el.id_data)
+
+        m = {}
+        loc = meta_el.co
+
+        # mballs that are only linked to the master by name have their own position,
+        # and have to be transformed relative to the master
+        ploc,prot,psc = parent.matrix_world.decompose()
+
+        m = Matrix.Translation(loc)
+
+        sc = Matrix(((meta_el.radius, 0, 0, 0),
+            (0, meta_el.radius, 0, 0),
+            (0, 0, meta_el.radius, 0),
                      (0, 0, 0, 1)))
-        m2 = m * sc
-        tform = tform + rib(m2)
+
+        ro = prot.to_matrix().to_4x4()
+
+        m2 = m*sc*ro
+        tform = tform + rib(parent.matrix_world * m2)
 
     op.append(0)  # blob operation:add
     op.append(count)
@@ -1345,6 +1409,10 @@ def export_blobby_family(ri, scene, ob):
 
     ri.Blobby(count, op, tform, st, parm)
 
+def get_mball_parent(mball):
+    for ob in bpy.data.objects:
+        if ob.data == mball:            
+            return ob
 
 def export_geometry_data(ri, scene, ob, data=None):
     prim = ob.renderman.primitive if ob.renderman.primitive != 'AUTO' \
@@ -1615,6 +1683,11 @@ def export_object_attributes(ri, ob):
 
         ri.Attribute("trace", trace_params)
 
+    # light linking
+    for link in ob.renderman.light_linking:
+        if link.illuminate != "DEFAULT":
+            ri.Illuminate(link.light, link.illuminate == 'ON')
+
 
 # for each mat in this mesh, call it, then do some shading wizardry to
 # switch between them with PxrBxdfBlend
@@ -1702,7 +1775,7 @@ def export_particle_read_archive(ri, scene, ob, motion, psys):
     ri.Attribute("identifier", {"name": name})
 
     # now the material
-    mat = ob.material_slots[psys.settings.renderman.material_id - 1].material
+    mat = ob.material_slots[psys.settings.material - 1].material
     if mat:
         export_material_archive(ri, mat)
 
@@ -2083,8 +2156,8 @@ def export_camera(ri, scene, motion, camera_to_use=None):
 
     export_camera_matrix(ri, scene, ob, motion)
 
-    if camera_to_use:
-        ri.Camera("world")
+    ri.Camera("world", {'float[2] shutteropening': [rm.shutter_efficiency_open,
+                                                    rm.shutter_efficiency_open]})
 
 
 def export_camera_render_preview(ri, scene):
@@ -2098,21 +2171,18 @@ def export_camera_render_preview(ri, scene):
     resolution = render_get_resolution(scene.render)
     ri.Format(resolution[0], resolution[1], 1.0)
     ri.Transform([0, -0.25, -1, 0,  1, 0, 0, 0, 0,
-                  1, -0.25, 0,  0, -1.125, 5.5, 1])
+                  1, -0.25, 0,  0, -.75, 3.25, 1])
 
 
 def export_searchpaths(ri, paths):
     ri.Option("searchpath", {"string shader": ["%s" %
                                                ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
+    rel_tex_paths = [os.path.relpath(path, paths['export_dir']) for path in paths['texture']]
     ri.Option("searchpath", {"string texture": ["%s" %
-                                                ':'.join(path_list_convert(paths['texture'] + ["@"], to_unix=True))]})
-    # need this for multi-material
-    ri.Option("searchpath", {"string rixplugin": ["%s" %
-                                                  ':'.join(path_list_convert(paths['rixplugin'], to_unix=True))]})
-
+                                                ':'.join(path_list_convert(rel_tex_paths + ["@"], to_unix=True))]})
     # ri.Option("searchpath", {"string procedural": ["%s" % \
     #    ':'.join(path_list_convert(paths['procedural'], to_unix=True))]})
-    ri.Option("searchpath", {"string archive": paths['archive']})
+    ri.Option("searchpath", {"string archive": os.path.relpath(paths['archive'], paths['export_dir'])})
 
 
 def export_header(ri):
@@ -2175,23 +2245,25 @@ def find_preview_material(scene):
 # --------------- End Hopefully temporary --------------- #
 
 
-def preview_model(ri, mat):
+def preview_model(ri, scene, mat):
     if mat.preview_render_type == 'SPHERE':
         ri.Sphere(1, -1, 1, 360)
     elif mat.preview_render_type == 'FLAT':  # FLAT PLANE
         # ri.Scale(0.75, 0.75, 0.75)
-        ri.Translate(0.0, 0.0, 0.01)
+        #ri.Translate(0.0, 0.0, 0.01)
         ri.PointsPolygons([4, ],
                           [0, 1, 2, 3],
                           {ri.P: [0, -1, -1,  0, 1, -1,  0, 1, 1,  0, -1, 1]})
-    else:  # CUBE
-        ri.Scale(0.75, 0.75, 0.75)
-        ri.Translate(0.0, 0.0, 0.01)
-        ri.PointsPolygons([4, 4, 4, 4, 4, 4, ],
-                          [0, 1, 2, 3, 4, 7, 6, 5, 0, 4, 5, 1,
-                           1, 5, 6, 2, 2, 6, 7, 3, 4, 0, 3, 7],
-                          {ri.P: [1, 1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1,
-                                  1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, 1]})
+    elif mat.preview_render_type == 'CUBE':
+        ri.Scale(.75, .75, .75)
+        export_geometry_data(ri, scene, scene.objects['previewcube'], data=None)
+    elif mat.preview_render_type == 'HAIR':
+        return # skipping for now
+    else:
+        ri.Scale(2, 2 , 2)
+        ri.Rotate(90, 0, 0, 1)
+        ri.Rotate(45, 1, 0, 0)
+        export_geometry_data(ri, scene, scene.objects['preview.002'], data=None)
 
 
 def export_display(ri, rpass, scene):
@@ -2279,7 +2351,7 @@ def export_display(ri, rpass, scene):
     for aov in custom_aovs:
         source = aov.channel_type
         if aov.channel_type == 'custom':
-            source = aov.lpe_string
+            source = aov.custom_lpe
             # looks like someone didn't set an lpe string
             if source == '':
                 continue
@@ -2304,6 +2376,7 @@ def export_display(ri, rpass, scene):
 
     main_display = user_path(rm.path_display_driver_image,
                              scene=scene)
+    main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
     ri.Display(main_display, dspy_driver, "rgba",
                {"quantize": [0, 0, 0, 0]})
@@ -2454,7 +2527,7 @@ def write_preview_rib(rpass, scene, ri):
 
     mat = find_preview_material(scene)
     export_material(ri, mat, 'preview')
-    preview_model(ri, mat)
+    preview_model(ri, scene, mat)
     ri.AttributeEnd()
 
     ri.WorldEnd()

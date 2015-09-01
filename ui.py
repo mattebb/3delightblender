@@ -270,6 +270,12 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
         row.prop(rm, "shutter_open")
         row.prop(rm, "shutter_close")
 
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "shutter_efficiency_open")
+        row.prop(rm, "shutter_efficiency_close")
+
+
 
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
     bl_label = "Interactive and Preview Sampling"
@@ -610,26 +616,6 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
         #layout.prop(rm, 'do_collector_subsurface')
 
         # col.prop(rl, "use_pass_ambient_occlusion")
-
-# class WORLD_PT_renderman_shader_atmosphere(ShaderPanel, Panel):
-#     bl_space_type = 'PROPERTIES'
-#     bl_region_type = 'WINDOW'
-#     bl_context = "world"
-#     bl_label = "Atmosphere"
-#     shader_type = 'atmosphere'
-
-#     def draw(self, context):
-#         layout = self.layout
-#         world = context.world
-#         rm = world.renderman
-#         scene = context.scene
-
-#         layout.label(text="Atmosphere Shader")
-#         layout.prop(rm.atmosphere_shaders, "active", text="")
-
-#         layout.separator()
-
-#         self._draw_params(scene, world.renderman, layout)
 
 
 class DATA_PT_renderman_camera(ShaderPanel, Panel):
@@ -1029,11 +1015,11 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
             if rm.particle_type == 'OBJECT' and rm.use_object_material:
                 pass
             else:
-                col.prop(rm, "material_id")
+                col.prop(psys.settings, "material_slot")
             col.row().prop(rm, "width")
 
         else:
-            col.prop(rm, "material_id")
+            col.prop(psys.settings, "material_slot")
 
         # XXX: if rm.type in ('sphere', 'disc', 'patch'):
         # implement patchaspectratio and patchrotation

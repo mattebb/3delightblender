@@ -37,41 +37,6 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
     CollectionProperty, BoolVectorProperty
 
-# Shader parameters storage
-# --------------------------
-
-
-def shader_list_items(self, context, shader_type):
-    defaults = [('null', 'None', ''), ('custom', 'Custom', '')]
-    return defaults + [(s, s, '')
-                       for s in args_files_in_path(context.scene,
-                                                   context.material,
-                                                   shader_type=shader_type)]
-
-
-def shader_list_update(self, context, shader_type):
-    # don't overwrite active when set to custom
-    if self.shader_list != "custom":
-        # For safety, we keep the active shader property separate as a string
-        # property, and update when chosen from the shader list
-        self.active = str(self.shader_list)
-
-
-def shader_active_update(self, context, shader_type, location="material"):
-    # Also initialise shader parameters when chosen from the shader list
-    if location == 'world':
-        rm = context.world.renderman
-    elif location == 'lamp':
-        rm = context.lamp.renderman
-    else:
-        rm = context.material.renderman
-
-    rna_type_initialise(context.scene, rm, shader_type, True)
-    # and for coshaders
-    for coshader in rm.coshaders:
-        rna_type_initialise(context.scene, coshader, shader_type, True)
-        # BBM
-
 
 # get the names of args files in rmantree/lib/ris/integrator/args
 def get_integrator_names():
@@ -142,79 +107,6 @@ def register_camera_settings():
                 PointerProperty(type=ntype, name="%s Settings" % name)
                 )
 
-
-class displacementShaders(bpy.types.PropertyGroup):
-
-    def displacement_shader_active_update(self, context):
-        shader_active_update(self, context, 'displacement')
-
-    active = StringProperty(
-        name="Active Displacement Shader",
-        description="Shader name to use for displacement",
-        update=displacement_shader_active_update,
-        default="null")
-
-    def displacement_shader_list_items(self, context):
-        return shader_list_items(self, context, 'displacement')
-
-    def displacement_shader_list_update(self, context):
-        shader_list_update(self, context, 'displacement')
-
-    shader_list = EnumProperty(
-        name="Active Displacement Shader",
-        description="Shader name to use for surface",
-        update=displacement_shader_list_update,
-        items=displacement_shader_list_items)
-
-
-class surfaceShaders(bpy.types.PropertyGroup):
-
-    def surface_shader_active_update(self, context):
-        shader_active_update(self, context, 'surface')
-
-    active = StringProperty(
-        name="Active Surface Shader",
-        description="Shader name to use for surface",
-        update=surface_shader_active_update,
-        default="null"
-    )
-
-    def surface_shader_list_items(self, context):
-        return shader_list_items(self, context, 'surface')
-
-    def surface_shader_list_update(self, context):
-        shader_list_update(self, context, 'surface')
-
-    shader_list = EnumProperty(
-        name="Active Surface Shader",
-        description="Shader name to use for surface",
-        update=surface_shader_list_update,
-        items=surface_shader_list_items
-    )
-
-
-class lightShaders(bpy.types.PropertyGroup):
-
-    def light_shader_active_update(self, context):
-        shader_active_update(self, context, 'light')
-
-    active = StringProperty(
-        name="Active Light Shader",
-        description="Shader name to use for light",
-        default="")
-
-    def light_shader_list_items(self, context):
-        return shader_list_items(self, context, 'light')
-
-    def light_shader_list_update(self, context):
-        shader_list_update(self, context, 'light')
-
-    shader_list = EnumProperty(
-        name="Active Light",
-        description="Light shader",
-        update=light_shader_list_update,
-        items=light_shader_list_items
-    )
 
 
 # Blender data
@@ -324,10 +216,10 @@ class RendermanAOV(bpy.types.PropertyGroup):
                  ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
                  ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
                   "Reflection", "Reflection"),
-                 ("lpe:C<D%G><L.%LG>", "Diffuse", "Diffuse"),
+                 ("lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse"),
                  ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
                   "Indirectdiffuse", "IndirectDiffuse"),
-                 ("lpe:C<.S%S><L.%LG>", "Specular", "Specular"),
+                 ("lpe:C<.S%G><L.%LG>", "Specular", "Specular"),
                  ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
                   "Indirectspecular", "Indirectspecular"),
                  ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
@@ -466,21 +358,21 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         min=1, max=16, default=1)
     shutter_open = FloatProperty(
         name="Shutter Open",
-        description="Shutter open time",
+        description="Shutter open time (in frame time)",
         default=0.0)
     shutter_close = FloatProperty(
         name="Shutter Close",
-        description="Shutter close time",
+        description="Shutter close time (in frame time)",
         default=1.0)
 
     shutter_efficiency_open = FloatProperty(
-        name="Open Efficiency",
-        description="Shutter open efficiency - controls the shape of the shutter opening and closing for motion blur",
-        default=0.5)
+        name="Shutter open speed",
+        description="Shutter open efficiency - controls the speed of the shutter opening (in shutter opening).  0 means instantaneous.",
+        default=0.0)
     shutter_efficiency_close = FloatProperty(
-        name="Close Efficiency",
-        description="Shutter close efficiency - controls the shape of the shutter opening and closing for motion blur",
-        default=0.5)
+        name="Shutter close speed",
+        description="Shutter close efficiency - controls the speed of the shutter closing (in shutter opening).  1 means instantaneous.",
+        default=1.0)
 
     depth_of_field = BoolProperty(
         name="Depth of Field",
@@ -523,11 +415,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Statistics Level",
         description="Verbosity level of output statistics",
         min=0, max=3, default=1)
-
-    recompile_shaders = BoolProperty(
-        name="Recompile Shaders",
-        description="Recompile used shaders at export time to the current 3Delight version. Prevents version mismatch errors at the expense of export speed",
-        default=True)
 
     # RIB output properties
 
@@ -617,14 +504,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Max Preview Diffuse Depth",
         description="Maximum number of diffuse ray bounces",
         min=0, max=32, default=1)
-    '''
-    def display_driver_update(self, context):
-        if self.output_action = "custom":
-            # For safety, we keep the active shader property separate as a string property,
-            # and update when chosen from the shader list
-            self.active = str(self.shader_list)    
-    '''
-
+    
     def display_driver_items(self, context):
         items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
                  ('tiff', 'Tiff',
@@ -723,29 +603,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         type=RendermanInlineRIB, name="Beauty-pass Inline RIB")
     bty_inlinerib_index = IntProperty(min=-1, default=-1)
 
-    bak_inlinerib_texts = CollectionProperty(
-        type=RendermanInlineRIB, name="Bake-pass Inline RIB")
-    bak_inlinerib_index = IntProperty(min=-1, default=-1)
-
     # Trace Sets (grouping membership)
     grouping_membership = CollectionProperty(
         type=RendermanGrouping, name="Trace Sets")
     grouping_membership_index = IntProperty(min=-1, default=-1)
-
-    shader_paths = CollectionProperty(type=RendermanPath, name="Shader Paths")
-    shader_paths_index = IntProperty(min=-1, default=-1)
-
-    texture_paths = CollectionProperty(
-        type=RendermanPath, name="Texture Paths")
-    texture_paths_index = IntProperty(min=-1, default=-1)
-
-    procedural_paths = CollectionProperty(
-        type=RendermanPath, name="Procedural Paths")
-    procedural_paths_index = IntProperty(min=-1, default=-1)
-
-    archive_paths = CollectionProperty(
-        type=RendermanPath, name="Archive Paths")
-    archive_paths_index = IntProperty(min=-1, default=-1)
 
     use_default_paths = BoolProperty(
         name="Use 3Delight default paths",
@@ -787,37 +648,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     render_passes_index = IntProperty(min=-1, default=-1)
 
 
-gi_primary_types = [
-    ('gi_pointcloud', 'Point Cloud', ''),
-    ('gi_raytrace', 'Ray Tracing', ''),
-    ('gi_photon', 'Photon Map', '')
-]
-
-gi_secondary_types = [
-    ('gi_photon', 'Photon Map', ''),
-    ('none', 'None', '')
-    # XXX: multiple bounces            ('gi_raytrace', 'Ray Tracing', '')
-]
-
-
-class IntegratorSettings(bpy.types.PropertyGroup):
-    pass
-
-
-class RendermanWorldSettings(bpy.types.PropertyGroup):
-    pass
-
-
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
 
     nodetree = StringProperty(
         name="Node Tree",
         description="Name of the shader node tree for this material",
         default="")
-
-    displacement_shaders = PointerProperty(
-        type=displacementShaders,
-        name="Displacement Shader Settings")
 
     displacementbound = FloatProperty(
         name="Displacement Bound",
@@ -1059,63 +895,10 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         description="Name of the shader node tree for this light",
         default="")
 
-    light_shaders = PointerProperty(
-        type=lightShaders,
-        name="Light Shader Settings")
-
-    emit_photons = BoolProperty(
-        name="Emit Photons",
-        description="Emit Photons from this light source",
-        default=True)
-
-    shadow_method = EnumProperty(
-        name="Shadow Method",
-        description="How to calculate shadows",
-        items=[('NONE', 'None', 'No Shadows'),
-               ('SHADOW_MAP', 'Shadow Map', 'Shadow Map'),
-               ('RAYTRACED', 'Raytraced', 'Raytraced')],
-        default='SHADOW_MAP')
-
-    path_shadow_map = StringProperty(
-        name="Shadow Map Path",
-        description="Path to generated shadow maps",
-        subtype='FILE_PATH',
-        default="$SHD/{object}")
-
-    shadow_map_generate_auto = BoolProperty(
-        name="Generate Shadow Map Automatically",
-        description="Generate a shadow map for this light before each render, when shadow maps are enabled",
-        default=True)
-
-    shadow_transparent = BoolProperty(
-        name="Transparent shadows",
-        description="Use deep shadow maps",
-        default=True)
-
-    shadow_map_resolution = IntProperty(
-        name="Shadow Map Resolution",
-        description="Size of the generated shadow map in pixels",
-        default=256)
-
-    pixelsamples_x = IntProperty(
-        name="Pixel Samples X",
-        description="Number of AA shadow map samples to take in X dimension",
-        min=0, max=16, default=2)
-
-    pixelsamples_y = IntProperty(
-        name="Pixel Samples Y",
-        description="Number of AA shadow map samples to take in Y dimension",
-        min=0, max=16, default=2)
-
     shadingrate = FloatProperty(
         name="Light Shading Rate",
         description="Shading Rate for lights.  Keep this high unless needed for using detailed maps",
         default=100.0)
-
-    ortho_scale = FloatProperty(
-        name="Ortho Scale",
-        description="Scale factor for orthographic shadow maps",
-        default=1.0)
 
     # Rib Box Properties
     shd_inlinerib_texts = CollectionProperty(
@@ -1569,10 +1352,7 @@ class testProps(bpy.types.PropertyGroup):
 
 # collection of property group classes that need to be registered on
 # module startup
-classes = [displacementShaders,
-           surfaceShaders,
-           lightShaders,
-           RendermanPath,
+classes = [RendermanPath,
            RendermanInlineRIB,
            RendermanGrouping,
            LightLinking,
@@ -1590,7 +1370,6 @@ classes = [displacementShaders,
            RendermanAOVList,
            RendermanCameraSettings,
            RendermanSceneSettings,
-           RendermanWorldSettings,
            RendermanMeshGeometrySettings,
            RendermanCurveGeometrySettings,
            RendermanObjectSettings
@@ -1609,8 +1388,6 @@ def register():
 
     bpy.types.Scene.renderman = PointerProperty(
         type=RendermanSceneSettings, name="Renderman Scene Settings")
-    bpy.types.World.renderman = PointerProperty(
-        type=RendermanWorldSettings, name="Renderman World Settings")
     bpy.types.Material.renderman = PointerProperty(
         type=RendermanMaterialSettings, name="Renderman Material Settings")
     bpy.types.Texture.renderman = PointerProperty(
