@@ -929,19 +929,24 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                             rib(getattr(getLocation, osl_prop_name),
                                 type_hint=prop_type)
     elif node.bl_idname == "PxrSeExprPatternNode":
-        fileInputType = getattr(node, "codetypeswitch")
+        fileInputType = node.codetypeswitch
+        
         for prop_name, meta in node.prop_meta.items():
+            print (prop_name);
             if prop_name in txmake_options.index or prop_name == "codetypeswitch":
-                print (prop_name);
+                pass
             elif prop_name == "internalSearch" and fileInputType == 'INT':
-                script = bpy.data.texts[node.internalSearch]
-                params['%s %s' % ("string",
-                        "expression")] = \
-                            rib(script.as_string(), type_hint=meta['renderman_type'])
+                if node.internalSearch != "":
+                    script = bpy.data.texts[node.internalSearch]
+                    print("entered INT")
+                    params['%s %s' % ("string",
+                            "expression")] = \
+                                rib(script.as_string(), type_hint=meta['renderman_type'])
             elif prop_name == "shadercode" and fileInputType == "EXT":
                 fileInput = user_path(getattr(node, 'shadercode'))
                 if fileInput != "":
                     outputString = ""
+                    print("Entered EXT")
                     with open(fileInput, encoding='utf-8') as SeExprFile:
                         for line in SeExprFile:
                             outputString += line
