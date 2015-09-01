@@ -231,6 +231,11 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 setattr(node, codeName, codeProp)
                 prop_names.append(codeName)
                 prop_meta[codeName] = codeMeta
+                if parent_name == "PxrSeExpr":
+                    name, meta, prop = generate_property(sp)
+                    prop_names.append(name)
+                    prop_meta[name] = meta
+                    setattr(node, name, prop)
             else:
                 name, meta, prop = generate_property(sp)
                 prop_names.append(name)
