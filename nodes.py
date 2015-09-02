@@ -994,7 +994,7 @@ def gen_params(ri, node, mat_name=None, recurse=True):
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
                 pass
-            if node.name == 'PxrRamp' and prop_name in ['colors', 'positions']:
+            if node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
                 pass
             else:
                 prop = getattr(node, prop_name)
