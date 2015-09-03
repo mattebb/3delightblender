@@ -1015,7 +1015,7 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 # else output rib
                 else:
                     # if struct is not linked continue
-                    if meta['renderman_type'] == 'struct':
+                    if meta['renderman_type'] in ['struct', 'enum']:
                         continue
 
                     if 'options' in meta and meta['options'] == 'texture' or \
