@@ -209,7 +209,7 @@ class RendermanShadingNode(bpy.types.Node):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 
     def draw_nonconnectable_props(self, context, layout, prop_names):
-        if self.bl_idname == "PxrOSLPatternNode":
+        if self.bl_idname == "PxrOSLPatternNode" or self.bl_idname == "PxrSeExprPatternNode":
             prop = getattr(self, "codetypeswitch")
             layout.prop(self, "codetypeswitch")
             if getattr(self, "codetypeswitch") == 'INT':
@@ -928,11 +928,73 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                         params['%s %s' % (prop_type, prop_name)] = \
                             rib(getattr(getLocation, osl_prop_name),
                                 type_hint=prop_type)
+    elif node.bl_idname == "PxrSeExprPatternNode":
+        fileInputType = node.codetypeswitch
+        
+        for prop_name, meta in node.prop_meta.items():
+            #print (prop_name);
+            if prop_name in txmake_options.index or prop_name == "codetypeswitch":
+                pass
+            elif prop_name == "internalSearch" and fileInputType == 'INT':
+                if node.internalSearch != "":
+                    script = bpy.data.texts[node.internalSearch]
+                    #print("entered INT")
+                    params['%s %s' % ("string",
+                            "expression")] = \
+                                rib(script.as_string(), type_hint=meta['renderman_type'])
+            elif prop_name == "shadercode" and fileInputType == "EXT":
+                fileInput = user_path(getattr(node, 'shadercode'))
+                if fileInput != "":
+                    outputString = ""
+                    #print("Entered EXT")
+                    with open(fileInput, encoding='utf-8') as SeExprFile:
+                        for line in SeExprFile:
+                            outputString += line
+                    params['%s %s' % ("string",
+                            "expression")] = \
+                                rib(outputString, type_hint=meta['renderman_type'])
+            else:
+                prop = getattr(node, prop_name)
+                # if property group recurse
+                if meta['renderman_type'] == 'page':
+                    continue
+                # if input socket is linked reference that
+                elif prop_name in node.inputs and \
+                        node.inputs[prop_name].is_linked:
+                    from_socket = node.inputs[prop_name].links[0].from_socket
+                    if recurse:
+                        shader_node_rib(
+                            ri, from_socket.node, mat_name=mat_name)
+                    params['reference %s %s' % (meta['renderman_type'],
+                                                meta['renderman_name'])] = \
+                        ["%s:%s" %
+                            (from_socket.node.name, from_socket.identifier)]
+                # else output rib
+                else:
+                    # if struct is not linked continue
+                    if meta['renderman_type'] == 'struct':
+                        continue
+
+                    if 'options' in meta and meta['options'] == 'texture' or \
+                        (node.renderman_node_type == 'light' and
+                            'widget' in meta and meta['widget'] == 'fileInput'):
+                        params['%s %s' % (meta['renderman_type'],
+                                          meta['renderman_name'])] = \
+                            rib(get_tex_file_name(prop),
+                                type_hint=meta['renderman_type'])
+                    elif 'arraySize' in meta:
+                        params['%s[%d] %s' % (meta['renderman_type'], len(prop),
+                                              meta['renderman_name'])] \
+                            = rib(prop)
+                    else:
+                        params['%s %s' % (meta['renderman_type'],
+                                          meta['renderman_name'])] = \
+                            rib(prop, type_hint=meta['renderman_type'])
     else:
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
                 pass
-            if node.name == 'PxrRamp' and prop_name in ['colors', 'positions']:
+            if node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
                 pass
             else:
                 prop = getattr(node, prop_name)

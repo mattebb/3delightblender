@@ -160,7 +160,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
     i = 0
     for sp in shaderparameters:
         if sp.tag == 'page':
-            if parent_name == "PxrOSL":
+            if parent_name == "PxrOSL" or parent_name == "PxrSeExpr":
                 pass
             else:
                 sub_param_names, sub_params_meta, sub_props = generate_page(
@@ -190,8 +190,8 @@ def class_generate_properties(node, parent_name, shaderparameters):
                                     optionsProps[Texname])
                             setattr(node, Texname, optionsProps[Texname])
         else:
-            if parent_name == "PxrOSL" and i == 0:
-                # Enum for internal, external type selection
+            if (parent_name == "PxrOSL" and i == 0) or (parent_name == "PxrSeExpr" and i == 0):
+                #Enum for internal, external type selection
                 EnumName = "codetypeswitch"
                 EnumProp = EnumProperty(items=(('EXT', "External", ""),
                                                ('INT', "Internal", "")),
@@ -231,6 +231,11 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 setattr(node, codeName, codeProp)
                 prop_names.append(codeName)
                 prop_meta[codeName] = codeMeta
+                if parent_name == "PxrSeExpr":
+                    name, meta, prop = generate_property(sp)
+                    prop_names.append(name)
+                    prop_meta[name] = meta
+                    setattr(node, name, prop)
             else:
                 name, meta, prop = generate_property(sp)
                 prop_names.append(name)
@@ -443,8 +448,8 @@ def generate_txmake_options(parent_name):
     for option in txmake.index:
         optionObject = getattr(txmake, option)
         if optionObject['type'] == "bool":
-            name = optionObject['name']
-            optionsProps[name] = ""
+            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename' ,'name' : optionObject["name"], 'renderman_type' : 'enum' , 'default' : '', 'label' : optionObject["dispName"], 'type': 'enum', 'options': '', 'widget' : 'mapper', 'connectable' : 'false'}
+            optionsProps[optionObject["name"]] = bpy.props.BoolProperty(name = optionObject['dispName'], default = optionObject['default'], description = optionObject['help'])
         elif optionObject['type'] == "enum":
             optionsProps[optionObject["name"]] = EnumProperty(
                 name=optionObject["dispName"],
