@@ -2053,6 +2053,8 @@ def export_render_settings(ri, rpass, scene, preview=False):
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
     ri.ShadingRate(rm.shadingrate)
     ri.Attribute("trace", depths)
+    if rm.use_statistics:
+        ri.Option("statistics", {'int endofframe': 1, 'string xmlfilename': 'stats.xml'})
 
 
 def export_camera_matrix(ri, scene, ob, motion):

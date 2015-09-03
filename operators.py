@@ -50,6 +50,17 @@ from . import engine
 
 from bpy_extras.io_utils import ExportHelper
 
+class Renderman_open_stats(bpy.types.Operator):
+    bl_idname = 'rman.open_stats'
+    bl_label = "Open Last Stats"
+    bl_description = "Open Last stats file"
+
+    def execute(self, context):
+        scene = context.scene
+        rm = scene.renderman
+        output_dir = os.path.dirname(user_path(rm.path_rib_output, scene=scene))
+        bpy.ops.wm.url_open(url="file://" + os.path.join(output_dir, 'stats.xml'))
+        return {'FINISHED'}
 
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
