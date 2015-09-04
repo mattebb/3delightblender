@@ -2053,6 +2053,8 @@ def export_render_settings(ri, rpass, scene, preview=False):
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
     ri.ShadingRate(rm.shadingrate)
     ri.Attribute("trace", depths)
+    if rm.use_statistics:
+        ri.Option("statistics", {'int endofframe': 1, 'string xmlfilename': 'stats.xml'})
 
 
 def export_camera_matrix(ri, scene, ob, motion):
@@ -2289,7 +2291,7 @@ def export_display(ri, rpass, scene):
          "color", "color lpe:indirectdiffuse"),
         ("albedo", active_layer.use_pass_diffuse_color, "color",
          "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O"),
-        ("specular", active_layer.use_pass_specular, "color",
+        ("specular", active_layer.use_pass_glossy_direct, "color",
          "color lpe:specular"),
         ("indirectspecular", active_layer.use_pass_glossy_indirect,
          "color", "color lpe:indirectspecular"),

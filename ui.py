@@ -336,6 +336,9 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         layout.separator()
         layout.prop(rm, "output_action")
         layout.prop(rm, "path_rib_output")
+        row = layout.row()
+        row.prop(rm, "use_statistics", text="Output stats")
+        row.operator('rman.open_stats')
 
         layout.separator()
         layout.prop(rm, "always_generate_textures")
