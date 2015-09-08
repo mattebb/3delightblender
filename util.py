@@ -310,7 +310,10 @@ def user_path(path, scene=None, ob=None):
         path = path.replace('{blend}', blendpath)
     if scene is not None:
         path = path.replace('{scene}', scene.name)
-        path = path.replace('{file_type}', scene.renderman.display_driver[-3:])
+        if scene.renderman.display_driver == "tiff":
+            path = path.replace('{file_type}', scene.renderman.display_driver[-4:])
+        else:
+            path = path.replace('{file_type}', scene.renderman.display_driver[-3:])
     if ob is not None:
         path = path.replace('{object}', ob.name)
 
