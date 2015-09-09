@@ -1109,13 +1109,6 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
     intargs = []
     floatargs = []
 
-    if len(creases) > 0:
-        for c in creases:
-            tags.append('crease')
-            nargs.extend([2, 1])
-            intargs.extend([c[0], c[1]])
-            floatargs.append(c[2])
-
     tags.append('interpolateboundary')
     nargs.extend([0, 0])
 
@@ -1124,19 +1117,58 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
 
     try:
         if not is_multi_material(mesh):
+            if len(creases) > 0:
+                for c in creases:
+                    tags.append('crease')
+                    nargs.extend([2, 1])
+                    intargs.extend([c[0], c[1]])
+                    floatargs.append(c[2])
+    
             ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
                                intargs, floatargs, primvars)
         else:
-            for mat_id, (nverts, verts, primvars) in \
-                    split_multi_mesh(nverts, verts, primvars).items():
+            nargs = [0, 0, 0]
+            if len(creases) > 0:
+                for c in creases:
+                    tags.append('crease')
+                    nargs.extend([2, 1, 0])
+                    intargs.extend([c[0], c[1]])
+                    floatargs.append(c[2])
+    
+            string_args = []
+            for mat_id, faces in \
+                    get_mats_faces(nverts, primvars).items():
+                tags.append("faceedit")
+                nargs.extend([2*len(faces), 0, 3])
+                for face in faces:
+                    intargs.extend([1, face])
                 export_material_archive(ri, mesh.materials[mat_id])
-                ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
-                                   intargs, floatargs, primvars)
-    except:
+                ri.Resource(mesh.materials[mat_id].name, "attributes", 
+                            {'string operation': 'save',
+                             'string subset': 'shading'})
+                string_args.extend(['attributes', mesh.materials[mat_id].name,
+                                    'shading'])
+            ri.HierarchicalSubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
+                                   intargs, floatargs, string_args, primvars)
+    except Exception as err:
         debug('error', 'sudiv problem', ob.name)
 
     removeMeshFromMemory(mesh.name)
 
+
+def get_mats_faces(nverts, primvars):
+    if "uniform float material_id" not in primvars:
+        return {}
+
+    else:
+        mats = {}
+        
+        for face_id, num_verts in enumerate(nverts):
+            mat_id = primvars["uniform float material_id"][face_id]
+            if mat_id not in mats:
+                mats[mat_id] = []
+            mats[mat_id].append(face_id)
+        return mats
 
 def split_multi_mesh(nverts, verts, primvars):
     if "uniform float material_id" not in primvars:
