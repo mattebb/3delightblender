@@ -2407,7 +2407,6 @@ def export_display(ri, rpass, scene):
             dspy_driver = rm.display_driver
     else:
         dspy_driver = rm.display_driver
-
     main_display = user_path(rm.path_display_driver_image,
                              scene=scene)
     main_display = os.path.relpath(main_display, rpass.paths['export_dir'])

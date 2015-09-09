@@ -682,56 +682,68 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
     layout.context_pointer_set("nodetree", nt)
 
     def draw_props(prop_names, layout):
-        for prop_name in prop_names:
-            prop_meta = node.prop_meta[prop_name]
-            prop = getattr(node, prop_name)
-
-            # else check if the socket with this name is connected
-            socket = node.inputs[prop_name] if prop_name in node.inputs \
-                else None
-            layout.context_pointer_set("socket", socket)
-
-            if socket and socket.is_linked:
-                input_node = socket_node_input(nt, socket)
-                icon = 'TRIA_DOWN' if socket.ui_open \
-                    else 'TRIA_RIGHT'
-
-                split = layout.split(NODE_LAYOUT_SPLIT)
-                row = split.row()
-                row.prop(socket, "ui_open", icon=icon, text='',
-                         icon_only=True, emboss=False)
-                indented_label(row, socket.name + ':')
-                split.operator_menu_enum("node.add_pattern", "node_type",
-                                         text=input_node.bl_label, icon='DOT')
-
-                if socket.ui_open:
-                    draw_node_properties_recursive(layout, context, nt,
-                                                   input_node, level=level + 1)
-
-            else:
-                row = layout.row()
-                if prop_meta['renderman_type'] == 'page':
-                    ui_prop = prop_name + "_ui_open"
-                    ui_open = getattr(node, ui_prop)
-                    icon = 'TRIA_DOWN' if ui_open \
-                        else 'TRIA_RIGHT'
-
-                    split = layout.split(NODE_LAYOUT_SPLIT)
-                    row = split.row()
-                    row.prop(node, ui_prop, icon=icon, text='',
-                             icon_only=True, emboss=False)
-                    indented_label(row, prop_name + ':')
-
-                    if ui_open:
-                        draw_props(prop, layout)
+        if node.plugin_name == "PxrOSL":
+            pass
+        else:
+            for prop_name in prop_names:
+                if prop_name == "codetypeswitch":
+                    row = layout.row()
+                    if node.codetypeswitch == 'INT':
+                        row.prop_search(node, "internalSearch", bpy.data, "texts", text="")
+                    elif node.codetypeswitch == 'EXT':
+                        row.prop(node, "shadercode")
+                elif prop_name == "internalSearch" or prop_name == "shadercode" or prop_name == "expression":
+                    pass
                 else:
-                    row.label('', icon='BLANK1')
-                    # indented_label(row, socket.name+':')
-                    # don't draw prop for struct type
-                    row.prop(node, prop_name)
-                    if prop_name in node.inputs:
-                        row.operator_menu_enum("node.add_pattern", "node_type",
-                                               text='', icon='DOT')
+                    prop_meta = node.prop_meta[prop_name]
+                    prop = getattr(node, prop_name)
+
+                    # else check if the socket with this name is connected
+                    socket = node.inputs[prop_name] if prop_name in node.inputs \
+                        else None
+                    layout.context_pointer_set("socket", socket)
+
+                    if socket and socket.is_linked:
+                        input_node = socket_node_input(nt, socket)
+                        icon = 'TRIA_DOWN' if socket.ui_open \
+                            else 'TRIA_RIGHT'
+
+                        split = layout.split(NODE_LAYOUT_SPLIT)
+                        row = split.row()
+                        row.prop(socket, "ui_open", icon=icon, text='',
+                                 icon_only=True, emboss=False)
+                        indented_label(row, socket.name + ':')
+                        split.operator_menu_enum("node.add_pattern", "node_type",
+                                                 text=input_node.bl_label, icon='DOT')
+
+                        if socket.ui_open:
+                            draw_node_properties_recursive(layout, context, nt,
+                                                           input_node, level=level + 1)
+
+                    else:
+                        row = layout.row()
+                        if prop_meta['renderman_type'] == 'page':
+                            ui_prop = prop_name + "_ui_open"
+                            ui_open = getattr(node, ui_prop)
+                            icon = 'TRIA_DOWN' if ui_open \
+                                else 'TRIA_RIGHT'
+
+                            split = layout.split(NODE_LAYOUT_SPLIT)
+                            row = split.row()
+                            row.prop(node, ui_prop, icon=icon, text='',
+                                     icon_only=True, emboss=False)
+                            indented_label(row, prop_name + ':')
+
+                            if ui_open:
+                                draw_props(prop, layout)
+                        else:
+                            row.label('', icon='BLANK1')
+                            # indented_label(row, socket.name+':')
+                            # don't draw prop for struct type
+                            row.prop(node, prop_name)
+                            if prop_name in node.inputs:
+                                row.operator_menu_enum("node.add_pattern", "node_type",
+                                                       text='', icon='DOT')
 
     if node.plugin_name == 'PxrRamp':
         dummy_nt = bpy.context.active_object.active_material.node_tree
