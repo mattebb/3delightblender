@@ -1115,44 +1115,41 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
     primvars = get_primvars(ob, mesh, "facevarying")
     primvars['P'] = P
 
-    try:
-        if not is_multi_material(mesh):
-            if len(creases) > 0:
-                for c in creases:
-                    tags.append('crease')
-                    nargs.extend([2, 1])
-                    intargs.extend([c[0], c[1]])
-                    floatargs.append(c[2])
-    
-            ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
-                               intargs, floatargs, primvars)
-        else:
-            nargs = [0, 0, 0]
-            if len(creases) > 0:
-                for c in creases:
-                    tags.append('crease')
-                    nargs.extend([2, 1, 0])
-                    intargs.extend([c[0], c[1]])
-                    floatargs.append(c[2])
-    
-            string_args = []
-            for mat_id, faces in \
-                    get_mats_faces(nverts, primvars).items():
-                tags.append("faceedit")
-                nargs.extend([2*len(faces), 0, 3])
-                for face in faces:
-                    intargs.extend([1, face])
-                export_material_archive(ri, mesh.materials[mat_id])
-                ri.Resource(mesh.materials[mat_id].name, "attributes", 
-                            {'string operation': 'save',
-                             'string subset': 'shading'})
-                string_args.extend(['attributes', mesh.materials[mat_id].name,
-                                    'shading'])
-            ri.HierarchicalSubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
-                                   intargs, floatargs, string_args, primvars)
-    except Exception as err:
-        debug('error', 'sudiv problem', ob.name)
+    if not is_multi_material(mesh):
+        if len(creases) > 0:
+            for c in creases:
+                tags.append('crease')
+                nargs.extend([2, 1])
+                intargs.extend([c[0], c[1]])
+                floatargs.append(c[2])
 
+        ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
+                           intargs, floatargs, primvars)
+    else:
+        nargs = [0, 0, 0]
+        if len(creases) > 0:
+            for c in creases:
+                tags.append('crease')
+                nargs.extend([2, 1, 0])
+                intargs.extend([c[0], c[1]])
+                floatargs.append(c[2])
+
+        string_args = []
+        for mat_id, faces in \
+                get_mats_faces(nverts, primvars).items():
+            tags.append("faceedit")
+            nargs.extend([2*len(faces), 0, 3])
+            for face in faces:
+                intargs.extend([1, face])
+            export_material_archive(ri, mesh.materials[mat_id])
+            ri.Resource(mesh.materials[mat_id].name, "attributes", 
+                        {'string operation': 'save',
+                         'string subset': 'shading'})
+            string_args.extend(['attributes', mesh.materials[mat_id].name,
+                                'shading'])
+        ri.HierarchicalSubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
+                               intargs, floatargs, string_args, primvars)
+    
     removeMeshFromMemory(mesh.name)
 
 
@@ -2407,6 +2404,7 @@ def export_display(ri, rpass, scene):
             dspy_driver = rm.display_driver
     else:
         dspy_driver = rm.display_driver
+
     main_display = user_path(rm.path_display_driver_image,
                              scene=scene)
     main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
