@@ -1804,9 +1804,10 @@ def export_particle_read_archive(ri, scene, ob, motion, psys):
     ri.Attribute("identifier", {"name": name})
 
     # now the material
-    mat = ob.material_slots[psys.settings.material - 1].material
-    if mat:
-        export_material_archive(ri, mat)
+    if psys.settings.material - 1 < len(ob.material_slots):
+        mat = ob.material_slots[psys.settings.material - 1].material
+        if mat:
+            export_material_archive(ri, mat)
 
     # we want these relative paths of the archive
     archive_filename = get_archive_filename(scene, motion, name, relative=True)
