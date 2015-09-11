@@ -198,13 +198,12 @@ class RPass:
         frame_archive_dir = os.path.dirname(user_path(temp_archive_name,
                                                       scene=scene))
         self.paths['static_archives'] = static_archive_dir
-        self.paths['frame_archives'] = [frame_archive_dir]
+        self.paths['frame_archives'] = frame_archive_dir
 
         if not os.path.exists(self.paths['static_archives']):
             os.makedirs(self.paths['static_archives'])
-        for frame_path in self.paths['frame_archives']:
-            if not os.path.exists(frame_path):
-                os.makedirs(frame_path)
+        if not os.path.exists(self.paths['frame_archives']):
+            os.makedirs(self.paths['frame_archives'])
         self.paths['archive'] = os.path.dirname(static_archive_dir)
 
     def preview_render(self, engine):
@@ -516,6 +515,8 @@ class RPass:
         if engine:
             engine.report({"INFO"}, "Texture generation took %s" %
                           format_seconds_to_hhmmss(time.time() - time_start))
+        else:
+            self.scene.frame_set(self.scene.frame_current)
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
