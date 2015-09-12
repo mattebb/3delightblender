@@ -32,6 +32,7 @@ from subprocess import Popen, PIPE
 import mathutils
 from mathutils import Matrix, Vector, Quaternion
 import re
+import traceback
 
 from . import bl_info
 
@@ -101,10 +102,16 @@ def update(engine, data, scene):
     engine.render_pass.update_time = int(time.time())
     if engine.is_preview:
         engine.render_pass.display_driver = 'tif'
-        engine.render_pass.gen_preview_rib()
+        try:
+            engine.render_pass.gen_preview_rib()
+        except Exception as err:
+            engine.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
     else:
         engine.render_pass.display_driver = scene.renderman.display_driver
-        engine.render_pass.gen_rib(engine=engine)
+        try:
+            engine.render_pass.gen_rib(engine=engine)
+        except Exception as err:
+            engine.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
 
 
 # assumes you have already set the scene
