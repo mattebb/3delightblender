@@ -290,17 +290,15 @@ def is_deforming(ob):
             if mod.type in deforming_modifiers:
                 return True
 
-    return False
+    return is_deforming_fluid(ob)
+
 
 # handle special case of fluid sim a bit differently
-
-
 def is_deforming_fluid(ob):
     if ob.modifiers:
         mod = ob.modifiers[len(ob.modifiers) - 1]
-        if mod.type == 'FLUID_SIMULATION' and mod.settings.type == 'DOMAIN':
-            return True
-
+        return mod.type == 'SMOKE' and mod.smoke_type == 'DOMAIN'
+ 
 
 def psys_name(ob, psys):
     return "%s.%s-%s" % (ob.name, psys.name, psys.settings.type)
@@ -313,6 +311,9 @@ def data_name(ob, scene):
     # if this is a blob return the family name
     if ob.type == 'META':
         return ob.name.split('.')[0]
+
+    if is_smoke(ob):
+        return "%s-VOLUME" % ob.name
 
     if ob.data.users > 1 and (ob.is_modified(scene, "RENDER") or
                               ob.is_deform_modified(scene, "RENDER") or
@@ -1656,7 +1657,7 @@ def get_instances_and_blocks(obs, rpass):
                     dupli_emitted = True
                     data = ob
                 instances.append(Instance(name, type, relpath_archive(archive_filename, rpass), ob))
-                if name not in data_blocks and file_is_dirty(data,
+                if name not in data_blocks and file_is_dirty(ob,
                                                              archive_filename):
                     data_blocks[name] = DataBlock(type, archive_filename, data, is_psys_animating(ob, psys))
         if hasattr(ob, 'dupli_type') and \
@@ -1666,7 +1667,7 @@ def get_instances_and_blocks(obs, rpass):
             archive_filename = get_archive_filename(name, rpass, False)
             data = ob
             instances.append(Instance(name, "DUPLI", relpath_archive(archive_filename, rpass), ob))
-            if name not in data_blocks and file_is_dirty(archive_filename, ob):
+            if name not in data_blocks and file_is_dirty(ob, archive_filename):
                 data_blocks[name] = DataBlock("DUPLI", archive_filename, ob)
         if emit_ob and ob.data:
             name = ob.name
@@ -1691,8 +1692,9 @@ def get_instances_and_blocks(obs, rpass):
 def relpath_archive(archive_filename, rpass):
     return os.path.relpath(archive_filename, rpass.paths['archive'])
 
-def file_is_dirty(data, archive_filename):
-    return True
+def file_is_dirty(ob, archive_filename):
+    return check_if_archive_dirty(ob.renderman.update_timestamp,
+                                  archive_filename)
 
 def get_transform(instance, subframe):
     if instance.type not in ["OBJECT", "CAMERA", "LAMP"] or not instance.transforming:
