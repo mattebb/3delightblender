@@ -55,7 +55,7 @@ from bpy.app.handlers import persistent
 # global dictionaries
 from .export import write_rib, write_preview_rib, get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
-    interactive_initial_rib
+    interactive_initial_rib, update_light_link
 
 addon_version = bl_info['version']
 
@@ -352,11 +352,11 @@ class RPass:
                         engine.update_progress(float(perc) / 100.0)
                     else:
                         if line and "ERROR" in str(line):
-                            engine.report({"ERROR"}, "PRMan: %s " % line)
+                            engine.report({"ERROR"}, "PRMan: %s " % line.decode('utf8'))
                         elif line and "WARNING" in str(line):
-                            engine.report({"WARNING"}, "PRMan: %s " % line)
+                            engine.report({"WARNING"}, "PRMan: %s " % line.decode('utf8'))
                         elif line and "SEVERE" in str(line):
-                            engine.report({"ERROR"}, "PRMan: %s " % line)
+                            engine.report({"ERROR"}, "PRMan: %s " % line.decode('utf8'))
 
                     if process.poll() is not None:
                         if self.display_driver != 'it':
@@ -485,7 +485,7 @@ class RPass:
             -dspyserver it" % self.paths['export_dir']
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
-        interactive_initial_rib(self, self.scene, self.ri, prman)
+        interactive_initial_rib(self, self.ri, self.scene, prman)
 
         return
 
@@ -501,6 +501,9 @@ class RPass:
 
     def issue_shader_edits(self, nt=None, node=None):
         issue_shader_edits(self, self.ri, prman, nt, node)
+
+    def update_light_link(self, context, ll):
+        update_light_link(self, self.ri, prman, context.scene.objects.active, ll)
 
     # ri.end
     def end_interactive(self):

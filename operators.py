@@ -42,7 +42,6 @@ from .util import readOSO
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
 
-from .export import make_optimised_texture_3dl
 from .export import export_archive
 from .engine import RPass
 from .export import debug
