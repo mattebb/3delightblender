@@ -314,7 +314,6 @@ def get_strands(scene, ob, psys):
         # if we get more than 100000 vertices, export ri.Curve and reset.  This
         # is to avoid a maxint on the array length
         if nverts > 100000:
-            print(sum(vertsArray), len(points)//3, widthString, hair_width)
             curve_sets.append((vertsArray, points, widthString, hair_width))
 
             nverts = 0
@@ -324,7 +323,6 @@ def get_strands(scene, ob, psys):
                 hair_width = []
 
     if nverts > 0:
-        print(sum(vertsArray), len(points)//3, widthString, hair_width)
         curve_sets.append((vertsArray, points, widthString, hair_width))
     
     psys.set_resolution(scene=scene, object=ob, resolution='PREVIEW')
@@ -2464,11 +2462,33 @@ def is_emissive(object):
                     return True
     return False
 
+
+def add_light(rpass, ri, active, prman):
+    ri.EditBegin('attribute')
+    ob = active
+    lamp = ob.data
+    rm = lamp.renderman
+    ri.AttributeBegin()
+    export_object_transform(ri, ob, (lamp.type == 'HEMI' or lamp.type == 'SUN'))
+    ri.ShadingRate(rm.shadingrate)
+
+    export_light_shaders(ri, lamp)
+
+    ri.AttributeEnd()
+    ri.Illuminate(lamp.name, rm.illuminates_by_default)
+    ri.EditEnd()
+
+
 # test the active object type for edits to do then do them
 
 
 def issue_transform_edits(rpass, ri, active, prman):
-    if not active.is_updated or active.type not in ['LAMP', 'CAMERA'] or not is_emmisive(active):
+    if active.type == 'LAMP' and active.name not in rpass.lights:
+        add_light(rpass, ri, active, prman)
+        rpass.lights.append(active.name)
+        return
+
+    if active.type not in ['LAMP', 'CAMERA'] and not is_emissive(active):
         return
 
     rpass.edit_num += 1
@@ -2497,6 +2517,12 @@ def update_light_link(rpass, ri, prman, active, link):
 def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
     if node is None:
         mat = bpy.context.object.active_material
+        lamp = None
+        if mat is None and bpy.data.scenes[0].objects.active.type == 'LAMP':
+            lamp = bpy.data.scenes[0].objects.active
+            mat = bpy.data.scenes[0].objects.active.data
+        if mat is None:
+            return
         # do an attribute full rebind
         tex_made = False
         if reissue_textures(ri, rpass, mat):
@@ -2514,6 +2540,11 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
                 ri.EditBegin('attribute', {'string scopename': obj.name})
                 export_material(ri, mat)
                 ri.EditEnd()
+        elif lamp:
+            ri.EditBegin('attribute', {'string scopename': lamp.name})
+            export_light_shaders(ri, mat)
+            ri.EditEnd()
+
 
     else:
         mat = bpy.context.object.active_material

@@ -475,7 +475,10 @@ class RPass:
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         self.material_dict = {}
+        self.lights = []
         for obj in self.scene.objects:
+            if obj.type == 'LAMP' and obj.name not in self.lights:
+                self.lights.append(obj.name)
             for mat_slot in obj.material_slots:
                 if mat_slot.material not in self.material_dict:
                     self.material_dict[mat_slot.material] = []
