@@ -617,6 +617,13 @@ def export_transform(ri, instance, flip_x=False):
         ri.Transform(rib(m))
     export_motion_end(ri, instance.motion_data)
 
+def export_object_transform(ri, ob, flip_x=False):
+    m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
+        else ob.matrix_world
+    if flip_x:
+        m = m.copy()
+        m[0] *= -1.0
+    ri.Transform(rib(m))
 
 def export_light_source(ri, lamp, shape):
     name = "PxrAreaLight"
@@ -1792,7 +1799,7 @@ def export_materials_archive(ri, rpass, scene):
     ri.Begin(archive_filename)
     for mat_name, mat in bpy.data.materials.items():
         ri.ArchiveBegin('material.' + mat_name)
-        ri.Attribute("identifier", {"name": mat_name})
+        #ri.Attribute("identifier", {"name": mat_name})
         export_material(ri, mat)
         ri.ArchiveEnd()
     ri.End()
@@ -2419,7 +2426,7 @@ def edit_flush(ri, edit_num, prman):
 def issue_light_transform_edit(ri, obj):
     lamp = obj.data
     ri.EditBegin('attribute', {'string scopename': obj.data.name})
-    export_transform(ri, obj, obj.type == 'LAMP' and (
+    export_object_transform(ri, obj, obj.type == 'LAMP' and (
         lamp.type == 'HEMI' or lamp.type == 'SUN'))
     ri.EditEnd()
 
@@ -2461,20 +2468,22 @@ def is_emissive(object):
 
 
 def issue_transform_edits(rpass, ri, active, prman):
-    if active.is_updated:
-        rpass.edit_num += 1
+    if not active.is_updated or active.type not in ['LAMP', 'CAMERA'] or not is_emmisive(active):
+        return
 
-        edit_flush(ri, rpass.edit_num, prman)
-        # only update lamp if shader is update or pos, seperately
-        if active.type == 'LAMP':
-            lamp = active.data
+    rpass.edit_num += 1
+
+    edit_flush(ri, rpass.edit_num, prman)
+    # only update lamp if shader is update or pos, seperately
+    if active.type == 'LAMP':
+        lamp = active.data
+        issue_light_transform_edit(ri, active)
+
+    elif active.type == 'CAMERA' and active.is_updated:
+        issue_camera_edit(ri, rpass, active)
+    else:
+        if is_emissive(active):
             issue_light_transform_edit(ri, active)
-
-        elif active.type == 'CAMERA' and active.is_updated:
-            issue_camera_edit(ri, rpass, active)
-        else:
-            if is_emissive(active):
-                issue_light_transform_edit(ri, active)
 
 def update_light_link(rpass, ri, prman, active, link):
     rpass.edit_num += 1
@@ -2500,9 +2509,11 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         rpass.edit_num += 1
         edit_flush(ri, rpass.edit_num, prman)
         # for obj in objs:
-        ri.EditBegin('attribute', {'string scopename': mat.name})
-        export_material(ri, mat)
-        ri.EditEnd()
+        if mat in rpass.material_dict:
+            for obj in rpass.material_dict[mat]:
+                ri.EditBegin('attribute', {'string scopename': obj.name})
+                export_material(ri, mat)
+                ri.EditEnd()
 
     else:
         mat = bpy.context.object.active_material

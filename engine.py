@@ -145,7 +145,7 @@ def format_seconds_to_hhmmss(seconds):
 
 class RPass:
 
-    def __init__(self, scene):
+    def __init__(self, scene, interactive=False):
         self.scene = scene
         # pass addon prefs to init_envs
         addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
@@ -155,9 +155,12 @@ class RPass:
 
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
         self.is_interactive_running = False
-        self.is_interactive = False
+        self.is_interactive = interactive
         self.options = []
-        prman.Init()
+        if interactive:
+            prman.Init(['-woff', 'A57001']) #need to disable for interactive
+        else:
+            prman.Init()
         self.ri = prman.Ri()
         self.edit_num = 0
         self.update_time = None
@@ -471,6 +474,12 @@ class RPass:
         self.is_interactive_running = True
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
+        self.material_dict = {}
+        for obj in self.scene.objects:
+            for mat_slot in obj.material_slots:
+                if mat_slot.material not in self.material_dict:
+                    self.material_dict[mat_slot.material] = []
+                self.material_dict[mat_slot.material].append(obj)
 
         # export rib and bake
         write_rib(self, self.scene, self.ri)

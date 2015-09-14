@@ -146,7 +146,7 @@ class StartInteractive(bpy.types.Operator):
 
     def invoke(self, context, event=None):
         if engine.ipr is None:
-            engine.ipr = RPass(context.scene)
+            engine.ipr = RPass(context.scene, interactive=True)
             engine.ipr.start_interactive()
             engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
                 self.draw, (context,), 'WINDOW', 'POST_PIXEL')
