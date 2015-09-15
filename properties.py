@@ -152,6 +152,10 @@ class LightLinking(bpy.types.PropertyGroup):
         self.name = "%s %s" % (
             self.light, infostr[valstr.index(self.illuminate)])
 
+        from . import engine
+        if engine.ipr is not None and engine.ipr.is_interactive_running:
+            engine.ipr.update_light_link(context, self)
+
     light = StringProperty(
         name="Light",
         update=update_name)

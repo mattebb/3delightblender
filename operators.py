@@ -42,7 +42,6 @@ from .util import readOSO
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
 
-from .export import make_optimised_texture_3dl
 from .export import export_archive
 from .engine import RPass
 from .export import debug
@@ -147,7 +146,7 @@ class StartInteractive(bpy.types.Operator):
 
     def invoke(self, context, event=None):
         if engine.ipr is None:
-            engine.ipr = RPass(context.scene)
+            engine.ipr = RPass(context.scene, interactive=True)
             engine.ipr.start_interactive()
             engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
                 self.draw, (context,), 'WINDOW', 'POST_PIXEL')

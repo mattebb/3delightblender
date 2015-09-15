@@ -347,11 +347,6 @@ def rib(v, type_hint=None):
                 v[0][1], v[1][1], v[2][1], v[3][1],
                 v[0][2], v[1][2], v[2][2], v[3][2],
                 v[0][3], v[1][3], v[2][3], v[3][3]]
-    elif type(v) == mathutils.Matrix:
-        return [v[0][0], v[1][0], v[2][0], v[3][0],
-                v[0][1], v[1][1], v[2][1], v[3][1],
-                v[0][2], v[1][2], v[2][2], v[3][2],
-                v[0][3], v[1][3], v[2][3], v[3][3]]
     elif type_hint == 'int':
         return int(v)
     elif type_hint == 'float':

@@ -1076,6 +1076,7 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
     if node.renderman_node_type == "pattern":
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
+        params['__instanceid'] = mat_name
         primary_vis = node.light_primary_visibility
         # must be off for light sources
         ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
