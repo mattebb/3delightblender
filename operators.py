@@ -95,8 +95,11 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 light_shader = 'PxrStdEnvDayLightLightNode'
             elif light_type == 'HEMI':
                 light_shader = 'PxrStdEnvMapLightLightNode'
-            elif light_type == 'AREA':
+            elif light_type == 'AREA' or light_type == 'POINT':
+                idblock.type = "AREA"
                 context.lamp.size = 1.0
+                context.lamp.size_y = 1.0
+                
             else:
                 idblock.type = "AREA"
 
