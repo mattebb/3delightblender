@@ -254,6 +254,13 @@ def get_name(ob):
 # ------------- Geometry Access -------------
 
 def get_strands(scene, ob, psys):
+    #we need this to get st
+    psys_modifier = None
+    for mod in ob.modifiers:
+        if hasattr(mod, 'particle_system') and mod.particle_system == psys:
+            psys_modifier = mod
+            break
+
     tip_width = psys.settings.renderman.tip_width
     base_width = psys.settings.renderman.base_width
     conwidth = psys.settings.renderman.constant_width
@@ -273,17 +280,24 @@ def get_strands(scene, ob, psys):
     total_hair_count = num_parents + num_children
     thicknessflag = 0
     width_offset = psys.settings.renderman.width_offset
+    export_st = psys.settings.renderman.export_scalp_st and psys_modifier and len(ob.data.uv_layers) > 0
 
     curve_sets = []
 
     points = []
 
     vertsArray = []
+    scalpS = []
+    scalpT = []
     nverts = 0
     for pindex in range(total_hair_count):
         if not psys.settings.show_guide_hairs and pindex < num_parents:
             continue
         
+        if pindex >= num_parents:
+            particle = psys.particles[(pindex - num_parents) % num_parents]
+        else:
+            particle = psys.particles[pindex]
         strand_points = []
         # walk through each strand
         for step in range(0, steps + 1):
@@ -311,10 +325,16 @@ def get_strands(scene, ob, psys):
             vertsArray.append(vertsInStrand)
             nverts += vertsInStrand
 
+            #get the scalp S
+            if export_st:
+                st = particle.uv_on_emitter(psys_modifier)
+                scalpS.append(st[0])
+                scalpT.append(st[1])
+
         # if we get more than 100000 vertices, export ri.Curve and reset.  This
         # is to avoid a maxint on the array length
         if nverts > 100000:
-            curve_sets.append((vertsArray, points, widthString, hair_width))
+            curve_sets.append((vertsArray, points, widthString, hair_width, scalpS, scalpT))
 
             nverts = 0
             points = []
@@ -323,7 +343,7 @@ def get_strands(scene, ob, psys):
                 hair_width = []
 
     if nverts > 0:
-        curve_sets.append((vertsArray, points, widthString, hair_width))
+        curve_sets.append((vertsArray, points, widthString, hair_width, scalpS, scalpT))
     
     psys.set_resolution(scene=scene, object=ob, resolution='PREVIEW')
 
@@ -714,9 +734,12 @@ def export_motion_end(ri, motion_data):
 def export_hair(ri, scene, ob, psys, data):
     curves = data if data else get_strands(scene, ob, psys)
 
-    for vertsArray, points, widthString, widths in curves:
-        ri.Curves("cubic", vertsArray, "nonperiodic", {"P": rib(points),
-                                                       widthString: widths})
+    for vertsArray, points, widthString, widths, scalpS, scalpT in curves:
+        params = {"P": rib(points), widthString: widths}
+        if len(scalpS):
+            params['uniform float scalpS'] = scalpS
+            params['uniform float scalpT'] = scalpT
+        ri.Curves("cubic", vertsArray, "nonperiodic", params)
 
 
 def geometry_source_rib(ri, scene, ob):
@@ -1484,7 +1507,10 @@ def get_instances_and_blocks(obs, rpass):
                         is_psys_animating(ob, psys))
                     dupli_emitted = True
                     data = ob
-                instances[name] = Instance(name, type, relpath_archive(archive_filename, rpass), ob)
+                inst = Instance(name, type, relpath_archive(archive_filename, rpass), ob)
+                if psys.settings.material:
+                    inst.material = ob.material_slots[psys.settings.material-1]
+                instances[name] = inst
                 if name not in data_blocks and file_is_dirty(rpass.scene, ob,
                                                              archive_filename):
                     data_blocks[name] = DataBlock(type, archive_filename, data, is_psys_animating(ob, psys))
