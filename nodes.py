@@ -277,16 +277,16 @@ class RendermanShadingNode(bpy.types.Node):
         if getattr(node, "codetypeswitch") == "EXT":
             osl_path = user_path(getattr(node, 'shadercode'))
             FileName = os.path.basename(osl_path)
+            FileNameNoEXT = os.path.splitext(FileName)[0]
+            FileNameOSO = FileNameNoEXT
+            FileNameOSO += ".oso"
+            export_path = os.path.join(
+                user_path(prefs.env_vars.out), "shaders", FileNameOSO)
             if os.path.splitext(FileName)[1] == ".oso":
-                copyfile(osl_path, user_path(prefs.env_vars.out), "shaders", FileName))
+                shutil.copy(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders"))
                 # Assume that the user knows what they were doing when they compiled the osl file.
                 ok = True
             else:
-                FileNameNoEXT = os.path.splitext(FileName)[0]
-                FileNameOSO = FileNameNoEXT
-                FileNameOSO += ".oso"
-                export_path = os.path.join(
-                    user_path(prefs.env_vars.out), "shaders", FileNameOSO)
                 ok = node.compile_osl(osl_path, compile_path)
         elif getattr(node, "codetypeswitch") == "INT" and node.internalSearch:
             script = bpy.data.texts[node.internalSearch]
