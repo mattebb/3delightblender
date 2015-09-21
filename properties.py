@@ -152,6 +152,10 @@ class LightLinking(bpy.types.PropertyGroup):
         self.name = "%s %s" % (
             self.light, infostr[valstr.index(self.illuminate)])
 
+        from . import engine
+        if engine.ipr is not None and engine.ipr.is_interactive_running:
+            engine.ipr.update_light_link(context, self)
+
     light = StringProperty(
         name="Light",
         update=update_name)
@@ -944,7 +948,7 @@ class RendermanParticlePrimVar(bpy.types.PropertyGroup):
                ('BIRTH_TIME', 'Birth Time', ''),
                ('DIE_TIME', 'Die Time', ''),
                ('LIFE_TIME', 'Lifetime', '')
-               ]   # XXX: Would be nice to have particle ID, needs adding in RNA
+              ]   # XXX: Would be nice to have particle ID, needs adding in RNA
     )
 
 
@@ -1020,6 +1024,12 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
         name="Export Default size",
         description="Export the particle size as the default 'width' primitive variable",
         default=True)
+
+    export_scalp_st = BoolProperty(
+        name="Export Emitter UV",
+        description="On hair, export the u/v from the emitter where the hair originates.  Use the variables 'scalpS' and 'scalpT' in your manifold node.",
+        default=False
+        )
 
     prim_vars = CollectionProperty(
         type=RendermanParticlePrimVar, name="Primitive Variables")
