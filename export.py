@@ -642,6 +642,10 @@ def export_transform(ri, instance, flip_x=False, concat=False):
         if flip_x:
             m = m.copy()
             m[0] *= -1.0
+        if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type == "SKY":
+            m = m.copy()
+            m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+            m = m2 * m 
         if concat:
             ri.ConcatTransform(rib(m))
         else:
@@ -654,6 +658,10 @@ def export_object_transform(ri, ob, flip_x=False):
     if flip_x:
         m = m.copy()
         m[0] *= -1.0
+    if ob.type == 'LAMP' and ob.data.renderman.renderman_type == "SKY":
+        m = m.copy()
+        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+        m = m2 * m 
     ri.Transform(rib(m))
 
 def export_light_source(ri, lamp, shape):
@@ -674,7 +682,10 @@ def export_light_shaders(ri, lamp, do_geometry=True):
         ri.Sphere(.1, -.1, .1, 360)
 
     def geometry(type):
-        ri.Geometry(type)
+        params = {}
+        if lamp.renderman.renderman_type == 'SKY':
+            params['float[2] resolution'] = [1024,512]
+        ri.Geometry(type, params)
 
     def spot():
         ri.Disk(0, 0.5, 360)
@@ -709,7 +720,7 @@ def export_light(ri, instance):
     params = []
 
     ri.AttributeBegin()
-    export_transform(ri, instance, lamp.type == 'HEMI' or lamp.type == 'SUN')
+    export_transform(ri, instance, lamp.type == 'HEMI' and lamp.renderman.renderman_type != "SKY")
     ri.ShadingRate(rm.shadingrate)
 
     export_light_shaders(ri, lamp)
@@ -2463,7 +2474,7 @@ def issue_light_transform_edit(ri, obj):
     lamp = obj.data
     ri.EditBegin('attribute', {'string scopename': obj.data.name})
     export_object_transform(ri, obj, obj.type == 'LAMP' and (
-        lamp.type == 'HEMI' or lamp.type == 'SUN'))
+        lamp.type == 'HEMI' and lamp.renderman.renderman_type != "SKY"))
     ri.EditEnd()
 
 
@@ -2507,7 +2518,7 @@ def add_light(rpass, ri, active, prman):
     lamp = ob.data
     rm = lamp.renderman
     ri.AttributeBegin()
-    export_object_transform(ri, ob, (lamp.type == 'HEMI' or lamp.type == 'SUN'))
+    export_object_transform(ri, ob, (lamp.type == 'HEMI' and lamp.renderman.renderman_type != "SKY"))
     ri.ShadingRate(rm.shadingrate)
 
     export_light_shaders(ri, lamp)
