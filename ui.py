@@ -692,6 +692,10 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
             return
         else:
             layout.prop(lamp.renderman, "renderman_type", expand=True)
+            if lamp.renderman.renderman_type == "AREA":
+                row = layout.row()
+                row.prop(lamp, 'size', text="Size X")
+                row.prop(lamp, 'size_y')
             layout.prop(lamp.renderman, "shadingrate")
 
         layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
