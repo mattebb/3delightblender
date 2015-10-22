@@ -828,14 +828,14 @@ def export_blobby_particles(ri, scene, psys, ob, points):
         ri.MotionEnd()
 
 
-def export_particle_instances(ri, scene, psys, ob, points, type='OBJECT'):
+def export_particle_instances(ri, scene, rpass, psys, ob, points, type='OBJECT'):
     rm = psys.settings.renderman
 
     if type == 'OBJECT':
         master_ob = bpy.data.objects[rm.particle_instance_object]
         # first call object Begin and read in archive of the master
-        master_archive = get_archive_filename(scene, None, data_name(
-            scene.objects[rm.particle_instance_object], scene),
+        deforming = is_deforming(master_ob)
+        master_archive = get_archive_filename(data_name(master_ob, scene), rpass, deforming,
             relative=True)
 
     instance_handle = ri.ObjectBegin()
@@ -897,7 +897,7 @@ def export_particle_points(ri, scene, psys, ob, points):
 # only for emitter types for now
 
 
-def export_particles(ri, scene, ob, psys, data=None):
+def export_particles(ri, scene, rpass, ob, psys, data=None):
 
     rm = psys.settings.renderman
     points = data if data else [get_particles(scene, ob, psys)]
@@ -908,7 +908,7 @@ def export_particles(ri, scene, ob, psys, data=None):
         export_blobby_particles(ri, scene, psys, ob, points)
     else:
         export_particle_instances(
-            ri, scene, psys, ob, points, type=rm.particle_type)
+            ri, scene, rpass, psys, ob, points, type=rm.particle_type)
 
 
 def export_comment(ri, comment):
@@ -1317,10 +1317,10 @@ def export_torus(ri, ob):
              rm.primitive_phimin, rm.primitive_phimax, rm.primitive_sweepangle)
 
 
-def export_particle_system(ri, scene, ob, psys, data=None):
+def export_particle_system(ri, scene, rpass, ob, psys, data=None):
     if psys.settings.type == 'EMITTER':
         # particles are always deformation
-        export_particles(ri, scene, ob, psys, data)
+        export_particles(ri, scene, rpass, ob, psys, data)
     else:
         ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
         ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
@@ -1447,8 +1447,11 @@ def export_geometry_data(ri, scene, ob, data=None):
     elif prim == 'POINTS':
         export_points(ri, ob, data)
 
-def is_transforming(ob, do_mb):
-    return (do_mb and ob.animation_data is not None)
+def is_transforming(ob, do_mb, recurse=False):
+    transforming = (do_mb and ob.animation_data is not None)
+    if not transforming and ob.parent:
+        transforming = is_transforming(ob.parent, do_mb, recurse=True)
+    return transforming
 
 
 # Instance holds all the data needed for making an instance of data_block
@@ -1504,7 +1507,7 @@ class DataBlock:
 
 # return if a psys should be animated
 def is_psys_animating(ob, psys, do_mb):
-    return (do_mb and psys.settings.animation_data is not None) or is_transforming(ob, do_mb)
+    return (do_mb and psys.settings.animation_data is not None) or is_transforming(ob, do_mb, recurse=True)
 
 
 
@@ -1715,7 +1718,7 @@ def export_data_archives(ri, scene, rpass, data_blocks):
         if db.type == "MESH":
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
-            export_particle_archive(ri, scene, db)
+            export_particle_archive(ri, scene, rpass, db)
         elif db.type == "DUPLI":
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
         ri.End()
@@ -1862,10 +1865,10 @@ def export_mesh_archive(ri, scene, data_block):
 
 # export the archives for an mesh. If this is a
 # deforming mesh the particle export will handle it
-def export_particle_archive(ri, scene, data_block):
+def export_particle_archive(ri, scene, rpass, data_block):
     ob,psys = data_block.data
     data = data_block.motion_data if data_block.deforming else None
-    export_particle_system(ri, scene, ob, psys, data=data)
+    export_particle_system(ri, scene, rpass, ob, psys, data=data)
 
 # export the archives for an mesh. If this is a
 # deforming mesh the particle export will handle it
