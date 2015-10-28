@@ -679,6 +679,8 @@ def export_light_shaders(ri, lamp, do_geometry=True):
         params = {}
         if lamp.renderman.renderman_type == 'SKY':
             params['float[2] resolution'] = [1024,512]
+        if lamp.renderman.renderman_type == 'AREA':
+            ri.Scale(lamp.size, lamp.size_y, 1.0)
         ri.Geometry(type, params)
 
     def spot():
