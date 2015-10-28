@@ -513,7 +513,7 @@ def node_add_inputs(node, node_name, shaderparameters):
     for sp in shaderparameters:
         # if this is a page recursively add inputs
         if sp.tag == 'page':
-            node_add_inputs(node, node_name, sp.findall('param'))
+            node_add_inputs(node, node_name, sp.findall('param') + sp.findall('page'))
             continue
         # if this is not connectable don't add socket
         tags = sp.find('tags')
