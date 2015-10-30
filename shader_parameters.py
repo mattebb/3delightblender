@@ -341,7 +341,7 @@ def generate_property(sp):
 
             else:
                 param_min = parse_float(sp.attrib['min']) if 'min' \
-                    in sp.attrib else sys.float_info.min
+                    in sp.attrib else (-1.0 * sys.float_info.max)
                 param_max = parse_float(sp.attrib['max']) if 'max' \
                     in sp.attrib else sys.float_info.max
                 param_min = parse_float(sp.attrib['slidermin']) if 'slidermin' \
