@@ -1036,7 +1036,8 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                     if meta['renderman_type'] in ['struct', 'enum']:
                         continue
 
-                    if 'options' in meta and meta['options'] == 'texture' or \
+                    if 'options' in meta and meta['options'] == 'texture' \
+                        and node.bl_idname != "PxrPtexturePatternNode" or \
                         (node.renderman_node_type == 'light' and
                             'widget' in meta and meta['widget'] == 'fileInput'):
                         params['%s %s' % (meta['renderman_type'],
