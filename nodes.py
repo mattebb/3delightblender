@@ -1152,6 +1152,8 @@ def get_bxdf_name(mat):
 
 def get_textures_for_node(node, matName=""):
     textures = []
+    if node.bl_idname == "PxrPtexturePatternNode":
+        return textures
     if node.bl_idname == "PxrOSLPatternNode":
         context = bpy.context
         OSLProps = context.scene.OSLProps
