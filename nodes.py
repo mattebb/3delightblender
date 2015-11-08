@@ -229,6 +229,8 @@ class RendermanShadingNode(bpy.types.Node):
                         nt.nodes[self.color_ramp_dummy_name], 'color_ramp')
 
             for prop_name in prop_names:
+                if prop_name == "rman__Shape":
+                    continue
                 prop_meta = self.prop_meta[prop_name]
                 if prop_name not in self.inputs:
                     if prop_meta['renderman_type'] == 'page':
@@ -692,6 +694,10 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
             pass
         else:
             for prop_name in prop_names:
+                #skip showing the shape for PxrStdAreaLight
+                if prop_name == "rman__Shape":
+                    continue
+
                 if prop_name == "codetypeswitch":
                     row = layout.row()
                     if node.codetypeswitch == 'INT':

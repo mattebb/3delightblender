@@ -659,38 +659,50 @@ def export_object_transform(ri, ob, flip_x=False):
     ri.Transform(rib(m))
 
 def export_light_source(ri, lamp, shape):
-    name = "PxrAreaLight"
+    name = "PxrStdAreaLight"
     params = {ri.HANDLEID: lamp.name, "float exposure": [
         lamp.energy], "__instanceid": lamp.name}
     if lamp.type == "HEMI":
-        name = "PxrEnvMapLight"
+        name = "PxrStdEnvMapLight"
         params["color envtint"] = rib(lamp.color)
     else:
-        params["color lightcolor"] = rib(lamp.color)
-        params["string shape"] = shape
+        params["color lightColor"] = rib(lamp.color)
+        params["string rman__Shape"] = shape
     ri.AreaLightSource(name, params)
 
 
 def export_light_shaders(ri, lamp, do_geometry=True):
     def point():
-        ri.Sphere(.1, -.1, .1, 360)
+        ri.Scale(.01, .01, .01)
+        ri.Geometry('spherelight', {})
 
     def geometry(type):
-        params = {}
-        if lamp.renderman.renderman_type == 'SKY':
-            params['constant float[2] resolution'] = [1024,512]
         if lamp.renderman.renderman_type == 'AREA' and lamp.type == 'AREA':
-            ri.Scale(lamp.size, lamp.size_y, 1.0)
-        ri.Geometry(type, params)
+            if lamp.renderman.area_shape == 'rect':
+                ri.Scale(lamp.size, lamp.size_y, 1.0)
+                ri.Geometry('rectlight', {})
+            elif lamp.renderman.area_shape == 'disk':
+                ri.Disk(0, lamp.size, 360.0)
+            elif lamp.renderman.area_shape == 'sphere':
+                ri.Scale(lamp.size, lamp.size, lamp.size)
+                ri.Geometry('spherelight', {})
+            elif lamp.renderman.area_shape == 'cylinder':
+                ri.Rotate(90.0, 0.0, 1.0, 0.0)
+                ri.Cylinder(lamp.size, -.5*lamp.size_y, .5*lamp.size_y, 360)
+        else:
+            params = {}
+            if lamp.renderman.renderman_type == 'SKY':
+                params['constant float[2] resolution'] = [1024,512]
+            ri.Geometry(type, params)
 
     def spot():
         ri.Disk(0, 0.5, 360)
 
     shapes = {
         "POINT": ("sphere", point),
-        "SUN": ("disk", lambda: geometry('distantlight')),
+        "SUN": ("distant", lambda: geometry('distantlight')),
         "SPOT": ("spot", spot),
-        "AREA": ("rect", lambda: geometry('rectlight')),
+        "AREA": ("rect", lambda: geometry('area')),
         "HEMI": ("env", lambda: geometry('envsphere'))
     }
 
@@ -700,6 +712,25 @@ def export_light_shaders(ri, lamp, do_geometry=True):
     ri.Attribute('identifier', {'string name': handle})
     # do the shader
     if rm.nodetree != '':
+        #make sure the shape is set on PxrStdAreaLightShape
+        if lamp.type != "HEMI":
+            nt = bpy.data.node_groups[rm.nodetree]
+            output = None
+            for node in nt.nodes:
+                if node.renderman_node_type == 'output':
+                    output = node
+                    break
+            if output and output.inputs['Light'].is_linked:
+                light_shader = output.inputs['Light'].links[0].from_node
+                if hasattr(light_shader, 'rman__Shape'):
+                    if lamp.type == 'AREA':
+                        light_shader.rman__Shape = rm.area_shape
+                    else:
+                        light_shader.rman__Shape = shapes[lamp.type][0]
+                    if lamp.type == 'SPOT':
+                        light_shader.coneAngle = .5*math.degrees(lamp.spot_size)
+                        light_shader.penumbraAngle = math.degrees(lamp.spot_blend)
+
         export_shader_nodetree(ri, lamp, handle)
     else:
         export_light_source(ri, lamp, shapes[lamp.type][0])
