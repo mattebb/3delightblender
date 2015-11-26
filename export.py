@@ -202,7 +202,7 @@ def is_deforming(ob):
     deforming_modifiers = ['ARMATURE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE',
                            'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP',
                            'SIMPLE_DEFORM', 'SMOOTH', 'WAVE', 'SOFT_BODY',
-                           'SURFACE', 'MESH_CACHE']
+                           'SURFACE', 'MESH_CACHE', 'FLUID_SIMULATION']
     if ob.modifiers:
         # special cases for auto subd/displace detection
         if len(ob.modifiers) == 1 and is_subd_last(ob):
@@ -1578,7 +1578,7 @@ def get_instances_and_blocks(obs, rpass):
                     continue
                 
                 # add data_block to mb list
-                if db.deforming:
+                if db.deforming and mb_on:
                     if ob_mb_segs not in motion_segs:
                         motion_segs[ob_mb_segs] = ([], [])
                     motion_segs[ob_mb_segs][1].append(db.name)
