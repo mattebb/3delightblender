@@ -484,9 +484,10 @@ socket_map = {
     'void': 'RendermanNodeSocketStruct'
 }
 
-
+# To add aditional options simply add an option name to index and then define it.
+# Supported types are bool and enum
 class txmake_options():
-    index = ["smode", "tmode", "format", "dataType"]
+    index = ["smode", "tmode", "format", "dataType", "resize"]
     smode = {'name': "smode", 'type': "enum", "default": "periodic",
              "items": [("periodic", "Periodic", ""), ("clamp", "Clamp", "")],
              "dispName": "Smode", "help": "The X dimension tiling",
@@ -505,8 +506,16 @@ class txmake_options():
                 "items": [("float", "Float", ""), ("byte", "Byte", ""),
                           ("short", "Short", ""), ("half", "Half", "")],
                 "dispName": "Data Type",
-                "help": "The data storage txmake uses", "exportType": "noname"}
-
+                "help": "The data storage txmake uses", 
+                "exportType": "noname"}
+    resize = {'name': "resize", 'type':"enum", "default": "up",
+              "items": [("up", "Up", ""), ("down", "Down", ""),
+                        ("up-", "Up-(0-1)", ""), ("down-", "Down-(0-1)", ""),
+                        ("round", "Round", ""), ("round-", "Round-(0-1)", ""),
+                        ("none", "None", "")],
+              "dispName": "Type of resizing",
+              "help": "The type of resizing flag to pass to txmake",
+              "exportType": "name"}
 
 # add input sockets
 def node_add_inputs(node, node_name, shaderparameters):
