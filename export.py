@@ -544,7 +544,7 @@ def get_primvars_particle(scene, psys):
                         [p for p in psys.particles if valid_particle(p, cfra)]:
                     pvars.extend(pa.angular_velocity)
 
-            primvars["varying float[3] %s" % p.name] = pvars
+            primvars["uniform float[3] %s" % p.name] = pvars
 
         elif p.data_source in \
                 ('SIZE', 'AGE', 'BIRTH_TIME', 'DIE_TIME', 'LIFE_TIME'):
@@ -569,7 +569,7 @@ def get_primvars_particle(scene, psys):
                         [p for p in psys.particles if valid_particle(p, cfra)]:
                     pvars.append(pa.lifetime)
 
-            primvars["varying float %s" % p.name] = pvars
+            primvars["uniform float %s" % p.name] = pvars
 
     return primvars
 
@@ -855,7 +855,7 @@ def export_blobby_particles(ri, scene, psys, ob, points):
             op.append(n)
 
         st = ('',)
-        parm = {}
+        parm = get_primvars_particle(scene, psys)
         ri.Blobby(count, op, tform, st, parm)
     if len(points) > 1:
         ri.MotionEnd()
@@ -863,6 +863,8 @@ def export_blobby_particles(ri, scene, psys, ob, points):
 
 def export_particle_instances(ri, scene, rpass, psys, ob, points, type='OBJECT'):
     rm = psys.settings.renderman
+
+    params = get_primvars_particle(scene, psys)
 
     if type == 'OBJECT':
         master_ob = bpy.data.objects[rm.particle_instance_object]
@@ -904,6 +906,12 @@ def export_particle_instances(ri, scene, rpass, psys, ob, points, type='OBJECT')
         if len(points) > 1:
             ri.MotionEnd()
 
+        instance_params = {}
+        for param in params:
+            instance_params[param] = params[param][i]
+
+        ri.Attribute("user", instance_params)        
+
         ri.ObjectInstance(instance_handle)
         ri.AttributeEnd()
 
@@ -915,7 +923,7 @@ def export_particle_points(ri, scene, psys, ob, points):
         export_motion_begin(ri, scene, ob)
 
     for (P, rot, width) in points:
-        params = {}  # get_primvars_particle(scene, psys)
+        params = get_primvars_particle(scene, psys)
         params[ri.P] = rib(P)
         params["uniform string type"] = rm.particle_type
         if rm.constant_width:
