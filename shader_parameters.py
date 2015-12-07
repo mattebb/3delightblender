@@ -508,7 +508,7 @@ class txmake_options():
                 "dispName": "Data Type",
                 "help": "The data storage txmake uses", 
                 "exportType": "noname"}
-    resize = {'name': "resize", 'type':"enum", "default": "up",
+    resize = {'name': "resize", 'type':"enum", "default": "up-",
               "items": [("up", "Up", ""), ("down", "Down", ""),
                         ("up-", "Up-(0-1)", ""), ("down-", "Down-(0-1)", ""),
                         ("round", "Round", ""), ("round-", "Round-(0-1)", ""),
