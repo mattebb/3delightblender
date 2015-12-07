@@ -26,7 +26,7 @@ import bpy
 import sys
 
 bl_info = {
-    "name": "PRMan Render Engine",
+    "name": "PRMan For Blender",
     "author": "Brian Savery",
     "version": (0, 7, 0),
     "blender": (2, 74, 0),
