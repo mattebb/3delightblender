@@ -579,7 +579,7 @@ class RPass:
             else:
                 cmd = [os.path.join(self.paths['rmantree'], 'bin',
                                     self.paths['path_texture_optimiser'])] + \
-                    options + [in_file, out_file_path]
+                    options + "-resize up-" + [in_file, out_file_path]
                 debug("info", "TXMAKE STARTED!", cmd)
 
                 Blendcdir = bpy.path.abspath("//")
