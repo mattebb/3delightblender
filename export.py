@@ -630,7 +630,7 @@ def export_transform(ri, instance, flip_x=False, concat=False):
     if instance.transforming and len(instance.motion_data) > 0:
         samples = [sample[1] for sample in instance.motion_data]
     else:
-        samples = [ob.matrix_local] if ob.parent \
+        samples = [ob.matrix_local] if ob.parent and  ob.parent_type == "object"\
             else [ob.matrix_world]
     for m in samples:
         if flip_x:
@@ -640,7 +640,7 @@ def export_transform(ri, instance, flip_x=False, concat=False):
             m = m.copy()
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m2 * m 
-        if concat:
+        if concat and ob.parent_type == "object":
             ri.ConcatTransform(rib(m))
         else:
             ri.Transform(rib(m))
@@ -1695,7 +1695,7 @@ def get_transform(instance, subframe):
         return
     else:
         ob = instance.ob
-        if ob.parent:
+        if ob.parent and ob.parent_type == "object":
             mat = ob.matrix_local
         else:
             mat = ob.matrix_world
