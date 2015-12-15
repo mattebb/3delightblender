@@ -979,6 +979,13 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col.prop(item, "exposure_gain")
         col.prop(item, "exposure_gamma")
         
+        col = layout.column()
+        col.label("Remap Settings")
+        row = col.row(align=True)
+        row.prop(item, "remap_a", text="A")
+        row.prop(item, "remap_b", text="B")
+        row.prop(item, "remap_c", text="C")
+
         col.prop(item, "show_advanced")
         col = col.column()
         col.enabled = item.show_advanced

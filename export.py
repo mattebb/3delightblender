@@ -2356,13 +2356,13 @@ def export_display(ri, rpass, scene):
 
     for aov in custom_aovs:
         source = aov.channel_type
+        exposure_gain = aov.exposure_gain
+        exposure_gamma = aov.exposure_gamma
+        remap_a = aov.remap_a
+        remap_b = aov.remap_b
+        remap_c = aov.remap_c
         if aov.channel_type == 'custom':
             source = aov.custom_lpe
-            exposure_gain = aov.exposure_gain
-            exposure_gamma = aov.exposure_gamma
-            remap_a = aov.remap_a
-            remap_b = aov.remap_b
-            remap_c = aov.remap_c
             # looks like someone didn't set an lpe string
             if source == '':
                 continue
@@ -2373,7 +2373,10 @@ def export_display(ri, rpass, scene):
             source = source.replace("%G", G_string)
             source = source.replace("%LG", LG_string)
 
-        params = {"string source": "color " + source}
+        params = {"string source": "color " + source, 
+                  "float[2] exposure": [exposure_gain,exposure_gamma],
+                  "float[3] remap": [remap_a,remap_b,remap_c]}
+        debug("info", params)
         ri.DisplayChannel('varying color %s' % (aov.name), params)
 
     if(rm.display_driver == 'it'):
