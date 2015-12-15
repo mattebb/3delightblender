@@ -2376,7 +2376,6 @@ def export_display(ri, rpass, scene):
         params = {"string source": "color " + source, 
                   "float[2] exposure": [exposure_gain,exposure_gamma],
                   "float[3] remap": [remap_a,remap_b,remap_c]}
-        debug("info", params)
         ri.DisplayChannel('varying color %s' % (aov.name), params)
 
     if(rm.display_driver == 'it'):
