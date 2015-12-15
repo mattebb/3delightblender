@@ -313,7 +313,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row.prop(rm, "shadingrate")
 
         layout.separator()
-
+        
         row = layout.row()
         row.label("Pixel Filter:")
         row.prop(rm, "pixelfilter", text="")
@@ -973,6 +973,19 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col.prop(item, "channel_type")
         if item.channel_type == "custom":
             col.prop(item, 'custom_lpe')
+        
+        col = layout.column()
+        col.label("Exposure Settings")
+        col.prop(item, "exposure_gain")
+        col.prop(item, "exposure_gamma")
+        
+        col = layout.column()
+        col.label("Remap Settings")
+        row = col.row(align=True)
+        row.prop(item, "remap_a", text="A")
+        row.prop(item, "remap_b", text="B")
+        row.prop(item, "remap_c", text="C")
+
         col.prop(item, "show_advanced")
         col = col.column()
         col.enabled = item.show_advanced

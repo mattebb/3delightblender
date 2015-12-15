@@ -2356,6 +2356,11 @@ def export_display(ri, rpass, scene):
 
     for aov in custom_aovs:
         source = aov.channel_type
+        exposure_gain = aov.exposure_gain
+        exposure_gamma = aov.exposure_gamma
+        remap_a = aov.remap_a
+        remap_b = aov.remap_b
+        remap_c = aov.remap_c
         if aov.channel_type == 'custom':
             source = aov.custom_lpe
             # looks like someone didn't set an lpe string
@@ -2368,7 +2373,9 @@ def export_display(ri, rpass, scene):
             source = source.replace("%G", G_string)
             source = source.replace("%LG", LG_string)
 
-        params = {"string source": "color " + source}
+        params = {"string source": "color " + source, 
+                  "float[2] exposure": [exposure_gain,exposure_gamma],
+                  "float[3] remap": [remap_a,remap_b,remap_c]}
         ri.DisplayChannel('varying color %s' % (aov.name), params)
 
     if(rm.display_driver == 'it'):
@@ -2382,6 +2389,7 @@ def export_display(ri, rpass, scene):
 
     main_display = user_path(rm.path_display_driver_image,
                              scene=scene)
+    debug("info", "Main_display: " + main_display)
     main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
     ri.Display(main_display, dspy_driver, "rgba",

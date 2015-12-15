@@ -25,6 +25,7 @@
 
 import bpy
 import os
+import sys
 import xml.etree.ElementTree as ET
 import time
 
@@ -263,7 +264,31 @@ class RendermanAOV(bpy.types.PropertyGroup):
         default=""
     )
 
+    exposure_gain = FloatProperty(
+        name="Gain",
+        description="The gain of the exposure.",
+        default=1.0)
 
+    exposure_gamma = FloatProperty(
+        name="Gamma",
+        description="The gamma of the exposure.",
+        default=1.0)
+
+    remap_a = FloatProperty(
+        name="a",
+        description="A value for remap.",
+        default=0.0)
+
+    remap_b = FloatProperty(
+        name="b",
+        description="B value for remap.",
+        default=0.0)
+
+    remap_c = FloatProperty(
+        name="c",
+        description="C value for remap.",
+        default=0.0)
+        
 class RendermanAOVList(bpy.types.PropertyGroup):
     render_layer = StringProperty()
     custom_aovs = CollectionProperty(type=RendermanAOV,
@@ -513,8 +538,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
                  ('tiff', 'Tiff',
                   'Render to a TIFF file, to be read back into Blender\'s Render Result'),
-                 ('png', 'PNG',
-                  'Render to a PNG file, to be read back into Blender\'s Render Result'),
                  ('it', 'it', 'External framebuffer display (must have RMS installed)')]
         return items
 
@@ -528,11 +551,18 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Denoise the image.  This will let set your sampling values low and get faster render times and runs denoise to remove the noise as a post process.",
         default=False)
 
-    path_display_driver_image = StringProperty(
-        name="Display Image",
-        description="Render output path to export as the Display in the RIB file. When later rendering the RIB file manually, this will be the raw render result directly from the renderer, and won't pass through blender's render pipeline",
-        subtype='FILE_PATH',
-        default="$OUT/images/{scene}_####.{file_type}")
+    if sys.platform == ("win32"):
+        path_display_driver_image = StringProperty(
+            name="Display Image",
+            description="Render output path to export as the Display in the RIB file. When later rendering the RIB file manually, this will be the raw render result directly from the renderer, and won't pass through blender's render pipeline",
+            subtype='FILE_PATH',
+            default="$OUT\images\{scene}_####.{file_type}")
+    else:
+        path_display_driver_image = StringProperty(
+            name="Display Image",
+            description="Render output path to export as the Display in the RIB file. When later rendering the RIB file manually, this will be the raw render result directly from the renderer, and won't pass through blender's render pipeline",
+            subtype='FILE_PATH',
+            default="$OUT/images/{scene}_####.{file_type}")
 
     update_frequency = FloatProperty(
         name="Update frequency",
