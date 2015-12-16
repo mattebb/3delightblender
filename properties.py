@@ -1397,21 +1397,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     trace_set_index = IntProperty(min=-1, default=-1)
 
 
-class testProps(bpy.types.PropertyGroup):
-    testProp = IntProperty(name="testProp", description="This is my int",
-                           min=0, max=16, default=2)
-    testDic = {}
-
-    def moreProps(text):
-        testProps.testProp2 = IntProperty(name="testProp2",
-                                          description="This is my int",
-                                          min=0, max=16, default=5)
-        # setattr()
-        setattr(testProps, "Gordon", IntProperty(name="Gordon",
-                                                 description="This is my int",
-                                                 min=0, max=16, default=1))
-        testProps.testDic["Test"] = testProps.testProp2
-
 # collection of property group classes that need to be registered on
 # module startup
 classes = [RendermanPath,

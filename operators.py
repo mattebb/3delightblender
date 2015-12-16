@@ -169,6 +169,13 @@ class StartInteractive(bpy.types.Operator):
                         area.tag_redraw()
         return {'FINISHED'}
 
+class ExportRIBObject(bpy.types.Operator):
+    bl_idname = "object.export_rib_archive"
+    bl_label = "Export Object as RIB Archive."
+    bl_description = "Export single object as a RIB archive for use in other blend files or for other uses."
+    def invoke(self, context, event=None):
+        print("Exporting RIB!!")
+        return {'FINISHED'}
 
 class ExportRIBArchive(bpy.types.Operator, ExportHelper):
 

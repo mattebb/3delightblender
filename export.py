@@ -1723,7 +1723,7 @@ def get_deformation(data_block, subframe, scene):
 # More efficient, and avoids too many frame updates in blender.
 def cache_motion(scene, rpass):
     origframe = scene.frame_current
-    
+    debug('error', "Cache motion")
     instances, data_blocks, motion_segs = \
         get_instances_and_blocks(scene.objects, rpass)
 
@@ -1752,7 +1752,12 @@ def cache_motion(scene, rpass):
 
 # export data_blocks
 def export_data_archives(ri, scene, rpass, data_blocks):
+    debug('error', "Exporting data archives")
+    debug('error', "Items")
+    debug('error', data_blocks)
     for name, db in data_blocks.items():
+        debug('error', db.name)
+        debug('error', db.do_export)
         if not db.do_export:
             continue
         ri.Begin(db.archive_filename)
@@ -2475,7 +2480,7 @@ def write_rib(rpass, scene, ri):
     
     # precalculate motion blur data
     data_blocks, instances = cache_motion(scene, rpass)
-    
+    debug('error', "Writing RIB!")
     # export rib archives of objects
     export_data_archives(ri, scene, rpass, data_blocks)
     
