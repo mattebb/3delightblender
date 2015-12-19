@@ -179,13 +179,13 @@ class ExportRIBObject(bpy.types.Operator):
         print("Exporting all the RIB!!" + str(context.active_object))
         rpass = RPass(context.scene, interactive=False)
         
-        rpass.convert_textures(get_texture_list(context.scene))
-        #rpass.ri.Begin(rpass.paths['rib_output'])
+        #rpass.convert_textures(get_texture_list(context.scene))
         rpass.ri.Option("rib", {"string asciistyle": "indented,wide"})
         
         write_single_RIB(rpass, context.scene, rpass.ri, context.active_object)
         
-        #rpass.ri.End()
+        context.active_object.renderman.geometry_source = 'ARCHIVE'
+        
         return {'FINISHED'}
 
 ''' # Item that is not needed because of the switch.
