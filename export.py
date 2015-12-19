@@ -1757,6 +1757,34 @@ def cache_motion(scene, rpass):
     return data_blocks, instances
 
 
+def cache_motion_single_object(scene, rpass, activeObject):
+    origframe = scene.frame_current
+    objectToPass = [activeObject]
+    instances, data_blocks, motion_segs = \
+        get_instances_and_blocks(objectToPass, rpass)
+
+    
+    # the aim here is to do only a minimal number of scene updates,
+    # so we process objects in batches of equal numbers of segments
+    # and update the scene only once for each of those unique fractional
+    # frames per segment set
+    for num_segs, (instance_names, data_names) in motion_segs.items():
+        # prepare list of frames/sub-frames in advance,
+        # ordered from future to present,
+        # to prevent too many scene updates
+        # (since loop ends on current frame/subframe)
+        for sub in get_subframes(num_segs):
+            scene.frame_set(origframe, sub)
+            for name in instance_names:
+                get_transform(instances[name], sub)
+
+            for name in data_names:
+                get_deformation(data_blocks[name], sub, scene)
+        
+    scene.frame_set(origframe, 0)
+
+    return data_blocks, instances
+
 # export data_blocks
 def export_data_archives(ri, scene, rpass, data_blocks):
     for name, db in data_blocks.items():
@@ -2557,7 +2585,14 @@ def write_preview_rib(rpass, scene, ri):
     ri.WorldEnd()
     ri.FrameEnd()
 
+def write_single_RIB(rpass, scene, ri, object):
+    
+    # precalculate motion blur data
+    data_blocks, instances = cache_motion_single_object(scene, rpass, object)
+    # export rib archives of objects
+    export_data_archives(ri, scene, rpass, data_blocks)
 
+    
 def anim_archive_path(filepath, frame):
     if filepath.find("#") != -1:
         ribpath = make_frame_path(filepath, fr)
