@@ -178,13 +178,16 @@ class ExportRIBObject(bpy.types.Operator):
     def invoke(self, context, event=None):
         print("Exporting all the RIB!!" + str(context.active_object))
         rpass = RPass(context.scene, interactive=False)
+        object = context.active_object
         
         #rpass.convert_textures(get_texture_list(context.scene))
         rpass.ri.Option("rib", {"string asciistyle": "indented,wide"})
         
-        write_single_RIB(rpass, context.scene, rpass.ri, context.active_object)
+        export_filename = write_single_RIB(rpass, context.scene, rpass.ri, object)
         
-        context.active_object.renderman.geometry_source = 'ARCHIVE'
+        object.renderman.geometry_source = 'ARCHIVE'
+        object.renderman.path_archive = export_filename
+        object.show_bounds = True
         
         return {'FINISHED'}
 

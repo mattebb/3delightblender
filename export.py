@@ -2591,6 +2591,10 @@ def write_single_RIB(rpass, scene, ri, object):
     data_blocks, instances = cache_motion_single_object(scene, rpass, object)
     # export rib archives of objects
     export_data_archives(ri, scene, rpass, data_blocks)
+    
+    for name, db in data_blocks.items():
+        fileName = db.archive_filename
+    return fileName
 
     
 def anim_archive_path(filepath, frame):
