@@ -2414,7 +2414,7 @@ def export_display(ri, rpass, scene):
             ("a", 'float', None, None, None),
             ("mse", 'color', 'color Ci', 'mse', None),
             ("albedo", 'color',
-             'lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
+             'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
              None, None),
             ("diffuse", 'color', 'color lpe:C(D[DS]*[LO])|O', None, None),
             ("diffuse_mse", 'color', 'color lpe:C(D[DS]*[LO])|O', 'mse', None),
