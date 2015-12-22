@@ -1645,7 +1645,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                 dupli_emitted = True
                 data = ob
                 if psys.settings.render_type == 'OBJECT':
-                    data_blocks.append(get_dupli_block(psys.settings.dupli_object, rpass, mb_on))
+                    data_blocks.append(get_dupli_block(psys.settings.dupli_object, rpass, do_mb))
                 else:
                     for dupli_ob in psys.settings.dupli_group.objects:
                         data_blocks.append(get_dupli_block(dupli_ob, rpass, do_mb))
