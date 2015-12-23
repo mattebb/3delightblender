@@ -2458,6 +2458,10 @@ def export_hider(ri, rpass, scene, preview=False):
         hider_params['int minsamples'] = rm.preview_min_samples
         pv = rm.preview_pixel_variance
 
+    if not preview:
+        cam = scene.camera.data.renderman
+        hider_params["float[4] aperture"] = [cam.aperture_sides, cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
+
     ri.PixelVariance(pv)
 
     if rm.light_localization:
