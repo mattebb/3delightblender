@@ -630,7 +630,7 @@ def export_transform(ri, instance, flip_x=False, concat=False):
     if instance.transforming and len(instance.motion_data) > 0:
         samples = [sample[1] for sample in instance.motion_data]
     else:
-        samples = [ob.matrix_local] if ob.parent \
+        samples = [ob.matrix_local] if ob.parent and  ob.parent_type == "object"\
             else [ob.matrix_world]
     for m in samples:
         if flip_x:
@@ -640,7 +640,7 @@ def export_transform(ri, instance, flip_x=False, concat=False):
             m = m.copy()
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m2 * m 
-        if concat:
+        if concat and ob.parent_type == "object":
             ri.ConcatTransform(rib(m))
         else:
             ri.Transform(rib(m))
@@ -1645,7 +1645,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                 dupli_emitted = True
                 data = ob
                 if psys.settings.render_type == 'OBJECT':
-                    data_blocks.append(get_dupli_block(psys.settings.dupli_object, rpass, mb_on))
+                    data_blocks.append(get_dupli_block(psys.settings.dupli_object, rpass, do_mb))
                 else:
                     for dupli_ob in psys.settings.dupli_group.objects:
                         data_blocks.append(get_dupli_block(dupli_ob, rpass, do_mb))
@@ -1703,7 +1703,7 @@ def get_transform(instance, subframe):
         return
     else:
         ob = instance.ob
-        if ob.parent:
+        if ob.parent and ob.parent_type == "object":
             mat = ob.matrix_local
         else:
             mat = ob.matrix_world
@@ -2449,7 +2449,7 @@ def export_display(ri, rpass, scene):
             ("a", 'float', None, None, None),
             ("mse", 'color', 'color Ci', 'mse', None),
             ("albedo", 'color',
-             'lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
+             'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
              None, None),
             ("diffuse", 'color', 'color lpe:C(D[DS]*[LO])|O', None, None),
             ("diffuse_mse", 'color', 'color lpe:C(D[DS]*[LO])|O', 'mse', None),
@@ -2492,6 +2492,10 @@ def export_hider(ri, rpass, scene, preview=False):
         hider_params['int maxsamples'] = rm.preview_max_samples
         hider_params['int minsamples'] = rm.preview_min_samples
         pv = rm.preview_pixel_variance
+
+    if not preview:
+        cam = scene.camera.data.renderman
+        hider_params["float[4] aperture"] = [cam.aperture_sides, cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
 
     ri.PixelVariance(pv)
 

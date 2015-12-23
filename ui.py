@@ -642,6 +642,13 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
         sub.enabled = scene.renderman.depth_of_field
         sub.prop(scene.renderman, "fstop")
 
+        row = layout.row()
+        row.label("Aperture Controls:")
+        row.prop(cam.renderman, "aperture_sides")
+        row.prop(cam.renderman, "aperture_angle")
+        row.prop(cam.renderman, "aperture_roundness")
+        row.prop(cam.renderman, "aperture_density")
+
         layout.prop(cam.renderman, "use_physical_camera")
         if cam.renderman.use_physical_camera:
             pxrcamera = getattr(cam.renderman, "PxrCamera_settings")

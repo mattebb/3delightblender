@@ -79,7 +79,21 @@ class RendermanCameraSettings(bpy.types.PropertyGroup):
     use_physical_camera = BoolProperty(
         name="Use Physical Camera", default=False)
 
-# just pxrcamera for now
+    aperture_sides = IntProperty(
+        name="Aperture Blades", default=0, min=0,
+        description="The number of sides of the aperture. If this value is less than 3, the default behavior of a circular aperture and uniform sampling are used.")
+
+    aperture_angle = FloatProperty(
+        name="Aperture Angle", default=0.0, max=180.0, min=-180.0,
+        description="The aperture polygon's orientation, in degrees from some arbitrary reference direction. (A value of 0 aligns a vertex horizontally with the center of the aperture.)")  
+
+    aperture_roundness = FloatProperty(
+        name="Aperture Angle", default=0.0, max=1.0, min=-1.0,
+        description="A shape parameter, from -1 to 1. When 0, the aperture is a regular polygon with straight sides. When 1, it's a perfect circle. Values between 0 and 1 give polygons with curved edges bowed out, while values between 0 and -1 make the edges bow in.") 
+
+    aperture_density = FloatProperty(
+        name="Aperture Angle", default=0.0, max=1.0, min=-1.0,
+        description="The slope, between -1 and 1, of the (linearly varying) aperture density. A value of zero gives uniform density. Negative values make the aperture brighter near the center, and positive values make it brighter near the rim.") 
 
 
 def register_camera_settings():
