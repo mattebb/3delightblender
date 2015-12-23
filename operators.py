@@ -28,6 +28,7 @@ import os
 import subprocess
 import bgl
 import blf
+import webbrowser
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
@@ -63,6 +64,28 @@ class Renderman_open_stats(bpy.types.Operator):
         bpy.ops.wm.url_open(url="file://" + os.path.join(output_dir, 'stats.xml'))
         return {'FINISHED'}
 
+class Renderman_open_last_RIB(bpy.types.Operator):
+    bl_idname = 'rman.open_rib'
+    bl_label = "Open Last RIB Scene file."
+    bl_description = "Opens the last generated Scene.rib file in the system default text editor."
+    
+    def invoke(self, context, event=None):
+        rm = context.scene.renderman
+        rpass = RPass(context.scene, interactive=False)
+        path = rpass.paths['rib_output']
+        if rm.editor_override == "":
+            try:
+                webbrowser.open(path)
+            except Exception:
+                debug('error',"File not available!")
+        else:
+            command = rm.editor_override + " " + path
+            try:
+                os.system(command)
+            except Exception:
+                debug('error',"File or text editor not available. (Check and make sure text editor is in system path.)")
+        return {'FINISHED'}
+    
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
     ''''''

@@ -454,6 +454,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Statistics",
         description="Print statistics to /tmp/stats.txt after render",
         default=False)
+    editor_override = StringProperty(
+        name="Text Editor",
+        description="The editor to open RIB file in (Overrides system default!)",
+        default="")
     statistics_level = IntProperty(
         name="Statistics Level",
         description="Verbosity level of output statistics",
