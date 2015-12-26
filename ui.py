@@ -341,6 +341,11 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row.operator('rman.open_stats')
 
         layout.separator()
+        row = layout.row()
+        row.operator('rman.open_rib')
+        row.prop(rm, "editor_override")
+        
+        layout.separator()
         layout.prop(rm, "always_generate_textures")
         layout.prop(rm, "lazy_rib_gen")
         layout.prop(rm, "threads")
@@ -808,6 +813,12 @@ class OBJECT_PT_renderman_object_geometry(Panel):
             # if rm.export_archive:
             #    col.prop(rm, "export_archive_path")
 
+            
+        col = layout.column()
+        col.operator("object.export_rib_archive", icon="EXPORT", text="Export Object as RIB Archive.")
+        
+        
+        
         col = layout.column()
         # col.prop(rm, "export_coordsys")
 

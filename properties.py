@@ -454,6 +454,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Statistics",
         description="Print statistics to /tmp/stats.txt after render",
         default=False)
+    editor_override = StringProperty(
+        name="Text Editor",
+        description="The editor to open RIB file in (Overrides system default!)",
+        default="")
     statistics_level = IntProperty(
         name="Statistics Level",
         description="Verbosity level of output statistics",
@@ -465,25 +469,25 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="RIB Output Path",
         description="Path to generated .rib files",
         subtype='FILE_PATH',
-        default="$OUT/{scene}.rib")
+        default=os.path.join('$OUT','{scene}.rib'))
 
     path_object_archive_static = StringProperty(
         name="Object archive RIB Output Path",
         description="Path to generated rib file for a non-deforming objects' geometry",
         subtype='FILE_PATH',
-        default="$ARC/static/{object}.rib")
+        default=os.path.join('$ARC','static','{object}.rib'))
 
     path_object_archive_animated = StringProperty(
         name="Object archive RIB Output Path",
         description="Path to generated rib file for an animated objects geometry",
         subtype='FILE_PATH',
-        default="$ARC/####/{object}.rib")
+        default=os.path.join('$ARC','####','{object}.rib'))
 
     path_texture_output = StringProperty(
         name="Teture Output Path",
         description="Path to generated .tex files",
         subtype='FILE_PATH',
-        default="$OUT/textures")
+        default=os.path.join('$OUT','textures'))
 
     out_dir = StringProperty(
         name="Shader Output Path",
@@ -565,18 +569,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Denoise the image.  This will let set your sampling values low and get faster render times and runs denoise to remove the noise as a post process.",
         default=False)
 
-    if sys.platform == ("win32"):
-        path_display_driver_image = StringProperty(
-            name="Display Image",
-            description="Render output path to export as the Display in the RIB file. When later rendering the RIB file manually, this will be the raw render result directly from the renderer, and won't pass through blender's render pipeline",
-            subtype='FILE_PATH',
-            default="$OUT\images\{scene}_####.{file_type}")
-    else:
-        path_display_driver_image = StringProperty(
-            name="Display Image",
-            description="Render output path to export as the Display in the RIB file. When later rendering the RIB file manually, this will be the raw render result directly from the renderer, and won't pass through blender's render pipeline",
-            subtype='FILE_PATH',
-            default="$OUT/images/{scene}_####.{file_type}")
+    path_display_driver_image = StringProperty(
+        name="Display Image",
+        description="Render output path to export as the Display in the RIB file. When later rendering the RIB file manually, this will be the raw render result directly from the renderer, and won't pass through blender's render pipeline",
+        subtype='FILE_PATH',
+        default=os.path.join('$OUT', 'images', '{scene}_####.{file_type}'))
 
     update_frequency = FloatProperty(
         name="Update frequency",
@@ -1417,21 +1414,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     trace_set = CollectionProperty(type=TraceSet, name='Trace Set')
     trace_set_index = IntProperty(min=-1, default=-1)
 
-
-class testProps(bpy.types.PropertyGroup):
-    testProp = IntProperty(name="testProp", description="This is my int",
-                           min=0, max=16, default=2)
-    testDic = {}
-
-    def moreProps(text):
-        testProps.testProp2 = IntProperty(name="testProp2",
-                                          description="This is my int",
-                                          min=0, max=16, default=5)
-        # setattr()
-        setattr(testProps, "Gordon", IntProperty(name="Gordon",
-                                                 description="This is my int",
-                                                 min=0, max=16, default=1))
-        testProps.testDic["Test"] = testProps.testProp2
 
 # collection of property group classes that need to be registered on
 # module startup
