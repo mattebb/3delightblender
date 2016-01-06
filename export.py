@@ -213,6 +213,8 @@ def is_deforming(ob):
         for mod in ob.modifiers:
             if mod.type in deforming_modifiers:
                 return True
+    if ob.data and hasattr(ob.data, 'shape_keys') and ob.data.shape_keys:
+        return True
 
     return is_deforming_fluid(ob)
 
