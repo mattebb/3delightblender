@@ -1581,10 +1581,10 @@ class DataBlock:
         self.dupli_data = dupli_data
 
 
-# return if a psys should be animated
+# return if a psys should be animated 
+# NB:  we ALWAYS need the animating psys if the emitter is transforming, not just if MB is on
 def is_psys_animating(ob, psys, do_mb):
-    return (do_mb and psys.settings.animation_data is not None) or is_transforming(ob, do_mb, recurse=True)
-
+    return (psys.settings.animation_data is not None) or is_transforming(ob, True, recurse=True)
 
 # constructs a list of instances and data blocks based on objects in a scene
 # only the needed for rendering data blocks and instances are cached
