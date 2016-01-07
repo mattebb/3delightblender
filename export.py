@@ -975,9 +975,27 @@ def export_comment(ri, comment):
     ri.ArchiveRecord('comment', comment)
 
 
+def recursive_texture_set(ob):
+    mat_set = []
+    SUPPORTED_MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT', 'SURFACE']
+    if ob.type in SUPPORTED_MATERIAL_TYPES:
+        for mat in ob.data.materials:
+            if mat:
+                mat_set.append(mat)
+
+    for child in ob.children:
+        mat_set += recursive_texture_set(child)
+
+    if ob.dupli_group:
+        for child in ob.dupli_group.objects:
+            mat_set += recursive_texture_set(child)
+
+    return mat_set
+
+
 def get_texture_list(scene):
     # if not rpass.light_shaders: return
-    SUPPORTED_MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT', 'SURFACE']
+    
     textures = []
     mats_to_scan = []
     for o in renderable_objects(scene):
@@ -986,15 +1004,11 @@ def get_texture_list(scene):
         elif o.type == 'LAMP':
             if o.data.renderman.nodetree != '':
                 textures = textures + get_textures(o.data)
-        elif o.type in SUPPORTED_MATERIAL_TYPES:
-            for mat in [mat for mat in o.data.materials if mat is not None]:
-                if mat not in mats_to_scan:
-                    mats_to_scan.append(mat)
         else:
-            debug("error",
-                  "get_texture_list: unsupported object type [%s]." % o.type)
+            mats_to_scan += recursive_texture_set(o)
+            
     # cull duplicates by only doing mats once
-    for mat in mats_to_scan:
+    for mat in set(mats_to_scan):
         new_textures = get_textures(mat)
         if new_textures:
             textures.extend(new_textures)
