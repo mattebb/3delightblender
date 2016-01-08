@@ -393,10 +393,11 @@ def get_particles(scene, ob, psys, valid_frame=None):
     return (P, rot, width)
 
 
-def get_mesh(mesh):
+def get_mesh(mesh, get_normals=False):
     nverts = []
     verts = []
     P = []
+    N = []
 
     for v in mesh.vertices:
         P.extend(v.co)
@@ -404,24 +405,20 @@ def get_mesh(mesh):
     for p in mesh.polygons:
         nverts.append(p.loop_total)
         verts.extend(p.vertices)
+        if get_normals:
+            if p.use_smooth:
+                for vi in p.vertices:
+                    N.extend(mesh.vertices[vi].normal)
+            else:
+                N.extend(list(p.normal) * p.loop_total)
 
     if len(verts) > 0:
         P = P[:int(max(verts) + 1) * 3]
     # return the P's minus any unconnected
-    return (nverts, verts, P)
+    return (nverts, verts, P, N)
 
-
-def get_mesh_vertex_N(mesh):
-    N = []
-
-    for v in mesh.vertices:
-        N.extend(v.normal)
-
-    return N
 
 # requires facevertex interpolation
-
-
 def get_mesh_uv(mesh, name=""):
     uvs = []
 
@@ -504,12 +501,6 @@ def get_primvars(ob, geo, interpolation=""):
         primvars["uniform float material_id"] = rib([p.material_index
                                                      for p in geo.polygons])
 
-    # default hard-coded prim vars
-    if rm.export_smooth_normals and ob.renderman.primitive in \
-            ('AUTO', 'POLYGON_MESH', 'SUBDIVISION_MESH'):
-        N = get_mesh_vertex_N(geo)
-        if N and len(N) > 0:
-            primvars["varying normal N"] = N
     if rm.export_default_uv:
         uvs = get_mesh_uv(geo)
         if uvs and len(uvs) > 0:
@@ -595,14 +586,14 @@ def get_fluid_mesh(scene, ob):
     fluidmeshverts = fluidmod.settings.fluid_mesh_vertices
 
     mesh = create_mesh(ob, scene)
-    (nverts, verts, P) = get_mesh(mesh)
+    (nverts, verts, P, N) = get_mesh(mesh)
     removeMeshFromMemory(mesh.name)
 
     # use fluid vertex velocity vectors to reconstruct moving points
     P = [P[i] + fluidmeshverts[int(i / 3)].velocity[i % 3] * subframe * 0.5 for
          i in range(len(P))]
 
-    return (nverts, verts, P)
+    return (nverts, verts, P, N)
 
 
 def get_subd_creases(mesh):
@@ -1138,7 +1129,7 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
     #    export_multi_material(ri, mesh)
 
     creases = get_subd_creases(mesh)
-    (nverts, verts, P) = get_mesh(mesh)
+    (nverts, verts, P, N) = get_mesh(mesh)
     # if this is empty continue:
     if nverts == []:
         debug("error empty subdiv mesh %s" % ob.name)
@@ -1154,7 +1145,7 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
 
     primvars = get_primvars(ob, mesh, "facevarying")
     primvars['P'] = P
-
+    
     if not is_multi_material(mesh):
         if len(creases) > 0:
             for c in creases:
@@ -1261,7 +1252,7 @@ def export_polygon_mesh(ri, scene, ob, data=None):
     #    export_multi_material(ri, mesh)
 
     # for multi-material output all those
-    (nverts, verts, P) = get_mesh(mesh)
+    (nverts, verts, P, N) = get_mesh(mesh, get_normals=True)
     # if this is empty continue:
     if nverts == []:
         debug("error empty poly mesh %s" % ob.name)
@@ -1269,6 +1260,7 @@ def export_polygon_mesh(ri, scene, ob, data=None):
         return
     primvars = get_primvars(ob, mesh, "facevarying")
     primvars['P'] = P
+    primvars['facevarying normal N'] = N
 
     if not is_multi_material(mesh):
         ri.PointsPolygons(nverts, verts, primvars)
@@ -1324,7 +1316,7 @@ def export_points(ri, scene, ob, motion):
     else:
         samples = [get_mesh(mesh)]
 
-    for nverts, verts, P in samples:
+    for nverts, verts, P, N in samples:
         params = {
             ri.P: rib(P),
             "uniform string type": rm.primitive_point_type,
