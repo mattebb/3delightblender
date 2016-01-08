@@ -370,18 +370,18 @@ def get_strands(scene, ob, psys):
 # or have been born since the last frame
 
 
-def valid_particle(pa, cfra):
-    return not (pa.birth_time > cfra or (pa.birth_time + pa.die_time) < cfra)
+def valid_particle(pa, valid_frames):
+    return pa.die_time >= valid_frames[0] and pa.birth_time <= valid_frames[1]
 
 
-def get_particles(scene, ob, psys, valid_frame=None):
+def get_particles(scene, ob, psys, valid_frames=None):
     P = []
     rot = []
     width = []
 
-    cfra = scene.frame_current if valid_frame is None else valid_frame
+    valid_frames = (scene.frame_current, scene.frame_current) if valid_frames is None else valid_frames
     psys.set_resolution(scene, ob, 'RENDER')
-    for pa in [p for p in psys.particles if valid_particle(p, cfra)]:
+    for pa in [p for p in psys.particles if valid_particle(p, valid_frames)]:
         P.extend(pa.location)
         rot.extend(pa.rotation)
 
@@ -838,12 +838,12 @@ def geometry_source_rib(ri, scene, ob):
                           rib(bounds))
 
 
-def export_blobby_particles(ri, scene, psys, ob, points):
+def export_blobby_particles(ri, scene, psys, ob, motion_data):
     rm = psys.settings.renderman
-    if len(points) > 1:
-        export_motion_begin(ri, scene, ob)
+    if len(motion_data) > 1:
+        export_motion_begin(ri, motion_data)
 
-    for (P, rot, widths) in points:
+    for (i, (P, rot, widths)) in motion_data:
         op = []
         count = len(widths)
         for i in range(count):
@@ -867,11 +867,11 @@ def export_blobby_particles(ri, scene, psys, ob, points):
         st = ('',)
         parm = get_primvars_particle(scene, psys)
         ri.Blobby(count, op, tform, st, parm)
-    if len(points) > 1:
+    if len(motion_data) > 1:
         ri.MotionEnd()
 
 
-def export_particle_instances(ri, scene, rpass, psys, ob, points, type='OBJECT'):
+def export_particle_instances(ri, scene, rpass, psys, ob, motion_data, type='OBJECT'):
     rm = psys.settings.renderman
 
     params = get_primvars_particle(scene, psys)
@@ -897,14 +897,14 @@ def export_particle_instances(ri, scene, rpass, psys, ob, points, type='OBJECT')
 
     width = rm.width
 
-    num_points = len(points[0][2])
+    num_points = len(motion_data[0][1][2])
     for i in range(num_points):
         ri.AttributeBegin()
 
-        if len(points) > 1:
-            export_motion_begin(ri, scene, ob)
+        if len(motion_data) > 1:
+            export_motion_begin(ri, motion_data)
 
-        for (P, rot, point_width) in points:
+        for (seg, (P, rot, point_width)) in motion_data:
             loc = Vector((P[i * 3 + 0], P[i * 3 + 1], P[i * 3 + 2]))
             rotation = Quaternion((rot[i * 4 + 0], rot[i * 4 + 1],
                                    rot[i * 4 + 2], rot[i * 4 + 3]))
@@ -913,7 +913,7 @@ def export_particle_instances(ri, scene, rpass, psys, ob, points, type='OBJECT')
                 * Matrix.Scale(scale, 4)
 
             ri.Transform(rib(mtx))
-        if len(points) > 1:
+        if len(motion_data) > 1:
             ri.MotionEnd()
 
         instance_params = {}
@@ -927,12 +927,12 @@ def export_particle_instances(ri, scene, rpass, psys, ob, points, type='OBJECT')
 
 
 #
-def export_particle_points(ri, scene, psys, ob, points):
+def export_particle_points(ri, scene, psys, ob, motion_data):
     rm = psys.settings.renderman
-    if len(points) > 1:
-        export_motion_begin(ri, scene, ob)
+    if len(motion_data) > 1:
+        export_motion_begin(ri, motion_data)
 
-    for (P, rot, width) in points:
+    for (i, (P, rot, width)) in motion_data:
         params = get_primvars_particle(scene, psys)
         params[ri.P] = rib(P)
         params["uniform string type"] = rm.particle_type
@@ -942,7 +942,7 @@ def export_particle_points(ri, scene, psys, ob, points):
             params["varying float width"] = width
         ri.Points(params)
 
-    if len(points) > 1:
+    if len(motion_data) > 1:
         ri.MotionEnd()
 
 # only for emitter types for now
@@ -951,15 +951,17 @@ def export_particle_points(ri, scene, psys, ob, points):
 def export_particles(ri, scene, rpass, ob, psys, data=None):
 
     rm = psys.settings.renderman
-    points = data if data else [get_particles(scene, ob, psys)]
+        
+    if not data:
+        data = [(0, get_particles(scene, ob, psys))]
     # Write object instances or points
     if rm.particle_type == 'particle':
-        export_particle_points(ri, scene, psys, ob, points)
+        export_particle_points(ri, scene, psys, ob, data)
     elif rm.particle_type == 'blobby':
-        export_blobby_particles(ri, scene, psys, ob, points)
+        export_blobby_particles(ri, scene, psys, ob, data)
     else:
         export_particle_instances(
-            ri, scene, rpass, psys, ob, points, type=rm.particle_type)
+            ri, scene, rpass, psys, ob, data, type=rm.particle_type)
 
 
 def export_comment(ri, comment):
@@ -1758,7 +1760,9 @@ def get_deformation(data_block, subframe, scene):
         elif data_block.type == "PSYS":
             ob, psys = data_block.data
             if psys.settings.type == "EMITTER":
-                points = get_particles(scene, data_block.data, psys)
+                begin_frame = scene.frame_current - 1 if subframe == 1 else scene.frame_current
+                end_frame = scene.frame_current + 1 if subframe != 1 else scene.frame_current
+                points = get_particles(scene, ob, psys, [begin_frame, end_frame])
                 data_block.motion_data.append((subframe, points))
             else:
                 # this is hair
