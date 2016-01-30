@@ -2755,6 +2755,13 @@ def add_light(rpass, ri, active, prman):
     ri.Illuminate(lamp.name, rm.illuminates_by_default)
     ri.EditEnd()
 
+def delete_light(rpass, ri, name, prman):
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
+    ri.EditBegin('overrideilluminate')
+    ri.Illuminate(name, False)
+    ri.EditEnd()
+    
 
 # test the active object type for edits to do then do them
 
@@ -2762,7 +2769,7 @@ def add_light(rpass, ri, active, prman):
 def issue_transform_edits(rpass, ri, active, prman):
     if active.type == 'LAMP' and active.name not in rpass.lights:
         add_light(rpass, ri, active, prman)
-        rpass.lights.append(active.name)
+        rpass.lights[active.name] = active.data.name
         return
 
     if active.type not in ['LAMP', 'CAMERA'] and not is_emissive(active):

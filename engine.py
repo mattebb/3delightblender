@@ -56,7 +56,7 @@ from bpy.app.handlers import persistent
 # global dictionaries
 from .export import write_rib, write_preview_rib, get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
-    interactive_initial_rib, update_light_link
+    interactive_initial_rib, update_light_link, delete_light
 
 from .nodes import get_tex_file_name
 
@@ -479,10 +479,10 @@ class RPass:
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         self.material_dict = {}
-        self.lights = []
+        self.lights = {}
         for obj in self.scene.objects:
             if obj.type == 'LAMP' and obj.name not in self.lights:
-                self.lights.append(obj.name)
+                self.lights[obj.name] = obj.data.name
             for mat_slot in obj.material_slots:
                 if mat_slot.material not in self.material_dict:
                     self.material_dict[mat_slot.material] = []
@@ -505,6 +505,7 @@ class RPass:
 
         return
 
+
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
         active = scene.objects.active
@@ -514,6 +515,17 @@ class RPass:
         # also do the camera in case the camera is locked to display.
         if scene.camera != active and scene.camera.is_updated:
             issue_transform_edits(self, self.ri, scene.camera, prman)
+        # check for light deleted
+        if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
+            lights_deleted = []
+            for light_name,data_name in self.lights.items():
+                if light_name not in scene.objects:
+                    delete_light(self, self.ri, data_name, prman)
+                    lights_deleted.append(light_name)
+
+            for light_name in lights_deleted:
+                self.lights.pop(light_name, None)
+
 
     def issue_shader_edits(self, nt=None, node=None):
         issue_shader_edits(self, self.ri, prman, nt, node)
@@ -527,6 +539,8 @@ class RPass:
         self.is_interactive_running = False
         self.ri.EditWorldEnd()
         self.ri.End()
+        self.material_dict = {}
+        self.lights = {}
         pass
 
     def gen_rib(self, engine=None):
