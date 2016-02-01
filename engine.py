@@ -33,6 +33,8 @@ import mathutils
 from mathutils import Matrix, Vector, Quaternion
 import re
 import traceback
+import threading
+from .display import MyTCPHandler, ThreadingTCPServer
 
 from . import bl_info
 
@@ -260,6 +262,7 @@ class RPass:
 
     def render(self, engine):
         DELAY = 1
+        driver_socket_port = 55555
         render_output = self.paths['render_output']
         images_dir = os.path.split(render_output)[0]
         if not os.path.exists(images_dir):
@@ -307,11 +310,32 @@ class RPass:
         cdir = os.path.dirname(self.paths['rib_output'])
         environ = os.environ.copy()
         environ['RMANTREE'] = self.paths['rmantree']
+        environ['DSPYSOCKET_PORT'] = str(driver_socket_port)
+
+        # start the display driver server
+        print('starting the server')
+        if self.display_driver == 'socket':
+            render = self.scene.render
+            image_scale = 100.0 / render.resolution_percentage
+            result = engine.begin_result(0, 0,
+                                         render.resolution_x * image_scale,
+                                         render.resolution_y * image_scale)
+            lay = result.layers[0].passes[0]
+            HOST, PORT = "localhost", driver_socket_port
+            server = ThreadingTCPServer((HOST, PORT), MyTCPHandler)
+            server.layer = lay
+            server.engine = engine
+            server.result = result
+            t = threading.Thread(target=server.serve_forever)
+            t.setDaemon(True)
+            t.start()
+
+        print('started')
 
         # Launch the command to begin rendering.
         try:
             process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE, env=environ)
+                                   stderr=subprocess.PIPE, env=environ)
             isProblem = False
         except:
             engine.report({"ERROR"},
@@ -323,7 +347,7 @@ class RPass:
             t1 = time.time()
             s = '.'
             while not os.path.exists(render_output) and \
-                    self.display_driver != 'it':
+                    self.display_driver not in ['it', 'socket']:
                 engine.update_stats("", ("PRMan: Starting Rendering" + s))
                 if engine.test_break():
                     try:
@@ -339,9 +363,9 @@ class RPass:
                 time.sleep(DELAY)
                 s = s + '.'
 
-            if os.path.exists(render_output) or self.display_driver == 'it':
+            if os.path.exists(render_output) or self.display_driver in ['it', 'socket']:
 
-                if self.display_driver != 'it':
+                if self.display_driver not in ['it', 'socket']:
                     prev_mod_time = os.path.getmtime(render_output)
                 engine.update_stats("", ("PRMan: Rendering."))
                 # Update while rendering
@@ -362,7 +386,7 @@ class RPass:
                             engine.report({"ERROR"}, "PRMan: %s " % line.decode('utf8'))
 
                     if process.poll() is not None:
-                        if self.display_driver != 'it':
+                        if self.display_driver not in ['it', 'socket']:
                             update_image()
                         t2 = time.time()
                         engine.report({"INFO"}, "PRMan: Done Rendering." +
@@ -383,7 +407,7 @@ class RPass:
                         break
 
                     # check if the file updated
-                    if self.display_driver != 'it':
+                    if self.display_driver not in ['it', 'socket']:
                         new_mod_time = os.path.getmtime(render_output)
 
                         if new_mod_time != prev_mod_time:
@@ -396,6 +420,11 @@ class RPass:
         else:
             debug("error",
                   "Problem launching PRMan from %s." % prman_executable)
+
+        if self.display_driver == "socket":
+            engine.end_result(result)
+            server.shutdown()
+
 
         # launch the denoise process if turned on
         if self.rm.do_denoise and not isProblem:
