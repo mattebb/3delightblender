@@ -528,7 +528,7 @@ class RPass:
 
 
     def issue_shader_edits(self, nt=None, node=None):
-        issue_shader_edits(self, self.ri, prman, nt, node)
+        issue_shader_edits(self, self.ri, prman, nt=nt, node=node)
 
     def update_light_link(self, context, ll):
         update_light_link(self, self.ri, prman, context.scene.objects.active, ll)

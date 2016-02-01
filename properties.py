@@ -38,6 +38,8 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
     CollectionProperty, BoolVectorProperty
 
+from . import engine
+
 
 # get the names of args files in rmantree/lib/ris/integrator/args
 def get_integrator_names():
@@ -167,7 +169,6 @@ class LightLinking(bpy.types.PropertyGroup):
         self.name = "%s %s" % (
             self.light, infostr[valstr.index(self.illuminate)])
 
-        from . import engine
         if engine.ipr is not None and engine.ipr.is_interactive_running:
             engine.ipr.update_light_link(context, self)
 

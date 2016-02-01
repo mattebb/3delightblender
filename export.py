@@ -1696,7 +1696,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
         archive_filename = get_archive_filename(name, rpass, False)
         data_blocks.append(DataBlock(name, "DUPLI", archive_filename, ob,
                                      do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
-        if ob.dupli_type == 'GROUP':
+        if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupli_ob in ob.dupli_group.objects:
                 data_blocks.append(get_dupli_block(dupli_ob, rpass, do_mb))
 
@@ -2761,10 +2761,8 @@ def delete_light(rpass, ri, name, prman):
     ri.EditBegin('overrideilluminate')
     ri.Illuminate(name, False)
     ri.EditEnd()
-    
 
 # test the active object type for edits to do then do them
-
 
 def issue_transform_edits(rpass, ri, active, prman):
     if active.type == 'LAMP' and active.name not in rpass.lights:
