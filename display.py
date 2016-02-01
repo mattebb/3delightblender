@@ -22,29 +22,31 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         image_end = 105
 
         # self.request is the TCP socket connected to the client
-        print('doing setup')
+        #print('doing setup')
+        self.server.is_done = False
         self.data = self.request.recv(1024)
         data = self.data.split(b";")
         #0 is image name
         image_name = data[0].decode('utf-8')[1:]
-        print(image_name)
+        #print(image_name)
         #then dspy params
         dspy_params = data[1]
-        print(dspy_params)
+        #print(dspy_params)
         
         self.data = data[2]
         #we need 36 bytes here
         if len(self.data) < 33: 
             self.data += self.request.recv(36)
         xmin, xmax, ymin, ymax, a_len, z_len, channel_len, num_channels, merge = struct.unpack("!IIIIIIIIb", self.data[1:])
-        print(xmin, xmax, ymin, ymax)
-        print(a_len, z_len, channel_len, num_channels)
+        #print(xmin, xmax, ymin, ymax)
+        #print(a_len, z_len, channel_len, num_channels)
         pixel_size = int(a_len/8) + int(z_len/8) + int(channel_len/8 * num_channels) #bits ->bytes
         num_channels = num_channels + 1 if a_len > 0 else num_channels
         num_channels = num_channels + 1 if z_len > 0 else num_channels
-        self.server.internal_buffer = [[0.0, 0.0, 0.0, 0.0]] * (ymax + 1) * (xmax + 1)
-        image_width = xmax - xmin + 1
-        self.server.layer.rect = self.server.internal_buffer
+        internal_buffer = bytearray((ymax + 1) * (xmax + 1) * num_channels * 4)
+        image_stride = (xmax - xmin + 1)*num_channels*4
+        #print(len(internal_buffer)/4)
+        #self.server.layer.rect = self.server.internal_buffer
         
         # just send back the same data
         self.request.sendall(struct.pack("I", 0))
@@ -57,10 +59,13 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         copy_time = 0
         upload_time = 0
         last_update = -1
+        time_diff = 1
+
         while get_data:
             #get the first bit
             self.data = self.request.recv(2)
             cmd, other = struct.unpack("!bb", self.data)
+            start_time = time.time()
             #print(cmd, other)
 
             if cmd == image_data:
@@ -77,40 +82,64 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 #print("getting %d %d" % (buffer_size, num_pixels))
                 #get the buffer
                 self.data = self.request.recv(buffer_size)
-                t = time.time()
-                pixels = struct.unpack("f"*num_pixels*num_channels, self.data)
+                #t = time.time()
+                pixels = bytearray(self.data)
+                #pixels = struct.unpack("f"*num_pixels*num_channels, self.data)
                 
                 #pixels = [(pixels[4*i+1], pixels[4*i+2], pixels[4*i+3], pixels[4*i]) for i in range(0, num_pixels)]  # make float array into rgba array
-                unpack_time += time.time() - t
+                #unpack_time += time.time() - t
 
-                window_width = w_xmax - w_xmin + 1
+                window_width = (w_xmax - w_xmin + 1)*4*num_channels
                 
-                t = time.time()
-                scanline_start = (ymax - w_ymin)*image_width + xmin
-                for y in range(w_ymin, w_ymax+1):
-                    #self.server.layer.rect[scanline_start+w_xmin] = (1.0, 0.0, 0.0, 1.0)
+                #t = time.time()
+                
+                #print("inserting into buffer")
+                scanline_start = image_stride * (ymax - w_ymin)
+                x_start = w_xmin*4*num_channels
+                x_end = (w_xmax+1)*4*num_channels
+                for y in range(0, (w_ymax-w_ymin+1)*window_width, window_width):
+                    #print("copying", y,y+window_width)
+                    #print("to", (scanline_start+x_start),(scanline_start + x_end))
+                    internal_buffer[(scanline_start+x_start):(scanline_start + x_end)] = \
+                        pixels[y:y+window_width]
+                    scanline_start -= image_stride
+
+
+
+                #scanline_start = (ymax - w_ymin)*image_width + xmin
+                #for y in range(w_ymin, w_ymax+1):
+                #    #self.server.layer.rect[scanline_start+w_xmin] = (1.0, 0.0, 0.0, 1.0)
                     #self.server.layer.rect[scanline_start] = (1.0, 0.0, 0.0, 1.0)
-                    scanline_start = scanline_start - image_width
+                #    scanline_start = scanline_start - image_width
                     #print(self.server.layer.rect[0])
                     #print(scanline_start+w_xmin,scanline_start + w_xmax+1, window_width*y,window_width*(y + 1))
                     #print(self.server.layer.rect[scanline_start+w_xmin:scanline_start + w_xmax+1])
                     #print(pixels[window_width*(y-w_ymin):window_width*(y - w_ymin + 1)])
-                    self.server.internal_buffer[scanline_start+w_xmin:scanline_start + w_xmax+1] = \
-                        [(pixels[4*i+1], pixels[4*i+2], pixels[4*i+3], pixels[4*i]) for i in range(window_width*(y-w_ymin),window_width*(y - w_ymin + 1))]
-                        #pixels[window_width*(y-w_ymin):window_width*(y - w_ymin + 1)]
-                copy_time += time.time() - t
+                    #self.server.internal_buffer[(scanline_start+w_xmin:scanline_start + w_xmax+1] = \
+                    #    [(pixels[4*i+1], pixels[4*i+2], pixels[4*i+3], pixels[4*i]) for i in range(window_width*(y-w_ymin),window_width*(y - w_ymin + 1))]
+                    #print(self.server.internal_buffer[(scanline_start+w_xmin)*4:(scanline_start + w_xmax+1)*4])
+                    #print(pixels[(y-w_ymin)*4:(y-w_ymin+1)*4])
+                #    self.server.internal_buffer[(scanline_start+w_xmin)*4:(scanline_start + w_xmax+1)*4] = \
+                #        pixels[(y-w_ymin)*4:(y-w_ymin+1)*4]
+                    #    [(pixels[4*i+1], pixels[4*i+2], pixels[4*i+3], pixels[4*i]) for i in range(window_width*(y-w_ymin),window_width*(y - w_ymin + 1))]
+                #copy_time += time.time() - t
 
 
                 t = time.time()
-                if t - last_update > 1.0:
+                if t - last_update > time_diff:
+                    #print("saving checkpoint")
                     try:
-                        self.server.layer.rect = self.server.internal_buffer
+                        pixels = struct.unpack("f"*(ymax + 1)*(xmax+1)*num_channels, internal_buffer)
+                        self.server.layer.rect = [(pixels[4*i+1], 
+                           pixels[4*i+2], 
+                           pixels[4*i+3], 
+                           pixels[4*i]) for i in range(len(self.server.layer.rect))]
+
                         self.server.engine.update_result(self.server.result)
                     except:
                         print('error')
-                        pass
-                    upload_time += time.time() - t
                     last_update = t
+                    #time_diff *= 2
                 #print('done')
 
                 #i = 0
@@ -134,9 +163,24 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 #print("received %d" % len(self.data))
 
             elif cmd == image_end:
-                self.server.layer.rect = self.server.internal_buffer
-                print("image done, %d datas" % datas)
-                print("times ", unpack_time, copy_time, upload_time)
+                #print("done!")
+                pixels = struct.unpack("f"*(ymax + 1)*(xmax+1)*num_channels, internal_buffer)
+                self.server.layer.rect = [(pixels[4*i+1], 
+                           pixels[4*i+2], 
+                           pixels[4*i+3], 
+                           pixels[4*i]) for i in range(len(self.server.layer.rect))]
+
+                #print(len(self.server.layer.rect), len(pixels))
+                #for x in pixels:
+                #    if len(x) != 4:
+                #        print(x)
+                #self.server.layer.rect = pixels
+                self.server.engine.update_result(self.server.result)
+                self.server.engine.end_result(self.server.result)
+            
+                self.server.is_done = True
+                #print("image done, %d datas" % datas)
+                #print("times ", unpack_time, copy_time, upload_time)
                 #server.shutdown()
                 return
 

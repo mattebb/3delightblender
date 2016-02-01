@@ -421,8 +421,10 @@ class RPass:
             debug("error",
                   "Problem launching PRMan from %s." % prman_executable)
 
-        if self.display_driver == "socket":
-            engine.end_result(result)
+        if self.display_driver == "socket" and not isProblem:
+            # wait till its done loading pixels
+            while server.is_done == False:
+                time.sleep(0.1)
             server.shutdown()
 
 
