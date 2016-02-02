@@ -477,6 +477,7 @@ class RPass:
         if self.scene.camera == None:
             debug('error', "ERROR no Camera.  \
                     Cannot start interactive rendering.")
+            self.end_interactive()
             return
 
         self.is_interactive = True
