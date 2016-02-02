@@ -295,7 +295,7 @@ def get_strands(scene, ob, psys):
     width_offset = psys.settings.renderman.width_offset
     export_st = psys.settings.renderman.export_scalp_st and psys_modifier and len(
         ob.data.uv_layers) > 0
-
+    
     curve_sets = []
 
     points = []
@@ -308,10 +308,6 @@ def get_strands(scene, ob, psys):
         if not psys.settings.show_guide_hairs and pindex < num_parents:
             continue
 
-        if pindex >= num_parents:
-            particle = psys.particles[(pindex - num_parents) % num_parents]
-        else:
-            particle = psys.particles[pindex]
         strand_points = []
         # walk through each strand
         for step in range(0, steps + 1):
@@ -342,7 +338,11 @@ def get_strands(scene, ob, psys):
 
             # get the scalp S
             if export_st:
-                st = particle.uv_on_emitter(psys_modifier)
+                if pindex >= num_parents:
+                    particle = psys.particles[(pindex - num_parents) % num_parents]
+                else:
+                    particle = psys.particles[pindex]
+                st = psys.uv_on_emitter(psys_modifier, particle, pindex)
                 scalpS.append(st[0])
                 scalpT.append(st[1])
 
