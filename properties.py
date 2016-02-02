@@ -542,7 +542,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     preview_max_samples = IntProperty(
         name="Preview Max Samples",
         description="The maximum number of camera samples per pixel",
-        min=0, default=16)
+        min=0, default=8)
 
     preview_max_specular_depth = IntProperty(
         name="Max Preview Specular Depth",
