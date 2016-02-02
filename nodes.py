@@ -206,31 +206,31 @@ class RendermanShadingNode(bpy.types.Node):
             mat.specular_intensity = 0
             mat.diffuse_intensity = 1
 
-            if "baseColor" in self:
+            if hasattr(self, "baseColor"):
                 mat.diffuse_color = self.baseColor
-            elif "emitColor" in self:
+            elif hasattr(self, "emitColor"):
                 mat.diffuse_color = self.emitColor
-            elif "diffuseColor" in self:
+            elif hasattr(self, "diffuseColor"):
                 mat.diffuse_color = self.diffuseColor
-            elif "midColor" in self:
+            elif hasattr(self, "midColor"):
                 mat.diffuse_color = self.midColor
-            elif "transmissionColor" in self:
+            elif hasattr(self, "transmissionColor"):
                 mat.diffuse_color = self.transmissionColor
-            elif "frontColor" in self:
+            elif hasattr(self, "frontColor"):
                 mat.diffuse_color = self.frontColor
             
             #specular intensity
-            if "specular" in self:
+            if hasattr(self, "specular"):
                 mat.specular_intensity = self.specular
-            elif "specularGainR" in self:
+            elif hasattr(self, "SpecularGainR"):
                 mat.specular_intensity = self.specularGainR
-            elif "reflectionGain" in self:
+            elif hasattr(self, "reflectionGain"):
                 mat.specular_intensity = self.reflectionGain
 
             # specular color 
-            if "specularColor" in self:
+            if hasattr(self, "specularColor"):
                 mat.specular_color = self.specularColor
-            elif "reflectionColor" in self:
+            elif hasattr(self, "reflectionColor"):
                 mat.specular_color = self.reflectionColor
             
 

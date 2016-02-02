@@ -100,9 +100,6 @@ del properties_data_camera
 
 import bl_ui.properties_particle as properties_particle
 for member in dir(properties_particle):
-    if member == 'PARTICLE_PT_render':
-        continue
-
     subclass = getattr(properties_particle, member)
     try:
         subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
