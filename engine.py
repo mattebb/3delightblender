@@ -474,6 +474,11 @@ class RPass:
                     Cannot start interactive rendering.")
             return
 
+        if self.scene.camera == None:
+            debug('error', "ERROR no Camera.  \
+                    Cannot start interactive rendering.")
+            return
+
         self.is_interactive = True
         self.is_interactive_running = True
         self.ri.Begin(self.paths['rib_output'])
@@ -544,6 +549,10 @@ class RPass:
         pass
 
     def gen_rib(self, engine=None):
+        if self.scene.camera == None:
+            debug('error', "ERROR no Camera.  \
+                    Cannot generate rib.")
+            return
         time_start = time.time()
         self.convert_textures(get_texture_list(self.scene))
 
