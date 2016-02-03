@@ -357,6 +357,8 @@ def get_strands(scene, ob, psys):
             vertsArray = []
             if not conwidth:
                 hair_width = []
+            scalpS = []
+            scalpT = []
 
     if nverts > 0:
         curve_sets.append((vertsArray, points, widthString,
