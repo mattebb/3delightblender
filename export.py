@@ -753,7 +753,7 @@ def export_light_shaders(ri, lamp, do_geometry=True):
 def export_world(ri, world, do_geometry=True):
     rm = world.renderman
     #if no shader do nothing!
-    if rm.nodetree == '':
+    if rm.renderman_type == 'NONE' or rm.nodetree == '':
         return
     params = []
 
@@ -763,6 +763,7 @@ def export_world(ri, world, do_geometry=True):
         m = Matrix.Identity(4)
         if rm.renderman_type == 'ENV':
             m[0] *= -1.0
+        if rm.renderman_type == 'SKY':
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m2 * m
         ri.Transform(rib(m))

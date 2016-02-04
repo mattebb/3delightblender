@@ -713,6 +713,8 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
             return
         else:
             layout.prop(world.renderman, "renderman_type", expand=True)
+            if world.renderman.renderman_type == 'NONE':
+                return
             nt = bpy.data.node_groups[world.renderman.nodetree]
             output_node = next(
                 (n for n in nt.nodes if n.renderman_node_type == 'output'), None)

@@ -995,6 +995,8 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
     def update_light_type(self, context):
         world = context.scene.world
         world_type = world.renderman.renderman_type
+        if world_type == 'NONE':
+            return
         # use pxr area light for everything but env, sky
         light_shader = 'PxrStdEnvMapLightLightNode'
         if world_type == 'SKY':
@@ -1025,10 +1027,12 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
     renderman_type = EnumProperty(
         name="World Type",
         update=update_light_type,
-        items=[('ENV', 'Environment', 'Environment Light'),
+        items=[
+                ('NONE', 'None', 'No World'),
+                ('ENV', 'Environment', 'Environment Light'),
                ('SKY', 'Sky', 'Simulated Sky'),
                ],
-        default='ENV'
+        default='NONE'
     )
 
     nodetree = StringProperty(
