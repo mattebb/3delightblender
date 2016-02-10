@@ -1162,6 +1162,7 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
 
 
 def get_tex_file_name(prop):
+    prop = prop.replace('\\', '\/')
     if prop != '' and prop.rsplit('.', 1) != 'tex':
         return os.path.basename(prop).rsplit('.', 1)[0] + '.tex'
     else:
