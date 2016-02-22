@@ -1383,6 +1383,7 @@ def register():
     pattern_nodeitems = []
     bxdf_nodeitems = []
     light_nodeitems = []
+    displacement_nodeitems = []
     for name, node_type in RendermanPatternGraph.nodetypes.items():
         node_item = NodeItem(name, label=node_type.bl_label)
         if node_type.renderman_node_type == 'pattern':
@@ -1391,6 +1392,8 @@ def register():
             bxdf_nodeitems.append(node_item)
         elif node_type.renderman_node_type == 'light':
             light_nodeitems.append(node_item)
+        elif node_type.renderman_node_type == 'displacement':
+            displacement_nodeitems.append(node_item)
 
     # all categories in a list
     node_categories = [
@@ -1405,6 +1408,9 @@ def register():
                                                   key=attrgetter('_label'))),
         RendermanPatternNodeCategory("PRMan_lights", "PRMan Lights",
                                      items=sorted(light_nodeitems,
+                                                  key=attrgetter('_label'))),
+        RendermanPatternNodeCategory("PRMan_displacements", "PRMan Displacements",
+                                     items=sorted(displacement_nodeitems,
                                                   key=attrgetter('_label')))
 
     ]
