@@ -34,7 +34,8 @@ from mathutils import Matrix, Vector, Quaternion
 import re
 import traceback
 import threading
-from .display import MyTCPHandler, ThreadingTCPServer
+from .display import MyTCPHandler
+import socketserver
 
 from . import bl_info
 
@@ -262,7 +263,7 @@ class RPass:
 
     def render(self, engine):
         DELAY = 1
-        driver_socket_port = 55555
+        driver_socket_port = 55557
         render_output = self.paths['render_output']
         images_dir = os.path.split(render_output)[0]
         if not os.path.exists(images_dir):
@@ -322,10 +323,11 @@ class RPass:
                                          render.resolution_y * image_scale)
             lay = result.layers[0].passes[0]
             HOST, PORT = "localhost", driver_socket_port
-            server = ThreadingTCPServer((HOST, PORT), MyTCPHandler)
+            server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
             server.layer = lay
             server.engine = engine
             server.result = result
+            server.is_done=False
             t = threading.Thread(target=server.serve_forever)
             t.setDaemon(True)
             t.start()

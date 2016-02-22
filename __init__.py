@@ -37,7 +37,6 @@ bl_info = {
 
 from . import engine
 
-
 class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
     bl_label = "PRMan Render"
