@@ -1038,6 +1038,9 @@ def get_texture_list(scene):
                 textures = textures + get_textures(o.data)
         else:
             mats_to_scan += recursive_texture_set(o)
+    if scene.world.renderman.renderman_type != 'NONE' and \
+            scene.world.renderman.nodetree != '':
+        textures = textures + get_textures(scene.world)
             
     # cull duplicates by only doing mats once
     for mat in set(mats_to_scan):
