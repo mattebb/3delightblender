@@ -1162,6 +1162,11 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
 
 
 def get_tex_file_name(prop):
+    frame_num = bpy.data.scenes[0].frame_current
+    prop = prop.replace('$f4', str(frame_num).zfill(4))
+    prop = prop.replace('$F4', str(frame_num).zfill(4))
+    prop = prop.replace('$f3', str(frame_num).zfill(3))
+    prop = prop.replace('$f3', str(frame_num).zfill(3))
     prop = prop.replace('\\', '\/')
     if prop != '' and prop.rsplit('.', 1) != 'tex':
         return os.path.basename(prop).rsplit('.', 1)[0] + '.tex'
