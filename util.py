@@ -450,6 +450,27 @@ def guess_rmantree():
 
     return guess
 
+def get_installed_rendermans():
+    base = ""
+    if platform.system() == 'Windows':
+        # default installation path
+        # or base = 'C:/Program Files/Pixar'
+        base = r'C:\Program Files\Pixar'
+
+    elif platform.system() == 'Darwin':
+        base = '/Applications/Pixar'
+
+    elif platform.system() == 'Linux':
+        base = '/opt/pixar'
+
+    rendermans = []
+    for d in os.listdir(base):
+        if "RenderManProServer" in d:
+            vstr = d.split('-')[1]
+            rendermans.append((vstr, os.path.join(base,d)))
+    
+    return rendermans
+
 
 # return true if an archive is older than the timestamp
 def check_if_archive_dirty(update_time, archive_filename):

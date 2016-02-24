@@ -28,9 +28,9 @@ import sys
 import os
 from bpy.types import AddonPreferences
 from bpy.props import CollectionProperty, BoolProperty, StringProperty
-from bpy.props import IntProperty, PointerProperty
+from bpy.props import IntProperty, PointerProperty, EnumProperty
 
-from .util import guess_rmantree
+from .util import guess_rmantree, get_installed_rendermans
 
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
@@ -74,8 +74,16 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
         default='$OUT/archives')
 
 
+
 class RendermanPreferences(AddonPreferences):
     bl_idname = __package__
+        
+    # find the renderman options installed
+    def find_installed_rendermans(self, context):
+        options = [('NEWEST', 'Newest Version Installed', 'Automatically updates when new version installed.')]
+        for vers,path in get_installed_rendermans():
+            options.append((path, vers, path))
+        return options
 
     shader_paths = CollectionProperty(type=RendermanPreferencePath,
                                       name="Shader Paths")
@@ -103,6 +111,20 @@ class RendermanPreferences(AddonPreferences):
         description="Includes paths for default shaders etc. from PRMan\
             exporter",
         default=False)
+
+    rmantree_choice = EnumProperty(
+        name='RenderMan Version to use',
+        description='Leaving as "Newest" will automatically update when you install a new RenderMan version.',
+        #default='NEWEST',
+        items=find_installed_rendermans
+        )
+
+    rmantree_method = EnumProperty(
+        name='RenderMan Location Method',
+        description='How RenderMan should be detected.  Most users should leave to "Detect"',
+        items=[('DETECT', 'Choose From Installed', 'This will scan for installed RenderMan locations to choose from'),
+               ('ENV', 'Get From Environment Variables', 'This will use the RMANTREE set in the enviornment variables'),
+               ('MANUAL', 'Set Manually', 'Manually set the RenderMan installation (for expert users)')])
 
     path_rmantree = StringProperty(
         name="RMANTREE Path",
@@ -137,9 +159,10 @@ class RendermanPreferences(AddonPreferences):
     def draw(self, context):
         layout = self.layout
 
+        '''
         layout.prop(self, "use_default_paths")
         layout.prop(self, "use_builtin_paths")
-        '''
+        
         self._draw_collection(context, layout, self, "Shader Paths:", "collection.add_remove",
                                         "scene", "shader_paths", "shader_paths_index")
         self._draw_collection(context, layout, self, "Texture Paths:", "collection.add_remove",
@@ -149,17 +172,23 @@ class RendermanPreferences(AddonPreferences):
         self._draw_collection(context, layout, self, "Archive Paths:", "collection.add_remove",
                                         "scene", "archive_paths", "archive_paths_index")
         '''
-        layout.prop(self, "path_rmantree")
-        layout.prop(self, "path_renderer")
-        layout.prop(self, "path_shader_compiler")
-        layout.prop(self, "path_shader_info")
-        layout.prop(self, "path_texture_optimiser")
+        layout.prop(self, 'rmantree_method')
+        if self.rmantree_method == 'DETECT':
+            layout.prop(self, 'rmantree_choice')
+        elif self.rmantree_method == 'ENV':
+            layout.label(text=guess_rmantree())
+        else:
+            layout.prop(self, "path_rmantree")
+        #layout.prop(self, "path_renderer")
+        #layout.prop(self, "path_shader_compiler")
+        #layout.prop(self, "path_shader_info")
+        #layout.prop(self, "path_texture_optimiser")
 
         env = self.env_vars
         layout.prop(env, "out")
-        layout.prop(env, "shd")
-        layout.prop(env, "ptc")
-        layout.prop(env, "arc")
+        #layout.prop(env, "shd")
+        #layout.prop(env, "ptc")
+        #layout.prop(env, "arc")
 
 
 def register():
