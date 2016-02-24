@@ -1003,6 +1003,8 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                         params['%s %s' % (prop_type, prop_name)] = \
                             rib(getattr(getLocation, osl_prop_name),
                                 type_hint=prop_type)
+    
+    #Special case for SeExpr Nodes. Assume that the code will be in a file so that needs to be extracted.
     elif node.bl_idname == "PxrSeExprPatternNode":
         fileInputType = node.codetypeswitch
         
@@ -1071,6 +1073,9 @@ def gen_params(ri, node, mat_name=None, recurse=True):
             if prop_name in txmake_options.index:
                 pass
             if node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
+                pass
+            
+            if(prop_name == "sblur" or prop_name == "tblur"):
                 pass
             else:
                 prop = getattr(node, prop_name)
