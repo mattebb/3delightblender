@@ -310,7 +310,10 @@ def user_path(path, scene=None, ob=None):
         path = path.replace('{blend}', blendpath)
     if scene is not None:
         path = path.replace('{scene}', scene.name)
-        path = path.replace('{file_type}', scene.renderman.display_driver[-3:])
+        if scene.renderman.display_driver == "tiff":
+            path = path.replace('{file_type}', scene.renderman.display_driver[-4:])
+        else:
+            path = path.replace('{file_type}', scene.renderman.display_driver[-3:])
     if ob is not None:
         path = path.replace('{object}', ob.name)
 
@@ -339,11 +342,6 @@ def rib(v, type_hint=None):
         return list(v)
 
     # matrix
-    elif type(v) == mathutils.Matrix:
-        return [v[0][0], v[1][0], v[2][0], v[3][0],
-                v[0][1], v[1][1], v[2][1], v[3][1],
-                v[0][2], v[1][2], v[2][2], v[3][2],
-                v[0][3], v[1][3], v[2][3], v[3][3]]
     elif type(v) == mathutils.Matrix:
         return [v[0][0], v[1][0], v[2][0], v[3][0],
                 v[0][1], v[1][1], v[2][1], v[3][1],

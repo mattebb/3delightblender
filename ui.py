@@ -41,7 +41,7 @@ from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
-properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
+#properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('PRMAN_RENDER')
 # properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
@@ -91,22 +91,30 @@ import bl_ui.properties_data_camera as properties_data_camera
 for member in dir(properties_data_camera):
     subclass = getattr(properties_data_camera, member)
     try:
-        subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
+        if subclass != properties_data_camera.DATA_PT_camera_dof:
+            subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
+        pass
     except:
         pass
 del properties_data_camera
 
 import bl_ui.properties_particle as properties_particle
 for member in dir(properties_particle):
-    if member == 'PARTICLE_PT_render':
-        continue
-
     subclass = getattr(properties_particle, member)
     try:
         subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
     except:
         pass
 del properties_particle
+
+# icons
+import os
+from . icons.icons import load_icons
+
+
+from bpy.props import PointerProperty, StringProperty, BoolProperty, \
+    EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
+    CollectionProperty
 
 # ------- Subclassed Panel Types -------
 
@@ -171,21 +179,42 @@ class PRManButtonsPanel():
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
 
-
-class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
-    bl_label = "Output"
-    # bl_options = {'DEFAULT_CLOSED'}
-
+class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
+    bl_label = "Render"
+ 
     def draw(self, context):
+        if context.scene.render.engine != "PRMAN_RENDER":
+            return
+ 
+        icons = load_icons()
         layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
+        rd = context.scene.render
 
-        layout.prop(rm, "display_driver")
-        layout.prop(rm, "path_display_driver_image")
-        # if rm.display_driver in ['tiff', 'openexr']:
-        #    layout.prop(rm, "combine_aovs")
-        layout.prop(rm, "do_denoise")
+        #Render
+        row = layout.row(align=True) 
+        rman_render = icons.get("render")
+        row.operator("render.render", text="Render", icon_value=rman_render.icon_id)
+ 
+        #IPR
+        if engine.ipr:
+            #Stop IPR
+            rman_batch_cancel = icons.get("stop_ipr")
+            row.operator('lighting.start_interactive',text="Stop IPR",icon_value=rman_batch_cancel.icon_id)
+        else:
+            #Start IPR
+            rman_rerender_controls = icons.get("start_ipr")
+            row.operator('lighting.start_interactive',text="Start IPR",icon_value=rman_rerender_controls.icon_id)
+ 
+        #Batch Render
+        rman_batch = icons.get("batch_render")
+        row.operator("render.render",text="Batch Render",icon_value=rman_batch.icon_id).animation=True
+ 
+        split = layout.split(percentage=0.33)
+ 
+        split.label(text="Display:")
+        row = split.row(align=True)
+        row.prop(rd, "display_mode", text="")
+        row.prop(rd, "use_lock_interface", icon_only=True)
 
 
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
@@ -276,6 +305,7 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
         row.prop(rm, "shutter_efficiency_close")
 
 
+
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
     bl_label = "Interactive and Preview Sampling"
     bl_options = {'DEFAULT_CLOSED'}
@@ -312,7 +342,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row.prop(rm, "shadingrate")
 
         layout.separator()
-
+        
         row = layout.row()
         row.label("Pixel Filter:")
         row.prop(rm, "pixelfilter", text="")
@@ -335,11 +365,58 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         layout.separator()
         layout.prop(rm, "output_action")
         layout.prop(rm, "path_rib_output")
+        row = layout.row()
+        row.prop(rm, "use_statistics", text="Output stats")
+        row.operator('rman.open_stats')
 
+        layout.separator()
+        row = layout.row()
+        row.operator('rman.open_rib')
+        row.prop(rm, "editor_override")
+        
         layout.separator()
         layout.prop(rm, "always_generate_textures")
         layout.prop(rm, "lazy_rib_gen")
         layout.prop(rm, "threads")
+
+class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
+    bl_label = "Motion Blur"
+    bl_options = {'DEFAULT_CLOSED'}
+ 
+    def draw(self, context):
+        rm = context.scene.renderman
+ 
+        layout = self.layout
+        row = layout.row()
+        row.prop(rm, "motion_blur")
+        sub = layout.row()
+        sub.enabled = rm.motion_blur
+        sub.prop(rm, "motion_segments")
+ 
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "shutter_open")
+        row.prop(rm, "shutter_close")
+ 
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "shutter_efficiency_open")
+        row.prop(rm, "shutter_efficiency_close")
+
+class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
+    bl_label = "Output"
+    bl_options = {'DEFAULT_CLOSED'}
+ 
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+ 
+        layout.prop(rm, "display_driver")
+        layout.prop(rm, "path_display_driver_image")
+        # if rm.display_driver in ['tiff', 'openexr']:
+        #    layout.prop(rm, "combine_aovs")
+        layout.prop(rm, "do_denoise")
 
 
 class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
@@ -379,8 +456,7 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
 
         layout.prop(rm, "export_default_uv")
         layout.prop(rm, "export_default_vcol")
-        layout.prop(rm, "export_smooth_normals")
-
+    
 
 class MATERIAL_PT_renderman_preview(Panel):
     bl_space_type = 'PROPERTIES'
@@ -618,58 +694,104 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
 
 
 class DATA_PT_renderman_camera(ShaderPanel, Panel):
-    bl_context = "data"
-    bl_label = "RenderMan Camera"
+   bl_context = "data"
+   bl_label = "RenderMan Camera"
 
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        if not context.camera:
-            return False
-        return rd.engine == 'PRMAN_RENDER'
+   @classmethod
+   def poll(cls, context):
+       rd = context.scene.render
+       if not context.camera:
+           return False
+       return rd.engine == 'PRMAN_RENDER'
+
+   def draw(self, context):
+       layout = self.layout
+       cam = context.camera
+       scene = context.scene
+       dof_options = cam.gpu_dof
+
+       row = layout.row()
+       row.prop(scene.renderman, "depth_of_field")
+       sub = row.row()
+       sub.enabled = scene.renderman.depth_of_field
+       sub.prop(scene.renderman, "fstop")
+
+       split = layout.split()
+
+       col = split.column()
+
+       col.label(text="Focus:")
+       col.prop(cam, "dof_object", text="")
+       sub = col.column()
+       sub.active = (cam.dof_object is None)
+       sub.prop(cam, "dof_distance", text="Distance")
+
+       col = split.column()
+       sub = col.column(align=True)         
+       sub.label("Aperture Controls:")
+       sub.prop(cam.renderman, "aperture_sides", text="Sides")
+       sub.prop(cam.renderman, "aperture_angle", text="Angle")
+       sub.prop(cam.renderman, "aperture_roundness", text="Roundness")
+       sub.prop(cam.renderman, "aperture_density", text="Density")
+
+       layout.prop(cam.renderman, "use_physical_camera")
+       if cam.renderman.use_physical_camera:
+           pxrcamera = getattr(cam.renderman, "PxrCamera_settings")
+
+           # for each property add it to ui
+           def draw_props(prop_names, layout):
+               for prop_name in prop_names:
+                   prop_meta = pxrcamera.prop_meta[prop_name]
+                   prop = getattr(pxrcamera, prop_name)
+                   row = layout.row()
+
+                   if prop_meta['renderman_type'] == 'page':
+                       ui_prop = prop_name + "_ui_open"
+                       ui_open = getattr(pxrcamera, ui_prop)
+                       icon = 'TRIA_DOWN' if ui_open \
+                           else 'TRIA_RIGHT'
+
+                       split = layout.split(NODE_LAYOUT_SPLIT)
+                       row = split.row()
+                       row.prop(pxrcamera, ui_prop, icon=icon, text='',
+                               icon_only=True, emboss=False)
+                       row.label(prop_name + ':')
+
+                       if ui_open:
+                           draw_props(prop, layout)
+
+                   else:
+                       row.label('', icon='BLANK1')
+                       # indented_label(row, socket.name+':')
+                       row.prop(pxrcamera, prop_name)
+
+           draw_props(pxrcamera.prop_names, layout)
+
+
+class DATA_PT_renderman_world(ShaderPanel, Panel):
+    bl_context = "world"
+    bl_label = "World"
+    shader_type = 'world'
+    param_exclude = exclude_lamp_params
 
     def draw(self, context):
         layout = self.layout
-        cam = context.camera
-        scene = context.scene
-        row = layout.row()
-        row.prop(scene.renderman, "depth_of_field")
-        sub = row.row()
-        sub.enabled = scene.renderman.depth_of_field
-        sub.prop(scene.renderman, "fstop")
+        world = context.scene.world
+        if world.renderman.nodetree == '':
+            layout.operator('shading.add_renderman_nodetree').idtype = 'world'
+            return
+        else:
+            layout.prop(world.renderman, "renderman_type", expand=True)
+            if world.renderman.renderman_type == 'NONE':
+                return
+            nt = bpy.data.node_groups[world.renderman.nodetree]
+            output_node = next(
+                (n for n in nt.nodes if n.renderman_node_type == 'output'), None)
+            lamp_node = output_node.inputs['Light'].links[0].from_node
+            if lamp_node:
+                draw_node_properties_recursive(self.layout, context, nt, lamp_node)
+        
 
-        layout.prop(cam.renderman, "use_physical_camera")
-        if cam.renderman.use_physical_camera:
-            pxrcamera = getattr(cam.renderman, "PxrCamera_settings")
-
-            # for each property add it to ui
-            def draw_props(prop_names, layout):
-                for prop_name in prop_names:
-                    prop_meta = pxrcamera.prop_meta[prop_name]
-                    prop = getattr(pxrcamera, prop_name)
-                    row = layout.row()
-
-                    if prop_meta['renderman_type'] == 'page':
-                        ui_prop = prop_name + "_ui_open"
-                        ui_open = getattr(pxrcamera, ui_prop)
-                        icon = 'TRIA_DOWN' if ui_open \
-                            else 'TRIA_RIGHT'
-
-                        split = layout.split(NODE_LAYOUT_SPLIT)
-                        row = split.row()
-                        row.prop(pxrcamera, ui_prop, icon=icon, text='',
-                                 icon_only=True, emboss=False)
-                        row.label(prop_name + ':')
-
-                        if ui_open:
-                            draw_props(prop, layout)
-
-                    else:
-                        row.label('', icon='BLANK1')
-                        # indented_label(row, socket.name+':')
-                        row.prop(pxrcamera, prop_name)
-
-            draw_props(pxrcamera.prop_names, layout)
 
 
 class DATA_PT_renderman_lamp(ShaderPanel, Panel):
@@ -688,6 +810,16 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
             return
         else:
             layout.prop(lamp.renderman, "renderman_type", expand=True)
+            if lamp.renderman.renderman_type == "AREA":
+                layout.prop(lamp.renderman, "area_shape", expand=True)
+                row = layout.row()
+                if lamp.renderman.area_shape == "rect":
+                    row.prop(lamp, 'size', text="Size X")
+                    row.prop(lamp, 'size_y')
+                else:
+                    row.prop(lamp, 'size', text="Radius")
+                    if lamp.renderman.area_shape == "cylinder":
+                        row.prop(lamp, 'size_y', text="Length")
             layout.prop(lamp.renderman, "shadingrate")
 
         layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
@@ -787,6 +919,12 @@ class OBJECT_PT_renderman_object_geometry(Panel):
             # if rm.export_archive:
             #    col.prop(rm, "export_archive_path")
 
+            
+        col = layout.column()
+        col.operator("object.export_rib_archive", icon="EXPORT", text="Export Object as RIB Archive.")
+        
+        
+        
         col = layout.column()
         # col.prop(rm, "export_coordsys")
 
@@ -959,6 +1097,19 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col.prop(item, "channel_type")
         if item.channel_type == "custom":
             col.prop(item, 'custom_lpe')
+        
+        col = layout.column()
+        col.label("Exposure Settings")
+        col.prop(item, "exposure_gain")
+        col.prop(item, "exposure_gamma")
+        
+        col = layout.column()
+        col.label("Remap Settings")
+        row = col.row(align=True)
+        row.prop(item, "remap_a", text="A")
+        row.prop(item, "remap_b", text="B")
+        row.prop(item, "remap_c", text="C")
+
         col.prop(item, "show_advanced")
         col = col.column()
         col.enabled = item.show_advanced
@@ -1035,6 +1186,7 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
             subcol2.active = not rm.constant_width
             subcol2.prop(rm, "base_width")
             subcol2.prop(rm, "tip_width")
+            col.prop(rm, 'export_scalp_st')
 
 
 class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):
@@ -1077,16 +1229,23 @@ class DrawRenderHeaderInfo(bpy.types.Header):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
         layout = self.layout
-
+        icons = load_icons()
+         
         row = layout.row(align=True)
-        row.operator("render.render", text="Render", icon='RENDER_STILL')
-
+        rman_render = icons.get("render")
+        row.operator("render.render", text="Render", icon_value=rman_render.icon_id)
+         
+         
         if engine.ipr:
-            row.operator('lighting.start_interactive',
-                         text="Stop Interactive Rendering", icon='CANCEL')
+         
+            rman_batch_cancel = icons.get("stop_ipr")
+            row.operator('lighting.start_interactive',text="Stop IPR",icon_value=rman_batch_cancel.icon_id)
+         
         else:
-            row.operator('lighting.start_interactive',
-                         text="Start Interactive Rendering", icon='PLAY')
+         
+            rman_rerender_controls = icons.get("start_ipr")
+            row.operator('lighting.start_interactive',text="Start IPR",icon_value=rman_rerender_controls.icon_id)
+    
 
 
 class DrawRenderHeaderImage(bpy.types.Header):
@@ -1096,16 +1255,23 @@ class DrawRenderHeaderImage(bpy.types.Header):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
         layout = self.layout
+        icons = load_icons()
 
         row = layout.row(align=True)
-        row.operator("render.render", text="Render", icon='RENDER_STILL')
+        rman_render = icons.get("render")
+        row.operator("render.render", text="Render", icon_value=rman_render.icon_id)
+        
 
         if engine.ipr:
-            row.operator('lighting.start_interactive',
-                         text="Stop Interactive Rendering", icon='CANCEL')
+
+            rman_batch_cancel = icons.get("stop_ipr")
+            row.operator('lighting.start_interactive',text="Stop IPR",icon_value=rman_batch_cancel.icon_id)
+                         
         else:
-            row.operator('lighting.start_interactive',
-                         text="Start Interactive Rendering", icon='PLAY')
+
+            rman_rerender_controls = icons.get("start_ipr")
+            row.operator('lighting.start_interactive',text="Start IPR",icon_value=rman_rerender_controls.icon_id)
+            
 
 
 def PRMan_menu_func(self, context):
@@ -1119,6 +1285,407 @@ def PRMan_menu_func(self, context):
         self.layout.operator('lighting.start_interactive',
                              text="PRMan Start Interactive Rendering")
 
+
+#################
+#       Tab     #
+#################
+class Renderman_UI_Panel(bpy.types.Panel):
+    bl_idname = "renderman_ui_panel"
+    bl_label = "Renderman "
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "TOOLS"
+    bl_category = "Renderman"
+    
+    
+ 
+    def draw(self, context):
+        icons = load_icons()
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman 
+        
+        #save Scene
+        layout.operator("wm.save_mainfile", text="Save Scene", icon='FILE_TICK')
+
+        layout.separator()
+        
+        
+        if context.scene.render.engine != "PRMAN_RENDER":
+            return
+        
+        #Render
+        row = layout.row(align=True) 
+        rman_render = icons.get("render")
+        row.operator("render.render", text="Render", icon_value=rman_render.icon_id)
+        
+        row.prop(context.scene,"rm_render", text="", icon='TRIA_UP' if context.scene.rm_render else 'TRIA_DOWN')
+         
+        if context.scene.rm_render :
+            scene = context.scene
+            rd = scene.render
+            
+            #Batch Render
+            box = layout.box()
+            row = box.row(align=True)
+            
+            rman_batch = icons.get("batch_render")
+            row.operator("render.render",text="Batch Render",icon_value=rman_batch.icon_id).animation=True
+            
+            #Resolution
+            row = box.row(align=True)
+            sub = row.column(align=True)
+            sub.label(text="Resolution:")
+            sub.prop(rd, "resolution_x", text="X")
+            sub.prop(rd, "resolution_y", text="Y")
+            sub.prop(rd, "resolution_percentage", text="")
+            
+            # layout.prop(rm, "display_driver")
+            #Sampling
+            row = box.row(align=True)
+            row.label(text="Sampling:")
+            row = box.row(align=True)
+            col = row.column()
+            col.prop(rm, "pixel_variance")
+            row = col.row(align=True)
+            row.prop(rm, "min_samples", text="Min Samples")
+            row.prop(rm, "max_samples", text="Max Samples")
+            row = col.row(align=True)
+            row.prop(rm, "max_specular_depth", text="Specular Depth")
+            row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
+            
+       #IPR
+        if engine.ipr:
+            #Stop IPR
+            row = layout.row(align=True) 
+            rman_batch_cancel = icons.get("stop_ipr")
+            row.operator('lighting.start_interactive',text="Stop IPR",icon_value=rman_batch_cancel.icon_id)
+            row.prop(context.scene, "rm_ipr", text="", icon='TRIA_UP' if context.scene.rm_ipr else 'TRIA_DOWN')
+            if context.scene.rm_ipr:    
+             
+                scene = context.scene
+                rm = scene.renderman
+                
+                box = layout.box()
+                row = box.row(align=True)
+                
+                col = row.column()
+                col.prop(rm, "preview_pixel_variance")
+                row = col.row(align=True)
+                row.prop(rm, "preview_min_samples", text="Min Samples")
+                row.prop(rm, "preview_max_samples", text="Max Samples")
+                row = col.row(align=True)
+                row.prop(rm, "preview_max_specular_depth", text="Specular Depth")
+                row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
+                row = col.row(align=True)
+            
+        else:
+            #Start IPR
+            row = layout.row(align=True) 
+            rman_rerender_controls = icons.get("start_ipr")
+            row.operator('lighting.start_interactive',text="Start IPR",icon_value=rman_rerender_controls.icon_id)
+            
+            row.prop(context.scene, "rm_ipr", text="", icon='TRIA_UP' if context.scene.rm_ipr else 'TRIA_DOWN')
+             
+            if context.scene.rm_ipr:    
+             
+                scene = context.scene
+                rm = scene.renderman
+                
+                #STart IT
+                rman_it = icons.get("start_it")
+                layout.operator("object.start_it",text="Start IT",icon_value=rman_it.icon_id)
+                
+                #Interactive and Preview Sampling
+                box = layout.box()
+                row = box.row(align=True)
+                
+                col = row.column()
+                col.prop(rm, "preview_pixel_variance")
+                row = col.row(align=True)
+                row.prop(rm, "preview_min_samples", text="Min Samples")
+                row.prop(rm, "preview_max_samples", text="Max Samples")
+                row = col.row(align=True)
+                row.prop(rm, "preview_max_specular_depth", text="Specular Depth")
+                row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
+                row = col.row(align=True)
+ 
+        layout.separator()
+        
+        #Create PxrLM Material
+        render_PxrDisney = icons.get("pxrdisney")
+        layout.operator("object.add_bxdf", text="Add BXDF",icon_value=render_PxrDisney.icon_id)
+        
+        layout.separator()
+        
+        #Create Camera
+        row = layout.row(align=True) 
+        row.operator("object.add_prm_camera", text="Add Camera", icon='CAMERA_DATA')
+        
+        row.prop(context.scene, "prm_cam", text="", icon='TRIA_UP' if context.scene.prm_cam else 'TRIA_DOWN')
+ 
+        if context.scene.prm_cam:
+            ob = bpy.context.object
+            box = layout.box()
+            row = box.row(align=True)
+            row.menu("object.camera_list_menu", text="Camera List", icon='CAMERA_DATA')
+     
+     
+            if ob.type == 'CAMERA': 
+     
+                row = box.row(align=True)
+                row.prop(ob, "name", text="", icon='LAMP_HEMI') 
+                row.prop(ob, "hide", icon='VISIBLE_IPO_ON', text="")
+                row.prop(ob, "hide_render", icon='RESTRICT_RENDER_OFF', text="")
+                row.operator("object.delete_cameras", text="", icon='PANEL_CLOSE')
+                
+                row = box.row(align=True)
+                row.scale_x = 2
+                row.operator("view3d.object_as_camera", text="", icon='CURSOR')
+                
+                row.scale_x = 2
+                row.operator("view3d.viewnumpad", text="", icon='VISIBLE_IPO_ON').type='CAMERA'
+                
+                if context.space_data.lock_camera == False:
+                    row.scale_x = 2
+                    row.operator("wm.context_toggle", text="", icon='UNLOCKED').data_path = "space_data.lock_camera"
+                elif context.space_data.lock_camera == True:
+                    row.scale_x = 2
+                    row.operator("wm.context_toggle", text="", icon='LOCKED').data_path = "space_data.lock_camera"
+                 
+                row.scale_x = 2
+                row.operator("view3d.camera_to_view", text="", icon = 'MAN_TRANS')
+                
+                row = box.row(align=True)
+                row.label("Depth Of Field :")
+                 
+                row = box.row(align=True)
+                row.prop(context.object.data, "dof_object", text="")
+                row.prop(context.object.data.cycles, "aperture_type", text="")
+                 
+                row = box.row(align=True)
+                row.prop(context.object.data, "dof_distance", text="Distance")
+                
+     
+            else :
+                row = layout.row(align=True)
+                row.label("No Camera Selected")  
+            
+        layout.separator()
+
+        #Create Env Light
+        row = layout.row(align=True) 
+        rman_RMSEnvLight = icons.get("envlight")
+        row.operator("object.mr_add_hemi", text="Add EnvLight",icon_value=rman_RMSEnvLight.icon_id)
+        
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+        
+        lamp_hemi = False
+        lamp_area = False
+        lamp_point = False
+        lamp_spot = False
+        lamp_sun = False
+        
+        if len(lamps): 
+            for lamp in lamps:
+                if lamp.data.type == 'HEMI' : 
+                    lamp_hemi = True
+                    
+                if lamp.data.type == 'AREA' : 
+                    lamp_area = True    
+                
+                if lamp.data.type == 'POINT' : 
+                    lamp_point = True    
+                
+                if lamp.data.type == 'SPOT' : 
+                    lamp_spot = True    
+                
+                if lamp.data.type == 'SUN' : 
+                    lamp_sun = True   
+                     
+        if lamp_hemi :
+                    
+            row.prop(context.scene, "rm_env", text="", icon='TRIA_UP' if context.scene.rm_env else 'TRIA_DOWN')
+
+            
+            if context.scene.rm_env: 
+                ob = bpy.context.object
+                box = layout.box()
+                row = box.row(align=True)
+                row.menu("object.hemi_list_menu", text="EnvLight List", icon='LAMP_HEMI')
+                
+                
+                if ob.type == 'LAMP' and ob.data.type == 'HEMI': 
+                   
+                    row = box.row(align=True)
+                    row.prop(ob, "name", text="", icon='LAMP_HEMI') 
+                    row.prop(ob, "hide", icon='VISIBLE_IPO_ON', text="")
+                    row.prop(ob, "hide_render", icon='RESTRICT_RENDER_OFF', text="")
+                    row.operator("object.delete_lights", text="", icon='PANEL_CLOSE')
+                    row = box.row(align=True)
+                    row.prop(ob, "rotation_euler", index=2, text="Rotation")
+
+                else :
+                    row = layout.row(align=True)
+                    row.label("No EnvLight Selected")  
+                                   
+        #Create Area Light
+        
+        row = layout.row(align=True)
+        rman_RMSAreaLight = icons.get("arealight")
+        row.operator("object.mr_add_area", text="Add AreaLight",icon_value=rman_RMSAreaLight.icon_id)
+        
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+         
+        lamp_hemi = False
+        lamp_area = False
+        lamp_point = False
+        lamp_spot = False
+        lamp_sun = False
+         
+        if len(lamps): 
+            for lamp in lamps:
+                if lamp.data.type == 'HEMI' : 
+                    lamp_hemi = True
+         
+                if lamp.data.type == 'AREA' : 
+                    lamp_area = True    
+         
+                if lamp.data.type == 'POINT' : 
+                    lamp_point = True    
+         
+                if lamp.data.type == 'SPOT' : 
+                    lamp_spot = True    
+         
+                if lamp.data.type == 'SUN' : 
+                    lamp_sun = True   
+         
+        if lamp_area :
+         
+            row.prop(context.scene, "rm_area", text="", icon='TRIA_UP' if context.scene.rm_area else 'TRIA_DOWN')
+         
+         
+            if context.scene.rm_area: 
+                ob = bpy.context.object
+                box = layout.box()
+                row = box.row(align=True)
+                row.menu("object.area_list_menu", text="AreaLight List", icon='LAMP_AREA')
+         
+         
+                if ob.type == 'LAMP' and ob.data.type == 'AREA': 
+         
+                    row = box.row(align=True)
+                    row.prop(ob, "name", text="", icon='LAMP_AREA') 
+                    row.prop(ob, "hide", icon='VISIBLE_IPO_ON', text="")
+                    row.prop(ob, "hide_render", icon='RESTRICT_RENDER_OFF', text="")
+                    row.operator("object.delete_lights", text="", icon='PANEL_CLOSE')
+         
+                else :
+                    row = layout.row(align=True)
+                    row.label("No AreaLight Selected")  
+                
+                
+        #Daylight
+        
+        row = layout.row(align=True)
+        rman_PxrStdEnvDayLight = icons.get("daylight")
+        row.operator("object.mr_add_sky", text="Add Daylight",icon_value=rman_PxrStdEnvDayLight.icon_id)
+        
+         
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+         
+        lamp_hemi = False
+        lamp_area = False
+        lamp_point = False
+        lamp_spot = False
+        lamp_sun = False
+         
+        if len(lamps): 
+            for lamp in lamps:
+                if lamp.data.type == 'SUN' : 
+                    lamp_sun = True   
+                
+                if lamp.data.type == 'HEMI' : 
+                    lamp_hemi = True
+         
+                if lamp.data.type == 'AREA' : 
+                    lamp_area = True    
+         
+                if lamp.data.type == 'POINT' : 
+                    lamp_point = True    
+         
+                if lamp.data.type == 'SPOT' : 
+                    lamp_spot = True    
+         
+        if lamp_sun: 
+            
+            row.prop(context.scene, "rm_daylight", text="", icon='TRIA_UP' if context.scene.rm_daylight else 'TRIA_DOWN')
+            
+            if context.scene.rm_daylight: 
+                ob = bpy.context.object
+                box = layout.box()
+                row = box.row(align=True)
+                row.menu("object.daylight_list_menu", text="DayLight List", icon='LAMP_SUN')
+         
+         
+                if ob.type == 'LAMP' and ob.data.type == 'SUN': 
+         
+                    row = box.row(align=True)
+                    row.prop(ob, "name", text="", icon='LAMP_SUN') 
+                    row.prop(ob, "hide", icon='VISIBLE_IPO_ON', text="")
+                    row.prop(ob, "hide_render", icon='RESTRICT_RENDER_OFF', text="")
+                    row.operator("object.delete_lights", text="", icon='PANEL_CLOSE')
+         
+                else :
+                    row = layout.row(align=True)
+                    row.label("No DayLight Selected")  
+        
+        #Dynamic Binding Editor
+        
+        #Create Holdout
+        
+        #Open Linking Panel
+        
+        #Create Geo LightBlocker
+        layout.separator()
+        #Make Selected Geo Emissive
+        rman_RMSGeoAreaLight = icons.get("geoarealight")
+        layout.operator("object.addgeoarealight", text="Add GeoAreaLight",icon_value=rman_RMSGeoAreaLight.icon_id)
+
+        #Create Archive node
+        
+        #Update Archive
+        
+        #Open Last RIB
+#        rman_open_last_rib = icons.get("open_last_rib")
+#        layout.prop(rm, "path_rib_output",icon_value=rman_open_last_rib.icon_id)
+        
+        #Inspect RIB Selection
+        
+        #Shared Geometry Attribute
+        
+        layout.separator()
+        #Add Subdiv Sheme
+        rman_subdiv = icons.get("add_subdiv_sheme")
+        layout.operator("object.add_subdiv_sheme", text="Add Subdiv Sheme",icon_value=rman_subdiv.icon_id)
+        
+        #Add/Atach Coordsys
+        
+        #Add/Create RIB Box
+        
+        #Open Tmake Window
+        
+        #Create OpenVDB Visualizer
+        layout.separator()
+        #Renderman Doc
+        row = layout.row(align=True) 
+        rman_help = icons.get("help")
+        row.operator("wm.url_open", text="Renderman Docs",icon_value=rman_help.icon_id).url = "https://github.com/bsavery/PRMan-for-Blender/wiki/Documentation-Home"
+        row.prop(context.scene, "rm_help", text="", icon='TRIA_UP' if context.scene.rm_help else 'TRIA_DOWN')
+         
+        if context.scene.rm_help :
+            #About Renderman
+            rman_info = icons.get("info")
+            layout.operator("wm.url_open", text="About Renderman",icon_value=rman_info.icon_id).url = "http://renderman.pixar.com/view/non-commercial-renderman"
 
 def register():
     bpy.types.INFO_MT_render.append(PRMan_menu_func)
