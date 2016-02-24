@@ -29,6 +29,7 @@ import xml.etree.ElementTree as ET
 
 import tempfile
 import nodeitems_utils
+import shutil
 
 from bpy.props import *
 from nodeitems_utils import NodeCategory, NodeItem
@@ -197,6 +198,56 @@ class RendermanPropertyGroup(bpy.types.PropertyGroup):
 class RendermanShadingNode(bpy.types.Node):
     bl_label = 'Output'
 
+    def update_mat(self, mat):
+        if self.renderman_node_type == 'bxdf' and self.outputs['Bxdf'].is_linked:
+            mat.specular_color = [1,1,1]
+            mat.diffuse_color = [1,1,1]
+            mat.use_transparency = False
+            mat.specular_intensity = 0
+            mat.diffuse_intensity = 1
+
+            if hasattr(self, "baseColor"):
+                mat.diffuse_color = self.baseColor
+            elif hasattr(self, "emitColor"):
+                mat.diffuse_color = self.emitColor
+            elif hasattr(self, "diffuseColor"):
+                mat.diffuse_color = self.diffuseColor
+            elif hasattr(self, "midColor"):
+                mat.diffuse_color = self.midColor
+            elif hasattr(self, "transmissionColor"):
+                mat.diffuse_color = self.transmissionColor
+            elif hasattr(self, "frontColor"):
+                mat.diffuse_color = self.frontColor
+            
+            #specular intensity
+            if hasattr(self, "specular"):
+                mat.specular_intensity = self.specular
+            elif hasattr(self, "SpecularGainR"):
+                mat.specular_intensity = self.specularGainR
+            elif hasattr(self, "reflectionGain"):
+                mat.specular_intensity = self.reflectionGain
+
+            # specular color 
+            if hasattr(self, "specularColor"):
+                mat.specular_color = self.specularColor
+            elif hasattr(self, "reflectionColor"):
+                mat.specular_color = self.reflectionColor
+            
+
+            if self.bl_idname in ["PxrGlassBxdfNode", "PxrLMGlassBxdfNode"]:
+                mat.use_transparency = True
+                mat.alpha = .5
+            
+            if self.bl_idname == "PxrLMMetalBxdfNode":
+                mat.diffuse_color = [0,0,0]
+                mat.specular_intensity = 1
+                mat.specular_color = self.specularColor
+                mat.mirror_color = [1,1,1]
+            
+            elif self.bl_idname == "PxrLMPlasticBxdfNode":
+                mat.specular_intensity = 1
+                
+
     # all the properties of a shader will go here, also inputs/outputs
     # on connectable props will have the same name
     # node_props = None
@@ -209,7 +260,7 @@ class RendermanShadingNode(bpy.types.Node):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 
     def draw_nonconnectable_props(self, context, layout, prop_names):
-        if self.bl_idname == "PxrOSLPatternNode":
+        if self.bl_idname == "PxrOSLPatternNode" or self.bl_idname == "PxrSeExprPatternNode":
             prop = getattr(self, "codetypeswitch")
             layout.prop(self, "codetypeswitch")
             if getattr(self, "codetypeswitch") == 'INT':
@@ -220,7 +271,16 @@ class RendermanShadingNode(bpy.types.Node):
                 prop = getattr(self, "shadercode")
                 layout.prop(self, "shadercode")
         else:
+            # temp until we can create ramps natively
+            if self.plugin_name == 'PxrRamp':
+                nt = bpy.context.active_object.active_material.node_tree
+                if nt:
+                    layout.template_color_ramp(
+                        nt.nodes[self.color_ramp_dummy_name], 'color_ramp')
+
             for prop_name in prop_names:
+                if prop_name in ["rman__Shape", "coneAngle", "penumbraAngle"]:
+                    continue
                 prop_meta = self.prop_meta[prop_name]
                 if prop_name not in self.inputs:
                     if prop_meta['renderman_type'] == 'page':
@@ -274,7 +334,12 @@ class RendermanShadingNode(bpy.types.Node):
             FileNameOSO += ".oso"
             export_path = os.path.join(
                 user_path(prefs.env_vars.out), "shaders", FileNameOSO)
-            ok = node.compile_osl(osl_path, compile_path)
+            if os.path.splitext(FileName)[1] == ".oso":
+                shutil.copy(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders"))
+                # Assume that the user knows what they were doing when they compiled the osl file.
+                ok = True
+            else:
+                ok = node.compile_osl(osl_path, compile_path)
         elif getattr(node, "codetypeswitch") == "INT" and node.internalSearch:
             script = bpy.data.texts[node.internalSearch]
             osl_path = bpy.path.abspath(
@@ -556,6 +621,13 @@ def generate_node_type(prefs, name, args):
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
 
+        if name == "PxrRamp":
+            active_mat = bpy.context.active_object.active_material
+            if not active_mat.use_nodes:
+                active_mat.use_nodes = True
+            color_ramp = active_mat.node_tree.nodes.new('ShaderNodeValToRGB')
+            self.color_ramp_dummy_name = color_ramp.name
+
         # if a texture make a manifold 2d to go along.
         if self.plugin_name == 'PxrTexture':
             context_copy = bpy.context.copy()
@@ -573,6 +645,8 @@ def generate_node_type(prefs, name, args):
             manifold.location[1] = self.location[1]
 
     ntype.init = init
+    if name == 'PxrRamp':
+        ntype.color_ramp_dummy_name = StringProperty('color_ramp', default='')
 
     ntype.plugin_name = StringProperty(name='Plugin Name',
                                        default=name, options={'HIDDEN'})
@@ -666,57 +740,78 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
     layout.context_pointer_set("nodetree", nt)
 
     def draw_props(prop_names, layout):
-        for prop_name in prop_names:
-            prop_meta = node.prop_meta[prop_name]
-            prop = getattr(node, prop_name)
+        if node.plugin_name == "PxrOSL":
+            pass
+        else:
+            for prop_name in prop_names:
+                #skip showing the shape for PxrStdAreaLight
+                if prop_name in ["rman__Shape", "coneAngle", "penumbraAngle"]:
+                    continue
 
-            # else check if the socket with this name is connected
-            socket = node.inputs[prop_name] if prop_name in node.inputs \
-                else None
-            layout.context_pointer_set("socket", socket)
-
-            if socket and socket.is_linked:
-                input_node = socket_node_input(nt, socket)
-                icon = 'TRIA_DOWN' if socket.ui_open \
-                    else 'TRIA_RIGHT'
-
-                split = layout.split(NODE_LAYOUT_SPLIT)
-                row = split.row()
-                row.prop(socket, "ui_open", icon=icon, text='',
-                         icon_only=True, emboss=False)
-                indented_label(row, socket.name + ':')
-                split.operator_menu_enum("node.add_pattern", "node_type",
-                                         text=input_node.bl_label, icon='DOT')
-
-                if socket.ui_open:
-                    draw_node_properties_recursive(layout, context, nt,
-                                                   input_node, level=level + 1)
-
-            else:
-                row = layout.row()
-                if prop_meta['renderman_type'] == 'page':
-                    ui_prop = prop_name + "_ui_open"
-                    ui_open = getattr(node, ui_prop)
-                    icon = 'TRIA_DOWN' if ui_open \
-                        else 'TRIA_RIGHT'
-
-                    split = layout.split(NODE_LAYOUT_SPLIT)
-                    row = split.row()
-                    row.prop(node, ui_prop, icon=icon, text='',
-                             icon_only=True, emboss=False)
-                    indented_label(row, prop_name + ':')
-
-                    if ui_open:
-                        draw_props(prop, layout)
+                if prop_name == "codetypeswitch":
+                    row = layout.row()
+                    if node.codetypeswitch == 'INT':
+                        row.prop_search(node, "internalSearch", bpy.data, "texts", text="")
+                    elif node.codetypeswitch == 'EXT':
+                        row.prop(node, "shadercode")
+                elif prop_name == "internalSearch" or prop_name == "shadercode" or prop_name == "expression":
+                    pass
                 else:
-                    row.label('', icon='BLANK1')
-                    # indented_label(row, socket.name+':')
-                    # don't draw prop for struct type
-                    row.prop(node, prop_name)
-                    if prop_name in node.inputs:
-                        row.operator_menu_enum("node.add_pattern", "node_type",
-                                               text='', icon='DOT')
+                    prop_meta = node.prop_meta[prop_name]
+                    prop = getattr(node, prop_name)
 
+                    # else check if the socket with this name is connected
+                    socket = node.inputs[prop_name] if prop_name in node.inputs \
+                        else None
+                    layout.context_pointer_set("socket", socket)
+
+                    if socket and socket.is_linked:
+                        input_node = socket_node_input(nt, socket)
+                        icon = 'TRIA_DOWN' if socket.ui_open \
+                            else 'TRIA_RIGHT'
+
+                        split = layout.split(NODE_LAYOUT_SPLIT)
+                        row = split.row()
+                        row.prop(socket, "ui_open", icon=icon, text='',
+                                 icon_only=True, emboss=False)
+                        indented_label(row, socket.name + ':')
+                        split.operator_menu_enum("node.add_pattern", "node_type",
+                                                 text=input_node.bl_label, icon='DOT')
+
+                        if socket.ui_open:
+                            draw_node_properties_recursive(layout, context, nt,
+                                                           input_node, level=level + 1)
+
+                    else:
+                        row = layout.row()
+                        if prop_meta['renderman_type'] == 'page':
+                            ui_prop = prop_name + "_ui_open"
+                            ui_open = getattr(node, ui_prop)
+                            icon = 'TRIA_DOWN' if ui_open \
+                                else 'TRIA_RIGHT'
+
+                            split = layout.split(NODE_LAYOUT_SPLIT)
+                            row = split.row()
+                            row.prop(node, ui_prop, icon=icon, text='',
+                                     icon_only=True, emboss=False)
+                            indented_label(row, prop_name + ':')
+
+                            if ui_open:
+                                draw_props(prop, layout)
+                        else:
+                            row.label('', icon='BLANK1')
+                            # indented_label(row, socket.name+':')
+                            # don't draw prop for struct type
+                            row.prop(node, prop_name)
+                            if prop_name in node.inputs:
+                                row.operator_menu_enum("node.add_pattern", "node_type",
+                                                       text='', icon='DOT')
+
+    if node.plugin_name == 'PxrRamp':
+        dummy_nt = bpy.context.active_object.active_material.node_tree
+        if dummy_nt:
+            layout.template_color_ramp(
+                dummy_nt.nodes[node.color_ramp_dummy_name], 'color_ramp')
     draw_props(node.prop_names, layout)
     layout.separator()
 
@@ -809,7 +904,8 @@ class Add_Node:
             else:
                 nt.links.new(newnode.outputs[self.input_type], socket)
             newnode.location = old_node.location
-
+            active_material = context.active_object.active_material
+            newnode.update_mat(active_material)
             nt.nodes.remove(old_node)
         return {'FINISHED'}
 
@@ -907,10 +1003,31 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                         params['%s %s' % (prop_type, prop_name)] = \
                             rib(getattr(getLocation, osl_prop_name),
                                 type_hint=prop_type)
-    else:
+    elif node.bl_idname == "PxrSeExprPatternNode":
+        fileInputType = node.codetypeswitch
+        
         for prop_name, meta in node.prop_meta.items():
-            if prop_name in txmake_options.index:
+            #print (prop_name);
+            if prop_name in txmake_options.index or prop_name == "codetypeswitch":
                 pass
+            elif prop_name == "internalSearch" and fileInputType == 'INT':
+                if node.internalSearch != "":
+                    script = bpy.data.texts[node.internalSearch]
+                    #print("entered INT")
+                    params['%s %s' % ("string",
+                            "expression")] = \
+                                rib(script.as_string(), type_hint=meta['renderman_type'])
+            elif prop_name == "shadercode" and fileInputType == "EXT":
+                fileInput = user_path(getattr(node, 'shadercode'))
+                if fileInput != "":
+                    outputString = ""
+                    #print("Entered EXT")
+                    with open(fileInput, encoding='utf-8') as SeExprFile:
+                        for line in SeExprFile:
+                            outputString += line
+                    params['%s %s' % ("string",
+                            "expression")] = \
+                                rib(outputString, type_hint=meta['renderman_type'])
             else:
                 prop = getattr(node, prop_name)
                 # if property group recurse
@@ -936,6 +1053,7 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                     if 'options' in meta and meta['options'] == 'texture' or \
                         (node.renderman_node_type == 'light' and
                             'widget' in meta and meta['widget'] == 'fileInput'):
+                        
                         params['%s %s' % (meta['renderman_type'],
                                           meta['renderman_name'])] = \
                             rib(get_tex_file_name(prop),
@@ -948,6 +1066,69 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                         params['%s %s' % (meta['renderman_type'],
                                           meta['renderman_name'])] = \
                             rib(prop, type_hint=meta['renderman_type'])
+    else:
+        for prop_name, meta in node.prop_meta.items():
+            if prop_name in txmake_options.index:
+                pass
+            if node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
+                pass
+            else:
+                prop = getattr(node, prop_name)
+                # if property group recurse
+                if meta['renderman_type'] == 'page':
+                    continue
+                # if input socket is linked reference that
+                elif prop_name in node.inputs and \
+                        node.inputs[prop_name].is_linked:
+                    from_socket = node.inputs[prop_name].links[0].from_socket
+                    if recurse:
+                        shader_node_rib(
+                            ri, from_socket.node, mat_name=mat_name)
+                    params['reference %s %s' % (meta['renderman_type'],
+                                                meta['renderman_name'])] = \
+                        ["%s:%s" %
+                            (from_socket.node.name, from_socket.identifier)]
+                # else output rib
+                else:
+                    # if struct is not linked continue
+                    if meta['renderman_type'] in ['struct', 'enum']:
+                        continue
+
+                    if 'options' in meta and meta['options'] == 'texture' \
+                        and node.bl_idname != "PxrPtexturePatternNode" or \
+                        (node.renderman_node_type == 'light' and
+                            'widget' in meta and meta['widget'] == 'fileInput'):
+                        params['%s %s' % (meta['renderman_type'],
+                                          meta['renderman_name'])] = \
+                            rib(get_tex_file_name(prop),
+                                type_hint=meta['renderman_type'])
+                    elif 'arraySize' in meta:
+                        params['%s[%d] %s' % (meta['renderman_type'], len(prop),
+                                              meta['renderman_name'])] \
+                            = rib(prop)
+                    else:
+                        params['%s %s' % (meta['renderman_type'],
+                                          meta['renderman_name'])] = \
+                            rib(prop, type_hint=meta['renderman_type'])
+    if node.plugin_name == 'PxrRamp':
+        if mat_name not in bpy.data.materials:
+            return params
+        nt = bpy.data.materials[mat_name].node_tree
+        if nt:
+            dummy_ramp = nt.nodes[node.color_ramp_dummy_name]
+            colors = []
+            positions = []
+            # double the start and end points
+            positions.append(float(dummy_ramp.color_ramp.elements[0].position))
+            colors.extend(dummy_ramp.color_ramp.elements[0].color[:3])
+            for e in dummy_ramp.color_ramp.elements:
+                positions.append(float(e.position))
+                colors.extend(e.color[:3])
+            positions.append(float(dummy_ramp.color_ramp.elements[-1].position))
+            colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
+            params['color[%d] colors' % len(positions)] = colors
+            params['float[%d] positions' % len(positions)] = positions
+
     return params
 
 # Export to rib
@@ -960,6 +1141,7 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
     if node.renderman_node_type == "pattern":
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
+        params['__instanceid'] = mat_name
         primary_vis = node.light_primary_visibility
         # must be off for light sources
         ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
@@ -980,8 +1162,14 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
 
 
 def get_tex_file_name(prop):
+    frame_num = bpy.data.scenes[0].frame_current
+    prop = prop.replace('$f4', str(frame_num).zfill(4))
+    prop = prop.replace('$F4', str(frame_num).zfill(4))
+    prop = prop.replace('$f3', str(frame_num).zfill(3))
+    prop = prop.replace('$f3', str(frame_num).zfill(3))
+    prop = prop.replace('\\', '\/')
     if prop != '' and prop.rsplit('.', 1) != 'tex':
-        return os.path.basename(prop).rsplit('.', 2)[0] + '.tex'
+        return os.path.basename(prop).rsplit('.', 1)[0] + '.tex'
     else:
         return prop
 
@@ -1029,6 +1217,8 @@ def get_bxdf_name(mat):
 
 def get_textures_for_node(node, matName=""):
     textures = []
+    if node.bl_idname == "PxrPtexturePatternNode":
+        return textures
     if node.bl_idname == "PxrOSLPatternNode":
         context = bpy.context
         OSLProps = context.scene.OSLProps
@@ -1073,23 +1263,26 @@ def get_textures_for_node(node, matName=""):
                                 textures.append(
                                     (prop, out_file_name, ['-envlatl']))
                             else:
-                                if hasattr(node, "smode"):
+                                if hasattr(node, "smode"): # Test and see if options like smode are on this node.
                                     optionsList = []
                                     for option in txmake_options.index:
                                         partsOfOption = getattr(
                                             txmake_options, option)
                                         if partsOfOption["exportType"] == "name":
                                             optionsList.append("-" + option)
-                                            optionsList.append(
-                                                getattr(node, option))
+                                            if partsOfOption["type"] == "float": # Float values need converting before they are passed to command line
+                                                optionsList.append(str(getattr(node, option)))
+                                            else:
+                                                optionsList.append(getattr(node, option))
                                         else:
-                                            optionsList.append(
-                                                "-" + getattr(node, option))
-                                    # no options for now
+                                            if partsOfOption["type"] == "float": # Float values need converting before they are passed to command line
+                                                optionsList.append(str(getattr(node, option)))
+                                            else:
+                                                optionsList.append("-"+ getattr(node, option))
                                     textures.append(
                                         (prop, out_file_name, optionsList))
                                 else:
-                                    # no options for now
+                                    # no options found add the bare minimum options for smooth export.
                                     textures.append((prop, out_file_name,
                                                      ['-smode', 'periodic',
                                                       '-tmode', 'periodic']))
@@ -1098,7 +1291,7 @@ def get_textures_for_node(node, matName=""):
 
 def get_textures(id):
     textures = []
-    if id.renderman.nodetree == "":
+    if id is None or id.renderman.nodetree == "":
         return textures
     try:
         nt = bpy.data.node_groups[id.renderman.nodetree]
@@ -1195,6 +1388,7 @@ def register():
     pattern_nodeitems = []
     bxdf_nodeitems = []
     light_nodeitems = []
+    displacement_nodeitems = []
     for name, node_type in RendermanPatternGraph.nodetypes.items():
         node_item = NodeItem(name, label=node_type.bl_label)
         if node_type.renderman_node_type == 'pattern':
@@ -1203,6 +1397,8 @@ def register():
             bxdf_nodeitems.append(node_item)
         elif node_type.renderman_node_type == 'light':
             light_nodeitems.append(node_item)
+        elif node_type.renderman_node_type == 'displacement':
+            displacement_nodeitems.append(node_item)
 
     # all categories in a list
     node_categories = [
@@ -1217,6 +1413,9 @@ def register():
                                                   key=attrgetter('_label'))),
         RendermanPatternNodeCategory("PRMan_lights", "PRMan Lights",
                                      items=sorted(light_nodeitems,
+                                                  key=attrgetter('_label'))),
+        RendermanPatternNodeCategory("PRMan_displacements", "PRMan Displacements",
+                                     items=sorted(displacement_nodeitems,
                                                   key=attrgetter('_label')))
 
     ]

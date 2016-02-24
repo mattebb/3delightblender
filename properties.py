@@ -25,6 +25,7 @@
 
 import bpy
 import os
+import sys
 import xml.etree.ElementTree as ET
 import time
 
@@ -36,6 +37,8 @@ from .shader_parameters import class_generate_properties
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
     CollectionProperty, BoolVectorProperty
+
+from . import engine
 
 
 # get the names of args files in rmantree/lib/ris/integrator/args
@@ -78,7 +81,21 @@ class RendermanCameraSettings(bpy.types.PropertyGroup):
     use_physical_camera = BoolProperty(
         name="Use Physical Camera", default=False)
 
-# just pxrcamera for now
+    aperture_sides = IntProperty(
+        name="Aperture Blades", default=0, min=0,
+        description="The number of sides of the aperture. If this value is less than 3, the default behavior of a circular aperture and uniform sampling are used.")
+
+    aperture_angle = FloatProperty(
+        name="Aperture Angle", default=0.0, max=180.0, min=-180.0,
+        description="The aperture polygon's orientation, in degrees from some arbitrary reference direction. (A value of 0 aligns a vertex horizontally with the center of the aperture.)")  
+
+    aperture_roundness = FloatProperty(
+        name="Aperture Angle", default=0.0, max=1.0, min=-1.0,
+        description="A shape parameter, from -1 to 1. When 0, the aperture is a regular polygon with straight sides. When 1, it's a perfect circle. Values between 0 and 1 give polygons with curved edges bowed out, while values between 0 and -1 make the edges bow in.") 
+
+    aperture_density = FloatProperty(
+        name="Aperture Angle", default=0.0, max=1.0, min=-1.0,
+        description="The slope, between -1 and 1, of the (linearly varying) aperture density. A value of zero gives uniform density. Negative values make the aperture brighter near the center, and positive values make it brighter near the rim.") 
 
 
 def register_camera_settings():
@@ -151,6 +168,9 @@ class LightLinking(bpy.types.PropertyGroup):
 
         self.name = "%s %s" % (
             self.light, infostr[valstr.index(self.illuminate)])
+
+        if engine.ipr is not None and engine.ipr.is_interactive_running:
+            engine.ipr.update_light_link(context, self)
 
     light = StringProperty(
         name="Light",
@@ -259,7 +279,31 @@ class RendermanAOV(bpy.types.PropertyGroup):
         default=""
     )
 
+    exposure_gain = FloatProperty(
+        name="Gain",
+        description="The gain of the exposure.",
+        default=1.0)
 
+    exposure_gamma = FloatProperty(
+        name="Gamma",
+        description="The gamma of the exposure.",
+        default=1.0)
+
+    remap_a = FloatProperty(
+        name="a",
+        description="A value for remap.",
+        default=0.0)
+
+    remap_b = FloatProperty(
+        name="b",
+        description="B value for remap.",
+        default=0.0)
+
+    remap_c = FloatProperty(
+        name="c",
+        description="C value for remap.",
+        default=0.0)
+        
 class RendermanAOVList(bpy.types.PropertyGroup):
     render_layer = StringProperty()
     custom_aovs = CollectionProperty(type=RendermanAOV,
@@ -366,12 +410,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         default=1.0)
 
     shutter_efficiency_open = FloatProperty(
-        name="Open Efficiency",
-        description="Shutter open efficiency - controls the shape of the shutter opening for motion blur, 0 means it opens instantaneously",
+        name="Shutter open speed",
+        description="Shutter open efficiency - controls the speed of the shutter opening (in shutter opening).  0 means instantaneous.",
         default=0.0)
     shutter_efficiency_close = FloatProperty(
-        name="Close Efficiency",
-        description="Shutter close efficiency - controls the shape of the shutter closing for motion blur, 1 means it closes instantaneously",
+        name="Shutter close speed",
+        description="Shutter close efficiency - controls the speed of the shutter closing (in shutter opening).  1 means instantaneous.",
         default=1.0)
 
     depth_of_field = BoolProperty(
@@ -411,6 +455,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Statistics",
         description="Print statistics to /tmp/stats.txt after render",
         default=False)
+    editor_override = StringProperty(
+        name="Text Editor",
+        description="The editor to open RIB file in (Overrides system default!)",
+        default="")
     statistics_level = IntProperty(
         name="Statistics Level",
         description="Verbosity level of output statistics",
@@ -422,25 +470,25 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="RIB Output Path",
         description="Path to generated .rib files",
         subtype='FILE_PATH',
-        default="$OUT/{scene}.rib")
+        default=os.path.join('$OUT','{scene}.rib'))
 
     path_object_archive_static = StringProperty(
         name="Object archive RIB Output Path",
         description="Path to generated rib file for a non-deforming objects' geometry",
         subtype='FILE_PATH',
-        default="$ARC/static/{object}.rib")
+        default=os.path.join('$ARC','static','{object}.rib'))
 
     path_object_archive_animated = StringProperty(
         name="Object archive RIB Output Path",
         description="Path to generated rib file for an animated objects geometry",
         subtype='FILE_PATH',
-        default="$ARC/####/{object}.rib")
+        default=os.path.join('$ARC','####','{object}.rib'))
 
     path_texture_output = StringProperty(
         name="Teture Output Path",
         description="Path to generated .tex files",
         subtype='FILE_PATH',
-        default="$OUT/textures")
+        default=os.path.join('$OUT','textures'))
 
     out_dir = StringProperty(
         name="Shader Output Path",
@@ -494,7 +542,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     preview_max_samples = IntProperty(
         name="Preview Max Samples",
         description="The maximum number of camera samples per pixel",
-        min=0, default=16)
+        min=0, default=8)
 
     preview_max_specular_depth = IntProperty(
         name="Max Preview Specular Depth",
@@ -509,8 +557,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
                  ('tiff', 'Tiff',
                   'Render to a TIFF file, to be read back into Blender\'s Render Result'),
-                 ('png', 'PNG',
-                  'Render to a PNG file, to be read back into Blender\'s Render Result'),
                  ('it', 'it', 'External framebuffer display (must have RMS installed)')]
         return items
 
@@ -528,7 +574,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Display Image",
         description="Render output path to export as the Display in the RIB file. When later rendering the RIB file manually, this will be the raw render result directly from the renderer, and won't pass through blender's render pipeline",
         subtype='FILE_PATH',
-        default="$OUT/images/{scene}_####.{file_type}")
+        default=os.path.join('$OUT', 'images', '{scene}_####.{file_type}'))
 
     update_frequency = FloatProperty(
         name="Update frequency",
@@ -844,6 +890,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         lamp = context.lamp
         if lamp.renderman.renderman_type in ['SKY', 'ENV']:
             lamp.type = 'HEMI'
+        elif lamp.renderman.renderman_type == 'DIST':
+            lamp.type = 'SUN'
         else:
             lamp.type = lamp.renderman.renderman_type
 
@@ -857,6 +905,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         elif light_type == 'AREA':
             try:
                 lamp.size = 1.0
+                lamp.size_y = 1.0
             except:
                 pass
 
@@ -867,6 +916,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             if node.renderman_node_type == 'output':
                 output = node
                 break
+        if output == None:
+            output = nt.nodes.new('RendermanOutputNode')
+
         for node in nt.nodes:
             if hasattr(node, 'typename') and node.typename == light_shader:
                 nt.links.remove(output.inputs['Light'].links[0])
@@ -876,8 +928,23 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             light = nt.nodes.new(light_shader)
             light.location = output.location
             light.location[0] -= 300
-            nt.links.remove(output.inputs['Light'].links[0])
+            #nt.links.remove(output.inputs['Light'].links[0])
             nt.links.new(light.outputs[0], output.inputs['Light'])
+
+    def update_area_shape(self, context):
+        lamp = context.lamp
+        
+        # find the existing or make a new light shader node
+        nt = bpy.data.node_groups[lamp.renderman.nodetree]
+        output = None
+        for node in nt.nodes:
+            if node.renderman_node_type == 'output':
+                output = node
+                break
+        if output and output.inputs['Light'].is_linked:
+            light_shader = output.inputs['Light'].links[0].from_node
+            if hasattr(light_shader, 'rman__Shape'):
+                light_shader.rman__Shape = self.area_shape
 
     renderman_type = EnumProperty(
         name="Light Type",
@@ -885,9 +952,20 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         items=[('AREA', 'Area', 'Area Light'),
                ('ENV', 'Environment', 'Environment Light'),
                ('SKY', 'Sky', 'Simulated Sky'),
+               ('DIST', 'Distant', 'Distant Light'),
                ('SPOT', 'Spot', 'Spot Light'),
                ('POINT', 'Point', 'Point Light')],
         default='AREA'
+    )
+
+    area_shape =  EnumProperty(
+        name="Area Shape",
+        update=update_area_shape,
+        items=[('rect', 'Rectangle', 'Rectangle'),
+               ('disk', 'Disk', 'Disk'),
+               ('sphere', 'Sphere', 'Sphere'),
+               ('cylinder', 'Cylinder', 'Cylinder')],
+        default='rect'
     )
 
     nodetree = StringProperty(
@@ -904,6 +982,68 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
     shd_inlinerib_texts = CollectionProperty(
         type=RendermanInlineRIB, name='Shadow map pass Inline RIB')
     shd_inlinerib_index = IntProperty(min=-1, default=-1)
+
+    # illuminate
+    illuminates_by_default = BoolProperty(
+        name="Illuminates by default",
+        description="Illuminates by default",
+        default=True)
+
+class RendermanWorldSettings(bpy.types.PropertyGroup):
+
+    # do this to keep the nice viewport update
+    def update_light_type(self, context):
+        world = context.scene.world
+        world_type = world.renderman.renderman_type
+        if world_type == 'NONE':
+            return
+        # use pxr area light for everything but env, sky
+        light_shader = 'PxrStdEnvMapLightLightNode'
+        if world_type == 'SKY':
+            light_shader = 'PxrStdEnvDayLightLightNode'
+        
+        # find the existing or make a new light shader node
+        nt = bpy.data.node_groups[world.renderman.nodetree]
+        output = None
+        for node in nt.nodes:
+            if node.renderman_node_type == 'output':
+                output = node
+                break
+        if output == None:
+            output = nt.nodes.new('RendermanOutputNode')
+
+        for node in nt.nodes:
+            if hasattr(node, 'typename') and node.typename == light_shader:
+                nt.links.remove(output.inputs['Light'].links[0])
+                nt.links.new(node.outputs[0], output.inputs['Light'])
+                break
+        else:
+            light = nt.nodes.new(light_shader)
+            light.location = output.location
+            light.location[0] -= 300
+            #nt.links.remove(output.inputs['Light'].links[0])
+            nt.links.new(light.outputs[0], output.inputs['Light'])
+
+    renderman_type = EnumProperty(
+        name="World Type",
+        update=update_light_type,
+        items=[
+                ('NONE', 'None', 'No World'),
+                ('ENV', 'Environment', 'Environment Light'),
+               ('SKY', 'Sky', 'Simulated Sky'),
+               ],
+        default='NONE'
+    )
+
+    nodetree = StringProperty(
+        name="Node Tree",
+        description="Name of the shader node tree for this light",
+        default="")
+
+    shadingrate = FloatProperty(
+        name="Light Shading Rate",
+        description="Shading Rate for lights.  Keep this high unless needed for using detailed maps",
+        default=100.0)
 
     # illuminate
     illuminates_by_default = BoolProperty(
@@ -943,7 +1083,7 @@ class RendermanParticlePrimVar(bpy.types.PropertyGroup):
                ('BIRTH_TIME', 'Birth Time', ''),
                ('DIE_TIME', 'Die Time', ''),
                ('LIFE_TIME', 'Lifetime', '')
-               ]   # XXX: Would be nice to have particle ID, needs adding in RNA
+              ]   # XXX: Would be nice to have particle ID, needs adding in RNA
     )
 
 
@@ -1020,6 +1160,12 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
         description="Export the particle size as the default 'width' primitive variable",
         default=True)
 
+    export_scalp_st = BoolProperty(
+        name="Export Emitter UV",
+        description="On hair, export the u/v from the emitter where the hair originates.  Use the variables 'scalpS' and 'scalpT' in your manifold node.",
+        default=False
+        )
+
     prim_vars = CollectionProperty(
         type=RendermanParticlePrimVar, name="Primitive Variables")
     prim_vars_index = IntProperty(min=-1, default=-1)
@@ -1034,11 +1180,7 @@ class RendermanMeshGeometrySettings(bpy.types.PropertyGroup):
         name="Export Default Vertex Color",
         description="Export the active Vertex Color set as the default 'Cs' primitive variable",
         default=True)
-    export_smooth_normals = BoolProperty(
-        name="Export Smooth Normals",
-        description="Export smooth per-vertex normals for PointsPolygons Geometry",
-        default=False)
-
+    
     prim_vars = CollectionProperty(
         type=RendermanMeshPrimVar, name="Primitive Variables")
     prim_vars_index = IntProperty(min=-1, default=-1)
@@ -1334,22 +1476,47 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     trace_set = CollectionProperty(type=TraceSet, name='Trace Set')
     trace_set_index = IntProperty(min=-1, default=-1)
 
-
-class testProps(bpy.types.PropertyGroup):
-    testProp = IntProperty(name="testProp", description="This is my int",
-                           min=0, max=16, default=2)
-    testDic = {}
-
-    def moreProps(text):
-        testProps.testProp2 = IntProperty(name="testProp2",
-                                          description="This is my int",
-                                          min=0, max=16, default=5)
-        # setattr()
-        setattr(testProps, "Gordon", IntProperty(name="Gordon",
-                                                 description="This is my int",
-                                                 min=0, max=16, default=1))
-        testProps.testDic["Test"] = testProps.testProp2
-
+class Tab_CollectionGroup(bpy.types.PropertyGroup):
+        
+    #################
+    #       Tab     #
+    #################
+         
+    bpy.types.Scene.rm_ipr = BoolProperty(
+        name="IPR settings",
+        description="Show some usefull setting for the Interactive Rendering",
+        default=False)
+     
+    bpy.types.Scene.rm_render = BoolProperty(
+        name="Render settings",
+        description="Show some usefull setting for the Rendering",
+        default=False)
+    
+    bpy.types.Scene.rm_help = BoolProperty(
+        name="Help",
+        description="Show some links about Renderman and the documentation",
+        default=False)
+    
+    bpy.types.Scene.rm_env = BoolProperty(
+        name="Envlight",
+        description="Show some settings about the selected Env light",
+        default=False)
+    
+    bpy.types.Scene.rm_area = BoolProperty(
+        name="AreaLight",
+        description="Show some settings about the selected Area Light",
+        default=False)
+        
+    bpy.types.Scene.rm_daylight = BoolProperty(
+        name="DayLight",
+        description="Show some settings about the selected Day Light",
+        default=False)
+   
+    bpy.types.Scene.prm_cam = BoolProperty(
+        name="Renderman Camera",
+        description="Show some settings about the camera",
+        default=False)
+   
 # collection of property group classes that need to be registered on
 # module startup
 classes = [RendermanPath,
@@ -1366,13 +1533,15 @@ classes = [RendermanPath,
            RendermanLightSettings,
            RendermanParticleSettings,
            RendermanIntegratorSettings,
+           RendermanWorldSettings,
            RendermanAOV,
            RendermanAOVList,
            RendermanCameraSettings,
            RendermanSceneSettings,
            RendermanMeshGeometrySettings,
            RendermanCurveGeometrySettings,
-           RendermanObjectSettings
+           RendermanObjectSettings,
+           Tab_CollectionGroup
            ]
 
 
@@ -1388,6 +1557,8 @@ def register():
 
     bpy.types.Scene.renderman = PointerProperty(
         type=RendermanSceneSettings, name="Renderman Scene Settings")
+    bpy.types.World.renderman = PointerProperty(
+        type=RendermanWorldSettings, name="Renderman World Settings")
     bpy.types.Material.renderman = PointerProperty(
         type=RendermanMaterialSettings, name="Renderman Material Settings")
     bpy.types.Texture.renderman = PointerProperty(

@@ -32,6 +32,8 @@ from subprocess import Popen, PIPE
 import mathutils
 from mathutils import Matrix, Vector, Quaternion
 import re
+import traceback
+import glob
 
 from . import bl_info
 
@@ -54,7 +56,9 @@ from bpy.app.handlers import persistent
 # global dictionaries
 from .export import write_rib, write_preview_rib, get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
-    interactive_initial_rib
+    interactive_initial_rib, update_light_link, delete_light
+
+from .nodes import get_tex_file_name
 
 addon_version = bl_info['version']
 
@@ -101,10 +105,16 @@ def update(engine, data, scene):
     engine.render_pass.update_time = int(time.time())
     if engine.is_preview:
         engine.render_pass.display_driver = 'tif'
-        engine.render_pass.gen_preview_rib()
+        try:
+            engine.render_pass.gen_preview_rib()
+        except Exception as err:
+            engine.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
     else:
         engine.render_pass.display_driver = scene.renderman.display_driver
-        engine.render_pass.gen_rib(engine=engine)
+        try:
+            engine.render_pass.gen_rib(engine=engine)
+        except Exception as err:
+            engine.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
 
 
 # assumes you have already set the scene
@@ -121,9 +131,11 @@ def update_interactive(engine, context):
 # if a script updates objects.  We would need to iterate through all objects
 def update_timestamp(scene):
     active = scene.objects.active
-    if active and (active.is_updated or active.is_updated_data):
+    if active and active.is_updated_data:
+        # mark object for update
         now = int(time.time())
         active.renderman.update_timestamp = now
+
 
 
 def format_seconds_to_hhmmss(seconds):
@@ -136,7 +148,7 @@ def format_seconds_to_hhmmss(seconds):
 
 class RPass:
 
-    def __init__(self, scene):
+    def __init__(self, scene, interactive=False):
         self.scene = scene
         # pass addon prefs to init_envs
         addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
@@ -146,9 +158,12 @@ class RPass:
 
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
         self.is_interactive_running = False
-        self.is_interactive = False
+        self.is_interactive = interactive
         self.options = []
-        prman.Init()
+        if interactive:
+            prman.Init(['-woff', 'A57001']) #need to disable for interactive
+        else:
+            prman.Init()
         self.ri = prman.Ri()
         self.edit_num = 0
         self.update_time = None
@@ -179,6 +194,7 @@ class RPass:
 
         self.paths['render_output'] = user_path(rm.path_display_driver_image,
                                                 scene=scene)
+        debug("info",self.paths)
         self.paths['shader'] = [user_path(rm.out_dir, scene=scene)] +\
             get_path_list_converted(rm, 'shader')
         self.paths['rixplugin'] = get_path_list_converted(rm, 'rixplugin')
@@ -191,13 +207,12 @@ class RPass:
         frame_archive_dir = os.path.dirname(user_path(temp_archive_name,
                                                       scene=scene))
         self.paths['static_archives'] = static_archive_dir
-        self.paths['frame_archives'] = [frame_archive_dir]
+        self.paths['frame_archives'] = frame_archive_dir
 
         if not os.path.exists(self.paths['static_archives']):
             os.makedirs(self.paths['static_archives'])
-        for frame_path in self.paths['frame_archives']:
-            if not os.path.exists(frame_path):
-                os.makedirs(frame_path)
+        if not os.path.exists(self.paths['frame_archives']):
+            os.makedirs(self.paths['frame_archives'])
         self.paths['archive'] = os.path.dirname(static_archive_dir)
 
     def preview_render(self, engine):
@@ -344,11 +359,11 @@ class RPass:
                         engine.update_progress(float(perc) / 100.0)
                     else:
                         if line and "ERROR" in str(line):
-                            engine.report({"ERROR"}, "PRMan: %s " % line)
+                            engine.report({"ERROR"}, "PRMan: %s " % line.decode('utf8'))
                         elif line and "WARNING" in str(line):
-                            engine.report({"WARNING"}, "PRMan: %s " % line)
+                            engine.report({"WARNING"}, "PRMan: %s " % line.decode('utf8'))
                         elif line and "SEVERE" in str(line):
-                            engine.report({"ERROR"}, "PRMan: %s " % line)
+                            engine.report({"ERROR"}, "PRMan: %s " % line.decode('utf8'))
 
                     if process.poll() is not None:
                         if self.display_driver != 'it':
@@ -459,10 +474,25 @@ class RPass:
                     Cannot start interactive rendering.")
             return
 
+        if self.scene.camera == None:
+            debug('error', "ERROR no Camera.  \
+                    Cannot start interactive rendering.")
+            self.end_interactive()
+            return
+
         self.is_interactive = True
         self.is_interactive_running = True
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
+        self.material_dict = {}
+        self.lights = {}
+        for obj in self.scene.objects:
+            if obj.type == 'LAMP' and obj.name not in self.lights:
+                self.lights[obj.name] = obj.data.name
+            for mat_slot in obj.material_slots:
+                if mat_slot.material not in self.material_dict:
+                    self.material_dict[mat_slot.material] = []
+                self.material_dict[mat_slot.material].append(obj)
 
         # export rib and bake
         write_rib(self, self.scene, self.ri)
@@ -477,9 +507,10 @@ class RPass:
             -dspyserver it" % self.paths['export_dir']
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
-        interactive_initial_rib(self, self.scene, self.ri, prman)
+        interactive_initial_rib(self, self.ri, self.scene, prman)
 
         return
+
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
@@ -490,9 +521,23 @@ class RPass:
         # also do the camera in case the camera is locked to display.
         if scene.camera != active and scene.camera.is_updated:
             issue_transform_edits(self, self.ri, scene.camera, prman)
+        # check for light deleted
+        if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
+            lights_deleted = []
+            for light_name,data_name in self.lights.items():
+                if light_name not in scene.objects:
+                    delete_light(self, self.ri, data_name, prman)
+                    lights_deleted.append(light_name)
+
+            for light_name in lights_deleted:
+                self.lights.pop(light_name, None)
+
 
     def issue_shader_edits(self, nt=None, node=None):
-        issue_shader_edits(self, self.ri, prman, nt, node)
+        issue_shader_edits(self, self.ri, prman, nt=nt, node=node)
+
+    def update_light_link(self, context, ll):
+        update_light_link(self, self.ri, prman, context.scene.objects.active, ll)
 
     # ri.end
     def end_interactive(self):
@@ -500,15 +545,23 @@ class RPass:
         self.is_interactive_running = False
         self.ri.EditWorldEnd()
         self.ri.End()
+        self.material_dict = {}
+        self.lights = {}
         pass
 
     def gen_rib(self, engine=None):
+        if self.scene.camera == None:
+            debug('error', "ERROR no Camera.  \
+                    Cannot generate rib.")
+            return
         time_start = time.time()
         self.convert_textures(get_texture_list(self.scene))
 
         if engine:
             engine.report({"INFO"}, "Texture generation took %s" %
                           format_seconds_to_hhmmss(time.time() - time_start))
+        else:
+            self.scene.frame_set(self.scene.frame_current)
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
@@ -535,11 +588,22 @@ class RPass:
         write_preview_rib(self, self.scene, self.ri)
         self.ri.End()
 
-    def convert_textures(self, texture_list):
+    def convert_textures(self, temp_texture_list):
         if not os.path.exists(self.paths['texture_output']):
             os.mkdir(self.paths['texture_output'])
 
         files_converted = []
+        texture_list = []
+
+        # for UDIM textures
+        for in_file, out_file, options in temp_texture_list:
+            if '_MAPID_' in in_file:
+                in_file = get_real_path(in_file)
+                for udim_file in glob.glob(in_file.replace('_MAPID_', '*')):
+                    texture_list.append((udim_file, get_tex_file_name(udim_file), options))
+            else:
+                texture_list.append((in_file, out_file, options))
+
         for in_file, out_file, options in texture_list:
             in_file = get_real_path(in_file)
             out_file_path = os.path.join(

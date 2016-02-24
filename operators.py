@@ -28,6 +28,7 @@ import os
 import subprocess
 import bgl
 import blf
+import webbrowser
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
@@ -42,15 +43,49 @@ from .util import readOSO
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
 
-from .export import make_optimised_texture_3dl
 from .export import export_archive
+from .export import get_texture_list
 from .engine import RPass
 from .export import debug
+from .export import write_single_RIB
 from . import engine
 
 from bpy_extras.io_utils import ExportHelper
 
+class Renderman_open_stats(bpy.types.Operator):
+    bl_idname = 'rman.open_stats'
+    bl_label = "Open Last Stats"
+    bl_description = "Open Last stats file"
 
+    def execute(self, context):
+        scene = context.scene
+        rm = scene.renderman
+        output_dir = os.path.dirname(user_path(rm.path_rib_output, scene=scene))
+        bpy.ops.wm.url_open(url="file://" + os.path.join(output_dir, 'stats.xml'))
+        return {'FINISHED'}
+
+class Renderman_open_last_RIB(bpy.types.Operator):
+    bl_idname = 'rman.open_rib'
+    bl_label = "Open Last RIB Scene file."
+    bl_description = "Opens the last generated Scene.rib file in the system default text editor."
+    
+    def invoke(self, context, event=None):
+        rm = context.scene.renderman
+        rpass = RPass(context.scene, interactive=False)
+        path = rpass.paths['rib_output']
+        if rm.editor_override == "":
+            try:
+                webbrowser.open(path)
+            except Exception:
+                debug('error',"File not available!")
+        else:
+            command = rm.editor_override + " " + path
+            try:
+                os.system(command)
+            except Exception:
+                debug('error',"File or text editor not available. (Check and make sure text editor is in system path.)")
+        return {'FINISHED'}
+    
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
     ''''''
@@ -62,7 +97,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
     def execute(self, context):
         idtype = self.properties.idtype
-        context_data = {'material': context.material, 'lamp': context.lamp}
+        context_data = {'material': context.material, 'lamp': context.lamp, 'world':context.scene.world}
         idblock = context_data[idtype]
 
         nt = bpy.data.node_groups.new(idblock.name,
@@ -76,24 +111,38 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             default.location = output.location
             default.location[0] -= 300
             nt.links.new(default.outputs[0], output.inputs[0])
-        else:
-
+        elif idtype == 'lamp':
+            # we only need to set the renderman type as the update method there 
+            # handles making the nodetree
             light_type = idblock.type
-            light_shader = 'PxrStdAreaLightLightNode'
-            if light_type == 'SUN':
-                light_shader = 'PxrStdEnvDayLightLightNode'
-            elif light_type == 'HEMI':
-                light_shader = 'PxrStdEnvMapLightLightNode'
-            elif light_type == 'AREA':
-                context.lamp.size = 1.0
+            if light_type == "SUN":
+                idblock.renderman.renderman_type = "DIST"
+            elif light_type == "HEMI":
+                idblock.renderman.renderman_type = "ENV"
             else:
-                idblock.type = "AREA"
+                idblock.renderman.renderman_type = light_type
+        else:
+            idblock.renderman.renderman_type = "ENV"
+            # light_type = idblock.type
+            # light_shader = 'PxrStdAreaLightLightNode'
+            # if light_type == 'SUN':
+            #     context.lamp.renderman.type=
+            #     light_shader = 'PxrStdEnvDayLightLightNode'
+            # elif light_type == 'HEMI':
+            #     light_shader = 'PxrStdEnvMapLightLightNode'
+            # elif light_type == 'AREA' or light_type == 'POINT':
+            #     idblock.type = "AREA"
+            #     context.lamp.size = 1.0
+            #     context.lamp.size_y = 1.0
+                
+            # else:
+            #     idblock.type = "AREA"
 
-            output = nt.nodes.new('RendermanOutputNode')
-            default = nt.nodes.new(light_shader)
-            default.location = output.location
-            default.location[0] -= 300
-            nt.links.new(default.outputs[0], output.inputs[1])
+            # output = nt.nodes.new('RendermanOutputNode')
+            # default = nt.nodes.new(light_shader)
+            # default.location = output.location
+            # default.location[0] -= 300
+            # nt.links.new(default.outputs[0], output.inputs[1])
 
         return {'FINISHED'}
 
@@ -101,7 +150,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 class refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.refresh_osl_shader"
     bl_label = "Refresh OSL Node"
-    bl_description = "Refreshes the OSL node !!! This takes a few seconds!!!"
+    bl_description = "Refreshes the OSL node This takes a second!!"
 
     def invoke(self, context, event):
         context.node.RefreshNodes(context)
@@ -136,7 +185,7 @@ class StartInteractive(bpy.types.Operator):
 
     def invoke(self, context, event=None):
         if engine.ipr is None:
-            engine.ipr = RPass(context.scene)
+            engine.ipr = RPass(context.scene, interactive=True)
             engine.ipr.start_interactive()
             engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
                 self.draw, (context,), 'WINDOW', 'POST_PIXEL')
@@ -156,77 +205,49 @@ class StartInteractive(bpy.types.Operator):
                         area.tag_redraw()
         return {'FINISHED'}
 
-
-class ExportRIBArchive(bpy.types.Operator, ExportHelper):
-
-    ''''''
-    bl_idname = "export_shape.rib"
-    bl_label = "Export RIB Archive (.rib)"
-    bl_description = "Export an object to an archived geometry file on disk"
-
-    filename_ext = ".rib"
-    filter_glob = StringProperty(default="*.rib", options={'HIDDEN'})
-
-    archive_motion = BoolProperty(name='Export Motion Data',
-                                  description='Exports a MotionBegin/End block for any sub-frame (motion blur) animation data',
-                                  default=True)
-
-    animated = BoolProperty(name='Animated Frame Sequence',
-                            description='Exports a sequence of rib files for a frame range',
-                            default=False)
-    frame_start = IntProperty(
-        name="Start Frame",
-        description="The first frame of the sequence to export",
-        default=1)
-    frame_end = IntProperty(
-        name="End Frame",
-        description="The final frame of the sequence to export",
-        default=1)
-
-    @classmethod
-    def poll(self, context):
-        return len(context.selected_objects) > 0
-
-    def execute(self, context):
-        export_archive(context.scene, context.selected_objects,
-                       **self.as_keywords(ignore=("check_existing",
-                                                  "filter_glob")))
-
+class ExportRIBObject(bpy.types.Operator):
+    bl_idname = "object.export_rib_archive"
+    bl_label = "Export Object as RIB Archive."
+    bl_description = "Export single object as a RIB archive for use in other blend files or for other uses."
+    def invoke(self, context, event=None):
+        print("Exporting all the RIB!!" + str(context.active_object))
+        rpass = RPass(context.scene, interactive=False)
+        object = context.active_object
+        
+        #rpass.convert_textures(get_texture_list(context.scene))
+        rpass.ri.Option("rib", {"string asciistyle": "indented,wide"})
+        
+        export_filename = write_single_RIB(rpass, context.scene, rpass.ri, object)
+        
+        object.renderman.geometry_source = 'ARCHIVE'
+        object.renderman.path_archive = export_filename
+        object.show_bounds = True
+        
         return {'FINISHED'}
 
-
-
-
-'''
-class TEXT_OT_add_inline_rib(bpy.types.Operator):
-    """
-    This operator is only intended for when there are no
-    blender text datablocks in the file. Just for convenience
-    """
-    bl_label = "Add New"
-    bl_idname = "text.add_inline_rib"
-
-    context = StringProperty(
-                name="Context",
-                description="Name of context member to find renderman pointer in",
-                default="")
-    collection = StringProperty(
-                name="Collection",
-                description="The collection to manipulate",
-                default="")
+''' # Item that is not needed because of the switch.
+class ExportRIBArchive(bpy.types.Operator):
+    bl_idname = "global.export_rib_archive"
+    bl_label = "Export RIB Archives for scene"
+    bl_description = "Export the scene to disk without rendering."
 
     def execute(self, context):
-        if len(bpy.data.texts) > 0:
-            return {'CANCELLED'}
-        bpy.data.texts.new(name="Inline RIB")
-
-        id = getattr_recursive(context, self.properties.context)
-        rm = id.renderman
-        collection = getattr(rm, prop_coll)
+        rpass = RPass(context.scene, interactive=False)
+        
+        rpass.convert_textures(get_texture_list(context.scene))
+        rpass.ri.Begin(rpass.paths['rib_output'])
+        rpass.ri.Option("rib", {"string asciistyle": "indented,wide"})
+        
+        write_rib(rpass, context.scene, rpass.ri)
+        
+        rpass.ri.End()
+        return {'FINISHED'}
 '''
 
 
-# Yuck, this should be built in to blender...
+
+
+# Yuck, this should be built in to blender... Yes it should
 class COLLECTION_OT_add_remove(bpy.types.Operator):
     bl_label = "Add or Remove Paths"
     bl_idname = "collection.add_remove"
@@ -312,20 +333,293 @@ class OT_add_aov_list(bpy.types.Operator):
         return {'FINISHED'}
 
 
+#################
+#       Tab     #
+#################
+
+class Add_Subdiv_Sheme(bpy.types.Operator):
+    bl_idname = "object.add_subdiv_sheme"
+    bl_label = "Add Subdiv Sheme"
+    bl_description = ""
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        bpy.context.object.renderman.primitive = 'SUBDIVISION_MESH'
+
+        return {"FINISHED"}
+        
+class RM_Add_Area(bpy.types.Operator):
+    bl_idname = "object.mr_add_area"
+    bl_label = "Add Renderman Area"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    def execute(self, context):
+ 
+        bpy.ops.object.lamp_add(type='AREA')
+        bpy.ops.shading.add_renderman_nodetree({'material':None,'lamp':bpy.context.active_object.data},idtype='lamp')
+        return {"FINISHED"}
+
+class RM_Add_Hemi(bpy.types.Operator):
+    bl_idname = "object.mr_add_hemi"
+    bl_label = "Add Renderman Hemi"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    def execute(self, context):
+ 
+        bpy.ops.object.lamp_add(type='HEMI')
+        bpy.ops.shading.add_renderman_nodetree({'material':None,'lamp':bpy.context.active_object.data},idtype='lamp')
+        return {"FINISHED"}
+
+class RM_Add_Sky(bpy.types.Operator):
+    bl_idname = "object.mr_add_sky"
+    bl_label = "Add Renderman Sky"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    def execute(self, context):
+        bpy.ops.object.lamp_add(type='SUN')
+        bpy.ops.shading.add_renderman_nodetree({'material':None,'lamp':bpy.context.active_object.data},idtype='lamp')
+        bpy.context.object.data.renderman.renderman_type = 'SKY'
+        
+        
+        return {"FINISHED"}
+
+class Add_bxdf(bpy.types.Operator):
+    bl_idname = "object.add_bxdf"
+    bl_label = "Add BXDF"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+    
+    bxdf_name = StringProperty(name="Bxdf Name", default="PxrDisney")
+ 
+    def execute(self, context):
+        selection = bpy.context.selected_objects
+        bxdf_name = self.properties.bxdf_name
+        mat = bpy.data.materials.new(bxdf_name)
+        
+        bpy.ops.shading.add_renderman_nodetree({'lamp':None, 'material':mat}, idtype='material')
+        
+        for obj in selection:
+            bpy.ops.object.material_slot_add()
+
+            obj.material_slots[-1].material = mat
+
+        return {"FINISHED"}
+
+class add_GeoLight(bpy.types.Operator):
+    bl_idname = "object.addgeoarealight"
+    bl_label = "Add GeoAreaLight"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    bxdf_name = StringProperty(name="Bxdf Name", default="PxrDisney")
+ 
+    def execute(self, context):
+        selection = bpy.context.selected_objects
+        bxdf_name = self.properties.bxdf_name
+        mat = bpy.data.materials.new(bxdf_name)
+ 
+        bpy.ops.shading.add_renderman_nodetree({'lamp':None, 'material':mat}, idtype='material')
+        
+ 
+        for obj in selection:
+            bpy.ops.object.material_slot_add()
+ 
+            obj.material_slots[-1].material = mat
+        bpy.ops.node.add_light(node_type='PxrAreaLightLightNode') 
+        return {"FINISHED"}
+
+class Select_Lights(bpy.types.Operator):
+    bl_idname = "object.selectlights"
+    bl_label = "Select Lights"
+ 
+    Light_Name = bpy.props.StringProperty(default="")
+ 
+    def execute(self, context):
+ 
+        bpy.ops.object.select_all(action='DESELECT')   
+        bpy.data.objects[self.Light_Name].select=True
+        bpy.context.scene.objects.active=bpy.data.objects[self.Light_Name]
+ 
+        return {'FINISHED'}    
+ 
+ 
+class Hemi_List_Menu(bpy.types.Menu):
+    bl_idname = "object.hemi_list_menu"
+    bl_label = "EnvLight list"
+ 
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+ 
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+ 
+ 
+        if len(lamps): 
+            for lamp in lamps:
+                if lamp.data.type == 'HEMI' : 
+                    name = lamp.name
+                    op = layout.operator("object.selectlights", text = name, icon = 'LAMP_HEMI')
+                    op.Light_Name = name
+ 
+        else:
+            layout.label("No EnvLight in the Scene")
+ 
+class Area_List_Menu(bpy.types.Menu):
+    bl_idname = "object.area_list_menu"
+    bl_label = "AreaLight list"
+ 
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+ 
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+ 
+ 
+        if len(lamps): 
+            for lamp in lamps:
+                if lamp.data.type == 'AREA' : 
+                    name = lamp.name
+                    op = layout.operator("object.selectlights", text = name, icon = 'LAMP_AREA')
+                    op.Light_Name = name
+ 
+        else:
+            layout.label("No AreaLight in the Scene")
+ 
+class DayLight_List_Menu(bpy.types.Menu):
+    bl_idname = "object.daylight_list_menu"
+    bl_label = "DayLight list"
+ 
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+ 
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+ 
+ 
+        if len(lamps): 
+            for lamp in lamps:
+                if lamp.data.type == 'SUN' : 
+                    name = lamp.name
+                    op = layout.operator("object.selectlights", text = name, icon = 'LAMP_SUN')
+                    op.Light_Name = name
+ 
+        else:
+            layout.label("No Daylight in the Scene")
+
+class Select_Cameras(bpy.types.Operator):
+    bl_idname = "object.select_cameras"
+    bl_label = "Select Cameras"
+ 
+    Camera_Name = bpy.props.StringProperty(default="")
+ 
+    def execute(self, context):
+ 
+        bpy.ops.object.select_all(action='DESELECT')   
+        bpy.data.objects[self.Camera_Name].select=True
+        bpy.context.scene.objects.active=bpy.data.objects[self.Camera_Name]
+ 
+        return {'FINISHED'}    
+            
+class Camera_List_Menu(bpy.types.Menu):
+    bl_idname = "object.camera_list_menu"
+    bl_label = "Camera list"
+ 
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+ 
+        cameras = [obj for obj in bpy.context.scene.objects if obj.type == "CAMERA"]
+ 
+ 
+        if len(cameras): 
+            for cam in cameras:
+                name = cam.name
+                op = layout.operator("object.select_cameras", text = name, icon = 'CAMERA_DATA')
+                op.Camera_Name = name
+ 
+        else:
+            layout.label("No Camera in the Scene")
+
+class DeleteLights(bpy.types.Operator):
+    bl_idname = "object.delete_lights"
+    bl_label = "Delete Lights"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        
+        type_light = bpy.context.object.data.type
+        bpy.ops.object.delete()
+        
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP" and obj.data.type == type_light]
+         
+        if len(lamps): 
+            lamps[0].select=True
+            bpy.context.scene.objects.active=lamps[0]
+            return {"FINISHED"}
+        
+        else :
+            return {"FINISHED"}
+
+class Deletecameras(bpy.types.Operator):
+    bl_idname = "object.delete_cameras"
+    bl_label = "Delete Cameras"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    def execute(self, context):
+ 
+        type_camera = bpy.context.object.data.type
+        bpy.ops.object.delete()
+ 
+        camera = [obj for obj in bpy.context.scene.objects if obj.type == "CAMERA" and obj.data.type == type_camera]
+ 
+        if len(camera): 
+            camera[0].select=True
+            bpy.context.scene.objects.active=camera[0]
+            return {"FINISHED"}
+ 
+        else :
+            return {"FINISHED"}
+        
+ 
+class AddCamera(bpy.types.Operator):
+    bl_idname = "object.add_prm_camera"
+    bl_label = "Add Camera"
+    bl_description = "Add a Camera in the Scene"
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    def execute(self, context):
+        
+        bpy.context.space_data.lock_camera=False
+        
+        bpy.ops.object.camera_add()
+ 
+        bpy.ops.view3d.object_as_camera()
+         
+        bpy.ops.view3d.viewnumpad(type="CAMERA")
+         
+        bpy.ops.view3d.camera_to_view()
+
+        bpy.context.object.data.clip_end = 10000
+        bpy.context.object.data.lens = 85
+        
+
+        return {"FINISHED"}
+
 # Menus
-export_archive_menu_func = (lambda self, context: self.layout.operator(
-    ExportRIBArchive.bl_idname, text="RIB Archive (.rib)"))
 compile_shader_menu_func = (lambda self, context: self.layout.operator(
     TEXT_OT_compile_shader.bl_idname))
 
 
 def register():
-    bpy.types.INFO_MT_file_export.append(export_archive_menu_func)
     bpy.types.TEXT_MT_text.append(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.append(compile_shader_menu_func)
 
 
 def unregister():
-    bpy.types.INFO_MT_file_export.remove(export_archive_menu_func)
     bpy.types.TEXT_MT_text.remove(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.remove(compile_shader_menu_func)

@@ -26,9 +26,9 @@ import bpy
 import sys
 
 bl_info = {
-    "name": "PRMan Render Engine",
+    "name": "RenderMan For Blender",
     "author": "Brian Savery",
-    "version": (0, 5, 0),
+    "version": (0, 7, 0),
     "blender": (2, 74, 0),
     "location": "Info Header, render engine menu",
     "description": "RenderMan 20.0 integration",
@@ -40,7 +40,7 @@ from . import engine
 
 class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
-    bl_label = "PRMan Render"
+    bl_label = "RenderMan Render"
     bl_use_preview = True
     bl_use_save_buffers = True
 
@@ -82,6 +82,7 @@ def register():
     from . import properties
     from . import operators
     from . import nodes
+    from . import icons
     preferences.register()
     properties.register()
     operators.register()
@@ -99,7 +100,7 @@ def unregister():
     from . import properties
     from . import operators
     from . import nodes
-
+    from . import icons
     preferences.unregister()
     properties.unregister()
     operators.unregister()
