@@ -82,6 +82,7 @@ def register():
     from . import properties
     from . import operators
     from . import nodes
+    from . import icons
     preferences.register()
     properties.register()
     operators.register()
@@ -99,7 +100,7 @@ def unregister():
     from . import properties
     from . import operators
     from . import nodes
-
+    from . import icons
     preferences.unregister()
     properties.unregister()
     operators.unregister()

@@ -333,6 +333,283 @@ class OT_add_aov_list(bpy.types.Operator):
         return {'FINISHED'}
 
 
+#################
+#       Tab     #
+#################
+
+class Add_Subdiv_Sheme(bpy.types.Operator):
+    bl_idname = "object.add_subdiv_sheme"
+    bl_label = "Add Subdiv Sheme"
+    bl_description = ""
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        bpy.context.object.renderman.primitive = 'SUBDIVISION_MESH'
+
+        return {"FINISHED"}
+        
+class RM_Add_Area(bpy.types.Operator):
+    bl_idname = "object.mr_add_area"
+    bl_label = "Add Renderman Area"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    def execute(self, context):
+ 
+        bpy.ops.object.lamp_add(type='AREA')
+        bpy.ops.shading.add_renderman_nodetree({'material':None,'lamp':bpy.context.active_object.data},idtype='lamp')
+        return {"FINISHED"}
+
+class RM_Add_Hemi(bpy.types.Operator):
+    bl_idname = "object.mr_add_hemi"
+    bl_label = "Add Renderman Hemi"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    def execute(self, context):
+ 
+        bpy.ops.object.lamp_add(type='HEMI')
+        bpy.ops.shading.add_renderman_nodetree({'material':None,'lamp':bpy.context.active_object.data},idtype='lamp')
+        return {"FINISHED"}
+
+class RM_Add_Sky(bpy.types.Operator):
+    bl_idname = "object.mr_add_sky"
+    bl_label = "Add Renderman Sky"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    def execute(self, context):
+        bpy.ops.object.lamp_add(type='SUN')
+        bpy.ops.shading.add_renderman_nodetree({'material':None,'lamp':bpy.context.active_object.data},idtype='lamp')
+        bpy.context.object.data.renderman.renderman_type = 'SKY'
+        
+        
+        return {"FINISHED"}
+
+class Add_bxdf(bpy.types.Operator):
+    bl_idname = "object.add_bxdf"
+    bl_label = "Add BXDF"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+    
+    bxdf_name = StringProperty(name="Bxdf Name", default="PxrDisney")
+ 
+    def execute(self, context):
+        selection = bpy.context.selected_objects
+        bxdf_name = self.properties.bxdf_name
+        mat = bpy.data.materials.new(bxdf_name)
+        
+        bpy.ops.shading.add_renderman_nodetree({'lamp':None, 'material':mat}, idtype='material')
+        
+        for obj in selection:
+            bpy.ops.object.material_slot_add()
+
+            obj.material_slots[-1].material = mat
+
+        return {"FINISHED"}
+
+class add_GeoLight(bpy.types.Operator):
+    bl_idname = "object.addgeoarealight"
+    bl_label = "Add GeoAreaLight"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    bxdf_name = StringProperty(name="Bxdf Name", default="PxrDisney")
+ 
+    def execute(self, context):
+        selection = bpy.context.selected_objects
+        bxdf_name = self.properties.bxdf_name
+        mat = bpy.data.materials.new(bxdf_name)
+ 
+        bpy.ops.shading.add_renderman_nodetree({'lamp':None, 'material':mat}, idtype='material')
+        
+ 
+        for obj in selection:
+            bpy.ops.object.material_slot_add()
+ 
+            obj.material_slots[-1].material = mat
+        bpy.ops.node.add_light(node_type='PxrAreaLightLightNode') 
+        return {"FINISHED"}
+
+class Select_Lights(bpy.types.Operator):
+    bl_idname = "object.selectlights"
+    bl_label = "Select Lights"
+ 
+    Light_Name = bpy.props.StringProperty(default="")
+ 
+    def execute(self, context):
+ 
+        bpy.ops.object.select_all(action='DESELECT')   
+        bpy.data.objects[self.Light_Name].select=True
+        bpy.context.scene.objects.active=bpy.data.objects[self.Light_Name]
+ 
+        return {'FINISHED'}    
+ 
+ 
+class Hemi_List_Menu(bpy.types.Menu):
+    bl_idname = "object.hemi_list_menu"
+    bl_label = "EnvLight list"
+ 
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+ 
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+ 
+ 
+        if len(lamps): 
+            for lamp in lamps:
+                if lamp.data.type == 'HEMI' : 
+                    name = lamp.name
+                    op = layout.operator("object.selectlights", text = name, icon = 'LAMP_HEMI')
+                    op.Light_Name = name
+ 
+        else:
+            layout.label("No EnvLight in the Scene")
+ 
+class Area_List_Menu(bpy.types.Menu):
+    bl_idname = "object.area_list_menu"
+    bl_label = "AreaLight list"
+ 
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+ 
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+ 
+ 
+        if len(lamps): 
+            for lamp in lamps:
+                if lamp.data.type == 'AREA' : 
+                    name = lamp.name
+                    op = layout.operator("object.selectlights", text = name, icon = 'LAMP_AREA')
+                    op.Light_Name = name
+ 
+        else:
+            layout.label("No AreaLight in the Scene")
+ 
+class DayLight_List_Menu(bpy.types.Menu):
+    bl_idname = "object.daylight_list_menu"
+    bl_label = "DayLight list"
+ 
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+ 
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+ 
+ 
+        if len(lamps): 
+            for lamp in lamps:
+                if lamp.data.type == 'SUN' : 
+                    name = lamp.name
+                    op = layout.operator("object.selectlights", text = name, icon = 'LAMP_SUN')
+                    op.Light_Name = name
+ 
+        else:
+            layout.label("No Daylight in the Scene")
+
+class Select_Cameras(bpy.types.Operator):
+    bl_idname = "object.select_cameras"
+    bl_label = "Select Cameras"
+ 
+    Camera_Name = bpy.props.StringProperty(default="")
+ 
+    def execute(self, context):
+ 
+        bpy.ops.object.select_all(action='DESELECT')   
+        bpy.data.objects[self.Camera_Name].select=True
+        bpy.context.scene.objects.active=bpy.data.objects[self.Camera_Name]
+ 
+        return {'FINISHED'}    
+            
+class Camera_List_Menu(bpy.types.Menu):
+    bl_idname = "object.camera_list_menu"
+    bl_label = "Camera list"
+ 
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+ 
+        cameras = [obj for obj in bpy.context.scene.objects if obj.type == "CAMERA"]
+ 
+ 
+        if len(cameras): 
+            for cam in cameras:
+                name = cam.name
+                op = layout.operator("object.select_cameras", text = name, icon = 'CAMERA_DATA')
+                op.Camera_Name = name
+ 
+        else:
+            layout.label("No Camera in the Scene")
+
+class DeleteLights(bpy.types.Operator):
+    bl_idname = "object.delete_lights"
+    bl_label = "Delete Lights"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        
+        type_light = bpy.context.object.data.type
+        bpy.ops.object.delete()
+        
+        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP" and obj.data.type == type_light]
+         
+        if len(lamps): 
+            lamps[0].select=True
+            bpy.context.scene.objects.active=lamps[0]
+            return {"FINISHED"}
+        
+        else :
+            return {"FINISHED"}
+
+class Deletecameras(bpy.types.Operator):
+    bl_idname = "object.delete_cameras"
+    bl_label = "Delete Cameras"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    def execute(self, context):
+ 
+        type_camera = bpy.context.object.data.type
+        bpy.ops.object.delete()
+ 
+        camera = [obj for obj in bpy.context.scene.objects if obj.type == "CAMERA" and obj.data.type == type_camera]
+ 
+        if len(camera): 
+            camera[0].select=True
+            bpy.context.scene.objects.active=camera[0]
+            return {"FINISHED"}
+ 
+        else :
+            return {"FINISHED"}
+        
+ 
+class AddCamera(bpy.types.Operator):
+    bl_idname = "object.add_prm_camera"
+    bl_label = "Add Camera"
+    bl_description = "Add a Camera in the Scene"
+    bl_options = {"REGISTER", "UNDO"}
+ 
+    def execute(self, context):
+        
+        bpy.context.space_data.lock_camera=False
+        
+        bpy.ops.object.camera_add()
+ 
+        bpy.ops.view3d.object_as_camera()
+         
+        bpy.ops.view3d.viewnumpad(type="CAMERA")
+         
+        bpy.ops.view3d.camera_to_view()
+
+        bpy.context.object.data.clip_end = 10000
+        bpy.context.object.data.lens = 85
+        
+
+        return {"FINISHED"}
+
 # Menus
 compile_shader_menu_func = (lambda self, context: self.layout.operator(
     TEXT_OT_compile_shader.bl_idname))
