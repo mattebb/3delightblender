@@ -1434,7 +1434,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
      
                 row = box.row(align=True)
                 row.prop(ob, "name", text="", icon='LAMP_HEMI') 
-                row.prop(ob, "hide", icon='VISIBLE_IPO_ON', text="")
+                row.prop(ob, "hide", text="")
                 row.prop(ob, "hide_render", icon='RESTRICT_RENDER_OFF', text="")
                 row.operator("object.delete_cameras", text="", icon='PANEL_CLOSE')
                 
@@ -1518,7 +1518,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                    
                     row = box.row(align=True)
                     row.prop(ob, "name", text="", icon='LAMP_HEMI') 
-                    row.prop(ob, "hide", icon='VISIBLE_IPO_ON', text="")
+                    row.prop(ob, "hide", text="")
                     row.prop(ob, "hide_render", icon='RESTRICT_RENDER_OFF', text="")
                     row.operator("object.delete_lights", text="", icon='PANEL_CLOSE')
                     row = box.row(align=True)
@@ -1575,7 +1575,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
          
                     row = box.row(align=True)
                     row.prop(ob, "name", text="", icon='LAMP_AREA') 
-                    row.prop(ob, "hide", icon='VISIBLE_IPO_ON', text="")
+                    row.prop(ob, "hide", text="")
                     row.prop(ob, "hide_render", icon='RESTRICT_RENDER_OFF', text="")
                     row.operator("object.delete_lights", text="", icon='PANEL_CLOSE')
          
@@ -1631,7 +1631,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
          
                     row = box.row(align=True)
                     row.prop(ob, "name", text="", icon='LAMP_SUN') 
-                    row.prop(ob, "hide", icon='VISIBLE_IPO_ON', text="")
+                    row.prop(ob, "hide", text="")
                     row.prop(ob, "hide_render", icon='RESTRICT_RENDER_OFF', text="")
                     row.operator("object.delete_lights", text="", icon='PANEL_CLOSE')
          

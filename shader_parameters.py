@@ -458,7 +458,7 @@ def generate_txmake_options(parent_name):
     for option in txmake.index:
         optionObject = getattr(txmake, option)
         if optionObject['type'] == "bool":
-            optionsMeta[optionObject["name"]] = {'renderman_name' : 'filename', #Proxy Meta information for the UI system. DO NOT USE FOR ANYTHING!
+            optionsMeta[optionObject["name"]] = {'renderman_name' : 'ishouldnotexport', #Proxy Meta information for the UI system. DO NOT USE FOR ANYTHING!
                                                  'name' : optionObject["name"], 
                                                  'renderman_type' : 'bool' , 
                                                  'default' : '', 
@@ -473,7 +473,7 @@ def generate_txmake_options(parent_name):
                                                               default=optionObject["default"], 
                                                               description=optionObject["help"],
                                                               items=optionObject["items"])
-            optionsMeta[optionObject["name"]] = {'renderman_name': 'filename', 
+            optionsMeta[optionObject["name"]] = {'renderman_name': 'ishouldnotexport', 
                                                  'name': optionObject["name"],
                                                  'renderman_type': 'enum',
                                                  'default': '',
@@ -483,7 +483,7 @@ def generate_txmake_options(parent_name):
                                                  'widget': 'mapper',
                                                  'connectable': 'false'}
         elif optionObject['type'] == "float":
-            optionsMeta[optionObject["name"]] = {'renderman_name': 'filename', 
+            optionsMeta[optionObject["name"]] = {'renderman_name': 'ishouldnotexport', 
                                                  'name': optionObject["name"],
                                                  'renderman_type': 'float',
                                                  'default': '',

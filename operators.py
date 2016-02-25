@@ -48,6 +48,7 @@ from .export import get_texture_list
 from .engine import RPass
 from .export import debug
 from .export import write_single_RIB
+from .export import EXCLUDED_OBJECT_TYPES
 from . import engine
 
 from bpy_extras.io_utils import ExportHelper
@@ -402,9 +403,10 @@ class Add_bxdf(bpy.types.Operator):
         bpy.ops.shading.add_renderman_nodetree({'lamp':None, 'material':mat}, idtype='material')
         
         for obj in selection:
-            bpy.ops.object.material_slot_add()
+            if(obj.type not in EXCLUDED_OBJECT_TYPES):
+                bpy.ops.object.material_slot_add()
 
-            obj.material_slots[-1].material = mat
+                obj.material_slots[-1].material = mat
 
         return {"FINISHED"}
 
@@ -425,10 +427,10 @@ class add_GeoLight(bpy.types.Operator):
         
  
         for obj in selection:
-            bpy.ops.object.material_slot_add()
- 
-            obj.material_slots[-1].material = mat
-        bpy.ops.node.add_light(node_type='PxrAreaLightLightNode') 
+            if(obj.type not in EXCLUDED_OBJECT_TYPES):
+                bpy.ops.object.material_slot_add() 
+                obj.material_slots[-1].material = mat
+                #bpy.ops.node.add_light(node_type='PxrAreaLightLightNode') 
         return {"FINISHED"}
 
 class Select_Lights(bpy.types.Operator):
