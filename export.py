@@ -27,6 +27,7 @@ import bpy
 import math
 import mathutils
 import os
+import sys
 import time
 from mathutils import Matrix, Vector, Quaternion
 
@@ -1898,9 +1899,15 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
 
     for db_name in instance.data_block_names:
         if db_name in data_blocks:
-            export_data_read_archive(ri, data_blocks[db_name], rpass)
+            if(hasattr(data_blocks[db_name].data,'renderman')):
+                if(data_blocks[db_name].data.renderman.geometry_source == 'ARCHIVE'):
+                    export_data_rib_archive(ri, data_blocks[db_name], instance, rpass)
+                else:
+                    export_data_read_archive(ri, data_blocks[db_name], rpass)
+            else:
+                export_data_read_archive(ri, data_blocks[db_name], rpass)
 
-    # now the children
+        # now the children
     for child_name in instance.children:
         if child_name in instances:
             export_instance_read_archive(
@@ -1926,9 +1933,76 @@ def export_data_read_archive(ri, data_block, rpass):
         if data_block.type != 'DUPLI':
             ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
         ri.ReadArchive(archive_filename)
-
+        
+        
     ri.AttributeEnd()
 
+def export_data_rib_archive(ri, data_block, instance , rpass):
+    
+    arvhiveInfo = instance.ob.renderman #Fake remove non path instances when archive reading is done!!!
+    
+    relPath = get_real_path(arvhiveInfo.path_archive)
+
+    
+    dataFromArchive = import_archive_manifest(arvhiveInfo.path_archive)
+    
+    objectName = dataFromArchive['objectName']
+    objectMaterial = dataFromArchive['objectMaterial']
+    
+    if(objectMaterial == None):
+        materialInArchive = False
+    else:
+        materialInArchive = True
+
+    archiveAnimated = dataFromArchive['animated']
+
+    if materialInArchive:
+        if arvhiveInfo.archive_anim_settings.animated_sequence and archiveAnimated:
+            relPath += "This is a test really need some frames here."
+            ri.ReadArchive(relPath)
+        else:
+            relPath += "!materials.rib"
+            ri.ReadArchive(relPath)
+    
+    ri.AttributeBegin()
+    
+
+
+
+    if(materialInArchive):
+        ri.ReadArchive( 'material.' + objectMaterial)
+
+        
+    #Replace with dataFromArchive before deployment.
+    archive_filename = get_real_path(arvhiveInfo.path_archive) + "!" + objectName +".rib"
+    bounds = get_bounding_box(data_block.data)
+    params = {"string filename": archive_filename,
+            "float[6] bound": bounds}
+    ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
+    
+    
+    
+    ri.AttributeEnd()
+    
+    #This is the point we deal with partical systems
+    psysList = dataFromArchive['physics']
+    if(psysList):
+        for psysObj in psysList:
+            ri.AttributeBegin()
+            psysName = psysObj['Name']
+            psysMaterial = psysObj['Material']
+            if(psysMaterial != None):
+                ri.ReadArchive( 'material.' + psysMaterial)
+            #else:
+                #export_material_archive(ri, data_block.material)
+            
+            psysFilePath = get_real_path(arvhiveInfo.path_archive) + "!" + psysName +".rib"
+            
+            ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
+            
+            ri.ReadArchive(psysFilePath)
+            
+            ri.AttributeEnd()
 
 def export_archive(*args):
     pass
@@ -2692,18 +2766,87 @@ def write_preview_rib(rpass, scene, ri):
     ri.FrameEnd()
 
 
-def write_single_RIB(rpass, scene, ri, object):
-
-    # precalculate motion blur data
+def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, exportRange):
+    success = True # Store if the export is a success or not
+    
+    fileExt = ".zip"
+    
+    # precalculate data
     data_blocks, instances = cache_motion_single_object(scene, rpass, object)
-    # export rib archives of objects
-    export_data_archives(ri, scene, rpass, data_blocks)
-
+    
+    
+    #Override precalculated data (simpler then creating new methods)
     for name, db in data_blocks.items():
         fileName = db.archive_filename
-    return fileName
+        debug("info", "The archive name is ", fileName)
+        if(overridePath != "" and os.path.exists(os.path.split(overridePath)[0])):
+            db.do_export = True # Assume that the user always wants an export when this method is called.
+            db.archive_filename = os.path.split(fileName)[1]
+        else:
+            success = False
+            
 
-
+    
+    #Open zip file for writing
+    if(overridePath != ""):
+        archivePath = os.path.join(os.path.split(overridePath)[0], object.name + fileExt)
+        ri.Begin(archivePath)
+        ri.End()
+    else:
+        success = False
+        '''
+    if(success == True):
+        # export rib archives of objects
+        if(exportRange):
+            rangeStart = scene.frame_start
+            rangeEnd = scene.frame_end
+            rangeLength = rangeEnd - rangeStart
+            # Assume user is smart and wont pass us a negative range. Please!
+            for i in range(rangeStart, rangeEnd+1):
+                scene.frame_current = i
+                zeroFill = str(i).zfill(4)
+                data_blocks, instances = cache_motion_single_object(scene, rpass, object)
+                for name, db in data_blocks.items():
+                    fileName = db.archive_filename
+                    db.do_export = True
+                    db.archive_filename = os.path.join( zeroFill, os.path.split(fileName)[1])
+                export_data_archives(ri, scene, rpass, data_blocks)
+                if(exportMats):
+                    useMaterials = True
+                    materialsList = object.material_slots
+                    ri.Begin(os.path.join(zeroFill ,"materials" + str(i) +".rib"))
+                    for materialSlot in materialsList:
+                        ri.ArchiveBegin('material.' + materialSlot.name)
+                        export_material(ri, materialSlot.material)
+                        ri.ArchiveEnd()
+                else:
+                    useMaterials = False
+                    ri.End()
+        else:
+            export_data_archives(ri, scene, rpass, data_blocks)
+            #If we need to export material do it
+            if(exportMats):
+                useMaterials = True
+                materialsList = object.material_slots
+                ri.Begin("materials.rib")
+                for materialSlot in materialsList:
+                    ri.ArchiveBegin('material.' + materialSlot.name)
+                    export_material(ri, materialSlot.material)
+                    ri.ArchiveEnd()
+                ri.End()
+            else:
+                useMaterials = False
+        ri.End()
+    
+    
+    #Export manifest file
+    success = export_archive_manifest(archivePath, data_blocks, exportRange, scene, useMaterials)
+    '''
+        
+    returnList = [success, archivePath]
+    return returnList
+    
+    
 def anim_archive_path(filepath, frame):
     if filepath.find("#") != -1:
         ribpath = make_frame_path(filepath, fr)
