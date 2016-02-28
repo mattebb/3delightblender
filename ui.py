@@ -720,6 +720,8 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
                 (n for n in nt.nodes if n.renderman_node_type == 'output'), None)
             lamp_node = output_node.inputs['Light'].links[0].from_node
             if lamp_node:
+                layout.prop(lamp_node, 'light_primary_visibility')
+                layout.prop(lamp_node, 'light_shading_rate')
                 draw_node_properties_recursive(self.layout, context, nt, lamp_node)
         
 
