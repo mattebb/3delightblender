@@ -1476,47 +1476,7 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     trace_set = CollectionProperty(type=TraceSet, name='Trace Set')
     trace_set_index = IntProperty(min=-1, default=-1)
 
-class Tab_CollectionGroup(bpy.types.PropertyGroup):
-        
-    #################
-    #       Tab     #
-    #################
-         
-    bpy.types.Scene.rm_ipr = BoolProperty(
-        name="IPR settings",
-        description="Show some usefull setting for the Interactive Rendering",
-        default=False)
-     
-    bpy.types.Scene.rm_render = BoolProperty(
-        name="Render settings",
-        description="Show some usefull setting for the Rendering",
-        default=False)
-    
-    bpy.types.Scene.rm_help = BoolProperty(
-        name="Help",
-        description="Show some links about Renderman and the documentation",
-        default=False)
-    
-    bpy.types.Scene.rm_env = BoolProperty(
-        name="Envlight",
-        description="Show some settings about the selected Env light",
-        default=False)
-    
-    bpy.types.Scene.rm_area = BoolProperty(
-        name="AreaLight",
-        description="Show some settings about the selected Area Light",
-        default=False)
-        
-    bpy.types.Scene.rm_daylight = BoolProperty(
-        name="DayLight",
-        description="Show some settings about the selected Day Light",
-        default=False)
-   
-    bpy.types.Scene.prm_cam = BoolProperty(
-        name="Renderman Camera",
-        description="Show some settings about the camera",
-        default=False)
-   
+
 # collection of property group classes that need to be registered on
 # module startup
 classes = [RendermanPath,
@@ -1540,8 +1500,7 @@ classes = [RendermanPath,
            RendermanSceneSettings,
            RendermanMeshGeometrySettings,
            RendermanCurveGeometrySettings,
-           RendermanObjectSettings,
-           Tab_CollectionGroup
+           RendermanObjectSettings
            ]
 
 
