@@ -1072,6 +1072,10 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 pass
             if node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
                 pass
+            
+            if(prop_name == 'sblur' or prop_name == 'tblur'):
+                pass
+            
             else:
                 prop = getattr(node, prop_name)
                 # if property group recurse
