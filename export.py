@@ -1888,10 +1888,12 @@ def export_data_archives(ri, scene, rpass, data_blocks):
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
         ri.End()
 
-def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks):
+def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterials):
     for name, db in data_blocks.items():
         if not db.do_export:
             continue
+        if(db.material and exportMaterials):
+            export_material_archive(ri, db.material)
         if db.type == "MESH":
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
@@ -1956,36 +1958,18 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
     relPath = get_real_path(arvhiveInfo.path_archive)
 
     
-    dataFromArchive = import_archive_manifest(arvhiveInfo.path_archive)
+    #dataFromArchive = import_archive_manifest(arvhiveInfo.path_archive)
     
     objectName = dataFromArchive['objectName']
     objectMaterial = dataFromArchive['objectMaterial']
     
-    if(objectMaterial == None):
-        materialInArchive = False
-    else:
-        materialInArchive = True
 
-    archiveAnimated = dataFromArchive['animated']
+    #archiveAnimated = 
 
-    if materialInArchive:
-        if arvhiveInfo.archive_anim_settings.animated_sequence and archiveAnimated:
-            relPath += "This is a test really need some frames here."
-            ri.ReadArchive(relPath)
-        else:
-            relPath += "!materials.rib"
-            ri.ReadArchive(relPath)
-    
     ri.AttributeBegin()
     
 
-
-
-    if(materialInArchive):
-        ri.ReadArchive( 'material.' + objectMaterial)
-
         
-    #Replace with dataFromArchive before deployment.
     archive_filename = get_real_path(arvhiveInfo.path_archive) + "!" + objectName +".rib"
     bounds = get_bounding_box(data_block.data)
     params = {"string filename": archive_filename,
@@ -1995,7 +1979,7 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
     
     
     ri.AttributeEnd()
-    
+    '''
     #This is the point we deal with partical systems
     psysList = dataFromArchive['physics']
     if(psysList):
@@ -2015,7 +1999,7 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
             ri.ReadArchive(psysFilePath)
             
             ri.AttributeEnd()
-
+'''
 def export_archive(*args):
     pass
 
@@ -2696,7 +2680,7 @@ def export_hider(ri, rpass, scene, preview=False):
         ri.Hider(rm.hider, hider_params)
 
 
-# I hate to make rpass global but it makes so much easier
+# I hate to make rpass global but it makes things so much easier
 def write_rib(rpass, scene, ri):
 
     # precalculate motion blur data
@@ -2833,23 +2817,20 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                         export_material(ri, materialSlot.material)
                         ri.ArchiveEnd()
                 else:
-                    useMaterials = False
                     ri.End()
         else:
             archivePath = object.name + ".rib"
             ri.Begin(archivePath)
             debug('info', "Second path: ", archivePath)
-            export_RIBArchive_data_archive(ri, scene, rpass, data_blocks)
             #If we need to export material bake it in
             if(exportMats):
-                useMaterials = True
                 materialsList = object.material_slots
                 for materialSlot in materialsList:
                     ri.ArchiveBegin('material.' + materialSlot.name)
                     export_material(ri, materialSlot.material)
                     ri.ArchiveEnd()
-            else:
-                useMaterials = False
+            export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats)
+
             ri.End()
         ri.End()
     
