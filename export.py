@@ -1879,6 +1879,7 @@ def export_data_archives(ri, scene, rpass, data_blocks):
         if not db.do_export:
             continue
         ri.Begin(db.archive_filename)
+        debug('info', db.archive_filename)
         if db.type == "MESH":
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
@@ -1887,6 +1888,17 @@ def export_data_archives(ri, scene, rpass, data_blocks):
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
         ri.End()
 
+def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks):
+    for name, db in data_blocks.items():
+        if not db.do_export:
+            continue
+        if db.type == "MESH":
+            export_mesh_archive(ri, scene, db)
+        elif db.type == "PSYS":
+            export_particle_archive(ri, scene, rpass, db)
+        elif db.type == "DUPLI":
+            export_dupli_archive(ri, scene, rpass, db, data_blocks)
+        
 
 # export each data read archive
 def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is_child=False):
@@ -2791,10 +2803,11 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
     if(overridePath != ""):
         archivePath = os.path.join(os.path.split(overridePath)[0], object.name + fileExt)
         ri.Begin(archivePath)
-        ri.End()
+        debug('info', archivePath)
+        #ri.End()
     else:
         success = False
-        '''
+        
     if(success == True):
         # export rib archives of objects
         if(exportRange):
@@ -2823,25 +2836,26 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                     useMaterials = False
                     ri.End()
         else:
-            export_data_archives(ri, scene, rpass, data_blocks)
-            #If we need to export material do it
+            archivePath = object.name + ".rib"
+            ri.Begin(archivePath)
+            debug('info', "Second path: ", archivePath)
+            export_RIBArchive_data_archive(ri, scene, rpass, data_blocks)
+            #If we need to export material bake it in
             if(exportMats):
                 useMaterials = True
                 materialsList = object.material_slots
-                ri.Begin("materials.rib")
                 for materialSlot in materialsList:
                     ri.ArchiveBegin('material.' + materialSlot.name)
                     export_material(ri, materialSlot.material)
                     ri.ArchiveEnd()
-                ri.End()
             else:
                 useMaterials = False
+            ri.End()
         ri.End()
     
-    
     #Export manifest file
-    success = export_archive_manifest(archivePath, data_blocks, exportRange, scene, useMaterials)
-    '''
+    #success = export_archive_manifest(archivePath, data_blocks, exportRange, scene, useMaterials)
+    
         
     returnList = [success, archivePath]
     return returnList
