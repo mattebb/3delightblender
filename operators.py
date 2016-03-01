@@ -214,14 +214,19 @@ class ExportRIBObject(bpy.types.Operator):
     export_mat = BoolProperty(
         name="Export Material",
         description="Do you want to export the material?",
-        default=False)
+        default=True)
         
     export_all_frames = BoolProperty(
         name="Export All Frames",
         description="Export entire animation time frame",
         default=False)
     
-    filepath = bpy.props.StringProperty(subtype="FILE_PATH")
+    filepath = bpy.props.StringProperty(
+            subtype="FILE_PATH")
+    
+    filename = bpy.props.StringProperty(
+            subtype="FILE_NAME",
+            default="")
     
     @classmethod
     def poll(cls, context):

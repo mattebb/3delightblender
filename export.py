@@ -1293,8 +1293,6 @@ def export_polygon_mesh(ri, scene, ob, data=None):
 
     mesh = data if data is not None else create_mesh(ob, scene)
 
-    # if is_multi_material(mesh):
-    #    export_multi_material(ri, mesh)
 
     # for multi-material output all those
     (nverts, verts, P, N) = get_mesh(mesh, get_normals=True)
@@ -1955,13 +1953,13 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
     
     arvhiveInfo = instance.ob.renderman #Fake remove non path instances when archive reading is done!!!
     
-    relPath = get_real_path(arvhiveInfo.path_archive)
+    relPath = os.path.splitext(get_real_path(arvhiveInfo.path_archive))[0]
 
+    archiveFileExtention = ".zip"
     
     #dataFromArchive = import_archive_manifest(arvhiveInfo.path_archive)
     
-    objectName = dataFromArchive['objectName']
-    objectMaterial = dataFromArchive['objectMaterial']
+    objectName = os.path.split(os.path.splitext(arvhiveInfo.path_archive)[0])[1]
     
 
     #archiveAnimated = 
@@ -1970,7 +1968,7 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
     
 
         
-    archive_filename = get_real_path(arvhiveInfo.path_archive) + "!" + objectName +".rib"
+    archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
     bounds = get_bounding_box(data_block.data)
     params = {"string filename": archive_filename,
             "float[6] bound": bounds}
@@ -2774,7 +2772,6 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
     #Override precalculated data (simpler then creating new methods)
     for name, db in data_blocks.items():
         fileName = db.archive_filename
-        debug("info", "The archive name is ", fileName)
         if(overridePath != "" and os.path.exists(os.path.split(overridePath)[0])):
             db.do_export = True # Assume that the user always wants an export when this method is called.
             db.archive_filename = os.path.split(fileName)[1]
@@ -2787,8 +2784,6 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
     if(overridePath != ""):
         archivePath = os.path.join(os.path.split(overridePath)[0], object.name + fileExt)
         ri.Begin(archivePath)
-        debug('info', archivePath)
-        #ri.End()
     else:
         success = False
         
@@ -2803,11 +2798,6 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                 scene.frame_current = i
                 zeroFill = str(i).zfill(4)
                 data_blocks, instances = cache_motion_single_object(scene, rpass, object)
-                for name, db in data_blocks.items():
-                    fileName = db.archive_filename
-                    db.do_export = True
-                    db.archive_filename = os.path.join( zeroFill, os.path.split(fileName)[1])
-                export_data_archives(ri, scene, rpass, data_blocks)
                 if(exportMats):
                     useMaterials = True
                     materialsList = object.material_slots
@@ -2816,12 +2806,17 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                         ri.ArchiveBegin('material.' + materialSlot.name)
                         export_material(ri, materialSlot.material)
                         ri.ArchiveEnd()
+                for name, db in data_blocks.items():
+                    fileName = db.archive_filename
+                    db.do_export = True
+                    db.archive_filename = os.path.join( zeroFill, os.path.split(fileName)[1])
+                export_RIBArchive_data_archive(ri, scene, rpass, data_blocks)
+
                 else:
                     ri.End()
         else:
-            archivePath = object.name + ".rib"
-            ri.Begin(archivePath)
-            debug('info', "Second path: ", archivePath)
+            archivePathRIB = object.name + ".rib"
+            ri.Begin(archivePathRIB)
             #If we need to export material bake it in
             if(exportMats):
                 materialsList = object.material_slots
@@ -2830,12 +2825,10 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                     export_material(ri, materialSlot.material)
                     ri.ArchiveEnd()
             export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats)
-
             ri.End()
         ri.End()
     
-    #Export manifest file
-    #success = export_archive_manifest(archivePath, data_blocks, exportRange, scene, useMaterials)
+    #Check if archive was constructed correctly
     
         
     returnList = [success, archivePath]
