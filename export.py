@@ -1050,6 +1050,13 @@ def get_texture_list(scene):
             textures.extend(new_textures)
     return textures
 
+def get_select_texture_list(object):
+    textures = []
+    for mat in set(recursive_texture_set(object)):
+        new_textures = get_textures(mat)
+        if(new_textures):
+            textures.extend(new_textures)
+    return textures
 
 def get_texture_list_preview(scene):
     # if not rpass.light_shaders: return
@@ -1895,6 +1902,8 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
         if db.type == "MESH":
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
+            #Reset to identity for particals
+            ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
             export_particle_archive(ri, scene, rpass, db)
         elif db.type == "DUPLI":
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
@@ -1951,15 +1960,13 @@ def export_data_read_archive(ri, data_block, rpass):
 
 def export_data_rib_archive(ri, data_block, instance , rpass):
     
-    arvhiveInfo = instance.ob.renderman #Fake remove non path instances when archive reading is done!!!
+    arvhiveInfo = instance.ob.renderman
     
     relPath = os.path.splitext(get_real_path(arvhiveInfo.path_archive))[0]
 
     archiveFileExtention = ".zip"
     
-    #dataFromArchive = import_archive_manifest(arvhiveInfo.path_archive)
-    
-    objectName = os.path.split(os.path.splitext(arvhiveInfo.path_archive)[0])[1]
+    objectName = os.path.split(os.path.splitext(relPath)[0])[1]
     
 
     #archiveAnimated = 
@@ -2798,28 +2805,31 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                 scene.frame_current = i
                 zeroFill = str(i).zfill(4)
                 data_blocks, instances = cache_motion_single_object(scene, rpass, object)
+                archivePathRIB = object.name + ".rib"
+                ri.Begin(archivePathRIB)
                 if(exportMats):
-                    useMaterials = True
                     materialsList = object.material_slots
-                    ri.Begin(os.path.join(zeroFill ,"materials" + str(i) +".rib"))
+                    #Convert any textures just in case.
+                    rpass.convert_textures(get_select_texture_list(object))
                     for materialSlot in materialsList:
                         ri.ArchiveBegin('material.' + materialSlot.name)
                         export_material(ri, materialSlot.material)
                         ri.ArchiveEnd()
+                
                 for name, db in data_blocks.items():
                     fileName = db.archive_filename
                     db.do_export = True
                     db.archive_filename = os.path.join( zeroFill, os.path.split(fileName)[1])
-                export_RIBArchive_data_archive(ri, scene, rpass, data_blocks)
-
-                else:
-                    ri.End()
+                    export_RIBArchive_data_archive(ri, scene, rpass, data_blocks)
+                ri.End()
         else:
             archivePathRIB = object.name + ".rib"
             ri.Begin(archivePathRIB)
             #If we need to export material bake it in
             if(exportMats):
                 materialsList = object.material_slots
+                #Convert any textures so they will be available on archive load.
+                rpass.convert_textures(get_select_texture_list(object))
                 for materialSlot in materialsList:
                     ri.ArchiveBegin('material.' + materialSlot.name)
                     export_material(ri, materialSlot.material)
