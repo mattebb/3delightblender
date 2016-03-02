@@ -267,8 +267,10 @@ def get_name(ob):
 
 # ------------- Geometry Access -------------
 
-def get_strands(scene, ob, psys):
+def get_strands(scene, ob, psys, objectCorrectionMatrix=None):
     # we need this to get st
+    if(objectCorrectionMatrix is not None):
+        loc, rot, sca = objectCorrectionMatrix.decompose()
     psys_modifier = None
     for mod in ob.modifiers:
         if hasattr(mod, 'particle_system') and mod.particle_system == psys:
@@ -314,6 +316,12 @@ def get_strands(scene, ob, psys):
         for step in range(0, steps + 1):
             pt = psys.co_hair(object=ob, particle_no=pindex, step=step)
 
+            if(objectCorrectionMatrix is not None):
+                debug('info', "Point Before", pt)
+                debug('info', "Transforming by", loc)
+                pt = pt + loc
+                debug('info', "Point After", pt)
+            
             if not pt.length_squared == 0:
                 strand_points.extend(pt)
             else:
@@ -832,8 +840,8 @@ def export_motion_end(ri, motion_data):
         ri.MotionEnd()
 
 
-def export_hair(ri, scene, ob, psys, data):
-    curves = data if data else get_strands(scene, ob, psys)
+def export_hair(ri, scene, ob, psys, data, objectCorrectionMatrix=None):
+    curves = data if data else get_strands(scene, ob, psys, objectCorrectionMatrix)
 
     for vertsArray, points, widthString, widths, scalpS, scalpT in curves:
         params = {"P": rib(points), widthString: widths}
@@ -967,13 +975,20 @@ def export_particle_instances(ri, scene, rpass, psys, ob, motion_data, type='OBJ
 
 
 #
-def export_particle_points(ri, scene, psys, ob, motion_data):
+def export_particle_points(ri, scene, psys, ob, motion_data, objectCorrectionMatrix=None):
     rm = psys.settings.renderman
+    if(objectCorrectionMatrix is not None):
+        loc, rot, sca = objectCorrectionMatrix.decompose()
     if len(motion_data) > 1:
         export_motion_begin(ri, motion_data)
 
     for (i, (P, rot, width)) in motion_data:
         params = get_primvars_particle(scene, psys)
+        if(objectCorrectionMatrix is not None):
+            debug('info', "Point Before", pt)
+            debug('info', "Transforming by", loc)
+            P = P + loc
+            debug('info', "Point After", pt)
         params[ri.P] = rib(P)
         params["uniform string type"] = rm.particle_type
         if rm.constant_width:
@@ -988,7 +1003,7 @@ def export_particle_points(ri, scene, psys, ob, motion_data):
 # only for emitter types for now
 
 
-def export_particles(ri, scene, rpass, ob, psys, data=None):
+def export_particles(ri, scene, rpass, ob, psys, data=None, objectCorrectionMatrix=None):
 
     rm = psys.settings.renderman
         
@@ -996,7 +1011,7 @@ def export_particles(ri, scene, rpass, ob, psys, data=None):
         data = [(0, get_particles(scene, ob, psys))]
     # Write object instances or points
     if rm.particle_type == 'particle':
-        export_particle_points(ri, scene, psys, ob, data)
+        export_particle_points(ri, scene, psys, ob, data, objectCorrectionMatrix=None)
     elif rm.particle_type == 'blobby':
         export_blobby_particles(ri, scene, psys, ob, data)
     else:
@@ -1434,20 +1449,20 @@ def export_torus(ri, ob):
              rm.primitive_phimin, rm.primitive_phimax, rm.primitive_sweepangle)
 
 
-def export_particle_system(ri, scene, rpass, ob, psys, data=None):
+def export_particle_system(ri, scene, rpass, ob, psys, objectCorrectionMatrix=None, data=None):
     if psys.settings.type == 'EMITTER':
         # particles are always deformation
-        export_particles(ri, scene, rpass, ob, psys, data)
+        export_particles(ri, scene, rpass, ob, psys, data, objectCorrectionMatrix)
     else:
         ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
         ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
         if data is not None and len(data) > 0:
             export_motion_begin(ri, data)
             for subframe, sample in data:
-                export_hair(ri, scene, ob, psys, sample)
+                export_hair(ri, scene, ob, psys, sample, objectCorrectionMatrix)
             ri.MotionEnd()
         else:
-            export_hair(ri, scene, ob, psys, None)
+            export_hair(ri, scene, ob, psys, None, objectCorrectionMatrix)
 
 # many thanks to @rendermouse for this code
 
@@ -1893,7 +1908,7 @@ def export_data_archives(ri, scene, rpass, data_blocks):
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
         ri.End()
 
-def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterials):
+def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterials, correctionMatrix=None):
     for name, db in data_blocks.items():
         if not db.do_export:
             continue
@@ -1903,8 +1918,9 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
             #Reset to identity for particals
-            ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
-            export_particle_archive(ri, scene, rpass, db)
+            #if(correctionMatrix is not None):
+            #    ri.Transform(rib(correctionMatrix))
+            export_particle_archive(ri, scene, rpass, db, correctionMatrix)
         elif db.type == "DUPLI":
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
         
@@ -2109,10 +2125,10 @@ def export_mesh_archive(ri, scene, data_block):
 
 # export the archives for an mesh. If this is a
 # deforming mesh the particle export will handle it
-def export_particle_archive(ri, scene, rpass, data_block):
+def export_particle_archive(ri, scene, rpass, data_block, objectCorrectionMatrix=None):
     ob, psys = data_block.data
     data = data_block.motion_data if data_block.deforming else None
-    export_particle_system(ri, scene, rpass, ob, psys, data=data)
+    export_particle_system(ri, scene, rpass, ob, psys, objectCorrectionMatrix, data=data )
 
 # export the archives for an mesh. If this is a
 # deforming mesh the particle export will handle it
@@ -2795,6 +2811,8 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
         success = False
         
     if(success == True):
+        matrixTrasform = get_matrix_for_object(object)
+        matrixInverted = matrixTrasform.inverted_safe()
         # export rib archives of objects
         if(exportRange):
             rangeStart = scene.frame_start
@@ -2820,7 +2838,7 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                     fileName = db.archive_filename
                     db.do_export = True
                     db.archive_filename = os.path.join( zeroFill, os.path.split(fileName)[1])
-                    export_RIBArchive_data_archive(ri, scene, rpass, data_blocks)
+                    export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, matrixInverted)
                 ri.End()
         else:
             archivePathRIB = object.name + ".rib"
@@ -2834,12 +2852,14 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                     ri.ArchiveBegin('material.' + materialSlot.name)
                     export_material(ri, materialSlot.material)
                     ri.ArchiveEnd()
-            export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats)
+            export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, matrixInverted)
             ri.End()
         ri.End()
     
     #Check if archive was constructed correctly
     
+
+    debug('info', "Trasform matrix for object", matrixTrasform, "Inverted: ",matrixInverted)
         
     returnList = [success, archivePath]
     return returnList
