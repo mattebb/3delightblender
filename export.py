@@ -317,10 +317,7 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=None):
             pt = psys.co_hair(object=ob, particle_no=pindex, step=step)
 
             if(objectCorrectionMatrix is not None):
-                debug('info', "Point Before", pt)
-                debug('info', "Transforming by", loc)
                 pt = pt + loc
-                debug('info', "Point After", pt)
             
             if not pt.length_squared == 0:
                 strand_points.extend(pt)
@@ -985,10 +982,7 @@ def export_particle_points(ri, scene, psys, ob, motion_data, objectCorrectionMat
     for (i, (P, rot, width)) in motion_data:
         params = get_primvars_particle(scene, psys)
         if(objectCorrectionMatrix is not None):
-            debug('info', "Point Before", pt)
-            debug('info', "Transforming by", loc)
             P = P + loc
-            debug('info', "Point After", pt)
         params[ri.P] = rib(P)
         params["uniform string type"] = rm.particle_type
         if rm.constant_width:
@@ -1864,6 +1858,17 @@ def cache_motion(scene, rpass):
     return data_blocks, instances
 
 
+def get_valid_empties(scene, rpass):
+    empties = []
+    for object in scene.objects:
+        debug('info', "Object type:", object.type)
+        if(object.type == 'EMPTY'):
+            debug('info', "Object", object.name)
+            if(object.renderman.geometry_source == 'ARCHIVE'):
+                empties.append(object)
+    return empties
+
+
 def cache_motion_single_object(scene, rpass, activeObject):
     origframe = scene.frame_current
     objectToPass = [activeObject]
@@ -1917,9 +1922,6 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
         if db.type == "MESH":
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
-            #Reset to identity for particals
-            #if(correctionMatrix is not None):
-            #    ri.Transform(rib(correctionMatrix))
             export_particle_archive(ri, scene, rpass, db, correctionMatrix)
         elif db.type == "DUPLI":
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
@@ -2021,6 +2023,33 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
             
             ri.AttributeEnd()
 '''
+
+def export_empties_archives(ri, ob):
+    ri.AttributeBegin()
+    ri.Attribute("identifier", {"name": ob.name})
+    #Perform custom transform export since this is the only time empties are exprted.
+    matrix = ob.matrix_local
+    ri.Transform(rib(matrix))
+    
+    arvhiveInfo = ob.renderman
+    relPath = os.path.splitext(get_real_path(arvhiveInfo.path_archive))[0]
+    
+    archiveFileExtention = ".zip"
+    
+    objectName = os.path.split(os.path.splitext(relPath)[0])[1]
+    #archiveAnimated = 
+    
+    ri.AttributeBegin()
+    
+    archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
+    #bounds = get_bounding_box(object)
+    params = {"string filename": archive_filename,
+            "float[6] bound": [-1, 1, -1, 1, -1, 1]}
+    ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
+    ri.AttributeEnd()
+    ri.AttributeEnd()
+    
+
 def export_archive(*args):
     pass
 
@@ -2706,6 +2735,11 @@ def write_rib(rpass, scene, ri):
 
     # precalculate motion blur data
     data_blocks, instances = cache_motion(scene, rpass)
+    
+    # get a list of empties to check if they contain a RIB archive.
+    # this should be the only time empties are evaluated.
+    emptiesToExport = get_valid_empties(scene, rpass)
+    
     # export rib archives of objects
     export_data_archives(ri, scene, rpass, data_blocks)
 
@@ -2738,6 +2772,10 @@ def write_rib(rpass, scene, ri):
         if instance.type not in ['CAMERA', 'LAMP'] and not instance.parent:
             export_instance_read_archive(
                 ri, instance, instances, data_blocks, rpass)
+    
+    for object in emptiesToExport:
+        export_empties_archives(ri,object)
+    
     instances = None
     ri.WorldEnd()
 
@@ -2856,10 +2894,8 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
             ri.End()
         ri.End()
     
-    #Check if archive was constructed correctly
+    #TODO: Check if archive was constructed correctly 
     
-
-    debug('info', "Trasform matrix for object", matrixTrasform, "Inverted: ",matrixInverted)
         
     returnList = [success, archivePath]
     return returnList
