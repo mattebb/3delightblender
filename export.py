@@ -1913,13 +1913,18 @@ def export_data_archives(ri, scene, rpass, data_blocks):
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
         ri.End()
 
-def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterials, correctionMatrix=None):
+def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterials, objectMatrix=None ,correctionMatrix=None):
     for name, db in data_blocks.items():
         if not db.do_export:
             continue
         if(db.material and exportMaterials):
             export_material_archive(ri, db.material)
         if db.type == "MESH":
+            if(objectMatrix is not None):
+                loc, rot, sca = objectMatrix.decompose()
+                #ri.Translate(loc.x, loc.y, loc.z)
+                ri.Rotate(math.degrees(rot.w), math.degrees(rot.x), math.degrees(rot.y), math.degrees(rot.z))
+                ri.Scale(sca.x, sca.y, sca.z)
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
             export_particle_archive(ri, scene, rpass, db, correctionMatrix)
@@ -1994,9 +1999,9 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
 
         
     archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
-    bounds = get_bounding_box(data_block.data)
+    #bounds = get_bounding_box(data_block.data)
     params = {"string filename": archive_filename,
-            "float[6] bound": bounds}
+            "float[6] bound": [-10000, 10000, -10000, 10000, -10000, 10000]}
     ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
     
     
@@ -2044,7 +2049,7 @@ def export_empties_archives(ri, ob):
     archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
     #bounds = get_bounding_box(object)
     params = {"string filename": archive_filename,
-            "float[6] bound": [-1, 1, -1, 1, -1, 1]}
+            "float[6] bound": [-10000, 10000, -10000, 10000, -10000, 10000]}
     ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
     ri.AttributeEnd()
     ri.AttributeEnd()
@@ -2876,7 +2881,7 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                     fileName = db.archive_filename
                     db.do_export = True
                     db.archive_filename = os.path.join( zeroFill, os.path.split(fileName)[1])
-                    export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, matrixInverted)
+                    export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, matrixTrasform, matrixInverted)
                 ri.End()
         else:
             archivePathRIB = object.name + ".rib"
@@ -2890,7 +2895,7 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                     ri.ArchiveBegin('material.' + materialSlot.name)
                     export_material(ri, materialSlot.material)
                     ri.ArchiveEnd()
-            export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, matrixInverted)
+            export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, matrixTrasform, matrixInverted)
             ri.End()
         ri.End()
     
