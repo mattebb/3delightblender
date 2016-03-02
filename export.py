@@ -1861,9 +1861,7 @@ def cache_motion(scene, rpass):
 def get_valid_empties(scene, rpass):
     empties = []
     for object in scene.objects:
-        debug('info', "Object type:", object.type)
         if(object.type == 'EMPTY'):
-            debug('info', "Object", object.name)
             if(object.renderman.geometry_source == 'ARCHIVE'):
                 empties.append(object)
     return empties
@@ -1999,10 +1997,7 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
 
         
     archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
-    #bounds = get_bounding_box(data_block.data)
-    params = {"string filename": archive_filename,
-            "float[6] bound": [-10000, 10000, -10000, 10000, -10000, 10000]}
-    ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
+    ri.ReadArchive(archive_filename)
     
     
     
@@ -2047,10 +2042,7 @@ def export_empties_archives(ri, ob):
     ri.AttributeBegin()
     
     archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
-    #bounds = get_bounding_box(object)
-    params = {"string filename": archive_filename,
-            "float[6] bound": [-10000, 10000, -10000, 10000, -10000, 10000]}
-    ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
+    ri.ReadArchive(archive_filename)
     ri.AttributeEnd()
     ri.AttributeEnd()
     
