@@ -1304,7 +1304,10 @@ class Renderman_UI_Panel(bpy.types.Panel):
     bl_region_type = "TOOLS"
     bl_category = "Renderman"
     
-    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
  
     def draw(self, context):
         icons = load_icons()
@@ -1313,9 +1316,9 @@ class Renderman_UI_Panel(bpy.types.Panel):
         rm = scene.renderman 
         
         #save Scene
-        layout.operator("wm.save_mainfile", text="Save Scene", icon='FILE_TICK')
+        #layout.operator("wm.save_mainfile", text="Save Scene", icon='FILE_TICK')
 
-        layout.separator()
+        #layout.separator()
         
         
         if context.scene.render.engine != "PRMAN_RENDER":
@@ -1401,7 +1404,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                 
                 #STart IT
                 rman_it = icons.get("start_it")
-                layout.operator("object.start_it",text="Start IT",icon_value=rman_it.icon_id)
+                layout.operator("rman.start_it",text="Start IT",icon_value=rman_it.icon_id)
                 
                 #Interactive and Preview Sampling
                 box = layout.box()
@@ -1417,12 +1420,6 @@ class Renderman_UI_Panel(bpy.types.Panel):
                 row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
                 row = col.row(align=True)
  
-        layout.separator()
-        
-        #Create PxrLM Material
-        render_PxrDisney = icons.get("pxrdisney")
-        layout.operator("object.add_bxdf", text="Add BXDF",icon_value=render_PxrDisney.icon_id)
-        
         layout.separator()
         
         #Create Camera
@@ -1653,13 +1650,31 @@ class Renderman_UI_Panel(bpy.types.Panel):
         
         #Open Linking Panel
         
-        #Create Geo LightBlocker
-        layout.separator()
-        #Make Selected Geo Emissive
-        rman_RMSGeoAreaLight = icons.get("geoarealight")
-        layout.operator("object.addgeoarealight", text="Add GeoAreaLight",icon_value=rman_RMSGeoAreaLight.icon_id)
+        selected_objects = []
+        if context.selected_objects:
+            for obj in context.selected_objects:
+                if obj.type not in ['CAMERA', 'LAMP', 'SPEAKER']:
+                    selected_objects.append(obj)
 
+        if selected_objects:
+            layout.separator()
+            layout.label("Seleced Objects:")
+            box = layout.box()
+
+            #Create PxrLM Material
+            render_PxrDisney = icons.get("pxrdisney")
+            box.operator_menu_enum("object.add_bxdf", 'bxdf_name', text="Add New Material",icon='MATERIAL')
+            
+            #Make Selected Geo Emissive∂
+            rman_RMSGeoAreaLight = icons.get("geoarealight")
+            box.operator("object.addgeoarealight", text="Make Emissive",icon_value=rman_RMSGeoAreaLight.icon_id)
+
+            #Add Subdiv Sheme
+            rman_subdiv = icons.get("add_subdiv_sheme")
+            box.operator("object.add_subdiv_sheme", text="Make Subdiv",icon_value=rman_subdiv.icon_id)
+        
         #Create Archive node
+        #Create Geo LightBlocker
         
         #Update Archive
         
@@ -1671,10 +1686,6 @@ class Renderman_UI_Panel(bpy.types.Panel):
         
         #Shared Geometry Attribute
         
-        layout.separator()
-        #Add Subdiv Sheme
-        rman_subdiv = icons.get("add_subdiv_sheme")
-        layout.operator("object.add_subdiv_sheme", text="Add Subdiv Sheme",icon_value=rman_subdiv.icon_id)
         
         #Add/Atach Coordsys
         
@@ -1685,15 +1696,10 @@ class Renderman_UI_Panel(bpy.types.Panel):
         #Create OpenVDB Visualizer
         layout.separator()
         #Renderman Doc
-        row = layout.row(align=True) 
         rman_help = icons.get("help")
-        row.operator("wm.url_open", text="Renderman Docs",icon_value=rman_help.icon_id).url = "https://github.com/bsavery/PRMan-for-Blender/wiki/Documentation-Home"
-        row.prop(context.scene, "rm_help", text="", icon='TRIA_UP' if context.scene.rm_help else 'TRIA_DOWN')
-         
-        if context.scene.rm_help :
-            #About Renderman
-            rman_info = icons.get("info")
-            layout.operator("wm.url_open", text="About Renderman",icon_value=rman_info.icon_id).url = "http://renderman.pixar.com/view/non-commercial-renderman"
+        layout.operator("wm.url_open", text="Renderman Docs",icon_value=rman_help.icon_id).url = "https://github.com/bsavery/PRMan-for-Blender/wiki/Documentation-Home"
+        rman_info = icons.get("info")
+        layout.operator("wm.url_open", text="About Renderman",icon_value=rman_info.icon_id).url = "http://renderman.pixar.com/view/non-commercial-renderman"
 
 def register():
     bpy.types.INFO_MT_render.append(PRMan_menu_func)
