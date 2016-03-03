@@ -29,6 +29,7 @@ import subprocess
 import bgl
 import blf
 import webbrowser
+from operator import attrgetter, itemgetter
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
@@ -38,7 +39,7 @@ from .util import init_env
 from .util import getattr_recursive
 from .util import user_path
 from .util import get_real_path
-from .util import readOSO
+from .util import readOSO, find_it_path
 
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
@@ -50,6 +51,8 @@ from .export import debug
 from .export import write_single_RIB
 from .export import EXCLUDED_OBJECT_TYPES
 from . import engine
+
+from .nodes import RendermanPatternGraph
 
 from bpy_extras.io_utils import ExportHelper
 
@@ -63,6 +66,23 @@ class Renderman_open_stats(bpy.types.Operator):
         rm = scene.renderman
         output_dir = os.path.dirname(user_path(rm.path_rib_output, scene=scene))
         bpy.ops.wm.url_open(url="file://" + os.path.join(output_dir, 'stats.xml'))
+        return {'FINISHED'}
+
+class Renderman_open_stats(bpy.types.Operator):
+    bl_idname = 'rman.start_it'
+    bl_label = "Start IT"
+    bl_description = "Start RenderMan's IT"
+
+    def execute(self, context):
+        scene = context.scene
+        rm = scene.renderman
+        it_path = find_it_path()
+        if not it_path:
+            print({"ERROR"},
+                  "Could not find 'it'. Install RenderMan Studio.")
+        else:
+            environ = os.environ.copy()
+            subprocess.Popen([it_path], env=environ, shell=True)
         return {'FINISHED'}
 
 class Renderman_open_last_RIB(bpy.types.Operator):
@@ -95,6 +115,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     bl_description = "Add a renderman shader node tree linked to this material"
 
     idtype = StringProperty(name="ID Type", default="material")
+    bxdf_name = StringProperty(name="Bxdf Name", default="PxrDisney")
 
     def execute(self, context):
         idtype = self.properties.idtype
@@ -108,7 +129,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
-            default = nt.nodes.new('PxrDisneyBxdfNode')
+            default = nt.nodes.new('%sBxdfNode' % self.properties.bxdf_name)
             default.location = output.location
             default.location[0] -= 300
             nt.links.new(default.outputs[0], output.inputs[0])
@@ -393,15 +414,24 @@ class Add_bxdf(bpy.types.Operator):
     bl_description = ""
     bl_options = {"REGISTER", "UNDO"}
     
-    bxdf_name = StringProperty(name="Bxdf Name", default="PxrDisney")
+    def get_type_items(self, context):
+        items = []
+        for nodetype in RendermanPatternGraph.nodetypes.values():
+            if nodetype.renderman_node_type == 'bxdf':
+                items.append((nodetype.bl_label, nodetype.bl_label,
+                              nodetype.bl_label))
+        items = sorted(items, key=itemgetter(1))
+        return items
+    bxdf_name = EnumProperty(items=get_type_items, name="Bxdf Name")
  
     def execute(self, context):
         selection = bpy.context.selected_objects
         bxdf_name = self.properties.bxdf_name
         mat = bpy.data.materials.new(bxdf_name)
         
-        bpy.ops.shading.add_renderman_nodetree({'lamp':None, 'material':mat}, idtype='material')
+        bpy.ops.shading.add_renderman_nodetree({'lamp':None, 'material':mat}, idtype='material', bxdf_name=bxdf_name)
         
+
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
                 bpy.ops.object.material_slot_add()
