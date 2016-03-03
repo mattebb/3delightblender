@@ -27,6 +27,7 @@ import bpy
 import math
 import mathutils
 import os
+import sys
 import time
 from mathutils import Matrix, Vector, Quaternion
 
@@ -266,8 +267,11 @@ def get_name(ob):
 
 # ------------- Geometry Access -------------
 
-def get_strands(scene, ob, psys):
+def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
     # we need this to get st
+    if(objectCorrectionMatrix):
+        matrix = ob.matrix_world.inverted_safe()
+        loc, rot, sca = matrix.decompose()
     psys_modifier = None
     for mod in ob.modifiers:
         if hasattr(mod, 'particle_system') and mod.particle_system == psys:
@@ -313,6 +317,9 @@ def get_strands(scene, ob, psys):
         for step in range(0, steps + 1):
             pt = psys.co_hair(object=ob, particle_no=pindex, step=step)
 
+            if(objectCorrectionMatrix):
+                pt = pt + loc
+            
             if not pt.length_squared == 0:
                 strand_points.extend(pt)
             else:
@@ -831,8 +838,8 @@ def export_motion_end(ri, motion_data):
         ri.MotionEnd()
 
 
-def export_hair(ri, scene, ob, psys, data):
-    curves = data if data else get_strands(scene, ob, psys)
+def export_hair(ri, scene, ob, psys, data, objectCorrectionMatrix=False):
+    curves = data if data else get_strands(scene, ob, psys, objectCorrectionMatrix)
 
     for vertsArray, points, widthString, widths, scalpS, scalpT in curves:
         params = {"P": rib(points), widthString: widths}
@@ -966,13 +973,18 @@ def export_particle_instances(ri, scene, rpass, psys, ob, motion_data, type='OBJ
 
 
 #
-def export_particle_points(ri, scene, psys, ob, motion_data):
+def export_particle_points(ri, scene, psys, ob, motion_data, objectCorrectionMatrix=False):
     rm = psys.settings.renderman
+    if(objectCorrectionMatrix):
+        matrix = ob.matrix_world.inverted_safe()
+        loc, rot, sca = matrix.decompose()
     if len(motion_data) > 1:
         export_motion_begin(ri, motion_data)
 
     for (i, (P, rot, width)) in motion_data:
         params = get_primvars_particle(scene, psys)
+        #if(objectCorrectionMatrix):
+        #    P = P + loc
         params[ri.P] = rib(P)
         params["uniform string type"] = rm.particle_type
         if rm.constant_width:
@@ -987,7 +999,7 @@ def export_particle_points(ri, scene, psys, ob, motion_data):
 # only for emitter types for now
 
 
-def export_particles(ri, scene, rpass, ob, psys, data=None):
+def export_particles(ri, scene, rpass, ob, psys, data=None, objectCorrectionMatrix=False):
 
     rm = psys.settings.renderman
         
@@ -995,7 +1007,7 @@ def export_particles(ri, scene, rpass, ob, psys, data=None):
         data = [(0, get_particles(scene, ob, psys))]
     # Write object instances or points
     if rm.particle_type == 'particle':
-        export_particle_points(ri, scene, psys, ob, data)
+        export_particle_points(ri, scene, psys, ob, data, objectCorrectionMatrix)
     elif rm.particle_type == 'blobby':
         export_blobby_particles(ri, scene, psys, ob, data)
     else:
@@ -1049,6 +1061,13 @@ def get_texture_list(scene):
             textures.extend(new_textures)
     return textures
 
+def get_select_texture_list(object):
+    textures = []
+    for mat in set(recursive_texture_set(object)):
+        new_textures = get_textures(mat)
+        if(new_textures):
+            textures.extend(new_textures)
+    return textures
 
 def get_texture_list_preview(scene):
     # if not rpass.light_shaders: return
@@ -1292,8 +1311,6 @@ def export_polygon_mesh(ri, scene, ob, data=None):
 
     mesh = data if data is not None else create_mesh(ob, scene)
 
-    # if is_multi_material(mesh):
-    #    export_multi_material(ri, mesh)
 
     # for multi-material output all those
     (nverts, verts, P, N) = get_mesh(mesh, get_normals=True)
@@ -1428,20 +1445,20 @@ def export_torus(ri, ob):
              rm.primitive_phimin, rm.primitive_phimax, rm.primitive_sweepangle)
 
 
-def export_particle_system(ri, scene, rpass, ob, psys, data=None):
+def export_particle_system(ri, scene, rpass, ob, psys, objectCorrectionMatrix=False, data=None):
     if psys.settings.type == 'EMITTER':
         # particles are always deformation
-        export_particles(ri, scene, rpass, ob, psys, data)
+        export_particles(ri, scene, rpass, ob, psys, data, objectCorrectionMatrix)
     else:
         ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
         ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
         if data is not None and len(data) > 0:
             export_motion_begin(ri, data)
             for subframe, sample in data:
-                export_hair(ri, scene, ob, psys, sample)
+                export_hair(ri, scene, ob, psys, sample, objectCorrectionMatrix)
             ri.MotionEnd()
         else:
-            export_hair(ri, scene, ob, psys, None)
+            export_hair(ri, scene, ob, psys, None, objectCorrectionMatrix)
 
 # many thanks to @rendermouse for this code
 
@@ -1843,6 +1860,15 @@ def cache_motion(scene, rpass):
     return data_blocks, instances
 
 
+def get_valid_empties(scene, rpass):
+    empties = []
+    for object in scene.objects:
+        if(object.type == 'EMPTY'):
+            if(object.renderman.geometry_source == 'ARCHIVE'):
+                empties.append(object)
+    return empties
+
+
 def cache_motion_single_object(scene, rpass, activeObject):
     origframe = scene.frame_current
     objectToPass = [activeObject]
@@ -1878,6 +1904,7 @@ def export_data_archives(ri, scene, rpass, data_blocks):
         if not db.do_export:
             continue
         ri.Begin(db.archive_filename)
+        debug('info', db.archive_filename)
         if db.type == "MESH":
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
@@ -1886,6 +1913,24 @@ def export_data_archives(ri, scene, rpass, data_blocks):
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
         ri.End()
 
+def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterials, objectMatrix=False ,correctionMatrix=False):
+    for name, db in data_blocks.items():
+        if not db.do_export:
+            continue
+        if(db.material and exportMaterials):
+            export_material_archive(ri, db.material)
+        if db.type == "MESH":
+            if(objectMatrix == True):
+                loc, rot, sca = db.data.matrix_world.decompose()
+                #ri.Translate(loc.x, loc.y, loc.z)
+                ri.Rotate(math.degrees(rot.w), math.degrees(rot.x), math.degrees(rot.y), math.degrees(rot.z))
+                ri.Scale(sca.x, sca.y, sca.z)
+            export_mesh_archive(ri, scene, db)
+        elif db.type == "PSYS":
+            export_particle_archive(ri, scene, rpass, db, correctionMatrix)
+        elif db.type == "DUPLI":
+            export_dupli_archive(ri, scene, rpass, db, data_blocks)
+        
 
 # export each data read archive
 def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is_child=False):
@@ -1898,9 +1943,15 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
 
     for db_name in instance.data_block_names:
         if db_name in data_blocks:
-            export_data_read_archive(ri, data_blocks[db_name], rpass)
+            if(hasattr(data_blocks[db_name].data,'renderman')):
+                if(data_blocks[db_name].data.renderman.geometry_source == 'ARCHIVE'):
+                    export_data_rib_archive(ri, data_blocks[db_name], instance, rpass)
+                else:
+                    export_data_read_archive(ri, data_blocks[db_name], rpass)
+            else:
+                export_data_read_archive(ri, data_blocks[db_name], rpass)
 
-    # now the children
+        # now the children
     for child_name in instance.children:
         if child_name in instances:
             export_instance_read_archive(
@@ -1926,9 +1977,77 @@ def export_data_read_archive(ri, data_block, rpass):
         if data_block.type != 'DUPLI':
             ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
         ri.ReadArchive(archive_filename)
-
+        
+        
     ri.AttributeEnd()
 
+def export_data_rib_archive(ri, data_block, instance , rpass):
+    
+    arvhiveInfo = instance.ob.renderman
+    
+    relPath = os.path.splitext(get_real_path(arvhiveInfo.path_archive))[0]
+
+    archiveFileExtention = ".zip"
+    
+    objectName = os.path.split(os.path.splitext(relPath)[0])[1]
+    
+
+    #archiveAnimated = 
+
+    ri.AttributeBegin()
+    
+
+        
+    archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
+    ri.ReadArchive(archive_filename)
+    
+    
+    
+    ri.AttributeEnd()
+    '''
+    #This is the point we deal with partical systems
+    psysList = dataFromArchive['physics']
+    if(psysList):
+        for psysObj in psysList:
+            ri.AttributeBegin()
+            psysName = psysObj['Name']
+            psysMaterial = psysObj['Material']
+            if(psysMaterial != None):
+                ri.ReadArchive( 'material.' + psysMaterial)
+            #else:
+                #export_material_archive(ri, data_block.material)
+            
+            psysFilePath = get_real_path(arvhiveInfo.path_archive) + "!" + psysName +".rib"
+            
+            ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
+            
+            ri.ReadArchive(psysFilePath)
+            
+            ri.AttributeEnd()
+'''
+
+def export_empties_archives(ri, ob):
+    ri.AttributeBegin()
+    ri.Attribute("identifier", {"name": ob.name})
+    #Perform custom transform export since this is the only time empties are exprted.
+    matrix = ob.matrix_local
+    ri.Transform(rib(matrix))
+    
+    arvhiveInfo = ob.renderman
+    relPath = os.path.splitext(get_real_path(arvhiveInfo.path_archive))[0]
+    
+    archiveFileExtention = ".zip"
+    
+    objectName = os.path.split(os.path.splitext(relPath)[0])[1]
+    #archiveAnimated = 
+    
+    ri.AttributeBegin()
+    
+    archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
+    ri.ReadArchive(archive_filename)
+    ri.AttributeEnd()
+    ri.AttributeEnd()
+    
 
 def export_archive(*args):
     pass
@@ -2034,10 +2153,10 @@ def export_mesh_archive(ri, scene, data_block):
 
 # export the archives for an mesh. If this is a
 # deforming mesh the particle export will handle it
-def export_particle_archive(ri, scene, rpass, data_block):
+def export_particle_archive(ri, scene, rpass, data_block, objectCorrectionMatrix=False):
     ob, psys = data_block.data
     data = data_block.motion_data if data_block.deforming else None
-    export_particle_system(ri, scene, rpass, ob, psys, data=data)
+    export_particle_system(ri, scene, rpass, ob, psys, objectCorrectionMatrix, data=data )
 
 # export the archives for an mesh. If this is a
 # deforming mesh the particle export will handle it
@@ -2610,11 +2729,16 @@ def export_hider(ri, rpass, scene, preview=False):
         ri.Hider(rm.hider, hider_params)
 
 
-# I hate to make rpass global but it makes so much easier
+# I hate to make rpass global but it makes things so much easier
 def write_rib(rpass, scene, ri):
 
     # precalculate motion blur data
     data_blocks, instances = cache_motion(scene, rpass)
+    
+    # get a list of empties to check if they contain a RIB archive.
+    # this should be the only time empties are evaluated.
+    emptiesToExport = get_valid_empties(scene, rpass)
+    
     # export rib archives of objects
     export_data_archives(ri, scene, rpass, data_blocks)
 
@@ -2647,6 +2771,10 @@ def write_rib(rpass, scene, ri):
         if instance.type not in ['CAMERA', 'LAMP'] and not instance.parent:
             export_instance_read_archive(
                 ri, instance, instances, data_blocks, rpass)
+    
+    for object in emptiesToExport:
+        export_empties_archives(ri,object)
+    
     instances = None
     ri.WorldEnd()
 
@@ -2692,18 +2820,84 @@ def write_preview_rib(rpass, scene, ri):
     ri.FrameEnd()
 
 
-def write_single_RIB(rpass, scene, ri, object):
-
-    # precalculate motion blur data
+def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, exportRange):
+    success = True # Store if the export is a success or not
+    
+    fileExt = ".zip"
+    
+    # precalculate data
     data_blocks, instances = cache_motion_single_object(scene, rpass, object)
-    # export rib archives of objects
-    export_data_archives(ri, scene, rpass, data_blocks)
-
+    
+    
+    #Override precalculated data (simpler then creating new methods)
     for name, db in data_blocks.items():
         fileName = db.archive_filename
-    return fileName
+        if(overridePath != "" and os.path.exists(os.path.split(overridePath)[0])):
+            db.do_export = True # Assume that the user always wants an export when this method is called.
+            db.archive_filename = os.path.split(fileName)[1]
+        else:
+            success = False
+            
 
-
+    
+    #Open zip file for writing
+    if(overridePath != ""):
+        archivePath = os.path.join(os.path.split(overridePath)[0], object.name + fileExt)
+        ri.Begin(archivePath)
+    else:
+        success = False
+        
+    if(success == True):
+        # export rib archives of objects
+        if(exportRange):
+            rangeStart = scene.frame_start
+            rangeEnd = scene.frame_end
+            rangeLength = rangeEnd - rangeStart
+            # Assume user is smart and wont pass us a negative range. Please!
+            for i in range(rangeStart, rangeEnd+1):
+                scene.frame_current = i
+                zeroFill = str(i).zfill(4)
+                data_blocks, instances = cache_motion_single_object(scene, rpass, object)
+                archivePathRIB = object.name + ".rib"
+                ri.Begin(archivePathRIB)
+                if(exportMats):
+                    materialsList = object.material_slots
+                    #Convert any textures just in case.
+                    rpass.convert_textures(get_select_texture_list(object))
+                    for materialSlot in materialsList:
+                        ri.ArchiveBegin('material.' + materialSlot.name)
+                        export_material(ri, materialSlot.material)
+                        ri.ArchiveEnd()
+                
+                for name, db in data_blocks.items():
+                    fileName = db.archive_filename
+                    db.do_export = True
+                    db.archive_filename = os.path.join( zeroFill, os.path.split(fileName)[1])
+                    export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, True, True)
+                ri.End()
+        else:
+            archivePathRIB = object.name + ".rib"
+            ri.Begin(archivePathRIB)
+            #If we need to export material bake it in
+            if(exportMats):
+                materialsList = object.material_slots
+                #Convert any textures so they will be available on archive load.
+                rpass.convert_textures(get_select_texture_list(object))
+                for materialSlot in materialsList:
+                    ri.ArchiveBegin('material.' + materialSlot.name)
+                    export_material(ri, materialSlot.material)
+                    ri.ArchiveEnd()
+            export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, True, True)
+            ri.End()
+        ri.End()
+    
+    #TODO: Check if archive was constructed correctly 
+    
+        
+    returnList = [success, archivePath]
+    return returnList
+    
+    
 def anim_archive_path(filepath, frame):
     if filepath.find("#") != -1:
         ribpath = make_frame_path(filepath, fr)

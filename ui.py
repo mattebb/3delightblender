@@ -54,6 +54,12 @@ properties_material.MATERIAL_PT_context_material.COMPAT_ENGINES.add(
 properties_material.MATERIAL_PT_custom_props.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_material
 
+import bl_ui.properties_scene as properties_scene
+properties_scene.SCENE_PT_scene.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_scene.SCENE_PT_unit.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_scene.SCENE_PT_physics.COMPAT_ENGINES.add('PRMAN_RENDER')
+del properties_scene
+
 import bl_ui.properties_data_lamp as properties_data_lamp
 properties_data_lamp.DATA_PT_context_lamp.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_data_lamp.DATA_PT_spot.COMPAT_ENGINES.add('PRMAN_RENDER')
@@ -789,6 +795,8 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
                 (n for n in nt.nodes if n.renderman_node_type == 'output'), None)
             lamp_node = output_node.inputs['Light'].links[0].from_node
             if lamp_node:
+                layout.prop(lamp_node, 'light_primary_visibility')
+                layout.prop(lamp_node, 'light_shading_rate')
                 draw_node_properties_recursive(self.layout, context, nt, lamp_node)
         
 
@@ -921,7 +929,7 @@ class OBJECT_PT_renderman_object_geometry(Panel):
 
             
         col = layout.column()
-        col.operator("object.export_rib_archive", icon="EXPORT", text="Export Object as RIB Archive.")
+        col.operator("export.export_rib_archive", icon="EXPORT", text="Export Object as RIB Archive.")
         
         
         

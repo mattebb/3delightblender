@@ -723,15 +723,15 @@ class RendermanMaterialSettings(bpy.types.PropertyGroup):
 class RendermanAnimSequenceSettings(bpy.types.PropertyGroup):
     animated_sequence = BoolProperty(
         name="Animated Sequence",
-        description="Interpret this texture as an animated sequence (converts #### in file path to frame number)",
+        description="Interpret this archive as an animated sequence (converts #### in file path to frame number)",
         default=False)
     sequence_in = IntProperty(
         name="Sequence In Point",
-        description="The first numbered image file to use",
+        description="The first numbered file to use",
         default=1)
     sequence_out = IntProperty(
         name="Sequence Out Point",
-        description="The last numbered image file to use",
+        description="The last numbered file to use",
         default=24)
     blender_start = IntProperty(
         name="Blender Start Frame",
