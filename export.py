@@ -983,8 +983,6 @@ def export_particle_points(ri, scene, psys, ob, motion_data, objectCorrectionMat
 
     for (i, (P, rot, width)) in motion_data:
         params = get_primvars_particle(scene, psys)
-        #if(objectCorrectionMatrix):
-        #    P = P + loc
         params[ri.P] = rib(P)
         params["uniform string type"] = rm.particle_type
         if rm.constant_width:

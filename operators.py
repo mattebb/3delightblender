@@ -317,8 +317,30 @@ class ExportRIBArchive(bpy.types.Operator):
         return {'FINISHED'}
 '''
 
+#################
+# Sample scenes menu.
+#################
+
+class openExampleTest(bpy.types.Operator):
+    bl_label = "Test"
+    bl_idname = "renderman.test"
+
+    def execute(self, context):
+        bpy.ops.wm.open_mainfile(filepath="C:\\Users\\Ryan\\Downloads\\Hairtest\\Hairtest.blend")
+        bpy.ops.wm.save_as_mainfile(filepath="C:\\Users\\Ryan\\Documents\\prman_for_blender\\examples\\Hairtest.blend")
+        return{'FINISHED'}
 
 
+class LoadSceneMenu(bpy.types.Menu):
+    bl_label = "RendermanExamples"
+    bl_idname = "examples"
+
+    def draw(self, context):
+        self.layout.operator("renderman.test")
+
+
+def menu_draw(self, context):
+    self.layout.menu("examples")
 
 # Yuck, this should be built in to blender... Yes it should
 class COLLECTION_OT_add_remove(bpy.types.Operator):
@@ -701,8 +723,9 @@ compile_shader_menu_func = (lambda self, context: self.layout.operator(
 def register():
     bpy.types.TEXT_MT_text.append(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.append(compile_shader_menu_func)
-
+    bpy.types.INFO_MT_help.append(menu_draw)
 
 def unregister():
     bpy.types.TEXT_MT_text.remove(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.remove(compile_shader_menu_func)
+    bpy.types.INFO_MT_help.remove(menu_draw)
