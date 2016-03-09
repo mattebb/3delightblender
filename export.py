@@ -83,11 +83,10 @@ def is_singular(mtx):
 
 
 # export the instance of an object (dupli)
-def export_object_instance(ri, mtx=None, dupli_name=None,
-                           instance_handle=None):
+def export_object_instance(ri, mtx=None, instance_handle=None, num=None):
     if mtx and not is_singular(mtx):
         ri.AttributeBegin()
-        ri.Attribute("identifier", {"name": dupli_name})
+        ri.Attribute("identifier", {"int id": num})
         ri.Transform(rib(mtx))
         ri.ObjectInstance(instance_handle)
         ri.AttributeEnd()
@@ -1726,8 +1725,9 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                     for dupli_ob in psys.settings.dupli_group.objects:
                         data_blocks.append(
                             get_dupli_block(dupli_ob, rpass, do_mb))
+            
             mat = ob.material_slots[psys.settings.material -
-                                    1].material if psys.settings.material else None
+                                    1].material if psys.settings.material and len(ob.material_slots) else None
             data_blocks.append(DataBlock(name, type, archive_filename, data,
                                          is_psys_animating(ob, psys, do_mb), material=mat,
                                          do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
@@ -1743,7 +1743,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                 data_blocks.append(get_dupli_block(dupli_ob, rpass, do_mb))
 
     # now the objects data
-    if is_data_renderable(rpass.scene, ob):
+    if is_data_renderable(rpass.scene, ob) and emit_ob:
         # Check if the object is referring to an archive to use rather then its
         # geometry.
         if ob.renderman.geometry_source != 'BLENDER_SCENE_DATA':
@@ -2067,7 +2067,7 @@ def export_dupli_archive(ri, scene, rpass, data_block, data_blocks):
 
     # gather list of object masters
     object_masters = {}
-    for dupob in ob.dupli_list:
+    for num,dupob in enumerate(ob.dupli_list):
         if dupob.object.name not in object_masters:
             instance_handle = ri.ObjectBegin()
             mat = dupob.object.active_material
@@ -2084,10 +2084,10 @@ def export_dupli_archive(ri, scene, rpass, data_block, data_blocks):
             # export "null" bxdf to clear material for object master
             ri.Bxdf("null", "null")
 
-        dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
-                                         dupob.index)
+        #dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
+        #                                 dupob.index)
         instance_handle = object_masters[dupob.object.name]
-        export_object_instance(ri, dupob.matrix, dupli_name, instance_handle)
+        export_object_instance(ri, dupob.matrix, instance_handle, num)
 
     ob.dupli_list_clear()
 
