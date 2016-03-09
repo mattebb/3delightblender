@@ -335,7 +335,8 @@ class RendermanShadingNode(bpy.types.Node):
             export_path = os.path.join(
                 user_path(prefs.env_vars.out), "shaders", FileNameOSO)
             if os.path.splitext(FileName)[1] == ".oso":
-                shutil.copy(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders"))
+                if( not os.path.samefile(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO))):
+                    shutil.copy(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders"))
                 # Assume that the user knows what they were doing when they compiled the osl file.
                 ok = True
             else:
@@ -377,6 +378,7 @@ class RendermanShadingNode(bpy.types.Node):
             node.inputs.clear()
             # Read in new properties
             prop_names, shader_meta = readOSO(export_path)
+            debug('osl', prop_names, "MetaInfo: ", shader_meta)
             # Set node name to shader name
             node.label = shader_meta["shader"]
             # Generate new inputs and outputs
@@ -441,11 +443,12 @@ class OSLProps(bpy.types.PropertyGroup):
                                           default=floatResult,
                                           precision=3))
                 elif shader_meta[prop_name]["type"] == "int":
+                    debug('osl', "Int property: ", prop_name, prop_default)
                     setattr(OSLProps, storageLocation + "type",
                             shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation,
                             IntProperty(name=prop_name,
-                                        default=prop_default))
+                                        default=int(float(prop_default))))
                 elif shader_meta[prop_name]["type"] == "color":
                     setattr(OSLProps, storageLocation + "type",
                             shader_meta[prop_name]["type"])
@@ -1133,6 +1136,7 @@ def gen_params(ri, node, mat_name=None, recurse=True):
             colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
             params['color[%d] colors' % len(positions)] = colors
             params['float[%d] positions' % len(positions)] = positions
+            debug('error',"Params gen: ", params)
 
     return params
 
@@ -1144,6 +1148,8 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
     instance = mat_name + '.' + node.name
     params['__instanceid'] = mat_name + '.' + node.name
     if node.renderman_node_type == "pattern":
+        if(node.bl_label == "PxrRamp"):
+            debug('error',"Params: ", params)
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
         params['__instanceid'] = mat_name
