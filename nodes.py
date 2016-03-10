@@ -25,6 +25,8 @@
 
 import bpy
 import _cycles
+from bpy.app.handlers import persistent
+
 import xml.etree.ElementTree as ET
 
 import tempfile
@@ -105,9 +107,8 @@ class RendermanSocket:
                 storageLocation = mat + node.name + self.name
                 if hasattr(oslProps, storageLocation):
                     layout.prop(oslProps, storageLocation)
-                else:
-                    pass
-                    rebuild_OSL_nodes(context.scene, context)
+                #else:
+                #    rebuild_OSL_nodes(context.scene, context)
         else:
             layout.prop(node, self.name)
 
@@ -1322,7 +1323,7 @@ def get_textures(id):
 
     return textures
 
-
+'''
 def rebuild_OSL_nodes(scene, context):
     SUPPORTED_MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT', 'SURFACE']
     for o in scene.objects:
@@ -1356,7 +1357,40 @@ def call_nodes(mat, context):
                 node.RefreshNodes(context, node, mat)
             else:
                 pass
+'''
 
+@persistent
+def rebuildOSLSystem(dummy):
+    debug('osl', "Now rebuilding OSL nodes!")
+    context = bpy.context
+    scene = context.scene
+    debug('osl', "Scene name: ", scene.name, "Render engine", scene.render.engine)
+    if(scene.render.engine == 'PRMAN_RENDER'):
+        for ob in scene.objects:
+            debug('osl',"Object name: ", ob.name)
+            for matSl in ob.material_slots:
+                mat = matSl.material
+                debug('osl', "Material Name: ", mat.name)
+                if(hasattr(mat, "renderman")):
+                    nt = bpy.data.node_groups[mat.renderman.nodetree]
+                    for node in nt.nodes:
+                        debug('osl', "Renderman nodes", node.name)
+                        if(node.bl_idname == "PxrOSLPatternNode"):
+                            links = storeLinks(node, mat) #Record the links that the node had.
+                            node.RefreshNodes(context, node, mat) # Recompile the node.
+                            restoreLinks(node, mat, links) #Restore any links that the node had.
+                else:
+                    debug('osl', "No renderman props continuing.")
+    else:
+        debug('osl', "No osl rebuilding needs to take place.")
+
+def storeLinks(node, mat):
+    links = []
+    
+    return links
+
+def restoreLinks(node, mat, links):
+    pass
 
 # our own base class with an appropriate poll function,
 # so the categories only show up in our own tree type
@@ -1433,13 +1467,13 @@ def register():
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES",
                                              node_categories)
 
-    # bpy.app.handlers.load_post.append(load_handler)
-    # bpy.app.handlers.load_pre.append(load_handler)
+    bpy.app.handlers.load_post.append(rebuildOSLSystem)
 
 
 def unregister():
     nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
     # bpy.utils.unregister_module(__name__)
+    bpy.app.handlers.load_post.remove(rebuildOSLSystem)
 
     for cls in classes:
         bpy.utils.unregister_class(cls)
