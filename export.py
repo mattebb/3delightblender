@@ -1679,19 +1679,33 @@ def get_instance(ob, scene, do_mb):
 
 # get the data_block needed for a dupli
 def get_dupli_block(ob, rpass, do_mb):
-    name = data_name(ob, rpass.scene)
-    deforming = is_deforming(ob)
-    archive_filename = get_archive_filename(data_name(ob, rpass.scene),
-                                            rpass, deforming)
-    return DataBlock(name, "MESH", archive_filename, ob,
-                     deforming, material=ob.active_material,
-                     do_export=file_is_dirty(
-                         rpass.scene, ob, archive_filename),
-                     dupli_data=True)
+    if hasattr(ob, 'dupli_type') and ob.dupli_type in SUPPORTED_DUPLI_TYPES:
+        name = ob.name + '-DUPLI'
+        # duplis aren't animated
+        archive_filename = get_archive_filename(name, rpass, False)
+        dbs = [DataBlock(name, "DUPLI", archive_filename, ob,
+                                     do_export=file_is_dirty(rpass.scene, ob, archive_filename))]
+        if ob.dupli_type == 'GROUP' and ob.dupli_group:
+            for dupli_ob in ob.dupli_group.objects:
+                for db in get_dupli_block(dupli_ob, rpass, do_mb):
+                    dbs.append(db)
+        return dbs
+
+    else:
+        name = data_name(ob, rpass.scene)
+        deforming = is_deforming(ob)
+        archive_filename = get_archive_filename(data_name(ob, rpass.scene),
+                                                rpass, deforming)
+        
+
+        return [DataBlock(name, "MESH", archive_filename, ob,
+                         deforming, material=ob.active_material,
+                         do_export=file_is_dirty(
+                             rpass.scene, ob, archive_filename),
+                         dupli_data=True)]
+
 
 # get the data blocks needed for an object
-
-
 def get_data_blocks_needed(ob, rpass, do_mb):
     if not is_renderable(rpass.scene, ob):
         return []
@@ -1740,7 +1754,8 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                                      do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupli_ob in ob.dupli_group.objects:
-                data_blocks.append(get_dupli_block(dupli_ob, rpass, do_mb))
+                for db in get_dupli_block(dupli_ob, rpass, do_mb):
+                    data_blocks.append(db)
 
     # now the objects data
     if is_data_renderable(rpass.scene, ob) and emit_ob:
