@@ -1700,6 +1700,10 @@ class Renderman_UI_Panel(bpy.types.Panel):
         layout.operator("wm.url_open", text="Renderman Docs",icon_value=rman_help.icon_id).url = "https://github.com/bsavery/PRMan-for-Blender/wiki/Documentation-Home"
         rman_info = icons.get("info")
         layout.operator("wm.url_open", text="About Renderman",icon_value=rman_info.icon_id).url = "http://renderman.pixar.com/view/non-commercial-renderman"
+        
+        #Enable the menu item to display the examples menu in the Renderman Pannel.
+        #layout.separator()
+        #layout.menu("examples", icon_value=rman_help.icon_id)
 
 def register():
     bpy.types.INFO_MT_render.append(PRMan_menu_func)

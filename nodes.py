@@ -25,6 +25,8 @@
 
 import bpy
 import _cycles
+from bpy.app.handlers import persistent
+
 import xml.etree.ElementTree as ET
 
 import tempfile
@@ -105,9 +107,8 @@ class RendermanSocket:
                 storageLocation = mat + node.name + self.name
                 if hasattr(oslProps, storageLocation):
                     layout.prop(oslProps, storageLocation)
-                else:
-                    pass
-                    rebuild_OSL_nodes(context.scene, context)
+                #else:
+                #    rebuild_OSL_nodes(context.scene, context)
         else:
             layout.prop(node, self.name)
 
@@ -306,7 +307,7 @@ class RendermanShadingNode(bpy.types.Node):
         self.inputs.clear()
         self.outputs.clear()
 
-    def RefreshNodes(self, context, nodeOR=None, materialOverride=None):
+    def RefreshNodes(self, context, nodeOR=None, materialOverride=None, saveProps=False):
 
         # Compile shader.        If the call was from socket draw get the node
         # information anther way.
@@ -335,7 +336,8 @@ class RendermanShadingNode(bpy.types.Node):
             export_path = os.path.join(
                 user_path(prefs.env_vars.out), "shaders", FileNameOSO)
             if os.path.splitext(FileName)[1] == ".oso":
-                shutil.copy(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders"))
+                if( not os.path.samefile(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO))):
+                    shutil.copy(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders"))
                 # Assume that the user knows what they were doing when they compiled the osl file.
                 ok = True
             else:
@@ -373,16 +375,18 @@ class RendermanShadingNode(bpy.types.Node):
         if ok:
             debug('osl', "Shader Compiled Successfully!")
             # Reset the inputs and outputs
-            node.outputs.clear()
-            node.inputs.clear()
+            if(not saveProps):
+                node.outputs.clear()
+                node.inputs.clear()
             # Read in new properties
             prop_names, shader_meta = readOSO(export_path)
+            debug('osl', prop_names, "MetaInfo: ", shader_meta)
             # Set node name to shader name
             node.label = shader_meta["shader"]
             # Generate new inputs and outputs
             node.OSLPROPSPOINTER = OSLProps
             node.OSLPROPSPOINTER.setProps(
-                node, prop_names, shader_meta, context, materialOverride)
+                    node, prop_names, shader_meta, context, materialOverride, saveProps)
 
         else:
             debug("osl", "NODE COMPILATION FAILED")
@@ -417,7 +421,7 @@ class OSLProps(bpy.types.PropertyGroup):
     # Look at the readOSO function (located in util.py) if you need to know
     # the layout.
 
-    def setProps(self, prop_names, shader_meta, context, materialOverride):
+    def setProps(self, prop_names, shader_meta, context, materialOverride, saveProps):
         if materialOverride is not None:
             mat = materialOverride.name
         else:
@@ -428,8 +432,9 @@ class OSLProps(bpy.types.PropertyGroup):
             storageLocation = mat + self.name + prop_name
             if shader_meta[prop_name]["IO"] == "out":
                 setattr(OSLProps, storageLocation + "type", "OUT")
-                self.outputs.new(
-                    socket_map[shader_meta[prop_name]["type"]], prop_name)
+                if(not saveProps):
+                    self.outputs.new(
+                        socket_map[shader_meta[prop_name]["type"]], prop_name)
             else:
                 prop_default = shader_meta[prop_name]["default"]
                 if shader_meta[prop_name]["type"] == "float":
@@ -441,11 +446,12 @@ class OSLProps(bpy.types.PropertyGroup):
                                           default=floatResult,
                                           precision=3))
                 elif shader_meta[prop_name]["type"] == "int":
+                    debug('osl', "Int property: ", prop_name, prop_default)
                     setattr(OSLProps, storageLocation + "type",
                             shader_meta[prop_name]["type"])
                     setattr(OSLProps, storageLocation,
                             IntProperty(name=prop_name,
-                                        default=prop_default))
+                                        default=int(float(prop_default))))
                 elif shader_meta[prop_name]["type"] == "color":
                     setattr(OSLProps, storageLocation + "type",
                             shader_meta[prop_name]["type"])
@@ -498,10 +504,11 @@ class OSLProps(bpy.types.PropertyGroup):
                                            default=prop_default))
                 if shader_meta[prop_name]["type"] == "matrix" or \
                         shader_meta[prop_name]["type"] == "point":
-                    self.inputs.new(socket_map["struct"], prop_name)
+                    if(not saveProps):
+                        self.inputs.new(socket_map["struct"], prop_name)
                 elif shader_meta[prop_name]["type"] == "void":
                     pass
-                else:
+                elif(not saveProps):
                     self.inputs.new(socket_map[shader_meta[prop_name]["type"]],
                                     prop_name)
         debug('osl', "Shader: ", shader_meta["shader"], "Properties: ",
@@ -1133,6 +1140,7 @@ def gen_params(ri, node, mat_name=None, recurse=True):
             colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
             params['color[%d] colors' % len(positions)] = colors
             params['float[%d] positions' % len(positions)] = positions
+            debug('error',"Params gen: ", params)
 
     return params
 
@@ -1144,6 +1152,8 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
     instance = mat_name + '.' + node.name
     params['__instanceid'] = mat_name + '.' + node.name
     if node.renderman_node_type == "pattern":
+        if(node.bl_label == "PxrRamp"):
+            debug('error',"Params: ", params)
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
         params['__instanceid'] = mat_name
@@ -1316,40 +1326,19 @@ def get_textures(id):
 
     return textures
 
-
-def rebuild_OSL_nodes(scene, context):
-    SUPPORTED_MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT', 'SURFACE']
-    for o in scene.objects:
-        if o.type == 'CAMERA' or o.type == 'EMPTY':
-            continue
-        elif o.type in SUPPORTED_MATERIAL_TYPES:
-            for mat in [mat for mat in o.data.materials if mat is not None]:
-                try:
-                    call_nodes(mat, context)
-                except:
-                    debug("error",
-                          "rebuild_nodes: Supported material type error [%s]."
-                          % o.type)
-        else:
-            debug("error", "rebuild_nodes: unsupported object type [%s]."
-                  % o.type)
-
-
-def call_nodes(mat, context):
-    textures = []
-    if mat.renderman.nodetree == "":
-        pass
-    try:
-        nt = bpy.data.node_groups[mat.renderman.nodetree]
-    except:
-        nt = None
-
-    if nt:
-        for node in nt.nodes:
-            if node.bl_idname == "PxrOSLPatternNode":
-                node.RefreshNodes(context, node, mat)
-            else:
-                pass
+@persistent
+def rebuildOSLSystem(dummy):
+    context = bpy.context
+    scene = context.scene
+    if(scene.render.engine == 'PRMAN_RENDER'):
+        for ob in scene.objects:
+            for matSl in ob.material_slots:
+                mat = matSl.material
+                if(hasattr(mat, "renderman")):
+                    nt = bpy.data.node_groups[mat.renderman.nodetree]
+                    for node in nt.nodes:
+                        if(node.bl_idname == "PxrOSLPatternNode"):
+                            node.RefreshNodes(context, node, mat, True) # Recompile the node.
 
 
 # our own base class with an appropriate poll function,
@@ -1427,13 +1416,13 @@ def register():
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES",
                                              node_categories)
 
-    # bpy.app.handlers.load_post.append(load_handler)
-    # bpy.app.handlers.load_pre.append(load_handler)
+    bpy.app.handlers.load_post.append(rebuildOSLSystem)
 
 
 def unregister():
     nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
     # bpy.utils.unregister_module(__name__)
+    bpy.app.handlers.load_post.remove(rebuildOSLSystem)
 
     for cls in classes:
         bpy.utils.unregister_class(cls)

@@ -29,6 +29,8 @@ import subprocess
 import bgl
 import blf
 import webbrowser
+import addon_utils
+from .icons.icons import load_icons
 from operator import attrgetter, itemgetter
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
@@ -68,7 +70,7 @@ class Renderman_open_stats(bpy.types.Operator):
         bpy.ops.wm.url_open(url="file://" + os.path.join(output_dir, 'stats.xml'))
         return {'FINISHED'}
 
-class Renderman_open_stats(bpy.types.Operator):
+class Renderman_start_it(bpy.types.Operator):
     bl_idname = 'rman.start_it'
     bl_label = "Start IT"
     bl_description = "Start RenderMan's IT"
@@ -317,8 +319,70 @@ class ExportRIBArchive(bpy.types.Operator):
         return {'FINISHED'}
 '''
 
+#################
+# Sample scenes menu.
+#################
+
+class openExampleTemplate(bpy.types.Operator):
+    bl_label = "Template"
+    bl_idname = "renderman.template"
+
+    def loadFile(self,context,exampleName):
+        blenderAddonPaths = addon_utils.paths()
+        print(blenderAddonPaths)
+        for path in blenderAddonPaths:
+            basePath = os.path.join(path, "PRMan-for-Blender", "examples")
+            exists = os.path.exists(basePath)
+            if exists:
+                print("Addon exits in this directory: ", path)
+                examplePath = os.path.join(basePath, exampleName, exampleName + ".blend")
+                if(os.path.exists(examplePath)):
+                    bpy.ops.wm.open_mainfile(filepath = examplePath)
+                    return True
+                else:
+                    return False
+
+    def execute(self, context):
+        sucess = self.loadFile(self, "Basic")
+        if not sucess:
+            self.report({'ERROR'}, "Example Does Not Exist!")
+        return{'FINISHED'}
 
 
+class openExampleBasic(openExampleTemplate):
+    bl_label = "Basic"
+    bl_idname = "renderman.basic"
+
+    def execute(self, context):
+        sucess = self.loadFile(self, "Basic")
+        if not sucess:
+            self.report({'ERROR'}, "Example Does Not Exist!")
+        return{'FINISHED'}
+
+
+class openExampleTexturesBasic(openExampleTemplate):
+    bl_label = "BasicTextures"
+    bl_idname = "renderman.texbasic"
+
+    def execute(self, context):
+        sucess = self.loadFile(self, "Basic Textures")
+        if not sucess:
+            self.report({'ERROR'}, "Example Does Not Exist!")
+        return{'FINISHED'}
+
+class LoadSceneMenu(bpy.types.Menu):
+    bl_label = "RendermanExamples"
+    bl_idname = "examples"
+
+    def draw(self, context):
+        self.layout.operator("renderman.basic")
+        self.layout.operator("renderman.texbasic")
+
+
+def menu_draw(self, context):
+    icons = load_icons()
+    examples_menu = icons.get("help")
+    self.layout.menu("examples", icon_value=examples_menu.icon_id)
 
 # Yuck, this should be built in to blender... Yes it should
 class COLLECTION_OT_add_remove(bpy.types.Operator):
@@ -701,8 +765,9 @@ compile_shader_menu_func = (lambda self, context: self.layout.operator(
 def register():
     bpy.types.TEXT_MT_text.append(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.append(compile_shader_menu_func)
-
+    bpy.types.INFO_MT_help.append(menu_draw)
 
 def unregister():
     bpy.types.TEXT_MT_text.remove(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.remove(compile_shader_menu_func)
+    bpy.types.INFO_MT_help.remove(menu_draw)
