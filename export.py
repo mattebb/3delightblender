@@ -2200,7 +2200,7 @@ def export_render_settings(ri, rpass, scene, preview=False):
     depths = {'int maxdiffusedepth': rm.max_diffuse_depth,
               'int maxspeculardepth': rm.max_specular_depth,
               'int displacements': 1}
-    if preview:
+    if preview or rpass.is_interactive:
         depths = {'int maxdiffusedepth': rm.preview_max_diffuse_depth,
                   'int maxspeculardepth': rm.preview_max_specular_depth}
 
