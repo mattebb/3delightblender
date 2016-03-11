@@ -307,7 +307,7 @@ class RendermanShadingNode(bpy.types.Node):
         self.inputs.clear()
         self.outputs.clear()
 
-    def RefreshNodes(self, context, nodeOR=None, materialOverride=None):
+    def RefreshNodes(self, context, nodeOR=None, materialOverride=None, saveProps=False):
 
         # Compile shader.        If the call was from socket draw get the node
         # information anther way.
@@ -375,8 +375,9 @@ class RendermanShadingNode(bpy.types.Node):
         if ok:
             debug('osl', "Shader Compiled Successfully!")
             # Reset the inputs and outputs
-            node.outputs.clear()
-            node.inputs.clear()
+            if(not saveProps):
+                node.outputs.clear()
+                node.inputs.clear()
             # Read in new properties
             prop_names, shader_meta = readOSO(export_path)
             debug('osl', prop_names, "MetaInfo: ", shader_meta)
@@ -385,7 +386,7 @@ class RendermanShadingNode(bpy.types.Node):
             # Generate new inputs and outputs
             node.OSLPROPSPOINTER = OSLProps
             node.OSLPROPSPOINTER.setProps(
-                node, prop_names, shader_meta, context, materialOverride)
+                    node, prop_names, shader_meta, context, materialOverride, saveProps)
 
         else:
             debug("osl", "NODE COMPILATION FAILED")
@@ -420,7 +421,7 @@ class OSLProps(bpy.types.PropertyGroup):
     # Look at the readOSO function (located in util.py) if you need to know
     # the layout.
 
-    def setProps(self, prop_names, shader_meta, context, materialOverride):
+    def setProps(self, prop_names, shader_meta, context, materialOverride, saveProps):
         if materialOverride is not None:
             mat = materialOverride.name
         else:
@@ -431,8 +432,9 @@ class OSLProps(bpy.types.PropertyGroup):
             storageLocation = mat + self.name + prop_name
             if shader_meta[prop_name]["IO"] == "out":
                 setattr(OSLProps, storageLocation + "type", "OUT")
-                self.outputs.new(
-                    socket_map[shader_meta[prop_name]["type"]], prop_name)
+                if(not saveProps):
+                    self.outputs.new(
+                        socket_map[shader_meta[prop_name]["type"]], prop_name)
             else:
                 prop_default = shader_meta[prop_name]["default"]
                 if shader_meta[prop_name]["type"] == "float":
@@ -502,10 +504,11 @@ class OSLProps(bpy.types.PropertyGroup):
                                            default=prop_default))
                 if shader_meta[prop_name]["type"] == "matrix" or \
                         shader_meta[prop_name]["type"] == "point":
-                    self.inputs.new(socket_map["struct"], prop_name)
+                    if(not saveProps):
+                        self.inputs.new(socket_map["struct"], prop_name)
                 elif shader_meta[prop_name]["type"] == "void":
                     pass
-                else:
+                elif(not saveProps):
                     self.inputs.new(socket_map[shader_meta[prop_name]["type"]],
                                     prop_name)
         debug('osl', "Shader: ", shader_meta["shader"], "Properties: ",
@@ -1323,74 +1326,20 @@ def get_textures(id):
 
     return textures
 
-'''
-def rebuild_OSL_nodes(scene, context):
-    SUPPORTED_MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT', 'SURFACE']
-    for o in scene.objects:
-        if o.type == 'CAMERA' or o.type == 'EMPTY':
-            continue
-        elif o.type in SUPPORTED_MATERIAL_TYPES:
-            for mat in [mat for mat in o.data.materials if mat is not None]:
-                try:
-                    call_nodes(mat, context)
-                except:
-                    debug("error",
-                          "rebuild_nodes: Supported material type error [%s]."
-                          % o.type)
-        else:
-            debug("error", "rebuild_nodes: unsupported object type [%s]."
-                  % o.type)
-
-
-def call_nodes(mat, context):
-    textures = []
-    if mat.renderman.nodetree == "":
-        pass
-    try:
-        nt = bpy.data.node_groups[mat.renderman.nodetree]
-    except:
-        nt = None
-
-    if nt:
-        for node in nt.nodes:
-            if node.bl_idname == "PxrOSLPatternNode":
-                node.RefreshNodes(context, node, mat)
-            else:
-                pass
-'''
-
 @persistent
 def rebuildOSLSystem(dummy):
-    debug('osl', "Now rebuilding OSL nodes!")
     context = bpy.context
     scene = context.scene
-    debug('osl', "Scene name: ", scene.name, "Render engine", scene.render.engine)
     if(scene.render.engine == 'PRMAN_RENDER'):
         for ob in scene.objects:
-            debug('osl',"Object name: ", ob.name)
             for matSl in ob.material_slots:
                 mat = matSl.material
-                debug('osl', "Material Name: ", mat.name)
                 if(hasattr(mat, "renderman")):
                     nt = bpy.data.node_groups[mat.renderman.nodetree]
                     for node in nt.nodes:
-                        debug('osl', "Renderman nodes", node.name)
                         if(node.bl_idname == "PxrOSLPatternNode"):
-                            links = storeLinks(node, mat) #Record the links that the node had.
-                            node.RefreshNodes(context, node, mat) # Recompile the node.
-                            restoreLinks(node, mat, links) #Restore any links that the node had.
-                else:
-                    debug('osl', "No renderman props continuing.")
-    else:
-        debug('osl', "No osl rebuilding needs to take place.")
+                            node.RefreshNodes(context, node, mat, True) # Recompile the node.
 
-def storeLinks(node, mat):
-    links = []
-    
-    return links
-
-def restoreLinks(node, mat, links):
-    pass
 
 # our own base class with an appropriate poll function,
 # so the categories only show up in our own tree type
