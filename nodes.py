@@ -965,7 +965,7 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
 # Rib export
 
 # generate param list
-def gen_params(ri, node, mat_name=None, recurse=True):
+def gen_params(ri, node, mat_name=None):
     params = {}
     # If node is OSL node get properties from dynamic location.
     if node.bl_idname == "PxrOSLPatternNode" and mat_name != 'preview':
@@ -986,7 +986,6 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 elif prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
                     from_socket = node.inputs[prop_name].links[0].from_socket
-                    shader_node_rib(ri, from_socket.node, mat_name=mat_name)
                     params['reference %s %s' % (prop_type, prop_name)] = \
                         ["%s:%s" % (from_socket.node.name,
                                     from_socket.identifier)]
@@ -1037,9 +1036,6 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 elif prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
                     from_socket = node.inputs[prop_name].links[0].from_socket
-                    if recurse:
-                        shader_node_rib(
-                            ri, from_socket.node, mat_name=mat_name)
                     params['reference %s %s' % (meta['renderman_type'],
                                                 meta['renderman_name'])] = \
                         ["%s:%s" %
@@ -1085,9 +1081,6 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 elif prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
                     from_socket = node.inputs[prop_name].links[0].from_socket
-                    if recurse:
-                        shader_node_rib(
-                            ri, from_socket.node, mat_name=mat_name)
                     params['reference %s %s' % (meta['renderman_type'],
                                                 meta['renderman_name'])] = \
                         ["%s:%s" %
@@ -1138,8 +1131,8 @@ def gen_params(ri, node, mat_name=None, recurse=True):
 # Export to rib
 
 
-def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
-    params = gen_params(ri, node, mat_name, recurse)
+def shader_node_rib(ri, node, mat_name, disp_bound=0.0):
+    params = gen_params(ri, node, mat_name)
     instance = mat_name + '.' + node.name
     params['__instanceid'] = mat_name + '.' + node.name
     if node.renderman_node_type == "pattern":
@@ -1162,9 +1155,8 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
     else:
         ri.Bxdf(node.bl_label, instance, params)
 
+
 # return the output file name if this texture is to be txmade.
-
-
 def get_tex_file_name(prop):
     frame_num = bpy.data.scenes[0].frame_current
     prop = prop.replace('$f4', str(frame_num).zfill(4))
@@ -1177,9 +1169,22 @@ def get_tex_file_name(prop):
     else:
         return prop
 
+
+# walk the tree for nodes to export
+def gather_nodes(node):
+    nodes = []
+    for socket in node.inputs:
+        if socket.is_linked:
+            for sub_node in gather_nodes(socket.links[0].from_node):
+                if sub_node not in nodes:
+                    nodes.append(sub_node)
+    if node.renderman_node_type != 'output':
+        nodes.append(node)
+
+    return nodes
+
+
 # for an input node output all "nodes"
-
-
 def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
     try:
         nt = bpy.data.node_groups[id.renderman.nodetree]
@@ -1194,15 +1199,15 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
         if out is None:
             return
 
+        nodes_to_export = gather_nodes(out)
         ri.ArchiveRecord('comment', "Shader Graph")
-        for out_type, socket in out.inputs.items():
-            if socket.is_linked:
-                shader_node_rib(ri, socket.links[0].from_node, mat_name=handle,
-                                disp_bound=disp_bound)
+        for node in nodes_to_export:
+            shader_node_rib(ri, node, mat_name=handle,
+                            disp_bound=disp_bound)
+
+
 
 # return the bxdf name for this mat if there is one, else return defualt
-
-
 def get_bxdf_name(mat):
     if mat.renderman.nodetree not in bpy.data.node_groups:
         return "default"

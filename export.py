@@ -2922,5 +2922,5 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         rpass.edit_num += 1
         edit_flush(ri, rpass.edit_num, prman)
         ri.EditBegin('instance')
-        shader_node_rib(ri, node, mat.name, recurse=False)
+        shader_node_rib(ri, node, mat.name)
         ri.EditEnd()
