@@ -30,7 +30,7 @@ from bpy.types import AddonPreferences
 from bpy.props import CollectionProperty, BoolProperty, StringProperty
 from bpy.props import IntProperty, PointerProperty, EnumProperty
 
-from .util import guess_rmantree, get_installed_rendermans
+from .util import guess_rmantree_initial, get_installed_rendermans, rmantree_from_env
 
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
@@ -120,17 +120,17 @@ class RendermanPreferences(AddonPreferences):
         )
 
     rmantree_method = EnumProperty(
-        name='RenderMan Location Method',
+        name='RenderMan Location',
         description='How RenderMan should be detected.  Most users should leave to "Detect"',
         items=[('DETECT', 'Choose From Installed', 'This will scan for installed RenderMan locations to choose from'),
-               ('ENV', 'Get From Environment Variables', 'This will use the RMANTREE set in the enviornment variables'),
+               ('ENV', 'Get From RMANTREE Environment Variable', 'This will use the RMANTREE set in the enviornment variables'),
                ('MANUAL', 'Set Manually', 'Manually set the RenderMan installation (for expert users)')])
 
     path_rmantree = StringProperty(
         name="RMANTREE Path",
         description="Path to RenderMan Pro Server installation folder",
         subtype='DIR_PATH',
-        default=guess_rmantree())
+        default=guess_rmantree_initial())
     path_renderer = StringProperty(
         name="Renderer Path",
         description="Path to renderer executable",
@@ -176,9 +176,10 @@ class RendermanPreferences(AddonPreferences):
         if self.rmantree_method == 'DETECT':
             layout.prop(self, 'rmantree_choice')
         elif self.rmantree_method == 'ENV':
-            layout.label(text=guess_rmantree())
+            layout.label(text="RMANTREE: %s " % rmantree_from_env())
         else:
             layout.prop(self, "path_rmantree")
+        #layout.label(text="After changing RenderMan Location reload addon", icon="ERROR")
         #layout.prop(self, "path_renderer")
         #layout.prop(self, "path_shader_compiler")
         #layout.prop(self, "path_shader_info")

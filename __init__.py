@@ -35,8 +35,6 @@ bl_info = {
     "warning": "",
     "category": "Render"}
 
-from . import engine
-
 class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
     bl_label = "PRMan Render"
@@ -76,12 +74,16 @@ class PRManRender(bpy.types.RenderEngine):
 
 
 def register():
-    from . import ui
     from . import preferences
+    preferences.register()
+    
+    from . import ui
     from . import properties
     from . import operators
     from . import nodes
-    preferences.register()
+    # need this now rather than at beginning to make 
+    # sure preferences are loaded
+    from . import engine
     properties.register()
     operators.register()
     ui.register()
@@ -94,11 +96,11 @@ def unregister():
         bpy.app.handlers.scene_update_pre.remove(engine.update_timestamp)
 
     from . import ui
-    from . import preferences
     from . import properties
     from . import operators
     from . import nodes
-
+    from . import preferences
+    
     preferences.unregister()
     properties.unregister()
     operators.unregister()
