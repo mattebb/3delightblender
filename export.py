@@ -2759,6 +2759,8 @@ def issue_light_transform_edit(ri, obj):
     ri.EditBegin('attribute', {'string scopename': obj.data.name})
     export_object_transform(ri, obj, obj.type == 'LAMP' and (
         lamp.type == 'HEMI' and lamp.renderman.renderman_type != "SKY"))
+    if lamp.renderman.renderman_type == 'POINT':
+        ri.Scale(.01, .01, .01)
     ri.EditEnd()
 
 
