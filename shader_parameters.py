@@ -312,9 +312,7 @@ def generate_property(sp):
     # I guess multiline tooltips never worked
     for s in sp:
         if s.tag == 'help' and s.text:
-            lines = s.text.split('\n')
-            for line in lines:
-                param_help = param_help + line.strip(' \t\n\r')
+            param_help = s.text
 
     if 'float' in param_type:
         if 'arraySize' in sp.attrib.keys():
