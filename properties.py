@@ -521,7 +521,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     preview_pixel_variance = FloatProperty(
         name="Preview Pixel Variance",
         description=" Sets a maximum for the estimated variance of the pixel value from the true value of the pixel.",
-        min=0, max=1, default=.01)
+        min=0, max=1, default=.05)
 
     preview_bucket_order = EnumProperty(
         name="Preview Bucket Order",
@@ -547,7 +547,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     preview_max_samples = IntProperty(
         name="Preview Max Samples",
         description="The maximum number of camera samples per pixel",
-        min=0, default=8)
+        min=0, default=64)
 
     preview_max_specular_depth = IntProperty(
         name="Max Preview Specular Depth",
