@@ -304,8 +304,9 @@ class RendermanShadingNode(bpy.types.Node):
                         layout.prop(self, prop_name)
 
     def copy(self, node):
-        self.inputs.clear()
-        self.outputs.clear()
+        pass
+    #    self.inputs.clear()
+    #    self.outputs.clear()
 
     def RefreshNodes(self, context, nodeOR=None, materialOverride=None, saveProps=False):
 
