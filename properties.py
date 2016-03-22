@@ -344,7 +344,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     pixel_variance = FloatProperty(
         name="Pixel Variance",
         description=" Sets a maximum for the estimated variance of the pixel value from the true value of the pixel.",
-        min=0, max=1, default=.001)
+        min=0, max=1, default=.01)
 
     light_localization = BoolProperty(
         name="Light Localized Sampling",
