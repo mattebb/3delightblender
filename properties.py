@@ -344,7 +344,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     pixel_variance = FloatProperty(
         name="Pixel Variance",
         description=" Sets a maximum for the estimated variance of the pixel value from the true value of the pixel.",
-        min=0, max=1, default=.005)
+        min=0, max=1, default=.01)
 
     light_localization = BoolProperty(
         name="Light Localized Sampling",
@@ -375,7 +375,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                ('SPIRAL', 'Spiral rendering',
                 'Renders in a spiral from the center of the image or a custom defined point'),
                ('RANDOM', 'Random', 'Renders buckets in a random order WARNING: Inefficient memory footprint')],
-        default='HORIZONTAL')
+        default='SPIRAL')
 
     bucket_sprial_x = IntProperty(
         name="X",
@@ -397,17 +397,22 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Enable motion blur",
         default=False)
     motion_segments = IntProperty(
-        name="Motion Segments",
-        description="Number of motion segments to take for multi-segment motion blur",
-        min=1, max=16, default=1)
-    shutter_open = FloatProperty(
-        name="Shutter Open",
-        description="Shutter open time (in frame time)",
-        default=0.0)
-    shutter_close = FloatProperty(
-        name="Shutter Close",
-        description="Shutter close time (in frame time)",
-        default=1.0)
+        name="Motion Samples",
+        description="Number of motion samples to take for motion blur",
+        min=2, max=16, default=2)
+    shutter_timing = EnumProperty(
+        name="Shutter Timing",
+        description="Controls when the shutter opens for a given frame",
+        items=[('CENTER', 'Center on frame', 'Motion is centered on frame #'),
+               ('PRE', 'Pre frame', 'Motion ends on frame #'),
+               ('POST', 'Post frame', 'Motion starts on frame #')],
+        default='CENTER')
+
+
+    shutter_angle = FloatProperty(
+        name="Shutter Angle",
+        description="Fraction of time that the shutter is open (out of 360).\n180 is typical for North America 24fps cameras, 172.8 is typical in Europe.",
+        default=180.0, min=0.0, max=360.0)
 
     shutter_efficiency_open = FloatProperty(
         name="Shutter open speed",
@@ -434,11 +439,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     max_trace_depth = IntProperty(
         name="Max Trace Depth",
         description="Maximum number of ray bounces (0 disables ray tracing)",
-        min=0, max=32, default=4)
+        min=0, max=32, default=10)
     max_specular_depth = IntProperty(
         name="Max Specular Depth",
         description="Maximum number of specular ray bounces",
-        min=0, max=32, default=2)
+        min=0, max=32, default=4)
     max_diffuse_depth = IntProperty(
         name="Max Diffuse Depth",
         description="Maximum number of diffuse ray bounces",
@@ -1380,13 +1385,13 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         default=-1.0)
 
     motion_segments_override = BoolProperty(
-        name="Override Motion Segments",
-        description="Override the global number of motion segments for this object",
+        name="Override Motion Samples",
+        description="Override the global number of motion samples for this object",
         default=False)
     motion_segments = IntProperty(
-        name="Motion Segments",
-        description="Number of motion segments to take for multi-segment motion blur",
-        min=1, max=16, default=1)
+        name="Motion Samples",
+        description="Number of motion samples to take for multi-segment motion blur",
+        min=2, max=16, default=2)
 
     shadinginterpolation = EnumProperty(
         name="Shading Interpolation",

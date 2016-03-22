@@ -169,18 +169,20 @@ def archive_objects(scene):
 
 
 # ------------- Data Access Helpers -------------
-
-def get_subframes(segs):
+def get_subframes(segs, scene):
     if segs == 0:
         return []
-    return [i * 1.0 / segs for i in range(segs + 1)]
-
-
-def get_ob_subframes(scene, ob):
-    if ob.renderman.motion_segments_override:
-        return get_subframes(ob.renderman.motion_segments)
-    else:
-        return get_subframes(scene.renderman.motion_segments)
+    min = -1.0
+    rm = scene.renderman
+    shutter_interval = rm.shutter_angle / 360.0
+    if rm.shutter_timing == 'CENTER':
+        min = 0-.5*shutter_interval
+    elif rm.shutter_timing == 'PRE':
+        min = 0-shutter_interval
+    elif rm.shutter_timing == 'POST':
+        min = 0
+    
+    return [min + i * shutter_interval / (segs-1) for i in range(segs)]
 
 
 def is_subd_last(ob):
@@ -1795,7 +1797,7 @@ def file_is_dirty(scene, ob, archive_filename):
         return True
 
 
-def get_transform(instance, subframe):
+def get_transform(instance, motion_seg):
     if not instance.transforming:
         return
     else:
@@ -1804,37 +1806,39 @@ def get_transform(instance, subframe):
             mat = ob.matrix_local
         else:
             mat = ob.matrix_world
-        instance.motion_data.append((subframe, mat.copy()))
+        instance.motion_data.append((motion_seg, mat.copy()))
 
 
-def get_deformation(data_block, subframe, scene):
+def get_deformation(data_block, motion_seg, scene):
     if not data_block.deforming or not data_block.do_export:
         return
     else:
         if data_block.type == "MESH":
             mesh = create_mesh(data_block.data, scene)
-            data_block.motion_data.append((subframe, mesh))
+            data_block.motion_data.append((motion_seg, mesh))
         elif data_block.type == "PSYS":
             ob, psys = data_block.data
             if psys.settings.type == "EMITTER":
                 begin_frame = scene.frame_current - 1 if subframe == 1 else scene.frame_current
                 end_frame = scene.frame_current + 1 if subframe != 1 else scene.frame_current
                 points = get_particles(scene, ob, psys, [begin_frame, end_frame])
-                data_block.motion_data.append((subframe, points))
+                data_block.motion_data.append((motion_seg, points))
             else:
                 # this is hair
                 hairs = get_strands(scene, data_block.data, psys)
-                data_block.motion_data.append((subframe, hairs))
+                data_block.motion_data.append((motion_seg, hairs))
 
 # Create two lists, one of data blocks to export and one of instances to export
 # Collect and store motion blur transformation data in a pre-process.
 # More efficient, and avoids too many frame updates in blender.
 
 
-def cache_motion(scene, rpass):
+def cache_motion(scene, rpass, objects = None):
+    if objects is None:
+        objects = scene.objects
     origframe = scene.frame_current
     instances, data_blocks, motion_segs = \
-        get_instances_and_blocks(scene.objects, rpass)
+        get_instances_and_blocks(objects, rpass)
 
     # the aim here is to do only a minimal number of scene updates,
     # so we process objects in batches of equal numbers of segments
@@ -1845,13 +1849,17 @@ def cache_motion(scene, rpass):
         # ordered from future to present,
         # to prevent too many scene updates
         # (since loop ends on current frame/subframe)
-        for sub in get_subframes(num_segs):
-            scene.frame_set(origframe, sub)
+        for seg in get_subframes(num_segs, scene):
+            if seg < 0.0:
+                scene.frame_set(origframe - 1, 1.0 + seg)
+            else:
+                scene.frame_set(origframe, seg)
+            
             for name in instance_names:
-                get_transform(instances[name], sub)
+                get_transform(instances[name], seg)
 
             for name in data_names:
-                get_deformation(data_blocks[name], sub, scene)
+                get_deformation(data_blocks[name], seg, scene)
 
     scene.frame_set(origframe, 0)
 
@@ -1867,36 +1875,7 @@ def get_valid_empties(scene, rpass):
     return empties
 
 
-def cache_motion_single_object(scene, rpass, activeObject):
-    origframe = scene.frame_current
-    objectToPass = [activeObject]
-    instances, data_blocks, motion_segs = \
-        get_instances_and_blocks(objectToPass, rpass)
-
-    # the aim here is to do only a minimal number of scene updates,
-    # so we process objects in batches of equal numbers of segments
-    # and update the scene only once for each of those unique fractional
-    # frames per segment set
-    for num_segs, (instance_names, data_names) in motion_segs.items():
-        # prepare list of frames/sub-frames in advance,
-        # ordered from future to present,
-        # to prevent too many scene updates
-        # (since loop ends on current frame/subframe)
-        for sub in get_subframes(num_segs):
-            scene.frame_set(origframe, sub)
-            for name in instance_names:
-                get_transform(instances[name], sub)
-
-            for name in data_names:
-                get_deformation(data_blocks[name], sub, scene)
-
-    scene.frame_set(origframe, 0)
-
-    return data_blocks, instances
-
 # export data_blocks
-
-
 def export_data_archives(ri, scene, rpass, data_blocks):
     for name, db in data_blocks.items():
         if not db.do_export:
@@ -2366,7 +2345,15 @@ def export_camera(ri, scene, instances, camera_to_use=None):
         ri.DepthOfField(rm.fstop, (cam.lens * 0.001), dof_distance)
 
     if scene.renderman.motion_blur:
-        ri.Shutter(rm.shutter_open, rm.shutter_close)
+        shutter_interval = rm.shutter_angle / 360.0
+        shutter_open, shutter_close = 0,1
+        if rm.shutter_timing == 'CENTER':
+            shutter_open, shutter_close = 0-.5*shutter_interval,0+.5*shutter_interval
+        elif rm.shutter_timing == 'PRE':
+            shutter_open, shutter_close = 0-shutter_interval,0
+        elif rm.shutter_timing == 'POST':
+            shutter_open, shutter_close = 0,shutter_interval
+        ri.Shutter(shutter_open, shutter_close)
         # ri.Option "shutter" "efficiency" [ %f %f ] \n' %
         # (rm.shutter_efficiency_open, rm.shutter_efficiency_close))
 
@@ -2824,7 +2811,7 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
     fileExt = ".zip"
     
     # precalculate data
-    data_blocks, instances = cache_motion_single_object(scene, rpass, object)
+    data_blocks, instances = cache_motion(scene, rpass, objects=[object])
     
     
     #Override precalculated data (simpler then creating new methods)
@@ -2855,7 +2842,7 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
             for i in range(rangeStart, rangeEnd+1):
                 scene.frame_current = i
                 zeroFill = str(i).zfill(4)
-                data_blocks, instances = cache_motion_single_object(scene, rpass, object)
+                data_blocks, instances = cache_motion(scene, rpass, objects=[object])
                 archivePathRIB = object.name + ".rib"
                 ri.Begin(archivePathRIB)
                 if(exportMats):
