@@ -2744,14 +2744,14 @@ def interactive_initial_rib(rpass, ri, scene, prman):
     ri.Option('rerender', {'int[2] lodrange': [0, 3]})
 
     ri.ArchiveRecord("structure", ri.STREAMMARKER + "_initial")
-    prman.RicFlush("_initial", 1, ri.FINISHRENDERING)
+    prman.RicFlush("_initial", 0, ri.FINISHRENDERING)
 
 # flush the current edit
 
 
 def edit_flush(ri, edit_num, prman):
     ri.ArchiveRecord("structure", ri.STREAMMARKER + "%d" % edit_num)
-    prman.RicFlush("%d" % edit_num, 1, ri.SUSPENDRENDERING)
+    prman.RicFlush("%d" % edit_num, 0, ri.SUSPENDRENDERING)
 
 
 def issue_light_transform_edit(ri, obj):

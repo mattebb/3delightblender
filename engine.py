@@ -543,6 +543,9 @@ class RPass:
     def end_interactive(self):
         self.is_interactive = False
         self.is_interactive_running = False
+        self.edit_num += 1
+        self.ri.ArchiveRecord("structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
+        prman.RicFlush("%d" % self.edit_num, 0, self.ri.SUSPENDRENDERING)
         self.ri.EditWorldEnd()
         self.ri.End()
         self.material_dict = {}
