@@ -2616,7 +2616,7 @@ def export_hider(ri, rpass, scene, preview=False):
     ri.PixelVariance(pv)
 
     if rm.light_localization:
-        ri.Option("shading",  {"int directlightinglocalizedsampling": 4})
+        ri.Option("shading",  {"int directlightinglocalizedsampling": 3})
 
     if rm.do_denoise:
         hider_params['string pixelfiltermode'] = 'importance'
