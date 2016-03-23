@@ -66,14 +66,15 @@ def readOSO(filePath):
     line_number = 0
     shader_meta = {}
     prop_names = []
+    shader_meta["shader"] = os.path.splitext(os.path.basename(filePath))[0]
+    print("Shader", shader_meta["shader"])
     with open(filePath, encoding='utf-8') as osofile:
         for line in osofile:
-            if line.startswith("surface") or line.startswith("shader"):
-                line_number += 1
-                listLine = line.split()
-                # print("SHADER: ", listLine[1])
-                shader_meta["shader"] = listLine[1]
-            elif line.startswith("param"):
+            #if line.startswith("surface") or line.startswith("shader"):
+            #    line_number += 1
+            #    listLine = line.split()
+            #    shader_meta["shader"] = listLine[1]
+            if line.startswith("param"):
                 line_number += 1
                 listLine = line.split()
                 name = listLine[2]
@@ -95,8 +96,8 @@ def readOSO(filePath):
                         x += 1
                 elif type == "closure":
                     debug('error', "Closure types are not supported")
-                    type = "void"
-                    name = listLine[3]
+                    #type = "void"
+                    #name = listLine[3]
                 else:
                     default = listLine[3]
                 prop_names.append(name)
@@ -128,7 +129,6 @@ def readOSO(filePath):
                 prop_names.append(name)
                 prop_meta = {"type": type, "default":  default, "IO": "out"}
                 shader_meta[name] = prop_meta
-                # print("SHADER: ", shader_meta)
             else:
                 line_number += 1
     return prop_names, shader_meta
