@@ -2591,7 +2591,7 @@ def export_display(ri, rpass, scene):
         # output denoise_data.exr
         ri.Display('+' + image_base + '.denoise.exr', 'openexr',
                    "Ci,a,mse,albedo,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
-                   {"int asrgba": 1})
+                   {"int asrgba": 1, "string storage": "tiled"})
 
 
 def export_hider(ri, rpass, scene, preview=False):
