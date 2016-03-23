@@ -67,7 +67,6 @@ def readOSO(filePath):
     shader_meta = {}
     prop_names = []
     shader_meta["shader"] = os.path.splitext(os.path.basename(filePath))[0]
-    print("Shader", shader_meta["shader"])
     with open(filePath, encoding='utf-8') as osofile:
         for line in osofile:
             #if line.startswith("surface") or line.startswith("shader"):
