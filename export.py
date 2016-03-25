@@ -2591,7 +2591,7 @@ def export_display(ri, rpass, scene):
         # output denoise_data.exr
         ri.Display('+' + image_base + '.denoise.exr', 'openexr',
                    "Ci,a,mse,albedo,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
-                   {"int asrgba": 1})
+                   {"int asrgba": 1, "string storage": "tiled"})
 
 
 def export_hider(ri, rpass, scene, preview=False):
@@ -2616,7 +2616,7 @@ def export_hider(ri, rpass, scene, preview=False):
     ri.PixelVariance(pv)
 
     if rm.light_localization:
-        ri.Option("shading",  {"int directlightinglocalizedsampling": 4})
+        ri.Option("shading",  {"int directlightinglocalizedsampling": 3})
 
     if rm.do_denoise:
         hider_params['string pixelfiltermode'] = 'importance'
@@ -2744,14 +2744,14 @@ def interactive_initial_rib(rpass, ri, scene, prman):
     ri.Option('rerender', {'int[2] lodrange': [0, 3]})
 
     ri.ArchiveRecord("structure", ri.STREAMMARKER + "_initial")
-    prman.RicFlush("_initial", 1, ri.FINISHRENDERING)
+    prman.RicFlush("_initial", 0, ri.FINISHRENDERING)
 
 # flush the current edit
 
 
 def edit_flush(ri, edit_num, prman):
     ri.ArchiveRecord("structure", ri.STREAMMARKER + "%d" % edit_num)
-    prman.RicFlush("%d" % edit_num, 1, ri.SUSPENDRENDERING)
+    prman.RicFlush("%d" % edit_num, 0, ri.SUSPENDRENDERING)
 
 
 def issue_light_transform_edit(ri, obj):
@@ -2924,5 +2924,5 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         rpass.edit_num += 1
         edit_flush(ri, rpass.edit_num, prman)
         ri.EditBegin('instance')
-        shader_node_rib(ri, node, mat.name, recurse=False)
+        shader_node_rib(ri, node, mat.name)
         ri.EditEnd()
