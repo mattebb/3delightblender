@@ -1332,10 +1332,11 @@ def rebuildOSLSystem(dummy):
             for matSl in ob.material_slots:
                 mat = matSl.material
                 if(hasattr(mat, "renderman")):
-                    nt = bpy.data.node_groups[mat.renderman.nodetree]
-                    for node in nt.nodes:
-                        if(node.bl_idname == "PxrOSLPatternNode"):
-                            node.RefreshNodes(context, node, mat, True) # Recompile the node.
+                    if(mat.renderman.nodetree in bpy.data.node_groups):
+                        nt = bpy.data.node_groups[mat.renderman.nodetree]
+                        for node in nt.nodes:
+                            if(node.bl_idname == "PxrOSLPatternNode"):
+                                node.RefreshNodes(context, node, mat, True) # Recompile the node.
 
 
 # our own base class with an appropriate poll function,
