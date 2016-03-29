@@ -26,7 +26,7 @@ import bpy
 import sys
 
 bl_info = {
-    "name": "PRMan For Blender",
+    "name": "RenderMan For Blender",
     "author": "Brian Savery",
     "version": (0, 7, 0),
     "blender": (2, 74, 0),
@@ -37,7 +37,7 @@ bl_info = {
 
 class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
-    bl_label = "PRMan Render"
+    bl_label = "RenderMan Render"
     bl_use_preview = True
     bl_use_save_buffers = True
 
@@ -99,8 +99,7 @@ def unregister():
     from . import properties
     from . import operators
     from . import nodes
-    from . import preferences
-    
+    from . import icons
     preferences.unregister()
     properties.unregister()
     operators.unregister()

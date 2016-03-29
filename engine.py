@@ -33,6 +33,8 @@ import mathutils
 from mathutils import Matrix, Vector, Quaternion
 import re
 import traceback
+import glob
+import traceback
 import threading
 from .display import MyTCPHandler
 import socketserver
@@ -58,7 +60,9 @@ from bpy.app.handlers import persistent
 # global dictionaries
 from .export import write_rib, write_preview_rib, get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
-    interactive_initial_rib, update_light_link
+    interactive_initial_rib, update_light_link, delete_light
+
+from .nodes import get_tex_file_name
 
 addon_version = bl_info['version']
 
@@ -194,6 +198,7 @@ class RPass:
 
         self.paths['render_output'] = user_path(rm.path_display_driver_image,
                                                 scene=scene)
+        debug("info",self.paths)
         self.paths['shader'] = [user_path(rm.out_dir, scene=scene)] +\
             get_path_list_converted(rm, 'shader')
         self.paths['rixplugin'] = get_path_list_converted(rm, 'rixplugin')
@@ -503,15 +508,21 @@ class RPass:
                     Cannot start interactive rendering.")
             return
 
+        if self.scene.camera == None:
+            debug('error', "ERROR no Camera.  \
+                    Cannot start interactive rendering.")
+            self.end_interactive()
+            return
+
         self.is_interactive = True
         self.is_interactive_running = True
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         self.material_dict = {}
-        self.lights = []
+        self.lights = {}
         for obj in self.scene.objects:
             if obj.type == 'LAMP' and obj.name not in self.lights:
-                self.lights.append(obj.name)
+                self.lights[obj.name] = obj.data.name
             for mat_slot in obj.material_slots:
                 if mat_slot.material not in self.material_dict:
                     self.material_dict[mat_slot.material] = []
@@ -531,8 +542,8 @@ class RPass:
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.ri, self.scene, prman)
-
         return
+
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
@@ -543,9 +554,20 @@ class RPass:
         # also do the camera in case the camera is locked to display.
         if scene.camera != active and scene.camera.is_updated:
             issue_transform_edits(self, self.ri, scene.camera, prman)
+        # check for light deleted
+        if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
+            lights_deleted = []
+            for light_name,data_name in self.lights.items():
+                if light_name not in scene.objects:
+                    delete_light(self, self.ri, data_name, prman)
+                    lights_deleted.append(light_name)
+
+            for light_name in lights_deleted:
+                self.lights.pop(light_name, None)
+
 
     def issue_shader_edits(self, nt=None, node=None):
-        issue_shader_edits(self, self.ri, prman, nt, node)
+        issue_shader_edits(self, self.ri, prman, nt=nt, node=node)
 
     def update_light_link(self, context, ll):
         update_light_link(self, self.ri, prman, context.scene.objects.active, ll)
@@ -554,11 +576,21 @@ class RPass:
     def end_interactive(self):
         self.is_interactive = False
         self.is_interactive_running = False
+        self.edit_num += 1
+        # output a flush to stop rendering.
+        self.ri.ArchiveRecord("structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
+        prman.RicFlush("%d" % self.edit_num, 0, self.ri.SUSPENDRENDERING)
         self.ri.EditWorldEnd()
         self.ri.End()
+        self.material_dict = {}
+        self.lights = {}
         pass
 
     def gen_rib(self, engine=None):
+        if self.scene.camera == None:
+            debug('error', "ERROR no Camera.  \
+                    Cannot generate rib.")
+            return
         time_start = time.time()
         self.convert_textures(get_texture_list(self.scene))
 
@@ -593,11 +625,22 @@ class RPass:
         write_preview_rib(self, self.scene, self.ri)
         self.ri.End()
 
-    def convert_textures(self, texture_list):
+    def convert_textures(self, temp_texture_list):
         if not os.path.exists(self.paths['texture_output']):
             os.mkdir(self.paths['texture_output'])
 
         files_converted = []
+        texture_list = []
+
+        # for UDIM textures
+        for in_file, out_file, options in temp_texture_list:
+            if '_MAPID_' in in_file:
+                in_file = get_real_path(in_file)
+                for udim_file in glob.glob(in_file.replace('_MAPID_', '*')):
+                    texture_list.append((udim_file, get_tex_file_name(udim_file), options))
+            else:
+                texture_list.append((in_file, out_file, options))
+
         for in_file, out_file, options in texture_list:
             in_file = get_real_path(in_file)
             out_file_path = os.path.join(
