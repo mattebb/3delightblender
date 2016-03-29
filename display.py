@@ -72,7 +72,7 @@ def copy_buffer(internal_buffer):
 
     return buff
 
-def write_pixels(buffer_queue, xmax, ymax, num_channels, engine, result, layer):
+def write_pixels_old(buffer_queue, xmax, ymax, num_channels, engine, result, layer):
     while True:
         pixels = buffer_queue.get()
         if not pixels:
@@ -92,7 +92,7 @@ def write_pixels(buffer_queue, xmax, ymax, num_channels, engine, result, layer):
         #print("done writing")
         #self.write_time += time.time()
 
-def process_bucket(bucket_queue, buffer_queue, xmax, ymax, pixel_size):
+def process_bucket_old(bucket_queue, buffer_queue, xmax, ymax, pixel_size):
     t = time.time()
     internal_buffer = [bytearray((xmax + 1) * pixel_size) for i in range(ymax +1)]
     while True:
@@ -121,6 +121,38 @@ def process_bucket(bucket_queue, buffer_queue, xmax, ymax, pixel_size):
                 pass
             t = time.time()
           
+        bucket_queue.task_done()
+
+def flip_x(pixel_list, width, height):
+    out_list = []
+    for y in range(height):
+        out_list.extend(pixel_list[y*width:(y+1)*width])
+    return out_list
+
+def process_bucket(bucket_queue, engine, num_channels):
+    t = time.time()
+    while True:
+        #print(self.bucket_queue.qsize())
+        pixels = bucket_queue.get()
+        if not pixels:
+            #bucket_queue.get()
+            bucket_queue.task_done()
+            return
+        w_xmin, w_xmax, w_ymin, w_ymax, pixel_data = pixels
+        width = w_xmax - w_xmin + 1
+        height = w_ymax - w_ymin + 1
+        pixel_data = struct.unpack("f"*(height)*(width) * num_channels, pixel_data) #copy_buffer(pixel_data))
+        result = engine.begin_result(w_xmin, w_ymin, width, height)
+        pixel_data = [(pixel_data[4*i+1], 
+            pixel_data[4*i+2], 
+            pixel_data[4*i+3], 
+            pixel_data[4*i]) for i in range(len(result.layers[0].passes[0].rect))]
+        #pixel_data = flip_x(pixel_data, width, height)
+
+        #print(type(pixel_data), len(pixel_data), type(result.layers[0].passes[0].rect), len(result.layers[0].passes[0].rect))
+        result.layers[0].passes[0].rect = pixel_data
+        engine.end_result(result)
+
         bucket_queue.task_done()
           
 class MyTCPHandler(socketserver.BaseRequestHandler):
@@ -185,16 +217,16 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         copy_time = 0
         upload_time = 0
         bucket_queue = queue.Queue(-1)
-        buffer_queue = queue.Queue(1)
+        #buffer_queue = queue.Queue(1)
 
-        writing_worker = threading.Thread(target=write_pixels, 
-            args=(buffer_queue, xmax, ymax, num_channels, 
-                self.server.engine, self.server.result, self.server.layer))
-        writing_worker.setDaemon(True)
-        writing_worker.start()
+        #writing_worker = threading.Thread(target=write_pixels, 
+        #    args=(buffer_queue, xmax, ymax, num_channels, 
+        #        self.server.engine, self.server.result, self.server.layer))
+        #writing_worker.setDaemon(True)
+        #writing_worker.start()
 
         bucket_worker = threading.Thread(target=process_bucket, 
-            args=(bucket_queue, buffer_queue, xmax, ymax, pixel_size))
+            args=(bucket_queue, self.server.engine, num_channels))
         bucket_worker.setDaemon(True)
         bucket_worker.start()
         
@@ -227,10 +259,10 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 #num_pixels = (w_xmax - w_xmin + 1)*(w_ymax - w_ymin + 1)
                 #buffer_size = num_pixels*pixel_size
 
-                #print("getting %d %d" % (buffer_size, num_pixels))
+                #print("getting data" )
                 #get the buffer
                 receiving_time -= time.time()
-                bucket_queue.put((w_xmin, w_xmax, w_ymin, w_ymax, self.request.recv((w_xmax - w_xmin + 1)*(w_ymax - w_ymin + 1)*pixel_size)))
+                bucket_queue.put_nowait((w_xmin, w_xmax, w_ymin, w_ymax, self.request.recv((w_xmax - w_xmin + 1)*(w_ymax - w_ymin + 1)*pixel_size)))
                 #pixel_data = self.request.recv((w_xmax - w_xmin + 1)*(w_ymax - w_ymin + 1)*pixel_size)
                 receiving_time += time.time()
                 #t = time.time()
@@ -257,12 +289,13 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 
 
             elif cmd == image_end:
+                print('image end')
                 bucket_queue.put(0)
                 bucket_queue.join()
-                print("waiting to finish")
+                #print("waiting to finish")
                 #buffer_queue.join()
                 print("finished")
-                self.server.engine.end_result(self.server.result)
+                #self.server.engine.end_result(self.server.result)
             
                 self.server.is_done = True
                 #print("image done, %d datas" % datas)

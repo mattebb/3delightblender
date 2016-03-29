@@ -323,15 +323,15 @@ class RPass:
         if self.display_driver == 'socket':
             render = self.scene.render
             image_scale = 100.0 / render.resolution_percentage
-            result = engine.begin_result(0, 0,
-                                         render.resolution_x * image_scale,
-                                         render.resolution_y * image_scale)
-            lay = result.layers[0].passes[0]
+            #result = engine.begin_result(0, 0,
+            #                             render.resolution_x * image_scale,
+            #                             render.resolution_y * image_scale)
+            #lay = result.layers[0].passes[0]
             HOST, PORT = "localhost", driver_socket_port
             server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
-            server.layer = lay
+            #server.layer = lay
             server.engine = engine
-            server.result = result
+            #server.result = result
             server.is_done=False
             t = threading.Thread(target=server.serve_forever)
             t.setDaemon(True)
