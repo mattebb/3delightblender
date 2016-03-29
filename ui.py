@@ -1273,6 +1273,153 @@ def PRMan_menu_func(self, context):
 #################
 #       Tab     #
 #################
+class Renderman_Light_Panel(CollectionPanel, Panel):
+    #bl_idname = "renderman_light_panel"
+    bl_label = "RenderMan Lights"
+    bl_context = "scene"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'#bl_category = "Renderman"
+    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+ 
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+        row = layout.row()
+        #if len(rm.light_groups) == 0:
+        #    light_group = rm.object_groups.add()
+        #    light_group.name = 'All'
+        self._draw_collection(context, layout, rm, "Light Groups:",
+                              "collection.add_remove",
+                              "scene.renderman",
+                              "light_groups", "light_groups_index")
+
+    def draw_item(self, layout, context, item):
+        row = layout.row()
+        scene = context.scene
+        rm = scene.renderman
+        light_group = rm.light_groups[rm.light_groups_index]
+        #row.template_list("RENDERMAN_GROUP_UL_List", "Renderman_light_group_list", 
+        #                    light_group, "members", light_group, 'members_index', 
+        #                    rows=9, maxrows=100, type='GRID', columns=9)
+
+        row = layout.row()
+        add = row.operator('renderman.add_to_group', 'Add Selected to Group')
+        add.item_type = 'light'
+        add.group_index = rm.light_groups_index
+
+        row = layout.row()
+        remove = row.operator('renderman.remove_from_group', 
+                              'Remove Selected from Group')
+        remove.item_type = 'light'
+        remove.group_index = rm.light_groups_index
+
+        light_names = [member.name for member in light_group.members]
+        if light_group.name == 'All':
+            light_names = [lamp.name for lamp in context.scene.objects if lamp.type == 'LAMP']
+
+        if len(light_names) > 0:
+            
+            row = layout.row()
+            columns = layout.column_flow(columns = 6)
+            columns.label('Name')
+            columns.label('Solo')
+            columns.label('Mute')
+            columns.label('Visibility')
+            columns.label('Exposure')
+            columns.label('Color Map')
+            
+            for light_name in light_names:
+                lamp = scene.objects[light_name].data
+                lamp_rm = lamp.renderman
+                row = layout.row()
+                columns = layout.column_flow(columns = 6)
+                columns.label(light_name)
+                columns.prop(lamp_rm, 'solo', text='')
+                columns.prop(lamp_rm, 'mute', text='')
+                nt = lamp.renderman.nodetree
+                if nt != '':
+                    nt = bpy.data.node_groups[lamp.renderman.nodetree]
+                    output = None
+                    for node in nt.nodes:
+                        if node.renderman_node_type == 'output':
+                            output = node
+                    light_shader = output.inputs['Light'].links[0].from_node    
+
+                    columns.prop(light_shader, 'light_primary_visibility')
+                    columns.prop(light_shader, 'exposure')
+                    if light_shader.bl_label == 'PxrStdAreaLight':
+                        #columns.label('lightColor')
+                        columns.prop(light_shader, 'lightColor', text='')
+                    elif light_shader.bl_label == 'PxrStdEnvMapLight':
+                        columns.prop(light_shader, 'envTint',text='')
+                    elif light_shader.bl_label == 'PxrStdEnvDayLight':
+                        #columns.label('sun tint')
+                        columns.prop(light_shader, 'sunTint', text='')
+                    else:
+                        columns.label('Color Map')
+                else:
+                    columns.label('light_primary_visibility')
+                    columns.label('Exposure')
+                    columns.label('Color Map')
+
+
+
+class RENDERMAN_GROUP_UL_List(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+ 
+        # We could write some code to decide which icon to use here...
+        custom_icon = 'OBJECT_DATAMODE'
+        # Make sure your code supports all 3 layout types
+        layout.alignment = 'CENTER'
+        layout.label(item.name, icon = custom_icon)
+
+class Renderman_Object_Panel(CollectionPanel, Panel):
+    bl_idname = "renderman_object_groups_panel"
+    bl_label = "RenderMan Object Groups"
+    bl_context = "scene"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'#bl_category = "Renderman"
+    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+ 
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+        row = layout.row()
+        #if len(rm.object_groups) == 0:
+        #    collector_group = rm.object_groups.add()
+        #    collector_group.name = 'collector'
+
+        self._draw_collection(context, layout, rm, "Object Groups:",
+                              "collection.add_remove",
+                              "scene.renderman",
+                              "object_groups", "object_groups_index")
+
+    def draw_item(self, layout, context, item):
+        row = layout.row()
+        scene = context.scene
+        rm = scene.renderman
+        group = rm.object_groups[rm.object_groups_index]
+        row.template_list("RENDERMAN_GROUP_UL_List", "Renderman_group_list", 
+                            group, "members", group, 'members_index', 
+                            item_dyntip_propname='name',
+                            rows=9, maxrows=100, type='GRID', columns=9)
+
+        row = layout.row()
+        row.operator('renderman.add_to_group', 'Add Selected to Group').group_index = rm.object_groups_index
+
+        row = layout.row()
+        row.operator('renderman.remove_from_group', 'Remove Selected from Group').group_index = rm.object_groups_index
+
 class Renderman_UI_Panel(bpy.types.Panel):
     bl_idname = "renderman_ui_panel"
     bl_label = "Renderman "
@@ -1625,7 +1772,9 @@ class Renderman_UI_Panel(bpy.types.Panel):
         #Create Holdout
         
         #Open Linking Panel
-        
+        row = layout.row(align=True)
+        row.operator("renderman.lighting_panel")
+
         selected_objects = []
         if context.selected_objects:
             for obj in context.selected_objects:
@@ -1682,8 +1831,9 @@ class Renderman_UI_Panel(bpy.types.Panel):
         #layout.menu("examples", icon_value=rman_help.icon_id)
 
 def register():
+    bpy.utils.register_class(RENDERMAN_GROUP_UL_List)
     bpy.types.INFO_MT_render.append(PRMan_menu_func)
-
+    
 
 def unregister():
     pass

@@ -469,6 +469,63 @@ class OT_add_aov_list(bpy.types.Operator):
         scene.renderman.aov_lists[-1].render_layer = active_layer.name
         return {'FINISHED'}
 
+class OT_add_to_group(bpy.types.Operator):
+    bl_idname = 'renderman.add_to_group'
+    bl_label = 'Add Selected to Object Group'
+
+    group_index = IntProperty(default=0)
+    item_type = StringProperty(default='object')
+
+    def execute(self, context):
+        scene = context.scene
+        group_index = self.properties.group_index
+        item_type = self.properties.item_type
+
+        object_group = scene.renderman.object_groups if item_type == 'object' \
+            else  scene.renderman.light_groups
+        object_group = object_group[group_index].members
+        if hasattr(context, 'selected_objects'):
+            
+            members = [member.name for member in object_group]
+            
+            for ob in context.selected_objects:
+                if ob.name not in members:
+                    if item_type != 'light' or ob.type == 'LAMP':
+                        ob_in_group = object_group.add()
+                        ob_in_group.name = ob.name
+
+        return {'FINISHED'}
+
+
+class OT_remove_from_group(bpy.types.Operator):
+    bl_idname = 'renderman.remove_from_group'
+    bl_label = 'Remove Selected from Object Group'
+
+    group_index = IntProperty(default=0)
+    item_type = StringProperty(default='object')
+
+    def execute(self, context):
+        scene = context.scene
+        group_index = self.properties.group_index
+        item_type = self.properties.item_type
+
+        object_group = scene.renderman.object_groups if item_type == 'object' \
+            else  scene.renderman.light_groups
+        object_group = object_group[group_index].members
+        if hasattr(context, 'selected_objects'):
+            members = [member.name for member in object_group]
+
+            for ob in context.selected_objects:
+                if ob.name in members:
+                    i = members.index(ob.name)
+                    object_group.remove(i)
+                    members.remove(ob.name)
+
+        return {'FINISHED'}
+
+
+
+
 
 #################
 #       Tab     #

@@ -150,8 +150,14 @@ class RendermanInlineRIB(bpy.types.PropertyGroup):
     name = StringProperty(name="Text Block")
 
 
-class RendermanGrouping(bpy.types.PropertyGroup):
+class RendermanGroupMember(bpy.types.PropertyGroup):
+    name = StringProperty(name="Object Name")
+
+class RendermanGroup(bpy.types.PropertyGroup):
     name = StringProperty(name="Group Name")
+    members = CollectionProperty(type=RendermanGroupMember,
+                                     name='Group Members')
+    members_index = IntProperty(min=-1, default=-1)
 
 
 class LightLinking(bpy.types.PropertyGroup):
@@ -312,9 +318,15 @@ class RendermanAOVList(bpy.types.PropertyGroup):
 
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
+    light_groups = CollectionProperty(type=RendermanGroup,
+                                   name='Light Groups')
+    light_groups_index = IntProperty(min=-1, default=-1)
+
     aov_lists = CollectionProperty(type=RendermanAOVList,
                                    name='Custom AOVs')
     aov_list_index = IntProperty(min=-1, default=-1)
+
+    solo_light = StringProperty(name = "Solo Light", default='')
 
     pixelsamples_x = IntProperty(
         name="Pixel Samples X",
@@ -657,9 +669,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     bty_inlinerib_index = IntProperty(min=-1, default=-1)
 
     # Trace Sets (grouping membership)
-    grouping_membership = CollectionProperty(
-        type=RendermanGrouping, name="Trace Sets")
-    grouping_membership_index = IntProperty(min=-1, default=-1)
+    object_groups = CollectionProperty(
+        type=RendermanGroup, name="Trace Sets")
+    object_groups_index = IntProperty(min=-1, default=-1)
 
     use_default_paths = BoolProperty(
         name="Use 3Delight default paths",
@@ -995,6 +1007,30 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         name="Illuminates by default",
         description="Illuminates by default",
         default=True)
+
+    mute = BoolProperty(
+        name="Mute",
+        description="Turn off this light",
+        default=False)
+
+    def update_solo(self, context):
+        lamp = context.lamp
+        scene = context.scene
+        
+        solo_name = lamp.name if self.solo else ''
+        if scene.renderman.solo_light and self.solo and \
+             scene.renderman.solo_light != lamp.name:
+            old_solo = scene.objects[scene.renderman.solo_light]
+            old_solo.data.renderman.solo = False
+        scene.renderman.solo_light = lamp.name
+
+                
+
+    solo = BoolProperty(
+        name="Solo",
+        update=update_solo,
+        description="Turn on only this light",
+        default=False)
 
 class RendermanWorldSettings(bpy.types.PropertyGroup):
 
@@ -1528,7 +1564,8 @@ class Tab_CollectionGroup(bpy.types.PropertyGroup):
 # module startup
 classes = [RendermanPath,
            RendermanInlineRIB,
-           RendermanGrouping,
+           RendermanGroupMember,
+           RendermanGroup,
            LightLinking,
            TraceSet,
            RendermanPass,
