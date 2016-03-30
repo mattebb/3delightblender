@@ -574,8 +574,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
                  ('tiff', 'Tiff',
                   'Render to a TIFF file, to be read back into Blender\'s Render Result'),
-                 ('socket', 'blender',
-                  'Render directly into Blender\'s Render Result'),
                  ('it', 'it', 'External framebuffer display (must have RMS installed)')]
         return items
 
