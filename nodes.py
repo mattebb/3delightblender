@@ -1153,6 +1153,13 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
             debug('error',"Params: ", params)
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
+        light_group_name = ''
+        scene = bpy.context.scene
+        for lg in scene.renderman.light_groups:
+            if mat_name in lg.members.keys():
+                light_group_name = lg.name
+                break
+        params['string __group'] = light_group_name
         params['__instanceid'] = mat_name
         primary_vis = node.light_primary_visibility
         # must be off for light sources

@@ -1912,7 +1912,7 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": instance.name})
     if instance.ob:
-        export_object_attributes(ri, instance.ob)
+        export_object_attributes(ri, rpass.scene, instance.ob)
     # now the matrix, if we're transforming do the motion here
     export_transform(ri, instance, concat=is_child)
 
@@ -2041,12 +2041,23 @@ def get_archive_filename(name, rpass, animated, relative=False):
 
 
 # here we would export object attributes like holdout, sr, etc
-def export_object_attributes(ri, ob):
+def export_object_attributes(ri, scene, ob):
     # save space! don't export default attribute settings to the RIB
     # shading attributes
 
-    if ob.renderman.do_holdout:
-        ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
+    #if ob.renderman.do_holdout:
+    #    ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
+    # gather object groups this object belongs to
+    obj_groups_str = ''
+    for obj_group in scene.renderman.object_groups:
+        if ob.name in obj_group.members.keys():
+            if obj_groups_str != '':
+                obj_groups_str += ','
+            obj_groups_str += obj_group.name
+    # add to trace sets
+    ri.Attribute("grouping", {"string membership": obj_groups_str})
+    # add to lpe groups
+    ri.Attribute("identifier", {"string lpegroup": obj_groups_str})
 
     if ob.renderman.shading_override:
         ri.ShadingRate(ob.renderman.shadingrate)
