@@ -486,7 +486,7 @@ class OT_add_to_group(bpy.types.Operator):
         object_group = object_group[group_index].members
         if hasattr(context, 'selected_objects'):
             
-            members = [member.name for member in object_group]
+            members = object_group.keys()
             
             for ob in context.selected_objects:
                 if ob.name not in members:
@@ -513,14 +513,11 @@ class OT_remove_from_group(bpy.types.Operator):
             else  scene.renderman.light_groups
         object_group = object_group[group_index].members
         if hasattr(context, 'selected_objects'):
-            members = [member.name for member in object_group]
-
             for ob in context.selected_objects:
-                if ob.name in members:
-                    i = members.index(ob.name)
-                    object_group.remove(i)
-                    members.remove(ob.name)
-
+                if ob.name in object_group.keys():
+                    index = object_group.keys().index(ob.name)
+                    object_group.remove(index)
+                
         return {'FINISHED'}
 
 

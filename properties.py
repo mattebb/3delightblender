@@ -150,12 +150,9 @@ class RendermanInlineRIB(bpy.types.PropertyGroup):
     name = StringProperty(name="Text Block")
 
 
-class RendermanGroupMember(bpy.types.PropertyGroup):
-    name = StringProperty(name="Object Name")
-
 class RendermanGroup(bpy.types.PropertyGroup):
     name = StringProperty(name="Group Name")
-    members = CollectionProperty(type=RendermanGroupMember,
+    members = CollectionProperty(type=bpy.types.PropertyGroup,
                                      name='Group Members')
     members_index = IntProperty(min=-1, default=-1)
 
@@ -1562,7 +1559,6 @@ class Tab_CollectionGroup(bpy.types.PropertyGroup):
 # module startup
 classes = [RendermanPath,
            RendermanInlineRIB,
-           RendermanGroupMember,
            RendermanGroup,
            LightLinking,
            TraceSet,
