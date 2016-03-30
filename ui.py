@@ -1325,7 +1325,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
             columns.label('Mute')
             columns.label('Visibility')
             columns.label('Exposure')
-            columns.label('Color Map')
+            columns.label('Color')
             
             for light_name in light_names:
                 lamp = scene.objects[light_name].data
@@ -1357,9 +1357,9 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                     else:
                         columns.label('Color Map')
                 else:
-                    columns.label('light_primary_visibility')
-                    columns.label('Exposure')
-                    columns.label('Color Map')
+                    columns.label('')
+                    columns.prop(lamp, 'energy',text='')
+                    columns.prop(lamp, 'color',text='')
 
 
 
