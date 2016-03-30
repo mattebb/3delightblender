@@ -132,6 +132,7 @@ def update_interactive(engine, context):
 # update the timestamp on an object
 # note that this only logs the active object.  So it might not work say
 # if a script updates objects.  We would need to iterate through all objects
+@persistent
 def update_timestamp(scene):
     active = scene.objects.active
     if active and active.is_updated_data:

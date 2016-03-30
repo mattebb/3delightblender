@@ -452,8 +452,13 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
                 collection[-1].name = coshader_name
             # BBM addition end
         elif self.properties.action == 'REMOVE':
-            collection.remove(index)
-            setattr(rm, coll_idx, index - 1)
+            if prop_coll == 'light_groups' and collection[index].name == 'All':
+                return {'FINISHED'}
+            elif prop_coll == 'object_groups' and collection[index].name == 'collector':
+                return {'FINISHED'}
+            else:
+                collection.remove(index)
+                setattr(rm, coll_idx, index - 1)
 
         return {'FINISHED'}
 
@@ -468,6 +473,7 @@ class OT_add_aov_list(bpy.types.Operator):
         # this sucks.  but can't find any other way to refer to render layer
         scene.renderman.aov_lists[-1].render_layer = active_layer.name
         return {'FINISHED'}
+
 
 class OT_add_to_group(bpy.types.Operator):
     bl_idname = 'renderman.add_to_group'

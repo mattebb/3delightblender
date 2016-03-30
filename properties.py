@@ -39,6 +39,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     CollectionProperty, BoolVectorProperty
 
 from . import engine
+from bpy.app.handlers import persistent
 
 
 # get the names of args files in rmantree/lib/ris/integrator/args
@@ -1554,6 +1555,17 @@ class Tab_CollectionGroup(bpy.types.PropertyGroup):
         name="Renderman Camera",
         description="Show some settings about the camera",
         default=False)
+
+@persistent
+def initial_groups(scene):
+    scene = bpy.context.scene
+    if 'collector' not in scene.renderman.object_groups.keys():
+        default_group = scene.renderman.object_groups.add()
+        default_group.name = 'collector'
+    if 'All' not in scene.renderman.light_groups.keys():
+        default_group = scene.renderman.light_groups.add()
+        default_group.name = 'All'
+
    
 # collection of property group classes that need to be registered on
 # module startup
