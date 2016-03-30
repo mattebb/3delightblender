@@ -956,12 +956,6 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
 
         col.separator()
 
-        row = col.row()
-        row.prop(rm, 'do_holdout')
-        sub = col.row()
-        sub.enabled = rm.do_holdout
-        sub.prop(rm, 'lpe_group')
-
         col.separator()
 
         row = col.row()
