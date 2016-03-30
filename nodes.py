@@ -370,8 +370,7 @@ class RendermanShadingNode(bpy.types.Node):
                     user_path(prefs.env_vars.out), "shaders", FileNameOSO)
         else:
             ok = False
-            debug(
-                "osl", "Shader cannot be compiled. Shader name not specified")
+            debug("osl", "Shader cannot be compiled. Shader name not specified")
         # If Shader compiled successfully then update node.
         if ok:
             debug('osl', "Shader Compiled Successfully!")
@@ -1017,13 +1016,11 @@ def gen_params(ri, node, mat_name=None, recurse=True):
         fileInputType = node.codetypeswitch
         
         for prop_name, meta in node.prop_meta.items():
-            #print (prop_name);
             if prop_name in txmake_options.index or prop_name == "codetypeswitch":
                 pass
             elif prop_name == "internalSearch" and fileInputType == 'INT':
                 if node.internalSearch != "":
                     script = bpy.data.texts[node.internalSearch]
-                    #print("entered INT")
                     params['%s %s' % ("string",
                             "expression")] = \
                                 rib(script.as_string(), type_hint=meta['renderman_type'])
@@ -1031,7 +1028,6 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 fileInput = user_path(getattr(node, 'shadercode'))
                 if fileInput != "":
                     outputString = ""
-                    #print("Entered EXT")
                     with open(fileInput, encoding='utf-8') as SeExprFile:
                         for line in SeExprFile:
                             outputString += line
@@ -1336,10 +1332,11 @@ def rebuildOSLSystem(dummy):
             for matSl in ob.material_slots:
                 mat = matSl.material
                 if(hasattr(mat, "renderman")):
-                    nt = bpy.data.node_groups[mat.renderman.nodetree]
-                    for node in nt.nodes:
-                        if(node.bl_idname == "PxrOSLPatternNode"):
-                            node.RefreshNodes(context, node, mat, True) # Recompile the node.
+                    if(mat.renderman.nodetree in bpy.data.node_groups):
+                        nt = bpy.data.node_groups[mat.renderman.nodetree]
+                        for node in nt.nodes:
+                            if(node.bl_idname == "PxrOSLPatternNode"):
+                                node.RefreshNodes(context, node, mat, True) # Recompile the node.
 
 
 # our own base class with an appropriate poll function,

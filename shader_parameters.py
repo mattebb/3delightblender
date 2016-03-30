@@ -309,7 +309,6 @@ def generate_property(sp):
     if 'coshaderPort' in prop_meta and prop_meta['coshaderPort'] == 'True':
         param_type = 'shader'
 
-    # I guess multiline tooltips never worked
     for s in sp:
         if s.tag == 'help' and s.text:
             param_help = s.text
