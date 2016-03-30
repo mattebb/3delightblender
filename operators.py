@@ -497,8 +497,18 @@ class OT_add_to_group(bpy.types.Operator):
             for ob in context.selected_objects:
                 if ob.name not in members:
                     if item_type != 'light' or ob.type == 'LAMP':
-                        ob_in_group = object_group.add()
-                        ob_in_group.name = ob.name
+                        do_add = True
+                        if item_type == 'light' and ob.type == 'LAMP':
+                            # check if light is already in another group
+                            # can only be in one
+                            for lg in scene.renderman.light_groups:
+                                if ob.name in lg.members.keys():
+                                    do_add = False
+                                    self.report({'WARNING'}, "Lamp %s cannot be added to light group %s, already a member of %s" % (ob.name, scene.renderman.light_groups[group_index].name, lg.name))
+
+                        if do_add:
+                            ob_in_group = object_group.add()
+                            ob_in_group.name = ob.name
 
         return {'FINISHED'}
 
