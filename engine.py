@@ -34,6 +34,9 @@ from mathutils import Matrix, Vector, Quaternion
 import re
 import traceback
 import glob
+import traceback
+import threading
+from .display import MyTCPHandler
 
 from . import bl_info
 
@@ -56,7 +59,8 @@ from bpy.app.handlers import persistent
 # global dictionaries
 from .export import write_rib, write_preview_rib, get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
-    interactive_initial_rib, update_light_link, delete_light
+    interactive_initial_rib, update_light_link, delete_light,\
+    reset_light_illum, solo_light, mute_lights
 
 from .nodes import get_tex_file_name
 
@@ -129,6 +133,7 @@ def update_interactive(engine, context):
 # update the timestamp on an object
 # note that this only logs the active object.  So it might not work say
 # if a script updates objects.  We would need to iterate through all objects
+@persistent
 def update_timestamp(scene):
     active = scene.objects.active
     if active and active.is_updated_data:
@@ -311,11 +316,11 @@ class RPass:
         cdir = os.path.dirname(self.paths['rib_output'])
         environ = os.environ.copy()
         environ['RMANTREE'] = self.paths['rmantree']
-
+        
         # Launch the command to begin rendering.
         try:
             process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE,
-                                       stderr=subprocess.PIPE, env=environ)
+                                   stderr=subprocess.PIPE, env=environ)
             isProblem = False
         except:
             engine.report({"ERROR"},
@@ -327,7 +332,7 @@ class RPass:
             t1 = time.time()
             s = '.'
             while not os.path.exists(render_output) and \
-                    self.display_driver != 'it':
+                    self.display_driver not in ['it']:
                 engine.update_stats("", ("PRMan: Starting Rendering" + s))
                 if engine.test_break():
                     try:
@@ -343,9 +348,9 @@ class RPass:
                 time.sleep(DELAY)
                 s = s + '.'
 
-            if os.path.exists(render_output) or self.display_driver == 'it':
+            if os.path.exists(render_output) or self.display_driver in ['it']:
 
-                if self.display_driver != 'it':
+                if self.display_driver not in ['it']:
                     prev_mod_time = os.path.getmtime(render_output)
                 engine.update_stats("", ("PRMan: Rendering."))
                 # Update while rendering
@@ -366,7 +371,7 @@ class RPass:
                             engine.report({"ERROR"}, "PRMan: %s " % line.decode('utf8'))
 
                     if process.poll() is not None:
-                        if self.display_driver != 'it':
+                        if self.display_driver not in ['it']:
                             update_image()
                         t2 = time.time()
                         engine.report({"INFO"}, "PRMan: Done Rendering." +
@@ -387,7 +392,7 @@ class RPass:
                         break
 
                     # check if the file updated
-                    if self.display_driver != 'it':
+                    if self.display_driver not in ['it']:
                         new_mod_time = os.path.getmtime(render_output)
 
                         if new_mod_time != prev_mod_time:
@@ -486,14 +491,20 @@ class RPass:
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         self.material_dict = {}
         self.lights = {}
+        self.orig_solo_light = None
+        self.muted_lights = []
         for obj in self.scene.objects:
             if obj.type == 'LAMP' and obj.name not in self.lights:
                 self.lights[obj.name] = obj.data.name
+                if obj.data.renderman.solo:
+                    self.orig_solo_light = obj
+                if obj.data.renderman.mute:
+                    self.muted_lights.append(obj)
             for mat_slot in obj.material_slots:
                 if mat_slot.material not in self.material_dict:
                     self.material_dict[mat_slot.material] = []
                 self.material_dict[mat_slot.material].append(obj)
-
+        
         # export rib and bake
         write_rib(self, self.scene, self.ri)
         self.ri.End()
@@ -531,6 +542,33 @@ class RPass:
             for light_name in lights_deleted:
                 self.lights.pop(light_name, None)
 
+    def update_illuminates(self):
+        update_illuminates(self, self.ri, prman)
+
+    def solo_light(self):
+        if self.orig_solo_light:
+            # if there was originally a solo light have to reset ALL
+            lights = [light for light in self.scene.objects if light.type == 'LAMP']
+            reset_light_illum(self, self.ri, prman, lights, do_solo=False)
+
+        solo_light(self, self.ri, prman)
+
+    def mute_light(self):
+        new_muted_lights = []
+        un_muted_lights = []
+        for obj in self.scene.objects:
+            if obj.type == 'LAMP':
+                if obj.data.renderman.mute and obj not in self.muted_lights:
+                    new_muted_lights.append(obj)
+                    self.muted_lights.append(obj)
+                elif not obj.data.renderman.mute and obj in self.muted_lights:
+                    un_muted_lights.append(obj)
+                    self.muted_lights.remove(obj)
+        
+        if len(un_muted_lights):
+            reset_light_illum(self, self.ri, prman, un_muted_lights)
+        if len(new_muted_lights):
+            mute_lights(self, self.ri, prman, new_muted_lights)
 
     def issue_shader_edits(self, nt=None, node=None):
         issue_shader_edits(self, self.ri, prman, nt=nt, node=node)

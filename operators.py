@@ -452,8 +452,13 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
                 collection[-1].name = coshader_name
             # BBM addition end
         elif self.properties.action == 'REMOVE':
-            collection.remove(index)
-            setattr(rm, coll_idx, index - 1)
+            if prop_coll == 'light_groups' and collection[index].name == 'All':
+                return {'FINISHED'}
+            elif prop_coll == 'object_groups' and collection[index].name == 'collector':
+                return {'FINISHED'}
+            else:
+                collection.remove(index)
+                setattr(rm, coll_idx, index - 1)
 
         return {'FINISHED'}
 
@@ -468,6 +473,71 @@ class OT_add_aov_list(bpy.types.Operator):
         # this sucks.  but can't find any other way to refer to render layer
         scene.renderman.aov_lists[-1].render_layer = active_layer.name
         return {'FINISHED'}
+
+
+class OT_add_to_group(bpy.types.Operator):
+    bl_idname = 'renderman.add_to_group'
+    bl_label = 'Add Selected to Object Group'
+
+    group_index = IntProperty(default=0)
+    item_type = StringProperty(default='object')
+
+    def execute(self, context):
+        scene = context.scene
+        group_index = self.properties.group_index
+        item_type = self.properties.item_type
+
+        object_group = scene.renderman.object_groups if item_type == 'object' \
+            else  scene.renderman.light_groups
+        object_group = object_group[group_index].members
+        if hasattr(context, 'selected_objects'):
+            
+            members = object_group.keys()
+            
+            for ob in context.selected_objects:
+                if ob.name not in members:
+                    if item_type != 'light' or ob.type == 'LAMP':
+                        do_add = True
+                        if item_type == 'light' and ob.type == 'LAMP':
+                            # check if light is already in another group
+                            # can only be in one
+                            for lg in scene.renderman.light_groups:
+                                if ob.name in lg.members.keys():
+                                    do_add = False
+                                    self.report({'WARNING'}, "Lamp %s cannot be added to light group %s, already a member of %s" % (ob.name, scene.renderman.light_groups[group_index].name, lg.name))
+
+                        if do_add:
+                            ob_in_group = object_group.add()
+                            ob_in_group.name = ob.name
+
+        return {'FINISHED'}
+
+
+class OT_remove_from_group(bpy.types.Operator):
+    bl_idname = 'renderman.remove_from_group'
+    bl_label = 'Remove Selected from Object Group'
+
+    group_index = IntProperty(default=0)
+    item_type = StringProperty(default='object')
+
+    def execute(self, context):
+        scene = context.scene
+        group_index = self.properties.group_index
+        item_type = self.properties.item_type
+
+        object_group = scene.renderman.object_groups if item_type == 'object' \
+            else  scene.renderman.light_groups
+        object_group = object_group[group_index].members
+        if hasattr(context, 'selected_objects'):
+            for ob in context.selected_objects:
+                if ob.name in object_group.keys():
+                    index = object_group.keys().index(ob.name)
+                    object_group.remove(index)
+                
+        return {'FINISHED'}
+
+
+
 
 
 #################

@@ -39,6 +39,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     CollectionProperty, BoolVectorProperty
 
 from . import engine
+from bpy.app.handlers import persistent
 
 
 # get the names of args files in rmantree/lib/ris/integrator/args
@@ -150,8 +151,11 @@ class RendermanInlineRIB(bpy.types.PropertyGroup):
     name = StringProperty(name="Text Block")
 
 
-class RendermanGrouping(bpy.types.PropertyGroup):
+class RendermanGroup(bpy.types.PropertyGroup):
     name = StringProperty(name="Group Name")
+    members = CollectionProperty(type=bpy.types.PropertyGroup,
+                                     name='Group Members')
+    members_index = IntProperty(min=-1, default=-1)
 
 
 class LightLinking(bpy.types.PropertyGroup):
@@ -312,9 +316,15 @@ class RendermanAOVList(bpy.types.PropertyGroup):
 
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
+    light_groups = CollectionProperty(type=RendermanGroup,
+                                   name='Light Groups')
+    light_groups_index = IntProperty(min=-1, default=-1)
+
     aov_lists = CollectionProperty(type=RendermanAOVList,
                                    name='Custom AOVs')
     aov_list_index = IntProperty(min=-1, default=-1)
+
+    solo_light = BoolProperty(name = "Solo Light", default=False)
 
     pixelsamples_x = IntProperty(
         name="Pixel Samples X",
@@ -655,9 +665,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     bty_inlinerib_index = IntProperty(min=-1, default=-1)
 
     # Trace Sets (grouping membership)
-    grouping_membership = CollectionProperty(
-        type=RendermanGrouping, name="Trace Sets")
-    grouping_membership_index = IntProperty(min=-1, default=-1)
+    object_groups = CollectionProperty(
+        type=RendermanGroup, name="Trace Sets")
+    object_groups_index = IntProperty(min=-1, default=-1)
 
     use_default_paths = BoolProperty(
         name="Use 3Delight default paths",
@@ -993,6 +1003,40 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         name="Illuminates by default",
         description="Illuminates by default",
         default=True)
+
+    def update_mute(self, context):
+        if engine.ipr is not None and engine.ipr.is_interactive_running:
+            engine.ipr.mute_light()
+
+    mute = BoolProperty(
+        name="Mute",
+        update=update_mute,
+        description="Turn off this light",
+        default=False)
+
+    def update_solo(self, context):
+        lamp = context.lamp
+        scene = context.scene
+        
+        #if the scene solo is on already find the old one and turn off
+        if self.solo: 
+            if scene.renderman.solo_light:
+                for ob in scene.objects:
+                    if ob.type == 'LAMP' and ob.data.renderman != self and ob.data.renderman.solo:
+                        ob.data.renderman.solo = False
+                        break
+            
+            if engine.ipr is not None and engine.ipr.is_interactive_running:
+                engine.ipr.solo_light()
+
+        scene.renderman.solo_light = self.solo 
+                
+
+    solo = BoolProperty(
+        name="Solo",
+        update=update_solo,
+        description="Turn on only this light",
+        default=False)
 
 class RendermanWorldSettings(bpy.types.PropertyGroup):
 
@@ -1521,12 +1565,23 @@ class Tab_CollectionGroup(bpy.types.PropertyGroup):
         name="Renderman Camera",
         description="Show some settings about the camera",
         default=False)
+
+@persistent
+def initial_groups(scene):
+    scene = bpy.context.scene
+    if 'collector' not in scene.renderman.object_groups.keys():
+        default_group = scene.renderman.object_groups.add()
+        default_group.name = 'collector'
+    if 'All' not in scene.renderman.light_groups.keys():
+        default_group = scene.renderman.light_groups.add()
+        default_group.name = 'All'
+
    
 # collection of property group classes that need to be registered on
 # module startup
 classes = [RendermanPath,
            RendermanInlineRIB,
-           RendermanGrouping,
+           RendermanGroup,
            LightLinking,
            TraceSet,
            RendermanPass,

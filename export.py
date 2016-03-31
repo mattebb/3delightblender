@@ -232,7 +232,6 @@ def is_deforming_fluid(ob):
         mod = ob.modifiers[len(ob.modifiers) - 1]
         return mod.type == 'SMOKE' and mod.smoke_type == 'DOMAIN'
 
-
 def psys_name(ob, psys):
     return "%s.%s-%s" % (ob.name, psys.name, psys.settings.type)
 
@@ -674,7 +673,6 @@ def export_object_transform(ri, ob, flip_x=False):
         m = m2 * m
     ri.Transform(rib(m))
 
-
 def export_light_source(ri, lamp, shape):
     name = "PxrStdAreaLight"
     params = {ri.HANDLEID: lamp.name, "float exposure": [
@@ -812,8 +810,13 @@ def export_light(ri, instance):
 
     ri.AttributeEnd()
 
-    ri.Illuminate(lamp.name, rm.illuminates_by_default)
-
+    #illuminate if illumintaes and not muted
+    do_light = rm.illuminates_by_default and not rm.mute
+    if bpy.context.scene.renderman.solo_light:
+        #check if solo
+        do_light = do_light and rm.solo
+    ri.Illuminate(lamp.name, do_light)
+    
 
 def export_material(ri, mat, handle=None):
 
@@ -1914,7 +1917,7 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": instance.name})
     if instance.ob:
-        export_object_attributes(ri, instance.ob)
+        export_object_attributes(ri, rpass.scene, instance.ob)
     # now the matrix, if we're transforming do the motion here
     export_transform(ri, instance, concat=is_child)
 
@@ -2043,12 +2046,23 @@ def get_archive_filename(name, rpass, animated, relative=False):
 
 
 # here we would export object attributes like holdout, sr, etc
-def export_object_attributes(ri, ob):
+def export_object_attributes(ri, scene, ob):
     # save space! don't export default attribute settings to the RIB
     # shading attributes
 
-    if ob.renderman.do_holdout:
-        ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
+    #if ob.renderman.do_holdout:
+    #    ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
+    # gather object groups this object belongs to
+    obj_groups_str = ''
+    for obj_group in scene.renderman.object_groups:
+        if ob.name in obj_group.members.keys():
+            if obj_groups_str != '':
+                obj_groups_str += ','
+            obj_groups_str += obj_group.name
+    # add to trace sets
+    ri.Attribute("grouping", {"string membership": obj_groups_str})
+    # add to lpe groups
+    ri.Attribute("identifier", {"string lpegroup": obj_groups_str})
 
     if ob.renderman.shading_override:
         ri.ShadingRate(ob.renderman.shadingrate)
@@ -2983,6 +2997,42 @@ def delete_light(rpass, ri, name, prman):
     ri.Illuminate(name, False)
     ri.EditEnd()
 
+def reset_light_illum(rpass, ri, prman, lights, do_solo=True):
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
+    ri.EditBegin('overrideilluminate')
+    
+    for light in lights:
+        rm = light.data.renderman
+        do_light = rm.illuminates_by_default and not rm.mute
+        if do_solo and rpass.scene.renderman.solo_light:
+            #check if solo
+            do_light = do_light and rm.solo
+        ri.Illuminate(light.name, do_light)
+    ri.EditEnd()
+
+def mute_lights(rpass, ri, prman, lights):
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
+    ri.EditBegin('overrideilluminate')
+    
+    for light in lights:
+        ri.Illuminate(light.name, 0)
+    ri.EditEnd()
+
+def solo_light(rpass, ri, prman):
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
+    ri.EditBegin('overrideilluminate')
+    ri.Illuminate("*", 0)
+    for light in rpass.scene.objects:
+        if light.type == "LAMP":
+            rm = light.data.renderman
+            if rm.solo:
+                do_light = rm.illuminates_by_default and not rm.mute
+                ri.Illuminate(light.name, do_light)
+                break
+    ri.EditEnd()
 # test the active object type for edits to do then do them
 
 def issue_transform_edits(rpass, ri, active, prman):

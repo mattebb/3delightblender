@@ -408,18 +408,97 @@ def set_path(paths):
         if path is not None:
             os.environ['PATH'] = os.environ['PATH'] + os.pathsep + path
 
+def check_valid_rmantree(rmantree):
+    prman = 'prman.exe' if platform.system() == 'Windows' else 'prman'
+
+    if os.path.exists(rmantree) and \
+       os.path.exists(os.path.join(rmantree, 'bin')) and \
+       os.path.exists(os.path.join(rmantree, 'bin', prman)):
+            return True
+    return False
 
 def guess_rmantree():
-    guess = rmantree_from_env()
-    if guess != '':
-        vstr = guess.split('-')[1]
-        vf = float(vstr[:4])
+    addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
+    prefs = addon.preferences
+    rmantree_method = prefs.rmantree_method
 
-        # if this is < 20.0 they have misconfigured their RMANTREE
-        # so lets find one
-        if vf >= 20.0:
-            return guess
+    if rmantree_method == 'MANUAL':
+        rmantree = prefs.path_rmantree
+    elif rmantree_method == 'ENV':
+        rmantree = rmantree_from_env()
+    else:
+        #get from detected installed
+        if platform.system() == 'Windows':
+            # default installation path
+            # or base = 'C:/Program Files/Pixar'
+            base = r'C:\Program Files\Pixar'
 
+        elif platform.system() == 'Darwin':
+            base = '/Applications/Pixar'
+
+        elif platform.system() == 'Linux':
+            base = '/opt/pixar'
+
+        choice = prefs.rmantree_choice
+
+        if choice == 'NEWEST':     
+            latestver = 0.0
+            for d in os.listdir(base):
+                if "RenderManProServer" in d:
+                    vstr = d.split('-')[1]
+                    vf = float(vstr[:4])
+                    if vf >= latestver:
+                        latestver = vf
+                        rmantree = os.path.join(base, d)
+        else:
+            rmantree = os.path.join(base, "RenderManProServer-%s" * choice)
+
+    # check rmantree valid
+    if not check_valid_rmantree(rmantree):  
+        print("ERROR!!! See RenderMan location in User Prefences.")
+        print("RenderMan Location is set to %s which does not appear valid.")
+        return None
+    # check that it's > 20
+    vstr = rmantree.split('-')[1]
+    vf = float(vstr[:4])
+    if vf < 20.0:
+        print('ERROR!!!  You need RenderMan version 20.0 or above.')
+        print('Correct in User Prefences.')
+        return None
+    
+    return rmantree
+
+# we need this for populating preferences
+def guess_rmantree_initial():
+    #get from detected installed
+    if platform.system() == 'Windows':
+        # default installation path
+        # or base = 'C:/Program Files/Pixar'
+        base = r'C:\Program Files\Pixar'
+
+    elif platform.system() == 'Darwin':
+        base = '/Applications/Pixar'
+
+    elif platform.system() == 'Linux':
+        base = '/opt/pixar'
+
+    rmantree = rmantree_from_env()
+    vstr = rmantree.split('-')[1]
+    vf = float(vstr[:4])
+    if vf > 20.0:
+        return rmantree
+
+    latestver = 0.0
+    for d in os.listdir(base):
+        if "RenderManProServer" in d:
+            vstr = d.split('-')[1]
+            vf = float(vstr[:4])
+            if vf >= latestver:
+                latestver = vf
+                rmantree = os.path.join(base, d)
+    return rmantree
+
+def get_installed_rendermans():
     base = ""
     if platform.system() == 'Windows':
         # default installation path
@@ -432,22 +511,13 @@ def guess_rmantree():
     elif platform.system() == 'Linux':
         base = '/opt/pixar'
 
-    latestver = 0.0
+    rendermans = []
     for d in os.listdir(base):
         if "RenderManProServer" in d:
             vstr = d.split('-')[1]
-            vf = float(vstr[:4])
-            if vf >= latestver:
-                latestver = vf
-                guess = os.path.join(base, d)
-
-    if not guess:
-        print('ERROR!!!  No RMANTREE found.  Did you install \
-            RenderMan Pro Server?  Or set your RMANTREE environment variable?')
-    elif latestver < 20.0:
-        print('ERROR!!!  You need RenderMan version 20.0 or above.')
-
-    return guess
+            rendermans.append((vstr, os.path.join(base,d)))
+    
+    return rendermans
 
 
 # return true if an archive is older than the timestamp
