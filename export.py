@@ -2543,7 +2543,7 @@ def export_display(ri, rpass, scene):
     main_display = user_path(rm.path_display_driver_image,
                              scene=scene)
     debug("info", "Main_display: " + main_display)
-    main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
+    #main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
     ri.Display(main_display, dspy_driver, "rgba",
                {"quantize": [0, 0, 0, 0]})
