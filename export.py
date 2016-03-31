@@ -542,11 +542,11 @@ def get_primvars_particle(scene, psys):
         if p.data_source in ('VELOCITY', 'ANGULAR_VELOCITY'):
             if p.data_source == 'VELOCITY':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.extend(pa.velocity)
             elif p.data_source == 'ANGULAR_VELOCITY':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.extend(pa.angular_velocity)
 
             primvars["uniform float[3] %s" % p.name] = pvars
@@ -555,26 +555,26 @@ def get_primvars_particle(scene, psys):
                 ('SIZE', 'AGE', 'BIRTH_TIME', 'DIE_TIME', 'LIFE_TIME'):
             if p.data_source == 'SIZE':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.append(pa.size)
             elif p.data_source == 'AGE':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.append((cfra - pa.birth_time) / pa.lifetime)
             elif p.data_source == 'BIRTH_TIME':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.append(pa.birth_time)
             elif p.data_source == 'DIE_TIME':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.append(pa.die_time)
             elif p.data_source == 'LIFE_TIME':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.append(pa.lifetime)
 
-            primvars["uniform float %s" % p.name] = pvars
+            primvars["varying float %s" % p.name] = pvars
 
     return primvars
 
@@ -978,6 +978,8 @@ def export_particle_points(ri, scene, psys, ob, motion_data):
             params["constantwidth"] = rm.width
         elif rm.export_default_size:
             params["varying float width"] = width
+        #print(len(params['uniform float Age']))
+        
         ri.Points(params)
 
     if len(motion_data) > 1:
