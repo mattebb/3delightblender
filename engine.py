@@ -612,7 +612,7 @@ class RPass:
             out_file_path = os.path.join(
                 self.paths['texture_output'], out_file)
 
-            if os.path.isfile(out_file_path) and \
+            if os.path.isfile(out_file_path) and os.path.exists(in_file) and\
                     self.rm.always_generate_textures is False and \
                     os.path.getmtime(in_file) <= \
                     os.path.getmtime(out_file_path):
