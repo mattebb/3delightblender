@@ -59,7 +59,8 @@ from bpy.app.handlers import persistent
 # global dictionaries
 from .export import write_rib, write_preview_rib, get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
-    interactive_initial_rib, update_light_link, delete_light
+    interactive_initial_rib, update_light_link, delete_light,\
+    reset_light_illum, solo_light, mute_lights
 
 from .nodes import get_tex_file_name
 
@@ -490,14 +491,20 @@ class RPass:
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         self.material_dict = {}
         self.lights = {}
+        self.orig_solo_light = None
+        self.muted_lights = []
         for obj in self.scene.objects:
             if obj.type == 'LAMP' and obj.name not in self.lights:
                 self.lights[obj.name] = obj.data.name
+                if obj.data.renderman.solo:
+                    self.orig_solo_light = obj
+                if obj.data.renderman.mute:
+                    self.muted_lights.append(obj)
             for mat_slot in obj.material_slots:
                 if mat_slot.material not in self.material_dict:
                     self.material_dict[mat_slot.material] = []
                 self.material_dict[mat_slot.material].append(obj)
-
+        
         # export rib and bake
         write_rib(self, self.scene, self.ri)
         self.ri.End()
@@ -535,6 +542,33 @@ class RPass:
             for light_name in lights_deleted:
                 self.lights.pop(light_name, None)
 
+    def update_illuminates(self):
+        update_illuminates(self, self.ri, prman)
+
+    def solo_light(self):
+        if self.orig_solo_light:
+            # if there was originally a solo light have to reset ALL
+            lights = [light for light in self.scene.objects if light.type == 'LAMP']
+            reset_light_illum(self, self.ri, prman, lights, do_solo=False)
+
+        solo_light(self, self.ri, prman)
+
+    def mute_light(self):
+        new_muted_lights = []
+        un_muted_lights = []
+        for obj in self.scene.objects:
+            if obj.type == 'LAMP':
+                if obj.data.renderman.mute and obj not in self.muted_lights:
+                    new_muted_lights.append(obj)
+                    self.muted_lights.append(obj)
+                elif not obj.data.renderman.mute and obj in self.muted_lights:
+                    un_muted_lights.append(obj)
+                    self.muted_lights.remove(obj)
+        
+        if len(un_muted_lights):
+            reset_light_illum(self, self.ri, prman, un_muted_lights)
+        if len(new_muted_lights):
+            mute_lights(self, self.ri, prman, new_muted_lights)
 
     def issue_shader_edits(self, nt=None, node=None):
         issue_shader_edits(self, self.ri, prman, nt=nt, node=node)

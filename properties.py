@@ -324,7 +324,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                                    name='Custom AOVs')
     aov_list_index = IntProperty(min=-1, default=-1)
 
-    solo_light = StringProperty(name = "Solo Light", default='')
+    solo_light = BoolProperty(name = "Solo Light", default=False)
 
     pixelsamples_x = IntProperty(
         name="Pixel Samples X",
@@ -1004,8 +1004,13 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         description="Illuminates by default",
         default=True)
 
+    def update_mute(self, context):
+        if engine.ipr is not None and engine.ipr.is_interactive_running:
+            engine.ipr.mute_light()
+
     mute = BoolProperty(
         name="Mute",
+        update=update_mute,
         description="Turn off this light",
         default=False)
 
@@ -1013,13 +1018,18 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         lamp = context.lamp
         scene = context.scene
         
-        solo_name = lamp.name if self.solo else ''
-        if scene.renderman.solo_light and self.solo and \
-             scene.renderman.solo_light != lamp.name:
-            old_solo = scene.objects[scene.renderman.solo_light]
-            old_solo.data.renderman.solo = False
-        scene.renderman.solo_light = lamp.name
+        #if the scene solo is on already find the old one and turn off
+        if self.solo: 
+            if scene.renderman.solo_light:
+                for ob in scene.objects:
+                    if ob.type == 'LAMP' and ob.data.renderman != self and ob.data.renderman.solo:
+                        ob.data.renderman.solo = False
+                        break
+            
+            if engine.ipr is not None and engine.ipr.is_interactive_running:
+                engine.ipr.solo_light()
 
+        scene.renderman.solo_light = self.solo 
                 
 
     solo = BoolProperty(

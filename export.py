@@ -810,8 +810,13 @@ def export_light(ri, instance):
 
     ri.AttributeEnd()
 
-    ri.Illuminate(lamp.name, rm.illuminates_by_default)
-
+    #illuminate if illumintaes and not muted
+    do_light = rm.illuminates_by_default and not rm.mute
+    if bpy.context.scene.renderman.solo_light:
+        #check if solo
+        do_light = do_light and rm.solo
+    ri.Illuminate(lamp.name, do_light)
+    
 
 def export_material(ri, mat, handle=None):
 
@@ -2992,6 +2997,42 @@ def delete_light(rpass, ri, name, prman):
     ri.Illuminate(name, False)
     ri.EditEnd()
 
+def reset_light_illum(rpass, ri, prman, lights, do_solo=True):
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
+    ri.EditBegin('overrideilluminate')
+    
+    for light in lights:
+        rm = light.data.renderman
+        do_light = rm.illuminates_by_default and not rm.mute
+        if do_solo and rpass.scene.renderman.solo_light:
+            #check if solo
+            do_light = do_light and rm.solo
+        ri.Illuminate(light.name, do_light)
+    ri.EditEnd()
+
+def mute_lights(rpass, ri, prman, lights):
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
+    ri.EditBegin('overrideilluminate')
+    
+    for light in lights:
+        ri.Illuminate(light.name, 0)
+    ri.EditEnd()
+
+def solo_light(rpass, ri, prman):
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
+    ri.EditBegin('overrideilluminate')
+    ri.Illuminate("*", 0)
+    for light in rpass.scene.objects:
+        if light.type == "LAMP":
+            rm = light.data.renderman
+            if rm.solo:
+                do_light = rm.illuminates_by_default and not rm.mute
+                ri.Illuminate(light.name, do_light)
+                break
+    ri.EditEnd()
 # test the active object type for edits to do then do them
 
 def issue_transform_edits(rpass, ri, active, prman):

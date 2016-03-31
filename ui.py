@@ -1344,8 +1344,8 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                             output = node
                     light_shader = output.inputs['Light'].links[0].from_node    
 
-                    columns.prop(light_shader, 'light_primary_visibility')
-                    columns.prop(light_shader, 'exposure')
+                    columns.prop(light_shader, 'light_primary_visibility', text='')
+                    columns.prop(light_shader, 'exposure', text='')
                     if light_shader.bl_label == 'PxrStdAreaLight':
                         #columns.label('lightColor')
                         columns.prop(light_shader, 'lightColor', text='')
