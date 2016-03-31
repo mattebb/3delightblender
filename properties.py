@@ -160,29 +160,38 @@ class RendermanGroup(bpy.types.PropertyGroup):
 
 class LightLinking(bpy.types.PropertyGroup):
 
-    def lights_list_items(self, context):
-        items = [('No light chosen', 'Choose a light', '')]
-        for lamp in bpy.data.lamps:
-            items.append((lamp.name, lamp.name, ''))
-        return items
-
-    def update_name(self, context):
-        infostr = ('(Default)', '(Forced On)', '(Forced Off)')
-        valstr = ('DEFAULT', 'ON', 'OFF')
-
-        self.name = "%s %s" % (
-            self.light, infostr[valstr.index(self.illuminate)])
+    def update_link(self, context):
+        #self.name = "%s>%s>%s>%s" % (
+        #    self.light, infostr[valstr.index(self.illuminate)])
 
         if engine.ipr is not None and engine.ipr.is_interactive_running:
             engine.ipr.update_light_link(context, self)
 
+    light_type = EnumProperty(
+        name="Select by",
+        description="Select by",
+        items=[('lights', 'Lights', ''),
+               ('groups', 'Light Groups', '')],
+        default='lights', update=update_link)
+
+    obj_type = EnumProperty(
+        name="Select by",
+        description="Select by",
+        items=[('objects', 'Objects', ''),
+               ('groups', 'Object Groups', '')],
+        default='objects', update=update_link)
+
     light = StringProperty(
         name="Light",
-        update=update_name)
+        update=update_link)
+
+    object = StringProperty(
+        name="Object",
+        update=update_link)
 
     illuminate = EnumProperty(
         name="Illuminate",
-        update=update_name,
+        update=update_link,
         items=[('DEFAULT', 'Default', ''),
                ('ON', 'On', ''),
                ('OFF', 'Off', '')])
@@ -320,6 +329,27 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                                    name='Light Groups')
     light_groups_index = IntProperty(min=-1, default=-1)
 
+    ll = CollectionProperty(type=LightLinking,
+                                   name='Light Links')
+
+    
+    ll_light_index = IntProperty(min=-1, default=-1)
+    ll_object_index = IntProperty(min=-1, default=-1)
+    ll_light_type = EnumProperty(
+        name="Select by",
+        description="Select by",
+        items=[('lights', 'Lights', ''),
+               ('groups', 'Light Groups', '')],
+        default='groups')
+
+    ll_object_type = EnumProperty(
+        name="Select by",
+        description="Select by",
+        items=[('objects', 'Objects', ''),
+               ('groups', 'Object Groups', '')],
+        default='groups')
+
+    
     aov_lists = CollectionProperty(type=RendermanAOVList,
                                    name='Custom AOVs')
     aov_list_index = IntProperty(min=-1, default=-1)
@@ -1516,10 +1546,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Coordinate System Name",
         description="Export a named coordinate system with this name",
         default="CoordSys")
-
-    # Light-Linking
-    light_linking = CollectionProperty(type=LightLinking, name='Light Linking')
-    light_linking_index = IntProperty(min=-1, default=-1)
 
     # Trace Sets
     trace_set = CollectionProperty(type=TraceSet, name='Trace Set')

@@ -1021,36 +1021,36 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
             rm, "raytrace_intersectpriority", text="Intersection Priority")
 
 
-class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "object"
-    bl_label = "Light Linking"
+# class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, Panel):
+#     bl_space_type = 'PROPERTIES'
+#     bl_region_type = 'WINDOW'
+#     bl_context = "object"
+#     bl_label = "Light Linking"
 
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return (context.object and rd.engine in {'PRMAN_RENDER'})
+#     @classmethod
+#     def poll(cls, context):
+#         rd = context.scene.render
+#         return (context.object and rd.engine in {'PRMAN_RENDER'})
 
-    def draw_item(self, layout, context, item):
-        ob = context.object
-        rm = bpy.data.objects[ob.name].renderman
-        ll = rm.light_linking
-        index = rm.light_linking_index
+#     def draw_item(self, layout, context, item):
+#         ob = context.object
+#         rm = bpy.data.objects[ob.name].renderman
+#         ll = rm.light_linking
+#         index = rm.light_linking_index
 
-        col = layout.column()
-        col.prop_search(item, "light", bpy.data, "lamps")
-        col.prop(item, "illuminate")
+#         col = layout.column()
+#         col.prop_search(item, "light", bpy.data, "lamps")
+#         col.prop(item, "illuminate")
 
-    def draw(self, context):
-        layout = self.layout
-        ob = context.object
-        rm = ob.renderman
-        scene = context.scene
+#     def draw(self, context):
+#         layout = self.layout
+#         ob = context.object
+#         rm = ob.renderman
+#         scene = context.scene
 
-        self._draw_collection(context, layout, rm, "Light Link:",
-                              "collection.add_remove", "object",
-                              "light_linking", "light_linking_index")
+#         self._draw_collection(context, layout, rm, "Light Link:",
+#                               "collection.add_remove", "object",
+#                               "light_linking", "light_linking_index")
 
 
 class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
@@ -1360,6 +1360,139 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                     columns.label('')
                     columns.prop(lamp, 'energy',text='')
                     columns.prop(lamp, 'color',text='')
+
+
+class RENDERMAN_LL_LIGHT_list(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        rm = context.scene.renderman
+        icon = 'NONE'
+        ll_prefix = "lg_%s>%s" % (rm.ll_light_type[:-1],item.name)
+        label = item.name
+        for ll in rm.ll.keys():
+            if ll_prefix in ll:
+                icon = 'TRIA_RIGHT'
+                break;
+
+        layout.alignment = 'CENTER'
+        layout.label(label, icon=icon)
+
+class RENDERMAN_LL_OBJECT_list(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        rm = context.scene.renderman
+        icon = 'NONE'
+        light_type = rm.ll_light_type[:-1]
+        lg = bpy.data.lamps if light_type == "light" else rm.light_groups
+        ll_prefix = "lg_%s>%s>obj_%s>%s" % (light_type, lg[rm.ll_light_index].name,rm.ll_object_type[:-1],item.name)
+        
+        label = item.name
+        if ll_prefix in rm.ll.keys():
+            ll = rm.ll[ll_prefix]
+            if ll.illuminate == 'DEFAULT':
+                icon = 'TRIA_RIGHT'
+            elif ll.illuminate == 'ON':
+                icon = 'TRIA_UP'
+            else:
+                icon = 'TRIA_DOWN'
+            
+        
+        layout.alignment = 'CENTER'
+        layout.label(label, icon=icon)
+
+class Renderman_Light_Link_Panel(CollectionPanel, Panel):
+    #bl_idname = "renderman_light_panel"
+    bl_label = "RenderMan Light Linking"
+    bl_context = "scene"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'#bl_category = "Renderman"
+    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+ 
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+        row = layout.row()
+        
+        columns = row.column_flow(columns = 3)
+        #first colomn select Light
+        columns.prop(rm, 'll_light_type')
+        columns.prop(rm, 'll_object_type')
+        columns.label('')
+
+        #second row the selectors
+        row = layout.row()
+        columns = row.column_flow(columns = 3)
+            
+        if rm.ll_light_type == 'lights':
+            columns.template_list("RENDERMAN_LL_LIGHT_list", "Renderman_light_link_list", 
+                                 bpy.data, "lamps", rm, 'll_light_index') 
+        else:
+            columns.template_list("RENDERMAN_LL_LIGHT_list", "Renderman_light_link_list", 
+                                 rm, "light_groups", rm, 'll_light_index') 
+
+        if rm.ll_object_type == 'objects':
+            columns.template_list("RENDERMAN_LL_OBJECT_list", "Renderman_light_link_list", 
+                                 bpy.data, "objects", rm, 'll_object_index') 
+        else:
+            columns.template_list("RENDERMAN_LL_OBJECT_list", "Renderman_light_link_list", 
+                                 rm, "object_groups", rm, 'll_object_index') 
+        
+        from_name = bpy.data.lamps[rm.ll_light_index] if rm.ll_light_type == 'lights' \
+            else rm.light_groups[rm.ll_light_index]
+        to_name = bpy.data.objects[rm.ll_object_index] if rm.ll_object_type == 'objects' \
+            else rm.object_groups[rm.ll_object_index]
+        ll_name = "lg_%s>%s>obj_%s>%s" % (rm.ll_light_type[:-1], from_name.name, rm.ll_object_type[:-1], to_name.name)
+
+        column = columns.column
+        if ll_name in rm.ll:
+            row = columns.row()
+            columns.prop(rm.ll[ll_name], 'illuminate')
+            row = columns.row()
+            rem = columns.operator('renderman.add_rem_light_link', 'Remove Light Link')
+            rem.ll_name = ll_name
+            rem.add_remove = "remove"
+        else:
+            add = columns.operator('renderman.add_rem_light_link', 'Add Light Link')
+            add.ll_name = ll_name
+            add.add_remove = 'add'
+
+        
+
+    def draw_item(self, layout, context, item):
+        row = layout.row()
+        scene = context.scene
+        rm = scene.renderman
+        light_group = rm.light_groups[rm.light_groups_index]
+        #
+
+        row = layout.row()
+        columns = layout.column_flow(columns = 3)
+
+        #first colomn select Light
+        columns.prop()
+
+        columns.label('Link from:')
+        columns.prop(item, 'light_type', text='')
+        if item.light_type == 'lights':
+            columns.prop_search(item, "light", bpy.data, "lamps", text='')
+        else:
+            columns.prop_search(item, "light", context.scene.renderman, "light_groups", text='')
+
+        row = layout.row()
+        columns = layout.column_flow(columns = 3)
+        columns.label('To:')
+        columns.prop(item, 'obj_type', text='')
+        if item.obj_type == 'objects':
+            columns.prop_search(item, "object", bpy.data, "objects", text='')
+        else:
+            columns.prop_search(item, "object", context.scene.renderman, "object_groups", text='')
+        
+
+        row = layout.row()
+        row.prop(item, "illuminate")
 
 
 
@@ -1826,6 +1959,8 @@ class Renderman_UI_Panel(bpy.types.Panel):
 
 def register():
     bpy.utils.register_class(RENDERMAN_GROUP_UL_List)
+    bpy.utils.register_class(RENDERMAN_LL_LIGHT_list)
+    bpy.utils.register_class(RENDERMAN_LL_OBJECT_list)
     bpy.types.INFO_MT_render.append(PRMan_menu_func)
     
 
