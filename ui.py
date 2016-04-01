@@ -1269,7 +1269,7 @@ def PRMan_menu_func(self, context):
 #################
 class Renderman_Light_Panel(CollectionPanel, Panel):
     #bl_idname = "renderman_light_panel"
-    bl_label = "RenderMan Lights"
+    bl_label = "RenderMan Light Groups"
     bl_context = "scene"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'#bl_category = "Renderman"
@@ -1283,17 +1283,15 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
-        row = layout.row()
         #if len(rm.light_groups) == 0:
         #    light_group = rm.object_groups.add()
         #    light_group.name = 'All'
-        self._draw_collection(context, layout, rm, "Light Groups:",
+        self._draw_collection(context, layout, rm, "",
                               "collection.add_remove",
                               "scene.renderman",
                               "light_groups", "light_groups_index")
 
     def draw_item(self, layout, context, item):
-        row = layout.row()
         scene = context.scene
         rm = scene.renderman
         light_group = rm.light_groups[rm.light_groups_index]
@@ -1306,7 +1304,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
         add.item_type = 'light'
         add.group_index = rm.light_groups_index
 
-        row = layout.row()
+        #row = layout.row()
         remove = row.operator('renderman.remove_from_group', 
                               'Remove Selected from Group')
         remove.item_type = 'light'
@@ -1317,9 +1315,9 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
             light_names = [lamp.name for lamp in context.scene.objects if lamp.type == 'LAMP']
 
         if len(light_names) > 0:
-            
-            row = layout.row()
-            columns = layout.column_flow(columns = 6)
+            box = layout.box()
+            row = box.row()
+            columns = box.column_flow(columns = 6)
             columns.label('Name')
             columns.label('Solo')
             columns.label('Mute')
@@ -1330,8 +1328,8 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
             for light_name in light_names:
                 lamp = scene.objects[light_name].data
                 lamp_rm = lamp.renderman
-                row = layout.row()
-                columns = layout.column_flow(columns = 6)
+                row = box.row()
+                columns = box.column_flow(columns = 6)
                 columns.label(light_name)
                 columns.prop(lamp_rm, 'solo', text='')
                 columns.prop(lamp_rm, 'mute', text='')
@@ -1416,28 +1414,27 @@ class Renderman_Light_Link_Panel(CollectionPanel, Panel):
         rm = scene.renderman
         row = layout.row()
         
-        columns = row.column_flow(columns = 3)
+        flow = row.column_flow(columns = 3)
         #first colomn select Light
-        columns.prop(rm, 'll_light_type')
-        columns.prop(rm, 'll_object_type')
-        columns.label('')
+        flow.prop(rm, 'll_light_type')
+        flow.prop(rm, 'll_object_type')
+        flow.label('')
 
         #second row the selectors
         row = layout.row()
-        columns = row.column_flow(columns = 3)
-            
+        flow = row.column_flow(columns = 3)
         if rm.ll_light_type == 'lights':
-            columns.template_list("RENDERMAN_LL_LIGHT_list", "Renderman_light_link_list", 
+            flow.template_list("RENDERMAN_LL_LIGHT_list", "Renderman_light_link_list", 
                                  bpy.data, "lamps", rm, 'll_light_index') 
         else:
-            columns.template_list("RENDERMAN_LL_LIGHT_list", "Renderman_light_link_list", 
+            flow.template_list("RENDERMAN_LL_LIGHT_list", "Renderman_light_link_list", 
                                  rm, "light_groups", rm, 'll_light_index') 
 
         if rm.ll_object_type == 'objects':
-            columns.template_list("RENDERMAN_LL_OBJECT_list", "Renderman_light_link_list", 
+            flow.template_list("RENDERMAN_LL_OBJECT_list", "Renderman_light_link_list", 
                                  bpy.data, "objects", rm, 'll_object_index') 
         else:
-            columns.template_list("RENDERMAN_LL_OBJECT_list", "Renderman_light_link_list", 
+            flow.template_list("RENDERMAN_LL_OBJECT_list", "Renderman_light_link_list", 
                                  rm, "object_groups", rm, 'll_object_index') 
         
         from_name = bpy.data.lamps[rm.ll_light_index] if rm.ll_light_type == 'lights' \
@@ -1446,54 +1443,17 @@ class Renderman_Light_Link_Panel(CollectionPanel, Panel):
             else rm.object_groups[rm.ll_object_index]
         ll_name = "lg_%s>%s>obj_%s>%s" % (rm.ll_light_type[:-1], from_name.name, rm.ll_object_type[:-1], to_name.name)
 
-        column = columns.column
+        col = flow.column()
         if ll_name in rm.ll:
-            row = columns.row()
-            columns.prop(rm.ll[ll_name], 'illuminate')
-            row = columns.row()
-            rem = columns.operator('renderman.add_rem_light_link', 'Remove Light Link')
+            col.prop(rm.ll[ll_name], 'illuminate')
+            rem = col.operator('renderman.add_rem_light_link', 'Remove Light Link')
             rem.ll_name = ll_name
             rem.add_remove = "remove"
         else:
-            add = columns.operator('renderman.add_rem_light_link', 'Add Light Link')
+            add = col.operator('renderman.add_rem_light_link', 'Add Light Link')
             add.ll_name = ll_name
             add.add_remove = 'add'
-
         
-
-    def draw_item(self, layout, context, item):
-        row = layout.row()
-        scene = context.scene
-        rm = scene.renderman
-        light_group = rm.light_groups[rm.light_groups_index]
-        #
-
-        row = layout.row()
-        columns = layout.column_flow(columns = 3)
-
-        #first colomn select Light
-        columns.prop()
-
-        columns.label('Link from:')
-        columns.prop(item, 'light_type', text='')
-        if item.light_type == 'lights':
-            columns.prop_search(item, "light", bpy.data, "lamps", text='')
-        else:
-            columns.prop_search(item, "light", context.scene.renderman, "light_groups", text='')
-
-        row = layout.row()
-        columns = layout.column_flow(columns = 3)
-        columns.label('To:')
-        columns.prop(item, 'obj_type', text='')
-        if item.obj_type == 'objects':
-            columns.prop_search(item, "object", bpy.data, "objects", text='')
-        else:
-            columns.prop_search(item, "object", context.scene.renderman, "object_groups", text='')
-        
-
-        row = layout.row()
-        row.prop(item, "illuminate")
-
 
 
 class RENDERMAN_GROUP_UL_List(bpy.types.UIList):
@@ -1521,12 +1481,11 @@ class Renderman_Object_Panel(CollectionPanel, Panel):
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
-        row = layout.row()
         #if len(rm.object_groups) == 0:
         #    collector_group = rm.object_groups.add()
         #    collector_group.name = 'collector'
 
-        self._draw_collection(context, layout, rm, "Object Groups:",
+        self._draw_collection(context, layout, rm, "",
                               "collection.add_remove",
                               "scene.renderman",
                               "object_groups", "object_groups_index")
@@ -1536,17 +1495,18 @@ class Renderman_Object_Panel(CollectionPanel, Panel):
         scene = context.scene
         rm = scene.renderman
         group = rm.object_groups[rm.object_groups_index]
-        row.template_list("RENDERMAN_GROUP_UL_List", "Renderman_group_list", 
-                            group, "members", group, 'members_index', 
-                            item_dyntip_propname='name',
-                            rows=9, maxrows=100, type='GRID', columns=9)
 
         row = layout.row()
         row.operator('renderman.add_to_group', 'Add Selected to Group').group_index = rm.object_groups_index
-
-        row = layout.row()
         row.operator('renderman.remove_from_group', 'Remove Selected from Group').group_index = rm.object_groups_index
 
+        row = layout.row()
+        row.template_list("RENDERMAN_GROUP_UL_List", "Renderman_group_list", 
+                            group, "members", group, 'members_index', 
+                            item_dyntip_propname='name',
+                            type='GRID', columns=9)
+
+        
 class Renderman_UI_Panel(bpy.types.Panel):
     bl_idname = "renderman_ui_panel"
     bl_label = "Renderman "
@@ -1899,8 +1859,8 @@ class Renderman_UI_Panel(bpy.types.Panel):
         #Create Holdout
         
         #Open Linking Panel
-        row = layout.row(align=True)
-        row.operator("renderman.lighting_panel")
+        #row = layout.row(align=True)
+        #row.operator("renderman.lighting_panel")
 
         selected_objects = []
         if context.selected_objects:
