@@ -644,7 +644,6 @@ class add_GeoLight(bpy.types.Operator):
         nt = bpy.data.node_groups[matName]
         output = None
         for node in nt.nodes:
-            print(node.name)
             if(node.name == "Output"):
                 output = node
         geoLight = nt.nodes.new('PxrStdAreaLightLightNode')
