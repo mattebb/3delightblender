@@ -1913,11 +1913,11 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
         
 
 # export each data read archive
-def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is_child=False):
+def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is_child=False, visible_objects=None):
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": instance.name})
     if instance.ob:
-        export_object_attributes(ri, rpass.scene, instance.ob)
+        export_object_attributes(ri, rpass.scene, instance.ob, visible_objects)
     # now the matrix, if we're transforming do the motion here
     export_transform(ri, instance, concat=is_child)
 
@@ -2046,7 +2046,7 @@ def get_archive_filename(name, rpass, animated, relative=False):
 
 
 # here we would export object attributes like holdout, sr, etc
-def export_object_attributes(ri, scene, ob):
+def export_object_attributes(ri, scene, ob, visible_objects):
     # save space! don't export default attribute settings to the RIB
     # shading attributes
 
@@ -2078,6 +2078,8 @@ def export_object_attributes(ri, scene, ob):
     # visibility attributes
     vis_params = {}
     if not ob.renderman.visibility_camera:
+        vis_params["int camera"] = 0
+    if visible_objects and ob.name not in visible_objects:
         vis_params["int camera"] = 0
     if not ob.renderman.visibility_trace_indirect:
         vis_params["int indirect"] = 0
@@ -2743,7 +2745,7 @@ def export_hider(ri, rpass, scene, preview=False):
 
 
 # I hate to make rpass global but it makes things so much easier
-def write_rib(rpass, scene, ri):
+def write_rib(rpass, scene, ri, visible_objects=None):
 
     # precalculate motion blur data
     data_blocks, instances = cache_motion(scene, rpass)
@@ -2783,7 +2785,7 @@ def write_rib(rpass, scene, ri):
     for name, instance in instances.items():
         if instance.type not in ['CAMERA', 'LAMP'] and not instance.parent:
             export_instance_read_archive(
-                ri, instance, instances, data_blocks, rpass)
+                ri, instance, instances, data_blocks, rpass, visible_objects=visible_objects)
     
     for object in emptiesToExport:
         export_empties_archives(ri,object)
