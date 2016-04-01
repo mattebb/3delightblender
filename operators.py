@@ -640,12 +640,22 @@ class add_GeoLight(bpy.types.Operator):
  
         bpy.ops.shading.add_renderman_nodetree({'lamp':None, 'material':mat}, idtype='material')
         
- 
+        matName = mat.name
+        nt = bpy.data.node_groups[matName]
+        output = None
+        for node in nt.nodes:
+            if(node.name == "Output"):
+                output = node
+        geoLight = nt.nodes.new('PxrStdAreaLightLightNode')
+        geoLight["exposure"] = 5.0
+        geoLight.location[0] -= 300
+        geoLight.location[1] -= 420
+        if(output is not None):
+            nt.links.new(geoLight.outputs[0], output.inputs[1])
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
                 bpy.ops.object.material_slot_add() 
                 obj.material_slots[-1].material = mat
-                #bpy.ops.node.add_light(node_type='PxrAreaLightLightNode') 
         return {"FINISHED"}
 
 class Select_Lights(bpy.types.Operator):
