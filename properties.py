@@ -161,33 +161,8 @@ class RendermanGroup(bpy.types.PropertyGroup):
 class LightLinking(bpy.types.PropertyGroup):
 
     def update_link(self, context):
-        #self.name = "%s>%s>%s>%s" % (
-        #    self.light, infostr[valstr.index(self.illuminate)])
-
         if engine.ipr is not None and engine.ipr.is_interactive_running:
             engine.ipr.update_light_link(context, self)
-
-    light_type = EnumProperty(
-        name="Select by",
-        description="Select by",
-        items=[('lights', 'Lights', ''),
-               ('groups', 'Light Groups', '')],
-        default='lights', update=update_link)
-
-    obj_type = EnumProperty(
-        name="Select by",
-        description="Select by",
-        items=[('objects', 'Objects', ''),
-               ('groups', 'Object Groups', '')],
-        default='objects', update=update_link)
-
-    light = StringProperty(
-        name="Light",
-        update=update_link)
-
-    object = StringProperty(
-        name="Object",
-        update=update_link)
 
     illuminate = EnumProperty(
         name="Illuminate",

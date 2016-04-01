@@ -2115,9 +2115,23 @@ def export_object_attributes(ri, scene, ob):
         ri.Attribute("trace", trace_params)
 
     # light linking
-    for link in ob.renderman.light_linking:
-        if link.illuminate != "DEFAULT":
-            ri.Illuminate(link.light, link.illuminate == 'ON')
+    #get links this is a part of 
+    ll_str = "obj_object>%s" % ob.name
+    lls = [ll for ll in scene.renderman.ll if ll_str in ll.name]
+    #get links this is a group that is a part of 
+    for group in scene.renderman.object_groups:
+        if ob.name in group.members.keys():
+            ll_str = "obj_group>%s" % group.name
+            lls += [ll for ll in scene.renderman.ll if ll_str in ll.name]
+
+    #for each light link do illuminates 
+    for link in ll:
+        strs = link.name.split('>')
+        light_names = [strs[1]] if str[0] == "lg_light" else \
+            scene.renderman.light_groups[strs[1]].members.keys()
+        for light_name in light_names:
+            if link.illuminate != "DEFAULT":
+                ri.Illuminate(light_name, link.illuminate == 'ON')
 
 
 def get_bounding_box(ob):
@@ -3059,12 +3073,23 @@ def issue_transform_edits(rpass, ri, active, prman):
             issue_light_transform_edit(ri, active)
 
 
-def update_light_link(rpass, ri, prman, active, link):
+def update_light_link(rpass, ri, prman, link, remove=False):
     rpass.edit_num += 1
     edit_flush(ri, rpass.edit_num, prman)
-    ri.EditBegin('attribute', {'string scopename': active.name})
-    ri.Illuminate(link.light, link.illuminate != 'OFF')
-    ri.EditEnd()
+    strs = link.name.split('>')
+    ob_names = [strs[3]] if strs[2] == "ob_object" else \
+        rpass.scene.renderman.object_groups[strs[3]].members.keys
+
+    for ob_name in ob_names:
+        ri.EditBegin('attribute', {'string scopename': ob_name})
+        light_names = [strs[1]] if str[0] == "lg_light" else \
+            rpass.scene.renderman.light_groups[strs[1]].members.keys()
+        for light_name in light_names:
+            if remove or link.illuminate != "DEFAULT":
+                ri.Illuminate(light_name, rpass.scene.objects[light_name].renderman.illuminates_by_default)
+            else:
+                ri.Illuminate(light_name, link.illuminate == 'ON')
+        ri.EditEnd()
 
 
 # test the active object type for edits to do then do them

@@ -574,7 +574,10 @@ class RPass:
         issue_shader_edits(self, self.ri, prman, nt=nt, node=node)
 
     def update_light_link(self, context, ll):
-        update_light_link(self, self.ri, prman, context.scene.objects.active, ll)
+        update_light_link(self, self.ri, prman, ll)
+
+    def remove_light_link(self, context, ll):
+        update_light_link(self, self.ri, prman, ll, remove=True)
 
     # ri.end
     def end_interactive(self):
