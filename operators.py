@@ -558,7 +558,7 @@ class OT_remove_add_rem_light_link(bpy.types.Operator):
             if engine.ipr is not None and engine.ipr.is_interactive_running:
                 engine.ipr.remove_light_link(context, scene.renderman.ll[ll_index])
             scene.renderman.ll.remove(ll_index)
-                
+            
 
         return {'FINISHED'}
 

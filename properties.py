@@ -308,21 +308,28 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                                    name='Light Links')
 
     
+    # we need these in case object/light selector changes
+    def reset_ll_light_index(self, context):
+        self.ll_light_index = -1
+
+    def reset_ll_object_index(self, context):
+        self.ll_light_index = -1
+
     ll_light_index = IntProperty(min=-1, default=-1)
     ll_object_index = IntProperty(min=-1, default=-1)
     ll_light_type = EnumProperty(
         name="Select by",
         description="Select by",
-        items=[('lights', 'Lights', ''),
-               ('groups', 'Light Groups', '')],
-        default='groups')
+        items=[('light', 'Lights', ''),
+               ('group', 'Light Groups', '')],
+        default='group', update=reset_ll_light_index)
 
     ll_object_type = EnumProperty(
         name="Select by",
         description="Select by",
-        items=[('objects', 'Objects', ''),
-               ('groups', 'Object Groups', '')],
-        default='groups')
+        items=[('object', 'Objects', ''),
+               ('group', 'Object Groups', '')],
+        default='group', update=reset_ll_object_index)
 
     
     aov_lists = CollectionProperty(type=RendermanAOVList,
@@ -1576,6 +1583,8 @@ def initial_groups(scene):
     if 'All' not in scene.renderman.light_groups.keys():
         default_group = scene.renderman.light_groups.add()
         default_group.name = 'All'
+    
+
 
    
 # collection of property group classes that need to be registered on

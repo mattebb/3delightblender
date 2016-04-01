@@ -1437,22 +1437,26 @@ class Renderman_Light_Link_Panel(CollectionPanel, Panel):
             flow.template_list("RENDERMAN_LL_OBJECT_list", "Renderman_light_link_list", 
                                  rm, "object_groups", rm, 'll_object_index') 
         
-        from_name = bpy.data.lamps[rm.ll_light_index] if rm.ll_light_type == 'lights' \
-            else rm.light_groups[rm.ll_light_index]
-        to_name = bpy.data.objects[rm.ll_object_index] if rm.ll_object_type == 'objects' \
-            else rm.object_groups[rm.ll_object_index]
-        ll_name = "lg_%s>%s>obj_%s>%s" % (rm.ll_light_type[:-1], from_name.name, rm.ll_object_type[:-1], to_name.name)
-
-        col = flow.column()
-        if ll_name in rm.ll:
-            col.prop(rm.ll[ll_name], 'illuminate')
-            rem = col.operator('renderman.add_rem_light_link', 'Remove Light Link')
-            rem.ll_name = ll_name
-            rem.add_remove = "remove"
+        if rm.ll_light_index == -1 or rm.ll_object_index == -1:
+            flow.label("Select light and object")
         else:
-            add = col.operator('renderman.add_rem_light_link', 'Add Light Link')
-            add.ll_name = ll_name
-            add.add_remove = 'add'
+            from_name = bpy.data.lamps[rm.ll_light_index] if rm.ll_light_type == 'lights' \
+                else rm.light_groups[rm.ll_light_index]
+            to_name = bpy.data.objects[rm.ll_object_index] if rm.ll_object_type == 'objects' \
+                else rm.object_groups[rm.ll_object_index]
+            ll_name = "lg_%s>%s>obj_%s>%s" % (rm.ll_light_type, from_name.name, 
+                                              rm.ll_object_type, to_name.name)
+
+            col = flow.column()
+            if ll_name in rm.ll:
+                col.prop(rm.ll[ll_name], 'illuminate')
+                rem = col.operator('renderman.add_rem_light_link', 'Remove Light Link')
+                rem.ll_name = ll_name
+                rem.add_remove = "remove"
+            else:
+                add = col.operator('renderman.add_rem_light_link', 'Add Light Link')
+                add.ll_name = ll_name
+                add.add_remove = 'add'
         
 
 

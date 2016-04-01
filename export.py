@@ -2127,10 +2127,12 @@ def export_object_attributes(ri, scene, ob, visible_objects):
             lls += [ll for ll in scene.renderman.ll if ll_str in ll.name]
 
     #for each light link do illuminates 
-    for link in ll:
+    for link in lls:
         strs = link.name.split('>')
-        light_names = [strs[1]] if str[0] == "lg_light" else \
+        light_names = [strs[1]] if strs[0] == "lg_light" else \
             scene.renderman.light_groups[strs[1]].members.keys()
+        if strs[0] == 'lg_group' and strs[1] == 'All':
+            light_names = [l.name for l in scene.objects if l.type =='LAMP']
         for light_name in light_names:
             if link.illuminate != "DEFAULT":
                 ri.Illuminate(light_name, link.illuminate == 'ON')
@@ -3084,8 +3086,10 @@ def update_light_link(rpass, ri, prman, link, remove=False):
 
     for ob_name in ob_names:
         ri.EditBegin('attribute', {'string scopename': ob_name})
-        light_names = [strs[1]] if str[0] == "lg_light" else \
+        light_names = [strs[1]] if strs[0] == "lg_light" else \
             rpass.scene.renderman.light_groups[strs[1]].members.keys()
+        if strs[0] == 'lg_group' and strs[1] == 'All':
+            light_names = [l.name for l in scene.objects if l.type =='LAMP']
         for light_name in light_names:
             if remove or link.illuminate != "DEFAULT":
                 ri.Illuminate(light_name, rpass.scene.objects[light_name].renderman.illuminates_by_default)
