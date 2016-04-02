@@ -537,7 +537,30 @@ class OT_remove_from_group(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class OT_remove_add_rem_light_link(bpy.types.Operator):
+    bl_idname = 'renderman.add_rem_light_link'
+    bl_label = 'Add/Remove Selected from Object Group'
 
+    add_remove = StringProperty(default='add')
+    ll_name = StringProperty(default='')
+
+    def execute(self, context):
+        scene = context.scene
+
+        add_remove = self.properties.add_remove
+        ll_name = self.properties.ll_name
+
+        if add_remove == 'add':
+            ll = scene.renderman.ll.add()
+            ll.name = ll_name
+        else:
+            ll_index = scene.renderman.ll.keys().index(ll_name)
+            if engine.ipr is not None and engine.ipr.is_interactive_running:
+                engine.ipr.remove_light_link(context, scene.renderman.ll[ll_index])
+            scene.renderman.ll.remove(ll_index)
+            
+
+        return {'FINISHED'}
 
 
 #################

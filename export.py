@@ -1913,11 +1913,11 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
         
 
 # export each data read archive
-def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is_child=False):
+def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is_child=False, visible_objects=None):
     ri.AttributeBegin()
     ri.Attribute("identifier", {"name": instance.name})
     if instance.ob:
-        export_object_attributes(ri, rpass.scene, instance.ob)
+        export_object_attributes(ri, rpass.scene, instance.ob, visible_objects)
     # now the matrix, if we're transforming do the motion here
     export_transform(ri, instance, concat=is_child)
 
@@ -2046,7 +2046,7 @@ def get_archive_filename(name, rpass, animated, relative=False):
 
 
 # here we would export object attributes like holdout, sr, etc
-def export_object_attributes(ri, scene, ob):
+def export_object_attributes(ri, scene, ob, visible_objects):
     # save space! don't export default attribute settings to the RIB
     # shading attributes
 
@@ -2078,6 +2078,8 @@ def export_object_attributes(ri, scene, ob):
     # visibility attributes
     vis_params = {}
     if not ob.renderman.visibility_camera:
+        vis_params["int camera"] = 0
+    if visible_objects and ob.name not in visible_objects:
         vis_params["int camera"] = 0
     if not ob.renderman.visibility_trace_indirect:
         vis_params["int indirect"] = 0
@@ -2115,9 +2117,25 @@ def export_object_attributes(ri, scene, ob):
         ri.Attribute("trace", trace_params)
 
     # light linking
-    for link in ob.renderman.light_linking:
-        if link.illuminate != "DEFAULT":
-            ri.Illuminate(link.light, link.illuminate == 'ON')
+    #get links this is a part of 
+    ll_str = "obj_object>%s" % ob.name
+    lls = [ll for ll in scene.renderman.ll if ll_str in ll.name]
+    #get links this is a group that is a part of 
+    for group in scene.renderman.object_groups:
+        if ob.name in group.members.keys():
+            ll_str = "obj_group>%s" % group.name
+            lls += [ll for ll in scene.renderman.ll if ll_str in ll.name]
+
+    #for each light link do illuminates 
+    for link in lls:
+        strs = link.name.split('>')
+        light_names = [strs[1]] if strs[0] == "lg_light" else \
+            scene.renderman.light_groups[strs[1]].members.keys()
+        if strs[0] == 'lg_group' and strs[1] == 'All':
+            light_names = [l.name for l in scene.objects if l.type =='LAMP']
+        for light_name in light_names:
+            if link.illuminate != "DEFAULT":
+                ri.Illuminate(light_name, link.illuminate == 'ON')
 
 
 def get_bounding_box(ob):
@@ -2643,7 +2661,7 @@ def export_display(ri, rpass, scene):
     main_display = user_path(rm.path_display_driver_image,
                              scene=scene)
     debug("info", "Main_display: " + main_display)
-    main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
+    #main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
     ri.Display(main_display, dspy_driver, "rgba",
                {"quantize": [0, 0, 0, 0]})
@@ -2729,7 +2747,7 @@ def export_hider(ri, rpass, scene, preview=False):
 
 
 # I hate to make rpass global but it makes things so much easier
-def write_rib(rpass, scene, ri):
+def write_rib(rpass, scene, ri, visible_objects=None):
 
     # precalculate motion blur data
     data_blocks, instances = cache_motion(scene, rpass)
@@ -2769,7 +2787,7 @@ def write_rib(rpass, scene, ri):
     for name, instance in instances.items():
         if instance.type not in ['CAMERA', 'LAMP'] and not instance.parent:
             export_instance_read_archive(
-                ri, instance, instances, data_blocks, rpass)
+                ri, instance, instances, data_blocks, rpass, visible_objects=visible_objects)
     
     for object in emptiesToExport:
         export_empties_archives(ri,object)
@@ -3059,12 +3077,25 @@ def issue_transform_edits(rpass, ri, active, prman):
             issue_light_transform_edit(ri, active)
 
 
-def update_light_link(rpass, ri, prman, active, link):
+def update_light_link(rpass, ri, prman, link, remove=False):
     rpass.edit_num += 1
     edit_flush(ri, rpass.edit_num, prman)
-    ri.EditBegin('attribute', {'string scopename': active.name})
-    ri.Illuminate(link.light, link.illuminate != 'OFF')
-    ri.EditEnd()
+    strs = link.name.split('>')
+    ob_names = [strs[3]] if strs[2] == "ob_object" else \
+        rpass.scene.renderman.object_groups[strs[3]].members.keys
+
+    for ob_name in ob_names:
+        ri.EditBegin('attribute', {'string scopename': ob_name})
+        light_names = [strs[1]] if strs[0] == "lg_light" else \
+            rpass.scene.renderman.light_groups[strs[1]].members.keys()
+        if strs[0] == 'lg_group' and strs[1] == 'All':
+            light_names = [l.name for l in scene.objects if l.type =='LAMP']
+        for light_name in light_names:
+            if remove or link.illuminate != "DEFAULT":
+                ri.Illuminate(light_name, rpass.scene.objects[light_name].renderman.illuminates_by_default)
+            else:
+                ri.Illuminate(light_name, link.illuminate == 'ON')
+        ri.EditEnd()
 
 
 # test the active object type for edits to do then do them

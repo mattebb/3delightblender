@@ -160,29 +160,13 @@ class RendermanGroup(bpy.types.PropertyGroup):
 
 class LightLinking(bpy.types.PropertyGroup):
 
-    def lights_list_items(self, context):
-        items = [('No light chosen', 'Choose a light', '')]
-        for lamp in bpy.data.lamps:
-            items.append((lamp.name, lamp.name, ''))
-        return items
-
-    def update_name(self, context):
-        infostr = ('(Default)', '(Forced On)', '(Forced Off)')
-        valstr = ('DEFAULT', 'ON', 'OFF')
-
-        self.name = "%s %s" % (
-            self.light, infostr[valstr.index(self.illuminate)])
-
+    def update_link(self, context):
         if engine.ipr is not None and engine.ipr.is_interactive_running:
             engine.ipr.update_light_link(context, self)
 
-    light = StringProperty(
-        name="Light",
-        update=update_name)
-
     illuminate = EnumProperty(
         name="Illuminate",
-        update=update_name,
+        update=update_link,
         items=[('DEFAULT', 'Default', ''),
                ('ON', 'On', ''),
                ('OFF', 'Off', '')])
@@ -320,6 +304,34 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                                    name='Light Groups')
     light_groups_index = IntProperty(min=-1, default=-1)
 
+    ll = CollectionProperty(type=LightLinking,
+                                   name='Light Links')
+
+    
+    # we need these in case object/light selector changes
+    def reset_ll_light_index(self, context):
+        self.ll_light_index = -1
+
+    def reset_ll_object_index(self, context):
+        self.ll_light_index = -1
+
+    ll_light_index = IntProperty(min=-1, default=-1)
+    ll_object_index = IntProperty(min=-1, default=-1)
+    ll_light_type = EnumProperty(
+        name="Select by",
+        description="Select by",
+        items=[('light', 'Lights', ''),
+               ('group', 'Light Groups', '')],
+        default='group', update=reset_ll_light_index)
+
+    ll_object_type = EnumProperty(
+        name="Select by",
+        description="Select by",
+        items=[('object', 'Objects', ''),
+               ('group', 'Object Groups', '')],
+        default='group', update=reset_ll_object_index)
+
+    
     aov_lists = CollectionProperty(type=RendermanAOVList,
                                    name='Custom AOVs')
     aov_list_index = IntProperty(min=-1, default=-1)
@@ -1517,10 +1529,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         description="Export a named coordinate system with this name",
         default="CoordSys")
 
-    # Light-Linking
-    light_linking = CollectionProperty(type=LightLinking, name='Light Linking')
-    light_linking_index = IntProperty(min=-1, default=-1)
-
     # Trace Sets
     trace_set = CollectionProperty(type=TraceSet, name='Trace Set')
     trace_set_index = IntProperty(min=-1, default=-1)
@@ -1575,6 +1583,8 @@ def initial_groups(scene):
     if 'All' not in scene.renderman.light_groups.keys():
         default_group = scene.renderman.light_groups.add()
         default_group.name = 'All'
+    
+
 
    
 # collection of property group classes that need to be registered on
