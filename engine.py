@@ -52,6 +52,7 @@ from .util import path_list_convert, guess_rmantree, set_pythonpath,\
     set_rmantree
 from .util import get_real_path, find_it_path
 from .util import debug
+from .util import get_Selected_Objects
 from random import randint
 import sys
 from bpy.app.handlers import persistent
@@ -506,7 +507,13 @@ class RPass:
                 self.material_dict[mat_slot.material].append(obj)
         
         # export rib and bake
-        write_rib(self, self.scene, self.ri)
+        
+        #Check if rendering select objects only.
+        if(self.scene.renderman.render_Selected_Objects_Only):
+            visiable_objects = get_Selected_Objects(bpy.context)
+        else:
+            visiable_objects = None
+        write_rib(self, self.scene, self.ri, visiable_objects)
         self.ri.End()
         self.convert_textures(get_texture_list(self.scene))
 
@@ -609,6 +616,12 @@ class RPass:
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
+        #Check if rendering select objects only.
+        if(self.scene.renderman.render_Selected_Objects_Only):
+            print("Getting selected Objects!")
+            visiable_objects = get_Selected_Objects(bpy.context)
+        else:
+            visiable_objects = None
         write_rib(self, self.scene, self.ri)
         self.ri.End()
         if engine:

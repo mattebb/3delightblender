@@ -153,6 +153,18 @@ def debug(warningLevel, *output):
         else:
             pass
 
+
+def get_Selected_Objects(context):
+    objects = []
+    print("Before loop")
+    print(context)
+    for item in context:
+        print(item)
+    for obj in context.selected_objects:
+        print("PreAppend")
+        objects.append(obj.name)
+    return objects
+
 # -------------------- Path Handling -----------------------------
 
 # convert multiple path delimiters from : to ;

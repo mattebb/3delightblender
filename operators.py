@@ -300,7 +300,7 @@ class ExportRIBObject(bpy.types.Operator):
         
  
 
-''' # Item that is not needed because of the switch.
+''' # Item that is not needed because of new rib archiving system.
 class ExportRIBArchive(bpy.types.Operator):
     bl_idname = "global.export_rib_archive"
     bl_label = "Export RIB Archives for scene"
@@ -318,6 +318,8 @@ class ExportRIBArchive(bpy.types.Operator):
         rpass.ri.End()
         return {'FINISHED'}
 '''
+
+
 
 #################
 # Sample scenes menu.
