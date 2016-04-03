@@ -161,6 +161,13 @@ def get_Selected_Objects(scene):
             objectNames.append(obj.name)
     return objectNames
 
+def get_Files_in_Directory(path):
+    files = []
+    #files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+    files = [f for f in os.listdir(path)]
+    return files
+
+
 # -------------------- Path Handling -----------------------------
 
 # convert multiple path delimiters from : to ;

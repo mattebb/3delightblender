@@ -42,6 +42,7 @@ from .util import getattr_recursive
 from .util import user_path
 from .util import get_real_path
 from .util import readOSO, find_it_path
+from .util import get_Files_in_Directory
 
 from .shader_parameters import tex_source_path
 from .shader_parameters import tex_optimised_path
@@ -325,58 +326,136 @@ class ExportRIBArchive(bpy.types.Operator):
 # Sample scenes menu.
 #################
 
-class openExampleTemplate(bpy.types.Operator):
-    bl_label = "Template"
-    bl_idname = "renderman.template"
+#class openExampleTemplate(bpy.types.Operator):
+#    bl_label = "Template"
+#    bl_idname = "renderman.template"
 
-    def loadFile(self,context,exampleName):
-        blenderAddonPaths = addon_utils.paths()
-        for path in blenderAddonPaths:
-            basePath = os.path.join(path, "PRMan-for-Blender", "examples")
-            exists = os.path.exists(basePath)
-            if exists:
-                examplePath = os.path.join(basePath, exampleName, exampleName + ".blend")
-                if(os.path.exists(examplePath)):
-                    bpy.ops.wm.open_mainfile(filepath = examplePath)
-                    return True
-                else:
-                    return False
+#    def loadFile(self,context,exampleName):
+#        blenderAddonPaths = addon_utils.paths()
+#        for path in blenderAddonPaths:
+#            basePath = os.path.join(path, "PRMan-for-Blender", "examples")
+#            exists = os.path.exists(basePath)
+#            if exists:
+#                examplePath = os.path.join(basePath, exampleName, exampleName + ".blend")
+#                if(os.path.exists(examplePath)):
+#                    bpy.ops.wm.open_mainfile(filepath = examplePath)
+#                    return True
+#                else:
+#                    return False
 
-    def execute(self, context):
-        sucess = self.loadFile(self, "Basic")
-        if not sucess:
-            self.report({'ERROR'}, "Example Does Not Exist!")
-        return{'FINISHED'}
-
-
-class openExampleBasic(openExampleTemplate):
-    bl_label = "Basic"
-    bl_idname = "renderman.basic"
-
-    def execute(self, context):
-        sucess = self.loadFile(self, "Basic")
-        if not sucess:
-            self.report({'ERROR'}, "Example Does Not Exist!")
-        return{'FINISHED'}
+#    def execute(self, context):
+#        sucess = self.loadFile(self, "Basic")
+#        if not sucess:
+#            self.report({'ERROR'}, "Example Does Not Exist!")
+#        return{'FINISHED'}
 
 
-class openExampleTexturesBasic(openExampleTemplate):
-    bl_label = "BasicTextures"
-    bl_idname = "renderman.texbasic"
+#class openExampleBasic(openExampleTemplate):
+#    bl_label = "Basic"
+#    bl_idname = "renderman.basic"
 
-    def execute(self, context):
-        sucess = self.loadFile(self, "Basic Textures")
-        if not sucess:
-            self.report({'ERROR'}, "Example Does Not Exist!")
-        return{'FINISHED'}
+#    def execute(self, context):
+#        sucess = self.loadFile(self, "Basic")
+#        if not sucess:
+#            self.report({'ERROR'}, "Example Does Not Exist!")
+#        return{'FINISHED'}
+
+
+#class openExampleTexturesBasic(openExampleTemplate):
+#    bl_label = "BasicTextures"
+#    bl_idname = "renderman.texbasic"
+
+#    def execute(self, context):
+#        sucess = self.loadFile(self, "Basic Textures")
+#        if not sucess:
+#            self.report({'ERROR'}, "Example Does Not Exist!")
+#        return{'FINISHED'}
+
+blenderAddonPaths = addon_utils.paths()
+for path in blenderAddonPaths:
+    basePath = os.path.join(path, "PRMan-for-Blender", "examples")
+    exists = os.path.exists(basePath)
+    if exists:
+        names = get_Files_in_Directory(basePath)
+        print("Name Init: ", names)
+for name in names:
+    print("Names Init: ", name)
+    class examplesRenderman(bpy.types.Operator):
+        bl_idname = ("rendermanexamples." + name.lower())
+        bl_label = name
+        bl_description = name
+        def invoke(self, context, event):
+            sucess = self.loadFile(self, self.bl_label)
+            if not sucess:
+                self.report({'ERROR'}, "Example Does Not Exist!")
+            return {'FINISHED'}
+        
+        def loadFile(self,context,exampleName):
+            blenderAddonPaths = addon_utils.paths()
+            for path in blenderAddonPaths:
+                basePath = os.path.join(path, "PRMan-for-Blender", "examples")
+                exists = os.path.exists(basePath)
+                if exists:
+                    examplePath = os.path.join(basePath, exampleName, exampleName + ".blend")
+                    if(os.path.exists(examplePath)):
+                        bpy.ops.wm.open_mainfile(filepath = examplePath)
+                        return True
+                    else:
+                        return False
 
 class LoadSceneMenu(bpy.types.Menu):
     bl_label = "RendermanExamples"
     bl_idname = "examples"
 
+    def get_operator_failsafe(self, idname):
+        op = bpy.ops
+        for attr in idname.split("."):
+            if attr not in dir(op):
+                return lambda: None
+            op = getattr(op, attr)
+        return op
+
+
     def draw(self, context):
-        self.layout.operator("renderman.basic")
-        self.layout.operator("renderman.texbasic")
+        #self.layout.operator("renderman.basic")
+        #self.layout.operator("renderman.texbasic")
+        names = []
+        blenderAddonPaths = addon_utils.paths()
+        for path in blenderAddonPaths:
+            basePath = os.path.join(path, "PRMan-for-Blender", "examples")
+            exists = os.path.exists(basePath)
+            if exists:
+                names = get_Files_in_Directory(basePath)
+                print("Name: ", names)
+        for name in names:
+            print("Name: ", name)
+            operatorName = "rendermanexamples." + name.lower()
+            op = self.get_operator_failsafe(operatorName)
+            print("Operator: ", op)
+            self.layout.operator(operatorName)
+            #class prman_example(bpy.types.Operator):
+            #    bl_idname = ("renderman.examples." + name.lower())
+           #  #   bl_label = name
+           #     bl_description = name
+           #     def invoke(self, context, event):
+            #        sucess = self.loadFile(self, "Basic")
+           #         if not sucess:
+           #             self.report({'ERROR'}, "Example Does Not Exist!")
+           #         return {'FINISHED'}
+                
+           #     def loadFile(self,context,exampleName):
+           #         blenderAddonPaths = addon_utils.paths()
+             #       for path in blenderAddonPaths:
+             #           basePath = os.path.join(path, "PRMan-for-Blender", "examples")
+             #           exists = os.path.exists(basePath)
+            #            if exists:
+            #                examplePath = os.path.join(basePath, exampleName, exampleName + ".blend")
+            #                if(os.path.exists(examplePath)):
+           #                     bpy.ops.wm.open_mainfile(filepath = examplePath)
+           #                     return True
+            #                else:
+            #                    return False
+            
 
 
 def menu_draw(self, context):
