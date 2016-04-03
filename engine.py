@@ -52,6 +52,7 @@ from .util import path_list_convert, guess_rmantree, set_pythonpath,\
     set_rmantree
 from .util import get_real_path, find_it_path
 from .util import debug
+from .util import get_Selected_Objects
 from random import randint
 import sys
 from bpy.app.handlers import persistent
@@ -160,7 +161,6 @@ class RPass:
         init_exporter_env(addon.preferences)
         self.initialize_paths(scene)
         self.rm = scene.renderman
-
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
         self.is_interactive_running = False
         self.is_interactive = interactive
@@ -506,7 +506,14 @@ class RPass:
                 self.material_dict[mat_slot.material].append(obj)
         
         # export rib and bake
-        write_rib(self, self.scene, self.ri)
+        
+        
+        #Check if rendering select objects only.
+        if(self.scene.renderman.render_selected_objects_only):
+            visible_objects = get_Selected_Objects(self.scene)
+        else:
+            visible_objects = None
+        write_rib(self, self.scene, self.ri, visible_objects)
         self.ri.End()
         self.convert_textures(get_texture_list(self.scene))
 
@@ -609,7 +616,13 @@ class RPass:
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
-        write_rib(self, self.scene, self.ri)
+        
+        #Check if rendering select objects only.
+        if(self.scene.renderman.render_selected_objects_only):
+            visible_objects = get_Selected_Objects(self.scene)
+        else:
+            visible_objects = None
+        write_rib(self, self.scene, self.ri, visible_objects)
         self.ri.End()
         if engine:
             engine.report({"INFO"}, "RIB generation took %s" %

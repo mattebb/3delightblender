@@ -153,6 +153,21 @@ def debug(warningLevel, *output):
         else:
             pass
 
+
+def get_Selected_Objects(scene):
+    objectNames = []
+    for obj in scene.objects:
+        if(obj.select == True):
+            objectNames.append(obj.name)
+    return objectNames
+
+def get_Files_in_Directory(path):
+    files = []
+    #files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
+    files = [f for f in os.listdir(path)]
+    return files
+
+
 # -------------------- Path Handling -----------------------------
 
 # convert multiple path delimiters from : to ;
@@ -182,10 +197,11 @@ def get_path_list(rm, type):
         paths.append('@')
         # here for getting args
         if type == 'args':
-            paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS',
+            rmantree = guess_rmantree()
+            paths.append(os.path.join(rmantree, 'lib', 'RIS',
                                       'pattern'))
-            paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'bxdf'))
-            paths.append(os.path.join(guess_rmantree(), 'lib', 'rsl',
+            paths.append(os.path.join(rmantree, 'lib', 'RIS', 'bxdf'))
+            paths.append(os.path.join(rmantree, 'lib', 'rsl',
                                       'shaders'))
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          'shaders'))

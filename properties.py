@@ -409,6 +409,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Y coordinate of bucket spiral start",
         min=-1, default=-1)
 
+    render_selected_objects_only = BoolProperty(
+        name="Render Selected",
+        description="Render only the selected objects.",
+        default=False)
+    
     shadingrate = FloatProperty(
         name="Shading Rate",
         description="Maximum distance between shading samples (lower = more detailed shading)",
