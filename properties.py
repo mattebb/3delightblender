@@ -409,7 +409,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Y coordinate of bucket spiral start",
         min=-1, default=-1)
 
-    render_Selected_Objects_Only = BoolProperty(
+    render_selected_objects_only = BoolProperty(
         name="Render Selected",
         description="Render only the selected objects.",
         default=False)
