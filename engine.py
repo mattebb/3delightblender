@@ -509,7 +509,7 @@ class RPass:
         
         
         #Check if rendering select objects only.
-        if(self.scene.renderman.render_Selected_Objects_Only):
+        if(self.scene.renderman.render_selected_objects_only):
             visible_objects = get_Selected_Objects(self.scene)
         else:
             visible_objects = None
@@ -618,7 +618,7 @@ class RPass:
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         
         #Check if rendering select objects only.
-        if(self.scene.renderman.render_Selected_Objects_Only):
+        if(self.scene.renderman.render_selected_objects_only):
             visible_objects = get_Selected_Objects(self.scene)
         else:
             visible_objects = None

@@ -216,7 +216,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         row.operator("render.render",text="Batch Render",icon_value=rman_batch.icon_id).animation=True
 
         row = layout.row()
-        row.prop(context.scene.renderman, "render_Selected_Objects_Only")
+        row.prop(context.scene.renderman, "render_selected_objects_only")
 
         split = layout.split(percentage=0.33)
  
@@ -1558,7 +1558,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
             row = box.row(align=True)
             
             #Render selected
-            row.prop(rm,"render_Selected_Objects_Only")
+            row.prop(rm,"render_selected_objects_only")
             
             row = box.row(align=True)
             rman_batch = icons.get("batch_render")
