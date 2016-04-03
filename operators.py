@@ -335,9 +335,7 @@ for path in blenderAddonPaths:
     exists = os.path.exists(basePath)
     if exists:
         names = get_Files_in_Directory(basePath)
-        print("Name Init: ", names)
 for name in names:
-    print("Names Init: ", name)
     class examplesRenderman(bpy.types.Operator):
         bl_idname = ("rendermanexamples." + name.lower())
         bl_label = name
