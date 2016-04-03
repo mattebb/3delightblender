@@ -331,12 +331,10 @@ class openExampleTemplate(bpy.types.Operator):
 
     def loadFile(self,context,exampleName):
         blenderAddonPaths = addon_utils.paths()
-        print(blenderAddonPaths)
         for path in blenderAddonPaths:
             basePath = os.path.join(path, "PRMan-for-Blender", "examples")
             exists = os.path.exists(basePath)
             if exists:
-                print("Addon exits in this directory: ", path)
                 examplePath = os.path.join(basePath, exampleName, exampleName + ".blend")
                 if(os.path.exists(examplePath)):
                     bpy.ops.wm.open_mainfile(filepath = examplePath)

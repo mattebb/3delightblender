@@ -154,16 +154,12 @@ def debug(warningLevel, *output):
             pass
 
 
-def get_Selected_Objects(context):
-    objects = []
-    print("Before loop")
-    print(context)
-    for item in context:
-        print(item)
-    for obj in context.selected_objects:
-        print("PreAppend")
-        objects.append(obj.name)
-    return objects
+def get_Selected_Objects(scene):
+    objectNames = []
+    for obj in scene.objects:
+        if(obj.select == True):
+            objectNames.append(obj.name)
+    return objectNames
 
 # -------------------- Path Handling -----------------------------
 
@@ -194,10 +190,11 @@ def get_path_list(rm, type):
         paths.append('@')
         # here for getting args
         if type == 'args':
-            paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS',
+            rmantree = guess_rmantree()
+            paths.append(os.path.join(rmantree, 'lib', 'RIS',
                                       'pattern'))
-            paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'bxdf'))
-            paths.append(os.path.join(guess_rmantree(), 'lib', 'rsl',
+            paths.append(os.path.join(rmantree, 'lib', 'RIS', 'bxdf'))
+            paths.append(os.path.join(rmantree, 'lib', 'rsl',
                                       'shaders'))
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          'shaders'))
