@@ -144,6 +144,8 @@ def generate_page(sp, node):
                 setattr(node, sub_names[i], sub_props[i])
         else:
             name, meta, prop = generate_property(sub_param)
+            if name is None:
+                continue
             # another fix for sloppy args files
             if name == sp.attrib['name']:
                 name = name + '_prop'
@@ -243,6 +245,8 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 #    setattr(node, name, prop)
             else:
                 name, meta, prop = generate_property(sp)
+                if name is None:
+                    continue
                 prop_names.append(name)
                 prop_meta[name] = meta
                 setattr(node, name, prop)
@@ -295,10 +299,16 @@ def generate_property(sp):
     param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
     param_widget = sp.attrib['widget'].lower() if 'widget' in sp.attrib \
         else 'default'
+    if param_widget == 'null':
+        return (None, None, None)
 
     param_type = 'float'  # for default. Some args files are sloppy
     if 'type' in sp.attrib:
         param_type = sp.attrib['type']
+    tags = sp.find('tags')
+    if tags and tags.find('tag').attrib['value'] == "vstruct":
+        param_type = 'struct'
+
     param_help = ""
     param_default = sp.attrib['default'] if 'default' in sp.attrib else None
 
@@ -357,27 +367,41 @@ def generate_property(sp):
         renderman_type = 'float'
 
     elif param_type == 'int' or param_type == 'integer':
-        param_default = int(param_default) if param_default else 0
-        if param_widget == 'checkbox':
-            prop = BoolProperty(name=param_label,
-                                default=bool(param_default),
-                                description=param_help, update=update_func)
+        if 'arraySize' in sp.attrib.keys():
+            if "," in sp.attrib['default']:
+                param_default = tuple(int(f) for f in
+                                  sp.attrib['default'].split(','))
+            else:
+                param_default = tuple(int(f) for f in
+                                  sp.attrib['default'].split())
+            prop = IntVectorProperty(name=param_label,
+                                       default=param_default,
+                                       size=len(param_default),
+                                       description=param_help,
+                                       update=update_func)
 
-        elif param_widget == 'mapper':
-            prop = EnumProperty(name=param_label,
-                                items=sp_optionmenu_to_string(
-                                    sp.find("hintdict[@name='options']")),
-                                default=sp.attrib['default'],
-                                description=param_help, update=update_func)
         else:
-            param_min = int(sp.attrib['min']) if 'min' in sp.attrib else 0
-            param_max = int(
-                sp.attrib['max']) if 'max' in sp.attrib else 2 ** 31 - 1
-            prop = IntProperty(name=param_label,
-                               default=param_default,
-                               soft_min=param_min,
-                               soft_max=param_max,
-                               description=param_help, update=update_func)
+            param_default = int(param_default) if param_default else 0
+            if param_widget == 'checkbox':
+                prop = BoolProperty(name=param_label,
+                                    default=bool(param_default),
+                                    description=param_help, update=update_func)
+
+            elif param_widget == 'mapper':
+                prop = EnumProperty(name=param_label,
+                                    items=sp_optionmenu_to_string(
+                                        sp.find("hintdict[@name='options']")),
+                                    default=sp.attrib['default'],
+                                    description=param_help, update=update_func)
+            else:
+                param_min = int(sp.attrib['min']) if 'min' in sp.attrib else 0
+                param_max = int(
+                    sp.attrib['max']) if 'max' in sp.attrib else 2 ** 31 - 1
+                prop = IntProperty(name=param_label,
+                                   default=param_default,
+                                   soft_min=param_min,
+                                   soft_max=param_max,
+                                   description=param_help, update=update_func)
         renderman_type = 'int'
 
     elif param_type == 'color':

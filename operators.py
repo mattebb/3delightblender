@@ -667,7 +667,7 @@ class add_GeoLight(bpy.types.Operator):
         for node in nt.nodes:
             if(node.name == "Output"):
                 output = node
-        geoLight = nt.nodes.new('PxrStdAreaLightLightNode')
+        geoLight = nt.nodes.new('PxrRectLightLightNode')
         geoLight["exposure"] = 5.0
         geoLight.location[0] -= 300
         geoLight.location[1] -= 420

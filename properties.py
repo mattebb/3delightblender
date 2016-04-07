@@ -45,10 +45,13 @@ from bpy.app.handlers import persistent
 # get the names of args files in rmantree/lib/ris/integrator/args
 def get_integrator_names():
     rmantree = guess_rmantree()
-    args_path = os.path.join(rmantree, 'lib', 'RIS', 'integrator', 'Args')
-    return [(f.split('.')[0], f.split('.')[0][3:], '')
-            for f in os.listdir(args_path)]
-
+    args_path = os.path.join(rmantree, 'lib', 'plugins', 'Args')
+    integrator_names = []
+    for f in os.listdir(args_path):
+        args_xml = ET.parse(os.path.join(args_path, f)).getroot()
+        if args_xml.find("shaderType/tag").attrib['value'] == 'integrator':
+            integrator_names.append((f.split('.')[0], f.split('.')[0][3:], ''))
+    return integrator_names
 
 class RendermanIntegratorSettings(bpy.types.PropertyGroup):
     pass
@@ -56,16 +59,18 @@ class RendermanIntegratorSettings(bpy.types.PropertyGroup):
 
 def register_integrator_settings(scene_settings_cls):
     rmantree = guess_rmantree()
-    args_path = os.path.join(rmantree, 'lib', 'RIS', 'integrator', 'Args')
+    args_path = os.path.join(rmantree, 'lib', 'plugins', 'Args')
     items = []
     for f in os.listdir(args_path):
+        args_xml = ET.parse(os.path.join(args_path, f)).getroot()
+        if args_xml.find("shaderType/tag").attrib['value'] != 'integrator':
+            continue
         name = f.split('.')[0]
         typename = '%sIntegratorSettings' % name
         ntype = type(typename, (RendermanIntegratorSettings,), {})
         ntype.bl_label = name
         ntype.typename = typename
         # do some parsing and get props
-        args_xml = ET.parse(os.path.join(args_path, f)).getroot()
         inputs = [p for p in args_xml.findall('./param')] + \
             [p for p in args_xml.findall('./page')]
         class_generate_properties(ntype, name, inputs)
@@ -101,18 +106,20 @@ class RendermanCameraSettings(bpy.types.PropertyGroup):
 
 def register_camera_settings():
     rmantree = guess_rmantree()
-    camera_args_files = [os.path.join(rmantree, 'lib', 'RIS', 'projection',
-                                      'Args', 'PxrCamera.args')]
     # do some parsing and get props
     camera_classes = []
-    for f in camera_args_files:
+    args_path = os.path.join(rmantree, 'lib', 'plugins', 'Args')
+    items = []
+    for f in os.listdir(args_path):
+        args_xml = ET.parse(os.path.join(args_path, f)).getroot()
+        if args_xml.find("shaderType/tag").attrib['value'] != 'projection':
+            continue
         name = os.path.basename(f).split('.')[0]
         typename = '%sCameraSettings' % name
         ntype = type(typename, (RendermanCameraSettings,), {})
         ntype.bl_label = name
         ntype.typename = typename
         # do some parsing and get props
-        args_xml = ET.parse(f).getroot()
         inputs = [p for p in args_xml.findall('./param')] + \
             [p for p in args_xml.findall('./page')]
         class_generate_properties(ntype, name, inputs)
@@ -929,11 +936,11 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
         light_type = lamp.renderman.renderman_type
         # use pxr area light for everything but env, sky
-        light_shader = 'PxrStdAreaLightLightNode'
+        light_shader = 'PxrRectLightNode'
         if light_type == 'ENV':
-            light_shader = 'PxrStdEnvMapLightLightNode'
+            light_shader = 'PxrDomeLightLightNode'
         elif light_type == 'SKY':
-            light_shader = 'PxrStdEnvDayLightLightNode'
+            light_shader = 'PxrEnvDayLightLightNode'
         elif light_type == 'AREA':
             try:
                 lamp.size = 1.0

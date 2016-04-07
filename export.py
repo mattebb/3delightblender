@@ -674,16 +674,16 @@ def export_object_transform(ri, ob, flip_x=False):
     ri.Transform(rib(m))
 
 def export_light_source(ri, lamp, shape):
-    name = "PxrStdAreaLight"
+    name = "PxrRectLight"
     params = {ri.HANDLEID: lamp.name, "float exposure": [
         lamp.energy], "__instanceid": lamp.name}
     if lamp.type == "HEMI":
-        name = "PxrStdEnvMapLight"
+        name = "PxrDomeLight"
         params["color envTint"] = rib(lamp.color)
     else:
         params["color lightColor"] = rib(lamp.color)
         params["string rman__Shape"] = shape
-    ri.AreaLightSource(name, params)
+    ri.Light(name, params)
 
 
 def export_light_shaders(ri, lamp, do_geometry=True):
@@ -695,16 +695,13 @@ def export_light_shaders(ri, lamp, do_geometry=True):
         if lamp.renderman.renderman_type == 'AREA' and lamp.type == 'AREA':
             if lamp.renderman.area_shape == 'rect':
                 ri.Scale(lamp.size, lamp.size_y, 1.0)
-                ri.Geometry('rectlight', {})
-            elif lamp.renderman.area_shape == 'disk':
-                ri.Disk(0, lamp.size, 360.0)
             elif lamp.renderman.area_shape == 'sphere':
                 ri.Scale(lamp.size, lamp.size, lamp.size)
-                ri.Geometry('spherelight', {})
+                #ri.Geometry('spherelight', {})
             elif lamp.renderman.area_shape == 'cylinder':
                 ri.Rotate(90.0, 0.0, 1.0, 0.0)
-                ri.Cylinder(lamp.size, -.5 *
-                            lamp.size_y, .5 * lamp.size_y, 360)
+                #ri.Cylinder(lamp.size, -.5 *
+                #            lamp.size_y, .5 * lamp.size_y, 360)
         else:
             params = {}
             if lamp.renderman.renderman_type == 'SKY':
@@ -754,8 +751,8 @@ def export_light_shaders(ri, lamp, do_geometry=True):
         export_light_source(ri, lamp, shapes[lamp.type][0])
 
     # now the geometry
-    if do_geometry:
-        shapes[lamp.type][1]()
+    #if do_geometry:
+    #    shapes[lamp.type][1]()
 
 def export_world(ri, world, do_geometry=True):
     rm = world.renderman

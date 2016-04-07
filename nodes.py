@@ -596,6 +596,8 @@ def generate_node_type(prefs, name, args):
                 'pattern': RendermanPatternNode,
                 'displacement': RendermanDisplacementNode,
                 'light': RendermanLightNode}
+    if nodeType not in nodeDict.keys():
+        return
     ntype = type(typename, (nodeDict[nodeType],), {})
     ntype.bl_label = name
     ntype.typename = typename
@@ -968,6 +970,74 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
     bl_description = 'Connect a Pattern to this socket'
     input_type = StringProperty(default='Pattern')
 
+# return if this param has a vstuct connection or linked independently
+def is_vstruct_or_linked(node, param):
+    meta = node.prop_meta[param]
+    if 'vstructmember' not in meta.keys():
+        return node.inputs[param].is_linked
+    elif node.inputs[param].is_linked:
+        return True
+    else:
+        vstruct_name, vstruct_member = meta['vstructmember'].split('.')
+        from_socket = node.inputs[vstruct_name].links[0].from_socket
+        vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)
+        return node.inputs[vstruct_name].is_linked and vstruct_conditional(from_socket.node, vstruct_from_param)
+
+# tells if this param has a vstuct connection that is linked and conditional met
+def is_vstruct_and_linked(node, param):
+    meta = node.prop_meta[param]
+    if 'vstructmember' not in meta.keys():
+        return False
+    else:
+        vstruct_name, vstruct_member = meta['vstructmember'].split('.')
+        from_socket = node.inputs[vstruct_name].links[0].from_socket
+        vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)
+        return node.inputs[vstruct_name].is_linked and vstruct_conditional(from_socket.node, vstruct_from_param)
+
+# gets the value for a node walking up the vstruct chain
+def get_val_vstruct(node, param):
+    if node.inputs[param].is_linked:
+        from_socket = node.inputs[param].links[0].from_socket
+        return get_val_vstruct(from_socket.node, from_socket.identifier)
+    elif is_vstruct_and_linked(node, param):
+        vstruct_name, vstruct_member = meta['vstructmember'].split('.')
+        from_socket = node.inputs[vstruct_name].links[0].from_socket
+        vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)
+        return get_val_vstruct(from_socket.node, vstruct_from_param)
+    else:
+        return getattr(node, param)
+
+# parse a vstruct conditional string and return true or false if should link
+def vstruct_conditional(node, param):
+    meta = node.prop_meta[param]
+    if 'vstructConditionalExpr' not in meta.keys():
+        return True
+
+    expr = meta['vstructConditionalExpr']
+    expr = expr.replace('connect if ', '')
+    set_zero = False
+    if ' else set 0' in expr:
+        expr = expr.replace(' else set 0', '')
+        set_zero = True
+
+    tokens = expr.split()
+    new_tokens = []
+    i = 0
+    num_tokens = len(tokens)
+    while i < num_tokens:
+        token = tokens[i]
+        # is connected change this to node.inputs.is_linked
+        if i < num_tokens - 2 and tokens[i+1] == 'is'\
+            and tokens[i+2] == 'connected':
+            token = "is_vstruct_or_linked(node, '%s')" % token
+            i += 2
+        else:
+            i += 1
+        if token in node.prop_names:
+            token = "get_val_vstruct(node, '%s')" % token
+        new_tokens.append(token)
+
+    return eval(" ".join(new_tokens))
 
 # Rib export
 
@@ -979,8 +1049,8 @@ def gen_params(ri, node, mat_name=None, recurse=True):
         getLocation = bpy.context.scene.OSLProps
         prop_namesOSL = getattr(
             getLocation, mat_name + node.name + "prop_namesOSL")
-        params['%s' % ("shader")] = getattr(
-            getLocation, mat_name + node.name + "shader")
+        #params['%s' % ("shader")] = getattr(
+        #    getLocation, mat_name + node.name + "shader")
         for prop_name in prop_namesOSL:
             if prop_name == "shadercode" or prop_name == "codetypeswitch" \
                     or prop_name == "internalSearch":
@@ -1086,6 +1156,16 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 # if property group recurse
                 if meta['renderman_type'] == 'page':
                     continue
+                # see if vstruct linked
+                elif is_vstruct_and_linked(node, param):
+                    vstruct_name, vstruct_member = meta['vstructmember'].split('.')
+                    from_socket = node.inputs[vstruct_name].links[0].from_socket
+                    vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)
+                    params['reference %s %s' % (meta['renderman_type'],
+                                                    meta['renderman_name'])] = \
+                            ["%s:%s" %
+                                (from_socket.node.name, vstruct_from_param)]
+
                 # if input socket is linked reference that
                 elif prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
@@ -1170,10 +1250,10 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
             ri.Bxdf("PxrLightEmission", node.name,
                     {'__instanceid': params['__instanceid']})
         params[ri.HANDLEID] = mat_name
-        ri.AreaLightSource(node.bl_label, params)
+        ri.Light(node.bl_label, params)
     elif node.renderman_node_type == "displacement":
         ri.Attribute('displacementbound', {'sphere': disp_bound})
-        ri.Displacement(node.bl_label, params)
+        ri.Displace(node.bl_label, params)
     else:
         ri.Bxdf(node.bl_label, instance, params)
 
