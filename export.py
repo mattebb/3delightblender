@@ -542,11 +542,11 @@ def get_primvars_particle(scene, psys):
         if p.data_source in ('VELOCITY', 'ANGULAR_VELOCITY'):
             if p.data_source == 'VELOCITY':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.extend(pa.velocity)
             elif p.data_source == 'ANGULAR_VELOCITY':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.extend(pa.angular_velocity)
 
             primvars["uniform float[3] %s" % p.name] = pvars
@@ -555,26 +555,26 @@ def get_primvars_particle(scene, psys):
                 ('SIZE', 'AGE', 'BIRTH_TIME', 'DIE_TIME', 'LIFE_TIME'):
             if p.data_source == 'SIZE':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.append(pa.size)
             elif p.data_source == 'AGE':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.append((cfra - pa.birth_time) / pa.lifetime)
             elif p.data_source == 'BIRTH_TIME':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.append(pa.birth_time)
             elif p.data_source == 'DIE_TIME':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.append(pa.die_time)
             elif p.data_source == 'LIFE_TIME':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, cfra)]:
+                        [p for p in psys.particles if valid_particle(p, [cfra,cfra])]:
                     pvars.append(pa.lifetime)
 
-            primvars["uniform float %s" % p.name] = pvars
+            primvars["varying float %s" % p.name] = pvars
 
     return primvars
 
@@ -978,6 +978,8 @@ def export_particle_points(ri, scene, psys, ob, motion_data):
             params["constantwidth"] = rm.width
         elif rm.export_default_size:
             params["varying float width"] = width
+        #print(len(params['uniform float Age']))
+        
         ri.Points(params)
 
     if len(motion_data) > 1:
@@ -1666,6 +1668,23 @@ def get_instances_and_blocks(obs, rpass):
 
     return instances, data_blocks, motion_segs
 
+# get the used materials for an object
+def get_used_materials(ob):
+    if ob.type == 'MESH' and len(ob.data.materials) > 0:
+        if len(ob.data.materials) == 1:
+            return [ob.data.materials[0]]
+        mat_ids = []
+        mesh = ob.data
+        num_materials = len(ob.data.materials)
+        for p in mesh.polygons:
+            if p.material_index not in mat_ids:
+                mat_ids.append(p.material_index)
+            if num_materials == len(mat_ids):
+                break
+        return [mesh.materials[i] for i in mat_ids]
+    else:
+        return [ob.active_material]
+
 # get the instance type for this object.
 # If no instance needs exporting, return None
 
@@ -1687,8 +1706,7 @@ def get_dupli_block(ob, rpass, do_mb):
                                      do_export=file_is_dirty(rpass.scene, ob, archive_filename))]
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupli_ob in ob.dupli_group.objects:
-                for db in get_dupli_block(dupli_ob, rpass, do_mb):
-                    dbs.append(db)
+                dbs.extend(get_dupli_block(dupli_ob, rpass, do_mb))
         return dbs
 
     else:
@@ -1699,7 +1717,7 @@ def get_dupli_block(ob, rpass, do_mb):
         
 
         return [DataBlock(name, "MESH", archive_filename, ob,
-                         deforming, material=ob.active_material,
+                         deforming, material=get_used_materials(ob),
                          do_export=file_is_dirty(
                              rpass.scene, ob, archive_filename),
                          dupli_data=True)]
@@ -1733,15 +1751,15 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                 dupli_emitted = True
                 data = ob
                 if psys.settings.render_type == 'OBJECT':
-                    data_blocks.append(get_dupli_block(
+                    data_blocks.extend(get_dupli_block(
                         psys.settings.dupli_object, rpass, do_mb))
                 else:
                     for dupli_ob in psys.settings.dupli_group.objects:
-                        data_blocks.append(
+                        data_blocks.extend(
                             get_dupli_block(dupli_ob, rpass, do_mb))
             
-            mat = ob.material_slots[psys.settings.material -
-                                    1].material if psys.settings.material and len(ob.material_slots) else None
+            mat = [ob.material_slots[psys.settings.material -
+                                    1].material] if psys.settings.material and len(ob.material_slots) else []
             data_blocks.append(DataBlock(name, type, archive_filename, data,
                                          is_psys_animating(ob, psys, do_mb), material=mat,
                                          do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
@@ -1754,9 +1772,8 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                                      do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupli_ob in ob.dupli_group.objects:
-                for db in get_dupli_block(dupli_ob, rpass, do_mb):
-                    data_blocks.append(db)
-
+                data_blocks.extend(get_dupli_block(dupli_ob, rpass, do_mb))
+                
     # now the objects data
     if is_data_renderable(rpass.scene, ob) and emit_ob:
         # Check if the object is referring to an archive to use rather then its
@@ -1766,7 +1783,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
             deforming = is_deforming(ob)
             archive_filename = bpy.path.abspath(ob.renderman.path_archive)
             data_blocks.append(DataBlock(name, "MESH", archive_filename, ob,
-                                         deforming, material=ob.active_material,
+                                         deforming, material=get_used_materials(ob),
                                          do_export=False))
         else:
             name = data_name(ob, rpass.scene)
@@ -1774,7 +1791,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
             archive_filename = get_archive_filename(data_name(ob, rpass.scene),
                                                     rpass, deforming)
             data_blocks.append(DataBlock(name, "MESH", archive_filename, ob,
-                                         deforming, material=ob.active_material,
+                                         deforming, material=get_used_materials(ob),
                                          do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
 
     return data_blocks
@@ -1926,8 +1943,8 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
 def export_data_read_archive(ri, data_block, rpass):
     ri.AttributeBegin()
 
-    if data_block.material:
-        export_material_archive(ri, data_block.material)
+    for mat in data_block.material:
+        export_material_archive(ri, mat)
 
     archive_filename = relpath_archive(data_block.archive_filename, rpass)
 
@@ -2202,7 +2219,8 @@ def export_render_settings(ri, rpass, scene, preview=False):
               'int displacements': 1}
     if preview or rpass.is_interactive:
         depths = {'int maxdiffusedepth': rm.preview_max_diffuse_depth,
-                  'int maxspeculardepth': rm.preview_max_specular_depth}
+                  'int maxspeculardepth': rm.preview_max_specular_depth,
+                  'int displacements': 1}
 
     # ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
@@ -2540,7 +2558,7 @@ def export_display(ri, rpass, scene):
     main_display = user_path(rm.path_display_driver_image,
                              scene=scene)
     debug("info", "Main_display: " + main_display)
-    main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
+    #main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
     ri.Display(main_display, dspy_driver, "rgba",
                {"quantize": [0, 0, 0, 0]})
