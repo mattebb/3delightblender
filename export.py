@@ -1706,8 +1706,7 @@ def get_dupli_block(ob, rpass, do_mb):
                                      do_export=file_is_dirty(rpass.scene, ob, archive_filename))]
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupli_ob in ob.dupli_group.objects:
-                for db in get_dupli_block(dupli_ob, rpass, do_mb):
-                    dbs.append(db)
+                dbs.extend(get_dupli_block(dupli_ob, rpass, do_mb))
         return dbs
 
     else:
@@ -1752,11 +1751,11 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                 dupli_emitted = True
                 data = ob
                 if psys.settings.render_type == 'OBJECT':
-                    data_blocks.append(get_dupli_block(
+                    data_blocks.extend(get_dupli_block(
                         psys.settings.dupli_object, rpass, do_mb))
                 else:
                     for dupli_ob in psys.settings.dupli_group.objects:
-                        data_blocks.append(
+                        data_blocks.extend(
                             get_dupli_block(dupli_ob, rpass, do_mb))
             
             mat = [ob.material_slots[psys.settings.material -
@@ -1773,9 +1772,8 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                                      do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupli_ob in ob.dupli_group.objects:
-                for db in get_dupli_block(dupli_ob, rpass, do_mb):
-                    data_blocks.append(db)
-
+                data_blocks.extend(get_dupli_block(dupli_ob, rpass, do_mb))
+                
     # now the objects data
     if is_data_renderable(rpass.scene, ob) and emit_ob:
         # Check if the object is referring to an archive to use rather then its
