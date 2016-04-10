@@ -817,7 +817,8 @@ def export_material(ri, mat, handle=None):
 
 
 def export_material_archive(ri, mat):
-    ri.ReadArchive('material.' + mat.name)
+    if mat:
+        ri.ReadArchive('material.' + mat.name)
 
 
 def export_motion_begin(ri, motion_data):
