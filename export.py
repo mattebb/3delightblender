@@ -109,6 +109,8 @@ def is_renderable(scene, ob):
 
 
 def is_renderable_or_parent(scene, ob):
+    if ob.type == 'CAMERA':
+        return True
     if is_renderable(scene, ob):
         return True
     elif hasattr(ob, 'children') and ob.children:
