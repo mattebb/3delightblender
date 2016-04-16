@@ -109,6 +109,8 @@ def is_renderable(scene, ob):
 
 
 def is_renderable_or_parent(scene, ob):
+    if ob.type == 'CAMERA':
+        return True
     if is_renderable(scene, ob):
         return True
     elif hasattr(ob, 'children') and ob.children:
@@ -817,7 +819,8 @@ def export_material(ri, mat, handle=None):
 
 
 def export_material_archive(ri, mat):
-    ri.ReadArchive('material.' + mat.name)
+    if mat:
+        ri.ReadArchive('material.' + mat.name)
 
 
 def export_motion_begin(ri, motion_data):
