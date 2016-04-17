@@ -361,6 +361,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         layout.prop(rm, "always_generate_textures")
         layout.prop(rm, "lazy_rib_gen")
         layout.prop(rm, "threads")
+        layout.prop(rm, "denoise_threads")
 
 class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
     bl_label = "Motion Blur"
