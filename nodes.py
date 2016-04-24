@@ -1246,6 +1246,12 @@ def get_textures_for_node(node, matName=""):
                     textures.append((replace_frame_num(prop), out_file_name,
                                      ['-smode', 'periodic', '-tmode',
                                       'periodic']))
+            # if input socket is linked reference that
+            if prop_name in node.inputs and \
+                    node.inputs[prop_name].is_linked:
+                from_socket = node.inputs[prop_name].links[0].from_socket
+                textures = textures + \
+                get_textures_for_node(from_socket.node, matName)
     else:
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
