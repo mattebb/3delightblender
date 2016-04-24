@@ -1157,13 +1157,17 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0):
         ri.Bxdf(node.bl_label, instance, params)
 
 
-# return the output file name if this texture is to be txmade.
-def get_tex_file_name(prop):
+def replace_frame_num(prop):
     frame_num = bpy.data.scenes[0].frame_current
     prop = prop.replace('$f4', str(frame_num).zfill(4))
     prop = prop.replace('$F4', str(frame_num).zfill(4))
     prop = prop.replace('$f3', str(frame_num).zfill(3))
     prop = prop.replace('$f3', str(frame_num).zfill(3))
+    return prop
+
+# return the output file name if this texture is to be txmade.
+def get_tex_file_name(prop):
+    prop = replace_frame_num(prop)
     prop = prop.replace('\\', '\/')
     if prop != '' and prop.rsplit('.', 1) != 'tex':
         return os.path.basename(prop).rsplit('.', 1)[0] + '.tex'
@@ -1239,7 +1243,7 @@ def get_textures_for_node(node, matName=""):
                 if getattr(OSLProps, storageLocation + "type") == "string":
                     prop = getattr(OSLProps, storageLocation)
                     out_file_name = get_tex_file_name(prop)
-                    textures.append((prop, out_file_name,
+                    textures.append((replace_frame_num(prop), out_file_name,
                                      ['-smode', 'periodic', '-tmode',
                                       'periodic']))
     else:
@@ -1271,7 +1275,7 @@ def get_textures_for_node(node, matName=""):
                                     "Env" in node.bl_label:
                                 # no options for now
                                 textures.append(
-                                    (prop, out_file_name, ['-envlatl']))
+                                    (replace_frame_num(prop), out_file_name, ['-envlatl']))
                             else:
                                 if hasattr(node, "smode"): # Test and see if options like smode are on this node.
                                     optionsList = []
@@ -1290,10 +1294,10 @@ def get_textures_for_node(node, matName=""):
                                             else:
                                                 optionsList.append("-"+ getattr(node, option))
                                     textures.append(
-                                        (prop, out_file_name, optionsList))
+                                        (replace_frame_num(prop), out_file_name, optionsList))
                                 else:
                                     # no options found add the bare minimum options for smooth export.
-                                    textures.append((prop, out_file_name,
+                                    textures.append((replace_frame_num(prop), out_file_name,
                                                      ['-smode', 'periodic',
                                                       '-tmode', 'periodic']))
     return textures
