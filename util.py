@@ -499,10 +499,11 @@ def guess_rmantree_initial():
         base = '/opt/pixar'
 
     rmantree = rmantree_from_env()
-    vstr = rmantree.split('-')[1]
-    vf = float(vstr[:4])
-    if vf > 20.0:
-        return rmantree
+    if rmantree != '':
+        vstr = rmantree.split('-')[1]
+        vf = float(vstr[:4])
+        if vf > 20.0:
+            return rmantree
 
     latestver = 0.0
     for d in os.listdir(base):
