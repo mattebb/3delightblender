@@ -1326,7 +1326,6 @@ def export_polygon_mesh(ri, scene, ob, data=None):
     primvars = get_primvars(ob, mesh, "facevarying")
     primvars['P'] = P
     primvars['facevarying normal N'] = N
-    nverts.append(4)
     if not is_multi_material(mesh):
         ri.PointsPolygons(nverts, verts, primvars)
     else:
