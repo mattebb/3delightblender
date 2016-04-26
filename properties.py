@@ -613,6 +613,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Number of seconds between display update when rendering to Blender",
         min=0.0, default=10.0)
 
+    incremental = BoolProperty(
+        name="Incremental Render",
+        default=True)
+
+
     # Hider properties
     hider = EnumProperty(
         name="Hider",

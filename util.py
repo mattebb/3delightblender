@@ -467,12 +467,12 @@ def guess_rmantree():
                         latestver = vf
                         rmantree = os.path.join(base, d)
         else:
-            rmantree = os.path.join(base, "RenderManProServer-%s" * choice)
+            rmantree = choice
 
     # check rmantree valid
     if not check_valid_rmantree(rmantree):  
         print("ERROR!!! See RenderMan location in User Prefences.")
-        print("RenderMan Location is set to %s which does not appear valid.")
+        print("RenderMan Location is set to %s which does not appear valid." % rmantree)
         return None
     # check that it's > 20
     vstr = rmantree.split('-')[1]
