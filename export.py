@@ -29,6 +29,7 @@ import mathutils
 import os
 import sys
 import time
+import traceback
 from mathutils import Matrix, Vector, Quaternion
 
 from . import bl_info
@@ -1325,7 +1326,7 @@ def export_polygon_mesh(ri, scene, ob, data=None):
     primvars = get_primvars(ob, mesh, "facevarying")
     primvars['P'] = P
     primvars['facevarying normal N'] = N
-
+    nverts.append(4)
     if not is_multi_material(mesh):
         ri.PointsPolygons(nverts, verts, primvars)
     else:
@@ -1879,20 +1880,26 @@ def get_valid_empties(scene, rpass):
 
 
 # export data_blocks
-def export_data_archives(ri, scene, rpass, data_blocks):
+def export_data_archives(ri, scene, rpass, data_blocks, engine):
     for name, db in data_blocks.items():
         if not db.do_export:
             continue
-        ri.Begin(db.archive_filename)
-        debug('info', db.archive_filename)
-        if db.type == "MESH":
-            export_mesh_archive(ri, scene, db)
-        elif db.type == "PSYS":
-            export_particle_archive(ri, scene, rpass, db)
-        elif db.type == "DUPLI":
-            export_dupli_archive(ri, scene, rpass, db, data_blocks)
-        ri.End()
-
+        try:
+            ri.Begin(db.archive_filename)
+            debug('info', db.archive_filename)
+            if db.type == "MESH":
+                export_mesh_archive(ri, scene, db)
+            elif db.type == "PSYS":
+                export_particle_archive(ri, scene, rpass, db)
+            elif db.type == "DUPLI":
+                export_dupli_archive(ri, scene, rpass, db, data_blocks)
+            ri.End()
+        except Exception as err:
+            ri.End()
+            if engine:
+                engine.report({'ERROR'}, 'Rib gen error exporting %s: ' % db.archive_filename + traceback.format_exc())
+            else:
+                print('ERROR: Rib gen error exporting %s:' % db.archive_filename, traceback.format_exc())
 def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterials, objectMatrix=False ,correctionMatrix=False):
     for name, db in data_blocks.items():
         if not db.do_export:
@@ -2747,7 +2754,7 @@ def export_hider(ri, rpass, scene, preview=False):
 
 
 # I hate to make rpass global but it makes things so much easier
-def write_rib(rpass, scene, ri, visible_objects=None):
+def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
 
     # precalculate motion blur data
     data_blocks, instances = cache_motion(scene, rpass)
@@ -2757,7 +2764,7 @@ def write_rib(rpass, scene, ri, visible_objects=None):
     emptiesToExport = get_valid_empties(scene, rpass)
     
     # export rib archives of objects
-    export_data_archives(ri, scene, rpass, data_blocks)
+    export_data_archives(ri, scene, rpass, data_blocks, engine)
 
     export_header(ri)
     export_searchpaths(ri, rpass.paths)

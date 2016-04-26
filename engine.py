@@ -32,7 +32,6 @@ from subprocess import Popen, PIPE
 import mathutils
 from mathutils import Matrix, Vector, Quaternion
 import re
-import traceback
 import glob
 import traceback
 import threading
@@ -620,7 +619,7 @@ class RPass:
             visible_objects = get_Selected_Objects(self.scene)
         else:
             visible_objects = None
-        write_rib(self, self.scene, self.ri, visible_objects)
+        write_rib(self, self.scene, self.ri, visible_objects, engine)
         self.ri.End()
         if engine:
             engine.report({"INFO"}, "RIB generation took %s" %
