@@ -463,6 +463,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Rendering Threads",
         description="Number of processor threads to use.  Note, 0 uses all cores, -1 uses all cores but one.",
         min=-32, max=32, default=-1)
+    denoise_threads = IntProperty(
+        name="Denoise Threads",
+        description="Number of processor threads for the Denoise post process to use. Note, 0 uses all cores, -1 uses all cores but one.",
+        min=-32, max=32, default=-1)
     max_trace_depth = IntProperty(
         name="Max Trace Depth",
         description="Maximum number of ray bounces (0 disables ray tracing)",
