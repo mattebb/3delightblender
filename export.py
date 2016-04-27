@@ -2138,7 +2138,7 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         if strs[0] == 'lg_group' and strs[1] == 'All':
             light_names = [l.name for l in scene.objects if l.type =='LAMP']
         for light_name in light_names:
-            if link.illuminate != "DEFAULT":
+            if link.illuminate != "DEFAULT" and light_name in scene.objects:
                 ri.Illuminate(light_name, link.illuminate == 'ON')
 
 
