@@ -2059,12 +2059,10 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     #if ob.renderman.do_holdout:
     #    ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
     # gather object groups this object belongs to
-    obj_groups_str = ''
+    obj_groups_str = '*'
     for obj_group in scene.renderman.object_groups:
         if ob.name in obj_group.members.keys():
-            if obj_groups_str != '':
-                obj_groups_str += ','
-            obj_groups_str += obj_group.name
+            obj_groups_str += ',' + obj_group.name
     # add to trace sets
     ri.Attribute("grouping", {"string membership": obj_groups_str})
     # add to lpe groups
