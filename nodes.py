@@ -300,6 +300,9 @@ class RendermanShadingNode(bpy.types.Node):
                             prop = getattr(self, prop_name)
                             self.draw_nonconnectable_props(
                                 context, layout, prop)
+                    elif "Subset" in prop_name and prop_meta['type'] == 'string':
+                        layout.prop_search(self, prop_name, bpy.data.scenes[0].renderman,
+                                "object_groups")
                     else:
                         layout.prop(self, prop_name)
 
@@ -809,7 +812,11 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             row.label('', icon='BLANK1')
                             # indented_label(row, socket.name+':')
                             # don't draw prop for struct type
-                            row.prop(node, prop_name)
+                            if "Subset" in prop_name and prop_meta['type'] == 'string':
+                                row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
+                                "object_groups")
+                            else:
+                                row.prop(node, prop_name)
                             if prop_name in node.inputs:
                                 row.operator_menu_enum("node.add_pattern", "node_type",
                                                        text='', icon='DOT')
