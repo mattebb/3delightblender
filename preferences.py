@@ -45,7 +45,7 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
             name="OUT (Output Root)",
             description="Default RIB export path root",
             subtype='DIR_PATH',
-            default='$USERPROFILE\My Documents\prman_for_blender\{blend}')
+            default='C:\temp\renderman_for_blender\{blend}')
 
     else:
         outpath = os.path.join(os.environ.get('HOME'), "Documents", "PRMan")
@@ -53,7 +53,7 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
             name="OUT (Output Root)",
             description="Default RIB export path root",
             subtype='DIR_PATH',
-            default='$HOME/Documents/prman_for_blender/{blend}')
+            default='/tmp/renderman_for_blender/{blend}')
 
     shd = StringProperty(
         name="SHD (Shadow Maps)",
