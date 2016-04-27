@@ -2722,7 +2722,7 @@ def export_hider(ri, rpass, scene, preview=False):
     hider_params = {'string integrationmode': 'path',
                     'int maxsamples': rm.max_samples,
                     'int minsamples': rm.min_samples,
-                    'int incremental': 1}
+                    'int incremental': int(rm.incremental)}
 
     if preview or rpass.is_interactive:
         hider_params['int maxsamples'] = rm.preview_max_samples
@@ -2737,7 +2737,7 @@ def export_hider(ri, rpass, scene, preview=False):
     ri.PixelVariance(pv)
 
     if rm.light_localization:
-        ri.Option("shading",  {"int directlightinglocalizedsampling": 4})
+        ri.Option("shading",  {"int directlightinglocalizedsampling": 3})
 
     if rm.do_denoise:
         hider_params['string pixelfiltermode'] = 'importance'

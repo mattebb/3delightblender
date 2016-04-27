@@ -330,6 +330,7 @@ class ExportRIBArchive(bpy.types.Operator):
 
 blenderAddonPaths = addon_utils.paths()
 rendermanExampleFilesList = []
+names = []
 for path in blenderAddonPaths:
     basePath = os.path.join(path, "PRMan-for-Blender", "examples")
     exists = os.path.exists(basePath)

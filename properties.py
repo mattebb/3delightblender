@@ -611,7 +611,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     update_frequency = FloatProperty(
         name="Update frequency",
         description="Number of seconds between display update when rendering to Blender",
-        min=0.0, default=5.0)
+        min=0.0, default=10.0)
+
+    incremental = BoolProperty(
+        name="Incremental Render",
+        default=True)
+
 
     # Hider properties
     hider = EnumProperty(

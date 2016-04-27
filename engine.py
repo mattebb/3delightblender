@@ -36,7 +36,6 @@ import traceback
 import glob
 import traceback
 import threading
-from .display import MyTCPHandler
 
 from . import bl_info
 
@@ -289,7 +288,6 @@ class RPass:
             else:
                 environ = os.environ.copy()
                 subprocess.Popen([it_path], env=environ, shell=True)
-
         def update_image():
             render = self.scene.render
             image_scale = 100.0 / render.resolution_percentage
