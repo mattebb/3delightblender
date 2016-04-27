@@ -408,13 +408,14 @@ class RPass:
         if self.rm.do_denoise and not isProblem:
             base, ext = render_output.rsplit('.', 1)
             # denoise data has the name .denoise.exr
+            denoise_options = "-t%d" % self.rm.denoise_threads
             denoise_data = base + '.denoise.' + 'exr'
             filtered_name = base + '.denoise_filtered.' + 'exr'
             if os.path.exists(denoise_data):
                 try:
                     # denoise to _filtered
                     cmd = [os.path.join(self.paths['rmantree'], 'bin',
-                                        'denoise'), denoise_data]
+                                        'denoise')] + [denoise_options] +  [denoise_data]
 
                     engine.update_stats("", ("PRMan: Denoising image"))
                     t1 = time.time()
