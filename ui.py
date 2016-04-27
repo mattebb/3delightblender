@@ -246,6 +246,8 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row.prop(rm, "max_specular_depth", text="Specular Depth")
         row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
         row = col.row(align=True)
+        row.prop(rm, 'incremental')
+        row = col.row(align=True)
         layout.separator()
         col.prop(rm, "integrator")
         # find args for integrators here!
