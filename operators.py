@@ -326,7 +326,7 @@ class ExportRIBArchive(bpy.types.Operator):
 # Sample scenes menu.
 #################
 # Watch out for global list!!
-# It should be too long to be used but you never know.
+# Its name should be too long to be accedenty called but you never know. 
 
 blenderAddonPaths = addon_utils.paths()
 rendermanExampleFilesList = []
