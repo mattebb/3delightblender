@@ -84,19 +84,19 @@ class RendermanCameraSettings(bpy.types.PropertyGroup):
 
     aperture_sides = IntProperty(
         name="Aperture Blades", default=0, min=0,
-        description="The number of sides of the aperture. If this value is less than 3, the default behavior of a circular aperture and uniform sampling are used.")
+        description="The number of sides of the aperture. If this value is less than\n3 the default behavior of a circular aperture and uniform sampling are used.")
 
     aperture_angle = FloatProperty(
         name="Aperture Angle", default=0.0, max=180.0, min=-180.0,
-        description="The aperture polygon's orientation, in degrees from some arbitrary reference direction. (A value of 0 aligns a vertex horizontally with the center of the aperture.)")  
+        description="The aperture polygon's orientation, in degrees from some arbitrary reference direction.\n(A value of 0 aligns a vertex horizontally with the center of the aperture.)")  
 
     aperture_roundness = FloatProperty(
         name="Aperture Angle", default=0.0, max=1.0, min=-1.0,
-        description="A shape parameter, from -1 to 1. When 0, the aperture is a regular polygon with straight sides. When 1, it's a perfect circle. Values between 0 and 1 give polygons with curved edges bowed out, while values between 0 and -1 make the edges bow in.") 
+        description="A shape parameter, from -1 to 1.\nWhen 0, the aperture is a regular polygon with straight sides\nWhen 1, it's a perfect circle.\nValues between 0 and 1 give polygons with curved edges bowed out, while values between 0 and -1 make the edges bow in.") 
 
     aperture_density = FloatProperty(
         name="Aperture Angle", default=0.0, max=1.0, min=-1.0,
-        description="The slope, between -1 and 1, of the (linearly varying) aperture density. A value of zero gives uniform density. Negative values make the aperture brighter near the center, and positive values make it brighter near the rim.") 
+        description="The slope, between -1 and 1, of the (linearly varying) aperture density.\nA value of zero gives uniform density.\nNegative values make the aperture brighter near the center. Positive values make it brighter near the rim.") 
 
 
 def register_camera_settings():
@@ -365,21 +365,21 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     pixel_variance = FloatProperty(
         name="Pixel Variance",
-        description=" Sets a maximum for the estimated variance of the pixel value from the true value of the pixel.",
+        description="If a pixel changes by less than this amount when updated,\nit will no longer be sampled in adaptive mode.\nLower values lead to longer render times.",
         min=0, max=1, default=.01)
 
     light_localization = BoolProperty(
         name="Light Localized Sampling",
-        description="Localized sampling can give much less noisy renders with similar render times, and may in fact be faster with many lights.",
+        description="Localized sampling can lead to less noise without increasing render times.\nThis is especially useful in scenes with multiple lights.",
         default=True)
 
     min_samples = IntProperty(
         name="Min Samples",
-        description="The minimum number of camera samples per pixel",
+        description="The minimum number of camera samples per pixel.\nIf this is set to '0' then the min samples will be\nthe square root of the max_samples.",
         min=0, default=4)
     max_samples = IntProperty(
         name="Max Samples",
-        description="The maximum number of camera samples per pixel",
+        description="The maximum number of camera samples per pixel.\nThis should be set in 'power of two' numbers (1, 2, 4, 8, 16, etc).",
         min=0, default=128)
 
     bucket_shape = EnumProperty(
@@ -416,7 +416,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     
     shadingrate = FloatProperty(
         name="Shading Rate",
-        description="Maximum distance between shading samples (lower = more detailed shading)",
+        description="Default maximum distance between shading samples (lower = more detailed shading)",
         default=1.0)
 
     motion_blur = BoolProperty(
@@ -425,7 +425,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         default=False)
     motion_segments = IntProperty(
         name="Motion Samples",
-        description="Number of motion samples to take for motion blur",
+        description="Number of motion samples to take for motion blur.\nShould be set higher for curved motion trails.",
         min=2, max=16, default=2)
     shutter_timing = EnumProperty(
         name="Shutter Timing",
@@ -671,7 +671,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     raytrace_progressive = BoolProperty(
         name="Progressive Rendering",
-        description="Enables progressive rendering. This is only visible with some display drivers (such as it)",
+        description="Enables progressive rendering (the entire image is refined at once).\nThis is only visible with some display drivers (such as it)",
         default=False)
     integrator = EnumProperty(
         name="Integrator",
