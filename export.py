@@ -3108,6 +3108,8 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         mat = None
         if bpy.context.object:
             mat = bpy.context.object.active_material
+            if mat not in rpass.material_dict:
+                rpass.material_dict[mat] = [bpy.context.object]
         lamp = None
         world = bpy.context.scene.world
         if mat is None and bpy.data.scenes[0].objects.active \
@@ -3141,7 +3143,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             ri.EditEnd()
         elif world:
             ri.EditBegin('attribute', {'string scopename': world.name})
-            export_world(ri, mat, do_geometry = False)
+            export_world(ri, mat, do_geometry = True)
             ri.EditEnd()
 
     else:
