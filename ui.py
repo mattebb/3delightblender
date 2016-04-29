@@ -717,6 +717,7 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
        col = split.column()
        sub = col.column(align=True)         
        sub.label("Aperture Controls:")
+       sub.prop(cam.renderman, "dof_aspect",  text="Aspect")
        sub.prop(cam.renderman, "aperture_sides", text="Sides")
        sub.prop(cam.renderman, "aperture_angle", text="Angle")
        sub.prop(cam.renderman, "aperture_roundness", text="Roundness")

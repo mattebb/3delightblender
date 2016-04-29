@@ -2319,7 +2319,8 @@ def export_render_settings(ri, rpass, scene, preview=False):
               'int displacements': 1}
     if preview or rpass.is_interactive:
         depths = {'int maxdiffusedepth': rm.preview_max_diffuse_depth,
-                  'int maxspeculardepth': rm.preview_max_specular_depth}
+                  'int maxspeculardepth': rm.preview_max_specular_depth
+                  'int displacements': 1}
 
     # ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
@@ -2735,8 +2736,8 @@ def export_hider(ri, rpass, scene, preview=False):
 
     if not preview:
         cam = scene.camera.data.renderman
-        hider_params["float[4] aperture"] = [cam.aperture_sides,
-                                             cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
+        hider_params["float[4] aperture"] = [cam.aperture_sides, cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
+        hider_params["float dofaspect"] = [cam.dof_aspect]
 
     ri.PixelVariance(pv)
 
