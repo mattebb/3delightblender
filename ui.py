@@ -716,6 +716,7 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
        col = split.column()
        sub = col.column(align=True)         
        sub.label("Aperture Controls:")
+       sub.prop(cam.renderman, "dof_aspect",  text="Aspect")
        sub.prop(cam.renderman, "aperture_sides", text="Sides")
        sub.prop(cam.renderman, "aperture_angle", text="Angle")
        sub.prop(cam.renderman, "aperture_roundness", text="Roundness")
@@ -1096,8 +1097,11 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col.prop(item, "show_advanced")
         col = col.column()
         col.enabled = item.show_advanced
-        col.prop(item, 'lpe_group')
-        col.prop(item, 'lpe_light_group')
+        col.prop_search(item, 'lpe_group', rm,
+                                "object_groups", text="Object Group")
+        col.prop_search(item, 'lpe_light_group', rm,
+                                "light_groups", text="Light Group")
+        
 
     def draw(self, context):
         layout = self.layout

@@ -29,6 +29,7 @@ import mathutils
 import os
 import sys
 import time
+import traceback
 from mathutils import Matrix, Vector, Quaternion
 
 from . import bl_info
@@ -1325,7 +1326,6 @@ def export_polygon_mesh(ri, scene, ob, data=None):
     primvars = get_primvars(ob, mesh, "facevarying")
     primvars['P'] = P
     primvars['facevarying normal N'] = N
-
     if not is_multi_material(mesh):
         ri.PointsPolygons(nverts, verts, primvars)
     else:
@@ -1879,20 +1879,26 @@ def get_valid_empties(scene, rpass):
 
 
 # export data_blocks
-def export_data_archives(ri, scene, rpass, data_blocks):
+def export_data_archives(ri, scene, rpass, data_blocks, engine):
     for name, db in data_blocks.items():
         if not db.do_export:
             continue
-        ri.Begin(db.archive_filename)
-        debug('info', db.archive_filename)
-        if db.type == "MESH":
-            export_mesh_archive(ri, scene, db)
-        elif db.type == "PSYS":
-            export_particle_archive(ri, scene, rpass, db)
-        elif db.type == "DUPLI":
-            export_dupli_archive(ri, scene, rpass, db, data_blocks)
-        ri.End()
-
+        try:
+            ri.Begin(db.archive_filename)
+            debug('info', db.archive_filename)
+            if db.type == "MESH":
+                export_mesh_archive(ri, scene, db)
+            elif db.type == "PSYS":
+                export_particle_archive(ri, scene, rpass, db)
+            elif db.type == "DUPLI":
+                export_dupli_archive(ri, scene, rpass, db, data_blocks)
+            ri.End()
+        except Exception as err:
+            ri.End()
+            if engine:
+                engine.report({'ERROR'}, 'Rib gen error exporting %s: ' % db.archive_filename + traceback.format_exc())
+            else:
+                print('ERROR: Rib gen error exporting %s:' % db.archive_filename, traceback.format_exc())
 def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterials, objectMatrix=False ,correctionMatrix=False):
     for name, db in data_blocks.items():
         if not db.do_export:
@@ -2053,12 +2059,10 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     #if ob.renderman.do_holdout:
     #    ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
     # gather object groups this object belongs to
-    obj_groups_str = ''
+    obj_groups_str = '*'
     for obj_group in scene.renderman.object_groups:
         if ob.name in obj_group.members.keys():
-            if obj_groups_str != '':
-                obj_groups_str += ','
-            obj_groups_str += obj_group.name
+            obj_groups_str += ',' + obj_group.name
     # add to trace sets
     ri.Attribute("grouping", {"string membership": obj_groups_str})
     # add to lpe groups
@@ -2134,7 +2138,7 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         if strs[0] == 'lg_group' and strs[1] == 'All':
             light_names = [l.name for l in scene.objects if l.type =='LAMP']
         for light_name in light_names:
-            if link.illuminate != "DEFAULT":
+            if link.illuminate != "DEFAULT" and light_name in scene.objects:
                 ri.Illuminate(light_name, link.illuminate == 'ON')
 
 
@@ -2315,7 +2319,8 @@ def export_render_settings(ri, rpass, scene, preview=False):
               'int displacements': 1}
     if preview or rpass.is_interactive:
         depths = {'int maxdiffusedepth': rm.preview_max_diffuse_depth,
-                  'int maxspeculardepth': rm.preview_max_specular_depth}
+                  'int maxspeculardepth': rm.preview_max_specular_depth
+                  'int displacements': 1}
 
     # ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
@@ -2731,8 +2736,8 @@ def export_hider(ri, rpass, scene, preview=False):
 
     if not preview:
         cam = scene.camera.data.renderman
-        hider_params["float[4] aperture"] = [cam.aperture_sides,
-                                             cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
+        hider_params["float[4] aperture"] = [cam.aperture_sides, cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
+        hider_params["float dofaspect"] = [cam.dof_aspect]
 
     ri.PixelVariance(pv)
 
@@ -2747,7 +2752,7 @@ def export_hider(ri, rpass, scene, preview=False):
 
 
 # I hate to make rpass global but it makes things so much easier
-def write_rib(rpass, scene, ri, visible_objects=None):
+def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
 
     # precalculate motion blur data
     data_blocks, instances = cache_motion(scene, rpass)
@@ -2757,7 +2762,7 @@ def write_rib(rpass, scene, ri, visible_objects=None):
     emptiesToExport = get_valid_empties(scene, rpass)
     
     # export rib archives of objects
-    export_data_archives(ri, scene, rpass, data_blocks)
+    export_data_archives(ri, scene, rpass, data_blocks, engine)
 
     export_header(ri)
     export_searchpaths(ri, rpass.paths)
@@ -3104,6 +3109,8 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         mat = None
         if bpy.context.object:
             mat = bpy.context.object.active_material
+            if mat not in rpass.material_dict:
+                rpass.material_dict[mat] = [bpy.context.object]
         lamp = None
         world = bpy.context.scene.world
         if mat is None and bpy.data.scenes[0].objects.active \
@@ -3137,7 +3144,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             ri.EditEnd()
         elif world:
             ri.EditBegin('attribute', {'string scopename': world.name})
-            export_world(ri, mat, do_geometry = False)
+            export_world(ri, mat, do_geometry = True)
             ri.EditEnd()
 
     else:

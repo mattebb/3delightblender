@@ -203,11 +203,6 @@ def get_path_list(rm, type):
             paths.append(os.path.join(rmantree, 'lib', 'RIS', 'bxdf'))
             paths.append(os.path.join(rmantree, 'lib', 'rsl',
                                       'shaders'))
-            paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         'shaders'))
-        if type == 'shader':
-            paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         'shaders'))
         # we need this for bxdf blend for now.
         if type == 'rixplugin':
             paths.append(os.path.join(guess_rmantree(), 'lib', 'RIS', 'r19',
