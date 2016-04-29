@@ -1182,6 +1182,7 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
             subcol2.prop(rm, "base_width")
             subcol2.prop(rm, "tip_width")
             col.prop(rm, 'export_scalp_st')
+            col.prop(rm, 'round_hair')
 
 
 class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):

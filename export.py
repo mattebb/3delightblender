@@ -1454,7 +1454,7 @@ def export_particle_system(ri, scene, rpass, ob, psys, objectCorrectionMatrix=Fa
         export_particles(ri, scene, rpass, ob, psys, data, objectCorrectionMatrix)
     else:
         ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
-        ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
+        ri.Attribute("dice", {"int roundcurve": int(psys.settings.renderman.round_hair), "int hair": 1})
         if data is not None and len(data) > 0:
             export_motion_begin(ri, data)
             for subframe, sample in data:

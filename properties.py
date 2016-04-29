@@ -1219,6 +1219,12 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
         description="Object to instance on every particle",
         default="")
 
+    round_hair = BoolProperty(
+        name="Round Hair",
+        description="Render curves as round cylinders or ribbons.  Round is faster and recommended for hair.",
+        default=True)
+
+
     constant_width = BoolProperty(
         name="Constant Width",
         description="Override particle sizes with constant width value",
