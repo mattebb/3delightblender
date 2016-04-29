@@ -39,13 +39,12 @@ class RendermanPreferencePath(bpy.types.PropertyGroup):
 
 class RendermanEnvVarSettings(bpy.types.PropertyGroup):
     if sys.platform == ("win32"):
-        outpath = os.path.join("C:", "Users", os.getlogin(), "Documents",
-                               "PRMan")
+        outpath = os.path.join("C:", "Users", os.getlogin(), "Documents", "PRMan")
         out = StringProperty(
             name="OUT (Output Root)",
             description="Default RIB export path root",
             subtype='DIR_PATH',
-            default='C:\temp\renderman_for_blender\{blend}')
+            default='C:/tmp/renderman_for_blender/{blend}')
 
     else:
         outpath = os.path.join(os.environ.get('HOME'), "Documents", "PRMan")

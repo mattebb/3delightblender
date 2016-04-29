@@ -110,6 +110,16 @@ class Renderman_open_last_RIB(bpy.types.Operator):
                 debug('error',"File or text editor not available. (Check and make sure text editor is in system path.)")
         return {'FINISHED'}
     
+#Prints a string to the info box.  Not sure how to use it but it's here anyway.
+class PrintToInfo(bpy.types.Operator):
+    bl_idname = "renderman.print_info"
+    bl_label = "Print to Info"
+    info_string = StringProperty()
+    
+    def execute(self, context):
+        self.report({'INFO'}, self.info_string)
+        return {'FINISHED'}
+
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
     ''''''
@@ -326,7 +336,7 @@ class ExportRIBArchive(bpy.types.Operator):
 # Sample scenes menu.
 #################
 # Watch out for global list!!
-# It should be too long to be used but you never know.
+# Its name should be too long to be accedenty called but you never know. 
 
 blenderAddonPaths = addon_utils.paths()
 rendermanExampleFilesList = []
