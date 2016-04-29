@@ -2735,8 +2735,8 @@ def export_hider(ri, rpass, scene, preview=False):
 
     if not preview:
         cam = scene.camera.data.renderman
-        hider_params["float[4] aperture"] = [cam.aperture_sides,
-                                             cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
+        hider_params["float[4] aperture"] = [cam.aperture_sides, cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
+        hider_params["float dofaspect"] = [cam.dof_aspect]
 
     ri.PixelVariance(pv)
 

@@ -81,10 +81,14 @@ class RendermanCameraSettings(bpy.types.PropertyGroup):
     bl_idname = 'RendermanCameraSettings'
     use_physical_camera = BoolProperty(
         name="Use Physical Camera", default=False)
+        
+    dof_aspect = FloatProperty(
+        name="DOF Aspect",  default=1,  max=2,  min=0, 
+        description="The ratio of blur in the 'x' and 'y' directions.\nChanging this value from the default will simulate anamorphic lens bokeh effects.\n* Values less than 1 elongate the blur on the 'y' axis.\n* Values greater than 1 elongate the blur on the 'x' axis.")
 
     aperture_sides = IntProperty(
         name="Aperture Blades", default=0, min=0,
-        description="The number of sides of the aperture. If this value is less than\n3 the default behavior of a circular aperture and uniform sampling are used.")
+        description="The number of sides of the aperture.\nIf this value is less than 3 the default behavior of a circular aperture and uniform sampling are used.")
 
     aperture_angle = FloatProperty(
         name="Aperture Angle", default=0.0, max=180.0, min=-180.0,
