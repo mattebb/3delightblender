@@ -532,6 +532,24 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         subtype='FILE_PATH',
         default="./shaders")
 
+    texture_cache_size = IntProperty(
+        name = "Texture Cache Size (MB)",
+        description = "Maximum number of megabytes to devote to texture caching.",
+        default = 2048
+        )
+
+    geo_cache_size = IntProperty(
+        name = "Tesselation Cache Size (MB)",
+        description = "Maximum number of megabytes to devote to tesselation cache for tracing geometry.",
+        default = 2048
+        )
+
+    opacity_cache_size = IntProperty(
+        name = "Opacity Cache Size (MB)",
+        description = "Maximum number of megabytes to devote to caching opacity and presence values.  0 turns this off.",
+        default = 1000
+        )
+
     output_action = EnumProperty(
         name="Action",
         description="Action to take when rendering",

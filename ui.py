@@ -327,6 +327,14 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row.prop(rm, "shadingrate")
 
         layout.separator()
+        row = layout.row()
+        row.prop(rm, "texture_cache_size")
+        row = layout.row()
+        row.prop(rm, "geo_cache_size")
+        row = layout.row()
+        row.prop(rm, "opacity_cache_size")
+        
+        layout.separator()
         
         row = layout.row()
         row.label("Pixel Filter:")

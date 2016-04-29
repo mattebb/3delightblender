@@ -2460,6 +2460,15 @@ def export_camera_render_preview(ri, scene):
                   1, -0.25, 0,  0, -.75, 3.25, 1])
 
 
+def export_cache_sizes(ri, scene):
+    rm = scene.renderman
+    params = {'int geocachememory': rm.geo_cache_size * 100,
+        'int opacitycachememory': rm.opacity_cache_size * 100,
+        'int texturememory': rm.texture_cache_size * 100,
+    }
+    ri.Option("limits", params)
+
+
 def export_searchpaths(ri, paths):
     ri.Option("searchpath", {"string shader": ["%s" %
                                                ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
@@ -2765,6 +2774,7 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
 
     export_header(ri)
     export_searchpaths(ri, rpass.paths)
+    export_cache_sizes(ri, scene)
 
     export_display(ri, rpass, scene)
     export_hider(ri, rpass, scene)
