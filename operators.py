@@ -310,25 +310,9 @@ class ExportRIBObject(bpy.types.Operator):
         return{'RUNNING_MODAL'}
         
  
-
-''' # Item that is not needed because of new rib archiving system.
-class ExportRIBArchive(bpy.types.Operator):
-    bl_idname = "global.export_rib_archive"
-    bl_label = "Export RIB Archives for scene"
-    bl_description = "Export the scene to disk without rendering."
-
-    def execute(self, context):
-        rpass = RPass(context.scene, interactive=False)
-        
-        rpass.convert_textures(get_texture_list(context.scene))
-        rpass.ri.Begin(rpass.paths['rib_output'])
-        rpass.ri.Option("rib", {"string asciistyle": "indented,wide"})
-        
-        write_rib(rpass, context.scene, rpass.ri)
-        
-        rpass.ri.End()
-        return {'FINISHED'}
-'''
+###########################
+# Presets for integrators.
+###########################
 
 
 
