@@ -1747,7 +1747,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                         data_blocks.append(
                             get_dupli_block(dupli_ob, rpass, do_mb))
             mat = ob.material_slots[psys.settings.material -
-                                    1].material if psys.settings.material else None
+                                    1].material if psys.settings.material and len(ob.material_slots) else None
             data_blocks.append(DataBlock(name, type, archive_filename, data,
                                          is_psys_animating(ob, psys, do_mb), material=mat,
                                          do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
