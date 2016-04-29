@@ -210,7 +210,8 @@ def is_deforming(ob):
     deforming_modifiers = ['ARMATURE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE',
                            'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP',
                            'SIMPLE_DEFORM', 'SMOOTH', 'WAVE', 'SOFT_BODY',
-                           'SURFACE', 'MESH_CACHE', 'FLUID_SIMULATION']
+                           'SURFACE', 'MESH_CACHE', 'FLUID_SIMULATION',
+                           'DYNAMIC_PAINT']
     if ob.modifiers:
         # special cases for auto subd/displace detection
         if len(ob.modifiers) == 1 and is_subd_last(ob):
@@ -280,13 +281,13 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
             psys_modifier = mod
             break
 
-    tip_width = psys.settings.renderman.tip_width
-    base_width = psys.settings.renderman.base_width
-    conwidth = psys.settings.renderman.constant_width
+    tip_width = psys.settings.cycles.tip_width * psys.settings.cycles.radius_scale
+    base_width = psys.settings.cycles.root_width * psys.settings.cycles.radius_scale
+    conwidth = (tip_width == base_width)
     steps = 2 ** psys.settings.render_step
     if conwidth:
         widthString = "constantwidth"
-        hair_width = psys.settings.renderman.width
+        hair_width = base_width
         debug("info", widthString, hair_width)
     else:
         widthString = "vertex float width"
@@ -297,8 +298,6 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
     num_parents = len(psys.particles)
     num_children = len(psys.child_particles)
     total_hair_count = num_parents + num_children
-    thicknessflag = 0
-    width_offset = psys.settings.renderman.width_offset
     export_st = psys.settings.renderman.export_scalp_st and psys_modifier and len(
         ob.data.uv_layers) > 0
     
