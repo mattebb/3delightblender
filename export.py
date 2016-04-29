@@ -210,7 +210,8 @@ def is_deforming(ob):
     deforming_modifiers = ['ARMATURE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE',
                            'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP',
                            'SIMPLE_DEFORM', 'SMOOTH', 'WAVE', 'SOFT_BODY',
-                           'SURFACE', 'MESH_CACHE', 'FLUID_SIMULATION']
+                           'SURFACE', 'MESH_CACHE', 'FLUID_SIMULATION',
+                           'DYNAMIC_PAINT']
     if ob.modifiers:
         # special cases for auto subd/displace detection
         if len(ob.modifiers) == 1 and is_subd_last(ob):
@@ -280,13 +281,13 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
             psys_modifier = mod
             break
 
-    tip_width = psys.settings.renderman.tip_width
-    base_width = psys.settings.renderman.base_width
-    conwidth = psys.settings.renderman.constant_width
+    tip_width = psys.settings.cycles.tip_width * psys.settings.cycles.radius_scale
+    base_width = psys.settings.cycles.root_width * psys.settings.cycles.radius_scale
+    conwidth = (tip_width == base_width)
     steps = 2 ** psys.settings.render_step
     if conwidth:
         widthString = "constantwidth"
-        hair_width = psys.settings.renderman.width
+        hair_width = base_width
         debug("info", widthString, hair_width)
     else:
         widthString = "vertex float width"
@@ -297,8 +298,6 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
     num_parents = len(psys.particles)
     num_children = len(psys.child_particles)
     total_hair_count = num_parents + num_children
-    thicknessflag = 0
-    width_offset = psys.settings.renderman.width_offset
     export_st = psys.settings.renderman.export_scalp_st and psys_modifier and len(
         ob.data.uv_layers) > 0
     
@@ -1454,7 +1453,7 @@ def export_particle_system(ri, scene, rpass, ob, psys, objectCorrectionMatrix=Fa
         export_particles(ri, scene, rpass, ob, psys, data, objectCorrectionMatrix)
     else:
         ri.Basis("CatmullRomBasis", 1, "CatmullRomBasis", 1)
-        ri.Attribute("dice", {"int roundcurve": 1, "int hair": 1})
+        ri.Attribute("dice", {"int roundcurve": int(psys.settings.renderman.round_hair), "int hair": 1})
         if data is not None and len(data) > 0:
             export_motion_begin(ri, data)
             for subframe, sample in data:
@@ -1747,7 +1746,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                         data_blocks.append(
                             get_dupli_block(dupli_ob, rpass, do_mb))
             mat = ob.material_slots[psys.settings.material -
-                                    1].material if psys.settings.material else None
+                                    1].material if psys.settings.material and len(ob.material_slots) else None
             data_blocks.append(DataBlock(name, type, archive_filename, data,
                                          is_psys_animating(ob, psys, do_mb), material=mat,
                                          do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
@@ -2461,6 +2460,15 @@ def export_camera_render_preview(ri, scene):
                   1, -0.25, 0,  0, -.75, 3.25, 1])
 
 
+def export_cache_sizes(ri, scene):
+    rm = scene.renderman
+    params = {'int geocachememory': rm.geo_cache_size * 100,
+        'int opacitycachememory': rm.opacity_cache_size * 100,
+        'int texturememory': rm.texture_cache_size * 100,
+    }
+    ri.Option("limits", params)
+
+
 def export_searchpaths(ri, paths):
     ri.Option("searchpath", {"string shader": ["%s" %
                                                ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
@@ -2766,6 +2774,7 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
 
     export_header(ri)
     export_searchpaths(ri, rpass.paths)
+    export_cache_sizes(ri, scene)
 
     export_display(ri, rpass, scene)
     export_hider(ri, rpass, scene)

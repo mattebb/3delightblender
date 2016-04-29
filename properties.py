@@ -532,6 +532,24 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         subtype='FILE_PATH',
         default="./shaders")
 
+    texture_cache_size = IntProperty(
+        name = "Texture Cache Size (MB)",
+        description = "Maximum number of megabytes to devote to texture caching.",
+        default = 2048
+        )
+
+    geo_cache_size = IntProperty(
+        name = "Tesselation Cache Size (MB)",
+        description = "Maximum number of megabytes to devote to tesselation cache for tracing geometry.",
+        default = 2048
+        )
+
+    opacity_cache_size = IntProperty(
+        name = "Opacity Cache Size (MB)",
+        description = "Maximum number of megabytes to devote to caching opacity and presence values.  0 turns this off.",
+        default = 1000
+        )
+
     output_action = EnumProperty(
         name="Action",
         description="Action to take when rendering",
@@ -1202,22 +1220,15 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
         description="Object to instance on every particle.",
         default="")
 
-    constant_width = BoolProperty(
-        name="Constant Width",
-        description="Override particle sizes with constant width value.",
+    round_hair = BoolProperty(
+        name="Round Hair",
+        description="Render curves as round cylinders or ribbons.  Round is faster and recommended for hair.",
         default=True)
 
-    base_width = FloatProperty(
-        name="Base Width",
-        description="The width of the base of hair.",
-        precision=4,
-        default=.01)
-
-    tip_width = FloatProperty(
-        name="Tip Width",
-        description="The width of the tip of hair.",
-        precision=4,
-        default=0.00)
+    constant_width = BoolProperty(
+        name="Constant Width",
+        description="Override particle sizes with constant width value",
+        default=False)
 
     width = FloatProperty(
         name="Width",

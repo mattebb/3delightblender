@@ -327,6 +327,14 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row.prop(rm, "shadingrate")
 
         layout.separator()
+        row = layout.row()
+        row.prop(rm, "texture_cache_size")
+        row = layout.row()
+        row.prop(rm, "geo_cache_size")
+        row = layout.row()
+        row.prop(rm, "opacity_cache_size")
+        
+        layout.separator()
         
         row = layout.row()
         row.label("Pixel Filter:")
@@ -1153,6 +1161,7 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
                 pass
             else:
                 col.prop(psys.settings, "material_slot")
+            col.row().prop(rm, "constant_width", text="Override Width")
             col.row().prop(rm, "width")
 
         else:
@@ -1165,15 +1174,14 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
         col = split.column()
 
         if psys.settings.type == 'HAIR':
-            col.prop(rm, "constant_width")
-            subcol = col.column()
-            subcol.active = rm.constant_width
-            subcol.prop(rm, "width")
-            subcol2 = col.column()
-            subcol2.active = not rm.constant_width
-            subcol2.prop(rm, "base_width")
-            subcol2.prop(rm, "tip_width")
+            row = col.row()
+            row.prop(psys.settings.cycles, "root_width", 'Root Width')
+            row.prop(psys.settings.cycles, "tip_width", 'Tip Width')
+            row = col.row()
+            row.prop(psys.settings.cycles, "radius_scale", 'Width Multiplier')
+            
             col.prop(rm, 'export_scalp_st')
+            col.prop(rm, 'round_hair')
 
 
 class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):
