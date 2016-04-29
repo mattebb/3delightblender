@@ -53,7 +53,7 @@ GLOBAL_ZERO_PADDING = 5
 # Objects that can be exported as a polymesh via Blender to_mesh() method.
 # ['MESH','CURVE','FONT']
 SUPPORTED_INSTANCE_TYPES = ['MESH', 'CURVE', 'FONT', 'SURFACE']
-SUPPORTED_DUPLI_TYPES = ['FACES', 'VERTS', 'GROUP']	   # Supported dupli types.
+SUPPORTED_DUPLI_TYPES = ['FACES', 'VERTS', 'GROUP']    # Supported dupli types.
 # These object types can have materials.
 MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT']
 # Objects without to_mesh() conversion capabilities.
@@ -2319,7 +2319,7 @@ def export_render_settings(ri, rpass, scene, preview=False):
               'int displacements': 1}
     if preview or rpass.is_interactive:
         depths = {'int maxdiffusedepth': rm.preview_max_diffuse_depth,
-                  'int maxspeculardepth': rm.preview_max_specular_depth
+                  'int maxspeculardepth': rm.preview_max_specular_depth,
                   'int displacements': 1}
 
     # ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
