@@ -2319,7 +2319,8 @@ def export_render_settings(ri, rpass, scene, preview=False):
               'int displacements': 1}
     if preview or rpass.is_interactive:
         depths = {'int maxdiffusedepth': rm.preview_max_diffuse_depth,
-                  'int maxspeculardepth': rm.preview_max_specular_depth}
+                  'int maxspeculardepth': rm.preview_max_specular_depth
+                  'int displacements': 1}
 
     # ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
