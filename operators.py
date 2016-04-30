@@ -313,8 +313,57 @@ class ExportRIBObject(bpy.types.Operator):
 ###########################
 # Presets for integrators.
 ###########################
+class FinalPresetDenoise(bpy.types.Operator):
+    bl_idname = "presets.finaldenoise"
+    bl_label = "Final w/ Denoise"
+    bl_description = "Preset for a final render with production settings and denoiser."
+    
+    def execute(self, context):
+        debug('info', "Final preset has been called!")
+        
+        return {'FINISHED'}
+        
+        
+class FinalPreset(bpy.types.Operator):
+    bl_idname = "presets.final"
+    bl_label = "Final no Denoise"
+    bl_description = "Preset for a final render with production settings, no denoiser."
+    
+    def execute(self, context):
+        debug('info', "Final preset has been called!")
+        
+        return {'FINISHED'}
+        
+class PreviewPreset(bpy.types.Operator):
+    bl_idname = "presets.preview"
+    bl_label = "Preview/Test"
+    bl_description = "Preset for preview renders."
+    
+    def execute(self, context):
+        debug('info', "Preview preset has been called!")
+        
+        return {'FINISHED'}
+        
+class TractorPreset(bpy.types.Operator):
+    bl_idname = "presets.tractorqueue"
+    bl_label = "Tractor / Local Queue"
+    bl_description = "Preset for queue based renders."
+    
+    def execute(self, context):
+        debug('info', "Preview preset has been called!")
+        
+        return {'FINISHED'}
 
 
+class PresetsMenu(bpy.types.Menu):
+    bl_label = "Renderman Presets"
+    bl_idname = "presets"
+
+    def draw(self, context):
+        self.layout.operator("presets.preview")
+        self.layout.operator("presets.final")
+        self.layout.operator("presets.finaldenoise")
+        self.layout.operator("presets.tractorqueue")
 
 #################
 # Sample scenes menu.

@@ -238,6 +238,7 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
 
         # layout.prop(rm, "display_driver")
         col = layout.column()
+        col.menu("presets", text="Render Presets")
         col.prop(rm, "pixel_variance")
         row = col.row(align=True)
         row.prop(rm, "min_samples", text="Min Samples")
