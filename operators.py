@@ -310,27 +310,95 @@ class ExportRIBObject(bpy.types.Operator):
         return{'RUNNING_MODAL'}
         
  
-
-''' # Item that is not needed because of new rib archiving system.
-class ExportRIBArchive(bpy.types.Operator):
-    bl_idname = "global.export_rib_archive"
-    bl_label = "Export RIB Archives for scene"
-    bl_description = "Export the scene to disk without rendering."
-
+###########################
+# Presets for integrators.
+###########################
+class FinalPresetDenoise(bpy.types.Operator):
+    bl_idname = "presets.finaldenoise"
+    bl_label = "Final w/ Denoise"
+    bl_description = "Preset for a final render with production settings and denoiser."
+    
     def execute(self, context):
-        rpass = RPass(context.scene, interactive=False)
+        rm = context.scene.renderman
+        rm.pixel_variance = 0.01
+        rm.min_samples = 24
+        rm.max_samples = 124
+        rm.max_specular_depth = 6
+        rm.max_diffuse_depth = 4
         
-        rpass.convert_textures(get_texture_list(context.scene))
-        rpass.ri.Begin(rpass.paths['rib_output'])
-        rpass.ri.Option("rib", {"string asciistyle": "indented,wide"})
+        rm.motion_blur = True
         
-        write_rib(rpass, context.scene, rpass.ri)
+        rm.do_denoise = True
         
-        rpass.ri.End()
+        if(hasattr(rm, "PxrPathTracer_settings")):
+            rm.PxrPathTracer_settings.maxPathLength = 10
+        
         return {'FINISHED'}
-'''
+        
+        
+class FinalPreset(bpy.types.Operator):
+    bl_idname = "presets.final"
+    bl_label = "Final no Denoise"
+    bl_description = "Preset for a final render with production settings, no denoiser."
+    
+    def execute(self, context):
+        rm = context.scene.renderman
+        rm.pixel_variance = 0.01
+        rm.min_samples = 24
+        rm.max_samples = 124
+        rm.max_specular_depth = 6
+        rm.max_diffuse_depth = 4
+        
+        rm.motion_blur = True
+        
+        rm.do_denoise = False
+        
+        if(hasattr(rm, "PxrPathTracer_settings")):
+            rm.PxrPathTracer_settings.maxPathLength = 10
+        
+        return {'FINISHED'}
+        
+class PreviewPreset(bpy.types.Operator):
+    bl_idname = "presets.preview"
+    bl_label = "Preview/Test"
+    bl_description = "Preset for preview renders."
+    
+    def execute(self, context):
+        rm = context.scene.renderman
+        rm.pixel_variance = 0.15
+        rm.min_samples = 2
+        rm.max_samples = 24
+        rm.max_specular_depth = 2
+        rm.max_diffuse_depth = 1
+        
+        rm.motion_blur = False
+        
+        rm.do_denoise = False
+        
+        if(hasattr(rm, "PxrPathTracer_settings")):
+            rm.PxrPathTracer_settings.maxPathLength = 5
+        
+        return {'FINISHED'}
+        
+class TractorPreset(bpy.types.Operator):
+    bl_idname = "presets.tractorqueue"
+    bl_label = "Tractor / Local Queue"
+    bl_description = "Preset for queue based renders."
+    
+    def execute(self, context):
+        #Nothing to do yet since Tractor settings do not exits yet
+        return {'FINISHED'}
 
 
+class PresetsMenu(bpy.types.Menu):
+    bl_label = "Renderman Presets"
+    bl_idname = "presets"
+
+    def draw(self, context):
+        self.layout.operator("presets.preview")
+        self.layout.operator("presets.final")
+        self.layout.operator("presets.finaldenoise")
+        self.layout.operator("presets.tractorqueue")
 
 #################
 # Sample scenes menu.
