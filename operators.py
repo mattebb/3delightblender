@@ -319,7 +319,19 @@ class FinalPresetDenoise(bpy.types.Operator):
     bl_description = "Preset for a final render with production settings and denoiser."
     
     def execute(self, context):
-        debug('info', "Final preset has been called!")
+        rm = context.scene.renderman
+        rm.pixel_variance = 0.01
+        rm.min_samples = 24
+        rm.max_samples = 124
+        rm.max_specular_depth = 6
+        rm.max_diffuse_depth = 4
+        
+        rm.motion_blur = True
+        
+        rm.do_denoise = True
+        
+        if(hasattr(rm, "PxrPathTracer_settings")):
+            rm.PxrPathTracer_settings.maxPathLength = 10
         
         return {'FINISHED'}
         
@@ -330,7 +342,19 @@ class FinalPreset(bpy.types.Operator):
     bl_description = "Preset for a final render with production settings, no denoiser."
     
     def execute(self, context):
-        debug('info', "Final preset has been called!")
+        rm = context.scene.renderman
+        rm.pixel_variance = 0.01
+        rm.min_samples = 24
+        rm.max_samples = 124
+        rm.max_specular_depth = 6
+        rm.max_diffuse_depth = 4
+        
+        rm.motion_blur = True
+        
+        rm.do_denoise = False
+        
+        if(hasattr(rm, "PxrPathTracer_settings")):
+            rm.PxrPathTracer_settings.maxPathLength = 10
         
         return {'FINISHED'}
         
@@ -340,7 +364,19 @@ class PreviewPreset(bpy.types.Operator):
     bl_description = "Preset for preview renders."
     
     def execute(self, context):
-        debug('info', "Preview preset has been called!")
+        rm = context.scene.renderman
+        rm.pixel_variance = 0.15
+        rm.min_samples = 2
+        rm.max_samples = 24
+        rm.max_specular_depth = 2
+        rm.max_diffuse_depth = 1
+        
+        rm.motion_blur = False
+        
+        rm.do_denoise = False
+        
+        if(hasattr(rm, "PxrPathTracer_settings")):
+            rm.PxrPathTracer_settings.maxPathLength = 5
         
         return {'FINISHED'}
         
@@ -350,8 +386,7 @@ class TractorPreset(bpy.types.Operator):
     bl_description = "Preset for queue based renders."
     
     def execute(self, context):
-        debug('info', "Preview preset has been called!")
-        
+        #Nothing to do yet since Tractor settings do not exits yet
         return {'FINISHED'}
 
 
