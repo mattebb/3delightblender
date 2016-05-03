@@ -1622,11 +1622,11 @@ class DataBlock:
     type = ''
     data = None
     name = ''
-    material = None
+    material = []
     do_export = False
     dupli_data = False
 
-    def __init__(self, name, type, archive_filename, data, deforming=False, material=None, do_export=True, dupli_data=False):
+    def __init__(self, name, type, archive_filename, data, deforming=False, material=[], do_export=True, dupli_data=False):
         self.name = name
         self.type = type
         self.archive_filename = archive_filename

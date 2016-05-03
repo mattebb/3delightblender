@@ -55,6 +55,10 @@ import os.path
 
 NODE_LAYOUT_SPLIT = 0.5
 
+def load_tree_from_lib(mat):
+    if mat.library:
+        with bpy.data.libraries.load(mat.library.filepath) as (data_from, data_to):
+            data_to.node_groups = data_from.node_groups
 
 # Default Types
 class RendermanPatternGraph(bpy.types.NodeTree):
@@ -1203,11 +1207,15 @@ def get_tex_file_name(prop):
 
 
 def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
-    try:
+    
+    if id and id.renderman.nodetree != '':
+        if id.renderman.nodetree not in bpy.data.node_groups:
+            load_tree_from_lib(id)
+        
+        if id.renderman.nodetree not in bpy.data.node_groups:
+            return
+
         nt = bpy.data.node_groups[id.renderman.nodetree]
-    except:
-        nt = None
-    if nt:
         if not handle:
             handle = id.name
 
