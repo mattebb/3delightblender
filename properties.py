@@ -223,7 +223,8 @@ class RendermanPass(bpy.types.PropertyGroup):
 class RendermanAOV(bpy.types.PropertyGroup):
 
     def built_in_channel_types(self, context):
-        items = [('custom', 'Custom', 'Custom Type'),
+        items = [("custom_lpe_string", "Custom lpe", "Custom lpe"),
+                 ("built_in_aov", "Built in AOV", "Built in AOV"),
                  ("lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics"),
                  ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
                  ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
@@ -244,7 +245,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
     def update_type(self, context):
         types = self.built_in_channel_types(context)
         for item in types:
-            if self.channel_type == item[0] and self.channel_type != 'custom':
+            if self.channel_type == item[0] and self.channel_type != 'custom_lpe_string' and self.channel_type != 'built_in_aov':
                 self.name = 'Custom_' + item[1]
 
     show_advanced = BoolProperty(name='Advanced', default=False)
@@ -254,10 +255,20 @@ class RendermanAOV(bpy.types.PropertyGroup):
                                 items=built_in_channel_types, update=update_type)
     name = StringProperty(
         name="Channel Name",
-        description="Name for the Channel in the output file")
-    custom_lpe = StringProperty(
+        description="Name for the Channel in the output file.  NOTE: Spaces must be represented by an underscore.  If this is not followed the channel will not output.")
+
+    custom_lpe_string = StringProperty(
         name="lpe String",
-        description="Custom lpe code")
+        description="Custom lpe string")
+
+    custom_aov_string = StringProperty(
+        name="AOV name",
+        description="Name of the built in AOV")
+
+    custom_aov_type = StringProperty(
+        name="AOV type",
+        description="Information type for the AOV (normal, float, vector or color)",
+        default="")
 
     lpe_group = StringProperty(
         name="lpe Group",
