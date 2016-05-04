@@ -2908,22 +2908,19 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                 scene.frame_current = i
                 zeroFill = str(i).zfill(4)
                 data_blocks, instances = cache_motion(scene, rpass, objects=[object])
-                archivePathRIB = object.name + ".rib"
+                archivePathRIB = os.path.join(zeroFill, object.name + ".rib")
+                debug('error', archivePathRIB)
                 ri.Begin(archivePathRIB)
                 if(exportMats):
                     materialsList = object.material_slots
                     #Convert any textures just in case.
                     rpass.convert_textures(get_select_texture_list(object))
                     for materialSlot in materialsList:
-                        ri.ArchiveBegin('material.' + materialSlot.name)
+                        ri.ArchiveBegin(os.path.join(zeroFill, 'material.' + materialSlot.name))
                         export_material(ri, materialSlot.material)
                         ri.ArchiveEnd()
                 
-                #for name, db in data_blocks.items():
-                #    fileName = db.archive_filename
-                #    db.do_export = True
-                #    db.archive_filename = os.path.join( zeroFill, os.path.split(fileName)[1])
-                export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, True, True)
+                export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, False, True)
                 ri.End()
         else:
             archivePathRIB = object.name + ".rib"
@@ -2941,7 +2938,7 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
             ri.End()
         ri.End()
     
-    #TODO: Check if archive was constructed correctly 
+    # Check if the file was created. I don't really think we need to check in the .zip
     if( not os.path.exists(archivePath)):
         success = False
     
