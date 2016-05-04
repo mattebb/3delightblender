@@ -1899,13 +1899,17 @@ def export_data_archives(ri, scene, rpass, data_blocks, engine):
                 engine.report({'ERROR'}, 'Rib gen error exporting %s: ' % db.archive_filename + traceback.format_exc())
             else:
                 print('ERROR: Rib gen error exporting %s:' % db.archive_filename, traceback.format_exc())
+
+# Deal with the special needs of a RIB archive but after that pass on to the same functions that export_data_archives does.
 def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterials, objectMatrix=False ,correctionMatrix=False):
     for name, db in data_blocks.items():
         if not db.do_export:
             continue
         if(db.material and exportMaterials):
+            # Tell the object to use the baked in material.
             export_material_archive(ri, db.material)
         if db.type == "MESH":
+            # Gets the world location and uses the ri rotate and scale to normalize it in the archive.
             if(objectMatrix == True):
                 loc, rot, sca = db.data.matrix_world.decompose()
                 #ri.Translate(loc.x, loc.y, loc.z)
@@ -2864,7 +2868,7 @@ def write_preview_rib(rpass, scene, ri):
 
 
 def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, exportRange):
-    success = True # Store if the export is a success or not
+    success = True # Store if the export is a success or not default to true
     
     fileExt = ".zip"
     
@@ -2881,7 +2885,7 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
         else:
             success = False
             
-
+    
     
     #Open zip file for writing
     if(overridePath != ""):
@@ -2893,10 +2897,13 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
     if(success == True):
         # export rib archives of objects
         if(exportRange):
+            # Get range numbers from the timeline and use that as our range.
+            # This is how baking works so we should remain in line with how 
+            #   blender wants to do things.
             rangeStart = scene.frame_start
             rangeEnd = scene.frame_end
             rangeLength = rangeEnd - rangeStart
-            # Assume user is smart and wont pass us a negative range. Please!
+            # Assume user is smart and wont pass us a negative range.
             for i in range(rangeStart, rangeEnd+1):
                 scene.frame_current = i
                 zeroFill = str(i).zfill(4)
@@ -2912,11 +2919,11 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                         export_material(ri, materialSlot.material)
                         ri.ArchiveEnd()
                 
-                for name, db in data_blocks.items():
-                    fileName = db.archive_filename
-                    db.do_export = True
-                    db.archive_filename = os.path.join( zeroFill, os.path.split(fileName)[1])
-                    export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, True, True)
+                #for name, db in data_blocks.items():
+                #    fileName = db.archive_filename
+                #    db.do_export = True
+                #    db.archive_filename = os.path.join( zeroFill, os.path.split(fileName)[1])
+                export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, True, True)
                 ri.End()
         else:
             archivePathRIB = object.name + ".rib"
@@ -2935,8 +2942,9 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
         ri.End()
     
     #TODO: Check if archive was constructed correctly 
+    if( not os.path.exists(archivePath)):
+        success = False
     
-        
     returnList = [success, archivePath]
     return returnList
     
