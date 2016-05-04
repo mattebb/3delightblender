@@ -1396,6 +1396,7 @@ def export_points(ri, scene, ob, motion):
 
 
 def export_smoke(ri, ob):
+
     smoke_modifier = None
     for mod in ob.modifiers:
         if mod.type == "SMOKE":
@@ -1405,18 +1406,19 @@ def export_smoke(ri, ob):
     # the original object has the modifier too.
     if not smoke_data:
         return
-    color_grid = []
-    for i in range(int(len(smoke_data.color_grid) / 4)):
-        color_grid += [smoke_data.color_grid[i * 4],
-                       smoke_data.color_grid[i * 4 + 1],
-                       smoke_data.color_grid[i * 4 + 2]]
+    
     params = {
         "varying float density": smoke_data.density_grid,
         "varying float flame": smoke_data.flame_grid,
-        "varying color smoke_color": color_grid
+        "varying color smoke_color": [item for index, item in enumerate(smoke_data.color_grid) if index % 4 != 0]
     }
+
+    smoke_res = rib(smoke_data.domain_resolution)
+    if smoke_data.use_high_resolution:
+        smoke_res = [(2 ** smoke_data.amplify) * i for i in smoke_res]
+
     ri.Volume("box", rib_ob_bounds(ob.bound_box),
-              rib(smoke_data.domain_resolution), params)
+              smoke_res, params)
 
 
 def export_sphere(ri, ob):
