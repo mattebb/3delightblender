@@ -42,6 +42,7 @@ from .util import user_path
 from .util import path_list_convert, get_real_path
 from .util import get_properties, check_if_archive_dirty
 from .util import debug
+
 from .util import find_it_path
 from .nodes import export_shader_nodetree, get_textures
 from .nodes import shader_node_rib, get_bxdf_name
@@ -2058,15 +2059,20 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     #if ob.renderman.do_holdout:
     #    ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
     # gather object groups this object belongs to
-    obj_groups_str = '*'
+    obj_groups_str = "*"
     for obj_group in scene.renderman.object_groups:
         if ob.name in obj_group.members.keys():
             obj_groups_str += ',' + obj_group.name
     # add to trace sets
     ri.Attribute("grouping", {"string membership": obj_groups_str})
-    # add to lpe groups
-    ri.Attribute("identifier", {"string lpegroup": obj_groups_str})
 
+    # add to lpe groups
+    #ri.Attribute("identifier", {"string lpegroup": obj_groups_str})
+
+    #Hack for one lpe group per object restriction in Renderman 20.  Can be removed for 21.
+    if obj_groups_str != '*':
+        ri.Attribute("identifier", {"string lpegroup": obj_groups_str.split(',')[1]})
+    
     if ob.renderman.shading_override:
         ri.ShadingRate(ob.renderman.shadingrate)
         approx_params = {}
@@ -2640,14 +2646,20 @@ def export_display(ri, rpass, scene):
 
     for aov in custom_aovs:
         source = aov.channel_type
+        source_type = "color"
         exposure_gain = aov.exposure_gain
         exposure_gamma = aov.exposure_gamma
         remap_a = aov.remap_a
         remap_b = aov.remap_b
         remap_c = aov.remap_c
-        if aov.channel_type == 'custom':
-            source = aov.custom_lpe
+        if aov.channel_type == 'custom_lpe_string':
+            source = aov.custom_lpe_string
             # looks like someone didn't set an lpe string
+            if source == '':
+                continue
+        if aov.channel_type == 'built_in_aov':
+            source = aov.custom_aov_string
+            source_type = aov.custom_aov_type
             if source == '':
                 continue
         else:
@@ -2657,10 +2669,10 @@ def export_display(ri, rpass, scene):
             source = source.replace("%G", G_string)
             source = source.replace("%LG", LG_string)
 
-        params = {"string source": "color " + source,
+        params = {"string source": source_type + " " + source,
                   "float[2] exposure": [exposure_gain, exposure_gamma],
                   "float[3] remap": [remap_a, remap_b, remap_c]}
-        ri.DisplayChannel('varying color %s' % (aov.name), params)
+        ri.DisplayChannel(source_type + ' %s' % (aov.name), params)
 
     if(rm.display_driver == 'it'):
         if find_it_path() is None:
