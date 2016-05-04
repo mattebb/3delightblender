@@ -1088,8 +1088,11 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col = layout.column()
         col.prop(item, "name")
         col.prop(item, "channel_type")
-        if item.channel_type == "custom":
-            col.prop(item, 'custom_lpe')
+        if item.channel_type == "custom_lpe_string":
+            col.prop(item, "custom_lpe_string")
+        if item.channel_type == "built_in_aov":
+            col.prop(item, "custom_aov_type")
+            col.prop(item, "custom_aov_string")
         
         col = layout.column()
         col.label("Exposure Settings")
@@ -1103,12 +1106,13 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row.prop(item, "remap_b", text="B")
         row.prop(item, "remap_c", text="C")
 
-        col.prop(item, "show_advanced")
-        col = col.column()
-        col.enabled = item.show_advanced
-        col.prop_search(item, 'lpe_group', rm,
+        if item.channel_type != "custom_lpe_string" and item.channel_type != "built_in_aov":
+            col.prop(item, "show_advanced")
+            col = col.column()
+            col.enabled = item.show_advanced
+            col.prop_search(item, 'lpe_group', rm,
                                 "object_groups", text="Object Group")
-        col.prop_search(item, 'lpe_light_group', rm,
+            col.prop_search(item, 'lpe_light_group', rm,
                                 "light_groups", text="Light Group")
         
 
