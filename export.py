@@ -2059,15 +2059,20 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     #if ob.renderman.do_holdout:
     #    ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
     # gather object groups this object belongs to
-    obj_groups_str = '*'
+    obj_groups_str = "*"
     for obj_group in scene.renderman.object_groups:
         if ob.name in obj_group.members.keys():
-            obj_groups_str = obj_group.name
+            obj_groups_str += ',' + obj_group.name
     # add to trace sets
     ri.Attribute("grouping", {"string membership": obj_groups_str})
-    # add to lpe groups
-    ri.Attribute("identifier", {"string lpegroup": obj_groups_str})
 
+    # add to lpe groups
+    #ri.Attribute("identifier", {"string lpegroup": obj_groups_str})
+
+    #Hack for one lpe group per object restriction in Renderman 20.  Can be removed for 21.
+    if obj_groups_str != '*':
+        ri.Attribute("identifier", {"string lpegroup": obj_groups_str.split(',')[1]})
+    
     if ob.renderman.shading_override:
         ri.ShadingRate(ob.renderman.shadingrate)
         approx_params = {}
