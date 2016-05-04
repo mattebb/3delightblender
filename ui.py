@@ -336,7 +336,6 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row.prop(rm, "opacity_cache_size")
         
         layout.separator()
-        
         row = layout.row()
         row.label("Pixel Filter:")
         row.prop(rm, "pixelfilter", text="")
@@ -347,6 +346,10 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         layout.separator()
         row = layout.row()
         row.prop(rm, 'light_localization')
+
+        layout.separator()
+        row = layout.row()
+        row.prop(rm, "dark_falloff")
 
         layout.separator()
         row = layout.row()

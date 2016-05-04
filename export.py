@@ -2059,6 +2059,8 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     #if ob.renderman.do_holdout:
     #    ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
     # gather object groups this object belongs to
+
+    #This is a temporary hack until multiple lpe groups are introduced in 21.0
     obj_groups_str = "*"
     for obj_group in scene.renderman.object_groups:
         if ob.name in obj_group.members.keys():
@@ -2758,6 +2760,7 @@ def export_hider(ri, rpass, scene, preview=False):
         cam = scene.camera.data.renderman
         hider_params["float[4] aperture"] = [cam.aperture_sides, cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
         hider_params["float dofaspect"] = [cam.dof_aspect]
+        hider_params["float darkfalloff"] = [rm.dark_falloff]
 
     ri.PixelVariance(pv)
 
