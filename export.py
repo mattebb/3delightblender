@@ -2572,10 +2572,11 @@ def export_display(ri, rpass, scene):
     # built in aovs
     aovs = [
         # (name, do?, declare type/name, source)
-        ("z", active_layer.use_pass_z, None, None),
-        ("N", active_layer.use_pass_normal, None, None),
-        ("dPdtime", active_layer.use_pass_vector, None, None),
-        ("u,v", active_layer.use_pass_uv, None, None),
+        ("z", active_layer.use_pass_z, "float", None),
+        ("Nn", active_layer.use_pass_normal, "normal", None),
+        ("dPdtime", active_layer.use_pass_vector, "vector", None),
+        ("u", active_layer.use_pass_uv, "float", None),
+        ("v", active_layer.use_pass_uv, "float", None),
         ("id", active_layer.use_pass_object_index, "float", None),
         ("shadows", active_layer.use_pass_shadow, "color",
          "color lpe:shadowcollector"),
@@ -2638,6 +2639,7 @@ def export_display(ri, rpass, scene):
             ri.Option("bucket", {"string order": [rm.bucket_shape.lower()]})
     else:
         ri.Option("bucket", {"string order": [rm.bucket_shape.lower()]})
+
     # declare display channels
     for aov, doit, declare_type, source in aovs:
         if doit and declare_type:
@@ -2688,21 +2690,46 @@ def export_display(ri, rpass, scene):
     main_display = user_path(rm.path_display_driver_image,
                              scene=scene)
     debug("info", "Main_display: " + main_display)
+
     #main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
-    ri.Display(main_display, dspy_driver, "rgba",
-               {"quantize": [0, 0, 0, 0]})
 
-    # now do aovs
-    for aov, doit, declare, source in aovs:
-        if doit:
-            params = {"quantize": [0, 0, 0, 0], "int asrgba": 1}
-            ri.Display('+' + image_base + '.%s.' %
-                       aov + ext, dspy_driver, aov, params)
+    #outputs a beauty pass file if combine AOV's are not used
+    if dspy_driver == "it" or not rm.combine_aovs:
+        ri.Display(main_display, dspy_driver, "rgba", {"quantize": [0, 0, 0, 0]})
+        
 
-    for aov in custom_aovs:
-        ri.Display('+' + image_base + '.%s.' % aov.name + ext, dspy_driver,
-                   aov.name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
+    # now do aovs 
+    #creates an AOV list for multi layer output
+    if rm.combine_aovs and dspy_driver != "it":
+        aov_name_list = []
+        for aov in custom_aovs:
+            aov_name_list.append(aov.name)
+        for aov, doit, declare, source in aovs:
+            if doit:
+                aov_name_list.append(aov)
+        #adds a beauty pass
+        if rm.include_beauty_pass:
+            aov_name_list.append("Ci")
+            aov_name_list.append("a")
+            ri.DisplayChannel("color Ci")
+            ri.DisplayChannel("float a")
+            #exports a multilayer image with a beauty pass
+            ri.Display(image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list),{"int asrgba": 1})
+
+        #exports a multilayer image with no beauty pass    
+        else:
+            ri.Display(image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list))
+
+    #if 'combine AOVs' is not used, exports each AOV as a separate image
+    else:
+        for aov in custom_aovs:            
+            ri.Display('+' + image_base + '.%s.' % aov.name + ext, dspy_driver,
+                       aov.name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
+        for aov, doit, declare, source in aovs:
+            if doit:
+                params = {"quantize": [0, 0, 0, 0], "int asrgba": 1}
+                ri.Display('+' + image_base + '.%s.' % aov + ext, dspy_driver, aov, params)
 
     if rm.do_denoise and not rpass.is_interactive:
         # add display channels for denoising

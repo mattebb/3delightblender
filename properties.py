@@ -391,7 +391,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     dark_falloff = FloatProperty(
         name="Dark Falloff",
         description="Adds a small boost to pixel values in order to improve adaptive sampling",
-        min=0, default=0.0)
+        min=0, max=1, default=.05)
 
     min_samples = IntProperty(
         name="Min Samples",
@@ -634,6 +634,16 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Display Driver",
         description="File Type for output pixels, 'it' will send to an external framebuffer",
         items=display_driver_items)
+
+    combine_aovs = BoolProperty(
+        name="Combine AOV's",
+        description="Combine all AOV's into a single output file.  Useful if you intend to post process the render in a compositor.",
+        default=False)
+
+    include_beauty_pass = BoolProperty(
+        name="Include Beauty Pass",
+        description="Include the full lighting 'beauty pass' in the multilayer output.",
+        default=True)
 
     do_denoise = BoolProperty(
         name="Denoise Post-Process",

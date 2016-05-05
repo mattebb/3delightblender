@@ -412,9 +412,13 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
         rm = scene.renderman
  
         layout.prop(rm, "display_driver")
+        if rm.display_driver in ['tiff', 'openexr']:
+            row = layout.row(align=True)
+            row.prop(rm, "combine_aovs")
+            if rm.combine_aovs:
+                row.prop(rm, "include_beauty_pass")
         layout.prop(rm, "path_display_driver_image")
-        # if rm.display_driver in ['tiff', 'openexr']:
-        #    layout.prop(rm, "combine_aovs")
+        row = layout.row()
         layout.prop(rm, "do_denoise")
 
 
@@ -655,14 +659,15 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
         split = layout.split()
 
         col = split.column()
-        col.prop(rl, "use_pass_combined")
+        #Commented this out since the 'beauty pass' option in outputs is the same thing.
+        #col.prop(rl, "use_pass_combined")
         col.prop(rl, "use_pass_z")
         col.prop(rl, "use_pass_normal")
         col.prop(rl, "use_pass_vector")
         col.prop(rl, "use_pass_uv")
         col.prop(rl, "use_pass_object_index")
-        # col.prop(rl, "use_pass_shadow")
-        # col.prop(rl, "use_pass_reflection")
+        #col.prop(rl, "use_pass_shadow")
+        #col.prop(rl, "use_pass_reflection")
 
         col = split.column()
         col.label(text="Diffuse:")
