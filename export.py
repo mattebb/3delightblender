@@ -978,7 +978,6 @@ def export_particle_instances(ri, scene, rpass, psys, ob, motion_data, type='OBJ
         ri.AttributeEnd()
 
 
-#
 def export_particle_points(ri, scene, psys, ob, motion_data, objectCorrectionMatrix=False):
     rm = psys.settings.renderman
     if(objectCorrectionMatrix):
@@ -1909,12 +1908,9 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
             # Tell the object to use the baked in material.
             export_material_archive(ri, db.material)
         if db.type == "MESH":
-            # Gets the world location and uses the ri rotate and scale to normalize it in the archive.
+            # Gets the world location and uses the ri transform to set it in the archive.
             if(objectMatrix == True):
-                loc, rot, sca = db.data.matrix_world.decompose()
-                #ri.Translate(loc.x, loc.y, loc.z)
-                ri.Rotate(math.degrees(rot.w), math.degrees(rot.x), math.degrees(rot.y), math.degrees(rot.z))
-                ri.Scale(sca.x, sca.y, sca.z)
+                ri.Transform(rib(db.data.matrix_world))
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
             export_particle_archive(ri, scene, rpass, db, correctionMatrix)
@@ -1982,17 +1978,18 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
     objectName = os.path.split(os.path.splitext(relPath)[0])[1]
     
 
-    #archiveAnimated = 
+    archiveAnimated = archiveInfo.archive_anim_settings.animated_sequence
 
     ri.AttributeBegin()
+    if(archiveAnimated is True):
+        current_frame = bpy.context.scene.frame_current
+        zero_fill = str(current_frame).zfill(4)
+        archive_filename = relPath + archiveFileExtention + "!" + os.path.join(zero_fill, objectName +".rib")
+        ri.ReadArchive(archive_filename)
     
-
-        
-    archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
-    ri.ReadArchive(archive_filename)
-    
-    
-    
+    else:
+        archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
+        ri.ReadArchive(archive_filename)
     ri.AttributeEnd()
     '''
     #This is the point we deal with partical systems
@@ -2023,19 +2020,26 @@ def export_empties_archives(ri, ob):
     matrix = ob.matrix_local
     ri.Transform(rib(matrix))
     
+    #visible_objects=visible_objects
+    
     arvhiveInfo = ob.renderman
     relPath = os.path.splitext(get_real_path(arvhiveInfo.path_archive))[0]
     
     archiveFileExtention = ".zip"
     
     objectName = os.path.split(os.path.splitext(relPath)[0])[1]
-    #archiveAnimated = 
+    archiveAnimated = arvhiveInfo.archive_anim_settings.animated_sequence
     
     ri.AttributeBegin()
+    if(archiveAnimated is True):
+        current_frame = bpy.context.scene.frame_current
+        zero_fill = str(current_frame).zfill(4)
+        archive_filename = relPath + archiveFileExtention + "!" + os.path.join(zero_fill, objectName +".rib")
+        ri.ReadArchive(archive_filename)
     
-    archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
-    ri.ReadArchive(archive_filename)
-    ri.AttributeEnd()
+    else:
+        archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
+        ri.ReadArchive(archive_filename)
     ri.AttributeEnd()
     
 
@@ -2909,9 +2913,8 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                 zeroFill = str(i).zfill(4)
                 data_blocks, instances = cache_motion(scene, rpass, objects=[object])
                 archivePathRIB = os.path.join(zeroFill, object.name + ".rib")
-                debug('error', archivePathRIB)
                 ri.Begin(archivePathRIB)
-                if(exportMats):
+                if(exportMats): # Backe in materials if asked.
                     materialsList = object.material_slots
                     #Convert any textures just in case.
                     rpass.convert_textures(get_select_texture_list(object))
@@ -2920,8 +2923,9 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                         export_material(ri, materialSlot.material)
                         ri.ArchiveEnd()
                 
-                export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, False, True)
+                export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, True, True)
                 ri.End()
+            scene.frame_current = rangeStart # Reset back to start frame for nicities.
         else:
             archivePathRIB = object.name + ".rib"
             ri.Begin(archivePathRIB)
@@ -2934,7 +2938,7 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                     ri.ArchiveBegin('material.' + materialSlot.name)
                     export_material(ri, materialSlot.material)
                     ri.ArchiveEnd()
-            export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, True, True)
+            export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, False, True)
             ri.End()
         ri.End()
     
