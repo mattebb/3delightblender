@@ -926,9 +926,9 @@ class OBJECT_PT_renderman_object_geometry(Panel):
             # if rm.export_archive:
             #    col.prop(rm, "export_archive_path")
 
-            
+        rman_archive = load_icons().get("archive_RIB")
         col = layout.column()
-        col.operator("export.export_rib_archive", icon="EXPORT", text="Export Object as RIB Archive.")
+        col.operator("export.export_rib_archive", text="Export Object as RIB Archive.", icon_value=rman_archive.icon_id)
         
         
         
