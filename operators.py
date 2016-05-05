@@ -457,6 +457,8 @@ class LoadSceneMenu(bpy.types.Menu):
 
 
 def menu_draw(self, context):
+    if context.scene.render.engine != "PRMAN_RENDER":
+            return
     icons = load_icons()
     examples_menu = icons.get("help")
     self.layout.menu("examples", icon_value=examples_menu.icon_id)
