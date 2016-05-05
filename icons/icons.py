@@ -69,7 +69,7 @@ def load_icons():
     #Add/Atach Coordsys
     
     #Add/Create RIB Box
-    
+    custom_icons.load("archive_RIB", os.path.join(icons_dir, "rman_CreateArchive.png"), 'IMAGE')
     #Open Tmake Window
     
     #Create OpenVDB Visualizer
@@ -79,7 +79,8 @@ def load_icons():
     #About Renderman
     custom_icons.load("info", os.path.join(icons_dir, "rman_info.png"), 'IMAGE')
     
-    
+    #Reload plugin
+    custom_icons.load("reload_plugin", os.path.join(icons_dir, "rman_loadplugin.png"), 'IMAGE')
     
     
     

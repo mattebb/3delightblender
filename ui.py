@@ -37,7 +37,7 @@ from bl_ui.properties_particle import ParticleButtonsPanel
 # helper functions for parameters
 from .shader_parameters import tex_optimised_path
 from .shader_parameters import tex_source_path
-from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
+from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive, load_tree_from_lib
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
@@ -538,6 +538,8 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
     def draw(self, context):
         mat = context.material
         if context.material.renderman and context.material.renderman.nodetree:
+            if context.material.renderman.nodetree not in bpy.data.node_groups:
+                load_tree_from_lib(context.material)    
             nt = bpy.data.node_groups[context.material.renderman.nodetree]
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name=self.shader_type)
@@ -564,6 +566,8 @@ class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
 
     def draw(self, context):
         if context.material.renderman.nodetree:
+            if context.material.renderman.nodetree not in bpy.data.node_groups:
+                load_tree_from_lib(context.material)    
             nt = bpy.data.node_groups[context.material.renderman.nodetree]
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name=self.shader_type)
@@ -576,6 +580,8 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
 
     def draw(self, context):
         if context.material.renderman.nodetree != "":
+            if context.material.renderman.nodetree not in bpy.data.node_groups:
+                load_tree_from_lib(context.material)    
             nt = bpy.data.node_groups[context.material.renderman.nodetree]
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name=self.shader_type)
@@ -926,9 +932,9 @@ class OBJECT_PT_renderman_object_geometry(Panel):
             # if rm.export_archive:
             #    col.prop(rm, "export_archive_path")
 
-            
+        rman_archive = load_icons().get("archive_RIB")
         col = layout.column()
-        col.operator("export.export_rib_archive", icon="EXPORT", text="Export Object as RIB Archive.")
+        col.operator("export.export_rib_archive", text="Export Object as RIB Archive.", icon_value=rman_archive.icon_id)
         
         
         
@@ -1923,11 +1929,16 @@ class Renderman_UI_Panel(bpy.types.Panel):
             #Add Subdiv Sheme
             rman_subdiv = icons.get("add_subdiv_sheme")
             box.operator("object.add_subdiv_sheme", text="Make Subdiv",icon_value=rman_subdiv.icon_id)
+            
+            #Add/Create RIB Box /
+            #Create Archive node
+            rman_archive = icons.get("archive_RIB")
+            box.operator("export.export_rib_archive", icon_value=rman_archive.icon_id)
         
-        #Create Archive node
+        
         #Create Geo LightBlocker
         
-        #Update Archive
+        #Update Archive !! Not needed with current system.
         
         #Open Last RIB
 #        rman_open_last_rib = icons.get("open_last_rib")
@@ -1937,12 +1948,9 @@ class Renderman_UI_Panel(bpy.types.Panel):
         
         #Shared Geometry Attribute
         
-        
         #Add/Atach Coordsys
         
-        #Add/Create RIB Box
-        
-        #Open Tmake Window
+        #Open Tmake Window  ?? Run Tmake on everything.
         
         #Create OpenVDB Visualizer
         layout.separator()
@@ -1952,9 +1960,13 @@ class Renderman_UI_Panel(bpy.types.Panel):
         rman_info = icons.get("info")
         layout.operator("wm.url_open", text="About Renderman",icon_value=rman_info.icon_id).url = "http://renderman.pixar.com/view/non-commercial-renderman"
         
+        #Reload the addon
+        #rman_reload = icons.get("reload_plugin")
+        #layout.operator("renderman.restartaddon", icon_value=rman_reload.icon_id)
+        
         #Enable the menu item to display the examples menu in the Renderman Pannel.
-        #layout.separator()
-        #layout.menu("examples", icon_value=rman_help.icon_id)
+        layout.separator()
+        layout.menu("examples", icon_value=rman_help.icon_id)
 
 def register():
     bpy.utils.register_class(RENDERMAN_GROUP_UL_List)
