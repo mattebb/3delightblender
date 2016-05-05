@@ -1923,11 +1923,16 @@ class Renderman_UI_Panel(bpy.types.Panel):
             #Add Subdiv Sheme
             rman_subdiv = icons.get("add_subdiv_sheme")
             box.operator("object.add_subdiv_sheme", text="Make Subdiv",icon_value=rman_subdiv.icon_id)
+            
+            #Add/Create RIB Box /
+            #Create Archive node
+            rman_archive = icons.get("archive_RIB")
+            box.operator("export.export_rib_archive", icon_value=rman_archive.icon_id)
         
-        #Create Archive node
+        
         #Create Geo LightBlocker
         
-        #Update Archive
+        #Update Archive !! Not needed with current system.
         
         #Open Last RIB
 #        rman_open_last_rib = icons.get("open_last_rib")
@@ -1937,12 +1942,9 @@ class Renderman_UI_Panel(bpy.types.Panel):
         
         #Shared Geometry Attribute
         
-        
         #Add/Atach Coordsys
         
-        #Add/Create RIB Box
-        
-        #Open Tmake Window
+        #Open Tmake Window  ?? Run Tmake on everything.
         
         #Create OpenVDB Visualizer
         layout.separator()
@@ -1952,9 +1954,13 @@ class Renderman_UI_Panel(bpy.types.Panel):
         rman_info = icons.get("info")
         layout.operator("wm.url_open", text="About Renderman",icon_value=rman_info.icon_id).url = "http://renderman.pixar.com/view/non-commercial-renderman"
         
+        #Reload the addon
+        #rman_reload = icons.get("reload_plugin")
+        #layout.operator("renderman.restartaddon", icon_value=rman_reload.icon_id)
+        
         #Enable the menu item to display the examples menu in the Renderman Pannel.
-        #layout.separator()
-        #layout.menu("examples", icon_value=rman_help.icon_id)
+        layout.separator()
+        layout.menu("examples", icon_value=rman_help.icon_id)
 
 def register():
     bpy.utils.register_class(RENDERMAN_GROUP_UL_List)

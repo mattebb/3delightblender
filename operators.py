@@ -939,6 +939,16 @@ class AddCamera(bpy.types.Operator):
 
         return {"FINISHED"}
 
+class RM_restart_addon(bpy.types.Operator):
+    bl_idname = "renderman.restartaddon"
+    bl_label = "Restart Addon"
+    bl_description = "Restarts the RenderMan for Blender addon."
+    
+    def execute(self, context):
+        bpy.ops.script.reload()
+        return {"FINISHED"}
+
+
 # Menus
 compile_shader_menu_func = (lambda self, context: self.layout.operator(
     TEXT_OT_compile_shader.bl_idname))
