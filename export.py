@@ -2710,8 +2710,8 @@ def export_display(ri, rpass, scene):
                 aov_name_list.append(aov)
         #adds a beauty pass
         if rm.include_beauty_pass:
-            aov_name_list.append("Ci")
-            aov_name_list.append("a")
+            aov_name_list.insert(0, "Ci")
+            aov_name_list.insert(1, "a")
             ri.DisplayChannel("color Ci")
             ri.DisplayChannel("float a")
             #exports a multilayer image with a beauty pass
