@@ -388,6 +388,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Localized sampling can lead to higher quality images without increasing render times.  This is especially useful in scenes with multiple lamp sources.",
         default=True)
 
+    dark_falloff = FloatProperty(
+        name="Dark Falloff",
+        description="Adds a small boost to pixel values in order to improve adaptive sampling",
+        min=0, max=1, default=.05)
+
     min_samples = IntProperty(
         name="Min Samples",
         description="The minimum number of camera samples per pixel.  If this is set to '0' then the min samples will be the square root of the max_samples.",
@@ -629,6 +634,16 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Display Driver",
         description="File Type for output pixels, 'it' will send to an external framebuffer",
         items=display_driver_items)
+
+    combine_aovs = BoolProperty(
+        name="Combine AOV's",
+        description="Combine all AOV's into a single output file.  Useful if you intend to post process the render in a compositor.",
+        default=False)
+
+    include_beauty_pass = BoolProperty(
+        name="Include Beauty Pass",
+        description="Include the full lighting 'beauty pass' in the multilayer output.",
+        default=True)
 
     do_denoise = BoolProperty(
         name="Denoise Post-Process",
