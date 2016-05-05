@@ -1915,6 +1915,7 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
                 ri.Transform(rib(db.data.matrix_world))
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
+            #ri.Transform(rib(Matrix.Identity(4)))
             export_particle_archive(ri, scene, rpass, db, correctionMatrix)
         elif db.type == "DUPLI":
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
@@ -2903,7 +2904,8 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                         ri.ArchiveBegin(os.path.join(zeroFill, 'material.' + materialSlot.name))
                         export_material(ri, materialSlot.material)
                         ri.ArchiveEnd()
-                
+                for name, db in data_blocks.items(): 
+                    db.do_export = True
                 export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, True, True)
                 ri.End()
             scene.frame_current = rangeStart # Reset back to start frame for niceties.
