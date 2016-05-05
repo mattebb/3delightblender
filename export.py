@@ -2916,7 +2916,7 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                 data_blocks, instances = cache_motion(scene, rpass, objects=[object])
                 archivePathRIB = os.path.join(zeroFill, object.name + ".rib")
                 ri.Begin(archivePathRIB)
-                if(exportMats): # Backe in materials if asked.
+                if(exportMats): # Bake in materials if asked.
                     materialsList = object.material_slots
                     #Convert any textures just in case.
                     rpass.convert_textures(get_select_texture_list(object))
@@ -2927,7 +2927,7 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                 
                 export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, True, True)
                 ri.End()
-            scene.frame_current = rangeStart # Reset back to start frame for nicities.
+            scene.frame_current = rangeStart # Reset back to start frame for niceties.
         else:
             archivePathRIB = object.name + ".rib"
             ri.Begin(archivePathRIB)
