@@ -1993,27 +1993,6 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
         archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
         ri.ReadArchive(archive_filename)
     ri.AttributeEnd()
-    '''
-    #This is the point we deal with partical systems
-    psysList = dataFromArchive['physics']
-    if(psysList):
-        for psysObj in psysList:
-            ri.AttributeBegin()
-            psysName = psysObj['Name']
-            psysMaterial = psysObj['Material']
-            if(psysMaterial != None):
-                ri.ReadArchive( 'material.' + psysMaterial)
-            #else:
-                #export_material_archive(ri, data_block.material)
-            
-            psysFilePath = get_real_path(arvhiveInfo.path_archive) + "!" + psysName +".rib"
-            
-            ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
-            
-            ri.ReadArchive(psysFilePath)
-            
-            ri.AttributeEnd()
-'''
 
 def export_empties_archives(ri, ob):
     ri.AttributeBegin()
