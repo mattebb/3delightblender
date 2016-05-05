@@ -1445,14 +1445,14 @@ class Renderman_Light_Link_Panel(CollectionPanel, Panel):
         #second row the selectors
         row = layout.row()
         flow = row.column_flow(columns = 3)
-        if rm.ll_light_type == 'lights':
+        if rm.ll_light_type == 'light':
             flow.template_list("RENDERMAN_LL_LIGHT_list", "Renderman_light_link_list", 
                                  bpy.data, "lamps", rm, 'll_light_index') 
         else:
             flow.template_list("RENDERMAN_LL_LIGHT_list", "Renderman_light_link_list", 
                                  rm, "light_groups", rm, 'll_light_index') 
 
-        if rm.ll_object_type == 'objects':
+        if rm.ll_object_type == 'object':
             flow.template_list("RENDERMAN_LL_OBJECT_list", "Renderman_light_link_list", 
                                  bpy.data, "objects", rm, 'll_object_index') 
         else:
