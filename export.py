@@ -758,6 +758,9 @@ def export_light_shaders(ri, lamp, do_geometry=True):
     if do_geometry:
         shapes[lamp.type][1]()
 
+def export_world_comment(ri, world):
+    ri.ArchiveRecord('comment', world.renderman.world_rib_str)
+
 def export_world(ri, world, do_geometry=True):
     rm = world.renderman
     #if no shader do nothing!
@@ -2050,6 +2053,10 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     #    ri.Attribute("identifier", {"string lpegroup": ob.renderman.lpe_group})
     # gather object groups this object belongs to
 
+    #Adds comment string to object_attributes
+    rm = ob.renderman
+    ri.ArchiveRecord('comment', rm.object_comment_str)
+
     #This is a temporary hack until multiple lpe groups are introduced in 21.0
     obj_groups_str = "*"
     for obj_group in scene.renderman.object_groups:
@@ -2487,6 +2494,11 @@ def export_header(ri):
     export_comment(ri, 'From File: %s on %s\n' %
                    (render_name, time.strftime("%A %c")))
 
+def export_header_comment(ri, scene):
+    rm=scene.renderman
+
+    ri.ArchiveRecord('comment', rm.header_rib_str)
+
 
 # --------------- Hopefully temporary --------------- #
 
@@ -2805,6 +2817,7 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
     export_data_archives(ri, scene, rpass, data_blocks, engine)
 
     export_header(ri)
+    export_header_comment(ri, scene)
     export_searchpaths(ri, rpass.paths)
     export_cache_sizes(ri, scene)
 
@@ -2821,6 +2834,7 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
     # export_global_illumination_settings(ri, rpass, scene)
 
     ri.WorldBegin()
+    export_world_comment(ri, scene.world)
 
     # export_global_illumination_lights(ri, rpass, scene)
     # export_world_coshaders(ri, rpass, scene) # BBM addition

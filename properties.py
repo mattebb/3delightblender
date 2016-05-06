@@ -645,6 +645,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Include the full lighting 'beauty pass' in the multilayer output.",
         default=True)
 
+    header_rib_str = StringProperty(
+        name="RIB Comments",
+        description="Enters a comment string in the header of the RIB file",
+        default="")
+
     do_denoise = BoolProperty(
         name="Denoise Post-Process",
         description="Use PRMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image.",
@@ -739,6 +744,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     object_groups = CollectionProperty(
         type=RendermanGroup, name="Trace Sets")
     object_groups_index = IntProperty(min=-1, default=-1)
+
 
     use_default_paths = BoolProperty(
         name="Use 3Delight default paths",
@@ -1165,6 +1171,11 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
         description="Shading Rate for lights.  Keep this high unless banding or pixellation occurs on detailed light maps.",
         default=100.0)
 
+    world_rib_str = StringProperty(
+        name="RIB Comments",
+        description="Enters a comment string in the 'World' section of the RIB file",
+        default="")
+
     # illuminate
     illuminates_by_default = BoolProperty(
         name="Illuminates by default",
@@ -1330,6 +1341,11 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Holdout Object",
         description="Collect holdout data for this object",
         default=False)
+
+    object_comment_str = StringProperty(
+        name="RIB comments",
+        description="Enters a comment string in this object's section of the RIB file",
+        default="")
 
     lpe_group = StringProperty(
         name="Holdout Group",
