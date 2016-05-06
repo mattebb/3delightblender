@@ -390,7 +390,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     dark_falloff = FloatProperty(
         name="Dark Falloff",
-        description="Adds a small boost to pixel values in order to improve adaptive sampling",
+        description="Deprioritizes adaptive sampling in dark areas.  This can potentially reduce render times.",
         min=0, max=1, default=.05)
 
     min_samples = IntProperty(
