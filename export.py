@@ -1622,11 +1622,11 @@ class DataBlock:
     type = ''
     data = None
     name = ''
-    material = None
+    material = []
     do_export = False
     dupli_data = False
 
-    def __init__(self, name, type, archive_filename, data, deforming=False, material=None, do_export=True, dupli_data=False):
+    def __init__(self, name, type, archive_filename, data, deforming=False, material=[], do_export=True, dupli_data=False):
         self.name = name
         self.type = type
         self.archive_filename = archive_filename
@@ -1915,6 +1915,7 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
                 ri.Transform(rib(db.data.matrix_world))
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
+            #ri.Transform(rib(Matrix.Identity(4)))
             export_particle_archive(ri, scene, rpass, db, correctionMatrix)
         elif db.type == "DUPLI":
             export_dupli_archive(ri, scene, rpass, db, data_blocks)
@@ -1993,27 +1994,6 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
         archive_filename = relPath + archiveFileExtention + "!" + objectName +".rib"
         ri.ReadArchive(archive_filename)
     ri.AttributeEnd()
-    '''
-    #This is the point we deal with partical systems
-    psysList = dataFromArchive['physics']
-    if(psysList):
-        for psysObj in psysList:
-            ri.AttributeBegin()
-            psysName = psysObj['Name']
-            psysMaterial = psysObj['Material']
-            if(psysMaterial != None):
-                ri.ReadArchive( 'material.' + psysMaterial)
-            #else:
-                #export_material_archive(ri, data_block.material)
-            
-            psysFilePath = get_real_path(arvhiveInfo.path_archive) + "!" + psysName +".rib"
-            
-            ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
-            
-            ri.ReadArchive(psysFilePath)
-            
-            ri.AttributeEnd()
-'''
 
 def export_empties_archives(ri, ob):
     ri.AttributeBegin()
@@ -2954,7 +2934,8 @@ def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, export
                         ri.ArchiveBegin(os.path.join(zeroFill, 'material.' + materialSlot.name))
                         export_material(ri, materialSlot.material)
                         ri.ArchiveEnd()
-                
+                for name, db in data_blocks.items(): 
+                    db.do_export = True
                 export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMats, True, True)
                 ri.End()
             scene.frame_current = rangeStart # Reset back to start frame for niceties.
