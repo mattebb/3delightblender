@@ -645,9 +645,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Include the full lighting 'beauty pass' in the multilayer output.",
         default=True)
 
-    header_rib_str = StringProperty(
-        name="RIB Comments",
-        description="Enters a comment string in the header of the RIB file",
+    header_rib_file = StringProperty(
+        name="External RIB File",
+        description="Injects an external RIB into the header of the output file.",
+        subtype='FILE_PATH',
         default="")
 
     do_denoise = BoolProperty(
@@ -1171,9 +1172,10 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
         description="Shading Rate for lights.  Keep this high unless banding or pixellation occurs on detailed light maps.",
         default=100.0)
 
-    world_rib_str = StringProperty(
-        name="RIB Comments",
-        description="Enters a comment string in the 'World' section of the RIB file",
+    world_rib_file = StringProperty(
+        name="External RIB File",
+        description="Injects an external RIB file into the 'world' section of the output file.",
+        subtype='FILE_PATH',
         default="")
 
     # illuminate
@@ -1342,9 +1344,10 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         description="Collect holdout data for this object",
         default=False)
 
-    object_comment_str = StringProperty(
-        name="RIB comments",
-        description="Enters a comment string in this object's section of the RIB file",
+    object_rib_file = StringProperty(
+        name="External RIB File",
+        description="Injects an external RIB file into this object's section of the output file.",
+        subtype='FILE_PATH',
         default="")
 
     lpe_group = StringProperty(

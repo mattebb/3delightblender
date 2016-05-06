@@ -410,7 +410,9 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
- 
+
+        col = layout.column()
+        col.prop(rm, "header_rib_file")
         layout.prop(rm, "display_driver")
         if rm.display_driver in ['tiff', 'openexr']:
             row = layout.row(align=True)
@@ -418,7 +420,6 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
             if rm.combine_aovs:
                 row.prop(rm, "include_beauty_pass")
         layout.prop(rm, "path_display_driver_image")
-        layout.prop(rm, "header_rib_str")
         row = layout.row()
         layout.prop(rm, "do_denoise")
 
@@ -791,7 +792,7 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         world = context.scene.world
 
         col = layout.column()
-        col.prop(world.renderman, "world_rib_str")
+        col.prop(world.renderman, "world_rib_file")
         if world.renderman.nodetree == '':
             layout.operator('shading.add_renderman_nodetree').idtype = 'world'
             return
@@ -879,7 +880,7 @@ class OBJECT_PT_renderman_object_geometry(Panel):
         anim = rm.archive_anim_settings
 
         col = layout.column()
-        col.prop(rm, "object_comment_str")
+        col.prop(rm, "object_rib_file")
         col.separator()
         col.prop(rm, "geometry_source")
 
