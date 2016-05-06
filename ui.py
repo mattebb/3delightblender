@@ -410,7 +410,9 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
- 
+
+        col = layout.column()
+        col.prop(rm, "header_rib_file")
         layout.prop(rm, "display_driver")
         if rm.display_driver in ['tiff', 'openexr']:
             row = layout.row(align=True)
@@ -788,6 +790,9 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
     def draw(self, context):
         layout = self.layout
         world = context.scene.world
+
+        col = layout.column()
+        col.prop(world.renderman, "world_rib_file")
         if world.renderman.nodetree == '':
             layout.operator('shading.add_renderman_nodetree').idtype = 'world'
             return
@@ -875,7 +880,8 @@ class OBJECT_PT_renderman_object_geometry(Panel):
         anim = rm.archive_anim_settings
 
         col = layout.column()
-
+        col.prop(rm, "object_rib_file")
+        col.separator()
         col.prop(rm, "geometry_source")
 
         if rm.geometry_source in ('ARCHIVE', 'DELAYED_LOAD_ARCHIVE'):

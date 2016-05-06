@@ -390,7 +390,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     dark_falloff = FloatProperty(
         name="Dark Falloff",
-        description="Adds a small boost to pixel values in order to improve adaptive sampling",
+        description="Deprioritizes adaptive sampling in dark areas. Raising this can potentially reduce render times but may increase noise in dark areas.",
         min=0, max=1, default=.05)
 
     min_samples = IntProperty(
@@ -645,6 +645,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Include the full lighting 'beauty pass' in the multilayer output.",
         default=True)
 
+    header_rib_file = StringProperty(
+        name="External RIB File",
+        description="Injects an external RIB into the header of the output file.",
+        subtype='FILE_PATH',
+        default="")
+
     do_denoise = BoolProperty(
         name="Denoise Post-Process",
         description="Use PRMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image.",
@@ -739,6 +745,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     object_groups = CollectionProperty(
         type=RendermanGroup, name="Trace Sets")
     object_groups_index = IntProperty(min=-1, default=-1)
+
 
     use_default_paths = BoolProperty(
         name="Use 3Delight default paths",
@@ -1165,6 +1172,12 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
         description="Shading Rate for lights.  Keep this high unless banding or pixellation occurs on detailed light maps.",
         default=100.0)
 
+    world_rib_file = StringProperty(
+        name="External RIB File",
+        description="Injects an external RIB file into the 'world' section of the output file.",
+        subtype='FILE_PATH',
+        default="")
+
     # illuminate
     illuminates_by_default = BoolProperty(
         name="Illuminates by default",
@@ -1330,6 +1343,12 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Holdout Object",
         description="Collect holdout data for this object",
         default=False)
+
+    object_rib_file = StringProperty(
+        name="External RIB File",
+        description="Injects an external RIB file into this object's section of the output file.",
+        subtype='FILE_PATH',
+        default="")
 
     lpe_group = StringProperty(
         name="Holdout Group",
