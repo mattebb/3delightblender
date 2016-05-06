@@ -161,15 +161,6 @@ class CollectionPanel():
             self.draw_item(layout, context, item)
 
 
-class InlineRibPanel(CollectionPanel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_label = "Inline RIB"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw_item(self, layout, context, item):
-        layout.prop_search(item, "name", bpy.data, "texts")
-
 
 # ------- UI panel definitions -------
 narrowui = 180
@@ -412,7 +403,6 @@ class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
         rm = scene.renderman
 
         col = layout.column()
-        col.prop(rm, "header_rib_file")
         layout.prop(rm, "display_driver")
         if rm.display_driver in ['tiff', 'openexr']:
             row = layout.row(align=True)
@@ -791,8 +781,6 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         layout = self.layout
         world = context.scene.world
 
-        col = layout.column()
-        col.prop(world.renderman, "world_rib_file")
         if world.renderman.nodetree == '':
             layout.operator('shading.add_renderman_nodetree').idtype = 'world'
             return
@@ -880,8 +868,6 @@ class OBJECT_PT_renderman_object_geometry(Panel):
         anim = rm.archive_anim_settings
 
         col = layout.column()
-        col.prop(rm, "object_rib_file")
-        col.separator()
         col.prop(rm, "geometry_source")
 
         if rm.geometry_source in ('ARCHIVE', 'DELAYED_LOAD_ARCHIVE'):
@@ -952,6 +938,54 @@ class OBJECT_PT_renderman_object_geometry(Panel):
         sub = row.row()
         sub.active = rm.motion_segments_override
         sub.prop(rm, "motion_segments")
+
+        
+class RendermanRibBoxPanel():
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_label = "RIB Box"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return (rd.engine in {'PRMAN_RENDER'})  
+
+    def draw_rib_boxes(self, layout, rib_box_names, item):
+        rm = item.renderman
+        for rib_box in rib_box_names:
+            row = layout.row()
+            row.prop_search(rm, rib_box, bpy.data, "texts")
+            if getattr(item.renderman, rib_box) != '':
+                text_name = getattr(item.renderman, rib_box)
+                rib_box_string = bpy.data.texts.get(text_name)
+                for line in rib_box_string.lines:
+                    row = layout.row()
+                    row.label(text=line.body)
+
+class OBJECT_PT_renderman_rib_box(RendermanRibBoxPanel, Panel):
+    bl_context = "object"
+    bl_label = "Object RIB boxes"
+    
+    def draw(self, context):
+        self.draw_rib_boxes(self.layout, ['pre_object_rib_box', 'post_object_rib_box'],
+                            context.object)
+
+class WORLD_PT_renderman_rib_box(RendermanRibBoxPanel, Panel):
+    bl_context = "world"
+    bl_label = "World RIB box"
+    
+    def draw(self, context):
+        self.draw_rib_boxes(self.layout, ['world_rib_box'],
+                            context.world)
+
+class SCENE_PT_renderman_rib_box(RendermanRibBoxPanel, Panel):
+    bl_context = "scene"
+    bl_label = "Scene RIB box"
+    
+    def draw(self, context):
+        self.draw_rib_boxes(self.layout, ['frame_rib_box'],
+                            context.scene)
 
 
 class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):

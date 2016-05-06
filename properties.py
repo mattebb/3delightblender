@@ -154,7 +154,6 @@ class RendermanPath(bpy.types.PropertyGroup):
 class RendermanInlineRIB(bpy.types.PropertyGroup):
     name = StringProperty(name="Text Block")
 
-
 class RendermanGroup(bpy.types.PropertyGroup):
     name = StringProperty(name="Group Name")
     members = CollectionProperty(type=bpy.types.PropertyGroup,
@@ -645,7 +644,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Include the full lighting 'beauty pass' in the multilayer output.",
         default=True)
 
-    header_rib_file = StringProperty(
+    header_rib_boxes = StringProperty(
         name="External RIB File",
         description="Injects an external RIB into the header of the output file.",
         subtype='FILE_PATH',
@@ -737,9 +736,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     )
 
     # Rib Box Properties
-    bty_inlinerib_texts = CollectionProperty(
-        type=RendermanInlineRIB, name="Beauty-pass Inline RIB")
-    bty_inlinerib_index = IntProperty(min=-1, default=-1)
+    frame_rib_box = StringProperty(
+        name="Frame RIB box",
+        description="Injects RIB into the 'frame' block .",
+        default="")
 
     # Trace Sets (grouping membership)
     object_groups = CollectionProperty(
@@ -1172,10 +1172,9 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
         description="Shading Rate for lights.  Keep this high unless banding or pixellation occurs on detailed light maps.",
         default=100.0)
 
-    world_rib_file = StringProperty(
-        name="External RIB File",
-        description="Injects an external RIB file into the 'world' section of the output file.",
-        subtype='FILE_PATH',
+    world_rib_box = StringProperty(
+        name="World RIB box",
+        description="Injects RIB into the 'world' block .",
         default="")
 
     # illuminate
@@ -1344,10 +1343,14 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         description="Collect holdout data for this object",
         default=False)
 
-    object_rib_file = StringProperty(
-        name="External RIB File",
-        description="Injects an external RIB file into this object's section of the output file.",
-        subtype='FILE_PATH',
+    pre_object_rib_box = StringProperty(
+        name="Pre Object RIB text",
+        description="Injects an RIB before this object's geometry.",
+        default="")
+
+    post_object_rib_box = StringProperty(
+        name="Post Object RIB text",
+        description="Injects an RIB after this object's geometry.",
         default="")
 
     lpe_group = StringProperty(

@@ -759,7 +759,8 @@ def export_light_shaders(ri, lamp, do_geometry=True):
         shapes[lamp.type][1]()
 
 def export_world_rib(ri, world):
-    ri.ArchiveRecord(ri.RI_VERBATIM, world.renderman.world_rib_file)
+    if world.renderman.world_rib_box != '':
+        export_rib_box(ri, world.renderman.world_rib_box)
 
 def export_world(ri, world, do_geometry=True):
     rm = world.renderman
@@ -2043,6 +2044,14 @@ def get_archive_filename(name, rpass, animated, relative=False):
         path = os.path.relpath(path, rpass.paths['archive'])
     return path
 
+def export_rib_box(ri, text_name):
+    if text_name not in bpy.data.texts:
+        return
+    text_block = bpy.data.texts.get(text_name)
+    for line in text_block.lines:
+        ri.ArchiveRecord(ri.VERBATIM, line.body + "\n")
+    
+
 
 # here we would export object attributes like holdout, sr, etc
 def export_object_attributes(ri, scene, ob, visible_objects):
@@ -2055,8 +2064,9 @@ def export_object_attributes(ri, scene, ob, visible_objects):
 
     #Adds external RIB to object_attributes
     rm = ob.renderman
-    ri.ArchiveRecord(ri.RI_VERBATIM, rm.object_rib_file)
-
+    if rm.pre_object_rib_box != '':
+        export_rib_box(ri, rm.pre_object_rib_box)
+    
     #This is a temporary hack until multiple lpe groups are introduced in 21.0
     obj_groups_str = "*"
     for obj_group in scene.renderman.object_groups:
@@ -2496,8 +2506,8 @@ def export_header(ri):
 
 def export_header_rib(ri, scene):
     rm=scene.renderman
-
-    ri.ArchiveRecord(ri.RI_VERBATIM, rm.header_rib_file)
+    if rm.frame_rib_box != '':
+        export_rib_box(ri, rm.frame_rib_box)
 
 
 # --------------- Hopefully temporary --------------- #
