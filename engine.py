@@ -265,9 +265,73 @@ class RPass:
                           "Problem launching PRMan from %s." % prman_executable)
             isProblem = True
 
+    
+
+    
+
+    def spool_render(self, engine, cmd_str, frame_begin=None, frame_end=None):
+        def write_parent_task_line(f, title, serial_subtasks, indent_level):
+            f.write("%sTask {%s} -serialsubtasks %d -subtasks {\n" % ('\t'*indent_level,
+                                                             title, int(serial_subtasks)))
+
+        def write_cmd_task_line(f, title, cmds, indent_level):
+            f.write("%sTask {%s} -cmds {\n" % ('\t'*indent_level, title))
+            for key,cmd in cmds:
+                print(cmd)
+
+                f.write("%sCmd -service {%s} {%s}\n" % ('\t'*(indent_level+1), key, " ".join(cmd)))
+            f.write("%s}\n" % ('\t'*indent_level))
+
+        prefs = bpy.context.user_preferences.addons[__package__].preferences
+
+        out_dir = prefs.env_vars.out
+        alf_file = os.path.join(user_path(out_dir), 'spool.alf')
+
+        #open file
+        f = open(alf_file, 'w')
+        #write header
+        f.write('##AlfredToDo 3.0\n')
+        #job line
+        job_title = 'untitled' if bpy.data.filepath == '' else os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]
+        job_params = {
+            'title': job_title,
+            'serialsubtasks': 1,
+            'envkey': 'prman-20.9',
+            'comment': 'Created by RenderMan for Blender'
+        }
+        job_str = 'Job'
+        for key,val in job_params.items():
+            if key == 'serialsubtasks':
+                job_str += " -%s %s" % (key, str(val))
+            else:
+                job_str += " -%s {%s}" % (key, str(val))
+        f.write(job_str + ' -subtasks {' + '\n')
+        
+
+        # collect textures find frame specific and job specific
+
+        # do job tx makes
+
+        write_parent_task_line(f, 'Frames', False, 1)
+        # for frame
+        write_cmd_task_line(f, 'render frame', [('PixarRender', cmd_str)], 2)
+            # do frame specic txmake
+
+            # render frame
+        f.write("%s}\n" % ('\t'*1))
+            # denoise frame
+
+        # crossframe denoise
+
+        # end job
+        f.write("}\n" )
+
     def render(self, engine):
         DELAY = 1
+        
         render_output = self.paths['render_output']
+        cdir = os.path.dirname(self.paths['rib_output'])
+
         images_dir = os.path.split(render_output)[0]
         if not os.path.exists(images_dir):
             os.makedirs(images_dir)
@@ -302,17 +366,20 @@ class RPass:
             engine.end_result(result)
 
         # create command and start process
-        options = self.options + ['-Progress']
-        prman_executable = os.path.join(self.paths['rmantree'], 'bin',
-                                        self.paths['rman_binary'])
+        options = self.options + ['-Progress'] + ['-cwd', cdir]
+        prman_executable = 'prman'
         if self.display_driver in ['openexr', 'tiff']:
             options = options + ['-checkpoint',
                                  "%.2fs" % self.rm.update_frequency]
         cmd = [prman_executable] + options + ["-t:%d" % self.rm.threads] + \
             [self.paths['rib_output']]
-        cdir = os.path.dirname(self.paths['rib_output'])
+        
+        self.spool_render(engine, cmd)
+        return
+
         environ = os.environ.copy()
         environ['RMANTREE'] = self.paths['rmantree']
+        environ['PATH'] = os.path.join(self.paths['rmantree'], 'bin') + os.pathsep + environ['PATH']
         
         # Launch the command to begin rendering.
         try:
