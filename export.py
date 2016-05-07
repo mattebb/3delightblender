@@ -2707,7 +2707,7 @@ def export_display(ri, rpass, scene):
     image_base, ext = main_display.rsplit('.', 1)
 
     #outputs a beauty pass file if combine AOV's are not used
-    if dspy_driver == "it" or not rm.combine_aovs:
+    if not rm.combine_aovs or dspy_driver == 'it' or rm.output_action == 'EXPORT_RENDER':
         ri.Display(main_display, dspy_driver, "rgba", {"quantize": [0, 0, 0, 0]})
         
 
