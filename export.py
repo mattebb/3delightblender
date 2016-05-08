@@ -2793,6 +2793,7 @@ def export_hider(ri, rpass, scene, preview=False):
     if preview or rpass.is_interactive:
         hider_params['int maxsamples'] = rm.preview_max_samples
         hider_params['int minsamples'] = rm.preview_min_samples
+        hider_params['int incremental'] = 1
         pv = rm.preview_pixel_variance
 
     if not preview:
