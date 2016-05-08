@@ -2796,6 +2796,9 @@ def export_hider(ri, rpass, scene, preview=False):
         hider_params['int incremental'] = 1
         pv = rm.preview_pixel_variance
 
+    if rm.output_action == 'EXPORT_RENDER' and dspy_driver == 'openexr':
+        hider_params['int incremental'] = 1
+
     if not preview:
         cam = scene.camera.data.renderman
         hider_params["float[4] aperture"] = [cam.aperture_sides, cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
