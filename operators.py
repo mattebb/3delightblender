@@ -191,6 +191,19 @@ class refresh_osl_shader(bpy.types.Operator):
         context.node.RefreshNodes(context)
         return {'FINISHED'}
 
+class ExternalRender(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "renderman.external_render"
+    bl_label = "External Render"
+    bl_description = "Launch and external render outside Blender"
+    rpass = None
+    is_running = False
+
+    def invoke(self, context, event=None):
+        
+        return {'FINISHED'}
+
 
 class StartInteractive(bpy.types.Operator):
 
@@ -324,7 +337,7 @@ class FinalPresetDenoise(bpy.types.Operator):
         rm.min_samples = 24
         rm.max_samples = 124
         rm.max_specular_depth = 6
-        rm.max_diffuse_depth = 4
+        rm.max_diffuse_depth = 2
         
         rm.motion_blur = True
         
@@ -347,7 +360,7 @@ class FinalPreset(bpy.types.Operator):
         rm.min_samples = 24
         rm.max_samples = 124
         rm.max_specular_depth = 6
-        rm.max_diffuse_depth = 4
+        rm.max_diffuse_depth = 2
         
         rm.motion_blur = True
         

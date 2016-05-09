@@ -429,7 +429,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         min=-1, default=-1)
 
     render_selected_objects_only = BoolProperty(
-        name="Render Selected",
+        name="Only Render Selected",
         description="Render only the selected object(s).",
         default=False)
 
@@ -629,10 +629,40 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                  ('it', 'it', 'External framebuffer display (must have RMS installed)')]
         return items
 
+    def set_display_driver(self, context):
+        if self.render_into == 'it':
+            self.display_driver = 'it'
+        else:
+            self.display_driver = 'openexr'
+
     display_driver = EnumProperty(
         name="Display Driver",
         description="File Type for output pixels, 'it' will send to an external framebuffer",
         items=display_driver_items)
+
+    render_into = EnumProperty(
+        name="Render to",
+        description="Render to blender or external framebuffer",
+        items=[('blender', 'Blender', 'Render to the Image Editor'),
+               ('it', 'it', 'External framebuffer display (must have RMS installed)')], update=set_display_driver,
+        default='blender')
+
+    spool_external = BoolProperty(
+        name="Spool Render",
+        description="Spool External Render to a queuing system.",
+        default=False)
+
+    queuing_system = EnumProperty(
+        name="Spool to",
+        description="System to spool to.",
+        items=[('lq', 'LocalQueue', 'LocalQueue, must have RMS installed'),
+               ('tractor', 'tractor', 'Tractor, must have tractor setup')],
+        default='lq')
+
+    external_animation = BoolProperty(
+        name="Spool Animation",
+        description="Spool Animation",
+        default=False)
 
     combine_aovs = BoolProperty(
         name="Combine AOV's",
@@ -653,6 +683,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     do_denoise = BoolProperty(
         name="Denoise Post-Process",
         description="Use PRMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image.",
+        default=False)
+
+    crossframe_denoise = BoolProperty(
+        name="Crossframe Denoise",
+        description="Only available when denoising an external render.\n  This is more efficient especially with motion blur.",
         default=False)
 
     path_display_driver_image = StringProperty(
@@ -1615,12 +1650,17 @@ class Tab_CollectionGroup(bpy.types.PropertyGroup):
 
     bpy.types.Scene.rm_ipr = BoolProperty(
         name="IPR settings",
-        description="Show some usefull setting for the Interactive Rendering",
+        description="Show some useful setting for the Interactive Rendering",
         default=False)
 
     bpy.types.Scene.rm_render = BoolProperty(
         name="Render settings",
-        description="Show some usefull setting for the Rendering",
+        description="Show some useful setting for the Rendering",
+        default=False)
+
+    bpy.types.Scene.rm_render_external = BoolProperty(
+        name="Render settings",
+        description="Show some useful setting for external rendering",
         default=False)
 
     bpy.types.Scene.rm_help = BoolProperty(

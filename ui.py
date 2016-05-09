@@ -186,6 +186,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         icons = load_icons()
         layout = self.layout
         rd = context.scene.render
+        rm = context.scene.renderman
 
         #Render
         row = layout.row(align=True) 
@@ -204,17 +205,80 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
  
         #Batch Render
         rman_batch = icons.get("batch_render")
-        row.operator("render.render",text="Batch Render",icon_value=rman_batch.icon_id).animation=True
+        row.operator("render.render",text="Render Animation",icon_value=rman_batch.icon_id).animation=True
 
+        row.separator()
+        row = layout.row()
+        row.prop(rm, "render_into")
+
+        row.separator()
+        row = layout.row()
+        row.label("Options:")
         row = layout.row()
         row.prop(context.scene.renderman, "render_selected_objects_only")
+        row.prop(rm, "do_denoise")
 
+        if rm.display_driver in ['tiff', 'openexr']:
+            row = layout.row(align=True)
+            row.prop(rm, "combine_aovs")
+            if rm.combine_aovs:
+                row.prop(rm, "include_beauty_pass")
+        #layout.prop(rm, "path_display_driver_image")
+        
         split = layout.split(percentage=0.33)
  
         split.label(text="Display:")
         row = split.row(align=True)
         row.prop(rd, "display_mode", text="")
         row.prop(rd, "use_lock_interface", icon_only=True)
+
+class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
+    bl_label = "External Rendering (outside Blender)"
+    bl_options = {'DEFAULT_CLOSED'}
+ 
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+
+        #button
+        icons = load_icons()
+        row = layout.row()
+        rman_batch = icons.get("batch_render")
+        row.operator("renderman.external_render", text="External Render", icon_value=rman_batch.icon_id)
+        layout.separator()
+
+        #display driver
+        row = layout.row()
+        row.prop(rm,"display_driver")
+        # denoise and selected row
+        if rm.do_denoise:
+            row = layout.row(align=True)
+            row.prop(rm, "crossframe_denoise")
+        layout.separator()
+
+        #do animation
+        row = layout.row(align=True)
+        row.prop(rm, "external_animation")
+
+        if rm.external_animation:
+            row = layout.row(align=True)
+            row.prop(scene, "frame_start", text="Start")
+            row.prop(scene, "frame_end", text="End")
+
+        # queue Renders
+        layout.separator()
+        # spool render
+        row = layout.row(align=True)
+        row.prop(rm, "spool_external")
+
+        # queueing system
+        if rm.spool_external:
+            row = layout.row(align=True)
+            row.prop(rm, "queuing_system")
+        
+
+        
 
 
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
@@ -393,25 +457,6 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
         row.prop(rm, "shutter_efficiency_open")
         row.prop(rm, "shutter_efficiency_close")
 
-class RENDER_PT_renderman_output(PRManButtonsPanel, Panel):
-    bl_label = "Output"
-    bl_options = {'DEFAULT_CLOSED'}
- 
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        col = layout.column()
-        layout.prop(rm, "display_driver")
-        if rm.display_driver in ['tiff', 'openexr']:
-            row = layout.row(align=True)
-            row.prop(rm, "combine_aovs")
-            if rm.combine_aovs:
-                row.prop(rm, "include_beauty_pass")
-        layout.prop(rm, "path_display_driver_image")
-        row = layout.row()
-        layout.prop(rm, "do_denoise")
 
 
 class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
@@ -1288,6 +1333,8 @@ class DrawRenderHeaderInfo(bpy.types.Header):
         row = layout.row(align=True)
         rman_render = icons.get("render")
         row.operator("render.render", text="Render", icon_value=rman_render.icon_id)
+        rman_batch = icons.get("batch_render")
+        row.operator("renderman.external_render", text="External Render", icon_value=rman_batch.icon_id)
          
          
         if engine.ipr:
@@ -1624,40 +1671,53 @@ class Renderman_UI_Panel(bpy.types.Panel):
         if context.scene.rm_render :
             scene = context.scene
             rd = scene.render
-            
-            
-            #Batch Render
+             
             box = layout.box()
             row = box.row(align=True)
             
-            #Render selected
-            row.prop(rm,"render_selected_objects_only")
+            #Display Driver
+            row.prop(rm,"render_into")
             
+            # presets
+            row = box.row(align=True)
+            row.label("Sampling Preset:")
+            row.menu("presets")
+
+            # denoise and selected row
+            row = box.row(align=True)
+            row.prop(rm, "do_denoise", text="Denoise")
+            row = box.row(align=True)
+            row.prop(rm, "render_selected_objects_only", text="Render Selected")
+
+            # animation
             row = box.row(align=True)
             rman_batch = icons.get("batch_render")
-            row.operator("render.render",text="Batch Render",icon_value=rman_batch.icon_id).animation=True
+            row.operator("render.render",text="Render Animation",icon_value=rman_batch.icon_id).animation=True
+            # row = box.row(align=True)
+            # rman_batch = icons.get("batch_render")
+            # row.operator("render.render",text="Batch Render",icon_value=rman_batch.icon_id).animation=True
             
-            #Resolution
-            row = box.row(align=True)
-            sub = row.column(align=True)
-            sub.label(text="Resolution:")
-            sub.prop(rd, "resolution_x", text="X")
-            sub.prop(rd, "resolution_y", text="Y")
-            sub.prop(rd, "resolution_percentage", text="")
+            # #Resolution
+            # row = box.row(align=True)
+            # sub = row.column(align=True)
+            # sub.label(text="Resolution:")
+            # sub.prop(rd, "resolution_x", text="X")
+            # sub.prop(rd, "resolution_y", text="Y")
+            # sub.prop(rd, "resolution_percentage", text="")
             
-            # layout.prop(rm, "display_driver")
-            #Sampling
-            row = box.row(align=True)
-            row.label(text="Sampling:")
-            row = box.row(align=True)
-            col = row.column()
-            col.prop(rm, "pixel_variance")
-            row = col.row(align=True)
-            row.prop(rm, "min_samples", text="Min Samples")
-            row.prop(rm, "max_samples", text="Max Samples")
-            row = col.row(align=True)
-            row.prop(rm, "max_specular_depth", text="Specular Depth")
-            row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
+            # # layout.prop(rm, "display_driver")
+            # #Sampling
+            # row = box.row(align=True)
+            # row.label(text="Sampling:")
+            # row = box.row(align=True)
+            # col = row.column()
+            # col.prop(rm, "pixel_variance")
+            # row = col.row(align=True)
+            # row.prop(rm, "min_samples", text="Min Samples")
+            # row.prop(rm, "max_samples", text="Max Samples")
+            # row = col.row(align=True)
+            # row.prop(rm, "max_specular_depth", text="Specular Depth")
+            # row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
             
        #IPR
         if engine.ipr:
@@ -1715,6 +1775,58 @@ class Renderman_UI_Panel(bpy.types.Panel):
                 row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
                 row = col.row(align=True)
  
+        row = layout.row(align=True) 
+        rman_batch = icons.get("batch_render")
+        row.operator("renderman.external_render", text="External Render", icon_value=rman_batch.icon_id)
+        
+        row.prop(context.scene,"rm_render_external", text="", icon='TRIA_UP' if context.scene.rm_render_external else 'TRIA_DOWN')
+        if context.scene.rm_render_external :
+            scene = context.scene
+            rd = scene.render
+             
+            box = layout.box()
+            row = box.row(align=True)
+            
+            #Display Driver
+            row.prop(rm,"display_driver")
+            
+            #animation
+            row = box.row(align=True)
+            row.prop(rm, "external_animation")
+
+            if rm.external_animation:
+                row = box.row(align=True)
+                row.prop(scene, "frame_start", text="Start")
+                row.prop(scene, "frame_end", text="End")
+
+            # presets
+            row = box.row(align=True)
+            row.label("Sampling Preset:")
+            row.menu("presets")
+
+            # denoise and selected row
+            row = box.row(align=True)
+            row.prop(rm, "do_denoise", text="Denoise")
+
+            if rm.do_denoise and rm.external_animation:
+                row = box.row(align=True)
+                row.prop(rm, "crossframe_denoise", text="Crossframe Denoise")
+
+            row = box.row(align=True)
+            row.prop(rm, "render_selected_objects_only", text="Render Selected")
+
+            box.separator()
+            # spool render
+            row = box.row(align=True)
+            row.prop(rm, "spool_external")
+
+            # queueing system
+            if rm.spool_external:
+                row = box.row(align=True)
+                row.prop(rm, "queuing_system")
+
+            
+
         layout.separator()
         
         #Create Camera
