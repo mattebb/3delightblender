@@ -207,24 +207,8 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         rman_batch = icons.get("batch_render")
         row.operator("render.render",text="Render Animation",icon_value=rman_batch.icon_id).animation=True
 
-        row.separator()
-        row = layout.row()
-        row.prop(rm, "render_into")
+        layout.separator()
 
-        row.separator()
-        row = layout.row()
-        row.label("Options:")
-        row = layout.row()
-        row.prop(context.scene.renderman, "render_selected_objects_only")
-        row.prop(rm, "do_denoise")
-
-        if rm.display_driver in ['tiff', 'openexr']:
-            row = layout.row(align=True)
-            row.prop(rm, "combine_aovs")
-            if rm.combine_aovs:
-                row.prop(rm, "include_beauty_pass")
-        #layout.prop(rm, "path_display_driver_image")
-        
         split = layout.split(percentage=0.33)
  
         split.label(text="Display:")
@@ -232,8 +216,19 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         row.prop(rd, "display_mode", text="")
         row.prop(rd, "use_lock_interface", icon_only=True)
 
+        layout.separator()
+
+        split = layout.split(percentage=0.33)
+        col = split.column(align=True)
+        col.prop(context.scene.renderman, "render_selected_objects_only")
+        col.prop(rm, "do_denoise")
+
+        row = split.prop(rm, "render_into", text="Render To")
+        
+        
+
 class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
-    bl_label = "External Rendering (outside Blender)"
+    bl_label = "External Rendering"
     bl_options = {'DEFAULT_CLOSED'}
  
     def draw(self, context):
@@ -241,41 +236,54 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         scene = context.scene
         rm = scene.renderman
 
+        # note
+        row = layout.row()
+        row.label('Note:  This will render outside of Blender, images will not show up in the Image Editor.')
+        
         #button
         icons = load_icons()
         row = layout.row()
         rman_batch = icons.get("batch_render")
         row.operator("renderman.external_render", text="External Render", icon_value=rman_batch.icon_id)
+        
         layout.separator()
+        split = layout.split(percentage=0.33)
+
+        # denoise and selected row
+        col = split.column(align=True)
+        col.prop(rm, "external_denoise")
+        sub_row = col.row()
+        sub_row.enabled = rm.external_denoise
+        sub_row.prop(rm, "crossframe_denoise")
+        
+        sub_row = col.row()
+        sub_row.enabled = rm.display_driver in ['tiff', 'openexr']
+        sub_row.prop(rm, "combine_aovs")
+        sub_row = col.row()
+        sub_row.enabled = rm.display_driver in ['tiff', 'openexr'] and rm.combine_aovs
+        sub_row.prop(rm, "include_beauty_pass")
 
         #display driver
-        row = layout.row()
-        row.prop(rm,"display_driver")
-        # denoise and selected row
-        if rm.do_denoise:
-            row = layout.row(align=True)
-            row.prop(rm, "crossframe_denoise")
+        split.prop(rm,"display_driver", text='Render To')
+       
         layout.separator()
-
+        split = layout.split(percentage=0.33)
         #do animation
-        row = layout.row(align=True)
-        row.prop(rm, "external_animation")
+        split.prop(rm, "external_animation")
 
-        if rm.external_animation:
-            row = layout.row(align=True)
-            row.prop(scene, "frame_start", text="Start")
-            row.prop(scene, "frame_end", text="End")
+        sub_row = split.row()
+        sub_row.enabled = rm.external_animation
+        sub_row.prop(scene, "frame_start", text="Start")
+        sub_row.prop(scene, "frame_end", text="End")
 
         # queue Renders
         layout.separator()
+        split = layout.split(percentage=0.33)
         # spool render
-        row = layout.row(align=True)
-        row.prop(rm, "spool_external")
-
-        # queueing system
-        if rm.spool_external:
-            row = layout.row(align=True)
-            row.prop(rm, "queuing_system")
+        split.prop(rm, "external_action")
+        sub_row = split.row()
+        sub_row.enabled = rm.external_action == 'spool'
+        sub_row.prop(rm, "queuing_system")
         
 
         
@@ -347,6 +355,33 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
             draw_props(integrator_settings.prop_names, col)
 
 
+class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
+    bl_label = "Motion Blur"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        rm = context.scene.renderman
+
+        layout = self.layout
+        row = layout.row()
+        row.prop(rm, "motion_blur")
+        sub = layout.row()
+        sub.enabled = rm.motion_blur
+        sub.prop(rm, "motion_segments")
+
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "shutter_timing")
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "shutter_angle")
+
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "shutter_efficiency_open")
+        row.prop(rm, "shutter_efficiency_close")
+
+
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
     bl_label = "Interactive and Preview Sampling"
     bl_options = {'DEFAULT_CLOSED'}
@@ -414,9 +449,6 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
             row.prop(rm, "bucket_sprial_x", text="X")
             row.prop(rm, "bucket_sprial_y", text="Y")
 
-        layout.separator()
-        layout.prop(rm, "output_action")
-        layout.prop(rm, "path_rib_output")
         row = layout.row()
         row.prop(rm, "use_statistics", text="Output stats")
         row.operator('rman.open_stats')
@@ -430,32 +462,6 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         layout.prop(rm, "always_generate_textures")
         layout.prop(rm, "lazy_rib_gen")
         layout.prop(rm, "threads")
-
-class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
-    bl_label = "Motion Blur"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        rm = context.scene.renderman
-
-        layout = self.layout
-        row = layout.row()
-        row.prop(rm, "motion_blur")
-        sub = layout.row()
-        sub.enabled = rm.motion_blur
-        sub.prop(rm, "motion_segments")
-
-        row = layout.row()
-        row.enabled = rm.motion_blur
-        row.prop(rm, "shutter_timing")
-        row = layout.row()
-        row.enabled = rm.motion_blur
-        row.prop(rm, "shutter_angle")
-
-        row = layout.row()
-        row.enabled = rm.motion_blur
-        row.prop(rm, "shutter_efficiency_open")
-        row.prop(rm, "shutter_efficiency_close")
 
 
 
@@ -1182,7 +1188,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         scene = context.scene
         rm = scene.renderman
         #ll = rm.light_linking
-        row = layout.row()
+        #row = layout.row()
         #row.prop(item, "layers")
         col = layout.column()
         col.prop(item, "name")
@@ -1686,7 +1692,6 @@ class Renderman_UI_Panel(bpy.types.Panel):
             # denoise and selected row
             row = box.row(align=True)
             row.prop(rm, "do_denoise", text="Denoise")
-            row = box.row(align=True)
             row.prop(rm, "render_selected_objects_only", text="Render Selected")
 
             # animation
@@ -1788,16 +1793,16 @@ class Renderman_UI_Panel(bpy.types.Panel):
             row = box.row(align=True)
             
             #Display Driver
-            row.prop(rm,"display_driver")
+            row.prop(rm,"display_driver", text='Render into')
             
             #animation
             row = box.row(align=True)
             row.prop(rm, "external_animation")
 
-            if rm.external_animation:
-                row = box.row(align=True)
-                row.prop(scene, "frame_start", text="Start")
-                row.prop(scene, "frame_end", text="End")
+            row = box.row(align=True)
+            row.enabled = rm.external_animation
+            row.prop(scene, "frame_start", text="Start")
+            row.prop(scene, "frame_end", text="End")
 
             # presets
             row = box.row(align=True)
@@ -1806,24 +1811,20 @@ class Renderman_UI_Panel(bpy.types.Panel):
 
             # denoise and selected row
             row = box.row(align=True)
-            row.prop(rm, "do_denoise", text="Denoise")
-
-            if rm.do_denoise and rm.external_animation:
-                row = box.row(align=True)
-                row.prop(rm, "crossframe_denoise", text="Crossframe Denoise")
+            row.prop(rm, "external_denoise", text="Denoise")
+            col = row.column()
+            col.enabled = rm.external_denoise and rm.external_animation
+            col.prop(rm, "crossframe_denoise", text="Crossframe Denoise")
 
             row = box.row(align=True)
             row.prop(rm, "render_selected_objects_only", text="Render Selected")
 
-            box.separator()
             # spool render
             row = box.row(align=True)
-            row.prop(rm, "spool_external")
-
-            # queueing system
-            if rm.spool_external:
-                row = box.row(align=True)
-                row.prop(rm, "queuing_system")
+            row.prop(rm, "external_action", text='')
+            col = row.column()
+            col.enabled = rm.external_action == 'spool'
+            col.prop(rm, "queuing_system", text='')
 
             
 

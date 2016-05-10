@@ -218,6 +218,11 @@ class RPass:
             os.makedirs(self.paths['frame_archives'])
         self.paths['archive'] = os.path.dirname(static_archive_dir)
 
+    def update_frame_num(self,num):
+        self.scene.frame_set(num)
+        self.paths['rib_output'] = user_path(self.scene.renderma.path_rib_output, 
+                                             scene=self.scene)
+
     def preview_render(self, engine):
         render_output = self.paths['render_output']
         images_dir = os.path.split(render_output)[0]
@@ -266,6 +271,12 @@ class RPass:
             isProblem = True
 
     
+    def get_denoise_names(self):
+        base, ext = self.paths['render_output'].rsplit('.', 1)
+        # denoise data has the name .denoise.exr
+        return (base + '.denoise.' + 'exr', base + '.denoise_filtered.' + 'exr')
+    
+
     def render(self, engine):
         DELAY = 1
         
@@ -415,8 +426,8 @@ class RPass:
             base, ext = render_output.rsplit('.', 1)
             # denoise data has the name .denoise.exr
             denoise_options = "-t%d" % self.rm.threads
-            denoise_data = base + '.denoise.' + 'exr'
-            filtered_name = base + '.denoise_filtered.' + 'exr'
+            denoise_data, filtered_name = self.get_denoise_names()
+            
             if os.path.exists(denoise_data):
                 try:
                     # denoise to _filtered
@@ -605,13 +616,14 @@ class RPass:
         self.lights = {}
         pass
 
-    def gen_rib(self, engine=None):
+    def gen_rib(self, engine=None, convert_textures=True):
         if self.scene.camera == None:
             debug('error', "ERROR no Camera.  \
                     Cannot generate rib.")
             return
         time_start = time.time()
-        self.convert_textures(get_texture_list(self.scene))
+        if convert_textures:
+            self.convert_textures(get_texture_list(self.scene))
 
         if engine:
             engine.report({"INFO"}, "Texture generation took %s" %

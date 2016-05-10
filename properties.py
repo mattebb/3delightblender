@@ -647,10 +647,13 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                ('it', 'it', 'External framebuffer display (must have RMS installed)')], update=set_display_driver,
         default='blender')
 
-    spool_external = BoolProperty(
-        name="Spool Render",
-        description="Spool External Render to a queuing system.",
-        default=False)
+    external_action = EnumProperty(
+        name="Action",
+        description="Action for rendering externally.",
+        items=[('render', 'Local render', 'Render to the Display Driver choosen'),
+                ('ribgen', 'Generate RIB only', 'Only Generate RIB and job file (no render)'),
+               ('spool', 'Spool Job', 'Spool Job to queuing system')],
+        default='render')
 
     queuing_system = EnumProperty(
         name="Spool to",
@@ -660,7 +663,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         default='lq')
 
     external_animation = BoolProperty(
-        name="Spool Animation",
+        name="Render Animation",
         description="Spool Animation",
         default=False)
 
@@ -681,6 +684,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         default="")
 
     do_denoise = BoolProperty(
+        name="Denoise Post-Process",
+        description="Use PRMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image.",
+        default=False)
+
+    external_denoise = BoolProperty(
         name="Denoise Post-Process",
         description="Use PRMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image.",
         default=False)

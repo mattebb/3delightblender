@@ -14,7 +14,7 @@ def write_cmd_task_line(f, title, cmds, indent_level):
     f.write("%s}\n" % ('\t'*indent_level))
 
 
-def spool_render(rman_version_short, frame_begin, frame_end=None, denoise=None):
+def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, frame_end=None, denoise=None):
     prefs = bpy.context.user_preferences.addons[__package__].preferences
 
     out_dir = prefs.env_vars.out
@@ -51,12 +51,12 @@ def spool_render(rman_version_short, frame_begin, frame_end=None, denoise=None):
     
 
     # collect textures find frame specific and job specific
-    write_parent_task_line(f, 'Job Textures', False, 1)
+    #write_parent_task_line(f, 'Job Textures', False, 1)
     # do job tx makes
-    for in_name,cmd_str in job_texture_cmds:
-        write_cmd_task_line(f, "TxMake %s" % os.path.split(in_name)[-1], 
-                            [('PixarRender', cmd_str)], 2)
-    end_block(f, 1)
+    #for in_name,cmd_str in job_texture_cmds:
+    #    write_cmd_task_line(f, "TxMake %s" % os.path.split(in_name)[-1], 
+    #                        [('PixarRender', cmd_str)], 2)
+    #end_block(f, 1)
 
 
     write_parent_task_line(f, 'Frame Renders', False, 1)
@@ -68,19 +68,21 @@ def spool_render(rman_version_short, frame_begin, frame_end=None, denoise=None):
             write_parent_task_line(f, 'Frame %d' % frame_num, True, 2)
 
         # do frame specic txmake
-        if len(frame_texture_cmds):
-            write_parent_task_line(f, 'Frame %d textures' % frame_num, False, 3)
-            for in_name,cmd_str in frame_texture_cmds:
-                write_cmd_task_line(f, "TxMake %s" % os.path.split(in_name)[-1], 
-                            [('PixarRender', cmd_str)], 4)
-            end_block(f, 3)
+        #if len(frame_texture_cmds):
+        #    write_parent_task_line(f, 'Frame %d textures' % frame_num, False, 3)
+        #    for in_name,cmd_str in frame_texture_cmds:
+        #        write_cmd_task_line(f, "TxMake %s" % os.path.split(in_name)[-1], 
+        #                    [('PixarRender', cmd_str)], 4)
+        #    end_block(f, 3)
 
         #render frame
+        cmd_str = ['prman', '-Progress', '-cwd', cdir, rib_files[frame_num-frame_begin]]
         write_cmd_task_line(f, 'Render frame %d' % frame_num, [('PixarRender', 
                                                                 cmd_str)], 3)
         
         # denoise frame
         if per_frame_denoise:
+            cmd_str = ['denoise', denoise_files[frame_num-frame_begin][0]]
             write_cmd_task_line(f, 'Denoise frame %d' % frame_num, 
                                 [('PixarRender', cmd_str)], 3)
 
@@ -95,3 +97,4 @@ def spool_render(rman_version_short, frame_begin, frame_end=None, denoise=None):
 
     # end job
     f.write("}\n" )
+    return alf_file
