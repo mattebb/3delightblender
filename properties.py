@@ -230,10 +230,10 @@ class RendermanAOV(bpy.types.PropertyGroup):
                   "Reflection", "Reflection"),
                  ("lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse"),
                  ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
-                  "Indirectdiffuse", "IndirectDiffuse"),
+                  "IndirectDiffuse", "IndirectDiffuse"),
                  ("lpe:C<.S%G><L.%LG>", "Specular", "Specular"),
                  ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
-                  "Indirectspecular", "Indirectspecular"),
+                  "IndirectSpecular", "IndirectSpecular"),
                  ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
                   "Subsurface", "Subsurface"),
                  ("lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
@@ -263,6 +263,16 @@ class RendermanAOV(bpy.types.PropertyGroup):
     custom_aov_string = StringProperty(
         name="AOV name",
         description="Name of the built in AOV")
+
+    denoise_aov = BoolProperty(
+        name="Format AOV for denoising",
+        description="If checked this pass will be export as an individual file and properly formatted for use by the denoise utility",
+        default=False)
+
+    exclude_from_multi = BoolProperty(
+        name="Exclude AOV from multilayer output",
+        description="Keeps this AOV from appearing un a multilayer output.",
+        default=False)
 
     custom_aov_type = StringProperty(
         name="AOV type",

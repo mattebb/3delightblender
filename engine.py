@@ -274,7 +274,7 @@ class RPass:
     def get_denoise_names(self):
         base, ext = self.paths['render_output'].rsplit('.', 1)
         # denoise data has the name .denoise.exr
-        return (base + '.denoise.' + 'exr', base + '.denoise_filtered.' + 'exr')
+        return (base + '.variance.' + 'exr', base + '.denoise_filtered.' + 'exr')
     
 
     def render(self, engine):
@@ -424,7 +424,6 @@ class RPass:
             # denoise data has the name .denoise.exr
             denoise_options = "-t%d" % self.rm.threads
             denoise_data, filtered_name = self.get_denoise_names()
-            
             if os.path.exists(denoise_data):
                 try:
                     # denoise to _filtered

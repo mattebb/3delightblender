@@ -230,7 +230,7 @@ class ExternalRender(bpy.types.Operator):
             rib_names.append(rpass.paths['rib_output'])
 
         # if render locally launch prman (externally)
-        if rm.exteral_action == 'render':
+        if rm.external_action == 'render':
             render_output = rpass.paths['render_output']
             images_dir = os.path.split(render_output)[0]
             if not os.path.exists(images_dir):
