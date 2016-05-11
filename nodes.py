@@ -979,9 +979,12 @@ def is_vstruct_or_linked(node, param):
         return True
     else:
         vstruct_name, vstruct_member = meta['vstructmember'].split('.')
-        from_socket = node.inputs[vstruct_name].links[0].from_socket
-        vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)
-        return node.inputs[vstruct_name].is_linked and vstruct_conditional(from_socket.node, vstruct_from_param)
+        if node.inputs[vstruct_name].is_linked:
+            from_socket = node.inputs[vstruct_name].links[0].from_socket
+            vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)
+            return vstruct_conditional(from_socket.node, vstruct_from_param)
+        else:
+            return False
 
 # tells if this param has a vstuct connection that is linked and conditional met
 def is_vstruct_and_linked(node, param):
@@ -990,9 +993,12 @@ def is_vstruct_and_linked(node, param):
         return False
     else:
         vstruct_name, vstruct_member = meta['vstructmember'].split('.')
-        from_socket = node.inputs[vstruct_name].links[0].from_socket
-        vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)
-        return node.inputs[vstruct_name].is_linked and vstruct_conditional(from_socket.node, vstruct_from_param)
+        if node.inputs[vstruct_name].is_linked:
+            from_socket = node.inputs[vstruct_name].links[0].from_socket
+            vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)
+            return vstruct_conditional(from_socket.node, vstruct_from_param)
+        else:
+            return False
 
 # gets the value for a node walking up the vstruct chain
 def get_val_vstruct(node, param):
@@ -1157,7 +1163,7 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 if meta['renderman_type'] == 'page':
                     continue
                 # see if vstruct linked
-                elif is_vstruct_and_linked(node, param):
+                elif is_vstruct_and_linked(node, prop_name):
                     vstruct_name, vstruct_member = meta['vstructmember'].split('.')
                     from_socket = node.inputs[vstruct_name].links[0].from_socket
                     vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)

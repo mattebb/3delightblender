@@ -461,7 +461,7 @@ def guess_rmantree():
                         latestver = vf
                         rmantree = os.path.join(base, d)
         else:
-            rmantree = os.path.join(base, "RenderManProServer-%s" * choice)
+            rmantree = os.path.join(base, choice)
 
     # check rmantree valid
     if not check_valid_rmantree(rmantree):  
