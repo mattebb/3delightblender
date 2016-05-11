@@ -222,22 +222,22 @@ class RendermanPass(bpy.types.PropertyGroup):
 class RendermanAOV(bpy.types.PropertyGroup):
 
     def built_in_channel_types(self, context):
-        items = [("custom_lpe_string", "custom lpe", "custom lpe"),
-                 ("built_in_aov", "built in aov", "built in aov"),
-                 ("lpe:C<.D%G>[S]+<L.%LG>", "caustics", "caustics"),
-                 ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "shadows", "shadows"),
+        items = [("custom_lpe_string", "Custom lpe", "Custom lpe"),
+                 ("built_in_aov", "Built in AOV", "Built in AOV"),
+                 ("lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics"),
+                 ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
                  ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
-                  "reflection", "reflection"),
-                 ("lpe:C<.D%G><L.%LG>", "diffuse", "diffuse"),
+                  "Reflection", "Reflection"),
+                 ("lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse"),
                  ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
-                  "indirectdiffuse", "indirectdiffuse"),
-                 ("lpe:C<.S%G><L.%LG>", "specular", "specular"),
+                  "Indirectdiffuse", "Indirectdiffuse"),
+                 ("lpe:C<.S%G><L.%LG>", "Specular", "Specular"),
                  ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
-                  "indirectspecular", "indirectspecular"),
+                  "Indirectspecular", "Indirectspecular"),
                  ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
-                  "subsurface", "subsurface"),
+                  "Subsurface", "Subsurface"),
                  ("lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
-                  "refraction", "refraction"),
+                  "Refraction", "Refraction"),
                  ]
         return items
 
