@@ -2653,6 +2653,7 @@ def export_display(ri, rpass, scene):
         ri.Option("bucket", {"string order": [rm.bucket_shape.lower()]})
 
     # declare display channels
+
     for aov, doit, declare_type, source in aovs:
         if doit and declare_type:
             params = {}
@@ -2660,9 +2661,18 @@ def export_display(ri, rpass, scene):
                 params['string source'] = source
             ri.DisplayChannel('%s %s' % (declare_type, aov), params)
 
+    diffuse_counter = 1
+    indirectdiffuse_counter = 1
+    specular_counter = 1
+    indirectspecular_counter = 1
+
+    denoise_aov_list = []
+
     for aov in custom_aovs:
         source = aov.channel_type
+        channel_name = aov.name
         source_type = "color"
+        denoise = aov.denoise_aov
         exposure_gain = aov.exposure_gain
         exposure_gamma = aov.exposure_gamma
         remap_a = aov.remap_a
@@ -2685,10 +2695,26 @@ def export_display(ri, rpass, scene):
             source = source.replace("%G", G_string)
             source = source.replace("%LG", LG_string)
 
+        if denoise:
+            if aov.channel_type == "lpe:C<.D%G><L.%LG>":
+                channel_name = 'diffuse' + str(diffuse_counter)
+                diffuse_counter += 1
+            if aov.channel_type == "lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)":
+                channel_name = 'indirectdiffuse' + str(indirectdiffuse_counter)
+                indirectdiffuse_counter += 1
+            if aov.channel_type == "lpe:C<.S%G><L.%LG>":
+                channel_name = 'specular' + str(specular_counter)
+                specular_counter += 1
+            if aov.channel_type == "lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)":
+                channel_name = 'indirectspecular' + str(indirectspecular_counter)
+                indirectspecular_counter += 1
+            denoise_aov_list.append([aov.name, channel_name, aov.exclude_from_multi])
+            
+
         params = {"string source": source_type + " " + source,
                   "float[2] exposure": [exposure_gain, exposure_gamma],
                   "float[3] remap": [remap_a, remap_b, remap_c]}
-        ri.DisplayChannel(source_type + ' %s' % (aov.name), params)
+        ri.DisplayChannel(source_type + ' %s' % (channel_name), params)
 
     if(rm.display_driver == 'it'):
         if find_it_path() is None:
@@ -2706,20 +2732,28 @@ def export_display(ri, rpass, scene):
     #main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
 
-    #outputs a beauty pass file if combine AOV's are not used
-    if not rm.combine_aovs or dspy_driver == 'it' or rm.output_action == 'EXPORT_RENDER':
+    standalone_beauty = False
+
+    if dspy_driver == 'it' or rm.output_action == 'EXPORT_RENDER' or not rm.combine_aovs:
+        standalone_beauty = True
         ri.Display(main_display, dspy_driver, "rgba", {"quantize": [0, 0, 0, 0]})
         
 
     # now do aovs 
     #creates an AOV list for multi layer output
+
     if rm.combine_aovs and dspy_driver != "it":
         aov_name_list = []
         for aov in custom_aovs:
-            aov_name_list.append(aov.name)
+            if not aov.denoise_aov and not aov.exclude_from_multi:
+                aov_name_list.append(aov.name)
         for aov, doit, declare, source in aovs:
             if doit:
                 aov_name_list.append(aov)
+        for aov, aov_channel, exclude in denoise_aov_list:
+            if not exclude:
+                aov_name_list.append(aov_channel)
+            
         #adds a beauty pass
         if rm.include_beauty_pass:
             aov_name_list.insert(0, "Ci")
@@ -2727,22 +2761,40 @@ def export_display(ri, rpass, scene):
             ri.DisplayChannel("color Ci")
             ri.DisplayChannel("float a")
             #exports a multilayer image with a beauty pass
-            ri.Display(image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list),{"int asrgba": 1})
+            if standalone_beauty:
+                ri.Display('+' + image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list),{"int asrgba": 1})
+            else:
+                ri.Display(image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list),{"int asrgba": 1})
 
         #exports a multilayer image with no beauty pass    
         else:
-            ri.Display(image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list))
+            if standalone_beauty:
+                ri.Display('+' + image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list))
+            else:
+                ri.Display(image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list))
 
+        for aov in custom_aovs:
+            if aov.exclude_from_multi and not aov.denoise_aov:
+                ri.Display('+' + image_base + '.%s.' % aov.name + ext, dspy_driver,
+                           aov.name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
+                     
     #if 'combine AOVs' is not used, exports each AOV as a separate image
     else:
         for aov in custom_aovs:            
-            ri.Display('+' + image_base + '.%s.' % aov.name + ext, dspy_driver,
+            if not aov.denoise_aov:
+                ri.Display('+' + image_base + '.%s.' % aov.name + ext, dspy_driver,
                        aov.name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
         for aov, doit, declare, source in aovs:
             if doit:
                 params = {"quantize": [0, 0, 0, 0], "int asrgba": 1}
                 ri.Display('+' + image_base + '.%s.' % aov + ext, dspy_driver, aov, params)
 
+
+    for aov, aov_channel, exclude in denoise_aov_list:
+        ri.Display('+' + image_base + '.%s.denoiseable.' % aov + ext, dspy_driver, aov_channel)
+    
+
+    
     if rm.do_denoise and not rpass.is_interactive:
         # add display channels for denoising
         denoise_aovs = [
@@ -2776,9 +2828,9 @@ def export_display(ri, rpass, scene):
             ri.DisplayChannel('%s %s' % (declare_type, aov), params)
 
         # output denoise_data.exr
-        ri.Display('+' + image_base + '.denoise.exr', 'openexr',
+        ri.Display('+' + image_base + '.variance.exr', 'openexr',
                    "Ci,a,mse,albedo,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
-                   {"int asrgba": 1})
+                   {"int asrgba": 1, "string storage": "tiled"})
 
 
 def export_hider(ri, rpass, scene, preview=False):
@@ -2796,7 +2848,7 @@ def export_hider(ri, rpass, scene, preview=False):
         hider_params['int incremental'] = 1
         pv = rm.preview_pixel_variance
 
-    if rm.output_action == 'EXPORT_RENDER' and dspy_driver == 'openexr':
+    if rm.output_action == 'EXPORT_RENDER' and rm.display_driver != 'it':
         hider_params['int incremental'] = 1
 
     if not preview:

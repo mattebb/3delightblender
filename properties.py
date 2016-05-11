@@ -222,22 +222,22 @@ class RendermanPass(bpy.types.PropertyGroup):
 class RendermanAOV(bpy.types.PropertyGroup):
 
     def built_in_channel_types(self, context):
-        items = [("custom_lpe_string", "Custom lpe", "Custom lpe"),
-                 ("built_in_aov", "Built in AOV", "Built in AOV"),
-                 ("lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics"),
-                 ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
+        items = [("custom_lpe_string", "custom lpe", "custom lpe"),
+                 ("built_in_aov", "built in aov", "built in aov"),
+                 ("lpe:C<.D%G>[S]+<L.%LG>", "caustics", "caustics"),
+                 ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "shadows", "shadows"),
                  ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
-                  "Reflection", "Reflection"),
-                 ("lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse"),
+                  "reflection", "reflection"),
+                 ("lpe:C<.D%G><L.%LG>", "diffuse", "diffuse"),
                  ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
-                  "Indirectdiffuse", "IndirectDiffuse"),
-                 ("lpe:C<.S%G><L.%LG>", "Specular", "Specular"),
+                  "indirectdiffuse", "indirectdiffuse"),
+                 ("lpe:C<.S%G><L.%LG>", "specular", "specular"),
                  ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
-                  "Indirectspecular", "Indirectspecular"),
+                  "indirectspecular", "indirectspecular"),
                  ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
-                  "Subsurface", "Subsurface"),
+                  "subsurface", "subsurface"),
                  ("lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
-                  "Refraction", "Refraction"),
+                  "refraction", "refraction"),
                  ]
         return items
 
@@ -263,6 +263,16 @@ class RendermanAOV(bpy.types.PropertyGroup):
     custom_aov_string = StringProperty(
         name="AOV name",
         description="Name of the built in AOV")
+
+    denoise_aov = BoolProperty(
+        name="Format AOV for denoising",
+        description="If checked this pass will be export as an individual file and properly formatted for use by the denoise utility",
+        default=False)
+
+    exclude_from_multi = BoolProperty(
+        name="Exclude AOV from multilayer output",
+        description="Keeps this AOV from appearing un a multilayer output.",
+        default=False)
 
     custom_aov_type = StringProperty(
         name="AOV type",
