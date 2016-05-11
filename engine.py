@@ -408,7 +408,7 @@ class RPass:
             base, ext = render_output.rsplit('.', 1)
             # denoise data has the name .denoise.exr
             denoise_options = "-t%d" % self.rm.threads
-            denoise_data = base + '.denoise.' + 'exr'
+            denoise_data = base + '.variance.' + 'exr'
             filtered_name = base + '.denoise_filtered.' + 'exr'
             if os.path.exists(denoise_data):
                 try:

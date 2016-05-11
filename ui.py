@@ -1164,10 +1164,17 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             col.prop(item, "show_advanced")
             col = col.column()
             col.enabled = item.show_advanced
-            col.prop_search(item, 'lpe_group', rm,
-                                "object_groups", text="Object Group")
+            col.prop(item, "exclude_from_multi")
+            if not item.channel_type in ["custom_lpe_string", "built_in_aov", "lpe:C<.D%G>[S]+<L.%LG>",
+                                         "lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
+                                         "lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
+                                         "lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)"]:
+                col.prop(item, "denoise_aov")
             col.prop_search(item, 'lpe_light_group', rm,
-                                "light_groups", text="Light Group")
+                            "light_groups", text="Light Group")
+            col.prop_search(item, 'lpe_group', rm,
+                            "object_groups", text="Object Group")
+            
         
 
     def draw(self, context):
