@@ -325,7 +325,6 @@ class RPass:
         cmd = [prman_executable] + options + ["-t:%d" % self.rm.threads] + \
             [self.paths['rib_output']]
         
-        print(cmd)
         environ = os.environ.copy()
         environ['RMANTREE'] = self.paths['rmantree']
         environ['PATH'] = os.path.join(self.paths['rmantree'], 'bin') + os.pathsep + environ['PATH']
@@ -406,11 +405,9 @@ class RPass:
 
                     # check if the file updated
                     if self.display_driver not in ['it']:
-                        print("updating")
                         new_mod_time = os.path.getmtime(render_output)
 
                         if new_mod_time != prev_mod_time:
-                            print("new image", new_mod_time)
                             update_image()
                             prev_mod_time = new_mod_time
 
