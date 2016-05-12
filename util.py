@@ -583,6 +583,80 @@ def find_it_path():
         else:
             return None
 
+def find_local_queue():
+    rmstree = os.environ['RMSTREE'] if 'RMSTREE' in os.environ.keys() else ''
+
+    if rmstree == '':
+        base = ""
+        if platform.system() == 'Windows':
+            # default installation path
+            base = r'C:\Program Files\Pixar'
+
+        elif platform.system() == 'Darwin':
+            base = '/Applications/Pixar'
+
+        elif platform.system() == 'Linux':
+            base = '/opt/pixar'
+
+        latestver = 0.0
+        guess = ''
+        for d in os.listdir(base):
+            if "RenderManStudio" in d:
+                vstr = d.split('-')[1]
+                vf = float(vstr[:4])
+                if vf >= latestver:
+                    latestver = vf
+                    guess = os.path.join(base, d)
+        rmstree = guess
+
+    if rmstree == '':
+        return None
+    else:
+        rmstree = os.path.join(rmstree, 'bin')
+        if platform.system() == 'Windows':
+            lq = os.path.join(rmstree, 'LocalQueue.exe')
+        elif platform.system() == 'Darwin':
+            lq = os.path.join(
+                rmstree, 'LocalQueue.app', 'Contents', 'MacOS', 'launch_LocalQueue')
+        elif platform.system() == 'Linux':
+            lq = os.path.join(rmstree, 'LocalQueue')
+        if os.path.exists(lq):
+            return lq
+        else:
+            return None
+
+def find_tractor_spool():
+    base = ""
+    if platform.system() == 'Windows':
+        # default installation path
+        base = r'C:\Program Files\Pixar'
+
+    elif platform.system() == 'Darwin':
+        base = '/Applications/Pixar'
+
+    elif platform.system() == 'Linux':
+        base = '/opt/pixar'
+
+    latestver = 0.0
+    guess = ''
+    for d in os.listdir(base):
+        if "Tractor" in d:
+            vstr = d.split('-')[1]
+            vf = float(vstr)
+            if vf >= latestver:
+                latestver = vf
+                guess = os.path.join(base, d)
+    tractor_dir = guess
+
+    if tractor_dir == '':
+        return None
+    else:
+        spool_name = os.path.join(tractor_dir, 'bin', 'tractor-spool')
+        if os.path.exists(spool_name):
+            return spool_name
+        else:
+            return None
+
 
 # Default exporter specific env vars
 def init_exporter_env(prefs):

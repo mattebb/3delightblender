@@ -154,7 +154,6 @@ class RendermanPath(bpy.types.PropertyGroup):
 class RendermanInlineRIB(bpy.types.PropertyGroup):
     name = StringProperty(name="Text Block")
 
-
 class RendermanGroup(bpy.types.PropertyGroup):
     name = StringProperty(name="Group Name")
     members = CollectionProperty(type=bpy.types.PropertyGroup,
@@ -231,10 +230,10 @@ class RendermanAOV(bpy.types.PropertyGroup):
                   "Reflection", "Reflection"),
                  ("lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse"),
                  ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
-                  "Indirectdiffuse", "IndirectDiffuse"),
+                  "IndirectDiffuse", "IndirectDiffuse"),
                  ("lpe:C<.S%G><L.%LG>", "Specular", "Specular"),
                  ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
-                  "Indirectspecular", "Indirectspecular"),
+                  "IndirectSpecular", "IndirectSpecular"),
                  ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
                   "Subsurface", "Subsurface"),
                  ("lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
@@ -264,6 +263,16 @@ class RendermanAOV(bpy.types.PropertyGroup):
     custom_aov_string = StringProperty(
         name="AOV name",
         description="Name of the built in AOV")
+
+    denoise_aov = BoolProperty(
+        name="Format AOV for denoising",
+        description="If checked this pass will be export as an individual file and properly formatted for use by the denoise utility",
+        default=False)
+
+    exclude_from_multi = BoolProperty(
+        name="Exclude AOV from multilayer output",
+        description="Keeps this AOV from appearing un a multilayer output.",
+        default=False)
 
     custom_aov_type = StringProperty(
         name="AOV type",
@@ -390,7 +399,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     dark_falloff = FloatProperty(
         name="Dark Falloff",
-        description="Adds a small boost to pixel values in order to improve adaptive sampling",
+        description="Deprioritizes adaptive sampling in dark areas. Raising this can potentially reduce render times but may increase noise in dark areas.",
         min=0, max=1, default=.05)
 
     min_samples = IntProperty(
@@ -430,7 +439,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         min=-1, default=-1)
 
     render_selected_objects_only = BoolProperty(
-        name="Render Selected",
+        name="Only Render Selected",
         description="Render only the selected object(s).",
         default=False)
 
@@ -630,10 +639,43 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                  ('it', 'it', 'External framebuffer display (must have RMS installed)')]
         return items
 
+    def set_display_driver(self, context):
+        if self.render_into == 'it':
+            self.display_driver = 'it'
+        else:
+            self.display_driver = 'openexr'
+
     display_driver = EnumProperty(
         name="Display Driver",
         description="File Type for output pixels, 'it' will send to an external framebuffer",
         items=display_driver_items)
+
+    render_into = EnumProperty(
+        name="Render to",
+        description="Render to blender or external framebuffer",
+        items=[('blender', 'Blender', 'Render to the Image Editor'),
+               ('it', 'it', 'External framebuffer display (must have RMS installed)')], update=set_display_driver,
+        default='blender')
+
+    external_action = EnumProperty(
+        name="Action",
+        description="Action for rendering externally.",
+        items=[('render', 'Local render', 'Render to the Display Driver choosen'),
+                ('ribgen', 'Generate RIB only', 'Only Generate RIB and job file (no render)'),
+               ('spool', 'Spool Job', 'Spool Job to queuing system')],
+        default='render')
+
+    queuing_system = EnumProperty(
+        name="Spool to",
+        description="System to spool to.",
+        items=[('lq', 'LocalQueue', 'LocalQueue, must have RMS installed'),
+               ('tractor', 'tractor', 'Tractor, must have tractor setup')],
+        default='lq')
+
+    external_animation = BoolProperty(
+        name="Render Animation",
+        description="Spool Animation",
+        default=False)
 
     combine_aovs = BoolProperty(
         name="Combine AOV's",
@@ -645,9 +687,25 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Include the full lighting 'beauty pass' in the multilayer output.",
         default=True)
 
+    header_rib_boxes = StringProperty(
+        name="External RIB File",
+        description="Injects an external RIB into the header of the output file.",
+        subtype='FILE_PATH',
+        default="")
+
     do_denoise = BoolProperty(
         name="Denoise Post-Process",
         description="Use PRMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image.",
+        default=False)
+
+    external_denoise = BoolProperty(
+        name="Denoise Post-Process",
+        description="Use PRMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image.",
+        default=False)
+
+    crossframe_denoise = BoolProperty(
+        name="Crossframe Denoise",
+        description="Only available when denoising an external render.\n  This is more efficient especially with motion blur.",
         default=False)
 
     path_display_driver_image = StringProperty(
@@ -731,14 +789,16 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     )
 
     # Rib Box Properties
-    bty_inlinerib_texts = CollectionProperty(
-        type=RendermanInlineRIB, name="Beauty-pass Inline RIB")
-    bty_inlinerib_index = IntProperty(min=-1, default=-1)
+    frame_rib_box = StringProperty(
+        name="Frame RIB box",
+        description="Injects RIB into the 'frame' block .",
+        default="")
 
     # Trace Sets (grouping membership)
     object_groups = CollectionProperty(
         type=RendermanGroup, name="Trace Sets")
     object_groups_index = IntProperty(min=-1, default=-1)
+
 
     use_default_paths = BoolProperty(
         name="Use 3Delight default paths",
@@ -1165,6 +1225,11 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
         description="Shading Rate for lights.  Keep this high unless banding or pixellation occurs on detailed light maps.",
         default=100.0)
 
+    world_rib_box = StringProperty(
+        name="World RIB box",
+        description="Injects RIB into the 'world' block .",
+        default="")
+
     # illuminate
     illuminates_by_default = BoolProperty(
         name="Illuminates by default",
@@ -1330,6 +1395,16 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Holdout Object",
         description="Collect holdout data for this object",
         default=False)
+
+    pre_object_rib_box = StringProperty(
+        name="Pre Object RIB text",
+        description="Injects an RIB before this object's geometry.",
+        default="")
+
+    post_object_rib_box = StringProperty(
+        name="Post Object RIB text",
+        description="Injects an RIB after this object's geometry.",
+        default="")
 
     lpe_group = StringProperty(
         name="Holdout Group",
@@ -1593,12 +1668,17 @@ class Tab_CollectionGroup(bpy.types.PropertyGroup):
 
     bpy.types.Scene.rm_ipr = BoolProperty(
         name="IPR settings",
-        description="Show some usefull setting for the Interactive Rendering",
+        description="Show some useful setting for the Interactive Rendering",
         default=False)
 
     bpy.types.Scene.rm_render = BoolProperty(
         name="Render settings",
-        description="Show some usefull setting for the Rendering",
+        description="Show some useful setting for the Rendering",
+        default=False)
+
+    bpy.types.Scene.rm_render_external = BoolProperty(
+        name="Render settings",
+        description="Show some useful setting for external rendering",
         default=False)
 
     bpy.types.Scene.rm_help = BoolProperty(

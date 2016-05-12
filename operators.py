@@ -191,6 +191,82 @@ class refresh_osl_shader(bpy.types.Operator):
         context.node.RefreshNodes(context)
         return {'FINISHED'}
 
+class ExternalRender(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "renderman.external_render"
+    bl_label = "External Render"
+    bl_description = "Launch and external render outside Blender"
+    rpass = None
+    is_running = False
+
+    def gen_rib_frame(self, rpass):
+        try:
+            rpass.gen_rib()
+        except Exception as err:
+            self.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
+
+    def invoke(self, context, event=None):
+        if engine.ipr:
+            self.report({"ERROR"}, 'Please stop IPR before rendering externally')
+            return {'FINISHED'}
+        scene = context.scene
+        rpass = RPass(scene)
+        rm = scene.renderman
+
+        #rib gen each frame
+        rpass.display_driver = scene.renderman.display_driver
+        rib_names = []
+        denoise_files = []
+        if rm.external_animation:
+            for frame in range(scene.frame_start, scene.frame_end + 1):
+                rpass.update_frame_num(frame)
+                self.gen_rib_frame(rpass)
+                rib_names.append(rpass.paths['rib_output'])
+                if rm.external_denoise:
+                    denoise_files.append(rpass.get_denoise_names())
+        else:
+            self.gen_rib_frame(rpass)
+            rib_names.append(rpass.paths['rib_output'])
+
+        # if render locally launch prman (externally)
+        if rm.external_action == 'render':
+            render_output = rpass.paths['render_output']
+            images_dir = os.path.split(render_output)[0]
+            if not os.path.exists(images_dir):
+                os.makedirs(images_dir)
+            # create command and start process
+            options = rpass.options
+            prman_executable = os.path.join(rpass.paths['rmantree'], 'bin',
+                                            rpass.paths['rman_binary'])
+            cmd = [prman_executable] + options + ["-t:%d" % rpass.rm.threads] + \
+                rib_names
+            cdir = os.path.dirname(rib_names[0])
+            environ = os.environ.copy()
+            environ['RMANTREE'] = rpass.paths['rmantree']
+
+            # Launch the command to begin rendering.
+            try:
+                process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE,
+                                           stderr=subprocess.PIPE, env=environ)
+            except:
+                self.report({'ERROR'}, 'Error launching prman')
+
+        # else gen spool job
+        else:
+            denoise = 'frame'
+            frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
+            frame_end = scene.frame_end if rm.external_animation else scene.frame_current
+            alf_file = spool_render('20.9', rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise)
+
+            # if spooling send job to queuing
+            if rm.external_action == 'spool':
+                exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
+                subprocess.Popen([exe, alf_file], shell=True)
+
+        rpass = None
+        return {'FINISHED'}
+
 
 class StartInteractive(bpy.types.Operator):
 
@@ -324,7 +400,7 @@ class FinalPresetDenoise(bpy.types.Operator):
         rm.min_samples = 24
         rm.max_samples = 124
         rm.max_specular_depth = 6
-        rm.max_diffuse_depth = 4
+        rm.max_diffuse_depth = 2
         
         rm.motion_blur = True
         
@@ -347,7 +423,7 @@ class FinalPreset(bpy.types.Operator):
         rm.min_samples = 24
         rm.max_samples = 124
         rm.max_specular_depth = 6
-        rm.max_diffuse_depth = 4
+        rm.max_diffuse_depth = 2
         
         rm.motion_blur = True
         

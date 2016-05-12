@@ -218,6 +218,11 @@ class RPass:
             os.makedirs(self.paths['frame_archives'])
         self.paths['archive'] = os.path.dirname(static_archive_dir)
 
+    def update_frame_num(self,num):
+        self.scene.frame_set(num)
+        self.paths['rib_output'] = user_path(self.scene.renderma.path_rib_output, 
+                                             scene=self.scene)
+
     def preview_render(self, engine):
         render_output = self.paths['render_output']
         images_dir = os.path.split(render_output)[0]
@@ -265,9 +270,19 @@ class RPass:
                           "Problem launching PRMan from %s." % prman_executable)
             isProblem = True
 
+    
+    def get_denoise_names(self):
+        base, ext = self.paths['render_output'].rsplit('.', 1)
+        # denoise data has the name .denoise.exr
+        return (base + '.variance.' + 'exr', base + '.denoise_filtered.' + 'exr')
+    
+
     def render(self, engine):
         DELAY = 1
+        
         render_output = self.paths['render_output']
+        cdir = os.path.dirname(self.paths['rib_output'])
+
         images_dir = os.path.split(render_output)[0]
         if not os.path.exists(images_dir):
             os.makedirs(images_dir)
@@ -302,17 +317,17 @@ class RPass:
             engine.end_result(result)
 
         # create command and start process
-        options = self.options + ['-Progress']
-        prman_executable = os.path.join(self.paths['rmantree'], 'bin',
-                                        self.paths['rman_binary'])
+        options = self.options + ['-Progress'] + ['-cwd', cdir]
+        prman_executable = 'prman'
         if self.display_driver in ['openexr', 'tiff']:
             options = options + ['-checkpoint',
-                                 "%.2fs" % self.rm.update_frequency]
+                                 "%ds" % self.rm.update_frequency]
         cmd = [prman_executable] + options + ["-t:%d" % self.rm.threads] + \
             [self.paths['rib_output']]
-        cdir = os.path.dirname(self.paths['rib_output'])
+        
         environ = os.environ.copy()
         environ['RMANTREE'] = self.paths['rmantree']
+        environ['PATH'] = os.path.join(self.paths['rmantree'], 'bin') + os.pathsep + environ['PATH']
         
         # Launch the command to begin rendering.
         try:
@@ -408,8 +423,7 @@ class RPass:
             base, ext = render_output.rsplit('.', 1)
             # denoise data has the name .denoise.exr
             denoise_options = "-t%d" % self.rm.threads
-            denoise_data = base + '.denoise.' + 'exr'
-            filtered_name = base + '.denoise_filtered.' + 'exr'
+            denoise_data, filtered_name = self.get_denoise_names()
             if os.path.exists(denoise_data):
                 try:
                     # denoise to _filtered
@@ -598,13 +612,14 @@ class RPass:
         self.lights = {}
         pass
 
-    def gen_rib(self, engine=None):
+    def gen_rib(self, engine=None, convert_textures=True):
         if self.scene.camera == None:
             debug('error', "ERROR no Camera.  \
                     Cannot generate rib.")
             return
         time_start = time.time()
-        self.convert_textures(get_texture_list(self.scene))
+        if convert_textures:
+            self.convert_textures(get_texture_list(self.scene))
 
         if engine:
             engine.report({"INFO"}, "Texture generation took %s" %
