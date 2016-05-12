@@ -2732,21 +2732,21 @@ def export_display(ri, rpass, scene):
 
     standalone_beauty = False
 
-    if dspy_driver == 'it' or rm.output_action == 'EXPORT_RENDER' or not rm.combine_aovs:
+    if display_driver == 'it' or rm.output_action == 'EXPORT_RENDER' or not rm.combine_aovs:
         standalone_beauty = True
-        ri.Display(main_display, dspy_driver, "rgba", {"quantize": [0, 0, 0, 0]})
+        ri.Display(main_display, display_driver, "rgba", {"quantize": [0, 0, 0, 0]})
         
 
     # now do aovs
     #creates an AOV list for multi layer output
     
-    if rm.combine_aovs and dspy_driver != "it":
+    if rm.combine_aovs and display_driver != "it":
         aov_name_list = []
         for aov in custom_aovs:
             if not aov.denoise_aov and not aov.exclude_from_multi:
                 aov_name_list.append(aov.name)
             if aov.exclude_from_multi and not aov.denoise_aov:
-                ri.Display('+' + image_base + '.%s.' % aov.name + ext, dspy_driver,
+                ri.Display('+' + image_base + '.%s.' % aov.name + ext, display_driver,
                            aov.name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
         for aov, doit, declare, source in aovs:
             if doit:
@@ -2755,7 +2755,7 @@ def export_display(ri, rpass, scene):
             if not exclude:
                 aov_name_list.append(aov_channel)
             else:
-                ri.Display('+' + image_base + '.%s.denoiseable.' % aov + ext, dspy_driver, aov_channel)
+                ri.Display('+' + image_base + '.%s.denoiseable.' % aov + ext, display_driver, aov_channel)
             
         #adds a beauty pass
         if rm.include_beauty_pass:
@@ -2765,30 +2765,30 @@ def export_display(ri, rpass, scene):
             ri.DisplayChannel("float a")
             #exports a multilayer image with a beauty pass
             if standalone_beauty:
-                ri.Display('+' + image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list),{"int asrgba": 1})
+                ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, ','.join(aov_name_list),{"int asrgba": 1})
             else:
-                ri.Display(image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list),{"int asrgba": 1})
+                ri.Display(image_base + '.multilayer.' + ext, display_driver, ','.join(aov_name_list),{"int asrgba": 1})
 
         #exports a multilayer image with no beauty pass    
         else:
             if standalone_beauty:
-                ri.Display('+' + image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list))
+                ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, ','.join(aov_name_list))
             else:
-                ri.Display(image_base + '.multilayer.' + ext, dspy_driver, ','.join(aov_name_list))
+                ri.Display(image_base + '.multilayer.' + ext, display_driver, ','.join(aov_name_list))
             
                      
     #####if 'combine AOVs' is not used, exports each AOV as a separate image
     else:
         for aov in custom_aovs:            
             if not aov.denoise_aov:
-                ri.Display('+' + image_base + '.%s.' % aov.name + ext, dspy_driver,
+                ri.Display('+' + image_base + '.%s.' % aov.name + ext, display_driver,
                        aov.name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
         for aov, doit, declare, source in aovs:
             if doit:
                 params = {"quantize": [0, 0, 0, 0], "int asrgba": 1}
-                ri.Display('+' + image_base + '.%s.' % aov + ext, dspy_driver, aov, params)
+                ri.Display('+' + image_base + '.%s.' % aov + ext, display_driver, aov, params)
         for aov, aov_channel, exclude in denoise_aov_list:
-            ri.Display('+' + image_base + '.%s.denoiseable.' % aov + ext, dspy_driver, aov_channel)
+            ri.Display('+' + image_base + '.%s.denoiseable.' % aov + ext, display_driver, aov_channel)
 
     
     if rm.do_denoise and not rpass.is_interactive:
