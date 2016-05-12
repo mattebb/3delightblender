@@ -61,6 +61,25 @@ def getattr_recursive(ptr, attrstring):
 
     return ptr
 
+# return a list of meta tuples
+def get_osl_line_meta(line):
+    if "%%meta" not in line:
+        return {}
+    meta = {}
+    for m in re.finditer('meta{', line):
+        sub_str = line[m.start(), line.find('}', beg=m.start())]
+        item_type,item_name,item_value = sub_str.split(',', 2)
+        val = item_value
+        if item_type == 'string':
+            val = val[1:-1]
+        elif item_type == 'int':
+            val = int(val)
+        elif item_type == 'float':
+            val = float(val)
+
+        meta[item_name] = val
+    return meta
+
 
 def readOSO(filePath):
     line_number = 0
@@ -101,6 +120,7 @@ def readOSO(filePath):
                     default = listLine[3]
                 prop_names.append(name)
                 prop_meta = {"type": type, "default":  default, "IO": "in"}
+                prop_meta.update(get_osl_line_meta(line))
                 shader_meta[name] = prop_meta
             elif line.startswith("oparam"):
                 line_number += 1
@@ -127,6 +147,7 @@ def readOSO(filePath):
                     default = listLine[3]
                 prop_names.append(name)
                 prop_meta = {"type": type, "default":  default, "IO": "out"}
+                prop_meta.update(get_osl_line_meta(line))
                 shader_meta[name] = prop_meta
             else:
                 line_number += 1

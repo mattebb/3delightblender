@@ -337,7 +337,8 @@ class RendermanShadingNode(bpy.types.Node):
             export_path = os.path.join(
                 user_path(prefs.env_vars.out), "shaders", FileNameOSO)
             if os.path.splitext(FileName)[1] == ".oso":
-                if( not os.path.samefile(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO))):
+                if( not os.path.exists(os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO))
+                    or not os.path.samefile(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO))):
                     shutil.copy(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders"))
                 # Assume that the user knows what they were doing when they compiled the osl file.
                 ok = True
@@ -387,7 +388,7 @@ class RendermanShadingNode(bpy.types.Node):
             node.OSLPROPSPOINTER = OSLProps
             node.OSLPROPSPOINTER.setProps(
                     node, prop_names, shader_meta, context, materialOverride, saveProps)
-
+            setattr(node, 'shader_meta', shader_meta)
         else:
             debug("osl", "NODE COMPILATION FAILED")
 
@@ -586,6 +587,28 @@ class RendermanLightNode(RendermanShadingNode):
 
 # Generate dynamic types
 
+def generate_osl_node():
+    nodeType = 'pattern'
+    name = 'PxrOSL'
+    typename = '%s%sNode' % (name, nodeType.capitalize())
+    ntype = type(typename, (RendermanPatternNode,), {})
+    ntype.bl_label = name
+    ntype.typename = typename
+
+    inputs = [ET.fromstring('<param name="shader"  type="string" default=""   widget="default" connectable="False"></param>')]
+    outputs = []
+
+    def init(self, context):
+        node_add_inputs(self, name, inputs)
+        node_add_outputs(self, outputs)
+
+    ntype.init = init
+    ntype.plugin_name = StringProperty(name='Plugin Name',
+                                       default=name, options={'HIDDEN'})
+    # lights cant connect to a node tree in 20.0
+    class_generate_properties(ntype, name, inputs)
+    bpy.utils.register_class(ntype)
+    RendermanPatternGraph.nodetypes[typename] = ntype
 
 def generate_node_type(prefs, name, args):
     ''' Dynamically generate a node type from pattern '''
@@ -972,7 +995,7 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
 
 # return if this param has a vstuct connection or linked independently
 def is_vstruct_or_linked(node, param):
-    meta = node.prop_meta[param]
+    meta = node.shader_meta[param] if node.bl_idname == "PxrOSLPatternNode" else node.prop_meta[param]
     if 'vstructmember' not in meta.keys():
         return node.inputs[param].is_linked
     elif node.inputs[param].is_linked:
@@ -988,7 +1011,7 @@ def is_vstruct_or_linked(node, param):
 
 # tells if this param has a vstuct connection that is linked and conditional met
 def is_vstruct_and_linked(node, param):
-    meta = node.prop_meta[param]
+    meta = node.shader_meta[param] if node.bl_idname == "PxrOSLPatternNode" else node.prop_meta[param]
     if 'vstructmember' not in meta.keys():
         return False
     else:
@@ -1006,6 +1029,7 @@ def get_val_vstruct(node, param):
         from_socket = node.inputs[param].links[0].from_socket
         return get_val_vstruct(from_socket.node, from_socket.identifier)
     elif is_vstruct_and_linked(node, param):
+        meta = node.shader_meta[param] if node.bl_idname == "PxrOSLPatternNode" else node.prop_meta[param]
         vstruct_name, vstruct_member = meta['vstructmember'].split('.')
         from_socket = node.inputs[vstruct_name].links[0].from_socket
         vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)
@@ -1015,7 +1039,9 @@ def get_val_vstruct(node, param):
 
 # parse a vstruct conditional string and return true or false if should link
 def vstruct_conditional(node, param):
-    meta = node.prop_meta[param]
+    print(node, param)
+    print(dir(node), node.prop_meta.keys())
+    meta = getattr(node, 'shader_meta')[param] if node.bl_idname == "PxrOSLPatternNode" else node.prop_meta[param]
     if 'vstructConditionalExpr' not in meta.keys():
         return True
 
@@ -1469,6 +1495,8 @@ def register():
 
     for name, arg_file in args_files_in_path(prefs, None).items():
         generate_node_type(prefs, name, ET.parse(arg_file).getroot())
+    # need to specially make an osl node
+    generate_osl_node()
 
     pattern_nodeitems = []
     bxdf_nodeitems = []
@@ -1484,6 +1512,7 @@ def register():
             light_nodeitems.append(node_item)
         elif node_type.renderman_node_type == 'displacement':
             displacement_nodeitems.append(node_item)
+
 
     # all categories in a list
     node_categories = [
