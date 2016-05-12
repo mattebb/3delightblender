@@ -211,7 +211,7 @@ class ExternalRender(bpy.types.Operator):
             self.report({"ERROR"}, 'Please stop IPR before rendering externally')
             return {'FINISHED'}
         scene = context.scene
-        rpass = RPass(scene)
+        rpass = RPass(scene, external_render=True)
         rm = scene.renderman
 
         #rib gen each frame
@@ -253,7 +253,7 @@ class ExternalRender(bpy.types.Operator):
                 self.report({'ERROR'}, 'Error launching prman')
 
         # else gen spool job
-        else:
+        elif rm.external_action == 'spool':
             denoise = 'frame'
             frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
             frame_end = scene.frame_end if rm.external_animation else scene.frame_current

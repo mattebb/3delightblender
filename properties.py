@@ -531,7 +531,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="RIB Output Path",
         description="Path to generated .rib files",
         subtype='FILE_PATH',
-        default=os.path.join('$OUT','{scene}.rib'))
+        default=os.path.join('$OUT','{scene}.####.rib'))
 
     path_object_archive_static = StringProperty(
         name="Object archive RIB Output Path",
@@ -632,29 +632,26 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Maximum number of diffuse ray bounces",
         min=0, max=32, default=1)
 
-    def display_driver_items(self, context):
-        items = [('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
-                 ('tiff', 'Tiff',
-                  'Render to a TIFF file, to be read back into Blender\'s Render Result'),
-                 ('it', 'it', 'External framebuffer display (must have RMS installed)')]
-        return items
-
-    def set_display_driver(self, context):
-        if self.render_into == 'it':
-            self.display_driver = 'it'
-        else:
-            self.display_driver = 'openexr'
+    enable_external_rendering = BoolProperty(
+        name="Enable External Rendering",
+        description="This will allow extended rendering modes, which allow batch rendering to PRMan outside of Blender",
+        default=False)
 
     display_driver = EnumProperty(
         name="Display Driver",
         description="File Type for output pixels, 'it' will send to an external framebuffer",
-        items=display_driver_items)
+        items=[
+                ('openexr', 'OpenEXR', 'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
+                 ('tiff', 'Tiff',
+                  'Render to a TIFF file, to be read back into Blender\'s Render Result'),
+                 ('it', 'it', 'External framebuffer display (must have RMS installed)')
+                 ], default='it')
 
     render_into = EnumProperty(
         name="Render to",
         description="Render to blender or external framebuffer",
         items=[('blender', 'Blender', 'Render to the Image Editor'),
-               ('it', 'it', 'External framebuffer display (must have RMS installed)')], update=set_display_driver,
+               ('it', 'it', 'External framebuffer display (must have RMS installed)')],
         default='blender')
 
     external_action = EnumProperty(

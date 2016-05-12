@@ -152,13 +152,14 @@ def format_seconds_to_hhmmss(seconds):
 
 class RPass:
 
-    def __init__(self, scene, interactive=False):
+    def __init__(self, scene, interactive=False, external_render=False):
         self.scene = scene
         # pass addon prefs to init_envs
         addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
         init_exporter_env(addon.preferences)
         self.initialize_paths(scene)
         self.rm = scene.renderman
+        self.external_render = external_render
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
         self.is_interactive_running = False
         self.is_interactive = interactive
@@ -220,7 +221,7 @@ class RPass:
 
     def update_frame_num(self,num):
         self.scene.frame_set(num)
-        self.paths['rib_output'] = user_path(self.scene.renderma.path_rib_output, 
+        self.paths['rib_output'] = user_path(self.scene.renderman.path_rib_output, 
                                              scene=self.scene)
 
     def preview_render(self, engine):

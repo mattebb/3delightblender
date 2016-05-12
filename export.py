@@ -2716,14 +2716,12 @@ def export_display(ri, rpass, scene):
                   "float[3] remap": [remap_a, remap_b, remap_c]}
         ri.DisplayChannel(source_type + ' %s' % (channel_name), params)
 
-    if(rm.display_driver == 'it'):
-        if find_it_path() is None:
-            debug("error", "RMS is not installed IT not available!")
-            dspy_driver = 'multires'
-        else:
-            dspy_driver = rm.display_driver
+
+    if rpass.external_render:
+        display_driver = rm.display_driver
     else:
-        dspy_driver = rm.display_driver
+        display_driver = 'it' if rm.render_into == 'it' else 'openexr'
+    
 
     main_display = user_path(rm.path_display_driver_image,
                              scene=scene)
@@ -2846,7 +2844,7 @@ def export_hider(ri, rpass, scene, preview=False):
         hider_params['int incremental'] = 1
         pv = rm.preview_pixel_variance
 
-    if rm.output_action == 'EXPORT_RENDER' and rm.display_driver != 'it':
+    if not rpass.external_render and rm.render_into == 'blender':
         hider_params['int incremental'] = 1
 
     if not preview:
