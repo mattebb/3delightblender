@@ -2717,14 +2717,11 @@ def export_display(ri, rpass, scene):
         ri.DisplayChannel(source_type + ' %s' % (channel_name), params)
 
 
-    if rpass.external_render:
-        display_driver = rm.display_driver
-    else:
-        display_driver = 'it' if rm.render_into == 'it' else 'openexr'
+    display_driver = rpass.display_driver
     
 
     main_display = user_path(rm.path_display_driver_image,
-                             scene=scene)
+                             scene=scene, rpass=rpass)
     debug("info", "Main_display: " + main_display)
 
     #main_display = os.path.relpath(main_display, rpass.paths['export_dir'])

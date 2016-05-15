@@ -286,7 +286,7 @@ def get_sequence_path(path, blender_frame, anim):
     return make_frame_path(path, frame)
 
 
-def user_path(path, scene=None, ob=None):
+def user_path(path, scene=None, ob=None, rpass=None):
     '''
     # bit more complicated system to allow accessing scene or object attributes.
     # let's stay simple for now...
@@ -320,10 +320,12 @@ def user_path(path, scene=None, ob=None):
         path = path.replace('{blend}', blendpath)
     if scene is not None:
         path = path.replace('{scene}', scene.name)
-        if scene.renderman.display_driver == "tiff":
-            path = path.replace('{file_type}', scene.renderman.display_driver[-4:])
+    if rpass is not None:    
+        display_driver = rpass.display_driver
+        if display_driver == "tiff":
+            path = path.replace('{file_type}', display_driver[-4:])
         else:
-            path = path.replace('{file_type}', scene.renderman.display_driver[-3:])
+            path = path.replace('{file_type}', display_driver[-3:])
     if ob is not None:
         path = path.replace('{object}', ob.name)
 
