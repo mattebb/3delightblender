@@ -281,7 +281,7 @@ class RPass:
     def get_denoise_names(self):
         base, ext = self.paths['render_output'].rsplit('.', 1)
         # denoise data has the name .denoise.exr
-        return (base + '.variance.' + 'exr', base + '.denoise_filtered.' + 'exr')
+        return (base + '.variance.' + 'exr', base + '.filtered.' + 'exr')
     
 
     def render(self, engine):
@@ -429,15 +429,17 @@ class RPass:
         if self.rm.do_denoise and not isProblem:
             base, ext = render_output.rsplit('.', 1)
             # denoise data has the name .denoise.exr
-            denoise_options = "-t%d" % self.rm.threads
+            denoise_options = ["-t%d" % self.rm.threads]
             denoise_data, filtered_name = self.get_denoise_names()
+            #denoise_options.extend(['-o', os.path.basename(filtered_name).rsplit('.', 1)[0]])
             if os.path.exists(denoise_data):
                 try:
                     # denoise to _filtered
                     cmd = [os.path.join(self.paths['rmantree'], 'bin',
-                                        'denoise')] + [denoise_options] +  [denoise_data]
+                                        'denoise')] + denoise_options +  [denoise_data]
 
                     engine.update_stats("", ("PRMan: Denoising image"))
+                    #print(cmd)
                     t1 = time.time()
                     process = subprocess.Popen(cmd, cwd=images_dir,
                                                stdout=subprocess.PIPE,
@@ -477,11 +479,14 @@ class RPass:
                                                        env=environ)
                             process.wait()
                     else:
-                        engine.report({"ERROR"}, "PRMan: Error Denoising.")
+                        engine.report({"ERROR"}, "PRMan: Error Denoising.  ")
+                        print(process.stderr)
                 except:
                     engine.report({"ERROR"},
                                   "Problem launching denoise from %s." %
                                   prman_executable)
+                    engine.report({"ERROR"},
+                                  traceback.format_exc())
             else:
                 engine.report({"ERROR"},
                               "Cannot denoise file %s. Does not exist" %
