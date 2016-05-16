@@ -419,7 +419,7 @@ def set_rmantree(rmantree):
 def set_path(paths):
     for path in paths:
         if path is not None:
-            os.environ['PATH'] = os.environ['PATH'] + os.pathsep + path
+            os.environ['PATH'] = path + os.pathsep + os.environ['PATH']
 
 def check_valid_rmantree(rmantree):
     prman = 'prman.exe' if platform.system() == 'Windows' else 'prman'
