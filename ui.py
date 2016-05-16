@@ -238,8 +238,14 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
 
         # note
         row = layout.row()
-        row.label('Note:  This will render outside of Blender, images will not show up in the Image Editor.')
+        row.label('Note:  External Rendering will render outside of Blender, images will not show up in the Image Editor.')
         
+        row = layout.row()
+        row.prop(rm, 'enable_external_rendering')
+        if not rm.enable_external_rendering:
+            return
+
+
         #button
         icons = load_icons()
         row = layout.row()
@@ -1347,7 +1353,8 @@ class DrawRenderHeaderInfo(bpy.types.Header):
         rman_render = icons.get("render")
         row.operator("render.render", text="Render", icon_value=rman_render.icon_id)
         rman_batch = icons.get("batch_render")
-        row.operator("renderman.external_render", text="External Render", icon_value=rman_batch.icon_id)
+        if context.scene.renderman.enable_external_rendering:
+            row.operator("renderman.external_render", text="External Render", icon_value=rman_batch.icon_id)
          
          
         if engine.ipr:
@@ -1789,51 +1796,53 @@ class Renderman_UI_Panel(bpy.types.Panel):
  
         row = layout.row(align=True) 
         rman_batch = icons.get("batch_render")
-        row.operator("renderman.external_render", text="External Render", icon_value=rman_batch.icon_id)
         
-        row.prop(context.scene,"rm_render_external", text="", icon='TRIA_UP' if context.scene.rm_render_external else 'TRIA_DOWN')
-        if context.scene.rm_render_external :
-            scene = context.scene
-            rd = scene.render
-             
-            box = layout.box()
-            row = box.row(align=True)
+        if context.scene.renderman.enable_external_rendering:
+            row.operator("renderman.external_render", text="External Render", icon_value=rman_batch.icon_id)
             
-            #Display Driver
-            row.prop(rm,"display_driver", text='Render into')
-            
-            #animation
-            row = box.row(align=True)
-            row.prop(rm, "external_animation")
+            row.prop(context.scene,"rm_render_external", text="", icon='TRIA_UP' if context.scene.rm_render_external else 'TRIA_DOWN')
+            if context.scene.rm_render_external :
+                scene = context.scene
+                rd = scene.render
+                 
+                box = layout.box()
+                row = box.row(align=True)
+                
+                #Display Driver
+                row.prop(rm,"display_driver", text='Render into')
+                
+                #animation
+                row = box.row(align=True)
+                row.prop(rm, "external_animation")
 
-            row = box.row(align=True)
-            row.enabled = rm.external_animation
-            row.prop(scene, "frame_start", text="Start")
-            row.prop(scene, "frame_end", text="End")
+                row = box.row(align=True)
+                row.enabled = rm.external_animation
+                row.prop(scene, "frame_start", text="Start")
+                row.prop(scene, "frame_end", text="End")
 
-            # presets
-            row = box.row(align=True)
-            row.label("Sampling Preset:")
-            row.menu("presets")
+                # presets
+                row = box.row(align=True)
+                row.label("Sampling Preset:")
+                row.menu("presets")
 
-            # denoise and selected row
-            row = box.row(align=True)
-            row.prop(rm, "external_denoise", text="Denoise")
-            col = row.column()
-            col.enabled = rm.external_denoise and rm.external_animation
-            col.prop(rm, "crossframe_denoise", text="Crossframe Denoise")
+                # denoise and selected row
+                row = box.row(align=True)
+                row.prop(rm, "external_denoise", text="Denoise")
+                col = row.column()
+                col.enabled = rm.external_denoise and rm.external_animation
+                col.prop(rm, "crossframe_denoise", text="Crossframe Denoise")
 
-            row = box.row(align=True)
-            row.prop(rm, "render_selected_objects_only", text="Render Selected")
+                row = box.row(align=True)
+                row.prop(rm, "render_selected_objects_only", text="Render Selected")
 
-            # spool render
-            row = box.row(align=True)
-            row.prop(rm, "external_action", text='')
-            col = row.column()
-            col.enabled = rm.external_action == 'spool'
-            col.prop(rm, "queuing_system", text='')
+                # spool render
+                row = box.row(align=True)
+                row.prop(rm, "external_action", text='')
+                col = row.column()
+                col.enabled = rm.external_action == 'spool'
+                col.prop(rm, "queuing_system", text='')
 
-            
+                
 
         layout.separator()
         

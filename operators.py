@@ -211,7 +211,7 @@ class ExternalRender(bpy.types.Operator):
             self.report({"ERROR"}, 'Please stop IPR before rendering externally')
             return {'FINISHED'}
         scene = context.scene
-        rpass = RPass(scene)
+        rpass = RPass(scene, external_render=True)
         rm = scene.renderman
 
         #rib gen each frame
@@ -221,11 +221,13 @@ class ExternalRender(bpy.types.Operator):
         if rm.external_animation:
             for frame in range(scene.frame_start, scene.frame_end + 1):
                 rpass.update_frame_num(frame)
+                self.report({'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % frame)
                 self.gen_rib_frame(rpass)
                 rib_names.append(rpass.paths['rib_output'])
                 if rm.external_denoise:
                     denoise_files.append(rpass.get_denoise_names())
         else:
+            self.report({'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
             self.gen_rib_frame(rpass)
             rib_names.append(rpass.paths['rib_output'])
 
@@ -246,14 +248,17 @@ class ExternalRender(bpy.types.Operator):
             environ['RMANTREE'] = rpass.paths['rmantree']
 
             # Launch the command to begin rendering.
+            self.report({'INFO'}, 'RenderMan External Rendering rendering ribs ' + str(rib_names))
             try:
                 process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE,
                                            stderr=subprocess.PIPE, env=environ)
             except:
                 self.report({'ERROR'}, 'Error launching prman')
 
+            self.report({'INFO'}, 'RenderMan External Rendering done rendering.')
+
         # else gen spool job
-        else:
+        elif rm.external_action == 'spool':
             denoise = 'frame'
             frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
             frame_end = scene.frame_end if rm.external_animation else scene.frame_current
@@ -262,6 +267,7 @@ class ExternalRender(bpy.types.Operator):
             # if spooling send job to queuing
             if rm.external_action == 'spool':
                 exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
+                self.report({'INFO'}, 'RenderMan External Rendering spooling to %s.' % rm.queuing_system)
                 subprocess.Popen([exe, alf_file], shell=True)
 
         rpass = None

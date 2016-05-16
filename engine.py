@@ -81,7 +81,7 @@ def init():
 
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
     # TODO add support for regions (rerendering)
-    engine.render_pass = RPass(scene)
+    engine.render_pass = RPass(scene, preview_render=engine.is_preview)
 
 
 def free(engine):
@@ -107,13 +107,11 @@ def reset(engine, data, scene):
 def update(engine, data, scene):
     engine.render_pass.update_time = int(time.time())
     if engine.is_preview:
-        engine.render_pass.display_driver = 'tif'
         try:
             engine.render_pass.gen_preview_rib()
         except Exception as err:
             engine.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
     else:
-        engine.render_pass.display_driver = scene.renderman.display_driver
         try:
             engine.render_pass.gen_rib(engine=engine)
         except Exception as err:
@@ -152,13 +150,22 @@ def format_seconds_to_hhmmss(seconds):
 
 class RPass:
 
-    def __init__(self, scene, interactive=False):
+    def __init__(self, scene, interactive=False, external_render=False, preview_render=False):
         self.scene = scene
+        #set the display driver 
+        if external_render:
+            self.display_driver = scene.renderman.display_driver
+        elif preview_render:
+            self.display_driver = 'openexr'
+        else:
+            self.display_driver = 'it' if scene.renderman.render_into == 'it' else 'openexr'
+
         # pass addon prefs to init_envs
         addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
         init_exporter_env(addon.preferences)
         self.initialize_paths(scene)
         self.rm = scene.renderman
+        self.external_render = external_render
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
         self.is_interactive_running = False
         self.is_interactive = interactive
@@ -196,7 +203,7 @@ class RPass:
             os.makedirs(self.paths['export_dir'])
 
         self.paths['render_output'] = user_path(rm.path_display_driver_image,
-                                                scene=scene)
+                                                scene=scene, rpass=self)
         debug("info",self.paths)
         self.paths['shader'] = [user_path(rm.out_dir, scene=scene)] +\
             get_path_list_converted(rm, 'shader')
@@ -220,7 +227,7 @@ class RPass:
 
     def update_frame_num(self,num):
         self.scene.frame_set(num)
-        self.paths['rib_output'] = user_path(self.scene.renderma.path_rib_output, 
+        self.paths['rib_output'] = user_path(self.scene.renderman.path_rib_output, 
                                              scene=self.scene)
 
     def preview_render(self, engine):
@@ -274,7 +281,7 @@ class RPass:
     def get_denoise_names(self):
         base, ext = self.paths['render_output'].rsplit('.', 1)
         # denoise data has the name .denoise.exr
-        return (base + '.variance.' + 'exr', base + '.denoise_filtered.' + 'exr')
+        return (base + '.variance.' + 'exr', base + '.filtered.' + 'exr')
     
 
     def render(self, engine):
@@ -422,15 +429,17 @@ class RPass:
         if self.rm.do_denoise and not isProblem:
             base, ext = render_output.rsplit('.', 1)
             # denoise data has the name .denoise.exr
-            denoise_options = "-t%d" % self.rm.threads
+            denoise_options = ["-t%d" % self.rm.threads]
             denoise_data, filtered_name = self.get_denoise_names()
+            #denoise_options.extend(['-o', os.path.basename(filtered_name).rsplit('.', 1)[0]])
             if os.path.exists(denoise_data):
                 try:
                     # denoise to _filtered
                     cmd = [os.path.join(self.paths['rmantree'], 'bin',
-                                        'denoise')] + [denoise_options] +  [denoise_data]
+                                        'denoise')] + denoise_options +  [denoise_data]
 
                     engine.update_stats("", ("PRMan: Denoising image"))
+                    #print(cmd)
                     t1 = time.time()
                     process = subprocess.Popen(cmd, cwd=images_dir,
                                                stdout=subprocess.PIPE,
@@ -470,11 +479,14 @@ class RPass:
                                                        env=environ)
                             process.wait()
                     else:
-                        engine.report({"ERROR"}, "PRMan: Error Denoising.")
+                        engine.report({"ERROR"}, "PRMan: Error Denoising.  ")
+                        print(process.stderr)
                 except:
                     engine.report({"ERROR"},
                                   "Problem launching denoise from %s." %
                                   prman_executable)
+                    engine.report({"ERROR"},
+                                  traceback.format_exc())
             else:
                 engine.report({"ERROR"},
                               "Cannot denoise file %s. Does not exist" %
