@@ -337,7 +337,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         self.ll_light_index = -1
 
     def reset_ll_object_index(self, context):
-        self.ll_light_index = -1
+        self.ll_object_index = -1
 
     ll_light_index = IntProperty(min=-1, default=-1)
     ll_object_index = IntProperty(min=-1, default=-1)
