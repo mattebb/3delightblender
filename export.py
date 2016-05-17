@@ -737,7 +737,7 @@ def export_light_shaders(ri, lamp, do_geometry=True):
                 if node.renderman_node_type == 'output':
                     output = node
                     break
-            if output and output.inputs['Light'].is_linked:
+            if output and 'Light' in output.inputs and output.inputs['Light'].is_linked:
                 light_shader = output.inputs['Light'].links[0].from_node
                 if hasattr(light_shader, 'rman__Shape'):
                     if lamp.type == 'AREA':
@@ -3233,7 +3233,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             and bpy.data.scenes[0].objects.active.type == 'LAMP':
             lamp = bpy.data.scenes[0].objects.active
             mat = bpy.data.scenes[0].objects.active.data
-        elif mat is None and world.renderman.nodetree != '':
+        elif mat is None and nt and nt.name == 'World':
             mat = world
         if mat is None:
             return
@@ -3273,7 +3273,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         if mat is None and bpy.data.scenes[0].objects.active \
             and bpy.data.scenes[0].objects.active.type == 'LAMP':
             mat = bpy.data.scenes[0].objects.active.data
-        elif mat is None and bpy.context.scene.world.renderman.nodetree != '':
+        elif mat is None and nt and nt.name == 'World':
             mat = bpy.context.scene.world
         elif mat is None:
             return
