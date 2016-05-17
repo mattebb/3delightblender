@@ -498,7 +498,7 @@ def guess_rmantree_initial():
     rmantree = rmantree_from_env()
     if rmantree != '':
         vstr = rmantree.split('-')[-1]
-        vf = float(vstr.strip('\\'))
+        vf = float(vstr.strip('/\\'))
         if vf > 20.0:
             return rmantree
 
