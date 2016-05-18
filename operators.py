@@ -634,8 +634,18 @@ class OT_add_aov_list(bpy.types.Operator):
         # this sucks.  but can't find any other way to refer to render layer
         scene.renderman.aov_lists[-1].render_layer = active_layer.name
         return {'FINISHED'}
-
-
+        
+class OT_add_multilayer_list(bpy.types.Operator):
+    bl_idname = 'renderman.add_multilayer_list'
+    bl_label = 'Add multilayer list'
+    
+    def execute(self, context):
+        scene = context.scene
+        scene.renderman.multilayer_lists.add()
+        active_layer = scene.render.layers.active
+        scene.renderman.multilayer_lists[-1].render_layer = active_layer.name
+        return {'FINISHED'}
+        
 class OT_add_to_group(bpy.types.Operator):
     bl_idname = 'renderman.add_to_group'
     bl_label = 'Add Selected to Object Group'
