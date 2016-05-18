@@ -473,7 +473,7 @@ def guess_rmantree():
         return None
     # check that it's > 20
     vstr = rmantree.split('-')[-1]
-    vf = float(vstr.strip('/'))
+    vf = float(vstr.strip('/\\'))
     if vf < 20.0:
         print('ERROR!!!  You need RenderMan version 20.0 or above.')
         print('Correct in User Prefences.')
@@ -498,7 +498,7 @@ def guess_rmantree_initial():
     rmantree = rmantree_from_env()
     if rmantree != '':
         vstr = rmantree.split('-')[-1]
-        vf = float(vstr.strip('/'))
+        vf = float(vstr.strip('/\\'))
         if vf > 20.0:
             return rmantree
 

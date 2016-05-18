@@ -32,6 +32,7 @@ import webbrowser
 import addon_utils
 from .icons.icons import load_icons
 from operator import attrgetter, itemgetter
+from bl_operators.presets import AddPresetBase
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
@@ -182,6 +183,31 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class AddPresetRenedrmanRender(AddPresetBase, bpy.types.Operator):
+    '''Add or remove a Renderman Sampling Preset'''
+    bl_idname = "render.renderman_preset_add"
+    bl_label = "Add Render Preset"
+    preset_menu = "presets"
+    
+    preset_defines = ["scene = bpy.context.scene"]
+    
+    preset_values = [
+        "scene.renderman.pixel_variance"
+        "scene.renderman.min_samples"
+        "scene.renderman.max_samples"
+        "scene.renderman.max_specular_depth"
+        "scene.renderman.max_diffuse_depth"
+        "scene.renderman.motion_blur"
+        "scene.renderman.do_denoise"
+    ]
+        
+    preset_subdir = "renderman"
+        
+        
+        
+        
+        
+        
 class refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.refresh_osl_shader"
     bl_label = "Refresh OSL Node"
@@ -475,12 +501,14 @@ class TractorPreset(bpy.types.Operator):
 class PresetsMenu(bpy.types.Menu):
     bl_label = "Renderman Presets"
     bl_idname = "presets"
-
-    def draw(self, context):
-        self.layout.operator("presets.preview")
-        self.layout.operator("presets.final")
-        self.layout.operator("presets.finaldenoise")
-        self.layout.operator("presets.tractorqueue")
+    preset_subdir = "renderman/sampling"
+    preset_operator = "script.execute_preset"
+    draw = bpy.types.Menu.draw_preset
+    #def draw(self, context):
+    #    self.layout.operator("presets.preview")
+    #    self.layout.operator("presets.final")
+    #    self.layout.operator("presets.finaldenoise")
+    #    self.layout.operator("presets.tractorqueue")
 
 #################
 # Sample scenes menu.
