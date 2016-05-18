@@ -262,12 +262,13 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         sub_row.enabled = rm.external_denoise
         sub_row.prop(rm, "crossframe_denoise")
         
+        layout.separator()
+        layout.label("Multilayer Export:")
+        row = layout.row(align=True)
+        row.enabled = rm.display_driver in ['tiff', 'openexr']
+        row.prop(rm, "export_multilayer")
+        
         sub_row = col.row()
-        sub_row.enabled = rm.display_driver in ['tiff', 'openexr']
-        sub_row.prop(rm, "combine_aovs")
-        sub_row = col.row()
-        sub_row.enabled = rm.display_driver in ['tiff', 'openexr'] and rm.combine_aovs
-        sub_row.prop(rm, "include_beauty_pass")
 
         #display driver
         split.prop(rm,"display_driver", text='Render To')
@@ -714,8 +715,7 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
         split = layout.split()
 
         col = split.column()
-        #Commented this out since the 'beauty pass' option in outputs is the same thing.
-        #col.prop(rl, "use_pass_combined")
+        col.prop(rl, "use_pass_combined")
         col.prop(rl, "use_pass_z")
         col.prop(rl, "use_pass_normal")
         col.prop(rl, "use_pass_vector")
@@ -1251,6 +1251,43 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             self._draw_collection(context, layout, aov_list, "AOVs",
                                   "collection.add_remove", "aov_list",
                                   "custom_aovs", "custom_aov_index")
+                                  
+class RENDER_PT_layer_multilayer_files(CollectionPanel, Panel):
+    bl_label = "RenderMan Multilayer Files"
+    bl_context = "render_layer"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine in {'PRMAN_RENDER'}
+
+    def draw_item(self, layout, context, item):
+        scene = context.scene
+        rm = scene.renderman
+        col = layout.column()
+        col.prop(item, "name")
+        col.prop(item, "channel_names")
+        col.prop(item,  "include_beauty")
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+        multilayer_list = None
+        active_layer = scene.render.layers.active
+        for l in rm.multilayer_lists:
+            if l.render_layer == active_layer.name:
+                multilayer_list = l
+                break
+        if multilayer_list is None:
+            layout.operator('renderman.add_multilayer_list')
+        else:
+            layout.context_pointer_set("multilayer_list", multilayer_list)
+            self._draw_collection(context, layout, multilayer_list, "Multilayer Files",
+                                  "collection.add_remove", "multilayer_list",
+                                  "multilayer_files", "multilayer_file_index")
 
 
 class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
