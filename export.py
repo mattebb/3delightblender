@@ -2432,6 +2432,8 @@ def export_camera(ri, scene, instances, camera_to_use=None):
 
         fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
         ri.Projection("perspective", {"fov": fov})
+    elif cam.type == 'PANO':
+        ri.Projection("sphere", {"float hsweep": 360, "float vsweep": 180})
     else:
         lens = cam.ortho_scale
         xaspect = xaspect * lens / (aspectratio * 2.0)
@@ -2452,7 +2454,10 @@ def export_camera(ri, scene, instances, camera_to_use=None):
                                  scene.render.border_min_y)
         ri.Format(int(res_x), int(res_y), 1.0)
     else:
-        ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
+        if cam.type == 'PANO':
+            ri.ScreenWindow(-1, 1, -1, 1)
+        else:
+            ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
         ri.Format(resolution[0], resolution[1], 1.0)
 
     export_camera_matrix(ri, scene, ob, motion)
