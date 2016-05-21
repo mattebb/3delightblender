@@ -32,6 +32,7 @@ import webbrowser
 import addon_utils
 from .icons.icons import load_icons
 from operator import attrgetter, itemgetter
+from bl_operators.presets import AddPresetBase
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
@@ -501,6 +502,7 @@ class PresetsMenu(bpy.types.Menu):
     # In effect I am overriding the bpy.types.Menu.draw_preset function
     #   this is so I can draw the built in presets.
     def draw(self, context):
+        # Temporary until I can think of a different way.
         self.layout.operator("presets.preview")
         self.layout.operator("presets.final")
         self.layout.operator("presets.finaldenoise")
@@ -511,12 +513,6 @@ class PresetsMenu(bpy.types.Menu):
                        self.preset_operator,
                        props_default=props_default,
                        filter_ext=lambda ext: ext.lower() in ext_valid)
-
-    def draw(self, context):
-        self.layout.operator("presets.preview")
-        self.layout.operator("presets.final")
-        self.layout.operator("presets.finaldenoise")
-        self.layout.operator("presets.tractorqueue")
 
 #################
 # Sample scenes menu.
