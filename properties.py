@@ -255,7 +255,9 @@ class RendermanAOV(bpy.types.PropertyGroup):
     name = StringProperty(
         name="Channel Name",
         description="Name for the Channel in the output file.  NOTE: Spaces must be represented by an underscore.  If this is not followed the channel will not output.")
-
+    
+    channel_name = StringProperty()
+    
     custom_lpe_string = StringProperty(
         name="lpe String",
         description="Custom lpe string")
@@ -265,13 +267,13 @@ class RendermanAOV(bpy.types.PropertyGroup):
         description="Name of the built in AOV")
 
     denoise_aov = BoolProperty(
-        name="Format AOV for denoising",
+        name="Format for denoising",
         description="If checked this pass will be export as an individual file and properly formatted for use by the denoise utility",
         default=False)
 
     exclude_from_multi = BoolProperty(
-        name="Exclude AOV from multilayer output",
-        description="Keeps this AOV from appearing un a multilayer output.",
+        name="Exclude from default multilayer",
+        description="Keeps this AOV from appearing in the default multilayer output.",
         default=False)
 
     custom_aov_type = StringProperty(
@@ -322,6 +324,20 @@ class RendermanAOVList(bpy.types.PropertyGroup):
                                      name='Custom AOVs')
     custom_aov_index = IntProperty(min=-1, default=-1)
 
+class RendermanMultilayerFile(bpy.types.PropertyGroup):
+    name = StringProperty(name="Multilayer Name",  description="Name of the multilayer file to export.",  default="")
+    
+    channel_names = StringProperty(name="Channel Names",  description="Names of the display channels (AOV's) to include.",  default="")
+    
+    include_beauty = BoolProperty(name="Include Beauty Pass",  description="Includes the RGBA combined pass in this multilayer.",  default=True)
+    
+class RendermanMultilayerFileList(bpy.types.PropertyGroup):
+    render_layer = StringProperty()
+    
+    multilayer_files = CollectionProperty(type=RendermanMultilayerFile,  name="Multilayer Files")
+    
+    multilayer_file_index = IntProperty(min=-1,  default=-1)
+
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
     light_groups = CollectionProperty(type=RendermanGroup,
@@ -359,6 +375,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     aov_lists = CollectionProperty(type=RendermanAOVList,
                                    name='Custom AOVs')
     aov_list_index = IntProperty(min=-1, default=-1)
+    
+    multilayer_lists = CollectionProperty(type=RendermanMultilayerFileList,  name="Multilayer Files")
+    
+    multilayer_list_index = IntProperty(min=-1,  default=-1)
 
     solo_light = BoolProperty(name = "Solo Light", default=False)
 
@@ -674,16 +694,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Spool Animation",
         default=False)
 
-    combine_aovs = BoolProperty(
-        name="Combine AOV's",
-        description="Combine all AOV's into a single output file.  Useful if you intend to post process the render in a compositor.",
-        default=False)
-
-    include_beauty_pass = BoolProperty(
-        name="Include Beauty Pass",
-        description="Include the full lighting 'beauty pass' in the multilayer output.",
+    export_multilayer = BoolProperty(
+        name="Export Mulilayer Files",
+        description="Exports multilayer files confifgured in the render layer panel.",
         default=True)
-
+        
     header_rib_boxes = StringProperty(
         name="External RIB File",
         description="Injects an external RIB into the header of the output file.",
@@ -1724,6 +1739,8 @@ classes = [RendermanPath,
            LightLinking,
            TraceSet,
            RendermanPass,
+           RendermanMultilayerFile, 
+           RendermanMultilayerFileList, 
            RendermanMeshPrimVar,
            RendermanParticlePrimVar,
            RendermanMaterialSettings,
