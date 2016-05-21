@@ -32,7 +32,6 @@ import webbrowser
 import addon_utils
 from .icons.icons import load_icons
 from operator import attrgetter, itemgetter
-from bl_operators.presets import AddPresetBase
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
@@ -183,26 +182,6 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class AddPresetRenedrmanRender(AddPresetBase, bpy.types.Operator):
-    '''Add or remove a Renderman Sampling Preset'''
-    bl_idname = "render.renderman_preset_add"
-    bl_label = "Add Renderman Preset"
-    bl_options = {'REGISTER', 'UNDO'}
-    preset_menu = "presets"
-    preset_defines = ["scene = bpy.context.scene",]
-    
-    preset_values = [
-        "scene.renderman.pixel_variance",
-        "scene.renderman.min_samples",
-        "scene.renderman.max_samples",
-        "scene.renderman.max_specular_depth",
-        "scene.renderman.max_diffuse_depth",
-        "scene.renderman.motion_blur",
-        "scene.renderman.do_denoise",
-        ]
-        
-    preset_subdir = os.path.join("renderman","render")
-        
 class refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.refresh_osl_shader"
     bl_label = "Refresh OSL Node"
@@ -496,22 +475,12 @@ class TractorPreset(bpy.types.Operator):
 class PresetsMenu(bpy.types.Menu):
     bl_label = "Renderman Presets"
     bl_idname = "presets"
-    preset_subdir = os.path.join("renderman","render")
-    preset_operator = "script.execute_preset"
-    #draw = bpy.types.Menu.draw_preset
-    # In effect I am overriding the bpy.types.Menu.draw_preset function
-    #   this is so I can draw the built in presets.
+
     def draw(self, context):
         self.layout.operator("presets.preview")
         self.layout.operator("presets.final")
         self.layout.operator("presets.finaldenoise")
         self.layout.operator("presets.tractorqueue")
-        ext_valid = getattr(self, "preset_extensions", {".py", ".xml"})
-        props_default = getattr(self, "preset_operator_defaults", None)
-        self.path_menu(bpy.utils.preset_paths(self.preset_subdir),
-                       self.preset_operator,
-                       props_default=props_default,
-                       filter_ext=lambda ext: ext.lower() in ext_valid)
 
 #################
 # Sample scenes menu.
