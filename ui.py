@@ -306,9 +306,13 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         scene = context.scene
         rm = scene.renderman
 
+        
         # layout.prop(rm, "display_driver")
         col = layout.column()
-        col.menu("presets", text="Render Presets")
+        row = col.row(align=True)
+        row.menu("presets", text=bpy.types.presets.bl_label)
+        row.operator("render.renderman_preset_add", text="", icon='ZOOMIN')
+        row.operator("render.renderman_preset_add", text="", icon='ZOOMOUT').remove_active = True
         col.prop(rm, "pixel_variance")
         row = col.row(align=True)
         row.prop(rm, "min_samples", text="Min Samples")
@@ -1738,7 +1742,9 @@ class Renderman_UI_Panel(bpy.types.Panel):
             # presets
             row = box.row(align=True)
             row.label("Sampling Preset:")
-            row.menu("presets")
+            row.menu("presets", text=bpy.types.presets.bl_label)
+            row.operator("render.renderman_preset_add", text="", icon='ZOOMIN')
+            row.operator("render.renderman_preset_add", text="", icon='ZOOMOUT').remove_active = True
 
             # denoise and selected row
             row = box.row(align=True)
