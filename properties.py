@@ -293,33 +293,33 @@ class RendermanAOV(bpy.types.PropertyGroup):
             if self.aov_channel_type == item[0]:
                 self.name = item[1]
 
-    show_advanced = BoolProperty(name='Advanced', default=False)
+    show_advanced = BoolProperty(name='Advanced Options', default=False)
 
     channel_type = EnumProperty(name="Channel type",
-                                description="The type for this aov, setting to custom will allow a custom LPE or AOV",
+                                description="The information type for this AOV.  Setting to one of the 'custom' options will allow a custom LPE or AOV",
                                 items=built_in_channel_types, update=update_type)
                                 
     aov_channel_type = EnumProperty(name="AOV type", 
-                                description="The type of built in AOV", 
+                                description="The type of built in data AOV", 
                                 items=built_in_aovs,  update=update_aov_type)
                                 
     name = StringProperty(
         name="Channel Name",
-        description="Name for the Channel in the output file.  NOTE: Spaces must be represented by an underscore.  If this is not followed the channel will not output.")
+        description="Name for this Channel in the output file.  NOTE: Spaces must be represented by an underscore.  If this is not followed the channel will not output.")
     
     channel_name = StringProperty()
     
     custom_lpe_string = StringProperty(
         name="lpe String",
-        description="Custom lpe string")
+        description="This is where you enter the custom lpe string")
 
     custom_aov_string = StringProperty(
         name="AOV name",
-        description="Name of the built in AOV")
+        description="This is where you enter the name of the custom AOV pass")
         
     stats_type = EnumProperty(
         name="Statistics", 
-        description="Name of the statistics to run on this AOV (if any)", 
+        description="this is the name of the statistics to display in this AOV (if any)", 
         items=[
                 ('none', 'None', ''), 
                 ('variance', 'Variance', 'estimates the variance of the samples in each pixel'), 
@@ -330,12 +330,12 @@ class RendermanAOV(bpy.types.PropertyGroup):
 
     denoise_aov = BoolProperty(
         name="Format for denoising",
-        description="If checked this pass will be export as an individual file and properly formatted for use by the denoise utility",
+        description="If checked this pass will be properly formatted for use by the denoise utility",
         default=False)
 
     exclude = BoolProperty(
         name="Exclude AOV from Export",
-        description="Enabling this will cause the AOV to not be exported or appear in the default multilayer file.",
+        description="Enabling this will restrict the AOV from being exported as a standalone file or appearing in the default multilayer.  To export it you must assign it to a custom multilayer file",
         default=False)
         
 
@@ -838,8 +838,8 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         default=False)
 
     export_multilayer = BoolProperty(
-        name="Combine AOV's to Multilayer File",
-        description="Exports a multilayer file of passes from the render layer panel.",
+        name="export all AOV's as a multilayer File",
+        description="Exports a multilayer file of AOV's from the render layer panel.  This will be in addition to any custom multilayer files that have been created",
         default=True)
 
     header_rib_boxes = StringProperty(
