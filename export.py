@@ -2585,8 +2585,6 @@ def export_display(ri, rpass, scene):
     rm = scene.renderman
 
     active_layer = scene.render.layers.active
-    
-    write_beauty_pass = False
 
     # built in aovs
     aovs = [
@@ -2683,16 +2681,32 @@ def export_display(ri, rpass, scene):
         remap_a = aov.remap_a
         remap_b = aov.remap_b
         remap_c = aov.remap_c
-        if aov.channel_type == 'custom_lpe_string':
+        pixel_filter = aov.aov_pixelfilter
+        stats = aov.stats_type
+        pixelfilter_x = aov.aov_pixelfilter_x
+        pixelfilter_y = aov.aov_pixelfilter_y
+        if source == 'custom_lpe_string':
             source = aov.custom_lpe_string
             # looks like someone didn't set an lpe string
             if source == '':
                 continue
-        if aov.channel_type == 'built_in_aov':
+        elif source == 'custom_aov_string':
             source = aov.custom_aov_string
             source_type = aov.custom_aov_type
             if source == '':
                 continue
+        elif source == 'built_in_aov':
+            source = aov.aov_channel_type
+            if aov.aov_channel_type in ("PRadius", "cpuTime", "sampleCount", "VLen", "curvature", 
+                                                "incidentRaySpread", "mpSize", "u", "v", "w", "du", "dv", "dw",
+                                                "time", "id", "dufp", "dvfp", "dwfp", "outsideIOR"):
+                source_type = "float"
+            if aov.aov_channel_type in ("Nn",  "Ngn"):
+                source_type = "normal"
+            if aov.aov_channel_type in ("Tn",  "Vn", "dPdu", "dPdv", "dPdw", "dPdtime"):
+                source_type = "vector"
+            if aov.aov_channel_type == "P":
+                source_type = "point"
         else:
             # light groups need to be surrounded with '' in lpes
             G_string = "'%s'" % aov.lpe_group if aov.lpe_group != '' else ""
@@ -2719,6 +2733,11 @@ def export_display(ri, rpass, scene):
         params = {"string source": source_type + " " + source,
                   "float[2] exposure": [exposure_gain, exposure_gamma],
                   "float[3] remap": [remap_a, remap_b, remap_c]}
+        if pixel_filter != 'default':
+            params["filter"] = pixel_filter
+            params["filterwidth"] = [pixelfilter_x, pixelfilter_y]
+        if stats != 'none':
+            params["string statistics"] = stats
         ri.DisplayChannel(source_type + ' %s' % (channel_name), params)
 
 
@@ -2732,73 +2751,80 @@ def export_display(ri, rpass, scene):
     #main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
 
-    ri.Display(main_display, display_driver, "rgba", {"quantize": [0, 0, 0, 0]})
+    main_params = {"quantize": [0, 0, 0, 0], "int asrgba": 1}
+
+    if display_driver == 'openexr':
+        if rm.exr_format_options != 'default':
+            main_params["string type"] = rm.exr_format_options
+        if rm.exr_compression != 'default':
+            main_params["string compression"] = rm.exr_compression
+            
+    ri.Display(main_display, display_driver, "rgba", main_params)
         
 
     # now do aovs
     
-    #exports built in AOV multilayer
+    #exports default AOV multilayer
     
-    if rm.export_multilayer and display_driver != "it":
+    if rm.export_multilayer and not display_driver in ('tiff', 'it'):
         aov_out_list = []
         for aov, doit, declare, source in aovs:
             if doit:
                 aov_out_list.append(aov)
         for aov in custom_aovs:
-            if not aov.exclude_from_multi:
+            if not aov.exclude:
                 aov_out_list.append(aov.channel_name)
         if aov_out_list:
             if active_layer.use_pass_combined:
-                ri.DisplayChannel("color Ci")
-                ri.DisplayChannel("float a")
-                write_beauty_pass = True
-                ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, "Ci,a," + ','.join(aov_out_list),  {"quantize": [0, 0, 0, 0], "int asrgba": 1})
+                ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, "rgba," + ','.join(aov_out_list), {"quantize": [0, 0, 0, 0], "int asrgba": 1})
             else:
-                ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, ','.join(aov_out_list))
-     
-     #exports custom multilayers   
-        for multilayer_list in rm.multilayer_lists:
-            custom_multilayers = []
-            if active_layer.name == multilayer_list.render_layer:
-                custom_multilayers = multilayer_list.multilayer_files
-            for file_out in custom_multilayers:
+                ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, ','.join(aov_out_list), {"quantize": [0, 0, 0, 0]})
+
+    #exports all AOV's not tagged as 'exclude'
+    else:
+        for aov, doit, declare, source in aovs:
+            if doit:
+                ri.Display('+' + image_base + '.%s.' % aov + ext,
+                           display_driver, aov, {"quantize": [0, 0, 0, 0]})
+        for aov in custom_aovs:
+            if not aov.exclude:
+                ri.Display('+' + image_base + '.%s.' % aov.name + ext,
+                           display_driver, aov.channel_name, {"quantize": [0, 0, 0, 0]})
+    #exports custom multilayers   
+    for multilayer_list in rm.multilayer_lists:
+        custom_multilayers = []
+        if active_layer.name == multilayer_list.render_layer:
+            custom_multilayers = multilayer_list.multilayer_files
+        for file_out in custom_multilayers:
+            if file_out.export:
                 channels = []
+                params = {"quantize": [0, 0, 0, 0], "string storage": file_out.exr_storage}
                 channel_id = file_out.channel_names.split(',')
+                if file_out.exr_format_options != 'default':
+                    params["string type"] = file_out.exr_format_options
+                if file_out.exr_compression != 'default':
+                    params["string compression"] = file_out.exr_compression
                 for aov in custom_aovs:
                     if aov.name in channel_id:
                         channels.append(aov.channel_name)
-                if file_out.include_beauty and not write_beauty_pass:
-                    ri.DisplayChannel("color Ci")
-                    ri.DisplayChannel("float a")
-                    write_beauty_pass = True
-                    ri.Display('+' + image_base + '.%s' % file_out.name + '.multilayer.' + ext, display_driver, "Ci,a," + ','.join(channels),  {"quantize": [0, 0, 0, 0], "int asrgba": 1})
-                elif file_out.include_beauty and write_beauty_pass:
-                    ri.Display('+' + image_base + '.%s' % file_out.name + '.multilayer.' + ext, display_driver, "Ci,a," + ','.join(channels),  {"quantize": [0, 0, 0, 0], "int asrgba": 1})
+                if file_out.include_beauty:
+                    params["int asrgba"] = 1
+                    ri.Display('+' + image_base + '.%s' % file_out.name + '.multilayer.exr',
+                               'openexr', "rgba," + ','.join(channels),
+                               params)
                 else:
-                    ri.Display('+' + image_base + '.%s' % file_out.name + '.multilayer.' + ext, display_driver, ','.join(channels))
+                    ri.Display('+' + image_base + '.%s' % file_out.name +
+                               '.multilayer.exr', 'openexr', ','.join(channels), params)
                     
             
                      
-    #if 'export multilayers' is not used, exports each AOV as a separate image
-    else:
-        for aov in custom_aovs:            
-            if not aov.denoise_aov:
-                ri.Display('+' + image_base + '.%s.' % aov.name + ext, display_driver,
-                       aov.name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
-            else:
-                ri.Display('+' + image_base + '.%s.denoiseable.' % aov.name + ext, display_driver, aov.channel_name)
-        for aov, doit, declare, source in aovs:
-            if doit:
-                params = {"quantize": [0, 0, 0, 0], "int asrgba": 1}
-                ri.Display('+' + image_base + '.%s.' % aov + ext, display_driver, aov, params)
-
-    
+       
     if rm.do_denoise and not rpass.is_interactive:
         # add display channels for denoising
         denoise_aovs = [
             # (name, declare type/name, source, statistics, filter)
-            #("Ci", 'color', None, None, None),
-            #("a", 'float', None, None, None),
+            ("Ci", 'color', None, None, None),
+            ("a", 'float', None, None, None),
             ("mse", 'color', 'color Ci', 'mse', None),
             ("albedo", 'color',
              'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
@@ -2814,10 +2840,6 @@ def export_display(ri, rpass, scene):
             ("forward", 'vector', 'vector motionFore', None, None),
             ("backward", 'vector', 'vector motionBack', None, None)
         ]
-        
-        if not write_beauty_pass:
-            ri.DisplayChannel("color Ci")
-            ri.DisplayChannel("float a")
         
         for aov, declare_type, source, statistics, do_filter in denoise_aovs:
             params = {}
