@@ -423,7 +423,7 @@ def quickAddPresets(presetList, pathFromPresetDir, name):
         file_preset.write(str(item) + "\n")
     file_preset.close()
     
-class AddPresetRenedrmanRender(AddPresetBase, bpy.types.Operator):
+class AddPresetRendermanRender(AddPresetBase, bpy.types.Operator):
     '''Add or remove a Renderman Sampling Preset'''
     bl_idname = "render.renderman_preset_add"
     bl_label = "Add Renderman Preset"
