@@ -2760,11 +2760,15 @@ def export_display(ri, rpass, scene):
             main_params["string compression"] = rm.exr_compression
             
     ri.Display(main_display, display_driver, "rgba", main_params)
+
+   
         
 
     # now do aovs
     
     #exports default AOV multilayer
+
+    beauty_channels = False
     
     if rm.export_multilayer and not display_driver in ('tiff', 'it'):
         aov_out_list = []
@@ -2776,7 +2780,10 @@ def export_display(ri, rpass, scene):
                 aov_out_list.append(aov.channel_name)
         if aov_out_list:
             if active_layer.use_pass_combined:
-                ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, "rgba," + ','.join(aov_out_list), {"quantize": [0, 0, 0, 0], "int asrgba": 1})
+                ri.DisplayChannel("color Ci")
+                ri.DisplayChannel("float a")
+                beauty_channels = True
+                ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, "Ci,a," + ','.join(aov_out_list), {"quantize": [0, 0, 0, 0], "int asrgba": 1})
             else:
                 ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, ','.join(aov_out_list), {"quantize": [0, 0, 0, 0]})
 
@@ -2808,9 +2815,13 @@ def export_display(ri, rpass, scene):
                     if aov.name in channel_id:
                         channels.append(aov.channel_name)
                 if file_out.include_beauty:
+                    if not beauty_channels:
+                        ri.DisplayChannel("color Ci")
+                        ri.DisplayChannel("float a")
+                        beauty_channels = True
                     params["int asrgba"] = 1
                     ri.Display('+' + image_base + '.%s' % file_out.name + '.multilayer.exr',
-                               'openexr', "rgba," + ','.join(channels),
+                               'openexr', "Ci,a," + ','.join(channels),
                                params)
                 else:
                     ri.Display('+' + image_base + '.%s' % file_out.name +
