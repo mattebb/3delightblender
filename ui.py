@@ -252,26 +252,34 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         rman_batch = icons.get("batch_render")
         row.operator("renderman.external_render", text="External Render", icon_value=rman_batch.icon_id)
         
+        
         layout.separator()
-        split = layout.split(percentage=0.33)
-
-        # denoise and selected row
-        col = split.column(align=True)
+        
+        row = layout.row()
+        split = row.split(percentage=0.33)
+        col = split.column()
         col.prop(rm, "external_denoise")
         sub_row = col.row()
         sub_row.enabled = rm.external_denoise
         sub_row.prop(rm, "crossframe_denoise")
         
-        layout.separator()
-        layout.label("Multilayer Export:")
-        row = layout.row(align=True)
-        row.enabled = rm.display_driver in ['tiff', 'openexr']
-        row.prop(rm, "export_multilayer")
+        #display driver
+        split = split.split ()
+        col = split.column()
+        col.prop(rm,"display_driver", text='Render To')
         
         sub_row = col.row()
+        if rm.display_driver == 'openexr':
+            sub_row = col.row()
+            sub_row.prop(rm,  "exr_format_options")
+            sub_row = col.row()
+            sub_row.prop(rm,  "exr_compression")
+            sub_row = col.row()
+            sub_row.prop(rm, "export_multilayer")
+        
+        layout.separator()
 
-        #display driver
-        split.prop(rm,"display_driver", text='Render To')
+        
        
         layout.separator()
         split = layout.split(percentage=0.33)
@@ -1204,35 +1212,48 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col.prop(item, "channel_type")
         if item.channel_type == "custom_lpe_string":
             col.prop(item, "custom_lpe_string")
-        if item.channel_type == "built_in_aov":
+        if item.channel_type == "custom_aov_string":
             col.prop(item, "custom_aov_type")
             col.prop(item, "custom_aov_string")
+        if item.channel_type == "built_in_aov":
+            col.prop(item,  "aov_channel_type")
         
         col = layout.column()
-        col.label("Exposure Settings")
-        col.prop(item, "exposure_gain")
-        col.prop(item, "exposure_gamma")
-        
-        col = layout.column()
-        col.label("Remap Settings")
-        row = col.row(align=True)
-        row.prop(item, "remap_a", text="A")
-        row.prop(item, "remap_b", text="B")
-        row.prop(item, "remap_c", text="C")
-
-        if item.channel_type != "custom_lpe_string" and item.channel_type != "built_in_aov":
-            col.prop(item, "show_advanced")
-            col = col.column()
-            col.enabled = item.show_advanced
-            col.prop(item, "exclude_from_multi")
-            if not item.channel_type in ["custom_lpe_string", "built_in_aov", "lpe:C<.D%G>[S]+<L.%LG>",
+        col.prop(item, "show_advanced")
+        if item.show_advanced:
+            col.prop(item, "exclude")
+            if not item.channel_type in ["custom_lpe_string", "built_in_aov", "custom_aov_string", 
+                                        "lpe:C<.D%G>[S]+<L.%LG>",
                                          "lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
                                          "lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
                                          "lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)"]:
                 col.prop(item, "denoise_aov")
-            col.prop_search(item, 'lpe_light_group', rm,
-                            "light_groups", text="Light Group")
-            col.prop_search(item, 'lpe_group', rm,
+            col.label("Exposure Settings")
+            col.prop(item, "exposure_gain")
+            col.prop(item, "exposure_gamma")
+        
+            col = layout.column()
+            col.label("Remap Settings")
+            row = col.row(align=True)
+            row.prop(item, "remap_a", text="A")
+            row.prop(item, "remap_b", text="B")
+            row.prop(item, "remap_c", text="C")
+            layout.separator()
+            col = col.column()
+            row = col.row()
+            col.prop(item, "aov_pixelfilter")
+            row = col.row()
+            if item.aov_pixelfilter != 'default':
+                row.prop(item, "aov_pixelfilter_x", text="Size X")
+                row.prop(item, "aov_pixelfilter_y", text="Size Y")
+            layout.separator()
+            row = col.row()
+            row.prop(item,  "stats_type")
+            layout.separator()
+            if not item.channel_type in ("custom_lpe_string",  "built_in_aov"):
+                col.prop_search(item, 'lpe_light_group', rm,
+                        "light_groups", text="Light Group")
+                col.prop_search(item, 'lpe_group', rm,
                             "object_groups", text="Object Group")
             
         
@@ -1256,7 +1277,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
                                   "custom_aovs", "custom_aov_index")
                                   
 class RENDER_PT_layer_multilayer_files(CollectionPanel, Panel):
-    bl_label = "RenderMan Multilayer Files"
+    bl_label = "RenderMan Multilayer File Output"
     bl_context = "render_layer"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -1270,9 +1291,13 @@ class RENDER_PT_layer_multilayer_files(CollectionPanel, Panel):
         scene = context.scene
         rm = scene.renderman
         col = layout.column()
+        col.prop(item, "export")
         col.prop(item, "name")
         col.prop(item, "channel_names")
         col.prop(item,  "include_beauty")
+        col.prop(item,  "exr_format_options")
+        col.prop(item,  "exr_compression")
+        col.prop(item, "exr_storage")
 
     def draw(self, context):
         layout = self.layout
