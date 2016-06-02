@@ -1650,7 +1650,7 @@ class Renderman_Light_Link_Panel(CollectionPanel, Panel):
         else:
             from_name = bpy.data.lamps[rm.ll_light_index] if rm.ll_light_type == 'lights' \
                 else rm.light_groups[rm.ll_light_index]
-            to_name = bpy.data.objects[rm.ll_object_index] if rm.ll_object_type == 'objects' \
+            to_name = bpy.data.objects[rm.ll_object_index] if rm.ll_object_type == 'object' \
                 else rm.object_groups[rm.ll_object_index]
             ll_name = "lg_%s>%s>obj_%s>%s" % (rm.ll_light_type, from_name.name, 
                                               rm.ll_object_type, to_name.name)
