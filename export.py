@@ -706,6 +706,7 @@ def export_light_shaders(ri, lamp, do_geometry=True):
             ri.Geometry(type, params)
 
     def spot():
+        ri.ReverseOrientation()
         ri.Disk(0, 0.5, 360)
 
     shapes = {
