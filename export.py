@@ -1985,7 +1985,7 @@ def export_data_rib_archive(ri, data_block, instance , rpass):
     objectName = os.path.split(os.path.splitext(relPath)[0])[1]
     
 
-    archiveAnimated = archiveInfo.archive_anim_settings.animated_sequence
+    archiveAnimated = arvhiveInfo.archive_anim_settings.animated_sequence
 
     ri.AttributeBegin()
     if(archiveAnimated is True):
