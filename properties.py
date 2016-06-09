@@ -117,6 +117,10 @@ def register_camera_settings():
         ntype.typename = typename
         # do some parsing and get props
         args_xml = ET.parse(f).getroot()
+        for page in args_xml.findall('page'):
+            page_name = page.get('name')
+            if page_name == 'Standard Perspective':
+                args_xml.remove(page)
         inputs = [p for p in args_xml.findall('./param')] + \
             [p for p in args_xml.findall('./page')]
         class_generate_properties(ntype, name, inputs)

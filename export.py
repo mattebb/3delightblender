@@ -2417,12 +2417,11 @@ def export_camera(ri, scene, instances, camera_to_use=None):
     if cam.renderman.use_physical_camera:
         # use pxr Camera
         params = property_group_to_params(cam.renderman.PxrCamera_settings)
-        if 'float fov' not in params:
-            lens = cam.lens
-            sensor = cam.sensor_height \
-                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
-            params['float fov'] = 360.0 * \
-                math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
+        lens = cam.lens
+        sensor = cam.sensor_height \
+            if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+        params['float fov'] = 360.0 * \
+            math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
         ri.Projection("PxrCamera", params)
     elif cam.type == 'PERSP':
         lens = cam.lens
