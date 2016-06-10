@@ -2764,9 +2764,7 @@ def export_display(ri, rpass, scene):
             main_params["string compression"] = rm.exr_compression
             
     ri.Display(main_display, display_driver, "rgba", main_params)
-    rm.output_files_index += 1
-    rm.output_files.add()
-    rm.output_files[rm.output_files_index].name = main_display
+    rpass.output_files.append(main_display)
 
    
         
@@ -2798,21 +2796,17 @@ def export_display(ri, rpass, scene):
     else:
         for aov, doit, declare, source in aovs:
             if doit:
-                rm.output_files_index += 1
                 ri.Display('+' + image_base + '.%s.' % aov + ext,
                         display_driver, aov, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
-                rm.output_files.add()
-                rm.output_files[rm.output_files_index].name = image_base + '.%s.' % aov + ext
+                rpass.output_files.append(main_display)
         for aov in custom_aovs:
             if not aov.exclude:
-                rm.output_files_index += 1
-                rm.output_files.add()
                 if aov.denoise_aov:
                     ri.Display('+' + image_base + '.%s.denoiseable.' % aov.name + ext, display_driver, aov.channel_name, {"quantize": [0, 0, 0, 0]})
-                    rm.output_files[rm.output_files_index].name = image_base + '.%s.denoiseable.' % aov.name + ext
+                    rpass.output_files.append(main_display)
                 else:
                     ri.Display('+' + image_base + '.%s.' % aov.name + ext, display_driver, aov.channel_name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
-                    rm.output_files[rm.output_files_index].name = image_base + '.%s.' % aov.name + ext
+                    rpass.output_files.append(main_display)
 
     #exports custom multilayers   
     for multilayer_list in rm.multilayer_lists:

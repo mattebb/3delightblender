@@ -152,6 +152,7 @@ class RPass:
 
     def __init__(self, scene, interactive=False, external_render=False, preview_render=False):
         self.scene = scene
+        self.output_files = []
         #set the display driver 
         if external_render:
             self.display_driver = scene.renderman.display_driver
@@ -493,8 +494,8 @@ class RPass:
                               denoise_data)
                 
         #Load all output images into image editor
-        for image in self.rm.output_files:
-            bpy.ops.image.open(filepath=image.name)
+        for image in self.output_files:
+            bpy.ops.image.open(filepath=image)
 
     def set_scene(self, scene):
         self.scene = scene
