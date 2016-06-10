@@ -2740,10 +2740,8 @@ def export_display(ri, rpass, scene):
         ri.DisplayChannel(source_type + ' %s' % (channel_name), params)
 
 
-
-
     display_driver = rpass.display_driver
-    
+    rpass.output_files = []
 
     main_display = user_path(rm.path_display_driver_image, scene=scene, rpass=rpass)
     debug("info", "Main_display: " + main_display)
@@ -2794,15 +2792,15 @@ def export_display(ri, rpass, scene):
             if doit:
                 ri.Display('+' + image_base + '.%s.' % aov + ext,
                         display_driver, aov, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
-                rpass.output_files.append(main_display)
+                rpass.output_files.append(image_base + '.%s.' % aov + ext)
         for aov in custom_aovs:
             if not aov.exclude:
                 if aov.denoise_aov:
                     ri.Display('+' + image_base + '.%s.denoiseable.' % aov.name + ext, display_driver, aov.channel_name, {"quantize": [0, 0, 0, 0]})
-                    rpass.output_files.append(main_display)
+                    rpass.output_files.append(image_base + '.%s.denoiseable.' % aov.name + ext)
                 else:
                     ri.Display('+' + image_base + '.%s.' % aov.name + ext, display_driver, aov.channel_name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
-                    rpass.output_files.append(main_display)
+                    rpass.output_files.append(image_base + '.%s.' % aov.name + ext)
 
     #exports custom multilayers   
     for multilayer_list in rm.multilayer_lists:
