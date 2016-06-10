@@ -2740,10 +2740,6 @@ def export_display(ri, rpass, scene):
         ri.DisplayChannel(source_type + ' %s' % (channel_name), params)
 
 
-    #Flushes any output file names left over from previous render sessions
-    while rm.output_files_index > -1:
-        rm.output_files.remove(rm.output_files_index)
-        rm.output_files_index -= 1
 
 
     display_driver = rpass.display_driver
