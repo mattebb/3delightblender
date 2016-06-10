@@ -460,6 +460,9 @@ class RendermanMultilayerFileList(bpy.types.PropertyGroup):
     
     multilayer_file_index = IntProperty(min=-1,  default=-1)
 
+class RendermanOutputFiles(bpy.types.PropertyGroup):
+    name = StringProperty()
+
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
     light_groups = CollectionProperty(type=RendermanGroup,
@@ -492,6 +495,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items=[('object', 'Objects', ''),
                ('group', 'Object Groups', '')],
         default='group', update=reset_ll_object_index)
+
+    output_files = CollectionProperty(type=RendermanOutputFiles, 
+                                                name="Output Files")
+    output_files_index = IntProperty(name='', 
+                                                description='', 
+                                                default=-1)
 
 
     aov_lists = CollectionProperty(type=RendermanAOVList,
@@ -1885,6 +1894,7 @@ classes = [RendermanPath,
            RendermanGroup,
            LightLinking,
            TraceSet,
+           RendermanOutputFiles,
            RendermanPass,
            RendermanMultilayerFile, 
            RendermanMultilayerFileList, 

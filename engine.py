@@ -491,6 +491,10 @@ class RPass:
                 engine.report({"ERROR"},
                               "Cannot denoise file %s. Does not exist" %
                               denoise_data)
+                
+        #Load all output images into image editor
+        for image in self.rm.output_files:
+            bpy.ops.image.open(filepath=image.name)
 
     def set_scene(self, scene):
         self.scene = scene
