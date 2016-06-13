@@ -2417,12 +2417,11 @@ def export_camera(ri, scene, instances, camera_to_use=None):
     if cam.renderman.use_physical_camera:
         # use pxr Camera
         params = property_group_to_params(cam.renderman.PxrCamera_settings)
-        if 'float fov' not in params:
-            lens = cam.lens
-            sensor = cam.sensor_height \
-                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
-            params['float fov'] = 360.0 * \
-                math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
+        lens = cam.lens
+        sensor = cam.sensor_height \
+            if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+        params['float fov'] = 360.0 * \
+            math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
         ri.Projection("PxrCamera", params)
     elif cam.type == 'PERSP':
         lens = cam.lens
@@ -2742,10 +2741,9 @@ def export_display(ri, rpass, scene):
 
 
     display_driver = rpass.display_driver
-    
+    rpass.output_files = []
 
-    main_display = user_path(rm.path_display_driver_image,
-                             scene=scene, rpass=rpass)
+    main_display = user_path(rm.path_display_driver_image, scene=scene, rpass=rpass)
     debug("info", "Main_display: " + main_display)
 
     #main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
@@ -2760,6 +2758,7 @@ def export_display(ri, rpass, scene):
             main_params["string compression"] = rm.exr_compression
             
     ri.Display(main_display, display_driver, "rgba", main_params)
+    rpass.output_files.append(main_display)
 
    
         
@@ -2792,11 +2791,17 @@ def export_display(ri, rpass, scene):
         for aov, doit, declare, source in aovs:
             if doit:
                 ri.Display('+' + image_base + '.%s.' % aov + ext,
-                           display_driver, aov, {"quantize": [0, 0, 0, 0]})
+                        display_driver, aov, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
+                rpass.output_files.append(image_base + '.%s.' % aov + ext)
         for aov in custom_aovs:
             if not aov.exclude:
-                ri.Display('+' + image_base + '.%s.' % aov.name + ext,
-                           display_driver, aov.channel_name, {"quantize": [0, 0, 0, 0]})
+                if aov.denoise_aov:
+                    ri.Display('+' + image_base + '.%s.denoiseable.' % aov.name + ext, display_driver, aov.channel_name, {"quantize": [0, 0, 0, 0]})
+                    rpass.output_files.append(image_base + '.%s.denoiseable.' % aov.name + ext)
+                else:
+                    ri.Display('+' + image_base + '.%s.' % aov.name + ext, display_driver, aov.channel_name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
+                    rpass.output_files.append(image_base + '.%s.' % aov.name + ext)
+
     #exports custom multilayers   
     for multilayer_list in rm.multilayer_lists:
         custom_multilayers = []
