@@ -881,6 +881,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Update frequency",
         description="Number of seconds between display update when rendering to Blender",
         min=0.0, default=10.0)
+        
+    import_images = BoolProperty(
+        name="Import AOV's into Blender", 
+        description="Imports all AOV's from the render session into Blender's image editor.", 
+        default=True)
 
     incremental = BoolProperty(
         name="Incremental Render",

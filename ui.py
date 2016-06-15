@@ -215,15 +215,21 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         row = split.row(align=True)
         row.prop(rd, "display_mode", text="")
         row.prop(rd, "use_lock_interface", icon_only=True)
+        col = layout.column()
+        row = col.row()
+        row.prop(rm, "render_into", text="Render To")
+        if rm.render_into == 'blender':
+            row = col.row()
+            row.alignment = "RIGHT"
+            row.prop(rm, "update_frequency")
+            row = col.row()
+            row.alignment = "RIGHT"
+            row.prop(rm, "import_images")
 
         layout.separator()
-
-        split = layout.split(percentage=0.33)
-        col = split.column(align=True)
+        col = layout.column()
         col.prop(context.scene.renderman, "render_selected_objects_only")
         col.prop(rm, "do_denoise")
-
-        row = split.prop(rm, "render_into", text="Render To")
         
         
 

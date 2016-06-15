@@ -494,8 +494,9 @@ class RPass:
                               denoise_data)
                 
         #Load all output images into image editor
-        for image in self.output_files:
-            bpy.ops.image.open(filepath=image)
+        if self.rm.import_images:
+            for image in self.output_files:
+                bpy.ops.image.open(filepath=image)
 
     def set_scene(self, scene):
         self.scene = scene
