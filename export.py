@@ -2659,7 +2659,7 @@ def export_display(ri, rpass, scene):
 
     for aov, doit, declare_type, source in aovs:
         if doit and declare_type:
-            params = {"int[4] quantize":[0, 0, 0, 0]}
+            params = {"int[4] quantize": [0, 0, 0, 0]}
             if source:
                 params['string source'] = source
             ri.DisplayChannel('%s %s' % (declare_type, aov), params)
@@ -2735,7 +2735,7 @@ def export_display(ri, rpass, scene):
         params = {"string source": source_type + " " + source,
                   "float[2] exposure": [exposure_gain, exposure_gamma],
                   "float[3] remap": [remap_a, remap_b, remap_c], 
-                  "int[4] quantize":[quantize_zero, quantize_one, quantize_min, quantize_max]}
+                  "int[4] quantize": [quantize_zero, quantize_one, quantize_min, quantize_max]}
         if pixel_filter != 'default':
             params["filter"] = pixel_filter
             params["filterwidth"] = [pixelfilter_x, pixelfilter_y]
