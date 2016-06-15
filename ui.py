@@ -252,25 +252,34 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         rman_batch = icons.get("batch_render")
         row.operator("renderman.external_render", text="External Render", icon_value=rman_batch.icon_id)
         
+        
         layout.separator()
-        split = layout.split(percentage=0.33)
-
-        # denoise and selected row
-        col = split.column(align=True)
+        
+        row = layout.row()
+        split = row.split(percentage=0.33)
+        col = split.column()
         col.prop(rm, "external_denoise")
         sub_row = col.row()
         sub_row.enabled = rm.external_denoise
         sub_row.prop(rm, "crossframe_denoise")
         
-        sub_row = col.row()
-        sub_row.enabled = rm.display_driver in ['tiff', 'openexr']
-        sub_row.prop(rm, "combine_aovs")
-        sub_row = col.row()
-        sub_row.enabled = rm.display_driver in ['tiff', 'openexr'] and rm.combine_aovs
-        sub_row.prop(rm, "include_beauty_pass")
-
         #display driver
-        split.prop(rm,"display_driver", text='Render To')
+        split = split.split ()
+        col = split.column()
+        col.prop(rm,"display_driver", text='Render To')
+        
+        sub_row = col.row()
+        if rm.display_driver == 'openexr':
+            sub_row = col.row()
+            sub_row.prop(rm,  "exr_format_options")
+            sub_row = col.row()
+            sub_row.prop(rm,  "exr_compression")
+            sub_row = col.row()
+            sub_row.prop(rm, "export_multilayer")
+        
+        layout.separator()
+
+        
        
         layout.separator()
         split = layout.split(percentage=0.33)
@@ -307,7 +316,10 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
 
         # layout.prop(rm, "display_driver")
         col = layout.column()
-        col.menu("presets", text="Render Presets")
+        row = col.row(align=True)
+        row.menu("presets", text=bpy.types.presets.bl_label)
+        row.operator("render.renderman_preset_add", text="", icon='ZOOMIN')
+        row.operator("render.renderman_preset_add", text="", icon='ZOOMOUT').remove_active = True
         col.prop(rm, "pixel_variance")
         row = col.row(align=True)
         row.prop(rm, "min_samples", text="Min Samples")
@@ -714,8 +726,7 @@ class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
         split = layout.split()
 
         col = split.column()
-        #Commented this out since the 'beauty pass' option in outputs is the same thing.
-        #col.prop(rl, "use_pass_combined")
+        col.prop(rl, "use_pass_combined")
         col.prop(rl, "use_pass_z")
         col.prop(rl, "use_pass_normal")
         col.prop(rl, "use_pass_vector")
@@ -1201,35 +1212,48 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col.prop(item, "channel_type")
         if item.channel_type == "custom_lpe_string":
             col.prop(item, "custom_lpe_string")
-        if item.channel_type == "built_in_aov":
+        if item.channel_type == "custom_aov_string":
             col.prop(item, "custom_aov_type")
             col.prop(item, "custom_aov_string")
+        if item.channel_type == "built_in_aov":
+            col.prop(item,  "aov_channel_type")
         
         col = layout.column()
-        col.label("Exposure Settings")
-        col.prop(item, "exposure_gain")
-        col.prop(item, "exposure_gamma")
-        
-        col = layout.column()
-        col.label("Remap Settings")
-        row = col.row(align=True)
-        row.prop(item, "remap_a", text="A")
-        row.prop(item, "remap_b", text="B")
-        row.prop(item, "remap_c", text="C")
-
-        if item.channel_type != "custom_lpe_string" and item.channel_type != "built_in_aov":
-            col.prop(item, "show_advanced")
-            col = col.column()
-            col.enabled = item.show_advanced
-            col.prop(item, "exclude_from_multi")
-            if not item.channel_type in ["custom_lpe_string", "built_in_aov", "lpe:C<.D%G>[S]+<L.%LG>",
+        col.prop(item, "show_advanced")
+        if item.show_advanced:
+            col.prop(item, "exclude")
+            if not item.channel_type in ["custom_lpe_string", "built_in_aov", "custom_aov_string", 
+                                        "lpe:C<.D%G>[S]+<L.%LG>",
                                          "lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
                                          "lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
                                          "lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)"]:
                 col.prop(item, "denoise_aov")
-            col.prop_search(item, 'lpe_light_group', rm,
-                            "light_groups", text="Light Group")
-            col.prop_search(item, 'lpe_group', rm,
+            col.label("Exposure Settings")
+            col.prop(item, "exposure_gain")
+            col.prop(item, "exposure_gamma")
+        
+            col = layout.column()
+            col.label("Remap Settings")
+            row = col.row(align=True)
+            row.prop(item, "remap_a", text="A")
+            row.prop(item, "remap_b", text="B")
+            row.prop(item, "remap_c", text="C")
+            layout.separator()
+            col = col.column()
+            row = col.row()
+            col.prop(item, "aov_pixelfilter")
+            row = col.row()
+            if item.aov_pixelfilter != 'default':
+                row.prop(item, "aov_pixelfilter_x", text="Size X")
+                row.prop(item, "aov_pixelfilter_y", text="Size Y")
+            layout.separator()
+            row = col.row()
+            row.prop(item,  "stats_type")
+            layout.separator()
+            if not item.channel_type in ("custom_lpe_string",  "built_in_aov"):
+                col.prop_search(item, 'lpe_light_group', rm,
+                        "light_groups", text="Light Group")
+                col.prop_search(item, 'lpe_group', rm,
                             "object_groups", text="Object Group")
             
         
@@ -1251,6 +1275,47 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             self._draw_collection(context, layout, aov_list, "AOVs",
                                   "collection.add_remove", "aov_list",
                                   "custom_aovs", "custom_aov_index")
+                                  
+class RENDER_PT_layer_multilayer_files(CollectionPanel, Panel):
+    bl_label = "RenderMan Multilayer File Output"
+    bl_context = "render_layer"
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine in {'PRMAN_RENDER'}
+
+    def draw_item(self, layout, context, item):
+        scene = context.scene
+        rm = scene.renderman
+        col = layout.column()
+        col.prop(item, "export")
+        col.prop(item, "name")
+        col.prop(item, "channel_names")
+        col.prop(item,  "include_beauty")
+        col.prop(item,  "exr_format_options")
+        col.prop(item,  "exr_compression")
+        col.prop(item, "exr_storage")
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+        multilayer_list = None
+        active_layer = scene.render.layers.active
+        for l in rm.multilayer_lists:
+            if l.render_layer == active_layer.name:
+                multilayer_list = l
+                break
+        if multilayer_list is None:
+            layout.operator('renderman.add_multilayer_list')
+        else:
+            layout.context_pointer_set("multilayer_list", multilayer_list)
+            self._draw_collection(context, layout, multilayer_list, "Multilayer Files",
+                                  "collection.add_remove", "multilayer_list",
+                                  "multilayer_files", "multilayer_file_index")
 
 
 class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
@@ -1583,9 +1648,9 @@ class Renderman_Light_Link_Panel(CollectionPanel, Panel):
         if rm.ll_light_index == -1 or rm.ll_object_index == -1:
             flow.label("Select light and object")
         else:
-            from_name = bpy.data.lamps[rm.ll_light_index] if rm.ll_light_type == 'lights' \
+            from_name = bpy.data.lamps[rm.ll_light_index] if rm.ll_light_type == 'light' \
                 else rm.light_groups[rm.ll_light_index]
-            to_name = bpy.data.objects[rm.ll_object_index] if rm.ll_object_type == 'objects' \
+            to_name = bpy.data.objects[rm.ll_object_index] if rm.ll_object_type == 'object' \
                 else rm.object_groups[rm.ll_object_index]
             ll_name = "lg_%s>%s>obj_%s>%s" % (rm.ll_light_type, from_name.name, 
                                               rm.ll_object_type, to_name.name)
@@ -1701,7 +1766,9 @@ class Renderman_UI_Panel(bpy.types.Panel):
             # presets
             row = box.row(align=True)
             row.label("Sampling Preset:")
-            row.menu("presets")
+            row.menu("presets", text=bpy.types.presets.bl_label)
+            row.operator("render.renderman_preset_add", text="", icon='ZOOMIN')
+            row.operator("render.renderman_preset_add", text="", icon='ZOOMOUT').remove_active = True
 
             # denoise and selected row
             row = box.row(align=True)

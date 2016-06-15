@@ -117,6 +117,10 @@ def register_camera_settings():
         ntype.typename = typename
         # do some parsing and get props
         args_xml = ET.parse(f).getroot()
+        for page in args_xml.findall('page'):
+            page_name = page.get('name')
+            if page_name == 'Standard Perspective':
+                args_xml.remove(page)
         inputs = [p for p in args_xml.findall('./param')] + \
             [p for p in args_xml.findall('./page')]
         class_generate_properties(ntype, name, inputs)
@@ -224,6 +228,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
     def built_in_channel_types(self, context):
         items = [("custom_lpe_string", "Custom lpe", "Custom lpe"),
                  ("built_in_aov", "Built in AOV", "Built in AOV"),
+                 ("custom_aov_string",  "Custom AOV", "Custom AOV"), 
                  ("lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics"),
                  ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
                  ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
@@ -240,39 +245,103 @@ class RendermanAOV(bpy.types.PropertyGroup):
                   "Refraction", "Refraction"),
                  ]
         return items
+        
+    def built_in_aovs(self, context):
+        items = [("P",  "P",  "Position of the point hit by the incident ray"), 
+                    ("PRadius", "PRadius", "Cross-sectional size of the ray at the hit point"), 
+                    ("cpuTime", "cpuTime", "The time taken to render a pixel"), 
+                    ("sampleCount", "sampleCount", "The number of samples taken for the resulting pixel"), 
+                    ("Nn", "Nn", "Normalized shading normal"), 
+                    ("Ngn", "Ngn", "Normalized geometric normal"), 
+                    ("Tn", "Tn", "Normalized shading tangent"), 
+                    ("Vn", "Vn", "Normalized view vector (reverse of ray direction)"), 
+                    ("VLen", "VLen", "Distance to hit point along the ray"), 
+                    ("curvature", "curvature", "Local surface curvature"), 
+                    ("incidentRaySpread", "incidentRaySpread",  "Rate of spread of incident ray"), 
+                    ("mpSize", "mpSize", "Size of the micropolygon that the ray hit"), 
+                    ("u", "u", "The parametric coordinates on the primitive"), 
+                    ("v", "v", "The parametric coordinates on the primitive"), 
+                    ("w", "w", "The parametric coordinates on the primitive"), 
+                    ("du", "du", "Derivatives of u, v, and w to adjacent micropolygons"), 
+                    ("dv", "dv", "Derivatives of u, v, and w to adjacent micropolygons"), 
+                    ("dw", "dw", "Derivatives of u, v, and w to adjacent micropolygons"), 
+                    ("dPdu", "dPdu", "Direction of maximal change in u, v, and w"), 
+                    ("dPdv", "dPdv", "Direction of maximal change in u, v, and w"), 
+                    ("dPdw", "dPdw", "Direction of maximal change in u, v, and w"), 
+                    ("dufp", "dufp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"), 
+                    ("dvfp", "dvfp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"), 
+                    ("dwfp", "dwfp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"), 
+                    ("time", "time", "Time sample of the ray"), 
+                    ("dPdtime", "dPdtime", "Motion vector"), 
+                    ("id", "id", "Returns the integer assigned via the identifier attribute as the pixel value"), 
+                    ("outsideIOR", "outsideIOR", "Index of refraction outside this surface"), 
+                    ("__Pworld", "Pworld", "P in world-space"), 
+                    ("__Nworld", "Nworld", "Nn in world-space"), 
+                    ("__depth", "depth", "Multi-purpose AOV\nr : depth from camera in world-space\ng : height in world-space\nb : geometric facing ratio : abs(Nn.V)"), 
+                    ("__st", "st", "Texture coords"), 
+                    ("__Pref", "Pref", "Reference Position primvar (if available)"), 
+                    ("__Nref", "Nref", "Reference Normal primvar (if available)"), 
+                    ("__WPref", "WPref", "Reference World Position primvar (if available)"), 
+                    ("__WNref",  "WNref", "Reference World Normal primvar (if available)")]
+        return items
 
     def update_type(self, context):
         types = self.built_in_channel_types(context)
         for item in types:
             if self.channel_type == item[0] and self.channel_type != 'custom_lpe_string' and self.channel_type != 'built_in_aov':
-                self.name = 'Custom_' + item[1]
+                self.name = "Custom_" + item[1]
+        
+    def update_aov_type(self, context):
+        types=self.built_in_aovs(context)
+        for item in types:
+            if self.aov_channel_type == item[0]:
+                self.name = item[1]
 
-    show_advanced = BoolProperty(name='Advanced', default=False)
+    show_advanced = BoolProperty(name='Advanced Options', default=False)
 
     channel_type = EnumProperty(name="Channel type",
-                                description="The type for this aov, setting to custom will allow a custom LPE",
+                                description="The information type for this AOV.  Setting to one of the 'custom' options will allow a custom LPE or AOV",
                                 items=built_in_channel_types, update=update_type)
+                                
+    aov_channel_type = EnumProperty(name="AOV type", 
+                                description="The type of built in data AOV", 
+                                items=built_in_aovs,  update=update_aov_type)
+                                
     name = StringProperty(
         name="Channel Name",
-        description="Name for the Channel in the output file.  NOTE: Spaces must be represented by an underscore.  If this is not followed the channel will not output.")
-
+        description="Name for this Channel in the output file.  NOTE: Spaces must be represented by an underscore.  If this is not followed the channel will not output.")
+    
+    channel_name = StringProperty()
+    
     custom_lpe_string = StringProperty(
         name="lpe String",
-        description="Custom lpe string")
+        description="This is where you enter the custom lpe string")
 
     custom_aov_string = StringProperty(
         name="AOV name",
-        description="Name of the built in AOV")
+        description="This is where you enter the name of the custom AOV pass")
+        
+    stats_type = EnumProperty(
+        name="Statistics", 
+        description="this is the name of the statistics to display in this AOV (if any)", 
+        items=[
+                ('none', 'None', ''), 
+                ('variance', 'Variance', 'estimates the variance of the samples in each pixel'), 
+                ('mse', 'MSE', 'the estimate of the variance divided by the actual number of samples per pixel'), 
+                ('even', 'Even', 'this image is created from half the total camera samples'), 
+                ('odd', 'Odd', 'this image is created from the other half of the camera samples')], 
+                default='none')
 
     denoise_aov = BoolProperty(
-        name="Format AOV for denoising",
-        description="If checked this pass will be export as an individual file and properly formatted for use by the denoise utility",
+        name="Format for denoising",
+        description="If checked this pass will be properly formatted for use by the denoise utility",
         default=False)
 
-    exclude_from_multi = BoolProperty(
-        name="Exclude AOV from multilayer output",
-        description="Keeps this AOV from appearing un a multilayer output.",
+    exclude = BoolProperty(
+        name="Exclude AOV from Export",
+        description="Enabling this will restrict the AOV from being exported as a standalone file or appearing in the default multilayer.  To export it you must assign it to a custom multilayer file",
         default=False)
+        
 
     custom_aov_type = StringProperty(
         name="AOV type",
@@ -315,12 +384,81 @@ class RendermanAOV(bpy.types.PropertyGroup):
         name="c",
         description="C value for remap.",
         default=0.0)
+        
+    aov_pixelfilter = EnumProperty(
+        name="Pixel Filter",
+        description="Filter to use to combine pixel samples.  If 'default' is selected the aov will use the filter set in the render panel.",
+        items=[('default',  'Default',  ''), 
+                ('box', 'Box', ''),
+               ('sinc', 'Sinc', ''),
+               ('gaussian', 'Gaussian', ''), 
+               ('triangle',  'Triangle',  ''), 
+               ('catmull-rom',  'Catmull-Rom', '')],
+        default='default')
+    aov_pixelfilter_x = IntProperty(
+        name="Filter Size X",
+        description="Size of the pixel filter in X dimension",
+        min=0, max=16, default=2)
+    aov_pixelfilter_y = IntProperty(
+        name="Filter Size Y",
+        description="Size of the pixel filter in Y dimension",
+        min=0, max=16, default=2)
 
 class RendermanAOVList(bpy.types.PropertyGroup):
     render_layer = StringProperty()
     custom_aovs = CollectionProperty(type=RendermanAOV,
                                      name='Custom AOVs')
     custom_aov_index = IntProperty(min=-1, default=-1)
+
+class RendermanMultilayerFile(bpy.types.PropertyGroup):
+    name = StringProperty(name="Multilayer Name",  description="Name of the multilayer file to export.",  default="")
+    
+    channel_names = StringProperty(name="Channel Names",  description="Names of the display channels (AOV's) to include.",  default="")
+
+    export = BoolProperty(
+        name="Export Multilayer",
+        description="Enabling this will output the multilayer",
+        default=True)
+    
+    include_beauty = BoolProperty(name="Include Beauty Pass",  description="Includes the RGBA combined pass in this multilayer.",  default=True)
+                
+    exr_format_options = EnumProperty(
+        name="EXR Bit Depth", 
+        description="Sets the bit depth of the .exr file.  Leaving at 'default' will use the Renderman defaults.", 
+        items=[
+                ('default',  'Default', ''), 
+                ('half',  'Half (16 bit)',  ''), 
+                ('float',  'Float (32 bit)', '')], 
+                default='default')
+                
+    exr_compression = EnumProperty(
+        name="EXR Compression", 
+        description="Determined the compression used on the EXR file.  Leaving at 'default' will use the Renderman defaults.", 
+        items=[
+                ('default',  'Default',  ''), 
+                ('none',  'None',  ''), 
+                ('rle',  'rle',  ''), 
+                ('zip',  'zip',  ''), 
+                ('zips',  'zips', ''), 
+                ('pixar',  'pixar',  ''), 
+                ('b44', 'b44', ''), 
+                ('piz',  'piz',  '')], 
+                default='default')
+
+    exr_storage = EnumProperty(
+        name="EXR Storage Mode",
+        description="This determines how the EXR file is formatted.  Tile-based may reduce the amount of memory used by the display buffer.",
+        items=[
+            ('scanline', 'Scanline Storage', ''),
+            ('tiled', 'Tiled Storage', '')],
+        default='tiled')
+    
+class RendermanMultilayerFileList(bpy.types.PropertyGroup):
+    render_layer = StringProperty()
+    
+    multilayer_files = CollectionProperty(type=RendermanMultilayerFile,  name="Multilayer Files")
+    
+    multilayer_file_index = IntProperty(min=-1,  default=-1)
 
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
@@ -359,6 +497,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     aov_lists = CollectionProperty(type=RendermanAOVList,
                                    name='Custom AOVs')
     aov_list_index = IntProperty(min=-1, default=-1)
+    
+    multilayer_lists = CollectionProperty(type=RendermanMultilayerFileList,  name="Multilayer Files")
+    
+    multilayer_list_index = IntProperty(min=-1,  default=-1)
 
     solo_light = BoolProperty(name = "Solo Light", default=False)
 
@@ -376,7 +518,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Filter to use to combine pixel samples",
         items=[('box', 'Box', ''),
                ('sinc', 'Sinc', ''),
-               ('gaussian', 'Gaussian', '')],
+               ('gaussian', 'Gaussian', ''), 
+               ('triangle',  'Triangle',  ''), 
+               ('catmull-rom',  'Catmull-Rom', '')],
         default='gaussian')
     pixelfilter_x = IntProperty(
         name="Filter Size X",
@@ -646,6 +790,29 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                   'Render to a TIFF file, to be read back into Blender\'s Render Result'),
                  ('it', 'it', 'External framebuffer display (must have RMS installed)')
                  ], default='it')
+                 
+    exr_format_options = EnumProperty(
+        name="Bit Depth", 
+        description="Sets the bit depth of the main EXR file.  Leaving at 'default' will use the Renderman defaults.", 
+        items=[
+                ('default',  'Default', ''), 
+                ('half',  'Half (16 bit)',  ''), 
+                ('float',  'Float (32 bit)', '')], 
+                default='default')
+                
+    exr_compression = EnumProperty(
+        name="Compression", 
+        description="Determined the compression used on the main EXR file.  Leaving at 'default' will use the Renderman defaults.", 
+        items=[
+                ('default',  'Default',  ''), 
+                ('none',  'None',  ''), 
+                ('rle',  'rle',  ''), 
+                ('zip',  'zip',  ''), 
+                ('zips',  'zips', ''), 
+                ('pixar',  'pixar',  ''), 
+                ('b44', 'b44', ''), 
+                ('piz',  'piz',  '')], 
+                default='default')
 
     render_into = EnumProperty(
         name="Render to",
@@ -674,14 +841,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Spool Animation",
         default=False)
 
-    combine_aovs = BoolProperty(
-        name="Combine AOV's",
-        description="Combine all AOV's into a single output file.  Useful if you intend to post process the render in a compositor.",
-        default=False)
-
-    include_beauty_pass = BoolProperty(
-        name="Include Beauty Pass",
-        description="Include the full lighting 'beauty pass' in the multilayer output.",
+    export_multilayer = BoolProperty(
+        name="export all AOV's as a multilayer File",
+        description="Exports a multilayer file of AOV's from the render layer panel.  This will be in addition to any custom multilayer files that have been created",
         default=True)
 
     header_rib_boxes = StringProperty(
@@ -1724,6 +1886,8 @@ classes = [RendermanPath,
            LightLinking,
            TraceSet,
            RendermanPass,
+           RendermanMultilayerFile, 
+           RendermanMultilayerFileList, 
            RendermanMeshPrimVar,
            RendermanParticlePrimVar,
            RendermanMaterialSettings,

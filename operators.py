@@ -32,6 +32,7 @@ import webbrowser
 import addon_utils
 from .icons.icons import load_icons
 from operator import attrgetter, itemgetter
+from bl_operators.presets import AddPresetBase
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
@@ -181,7 +182,9 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         return {'FINISHED'}
 
-
+######################
+# OSL Operators
+######################
 class refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.refresh_osl_shader"
     bl_label = "Refresh OSL Node"
@@ -190,7 +193,7 @@ class refresh_osl_shader(bpy.types.Operator):
     def invoke(self, context, event):
         context.node.RefreshNodes(context)
         return {'FINISHED'}
-
+        
 class ExternalRender(bpy.types.Operator):
 
     ''''''
@@ -321,7 +324,9 @@ class StartInteractive(bpy.types.Operator):
                     if area.type == 'VIEW_3D':
                         area.tag_redraw()
         return {'FINISHED'}
-
+######################
+# Export RIB Operators
+######################
 class ExportRIBObject(bpy.types.Operator):
     bl_idname = "export.export_rib_archive"
     bl_label = "Export Object as RIB Archive."
@@ -395,92 +400,100 @@ class ExportRIBObject(bpy.types.Operator):
 ###########################
 # Presets for integrators.
 ###########################
-class FinalPresetDenoise(bpy.types.Operator):
-    bl_idname = "presets.finaldenoise"
-    bl_label = "Final w/ Denoise"
-    bl_description = "Preset for a final render with production settings and denoiser."
-    
-    def execute(self, context):
-        rm = context.scene.renderman
-        rm.pixel_variance = 0.01
-        rm.min_samples = 24
-        rm.max_samples = 124
-        rm.max_specular_depth = 6
-        rm.max_diffuse_depth = 2
-        
-        rm.motion_blur = True
-        
-        rm.do_denoise = True
-        
-        if(hasattr(rm, "PxrPathTracer_settings")):
-            rm.PxrPathTracer_settings.maxPathLength = 10
-        
-        return {'FINISHED'}
-        
-        
-class FinalPreset(bpy.types.Operator):
-    bl_idname = "presets.final"
-    bl_label = "Final no Denoise"
-    bl_description = "Preset for a final render with production settings, no denoiser."
-    
-    def execute(self, context):
-        rm = context.scene.renderman
-        rm.pixel_variance = 0.01
-        rm.min_samples = 24
-        rm.max_samples = 124
-        rm.max_specular_depth = 6
-        rm.max_diffuse_depth = 2
-        
-        rm.motion_blur = True
-        
-        rm.do_denoise = False
-        
-        if(hasattr(rm, "PxrPathTracer_settings")):
-            rm.PxrPathTracer_settings.maxPathLength = 10
-        
-        return {'FINISHED'}
-        
-class PreviewPreset(bpy.types.Operator):
-    bl_idname = "presets.preview"
-    bl_label = "Preview/Test"
-    bl_description = "Preset for preview renders."
-    
-    def execute(self, context):
-        rm = context.scene.renderman
-        rm.pixel_variance = 0.15
-        rm.min_samples = 2
-        rm.max_samples = 24
-        rm.max_specular_depth = 2
-        rm.max_diffuse_depth = 1
-        
-        rm.motion_blur = False
-        
-        rm.do_denoise = False
-        
-        if(hasattr(rm, "PxrPathTracer_settings")):
-            rm.PxrPathTracer_settings.maxPathLength = 5
-        
-        return {'FINISHED'}
-        
-class TractorPreset(bpy.types.Operator):
-    bl_idname = "presets.tractorqueue"
-    bl_label = "Tractor / Local Queue"
-    bl_description = "Preset for queue based renders."
-    
-    def execute(self, context):
-        #Nothing to do yet since Tractor settings do not exits yet
-        return {'FINISHED'}
 
+def quickAddPresets(presetList, pathFromPresetDir, name):
+    def as_filename(name):  # could reuse for other presets
+        for char in " !@#$%^&*(){}:\";'[]<>,.\\/?":
+            name = name.replace(char, '_')
+        return name.strip()
+    
+    filename = as_filename(name)
+    target_path = os.path.join("presets", pathFromPresetDir)
+    target_path = bpy.utils.user_resource('SCRIPTS',
+                                           target_path,
+                                           create=True)
+    if not target_path:
+        self.report({'WARNING'}, "Failed to create presets path")
+        return {'CANCELLED'}
+    filepath = os.path.join(target_path, filename) + ".py"
+    file_preset = open(filepath, 'w')
+    file_preset.write("import bpy\n")
+    
+    for item in presetList:
+        file_preset.write(str(item) + "\n")
+    file_preset.close()
+    
+class AddPresetRendermanRender(AddPresetBase, bpy.types.Operator):
+    '''Add or remove a Renderman Sampling Preset'''
+    bl_idname = "render.renderman_preset_add"
+    bl_label = "Add Renderman Preset"
+    bl_options = {'REGISTER', 'UNDO'}
+    preset_menu = "presets"
+    preset_defines = ["scene = bpy.context.scene",]
+    
+    preset_values = [
+        "scene.renderman.pixel_variance",
+        "scene.renderman.min_samples",
+        "scene.renderman.max_samples",
+        "scene.renderman.max_specular_depth",
+        "scene.renderman.max_diffuse_depth",
+        "scene.renderman.motion_blur",
+        "scene.renderman.do_denoise",
+        ]
+        
+    preset_subdir = os.path.join("renderman","render")
+        
+# Utility class to contain all default presets
+#  this has the added bonus of not using operators for each preset
+class RendermanRenderPresets():
+    FinalDenoisePreset = [
+        "rm = bpy.context.scene.renderman",
+        "rm.pixel_variance = 0.01",
+        "rm.min_samples = 24",
+        "rm.max_samples = 124",
+        "rm.max_specular_depth = 6",
+        "rm.max_diffuse_depth = 2",
+        "rm.motion_blur = True",
+        "rm.do_denoise = True",
+        "rm.PxrPathTracer_settings.maxPathLength = 10",]
+    FinalPreset = [
+        "rm = bpy.context.scene.renderman",
+        "rm.pixel_variance = 0.01",
+        "rm.min_samples = 24",
+        "rm.max_samples = 124",
+        "rm.max_specular_depth = 6",
+        "rm.max_diffuse_depth = 2",
+        "rm.motion_blur = True",
+        "rm.do_denoise = False",
+        "rm.PxrPathTracer_settings.maxPathLength = 10",]
+    PreviewPreset = [
+        "rm = bpy.context.scene.renderman",
+        "rm.pixel_variance = 0.15",
+        "rm.min_samples = 2",
+        "rm.max_samples = 24",
+        "rm.max_specular_depth = 2",
+        "rm.max_diffuse_depth = 1",
+        "rm.motion_blur = False",
+        "rm.do_denoise = False",
+        "rm.PxrPathTracer_settings.maxPathLength = 5",]
+    TractorLocalQueuePreset = [
+        "rm = bpy.context.scene.renderman",
+        "rm.pixel_variance = 0.01",
+        "rm.min_samples = 24",
+        "rm.max_samples = 124",
+        "rm.max_specular_depth = 6",
+        "rm.max_diffuse_depth = 2",
+        "rm.motion_blur = True",
+        "rm.PxrPathTracer_settings.maxPathLength = 10",
+        "rm.enable_external_rendering = True",
+        "rm.external_action = \'spool\'",]
 
 class PresetsMenu(bpy.types.Menu):
     bl_label = "Renderman Presets"
     bl_idname = "presets"
-
-    def draw(self, context):
-        self.layout.operator("presets.preview")
-        self.layout.operator("presets.final")
-        self.layout.operator("presets.finaldenoise")
-        self.layout.operator("presets.tractorqueue")
+    preset_subdir = os.path.join("renderman","render")
+    preset_operator = "script.execute_preset"
+    draw = bpy.types.Menu.draw_preset
 
 #################
 # Sample scenes menu.
@@ -634,8 +647,18 @@ class OT_add_aov_list(bpy.types.Operator):
         # this sucks.  but can't find any other way to refer to render layer
         scene.renderman.aov_lists[-1].render_layer = active_layer.name
         return {'FINISHED'}
-
-
+        
+class OT_add_multilayer_list(bpy.types.Operator):
+    bl_idname = 'renderman.add_multilayer_list'
+    bl_label = 'Add multilayer list'
+    
+    def execute(self, context):
+        scene = context.scene
+        scene.renderman.multilayer_lists.add()
+        active_layer = scene.render.layers.active
+        scene.renderman.multilayer_lists[-1].render_layer = active_layer.name
+        return {'FINISHED'}
+        
 class OT_add_to_group(bpy.types.Operator):
     bl_idname = 'renderman.add_to_group'
     bl_label = 'Add Selected to Object Group'
@@ -1021,6 +1044,9 @@ class AddCamera(bpy.types.Operator):
 
         return {"FINISHED"}
 
+# This operator should not be exposed to the UI as 
+#   this can cause the loss of data since Blender does not
+#   preserve any information during script restart.
 class RM_restart_addon(bpy.types.Operator):
     bl_idname = "renderman.restartaddon"
     bl_label = "Restart Addon"
@@ -1040,8 +1066,16 @@ def register():
     bpy.types.TEXT_MT_text.append(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.append(compile_shader_menu_func)
     bpy.types.INFO_MT_help.append(menu_draw)
-
+    
+    # Register any default presets here. This includes render based and Material based
+    quickAddPresets(RendermanRenderPresets.FinalDenoisePreset, os.path.join("renderman", "render"), "FinalDenoise")
+    quickAddPresets(RendermanRenderPresets.FinalPreset, os.path.join("renderman", "render"), "FinalPreset")
+    quickAddPresets(RendermanRenderPresets.PreviewPreset, os.path.join("renderman", "render"), "PreviewPreset")
+    quickAddPresets(RendermanRenderPresets.TractorLocalQueuePreset, os.path.join("renderman", "render"), "TractorLocalQueuePreset")
+    
 def unregister():
     bpy.types.TEXT_MT_text.remove(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.remove(compile_shader_menu_func)
     bpy.types.INFO_MT_help.remove(menu_draw)
+    
+    # It should be fine to leave presets registered as they are not in memory.
