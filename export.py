@@ -2679,6 +2679,10 @@ def export_display(ri, rpass, scene):
         remap_a = aov.remap_a
         remap_b = aov.remap_b
         remap_c = aov.remap_c
+        quantize_zero = aov.quantize_zero
+        quantize_one = aov.quantize_one
+        quantize_min = aov.quantize_min
+        quantize_max = aov.quantize_max
         pixel_filter = aov.aov_pixelfilter
         stats = aov.stats_type
         pixelfilter_x = aov.aov_pixelfilter_x
@@ -2730,7 +2734,8 @@ def export_display(ri, rpass, scene):
 
         params = {"string source": source_type + " " + source,
                   "float[2] exposure": [exposure_gain, exposure_gamma],
-                  "float[3] remap": [remap_a, remap_b, remap_c]}
+                  "float[3] remap": [remap_a, remap_b, remap_c], 
+                  "int[4] quantize":[quantize_zero, quantize_one, quantize_min, quantize_max]}
         if pixel_filter != 'default':
             params["filter"] = pixel_filter
             params["filterwidth"] = [pixelfilter_x, pixelfilter_y]
