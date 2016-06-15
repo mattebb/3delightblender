@@ -454,6 +454,8 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         layout.separator()
         row = layout.row()
         row.prop(rm, 'light_localization')
+        row = layout.row()
+        row.prop(rm,  "sample_motion_blur")
 
         layout.separator()
         row = layout.row()
@@ -1228,6 +1230,8 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
                                          "lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
                                          "lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)"]:
                 col.prop(item, "denoise_aov")
+                if item.denoise_aov:
+                    col.label("Denoiseable AOV's cannot be imported into Blender's image editor",  icon='ERROR')
             col.label("Exposure Settings")
             col.prop(item, "exposure_gain")
             col.prop(item, "exposure_gamma")

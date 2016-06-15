@@ -596,6 +596,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Motion Blur",
         description="Enable motion blur",
         default=False)
+    sample_motion_blur = BoolProperty(
+        name="Sample Motion Blur", 
+        description="Determines if motion blur is rendered in the final image.  If this is disabled the motion vectors are still calculated and can be exported with the dPdTime AOV.  This allows motion blur to be added as a post process effect.", 
+        default=True)
     motion_segments = IntProperty(
         name="Motion Samples",
         description="Number of motion samples to take for motion blur.  Set this higher if you notice segment artifacts in blurs.",

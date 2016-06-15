@@ -2896,6 +2896,9 @@ def export_hider(ri, rpass, scene, preview=False):
         hider_params["float[4] aperture"] = [cam.aperture_sides, cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
         hider_params["float dofaspect"] = [cam.dof_aspect]
         hider_params["float darkfalloff"] = [rm.dark_falloff]
+        
+    if not rm.sample_motion_blur:
+            hider_params["samplemotion"] = 0
 
     ri.PixelVariance(pv)
 
@@ -2905,8 +2908,7 @@ def export_hider(ri, rpass, scene, preview=False):
     if rm.do_denoise:
         hider_params['string pixelfiltermode'] = 'importance'
 
-    if rm.hider == 'raytrace':
-        ri.Hider(rm.hider, hider_params)
+    ri.Hider("raytrace", hider_params)
 
 
 # I hate to make rpass global but it makes things so much easier
