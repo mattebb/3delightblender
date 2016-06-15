@@ -215,15 +215,21 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         row = split.row(align=True)
         row.prop(rd, "display_mode", text="")
         row.prop(rd, "use_lock_interface", icon_only=True)
+        col = layout.column()
+        row = col.row()
+        row.prop(rm, "render_into", text="Render To")
+        if rm.render_into == 'blender':
+            row = col.row()
+            row.alignment = "RIGHT"
+            row.prop(rm, "update_frequency")
+            row = col.row()
+            row.alignment = "RIGHT"
+            row.prop(rm, "import_images")
 
         layout.separator()
-
-        split = layout.split(percentage=0.33)
-        col = split.column(align=True)
+        col = layout.column()
         col.prop(context.scene.renderman, "render_selected_objects_only")
         col.prop(rm, "do_denoise")
-
-        row = split.prop(rm, "render_into", text="Render To")
         
         
 
@@ -454,6 +460,8 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         layout.separator()
         row = layout.row()
         row.prop(rm, 'light_localization')
+        row = layout.row()
+        row.prop(rm,  "sample_motion_blur")
 
         layout.separator()
         row = layout.row()
@@ -1228,6 +1236,8 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
                                          "lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
                                          "lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)"]:
                 col.prop(item, "denoise_aov")
+                if item.denoise_aov:
+                    col.label("Denoiseable AOV's cannot be imported into Blender's image editor",  icon='ERROR')
             col.label("Exposure Settings")
             col.prop(item, "exposure_gain")
             col.prop(item, "exposure_gamma")
@@ -1239,9 +1249,15 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             row.prop(item, "remap_b", text="B")
             row.prop(item, "remap_c", text="C")
             layout.separator()
-            col = col.column()
             row = col.row()
-            col.prop(item, "aov_pixelfilter")
+            row.label(text="Quantize Settings:")
+            row = col.row(align=True)
+            row.prop(item, "quantize_zero")
+            row.prop(item, "quantize_one")
+            row.prop(item, "quantize_min")
+            row.prop(item, "quantize_max")
+            row = col.row()
+            row.prop(item, "aov_pixelfilter")
             row = col.row()
             if item.aov_pixelfilter != 'default':
                 row.prop(item, "aov_pixelfilter_x", text="Size X")
