@@ -280,8 +280,6 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
             sub_row.prop(rm,  "exr_format_options")
             sub_row = col.row()
             sub_row.prop(rm,  "exr_compression")
-            sub_row = col.row()
-            sub_row.prop(rm, "export_multilayer")
         
         layout.separator()
 
