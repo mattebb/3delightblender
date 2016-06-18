@@ -494,8 +494,9 @@ class RPass:
                               denoise_data)
                 
         #Load all output images into image editor
-        for image in self.output_files:
-            bpy.ops.image.open(filepath=image)
+        if self.rm.import_images:
+            for image in self.output_files:
+                bpy.ops.image.open(filepath=image)
 
     def set_scene(self, scene):
         self.scene = scene
@@ -547,10 +548,10 @@ class RPass:
         self.convert_textures(get_texture_list(self.scene))
 
         if sys.platform == 'win32':
-            filename = "launch:prman? -t:-1 -cwd \"%s\" -ctrl $ctrlin $ctrlout \
+            filename = "launch:prman? -t:%d" % self.rm.threads + " -cwd \"%s\" -ctrl $ctrlin $ctrlout \
             -dspyserver it" % self.paths['export_dir']
         else:
-            filename = "launch:prman? -t:-1 -cwd %s -ctrl $ctrlin $ctrlout \
+            filename = "launch:prman? -t:%d" % self.rm.threads + " -cwd %s -ctrl $ctrlin $ctrlout \
             -dspyserver it" % self.paths['export_dir']
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
