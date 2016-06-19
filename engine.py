@@ -429,6 +429,7 @@ class RPass:
         # launch the denoise process if turned on
         if self.rm.do_denoise and not isProblem:
             base, ext = render_output.rsplit('.', 1)
+            denoise_options = []
             # denoise data has the name .denoise.exr
             if self.rm.threads != 0:
                 denoise_options = ["-t%d" % self.rm.threads]
