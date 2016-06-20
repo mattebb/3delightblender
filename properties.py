@@ -870,11 +870,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Spool Animation",
         default=False)
 
-    export_multilayer = BoolProperty(
-        name="export all AOV's as a multilayer File",
-        description="Exports a multilayer file of AOV's from the render layer panel.  This will be in addition to any custom multilayer files that have been created",
-        default=True)
-
     header_rib_boxes = StringProperty(
         name="External RIB File",
         description="Injects an external RIB into the header of the output file.",
