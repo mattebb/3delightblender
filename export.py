@@ -92,6 +92,7 @@ def export_object_instance(ri, mtx=None, dupli_name=None,
         ri.AttributeBegin()
         ri.Attribute("identifier", {"name": dupli_name})
         ri.Transform(rib(mtx))
+        ri.CoordinateSystem(dupli_name)
         ri.ObjectInstance(instance_handle)
         ri.AttributeEnd()
 
@@ -657,8 +658,10 @@ def export_transform(ri, instance, flip_x=False, concat=False):
             m = m2 * m
         if concat and ob.parent_type == "object":
             ri.ConcatTransform(rib(m))
+            ri.CoordinateSystem(instance.ob.name)
         else:
             ri.Transform(rib(m))
+            ri.CoordinateSystem(instance.ob.name)
     export_motion_end(ri, instance.motion_data)
 
 
@@ -673,6 +676,7 @@ def export_object_transform(ri, ob, flip_x=False):
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
         m = m2 * m
     ri.Transform(rib(m))
+    ri.CoordinateSystem(ob.name)
 
 def export_light_source(ri, lamp, shape):
     name = "PxrStdAreaLight"
@@ -779,6 +783,7 @@ def export_world(ri, world, do_geometry=True):
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m2 * m
         ri.Transform(rib(m))
+        #No need to name Coordinate System system for world.
         ri.ShadingRate(rm.shadingrate)
 
     handle = world.name
@@ -969,6 +974,7 @@ def export_particle_instances(ri, scene, rpass, psys, ob, motion_data, type='OBJ
                 * Matrix.Scale(scale, 4)
 
             ri.Transform(rib(mtx))
+            ri.CoordinateSystem(ob.name)
         if len(motion_data) > 1:
             ri.MotionEnd()
 
@@ -1917,6 +1923,7 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
             # Gets the world location and uses the ri transform to set it in the archive.
             if(objectMatrix == True):
                 ri.Transform(rib(db.data.matrix_world))
+                ri.CoordinateSystem(db.name)
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
             #ri.Transform(rib(Matrix.Identity(4)))
@@ -1969,6 +1976,7 @@ def export_data_read_archive(ri, data_block, rpass):
     else:
         if data_block.type != 'DUPLI':
             ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
+            ri.CoordinateSystem(data_block.name)
         ri.ReadArchive(archive_filename)
         
         
@@ -2005,6 +2013,7 @@ def export_empties_archives(ri, ob):
     #Perform custom transform export since this is the only time empties are exprted.
     matrix = ob.matrix_local
     ri.Transform(rib(matrix))
+    ri.CoordinateSystem(ob.name)
     
     #visible_objects=visible_objects
     
@@ -2220,6 +2229,7 @@ def export_dupli_archive(ri, scene, rpass, data_block, data_blocks):
             if mat:
                 export_material_archive(ri, mat)
             ri.Transform(rib(Matrix.Identity(4)))
+            ri.CoordinateSystem(dupob.object.name)
             source_data_name = data_name(dupob.object, scene)
             deforming = is_deforming(dupob.object)
 
@@ -2366,6 +2376,7 @@ def export_camera_matrix(ri, scene, ob, motion_data=[]):
         m = s * r * l
 
         ri.Transform(rib(m))
+        ri.CoordinateSystem(ob.name)
 
     export_motion_end(ri, motion_data)
 
