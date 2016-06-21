@@ -313,7 +313,6 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
 
         layout.separator()
         
-        layout.separator()
         row = layout.row()
         row.label("Pixel Filter:")
         row.prop(rm, "pixelfilter", text="")
