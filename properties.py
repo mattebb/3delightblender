@@ -456,6 +456,11 @@ class RendermanMultilayerFile(bpy.types.PropertyGroup):
                 ('float',  'Float (32 bit)', '')], 
                 default='default')
                 
+    use_deep = BoolProperty(
+        name="Use Deep Data", 
+        description="The output file will contain extra 'deep' information that can aid with compositing.  This can increase file sizes dramatically.", 
+        default=False)
+                
     exr_compression = EnumProperty(
         name="EXR Compression", 
         description="Determined the compression used on the EXR file.  Leaving at 'default' will use the Renderman defaults.", 
