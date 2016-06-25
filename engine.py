@@ -429,8 +429,10 @@ class RPass:
         # launch the denoise process if turned on
         if self.rm.do_denoise and not isProblem:
             base, ext = render_output.rsplit('.', 1)
+            denoise_options = []
             # denoise data has the name .denoise.exr
-            denoise_options = ["-t%d" % self.rm.threads]
+            if self.rm.threads != 0:
+                denoise_options = ["-t%d" % self.rm.threads]
             denoise_data, filtered_name = self.get_denoise_names()
             #denoise_options.extend(['-o', os.path.basename(filtered_name).rsplit('.', 1)[0]])
             if os.path.exists(denoise_data):
@@ -494,7 +496,7 @@ class RPass:
                               denoise_data)
                 
         #Load all output images into image editor
-        if self.rm.import_images:
+        if self.rm.import_images and self.rm.render_into == 'blender':
             for image in self.output_files:
                 bpy.ops.image.open(filepath=image)
 
