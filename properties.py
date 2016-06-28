@@ -251,7 +251,8 @@ class RendermanAOV(bpy.types.PropertyGroup):
     def built_in_aovs(self, context):
         items = [("a", "alpha", ""), 
                     ("id", "id", "Returns the integer assigned via the 'identifier' attribute as the pixel value"), 
-                    ("z", "z depth", "Depth from the camera in world space"), 
+                    ("z", "z_depth", "Depth from the camera in world space"),
+                    ("zback", "z_back", "Depth at the back of volumetric objects in world space"),
                     ("P",  "P",  "Position of the point hit by the incident ray"), 
                     ("PRadius", "PRadius", "Cross-sectional size of the ray at the hit point"), 
                     ("cpuTime", "cpuTime", "The time taken to render a pixel"), 
