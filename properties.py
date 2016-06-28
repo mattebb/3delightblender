@@ -227,27 +227,33 @@ class RendermanAOV(bpy.types.PropertyGroup):
 
     def built_in_channel_types(self, context):
         items = [("custom_lpe_string", "Custom lpe", "Custom lpe"),
-                 ("built_in_aov", "Built in AOV", "Built in AOV"),
-                 ("custom_aov_string",  "Custom AOV", "Custom AOV"), 
-                 ("lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics"),
-                 ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
-                 ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
-                  "Reflection", "Reflection"),
-                 ("lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse"),
-                 ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
-                  "IndirectDiffuse", "IndirectDiffuse"),
-                 ("lpe:C<.S%G><L.%LG>", "Specular", "Specular"),
-                 ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
-                  "IndirectSpecular", "IndirectSpecular"),
-                 ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
-                  "Subsurface", "Subsurface"),
-                 ("lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
-                  "Refraction", "Refraction"),
-                 ]
+                ("built_in_aov", "Built in AOV", "Built in AOV"),
+                ("custom_aov_string",  "Custom AOV", "Custom AOV"), 
+                ("lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics"),
+                ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
+                ("color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O", "Albedo", "Albedo"), 
+                ("lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
+                "Reflection", "Reflection"),
+                ("lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse"),
+                ("lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
+                "IndirectDiffuse", "IndirectDiffuse"),
+                ("lpe:C<.S%G><L.%LG>", "Specular", "Specular"),
+                ("lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
+                "IndirectSpecular", "IndirectSpecular"),
+                ("lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
+                "Subsurface", "Subsurface"),
+                ("lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
+                "Refraction", "Refraction"),
+                ("lpe:emission", "Emission", "Emission")
+                ]
         return items
         
     def built_in_aovs(self, context):
-        items = [("P",  "P",  "Position of the point hit by the incident ray"), 
+        items = [("a", "alpha", ""), 
+                    ("id", "id", "Returns the integer assigned via the 'identifier' attribute as the pixel value"), 
+                    ("z", "z_depth", "Depth from the camera in world space"),
+                    ("zback", "z_back", "Depth at the back of volumetric objects in world space"),
+                    ("P",  "P",  "Position of the point hit by the incident ray"), 
                     ("PRadius", "PRadius", "Cross-sectional size of the ray at the hit point"), 
                     ("cpuTime", "cpuTime", "The time taken to render a pixel"), 
                     ("sampleCount", "sampleCount", "The number of samples taken for the resulting pixel"), 
@@ -385,6 +391,26 @@ class RendermanAOV(bpy.types.PropertyGroup):
         description="C value for remap.",
         default=0.0)
         
+    quantize_zero = IntProperty(
+        name="Zero",
+        description="Zero value for quantization",
+        default=0)
+        
+    quantize_one = IntProperty(
+        name="One", 
+        description="One value for quantization", 
+        default=0)
+        
+    quantize_min = IntProperty(
+        name="Min", 
+        description="Minimum value for quantization", 
+        default=0)
+    
+    quantize_max = IntProperty(
+        name="Max", 
+        description="Max value for quantization", 
+        default=0)
+        
     aov_pixelfilter = EnumProperty(
         name="Pixel Filter",
         description="Filter to use to combine pixel samples.  If 'default' is selected the aov will use the filter set in the render panel.",
@@ -430,6 +456,11 @@ class RendermanMultilayerFile(bpy.types.PropertyGroup):
                 ('half',  'Half (16 bit)',  ''), 
                 ('float',  'Float (32 bit)', '')], 
                 default='default')
+                
+    use_deep = BoolProperty(
+        name="Use Deep Data", 
+        description="The output file will contain extra 'deep' information that can aid with compositing.  This can increase file sizes dramatically.", 
+        default=False)
                 
     exr_compression = EnumProperty(
         name="EXR Compression", 
@@ -596,6 +627,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Motion Blur",
         description="Enable motion blur",
         default=False)
+    sample_motion_blur = BoolProperty(
+        name="Sample Motion Blur", 
+        description="Determines if motion blur is rendered in the final image.  If this is disabled the motion vectors are still calculated and can be exported with the dPdTime AOV.  This allows motion blur to be added as a post process effect.", 
+        default=True)
     motion_segments = IntProperty(
         name="Motion Samples",
         description="Number of motion samples to take for motion blur.  Set this higher if you notice segment artifacts in blurs.",
@@ -841,11 +876,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Spool Animation",
         default=False)
 
-    export_multilayer = BoolProperty(
-        name="export all AOV's as a multilayer File",
-        description="Exports a multilayer file of AOV's from the render layer panel.  This will be in addition to any custom multilayer files that have been created",
-        default=True)
-
     header_rib_boxes = StringProperty(
         name="External RIB File",
         description="Injects an external RIB into the header of the output file.",
@@ -877,6 +907,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Update frequency",
         description="Number of seconds between display update when rendering to Blender",
         min=0.0, default=10.0)
+        
+    import_images = BoolProperty(
+        name="Import AOV's into Blender", 
+        description="Imports all AOV's from the render session into Blender's image editor.", 
+        default=True)
 
     incremental = BoolProperty(
         name="Incremental Render",

@@ -92,6 +92,7 @@ def export_object_instance(ri, mtx=None, dupli_name=None,
         ri.AttributeBegin()
         ri.Attribute("identifier", {"name": dupli_name})
         ri.Transform(rib(mtx))
+        ri.CoordinateSystem(dupli_name)
         ri.ObjectInstance(instance_handle)
         ri.AttributeEnd()
 
@@ -657,8 +658,10 @@ def export_transform(ri, instance, flip_x=False, concat=False):
             m = m2 * m
         if concat and ob.parent_type == "object":
             ri.ConcatTransform(rib(m))
+            ri.CoordinateSystem(instance.ob.name)
         else:
             ri.Transform(rib(m))
+            ri.CoordinateSystem(instance.ob.name)
     export_motion_end(ri, instance.motion_data)
 
 
@@ -673,6 +676,7 @@ def export_object_transform(ri, ob, flip_x=False):
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
         m = m2 * m
     ri.Transform(rib(m))
+    ri.CoordinateSystem(ob.name)
 
 def export_light_source(ri, lamp, shape):
     name = "PxrStdAreaLight"
@@ -779,6 +783,7 @@ def export_world(ri, world, do_geometry=True):
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m2 * m
         ri.Transform(rib(m))
+        #No need to name Coordinate System system for world.
         ri.ShadingRate(rm.shadingrate)
 
     handle = world.name
@@ -969,6 +974,7 @@ def export_particle_instances(ri, scene, rpass, psys, ob, motion_data, type='OBJ
                 * Matrix.Scale(scale, 4)
 
             ri.Transform(rib(mtx))
+            ri.CoordinateSystem(ob.name)
         if len(motion_data) > 1:
             ri.MotionEnd()
 
@@ -1917,6 +1923,7 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
             # Gets the world location and uses the ri transform to set it in the archive.
             if(objectMatrix == True):
                 ri.Transform(rib(db.data.matrix_world))
+                ri.CoordinateSystem(db.name)
             export_mesh_archive(ri, scene, db)
         elif db.type == "PSYS":
             #ri.Transform(rib(Matrix.Identity(4)))
@@ -1969,6 +1976,7 @@ def export_data_read_archive(ri, data_block, rpass):
     else:
         if data_block.type != 'DUPLI':
             ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
+            ri.CoordinateSystem(data_block.name)
         ri.ReadArchive(archive_filename)
         
         
@@ -2005,6 +2013,7 @@ def export_empties_archives(ri, ob):
     #Perform custom transform export since this is the only time empties are exprted.
     matrix = ob.matrix_local
     ri.Transform(rib(matrix))
+    ri.CoordinateSystem(ob.name)
     
     #visible_objects=visible_objects
     
@@ -2220,6 +2229,7 @@ def export_dupli_archive(ri, scene, rpass, data_block, data_blocks):
             if mat:
                 export_material_archive(ri, mat)
             ri.Transform(rib(Matrix.Identity(4)))
+            ri.CoordinateSystem(dupob.object.name)
             source_data_name = data_name(dupob.object, scene)
             deforming = is_deforming(dupob.object)
 
@@ -2366,6 +2376,7 @@ def export_camera_matrix(ri, scene, ob, motion_data=[]):
         m = s * r * l
 
         ri.Transform(rib(m))
+        ri.CoordinateSystem(ob.name)
 
     export_motion_end(ri, motion_data)
 
@@ -2584,6 +2595,38 @@ def export_display(ri, rpass, scene):
     rm = scene.renderman
 
     active_layer = scene.render.layers.active
+    
+    # Set bucket shape.
+    if rpass.is_interactive:
+        ri.Option("bucket", {"string order": ['spiral']})
+
+    elif rm.bucket_shape == 'SPIRAL':
+        settings = scene.render
+
+        if rm.bucket_sprial_x <= settings.resolution_x and rm.bucket_sprial_y <= settings.resolution_y:
+            if rm.bucket_sprial_x == -1 and rm.bucket_sprial_y == -1:
+                ri.Option(
+                    "bucket", {"string order": [rm.bucket_shape.lower()]})
+            elif rm.bucket_sprial_x == -1:
+                halfX = settings.resolution_x / 2
+                debug("info", halfX)
+                ri.Option("bucket", {"string order": [rm.bucket_shape.lower()],
+                                     "orderorigin": [int(halfX),
+                                                     rm.bucket_sprial_y]})
+            elif rm.bucket_sprial_y == -1:
+                halfY = settings.resolution_y / 2
+                ri.Option("bucket", {"string order": [rm.bucket_shape.lower()],
+                                     "orderorigin": [rm.bucket_sprial_y,
+                                                     int(halfY)]})
+            else:
+                ri.Option("bucket", {"string order": [rm.bucket_shape.lower()],
+                                     "orderorigin": [rm.bucket_sprial_x,
+                                                     rm.bucket_sprial_y]})
+        else:
+            debug("info", "OUTSLIDE LOOP")
+            ri.Option("bucket", {"string order": [rm.bucket_shape.lower()]})
+    else:
+        ri.Option("bucket", {"string order": [rm.bucket_shape.lower()]})
 
     # built in aovs
     aovs = [
@@ -2623,44 +2666,11 @@ def export_display(ri, rpass, scene):
             custom_aovs = aov_list.custom_aovs
             break
 
-    # Set bucket shape.
-    if rpass.is_interactive:
-        ri.Option("bucket", {"string order": ['spiral']})
-
-    elif rm.bucket_shape == 'SPIRAL':
-        settings = scene.render
-
-        if rm.bucket_sprial_x <= settings.resolution_x \
-                and rm.bucket_sprial_y <= settings.resolution_y:
-            if rm.bucket_sprial_x == -1 and rm.bucket_sprial_y == -1:
-                ri.Option(
-                    "bucket", {"string order": [rm.bucket_shape.lower()]})
-            elif rm.bucket_sprial_x == -1:
-                halfX = settings.resolution_x / 2
-                debug("info", halfX)
-                ri.Option("bucket", {"string order": [rm.bucket_shape.lower()],
-                                     "orderorigin": [int(halfX),
-                                                     rm.bucket_sprial_y]})
-            elif rm.bucket_sprial_y == -1:
-                halfY = settings.resolution_y / 2
-                ri.Option("bucket", {"string order": [rm.bucket_shape.lower()],
-                                     "orderorigin": [rm.bucket_sprial_y,
-                                                     int(halfY)]})
-            else:
-                ri.Option("bucket", {"string order": [rm.bucket_shape.lower()],
-                                     "orderorigin": [rm.bucket_sprial_x,
-                                                     rm.bucket_sprial_y]})
-        else:
-            debug("info", "OUTSLIDE LOOP")
-            ri.Option("bucket", {"string order": [rm.bucket_shape.lower()]})
-    else:
-        ri.Option("bucket", {"string order": [rm.bucket_shape.lower()]})
-
     # declare display channels
 
     for aov, doit, declare_type, source in aovs:
         if doit and declare_type:
-            params = {}
+            params = {"int[4] quantize": [0, 0, 0, 0]}
             if source:
                 params['string source'] = source
             ri.DisplayChannel('%s %s' % (declare_type, aov), params)
@@ -2680,6 +2690,10 @@ def export_display(ri, rpass, scene):
         remap_a = aov.remap_a
         remap_b = aov.remap_b
         remap_c = aov.remap_c
+        quantize_zero = aov.quantize_zero
+        quantize_one = aov.quantize_one
+        quantize_min = aov.quantize_min
+        quantize_max = aov.quantize_max
         pixel_filter = aov.aov_pixelfilter
         stats = aov.stats_type
         pixelfilter_x = aov.aov_pixelfilter_x
@@ -2731,7 +2745,8 @@ def export_display(ri, rpass, scene):
 
         params = {"string source": source_type + " " + source,
                   "float[2] exposure": [exposure_gain, exposure_gamma],
-                  "float[3] remap": [remap_a, remap_b, remap_c]}
+                  "float[3] remap": [remap_a, remap_b, remap_c], 
+                  "int[4] quantize": [quantize_zero, quantize_one, quantize_min, quantize_max]}
         if pixel_filter != 'default':
             params["filter"] = pixel_filter
             params["filterwidth"] = [pixelfilter_x, pixelfilter_y]
@@ -2749,7 +2764,7 @@ def export_display(ri, rpass, scene):
     #main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
 
-    main_params = {"quantize": [0, 0, 0, 0], "int asrgba": 1}
+    main_params = {}
 
     if display_driver == 'openexr':
         if rm.exr_format_options != 'default':
@@ -2763,46 +2778,33 @@ def export_display(ri, rpass, scene):
    
         
 
-    # now do aovs
     
-    #exports default AOV multilayer
-
-    beauty_channels = False
     
-    if rm.export_multilayer and not display_driver in ('tiff', 'it'):
-        aov_out_list = []
-        for aov, doit, declare, source in aovs:
-            if doit:
-                aov_out_list.append(aov)
-        for aov in custom_aovs:
-            if not aov.exclude:
-                aov_out_list.append(aov.channel_name)
-        if aov_out_list:
-            if active_layer.use_pass_combined:
-                ri.DisplayChannel("color Ci")
-                ri.DisplayChannel("float a")
-                beauty_channels = True
-                ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, "Ci,a," + ','.join(aov_out_list), {"quantize": [0, 0, 0, 0], "int asrgba": 1})
-            else:
-                ri.Display('+' + image_base + '.multilayer.' + ext, display_driver, ','.join(aov_out_list), {"quantize": [0, 0, 0, 0]})
-
     #exports all AOV's not tagged as 'exclude'
-    else:
-        for aov, doit, declare, source in aovs:
-            if doit:
-                ri.Display('+' + image_base + '.%s.' % aov + ext,
-                        display_driver, aov, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
-                rpass.output_files.append(image_base + '.%s.' % aov + ext)
-        for aov in custom_aovs:
-            if not aov.exclude:
+    for aov, doit, declare, source in aovs:
+        params = {}
+        if not rpass.external_render:
+            params["int asrgba"] = 1
+        if doit:
+            ri.Display('+' + image_base + '.%s.' % aov + ext,
+                        display_driver, aov, params)
+            rpass.output_files.append(image_base + '.%s.' % aov + ext)
+
+    for aov in custom_aovs:
+        params = {}
+        if not aov.exclude:
+                if not rpass.external_render:
+                    params["int asrgba"] = 1
                 if aov.denoise_aov:
-                    ri.Display('+' + image_base + '.%s.denoiseable.' % aov.name + ext, display_driver, aov.channel_name, {"quantize": [0, 0, 0, 0]})
-                    rpass.output_files.append(image_base + '.%s.denoiseable.' % aov.name + ext)
+                    ri.Display('+' + image_base + '.%s.denoiseable.' % aov.name + ext, display_driver, aov.channel_name)
                 else:
-                    ri.Display('+' + image_base + '.%s.' % aov.name + ext, display_driver, aov.channel_name, {"quantize": [0, 0, 0, 0], "int asrgba": 1})
+                    ri.Display('+' + image_base + '.%s.' % aov.name + ext, display_driver, aov.channel_name, params)
                     rpass.output_files.append(image_base + '.%s.' % aov.name + ext)
 
-    #exports custom multilayers   
+
+    #Exports custom multilayers
+    beauty_channels = False
+    
     for multilayer_list in rm.multilayer_lists:
         custom_multilayers = []
         if active_layer.name == multilayer_list.render_layer:
@@ -2810,8 +2812,9 @@ def export_display(ri, rpass, scene):
         for file_out in custom_multilayers:
             if file_out.export:
                 channels = []
-                params = {"quantize": [0, 0, 0, 0], "string storage": file_out.exr_storage}
+                params = {"string storage": file_out.exr_storage}
                 channel_id = file_out.channel_names.split(',')
+                out_type, ext = ('openexr', 'exr')
                 if file_out.exr_format_options != 'default':
                     params["string type"] = file_out.exr_format_options
                 if file_out.exr_compression != 'default':
@@ -2819,18 +2822,19 @@ def export_display(ri, rpass, scene):
                 for aov in custom_aovs:
                     if aov.name in channel_id:
                         channels.append(aov.channel_name)
+                if file_out.use_deep:
+                    out_type, ext = ('deepexr', 'dexr')
                 if file_out.include_beauty:
                     if not beauty_channels:
                         ri.DisplayChannel("color Ci")
                         ri.DisplayChannel("float a")
                         beauty_channels = True
-                    params["int asrgba"] = 1
-                    ri.Display('+' + image_base + '.%s' % file_out.name + '.multilayer.exr',
-                               'openexr', "Ci,a," + ','.join(channels),
+                    ri.Display('+' + image_base + '.%s' % file_out.name + '.multilayer.' + ext,
+                               out_type, "Ci,a," + ','.join(channels),
                                params)
                 else:
                     ri.Display('+' + image_base + '.%s' % file_out.name +
-                               '.multilayer.exr', 'openexr', ','.join(channels), params)
+                               '.multilayer.' + ext, out_type, ','.join(channels), params)
                     
             
                      
@@ -2870,7 +2874,7 @@ def export_display(ri, rpass, scene):
         # output denoise_data.exr
         ri.Display('+' + image_base + '.variance.exr', 'openexr',
                    "Ci,a,mse,albedo,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
-                   {"int asrgba": 1, "string storage": "tiled"})
+                   {"string storage": "tiled"})
 
 
 def export_hider(ri, rpass, scene, preview=False):
@@ -2896,6 +2900,9 @@ def export_hider(ri, rpass, scene, preview=False):
         hider_params["float[4] aperture"] = [cam.aperture_sides, cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
         hider_params["float dofaspect"] = [cam.dof_aspect]
         hider_params["float darkfalloff"] = [rm.dark_falloff]
+        
+    if not rm.sample_motion_blur:
+            hider_params["samplemotion"] = 0
 
     ri.PixelVariance(pv)
 
@@ -2905,8 +2912,7 @@ def export_hider(ri, rpass, scene, preview=False):
     if rm.do_denoise:
         hider_params['string pixelfiltermode'] = 'importance'
 
-    if rm.hider == 'raytrace':
-        ri.Hider(rm.hider, hider_params)
+    ri.Hider("raytrace", hider_params)
 
 
 # I hate to make rpass global but it makes things so much easier
