@@ -683,6 +683,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Max Diffuse Depth",
         description="Maximum number of diffuse ray bounces",
         min=0, max=32, default=1)
+    use_separate_path_depths = BoolProperty(
+        name="Separate Diffuse//Specular Depths", 
+        description="Enables the renderer to track diffuse//specular bounce depths separately based on the BXDF lobe being sampled.  This can give a more realistic result but may also increase render times.",
+        default=False)
     max_eye_splits = IntProperty(
         name="Max Eye Splits",
         description="Maximum number of times a primitive crossing the eye plane is split before being discarded",

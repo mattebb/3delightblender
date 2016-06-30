@@ -331,6 +331,9 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row = col.row(align=True)
         row.prop(rm, "max_specular_depth", text="Specular Depth")
         row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
+        if rm.integrator == 'PxrPathTracer':
+            row = col.row(align=True)
+            row.prop(rm,  "use_separate_path_depths")
         row = col.row(align=True)
         row.prop(rm, 'incremental')
         row = col.row(align=True)
