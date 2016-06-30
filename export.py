@@ -2140,6 +2140,8 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         if ob.renderman.raytrace_intersectpriority != 0:
             trace_params[
                 "int intersectpriority"] = ob.renderman.raytrace_intersectpriority
+        if ob.renderman.raytrace_pixel_variance != 1.0:
+            ri.Attribute("shade",  {"relativepixelvariance": ob.renderman.raytrace_pixel_variance})
 
         ri.Attribute("trace", trace_params)
 

@@ -1798,6 +1798,10 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Ray Trace Override",
         description="Override default Renderman ray tracing behavior. Recommended for advanced users only.",
         default=False)
+    raytrace_pixel_variance = FloatProperty(
+        name="Relative Pixel Variance", 
+        description="Allows this object ot render to a different quality level than the main scene.  Actual pixel variance will be this number multiplied by the main pixel variance.", 
+        default=1.0)
     raytrace_maxdiffusedepth = IntProperty(
         name="Max Diffuse Depth",
         description="Limit the number of diffuse bounces",
