@@ -2828,7 +2828,7 @@ def export_display(ri, rpass, scene):
                     if aov.name in channel_id:
                         channels.append(aov.channel_name)
                 if file_out.use_deep:
-                    out_type, ext = ('deepexr', 'dexr')
+                    out_type, ext = ('deepexr', 'exr')
                 if file_out.include_beauty:
                     if not beauty_channels:
                         ri.DisplayChannel("color Ci")
