@@ -482,7 +482,7 @@ class RendermanMultilayerFile(bpy.types.PropertyGroup):
         items=[
             ('scanline', 'Scanline Storage', ''),
             ('tiled', 'Tiled Storage', '')],
-        default='tiled')
+        default='scanline')
     
 class RendermanMultilayerFileList(bpy.types.PropertyGroup):
     render_layer = StringProperty()
