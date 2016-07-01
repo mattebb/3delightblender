@@ -685,7 +685,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         min=0, max=32, default=1)
     use_separate_path_depths = BoolProperty(
         name="Separate Diffuse//Specular Depths", 
-        description="Enables the renderer to track diffuse//specular bounce depths separately based on the BXDF lobe being sampled.  This can give a more realistic result but may also increase render times.",
+        description="When using Path Tracing, this enables the renderer to track diffuse//specular bounce depths separately based on the BXDF lobe being sampled.  This can give a more realistic result but may also increase render times.",
         default=False)
     max_eye_splits = IntProperty(
         name="Max Eye Splits",

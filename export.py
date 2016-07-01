@@ -2352,8 +2352,6 @@ def export_render_settings(ri, rpass, scene, preview=False):
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
     ri.ShadingRate(rm.shadingrate)
     ri.Attribute("trace", depths)
-    if rm.use_separate_path_depths:
-        ri.Option("trace", {'string depthmode': 'separate'})
         
     if rm.use_statistics:
         ri.Option("statistics", {'int endofframe': 1,
@@ -2495,13 +2493,16 @@ def export_camera_render_preview(ri, scene):
                   1, -0.25, 0,  0, -.75, 3.25, 1])
 
 
-def export_cache_sizes(ri, scene):
+def export_options(ri, scene):
     rm = scene.renderman
     params = {'int geocachememory': rm.geo_cache_size * 100,
         'int opacitycachememory': rm.opacity_cache_size * 100,
         'int texturememory': rm.texture_cache_size * 100,
     }
     ri.Option("limits", params)
+    if rm.use_separate_path_depths and rm.integrator == "PxrPathTracer":
+        ri.Option("trace", {'string depthmode': 'separate'})
+    
 
 
 def export_searchpaths(ri, paths):
@@ -2936,7 +2937,7 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
     export_header(ri)
     export_header_rib(ri, scene)
     export_searchpaths(ri, rpass.paths)
-    export_cache_sizes(ri, scene)
+    export_options(ri, scene)
 
     export_display(ri, rpass, scene)
     export_hider(ri, rpass, scene)
