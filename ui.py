@@ -460,6 +460,8 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row.prop(rm, 'light_localization')
         row = layout.row()
         row.prop(rm,  "sample_motion_blur")
+        row = layout.row(align=True)
+        row.prop(rm,  "use_separate_path_depths")
 
         layout.separator()
         row = layout.row()
@@ -1136,14 +1138,13 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
         ob = context.object
         rm = ob.renderman
 
-        self._draw_collection(context, layout, rm, "Trace sets:", "collection.add_remove",
-                              "object", "trace_set", "trace_set_index")
-
         layout.prop(
             rm, "raytrace_override", text="Override Default Ray Tracing")
 
         col = layout.column()
         col.active = rm.raytrace_override
+        row = col.row()
+        row.prop(rm, "raytrace_pixel_variance")
         row = col.row()
         row.prop(rm, "raytrace_maxdiffusedepth", text="Max Diffuse Depth")
         row = col.row()

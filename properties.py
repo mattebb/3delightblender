@@ -482,7 +482,7 @@ class RendermanMultilayerFile(bpy.types.PropertyGroup):
         items=[
             ('scanline', 'Scanline Storage', ''),
             ('tiled', 'Tiled Storage', '')],
-        default='tiled')
+        default='scanline')
     
 class RendermanMultilayerFileList(bpy.types.PropertyGroup):
     render_layer = StringProperty()
@@ -683,6 +683,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Max Diffuse Depth",
         description="Maximum number of diffuse ray bounces",
         min=0, max=32, default=1)
+    use_separate_path_depths = BoolProperty(
+        name="Separate Diffuse//Specular Depths", 
+        description="When using Path Tracing, this enables the renderer to track diffuse//specular bounce depths separately based on the BXDF lobe being sampled.  This can give a more realistic result but may also increase render times.",
+        default=False)
     max_eye_splits = IntProperty(
         name="Max Eye Splits",
         description="Maximum number of times a primitive crossing the eye plane is split before being discarded",
@@ -1798,6 +1802,10 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Ray Trace Override",
         description="Override default Renderman ray tracing behavior. Recommended for advanced users only.",
         default=False)
+    raytrace_pixel_variance = FloatProperty(
+        name="Relative Pixel Variance", 
+        description="Allows this object ot render to a different quality level than the main scene.  Actual pixel variance will be this number multiplied by the main pixel variance.", 
+        default=1.0)
     raytrace_maxdiffusedepth = IntProperty(
         name="Max Diffuse Depth",
         description="Limit the number of diffuse bounces",
