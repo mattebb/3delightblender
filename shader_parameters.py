@@ -358,6 +358,9 @@ def generate_property(sp):
 
     elif param_type == 'int' or param_type == 'integer':
         param_default = int(param_default) if param_default else 0
+        # make invertT default 0
+        if param_name == 'invertT':
+            param_default = 0
         if param_widget == 'checkbox':
             prop = BoolProperty(name=param_label,
                                 default=bool(param_default),

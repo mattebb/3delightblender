@@ -642,22 +642,6 @@ def generate_node_type(prefs, name, args):
             color_ramp = active_mat.node_tree.nodes.new('ShaderNodeValToRGB')
             self.color_ramp_dummy_name = color_ramp.name
 
-        # if a texture make a manifold 2d to go along.
-        if self.plugin_name == 'PxrTexture':
-            context_copy = bpy.context.copy()
-            context_copy['area'] = next(area for area
-                                        in bpy.context.screen.areas if area.type == 'NODE_EDITOR')
-            context_copy['link_to_socket'] = self.inputs['manifold']
-            context_copy['link_from_socket'] = None
-
-            bpy.ops.node.add_and_link_node(context_copy,
-                                           type="PxrManifold2DPatternNode",
-                                           link_socket_index=0)
-
-            manifold = bpy.context.active_node
-            manifold.location[0] = self.location[0] - 300
-            manifold.location[1] = self.location[1]
-
     ntype.init = init
     if name == 'PxrRamp':
         ntype.color_ramp_dummy_name = StringProperty('color_ramp', default='')
