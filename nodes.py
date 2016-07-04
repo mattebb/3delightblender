@@ -284,7 +284,7 @@ class RendermanShadingNode(bpy.types.Node):
                         nt.nodes[self.color_ramp_dummy_name], 'color_ramp')
 
             for prop_name in prop_names:
-                if prop_name in ["rman__Shape", "coneAngle", "penumbraAngle"]:
+                if prop_name in ["__group", "rman__Shape", "coneAngle", "penumbraAngle"]:
                     continue
                 prop_meta = self.prop_meta[prop_name]
                 if prop_name not in self.inputs:
@@ -743,7 +743,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
         else:
             for prop_name in prop_names:
                 #skip showing the shape for PxrStdAreaLight
-                if prop_name in ["rman__Shape", "coneAngle", "penumbraAngle"]:
+                if prop_name in ["__group", "rman__Shape", "coneAngle", "penumbraAngle"]:
                     continue
 
                 if prop_name == "codetypeswitch":
