@@ -209,7 +209,7 @@ class ExternalRender(bpy.types.Operator):
         except Exception as err:
             self.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
 
-    def invoke(self, context, event=None):
+    def execute(self, context):
         if engine.ipr:
             self.report({"ERROR"}, 'Please stop IPR before rendering externally')
             return {'FINISHED'}

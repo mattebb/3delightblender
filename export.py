@@ -2140,6 +2140,8 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         if ob.renderman.raytrace_intersectpriority != 0:
             trace_params[
                 "int intersectpriority"] = ob.renderman.raytrace_intersectpriority
+        if ob.renderman.raytrace_pixel_variance != 1.0:
+            ri.Attribute("shade",  {"relativepixelvariance": ob.renderman.raytrace_pixel_variance})
 
         ri.Attribute("trace", trace_params)
 
@@ -2350,6 +2352,7 @@ def export_render_settings(ri, rpass, scene, preview=False):
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
     ri.ShadingRate(rm.shadingrate)
     ri.Attribute("trace", depths)
+        
     if rm.use_statistics:
         ri.Option("statistics", {'int endofframe': 1,
                                  'string xmlfilename': 'stats.xml'})
@@ -2490,13 +2493,16 @@ def export_camera_render_preview(ri, scene):
                   1, -0.25, 0,  0, -.75, 3.25, 1])
 
 
-def export_cache_sizes(ri, scene):
+def export_options(ri, scene):
     rm = scene.renderman
     params = {'int geocachememory': rm.geo_cache_size * 100,
         'int opacitycachememory': rm.opacity_cache_size * 100,
         'int texturememory': rm.texture_cache_size * 100,
     }
     ri.Option("limits", params)
+    if rm.use_separate_path_depths and rm.integrator == "PxrPathTracer":
+        ri.Option("trace", {'string depthmode': 'separate'})
+    
 
 
 def export_searchpaths(ri, paths):
@@ -2823,7 +2829,7 @@ def export_display(ri, rpass, scene):
                     if aov.name in channel_id:
                         channels.append(aov.channel_name)
                 if file_out.use_deep:
-                    out_type, ext = ('deepexr', 'dexr')
+                    out_type, ext = ('deepexr', 'exr')
                 if file_out.include_beauty:
                     if not beauty_channels:
                         ri.DisplayChannel("color Ci")
@@ -2931,7 +2937,7 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
     export_header(ri)
     export_header_rib(ri, scene)
     export_searchpaths(ri, rpass.paths)
-    export_cache_sizes(ri, scene)
+    export_options(ri, scene)
 
     export_display(ri, rpass, scene)
     export_hider(ri, rpass, scene)
