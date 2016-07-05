@@ -35,6 +35,7 @@ bl_info = {
     "warning": "",
     "category": "Render"}
 
+
 class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
     bl_label = "RenderMan Render"
@@ -68,17 +69,20 @@ class PRManRender(bpy.types.RenderEngine):
         if self.render_pass is not None:
             engine.render(self)
 
+
 def add_handlers(scene):
     if engine.update_timestamp not in bpy.app.handlers.scene_update_pre:
         bpy.app.handlers.scene_update_pre.append(engine.update_timestamp)
     if properties.initial_groups not in bpy.app.handlers.scene_update_post:
         bpy.app.handlers.load_post.append(properties.initial_groups)
 
+
 def remove_handlers():
     if properties.initial_groups in bpy.app.handlers.scene_update_pre:
         bpy.app.handlers.scene_update_pre.remove(properties.initial_groups)
     if engine.update_timestamp in bpy.app.handlers.scene_update_post:
         bpy.app.handlers.scene_update_post.remove(engine.update_timestamp)
+
 
 def register():
     from . import preferences
@@ -87,7 +91,7 @@ def register():
     from . import properties
     from . import operators
     from . import nodes
-    # need this now rather than at beginning to make 
+    # need this now rather than at beginning to make
     # sure preferences are loaded
     from . import engine
     properties.register()
@@ -96,8 +100,9 @@ def register():
     nodes.register()
     bpy.utils.register_module(__name__)
     add_handlers(None)
-    #if add_handlers not in bpy.app.handlers.load_post:
+    # if add_handlers not in bpy.app.handlers.load_post:
     #    bpy.app.handlers.load_post.append(add_handlers)
+
 
 def unregister():
     remove_handlers()

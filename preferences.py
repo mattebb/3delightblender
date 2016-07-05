@@ -40,7 +40,8 @@ class RendermanPreferencePath(bpy.types.PropertyGroup):
 
 class RendermanEnvVarSettings(bpy.types.PropertyGroup):
     if sys.platform == ("win32"):
-        outpath = os.path.join("C:", "Users", os.getlogin(), "Documents", "PRMan")
+        outpath = os.path.join(
+            "C:", "Users", os.getlogin(), "Documents", "PRMan")
         out = StringProperty(
             name="OUT (Output Root)",
             description="Default RIB export path root",
@@ -59,28 +60,29 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
         name="SHD (Shadow Maps)",
         description="SHD environment variable",
         subtype='DIR_PATH',
-        default=os.path.join('$OUT','shadowmaps'))
+        default=os.path.join('$OUT', 'shadowmaps'))
 
     ptc = StringProperty(
         name="PTC (Point Clouds)",
         description="PTC environment variable",
         subtype='DIR_PATH',
-        default=os.path.join('$OUT','pointclouds'))
+        default=os.path.join('$OUT', 'pointclouds'))
 
     arc = StringProperty(
         name="ARC (Archives)",
         description="ARC environment variable",
         subtype='DIR_PATH',
-        default=os.path.join('$OUT','archives'))
+        default=os.path.join('$OUT', 'archives'))
 
 
 class RendermanPreferences(AddonPreferences):
     bl_idname = __package__
-        
+
     # find the renderman options installed
     def find_installed_rendermans(self, context):
-        options = [('NEWEST', 'Newest Version Installed', 'Automatically updates when new version installed.')]
-        for vers,path in get_installed_rendermans():
+        options = [('NEWEST', 'Newest Version Installed',
+                    'Automatically updates when new version installed.')]
+        for vers, path in get_installed_rendermans():
             options.append((path, vers, path))
         return options
 
@@ -114,15 +116,16 @@ class RendermanPreferences(AddonPreferences):
     rmantree_choice = EnumProperty(
         name='RenderMan Version to use',
         description='Leaving as "Newest" will automatically update when you install a new RenderMan version.',
-        #default='NEWEST',
+        # default='NEWEST',
         items=find_installed_rendermans
-        )
+    )
 
     rmantree_method = EnumProperty(
         name='RenderMan Location',
         description='How RenderMan should be detected.  Most users should leave to "Detect"',
         items=[('DETECT', 'Choose From Installed', 'This will scan for installed RenderMan locations to choose from'),
-               ('ENV', 'Get From RMANTREE Environment Variable', 'This will use the RMANTREE set in the enviornment variables'),
+               ('ENV', 'Get From RMANTREE Environment Variable',
+                'This will use the RMANTREE set in the enviornment variables'),
                ('MANUAL', 'Set Manually', 'Manually set the RenderMan installation (for expert users)')])
 
     path_rmantree = StringProperty(

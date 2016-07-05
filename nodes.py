@@ -55,12 +55,15 @@ import os.path
 
 NODE_LAYOUT_SPLIT = 0.5
 
+
 def load_tree_from_lib(mat):
     if mat.library:
         with bpy.data.libraries.load(mat.library.filepath) as (data_from, data_to):
             data_to.node_groups = data_from.node_groups
 
 # Default Types
+
+
 class RendermanPatternGraph(bpy.types.NodeTree):
 
     '''A node tree comprised of renderman nodes'''
@@ -111,7 +114,7 @@ class RendermanSocket:
                 storageLocation = mat + node.name + self.name
                 if hasattr(oslProps, storageLocation):
                     layout.prop(oslProps, storageLocation)
-                #else:
+                # else:
                 #    rebuild_OSL_nodes(context.scene, context)
         else:
             layout.prop(node, self.name)
@@ -205,8 +208,8 @@ class RendermanShadingNode(bpy.types.Node):
 
     def update_mat(self, mat):
         if self.renderman_node_type == 'bxdf' and self.outputs['Bxdf'].is_linked:
-            mat.specular_color = [1,1,1]
-            mat.diffuse_color = [1,1,1]
+            mat.specular_color = [1, 1, 1]
+            mat.diffuse_color = [1, 1, 1]
             mat.use_transparency = False
             mat.specular_intensity = 0
             mat.diffuse_intensity = 1
@@ -223,8 +226,8 @@ class RendermanShadingNode(bpy.types.Node):
                 mat.diffuse_color = self.transmissionColor
             elif hasattr(self, "frontColor"):
                 mat.diffuse_color = self.frontColor
-            
-            #specular intensity
+
+            # specular intensity
             if hasattr(self, "specular"):
                 mat.specular_intensity = self.specular
             elif hasattr(self, "SpecularGainR"):
@@ -232,26 +235,24 @@ class RendermanShadingNode(bpy.types.Node):
             elif hasattr(self, "reflectionGain"):
                 mat.specular_intensity = self.reflectionGain
 
-            # specular color 
+            # specular color
             if hasattr(self, "specularColor"):
                 mat.specular_color = self.specularColor
             elif hasattr(self, "reflectionColor"):
                 mat.specular_color = self.reflectionColor
-            
 
             if self.bl_idname in ["PxrGlassBxdfNode", "PxrLMGlassBxdfNode"]:
                 mat.use_transparency = True
                 mat.alpha = .5
-            
+
             if self.bl_idname == "PxrLMMetalBxdfNode":
-                mat.diffuse_color = [0,0,0]
+                mat.diffuse_color = [0, 0, 0]
                 mat.specular_intensity = 1
                 mat.specular_color = self.specularColor
-                mat.mirror_color = [1,1,1]
-            
+                mat.mirror_color = [1, 1, 1]
+
             elif self.bl_idname == "PxrLMPlasticBxdfNode":
                 mat.specular_intensity = 1
-                
 
     # all the properties of a shader will go here, also inputs/outputs
     # on connectable props will have the same name
@@ -306,7 +307,7 @@ class RendermanShadingNode(bpy.types.Node):
                                 context, layout, prop)
                     elif "Subset" in prop_name and prop_meta['type'] == 'string':
                         layout.prop_search(self, prop_name, bpy.data.scenes[0].renderman,
-                                "object_groups")
+                                           "object_groups")
                     else:
                         layout.prop(self, prop_name)
 
@@ -344,9 +345,11 @@ class RendermanShadingNode(bpy.types.Node):
             export_path = os.path.join(
                 user_path(prefs.env_vars.out), "shaders", FileNameOSO)
             if os.path.splitext(FileName)[1] == ".oso":
-                if( not os.path.samefile(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO))):
-                    shutil.copy(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders"))
-                # Assume that the user knows what they were doing when they compiled the osl file.
+                if(not os.path.samefile(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO))):
+                    shutil.copy(osl_path, os.path.join(
+                        user_path(prefs.env_vars.out), "shaders"))
+                # Assume that the user knows what they were doing when they
+                # compiled the osl file.
                 ok = True
             else:
                 ok = node.compile_osl(osl_path, compile_path)
@@ -393,7 +396,7 @@ class RendermanShadingNode(bpy.types.Node):
             # Generate new inputs and outputs
             node.OSLPROPSPOINTER = OSLProps
             node.OSLPROPSPOINTER.setProps(
-                    node, prop_names, shader_meta, context, materialOverride, saveProps)
+                node, prop_names, shader_meta, context, materialOverride, saveProps)
 
         else:
             debug("osl", "NODE COMPILATION FAILED")
@@ -742,14 +745,15 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
             pass
         else:
             for prop_name in prop_names:
-                #skip showing the shape for PxrStdAreaLight
+                # skip showing the shape for PxrStdAreaLight
                 if prop_name in ["__group", "rman__Shape", "coneAngle", "penumbraAngle"]:
                     continue
 
                 if prop_name == "codetypeswitch":
                     row = layout.row()
                     if node.codetypeswitch == 'INT':
-                        row.prop_search(node, "internalSearch", bpy.data, "texts", text="")
+                        row.prop_search(node, "internalSearch",
+                                        bpy.data, "texts", text="")
                     elif node.codetypeswitch == 'EXT':
                         row.prop(node, "shadercode")
                 elif prop_name == "internalSearch" or prop_name == "shadercode" or prop_name == "expression":
@@ -802,7 +806,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             # don't draw prop for struct type
                             if "Subset" in prop_name and prop_meta['type'] == 'string':
                                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
-                                "object_groups")
+                                                "object_groups")
                             else:
                                 row.prop(node, prop_name)
                             if prop_name in node.inputs:
@@ -1004,11 +1008,12 @@ def gen_params(ri, node, mat_name=None):
                         params['%s %s' % (prop_type, prop_name)] = \
                             rib(getattr(getLocation, osl_prop_name),
                                 type_hint=prop_type)
-    
-    #Special case for SeExpr Nodes. Assume that the code will be in a file so that needs to be extracted.
+
+    # Special case for SeExpr Nodes. Assume that the code will be in a file so
+    # that needs to be extracted.
     elif node.bl_idname == "PxrSeExprPatternNode":
         fileInputType = node.codetypeswitch
-        
+
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index or prop_name == "codetypeswitch":
                 pass
@@ -1016,8 +1021,9 @@ def gen_params(ri, node, mat_name=None):
                 if node.internalSearch != "":
                     script = bpy.data.texts[node.internalSearch]
                     params['%s %s' % ("string",
-                            "expression")] = \
-                                rib(script.as_string(), type_hint=meta['renderman_type'])
+                                      "expression")] = \
+                        rib(script.as_string(),
+                            type_hint=meta['renderman_type'])
             elif prop_name == "shadercode" and fileInputType == "EXT":
                 fileInput = user_path(getattr(node, 'shadercode'))
                 if fileInput != "":
@@ -1026,8 +1032,8 @@ def gen_params(ri, node, mat_name=None):
                         for line in SeExprFile:
                             outputString += line
                     params['%s %s' % ("string",
-                            "expression")] = \
-                                rib(outputString, type_hint=meta['renderman_type'])
+                                      "expression")] = \
+                        rib(outputString, type_hint=meta['renderman_type'])
             else:
                 prop = getattr(node, prop_name)
                 # if property group recurse
@@ -1050,7 +1056,7 @@ def gen_params(ri, node, mat_name=None):
                     if 'options' in meta and meta['options'] == 'texture' or \
                         (node.renderman_node_type == 'light' and
                             'widget' in meta and meta['widget'] == 'fileInput'):
-                        
+
                         params['%s %s' % (meta['renderman_type'],
                                           meta['renderman_name'])] = \
                             rib(get_tex_file_name(prop),
@@ -1069,10 +1075,10 @@ def gen_params(ri, node, mat_name=None):
                 pass
             elif node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
                 pass
-            
+
             elif(prop_name == 'sblur' or prop_name == 'tblur'):
                 pass
-            
+
             else:
                 prop = getattr(node, prop_name)
                 # if property group recurse
@@ -1122,11 +1128,12 @@ def gen_params(ri, node, mat_name=None):
             for e in dummy_ramp.color_ramp.elements:
                 positions.append(float(e.position))
                 colors.extend(e.color[:3])
-            positions.append(float(dummy_ramp.color_ramp.elements[-1].position))
+            positions.append(
+                float(dummy_ramp.color_ramp.elements[-1].position))
             colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
             params['color[%d] colors' % len(positions)] = colors
             params['float[%d] positions' % len(positions)] = positions
-            debug('error',"Params gen: ", params)
+            debug('error', "Params gen: ", params)
 
     return params
 
@@ -1174,6 +1181,8 @@ def replace_frame_num(prop):
     return prop
 
 # return the output file name if this texture is to be txmade.
+
+
 def get_tex_file_name(prop):
     prop = replace_frame_num(prop)
     prop = prop.replace('\\', '\/')
@@ -1199,11 +1208,11 @@ def gather_nodes(node):
 
 # for an input node output all "nodes"
 def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
-    
+
     if id and id.renderman.nodetree != '':
         if id.renderman.nodetree not in bpy.data.node_groups:
             load_tree_from_lib(id)
-        
+
         if id.renderman.nodetree not in bpy.data.node_groups:
             return
 
@@ -1221,7 +1230,6 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
         for node in nodes_to_export:
             shader_node_rib(ri, node, mat_name=handle,
                             disp_bound=disp_bound)
-
 
 
 # return the bxdf name for this mat if there is one, else return defualt
@@ -1263,7 +1271,7 @@ def get_textures_for_node(node, matName=""):
                     node.inputs[prop_name].is_linked:
                 from_socket = node.inputs[prop_name].links[0].from_socket
                 textures = textures + \
-                get_textures_for_node(from_socket.node, matName)
+                    get_textures_for_node(from_socket.node, matName)
     else:
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
@@ -1295,26 +1303,39 @@ def get_textures_for_node(node, matName=""):
                                 textures.append(
                                     (replace_frame_num(prop), out_file_name, ['-envlatl']))
                             else:
-                                if hasattr(node, "smode"): # Test and see if options like smode are on this node.
+                                # Test and see if options like smode are on
+                                # this node.
+                                if hasattr(node, "smode"):
                                     optionsList = []
                                     for option in txmake_options.index:
                                         partsOfOption = getattr(
                                             txmake_options, option)
                                         if partsOfOption["exportType"] == "name":
                                             optionsList.append("-" + option)
-                                            if partsOfOption["type"] == "float": # Float values need converting before they are passed to command line
-                                                optionsList.append(str(getattr(node, option)))
+                                            # Float values need converting
+                                            # before they are passed to command
+                                            # line
+                                            if partsOfOption["type"] == "float":
+                                                optionsList.append(
+                                                    str(getattr(node, option)))
                                             else:
-                                                optionsList.append(getattr(node, option))
+                                                optionsList.append(
+                                                    getattr(node, option))
                                         else:
-                                            if partsOfOption["type"] == "float": # Float values need converting before they are passed to command line
-                                                optionsList.append(str(getattr(node, option)))
+                                            # Float values need converting
+                                            # before they are passed to command
+                                            # line
+                                            if partsOfOption["type"] == "float":
+                                                optionsList.append(
+                                                    str(getattr(node, option)))
                                             else:
-                                                optionsList.append("-"+ getattr(node, option))
+                                                optionsList.append(
+                                                    "-" + getattr(node, option))
                                     textures.append(
                                         (replace_frame_num(prop), out_file_name, optionsList))
                                 else:
-                                    # no options found add the bare minimum options for smooth export.
+                                    # no options found add the bare minimum
+                                    # options for smooth export.
                                     textures.append((replace_frame_num(prop), out_file_name,
                                                      ['-smode', 'periodic',
                                                       '-tmode', 'periodic']))
@@ -1343,6 +1364,7 @@ def get_textures(id):
 
     return textures
 
+
 @persistent
 def rebuildOSLSystem(dummy):
     context = bpy.context
@@ -1356,7 +1378,8 @@ def rebuildOSLSystem(dummy):
                         nt = bpy.data.node_groups[mat.renderman.nodetree]
                         for node in nt.nodes:
                             if(node.bl_idname == "PxrOSLPatternNode"):
-                                node.RefreshNodes(context, node, mat, True) # Recompile the node.
+                                # Recompile the node.
+                                node.RefreshNodes(context, node, mat, True)
 
 
 # our own base class with an appropriate poll function,
