@@ -967,7 +967,7 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
 # Rib export
 
 # generate param list
-def gen_params(ri, node, mat_name=None, recurse=True):
+def gen_params(ri, node, mat_name=None):
     params = {}
     # If node is OSL node get properties from dynamic location.
     if node.bl_idname == "PxrOSLPatternNode" and mat_name != 'preview':
@@ -988,7 +988,6 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 elif prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
                     from_socket = node.inputs[prop_name].links[0].from_socket
-                    shader_node_rib(ri, from_socket.node, mat_name=mat_name)
                     params['reference %s %s' % (prop_type, prop_name)] = \
                         ["%s:%s" % (from_socket.node.name,
                                     from_socket.identifier)]
@@ -1038,9 +1037,6 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 elif prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
                     from_socket = node.inputs[prop_name].links[0].from_socket
-                    if recurse:
-                        shader_node_rib(
-                            ri, from_socket.node, mat_name=mat_name)
                     params['reference %s %s' % (meta['renderman_type'],
                                                 meta['renderman_name'])] = \
                         ["%s:%s" %
@@ -1071,11 +1067,12 @@ def gen_params(ri, node, mat_name=None, recurse=True):
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
                 pass
-            if node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
+            elif node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
                 pass
             
-            if(prop_name == "sblur" or prop_name == "tblur"):
+            elif(prop_name == 'sblur' or prop_name == 'tblur'):
                 pass
+            
             else:
                 prop = getattr(node, prop_name)
                 # if property group recurse
@@ -1085,9 +1082,6 @@ def gen_params(ri, node, mat_name=None, recurse=True):
                 elif prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
                     from_socket = node.inputs[prop_name].links[0].from_socket
-                    if recurse:
-                        shader_node_rib(
-                            ri, from_socket.node, mat_name=mat_name)
                     params['reference %s %s' % (meta['renderman_type'],
                                                 meta['renderman_name'])] = \
                         ["%s:%s" %
@@ -1139,13 +1133,11 @@ def gen_params(ri, node, mat_name=None, recurse=True):
 # Export to rib
 
 
-def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
-    params = gen_params(ri, node, mat_name, recurse)
+def shader_node_rib(ri, node, mat_name, disp_bound=0.0):
+    params = gen_params(ri, node, mat_name)
     instance = mat_name + '.' + node.name
     params['__instanceid'] = mat_name + '.' + node.name
     if node.renderman_node_type == "pattern":
-        if(node.bl_label == "PxrRamp"):
-            debug('error',"Params: ", params)
         ri.Pattern(node.bl_label, node.name, params)
     elif node.renderman_node_type == "light":
         light_group_name = ''
@@ -1172,24 +1164,40 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, recurse=True):
     else:
         ri.Bxdf(node.bl_label, instance, params)
 
-# return the output file name if this texture is to be txmade.
 
-
-def get_tex_file_name(prop):
+def replace_frame_num(prop):
     frame_num = bpy.data.scenes[0].frame_current
     prop = prop.replace('$f4', str(frame_num).zfill(4))
     prop = prop.replace('$F4', str(frame_num).zfill(4))
     prop = prop.replace('$f3', str(frame_num).zfill(3))
     prop = prop.replace('$f3', str(frame_num).zfill(3))
+    return prop
+
+# return the output file name if this texture is to be txmade.
+def get_tex_file_name(prop):
+    prop = replace_frame_num(prop)
     prop = prop.replace('\\', '\/')
     if prop != '' and prop.rsplit('.', 1) != 'tex':
         return os.path.basename(prop).rsplit('.', 1)[0] + '.tex'
     else:
         return prop
 
+
+# walk the tree for nodes to export
+def gather_nodes(node):
+    nodes = []
+    for socket in node.inputs:
+        if socket.is_linked:
+            for sub_node in gather_nodes(socket.links[0].from_node):
+                if sub_node not in nodes:
+                    nodes.append(sub_node)
+    if node.renderman_node_type != 'output':
+        nodes.append(node)
+
+    return nodes
+
+
 # for an input node output all "nodes"
-
-
 def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
     
     if id and id.renderman.nodetree != '':
@@ -1208,15 +1216,15 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
         if out is None:
             return
 
+        nodes_to_export = gather_nodes(out)
         ri.ArchiveRecord('comment', "Shader Graph")
-        for out_type, socket in out.inputs.items():
-            if socket.is_linked:
-                shader_node_rib(ri, socket.links[0].from_node, mat_name=handle,
-                                disp_bound=disp_bound)
+        for node in nodes_to_export:
+            shader_node_rib(ri, node, mat_name=handle,
+                            disp_bound=disp_bound)
+
+
 
 # return the bxdf name for this mat if there is one, else return defualt
-
-
 def get_bxdf_name(mat):
     if mat.renderman.nodetree not in bpy.data.node_groups:
         return "default"
@@ -1247,7 +1255,7 @@ def get_textures_for_node(node, matName=""):
                 if getattr(OSLProps, storageLocation + "type") == "string":
                     prop = getattr(OSLProps, storageLocation)
                     out_file_name = get_tex_file_name(prop)
-                    textures.append((prop, out_file_name,
+                    textures.append((replace_frame_num(prop), out_file_name,
                                      ['-smode', 'periodic', '-tmode',
                                       'periodic']))
             # if input socket is linked reference that
@@ -1285,7 +1293,7 @@ def get_textures_for_node(node, matName=""):
                                     "Env" in node.bl_label:
                                 # no options for now
                                 textures.append(
-                                    (prop, out_file_name, ['-envlatl']))
+                                    (replace_frame_num(prop), out_file_name, ['-envlatl']))
                             else:
                                 if hasattr(node, "smode"): # Test and see if options like smode are on this node.
                                     optionsList = []
@@ -1304,10 +1312,10 @@ def get_textures_for_node(node, matName=""):
                                             else:
                                                 optionsList.append("-"+ getattr(node, option))
                                     textures.append(
-                                        (prop, out_file_name, optionsList))
+                                        (replace_frame_num(prop), out_file_name, optionsList))
                                 else:
                                     # no options found add the bare minimum options for smooth export.
-                                    textures.append((prop, out_file_name,
+                                    textures.append((replace_frame_num(prop), out_file_name,
                                                      ['-smode', 'periodic',
                                                       '-tmode', 'periodic']))
     return textures

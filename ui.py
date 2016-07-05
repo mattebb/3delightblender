@@ -41,7 +41,7 @@ from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive, loa
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
-#properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('PRMAN_RENDER')
 # properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
@@ -440,6 +440,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row.prop(rm, "shadingrate")
 
         layout.separator()
+        
         row = layout.row()
         row.prop(rm, "texture_cache_size")
         row = layout.row()

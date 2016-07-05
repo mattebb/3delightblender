@@ -74,7 +74,6 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
         default=os.path.join('$OUT','archives'))
 
 
-
 class RendermanPreferences(AddonPreferences):
     bl_idname = __package__
         

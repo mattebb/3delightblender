@@ -31,7 +31,7 @@ bl_info = {
     "version": (0, 8, 0),
     "blender": (2, 77, 0),
     "location": "Info Header, render engine menu",
-    "description": "RenderMan 21.0 integration",
+    "description": "RenderMan 20.0 integration",
     "warning": "",
     "category": "Render"}
 

@@ -32,9 +32,8 @@ from subprocess import Popen, PIPE
 import mathutils
 from mathutils import Matrix, Vector, Quaternion
 import re
-import glob
 import traceback
-import threading
+import glob
 
 from . import bl_info
 
@@ -296,7 +295,6 @@ class RPass:
 
     def render(self, engine):
         DELAY = 1
-        
         render_output = self.paths['render_output']
         cdir = os.path.dirname(self.paths['rib_output'])
 
@@ -440,18 +438,15 @@ class RPass:
             base, ext = render_output.rsplit('.', 1)
             denoise_options = []
             # denoise data has the name .denoise.exr
-            if self.rm.threads != 0:
-                denoise_options = ["-t%d" % self.rm.threads]
+            denoise_options = ["-t%d" % self.rm.threads] if self.rm.threads != 0 else []
             denoise_data, filtered_name = self.get_denoise_names()
-            #denoise_options.extend(['-o', os.path.basename(filtered_name).rsplit('.', 1)[0]])
             if os.path.exists(denoise_data):
                 try:
                     # denoise to _filtered
                     cmd = [os.path.join(self.paths['rmantree'], 'bin',
-                                        'denoise')] + denoise_options +  [denoise_data]
+                                        'denoise')] + [denoise_options] +  [denoise_data]
 
                     engine.update_stats("", ("PRMan: Denoising image"))
-                    #print(cmd)
                     t1 = time.time()
                     process = subprocess.Popen(cmd, cwd=images_dir,
                                                stdout=subprocess.PIPE,
@@ -491,14 +486,11 @@ class RPass:
                                                        env=environ)
                             process.wait()
                     else:
-                        engine.report({"ERROR"}, "PRMan: Error Denoising.  ")
-                        print(process.stderr)
+                        engine.report({"ERROR"}, "PRMan: Error Denoising.")
                 except:
                     engine.report({"ERROR"},
                                   "Problem launching denoise from %s." %
                                   prman_executable)
-                    engine.report({"ERROR"},
-                                  traceback.format_exc())
             else:
                 engine.report({"ERROR"},
                               "Cannot denoise file %s. Does not exist" %
@@ -708,7 +700,7 @@ class RPass:
             out_file_path = os.path.join(
                 self.paths['texture_output'], out_file)
 
-            if os.path.isfile(out_file_path) and \
+            if os.path.isfile(out_file_path) and os.path.exists(in_file) and\
                     self.rm.always_generate_textures is False and \
                     os.path.getmtime(in_file) <= \
                     os.path.getmtime(out_file_path):

@@ -72,6 +72,7 @@ class Renderman_open_stats(bpy.types.Operator):
         bpy.ops.wm.url_open(url="file://" + os.path.join(output_dir, 'stats.xml'))
         return {'FINISHED'}
 
+
 class Renderman_start_it(bpy.types.Operator):
     bl_idname = 'rman.start_it'
     bl_label = "Start IT"
@@ -88,6 +89,7 @@ class Renderman_start_it(bpy.types.Operator):
             environ = os.environ.copy()
             subprocess.Popen([it_path], env=environ, shell=True)
         return {'FINISHED'}
+
 
 class Renderman_open_last_RIB(bpy.types.Operator):
     bl_idname = 'rman.open_rib'
@@ -111,6 +113,7 @@ class Renderman_open_last_RIB(bpy.types.Operator):
                 debug('error',"File or text editor not available. (Check and make sure text editor is in system path.)")
         return {'FINISHED'}
     
+
 #Prints a string to the info box.  Not sure how to use it but it's here anyway.
 class PrintToInfo(bpy.types.Operator):
     bl_idname = "renderman.print_info"
@@ -120,6 +123,7 @@ class PrintToInfo(bpy.types.Operator):
     def execute(self, context):
         self.report({'INFO'}, self.info_string)
         return {'FINISHED'}
+
 
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
