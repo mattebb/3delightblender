@@ -1,3 +1,6 @@
+import bpy
+import os
+from .util import user_path
 
 def end_block(f, indent_level):
     f.write("%s}\n" % ('\t' * indent_level))
@@ -20,7 +23,8 @@ def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, fram
     prefs = bpy.context.user_preferences.addons[__package__].preferences
 
     out_dir = prefs.env_vars.out
-    alf_file = os.path.join(user_path(out_dir), 'spool.alf')
+    cdir = user_path(out_dir)
+    alf_file = os.path.join(cdir, 'spool.alf')
     per_frame_denoise = denoise == 'frame'
     crossframe_denoise = denoise == 'crossframe'
 
@@ -64,8 +68,8 @@ def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, fram
     if frame_end is None:
         frame_end = frame_begin
     for frame_num in range(frame_begin, frame_end + 1):
-        if len(frame_texture_cmds) or per_frame_denoise:
-            write_parent_task_line(f, 'Frame %d' % frame_num, True, 2)
+        #if len(frame_texture_cmds) or per_frame_denoise:
+        #    write_parent_task_line(f, 'Frame %d' % frame_num, True, 2)
 
         # do frame specic txmake
         # if len(frame_texture_cmds):
@@ -87,7 +91,8 @@ def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, fram
             write_cmd_task_line(f, 'Denoise frame %d' % frame_num,
                                 [('PixarRender', cmd_str)], 3)
 
-        if len(frame_texture_cmds) or per_frame_denoise:
+        #if len(frame_texture_cmds) or per_frame_denoise:
+        if per_frame_denoise:
             end_block(f, 2)
     end_block(f, 1)
     # crossframe denoise
@@ -97,4 +102,5 @@ def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, fram
 
     # end job
     f.write("}\n")
+    f.close()
     return alf_file

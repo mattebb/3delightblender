@@ -42,7 +42,7 @@ from .util import init_env
 from .util import getattr_recursive
 from .util import user_path
 from .util import get_real_path
-from .util import readOSO, find_it_path
+from .util import readOSO, find_it_path, find_local_queue
 from .util import get_Files_in_Directory
 
 from .shader_parameters import tex_source_path
@@ -57,6 +57,8 @@ from .export import EXCLUDED_OBJECT_TYPES
 from . import engine
 
 from .nodes import RendermanPatternGraph
+
+from .spool import spool_render
 
 from bpy_extras.io_utils import ExportHelper
 
@@ -280,7 +282,9 @@ class ExternalRender(bpy.types.Operator):
 
         # else gen spool job
         elif rm.external_action == 'spool':
-            denoise = 'frame'
+            denoise = rm.external_denoise
+            if denoise:
+                denoise = 'crossframe' if rm.crossframe_denoise else 'frame'
             frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
             frame_end = scene.frame_end if rm.external_animation else scene.frame_current
             alf_file = spool_render(
@@ -291,7 +295,7 @@ class ExternalRender(bpy.types.Operator):
                 exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
                 self.report(
                     {'INFO'}, 'RenderMan External Rendering spooling to %s.' % rm.queuing_system)
-                subprocess.Popen([exe, alf_file], shell=True)
+                subprocess.Popen([exe, alf_file])
 
         rpass = None
         return {'FINISHED'}
