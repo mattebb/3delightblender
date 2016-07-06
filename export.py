@@ -86,13 +86,11 @@ def is_singular(mtx):
 
 
 # export the instance of an object (dupli)
-def export_object_instance(ri, mtx=None, dupli_name=None,
-                           instance_handle=None):
+def export_object_instance(ri, mtx=None, instance_handle=None, num=None):
     if mtx and not is_singular(mtx):
         ri.AttributeBegin()
-        ri.Attribute("identifier", {"name": dupli_name})
+        ri.Attribute("identifier", {"int id": num})
         ri.Transform(rib(mtx))
-        ri.CoordinateSystem(dupli_name)
         ri.ObjectInstance(instance_handle)
         ri.AttributeEnd()
 
@@ -206,10 +204,9 @@ def is_subd_displace_last(ob):
 def is_subdmesh(ob):
     return (is_subd_last(ob) or is_subd_displace_last(ob))
 
+
 # XXX do this better, perhaps by hooking into modifier type data in RNA?
 # Currently assumes too much is deforming when it isn't
-
-
 def is_deforming(ob):
     deforming_modifiers = ['ARMATURE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE',
                            'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP',
@@ -242,10 +239,9 @@ def is_deforming_fluid(ob):
 def psys_name(ob, psys):
     return "%s.%s-%s" % (ob.name, psys.name, psys.settings.type)
 
+
 # get a name for the data block.  if it's modified by the obj we need it
 # specified
-
-
 def data_name(ob, scene):
     if not ob.data:
         return ob.name
@@ -274,7 +270,6 @@ def get_name(ob):
 
 
 # ------------- Geometry Access -------------
-
 def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
     # we need this to get st
     if(objectCorrectionMatrix):
@@ -1415,9 +1410,8 @@ def export_points(ri, scene, ob, motion):
 
     removeMeshFromMemory(mesh.name)
 
+
 # make an ri Volume from the smoke modifier
-
-
 def export_smoke(ri, ob):
     smoke_modifier = None
     for mod in ob.modifiers:
@@ -1437,7 +1431,7 @@ def export_smoke(ri, ob):
 
     smoke_res = rib(smoke_data.domain_resolution)
     if smoke_data.use_high_resolution:
-        smoke_res = [(2 ** smoke_data.amplify) * i for i in smoke_res]
+        smoke_res = [(smoke_data.amplify + 1) * i for i in smoke_res]
 
     ri.Volume("box", rib_ob_bounds(ob.bound_box),
               smoke_res, params)
@@ -1892,7 +1886,7 @@ def get_deformation(data_block, subframe, scene):
                 data_block.motion_data.append((subframe, points))
             else:
                 # this is hair
-                hairs = get_strands(scene, data_block.data, psys)
+                hairs = get_strands(scene, ob, psys)
                 data_block.motion_data.append((subframe, hairs))
 
 # Create two lists, one of data blocks to export and one of instances to export
