@@ -1368,6 +1368,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
             if engine.ipr is not None and engine.ipr.is_interactive_running:
                 engine.ipr.solo_light()
+        elif engine.ipr is not None and engine.ipr.is_interactive_running:
+                engine.ipr.un_solo_light()
+
 
         scene.renderman.solo_light = self.solo
 

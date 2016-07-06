@@ -833,7 +833,8 @@ def export_light(ri, instance):
 
 
 def export_material(ri, mat, handle=None):
-
+    if mat == None:
+        return
     rm = mat.renderman
 
     if rm.nodetree != '':
@@ -1970,7 +1971,8 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
             continue
         if(db.material and exportMaterials):
             # Tell the object to use the baked in material.
-            export_material_archive(ri, db.material)
+            for mat in db.material:
+                export_material_archive(ri, mat)
         if db.type == "MESH":
             # Gets the world location and uses the ri transform to set it in
             # the archive.
@@ -1988,7 +1990,7 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
 # export each data read archive
 def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is_child=False, visible_objects=None):
     ri.AttributeBegin()
-    ri.Attribute("identifier", {"name": instance.name})
+    ri.Attribute("identifier", {"string name": instance.name})
     if instance.ob:
         export_object_attributes(ri, rpass.scene, instance.ob, visible_objects)
     # now the matrix, if we're transforming do the motion here
@@ -2064,7 +2066,7 @@ def export_data_rib_archive(ri, data_block, instance, rpass):
 
 def export_empties_archives(ri, ob):
     ri.AttributeBegin()
-    ri.Attribute("identifier", {"name": ob.name})
+    ri.Attribute("identifier", {"string name": ob.name})
     # Perform custom transform export since this is the only time empties are
     # exprted.
     matrix = ob.matrix_local
@@ -3058,7 +3060,7 @@ def write_preview_rib(rpass, scene, ri):
 
     # preview model and material
     ri.AttributeBegin()
-    ri.Attribute("identifier", {"name": ["Preview"]})
+    ri.Attribute("identifier", {"string name": ["Preview"]})
     ri.Translate(0, 0, 0.75)
 
     mat = find_preview_material(scene)
@@ -3299,6 +3301,8 @@ def solo_light(rpass, ri, prman):
                 ri.Illuminate(light.name, do_light)
                 break
     ri.EditEnd()
+    if rm.solo:
+        return light
 # test the active object type for edits to do then do them
 
 
@@ -3330,7 +3334,7 @@ def update_light_link(rpass, ri, prman, link, remove=False):
     rpass.edit_num += 1
     edit_flush(ri, rpass.edit_num, prman)
     strs = link.name.split('>')
-    ob_names = [strs[3]] if strs[2] == "ob_object" else \
+    ob_names = [strs[3]] if strs[2] == "obj_object" else \
         rpass.scene.renderman.object_groups[strs[3]].members.keys
 
     for ob_name in ob_names:
@@ -3340,9 +3344,9 @@ def update_light_link(rpass, ri, prman, link, remove=False):
         if strs[0] == 'lg_group' and strs[1] == 'All':
             light_names = [l.name for l in scene.objects if l.type == 'LAMP']
         for light_name in light_names:
-            if remove or link.illuminate != "DEFAULT":
+            if remove or link.illuminate == "DEFAULT":
                 ri.Illuminate(light_name, rpass.scene.objects[
-                              light_name].renderman.illuminates_by_default)
+                              light_name].data.renderman.illuminates_by_default)
             else:
                 ri.Illuminate(light_name, link.illuminate == 'ON')
         ri.EditEnd()
