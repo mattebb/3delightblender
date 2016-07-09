@@ -200,29 +200,6 @@ class TraceSet(bpy.types.PropertyGroup):
                                ('excluded from', 'Exclude', '')]
                         )
 
-# hmmm, re-evaluate this idea later...
-
-
-class RendermanPass(bpy.types.PropertyGroup):
-
-    name = StringProperty(name="")
-    type = EnumProperty(name="Pass Type",
-                        items=[
-                            ('SHADOW_MAPS_ALL', 'All Shadow Map',
-                             'Single shadow map'),
-                            ('SHADOW_MAP', 'Shadow Map',
-                             'Single shadow map'),
-                            ('POINTCLOUD', 'Point Cloud', '')],
-                        default='SHADOW_MAPS_ALL')
-    motion_blur = BoolProperty(name="Motion Blur")
-    surface_shaders = BoolProperty(
-        name="Surface Shaders", description="Render surface shaders")
-    displacement_shaders = BoolProperty(
-        name="Displacement Shaders", description="Render displacement shaders")
-    light_shaders = BoolProperty(
-        name="Light Shaders", description="Render light shaders")
-
-
 
 aov_mapping = [ 
                  
@@ -265,51 +242,51 @@ class RendermanAOV(bpy.types.PropertyGroup):
 
     def built_in_aovs(self, context):
         items = [
-                 ("a", "alpha", ""),
-                 ("id", "id", "Returns the integer assigned via the 'identifier' attribute as the pixel value"),
-                 ("z", "z_depth", "Depth from the camera in world space"),
-                 ("zback", "z_back",
+                 ("float a", "alpha", ""),
+                 ("float id", "id", "Returns the integer assigned via the 'identifier' attribute as the pixel value"),
+                 ("float z", "z_depth", "Depth from the camera in world space"),
+                 ("float zback", "z_back",
                   "Depth at the back of volumetric objects in world space"),
-                 ("P",  "P",  "Position of the point hit by the incident ray"),
-                 ("PRadius", "PRadius",
+                 ("point P",  "P",  "Position of the point hit by the incident ray"),
+                 ("float PRadius", "PRadius",
                   "Cross-sectional size of the ray at the hit point"),
-                 ("cpuTime", "cpuTime", "The time taken to render a pixel"),
-                 ("sampleCount", "sampleCount",
+                 ("float cpuTime", "cpuTime", "The time taken to render a pixel"),
+                 ("float sampleCount", "sampleCount",
                   "The number of samples taken for the resulting pixel"),
-                 ("Nn", "Nn", "Normalized shading normal"),
-                 ("Ngn", "Ngn", "Normalized geometric normal"),
-                 ("Tn", "Tn", "Normalized shading tangent"),
-                 ("Vn", "Vn", "Normalized view vector (reverse of ray direction)"),
-                 ("VLen", "VLen", "Distance to hit point along the ray"),
-                 ("curvature", "curvature", "Local surface curvature"),
-                 ("incidentRaySpread", "incidentRaySpread",
+                 ("normal Nn", "Nn", "Normalized shading normal"),
+                 ("normal Ngn", "Ngn", "Normalized geometric normal"),
+                 ("vector Tn", "Tn", "Normalized shading tangent"),
+                 ("vector Vn", "Vn", "Normalized view vector (reverse of ray direction)"),
+                 ("float VLen", "VLen", "Distance to hit point along the ray"),
+                 ("float curvature", "curvature", "Local surface curvature"),
+                 ("float incidentRaySpread", "incidentRaySpread",
                   "Rate of spread of incident ray"),
-                 ("mpSize", "mpSize", "Size of the micropolygon that the ray hit"),
-                 ("u", "u", "The parametric coordinates on the primitive"),
-                 ("v", "v", "The parametric coordinates on the primitive"),
-                 ("w", "w", "The parametric coordinates on the primitive"),
-                 ("du", "du", "Derivatives of u, v, and w to adjacent micropolygons"),
-                 ("dv", "dv", "Derivatives of u, v, and w to adjacent micropolygons"),
-                 ("dw", "dw", "Derivatives of u, v, and w to adjacent micropolygons"),
-                 ("dPdu", "dPdu", "Direction of maximal change in u, v, and w"),
-                 ("dPdv", "dPdv", "Direction of maximal change in u, v, and w"),
-                 ("dPdw", "dPdw", "Direction of maximal change in u, v, and w"),
-                 ("dufp", "dufp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"),
-                 ("dvfp", "dvfp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"),
-                 ("dwfp", "dwfp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"),
-                 ("time", "time", "Time sample of the ray"),
-                 ("dPdtime", "dPdtime", "Motion vector"),
-                 ("id", "id", "Returns the integer assigned via the identifier attribute as the pixel value"),
-                 ("outsideIOR", "outsideIOR",
+                 ("float mpSize", "mpSize", "Size of the micropolygon that the ray hit"),
+                 ("float u", "u", "The parametric coordinates on the primitive"),
+                 ("float v", "v", "The parametric coordinates on the primitive"),
+                 ("float w", "w", "The parametric coordinates on the primitive"),
+                 ("float du", "du", "Derivatives of u, v, and w to adjacent micropolygons"),
+                 ("float dv", "dv", "Derivatives of u, v, and w to adjacent micropolygons"),
+                 ("float dw", "dw", "Derivatives of u, v, and w to adjacent micropolygons"),
+                 ("vector dPdu", "dPdu", "Direction of maximal change in u, v, and w"),
+                 ("vector dPdv", "dPdv", "Direction of maximal change in u, v, and w"),
+                 ("vector dPdw", "dPdw", "Direction of maximal change in u, v, and w"),
+                 ("float dufp", "dufp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"),
+                 ("float dvfp", "dvfp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"),
+                 ("float dwfp", "dwfp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"),
+                 ("float time", "time", "Time sample of the ray"),
+                 ("vector dPdtime", "dPdtime", "Motion vector"),
+                 ("float id", "id", "Returns the integer assigned via the identifier attribute as the pixel value"),
+                 ("float outsideIOR", "outsideIOR",
                   "Index of refraction outside this surface"),
-                 ("__Pworld", "Pworld", "P in world-space"),
-                 ("__Nworld", "Nworld", "Nn in world-space"),
-                 ("__depth", "depth", "Multi-purpose AOV\nr : depth from camera in world-space\ng : height in world-space\nb : geometric facing ratio : abs(Nn.V)"),
-                 ("__st", "st", "Texture coords"),
-                 ("__Pref", "Pref", "Reference Position primvar (if available)"),
-                 ("__Nref", "Nref", "Reference Normal primvar (if available)"),
-                 ("__WPref", "WPref", "Reference World Position primvar (if available)"),
-                 ("__WNref",  "WNref", "Reference World Normal primvar (if available)")]
+                 ("point __Pworld", "Pworld", "P in world-space"),
+                 ("normal __Nworld", "Nworld", "Nn in world-space"),
+                 ("float __depth", "depth", "Multi-purpose AOV\nr : depth from camera in world-space\ng : height in world-space\nb : geometric facing ratio : abs(Nn.V)"),
+                 ("float[2] __st", "st", "Texture coords"),
+                 ("point __Pref", "Pref", "Reference Position primvar (if available)"),
+                 ("normal __Nref", "Nref", "Reference Normal primvar (if available)"),
+                 ("point __WPref", "WPref", "Reference World Position primvar (if available)"),
+                 ("normal __WNref",  "WNref", "Reference World Normal primvar (if available)")]
         return items
 
     def update_type(self, context):
@@ -446,21 +423,10 @@ class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
     object_group = StringProperty()
     light_group = StringProperty()
 
-
-class RendermanMultilayerFile(bpy.types.PropertyGroup):
-    name = StringProperty(name="Multilayer Name",
-                          description="Name of the multilayer file to export.",  default="")
-
-    channel_names = StringProperty(
-        name="Channel Names",  description="Names of the display channels (AOV's) to include.",  default="")
-
-    export = BoolProperty(
+    export_multilayer = BoolProperty(
         name="Export Multilayer",
-        description="Enabling this will output the multilayer",
-        default=True)
-
-    include_beauty = BoolProperty(
-        name="Include Beauty Pass",  description="Includes the RGBA combined pass in this multilayer.",  default=True)
+        description="Enabling this will combine passes and output as a multilayer file",
+        default=False)
 
     exr_format_options = EnumProperty(
         name="EXR Bit Depth",
@@ -498,21 +464,6 @@ class RendermanMultilayerFile(bpy.types.PropertyGroup):
             ('tiled', 'Tiled Storage', '')],
         default='scanline')
 
-
-class RendermanMultilayerFileList(bpy.types.PropertyGroup):
-    render_layer = StringProperty()
-
-    multilayer_files = CollectionProperty(
-        type=RendermanMultilayerFile,  name="Multilayer Files")
-
-    multilayer_file_index = IntProperty(min=-1,  default=-1)
-
-class RendermanAOVChannel(bpy.types.PropertyGroup):
-    channel = StringProperty(name='Channel')
-    description = StringProperty(name='Description')
-    source = StringProperty(name='Source')
-    custom = BoolProperty(default=False)
-
 class RendermanSceneSettings(bpy.types.PropertyGroup):
     light_groups = CollectionProperty(type=RendermanGroup,
                                       name='Light Groups')
@@ -544,17 +495,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                ('group', 'Object Groups', '')],
         default='group', update=reset_ll_object_index)
 
-    aov_channels = CollectionProperty(type=RendermanAOVChannel, name='AOV Channels')
-    aov_channels_index = IntProperty(min=-1, default=-1)
-
     render_layers = CollectionProperty(type=RendermanRenderLayerSettings,
                                    name='Custom AOVs')
     
-    multilayer_lists = CollectionProperty(
-        type=RendermanMultilayerFileList,  name="Multilayer Files")
-
-    multilayer_list_index = IntProperty(min=-1,  default=-1)
-
     solo_light = BoolProperty(name="Solo Light", default=False)
 
     pixelsamples_x = IntProperty(
@@ -1053,10 +996,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Path to tdlmake executable",
         subtype='FILE_PATH',
         default="txmake")
-
-    render_passes = CollectionProperty(
-        type=RendermanPass, name="Render Passes")
-    render_passes_index = IntProperty(min=-1, default=-1)
 
 
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
@@ -1990,14 +1929,6 @@ def initial_groups(scene):
     if 'All' not in scene.renderman.light_groups.keys():
         default_group = scene.renderman.light_groups.add()
         default_group.name = 'All'
-    for name, channel, desc in initial_aov_channels:
-        if name not in scene.renderman.aov_channels.keys():
-            new_channel = scene.renderman.aov_channels.add()
-            new_channel.name = name
-            new_channel.channel = channel
-            new_channel.description = desc
-            new_channel.custom = False
-
 
 
 # collection of property group classes that need to be registered on
@@ -2007,9 +1938,6 @@ classes = [RendermanPath,
            RendermanGroup,
            LightLinking,
            TraceSet,
-           RendermanPass,
-           RendermanMultilayerFile,
-           RendermanMultilayerFileList,
            RendermanMeshPrimVar,
            RendermanParticlePrimVar,
            RendermanMaterialSettings,
@@ -2019,7 +1947,6 @@ classes = [RendermanPath,
            RendermanParticleSettings,
            RendermanIntegratorSettings,
            RendermanWorldSettings,
-           RendermanAOVChannel,
            RendermanAOV,
            RendermanRenderLayerSettings,
            RendermanCameraSettings,

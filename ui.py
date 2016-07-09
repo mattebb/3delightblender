@@ -715,9 +715,17 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
         else:
             split = layout.split()
             col = split.column()
-            col.prop_search(rm_rl, 'camera', bpy.data, 'cameras')
+            # cutting this for now until we can export multiple cameras
+            #col.prop_search(rm_rl, 'camera', bpy.data, 'cameras')
             col.prop_search(rm_rl, 'light_group', scene.renderman, 'light_groups')
             col.prop_search(rm_rl, 'object_group', scene.renderman, 'object_groups')
+
+            col.prop(rm_rl, 'export_multilayer')
+            if rm_rl.export_multilayer:
+                col.prop(rm_rl, 'use_deep')
+                col.prop(rm_rl,  "exr_format_options")
+                col.prop(rm_rl,  "exr_compression")
+                col.prop(rm_rl, "exr_storage")
         
 
 
@@ -1300,7 +1308,12 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             col.prop(item,  "aov_channel_type")
 
         col = layout.column()
-        col.prop(item, "show_advanced")
+        icon = 'TRIA_DOWN' if item.show_advanced \
+            else 'TRIA_RIGHT'
+        
+        row = col.row()
+        row.prop(item, "show_advanced", icon=icon, text="Advanced",
+                 icon_only=True, emboss=False)
         if item.show_advanced:
             #col.prop(item, "exclude")
             if not item.channel_type in ["custom_lpe_string", "built_in_aov", "custom_aov_string",
