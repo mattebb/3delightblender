@@ -696,76 +696,83 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
         scene = context.scene
         rd = scene.render
         rl = rd.layers.active
-
+        
         split = layout.split()
 
         col = split.column()
         col.prop(scene, "layers", text="Scene")
-        col.prop(rl, "layers_exclude", text="Exclude")
 
-        col = split.column()
-        col.prop(rl, "layers", text="Layer")
-        col.prop(rl, "layers_zmask", text="Mask Layer")
+        rm = scene.renderman
+        rm_rl = None
+        active_layer = scene.render.layers.active
+        for l in rm.render_layers:
+            if l.render_layer == active_layer.name:
+                rm_rl = l
+                break
+        if rm_rl is None:
+            return
+            #layout.operator('renderman.add_pass_list')
+        else:
+            split = layout.split()
+            col = split.column()
+            col.prop_search(rm_rl, 'camera', bpy.data, 'cameras')
+            col.prop_search(rm_rl, 'light_group', scene.renderman, 'light_groups')
+            col.prop_search(rm_rl, 'object_group', scene.renderman, 'object_groups')
+        
 
-        split = layout.split()
 
-        col = split.column()
-        col.label(text="Material:")
-        col.prop(rl, "material_override", text="")
-        col.separator()
-        col.prop(rl, "samples")
+# class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
+#     bl_label = "Passes"
+#     bl_context = "render_layer"
+#     # bl_options = {'DEFAULT_CLOSED'}
 
-        col = split.column()
+#     def draw(self, context):
+#         layout = self.layout
+
+#         scene = context.scene
+#         rd = scene.render
+#         rl = rd.layers.active
+#         rm = rl.renderman
+
+#         layout.prop(rm, "combine_outputs")
+#         split = layout.split()
 
 
-class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
-    bl_label = "Passes"
-    bl_context = "render_layer"
-    # bl_options = {'DEFAULT_CLOSED'}
 
-    def draw(self, context):
-        layout = self.layout
+        # col = split.column()
+        # col.prop(rl, "use_pass_combined")
+        # col.prop(rl, "use_pass_z")
+        # col.prop(rl, "use_pass_normal")
+        # col.prop(rl, "use_pass_vector")
+        # col.prop(rl, "use_pass_uv")
+        # col.prop(rl, "use_pass_object_index")
+        # #col.prop(rl, "use_pass_shadow")
+        # #col.prop(rl, "use_pass_reflection")
 
-        scene = context.scene
-        rd = scene.render
-        rl = rd.layers.active
+        # col = split.column()
+        # col.label(text="Diffuse:")
+        # row = col.row(align=True)
+        # row.prop(rl, "use_pass_diffuse_direct", text="Direct", toggle=True)
+        # row.prop(rl, "use_pass_diffuse_indirect", text="Indirect", toggle=True)
+        # row.prop(rl, "use_pass_diffuse_color", text="Albedo", toggle=True)
+        # col.label(text="Specular:")
+        # row = col.row(align=True)
+        # row.prop(rl, "use_pass_glossy_direct", text="Direct", toggle=True)
+        # row.prop(rl, "use_pass_glossy_indirect", text="Indirect", toggle=True)
 
-        split = layout.split()
-
-        col = split.column()
-        col.prop(rl, "use_pass_combined")
-        col.prop(rl, "use_pass_z")
-        col.prop(rl, "use_pass_normal")
-        col.prop(rl, "use_pass_vector")
-        col.prop(rl, "use_pass_uv")
-        col.prop(rl, "use_pass_object_index")
-        #col.prop(rl, "use_pass_shadow")
-        #col.prop(rl, "use_pass_reflection")
-
-        col = split.column()
-        col.label(text="Diffuse:")
-        row = col.row(align=True)
-        row.prop(rl, "use_pass_diffuse_direct", text="Direct", toggle=True)
-        row.prop(rl, "use_pass_diffuse_indirect", text="Indirect", toggle=True)
-        row.prop(rl, "use_pass_diffuse_color", text="Albedo", toggle=True)
-        col.label(text="Specular:")
-        row = col.row(align=True)
-        row.prop(rl, "use_pass_glossy_direct", text="Direct", toggle=True)
-        row.prop(rl, "use_pass_glossy_indirect", text="Indirect", toggle=True)
-
-        col.prop(rl, "use_pass_subsurface_indirect", text="Subsurface")
-        col.prop(rl, "use_pass_refraction", text="Refraction")
-        col.prop(rl, "use_pass_emit", text="Emission")
+        # col.prop(rl, "use_pass_subsurface_indirect", text="Subsurface")
+        # col.prop(rl, "use_pass_refraction", text="Refraction")
+        # col.prop(rl, "use_pass_emit", text="Emission")
 
         # layout.separator()
-        #row = layout.row()
+        # row = layout.row()
         # row.label('Holdouts')
-        #rm = scene.renderman.holdout_settings
-        #layout.prop(rm, 'do_collector_shadow')
-        #layout.prop(rm, 'do_collector_reflection')
-        #layout.prop(rm, 'do_collector_refraction')
-        #layout.prop(rm, 'do_collector_indirectdiffuse')
-        #layout.prop(rm, 'do_collector_subsurface')
+        # rm = scene.renderman.holdout_settings
+        # layout.prop(rm, 'do_collector_shadow')
+        # layout.prop(rm, 'do_collector_reflection')
+        # layout.prop(rm, 'do_collector_refraction')
+        # layout.prop(rm, 'do_collector_indirectdiffuse')
+        # layout.prop(rm, 'do_collector_subsurface')
 
         # col.prop(rl, "use_pass_ambient_occlusion")
 
@@ -1165,40 +1172,107 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
             rm, "raytrace_intersectpriority", text="Intersection Priority")
 
 
-# class OBJECT_PT_renderman_object_lightlinking(CollectionPanel, Panel):
+# class RENDERMAN_OUTPUT_list(bpy.types.UIList):
+
+#     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+#         rm = context.scene.renderman
+#         icon = 'NONE'
+#         label = item.name
+#         layout.label(label, icon=icon)
+
+# class RENDERMAN_CHANNEL_list(bpy.types.UIList):
+
+#     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+#         rm = context.scene.renderman
+#         icon = 'NONE'
+#         label = item.name
+#         layout.label(label, icon=icon)
+
+# class RENDER_PT_layer_custom_outputs(CollectionPanel, Panel):
+#     bl_label = "Custom Outputs"
+#     bl_context = "render_layer"
 #     bl_space_type = 'PROPERTIES'
 #     bl_region_type = 'WINDOW'
-#     bl_context = "object"
-#     bl_label = "Light Linking"
 
 #     @classmethod
 #     def poll(cls, context):
 #         rd = context.scene.render
-#         return (context.object and rd.engine in {'PRMAN_RENDER'})
+#         return rd.engine in {'PRMAN_RENDER'}
 
 #     def draw_item(self, layout, context, item):
-#         ob = context.object
-#         rm = bpy.data.objects[ob.name].renderman
-#         ll = rm.light_linking
-#         index = rm.light_linking_index
+#         scene = context.scene
+#         rm = scene.renderman
+        
+#         row = layout.row()
+#         row.prop(item, 'name')
 
-#         col = layout.column()
-#         col.prop_search(item, "light", bpy.data, "lamps")
-#         col.prop(item, "illuminate")
+#         row = layout.row()
+#         row.prop(item, 'name')
+
+#         row = layout.row()
+#         row.prop(item, 'description')
+
+#         row = layout.row()
+#         row.operator('renderman.create_output', text="Create output").channel = item
+#         row.operator('renderman.add_channel', text="Add to output").channel = item
 
 #     def draw(self, context):
+        
 #         layout = self.layout
-#         ob = context.object
-#         rm = ob.renderman
 #         scene = context.scene
+#         rm = scene.renderman
 
-#         self._draw_collection(context, layout, rm, "Light Link:",
-#                               "collection.add_remove", "object",
-#                               "light_linking", "light_linking_index")
+#         row = layout.row()
+#         row.template_list("RENDERMAN_OUTPUT_list", "Renderman_output_list",
+#                                rm, "outputs", rm, 'outputs_index')
+#         col = row.column(align=True)
+#         op = col.operator("collection.add_remove", icon="ZOOMIN", text="")
+#         op.context = "scene.renderman"
+#         op.collection = "outputs"
+#         op.collection_index = "outputs_index"
+#         op.defaultname = ''
+#         op.action = 'ADD'
+
+#         op = col.operator("collection.add_remove", icon="ZOOMOUT", text="")
+#         op.context = "scene.renderman"
+#         op.collection = "outputs"
+#         op.collection_index = "outputs_index"
+#         op.action = 'REMOVE'
+
+#         row = layout.row()
+#         row.label("Channels")
+
+        # column 2
+        # sub_row = flow2.column()
+        # sub_row.label('goo')
+        # sub_row.prop(rm, 'aov_channels_index')
+        # #row.operator("renderman.add_remove_output", text="Add channel to output")
+        # #row.operator("renderman.add_remove_output", text="Create output from channel")
+
+        # # column 3
+        # sub_row = flow2.column()
+        # sub_row.template_list("RENDERMAN_CHANNEL_list", "Renderman_channel_list",
+        #                        rm, "aov_channels", rm, 'aov_channels_index')
+
+        
+
+        # sub_col = row.column(align=True)
+        # op = sub_col.operator("collection.add_remove", icon="ZOOMIN", text="")
+        # op.context = "scene.renderman"
+        # op.collection = "aov_channels"
+        # op.collection_index = "aov_channels_index"
+        # op.defaultname = ''
+        # op.action = 'ADD'
+
+        # op = sub_col.operator("collection.add_remove", icon="ZOOMOUT", text="")
+        # op.context = "scene.renderman"
+        # op.collection = "aov_channels"
+        # op.collection_index = "aov_channels_index"
+        # op.action = 'REMOVE'
 
 
 class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
-    bl_label = "RenderMan AOVs"
+    bl_label = "Passes"
     bl_context = "render_layer"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -1228,7 +1302,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col = layout.column()
         col.prop(item, "show_advanced")
         if item.show_advanced:
-            col.prop(item, "exclude")
+            #col.prop(item, "exclude")
             if not item.channel_type in ["custom_lpe_string", "built_in_aov", "custom_aov_string",
                                          "lpe:C<.D%G>[S]+<L.%LG>",
                                          "lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
@@ -1266,72 +1340,110 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             row = col.row()
             row.prop(item,  "stats_type")
             layout.separator()
-            if not item.channel_type in ("custom_lpe_string",  "built_in_aov"):
-                col.prop_search(item, 'lpe_light_group', rm,
-                                "light_groups", text="Light Group")
-                col.prop_search(item, 'lpe_group', rm,
-                                "object_groups", text="Object Group")
+            # if not item.channel_type in ("custom_lpe_string",  "built_in_aov"):
+            #     col.prop_search(item, 'lpe_light_group', rm,
+            #                     "light_groups", text="Light Group")
+            #     col.prop_search(item, 'lpe_group', rm,
+            #                     "object_groups", text="Object Group")
 
     def draw(self, context):
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
-        aov_list = None
+        rm_rl = None
         active_layer = scene.render.layers.active
-        for l in rm.aov_lists:
+        for l in rm.render_layers:
             if l.render_layer == active_layer.name:
-                aov_list = l
+                rm_rl = l
                 break
-        if aov_list is None:
-            layout.operator('renderman.add_aov_list')
+        if rm_rl is None:
+            layout.operator('renderman.add_renderman_aovs')
+            split = layout.split()
+            col = split.column()
+            rl = active_layer
+            col.prop(rl, "use_pass_combined")
+            col.prop(rl, "use_pass_z")
+            col.prop(rl, "use_pass_normal")
+            col.prop(rl, "use_pass_vector")
+            col.prop(rl, "use_pass_uv")
+            col.prop(rl, "use_pass_object_index")
+            #col.prop(rl, "use_pass_shadow")
+            #col.prop(rl, "use_pass_reflection")
+
+            col = split.column()
+            col.label(text="Diffuse:")
+            row = col.row(align=True)
+            row.prop(rl, "use_pass_diffuse_direct", text="Direct", toggle=True)
+            row.prop(rl, "use_pass_diffuse_indirect", text="Indirect", toggle=True)
+            row.prop(rl, "use_pass_diffuse_color", text="Albedo", toggle=True)
+            col.label(text="Specular:")
+            row = col.row(align=True)
+            row.prop(rl, "use_pass_glossy_direct", text="Direct", toggle=True)
+            row.prop(rl, "use_pass_glossy_indirect", text="Indirect", toggle=True)
+
+            col.prop(rl, "use_pass_subsurface_indirect", text="Subsurface")
+            col.prop(rl, "use_pass_refraction", text="Refraction")
+            col.prop(rl, "use_pass_emit", text="Emission")
+
+            # layout.separator()
+            # row = layout.row()
+            # row.label('Holdouts')
+            # rm = scene.renderman.holdout_settings
+            # layout.prop(rm, 'do_collector_shadow')
+            # layout.prop(rm, 'do_collector_reflection')
+            # layout.prop(rm, 'do_collector_refraction')
+            # layout.prop(rm, 'do_collector_indirectdiffuse')
+            # layout.prop(rm, 'do_collector_subsurface')
+
+            col.prop(rl, "use_pass_ambient_occlusion")
         else:
-            layout.context_pointer_set("aov_list", aov_list)
-            self._draw_collection(context, layout, aov_list, "AOVs",
-                                  "collection.add_remove", "aov_list",
+            layout.context_pointer_set("pass_list", rm_rl)
+            self._draw_collection(context, layout, rm_rl, "AOVs",
+                                  "collection.add_remove", "pass_list",
                                   "custom_aovs", "custom_aov_index")
 
 
-class RENDER_PT_layer_multilayer_files(CollectionPanel, Panel):
-    bl_label = "RenderMan Multilayer File Output"
-    bl_context = "render_layer"
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
+# class RENDER_PT_layer_multilayer_files(CollectionPanel, Panel):
+#     bl_label = "RenderMan Multilayer File Output"
+#     bl_context = "render_layer"
+#     bl_space_type = 'PROPERTIES'
+#     bl_region_type = 'WINDOW'
 
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return rd.engine in {'PRMAN_RENDER'}
+#     @classmethod
+#     def poll(cls, context):
+#         rd = context.scene.render
+#         return rd.engine in {'PRMAN_RENDER'}
 
-    def draw_item(self, layout, context, item):
-        scene = context.scene
-        rm = scene.renderman
-        col = layout.column()
-        col.prop(item, "export")
-        col.prop(item, "name")
-        col.prop(item, "channel_names")
-        col.prop(item,  "include_beauty")
-        col.prop(item, "use_deep")
-        col.prop(item,  "exr_format_options")
-        col.prop(item,  "exr_compression")
-        col.prop(item, "exr_storage")
+#     def draw_item(self, layout, context, item):
+#         scene = context.scene
+#         rm = scene.renderman
+#         col = layout.column()
+#         col.prop(item, "export")
+#         col.prop(item, "name")
+#         col.prop(item, "channel_names")
+#         col.prop(item,  "include_beauty")
+#         col.prop(item, "use_deep")
+#         col.prop(item,  "exr_format_options")
+#         col.prop(item,  "exr_compression")
+#         col.prop(item, "exr_storage")
 
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-        multilayer_list = None
-        active_layer = scene.render.layers.active
-        for l in rm.multilayer_lists:
-            if l.render_layer == active_layer.name:
-                multilayer_list = l
-                break
-        if multilayer_list is None:
-            layout.operator('renderman.add_multilayer_list')
-        else:
-            layout.context_pointer_set("multilayer_list", multilayer_list)
-            self._draw_collection(context, layout, multilayer_list, "Multilayer Files",
-                                  "collection.add_remove", "multilayer_list",
-                                  "multilayer_files", "multilayer_file_index")
+#     def draw(self, context):
+#         layout = self.layout
+#         scene = context.scene
+#         rm = scene.renderman
+#         multilayer_list = None
+#         active_layer = scene.render.layers.active
+#         for l in rm.multilayer_lists:
+#             if l.render_layer == active_layer.name:
+#                 multilayer_list = l
+#                 break
+#         if multilayer_list is None:
+#             layout.operator('renderman.add_multilayer_list')
+#         else:
+#             layout.context_pointer_set("multilayer_list", multilayer_list)
+#             self._draw_collection(context, layout, multilayer_list, "Multilayer Files",
+#                                   "collection.add_remove", "multilayer_list",
+#                                   "multilayer_files", "multilayer_file_index")
 
 
 class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
@@ -2272,6 +2384,8 @@ def register():
     bpy.utils.register_class(RENDERMAN_GROUP_UL_List)
     bpy.utils.register_class(RENDERMAN_LL_LIGHT_list)
     bpy.utils.register_class(RENDERMAN_LL_OBJECT_list)
+    #bpy.utils.register_class(RENDERMAN_OUTPUT_list)
+    #bpy.utils.register_class(RENDERMAN_CHANNEL_list)
     bpy.types.INFO_MT_render.append(PRMan_menu_func)
 
 

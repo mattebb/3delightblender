@@ -223,12 +223,16 @@ class RendermanPass(bpy.types.PropertyGroup):
         name="Light Shaders", description="Render light shaders")
 
 
-class RendermanAOV(bpy.types.PropertyGroup):
 
-    def built_in_channel_types(self, context):
-        items = [("custom_lpe_string", "Custom lpe", "Custom lpe"),
-                 ("built_in_aov", "Built in AOV", "Built in AOV"),
-                 ("custom_aov_string",  "Custom AOV", "Custom AOV"),
+aov_mapping = [ 
+                 
+                 ("rgba", "Combined (rgba)", "Combined (rgba)"),
+                 ("z", "z", "z"),
+                 ("Nn", "Nn", "Nn"),
+                 ("dPdtime", "dPdtime", "dPdtime"),
+                 ("u", "u", "u"),
+                 ("v", "v", "v"),
+                 ("id", "id", "id"),
                  ("lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics"),
                  ("lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "Shadows", "Shadows"),
                  ("color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O",
@@ -245,12 +249,23 @@ class RendermanAOV(bpy.types.PropertyGroup):
                   "Subsurface", "Subsurface"),
                  ("lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
                   "Refraction", "Refraction"),
-                 ("lpe:emission", "Emission", "Emission")
+                 ("lpe:emission", "Emission", "Emission"),
+                 ("custom_lpe_string", "Custom lpe", "Custom lpe"),
+                 ("custom_aov_string",  "Custom AOV", "Custom AOV"), 
+                 ("built_in_aov", "Other Built in AOV", "Built in AOV"),
                  ]
+
+
+
+class RendermanAOV(bpy.types.PropertyGroup):
+
+    def built_in_channel_types(self, context):
+        items = reversed(aov_mapping)
         return items
 
     def built_in_aovs(self, context):
-        items = [("a", "alpha", ""),
+        items = [
+                 ("a", "alpha", ""),
                  ("id", "id", "Returns the integer assigned via the 'identifier' attribute as the pixel value"),
                  ("z", "z_depth", "Depth from the camera in world space"),
                  ("zback", "z_back",
@@ -300,8 +315,10 @@ class RendermanAOV(bpy.types.PropertyGroup):
     def update_type(self, context):
         types = self.built_in_channel_types(context)
         for item in types:
-            if self.channel_type == item[0] and self.channel_type != 'custom_lpe_string' and self.channel_type != 'built_in_aov':
-                self.name = "Custom_" + item[1]
+            if self.channel_type == item[0]:
+                if self.channel_type != 'custom_lpe_string' and self.channel_type != 'built_in_aov':
+                    self.name = item[1]
+                return
 
     def update_aov_type(self, context):
         types = self.built_in_aovs(context)
@@ -350,27 +367,10 @@ class RendermanAOV(bpy.types.PropertyGroup):
         description="If checked this pass will be properly formatted for use by the denoise utility",
         default=False)
 
-    exclude = BoolProperty(
-        name="Exclude AOV from Export",
-        description="Enabling this will restrict the AOV from being exported as a standalone file or appearing in the default multilayer.  To export it you must assign it to a custom multilayer file",
-        default=False)
-
     custom_aov_type = StringProperty(
         name="AOV type",
         description="Information type for the AOV (normal, float, vector or color)",
         default="")
-
-    lpe_group = StringProperty(
-        name="lpe Group",
-        description="Object Group to use for this channel (default is all)",
-        default=""
-    )
-
-    lpe_light_group = StringProperty(
-        name="lpe Light Group",
-        description="Light Group to use for this channel (default is all)",
-        default=""
-    )
 
     exposure_gain = FloatProperty(
         name="Gain",
@@ -437,11 +437,14 @@ class RendermanAOV(bpy.types.PropertyGroup):
         min=0, max=16, default=2)
 
 
-class RendermanAOVList(bpy.types.PropertyGroup):
+class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
     render_layer = StringProperty()
     custom_aovs = CollectionProperty(type=RendermanAOV,
                                      name='Custom AOVs')
     custom_aov_index = IntProperty(min=-1, default=-1)
+    camera = StringProperty()
+    object_group = StringProperty()
+    light_group = StringProperty()
 
 
 class RendermanMultilayerFile(bpy.types.PropertyGroup):
@@ -504,6 +507,11 @@ class RendermanMultilayerFileList(bpy.types.PropertyGroup):
 
     multilayer_file_index = IntProperty(min=-1,  default=-1)
 
+class RendermanAOVChannel(bpy.types.PropertyGroup):
+    channel = StringProperty(name='Channel')
+    description = StringProperty(name='Description')
+    source = StringProperty(name='Source')
+    custom = BoolProperty(default=False)
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
     light_groups = CollectionProperty(type=RendermanGroup,
@@ -536,10 +544,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                ('group', 'Object Groups', '')],
         default='group', update=reset_ll_object_index)
 
-    aov_lists = CollectionProperty(type=RendermanAOVList,
-                                   name='Custom AOVs')
-    aov_list_index = IntProperty(min=-1, default=-1)
+    aov_channels = CollectionProperty(type=RendermanAOVChannel, name='AOV Channels')
+    aov_channels_index = IntProperty(min=-1, default=-1)
 
+    render_layers = CollectionProperty(type=RendermanRenderLayerSettings,
+                                   name='Custom AOVs')
+    
     multilayer_lists = CollectionProperty(
         type=RendermanMultilayerFileList,  name="Multilayer Files")
 
@@ -1924,6 +1934,53 @@ class Tab_CollectionGroup(bpy.types.PropertyGroup):
         default=False)
 
 
+initial_aov_channels = [("a", "alpha", ""),
+     ("id", "id", "Returns the integer assigned via the 'identifier' attribute as the pixel value"),
+     ("z", "z_depth", "Depth from the camera in world space"),
+     ("zback", "z_back",
+      "Depth at the back of volumetric objects in world space"),
+     ("P",  "P",  "Position of the point hit by the incident ray"),
+     ("PRadius", "PRadius",
+      "Cross-sectional size of the ray at the hit point"),
+     ("cpuTime", "cpuTime", "The time taken to render a pixel"),
+     ("sampleCount", "sampleCount",
+      "The number of samples taken for the resulting pixel"),
+     ("Nn", "Nn", "Normalized shading normal"),
+     ("Ngn", "Ngn", "Normalized geometric normal"),
+     ("Tn", "Tn", "Normalized shading tangent"),
+     ("Vn", "Vn", "Normalized view vector (reverse of ray direction)"),
+     ("VLen", "VLen", "Distance to hit point along the ray"),
+     ("curvature", "curvature", "Local surface curvature"),
+     ("incidentRaySpread", "incidentRaySpread",
+      "Rate of spread of incident ray"),
+     ("mpSize", "mpSize", "Size of the micropolygon that the ray hit"),
+     ("u", "u", "The parametric coordinates on the primitive"),
+     ("v", "v", "The parametric coordinates on the primitive"),
+     ("w", "w", "The parametric coordinates on the primitive"),
+     ("du", "du", "Derivatives of u, v, and w to adjacent micropolygons"),
+     ("dv", "dv", "Derivatives of u, v, and w to adjacent micropolygons"),
+     ("dw", "dw", "Derivatives of u, v, and w to adjacent micropolygons"),
+     ("dPdu", "dPdu", "Direction of maximal change in u, v, and w"),
+     ("dPdv", "dPdv", "Direction of maximal change in u, v, and w"),
+     ("dPdw", "dPdw", "Direction of maximal change in u, v, and w"),
+     ("dufp", "dufp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"),
+     ("dvfp", "dvfp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"),
+     ("dwfp", "dwfp", "Multiplier to dPdu, dPdv, dPdw for ray differentials"),
+     ("time", "time", "Time sample of the ray"),
+     ("dPdtime", "dPdtime", "Motion vector"),
+     ("id", "id", "Returns the integer assigned via the identifier attribute as the pixel value"),
+     ("outsideIOR", "outsideIOR",
+      "Index of refraction outside this surface"),
+     ("__Pworld", "Pworld", "P in world-space"),
+     ("__Nworld", "Nworld", "Nn in world-space"),
+     ("__depth", "depth", "Multi-purpose AOV\nr : depth from camera in world-space\ng : height in world-space\nb : geometric facing ratio : abs(Nn.V)"),
+     ("__st", "st", "Texture coords"),
+     ("__Pref", "Pref", "Reference Position primvar (if available)"),
+     ("__Nref", "Nref", "Reference Normal primvar (if available)"),
+     ("__WPref", "WPref", "Reference World Position primvar (if available)"),
+     ("__WNref",  "WNref", "Reference World Normal primvar (if available)")]
+
+
 @persistent
 def initial_groups(scene):
     scene = bpy.context.scene
@@ -1933,6 +1990,14 @@ def initial_groups(scene):
     if 'All' not in scene.renderman.light_groups.keys():
         default_group = scene.renderman.light_groups.add()
         default_group.name = 'All'
+    for name, channel, desc in initial_aov_channels:
+        if name not in scene.renderman.aov_channels.keys():
+            new_channel = scene.renderman.aov_channels.add()
+            new_channel.name = name
+            new_channel.channel = channel
+            new_channel.description = desc
+            new_channel.custom = False
+
 
 
 # collection of property group classes that need to be registered on
@@ -1954,8 +2019,9 @@ classes = [RendermanPath,
            RendermanParticleSettings,
            RendermanIntegratorSettings,
            RendermanWorldSettings,
+           RendermanAOVChannel,
            RendermanAOV,
-           RendermanAOVList,
+           RendermanRenderLayerSettings,
            RendermanCameraSettings,
            RendermanSceneSettings,
            RendermanMeshGeometrySettings,

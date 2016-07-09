@@ -56,6 +56,8 @@ from .export import write_archive_RIB
 from .export import EXCLUDED_OBJECT_TYPES
 from . import engine
 
+from .properties import aov_mapping
+
 from .nodes import RendermanPatternGraph
 
 from .spool import spool_render
@@ -125,6 +127,15 @@ class Renderman_open_last_RIB(bpy.types.Operator):
 class PrintToInfo(bpy.types.Operator):
     bl_idname = "renderman.print_info"
     bl_label = "Print to Info"
+    info_string = StringProperty()
+
+    def execute(self, context):
+        self.report({'INFO'}, self.info_string)
+        return {'FINISHED'}
+
+class RENDERMAN_OT_add_remove_output(bpy.types.Operator):
+    bl_idname = "renderman.add_remove_output"
+    bl_label = "Add or remove channel from output"
     info_string = StringProperty()
 
     def execute(self, context):
@@ -662,6 +673,8 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
                 return {'FINISHED'}
             elif prop_coll == 'object_groups' and collection[index].name == 'collector':
                 return {'FINISHED'}
+            elif prop_coll == 'aov_channels' and not collection[index].custom:
+                return {'FINISHED'}
             else:
                 collection.remove(index)
                 setattr(rm, coll_idx, index - 1)
@@ -669,16 +682,55 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OT_add_aov_list(bpy.types.Operator):
-    bl_idname = 'renderman.add_aov_list'
-    bl_label = 'Add aov list'
+class OT_add_renderman_aovs(bpy.types.Operator):
+    bl_idname = 'renderman.add_renderman_aovs'
+    bl_label = "Switch to RenderMan Passes"
 
     def execute(self, context):
         scene = context.scene
-        scene.renderman.aov_lists.add()
+        scene.renderman.render_layers.add()
         active_layer = scene.render.layers.active
         # this sucks.  but can't find any other way to refer to render layer
-        scene.renderman.aov_lists[-1].render_layer = active_layer.name
+        scene.renderman.render_layers[-1].render_layer = active_layer.name
+
+        # add the already existing passes
+        scene = context.scene
+        rm = scene.renderman
+        rm_rl = scene.renderman.render_layers[-1]
+        active_layer = scene.render.layers.active
+        
+        rl = active_layer
+
+        aovs = [
+            # (name, do?, declare type/name, source)
+            ("rgba", active_layer.use_pass_combined),
+            ("z", active_layer.use_pass_z),
+            ("Nn", active_layer.use_pass_normal),
+            ("dPdtime", active_layer.use_pass_vector),
+            ("u", active_layer.use_pass_uv),
+            ("v", active_layer.use_pass_uv),
+            ("id", active_layer.use_pass_object_index),
+            ("shadows", active_layer.use_pass_shadow),
+            ("reflection", active_layer.use_pass_reflection),
+            ("diffuse", active_layer.use_pass_diffuse_direct),
+            ("indirectdiffuse", active_layer.use_pass_diffuse_indirect),
+            ("albedo", active_layer.use_pass_diffuse_color),
+            ("specular", active_layer.use_pass_glossy_direct),
+            ("indirectspecular", active_layer.use_pass_glossy_indirect),
+            ("subsurface", active_layer.use_pass_subsurface_indirect),
+            ("refraction", active_layer.use_pass_refraction),
+            ("emission", active_layer.use_pass_emit),
+        ]
+
+        for aov_type,attr in aovs:
+            if attr:
+                aov_setting = rm_rl.custom_aovs.add()
+                for aov_map in aov_mapping:
+                    if aov_map[0] == aov_type or aov_map[1].lower() == aov_type.lower():
+                        aov_setting.channel_type = aov_type
+                        break
+
+
         return {'FINISHED'}
 
 
