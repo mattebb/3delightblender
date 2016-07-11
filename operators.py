@@ -248,20 +248,33 @@ class ExternalRender(bpy.types.Operator):
         rpass.display_driver = scene.renderman.display_driver
         rib_names = []
         denoise_files = []
+        job_tex_cmds = []
+        frame_tex_cmds = {}
         if rm.external_animation:
+            rpass.update_frame_num(scene.frame_end + 1)
+            tmp_tex_cmds = get_texture_list(rpass.scene)
+            rpass.update_frame_num(scene.frame_begin)
+            tmp2_cmds = get_texture_list(rpass.scene)
+            job_tex_cmds = list(set(tmp_tex_cmds).intersection(set(tmp2_cmds)))
+
             for frame in range(scene.frame_start, scene.frame_end + 1):
                 rpass.update_frame_num(frame)
                 self.report(
                     {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % frame)
                 self.gen_rib_frame(rpass)
                 rib_names.append(rpass.paths['rib_output'])
+                frame_tex_cmds[frame] = [cmd for cmd in get_texture_list(rpass.scene) if cmd not in job_tex_cmds]
                 if rm.external_denoise:
                     denoise_files.append(rpass.get_denoise_names())
+
         else:
             self.report(
                 {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
             self.gen_rib_frame(rpass)
             rib_names.append(rpass.paths['rib_output'])
+            frame_tex_cmds = {scene.frame_current:get_texture_list(scene)}
+            if rm.external_denoise:
+                denoise_files.append(rpass.get_denoise_names())
 
         # if render locally launch prman (externally)
         if rm.external_action == 'render':
