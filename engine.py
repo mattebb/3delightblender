@@ -32,9 +32,8 @@ from subprocess import Popen, PIPE
 import mathutils
 from mathutils import Matrix, Vector, Quaternion
 import re
-import glob
 import traceback
-import threading
+import glob
 
 from . import bl_info
 
@@ -65,12 +64,18 @@ from .nodes import get_tex_file_name
 
 addon_version = bl_info['version']
 
-# set pythonpath before importing prman
-set_rmantree(guess_rmantree())
-set_pythonpath(os.path.join(guess_rmantree(), 'bin'))
-it_dir = os.path.dirname(find_it_path()) if find_it_path() else None
-set_path([os.path.join(guess_rmantree(), 'bin'), it_dir])
-import prman
+prman_inited = False
+
+
+def init_prman():
+    # set pythonpath before importing prman
+    set_rmantree(guess_rmantree())
+    set_pythonpath(os.path.join(guess_rmantree(), 'bin'))
+    it_dir = os.path.dirname(find_it_path()) if find_it_path() else None
+    set_path([os.path.join(guess_rmantree(), 'bin'), it_dir])
+    global prman
+    import prman
+    prman_inited = True
 
 ipr = None
 
@@ -110,12 +115,14 @@ def update(engine, data, scene):
         try:
             engine.render_pass.gen_preview_rib()
         except Exception as err:
-            engine.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
+            engine.report({'ERROR'}, 'Rib gen error: ' +
+                          traceback.format_exc())
     else:
         try:
             engine.render_pass.gen_rib(engine=engine)
         except Exception as err:
-            engine.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
+            engine.report({'ERROR'}, 'Rib gen error: ' +
+                          traceback.format_exc())
 
 
 # assumes you have already set the scene
@@ -139,7 +146,6 @@ def update_timestamp(scene):
         active.renderman.update_timestamp = now
 
 
-
 def format_seconds_to_hhmmss(seconds):
     hours = seconds // (60 * 60)
     seconds %= (60 * 60)
@@ -153,7 +159,7 @@ class RPass:
     def __init__(self, scene, interactive=False, external_render=False, preview_render=False):
         self.scene = scene
         self.output_files = []
-        #set the display driver 
+        # set the display driver
         if external_render:
             self.display_driver = scene.renderman.display_driver
         elif preview_render:
@@ -171,8 +177,12 @@ class RPass:
         self.is_interactive_running = False
         self.is_interactive = interactive
         self.options = []
+        # check if prman is imported
+        if not prman_inited:
+            init_prman()
+
         if interactive:
-            prman.Init(['-woff', 'A57001']) #need to disable for interactive
+            prman.Init(['-woff', 'A57001'])  # need to disable for interactive
         else:
             prman.Init()
         self.ri = prman.Ri()
@@ -205,7 +215,7 @@ class RPass:
 
         self.paths['render_output'] = user_path(rm.path_display_driver_image,
                                                 scene=scene, rpass=self)
-        debug("info",self.paths)
+        debug("info", self.paths)
         self.paths['shader'] = [user_path(rm.out_dir, scene=scene)] +\
             get_path_list_converted(rm, 'shader')
         self.paths['rixplugin'] = get_path_list_converted(rm, 'rixplugin')
@@ -226,9 +236,9 @@ class RPass:
             os.makedirs(self.paths['frame_archives'])
         self.paths['archive'] = os.path.dirname(static_archive_dir)
 
-    def update_frame_num(self,num):
+    def update_frame_num(self, num):
         self.scene.frame_set(num)
-        self.paths['rib_output'] = user_path(self.scene.renderman.path_rib_output, 
+        self.paths['rib_output'] = user_path(self.scene.renderman.path_rib_output,
                                              scene=self.scene)
 
     def preview_render(self, engine):
@@ -278,16 +288,13 @@ class RPass:
                           "Problem launching PRMan from %s." % prman_executable)
             isProblem = True
 
-    
     def get_denoise_names(self):
         base, ext = self.paths['render_output'].rsplit('.', 1)
         # denoise data has the name .denoise.exr
         return (base + '.variance.' + 'exr', base + '.filtered.' + 'exr')
-    
 
     def render(self, engine):
         DELAY = 1
-        
         render_output = self.paths['render_output']
         cdir = os.path.dirname(self.paths['rib_output'])
 
@@ -310,6 +317,7 @@ class RPass:
             else:
                 environ = os.environ.copy()
                 subprocess.Popen([it_path], env=environ, shell=True)
+
         def update_image():
             render = self.scene.render
             image_scale = 100.0 / render.resolution_percentage
@@ -332,15 +340,16 @@ class RPass:
                                  "%ds" % self.rm.update_frequency]
         cmd = [prman_executable] + options + ["-t:%d" % self.rm.threads] + \
             [self.paths['rib_output']]
-        
+
         environ = os.environ.copy()
         environ['RMANTREE'] = self.paths['rmantree']
-        environ['PATH'] = os.path.join(self.paths['rmantree'], 'bin') + os.pathsep + environ['PATH']
-        
+        environ['PATH'] = os.path.join(
+            self.paths['rmantree'], 'bin') + os.pathsep + environ['PATH']
+
         # Launch the command to begin rendering.
         try:
             process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE,
-                                   stderr=subprocess.PIPE, env=environ)
+                                       stderr=subprocess.PIPE, env=environ)
             isProblem = False
         except:
             engine.report({"ERROR"},
@@ -384,11 +393,14 @@ class RPass:
                         engine.update_progress(float(perc) / 100.0)
                     else:
                         if line and "ERROR" in str(line):
-                            engine.report({"ERROR"}, "PRMan: %s " % line.decode('utf8'))
+                            engine.report({"ERROR"}, "PRMan: %s " %
+                                          line.decode('utf8'))
                         elif line and "WARNING" in str(line):
-                            engine.report({"WARNING"}, "PRMan: %s " % line.decode('utf8'))
+                            engine.report({"WARNING"}, "PRMan: %s " %
+                                          line.decode('utf8'))
                         elif line and "SEVERE" in str(line):
-                            engine.report({"ERROR"}, "PRMan: %s " % line.decode('utf8'))
+                            engine.report({"ERROR"}, "PRMan: %s " %
+                                          line.decode('utf8'))
 
                     if process.poll() is not None:
                         if self.display_driver not in ['it']:
@@ -431,18 +443,16 @@ class RPass:
             base, ext = render_output.rsplit('.', 1)
             denoise_options = []
             # denoise data has the name .denoise.exr
-            if self.rm.threads != 0:
-                denoise_options = ["-t%d" % self.rm.threads]
+            denoise_options = ["-t%d" %
+                               self.rm.threads] if self.rm.threads != 0 else []
             denoise_data, filtered_name = self.get_denoise_names()
-            #denoise_options.extend(['-o', os.path.basename(filtered_name).rsplit('.', 1)[0]])
             if os.path.exists(denoise_data):
                 try:
                     # denoise to _filtered
                     cmd = [os.path.join(self.paths['rmantree'], 'bin',
-                                        'denoise')] + denoise_options +  [denoise_data]
+                                        'denoise')] + [denoise_options] + [denoise_data]
 
                     engine.update_stats("", ("PRMan: Denoising image"))
-                    #print(cmd)
                     t1 = time.time()
                     process = subprocess.Popen(cmd, cwd=images_dir,
                                                stdout=subprocess.PIPE,
@@ -482,20 +492,17 @@ class RPass:
                                                        env=environ)
                             process.wait()
                     else:
-                        engine.report({"ERROR"}, "PRMan: Error Denoising.  ")
-                        print(process.stderr)
+                        engine.report({"ERROR"}, "PRMan: Error Denoising.")
                 except:
                     engine.report({"ERROR"},
                                   "Problem launching denoise from %s." %
                                   prman_executable)
-                    engine.report({"ERROR"},
-                                  traceback.format_exc())
             else:
                 engine.report({"ERROR"},
                               "Cannot denoise file %s. Does not exist" %
                               denoise_data)
-                
-        #Load all output images into image editor
+
+        # Load all output images into image editor
         if self.rm.import_images and self.rm.render_into == 'blender':
             for image in self.output_files:
                 bpy.ops.image.open(filepath=image)
@@ -536,11 +543,10 @@ class RPass:
                 if mat_slot.material not in self.material_dict:
                     self.material_dict[mat_slot.material] = []
                 self.material_dict[mat_slot.material].append(obj)
-        
+
         # export rib and bake
-        
-        
-        #Check if rendering select objects only.
+
+        # Check if rendering select objects only.
         if(self.scene.renderman.render_selected_objects_only):
             visible_objects = get_Selected_Objects(self.scene)
         else:
@@ -560,7 +566,6 @@ class RPass:
         interactive_initial_rib(self, self.ri, self.scene, prman)
         return
 
-
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
         active = scene.objects.active
@@ -573,7 +578,7 @@ class RPass:
         # check for light deleted
         if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
             lights_deleted = []
-            for light_name,data_name in self.lights.items():
+            for light_name, data_name in self.lights.items():
                 if light_name not in scene.objects:
                     delete_light(self, self.ri, data_name, prman)
                     lights_deleted.append(light_name)
@@ -587,7 +592,8 @@ class RPass:
     def solo_light(self):
         if self.orig_solo_light:
             # if there was originally a solo light have to reset ALL
-            lights = [light for light in self.scene.objects if light.type == 'LAMP']
+            lights = [
+                light for light in self.scene.objects if light.type == 'LAMP']
             reset_light_illum(self, self.ri, prman, lights, do_solo=False)
 
         solo_light(self, self.ri, prman)
@@ -603,7 +609,7 @@ class RPass:
                 elif not obj.data.renderman.mute and obj in self.muted_lights:
                     un_muted_lights.append(obj)
                     self.muted_lights.remove(obj)
-        
+
         if len(un_muted_lights):
             reset_light_illum(self, self.ri, prman, un_muted_lights)
         if len(new_muted_lights):
@@ -624,7 +630,8 @@ class RPass:
         self.is_interactive_running = False
         self.edit_num += 1
         # output a flush to stop rendering.
-        self.ri.ArchiveRecord("structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
+        self.ri.ArchiveRecord(
+            "structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
         prman.RicFlush("%d" % self.edit_num, 0, self.ri.SUSPENDRENDERING)
         self.ri.EditWorldEnd()
         self.ri.End()
@@ -649,8 +656,8 @@ class RPass:
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
-        
-        #Check if rendering select objects only.
+
+        # Check if rendering select objects only.
         if(self.scene.renderman.render_selected_objects_only):
             visible_objects = get_Selected_Objects(self.scene)
         else:
@@ -690,7 +697,8 @@ class RPass:
             if '_MAPID_' in in_file:
                 in_file = get_real_path(in_file)
                 for udim_file in glob.glob(in_file.replace('_MAPID_', '*')):
-                    texture_list.append((udim_file, get_tex_file_name(udim_file), options))
+                    texture_list.append(
+                        (udim_file, get_tex_file_name(udim_file), options))
             else:
                 texture_list.append((in_file, out_file, options))
 
@@ -699,7 +707,7 @@ class RPass:
             out_file_path = os.path.join(
                 self.paths['texture_output'], out_file)
 
-            if os.path.isfile(out_file_path) and \
+            if os.path.isfile(out_file_path) and os.path.exists(in_file) and\
                     self.rm.always_generate_textures is False and \
                     os.path.getmtime(in_file) <= \
                     os.path.getmtime(out_file_path):

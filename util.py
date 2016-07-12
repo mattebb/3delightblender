@@ -69,7 +69,7 @@ def readOSO(filePath):
     shader_meta["shader"] = os.path.splitext(os.path.basename(filePath))[0]
     with open(filePath, encoding='utf-8') as osofile:
         for line in osofile:
-            #if line.startswith("surface") or line.startswith("shader"):
+            # if line.startswith("surface") or line.startswith("shader"):
             #    line_number += 1
             #    listLine = line.split()
             #    shader_meta["shader"] = listLine[1]
@@ -160,6 +160,7 @@ def get_Selected_Objects(scene):
         if(obj.select == True):
             objectNames.append(obj.name)
     return objectNames
+
 
 def get_Files_in_Directory(path):
     files = []
@@ -320,7 +321,7 @@ def user_path(path, scene=None, ob=None, rpass=None):
         path = path.replace('{blend}', blendpath)
     if scene is not None:
         path = path.replace('{scene}', scene.name)
-    if rpass is not None:    
+    if rpass is not None:
         display_driver = rpass.display_driver
         if display_driver == "tiff":
             path = path.replace('{file_type}', display_driver[-4:])
@@ -419,7 +420,8 @@ def set_rmantree(rmantree):
 def set_path(paths):
     for path in paths:
         if path is not None:
-            os.environ['PATH'] = os.environ['PATH'] + os.pathsep + path
+            os.environ['PATH'] = path + os.pathsep + os.environ['PATH']
+
 
 def check_valid_rmantree(rmantree):
     prman = 'prman.exe' if platform.system() == 'Windows' else 'prman'
@@ -427,8 +429,9 @@ def check_valid_rmantree(rmantree):
     if os.path.exists(rmantree) and \
        os.path.exists(os.path.join(rmantree, 'bin')) and \
        os.path.exists(os.path.join(rmantree, 'bin', prman)):
-            return True
+        return True
     return False
+
 
 def guess_rmantree():
     addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
@@ -440,7 +443,7 @@ def guess_rmantree():
     elif rmantree_method == 'ENV':
         rmantree = rmantree_from_env()
     else:
-        #get from detected installed
+        # get from detected installed
         if platform.system() == 'Windows':
             # default installation path
             # or base = 'C:/Program Files/Pixar'
@@ -454,7 +457,7 @@ def guess_rmantree():
 
         choice = prefs.rmantree_choice
 
-        if choice == 'NEWEST':     
+        if choice == 'NEWEST':
             latestver = 0.0
             for d in os.listdir(base):
                 if "RenderManProServer" in d:
@@ -467,8 +470,8 @@ def guess_rmantree():
             rmantree = choice
 
     # check rmantree valid
-    if not check_valid_rmantree(rmantree):  
-        print("ERROR!!! See RenderMan location in User Prefences.")
+    if not check_valid_rmantree(rmantree):
+        print("ERROR!!! See RenderMan location in User Preferences.")
         print("RenderMan Location is set to %s which does not appear valid." % rmantree)
         return None
     # check that it's > 20
@@ -476,14 +479,16 @@ def guess_rmantree():
     vf = float(vstr.strip('/\\'))
     if vf < 20.0:
         print('ERROR!!!  You need RenderMan version 20.0 or above.')
-        print('Correct in User Prefences.')
+        print('Correct in User Preferences.')
         return None
-    
+
     return rmantree
 
 # we need this for populating preferences
+
+
 def guess_rmantree_initial():
-    #get from detected installed
+    # get from detected installed
     if platform.system() == 'Windows':
         # default installation path
         # or base = 'C:/Program Files/Pixar'
@@ -512,6 +517,7 @@ def guess_rmantree_initial():
                 rmantree = os.path.join(base, d)
     return rmantree
 
+
 def get_installed_rendermans():
     base = ""
     if platform.system() == 'Windows':
@@ -529,8 +535,8 @@ def get_installed_rendermans():
     for d in os.listdir(base):
         if "RenderManProServer" in d:
             vstr = d.split('-')[1]
-            rendermans.append((vstr, os.path.join(base,d)))
-    
+            rendermans.append((vstr, os.path.join(base, d)))
+
     return rendermans
 
 
@@ -585,6 +591,7 @@ def find_it_path():
         else:
             return None
 
+
 def find_local_queue():
     rmstree = os.environ['RMSTREE'] if 'RMSTREE' in os.environ.keys() else ''
 
@@ -626,6 +633,7 @@ def find_local_queue():
             return lq
         else:
             return None
+
 
 def find_tractor_spool():
     base = ""
