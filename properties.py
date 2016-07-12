@@ -846,6 +846,31 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Spool Animation",
         default=False)
 
+    enable_checkpoint = BoolProperty(
+        name="Enable Checkpointing",
+        description="Allows partial images to be output at specific intervals while the renderer continued to run.  The user may also set a point at which the render will terminate.",
+        default=False)
+
+    checkpoint_type = EnumProperty(
+        name="Checkpoint Method",
+        description="Sets the method that the checkpointing will use.",
+        items=[('i', 'Iterations', 'Number of samples per pixel'),
+               ('s', 'Seconds', ''),
+               ('m', 'Minutes', ''),
+               ('h', 'Hours', ''),
+               ('d', 'Days', '')],
+        default='s')
+
+    checkpoint_interval = IntProperty(
+        name="Interval",
+        description="The interval between checkpoint images",
+        default=60)
+
+    render_limit = IntProperty(
+        name="Limit",
+        description="The maximum interval that will be reached before the render terminates.  0 will disable this option.",
+        default=0)
+
     header_rib_boxes = StringProperty(
         name="External RIB File",
         description="Injects an external RIB into the header of the output file.",

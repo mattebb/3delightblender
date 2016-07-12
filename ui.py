@@ -304,6 +304,18 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         sub_row = split.row()
         sub_row.enabled = rm.external_action == 'spool'
         sub_row.prop(rm, "queuing_system")
+        
+        # checkpointing
+        layout.separator()
+        row = layout.row()
+        row.prop(rm, 'enable_checkpoint')
+        row = layout.row()
+        row.enabled = rm.enable_checkpoint
+        row.prop(rm, 'checkpoint_type')
+        row = layout.row(align=True)
+        row.enabled = rm.enable_checkpoint
+        row.prop(rm, 'checkpoint_interval')
+        row.prop(rm, 'render_limit')
 
 
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
