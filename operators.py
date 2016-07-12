@@ -133,6 +133,7 @@ class PrintToInfo(bpy.types.Operator):
         self.report({'INFO'}, self.info_string)
         return {'FINISHED'}
 
+
 class RENDERMAN_OT_add_remove_output(bpy.types.Operator):
     bl_idname = "renderman.add_remove_output"
     bl_label = "Add or remove channel from output"
@@ -272,7 +273,7 @@ class ExternalRender(bpy.types.Operator):
                 {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
             self.gen_rib_frame(rpass)
             rib_names.append(rpass.paths['rib_output'])
-            frame_tex_cmds = {scene.frame_current:get_texture_list(scene)}
+            frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
             if rm.external_denoise:
                 denoise_files.append(rpass.get_denoise_names())
 
@@ -283,11 +284,17 @@ class ExternalRender(bpy.types.Operator):
             if not os.path.exists(images_dir):
                 os.makedirs(images_dir)
             # create command and start process
-            options = rpass.options
+            options = ["-t:%d" % rpass.rm.threads]
+            if rm.enable_checkpoint:
+                if rm.render_limit == 0:
+                    options = options + ["-checkpoint", "%d%s" %
+                                         (rm.checkpoint_interval, rm.checkpoint_type)]
+                else:
+                    options = options + ['-checkpoint', '%d%s,%d%s' % (
+                        rm.checkpoint_interval, rm.checkpoint_type, rm.render_limit, rm.checkpoint_type)]
             prman_executable = os.path.join(rpass.paths['rmantree'], 'bin',
                                             rpass.paths['rman_binary'])
-            cmd = [prman_executable] + options + ["-t:%d" % rpass.rm.threads] + \
-                rib_names
+            cmd = [prman_executable] + options + rib_names
             cdir = os.path.dirname(rib_names[0])
             environ = os.environ.copy()
             environ['RMANTREE'] = rpass.paths['rmantree']
@@ -312,7 +319,7 @@ class ExternalRender(bpy.types.Operator):
             frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
             frame_end = scene.frame_end if rm.external_animation else scene.frame_current
             alf_file = spool_render(
-                '20.9', rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise)
+                '20.9', rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
 
             # if spooling send job to queuing
             if rm.external_action == 'spool':
@@ -330,8 +337,7 @@ class StartInteractive(bpy.types.Operator):
     ''''''
     bl_idname = "lighting.start_interactive"
     bl_label = "Start/Stop Interactive Rendering"
-    bl_description = "Start/Stop Interactive Rendering, \
-        must have 'it' installed"
+    bl_description = "Start/Stop Interactive Rendering, must have 'it' installed"
     rpass = None
     is_running = False
 
@@ -711,7 +717,7 @@ class OT_add_renderman_aovs(bpy.types.Operator):
         rm = scene.renderman
         rm_rl = scene.renderman.render_layers[-1]
         active_layer = scene.render.layers.active
-        
+
         rl = active_layer
 
         aovs = [
@@ -735,14 +741,13 @@ class OT_add_renderman_aovs(bpy.types.Operator):
             ("emission", active_layer.use_pass_emit),
         ]
 
-        for aov_type,attr in aovs:
+        for aov_type, attr in aovs:
             if attr:
                 aov_setting = rm_rl.custom_aovs.add()
                 for aov_map in aov_mapping:
                     if aov_map[0] == aov_type or aov_map[1].lower() == aov_type.lower():
                         aov_setting.channel_type = aov_type
                         break
-
 
         return {'FINISHED'}
 
