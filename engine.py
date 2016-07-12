@@ -525,18 +525,17 @@ class RPass:
             return
 
         self.is_interactive = True
-        self.is_interactive_running = True
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         self.material_dict = {}
         self.lights = {}
-        self.orig_solo_light = None
+        self.current_solo_light = None
         self.muted_lights = []
         for obj in self.scene.objects:
             if obj.type == 'LAMP' and obj.name not in self.lights:
                 self.lights[obj.name] = obj.data.name
                 if obj.data.renderman.solo:
-                    self.orig_solo_light = obj
+                    self.current_solo_light = obj
                 if obj.data.renderman.mute:
                     self.muted_lights.append(obj)
             for mat_slot in obj.material_slots:
@@ -564,6 +563,7 @@ class RPass:
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.ri, self.scene, prman)
+        self.is_interactive_running = True
         return
 
     # find the changed object and send for edits
@@ -590,13 +590,21 @@ class RPass:
         update_illuminates(self, self.ri, prman)
 
     def solo_light(self):
-        if self.orig_solo_light:
+        if self.current_solo_light:
             # if there was originally a solo light have to reset ALL
             lights = [
                 light for light in self.scene.objects if light.type == 'LAMP']
             reset_light_illum(self, self.ri, prman, lights, do_solo=False)
 
-        solo_light(self, self.ri, prman)
+        self.current_solo_light = solo_light(self, self.ri, prman)
+
+    def un_solo_light(self):
+        if self.current_solo_light:
+            # if there was originally a solo light have to reset ALL
+            lights = [
+                light for light in self.scene.objects if light.type == 'LAMP']
+            reset_light_illum(self, self.ri, prman, lights, do_solo=False)
+            self.current_solo_light = None
 
     def mute_light(self):
         new_muted_lights = []

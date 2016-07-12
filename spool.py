@@ -18,8 +18,12 @@ def write_cmd_task_line(f, title, cmds, indent_level):
                                                 key, " ".join(cmd)))
     f.write("%s}\n" % ('\t' * indent_level))
 
+def txmake_task(f, title, in_name, out_name, options, indent_level):
+    cmd = ['txmake'] + options + [in_name, os.path.join('textures', out_name)]
+    write_cmd_task_line(f, title, [('PixarRender', cmd)], indent_level)
 
-def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, frame_end=None, denoise=None):
+def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, frame_end=None, denoise=None,
+                 job_texture_cmds=[], frame_texture_cmds={}):
     prefs = bpy.context.user_preferences.addons[__package__].preferences
 
     out_dir = prefs.env_vars.out
@@ -56,28 +60,28 @@ def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, fram
     f.write(job_str + ' -subtasks {' + '\n')
 
     # collect textures find frame specific and job specific
-    #write_parent_task_line(f, 'Job Textures', False, 1)
+    if job_texture_cmds:
+        write_parent_task_line(f, 'Job Textures', False, 1)
     # do job tx makes
-    # for in_name,cmd_str in job_texture_cmds:
-    #    write_cmd_task_line(f, "TxMake %s" % os.path.split(in_name)[-1],
-    #                        [('PixarRender', cmd_str)], 2)
-    #end_block(f, 1)
+    for in_name,out_name,options in job_texture_cmds:
+        txmake_task(f, "TxMake %s" % os.path.split(in_name)[-1], in_name, out_name, options, 2)
+    if job_texture_cmds:
+        end_block(f, 1)
 
     write_parent_task_line(f, 'Frame Renders', False, 1)
     # for frame
     if frame_end is None:
         frame_end = frame_begin
     for frame_num in range(frame_begin, frame_end + 1):
-        #if len(frame_texture_cmds) or per_frame_denoise:
-        #    write_parent_task_line(f, 'Frame %d' % frame_num, True, 2)
+        if frame_num in frame_texture_cmds or denoise:
+            write_parent_task_line(f, 'Frame %d' % frame_num, True, 2)
 
         # do frame specic txmake
-        # if len(frame_texture_cmds):
-        #    write_parent_task_line(f, 'Frame %d textures' % frame_num, False, 3)
-        #    for in_name,cmd_str in frame_texture_cmds:
-        #        write_cmd_task_line(f, "TxMake %s" % os.path.split(in_name)[-1],
-        #                    [('PixarRender', cmd_str)], 4)
-        #    end_block(f, 3)
+        if frame_num in frame_texture_cmds:
+           write_parent_task_line(f, 'Frame %d textures' % frame_num, False, 3)
+           for in_name,out_name,options in frame_texture_cmds[frame_num]:
+               txmake_task(f, "TxMake %s" % os.path.split(in_name)[-1], in_name, out_name, options, 4)
+           end_block(f, 3)
 
         # render frame
         cmd_str = ['prman', '-Progress', '-cwd',
@@ -90,16 +94,23 @@ def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, fram
             cmd_str = ['denoise', denoise_files[frame_num - frame_begin][0]]
             write_cmd_task_line(f, 'Denoise frame %d' % frame_num,
                                 [('PixarRender', cmd_str)], 3)
+        elif crossframe_denoise:
+            if frame_num - frame_begin < 3:
+                pass
+            else:
+                denoise_options = ['-L'] if frame_num < frame_end else []
+                if frame_num - frame_begin > 3:
+                    denoise_options.append('-F')
+                cmd_str = ['denoise'] + denoise_options + \
+                    [f[0] for f in denoise_files[frame_num - 2: frame_num]]
+                write_cmd_task_line(f, 'Denoise frame %d' % frame_num,
+                                    [('PixarRender', cmd_str)], 3)
 
         #if len(frame_texture_cmds) or per_frame_denoise:
-        if per_frame_denoise:
+        if denoise or frame_num in frame_texture_cmds:
             end_block(f, 2)
     end_block(f, 1)
-    # crossframe denoise
-    # if crossframe_denoise:
-    #    write_cmd_task_line(f, 'Denoise all frames',
-    #                        [('PixarRender', cmd_str)], 3)
-
+    
     # end job
     f.write("}\n")
     f.close()

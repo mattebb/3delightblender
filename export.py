@@ -833,7 +833,8 @@ def export_light(ri, instance):
 
 
 def export_material(ri, mat, handle=None):
-
+    if mat == None:
+        return
     rm = mat.renderman
 
     if rm.nodetree != '':
@@ -1970,7 +1971,8 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
             continue
         if(db.material and exportMaterials):
             # Tell the object to use the baked in material.
-            export_material_archive(ri, db.material)
+            for mat in db.material:
+                export_material_archive(ri, mat)
         if db.type == "MESH":
             # Gets the world location and uses the ri transform to set it in
             # the archive.
@@ -1988,7 +1990,7 @@ def export_RIBArchive_data_archive(ri, scene, rpass, data_blocks, exportMaterial
 # export each data read archive
 def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is_child=False, visible_objects=None):
     ri.AttributeBegin()
-    ri.Attribute("identifier", {"name": instance.name})
+    ri.Attribute("identifier", {"string name": instance.name})
     if instance.ob:
         export_object_attributes(ri, rpass.scene, instance.ob, visible_objects)
     # now the matrix, if we're transforming do the motion here
@@ -2064,7 +2066,7 @@ def export_data_rib_archive(ri, data_block, instance, rpass):
 
 def export_empties_archives(ri, ob):
     ri.AttributeBegin()
-    ri.Attribute("identifier", {"name": ob.name})
+    ri.Attribute("identifier", {"string name": ob.name})
     # Perform custom transform export since this is the only time empties are
     # exprted.
     matrix = ob.matrix_local
@@ -2661,8 +2663,6 @@ def preview_model(ri, scene, mat):
 def export_display(ri, rpass, scene):
     rm = scene.renderman
 
-    active_layer = scene.render.layers.active
-
     # Set bucket shape.
     if rpass.is_interactive:
         ri.Option("bucket", {"string order": ['spiral']})
@@ -2695,209 +2695,186 @@ def export_display(ri, rpass, scene):
     else:
         ri.Option("bucket", {"string order": [rm.bucket_shape.lower()]})
 
-    # built in aovs
-    aovs = [
-        # (name, do?, declare type/name, source)
-        ("z", active_layer.use_pass_z, "float", None),
-        ("Nn", active_layer.use_pass_normal, "normal", None),
-        ("dPdtime", active_layer.use_pass_vector, "vector", None),
-        ("u", active_layer.use_pass_uv, "float", None),
-        ("v", active_layer.use_pass_uv, "float", None),
-        ("id", active_layer.use_pass_object_index, "float", None),
-        ("shadows", active_layer.use_pass_shadow, "color",
-         "color lpe:shadowcollector"),
-        ("reflection", active_layer.use_pass_reflection, "color",
-         "color lpe:reflectioncollector"),
-        ("diffuse", active_layer.use_pass_diffuse_direct, "color",
-         "color lpe:diffuse"),
-        ("indirectdiffuse", active_layer.use_pass_diffuse_indirect,
-         "color", "color lpe:indirectdiffuse"),
-        ("albedo", active_layer.use_pass_diffuse_color, "color",
-         "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O"),
-        ("specular", active_layer.use_pass_glossy_direct, "color",
-         "color lpe:specular"),
-        ("indirectspecular", active_layer.use_pass_glossy_indirect,
-         "color", "color lpe:indirectspecular"),
-        ("subsurface", active_layer.use_pass_subsurface_indirect,
-         "color", "color lpe:subsurface"),
-        ("refraction", active_layer.use_pass_refraction, "color",
-         "color lpe:refraction"),
-        ("emission", active_layer.use_pass_emit, "color",
-         "color lpe:emission"),
-    ]
-
-    # custom aovs
-    custom_aovs = []
-    for aov_list in rm.aov_lists:
-        if active_layer.name == aov_list.render_layer:
-            custom_aovs = aov_list.custom_aovs
-            break
-
-    # declare display channels
-
-    for aov, doit, declare_type, source in aovs:
-        if doit and declare_type:
-            params = {"int[4] quantize": [0, 0, 0, 0]}
-            if source:
-                params['string source'] = source
-            ri.DisplayChannel('%s %s' % (declare_type, aov), params)
-
-    diffuse_counter = 1
-    indirectdiffuse_counter = 1
-    specular_counter = 1
-    indirectspecular_counter = 1
-
-    for aov in custom_aovs:
-        source = aov.channel_type
-        channel_name = aov.name
-        source_type = "color"
-        denoise = aov.denoise_aov
-        exposure_gain = aov.exposure_gain
-        exposure_gamma = aov.exposure_gamma
-        remap_a = aov.remap_a
-        remap_b = aov.remap_b
-        remap_c = aov.remap_c
-        quantize_zero = aov.quantize_zero
-        quantize_one = aov.quantize_one
-        quantize_min = aov.quantize_min
-        quantize_max = aov.quantize_max
-        pixel_filter = aov.aov_pixelfilter
-        stats = aov.stats_type
-        pixelfilter_x = aov.aov_pixelfilter_x
-        pixelfilter_y = aov.aov_pixelfilter_y
-        if source == 'custom_lpe_string':
-            source = aov.custom_lpe_string
-            # looks like someone didn't set an lpe string
-            if source == '':
-                continue
-        elif source == 'custom_aov_string':
-            source = aov.custom_aov_string
-            source_type = aov.custom_aov_type
-            if source == '':
-                continue
-        elif source == 'built_in_aov':
-            source = aov.aov_channel_type
-            if aov.aov_channel_type in ("PRadius", "cpuTime", "sampleCount", "VLen", "curvature",
-                                        "incidentRaySpread", "mpSize", "u", "v", "w", "du", "dv", "dw",
-                                        "time", "id", "dufp", "dvfp", "dwfp", "outsideIOR"):
-                source_type = "float"
-            if aov.aov_channel_type in ("Nn",  "Ngn"):
-                source_type = "normal"
-            if aov.aov_channel_type in ("Tn",  "Vn", "dPdu", "dPdv", "dPdw", "dPdtime"):
-                source_type = "vector"
-            if aov.aov_channel_type == "P":
-                source_type = "point"
-        else:
-            # light groups need to be surrounded with '' in lpes
-            G_string = "'%s'" % aov.lpe_group if aov.lpe_group != '' else ""
-            LG_string = "'%s'" % aov.lpe_light_group if aov.lpe_light_group != '' else ""
-            source = source.replace("%G", G_string)
-            source = source.replace("%LG", LG_string)
-
-        if denoise:
-            if aov.channel_type == "lpe:C<.D%G><L.%LG>":
-                channel_name = 'diffuse' + str(diffuse_counter)
-                diffuse_counter += 1
-            if aov.channel_type == "lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)":
-                channel_name = 'indirectdiffuse' + str(indirectdiffuse_counter)
-                indirectdiffuse_counter += 1
-            if aov.channel_type == "lpe:C<.S%G><L.%LG>":
-                channel_name = 'specular' + str(specular_counter)
-                specular_counter += 1
-            if aov.channel_type == "lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)":
-                channel_name = 'indirectspecular' + \
-                    str(indirectspecular_counter)
-                indirectspecular_counter += 1
-        aov.channel_name = channel_name
-
-        params = {"string source": source_type + " " + source,
-                  "float[2] exposure": [exposure_gain, exposure_gamma],
-                  "float[3] remap": [remap_a, remap_b, remap_c],
-                  "int[4] quantize": [quantize_zero, quantize_one, quantize_min, quantize_max]}
-        if pixel_filter != 'default':
-            params["filter"] = pixel_filter
-            params["filterwidth"] = [pixelfilter_x, pixelfilter_y]
-        if stats != 'none':
-            params["string statistics"] = stats
-        ri.DisplayChannel(source_type + ' %s' % (channel_name), params)
-
     display_driver = rpass.display_driver
     rpass.output_files = []
-
     main_display = user_path(
         rm.path_display_driver_image, scene=scene, rpass=rpass)
     debug("info", "Main_display: " + main_display)
-
-    #main_display = os.path.relpath(main_display, rpass.paths['export_dir'])
     image_base, ext = main_display.rsplit('.', 1)
 
-    main_params = {}
-
-    if display_driver == 'openexr':
-        if rm.exr_format_options != 'default':
-            main_params["string type"] = rm.exr_format_options
-        if rm.exr_compression != 'default':
-            main_params["string compression"] = rm.exr_compression
-
-    ri.Display(main_display, display_driver, "rgba", main_params)
+    # just going to always output rgba
+    ri.Display(main_display, display_driver, "rgba", {})
     rpass.output_files.append(main_display)
 
-    # exports all AOV's not tagged as 'exclude'
-    for aov, doit, declare, source in aovs:
-        params = {}
-        if not rpass.external_render:
-            params["int asrgba"] = 1
-        if doit:
-            ri.Display('+' + image_base + '.%s.' % aov + ext,
-                       display_driver, aov, params)
-            rpass.output_files.append(image_base + '.%s.' % aov + ext)
+    for layer in scene.render.layers:
+        # custom aovs
+        rm_rl = None
+        for render_layer_settings in rm.render_layers:
+            if layer.name == render_layer_settings.render_layer:
+                rm_rl = render_layer_settings
+                break
 
-    for aov in custom_aovs:
-        params = {}
-        if not aov.exclude:
-            if not rpass.external_render:
-                params["int asrgba"] = 1
-            if aov.denoise_aov:
-                ri.Display('+' + image_base + '.%s.denoiseable.' %
-                           aov.name + ext, display_driver, aov.channel_name)
-            else:
-                ri.Display('+' + image_base + '.%s.' % aov.name +
-                           ext, display_driver, aov.channel_name, params)
-                rpass.output_files.append(image_base + '.%s.' % aov.name + ext)
+        layer_name = layer.name.replace(' ', '')
 
-    # Exports custom multilayers
-    beauty_channels = False
+        # there's no render layer settins
+        if not rm_rl:
+            # so use built in aovs
+            aovs = [
+                # (name, do?, declare type/name, source)
+                ("z", layer.use_pass_z, "float", None),
+                ("Nn", layer.use_pass_normal, "normal", None),
+                ("dPdtime", layer.use_pass_vector, "vector", None),
+                ("u", layer.use_pass_uv, "float", None),
+                ("v", layer.use_pass_uv, "float", None),
+                ("id", layer.use_pass_object_index, "float", None),
+                ("shadows", layer.use_pass_shadow, "color",
+                 "color lpe:shadowcollector"),
+                ("reflection", layer.use_pass_reflection, "color",
+                 "color lpe:reflectioncollector"),
+                ("diffuse", layer.use_pass_diffuse_direct, "color",
+                 "color lpe:diffuse"),
+                ("indirectdiffuse", layer.use_pass_diffuse_indirect,
+                 "color", "color lpe:indirectdiffuse"),
+                ("albedo", layer.use_pass_diffuse_color, "color",
+                 "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O"),
+                ("specular", layer.use_pass_glossy_direct, "color",
+                 "color lpe:specular"),
+                ("indirectspecular", layer.use_pass_glossy_indirect,
+                 "color", "color lpe:indirectspecular"),
+                ("subsurface", layer.use_pass_subsurface_indirect,
+                 "color", "color lpe:subsurface"),
+                ("refraction", layer.use_pass_refraction, "color",
+                 "color lpe:refraction"),
+                ("emission", layer.use_pass_emit, "color",
+                 "color lpe:emission"),
+            ]
+            
+            # declare display channels
+            for aov, doit, declare_type, source in aovs:
+                if doit and declare_type:
+                    params = {"int[4] quantize": [0, 0, 0, 0]}
+                    if source:
+                        params['string source'] = source
+                    ri.DisplayChannel('%s %s.%s' % (declare_type, layer_name, aov), params)
 
-    for multilayer_list in rm.multilayer_lists:
-        custom_multilayers = []
-        if active_layer.name == multilayer_list.render_layer:
-            custom_multilayers = multilayer_list.multilayer_files
-        for file_out in custom_multilayers:
-            if file_out.export:
-                channels = []
-                params = {"string storage": file_out.exr_storage}
-                channel_id = file_out.channel_names.split(',')
-                out_type, ext = ('openexr', 'exr')
-                if file_out.exr_format_options != 'default':
-                    params["string type"] = file_out.exr_format_options
-                if file_out.exr_compression != 'default':
-                    params["string compression"] = file_out.exr_compression
-                for aov in custom_aovs:
-                    if aov.name in channel_id:
-                        channels.append(aov.channel_name)
-                if file_out.use_deep:
-                    out_type, ext = ('deepexr', 'exr')
-                if file_out.include_beauty:
-                    if not beauty_channels:
-                        ri.DisplayChannel("color Ci")
-                        ri.DisplayChannel("float a")
-                        beauty_channels = True
-                    ri.Display('+' + image_base + '.%s' % file_out.name + '.multilayer.' + ext,
-                               out_type, "Ci,a," + ','.join(channels),
-                               params)
+            # if layer.use_pass_combined:
+            #     main_params = {}
+
+            #     #if display_driver == 'openexr':
+            #     #    if rm.exr_format_options != 'default':
+            #     #        main_params["string type"] = rm.exr_format_options
+            #     #    if rm.exr_compression != 'default':
+            #     #        main_params["string compression"] = rm.exr_compression
+            
+            # exports all AOV's
+            for aov, doit, declare, source in aovs:
+                params = {}
+                if not rpass.external_render:
+                    params["int asrgba"] = 1
+                if doit:
+                    dspy_name = image_base + '.%s.%s.' % (layer_name,aov) + ext
+                    ri.Display('+' + dspy_name, display_driver, aov, params)
+                    rpass.output_files.append(dspy_name)
+
+        # else we have custom rman render layer settings
+        else:
+            diffuse_counter = 1
+            indirectdiffuse_counter = 1
+            specular_counter = 1
+            indirectspecular_counter = 1
+
+            for aov in rm_rl.custom_aovs:
+                aov_name = aov.name.replace(' ', '')
+                source = aov.channel_type
+                channel_name = aov_name
+                source_type = "color"
+                denoise = aov.denoise_aov
+                exposure_gain = aov.exposure_gain
+                exposure_gamma = aov.exposure_gamma
+                remap_a = aov.remap_a
+                remap_b = aov.remap_b
+                remap_c = aov.remap_c
+                quantize_zero = aov.quantize_zero
+                quantize_one = aov.quantize_one
+                quantize_min = aov.quantize_min
+                quantize_max = aov.quantize_max
+                pixel_filter = aov.aov_pixelfilter
+                stats = aov.stats_type
+                pixelfilter_x = aov.aov_pixelfilter_x
+                pixelfilter_y = aov.aov_pixelfilter_y
+                if source == 'custom_lpe_string':
+                    source = aov.custom_lpe_string
+                    # looks like someone didn't set an lpe string
+                    if source == '':
+                        continue
+                elif source == 'custom_aov_string':
+                    source = aov.custom_aov_string
+                    source_type = aov.custom_aov_type
+                    if source == '':
+                        continue
+                elif source == 'built_in_aov':
+                    source_type, source = aov.aov_channel_type.split()
                 else:
-                    ri.Display('+' + image_base + '.%s' % file_out.name +
+                    # light groups need to be surrounded with '' in lpes
+                    G_string = "'%s'" % rm_rl.object_group if rm_rl.object_group != '' else ""
+                    LG_string = "'%s'" % rm_rl.light_group if rm_rl.light_group != '' else ""
+                    source = source.replace("%G", G_string)
+                    source = source.replace("%LG", LG_string)
+
+                if denoise:
+                    if aov.channel_type == "lpe:C<.D%G><L.%LG>":
+                        channel_name = 'diffuse' + str(diffuse_counter)
+                        diffuse_counter += 1
+                    if aov.channel_type == "lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)":
+                        channel_name = 'indirectdiffuse' + str(indirectdiffuse_counter)
+                        indirectdiffuse_counter += 1
+                    if aov.channel_type == "lpe:C<.S%G><L.%LG>":
+                        channel_name = 'specular' + str(specular_counter)
+                        specular_counter += 1
+                    if aov.channel_type == "lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)":
+                        channel_name = 'indirectspecular' + \
+                            str(indirectspecular_counter)
+                        indirectspecular_counter += 1
+                aov.channel_name = channel_name
+
+                params = {"string source": source_type + " " + source,
+                          "float[2] exposure": [exposure_gain, exposure_gamma],
+                          "float[3] remap": [remap_a, remap_b, remap_c],
+                          "int[4] quantize": [quantize_zero, quantize_one, quantize_min, quantize_max]}
+                if pixel_filter != 'default':
+                    params["filter"] = pixel_filter
+                    params["filterwidth"] = [pixelfilter_x, pixelfilter_y]
+                if stats != 'none':
+                    params["string statistics"] = stats
+                ri.DisplayChannel(source_type + ' %s' % channel_name, params)
+
+            # if this is a multilayer combine em!
+            if rm_rl.export_multilayer:
+                channels = ['%s' % aov.channel_name for aov in rm_rl.custom_aovs]
+                params = {"string storage": rm_rl.exr_storage}
+                out_type, ext = ('deepexr', 'exr') if rm_rl.use_deep else ('openexr', 'exr')
+                if rm_rl.exr_format_options != 'default':
+                    params["string type"] = rm_rl.exr_format_options
+                if rm_rl.exr_compression != 'default':
+                    params["string compression"] = rm_rl.exr_compression
+                ri.Display('+' + image_base + '.%s' % layer_name +
                                '.multilayer.' + ext, out_type, ','.join(channels), params)
+
+            else:
+                for aov in rm_rl.custom_aovs:
+                    if layer == scene.render.layers[0] and aov == 'rgba':
+                        #we already output this skip
+                        continue
+                    params = {}
+                    if not rpass.external_render:
+                        params["int asrgba"] = 1
+                    if aov.denoise_aov:
+                        ri.Display('+' + image_base + '.%s.%s.denoiseable.' %
+                                   (layer_name,aov_name) + ext, display_driver, aov.channel_name)
+                    else:
+                        dspy_name = image_base + '.%s.%s.' % (layer_name,aov_name) + ext
+                        ri.Display('+' + dspy_name, display_driver, aov.channel_name, params)
+                        rpass.output_files.append(dspy_name)
 
     if rm.do_denoise and not rpass.is_interactive:
         # add display channels for denoising
@@ -3058,7 +3035,7 @@ def write_preview_rib(rpass, scene, ri):
 
     # preview model and material
     ri.AttributeBegin()
-    ri.Attribute("identifier", {"name": ["Preview"]})
+    ri.Attribute("identifier", {"string name": ["Preview"]})
     ri.Translate(0, 0, 0.75)
 
     mat = find_preview_material(scene)
@@ -3299,6 +3276,8 @@ def solo_light(rpass, ri, prman):
                 ri.Illuminate(light.name, do_light)
                 break
     ri.EditEnd()
+    if rm.solo:
+        return light
 # test the active object type for edits to do then do them
 
 
@@ -3330,7 +3309,7 @@ def update_light_link(rpass, ri, prman, link, remove=False):
     rpass.edit_num += 1
     edit_flush(ri, rpass.edit_num, prman)
     strs = link.name.split('>')
-    ob_names = [strs[3]] if strs[2] == "ob_object" else \
+    ob_names = [strs[3]] if strs[2] == "obj_object" else \
         rpass.scene.renderman.object_groups[strs[3]].members.keys
 
     for ob_name in ob_names:
@@ -3340,9 +3319,9 @@ def update_light_link(rpass, ri, prman, link, remove=False):
         if strs[0] == 'lg_group' and strs[1] == 'All':
             light_names = [l.name for l in scene.objects if l.type == 'LAMP']
         for light_name in light_names:
-            if remove or link.illuminate != "DEFAULT":
+            if remove or link.illuminate == "DEFAULT":
                 ri.Illuminate(light_name, rpass.scene.objects[
-                              light_name].renderman.illuminates_by_default)
+                              light_name].data.renderman.illuminates_by_default)
             else:
                 ri.Illuminate(light_name, link.illuminate == 'ON')
         ri.EditEnd()
