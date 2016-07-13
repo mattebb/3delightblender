@@ -222,14 +222,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         col = layout.column()
         row = col.row()
         row.prop(rm, "render_into", text="Render To")
-        if rm.render_into == 'blender':
-            row = col.row()
-            row.alignment = "RIGHT"
-            row.prop(rm, "update_frequency")
-            row = col.row()
-            row.alignment = "RIGHT"
-            row.prop(rm, "import_images")
-
+        
         layout.separator()
         col = layout.column()
         col.prop(context.scene.renderman, "render_selected_objects_only")
@@ -432,6 +425,14 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
+
+        if rm.render_into == 'blender':
+            row = col.row()
+            row.alignment = "RIGHT"
+            row.prop(rm, "update_frequency")
+            row = col.row()
+            row.alignment = "RIGHT"
+            row.prop(rm, "import_images")
 
         layout.separator()
 
