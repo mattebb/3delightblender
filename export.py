@@ -679,24 +679,18 @@ def export_object_transform(ri, ob, flip_x=False):
     ri.CoordinateSystem(ob.name)
 
 
-def export_light_source(ri, lamp, shape):
-    name = "PxrRectLight"
-    params = {ri.HANDLEID: lamp.name, "float exposure": [
-        lamp.energy], "__instanceid": lamp.name}
-    if lamp.type == "HEMI":
-        name = "PxrDomeLight"
-        params["color envTint"] = rib(lamp.color)
-    else:
-        params["color lightColor"] = rib(lamp.color)
-        params["string rman__Shape"] = shape
-    ri.Light(name, params)
+def export_light_source(ri, lamp):
+    names = {'POINT': 'PxrSphereLight', 'SUN':'PxrEnvDayLight',
+            'SPOT':'PxrDiskLight', 'HEMI':'PxrDomeLight', 'AREA':'PxrRectLight'}
+    params = {"float exposure": [
+        lamp.energy], "__instanceid": lamp.name, "color lightColor": rib(lamp.color)}
+    ri.Light(names[lamp.type], lamp.name, params)
 
 
 def export_light_shaders(ri, lamp, do_geometry=True):
     def point():
         ri.Scale(.01, .01, .01)
-        ri.Geometry('spherelight', {})
-
+    
     def geometry(type):
         if lamp.renderman.renderman_type == 'AREA' and lamp.type == 'AREA':
             if lamp.renderman.area_shape == 'rect':
@@ -704,20 +698,15 @@ def export_light_shaders(ri, lamp, do_geometry=True):
             elif lamp.renderman.area_shape == 'sphere':
                 ri.Scale(lamp.size, lamp.size, lamp.size)
                 #ri.Geometry('spherelight', {})
-            elif lamp.renderman.area_shape == 'cylinder':
-                ri.Rotate(90.0, 0.0, 1.0, 0.0)
-                #ri.Cylinder(lamp.size, -.5 *
-                #            lamp.size_y, .5 * lamp.size_y, 360)
+            ri.Rotate(180, 1, 0, 0)
         else:
             params = {}
             if lamp.renderman.renderman_type == 'SKY':
                 params['constant float[2] resolution'] = [1024, 512]
-            ri.Geometry(type, params)
-
+    
     def spot():
         ri.ReverseOrientation()
-        ri.Disk(0, 0.5, 360)
-
+        
     shapes = {
         "POINT": ("sphere", point),
         "SUN": ("distant", lambda: geometry('distantlight')),
@@ -755,7 +744,7 @@ def export_light_shaders(ri, lamp, do_geometry=True):
 
         export_shader_nodetree(ri, lamp, handle)
     else:
-        export_light_source(ri, lamp, shapes[lamp.type][0])
+        export_light_source(ri, lamp)
 
     # now the geometry
     #if do_geometry:
@@ -815,6 +804,9 @@ def export_light(ri, instance):
     ri.AttributeBegin()
     export_transform(ri, instance, lamp.type ==
                      'HEMI' and lamp.renderman.renderman_type != "SKY")
+    #as of 21 lights are fliped around x
+    if lamp.type == 'AREA':
+        ri.Rotate(180, 1, 0, 0)
     ri.ShadingRate(rm.shadingrate)
 
     export_light_shaders(ri, lamp)
@@ -2944,9 +2936,6 @@ def export_hider(ri, rpass, scene, preview=False):
         hider_params["samplemotion"] = 0
 
     ri.PixelVariance(pv)
-
-    if rm.light_localization:
-        ri.Option("shading",  {"int directlightinglocalizedsampling": 3})
 
     if rm.do_denoise:
         hider_params['string pixelfiltermode'] = 'importance'

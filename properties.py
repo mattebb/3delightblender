@@ -1233,7 +1233,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
         light_type = lamp.renderman.renderman_type
         # use pxr area light for everything but env, sky
-        light_shader = 'PxrRectLightNode'
+        light_shader = 'PxrRectLightLightNode'
         if light_type == 'ENV':
             light_shader = 'PxrDomeLightLightNode'
         elif light_type == 'SKY':
@@ -1299,8 +1299,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         update=update_area_shape,
         items=[('rect', 'Rectangle', 'Rectangle'),
                ('disk', 'Disk', 'Disk'),
-               ('sphere', 'Sphere', 'Sphere'),
-               ('cylinder', 'Cylinder', 'Cylinder')],
+               ('sphere', 'Sphere', 'Sphere'),],
         default='rect'
     )
 

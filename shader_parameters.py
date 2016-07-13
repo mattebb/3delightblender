@@ -430,7 +430,7 @@ def generate_property(sp):
             param_default = ''
         # if '__' in param_name:
         #    param_name = param_name[2:]
-        if param_widget == 'fileinput':
+        if param_widget == 'fileinput' or param_widget == 'assetidinput':
             prop = StringProperty(name=param_label,
                                   default=param_default, subtype="FILE_PATH",
                                   description=param_help, update=update_func)

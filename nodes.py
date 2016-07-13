@@ -285,7 +285,7 @@ class RendermanShadingNode(bpy.types.Node):
                         nt.nodes[self.color_ramp_dummy_name], 'color_ramp')
 
             for prop_name in prop_names:
-                if prop_name in ["__group", "rman__Shape", "coneAngle", "penumbraAngle"]:
+                if prop_name in ["lightGroup", "rman__Shape", "coneAngle", "penumbraAngle"]:
                     continue
                 prop_meta = self.prop_meta[prop_name]
                 if prop_name not in self.inputs:
@@ -770,7 +770,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
         else:
             for prop_name in prop_names:
                 # skip showing the shape for PxrStdAreaLight
-                if prop_name in ["__group", "rman__Shape", "coneAngle", "penumbraAngle"]:
+                if prop_name in ["lightGroup", "rman__Shape", "coneAngle", "penumbraAngle"]:
                     continue
 
                 if prop_name == "codetypeswitch":
@@ -1177,7 +1177,7 @@ def gen_params(ri, node, mat_name=None):
             elif node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
                 pass
 
-            elif(prop_name == 'sblur' or prop_name == 'tblur'):
+            elif(prop_name in ['sblur','tblur', 'notes']):
                 pass
 
             else:
@@ -1264,7 +1264,7 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0):
             if mat_name in lg.members.keys():
                 light_group_name = lg.name
                 break
-        params['string __group'] = light_group_name
+        params['string lightGroup'] = light_group_name
         params['__instanceid'] = mat_name
         primary_vis = node.light_primary_visibility
         # must be off for light sources
@@ -1274,8 +1274,7 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0):
         if primary_vis:
             ri.Bxdf("PxrLightEmission", node.name,
                     {'__instanceid': params['__instanceid']})
-        params[ri.HANDLEID] = mat_name
-        ri.Light(node.bl_label, params)
+        ri.Light(node.bl_label, mat_name, params)
     elif node.renderman_node_type == "displacement":
         ri.Attribute('displacementbound', {'sphere': disp_bound})
         ri.Displace(node.bl_label, params)
@@ -1404,12 +1403,12 @@ def get_textures_for_node(node, matName=""):
                 else:
                     if ('options' in meta and meta['options'] == 'texture') or \
                         (node.renderman_node_type == 'light' and
-                            'widget' in meta and meta['widget'] == 'fileInput'):
+                            'widget' in meta and meta['widget'] == 'assetidinput'):
                         out_file_name = get_tex_file_name(prop)
                         # if they don't match add this to the list
                         if out_file_name != prop:
                             if node.renderman_node_type == 'light' and \
-                                    "Env" in node.bl_label:
+                                    "Dome" in node.bl_label:
                                 # no options for now
                                 textures.append(
                                     (replace_frame_num(prop), out_file_name, ['-envlatl']))
