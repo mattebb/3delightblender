@@ -319,7 +319,7 @@ class ExternalRender(bpy.types.Operator):
             frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
             frame_end = scene.frame_end if rm.external_animation else scene.frame_current
             alf_file = spool_render(
-                '20.9', rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
+                '21.0', rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
 
             # if spooling send job to queuing
             if rm.external_action == 'spool':
