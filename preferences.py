@@ -30,7 +30,8 @@ from bpy.types import AddonPreferences
 from bpy.props import CollectionProperty, BoolProperty, StringProperty
 from bpy.props import IntProperty, PointerProperty, EnumProperty
 
-from .util import guess_rmantree_initial, get_installed_rendermans, rmantree_from_env
+from .util import guess_rmantree_initial, get_installed_rendermans,\
+    rmantree_from_env, guess_rmantree
 
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
@@ -39,13 +40,13 @@ class RendermanPreferencePath(bpy.types.PropertyGroup):
 
 class RendermanEnvVarSettings(bpy.types.PropertyGroup):
     if sys.platform == ("win32"):
-        outpath = os.path.join("C:", "Users", os.getlogin(), "Documents",
-                               "PRMan")
+        outpath = os.path.join(
+            "C:", "Users", os.getlogin(), "Documents", "PRMan")
         out = StringProperty(
             name="OUT (Output Root)",
             description="Default RIB export path root",
             subtype='DIR_PATH',
-            default='$USERPROFILE\My Documents\prman_for_blender\{blend}')
+            default='C:/tmp/renderman_for_blender/{blend}')
 
     else:
         outpath = os.path.join(os.environ.get('HOME'), "Documents", "PRMan")
@@ -53,35 +54,35 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
             name="OUT (Output Root)",
             description="Default RIB export path root",
             subtype='DIR_PATH',
-            default='$HOME/Documents/prman_for_blender/{blend}')
+            default='/tmp/renderman_for_blender/{blend}')
 
     shd = StringProperty(
         name="SHD (Shadow Maps)",
         description="SHD environment variable",
         subtype='DIR_PATH',
-        default=os.path.join('$OUT','shadowmaps'))
+        default=os.path.join('$OUT', 'shadowmaps'))
 
     ptc = StringProperty(
         name="PTC (Point Clouds)",
         description="PTC environment variable",
         subtype='DIR_PATH',
-        default=os.path.join('$OUT','pointclouds'))
+        default=os.path.join('$OUT', 'pointclouds'))
 
     arc = StringProperty(
         name="ARC (Archives)",
         description="ARC environment variable",
         subtype='DIR_PATH',
-        default=os.path.join('$OUT','archives'))
-
+        default=os.path.join('$OUT', 'archives'))
 
 
 class RendermanPreferences(AddonPreferences):
     bl_idname = __package__
-        
+
     # find the renderman options installed
     def find_installed_rendermans(self, context):
-        options = [('NEWEST', 'Newest Version Installed', 'Automatically updates when new version installed.')]
-        for vers,path in get_installed_rendermans():
+        options = [('NEWEST', 'Newest Version Installed',
+                    'Automatically updates when new version installed.')]
+        for vers, path in get_installed_rendermans():
             options.append((path, vers, path))
         return options
 
@@ -115,15 +116,16 @@ class RendermanPreferences(AddonPreferences):
     rmantree_choice = EnumProperty(
         name='RenderMan Version to use',
         description='Leaving as "Newest" will automatically update when you install a new RenderMan version.',
-        #default='NEWEST',
+        # default='NEWEST',
         items=find_installed_rendermans
-        )
+    )
 
     rmantree_method = EnumProperty(
         name='RenderMan Location',
         description='How RenderMan should be detected.  Most users should leave to "Detect"',
         items=[('DETECT', 'Choose From Installed', 'This will scan for installed RenderMan locations to choose from'),
-               ('ENV', 'Get From RMANTREE Environment Variable', 'This will use the RMANTREE set in the enviornment variables'),
+               ('ENV', 'Get From RMANTREE Environment Variable',
+                'This will use the RMANTREE set in the enviornment variables'),
                ('MANUAL', 'Set Manually', 'Manually set the RenderMan installation (for expert users)')])
 
     path_rmantree = StringProperty(
@@ -179,6 +181,12 @@ class RendermanPreferences(AddonPreferences):
             layout.label(text="RMANTREE: %s " % rmantree_from_env())
         else:
             layout.prop(self, "path_rmantree")
+        try:
+            rmantree = guess_rmantree()
+            if rmantree == None:
+                layout.label("RMANTREE ERROR!!!", icon='ERROR')
+        except:
+            layout.label("RMANTREE ERROR!!!", icon='ERROR')
         #layout.label(text="After changing RenderMan Location reload addon", icon="ERROR")
         #layout.prop(self, "path_renderer")
         #layout.prop(self, "path_shader_compiler")
