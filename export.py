@@ -2851,8 +2851,11 @@ def export_display(ri, rpass, scene):
             # if this is a multilayer combine em!
             if rm_rl.export_multilayer:
                 channels = ['%s' % aov.channel_name for aov in rm_rl.custom_aovs]
+                out_type, ext = ('openexr', 'exr')
+                if rm_rl.use_deep:
+                    channels = [x for x in channels if x not in ['z', 'zback']]
+                    out_type, ext = ('deepexr', 'exr')
                 params = {"string storage": rm_rl.exr_storage}
-                out_type, ext = ('deepexr', 'exr') if rm_rl.use_deep else ('openexr', 'exr')
                 if rm_rl.exr_format_options != 'default':
                     params["string type"] = rm_rl.exr_format_options
                 if rm_rl.exr_compression != 'default':
