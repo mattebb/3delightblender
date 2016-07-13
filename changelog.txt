@@ -1,4 +1,4 @@
-v0.9.0 5/9/16
+v0.9.0 7/13/16
 * Many minor bug fixes
 * Texture sequences should work correctly. (use $F4 in texture name)
 * Linking files will pull in the material node tree from other files now automatically.  Appending you still must attach the node tree.
@@ -29,6 +29,8 @@ v0.9.0 5/9/16
 	* Regular renders can be sent to Blender or 'it' as before, no need to set display driver
 	* External Renders are now an option for rendering outside of Blender.  These renders will NOT load results back into blender.  This allows users to spool batch renders to Pixar's LocalQueue or Tractor for network rendering.  See settings in Scene properties.
 	* When externally rendering crossframe denoise is supported.
+* Overhaul of layers UI, simple version, then switch to RenderMan passes for more advanced options.
+* DeepExr and multilayer outputs are supported.
 
 
 
