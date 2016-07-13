@@ -520,7 +520,7 @@ def guess_rmantree_initial():
     if rmantree != '':
         vstr = rmantree.split('-')[-1]
         vf = float(vstr.strip('/\\'))
-        if vf > 21.0:
+        if vf >= 21.0:
             return rmantree
 
     latestver = 0.0
