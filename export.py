@@ -2852,6 +2852,7 @@ def export_display(ri, rpass, scene):
             if rm_rl.export_multilayer:
                 channels = ['%s' % aov.channel_name for aov in rm_rl.custom_aovs]
                 out_type, ext = ('openexr', 'exr')
+                # removes 'z' and 'zback' channels as DeepEXR will automatically add them
                 if rm_rl.use_deep:
                     channels = [x for x in channels if x not in ['z', 'zback']]
                     out_type, ext = ('deepexr', 'exr')
