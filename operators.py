@@ -253,9 +253,9 @@ class ExternalRender(bpy.types.Operator):
         if rm.external_animation:
             rpass.update_frame_num(scene.frame_end + 1)
             tmp_tex_cmds = get_texture_list(rpass.scene)
-            rpass.update_frame_num(scene.frame_begin)
+            rpass.update_frame_num(scene.frame_start)
             tmp2_cmds = get_texture_list(rpass.scene)
-            job_tex_cmds = list(set(tmp_tex_cmds).intersection(set(tmp2_cmds)))
+            job_tex_cmds = [cmd for cmd in tmp_tex_cmds if cmd in tmp2_cmds]
 
             for frame in range(scene.frame_start, scene.frame_end + 1):
                 rpass.update_frame_num(frame)
