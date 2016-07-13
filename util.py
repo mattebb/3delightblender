@@ -566,42 +566,19 @@ def check_if_archive_dirty(update_time, archive_filename):
 
 
 def find_it_path():
-    rmstree = os.environ['RMSTREE'] if 'RMSTREE' in os.environ.keys() else ''
-
-    if rmstree == '':
-        base = ""
-        if platform.system() == 'Windows':
-            # default installation path
-            base = r'C:\Program Files\Pixar'
-
-        elif platform.system() == 'Darwin':
-            base = '/Applications/Pixar'
-
-        elif platform.system() == 'Linux':
-            base = '/opt/pixar'
-
-        latestver = 0.0
-        guess = ''
-        for d in os.listdir(base):
-            if "RenderManStudio" in d:
-                vstr = d.split('-')[1]
-                vf = float(vstr[:4])
-                if vf >= latestver:
-                    latestver = vf
-                    guess = os.path.join(base, d)
-        rmstree = guess
-
-    if rmstree == '':
+    rmantree = guess_rmantree()
+    
+    if not rmantree:
         return None
     else:
-        rmstree = os.path.join(rmstree, 'bin')
+        rmantree = os.path.join(rmantree, 'bin')
         if platform.system() == 'Windows':
-            it_path = os.path.join(rmstree, 'it.exe')
+            it_path = os.path.join(rmantree, 'it.exe')
         elif platform.system() == 'Darwin':
             it_path = os.path.join(
-                rmstree, 'it.app', 'Contents', 'MacOS', 'it')
+                rmantree, 'it.app', 'Contents', 'MacOS', 'it')
         elif platform.system() == 'Linux':
-            it_path = os.path.join(rmstree, 'it')
+            it_path = os.path.join(rmantree, 'it')
         if os.path.exists(it_path):
             return it_path
         else:
@@ -609,42 +586,19 @@ def find_it_path():
 
 
 def find_local_queue():
-    rmstree = os.environ['RMSTREE'] if 'RMSTREE' in os.environ.keys() else ''
-
-    if rmstree == '':
-        base = ""
-        if platform.system() == 'Windows':
-            # default installation path
-            base = r'C:\Program Files\Pixar'
-
-        elif platform.system() == 'Darwin':
-            base = '/Applications/Pixar'
-
-        elif platform.system() == 'Linux':
-            base = '/opt/pixar'
-
-        latestver = 0.0
-        guess = ''
-        for d in os.listdir(base):
-            if "RenderManStudio" in d:
-                vstr = d.split('-')[1]
-                vf = float(vstr[:4])
-                if vf >= latestver:
-                    latestver = vf
-                    guess = os.path.join(base, d)
-        rmstree = guess
-
-    if rmstree == '':
+    rmantree = guess_rmantree()
+    
+    if not rmantree:
         return None
     else:
-        rmstree = os.path.join(rmstree, 'bin')
+        rmantree = os.path.join(rmantree, 'bin')
         if platform.system() == 'Windows':
-            lq = os.path.join(rmstree, 'LocalQueue.exe')
+            lq = os.path.join(rmantree, 'LocalQueue.exe')
         elif platform.system() == 'Darwin':
             lq = os.path.join(
-                rmstree, 'LocalQueue.app', 'Contents', 'MacOS', 'launch_LocalQueue')
+                rmantree, 'LocalQueue.app', 'Contents', 'MacOS', 'launch_LocalQueue')
         elif platform.system() == 'Linux':
-            lq = os.path.join(rmstree, 'LocalQueue')
+            lq = os.path.join(rmantree, 'LocalQueue')
         if os.path.exists(lq):
             return lq
         else:
