@@ -270,12 +270,12 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         col = split.column()
         col.prop(rm, "display_driver", text='Render To')
 
-        sub_row = col.row()
-        if rm.display_driver == 'openexr':
-            sub_row = col.row()
-            sub_row.prop(rm,  "exr_format_options")
-            sub_row = col.row()
-            sub_row.prop(rm,  "exr_compression")
+#        sub_row = col.row()
+#        if rm.display_driver == 'openexr':
+#            sub_row = col.row()
+#            sub_row.prop(rm,  "exr_format_options")
+#            sub_row = col.row()
+#            sub_row.prop(rm,  "exr_compression")
 
         layout.separator()
 
@@ -439,11 +439,9 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         rm = scene.renderman
 
         if rm.render_into == 'blender':
-            row = col.row()
-            row.alignment = "RIGHT"
-            row.prop(rm, "update_frequency")
-            row = col.row()
-            row.alignment = "RIGHT"
+            row = layout.row()
+            row.prop(rm, "update_frequency",  text='Display Update Interval (seconds)')
+            row = layout.row()
             row.prop(rm, "import_images")
 
         layout.separator()
