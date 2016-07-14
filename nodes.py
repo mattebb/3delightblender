@@ -258,11 +258,13 @@ class RendermanShadingNode(bpy.types.Node):
     # on connectable props will have the same name
     # node_props = None
     def draw_buttons(self, context, layout):
+        layout.label('buttons')
         self.draw_nonconnectable_props(context, layout, self.prop_names)
         if self.bl_idname == "PxrOSLPatternNode":
             layout.operator("node.refresh_osl_shader")
 
     def draw_buttons_ext(self, context, layout):
+        layout.label('buttons_ext')
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 
     def draw_nonconnectable_props(self, context, layout, prop_names):
@@ -756,7 +758,7 @@ def linked_sockets(sockets):
 
 def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
-    def indented_label(layout, label):
+    def indented_label(layout, label, level):
         for i in range(level):
             layout.label('', icon='BLANK1')
         layout.label(label)
@@ -764,7 +766,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
     layout.context_pointer_set("node", node)
     layout.context_pointer_set("nodetree", nt)
 
-    def draw_props(prop_names, layout):
+    def draw_props(prop_names, layout, level):
         if node.plugin_name == "PxrOSL":
             pass
         else:
@@ -800,7 +802,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         row = split.row()
                         row.prop(socket, "ui_open", icon=icon, text='',
                                  icon_only=True, emboss=False)
-                        indented_label(row, socket.name + ':')
+                        indented_label(row, socket.name + ':', level)
                         split.operator_menu_enum("node.add_pattern", "node_type",
                                                  text=input_node.bl_label, icon='DOT')
 
@@ -818,12 +820,15 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
                             split = layout.split(NODE_LAYOUT_SPLIT)
                             row = split.row()
+                            for i in range(level):
+                                row.label('', icon='BLANK1')
                             row.prop(node, ui_prop, icon=icon, text='',
                                      icon_only=True, emboss=False)
-                            indented_label(row, prop_name + ':')
+                            row.label(prop_name + ':')
 
                             if ui_open:
-                                draw_props(prop, layout)
+                                draw_props(prop, layout, level+1)
+                        
                         else:
                             row.label('', icon='BLANK1')
                             # indented_label(row, socket.name+':')
@@ -842,7 +847,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
         if dummy_nt:
             layout.template_color_ramp(
                 dummy_nt.nodes[node.color_ramp_dummy_name], 'color_ramp')
-    draw_props(node.prop_names, layout)
+    draw_props(node.prop_names, layout, level)
     layout.separator()
 
 
@@ -880,7 +885,11 @@ class Add_Node:
     def get_type_items(self, context):
         items = []
         for nodetype in RendermanPatternGraph.nodetypes.values():
-            if nodetype.renderman_node_type == self.input_type.lower():
+            if self.input_type.lower() == 'light' and nodetype.renderman_node_type == 'light':
+                if nodetype.__name__ == 'PxrMeshLightLightNode':
+                    items.append((nodetype.typename, nodetype.bl_label,
+                              nodetype.bl_label))
+            elif nodetype.renderman_node_type == self.input_type.lower():
                 items.append((nodetype.typename, nodetype.bl_label,
                               nodetype.bl_label))
         items = sorted(items, key=itemgetter(1))
@@ -1271,13 +1280,10 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0):
         ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
                                     'int camera': int(primary_vis)})
         ri.ShadingRate(node.light_shading_rate)
-        if primary_vis:
-            ri.Bxdf("PxrLightEmission", node.name,
-                    {'__instanceid': params['__instanceid']})
         ri.Light(node.bl_label, mat_name, params)
     elif node.renderman_node_type == "displacement":
         ri.Attribute('displacementbound', {'sphere': disp_bound})
-        ri.Displace(node.bl_label, params)
+        ri.Displace(node.bl_label, mat_name, params)
     else:
         ri.Bxdf(node.bl_label, instance, params)
 

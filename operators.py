@@ -152,7 +152,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     bl_description = "Add a renderman shader node tree linked to this material"
 
     idtype = StringProperty(name="ID Type", default="material")
-    bxdf_name = StringProperty(name="Bxdf Name", default="PxrDisney")
+    bxdf_name = StringProperty(name="Bxdf Name", default="PxrSurface")
 
     def execute(self, context):
         idtype = self.properties.idtype
