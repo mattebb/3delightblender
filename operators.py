@@ -355,7 +355,7 @@ class StartInteractive(bpy.types.Operator):
         blf.size(0, 32, 36)
         blf.position(0, pos_x, pos_y, 0)
         bgl.glColor4f(1.0, 0.0, 0.0, 1.0)
-        blf.draw(0, "%s" % ('PRMan Interactive Mode Running'))
+        blf.draw(0, "%s" % ('PRMan Interactive Mode Running, do not close IT viewer'))
         blf.disable(0, blf.SHADOW)
 
     def invoke(self, context, event=None):
