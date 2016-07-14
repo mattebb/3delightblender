@@ -505,7 +505,10 @@ class RPass:
         # Load all output images into image editor
         if self.rm.import_images and self.rm.render_into == 'blender':
             for image in self.output_files:
-                bpy.ops.image.open(filepath=image)
+                try:
+                    bpy.ops.image.open(filepath=image)
+                except:
+                    pass
 
     def set_scene(self, scene):
         self.scene = scene
