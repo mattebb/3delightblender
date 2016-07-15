@@ -30,6 +30,7 @@ import os
 import sys
 import time
 import traceback
+import platform
 from mathutils import Matrix, Vector, Quaternion
 
 from . import bl_info
@@ -42,6 +43,7 @@ from .util import user_path
 from .util import path_list_convert, get_real_path
 from .util import get_properties, check_if_archive_dirty
 from .util import debug
+from .util import locate_openVDB_cache
 
 from .util import find_it_path
 from .nodes import export_shader_nodetree, get_textures
@@ -1401,6 +1403,17 @@ def export_points(ri, scene, ob, motion):
     removeMeshFromMemory(mesh.name)
 
 
+def export_openVDB(ri, ob):
+    cacheFile = locate_openVDB_cache(bpy.context.scene.frame_current)
+    if not cacheFile:
+        debug('error', "Please save and export OpenVDB files before rendering.")
+        return
+    params = {"constant string[2] blobbydso:stringargs" : [cacheFile , "density:fogvolume"], "varying float density" : [], 
+              "varying float flame" : [], "varying color smoke_color", []}
+    ri.Volume("blobbydso:impl_openvdb", rib_ob_bounds(ob.bound_box), [0, 0, 0],
+               params)
+
+
 # make an ri Volume from the smoke modifier
 def export_smoke(ri, ob):
     smoke_modifier = None
@@ -1411,6 +1424,10 @@ def export_smoke(ri, ob):
     smoke_data = smoke_modifier.domain_settings
     # the original object has the modifier too.
     if not smoke_data:
+        return
+
+    if smoke_data.cache_file_format == 'OPENVDB':
+        export_openVDB(ri, ob)
         return
 
     params = {
@@ -2555,6 +2572,8 @@ def export_options(ri, scene):
     ri.Option("limits", params)
     if rm.use_separate_path_depths and rm.integrator == "PxrPathTracer":
         ri.Option("trace", {'string depthmode': 'separate'})
+    ri.Option("ribparse", {"string varsubst" : ["$"]})
+    ri.Option("searchpath", {"string procedural" : [".:${RMANTREE}/lib/plugins:@"]})
 
 
 def export_searchpaths(ri, paths):

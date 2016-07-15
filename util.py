@@ -80,6 +80,19 @@ def get_osl_line_meta(line):
         meta[item_name] = val
     return meta
 
+def locate_openVDB_cache(frameNum):
+    if not bpy.data.is_saved:
+        return None
+    filename = os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]
+    cacheDir = os.path.join(bpy.path.abspath("//"), 'blendcache_%s' % filename)
+    if not os.path.exists(cacheDir):
+        return None
+    for f in os.listdir(os.path.join(bpy.path.abspath("//"), cacheDir)):
+        if '.vdb' in f and "%06d" %frameNum in f:
+            return os.path.join(bpy.path.abspath("//"), cacheDir, f)
+    
+    return None
+
 
 def readOSO(filePath):
     line_number = 0
