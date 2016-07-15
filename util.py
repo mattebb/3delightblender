@@ -221,6 +221,8 @@ def get_path_list(rm, type):
         if type == 'args':
             rmantree = guess_rmantree()
             paths.append(os.path.join(rmantree, 'lib', 'plugins'))
+            paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                         'Args'))
         if type == 'shader':
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          'shaders'))
