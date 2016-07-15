@@ -258,13 +258,11 @@ class RendermanShadingNode(bpy.types.Node):
     # on connectable props will have the same name
     # node_props = None
     def draw_buttons(self, context, layout):
-        layout.label('buttons')
         self.draw_nonconnectable_props(context, layout, self.prop_names)
         if self.bl_idname == "PxrOSLPatternNode":
             layout.operator("node.refresh_osl_shader")
 
     def draw_buttons_ext(self, context, layout):
-        layout.label('buttons_ext')
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 
     def draw_nonconnectable_props(self, context, layout, prop_names):

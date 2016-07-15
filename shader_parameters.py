@@ -339,7 +339,7 @@ def generate_property(sp):
 
         else:
             param_default = parse_float(param_default)
-            if param_widget == 'checkbox':
+            if param_widget == 'checkbox' or param_widget == 'switch':
                 prop = BoolProperty(name=param_label,
                                     default=bool(param_default),
                                     description=param_help, update=update_func)
@@ -385,7 +385,7 @@ def generate_property(sp):
             if param_name == 'invertT':
                 param_default = 0
         
-            if param_widget == 'checkbox':
+            if param_widget == 'checkbox' or param_widget == 'switch':
                 prop = BoolProperty(name=param_label,
                                     default=bool(param_default),
                                     description=param_help, update=update_func)
