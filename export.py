@@ -2911,8 +2911,7 @@ def export_hider(ri, rpass, scene, preview=False):
     rm = scene.renderman
 
     pv = rm.pixel_variance
-    hider_params = {'string integrationmode': 'path',
-                    'int maxsamples': rm.max_samples,
+    hider_params = {'int maxsamples': rm.max_samples,
                     'int minsamples': rm.min_samples,
                     'int incremental': int(rm.incremental)}
 
