@@ -898,10 +898,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         subtype='FILE_PATH',
         default=os.path.join('$OUT', 'images', '{scene}_####.{file_type}'))
 
-    update_frequency = FloatProperty(
+    update_frequency = IntProperty(
         name="Update frequency",
         description="Number of seconds between display update when rendering to Blender",
-        min=0.0, default=10.0)
+        min=0, default=10)
 
     import_images = BoolProperty(
         name="Import AOV's into Blender",
