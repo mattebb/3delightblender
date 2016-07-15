@@ -535,7 +535,8 @@ socket_map = {
     'struct': 'RendermanNodeSocketStruct',
     'normal': 'RendermanNodeSocketVector',
     'vector': 'RendermanNodeSocketVector',
-    'void': 'RendermanNodeSocketStruct'
+    'void': 'RendermanNodeSocketStruct',
+    'vstruct': 'RendermanNodeSocketStruct',
 }
 
 # To add aditional options simply add an option name to index and then define it.
@@ -604,6 +605,9 @@ class txmake_options():
 # add input sockets
 def node_add_inputs(node, node_name, shaderparameters):
     for sp in shaderparameters:
+        # if this is a vstruct member don't add the input or a checkbox
+        if 'widget' in sp.attrib.keys() and sp.attrib['widget'] in ['null', 'checkBox', 'switch']:
+            continue
         # if this is a page recursively add inputs
         if sp.tag == 'page':
             node_add_inputs(node, node_name, sp.findall(
@@ -637,6 +641,10 @@ def node_add_outputs(node, shaderparameters):
 
     # Generate RNA properties for each shader parameter
     for sp in shaderparameters:
+        # if this is a vstruct member don't add the input
+        if 'vstructmember' in sp.attrib.keys():
+            continue
+
         param_name = sp.attrib['name']
         tag = sp.find('*/tag')
         socket = node.outputs.new(socket_map[tag.attrib['value']], param_name)
