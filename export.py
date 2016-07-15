@@ -2755,7 +2755,7 @@ def export_display(ri, rpass, scene):
                     params = {"int[4] quantize": [0, 0, 0, 0]}
                     if source:
                         params['string source'] = source
-                    ri.DisplayChannel('%s %s.%s' % (declare_type, layer_name, aov), params)
+                    ri.DisplayChannel('%s %s' % (declare_type, aov), params)
 
             # if layer.use_pass_combined:
             #     main_params = {}
@@ -2768,11 +2768,9 @@ def export_display(ri, rpass, scene):
             
             # exports all AOV's
             for aov, doit, declare, source in aovs:
-                params = {}
-                if not rpass.external_render:
-                    params["int asrgba"] = 1
+                params["int asrgba"] = 1
                 if doit:
-                    dspy_name = image_base + '.%s.%s.' % (layer_name,aov) + ext
+                    dspy_name = image_base + '.%s.%s.' % (layer_name, aov) + ext
                     ri.Display('+' + dspy_name, display_driver, aov, params)
                     rpass.output_files.append(dspy_name)
 
@@ -2874,9 +2872,9 @@ def export_display(ri, rpass, scene):
                         params["int asrgba"] = 1
                     if aov.denoise_aov:
                         ri.Display('+' + image_base + '.%s.%s.denoiseable.' %
-                                   (layer_name,aov_name) + ext, display_driver, aov.channel_name)
+                                   (layer_name, aov_name) + ext, display_driver, aov.channel_name)
                     else:
-                        dspy_name = image_base + '.%s.%s.' % (layer_name,aov_name) + ext
+                        dspy_name = image_base + '.%s.%s.' % (layer_name, aov_name) + ext
                         ri.Display('+' + dspy_name, display_driver, aov.channel_name, params)
                         rpass.output_files.append(dspy_name)
 
