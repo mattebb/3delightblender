@@ -91,7 +91,7 @@ def create(engine, data, scene, region=0, space_data=0, region_data=0):
 
 def free(engine):
     if hasattr(engine, 'render_pass'):
-        if engine.render_pass.is_interactive_running:
+        if engine.render_pass.is_interactive and engine.render_pass.is_prman_running():
             engine.render_pass.end_interactive()
         if engine.render_pass:
             del engine.render_pass
@@ -190,13 +190,14 @@ class RPass:
         self.update_time = None
 
     def __del__(self):
-        if self.is_interactive_running:
+        
+        if self.is_interactive_running and self.is_prman_running():
             self.ri.EditWorldEnd()
             self.ri.End()
         del self.ri
         if prman:
             prman.Cleanup()
-
+        
     def initialize_paths(self, scene):
         rm = scene.renderman
         self.paths = {}
@@ -505,10 +506,23 @@ class RPass:
         # Load all output images into image editor
         if self.rm.import_images and self.rm.render_into == 'blender':
             for image in self.output_files:
-                bpy.ops.image.open(filepath=image)
+                try:
+                    bpy.ops.image.open(filepath=image)
+                except:
+                    pass
 
     def set_scene(self, scene):
         self.scene = scene
+
+    def is_prman_running(self):
+        return prman.RicGetProgress() < 100
+
+    def is_ipr_running(self):
+        if self.is_interactive_running and not self.is_prman_running():
+            self.is_interactive_running = False
+            bpy.ops.lighting.start_interactive('INVOKE_DEFAULT')
+            return False
+        return self.is_interactive_running
 
     # start the interactive session.  Basically the same as ribgen, only
     # save the file
@@ -563,11 +577,13 @@ class RPass:
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.ri, self.scene, prman)
-        self.is_interactive_running = True
+        if self.is_prman_running():
+            self.is_interactive_running = True
         return
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
+        
         active = scene.objects.active
         if active and active.is_updated:
             issue_transform_edits(self, self.ri, active, prman)
