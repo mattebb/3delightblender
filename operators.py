@@ -377,6 +377,7 @@ class StartInteractive(bpy.types.Operator):
                 for area in context.screen.areas:
                     if area.type == 'VIEW_3D':
                         area.tag_redraw()
+            
         return {'FINISHED'}
 ######################
 # Export RIB Operators
@@ -845,7 +846,7 @@ class OT_remove_add_rem_light_link(bpy.types.Operator):
             ll.name = ll_name
         else:
             ll_index = scene.renderman.ll.keys().index(ll_name)
-            if engine.ipr is not None and engine.ipr.is_interactive_running:
+            if engine.ipr is not None and engine.ipr.is_ipr_running():
                 engine.ipr.remove_light_link(
                     context, scene.renderman.ll[ll_index])
             scene.renderman.ll.remove(ll_index)
