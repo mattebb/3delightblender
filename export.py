@@ -2698,7 +2698,7 @@ def export_display(ri, rpass, scene):
     display_driver = rpass.display_driver
     rpass.output_files = []
     main_display = user_path(
-        rm.path_display_driver_image, scene=scene, rpass=rpass)
+        rm.path_display_driver_image, scene=scene, display_driver=rpass.display_driver)
     debug("info", "Main_display: " + main_display)
     image_base, ext = main_display.rsplit('.', 1)
 
