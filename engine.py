@@ -454,7 +454,7 @@ class RPass:
                 try:
                     # denoise to _filtered
                     cmd = [os.path.join(self.paths['rmantree'], 'bin',
-                                        'denoise')] + [denoise_options] + [denoise_data]
+                                        'denoise')] + denoise_options + [denoise_data]
 
                     engine.update_stats("", ("PRMan: Denoising image"))
                     t1 = time.time()
