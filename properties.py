@@ -203,7 +203,7 @@ class TraceSet(bpy.types.PropertyGroup):
 
 aov_mapping = [ 
                  
-                 ("rgba", "Combined (rgba)", "Combined (rgba)"),
+                 ("Ci,a", "Combined (rgba)", "Combined (rgba)"),
                  ("z", "z", "z"),
                  ("Nn", "Nn", "Nn"),
                  ("dPdtime", "dPdtime", "dPdtime"),
