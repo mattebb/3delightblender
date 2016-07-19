@@ -2853,7 +2853,7 @@ def export_display(ri, rpass, scene):
                 if stats != 'none':
                     params["string statistics"] = stats
 
-                if source == 'Ci,a':
+                if source == 'rgba':
                     del params['string source']
                     ri.DisplayChannel("color Ci", params)
                     ri.DisplayChannel("float a",  params)
@@ -2866,7 +2866,7 @@ def export_display(ri, rpass, scene):
                 channels = []
                 for aov in rm_rl.custom_aovs:
                     channels.append(
-                        aov.channel_name) if aov.channel_type != "Ci,a" else channels.append("Ci,a")
+                        aov.channel_name) if aov.channel_type != "rgba" else channels.append("Ci,a")
                 out_type, ext = ('openexr', 'exr')
                 # removes 'z' and 'zback' channels as DeepEXR will
                 # automatically add them
@@ -2885,9 +2885,9 @@ def export_display(ri, rpass, scene):
             else:
                 for aov in rm_rl.custom_aovs:
                     aov_name = aov.name.replace(' ', '')
-                    if aov.channel_type == "Ci,a":
+                    if aov.channel_type == "rgba":
                         aov.channel_name = "rgba"
-                    if layer == scene.render.layers[0] and aov == 'Ci,a':
+                    if layer == scene.render.layers[0] and aov == 'rgba':
                         # we already output this skip
                         continue
                     params = {}
@@ -2903,7 +2903,7 @@ def export_display(ri, rpass, scene):
                                    aov.channel_name, params)
                         rpass.output_files.append(dspy_name)
 
-    if rm.do_denoise or rm.external_denoise and not rpass.is_interactive:
+    if (rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render) and not rpass.is_interactive:
         # add display channels for denoising
         denoise_aovs = [
             # (name, declare type/name, source, statistics, filter)
@@ -2974,7 +2974,7 @@ def export_hider(ri, rpass, scene, preview=False):
     if rm.light_localization:
         ri.Option("shading",  {"int directlightinglocalizedsampling": 3})
 
-    if rm.do_denoise:
+    if rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render:
         hider_params['string pixelfiltermode'] = 'importance'
 
     ri.Hider("raytrace", hider_params)
