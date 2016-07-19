@@ -215,7 +215,7 @@ class RPass:
             os.makedirs(self.paths['export_dir'])
 
         self.paths['render_output'] = user_path(rm.path_display_driver_image,
-                                                scene=scene, rpass=self)
+                                                scene=scene, display_driver=self.display_driver)
         debug("info", self.paths)
         self.paths['shader'] = [user_path(rm.out_dir, scene=scene)] +\
             get_path_list_converted(rm, 'shader')
@@ -241,6 +241,9 @@ class RPass:
         self.scene.frame_set(num)
         self.paths['rib_output'] = user_path(self.scene.renderman.path_rib_output,
                                              scene=self.scene)
+        self.paths['render_output'] = user_path(self.scene.renderman.path_display_driver_image,
+                                                scene=self.scene, display_driver=self.display_driver)
+        
 
     def preview_render(self, engine):
         render_output = self.paths['render_output']
@@ -451,7 +454,7 @@ class RPass:
                 try:
                     # denoise to _filtered
                     cmd = [os.path.join(self.paths['rmantree'], 'bin',
-                                        'denoise')] + [denoise_options] + [denoise_data]
+                                        'denoise')] + denoise_options + [denoise_data]
 
                     engine.update_stats("", ("PRMan: Denoising image"))
                     t1 = time.time()

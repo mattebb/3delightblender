@@ -2698,7 +2698,7 @@ def export_display(ri, rpass, scene):
     display_driver = rpass.display_driver
     rpass.output_files = []
     main_display = user_path(
-        rm.path_display_driver_image, scene=scene, rpass=rpass)
+        rm.path_display_driver_image, scene=scene, display_driver=rpass.display_driver)
     debug("info", "Main_display: " + main_display)
     image_base, ext = main_display.rsplit('.', 1)
 
@@ -2748,7 +2748,7 @@ def export_display(ri, rpass, scene):
                 ("emission", layer.use_pass_emit, "color",
                  "color lpe:emission"),
             ]
-            
+
             # declare display channels
             for aov, doit, declare_type, source in aovs:
                 if doit and declare_type:
@@ -2765,12 +2765,13 @@ def export_display(ri, rpass, scene):
             #     #        main_params["string type"] = rm.exr_format_options
             #     #    if rm.exr_compression != 'default':
             #     #        main_params["string compression"] = rm.exr_compression
-            
+
             # exports all AOV's
             for aov, doit, declare, source in aovs:
-                params["int asrgba"] = 1
+                params = {"int asrgba": 1}
                 if doit:
-                    dspy_name = image_base + '.%s.%s.' % (layer_name, aov) + ext
+                    dspy_name = image_base + \
+                        '.%s.%s.' % (layer_name, aov) + ext
                     ri.Display('+' + dspy_name, display_driver, aov, params)
                     rpass.output_files.append(dspy_name)
 
@@ -2812,6 +2813,12 @@ def export_display(ri, rpass, scene):
                         continue
                 elif source == 'built_in_aov':
                     source_type, source = aov.aov_channel_type.split()
+                elif source in ['z', 'u', 'v', 'id']:
+                    source_type = "float"
+                elif source is 'Nn':
+                    source_type = 'normal'
+                elif source is 'dPdtime':
+                    source_type = 'vector'
                 else:
                     # light groups need to be surrounded with '' in lpes
                     G_string = "'%s'" % rm_rl.object_group if rm_rl.object_group != '' else ""
@@ -2824,7 +2831,8 @@ def export_display(ri, rpass, scene):
                         channel_name = 'diffuse' + str(diffuse_counter)
                         diffuse_counter += 1
                     if aov.channel_type == "lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)":
-                        channel_name = 'indirectdiffuse' + str(indirectdiffuse_counter)
+                        channel_name = 'indirectdiffuse' + \
+                            str(indirectdiffuse_counter)
                         indirectdiffuse_counter += 1
                     if aov.channel_type == "lpe:C<.S%G><L.%LG>":
                         channel_name = 'specular' + str(specular_counter)
@@ -2844,15 +2852,27 @@ def export_display(ri, rpass, scene):
                     params["filterwidth"] = [pixelfilter_x, pixelfilter_y]
                 if stats != 'none':
                     params["string statistics"] = stats
-                ri.DisplayChannel(source_type + ' %s' % channel_name, params)
+
+                if source == 'rgba':
+                    del params['string source']
+                    ri.DisplayChannel("color Ci", params)
+                    ri.DisplayChannel("float a",  params)
+                else:
+                    ri.DisplayChannel(source_type + ' %s' %
+                                      channel_name, params)
 
             # if this is a multilayer combine em!
-            if rm_rl.export_multilayer:
-                channels = ['%s' % aov.channel_name for aov in rm_rl.custom_aovs]
+            if rm_rl.export_multilayer and rpass.external_render:
+                channels = []
+                for aov in rm_rl.custom_aovs:
+                    channels.append(
+                        aov.channel_name) if aov.channel_type != "rgba" else channels.append("Ci,a")
                 out_type, ext = ('openexr', 'exr')
-                # removes 'z' and 'zback' channels as DeepEXR will automatically add them
+                # removes 'z' and 'zback' channels as DeepEXR will
+                # automatically add them
                 if rm_rl.use_deep:
-                    channels = [x for x in channels if x not in ['z', 'zback']]
+                    channels = [x for x in channels if x not in [
+                        'z_depth', 'z_back']]
                     out_type, ext = ('deepexr', 'exr')
                 params = {"string storage": rm_rl.exr_storage}
                 if rm_rl.exr_format_options != 'default':
@@ -2860,25 +2880,30 @@ def export_display(ri, rpass, scene):
                 if rm_rl.exr_compression != 'default':
                     params["string compression"] = rm_rl.exr_compression
                 ri.Display('+' + image_base + '.%s' % layer_name +
-                               '.multilayer.' + ext, out_type, ','.join(channels), params)
+                           '.multilayer.' + ext, out_type, ','.join(channels), params)
 
             else:
                 for aov in rm_rl.custom_aovs:
+                    aov_name = aov.name.replace(' ', '')
+                    if aov.channel_type == "rgba":
+                        aov.channel_name = "rgba"
                     if layer == scene.render.layers[0] and aov == 'rgba':
-                        #we already output this skip
+                        # we already output this skip
                         continue
                     params = {}
                     if not rpass.external_render:
-                        params["int asrgba"] = 1
+                        params = {"int asrgba": 1}
                     if aov.denoise_aov:
                         ri.Display('+' + image_base + '.%s.%s.denoiseable.' %
                                    (layer_name, aov_name) + ext, display_driver, aov.channel_name)
                     else:
-                        dspy_name = image_base + '.%s.%s.' % (layer_name, aov_name) + ext
-                        ri.Display('+' + dspy_name, display_driver, aov.channel_name, params)
+                        dspy_name = image_base + \
+                            '.%s.%s.' % (layer_name, aov_name) + ext
+                        ri.Display('+' + dspy_name, display_driver,
+                                   aov.channel_name, params)
                         rpass.output_files.append(dspy_name)
 
-    if rm.do_denoise and not rpass.is_interactive:
+    if (rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render) and not rpass.is_interactive:
         # add display channels for denoising
         denoise_aovs = [
             # (name, declare type/name, source, statistics, filter)
@@ -2949,7 +2974,7 @@ def export_hider(ri, rpass, scene, preview=False):
     if rm.light_localization:
         ri.Option("shading",  {"int directlightinglocalizedsampling": 3})
 
-    if rm.do_denoise:
+    if rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render:
         hider_params['string pixelfiltermode'] = 'importance'
 
     ri.Hider("raytrace", hider_params)
