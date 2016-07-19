@@ -1326,7 +1326,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
                  icon_only=True, emboss=False)
         if item.show_advanced:
             if not item.channel_type in ["custom_lpe_string", "built_in_aov", "custom_aov_string",
-                                         "Ci,a",
+                                         "rgba",
                                          "lpe:C<.D%G>[S]+<L.%LG>",
                                          "lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
                                          "lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
