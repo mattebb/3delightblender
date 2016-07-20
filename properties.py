@@ -1270,6 +1270,14 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
     def update_area_shape(self, context):
         lamp = context.lamp
 
+        area_shape = lamp.renderman.area_shape
+        # use pxr area light for everything but env, sky
+        light_shader = 'PxrRectLightLightNode'
+        if area_shape == 'disk':
+            light_shader = 'PxrDiskLightLightNode'
+        elif area_shape == 'sphere':
+            light_shader = 'PxrSphereLightLightNode'
+        
         # find the existing or make a new light shader node
         nt = bpy.data.node_groups[lamp.renderman.nodetree]
         output = None
@@ -1277,10 +1285,20 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             if node.renderman_node_type == 'output':
                 output = node
                 break
-        if output and output.inputs['Light'].is_linked:
-            light_shader = output.inputs['Light'].links[0].from_node
-            if hasattr(light_shader, 'rman__Shape'):
-                light_shader.rman__Shape = self.area_shape
+        if output == None:
+            output = nt.nodes.new('RendermanOutputNode')
+
+        for node in nt.nodes:
+            if hasattr(node, 'typename') and node.typename == light_shader:
+                nt.links.remove(output.inputs['Light'].links[0])
+                nt.links.new(node.outputs[0], output.inputs['Light'])
+                break
+        else:
+            light = nt.nodes.new(light_shader)
+            light.location = output.location
+            light.location[0] -= 300
+            # nt.links.remove(output.inputs['Light'].links[0])
+            nt.links.new(light.outputs[0], output.inputs['Light'])
 
     renderman_type = EnumProperty(
         name="Light Type",
