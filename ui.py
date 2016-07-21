@@ -439,6 +439,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         rm = scene.renderman
 
         if rm.render_into == 'blender':
+            col = layout.column()
             row = col.row()
             row.alignment = "RIGHT"
             row.prop(rm, "update_frequency")
