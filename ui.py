@@ -1681,19 +1681,21 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
         if len(light_names) > 0:
             box = layout.box()
             row = box.row()
-            columns = box.column_flow(columns=6)
+            columns = box.column_flow(columns=8)
             columns.label('Name')
             columns.label('Solo')
             columns.label('Mute')
             columns.label('Visibility')
+            columns.label('Intensity')
             columns.label('Exposure')
             columns.label('Color')
+            columns.label('Temperature')
 
             for light_name in light_names:
                 lamp = scene.objects[light_name].data
                 lamp_rm = lamp.renderman
                 row = box.row()
-                columns = box.column_flow(columns=6)
+                columns = box.column_flow(columns=8)
                 columns.label(light_name)
                 columns.prop(lamp_rm, 'solo', text='')
                 columns.prop(lamp_rm, 'mute', text='')
@@ -1708,21 +1710,23 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
 
                     columns.prop(
                         light_shader, 'light_primary_visibility', text='')
+                    columns.prop(light_shader, 'intensity', text='')
                     columns.prop(light_shader, 'exposure', text='')
-                    if light_shader.bl_label == 'PxrStdAreaLight':
-                        # columns.label('lightColor')
-                        columns.prop(light_shader, 'lightColor', text='')
-                    elif light_shader.bl_label == 'PxrStdEnvMapLight':
-                        columns.prop(light_shader, 'envTint', text='')
-                    elif light_shader.bl_label == 'PxrStdEnvDayLight':
+                    if light_shader.bl_label == 'PxrEnvDayLight':
                         #columns.label('sun tint')
-                        columns.prop(light_shader, 'sunTint', text='')
+                        columns.prop(light_shader, 'skyTint', text='')
+                        column.label('')
                     else:
-                        columns.label('Color Map')
+                        columns.prop(light_shader, 'lightColor', text='')
+                        row = columns.row(align=True)
+                        row.prop(light_shader, 'enableTemperature', text='')
+                        row.prop(light_shader, 'temperature', text='')
                 else:
+                    columns.label('')
                     columns.label('')
                     columns.prop(lamp, 'energy', text='')
                     columns.prop(lamp, 'color', text='')
+                    columns.label('')
 
 
 class RENDERMAN_LL_LIGHT_list(bpy.types.UIList):
