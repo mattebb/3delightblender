@@ -1769,7 +1769,7 @@ def get_dupli_block(ob, rpass, do_mb):
         name = ob.name + '-DUPLI'
         # duplis aren't animated
         archive_filename = get_archive_filename(name, rpass, False)
-        dbs = [DataBlock(name, "DUPLI", archive_filename, ob,
+        dbs = [DataBlock(name, "DUPLI", archive_filename, ob, dupli_data=True,
                          do_export=file_is_dirty(rpass.scene, ob, archive_filename))]
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupli_ob in ob.dupli_group.objects:
