@@ -1228,6 +1228,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             lamp.type = 'HEMI'
         elif lamp.renderman.renderman_type == 'DIST':
             lamp.type = 'SUN'
+        elif lamp.renderman.renderman_type == 'PORTAL':
+            lamp.type = 'AREA'
         else:
             lamp.type = lamp.renderman.renderman_type
 
@@ -1238,6 +1240,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             light_shader = 'PxrDomeLightLightNode'
         elif light_type == 'SKY':
             light_shader = 'PxrEnvDayLightLightNode'
+        elif light_type == 'PORTAL':
+            light_shader = 'PxrDomeLightLightNode'
         elif light_type == 'AREA':
             try:
                 lamp.size = 1.0
@@ -1266,6 +1270,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             light.location[0] -= 300
             # nt.links.remove(output.inputs['Light'].links[0])
             nt.links.new(light.outputs[0], output.inputs['Light'])
+
+        node = output.inputs['Light'].links[0].from_node
+        setattr(node, 'renderman_portal', light_type == 'PORTAL')
 
     def update_area_shape(self, context):
         lamp = context.lamp
@@ -1308,7 +1315,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                ('SKY', 'Sky', 'Simulated Sky'),
                ('DIST', 'Distant', 'Distant Light'),
                ('SPOT', 'Spot', 'Spot Light'),
-               ('POINT', 'Point', 'Point Light')],
+               ('POINT', 'Point', 'Point Light'),
+               ('PORTAL', 'Portal', 'Portal Light')],
         default='AREA'
     )
 

@@ -1258,7 +1258,7 @@ def gen_params(ri, node, mat_name=None):
 # Export to rib
 
 
-def shader_node_rib(ri, node, mat_name, disp_bound=0.0):
+def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
     params = gen_params(ri, node, mat_name)
     instance = mat_name + '.' + node.name
     params['__instanceid'] = mat_name + '.' + node.name
@@ -1278,7 +1278,11 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0):
         ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
                                     'int camera': int(primary_vis)})
         ri.ShadingRate(node.light_shading_rate)
-        ri.Light(node.bl_label, mat_name, params)
+        light_name = node.bl_label
+        if portal:
+            light_name = 'PxrPortalLight'
+            params['string domeColorMap'] = params.pop('string lightColorMap')
+        ri.Light(light_name, mat_name, params)
     elif node.renderman_node_type == "displacement":
         ri.Attribute('displacementbound', {'sphere': disp_bound})
         ri.Displace(node.bl_label, mat_name, params)
@@ -1324,6 +1328,7 @@ def gather_nodes(node):
 def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
 
     if id and id.renderman.nodetree != '':
+        portal = type(id).__name__ == 'AreaLamp' and id.renderman.renderman_type == 'PORTAL'
         if id.renderman.nodetree not in bpy.data.node_groups:
             load_tree_from_lib(id)
 
@@ -1343,7 +1348,7 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
         ri.ArchiveRecord('comment', "Shader Graph")
         for node in nodes_to_export:
             shader_node_rib(ri, node, mat_name=handle,
-                            disp_bound=disp_bound)
+                            disp_bound=disp_bound, portal=portal)
 
 
 # return the bxdf name for this mat if there is one, else return defualt
