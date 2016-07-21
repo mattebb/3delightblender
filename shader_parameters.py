@@ -123,7 +123,7 @@ def parse_float(fs):
     return float(fs[:-1]) if 'f' in fs else float(fs)
 
 
-def generate_page(sp, node):
+def generate_page(sp, node, parent_name):
     param_names = []
     prop_meta = {}
     props = []
@@ -131,13 +131,14 @@ def generate_page(sp, node):
     # they'll be gotten through recursion
     for sub_param in sp.findall('param') + sp.findall('page'):
         if sub_param.tag == 'page':
-            sub_names, sub_meta, sub_props = generate_page(sub_param, node)
+            name = parent_name + '.' + sub_param.attrib['name']
+            sub_names, sub_meta, sub_props = generate_page(sub_param, node, name)
             props.append(sub_names)
             props.append(sub_props)
             prop_meta.update(sub_meta)
-            prop_meta[sub_param.attrib['name']] = {'renderman_type': 'page'}
-            param_names.append(sub_param.attrib['name'])
-            ui_label = "%s_ui_open" % sub_param.attrib['name']
+            prop_meta[name] = {'renderman_type': 'page'}
+            param_names.append(name)
+            ui_label = "%s_ui_open" % name
             setattr(node, ui_label, BoolProperty(name=ui_label,
                                                  default=False))
             for i in range(len(sub_names)):
@@ -165,12 +166,13 @@ def class_generate_properties(node, parent_name, shaderparameters):
             if parent_name == "PxrOSL" or parent_name == "PxrSeExpr":
                 pass
             else:
+                page_name = parent_name + "." + sp.attrib['name']
                 sub_param_names, sub_params_meta, sub_props = generate_page(
-                    sp, node)
-                prop_names.append(sp.attrib['name'])
-                prop_meta[sp.attrib['name']] = {'renderman_type': 'page'}
-                setattr(node, sp.attrib['name'], sub_param_names)
-                ui_label = "%s_ui_open" % sp.attrib['name']
+                    sp, node, page_name)
+                prop_names.append(page_name)
+                prop_meta[page_name] = {'renderman_type': 'page'}
+                setattr(node, page_name, sub_param_names)
+                ui_label = "%s_ui_open" % page_name
                 setattr(node, ui_label, BoolProperty(name=ui_label,
                                                      default=False))
                 prop_meta.update(sub_params_meta)

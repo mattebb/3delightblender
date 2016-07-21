@@ -299,7 +299,7 @@ class RendermanShadingNode(bpy.types.Node):
                         row = split.row()
                         row.prop(self, ui_prop, icon=icon, text='',
                                  icon_only=True, emboss=False)
-                        row.label(prop_name + ':')
+                        row.label(prop_name.split('.')[-1] + ':')
 
                         if ui_open:
                             prop = getattr(self, prop_name)
@@ -785,7 +785,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 else:
                     prop_meta = node.prop_meta[prop_name]
                     prop = getattr(node, prop_name)
-
+                    
                     # else check if the socket with this name is connected
                     socket = node.inputs[prop_name] if prop_name in node.inputs \
                         else None
@@ -822,7 +822,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                 row.label('', icon='BLANK1')
                             row.prop(node, ui_prop, icon=icon, text='',
                                      icon_only=True, emboss=False)
-                            row.label(prop_name + ':')
+                            row.label(prop_name.split('.')[-1] + ':')
 
                             if ui_open:
                                 draw_props(prop, layout, level+1)
@@ -1044,8 +1044,6 @@ def get_val_vstruct(node, param):
 
 # parse a vstruct conditional string and return true or false if should link
 def vstruct_conditional(node, param):
-    print(node, param)
-    print(dir(node), node.prop_meta.keys())
     meta = getattr(node, 'shader_meta')[param] if node.bl_idname == "PxrOSLPatternNode" else node.prop_meta[param]
     if 'vstructConditionalExpr' not in meta.keys():
         return True

@@ -360,7 +360,7 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
                     row = split.row()
                     row.prop(integrator_settings, ui_prop, icon=icon, text=text,
                              icon_only=True, emboss=True)
-                    row.label(prop_name + ':')
+                    row.label(prop_name.split('.')[-1] + ':')
 
                     if ui_open:
                         draw_props(prop, layout)
@@ -861,7 +861,7 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
                         row = split.row()
                         row.prop(pxrcamera, ui_prop, icon=icon, text='',
                                  icon_only=True, emboss=False)
-                        row.label(prop_name + ':')
+                        row.label(prop_name.split('.')[-1] + ':')
 
                         if ui_open:
                             draw_props(prop, layout)
