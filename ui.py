@@ -358,8 +358,8 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
 
                     split = layout.split(NODE_LAYOUT_SPLIT)
                     row = split.row()
-                    row.prop(integrator_settings, ui_prop, icon=icon, text=text,
-                             icon_only=True, emboss=True)
+                    row.prop(integrator_settings, ui_prop, icon=icon, text='',
+                             icon_only=True, emboss=False)
                     row.label(prop_name.split('.')[-1] + ':')
 
                     if ui_open:
