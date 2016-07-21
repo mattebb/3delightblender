@@ -641,14 +641,14 @@ def create_mesh(ob, scene):
     return mesh
 
 
-def export_transform(ri, instance, flip_x=False, concat=False):
+def export_transform(ri, instance, flip_x=False, concat=False, flatten=False):
     ob = instance.ob
     export_motion_begin(ri, instance.motion_data)
 
     if instance.transforming and len(instance.motion_data) > 0:
         samples = [sample[1] for sample in instance.motion_data]
     else:
-        samples = [ob.matrix_local] if ob.parent and  ob.parent_type == "object"\
+        samples = [ob.matrix_local] if ob.parent and  ob.parent_type == "object" and ob.type != 'LAMP'\
             else [ob.matrix_world]
     for m in samples:
         if flip_x:
@@ -1664,6 +1664,22 @@ class DataBlock:
         self.dupli_data = dupli_data
 
 
+def has_emissive_material(db):
+    for mat in db.material:
+        if mat and mat.renderman.nodetree != '' and \
+            mat.renderman.nodetree in bpy.data.node_groups:
+            
+
+            nt = bpy.data.node_groups[mat.renderman.nodetree]
+        
+            out = next((n for n in nt.nodes if n.renderman_node_type == 'output'),
+                        None)
+            if out and out.inputs['Light'].is_linked:
+                return True
+    return False
+
+
+
 # return if a psys should be animated
 # NB:  we ALWAYS need the animating psys if the emitter is transforming,
 # not just if MB is on
@@ -2031,10 +2047,14 @@ def export_data_read_archive(ri, data_block, rpass):
 
     # we want these relative paths of the archive
     if data_block.type == 'MESH':
-        bounds = get_bounding_box(data_block.data)
-        params = {"string filename": archive_filename,
-                  "float[6] bound": bounds}
-        ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
+        # PxrMeshLight can't be in DRA
+        if has_emissive_material(data_block):
+            ri.ReadArchive(archive_filename)
+        else:
+            bounds = get_bounding_box(data_block.data)
+            params = {"string filename": archive_filename,
+                      "float[6] bound": bounds}
+            ri.Procedural2(ri.Proc2DelayedReadArchive, ri.SimpleBound, params)
     else:
         if data_block.type != 'DUPLI':
             ri.Transform([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])
