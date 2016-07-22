@@ -42,7 +42,7 @@ from .util import init_env
 from .util import getattr_recursive
 from .util import user_path
 from .util import get_real_path
-from .util import readOSO, find_it_path, find_local_queue
+from .util import readOSO, find_it_path, find_local_queue, find_tractor_spool
 from .util import get_Files_in_Directory
 
 from .shader_parameters import tex_source_path
@@ -314,12 +314,13 @@ class ExternalRender(bpy.types.Operator):
         # else gen spool job
         elif rm.external_action == 'spool':
             denoise = rm.external_denoise
+            rm_version = rm.path_rmantree.split('-')[-1]
             if denoise:
                 denoise = 'crossframe' if rm.crossframe_denoise else 'frame'
             frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
             frame_end = scene.frame_end if rm.external_animation else scene.frame_current
             alf_file = spool_render(
-                '21.0', rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
+                str(rm_version), rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
 
             # if spooling send job to queuing
             if rm.external_action == 'spool':
@@ -377,6 +378,7 @@ class StartInteractive(bpy.types.Operator):
                 for area in context.screen.areas:
                     if area.type == 'VIEW_3D':
                         area.tag_redraw()
+            
         return {'FINISHED'}
 ######################
 # Export RIB Operators
@@ -845,7 +847,7 @@ class OT_remove_add_rem_light_link(bpy.types.Operator):
             ll.name = ll_name
         else:
             ll_index = scene.renderman.ll.keys().index(ll_name)
-            if engine.ipr is not None and engine.ipr.is_interactive_running:
+            if engine.ipr is not None and engine.ipr.is_ipr_running():
                 engine.ipr.remove_light_link(
                     context, scene.renderman.ll[ll_index])
             scene.renderman.ll.remove(ll_index)

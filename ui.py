@@ -41,7 +41,7 @@ from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive, loa
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
-#properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
+# properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('PRMAN_RENDER')
 # properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
@@ -222,7 +222,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         col = layout.column()
         row = col.row()
         row.prop(rm, "render_into", text="Render To")
-        
+
         layout.separator()
         col = layout.column()
         col.prop(context.scene.renderman, "render_selected_objects_only")
@@ -270,12 +270,12 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         col = split.column()
         col.prop(rm, "display_driver", text='Render To')
 
-        sub_row = col.row()
-        if rm.display_driver == 'openexr':
-            sub_row = col.row()
-            sub_row.prop(rm,  "exr_format_options")
-            sub_row = col.row()
-            sub_row.prop(rm,  "exr_compression")
+#        sub_row = col.row()
+#        if rm.display_driver == 'openexr':
+#            sub_row = col.row()
+#            sub_row.prop(rm,  "exr_format_options")
+#            sub_row = col.row()
+#            sub_row.prop(rm,  "exr_compression")
 
         layout.separator()
 
@@ -297,7 +297,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         sub_row = split.row()
         sub_row.enabled = rm.external_action == 'spool'
         sub_row.prop(rm, "queuing_system")
-        
+
         # checkpointing
         layout.separator()
         row = layout.row()
@@ -439,12 +439,10 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         rm = scene.renderman
 
         if rm.render_into == 'blender':
-            col = layout.column()
-            row = col.row()
-            row.alignment = "RIGHT"
-            row.prop(rm, "update_frequency")
-            row = col.row()
-            row.alignment = "RIGHT"
+            row = layout.row()
+            row.prop(rm, "update_frequency",
+                     text='Display Update Interval (seconds)')
+            row = layout.row()
             row.prop(rm, "import_images")
 
         layout.separator()
@@ -710,7 +708,7 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
         scene = context.scene
         rd = scene.render
         rl = rd.layers.active
-        
+
         split = layout.split()
 
         col = split.column()
@@ -725,14 +723,16 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
                 break
         if rm_rl is None:
             return
-            #layout.operator('renderman.add_pass_list')
+            # layout.operator('renderman.add_pass_list')
         else:
             split = layout.split()
             col = split.column()
             # cutting this for now until we can export multiple cameras
             #col.prop_search(rm_rl, 'camera', bpy.data, 'cameras')
-            col.prop_search(rm_rl, 'light_group', scene.renderman, 'light_groups')
-            col.prop_search(rm_rl, 'object_group', scene.renderman, 'object_groups')
+            col.prop_search(rm_rl, 'light_group',
+                            scene.renderman, 'light_groups')
+            col.prop_search(rm_rl, 'object_group',
+                            scene.renderman, 'object_groups')
 
             col.prop(rm_rl, 'export_multilayer')
             if rm_rl.export_multilayer:
@@ -740,7 +740,6 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
                 col.prop(rm_rl,  "exr_format_options")
                 col.prop(rm_rl,  "exr_compression")
                 col.prop(rm_rl, "exr_storage")
-        
 
 
 # class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
@@ -758,8 +757,6 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
 
 #         layout.prop(rm, "combine_outputs")
 #         split = layout.split()
-
-
 
         # col = split.column()
         # col.prop(rl, "use_pass_combined")
@@ -1222,7 +1219,7 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
 #     def draw_item(self, layout, context, item):
 #         scene = context.scene
 #         rm = scene.renderman
-        
+
 #         row = layout.row()
 #         row.prop(item, 'name')
 
@@ -1237,7 +1234,7 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
 #         row.operator('renderman.add_channel', text="Add to output").channel = item
 
 #     def draw(self, context):
-        
+
 #         layout = self.layout
 #         scene = context.scene
 #         rm = scene.renderman
@@ -1274,8 +1271,6 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
         # sub_row.template_list("RENDERMAN_CHANNEL_list", "Renderman_channel_list",
         #                        rm, "aov_channels", rm, 'aov_channels_index')
 
-        
-
         # sub_col = row.column(align=True)
         # op = sub_col.operator("collection.add_remove", icon="ZOOMIN", text="")
         # op.context = "scene.renderman"
@@ -1309,7 +1304,8 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         #row = layout.row()
         #row.prop(item, "layers")
         col = layout.column()
-        col.prop(item, "name")
+        if item.channel_type in ["custom_lpe_string", "custom_aov_string"]:
+            col.prop(item, "name")
         col.prop(item, "channel_type")
         if item.channel_type == "custom_lpe_string":
             col.prop(item, "custom_lpe_string")
@@ -1322,13 +1318,13 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col = layout.column()
         icon = 'TRIA_DOWN' if item.show_advanced \
             else 'TRIA_RIGHT'
-        
+
         row = col.row()
         row.prop(item, "show_advanced", icon=icon, text="Advanced",
                  icon_only=True, emboss=False)
         if item.show_advanced:
-            #col.prop(item, "exclude")
             if not item.channel_type in ["custom_lpe_string", "built_in_aov", "custom_aov_string",
+                                         "rgba",
                                          "lpe:C<.D%G>[S]+<L.%LG>",
                                          "lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
                                          "lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
@@ -1365,11 +1361,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             row = col.row()
             row.prop(item,  "stats_type")
             layout.separator()
-            # if not item.channel_type in ("custom_lpe_string",  "built_in_aov"):
-            #     col.prop_search(item, 'lpe_light_group', rm,
-            #                     "light_groups", text="Light Group")
-            #     col.prop_search(item, 'lpe_group', rm,
-            #                     "object_groups", text="Object Group")
 
     def draw(self, context):
         layout = self.layout
@@ -1399,12 +1390,14 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             col.label(text="Diffuse:")
             row = col.row(align=True)
             row.prop(rl, "use_pass_diffuse_direct", text="Direct", toggle=True)
-            row.prop(rl, "use_pass_diffuse_indirect", text="Indirect", toggle=True)
+            row.prop(rl, "use_pass_diffuse_indirect",
+                     text="Indirect", toggle=True)
             row.prop(rl, "use_pass_diffuse_color", text="Albedo", toggle=True)
             col.label(text="Specular:")
             row = col.row(align=True)
             row.prop(rl, "use_pass_glossy_direct", text="Direct", toggle=True)
-            row.prop(rl, "use_pass_glossy_indirect", text="Indirect", toggle=True)
+            row.prop(rl, "use_pass_glossy_indirect",
+                     text="Indirect", toggle=True)
 
             col.prop(rl, "use_pass_subsurface_indirect", text="Subsurface")
             col.prop(rl, "use_pass_refraction", text="Refraction")
@@ -2413,8 +2406,8 @@ def register():
     bpy.utils.register_class(RENDERMAN_GROUP_UL_List)
     bpy.utils.register_class(RENDERMAN_LL_LIGHT_list)
     bpy.utils.register_class(RENDERMAN_LL_OBJECT_list)
-    #bpy.utils.register_class(RENDERMAN_OUTPUT_list)
-    #bpy.utils.register_class(RENDERMAN_CHANNEL_list)
+    # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
+    # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
     bpy.types.INFO_MT_render.append(PRMan_menu_func)
 
 
