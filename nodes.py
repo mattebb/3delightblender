@@ -1316,7 +1316,7 @@ def gather_nodes(node):
             for sub_node in gather_nodes(socket.links[0].from_node):
                 if sub_node not in nodes:
                     nodes.append(sub_node)
-    if node.renderman_node_type != 'output':
+    if hasattr(node, 'renderman_node_type') and node.renderman_node_type != 'output':
         nodes.append(node)
 
     return nodes
@@ -1337,7 +1337,8 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
         if not handle:
             handle = id.name
 
-        out = next((n for n in nt.nodes if n.renderman_node_type == 'output'),
+        out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and \
+                    n.renderman_node_type == 'output'),
                    None)
         if out is None:
             return
@@ -1389,7 +1390,7 @@ def get_textures_for_node(node, matName=""):
                 from_socket = node.inputs[prop_name].links[0].from_socket
                 textures = textures + \
                     get_textures_for_node(from_socket.node, matName)
-    else:
+    elif hasattr(node, 'prop_meta'):
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
                 pass
@@ -1469,7 +1470,8 @@ def get_textures(id):
         nt = None
 
     if nt:
-        out = next((n for n in nt.nodes if n.renderman_node_type == 'output'),
+        out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and \
+                    n.renderman_node_type == 'output'),
                    None)
         if out is None:
             return
