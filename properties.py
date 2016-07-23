@@ -175,7 +175,7 @@ class RendermanGroup(bpy.types.PropertyGroup):
 class LightLinking(bpy.types.PropertyGroup):
 
     def update_link(self, context):
-        if engine.ipr is not None and engine.ipr.is_interactive_running:
+        if engine.ipr is not None and engine.ipr.is_ipr_running():
             engine.ipr.update_light_link(context, self)
 
     illuminate = EnumProperty(
@@ -905,10 +905,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         subtype='FILE_PATH',
         default=os.path.join('$OUT', 'images', '{scene}_####.{file_type}'))
 
-    update_frequency = FloatProperty(
+    update_frequency = IntProperty(
         name="Update frequency",
         description="Number of seconds between display update when rendering to Blender",
-        min=0.0, default=10.0)
+        min=0, default=10)
 
     import_images = BoolProperty(
         name="Import AOV's into Blender",
@@ -1351,7 +1351,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         default=True)
 
     def update_mute(self, context):
-        if engine.ipr is not None and engine.ipr.is_interactive_running:
+        if engine.ipr is not None and engine.ipr.is_ipr_running():
             engine.ipr.mute_light()
 
     mute = BoolProperty(
@@ -1372,9 +1372,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                         ob.data.renderman.solo = False
                         break
 
-            if engine.ipr is not None and engine.ipr.is_interactive_running:
+            if engine.ipr is not None and engine.ipr.is_ipr_running():
                 engine.ipr.solo_light()
-        elif engine.ipr is not None and engine.ipr.is_interactive_running:
+        elif engine.ipr is not None and engine.ipr.is_ipr_running():
                 engine.ipr.un_solo_light()
 
 
