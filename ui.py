@@ -297,6 +297,17 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         sub_row = split.row()
         sub_row.enabled = rm.external_action == 'spool'
         sub_row.prop(rm, "queuing_system")
+        
+        # options
+        col = layout.column()
+        col.label('Spooling Options:')
+        col = layout.column()
+        col.enabled = rm.external_action != 'render'
+        col.prop(rm, 'recover')
+        col.prop(rm, 'custom_cmd')
+        row =col.row()
+        row.enabled = rm.external_denoise
+        row.prop(rm, 'denoise_cmd')
 
         # checkpointing
         layout.separator()

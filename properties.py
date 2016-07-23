@@ -838,6 +838,21 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items=[('lq', 'LocalQueue', 'LocalQueue, must have RMS installed'),
                ('tractor', 'tractor', 'Tractor, must have tractor setup')],
         default='lq')
+        
+    recover = BoolProperty(
+        name="Enable Recovery", 
+        description="Attempt to resume render from a previous checkpoint (if possible)",
+        default=False)
+    
+    custom_cmd = StringProperty(
+        name="Custom Render Commands",
+        description="Inserts a string of custom command arguments into the render process.", 
+        default='')
+        
+    denoise_cmd = StringProperty(
+        name="Custom Denoise Commands", 
+        description="Inserts a string of custom commands arguments into the denoising process, if selected.", 
+        default='')
 
     external_animation = BoolProperty(
         name="Render Animation",
