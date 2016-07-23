@@ -539,11 +539,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="If a pixel changes by less than this amount when updated, it will not receive further samples in adaptive mode.  Lower values lead to increased render times and higher quality images.",
         min=0, max=1, default=.01)
 
-    light_localization = BoolProperty(
-        name="Light Localized Sampling",
-        description="Localized sampling can lead to higher quality images without increasing render times.  This is especially useful in scenes with multiple lamp sources.",
-        default=True)
-
     dark_falloff = FloatProperty(
         name="Dark Falloff",
         description="Deprioritizes adaptive sampling in dark areas. Raising this can potentially reduce render times but may increase noise in dark areas.",
@@ -654,10 +649,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Max Diffuse Depth",
         description="Maximum number of diffuse ray bounces",
         min=0, max=32, default=1)
-    use_separate_path_depths = BoolProperty(
-        name="Separate Diffuse//Specular Depths",
-        description="When using Path Tracing, this enables the renderer to track diffuse//specular bounce depths separately based on the BXDF lobe being sampled.  This can give a more realistic result but may also increase render times.",
-        default=False)
     max_eye_splits = IntProperty(
         name="Max Eye Splits",
         description="Maximum number of times a primitive crossing the eye plane is split before being discarded",

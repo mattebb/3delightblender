@@ -469,11 +469,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
 
         layout.separator()
         row = layout.row()
-        row.prop(rm, 'light_localization')
-        row = layout.row()
         row.prop(rm,  "sample_motion_blur")
-        row = layout.row(align=True)
-        row.prop(rm,  "use_separate_path_depths")
 
         layout.separator()
         row = layout.row()
