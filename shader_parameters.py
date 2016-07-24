@@ -461,6 +461,14 @@ def generate_property(sp):
                                    default=param_default, size=3,
                                    subtype="EULER",
                                    description=param_help, update=update_func)
+    elif param_type == 'point':
+        if param_default is None:
+            param_default = '0 0 0'
+        param_default = [float(v) for v in param_default.split()]
+        prop = FloatVectorProperty(name=param_label,
+                                   default=param_default, size=3,
+                                   subtype="XYZ",
+                                   description=param_help, update=update_func)
         renderman_type = param_type
     elif param_type == 'int[2]':
         param_type = 'int'
