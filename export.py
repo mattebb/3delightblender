@@ -2590,8 +2590,6 @@ def export_options(ri, scene):
               'int texturememory': rm.texture_cache_size * 100,
               }
     ri.Option("limits", params)
-    if rm.use_separate_path_depths and rm.integrator == "PxrPathTracer":
-        ri.Option("trace", {'string depthmode': 'separate'})
     ri.Option("ribparse", {"string varsubst" : ["$"]})
     ri.Option("searchpath", {"string procedural" : [".:${RMANTREE}/lib/plugins:@"]})
 
@@ -2941,6 +2939,8 @@ def export_display(ri, rpass, scene):
             ("albedo", 'color',
              'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
              None, None),
+            ("albedo_var", 'color', 'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C<.S\'passthru\'>*((U2L)|O)',
+            "variance", True),
             ("diffuse", 'color', 'color lpe:C(D[DS]*[LO])|O', None, None),
             ("diffuse_mse", 'color', 'color lpe:C(D[DS]*[LO])|O', 'mse', None),
             ("specular", 'color', 'color lpe:CS[DS]*[LO]', None, None),
@@ -2965,7 +2965,7 @@ def export_display(ri, rpass, scene):
 
         # output denoise_data.exr
         ri.Display('+' + image_base + '.variance.exr', 'openexr',
-                   "Ci,a,mse,albedo,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
+                   "Ci,a,mse,albedo,albedo_var,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
                    {"string storage": "tiled"})
 
 
