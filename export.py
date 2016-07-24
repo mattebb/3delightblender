@@ -2590,8 +2590,6 @@ def export_options(ri, scene):
               'int texturememory': rm.texture_cache_size * 100,
               }
     ri.Option("limits", params)
-    if rm.use_separate_path_depths and rm.integrator == "PxrPathTracer":
-        ri.Option("trace", {'string depthmode': 'separate'})
     ri.Option("ribparse", {"string varsubst" : ["$"]})
     ri.Option("searchpath", {"string procedural" : [".:${RMANTREE}/lib/plugins:@"]})
 
