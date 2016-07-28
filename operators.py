@@ -312,7 +312,7 @@ class ExternalRender(bpy.types.Operator):
                 {'INFO'}, 'RenderMan External Rendering done rendering.')
 
         # else gen spool job
-        elif rm.external_action == 'spool':
+        else:
             denoise = rm.external_denoise
             rm_version = rm.path_rmantree.split('-')[-1]
             if denoise:
