@@ -2784,6 +2784,9 @@ def export_display(ri, rpass, scene):
 
             for aov in rm_rl.custom_aovs:
                 aov_name = aov.name.replace(' ', '')
+                # if theres a blank name we can't make a channel
+                if aov_name == '':
+                    continue
                 source = aov.channel_type
                 channel_name = aov_name
                 source_type = "color"
@@ -2885,6 +2888,8 @@ def export_display(ri, rpass, scene):
             else:
                 for aov in rm_rl.custom_aovs:
                     aov_name = aov.name.replace(' ', '')
+                    if aov_name == '' or aov.channel_name == '':
+                        continue
                     if aov.channel_type == "rgba":
                         aov.channel_name = "rgba"
                     if layer == scene.render.layers[0] and aov == 'rgba':
