@@ -168,7 +168,7 @@ class RendermanGroup(bpy.types.PropertyGroup):
 class LightLinking(bpy.types.PropertyGroup):
 
     def update_link(self, context):
-        if engine.ipr is not None and engine.ipr.is_ipr_running():
+        if engine.is_ipr_running():
             engine.ipr.update_light_link(context, self)
 
     illuminate = EnumProperty(
@@ -1319,7 +1319,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         default=True)
 
     def update_mute(self, context):
-        if engine.ipr is not None and engine.ipr.is_ipr_running():
+        if engine.is_ipr_running():
             engine.ipr.mute_light()
 
     mute = BoolProperty(
@@ -1340,9 +1340,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                         ob.data.renderman.solo = False
                         break
 
-            if engine.ipr is not None and engine.ipr.is_ipr_running():
+            if engine.is_ipr_running():
                 engine.ipr.solo_light()
-        elif engine.ipr is not None and engine.ipr.is_ipr_running():
+        elif engine.is_ipr_running():
                 engine.ipr.un_solo_light()
 
 

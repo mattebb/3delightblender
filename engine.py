@@ -83,6 +83,19 @@ ipr = None
 def init():
     pass
 
+def is_ipr_running():
+    if ipr is not None and ipr.is_interactive:
+        if ipr.is_prman_running():
+            return True
+        else:
+            # shutdown IPR
+            bpy.ops.lighting.start_interactive('INVOKE_DEFAULT')
+            return False
+    else:
+        return False
+
+
+
 
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
     # TODO add support for regions (rerendering)
@@ -174,7 +187,6 @@ class RPass:
         self.rm = scene.renderman
         self.external_render = external_render
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
-        self.is_interactive_running = False
         self.is_interactive = interactive
         self.options = []
         # check if prman is imported
@@ -191,7 +203,7 @@ class RPass:
 
     def __del__(self):
         
-        if self.is_interactive_running and self.is_prman_running():
+        if self.is_interactive and self.is_prman_running():
             self.ri.EditWorldEnd()
             self.ri.End()
         del self.ri
@@ -520,13 +532,6 @@ class RPass:
     def is_prman_running(self):
         return prman.RicGetProgress() < 100
 
-    def is_ipr_running(self):
-        if self.is_interactive_running and not self.is_prman_running():
-            self.is_interactive_running = False
-            bpy.ops.lighting.start_interactive('INVOKE_DEFAULT')
-            return False
-        return self.is_interactive_running
-
     # start the interactive session.  Basically the same as ribgen, only
     # save the file
     def start_interactive(self):
@@ -580,8 +585,6 @@ class RPass:
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.ri, self.scene, prman)
-        if self.is_prman_running():
-            self.is_interactive_running = True
         return
 
     # find the changed object and send for edits
@@ -654,7 +657,6 @@ class RPass:
     # ri.end
     def end_interactive(self):
         self.is_interactive = False
-        self.is_interactive_running = False
         self.edit_num += 1
         # output a flush to stop rendering.
         self.ri.ArchiveRecord(

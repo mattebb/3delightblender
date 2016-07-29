@@ -566,7 +566,7 @@ class RendermanOutputNode(RendermanShadingNode):
     # updates
     def update(self):
         from . import engine
-        if engine.ipr is not None and engine.ipr.is_ipr_running():
+        if engine.is_ipr_running():
             nt, mat, something_else = RendermanPatternGraph.get_from_context(
                 bpy.context)
             engine.ipr.issue_shader_edits(nt=nt)
