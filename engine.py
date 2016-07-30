@@ -657,12 +657,13 @@ class RPass:
     # ri.end
     def end_interactive(self):
         self.is_interactive = False
-        self.edit_num += 1
-        # output a flush to stop rendering.
-        self.ri.ArchiveRecord(
-            "structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
-        prman.RicFlush("%d" % self.edit_num, 0, self.ri.SUSPENDRENDERING)
-        self.ri.EditWorldEnd()
+        if self.is_prman_running():
+            self.edit_num += 1
+            # output a flush to stop rendering.
+            self.ri.ArchiveRecord(
+                "structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
+            prman.RicFlush("%d" % self.edit_num, 0, self.ri.SUSPENDRENDERING)
+            self.ri.EditWorldEnd()
         self.ri.End()
         self.material_dict = {}
         self.lights = {}
