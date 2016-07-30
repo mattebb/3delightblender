@@ -271,7 +271,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
 # send updates to ipr if running
 def update_func(self, context):
     from . import engine
-    if engine.ipr is not None and engine.ipr.is_ipr_running():
+    if engine.is_ipr_running():
         engine.ipr.issue_shader_edits(node=self)
 
     if context and 'material' and hasattr(context, 'material'):

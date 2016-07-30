@@ -851,7 +851,7 @@ class OT_remove_add_rem_light_link(bpy.types.Operator):
             ll.name = ll_name
         else:
             ll_index = scene.renderman.ll.keys().index(ll_name)
-            if engine.ipr is not None and engine.ipr.is_ipr_running():
+            if engine.is_ipr_running():
                 engine.ipr.remove_light_link(
                     context, scene.renderman.ll[ll_index])
             scene.renderman.ll.remove(ll_index)
