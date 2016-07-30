@@ -83,6 +83,7 @@ ipr = None
 def init():
     pass
 
+
 def is_ipr_running():
     if ipr is not None and ipr.is_interactive:
         if ipr.is_prman_running():
@@ -93,8 +94,6 @@ def is_ipr_running():
             return False
     else:
         return False
-
-
 
 
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
@@ -206,14 +205,14 @@ class RPass:
         self.update_time = None
 
     def __del__(self):
-        
+
         if self.is_interactive and self.is_prman_running():
             self.ri.EditWorldEnd()
             self.ri.End()
         del self.ri
         if prman:
             prman.Cleanup()
-        
+
     def initialize_paths(self, scene):
         rm = scene.renderman
         self.paths = {}
@@ -598,7 +597,7 @@ class RPass:
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
-        
+
         active = scene.objects.active
         if active and active.is_updated:
             issue_transform_edits(self, self.ri, active, prman)
