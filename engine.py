@@ -119,6 +119,10 @@ def render(engine):
 
 
 def reset(engine, data, scene):
+    del engine.render_pass.ri
+    if prman:
+        prman.Cleanup()
+    engine.render_pass.ri = prman.Ri()
     engine.render_pass.set_scene(scene)
 
 
