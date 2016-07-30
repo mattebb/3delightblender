@@ -83,6 +83,7 @@ ipr = None
 def init():
     pass
 
+
 def is_ipr_running():
     if ipr is not None and ipr.is_interactive:
         if ipr.is_prman_running():
@@ -93,8 +94,6 @@ def is_ipr_running():
             return False
     else:
         return False
-
-
 
 
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
@@ -206,14 +205,14 @@ class RPass:
         self.update_time = None
 
     def __del__(self):
-        
+
         if self.is_interactive and self.is_prman_running():
             self.ri.EditWorldEnd()
             self.ri.End()
         del self.ri
         if prman:
             prman.Cleanup()
-        
+
     def initialize_paths(self, scene):
         rm = scene.renderman
         self.paths = {}
@@ -259,7 +258,12 @@ class RPass:
                                              scene=self.scene)
         self.paths['render_output'] = user_path(self.scene.renderman.path_display_driver_image,
                                                 scene=self.scene, display_driver=self.display_driver)
-        
+        temp_archive_name = self.scene.renderman.path_object_archive_animated
+        frame_archive_dir = os.path.dirname(user_path(temp_archive_name,
+                                                      scene=self.scene))
+        self.paths['frame_archives'] = frame_archive_dir
+        if not os.path.exists(self.paths['frame_archives']):
+            os.makedirs(self.paths['frame_archives'])
 
     def preview_render(self, engine):
         render_output = self.paths['render_output']
@@ -593,7 +597,7 @@ class RPass:
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
-        
+
         active = scene.objects.active
         if active and active.is_updated:
             issue_transform_edits(self, self.ri, active, prman)
@@ -685,8 +689,7 @@ class RPass:
         if engine:
             engine.report({"INFO"}, "Texture generation took %s" %
                           format_seconds_to_hhmmss(time.time() - time_start))
-        else:
-            self.scene.frame_set(self.scene.frame_current)
+        self.scene.frame_set(self.scene.frame_current)
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
