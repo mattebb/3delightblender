@@ -244,7 +244,6 @@ class ExternalRender(bpy.types.Operator):
         scene = context.scene
         rpass = RPass(scene, external_render=True)
         rm = scene.renderman
-        rm.output_action = "EXPORT"
 
         # rib gen each frame
         rpass.display_driver = scene.renderman.display_driver
@@ -263,8 +262,7 @@ class ExternalRender(bpy.types.Operator):
                 rpass.update_frame_num(frame)
                 self.report(
                     {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % frame)
-#                self.gen_rib_frame(rpass)
-                bpy.ops.render.render(animation=True)
+                self.gen_rib_frame(rpass)
                 rib_names.append(rpass.paths['rib_output'])
                 frame_tex_cmds[frame] = [cmd for cmd in get_texture_list(rpass.scene) if cmd not in job_tex_cmds]
                 if rm.external_denoise:
@@ -273,8 +271,7 @@ class ExternalRender(bpy.types.Operator):
         else:
             self.report(
                 {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
-#            self.gen_rib_frame(rpass)
-            bpy.ops.render.render()
+            self.gen_rib_frame(rpass)
             rib_names.append(rpass.paths['rib_output'])
             frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
             if rm.external_denoise:
@@ -333,7 +330,6 @@ class ExternalRender(bpy.types.Operator):
                 subprocess.Popen([exe, alf_file])
 
         rpass = None
-        rm.output_action = "EXPORT_RENDER"
         return {'FINISHED'}
 
 
