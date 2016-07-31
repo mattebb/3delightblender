@@ -90,6 +90,7 @@ def is_ipr_running():
             return True
         else:
             # shutdown IPR
+            ipr.is_interactive_ready = False
             bpy.ops.lighting.start_interactive('INVOKE_DEFAULT')
             return False
     else:
@@ -602,21 +603,29 @@ class RPass:
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
-
         active = scene.objects.active
         if active and active.is_updated:
-            issue_transform_edits(self, self.ri, active, prman)
+            if is_ipr_running():
+                issue_transform_edits(self, self.ri, active, prman)
+            else:
+                return
         # record the marker to rib and flush to that point
         # also do the camera in case the camera is locked to display.
         if scene.camera != active and scene.camera.is_updated:
-            issue_transform_edits(self, self.ri, scene.camera, prman)
+            if is_ipr_running():
+                issue_transform_edits(self, self.ri, scene.camera, prman)
+            else:
+                return
         # check for light deleted
         if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
             lights_deleted = []
             for light_name, data_name in self.lights.items():
                 if light_name not in scene.objects:
-                    delete_light(self, self.ri, data_name, prman)
-                    lights_deleted.append(light_name)
+                    if is_ipr_running():
+                        delete_light(self, self.ri, data_name, prman)
+                        lights_deleted.append(light_name)
+                    else:
+                        return
 
             for light_name in lights_deleted:
                 self.lights.pop(light_name, None)
