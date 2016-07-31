@@ -670,7 +670,6 @@ class RPass:
     # ri.end
     def end_interactive(self):
         self.is_interactive = False
-        self.is_interactive_ready = False
         if self.is_prman_running():
             self.edit_num += 1
             # output a flush to stop rendering.
