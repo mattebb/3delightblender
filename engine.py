@@ -65,7 +65,7 @@ from .nodes import get_tex_file_name
 addon_version = bl_info['version']
 
 prman_inited = False
-
+ipr_handle = None
 
 def init_prman():
     # set pythonpath before importing prman
@@ -85,7 +85,7 @@ def init():
 
 
 def is_ipr_running():
-    if ipr is not None and ipr.is_interactive:
+    if ipr is not None and ipr.is_interactive and ipr.is_interactive_ready:
         if ipr.is_prman_running():
             return True
         else:
@@ -191,6 +191,7 @@ class RPass:
         self.external_render = external_render
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
         self.is_interactive = interactive
+        self.is_interactive_ready = False
         self.options = []
         # check if prman is imported
         if not prman_inited:
@@ -543,6 +544,7 @@ class RPass:
     # start the interactive session.  Basically the same as ribgen, only
     # save the file
     def start_interactive(self):
+        
         if find_it_path() == None:
             debug('error', "ERROR no 'it' installed.  \
                     Cannot start interactive rendering.")
@@ -554,7 +556,6 @@ class RPass:
             self.end_interactive()
             return
 
-        self.is_interactive = True
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         self.material_dict = {}
@@ -593,6 +594,10 @@ class RPass:
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.ri, self.scene, prman)
+        
+        while not self.is_prman_running():
+            time.sleep(.1)
+        self.is_interactive_ready = True
         return
 
     # find the changed object and send for edits
@@ -665,6 +670,7 @@ class RPass:
     # ri.end
     def end_interactive(self):
         self.is_interactive = False
+        self.is_interactive_ready = False
         if self.is_prman_running():
             self.edit_num += 1
             # output a flush to stop rendering.
