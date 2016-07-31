@@ -159,6 +159,7 @@ class RPass:
     def __init__(self, scene, interactive=False, external_render=False, preview_render=False):
         self.scene = scene
         self.output_files = []
+        self.aov_denoise_files = []
         # set the display driver
         if external_render:
             self.display_driver = scene.renderman.display_driver

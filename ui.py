@@ -305,6 +305,9 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         col.enabled = rm.external_action != 'render'
         col.prop(rm, 'recover')
         col.prop(rm, 'custom_cmd')
+        col.prop(rm, 'spool_denoise_aov')
+        if rm.spool_denoise_aov:
+            col.label("At least one AOV must be tagged as 'denoiseable'.",  icon='ERROR')
         row =col.row()
         row.enabled = rm.external_denoise
         row.prop(rm, 'denoise_cmd')
