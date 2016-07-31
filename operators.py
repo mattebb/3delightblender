@@ -249,6 +249,7 @@ class ExternalRender(bpy.types.Operator):
         rpass.display_driver = scene.renderman.display_driver
         rib_names = []
         denoise_files = []
+        denoise_aov_files = []
         job_tex_cmds = []
         frame_tex_cmds = {}
         if rm.external_animation:
@@ -267,6 +268,8 @@ class ExternalRender(bpy.types.Operator):
                 frame_tex_cmds[frame] = [cmd for cmd in get_texture_list(rpass.scene) if cmd not in job_tex_cmds]
                 if rm.external_denoise:
                     denoise_files.append(rpass.get_denoise_names())
+                    if rpass.aov_denoise_files:
+                        denoise_aov_files.append(rpass.aov_denoise_files)
 
         else:
             self.report(
@@ -276,6 +279,8 @@ class ExternalRender(bpy.types.Operator):
             frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
             if rm.external_denoise:
                 denoise_files.append(rpass.get_denoise_names())
+                if rpass.aov_denoise_files:
+                        denoise_aov_files.append(rpass.aov_denoise_files)
 
         # if render locally launch prman (externally)
         if rm.external_action == 'render':
@@ -320,7 +325,7 @@ class ExternalRender(bpy.types.Operator):
             frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
             frame_end = scene.frame_end if rm.external_animation else scene.frame_current
             alf_file = spool_render(
-                str(rm_version), rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
+                str(rm_version), rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
 
             # if spooling send job to queuing
             if rm.external_action == 'spool':

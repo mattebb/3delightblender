@@ -853,6 +853,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Custom Denoise Commands", 
         description="Inserts a string of custom commands arguments into the denoising process, if selected.", 
         default='')
+        
+    spool_denoise_aov = BoolProperty(
+        name="Process denoisable AOV's",
+        description="Denoises tagged AOV's", 
+        default=False)
 
     external_animation = BoolProperty(
         name="Render Animation",

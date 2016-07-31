@@ -2725,6 +2725,7 @@ def export_display(ri, rpass, scene):
 
     display_driver = rpass.display_driver
     rpass.output_files = []
+    rpass.aov_denoise_files = []
     main_display = user_path(
         rm.path_display_driver_image, scene=scene, display_driver=rpass.display_driver)
     debug("info", "Main_display: " + main_display)
@@ -2891,10 +2892,13 @@ def export_display(ri, rpass, scene):
 
             # if this is a multilayer combine em!
             if rm_rl.export_multilayer and rpass.external_render:
+                denoise = False
                 channels = []
                 for aov in rm_rl.custom_aovs:
                     channels.append(
                         aov.channel_name) if aov.channel_type != "rgba" else channels.append("Ci,a")
+                    if aov.denoise_aov:
+                        denoise = True
                 out_type, ext = ('openexr', 'exr')
                 # removes 'z' and 'zback' channels as DeepEXR will
                 # automatically add them
@@ -2909,6 +2913,9 @@ def export_display(ri, rpass, scene):
                     params["string compression"] = rm_rl.exr_compression
                 ri.Display('+' + image_base + '.%s' % layer_name +
                            '.multilayer.' + ext, out_type, ','.join(channels), params)
+                if denoise:
+                    rpass.aov_denoise_files.append(image_base + '.%s' % layer_name +
+                           '.multilayer.' + ext)
 
             else:
                 for aov in rm_rl.custom_aovs:
@@ -2924,6 +2931,8 @@ def export_display(ri, rpass, scene):
                     if aov.denoise_aov:
                         ri.Display('+' + image_base + '.%s.%s.denoiseable.' %
                                    (layer_name, aov_name) + ext, display_driver, aov.channel_name)
+                        rpass.aov_denoise_files.append(image_base + '.%s.%s.denoiseable.' %
+                                   (layer_name, aov_name) + ext)
                     else:
                         dspy_name = image_base + \
                             '.%s.%s.' % (layer_name, aov_name) + ext
