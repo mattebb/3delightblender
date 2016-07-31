@@ -433,6 +433,19 @@ def check_valid_rmantree(rmantree):
         return True
     return False
 
+# return the major, minor rman version
+def get_rman_version(rmantree):
+    vstr = rmantree.split('-')[1]
+    vstr = vstr.strip('/\\')
+    major_vers, minor_vers = vstr.split('.')
+    vers_modifier = ''
+    for v in ['b', 'rc']:
+        if v in minor_vers:
+            i = minor_vers.find(v)
+            vers_modifier = minor_vers[i:]
+            minor_vers = minor_vers[:i]
+            break
+    return int(major_vers), int(minor_vers), vers_modifier
 
 def guess_rmantree():
     addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
@@ -459,13 +472,17 @@ def guess_rmantree():
         choice = prefs.rmantree_choice
 
         if choice == 'NEWEST':
-            latestver = 0.0
+            l_vers_major, l_vers_minor, l_vers_mod  = 0, 0, ''
             for d in os.listdir(base):
                 if "RenderManProServer" in d:
-                    vstr = d.split('-')[1]
-                    vf = float(vstr[:4])
-                    if vf >= latestver:
-                        latestver = vf
+                    vers_major, vers_minor, vers_mod = get_rman_version(d)
+                    if vers_major >= l_vers_major and \
+                        vers_major == 20 and \
+                        (vers_minor > l_vers_minor or \
+                        (vers_minor == l_vers_minor and \
+                        vers_mod >= l_vers_mod)):
+                        l_vers_major, l_vers_minor, l_vers_mod = \
+                            vers_major, vers_minor, vers_mod
                         rmantree = os.path.join(base, d)
         else:
             rmantree = choice
@@ -476,9 +493,9 @@ def guess_rmantree():
         print("RenderMan Location is set to %s which does not appear valid." % rmantree)
         return None
     # check that it's > 20
-    vstr = rmantree.split('-')[-1]
-    vf = float(vstr.strip('/\\'))
-    if vf < 20.0:
+    vers_major, vers_minor, vers_mod = get_rman_version(rmantree)
+    #vf = float(vstr.strip('/\\'))
+    if vers_major != 20:
         print('ERROR!!!  You need RenderMan version 20.0 or above.')
         print('Correct in User Preferences.')
         return None
@@ -503,19 +520,23 @@ def guess_rmantree_initial():
 
     rmantree = rmantree_from_env()
     if rmantree != '':
-        vstr = rmantree.split('-')[-1]
-        vf = float(vstr.strip('/\\'))
-        if vf > 20.0:
+        vers_major, vers_minor, vers_mod = get_rman_version(rmantree)
+        if vers_major == 20:
             return rmantree
 
-    latestver = 0.0
+    l_vers_major, l_vers_minor, l_vers_mod = 0,0,''
     for d in os.listdir(base):
         if "RenderManProServer" in d:
-            vstr = d.split('-')[1]
-            vf = float(vstr[:4])
-            if vf >= latestver:
-                latestver = vf
+            vers_major, vers_minor, vers_mod = get_rman_version(d)
+            if vers_major >= l_vers_major and \
+                vers_major == 20 and \
+                (vers_minor > l_vers_minor or \
+                (vers_minor == l_vers_minor and \
+                vers_mod >= l_vers_mod)):
+                l_vers_major, l_vers_minor, l_vers_mod = \
+                    vers_major, vers_minor, vers_mod
                 rmantree = os.path.join(base, d)
+    
     return rmantree
 
 
