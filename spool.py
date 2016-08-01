@@ -33,7 +33,7 @@ def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files
     cdir = user_path(out_dir)
     scene = context.scene
     rm = scene.renderman
-    alf_file = os.path.join(cdir, 'spool.alf')
+    alf_file = os.path.join(cdir, '%s_spool.alf' % scene.name) if rm.custom_alfname == '' else os.path.join(cdir, '%s_spool.alf' % rm.custom_alfname)
     per_frame_denoise = denoise == 'frame'
     crossframe_denoise = denoise == 'crossframe'
 

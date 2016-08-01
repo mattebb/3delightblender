@@ -658,6 +658,10 @@ def export_transform(ri, instance, flip_x=False, concat=False, flatten=False):
             m = m.copy()
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m2 * m
+        if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type == "DIST":
+            m = m.copy()
+            m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
+            m = m2 * m
         if concat and ob.parent_type == "object":
             ri.ConcatTransform(rib(m))
             ri.CoordinateSystem(instance.ob.name)
@@ -677,6 +681,10 @@ def export_object_transform(ri, ob, flip_x=False):
         m = m.copy()
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
         m = m2 * m
+    if ob.type == 'LAMP' and ob.data.renderman.renderman_type == "DIST":
+            m = m.copy()
+            m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
+            m = m2 * m
     ri.Transform(rib(m))
     ri.CoordinateSystem(ob.name)
 

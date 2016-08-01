@@ -831,6 +831,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                 'Only Generate RIB and job file (no render)'),
                ('spool', 'Spool Job', 'Spool Job to queuing system')],
         default='render')
+        
+    custom_alfname = StringProperty(
+        name="Custom Spool Name", 
+        description="Allows a custom name for the spool .alf file.  This would allow you to export multiple spool files for the same scene.", 
+        default='')
 
     queuing_system = EnumProperty(
         name="Spool to",
