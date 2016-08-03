@@ -478,18 +478,38 @@ class RendermanRenderPresets():
     FinalDenoisePreset = [
         "rm = bpy.context.scene.renderman",
         "rm.pixel_variance = 0.01",
-        "rm.min_samples = 24",
-        "rm.max_samples = 124",
+        "rm.min_samples = 32",
+        "rm.max_samples = 256",
         "rm.max_specular_depth = 6",
         "rm.max_diffuse_depth = 2",
         "rm.motion_blur = True",
         "rm.do_denoise = True",
         "rm.PxrPathTracer_settings.maxPathLength = 10", ]
+    FinalHighPreset = [
+        "rm = bpy.context.scene.renderman",
+        "rm.pixel_variance = 0.0025",
+        "rm.min_samples = 64",
+        "rm.max_samples = 1024",
+        "rm.max_specular_depth = 6",
+        "rm.max_diffuse_depth = 3",
+        "rm.motion_blur = True",
+        "rm.do_denoise = False",
+        "rm.PxrPathTracer_settings.maxPathLength = 10", ]
     FinalPreset = [
         "rm = bpy.context.scene.renderman",
-        "rm.pixel_variance = 0.01",
-        "rm.min_samples = 24",
-        "rm.max_samples = 124",
+        "rm.pixel_variance = 0.005",
+        "rm.min_samples = 32",
+        "rm.max_samples = 512",
+        "rm.max_specular_depth = 6",
+        "rm.max_diffuse_depth = 2",
+        "rm.motion_blur = True",
+        "rm.do_denoise = False",
+        "rm.PxrPathTracer_settings.maxPathLength = 10", ]
+    MidPreset = [
+        "rm = bpy.context.scene.renderman",
+        "rm.pixel_variance = 0.05",
+        "rm.min_samples = 0",
+        "rm.max_samples = 64",
         "rm.max_specular_depth = 6",
         "rm.max_diffuse_depth = 2",
         "rm.motion_blur = True",
@@ -497,9 +517,9 @@ class RendermanRenderPresets():
         "rm.PxrPathTracer_settings.maxPathLength = 10", ]
     PreviewPreset = [
         "rm = bpy.context.scene.renderman",
-        "rm.pixel_variance = 0.15",
-        "rm.min_samples = 2",
-        "rm.max_samples = 24",
+        "rm.pixel_variance = 0.1",
+        "rm.min_samples = 0",
+        "rm.max_samples = 16",
         "rm.max_specular_depth = 2",
         "rm.max_diffuse_depth = 1",
         "rm.motion_blur = False",
@@ -1168,9 +1188,13 @@ def register():
     # Register any default presets here. This includes render based and
     # Material based
     quickAddPresets(RendermanRenderPresets.FinalDenoisePreset,
-                    os.path.join("renderman", "render"), "FinalDenoise")
+                    os.path.join("renderman", "render"), "FinalDenoisePreset")
+    quickAddPresets(RendermanRenderPresets.FinalHighPreset,
+                    os.path.join("renderman", "render"), "FinalHigh_Preset")
     quickAddPresets(RendermanRenderPresets.FinalPreset,
                     os.path.join("renderman", "render"), "FinalPreset")
+    quickAddPresets(RendermanRenderPresets.MidPreset,
+                    os.path.join("renderman", "render"), "MidPreset")
     quickAddPresets(RendermanRenderPresets.PreviewPreset,
                     os.path.join("renderman", "render"), "PreviewPreset")
     quickAddPresets(RendermanRenderPresets.TractorLocalQueuePreset, os.path.join(
