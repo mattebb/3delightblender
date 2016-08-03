@@ -475,7 +475,7 @@ class AddPresetRendermanRender(AddPresetBase, bpy.types.Operator):
 
 
 class RendermanRenderPresets():
-    ProductionDenoisePreset = [
+    FinalDenoisePreset = [
         "rm = bpy.context.scene.renderman",
         "rm.pixel_variance = 0.01",
         "rm.min_samples = 32",
@@ -485,7 +485,7 @@ class RendermanRenderPresets():
         "rm.motion_blur = True",
         "rm.do_denoise = True",
         "rm.PxrPathTracer_settings.maxPathLength = 10", ]
-    ProductionHighPreset = [
+    FinalHighPreset = [
         "rm = bpy.context.scene.renderman",
         "rm.pixel_variance = 0.0025",
         "rm.min_samples = 64",
@@ -495,7 +495,7 @@ class RendermanRenderPresets():
         "rm.motion_blur = True",
         "rm.do_denoise = False",
         "rm.PxrPathTracer_settings.maxPathLength = 10", ]
-    ProductionPreset = [
+    FinalPreset = [
         "rm = bpy.context.scene.renderman",
         "rm.pixel_variance = 0.005",
         "rm.min_samples = 32",
@@ -505,7 +505,7 @@ class RendermanRenderPresets():
         "rm.motion_blur = True",
         "rm.do_denoise = False",
         "rm.PxrPathTracer_settings.maxPathLength = 10", ]
-    IntermediatePreset = [
+    MidPreset = [
         "rm = bpy.context.scene.renderman",
         "rm.pixel_variance = 0.05",
         "rm.min_samples = 0",
@@ -515,7 +515,7 @@ class RendermanRenderPresets():
         "rm.motion_blur = True",
         "rm.do_denoise = False",
         "rm.PxrPathTracer_settings.maxPathLength = 10", ]
-    DraftPreset = [
+    PreviewPreset = [
         "rm = bpy.context.scene.renderman",
         "rm.pixel_variance = 0.1",
         "rm.min_samples = 0",
@@ -1187,18 +1187,18 @@ def register():
 
     # Register any default presets here. This includes render based and
     # Material based
-    quickAddPresets(RendermanRenderPresets.ProductionDenoisePreset,
-                    os.path.join("renderman", "render"), "Production_Denoise_Preset")
-    quickAddPresets(RendermanRenderPresets.ProductionHighPreset,
-                    os.path.join("renderman", "render"), "Production_High__Preset")
-    quickAddPresets(RendermanRenderPresets.ProductionPreset,
-                    os.path.join("renderman", "render"), "Production_Preset")
-    quickAddPresets(RendermanRenderPresets.IntermediatePreset,
-                    os.path.join("renderman", "render"), "Intermediate_Preset")
-    quickAddPresets(RendermanRenderPresets.DraftPreset,
-                    os.path.join("renderman", "render"), "Draft_Preset")
+    quickAddPresets(RendermanRenderPresets.FinalDenoisePreset,
+                    os.path.join("renderman", "render"), "FinalDenoisePreset")
+    quickAddPresets(RendermanRenderPresets.FinalHighPreset,
+                    os.path.join("renderman", "render"), "FinalHigh_Preset")
+    quickAddPresets(RendermanRenderPresets.FinalPreset,
+                    os.path.join("renderman", "render"), "FinalPreset")
+    quickAddPresets(RendermanRenderPresets.MidPreset,
+                    os.path.join("renderman", "render"), "MidPreset")
+    quickAddPresets(RendermanRenderPresets.PreviewPreset,
+                    os.path.join("renderman", "render"), "PreviewPreset")
     quickAddPresets(RendermanRenderPresets.TractorLocalQueuePreset, os.path.join(
-        "renderman", "render"), "Tractor_LocalQueue_Preset")
+        "renderman", "render"), "TractorLocalQueuePreset")
 
 
 def unregister():
