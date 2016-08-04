@@ -286,6 +286,7 @@ class ExternalRender(bpy.types.Operator):
         # gen spool job
         denoise = rm.external_denoise
         rm_version = rm.path_rmantree.split('-')[-1]
+        rm_version = rm_version.strip('/\\')
         if denoise:
             denoise = 'crossframe' if rm.crossframe_denoise else 'frame'
         frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
