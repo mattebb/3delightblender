@@ -572,9 +572,9 @@ class MATERIAL_PT_renderman_preview(Panel):
         row = layout.row()
         if mat:
             row.template_preview(context.material, show_buttons=1)
-            if mat.renderman.nodetree != '':
-                layout.prop_search(
-                    mat.renderman, "nodetree", bpy.data, "node_groups")
+            #if mat.node_tree:
+            #    layout.prop_search(
+            #        mat, "node_tree", bpy.data, "node_groups")
 
 
 class ShaderNodePanel():
@@ -590,12 +590,12 @@ class ShaderNodePanel():
         if context.scene.render.engine not in cls.COMPAT_ENGINES:
             return False
         if cls.bl_context == 'material':
-            if context.material and context.material.renderman.nodetree != '':
+            if context.material and context.material.node_tree != '':
                 return True
         if cls.bl_context == 'data':
             if not context.lamp:
                 return False
-            if context.lamp.renderman.nodetree != '':
+            if context.lamp.node:
                 return True
         return False
 
@@ -630,10 +630,8 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
 
     def draw(self, context):
         mat = context.material
-        if context.material.renderman and context.material.renderman.nodetree:
-            if context.material.renderman.nodetree not in bpy.data.node_groups:
-                load_tree_from_lib(context.material)
-            nt = bpy.data.node_groups[context.material.renderman.nodetree]
+        if context.material.renderman and context.material.node_tree:
+            nt = context.material.node_tree
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name=self.shader_type)
         else:
@@ -646,7 +644,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             row.prop(mat, "diffuse_color")
 
             layout.separator()
-        if mat and mat.renderman.nodetree == '':
+        if mat and not mat.node_tree:
             layout.operator(
                 'shading.add_renderman_nodetree').idtype = "material"
         # self._draw_shader_menu_params(layout, context, rm)
@@ -658,10 +656,8 @@ class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
     shader_type = 'Light'
 
     def draw(self, context):
-        if context.material.renderman.nodetree:
-            if context.material.renderman.nodetree not in bpy.data.node_groups:
-                load_tree_from_lib(context.material)
-            nt = bpy.data.node_groups[context.material.renderman.nodetree]
+        if context.material.node_tree:
+            nt = context.material.node_tree
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name=self.shader_type)
 
@@ -672,10 +668,8 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
     shader_type = 'Displacement'
 
     def draw(self, context):
-        if context.material.renderman.nodetree != "":
-            if context.material.renderman.nodetree not in bpy.data.node_groups:
-                load_tree_from_lib(context.material)
-            nt = bpy.data.node_groups[context.material.renderman.nodetree]
+        if context.material.node_tree:
+            nt = context.material.node_tree
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name=self.shader_type)
             # BBM addition begin
@@ -895,22 +889,19 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         layout = self.layout
         world = context.scene.world
 
-        if world.renderman.nodetree == '':
+        if not world.renderman.node:
             layout.operator('shading.add_renderman_nodetree').idtype = 'world'
             return
         else:
             layout.prop(world.renderman, "renderman_type", expand=True)
             if world.renderman.renderman_type == 'NONE':
                 return
-            nt = bpy.data.node_groups[world.renderman.nodetree]
-            output_node = next(
-                (n for n in nt.nodes if n.renderman_node_type == 'output'), None)
-            lamp_node = output_node.inputs['Light'].links[0].from_node
+            lamp_node = world.renderman.node
             if lamp_node:
                 layout.prop(lamp_node, 'light_primary_visibility')
                 layout.prop(lamp_node, 'light_shading_rate')
                 draw_node_properties_recursive(
-                    self.layout, context, nt, lamp_node)
+                    self.layout, context, None, lamp_node)
 
 
 class DATA_PT_renderman_lamp(ShaderPanel, Panel):
@@ -923,7 +914,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
         layout = self.layout
 
         lamp = context.lamp
-        if lamp.renderman.nodetree == '':
+        if not lamp.renderman.node:
             layout.prop(lamp, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype = 'lamp'
             return
@@ -939,7 +930,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
                     row.prop(lamp, 'size', text="Radius")
             layout.prop(lamp.renderman, "shadingrate")
 
-        layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
+        #layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
         layout.prop(lamp.renderman, 'illuminates_by_default')
 
 
@@ -951,14 +942,11 @@ class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
         layout = self.layout
         lamp = context.lamp
 
-        nt = bpy.data.node_groups[lamp.renderman.nodetree]
-        output_node = next(
-            (n for n in nt.nodes if n.renderman_node_type == 'output'), None)
-        lamp_node = output_node.inputs['Light'].links[0].from_node
+        lamp_node = lamp.renderman.node
         if lamp_node:
             layout.prop(lamp_node, 'light_primary_visibility')
             layout.prop(lamp_node, 'light_shading_rate')
-            draw_node_properties_recursive(self.layout, context, nt, lamp_node)
+            draw_node_properties_recursive(self.layout, context, None, lamp_node)
 
 
 class OBJECT_PT_renderman_object_geometry(Panel):
@@ -1706,14 +1694,8 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                 columns.label(light_name)
                 columns.prop(lamp_rm, 'solo', text='')
                 columns.prop(lamp_rm, 'mute', text='')
-                nt = lamp.renderman.nodetree
-                if nt != '':
-                    nt = bpy.data.node_groups[lamp.renderman.nodetree]
-                    output = None
-                    for node in nt.nodes:
-                        if node.renderman_node_type == 'output':
-                            output = node
-                    light_shader = output.inputs['Light'].links[0].from_node
+                if lamp.renderman.node:
+                    light_shader = lamp.renderman.node
 
                     columns.prop(
                         light_shader, 'light_primary_visibility', text='')

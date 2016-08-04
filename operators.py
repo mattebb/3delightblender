@@ -160,10 +160,11 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                         'lamp': context.lamp, 'world': context.scene.world}
         idblock = context_data[idtype]
 
-        nt = bpy.data.node_groups.new(idblock.name,
-                                      type='RendermanPatternGraph')
-        nt.use_fake_user = True
-        idblock.renderman.nodetree = nt.name
+        #nt = bpy.data.node_groups.new(idblock.name,
+        #                              type='RendermanPatternGraph')
+        #nt.use_fake_user = True
+        idblock.use_nodes = True
+        nt = idblock.node_tree
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')

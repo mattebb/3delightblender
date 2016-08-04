@@ -730,29 +730,22 @@ def export_light_shaders(ri, lamp, do_geometry=True):
     # need this for rerendering
     ri.Attribute('identifier', {'string name': handle})
     # do the shader
-    if rm.nodetree != '':
+    if rm.node:
         if lamp.type == 'POINT':
             ri.Scale(.01, .01, .01)
         # make sure the shape is set on PxrStdAreaLightShape
         if lamp.type != "HEMI":
-            nt = bpy.data.node_groups[rm.nodetree]
-            output = None
-            for node in nt.nodes:
-                if node.renderman_node_type == 'output':
-                    output = node
-                    break
-            if output and 'Light' in output.inputs and output.inputs['Light'].is_linked:
-                light_shader = output.inputs['Light'].links[0].from_node
-                if hasattr(light_shader, 'rman__Shape'):
-                    if lamp.type == 'AREA':
-                        light_shader.rman__Shape = rm.area_shape
-                    else:
-                        light_shader.rman__Shape = shapes[lamp.type][0]
-                    if lamp.type == 'SPOT':
-                        light_shader.coneAngle = .5 * \
-                            math.degrees(lamp.spot_size)
-                        light_shader.penumbraAngle = math.degrees(
-                            lamp.spot_blend)
+            light_shader = rm.node
+            if hasattr(light_shader, 'rman__Shape'):
+                if lamp.type == 'AREA':
+                    light_shader.rman__Shape = rm.area_shape
+                else:
+                    light_shader.rman__Shape = shapes[lamp.type][0]
+                if lamp.type == 'SPOT':
+                    light_shader.coneAngle = .5 * \
+                        math.degrees(lamp.spot_size)
+                    light_shader.penumbraAngle = math.degrees(
+                        lamp.spot_blend)
 
         export_shader_nodetree(ri, lamp, handle)
     else:
@@ -771,7 +764,7 @@ def export_world_rib(ri, world):
 def export_world(ri, world, do_geometry=True):
     rm = world.renderman
     # if no shader do nothing!
-    if rm.renderman_type == 'NONE' or rm.nodetree == '':
+    if rm.renderman_type == 'NONE' or rm.node is None:
         return
     params = []
 
@@ -792,7 +785,7 @@ def export_world(ri, world, do_geometry=True):
     # need this for rerendering
     ri.Attribute('identifier', {'string name': handle})
     # do the light only if nodetree
-    if rm.nodetree != '':
+    if rm.node:
         # make sure the shape is set on PxrStdAreaLightShape
         export_shader_nodetree(ri, world, handle)
         params = {}
@@ -838,7 +831,7 @@ def export_material(ri, mat, handle=None):
         return
     rm = mat.renderman
 
-    if rm.nodetree != '':
+    if mat.node_tree:
         export_shader_nodetree(
             ri, mat, handle, disp_bound=rm.displacementbound)
     else:
@@ -1068,13 +1061,15 @@ def get_texture_list(scene):
         if o.type == 'CAMERA' or o.type == 'EMPTY':
             continue
         elif o.type == 'LAMP':
-            if o.data.renderman.nodetree != '':
-                textures = textures + get_textures(o.data)
+            if o.data.renderman.node:
+                textures = textures + \
+                    get_textures_for_node(o.data.renderman.node)
         else:
             mats_to_scan += recursive_texture_set(o)
     if scene.world.renderman.renderman_type != 'NONE' and \
-            scene.world.renderman.nodetree != '':
-        textures = textures + get_textures(scene.world)
+            scene.world.renderman.node:
+        textures = textures + \
+            get_textures_for_node(scene.world.renderman.node)
 
     # cull duplicates by only doing mats once
     for mat in set(mats_to_scan):
@@ -1676,11 +1671,8 @@ class DataBlock:
 
 def has_emissive_material(db):
     for mat in db.material:
-        if mat and mat.renderman.nodetree != '' and \
-            mat.renderman.nodetree in bpy.data.node_groups:
-            
-
-            nt = bpy.data.node_groups[mat.renderman.nodetree]
+        if mat and mat.node_tree:
+            nt = mat.node_tree
         
             out = next((n for n in nt.nodes if n.renderman_node_type == 'output'),
                         None)
@@ -3275,8 +3267,8 @@ def is_emissive(object):
     if hasattr(object.data, 'materials'):
         # update the light position and shaders if updated
         for mat in object.data.materials:
-            if mat is not None and mat.renderman.nodetree != '':
-                nt = bpy.data.node_groups[mat.renderman.nodetree]
+            if mat is not None and mat.node_tree:
+                nt = mat.node_tree
                 if 'Output' in nt.nodes and \
                         nt.nodes['Output'].inputs['Light'].is_linked:
                     return True

@@ -83,9 +83,8 @@ class RendermanPatternGraph(bpy.types.NodeTree):
         if ob and ob.type not in {'LAMP', 'CAMERA'}:
             ma = ob.active_material
             if ma is not None:
-                nt_name = ma.renderman.nodetree
-                if nt_name != '':
-                    return bpy.data.node_groups[ma.renderman.nodetree], ma, ma
+                if ma.node_tree:
+                    return ma.node_tree, ma, ma
         elif ob and ob.type == 'LAMP':
             la = ob.data
             nt_name = la.renderman.nodetree
