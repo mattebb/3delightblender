@@ -703,6 +703,44 @@ def find_node_input(node, name):
 
     return None
 
+def find_node(material, nodetype):
+    if material and material.node_tree:
+        ntree = material.node_tree
+
+        active_output_node = None
+        for node in ntree.nodes:
+            if getattr(node, "bl_idname", None) == nodetype:
+                if getattr(node, "is_active_output", True):
+                    return node
+                if not active_output_node:
+                    active_output_node = node
+        return active_output_node
+
+    return None
+
+
+def find_node_input(node, name):
+    for input in node.inputs:
+        if input.name == name:
+            return input
+
+    return None
+
+
+def panel_node_draw(layout, id_data, output_type, input_name):
+    ntree = id_data.node_tree
+
+    node = find_node(id_data, output_type)
+    if not node:
+        layout.label(text="No output node")
+    else:
+        input = find_node_input(node, input_name)
+        layout.template_node_view(ntree, node, input)
+
+    return True
+
+def is_renderman_nodetree(material):
+    return find_node(material, 'RendermanOutputNode')
 
 def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
                              output_node_type="output"):
@@ -1286,10 +1324,49 @@ def gen_params(ri, node, mat_name=None):
 
     return params
 
+
+cycles_map = {
+    'ShaderNodeBsdfDiffuse': {
+        'renderman_type': 'Bxdf',
+        'renderman_name': 'PxrSurface',
+        'params': {
+            'Color': {'from_source': 'inputs', 'to_name': 'diffuseColor', 'to_type': 'color'},
+            'Roughness': {'from_source': 'inputs', 'to_name': 'diffuseRoughness', 'to_type': 'float'},
+        }
+    }
+
+}
+
+def translate_cycles_node(ri, node, mat_name):
+    mapping = cycles_map[node.bl_idname]
+    ri_method = getattr(ri, mapping['renderman_type'])
+    params = {}
+    for name, param in mapping['params'].items():
+        if param['from_source'] == 'inputs':
+            input = node.inputs[name]
+            if input.is_linked:
+                param_name = 'reference %s %s' % (param['to_type'], param['to_name'])
+                link = input.links[0]
+                from_node = link.from_node
+                out_mapping = cycles_map[from_node.bl_idname]
+                param_val = "%s:%s" % (from_node.name, out_mapping['outputs'][link.from_socket.name]['to_name'])
+            else:
+                param_name = '%s %s' % (param['to_type'], param['to_name'])
+                param_val = rib(input.default_value)
+                if param['to_type'] in ['color', 'point', 'normal', 'vector']:
+                    param_val = param_val[:3]
+
+        params[param_name] = param_val
+
+    print(params)
+    ri_method(mapping['renderman_name'], node.name, params)
+
+
 # Export to rib
-
-
 def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
+    if not hasattr(node, 'renderman_node_type'):
+        return translate_cycles_node(ri, node, mat_name)
+
     params = gen_params(ri, node, mat_name)
     instance = mat_name + '.' + node.name
     params['__instanceid'] = mat_name + '.' + node.name
@@ -1356,6 +1433,8 @@ def gather_nodes(node):
                     nodes.append(sub_node)
     if hasattr(node, 'renderman_node_type') and node.renderman_node_type != 'output':
         nodes.append(node)
+    elif not hasattr(node, 'renderman_node_type') and not node.bl_idname == 'ShaderNodeOutputMaterial':
+        nodes.append(node)
 
     return nodes
 
@@ -1363,29 +1442,35 @@ def gather_nodes(node):
 # for an input node output all "nodes"
 def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
 
-    if id and id.renderman.nodetree != '':
-        portal = type(id).__name__ == 'AreaLamp' and id.renderman.renderman_type == 'PORTAL'
-        if id.renderman.nodetree not in bpy.data.node_groups:
-            load_tree_from_lib(id)
+    if id and id.node_tree:
 
-        if id.renderman.nodetree not in bpy.data.node_groups:
-            return
+        if is_renderman_nodetree(id):
+            portal = type(id).__name__ == 'AreaLamp' and id.renderman.renderman_type == 'PORTAL'
+            if id.renderman.nodetree not in bpy.data.node_groups:
+                load_tree_from_lib(id)
 
-        nt = bpy.data.node_groups[id.renderman.nodetree]
-        if not handle:
-            handle = id.name
+            nt = bpy.data.node_groups[id.renderman.nodetree]
+            if not handle:
+                handle = id.name
 
-        out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and \
-                    n.renderman_node_type == 'output'),
-                   None)
-        if out is None:
-            return
+            out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and \
+                        n.renderman_node_type == 'output'),
+                       None)
+            if out is None:
+                return
 
-        nodes_to_export = gather_nodes(out)
-        ri.ArchiveRecord('comment', "Shader Graph")
-        for node in nodes_to_export:
-            shader_node_rib(ri, node, mat_name=handle,
-                            disp_bound=disp_bound, portal=portal)
+            nodes_to_export = gather_nodes(out)
+            ri.ArchiveRecord('comment', "Shader Graph")
+            for node in nodes_to_export:
+                shader_node_rib(ri, node, mat_name=handle,
+                                disp_bound=disp_bound, portal=portal)
+        elif find_node(id, 'ShaderNodeOutputMaterial'):
+            out = find_node(id, 'ShaderNodeOutputMaterial')
+            nodes_to_export = gather_nodes(out)
+            ri.ArchiveRecord('comment', "Shader Graph")
+            for node in nodes_to_export:
+                shader_node_rib(ri, node, mat_name=handle,
+                                disp_bound=disp_bound)
 
 
 # return the bxdf name for this mat if there is one, else return defualt

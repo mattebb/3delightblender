@@ -1674,7 +1674,7 @@ def has_emissive_material(db):
         if mat and mat.node_tree:
             nt = mat.node_tree
         
-            out = next((n for n in nt.nodes if n.renderman_node_type == 'output'),
+            out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and n.renderman_node_type == 'output'),
                         None)
             if out and out.inputs['Light'].is_linked:
                 return True

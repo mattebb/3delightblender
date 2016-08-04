@@ -27,7 +27,7 @@ import bpy
 import math
 import blf
 from bpy.types import Panel
-from .nodes import NODE_LAYOUT_SPLIT
+from .nodes import NODE_LAYOUT_SPLIT, is_renderman_nodetree, panel_node_draw
 
 from . import engine
 # global dictionaries
@@ -623,45 +623,6 @@ class ShaderPanel():
                     rd.engine in {'PRMAN_RENDER'})
 
 
-
-def find_node(material, nodetype):
-    if material and material.node_tree:
-        ntree = material.node_tree
-
-        active_output_node = None
-        for node in ntree.nodes:
-            if getattr(node, "bl_idname", None) == nodetype:
-                if getattr(node, "is_active_output", True):
-                    return node
-                if not active_output_node:
-                    active_output_node = node
-        return active_output_node
-
-    return None
-
-
-def find_node_input(node, name):
-    for input in node.inputs:
-        if input.name == name:
-            return input
-
-    return None
-
-
-def panel_node_draw(layout, id_data, output_type, input_name):
-    ntree = id_data.node_tree
-
-    node = find_node(id_data, output_type)
-    if not node:
-        layout.label(text="No output node")
-    else:
-        input = find_node_input(node, input_name)
-        layout.template_node_view(ntree, node, input)
-
-    return True
-
-def is_renderman_nodetree(material):
-    return find_node(material, 'RendermanOutputNode')
 
 
 class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
