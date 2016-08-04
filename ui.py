@@ -623,6 +623,47 @@ class ShaderPanel():
                     rd.engine in {'PRMAN_RENDER'})
 
 
+
+def find_node(material, nodetype):
+    if material and material.node_tree:
+        ntree = material.node_tree
+
+        active_output_node = None
+        for node in ntree.nodes:
+            if getattr(node, "bl_idname", None) == nodetype:
+                if getattr(node, "is_active_output", True):
+                    return node
+                if not active_output_node:
+                    active_output_node = node
+        return active_output_node
+
+    return None
+
+
+def find_node_input(node, name):
+    for input in node.inputs:
+        if input.name == name:
+            return input
+
+    return None
+
+
+def panel_node_draw(layout, id_data, output_type, input_name):
+    ntree = id_data.node_tree
+
+    node = find_node(id_data, output_type)
+    if not node:
+        layout.label(text="No output node")
+    else:
+        input = find_node_input(node, input_name)
+        layout.template_node_view(ntree, node, input)
+
+    return True
+
+def is_renderman_nodetree(material):
+    return find_node(material, 'RendermanOutputNode')
+
+
 class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
     bl_context = "material"
     bl_label = "Bxdf"
@@ -630,13 +671,18 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
 
     def draw(self, context):
         mat = context.material
+        layout = self.layout
         if context.material.renderman and context.material.node_tree:
             nt = context.material.node_tree
-            draw_nodes_properties_ui(
-                self.layout, context, nt, input_name=self.shader_type)
+            
+            if is_renderman_nodetree(mat):
+                draw_nodes_properties_ui(
+                    self.layout, context, nt, input_name=self.shader_type)
+            else:
+                if not panel_node_draw(layout, mat, 'ShaderNodeOutputMaterial', 'Surface'):
+                    layout.prop(mat, "diffuse_color")
         else:
             # if no nodetree we use pxrdisney
-            layout = self.layout
             mat = context.material
             rm = mat.renderman
 
