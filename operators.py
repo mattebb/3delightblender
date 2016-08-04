@@ -58,7 +58,7 @@ from . import engine
 
 from .properties import aov_mapping
 
-from .nodes import RendermanPatternGraph
+#from .nodes import RendermanPatternGraph
 
 from .spool import spool_render
 
@@ -928,10 +928,10 @@ class Add_bxdf(bpy.types.Operator):
 
     def get_type_items(self, context):
         items = []
-        for nodetype in RendermanPatternGraph.nodetypes.values():
-            if nodetype.renderman_node_type == 'bxdf':
-                items.append((nodetype.bl_label, nodetype.bl_label,
-                              nodetype.bl_label))
+        #for nodetype in RendermanPatternGraph.nodetypes.values():
+        #    if nodetype.renderman_node_type == 'bxdf':
+        #        items.append((nodetype.bl_label, nodetype.bl_label,
+        #                      nodetype.bl_label))
         items = sorted(items, key=itemgetter(1))
         return items
     bxdf_name = EnumProperty(items=get_type_items, name="Bxdf Name")

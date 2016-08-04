@@ -64,33 +64,33 @@ def load_tree_from_lib(mat):
 # Default Types
 
 
-class RendermanPatternGraph(bpy.types.NodeTree):
+# class RendermanPatternGraph(bpy.types.NodeTree):
 
-    '''A node tree comprised of renderman nodes'''
-    bl_idname = 'RendermanPatternGraph'
-    bl_label = 'Renderman Pattern Graph'
-    bl_icon = 'TEXTURE_SHADED'
-    nodetypes = {}
+#     '''A node tree comprised of renderman nodes'''
+#     bl_idname = 'RendermanPatternGraph'
+#     bl_label = 'Renderman Pattern Graph'
+#     bl_icon = 'TEXTURE_SHADED'
+#     nodetypes = {}
 
-    @classmethod
-    def poll(cls, context):
-        return context.scene.render.engine == 'PRMAN_RENDER'
+#     @classmethod
+#     def poll(cls, context):
+#         return context.scene.render.engine == 'PRMAN_RENDER'
 
-    # Return a node tree from the context to be used in the editor
-    @classmethod
-    def get_from_context(cls, context):
-        ob = context.active_object
-        if ob and ob.type not in {'LAMP', 'CAMERA'}:
-            ma = ob.active_material
-            if ma is not None:
-                if ma.node_tree:
-                    return ma.node_tree, ma, ma
-        elif ob and ob.type == 'LAMP':
-            la = ob.data
-            nt_name = la.renderman.nodetree
-            if nt_name != '':
-                return bpy.data.node_groups[la.renderman.nodetree], la, la
-        return (None, None, None)
+#     # Return a node tree from the context to be used in the editor
+#     @classmethod
+#     def get_from_context(cls, context):
+#         ob = context.active_object
+#         if ob and ob.type not in {'LAMP', 'CAMERA'}:
+#             ma = ob.active_material
+#             if ma is not None:
+#                 if ma.node_tree:
+#                     return ma.node_tree, ma, ma
+#         elif ob and ob.type == 'LAMP':
+#             la = ob.data
+#             nt_name = la.renderman.nodetree
+#             if nt_name != '':
+#                 return bpy.data.node_groups[la.renderman.nodetree], la, la
+#         return (None, None, None)
 
 
 class RendermanSocket:
@@ -422,7 +422,7 @@ class RendermanShadingNode(bpy.types.Node):
     @classmethod
     def poll(cls, ntree):
         if hasattr(ntree, 'bl_idname'):
-            return ntree.bl_idname == 'RendermanPatternGraph'
+            return ntree.bl_idname == 'ShaderNodeTree'
         else:
             return True
 
@@ -618,7 +618,7 @@ def generate_osl_node():
     # lights cant connect to a node tree in 20.0
     class_generate_properties(ntype, name, inputs)
     bpy.utils.register_class(ntype)
-    RendermanPatternGraph.nodetypes[typename] = ntype
+    bpy.types.ShaderNodeTree.nodetypes[typename] = ntype
 
 def generate_node_type(prefs, name, args):
     ''' Dynamically generate a node type from pattern '''
@@ -692,7 +692,7 @@ def generate_node_type(prefs, name, args):
 
     bpy.utils.register_class(ntype)
 
-    RendermanPatternGraph.nodetypes[typename] = ntype
+    return typename, ntype
 
 
 # UI
@@ -707,7 +707,7 @@ def find_node_input(node, name):
 def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
                              output_node_type="output"):
     output_node = next((n for n in nt.nodes
-                        if n.renderman_node_type == output_node_type), None)
+                        if hasattr(n, 'renderman_node_type') and n.renderman_node_type == output_node_type), None)
     if output_node is None:
         return
 
@@ -887,7 +887,7 @@ class Add_Node:
 
     def get_type_items(self, context):
         items = []
-        for nodetype in RendermanPatternGraph.nodetypes.values():
+        for nodetype in bpy.types.ShaderNodeTree.nodetypes.values():
             if self.input_type.lower() == 'light' and nodetype.renderman_node_type == 'light':
                 if nodetype.__name__ == 'PxrMeshLightLightNode':
                     items.append((nodetype.typename, nodetype.bl_label,
@@ -1545,7 +1545,7 @@ class RendermanPatternNodeCategory(NodeCategory):
 
     @classmethod
     def poll(cls, context):
-        return context.space_data.tree_type == 'RendermanPatternGraph'
+        return context.space_data.tree_type == 'ShaderNodeTree'
 
 classes = [
     RendermanShaderSocket,
@@ -1574,16 +1574,21 @@ def register():
 
     categories = {}
 
+    nodetypes = {}
+
     for name, arg_file in args_files_in_path(prefs, None).items():
-        generate_node_type(prefs, name, ET.parse(arg_file).getroot())
+        vals = generate_node_type(prefs, name, ET.parse(arg_file).getroot())
+        if vals:
+            typename, nodetype = vals
+            nodetypes[typename] = nodetype
     # need to specially make an osl node
-    generate_osl_node()
+    #generate_osl_node()
 
     pattern_nodeitems = []
     bxdf_nodeitems = []
     light_nodeitems = []
     displacement_nodeitems = []
-    for name, node_type in RendermanPatternGraph.nodetypes.items():
+    for name, node_type in nodetypes.items():
         node_item = NodeItem(name, label=node_type.bl_label)
         if node_type.renderman_node_type == 'pattern':
             pattern_nodeitems.append(node_item)
