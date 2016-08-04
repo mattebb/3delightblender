@@ -3265,6 +3265,12 @@ def add_light(rpass, ri, active, prman):
 def delete_light(rpass, ri, name, prman):
     rpass.edit_num += 1
     edit_flush(ri, rpass.edit_num, prman)
+    ri.EditBegin('attribute', {'string scopename': name})
+    ri.Attribute('visibility', {'int camera':0,})
+    ri.Bxdf('null', 'null', {})
+    ri.EditEnd()
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
     ri.EditBegin('overrideilluminate')
     ri.Illuminate(name, False)
     ri.EditEnd()

@@ -65,7 +65,7 @@ from .nodes import get_tex_file_name
 addon_version = bl_info['version']
 
 prman_inited = False
-
+ipr_handle = None
 
 def init_prman():
     # set pythonpath before importing prman
@@ -85,11 +85,12 @@ def init():
 
 
 def is_ipr_running():
-    if ipr is not None and ipr.is_interactive:
+    if ipr is not None and ipr.is_interactive and ipr.is_interactive_ready:
         if ipr.is_prman_running():
             return True
         else:
             # shutdown IPR
+            ipr.is_interactive_ready = False
             bpy.ops.lighting.start_interactive('INVOKE_DEFAULT')
             return False
     else:
@@ -191,6 +192,7 @@ class RPass:
         self.external_render = external_render
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
         self.is_interactive = interactive
+        self.is_interactive_ready = False
         self.options = []
         # check if prman is imported
         if not prman_inited:
@@ -543,6 +545,7 @@ class RPass:
     # start the interactive session.  Basically the same as ribgen, only
     # save the file
     def start_interactive(self):
+        
         if find_it_path() == None:
             debug('error', "ERROR no 'it' installed.  \
                     Cannot start interactive rendering.")
@@ -554,7 +557,6 @@ class RPass:
             self.end_interactive()
             return
 
-        self.is_interactive = True
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         self.material_dict = {}
@@ -593,25 +595,37 @@ class RPass:
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.ri, self.scene, prman)
+        
+        while not self.is_prman_running():
+            time.sleep(.1)
+        self.is_interactive_ready = True
         return
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
-
         active = scene.objects.active
         if active and active.is_updated:
-            issue_transform_edits(self, self.ri, active, prman)
+            if is_ipr_running():
+                issue_transform_edits(self, self.ri, active, prman)
+            else:
+                return
         # record the marker to rib and flush to that point
         # also do the camera in case the camera is locked to display.
         if scene.camera != active and scene.camera.is_updated:
-            issue_transform_edits(self, self.ri, scene.camera, prman)
+            if is_ipr_running():
+                issue_transform_edits(self, self.ri, scene.camera, prman)
+            else:
+                return
         # check for light deleted
         if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
             lights_deleted = []
             for light_name, data_name in self.lights.items():
                 if light_name not in scene.objects:
-                    delete_light(self, self.ri, data_name, prman)
-                    lights_deleted.append(light_name)
+                    if is_ipr_running():
+                        delete_light(self, self.ri, data_name, prman)
+                        lights_deleted.append(light_name)
+                    else:
+                        return
 
             for light_name in lights_deleted:
                 self.lights.pop(light_name, None)
