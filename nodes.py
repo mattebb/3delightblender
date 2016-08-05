@@ -756,9 +756,6 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
     layout.context_pointer_set("node", output_node)
     layout.context_pointer_set("socket", socket)
 
-    if input_name == 'Light' and node is not None and socket.is_linked:
-        layout.prop(node, 'light_primary_visibility')
-        layout.prop(node, 'light_shading_rate')
     split = layout.split(0.35)
     split.label(socket.name + ':')
 
@@ -1385,11 +1382,8 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
                 break
         params['string lightGroup'] = light_group_name
         params['__instanceid'] = mat_name
-        primary_vis = node.light_primary_visibility
-        # must be off for light sources
-        ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
-                                    'int camera': int(primary_vis)})
-        ri.ShadingRate(node.light_shading_rate)
+        
+        
         light_name = node.bl_label
         if portal:
             light_name = 'PxrPortalLight'
@@ -1472,46 +1466,31 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
                                 disp_bound=disp_bound)
 
 
-# return the bxdf name for this mat if there is one, else return defualt
-def get_bxdf_name(mat):
-    if mat.renderman.nodetree not in bpy.data.node_groups:
-        return "default"
-    nt = bpy.data.node_groups[mat.renderman.nodetree]
-    out = next((n for n in nt.nodes if n.renderman_node_type == 'output'),
-               None)
-    if out is None:
-        return "default"
-
-    bxdf_socket = out.inputs['Bxdf']
-    if bxdf_socket.is_linked:
-        return "%s.%s" % (mat.name, bxdf_socket.links[0].from_node.name)
-    else:
-        return "default"
-
 
 def get_textures_for_node(node, matName=""):
     textures = []
-    if node.bl_idname == "PxrPtexturePatternNode":
-        return textures
-    if node.bl_idname == "PxrOSLPatternNode":
-        context = bpy.context
-        OSLProps = context.scene.OSLProps
-        LocationString = matName + node.name + "prop_namesOSL"
-        for prop_name in getattr(OSLProps, LocationString):
-            storageLocation = matName + node.name + prop_name
-            if hasattr(OSLProps, storageLocation + "type"):
-                if getattr(OSLProps, storageLocation + "type") == "string":
-                    prop = getattr(OSLProps, storageLocation)
-                    out_file_name = get_tex_file_name(prop)
-                    textures.append((replace_frame_num(prop), out_file_name,
-                                     ['-smode', 'periodic', '-tmode',
-                                      'periodic']))
-            # if input socket is linked reference that
-            if prop_name in node.inputs and \
-                    node.inputs[prop_name].is_linked:
-                from_socket = node.inputs[prop_name].links[0].from_socket
-                textures = textures + \
-                    get_textures_for_node(from_socket.node, matName)
+    if hasattr(node, 'bl_idname'):
+        if node.bl_idname == "PxrPtexturePatternNode":
+            return textures
+        if node.bl_idname == "PxrOSLPatternNode":
+            context = bpy.context
+            OSLProps = context.scene.OSLProps
+            LocationString = matName + node.name + "prop_namesOSL"
+            for prop_name in getattr(OSLProps, LocationString):
+                storageLocation = matName + node.name + prop_name
+                if hasattr(OSLProps, storageLocation + "type"):
+                    if getattr(OSLProps, storageLocation + "type") == "string":
+                        prop = getattr(OSLProps, storageLocation)
+                        out_file_name = get_tex_file_name(prop)
+                        textures.append((replace_frame_num(prop), out_file_name,
+                                         ['-smode', 'periodic', '-tmode',
+                                          'periodic']))
+                # if input socket is linked reference that
+                if prop_name in node.inputs and \
+                        node.inputs[prop_name].is_linked:
+                    from_socket = node.inputs[prop_name].links[0].from_socket
+                    textures = textures + \
+                        get_textures_for_node(from_socket.node, matName)
     elif hasattr(node, 'prop_meta'):
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
@@ -1523,7 +1502,7 @@ def get_textures_for_node(node, matName=""):
                     continue
 
                 # if input socket is linked reference that
-                elif prop_name in node.inputs and \
+                elif hasattr(node, 'inputs') and prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
                     from_socket = node.inputs[prop_name].links[0].from_socket
                     textures = textures + \
@@ -1584,43 +1563,41 @@ def get_textures_for_node(node, matName=""):
 
 def get_textures(id):
     textures = []
-    if id is None or id.renderman.nodetree == "":
+    if id is None or not id.node_tree:
         return textures
-    try:
-        nt = bpy.data.node_groups[id.renderman.nodetree]
-    except:
-        nt = None
+    
+    nt = id.node_tree
+    out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and \
+                n.renderman_node_type == 'output'),
+               None)
+    if out is None:
+        return
 
-    if nt:
-        out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and \
-                    n.renderman_node_type == 'output'),
-                   None)
-        if out is None:
-            return
-
-        for name, inp in out.inputs.items():
-            if inp.is_linked:
-                textures = textures + \
-                    get_textures_for_node(inp.links[0].from_node, id.name)
+    for name, inp in out.inputs.items():
+        if inp.is_linked:
+            textures = textures + \
+                get_textures_for_node(inp.links[0].from_node, id.name)
 
     return textures
 
 
 @persistent
 def rebuildOSLSystem(dummy):
-    context = bpy.context
-    scene = context.scene
-    if(scene.render.engine == 'PRMAN_RENDER'):
-        for ob in scene.objects:
-            for matSl in ob.material_slots:
-                mat = matSl.material
-                if(hasattr(mat, "renderman")):
-                    if(mat.renderman.nodetree in bpy.data.node_groups):
-                        nt = bpy.data.node_groups[mat.renderman.nodetree]
-                        for node in nt.nodes:
-                            if(node.bl_idname == "PxrOSLPatternNode"):
-                                # Recompile the node.
-                                node.RefreshNodes(context, node, mat, True)
+    pass
+
+    # context = bpy.context
+    # scene = context.scene
+    # if(scene.render.engine == 'PRMAN_RENDER'):
+    #     for ob in scene.objects:
+    #         for matSl in ob.material_slots:
+    #             mat = matSl.material
+    #             if(hasattr(mat, "renderman")):
+    #                 if(mat.renderman.nodetree in bpy.data.node_groups):
+    #                     nt = bpy.data.node_groups[mat.renderman.nodetree]
+    #                     for node in nt.nodes:
+    #                         if(node.bl_idname == "PxrOSLPatternNode"):
+    #                             # Recompile the node.
+    #                             node.RefreshNodes(context, node, mat, True)
 
 
 # our own base class with an appropriate poll function,

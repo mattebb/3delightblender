@@ -46,8 +46,8 @@ from .util import debug
 from .util import locate_openVDB_cache
 
 from .util import find_it_path
-from .nodes import export_shader_nodetree, get_textures
-from .nodes import shader_node_rib, get_bxdf_name
+from .nodes import export_shader_nodetree, get_textures, get_textures_for_node
+from .nodes import shader_node_rib
 
 addon_version = bl_info['version']
 
@@ -692,8 +692,9 @@ def export_object_transform(ri, ob, flip_x=False):
 def export_light_source(ri, lamp):
     names = {'POINT': 'PxrSphereLight', 'SUN':'PxrEnvDayLight',
             'SPOT':'PxrDiskLight', 'HEMI':'PxrDomeLight', 'AREA':'PxrRectLight'}
-    params = {"float exposure": [
-        lamp.energy], "__instanceid": lamp.name, "color lightColor": rib(lamp.color)}
+    params = {"float exposure": [lamp.energy], 
+              "__instanceid": lamp.name, 
+              "color lightColor": rib(lamp.color)}
     ri.Light(names[lamp.type], lamp.name, params)
 
 
@@ -730,24 +731,21 @@ def export_light_shaders(ri, lamp, do_geometry=True):
     # need this for rerendering
     ri.Attribute('identifier', {'string name': handle})
     # do the shader
-    if rm.node:
+    light_shader = rm.get_light_node()
+    if light_shader:
         if lamp.type == 'POINT':
             ri.Scale(.01, .01, .01)
         # make sure the shape is set on PxrStdAreaLightShape
-        if lamp.type != "HEMI":
-            light_shader = rm.node
-            if hasattr(light_shader, 'rman__Shape'):
-                if lamp.type == 'AREA':
-                    light_shader.rman__Shape = rm.area_shape
-                else:
-                    light_shader.rman__Shape = shapes[lamp.type][0]
-                if lamp.type == 'SPOT':
-                    light_shader.coneAngle = .5 * \
-                        math.degrees(lamp.spot_size)
-                    light_shader.penumbraAngle = math.degrees(
-                        lamp.spot_blend)
-
-        export_shader_nodetree(ri, lamp, handle)
+        if lamp.type == 'SPOT':
+            light_shader.coneAngle = .5 * \
+                math.degrees(lamp.spot_size)
+            light_shader.penumbraAngle = math.degrees(
+                lamp.spot_blend)
+        params = property_group_to_params(light_shader)
+        primary_vis = rm.light_primary_visibility
+        ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
+                                    'int camera': int(primary_vis)})
+        ri.Light(rm.get_light_node_name(), handle, params)
     else:
         export_light_source(ri, lamp)
 
@@ -1061,9 +1059,9 @@ def get_texture_list(scene):
         if o.type == 'CAMERA' or o.type == 'EMPTY':
             continue
         elif o.type == 'LAMP':
-            if o.data.renderman.node:
+            if o.data.renderman.get_light_node():
                 textures = textures + \
-                    get_textures_for_node(o.data.renderman.node)
+                    get_textures_for_node(o.data.renderman.get_light_node())
         else:
             mats_to_scan += recursive_texture_set(o)
     if scene.world.renderman.renderman_type != 'NONE' and \

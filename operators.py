@@ -173,15 +173,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             default.location[0] -= 300
             nt.links.new(default.outputs[0], output.inputs[0])
         elif idtype == 'lamp':
-            # we only need to set the renderman type as the update method there
-            # handles making the nodetree
-            light_type = idblock.type
-            if light_type == "SUN":
-                idblock.renderman.renderman_type = "DIST"
-            elif light_type == "HEMI":
-                idblock.renderman.renderman_type = "ENV"
-            else:
-                idblock.renderman.renderman_type = light_type
+            idblock.renderman.use_renderman_node = True
         else:
             idblock.renderman.renderman_type = "ENV"
             # light_type = idblock.type

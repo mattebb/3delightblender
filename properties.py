@@ -43,57 +43,6 @@ from bpy.app.handlers import persistent
 
 integrator_names = []
 
-# get the names of args files in rmantree/lib/ris/integrator/args
-def get_integrator_names(args_xml, name):
-    integrator_names.append((name, name[3:], ''))
-    
-
-class RendermanPluginSettings(bpy.types.PropertyGroup):
-    pass
-
-def prune_perspective_camera(args_xml, name):
-    for page in args_xml.findall('page'):
-            page_name = page.get('name')
-            if page_name == 'Standard Perspective':
-                args_xml.remove(page)
-    return args_xml
-
-plugin_mapping = {
-    'integrator': (get_integrator_names, RendermanSceneSettings),
-    'projection': (prune_perspective_camera, RendermanCameraSettings),
-    'light': (None, RendermanLightSettings)
-}
-
-def register_plugin_groups():
-    rmantree = guess_rmantree()
-    args_path = os.path.join(rmantree, 'lib', 'plugins', 'Args')
-    items = []
-    for f in os.listdir(args_path):
-        args_xml = ET.parse(os.path.join(args_path, f)).getroot()
-        plugin_type = args_xml.find("shaderType/tag").attrib['value']
-        if plugin_type not in plugin_mapping:
-            continue
-        plugin_base, prune_method, parent = plugin_mapping[plugin_type]
-        name = f.split('.')[0]
-        typename = name + plugin_type.capitalize() + 'Settings'
-        ntype = type(typename, (bpy.types.PropertyGroup,), {})
-        ntype.bl_label = name
-        ntype.typename = typename
-
-        if prune_method:
-            arg_xml = prune_method(args_xml, name)
-
-        # do some parsing and get props
-        inputs = [p for p in args_xml.findall('./param')] + \
-            [p for p in args_xml.findall('./page')]
-        class_generate_properties(ntype, name, inputs)
-        # register and add to scene_settings
-        bpy.utils.register_class(ntype)
-        setattr(parent, "%s_settings" % name,
-                PointerProperty(type=ntype, name="%s Settings" % name)
-                )
-
-
 class RendermanCameraSettings(bpy.types.PropertyGroup):
     bl_label = "Renderman Camera Settings"
     bl_idname = 'RendermanCameraSettings'
@@ -570,6 +519,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Shutter close efficiency - controls the speed of the shutter closing.  1 means instantaneous, < 1 is a gradual closing.",
         default=1.0)
 
+    depth_of_field = BoolProperty(
+        name="Depth of Field",
+        description="Enable depth of field blur",
+        default=False)
+
     threads = IntProperty(
         name="Rendering Threads",
         description="Number of processor threads to use.  Note, 0 uses all cores, -1 uses all cores but one.",
@@ -874,7 +828,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     integrator = EnumProperty(
         name="Integrator",
         description="Integrator for rendering",
-        items=integrator_types,
+        items=integrator_names,
         default='PxrPathTracer')
 
     show_integrator_settings = BoolProperty(
@@ -1110,11 +1064,13 @@ class RendermanTextureSettings(bpy.types.PropertyGroup):
 
 
 class RendermanLightSettings(bpy.types.PropertyGroup):
+    def get_light_node(self):
+        return getattr(self, self.light_node) if self.light_node else None
 
-    use_renderman_node = BoolProperty(
-        name="Use RenderMans Light Node",
-        description="Will enable RenderMan light Nodes, opening more options",
-        default=False)
+    def get_light_node_name(self):
+        print(self.light_node)
+        return self.light_node.replace('_settings', '')
+
 
     light_node = StringProperty(
         name="Light Node",
@@ -1153,7 +1109,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             except:
                 pass
 
-        self.light_node = light_shader + "LightSettings"
+        self.light_node = light_shader + "_settings"
         #setattr(node, 'renderman_portal', light_type == 'PORTAL')
 
     def update_area_shape(self, context):
@@ -1166,7 +1122,12 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         elif area_shape == 'sphere':
             light_shader = 'PxrSphereLight'
         
-        self.light_node = light_shader + "LightSettings"
+        self.light_node = light_shader + "_settings"
+
+    use_renderman_node = BoolProperty(
+        name="Use RenderMans Light Node",
+        description="Will enable RenderMan light Nodes, opening more options",
+        default=False, update=update_light_type)
 
     renderman_type = EnumProperty(
         name="Light Type",
@@ -1200,6 +1161,11 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         name="Illuminates by default",
         description="The light illuminates objects by default.",
         default=True)
+
+    light_primary_visibility = BoolProperty(
+            name="Light Primary Visibility",
+            description="Camera visibility for this light",
+            default=True)
 
     def update_mute(self, context):
         if engine.ipr is not None and engine.ipr.is_ipr_running():
@@ -1796,6 +1762,60 @@ initial_aov_channels = [("a", "alpha", ""),
      ("__WPref", "WPref", "Reference World Position primvar (if available)"),
      ("__WNref",  "WNref", "Reference World Normal primvar (if available)")]
 
+    
+
+class RendermanPluginSettings(bpy.types.PropertyGroup):
+    pass
+
+def prune_perspective_camera(args_xml, name):
+    for page in args_xml.findall('page'):
+            page_name = page.get('name')
+            if page_name == 'Standard Perspective':
+                args_xml.remove(page)
+    return args_xml
+
+# get the names of args files in rmantree/lib/ris/integrator/args
+def get_integrator_names(args_xml, name):
+    integrator_names.append((name, name[3:], ''))
+
+
+plugin_mapping = {
+    'integrator': (get_integrator_names, RendermanSceneSettings),
+    'projection': (prune_perspective_camera, RendermanCameraSettings),
+    'light': (None, RendermanLightSettings)
+}
+
+def register_plugin_types():
+    rmantree = guess_rmantree()
+    args_path = os.path.join(rmantree, 'lib', 'plugins', 'Args')
+    items = []
+    for f in os.listdir(args_path):
+        args_xml = ET.parse(os.path.join(args_path, f)).getroot()
+        plugin_type = args_xml.find("shaderType/tag").attrib['value']
+        if plugin_type not in plugin_mapping:
+            continue
+        prune_method, parent = plugin_mapping[plugin_type]
+        name = f.split('.')[0]
+        typename = name + plugin_type.capitalize() + 'Settings'
+        ntype = type(typename, (RendermanPluginSettings,), {})
+        ntype.bl_label = name
+        ntype.typename = typename
+
+        if prune_method:
+            arg_xml = prune_method(args_xml, name)
+
+        # do some parsing and get props
+        inputs = [p for p in args_xml.findall('./param')] + \
+            [p for p in args_xml.findall('./page')]
+        class_generate_properties(ntype, name, inputs)
+        setattr(ntype, 'renderman_node_type', plugin_type)
+
+        # register and add to scene_settings
+        bpy.utils.register_class(ntype)
+        setattr(parent, "%s_settings" % name,
+                PointerProperty(type=ntype, name="%s Settings" % name)
+                )
+
 
 @persistent
 def initial_groups(scene):
@@ -1821,7 +1841,7 @@ classes = [RendermanPath,
            RendermanTextureSettings,
            RendermanLightSettings,
            RendermanParticleSettings,
-           RendermanIntegratorSettings,
+           RendermanPluginSettings,
            RendermanWorldSettings,
            RendermanAOV,
            RendermanRenderLayerSettings,

@@ -328,6 +328,32 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         row.prop(rm, 'render_limit')
 
 
+def draw_props(node, prop_names, layout):
+    for prop_name in prop_names:
+        prop_meta = node.prop_meta[prop_name]
+        prop = getattr(node, prop_name)
+        row = layout.row()
+
+        if prop_meta['renderman_type'] == 'page':
+            ui_prop = prop_name + "_ui_open"
+            ui_open = getattr(node, ui_prop)
+            icon = 'TRIA_DOWN' if ui_open \
+                else 'TRIA_RIGHT'
+
+            split = layout.split(NODE_LAYOUT_SPLIT)
+            row = split.row()
+            row.prop(node, ui_prop, icon=icon, text='',
+                     icon_only=True, emboss=False)
+            row.label(prop_name.split('.')[-1] + ':')
+
+            if ui_open:
+                draw_props(node, prop, layout)
+
+        else:
+            row.label('', icon='BLANK1')
+            # indented_label(row, socket.name+':')
+            row.prop(node, prop_name)
+
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     bl_label = "Sampling"
     # bl_options = {'DEFAULT_CLOSED'}
@@ -360,33 +386,6 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         # find args for integrators here!
         integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
 
-        # for each property add it to ui
-        def draw_props(prop_names, layout):
-            for prop_name in prop_names:
-                prop_meta = integrator_settings.prop_meta[prop_name]
-                prop = getattr(integrator_settings, prop_name)
-                row = layout.row()
-
-                if prop_meta['renderman_type'] == 'page':
-                    ui_prop = prop_name + "_ui_open"
-                    ui_open = getattr(integrator_settings, ui_prop)
-                    icon = 'TRIA_DOWN' if ui_open \
-                        else 'TRIA_RIGHT'
-
-                    split = layout.split(NODE_LAYOUT_SPLIT)
-                    row = split.row()
-                    row.prop(integrator_settings, ui_prop, icon=icon, text='',
-                             icon_only=True, emboss=False)
-                    row.label(prop_name.split('.')[-1] + ':')
-
-                    if ui_open:
-                        draw_props(prop, layout)
-
-                else:
-                    row.label('', icon='BLANK1')
-                    # indented_label(row, socket.name+':')
-                    row.prop(integrator_settings, prop_name)
-
         icon = 'TRIA_DOWN' if rm.show_integrator_settings \
             else 'TRIA_RIGHT'
         text = rm.integrator + " Settings:"
@@ -395,7 +394,7 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row.prop(rm, "show_integrator_settings", icon=icon, text=text,
                  icon_only=True, emboss=False)
         if rm.show_integrator_settings:
-            draw_props(integrator_settings.prop_names, col)
+            draw_props(integrator_settings, integrator_settings.prop_names, col)
 
 
 class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
@@ -595,7 +594,7 @@ class ShaderNodePanel():
         if cls.bl_context == 'data':
             if not context.lamp:
                 return False
-            if context.lamp.node:
+            if context.lamp.renderman.use_renderman_node:
                 return True
         return False
 
@@ -856,34 +855,7 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
         if cam.renderman.use_physical_camera:
             pxrcamera = getattr(cam.renderman, "PxrCamera_settings")
 
-            # for each property add it to ui
-            def draw_props(prop_names, layout):
-                for prop_name in prop_names:
-                    prop_meta = pxrcamera.prop_meta[prop_name]
-                    prop = getattr(pxrcamera, prop_name)
-                    row = layout.row()
-
-                    if prop_meta['renderman_type'] == 'page':
-                        ui_prop = prop_name + "_ui_open"
-                        ui_open = getattr(pxrcamera, ui_prop)
-                        icon = 'TRIA_DOWN' if ui_open \
-                            else 'TRIA_RIGHT'
-
-                        split = layout.split(NODE_LAYOUT_SPLIT)
-                        row = split.row()
-                        row.prop(pxrcamera, ui_prop, icon=icon, text='',
-                                 icon_only=True, emboss=False)
-                        row.label(prop_name.split('.')[-1] + ':')
-
-                        if ui_open:
-                            draw_props(prop, layout)
-
-                    else:
-                        row.label('', icon='BLANK1')
-                        # indented_label(row, socket.name+':')
-                        row.prop(pxrcamera, prop_name)
-
-            draw_props(pxrcamera.prop_names, layout)
+            draw_props(pxrcamera, pxrcamera.prop_names, layout)
 
 
 class DATA_PT_renderman_world(ShaderPanel, Panel):
@@ -905,8 +877,7 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
                 return
             lamp_node = world.renderman.node
             if lamp_node:
-                layout.prop(lamp_node, 'light_primary_visibility')
-                layout.prop(lamp_node, 'light_shading_rate')
+                layout.prop(world.renderman, 'light_primary_visibility')
                 draw_node_properties_recursive(
                     self.layout, context, None, lamp_node)
 
@@ -921,7 +892,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
         layout = self.layout
 
         lamp = context.lamp
-        if not lamp.renderman.node:
+        if not lamp.renderman.use_renderman_node:
             layout.prop(lamp, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype = 'lamp'
             return
@@ -949,11 +920,10 @@ class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
         layout = self.layout
         lamp = context.lamp
 
-        lamp_node = lamp.renderman.node
+        lamp_node = lamp.renderman.get_light_node()
         if lamp_node:
-            layout.prop(lamp_node, 'light_primary_visibility')
-            layout.prop(lamp_node, 'light_shading_rate')
-            draw_node_properties_recursive(self.layout, context, None, lamp_node)
+            layout.prop(lamp.renderman, 'light_primary_visibility')
+            draw_props(lamp_node, lamp_node.prop_names, layout)
 
 
 class OBJECT_PT_renderman_object_geometry(Panel):
@@ -1197,102 +1167,6 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
             rm, "raytrace_intersectpriority", text="Intersection Priority")
 
 
-# class RENDERMAN_OUTPUT_list(bpy.types.UIList):
-
-#     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-#         rm = context.scene.renderman
-#         icon = 'NONE'
-#         label = item.name
-#         layout.label(label, icon=icon)
-
-# class RENDERMAN_CHANNEL_list(bpy.types.UIList):
-
-#     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-#         rm = context.scene.renderman
-#         icon = 'NONE'
-#         label = item.name
-#         layout.label(label, icon=icon)
-
-# class RENDER_PT_layer_custom_outputs(CollectionPanel, Panel):
-#     bl_label = "Custom Outputs"
-#     bl_context = "render_layer"
-#     bl_space_type = 'PROPERTIES'
-#     bl_region_type = 'WINDOW'
-
-#     @classmethod
-#     def poll(cls, context):
-#         rd = context.scene.render
-#         return rd.engine in {'PRMAN_RENDER'}
-
-#     def draw_item(self, layout, context, item):
-#         scene = context.scene
-#         rm = scene.renderman
-
-#         row = layout.row()
-#         row.prop(item, 'name')
-
-#         row = layout.row()
-#         row.prop(item, 'name')
-
-#         row = layout.row()
-#         row.prop(item, 'description')
-
-#         row = layout.row()
-#         row.operator('renderman.create_output', text="Create output").channel = item
-#         row.operator('renderman.add_channel', text="Add to output").channel = item
-
-#     def draw(self, context):
-
-#         layout = self.layout
-#         scene = context.scene
-#         rm = scene.renderman
-
-#         row = layout.row()
-#         row.template_list("RENDERMAN_OUTPUT_list", "Renderman_output_list",
-#                                rm, "outputs", rm, 'outputs_index')
-#         col = row.column(align=True)
-#         op = col.operator("collection.add_remove", icon="ZOOMIN", text="")
-#         op.context = "scene.renderman"
-#         op.collection = "outputs"
-#         op.collection_index = "outputs_index"
-#         op.defaultname = ''
-#         op.action = 'ADD'
-
-#         op = col.operator("collection.add_remove", icon="ZOOMOUT", text="")
-#         op.context = "scene.renderman"
-#         op.collection = "outputs"
-#         op.collection_index = "outputs_index"
-#         op.action = 'REMOVE'
-
-#         row = layout.row()
-#         row.label("Channels")
-
-        # column 2
-        # sub_row = flow2.column()
-        # sub_row.label('goo')
-        # sub_row.prop(rm, 'aov_channels_index')
-        # #row.operator("renderman.add_remove_output", text="Add channel to output")
-        # #row.operator("renderman.add_remove_output", text="Create output from channel")
-
-        # # column 3
-        # sub_row = flow2.column()
-        # sub_row.template_list("RENDERMAN_CHANNEL_list", "Renderman_channel_list",
-        #                        rm, "aov_channels", rm, 'aov_channels_index')
-
-        # sub_col = row.column(align=True)
-        # op = sub_col.operator("collection.add_remove", icon="ZOOMIN", text="")
-        # op.context = "scene.renderman"
-        # op.collection = "aov_channels"
-        # op.collection_index = "aov_channels_index"
-        # op.defaultname = ''
-        # op.action = 'ADD'
-
-        # op = sub_col.operator("collection.add_remove", icon="ZOOMOUT", text="")
-        # op.context = "scene.renderman"
-        # op.collection = "aov_channels"
-        # op.collection_index = "aov_channels_index"
-        # op.action = 'REMOVE'
-
 
 class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
     bl_label = "Passes"
@@ -1429,47 +1303,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
                                   "custom_aovs", "custom_aov_index")
 
 
-# class RENDER_PT_layer_multilayer_files(CollectionPanel, Panel):
-#     bl_label = "RenderMan Multilayer File Output"
-#     bl_context = "render_layer"
-#     bl_space_type = 'PROPERTIES'
-#     bl_region_type = 'WINDOW'
-
-#     @classmethod
-#     def poll(cls, context):
-#         rd = context.scene.render
-#         return rd.engine in {'PRMAN_RENDER'}
-
-#     def draw_item(self, layout, context, item):
-#         scene = context.scene
-#         rm = scene.renderman
-#         col = layout.column()
-#         col.prop(item, "export")
-#         col.prop(item, "name")
-#         col.prop(item, "channel_names")
-#         col.prop(item,  "include_beauty")
-#         col.prop(item, "use_deep")
-#         col.prop(item,  "exr_format_options")
-#         col.prop(item,  "exr_compression")
-#         col.prop(item, "exr_storage")
-
-#     def draw(self, context):
-#         layout = self.layout
-#         scene = context.scene
-#         rm = scene.renderman
-#         multilayer_list = None
-#         active_layer = scene.render.layers.active
-#         for l in rm.multilayer_lists:
-#             if l.render_layer == active_layer.name:
-#                 multilayer_list = l
-#                 break
-#         if multilayer_list is None:
-#             layout.operator('renderman.add_multilayer_list')
-#         else:
-#             layout.context_pointer_set("multilayer_list", multilayer_list)
-#             self._draw_collection(context, layout, multilayer_list, "Multilayer Files",
-#                                   "collection.add_remove", "multilayer_list",
-#                                   "multilayer_files", "multilayer_file_index")
 
 
 class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
@@ -1705,7 +1538,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                     light_shader = lamp.renderman.node
 
                     columns.prop(
-                        light_shader, 'light_primary_visibility', text='')
+                        lamp_rm, 'light_primary_visibility', text='')
                     columns.prop(light_shader, 'intensity', text='')
                     columns.prop(light_shader, 'exposure', text='')
                     if light_shader.bl_label == 'PxrEnvDayLight':
