@@ -1358,7 +1358,6 @@ def translate_cycles_node(ri, node, mat_name):
 
         params[param_name] = param_val
 
-    print(params)
     ri_method(mapping['renderman_name'], node.name, params)
 
 
