@@ -202,7 +202,7 @@ class RendermanPropertyGroup(bpy.types.PropertyGroup):
 # Defines a poll function to enable instantiation.
 
 
-class RendermanShadingNode(bpy.types.Node):
+class RendermanShadingNode(bpy.types.ShaderNode):
     bl_label = 'Output'
 
     def update_mat(self, mat):
@@ -579,6 +579,12 @@ class RendermanBxdfNode(RendermanShadingNode):
     renderman_node_type = 'bxdf'
 
 
+    @classmethod
+    def output_template(class, i):
+        if i == 0:
+            return 
+
+
 class RendermanDisplacementNode(RendermanShadingNode):
     bl_label = 'Displacement'
     renderman_node_type = 'displacement'
@@ -642,7 +648,8 @@ def generate_node_type(prefs, name, args):
 
     def init(self, context):
         if self.renderman_node_type == 'bxdf':
-            self.outputs.new('RendermanShaderSocket', "Bxdf")
+            self.outputs.new(RendermanShaderSocket, "Bxdf")
+            socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
         elif self.renderman_node_type == 'light':
