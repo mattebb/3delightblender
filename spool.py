@@ -1,5 +1,6 @@
 import bpy
 import os
+import time
 from .util import user_path
 
 
@@ -33,7 +34,7 @@ def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, fram
     cdir = user_path(out_dir)
     scene = context.scene
     rm = scene.renderman
-    alf_file = os.path.join(cdir, 'spool.alf')
+    alf_file = os.path.join(cdir, 'spool_%s.alf' % time.strftime("%m%d%y%H%M%S"))
     per_frame_denoise = denoise == 'frame'
     crossframe_denoise = denoise == 'crossframe'
 
