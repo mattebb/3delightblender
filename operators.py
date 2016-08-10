@@ -288,7 +288,7 @@ class ExternalRender(bpy.types.Operator):
         rm_version = rm.path_rmantree.split('-')[-1]
         rm_version = rm_version.strip('/\\')
         if denoise:
-            denoise = 'crossframe' if rm.crossframe_denoise else 'frame'
+            denoise = 'crossframe' if rm.crossframe_denoise and scene.frame_start != scene.frame_end and rm.external_animation else 'frame'
         frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
         frame_end = scene.frame_end if rm.external_animation else scene.frame_current
         alf_file = spool_render(
