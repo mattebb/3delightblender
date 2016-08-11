@@ -661,7 +661,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         min=0.0, max=1024.0, default=10.0)
     use_statistics = BoolProperty(
         name="Statistics",
-        description="Print statistics to /tmp/stats.txt after render",
+        description="Print statistics to stats.xml after render",
         default=False)
     editor_override = StringProperty(
         name="Text Editor",

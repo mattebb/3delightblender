@@ -67,8 +67,8 @@ from bpy_extras.io_utils import ExportHelper
 
 class Renderman_open_stats(bpy.types.Operator):
     bl_idname = 'rman.open_stats'
-    bl_label = "Open Last Stats"
-    bl_description = "Open Last stats file"
+    bl_label = "Open Frame Stats"
+    bl_description = "Open Current Frame stats file"
 
     def execute(self, context):
         scene = context.scene
@@ -76,7 +76,7 @@ class Renderman_open_stats(bpy.types.Operator):
         output_dir = os.path.dirname(
             user_path(rm.path_rib_output, scene=scene))
         bpy.ops.wm.url_open(
-            url="file://" + os.path.join(output_dir, 'stats.xml'))
+            url="file://" + os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current))
         return {'FINISHED'}
 
 
