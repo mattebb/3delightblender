@@ -67,8 +67,8 @@ from bpy_extras.io_utils import ExportHelper
 
 class Renderman_open_stats(bpy.types.Operator):
     bl_idname = 'rman.open_stats'
-    bl_label = "Open Last Stats"
-    bl_description = "Open Last stats file"
+    bl_label = "Open Frame Stats"
+    bl_description = "Open Current Frame stats file"
 
     def execute(self, context):
         scene = context.scene
