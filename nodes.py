@@ -579,10 +579,10 @@ class RendermanBxdfNode(RendermanShadingNode):
     renderman_node_type = 'bxdf'
 
 
-    @classmethod
-    def output_template(class, i):
-        if i == 0:
-            return 
+    #@classmethod
+    #def output_template(class, i):
+    #    if i == 0:
+    #        return 
 
 
 class RendermanDisplacementNode(RendermanShadingNode):
@@ -648,8 +648,8 @@ def generate_node_type(prefs, name, args):
 
     def init(self, context):
         if self.renderman_node_type == 'bxdf':
-            self.outputs.new(RendermanShaderSocket, "Bxdf")
-            socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
+            self.outputs.new('RendermanShaderSocket', "Bxdf")
+            #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
         elif self.renderman_node_type == 'light':
@@ -929,7 +929,7 @@ class Add_Node:
 
     def get_type_items(self, context):
         items = []
-        for nodetype in bpy.types.ShaderNodeTree.nodetypes.values():
+        for nodetype in nodetypes.values():
             if self.input_type.lower() == 'light' and nodetype.renderman_node_type == 'light':
                 if nodetype.__name__ == 'PxrMeshLightLightNode':
                     items.append((nodetype.typename, nodetype.bl_label,
@@ -1446,10 +1446,10 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
 
         if is_renderman_nodetree(id):
             portal = type(id).__name__ == 'AreaLamp' and id.renderman.renderman_type == 'PORTAL'
-            if id.renderman.nodetree not in bpy.data.node_groups:
-                load_tree_from_lib(id)
+            #if id.renderman.nodetree not in bpy.data.node_groups:
+            #    load_tree_from_lib(id)
 
-            nt = bpy.data.node_groups[id.renderman.nodetree]
+            nt = id.node_tree
             if not handle:
                 handle = id.name
 
@@ -1626,6 +1626,7 @@ classes = [
     OSLProps
 ]
 
+nodetypes = {}
 
 def register():
 
@@ -1642,7 +1643,7 @@ def register():
 
     categories = {}
 
-    nodetypes = {}
+    
 
     for name, arg_file in args_files_in_path(prefs, None).items():
         vals = generate_node_type(prefs, name, ET.parse(arg_file).getroot())
@@ -1671,8 +1672,8 @@ def register():
     # all categories in a list
     node_categories = [
         # identifier, label, items list
-        RendermanPatternNodeCategory("PRMan_output_nodes", "PRMan outputs",
-                                     items=[RendermanOutputNode]),
+        RendermanPatternNodeCategory("PRMan_output_nodes", "PRMan Outputs",
+                                     items=[NodeItem('RendermanOutputNode', label=RendermanOutputNode.bl_label)]),
         RendermanPatternNodeCategory("PRMan_bxdf", "PRMan Bxdfs",
                                      items=sorted(bxdf_nodeitems,
                                                   key=attrgetter('_label'))),

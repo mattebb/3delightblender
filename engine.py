@@ -722,6 +722,9 @@ class RPass:
         files_converted = []
         texture_list = []
 
+        if not temp_texture_list:
+            return
+
         # for UDIM textures
         for in_file, out_file, options in temp_texture_list:
             if '_MAPID_' in in_file:

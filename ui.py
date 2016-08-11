@@ -641,6 +641,8 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             else:
                 if not panel_node_draw(layout, mat, 'ShaderNodeOutputMaterial', 'Surface'):
                     layout.prop(mat, "diffuse_color")
+            layout.separator()
+
         else:
             # if no nodetree we use pxrdisney
             mat = context.material
@@ -650,7 +652,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             row.prop(mat, "diffuse_color")
 
             layout.separator()
-        if mat and not mat.node_tree:
+        if mat and not is_renderman_nodetree(mat):
             layout.operator(
                 'shading.add_renderman_nodetree').idtype = "material"
         # self._draw_shader_menu_params(layout, context, rm)
