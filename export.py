@@ -2418,7 +2418,7 @@ def export_render_settings(ri, rpass, scene, preview=False):
     ri.Attribute("trace", depths)
     if rm.use_statistics:
         ri.Option("statistics", {'int endofframe': 1,
-                                 'string xmlfilename': 'stats_%d.xml' % scene.frame_current})
+                                 'string xmlfilename': 'stats.%04d.xml' % scene.frame_current})
 
 
 def export_camera_matrix(ri, scene, ob, motion_data=[]):
