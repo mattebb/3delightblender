@@ -76,7 +76,7 @@ class Renderman_open_stats(bpy.types.Operator):
         output_dir = os.path.dirname(
             user_path(rm.path_rib_output, scene=scene))
         bpy.ops.wm.url_open(
-            url="file://" + os.path.join(output_dir, 'stats.xml'))
+            url="file://" + os.path.join(output_dir, 'stats_%d.xml' % scene.frame_current))
         return {'FINISHED'}
 
 
