@@ -3254,7 +3254,7 @@ def reissue_textures(ri, rpass, mat):
         textures = get_textures(mat)
 
         files = rpass.convert_textures(textures)
-        if len(files) > 0:
+        if files and len(files) > 0:
             return True
     return False
 

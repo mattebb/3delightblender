@@ -1333,19 +1333,44 @@ cycles_map = {
     'ShaderNodeBsdfDiffuse': {
         'renderman_type': 'Bxdf',
         'renderman_name': 'PxrSurface',
-        'params': {
+        'inputs': {
             'Color': {'from_source': 'inputs', 'to_name': 'diffuseColor', 'to_type': 'color'},
             'Roughness': {'from_source': 'inputs', 'to_name': 'diffuseRoughness', 'to_type': 'float'},
+        }
+    }, 
+    'ShaderNodeTexChecker': {
+        'renderman_type': 'Pattern',
+        'renderman_name': 'PxrChecker',
+        'inputs': {
+            'Color1': {'from_source': 'inputs', 'to_name': 'colorA', 'to_type': 'color'},
+            'Color2': {'from_source': 'inputs', 'to_name': 'colorB', 'to_type': 'color'},
+        },
+        'outputs': {
+            'Color': {'to_name': 'resultRGB', 'to_type': 'color'},
         }
     }
 
 }
 
 def translate_cycles_node(ri, node, mat_name):
+    if node.bl_idname in ['ShaderNodeAddShader', 'ShaderNodeMixShader']:
+        params = {}
+        if node.bl_idname == 'ShaderNodeAddShader':
+            param['float layer1Mask'] = .5
+        else:
+            if node.inputs[0].is_linked:
+                input = node.inputs[0]
+                link = input.links[0]
+                from_node = link.from_node
+                out_mapping = cycles_map[from_node.bl_idname]
+                param['reference float layer1Mask'] = "%s:%s" % (from_node.name, out_mapping['outputs'][link.from_socket.name]['to_name'])
+            else:
+                param['float layer1Mask'] = node.inputs[0].default_value
+
     mapping = cycles_map[node.bl_idname]
     ri_method = getattr(ri, mapping['renderman_type'])
     params = {}
-    for name, param in mapping['params'].items():
+    for name, param in mapping['inputs'].items():
         if param['from_source'] == 'inputs':
             input = node.inputs[name]
             if input.is_linked:
