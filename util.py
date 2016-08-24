@@ -287,7 +287,7 @@ def get_sequence_path(path, blender_frame, anim):
     return make_frame_path(path, frame)
 
 
-def user_path(path, scene=None, ob=None, display_driver=None):
+def user_path(path, scene=None, ob=None, display_driver=None, layer_name=None, pass_name=None):
     '''
     # bit more complicated system to allow accessing scene or object attributes.
     # let's stay simple for now...
@@ -330,6 +330,12 @@ def user_path(path, scene=None, ob=None, display_driver=None):
 
     if ob is not None:
         path = path.replace('{object}', ob.name)
+
+    if layer_name is not None:
+        path = path.replace('{layer}', layer_name)
+
+    if pass_name is not None:
+        path = path.replace('{pass}', pass_name)
 
     # convert ### to frame number
     if scene is not None:
@@ -447,9 +453,12 @@ def get_rman_version(rmantree):
             break
     return int(major_vers), int(minor_vers), vers_modifier
 
-def guess_rmantree():
+def get_addon_prefs():
     addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
-    prefs = addon.preferences
+    return addon.preferences
+
+def guess_rmantree():
+    prefs = get_addon_prefs()
     rmantree_method = prefs.rmantree_method
 
     if rmantree_method == 'MANUAL':
