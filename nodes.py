@@ -1279,10 +1279,10 @@ def gen_params(ri, node, mat_name=None):
                 elif prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
                     from_socket = node.inputs[prop_name].links[0].from_socket
+                    from_node = node.inputs[prop_name].links[0].from_node
                     params['reference %s %s' % (meta['renderman_type'],
                                                 meta['renderman_name'])] = \
-                        ["%s:%s" %
-                            (from_socket.node.name, from_socket.identifier)]
+                        [get_output_param_str(from_node, mat_name, from_socket)]
                 # else output rib
                 else:
                     # if struct is not linked continue
@@ -1352,6 +1352,22 @@ cycles_map = {
 
 }
 
+def get_node_name(node, mat_name):
+    return "%s.%s" % (mat_name, node.name.replace(' ', ''))
+
+def get_socket_name(node, socket):
+    #if this is a renderman node we can just use the socket name, 
+    if hasattr(node, 'renderman_node_type'):
+        return socket.identifier
+    # else we have to get the mapping
+    else:
+        mapping = cycles_map[node.bl_idname]
+        output_map = mapping['outputs'][socket.identifier]
+        return output_map['to_name']
+
+def get_output_param_str(node, mat_name, socket):
+    return "%s:%s" % (get_node_name(node, mat_name), get_socket_name(node, socket))
+
 def translate_cycles_node(ri, node, mat_name):
     if node.bl_idname in ['ShaderNodeAddShader', 'ShaderNodeMixShader']:
         params = {}
@@ -1387,7 +1403,7 @@ def translate_cycles_node(ri, node, mat_name):
 
         params[param_name] = param_val
 
-    ri_method(mapping['renderman_name'], node.name, params)
+    ri_method(mapping['renderman_name'], get_node_name(node, mat_name), params)
 
 
 # Export to rib

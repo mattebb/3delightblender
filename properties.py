@@ -1068,7 +1068,6 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         return getattr(self, self.light_node) if self.light_node else None
 
     def get_light_node_name(self):
-        print(self.light_node)
         return self.light_node.replace('_settings', '')
 
 
