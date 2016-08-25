@@ -50,6 +50,7 @@ from .util import path_list_convert, guess_rmantree, set_pythonpath,\
 from .util import get_real_path, find_it_path
 from .util import debug
 from .util import get_Selected_Objects
+from .util import get_addon_prefs
 from random import randint
 import sys
 from bpy.app.handlers import persistent
@@ -231,7 +232,8 @@ class RPass:
         if not os.path.exists(self.paths['export_dir']):
             os.makedirs(self.paths['export_dir'])
 
-        self.paths['render_output'] = user_path(rm.path_display_driver_image,
+        addon_prefs = get_addon_prefs()
+        self.paths['render_output'] = user_path(addon_prefs.path_display_driver_image,
                                                 scene=scene, display_driver=self.display_driver)
         debug("info", self.paths)
         self.paths['shader'] = [user_path(rm.out_dir, scene=scene)] +\
@@ -258,7 +260,8 @@ class RPass:
         self.scene.frame_set(num)
         self.paths['rib_output'] = user_path(self.scene.renderman.path_rib_output,
                                              scene=self.scene)
-        self.paths['render_output'] = user_path(self.scene.renderman.path_display_driver_image,
+        addon_prefs = get_addon_prefs()
+        self.paths['render_output'] = user_path(addon_prefs.path_display_driver_image,
                                                 scene=self.scene, display_driver=self.display_driver)
         temp_archive_name = self.scene.renderman.path_object_archive_animated
         frame_archive_dir = os.path.dirname(user_path(temp_archive_name,

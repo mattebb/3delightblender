@@ -891,12 +891,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Only available when denoising an external render.\n  This is more efficient especially with motion blur.",
         default=False)
 
-    path_display_driver_image = StringProperty(
-        name="Display Image",
-        description="Path to the raw render result directly from PRMan, without passing through Blender's render pipeline.",
-        subtype='FILE_PATH',
-        default=os.path.join('$OUT', 'images', '{scene}_####.{file_type}'))
-
     update_frequency = IntProperty(
         name="Update frequency",
         description="Number of seconds between display update when rendering to Blender",
