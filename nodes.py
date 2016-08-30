@@ -547,13 +547,13 @@ class OSLProps(bpy.types.PropertyGroup):
 
 
 class RendermanOutputNode(RendermanShadingNode):
-    bl_label = 'Output'
+    bl_label = 'PRMan Material'
     renderman_node_type = 'output'
     bl_icon = 'MATERIAL'
     node_tree = None
 
     def init(self, context):
-        input = self.inputs.new('RendermanShaderSocket', 'Bxdf')
+        input = self.inputs.new('RendermanShaderSocket', 'Bxdf').type = 'SHADER'
         input = self.inputs.new('RendermanShaderSocket', 'Light')
         input = self.inputs.new('RendermanShaderSocket', 'Displacement')
 
@@ -578,11 +578,13 @@ class RendermanBxdfNode(RendermanShadingNode):
     bl_label = 'Bxdf'
     renderman_node_type = 'bxdf'
 
+    shading_compatibility = {'NEW_SHADING'}
 
-    #@classmethod
-    #def output_template(class, i):
-    #    if i == 0:
-    #        return 
+    @classmethod
+    def output_template(cls, i):
+        print('running output template ', str(i))
+        if i == 0:
+            return {'identifier':'Bxdf', 'name': 'Bxdf', 'type':'SHADER'}
 
 
 class RendermanDisplacementNode(RendermanShadingNode):
@@ -648,7 +650,7 @@ def generate_node_type(prefs, name, args):
 
     def init(self, context):
         if self.renderman_node_type == 'bxdf':
-            self.outputs.new('RendermanShaderSocket', "Bxdf")
+            self.outputs.new('RendermanShaderSocket', "Bxdf").type='SHADER'
             #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
@@ -1329,27 +1331,58 @@ def gen_params(ri, node, mat_name=None):
     return params
 
 
-cycles_map = {
-    'ShaderNodeBsdfDiffuse': {
-        'renderman_type': 'Bxdf',
-        'renderman_name': 'PxrSurface',
-        'inputs': {
-            'Color': {'from_source': 'inputs', 'to_name': 'diffuseColor', 'to_type': 'color'},
-            'Roughness': {'from_source': 'inputs', 'to_name': 'diffuseRoughness', 'to_type': 'float'},
-        }
-    }, 
-    'ShaderNodeTexChecker': {
-        'renderman_type': 'Pattern',
-        'renderman_name': 'PxrChecker',
-        'inputs': {
-            'Color1': {'from_source': 'inputs', 'to_name': 'colorA', 'to_type': 'color'},
-            'Color2': {'from_source': 'inputs', 'to_name': 'colorB', 'to_type': 'color'},
-        },
-        'outputs': {
-            'Color': {'to_name': 'resultRGB', 'to_type': 'color'},
-        }
-    }
-
+cycles_node_map = {
+    'ShaderNodeAttribute': 'node_checker_attribute',
+    'ShaderNodeBlackbody': 'node_checker_blackbody',
+    'ShaderNodeTexBrick': 'node_brick_texture',
+    'ShaderNodeBrightContrast': 'node_brightness',
+    'ShaderNodeTexChecker': 'node_checker_texture',
+    'ShaderNodeBump': 'node_bump',
+    'ShaderNodeCameraData': 'node_camera',
+    'ShaderNodeTexChecker': 'node_checker_texture',
+    'ShaderNodeCombineHSV': 'node_combine_hsv',
+    'ShaderNodeCombineRGB': 'node_combine_rgb',
+    'ShaderNodeCombineXYZ': 'node_combine_xyz',
+    'ShaderNodeTexEnvironment': 'node_environment_texture',
+    'ShaderNodeFresnel': 'node_fresnel',
+    'ShaderNodeGamma': 'node_gamma',
+    'ShaderNodeGeometry': 'node_geometry',
+    'ShaderNodeTexGradient': 'node_gradient_texture',
+    'ShaderNodeHairInfo': 'node_hair_info',
+    'ShaderNodeInvert': 'node_invert',
+    'ShaderNodeHueSaturation': 'node_hsv',
+    'ShaderNodeTexImage': 'node_image_texture',
+    'ShaderNodeHueSaturation': 'node_hsv',
+    'ShaderNodeLayerWeight': 'node_layer_weight',
+    'ShaderNodeLightFalloff': 'node_light_falloff',
+    'ShaderNodeLightPath': 'node_light_path',
+    'ShaderNodeTexMagic': 'node_magic_texture',
+    'ShaderNodeMapping': 'node_mapping',
+    'ShaderNodeMath': 'node_math',
+    'ShaderNodeMixRGB': 'node_mix',
+    'ShaderNodeTexMusgrave': 'node_musgrave_texture',
+    'ShaderNodeTexNoise': 'node_noise_texture',
+    'ShaderNodeNormal': 'node_normal',
+    'ShaderNodeNormalMap': 'node_normal_map',
+    'ShaderNodeObjectInfo': 'node_object_info',
+    'ShaderNodeParticleInfo': 'node_particle_info',
+    'ShaderNodeRGBCurve': 'node_rgb_curves',
+    'ShaderNodeValToRGB': 'node_rgb_ramp',
+    'ShaderNodeSeparateHSV': 'node_separate_hsv',
+    'ShaderNodeSeparateRGB': 'node_separate_rgb',
+    'ShaderNodeSeparateXYZ': 'node_separate_xyz',
+    'ShaderNodeTexSky': 'node_sky_texture',
+    'ShaderNodeTangent': 'node_tangent',
+    'ShaderNodeTexCoord': 'node_texture_coordinate',
+    'ShaderNodeUVMap': 'node_uv_map',
+    'ShaderNodeValue': 'node_value',
+    'ShaderNodeVectorCurves': 'node_vector_curves',
+    'ShaderNodeVectorMath': 'node_vector_math',
+    'ShaderNodeVectorTransform': 'node_vector_transform',
+    'ShaderNodeTexVoronoi': 'node_voronoi_texture',
+    'ShaderNodeTexWave': 'node_wave_texture',
+    'ShaderNodeWavelength': 'node_wavelength',
+    'ShaderNodeWireframe': 'node_wireframe',
 }
 
 def get_node_name(node, mat_name):
@@ -1357,53 +1390,40 @@ def get_node_name(node, mat_name):
 
 def get_socket_name(node, socket):
     #if this is a renderman node we can just use the socket name, 
-    if hasattr(node, 'renderman_node_type'):
-        return socket.identifier
-    # else we have to get the mapping
+    return socket.identifier
+
+def get_socket_type(node, socket):
+    sock_type = socket.type.lower()
+    if sock_type == 'rgba':
+        return 'color'
+    elif sock_type == 'value':
+        return 'float'
     else:
-        mapping = cycles_map[node.bl_idname]
-        output_map = mapping['outputs'][socket.identifier]
-        return output_map['to_name']
+        return sock_type
 
 def get_output_param_str(node, mat_name, socket):
     return "%s:%s" % (get_node_name(node, mat_name), get_socket_name(node, socket))
 
 def translate_cycles_node(ri, node, mat_name):
-    if node.bl_idname in ['ShaderNodeAddShader', 'ShaderNodeMixShader']:
-        params = {}
-        if node.bl_idname == 'ShaderNodeAddShader':
-            param['float layer1Mask'] = .5
-        else:
-            if node.inputs[0].is_linked:
-                input = node.inputs[0]
-                link = input.links[0]
-                from_node = link.from_node
-                out_mapping = cycles_map[from_node.bl_idname]
-                param['reference float layer1Mask'] = "%s:%s" % (from_node.name, out_mapping['outputs'][link.from_socket.name]['to_name'])
-            else:
-                param['float layer1Mask'] = node.inputs[0].default_value
+    if node.bl_idname not in cycles_node_map.keys():
+        print('No translation for node of type %s named %s' % (node.bl_idname, node.name))
+        return
 
-    mapping = cycles_map[node.bl_idname]
-    ri_method = getattr(ri, mapping['renderman_type'])
+    mapping = cycles_node_map[node.bl_idname]
     params = {}
-    for name, param in mapping['inputs'].items():
-        if param['from_source'] == 'inputs':
-            input = node.inputs[name]
-            if input.is_linked:
-                param_name = 'reference %s %s' % (param['to_type'], param['to_name'])
-                link = input.links[0]
-                from_node = link.from_node
-                out_mapping = cycles_map[from_node.bl_idname]
-                param_val = "%s:%s" % (from_node.name, out_mapping['outputs'][link.from_socket.name]['to_name'])
-            else:
-                param_name = '%s %s' % (param['to_type'], param['to_name'])
-                param_val = rib(input.default_value)
-                if param['to_type'] in ['color', 'point', 'normal', 'vector']:
-                    param_val = param_val[:3]
+    for in_name, input in node.inputs.items():
+        param_name = "%s %s" % (get_socket_type(node, input), get_socket_name(node, input))
+        if input.is_linked:
+            param_name = 'reference ' + param_name
+            link = input.links[0]
+            param_val = get_output_param_str(link.from_node, mat, link.from_socket)
+
+        else:
+            param_val = rib(input.default_value, type_hint=get_socket_type(node, input))
 
         params[param_name] = param_val
 
-    ri_method(mapping['renderman_name'], get_node_name(node, mat_name), params)
+    ri.Pattern(mapping, get_node_name(node, mat_name), params)
 
 
 # Export to rib
@@ -1512,7 +1532,6 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
             for node in nodes_to_export:
                 shader_node_rib(ri, node, mat_name=handle,
                                 disp_bound=disp_bound)
-
 
 
 def get_textures_for_node(node, matName=""):
@@ -1715,7 +1734,7 @@ def register():
         # identifier, label, items list
         RendermanPatternNodeCategory("PRMan_output_nodes", "PRMan Outputs",
                                      items=[NodeItem('RendermanOutputNode', label=RendermanOutputNode.bl_label)]),
-        RendermanPatternNodeCategory("PRMan_bxdf", "PRMan Bxdfs",
+        RendermanPatternNodeCategory("shader", "PRMan Bxdfs",
                                      items=sorted(bxdf_nodeitems,
                                                   key=attrgetter('_label'))),
         RendermanPatternNodeCategory("PRMan_patterns", "PRMan Patterns",

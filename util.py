@@ -239,6 +239,8 @@ def get_path_list(rm, type):
         if type == 'shader':
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          'shaders'))
+            paths.append(os.path.join(bpy.utils.resource_path('LOCAL'), 'scripts', 
+                        'addons', 'cycles', 'shaders'))
 
     if rm.use_builtin_paths:
         paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -380,6 +382,10 @@ def user_path(path, scene=None, ob=None, display_driver=None):
 def rib(v, type_hint=None):
 
     # float, int
+    if type_hint == 'color':
+        return list(v)[:3]
+
+
     if type(v) in (mathutils.Vector, mathutils.Color) or\
             v.__class__.__name__ == 'bpy_prop_array'\
             or v.__class__.__name__ == 'Euler':

@@ -636,8 +636,9 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             nt = context.material.node_tree
             
             if is_renderman_nodetree(mat):
-                draw_nodes_properties_ui(
-                    self.layout, context, nt, input_name=self.shader_type)
+                panel_node_draw(layout, mat, 'RendermanOutputNode', 'Bxdf')
+                #draw_nodes_properties_ui(
+                #    self.layout, context, nt, input_name=self.shader_type)
             else:
                 if not panel_node_draw(layout, mat, 'ShaderNodeOutputMaterial', 'Surface'):
                     layout.prop(mat, "diffuse_color")
