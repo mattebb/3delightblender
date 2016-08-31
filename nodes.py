@@ -126,6 +126,8 @@ class RendermanNodeSocketFloat(bpy.types.NodeSocketFloat, RendermanSocket):
     bl_idname = 'RendermanNodeSocketFloat'
     bl_label = 'Renderman Float Socket'
 
+    default_value = FloatProperty()
+
     def draw_color(self, context, node):
         return (0.5, .5, 0.5, 0.75)
 
@@ -135,6 +137,8 @@ class RendermanNodeSocketInt(bpy.types.NodeSocketInt, RendermanSocket):
     '''Renderman int input/output'''
     bl_idname = 'RendermanNodeSocketInt'
     bl_label = 'Renderman Int Socket'
+
+    default_value = IntProperty()
 
     def draw_color(self, context, node):
         return (1.0, 1.0, 1.0, 0.75)
@@ -162,6 +166,8 @@ class RendermanNodeSocketColor(bpy.types.NodeSocketColor, RendermanSocket):
     bl_idname = 'RendermanNodeSocketColor'
     bl_label = 'Renderman Color Socket'
 
+    default_value = FloatVectorProperty(subtype="COLOR")
+
     def draw_color(self, context, node):
         return (1.0, 1.0, .5, 0.75)
 
@@ -171,6 +177,8 @@ class RendermanNodeSocketVector(bpy.types.NodeSocketVector, RendermanSocket):
     '''Renderman vector input/output'''
     bl_idname = 'RendermanNodeSocketVector'
     bl_label = 'Renderman Vector Socket'
+
+    default_value = FloatVectorProperty()
 
     def draw_color(self, context, node):
         return (.2, .2, 1.0, 0.75)
@@ -1398,6 +1406,8 @@ def get_socket_type(node, socket):
         return 'color'
     elif sock_type == 'value':
         return 'float'
+    elif sock_type == 'vector':
+        return 'point'
     else:
         return sock_type
 
@@ -1416,13 +1426,15 @@ def translate_cycles_node(ri, node, mat_name):
         if input.is_linked:
             param_name = 'reference ' + param_name
             link = input.links[0]
-            param_val = get_output_param_str(link.from_node, mat, link.from_socket)
+            param_val = get_output_param_str(link.from_node, mat_name, link.from_socket)
 
         else:
             param_val = rib(input.default_value, type_hint=get_socket_type(node, input))
 
         params[param_name] = param_val
 
+    #print('doing %s %s' % (node.bl_idname, node.name))
+    #print(params)
     ri.Pattern(mapping, get_node_name(node, mat_name), params)
 
 
@@ -1526,12 +1538,7 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
                 shader_node_rib(ri, node, mat_name=handle,
                                 disp_bound=disp_bound, portal=portal)
         elif find_node(id, 'ShaderNodeOutputMaterial'):
-            out = find_node(id, 'ShaderNodeOutputMaterial')
-            nodes_to_export = gather_nodes(out)
-            ri.ArchiveRecord('comment', "Shader Graph")
-            for node in nodes_to_export:
-                shader_node_rib(ri, node, mat_name=handle,
-                                disp_bound=disp_bound)
+            print("Error Material %s needs a RenderMan BXDF" % id.name)
 
 
 def get_textures_for_node(node, matName=""):

@@ -642,6 +642,7 @@ def node_add_inputs(node, node_name, shaderparameters):
         param_name = sp.attrib['name']
         socket = node.inputs.new(socket_map[param_type], param_name)
         socket.link_limit = 1
+        setattr(socket, 'default_value', getattr(node, param_name))
 
         # for struct type look for the type of connection
         if param_type == 'struct' and tags:
