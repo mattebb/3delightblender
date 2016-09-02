@@ -1,3 +1,17 @@
+v21.0.0 9/2/16
+* NOTE SIGNIFICANT CHANGE - Nodetrees are moved to use the built in cycles nodetree!
+  * This will help file linking and allow node groups
+  * However you will have to redo your nodetrees.
+  * as an added bonus, users can use existing cycles nodetrees but will NEED to add a PRMan Bxdf
+  * Currently should work, however with a few known issues (when removed they'll be updated here)
+  	* IPR works only with PRMan nodes currently
+  	* There may be display issues on the properties display.  Use node editor
+  	* Only textures from the PRMan PxrTexture node at the moment.
+* Support for PRMan 21 features - specifically new shaders and lights.
+* portal lights are supported
+* icons are updated to renderman 21 icons
+
+
 v0.9.0 7/13/16
 * Many minor bug fixes
 * Texture sequences should work correctly. (use $F4 in texture name)
