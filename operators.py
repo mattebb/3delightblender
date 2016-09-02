@@ -225,7 +225,7 @@ class ExternalRender(bpy.types.Operator):
 
     def gen_rib_frame(self, rpass):
         try:
-            rpass.gen_rib()
+            rpass.gen_rib(convert_textures=False)
         except Exception as err:
             self.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
 
@@ -237,6 +237,14 @@ class ExternalRender(bpy.types.Operator):
         scene = context.scene
         rpass = RPass(scene, external_render=True)
         rm = scene.renderman
+        
+        render_output = rpass.paths['render_output']
+        images_dir = os.path.split(render_output)[0]
+        if not os.path.exists(images_dir):
+            os.makedirs(images_dir)
+        if not os.path.exists(rpass.paths['texture_output']):
+            os.mkdir(rpass.paths['texture_output'])
+                
 
         # rib gen each frame
         rpass.display_driver = scene.renderman.display_driver
@@ -318,7 +326,7 @@ class ExternalRender(bpy.types.Operator):
             frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
             frame_end = scene.frame_end if rm.external_animation else scene.frame_current
             alf_file = spool_render(
-                str(rm_version), rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
+                str(rm_version), rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass)
 
             # if spooling send job to queuing
             if rm.external_action == 'spool':

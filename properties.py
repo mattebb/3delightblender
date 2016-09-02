@@ -1212,9 +1212,9 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
         if world_type == 'NONE':
             return
         # use pxr area light for everything but env, sky
-        light_shader = 'PxrStdEnvMapLightLightNode'
+        light_shader = 'PxrDomeLightLightNode'
         if world_type == 'SKY':
-            light_shader = 'PxrStdEnvDayLightLightNode'
+            light_shader = 'PxrEnvDayLightLightNode'
 
         # find the existing or make a new light shader node
         nt = bpy.data.node_groups[world.renderman.nodetree]
