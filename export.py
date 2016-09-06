@@ -762,7 +762,7 @@ def export_world_rib(ri, world):
 def export_world(ri, world, do_geometry=True):
     rm = world.renderman
     # if no shader do nothing!
-    if rm.renderman_type == 'NONE' or rm.node is None:
+    if rm.renderman_type == 'NONE':
         return
     params = []
 
@@ -783,16 +783,13 @@ def export_world(ri, world, do_geometry=True):
     # need this for rerendering
     ri.Attribute('identifier', {'string name': handle})
     # do the light only if nodetree
-    if rm.node:
-        # make sure the shape is set on PxrStdAreaLightShape
-        export_shader_nodetree(ri, world, handle)
-        params = {}
-        if rm.renderman_type == 'SKY':
-            params['constant float[2] resolution'] = [1024, 512]
-
-        if do_geometry:
-            ri.Geometry("envsphere", params)
-
+    # make sure the shape is set on PxrStdAreaLightShape
+    light_shader = rm.get_light_node()
+    params = property_group_to_params(light_shader)
+    ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
+                                'int camera': 1})
+    ri.Light(rm.get_light_node_name(), handle, params)
+    
     ri.AttributeEnd()
 
     ri.Illuminate("World", rm.illuminates_by_default)
@@ -1064,10 +1061,9 @@ def get_texture_list(scene):
                     get_textures_for_node(o.data.renderman.get_light_node())
         else:
             mats_to_scan += recursive_texture_set(o)
-    if scene.world.renderman.renderman_type != 'NONE' and \
-            scene.world.renderman.node:
+    if scene.world.renderman.renderman_type != 'NONE':
         textures = textures + \
-            get_textures_for_node(scene.world.renderman.node)
+            get_textures_for_node(scene.world.renderman.get_light_node())
 
     # cull duplicates by only doing mats once
     for mat in set(mats_to_scan):

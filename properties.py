@@ -1204,6 +1204,11 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
 
 class RendermanWorldSettings(bpy.types.PropertyGroup):
+    def get_light_node(self):
+        return getattr(self, self.light_node) if self.light_node else None
+
+    def get_light_node_name(self):
+        return self.light_node.replace('_settings', '')
 
     # do this to keep the nice viewport update
     def update_light_type(self, context):
@@ -1212,31 +1217,11 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
         if world_type == 'NONE':
             return
         # use pxr area light for everything but env, sky
-        light_shader = 'PxrDomeLightLightNode'
+        light_shader = 'PxrDomeLight'
         if world_type == 'SKY':
-            light_shader = 'PxrEnvDayLightLightNode'
+            light_shader = 'PxrEnvDayLight'
 
-        # find the existing or make a new light shader node
-        nt = bpy.data.node_groups[world.renderman.nodetree]
-        output = None
-        for node in nt.nodes:
-            if node.renderman_node_type == 'output':
-                output = node
-                break
-        if output == None:
-            output = nt.nodes.new('RendermanOutputNode')
-
-        for node in nt.nodes:
-            if hasattr(node, 'typename') and node.typename == light_shader:
-                nt.links.remove(output.inputs['Light'].links[0])
-                nt.links.new(node.outputs[0], output.inputs['Light'])
-                break
-        else:
-            light = nt.nodes.new(light_shader)
-            light.location = output.location
-            light.location[0] -= 300
-            # nt.links.remove(output.inputs['Light'].links[0])
-            nt.links.new(light.outputs[0], output.inputs['Light'])
+        self.light_node = light_shader + "_settings"
 
     renderman_type = EnumProperty(
         name="World Type",
@@ -1249,10 +1234,9 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
         default='NONE'
     )
 
-    nodetree = StringProperty(
-        name="Node Tree",
-        description="Name of the shader node tree for this light.",
-        default="")
+    light_node = StringProperty(
+        name="Light Node",
+        default='')
 
     shadingrate = FloatProperty(
         name="Light Shading Rate",
@@ -1773,16 +1757,39 @@ def prune_perspective_camera(args_xml, name):
                 args_xml.remove(page)
     return args_xml
 
+
+
 # get the names of args files in rmantree/lib/ris/integrator/args
 def get_integrator_names(args_xml, name):
     integrator_names.append((name, name[3:], ''))
+    return args_xml
 
 
 plugin_mapping = {
     'integrator': (get_integrator_names, RendermanSceneSettings),
     'projection': (prune_perspective_camera, RendermanCameraSettings),
-    'light': (None, RendermanLightSettings)
+    'light': (None, RendermanLightSettings),
 }
+
+def register_plugin_to_parent(ntype, name, args_xml, plugin_type, parent):
+    # do some parsing and get props
+    inputs = [p for p in args_xml.findall('./param')] + \
+        [p for p in args_xml.findall('./page')]
+    class_generate_properties(ntype, name, inputs)
+    setattr(ntype, 'renderman_node_type', plugin_type)
+
+    # register and add to scene_settings
+    bpy.utils.register_class(ntype)
+    setattr(parent, "%s_settings" % name,
+            PointerProperty(type=ntype, name="%s Settings" % name)
+            )
+
+    #special case for world lights
+    if plugin_type == 'light' and name in ['PxrDomeLight', 'PxrEnvDayLight']:
+        setattr(RendermanWorldSettings, "%s_settings" % name,
+            PointerProperty(type=ntype, name="%s Settings" % name)
+            )
+
 
 def register_plugin_types():
     rmantree = guess_rmantree()
@@ -1802,19 +1809,12 @@ def register_plugin_types():
 
         if prune_method:
             arg_xml = prune_method(args_xml, name)
+        if not arg_xml:
+            continue
 
-        # do some parsing and get props
-        inputs = [p for p in args_xml.findall('./param')] + \
-            [p for p in args_xml.findall('./page')]
-        class_generate_properties(ntype, name, inputs)
-        setattr(ntype, 'renderman_node_type', plugin_type)
+        register_plugin_to_parent(ntype, name, args_xml, plugin_type, parent)
 
-        # register and add to scene_settings
-        bpy.utils.register_class(ntype)
-        setattr(parent, "%s_settings" % name,
-                PointerProperty(type=ntype, name="%s Settings" % name)
-                )
-
+       
 
 @persistent
 def initial_groups(scene):

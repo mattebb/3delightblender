@@ -871,18 +871,12 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         layout = self.layout
         world = context.scene.world
 
-        if not world.renderman.node:
-            layout.operator('shading.add_renderman_nodetree').idtype = 'world'
+        layout.prop(world.renderman, "renderman_type", expand=True)
+        if world.renderman.renderman_type == 'NONE':
             return
-        else:
-            layout.prop(world.renderman, "renderman_type", expand=True)
-            if world.renderman.renderman_type == 'NONE':
-                return
-            lamp_node = world.renderman.node
-            if lamp_node:
-                layout.prop(world.renderman, 'light_primary_visibility')
-                draw_node_properties_recursive(
-                    self.layout, context, None, lamp_node)
+        lamp_node = world.renderman.get_light_node()
+        if lamp_node:
+            draw_props(lamp_node, lamp_node.prop_names, layout)
 
 
 class DATA_PT_renderman_lamp(ShaderPanel, Panel):
