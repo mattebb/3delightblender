@@ -690,7 +690,6 @@ def generate_node_type(prefs, name, args):
         elif name == "PxrOSL":
             self.outputs.clear()
         else:
-            print(len(inputs),len(outputs))
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
 
