@@ -1462,9 +1462,10 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
         if node.bl_label == 'PxrOSL':
             getLocation = bpy.context.scene.OSLProps
             shader = getattr(getLocation, mat_name + node.name + "shader")
-            ri.Pattern(shader, node.name, params)
+            
+            ri.Pattern(shader, instance, params)
         else:
-            ri.Pattern(node.bl_label, node.name, params)
+            ri.Pattern(node.bl_label, instance, params)
     elif node.renderman_node_type == "light":
         light_group_name = ''
         scene = bpy.context.scene

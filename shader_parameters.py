@@ -683,7 +683,7 @@ def node_add_inputs(node, node_name, shaderparameters, first_level=True, hide=Fa
         if param_name not in ['inputMaterial', 'utilityPattern']:
             setattr(socket, 'default_value', getattr(node, param_name))
         else:
-            setattr(socket, 'default_value', None)
+            socket.hide_value = True
 
         if param_type in ['vstruct', 'struct']:
             socket.hide_value = True

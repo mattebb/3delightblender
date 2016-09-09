@@ -240,7 +240,7 @@ def get_path_list(rm, type):
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          'shaders'))
             paths.append(os.path.join(bpy.utils.resource_path('LOCAL'), 'scripts', 
-                        'addons', 'cycles', 'shaders'))
+                        'addons', 'cycles', 'shader'))
 
     if rm.use_builtin_paths:
         paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
