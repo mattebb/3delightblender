@@ -291,6 +291,27 @@ def update_func(self, context):
         if mat:
             self.update_mat(mat)
 
+    if self.bl_idname == 'PxrLayerPatternNode':
+        update_inputs(self)
+
+
+def update_inputs(node):
+    for page_name in node.prop_names:
+        if node.prop_meta[page_name]['renderman_type'] == 'page':
+            for prop_name in getattr(node, page_name):
+                if prop_name.startswith('enable'):
+                    recursive_enable_inputs(node, getattr(node, page_name), getattr(node, prop_name))
+                    break
+
+def recursive_enable_inputs(node, prop_names, enable=True):
+    for prop_name in prop_names:
+        if type(prop_name) == str and node.prop_meta[prop_name]['renderman_type'] == 'page':
+            recursive_enable_inputs(node, getattr(node, prop_name), enable)
+        elif prop_name in node.inputs.keys():
+            node.inputs[prop_name].hide = not enable
+        else:
+            continue
+                    
 
 # map args params to props
 def generate_property(sp):
@@ -617,18 +638,31 @@ class txmake_options():
 #              'help': "Type of filter to use when resizing",
 #              'exportType': "name"}
 
+def find_enable_param(params):
+    for prop_name in params:
+        if prop_name.startswith('enable'):
+            return prop_name
 
 # add input sockets
-def node_add_inputs(node, node_name, shaderparameters):
+def node_add_inputs(node, node_name, shaderparameters, first_level=True, hide=False, label_prefix=''):
     for sp in shaderparameters:
         # if this is a vstruct member don't add the input or a checkbox
         if 'widget' in sp.attrib.keys() and sp.attrib['widget'] in ['null', 'checkBox', 'switch']:
             continue
         # if this is a page recursively add inputs
         if sp.tag == 'page':
-            node_add_inputs(node, node_name, sp.findall(
-                'param') + sp.findall('page'))
-            continue
+            if first_level and node.bl_idname == 'PxrLayerPatternNode':
+                enable_param = find_enable_param(getattr(node, node_name + '.' + sp.attrib['name']))
+                node_add_inputs(node, node_name, sp.findall('param') + sp.findall('page'), 
+                                        label_prefix=sp.attrib['name'] + ' ',
+                                        first_level=False, hide=(not getattr(node, enable_param)))
+                continue
+
+            else:
+                node_add_inputs(node, node_name, sp.findall(
+                    'param') + sp.findall('page'), hide=hide, first_level=first_level, 
+                                label_prefix=label_prefix)
+                continue
         # if this is not connectable don't add socket
         tags = sp.find('tags')
         if tags and tags.find('tag').attrib['value'] == "__nonconnection" or \
@@ -642,7 +676,17 @@ def node_add_inputs(node, node_name, shaderparameters):
         param_name = sp.attrib['name']
         socket = node.inputs.new(socket_map[param_type], param_name)
         socket.link_limit = 1
-        setattr(socket, 'default_value', getattr(node, param_name))
+        param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
+        socket.renderman_label = label_prefix + param_label
+        socket.hide = hide
+        
+        if param_name not in ['inputMaterial', 'utilityPattern']:
+            setattr(socket, 'default_value', getattr(node, param_name))
+        else:
+            setattr(socket, 'default_value', None)
+
+        if param_type in ['vstruct', 'struct']:
+            socket.hide_value = True
 
         # for struct type look for the type of connection
         if param_type == 'struct' and tags:

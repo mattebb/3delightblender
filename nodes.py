@@ -104,7 +104,7 @@ class RendermanSocket:
         return (0.1, 1.0, 0.2, 0.75)
 
     def draw(self, context, layout, node, text):
-        if self.is_linked or self.is_output:
+        if self.is_linked or self.is_output or self.hide_value:
             layout.label(text)
         elif node.bl_idname == "PxrOSLPatternNode":
             if hasattr(context.scene, "OSLProps"):
@@ -116,7 +116,7 @@ class RendermanSocket:
                 # else:
                 #    rebuild_OSL_nodes(context.scene, context)
         else:
-            layout.prop(node, self.name)
+            layout.prop(self, 'default_value', text=text)
 
 
 # socket types (need this just for the ui_open)
@@ -273,6 +273,15 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 
     def draw_nonconnectable_props(self, context, layout, prop_names):
+        if self.bl_idname == 'PxrLayerPatternNode':
+            for prop_name in prop_names:
+                if prop_name not in self.inputs:
+                    for name in getattr(self, prop_name):
+                        if name.startswith('enable'):
+                            layout.prop(self, name, text= "Enable " + prop_name.split('.')[-1])
+                            break
+            return
+
         if self.bl_idname == "PxrOSLPatternNode" or self.bl_idname == "PxrSeExprPatternNode":
             prop = getattr(self, "codetypeswitch")
             layout.prop(self, "codetypeswitch")
@@ -562,8 +571,11 @@ class RendermanOutputNode(RendermanShadingNode):
 
     def init(self, context):
         input = self.inputs.new('RendermanShaderSocket', 'Bxdf').type = 'SHADER'
+        #setattr(input, 'default_value', None)
         input = self.inputs.new('RendermanShaderSocket', 'Light')
+        #setattr(input, 'default_value', None)
         input = self.inputs.new('RendermanShaderSocket', 'Displacement')
+        #input.default_value = None
 
     def draw_buttons(self, context, layout):
         return
@@ -652,8 +664,7 @@ def generate_node_type(prefs, name, args):
     ntype.typename = typename
 
     inputs = [p for p in args.findall('./param')] + \
-        [p for p in args.findall('./page')] + \
-        [p for p in args.findall('./output')]
+        [p for p in args.findall('./page')]
     outputs = [p for p in args.findall('.//output')]
 
     def init(self, context):
@@ -678,6 +689,7 @@ def generate_node_type(prefs, name, args):
         elif name == "PxrOSL":
             self.outputs.clear()
         else:
+            print(len(inputs),len(outputs))
             node_add_inputs(self, name, inputs)
             node_add_outputs(self, outputs)
 
@@ -695,7 +707,7 @@ def generate_node_type(prefs, name, args):
     ntype.plugin_name = StringProperty(name='Plugin Name',
                                        default=name, options={'HIDDEN'})
     # lights cant connect to a node tree in 20.0
-    class_generate_properties(ntype, name, inputs)
+    class_generate_properties(ntype, name, inputs + outputs)
     if nodeType == 'light':
         ntype.light_shading_rate = FloatProperty(
             name="Light Shading Rate",
