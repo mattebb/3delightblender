@@ -570,12 +570,13 @@ class RendermanOutputNode(RendermanShadingNode):
     node_tree = None
 
     def init(self, context):
-        input = self.inputs.new('RendermanShaderSocket', 'Bxdf').type = 'SHADER'
-        #setattr(input, 'default_value', None)
+        input = self.inputs.new('RendermanShaderSocket', 'Bxdf')
+        input.type = 'SHADER'
+        input.hide_value = True
         input = self.inputs.new('RendermanShaderSocket', 'Light')
-        #setattr(input, 'default_value', None)
+        input.hide_value = True
         input = self.inputs.new('RendermanShaderSocket', 'Displacement')
-        #input.default_value = None
+        input.hide_value = True
 
     def draw_buttons(self, context, layout):
         return
