@@ -273,7 +273,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 
     def draw_nonconnectable_props(self, context, layout, prop_names):
-        if self.bl_idname == 'PxrLayerPatternNode':
+        if self.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
             for prop_name in prop_names:
                 if prop_name not in self.inputs:
                     for name in getattr(self, prop_name):

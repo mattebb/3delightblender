@@ -125,12 +125,22 @@ def parse_float(fs):
     return float(fs[:-1]) if 'f' in fs else float(fs)
 
 
-def generate_page(sp, node, parent_name):
+def generate_page(sp, node, parent_name, first_level=False):
     param_names = []
     prop_meta = {}
     props = []
     # don't add the sub group to prop names,
     # they'll be gotten through recursion
+    if first_level:
+        param_name = 'enable' + parent_name
+        param_names.append(param_name)
+        prop_meta[param_name] = {'renderman_type':'int'}
+        default = parent_name == 'PxrSurface.Diffuse'
+        props.append(BoolProperty(name=param_name,
+                                    default=bool(default),
+                                    update=update_func))
+
+
     for sub_param in sp.findall('param') + sp.findall('page'):
         if sub_param.tag == 'page':
             name = parent_name + '.' + sub_param.attrib['name']
@@ -170,8 +180,9 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 pass
             else:
                 page_name = parent_name + "." + sp.attrib['name']
+                first_level = parent_name == 'PxrSurface' and page_name != 'Globals'
                 sub_param_names, sub_params_meta, sub_props = generate_page(
-                    sp, node, page_name)
+                    sp, node, page_name, first_level=first_level)
                 prop_names.append(page_name)
                 prop_meta[page_name] = {'renderman_type': 'page'}
                 setattr(node, page_name, sub_param_names)
@@ -291,7 +302,7 @@ def update_func(self, context):
         if mat:
             self.update_mat(mat)
 
-    if self.bl_idname == 'PxrLayerPatternNode':
+    if self.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
         update_inputs(self)
 
 
@@ -651,7 +662,7 @@ def node_add_inputs(node, node_name, shaderparameters, first_level=True, hide=Fa
             continue
         # if this is a page recursively add inputs
         if sp.tag == 'page':
-            if first_level and node.bl_idname == 'PxrLayerPatternNode':
+            if first_level and node.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
                 enable_param = find_enable_param(getattr(node, node_name + '.' + sp.attrib['name']))
                 node_add_inputs(node, node_name, sp.findall('param') + sp.findall('page'), 
                                         label_prefix=sp.attrib['name'] + ' ',
