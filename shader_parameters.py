@@ -134,7 +134,7 @@ def generate_page(sp, node, parent_name, first_level=False):
     if first_level:
         param_name = 'enable' + parent_name
         param_names.append(param_name)
-        prop_meta[param_name] = {'renderman_type':'int'}
+        prop_meta[param_name] = {'renderman_type':'enum', 'renderman_name': param_name}
         default = parent_name == 'PxrSurface.Diffuse'
         props.append(BoolProperty(name=param_name,
                                     default=bool(default),

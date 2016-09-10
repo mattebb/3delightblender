@@ -1578,7 +1578,9 @@ def get_textures_for_node(node, matName=""):
                     from_socket = node.inputs[prop_name].links[0].from_socket
                     textures = textures + \
                         get_textures_for_node(from_socket.node, matName)
-    elif hasattr(node, 'prop_meta'):
+            return textures
+
+    if hasattr(node, 'prop_meta'):
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
                 pass
@@ -1654,12 +1656,10 @@ def get_textures(id):
         return textures
     
     nt = id.node_tree
-    out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and \
-                n.renderman_node_type == 'output'),
-               None)
+    out = find_node(id, 'RendermanOutputNode')
     if out is None:
         return
-
+    
     for name, inp in out.inputs.items():
         if inp.is_linked:
             textures = textures + \
