@@ -310,8 +310,8 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     if prop_meta['renderman_type'] == 'page':
                         ui_prop = prop_name + "_ui_open"
                         ui_open = getattr(self, ui_prop)
-                        icon = 'TRIA_DOWN' if ui_open \
-                            else 'TRIA_RIGHT'
+                        icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
+                            else 'DISCLOSURE_TRI_RIGHT'
 
                         split = layout.split(NODE_LAYOUT_SPLIT)
                         row = split.row()
@@ -756,7 +756,7 @@ def find_node_input(node, name):
     return None
 
 
-def panel_node_draw(layout, id_data, output_type, input_name):
+def panel_node_draw(layout, context, id_data, output_type, input_name):
     ntree = id_data.node_tree
 
     node = find_node(id_data, output_type)
@@ -764,7 +764,8 @@ def panel_node_draw(layout, id_data, output_type, input_name):
         layout.label(text="No output node")
     else:
         input = find_node_input(node, input_name)
-        layout.template_node_view(ntree, node, input)
+        #layout.template_node_view(ntree, node, input)
+        draw_nodes_properties_ui(layout, context, ntree)
 
     return True
 
@@ -862,8 +863,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
                     if socket and socket.is_linked:
                         input_node = socket_node_input(nt, socket)
-                        icon = 'TRIA_DOWN' if socket.ui_open \
-                            else 'TRIA_RIGHT'
+                        icon = 'DISCLOSURE_TRI_DOWN' if socket.ui_open \
+                            else 'DISCLOSURE_TRI_RIGHT'
 
                         split = layout.split(NODE_LAYOUT_SPLIT)
                         row = split.row()
@@ -871,19 +872,19 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                  icon_only=True, emboss=False)
                         indented_label(row, socket.name + ':', level)
                         split.operator_menu_enum("node.add_pattern", "node_type",
-                                                 text=input_node.bl_label, icon='DOT')
+                                                 text=input_node.bl_label, icon="LAYER_USED")
 
                         if socket.ui_open:
                             draw_node_properties_recursive(layout, context, nt,
                                                            input_node, level=level + 1)
 
                     else:
-                        row = layout.row()
+                        row = layout.row(align=True)
                         if prop_meta['renderman_type'] == 'page':
                             ui_prop = prop_name + "_ui_open"
                             ui_open = getattr(node, ui_prop)
-                            icon = 'TRIA_DOWN' if ui_open \
-                                else 'TRIA_RIGHT'
+                            icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
+                                else 'DISCLOSURE_TRI_RIGHT'
 
                             split = layout.split(NODE_LAYOUT_SPLIT)
                             row = split.row()
@@ -904,10 +905,13 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
                                                 "object_groups")
                             else:
-                                row.prop(node, prop_name)
+                                if socket:
+                                    row.prop(socket, 'default_value', text=prop_meta['label'])
+                                else:
+                                    row.prop(node, prop_name)
                             if prop_name in node.inputs:
                                 row.operator_menu_enum("node.add_pattern", "node_type",
-                                                       text='', icon='DOT')
+                                                       text='', icon="LAYER_USED")
 
     if node.plugin_name == 'PxrRamp':
         dummy_nt = bpy.context.active_object.active_material.node_tree

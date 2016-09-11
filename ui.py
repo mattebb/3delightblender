@@ -337,8 +337,8 @@ def draw_props(node, prop_names, layout):
         if prop_meta['renderman_type'] == 'page':
             ui_prop = prop_name + "_ui_open"
             ui_open = getattr(node, ui_prop)
-            icon = 'TRIA_DOWN' if ui_open \
-                else 'TRIA_RIGHT'
+            icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
+                else 'DISCLOSURE_TRI_RIGHT'
 
             split = layout.split(NODE_LAYOUT_SPLIT)
             row = split.row()
@@ -386,8 +386,8 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         # find args for integrators here!
         integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
 
-        icon = 'TRIA_DOWN' if rm.show_integrator_settings \
-            else 'TRIA_RIGHT'
+        icon = 'DISCLOSURE_TRI_DOWN' if rm.show_integrator_settings \
+            else 'DISCLOSURE_TRI_RIGHT'
         text = rm.integrator + " Settings:"
 
         row = col.row()
@@ -636,11 +636,11 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             nt = context.material.node_tree
             
             if is_renderman_nodetree(mat):
-                panel_node_draw(layout, mat, 'RendermanOutputNode', 'Bxdf')
+                panel_node_draw(layout, context, mat, 'RendermanOutputNode', 'Bxdf')
                 #draw_nodes_properties_ui(
                 #    self.layout, context, nt, input_name=self.shader_type)
             else:
-                if not panel_node_draw(layout, mat, 'ShaderNodeOutputMaterial', 'Surface'):
+                if not panel_node_draw(layout, context, mat, 'ShaderNodeOutputMaterial', 'Surface'):
                     layout.prop(mat, "diffuse_color")
             layout.separator()
 
@@ -1195,8 +1195,8 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             col.prop(item,  "aov_channel_type")
 
         col = layout.column()
-        icon = 'TRIA_DOWN' if item.show_advanced \
-            else 'TRIA_RIGHT'
+        icon = 'DISCLOSURE_TRI_DOWN' if item.show_advanced \
+            else 'DISCLOSURE_TRI_RIGHT'
 
         row = col.row()
         row.prop(item, "show_advanced", icon=icon, text="Advanced",
@@ -1813,7 +1813,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
             row.operator('lighting.start_interactive',
                          text="Stop IPR", icon_value=rman_batch_cancel.icon_id)
             row.prop(context.scene, "rm_ipr", text="",
-                     icon='TRIA_UP' if context.scene.rm_ipr else 'TRIA_DOWN')
+                     icon='DISCLOSURE_TRI_UP' if context.scene.rm_ipr else 'DISCLOSURE_TRI_DOWN')
             if context.scene.rm_ipr:
 
                 scene = context.scene
@@ -1841,7 +1841,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                          icon_value=rman_rerender_controls.icon_id)
 
             row.prop(context.scene, "rm_ipr", text="",
-                     icon='TRIA_UP' if context.scene.rm_ipr else 'TRIA_DOWN')
+                     icon='DISCLOSURE_TRI_UP' if context.scene.rm_ipr else 'DISCLOSURE_TRI_DOWN')
 
             if context.scene.rm_ipr:
 
@@ -1876,7 +1876,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                          text="External Render", icon_value=rman_batch.icon_id)
 
             row.prop(context.scene, "rm_render_external", text="",
-                     icon='TRIA_UP' if context.scene.rm_render_external else 'TRIA_DOWN')
+                     icon='DISCLOSURE_TRI_UP' if context.scene.rm_render_external else 'DISCLOSURE_TRI_DOWN')
             if context.scene.rm_render_external:
                 scene = context.scene
                 rd = scene.render
@@ -1927,7 +1927,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                      text="Add Camera", icon='CAMERA_DATA')
 
         row.prop(context.scene, "prm_cam", text="",
-                 icon='TRIA_UP' if context.scene.prm_cam else 'TRIA_DOWN')
+                 icon='DISCLOSURE_TRI_UP' if context.scene.prm_cam else 'DISCLOSURE_TRI_DOWN')
 
         if context.scene.prm_cam:
             ob = bpy.context.object
@@ -2017,7 +2017,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
         if lamp_hemi:
 
             row.prop(context.scene, "rm_env", text="",
-                     icon='TRIA_UP' if context.scene.rm_env else 'TRIA_DOWN')
+                     icon='DISCLOSURE_TRI_UP' if context.scene.rm_env else 'DISCLOSURE_TRI_DOWN')
 
             if context.scene.rm_env:
                 ob = bpy.context.object
@@ -2077,7 +2077,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
         if lamp_area:
 
             row.prop(context.scene, "rm_area", text="",
-                     icon='TRIA_UP' if context.scene.rm_area else 'TRIA_DOWN')
+                     icon='DISCLOSURE_TRI_UP' if context.scene.rm_area else 'DISCLOSURE_TRI_DOWN')
 
             if context.scene.rm_area:
                 ob = bpy.context.object
@@ -2135,7 +2135,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
         if lamp_sun:
 
             row.prop(context.scene, "rm_daylight", text="",
-                     icon='TRIA_UP' if context.scene.rm_daylight else 'TRIA_DOWN')
+                     icon='DISCLOSURE_TRI_UP' if context.scene.rm_daylight else 'DISCLOSURE_TRI_DOWN')
 
             if context.scene.rm_daylight:
                 ob = bpy.context.object
