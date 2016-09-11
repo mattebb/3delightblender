@@ -712,13 +712,12 @@ def node_add_inputs(node, node_name, shaderparameters, first_level=True, hide=Fa
 def node_add_outputs(node, shaderparameters):
     # Generate RNA properties for each shader parameter
     for sp in shaderparameters:
-        # if this is a vstruct member don't add the input
-        if 'vstructmember' in sp.attrib.keys():
-            continue
-
+        
         param_name = sp.attrib['name']
         tag = sp.find('*/tag')
         socket = node.outputs.new(socket_map[tag.attrib['value']], param_name)
+        if 'vstructmember' in sp.attrib.keys():
+            socket.hide = True
 
         # for struct type look for the type of connection
         if tag.attrib['value'] == 'struct':

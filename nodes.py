@@ -1196,8 +1196,7 @@ def gen_params(ri, node, mat_name=None):
                         node.inputs[prop_name].is_linked:
                     from_socket = node.inputs[prop_name].links[0].from_socket
                     params['reference %s %s' % (prop_type, prop_name)] = \
-                        ["%s:%s" % (from_socket.node.name,
-                                    from_socket.identifier)]
+                        [get_output_param_str(from_socket.node, mat_name, from_socket)]
                 else:
                     if prop_type == "string" and getattr(getLocation,
                                                          osl_prop_name) != "":
@@ -1248,8 +1247,7 @@ def gen_params(ri, node, mat_name=None):
                     from_socket = node.inputs[prop_name].links[0].from_socket
                     params['reference %s %s' % (meta['renderman_type'],
                                                 meta['renderman_name'])] = \
-                        ["%s:%s" %
-                            (from_socket.node.name, from_socket.identifier)]
+                        [get_output_param_str(from_socket.node, mat_name, from_socket)]
                 # else output rib
                 else:
                     # if struct is not linked continue
@@ -1292,10 +1290,13 @@ def gen_params(ri, node, mat_name=None):
                     vstruct_name, vstruct_member = meta['vstructmember'].split('.')
                     from_socket = node.inputs[vstruct_name].links[0].from_socket
                     vstruct_from_param = "%s_%s" % (from_socket.identifier, vstruct_member)
-                    params['reference %s %s' % (meta['renderman_type'],
-                                                    meta['renderman_name'])] = \
-                            ["%s:%s" %
-                                (from_socket.node.name, vstruct_from_param)]
+                    if vstruct_from_param in from_socket.node.outputs:
+                        actual_socket = from_socket.node.outputs[vstruct_from_param]
+                        params['reference %s %s' % (meta['renderman_type'],
+                                                        meta['renderman_name'])] = \
+                                [get_output_param_str(from_socket.node, mat_name, actual_socket)]
+                    else:
+                        print('Warning! %s not found on %s' % (vstruct_from_param, from_socket.node.name))
 
                 # if input socket is linked reference that
                 elif prop_name in node.inputs and \
@@ -1311,6 +1312,9 @@ def gen_params(ri, node, mat_name=None):
                     if meta['renderman_type'] in ['struct', 'enum']:
                         continue
 
+                    if prop_name in node.inputs:
+                        prop = node.inputs[prop_name].default_value
+
                     if 'options' in meta and meta['options'] == 'texture' \
                         and node.bl_idname != "PxrPtexturePatternNode" or \
                         (node.renderman_node_type == 'light' and
@@ -1320,6 +1324,8 @@ def gen_params(ri, node, mat_name=None):
                             rib(get_tex_file_name(prop),
                                 type_hint=meta['renderman_type'])
                     elif 'arraySize' in meta:
+                        if type(prop) == int:
+                            prop = [prop]
                         params['%s[%d] %s' % (meta['renderman_type'], len(prop),
                                               meta['renderman_name'])] \
                             = rib(prop)
