@@ -2244,4 +2244,9 @@ def register():
 
 
 def unregister():
-    pass
+    bpy.utils.unregister_class(RENDERMAN_GROUP_UL_List)
+    bpy.utils.unregister_class(RENDERMAN_LL_LIGHT_list)
+    bpy.utils.unregister_class(RENDERMAN_LL_OBJECT_list)
+    # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
+    # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
+    bpy.types.INFO_MT_render.remove(PRMan_menu_func)

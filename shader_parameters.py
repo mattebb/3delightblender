@@ -55,14 +55,6 @@ exclude_lamp_params = {'intensity': 'energy',
                        'coneangle': 'spot_size',
                        }
 
-reserved_words = ('and', 'assert', 'break', 'class', 'continue',
-                  'def', 'del', 'elif', 'else', 'except',
-                  'exec', 'finally', 'for', 'from', 'global',
-                  'if', 'import', 'in', 'is', 'lambda',
-                  'not', 'or', 'pass',	'print', 'raise',
-                  'return', 'try', 'while')
-
-
 def tex_source_path(tex, blender_frame):
     rm = tex.renderman
     anim = rm.anim_settings
@@ -688,7 +680,7 @@ def node_add_inputs(node, node_name, shaderparameters, first_level=True, hide=Fa
         socket = node.inputs.new(socket_map[param_type], param_name)
         socket.link_limit = 1
         param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
-        socket.renderman_label = label_prefix + param_label
+        socket.label = label_prefix + param_label
         socket.hide = hide
         
         if param_name not in ['inputMaterial', 'utilityPattern']:
@@ -716,6 +708,7 @@ def node_add_outputs(node, shaderparameters):
         param_name = sp.attrib['name']
         tag = sp.find('*/tag')
         socket = node.outputs.new(socket_map[tag.attrib['value']], param_name)
+        socket.label = param_name
         if 'vstructmember' in sp.attrib.keys():
             socket.hide = True
 

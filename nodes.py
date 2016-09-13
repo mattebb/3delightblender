@@ -96,6 +96,7 @@ def load_tree_from_lib(mat):
 class RendermanSocket:
     ui_open = BoolProperty(name='UI Open', default=True)
     # Optional function for drawing the socket input value
+    label = StringProperty()
 
     def draw_value(self, context, layout, node):
         layout.prop(node, self.name)
@@ -105,7 +106,7 @@ class RendermanSocket:
 
     def draw(self, context, layout, node, text):
         if self.is_linked or self.is_output or self.hide_value:
-            layout.label(text)
+            layout.label(self.label)
         elif node.bl_idname == "PxrOSLPatternNode":
             if hasattr(context.scene, "OSLProps"):
                 oslProps = context.scene.OSLProps
@@ -116,7 +117,7 @@ class RendermanSocket:
                 # else:
                 #    rebuild_OSL_nodes(context.scene, context)
         else:
-            layout.prop(self, 'default_value', text=text)
+            layout.prop(node, self.name, text=self.label)
 
 
 # socket types (need this just for the ui_open)
@@ -826,7 +827,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
     def indented_label(layout, label, level):
         for i in range(level):
             layout.label('', icon='BLANK1')
-        layout.label(label)
+        if label:
+            layout.label(label)
 
     layout.context_pointer_set("node", node)
     layout.context_pointer_set("nodetree", nt)
@@ -868,9 +870,10 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
                         split = layout.split(NODE_LAYOUT_SPLIT)
                         row = split.row()
+                        indented_label(row, None, level)
                         row.prop(socket, "ui_open", icon=icon, text='',
                                  icon_only=True, emboss=False)
-                        indented_label(row, socket.name + ':', level)
+                        row.label(prop_meta['label'] + ':')
                         split.operator_menu_enum("node.add_pattern", "node_type",
                                                  text=input_node.bl_label, icon="LAYER_USED")
 
@@ -898,17 +901,17 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                 draw_props(prop, layout, level+1)
                         
                         else:
-                            row.label('', icon='BLANK1')
+                            indented_label(row, None, level)
                             # indented_label(row, socket.name+':')
                             # don't draw prop for struct type
                             if "Subset" in prop_name and prop_meta['type'] == 'string':
                                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
                                                 "object_groups")
                             else:
-                                if socket:
-                                    row.prop(socket, 'default_value', text=prop_meta['label'])
-                                else:
+                                if prop_meta['renderman_type'] != 'struct':
                                     row.prop(node, prop_name)
+                                else:
+                                    row.label(prop_meta['label'])
                             if prop_name in node.inputs:
                                 row.operator_menu_enum("node.add_pattern", "node_type",
                                                        text='', icon="LAYER_USED")
@@ -1315,9 +1318,6 @@ def gen_params(ri, node, mat_name=None):
                     # if struct is not linked continue
                     if meta['renderman_type'] in ['struct', 'enum']:
                         continue
-
-                    if prop_name in node.inputs:
-                        prop = node.inputs[prop_name].default_value
 
                     if 'options' in meta and meta['options'] == 'texture' \
                         and node.bl_idname != "PxrPtexturePatternNode" or \
