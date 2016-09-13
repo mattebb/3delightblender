@@ -1306,7 +1306,7 @@ def gen_params(ri, node, mat_name=None):
                         print('Warning! %s not found on %s' % (vstruct_from_param, from_socket.node.name))
 
                 # if input socket is linked reference that
-                elif prop_name in node.inputs and \
+                elif hasattr(node, 'inputs') and prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
                     from_socket = node.inputs[prop_name].links[0].from_socket
                     from_node = node.inputs[prop_name].links[0].from_node

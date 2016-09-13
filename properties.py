@@ -1806,6 +1806,8 @@ def register_plugin_types():
         ntype = type(typename, (RendermanPluginSettings,), {})
         ntype.bl_label = name
         ntype.typename = typename
+        ntype.bl_idname = typename
+        ntype.plugin_name = name
 
         if prune_method:
             arg_xml = prune_method(args_xml, name)

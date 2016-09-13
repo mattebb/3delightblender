@@ -742,6 +742,7 @@ def export_light_shaders(ri, lamp, do_geometry=True):
             light_shader.penumbraAngle = math.degrees(
                 lamp.spot_blend)
         params = property_group_to_params(light_shader)
+        params['__instanceid'] = handle
         primary_vis = rm.light_primary_visibility
         ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
                                     'int camera': int(primary_vis)})
