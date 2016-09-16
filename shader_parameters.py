@@ -124,7 +124,7 @@ def generate_page(sp, node, parent_name, first_level=False):
     # don't add the sub group to prop names,
     # they'll be gotten through recursion
     if first_level:
-        param_name = 'enable' + parent_name
+        param_name = 'enable' + parent_name.replace(' ', '')
         param_names.append(param_name)
         prop_meta[param_name] = {'renderman_type':'enum', 'renderman_name': param_name}
         default = parent_name == 'PxrSurface.Diffuse'
@@ -171,7 +171,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
             if parent_name == "PxrOSL" or parent_name == "PxrSeExpr":
                 pass
             else:
-                page_name = parent_name + "." + sp.attrib['name']
+                page_name = sp.attrib['name']
                 first_level = parent_name == 'PxrSurface' and page_name != 'Globals'
                 sub_param_names, sub_params_meta, sub_props = generate_page(
                     sp, node, page_name, first_level=first_level)
@@ -655,10 +655,11 @@ def node_add_inputs(node, node_name, shaderparameters, first_level=True, hide=Fa
         # if this is a page recursively add inputs
         if sp.tag == 'page':
             if first_level and node.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
-                enable_param = find_enable_param(getattr(node, node_name + '.' + sp.attrib['name']))
+                enable_param = find_enable_param(getattr(node, sp.attrib['name']))
+                hide = (enable_param is not None and not getattr(node, enable_param))
                 node_add_inputs(node, node_name, sp.findall('param') + sp.findall('page'), 
                                         label_prefix=sp.attrib['name'] + ' ',
-                                        first_level=False, hide=(not getattr(node, enable_param)))
+                                        first_level=False, hide=hide)
                 continue
 
             else:

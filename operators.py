@@ -56,6 +56,8 @@ from .export import write_archive_RIB
 from .export import EXCLUDED_OBJECT_TYPES
 from . import engine
 
+from .nodes import convert_cycles_nodetree
+
 from .properties import aov_mapping
 
 #from .nodes import RendermanPatternGraph
@@ -168,10 +170,11 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
-            default = nt.nodes.new('%sBxdfNode' % self.properties.bxdf_name)
-            default.location = output.location
-            default.location[0] -= 300
-            nt.links.new(default.outputs[0], output.inputs[0])
+            if not convert_cycles_nodetree(idblock, output):
+                default = nt.nodes.new('%sBxdfNode' % self.properties.bxdf_name)
+                default.location = output.location
+                default.location[0] -= 300
+                nt.links.new(default.outputs[0], output.inputs[0])
         elif idtype == 'lamp':
             idblock.renderman.use_renderman_node = True
         else:
