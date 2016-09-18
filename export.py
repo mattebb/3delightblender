@@ -435,7 +435,6 @@ def get_mesh(mesh, get_normals=False):
 # requires facevertex interpolation
 def get_mesh_uv(mesh, name=""):
     uvs = []
-    print(dir(mesh), len(mesh.uv_layers))
     if name == "":
         uv_loop_layer = mesh.uv_layers.active
     else:
