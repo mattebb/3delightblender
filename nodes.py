@@ -49,6 +49,7 @@ from .util import debug
 from .util import user_path
 from .util import get_real_path
 from .util import readOSO
+from .cycles_convert import *
 
 from operator import attrgetter, itemgetter
 import os.path
@@ -1390,17 +1391,6 @@ def gen_params(ri, node, mat_name=None):
     return params
 
 
-def convert_cycles_input(nt, socket, rman_parent, param_name):
-    if socket.is_linked:
-        nt.links.new(socket.links[0].from_socket,
-                     rman_parent.inputs[param_name])
-    elif hasattr(socket, 'default_value'):
-        if type(getattr(rman_parent, param_name)).__name__ == 'Color':
-            setattr(rman_parent, param_name, socket.default_value[:3])
-        else:
-            setattr(rman_parent, param_name, socket.default_value)
-
-
 def create_rman_surface(nt, parent_node, input_index, node_type="PxrSurfaceBxdfNode"):
     layer = nt.nodes.new(node_type)
     nt.links.new(layer.outputs[0], parent_node.inputs[input_index])
@@ -1411,19 +1401,9 @@ def create_rman_surface(nt, parent_node, input_index, node_type="PxrSurfaceBxdfN
     return layer
 
 combine_nodes = ['ShaderNodeAddShader', 'ShaderNodeMixShader']
-lobe_map = {
-    'ShaderNodeBsdfDiffuse': 'diffuse',
-    'ShaderNodeBsdfGlossy': 'specular',
-    'ShaderNodeBsdfGlass': 'glass',
-    'ShaderNodeBsdfRefraction': 'glass',
-    'ShaderNodeBsdfTranslucent': 'glass',
-    'ShaderNodeBsdfTransparent': 'glass',
-    'ShaderNodeBsdfVelvet': 'fuzz',
-    'ShaderNodeBsdfHair': None
-}
 
 # rman_parent could be PxrSurface or PxrMixer
-def convert_cycles_node(nt, rman_parent, node, input_index, 
+def convert_cycles_bsdf(nt, rman_parent, node, input_index, 
                         spec_lobe='specular'):
 
     # if mix or add pass both to parent
@@ -1434,7 +1414,7 @@ def convert_cycles_node(nt, rman_parent, node, input_index,
         # if ones a cobiner or they're of the same type and not glossy we need
         # to make a mixer
         if node1.bl_idname in combine_nodes or node2.bl_idname in combine_nodes or \
-                (lobe_map[node1.bl_idname] == lobe_map[node2.bl_idname] and
+                (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0] and
                  node1.bl_idname != 'ShaderNodeBsdfGlossy'):
             mixer = nt.nodes.new('PxrLayerMixerPatternNode')
             # if parent is output make a pxr surface first
@@ -1446,106 +1426,38 @@ def convert_cycles_node(nt, rman_parent, node, input_index,
             # set the layer masks
             if node.bl_idname == 'ShaderNodeAddShader':
                 mixer.layer1Mask = .5
-            elif node.inputs['Fac'].is_linked:
-                nt.links.new(node.inputs['Fac'].links[0].from_socket,
-                             mixer.inputs['layer1Mask'])
             else:
-                mixer.layer1Mask = node.inputs['Fac'].default_value
+                convert_cycles_input(nt, node.inputs['Fac'], rman_parent, 'layer1Mask')
 
             # make a new node for each
-            convert_cycles_node(nt, mixer, node1, 0)
-            convert_cycles_node(nt, mixer, node2, 1, 
+            convert_cycles_bsdf(nt, mixer, node1, 0)
+            convert_cycles_bsdf(nt, mixer, node2, 1, 
                                 spec_lobe='clearcoat')
 
         # this is a heterogenous mix
         else:
-            convert_cycles_node(nt, rman_parent, node1, 0)
-            convert_cycles_node(nt, rman_parent, node2, 1, 
+            convert_cycles_bsdf(nt, rman_parent, node1, 0)
+            convert_cycles_bsdf(nt, rman_parent, node2, 1, 
                                 spec_lobe='clearcoat')
 
     # else set lobe on parent
-    else:
+    elif 'Bsdf' in node.bl_idname:
+        print('doing bsdf ' + node.name)
         if rman_parent.plugin_name == 'PxrLayerMixer':
             rman_parent = create_rman_surface(nt, rman_parent, input_index, 
                                               'PxrLayerPatternNode')
 
         node_type = node.bl_idname
-        inputs = node.inputs
-        if node_type == 'ShaderNodeBsdfDiffuse':
-            setattr(rman_parent, 'enableDiffuse', True)
-            setattr(rman_parent, 'diffuseGain', 1.0)
-            convert_cycles_input(
-                nt, inputs['Color'], rman_parent, "diffuseColor")
-            convert_cycles_input(
-                nt, inputs['Roughness'], rman_parent, "diffuseRoughness")
-            convert_cycles_input(
-                nt, inputs['Normal'], rman_parent, "diffuseBumpNormal")
-        elif node_type == 'ShaderNodeBsdfGlossy':
-            lobe_name = "PrimarySpecular" if spec_lobe == 'specular' else 'ClearCoat'
-            setattr(rman_parent, 'enable' + lobe_name, True)
-            if rman_parent.plugin_name == 'PxrLayer':
-                setattr(rman_parent, spec_lobe + 'Gain', 1.0)
-            convert_cycles_input(
-                nt, inputs['Color'], rman_parent, "%sFaceColor" % spec_lobe)
-            convert_cycles_input(
-                nt, inputs['Color'], rman_parent, "%sEdgeColor" % spec_lobe)
-            convert_cycles_input(
-                nt, inputs['Roughness'], rman_parent, "%sRoughness" % spec_lobe)
-            convert_cycles_input(
-                nt, inputs['Normal'], rman_parent, "%sBumpNormal" % spec_lobe)
-        elif node_type == 'ShaderNodeBsdfGlass':
-            enable_param_name = 'enableRR' if \
-                rman_parent.plugin_name == 'PxrLayer' else 'enableGlass'
-            setattr(rman_parent, enable_param_name, True)
-            param_prefix = 'rrR' if rman_parent.plugin_name == 'PxrLayer' else \
-                            'r'
-            setattr(rman_parent, param_prefix + 'efractionGain', 1.0)
-            setattr(rman_parent, param_prefix + 'eflectionGain', 1.0)
-            convert_cycles_input(nt, inputs['Color'], 
-                                 rman_parent, param_prefix + 'efractionColor')
-            param_prefix = 'rr' if rman_parent.plugin_name == 'PxrLayer' else \
-                'glass'
-            convert_cycles_input(nt, inputs['Roughness'], 
-                                 rman_parent, param_prefix + 'Roughness')
-            convert_cycles_input(nt, inputs['IOR'], 
-                                 rman_parent, param_prefix + 'Ior')
-        elif node_type == 'ShaderNodeBsdfRefraction':
-            enable_param_name = 'enableRR' if \
-                rman_parent.plugin_name == 'PxrLayer' else 'enableGlass'
-            setattr(rman_parent, enable_param_name, True)
-            param_prefix = 'rrR' if rman_parent.plugin_name == 'PxrLayer' else \
-                            'r'
-            setattr(rman_parent, param_prefix + 'efractionGain', 1.0)
-            convert_cycles_input(nt, inputs['Color'], 
-                                 rman_parent, param_prefix + 'efractionColor')
-            param_prefix = 'rr' if rman_parent.plugin_name == 'PxrLayer' else \
-                'glass'
-            convert_cycles_input(nt, inputs['Roughness'], 
-                                 rman_parent, param_prefix + 'Roughness')
-            convert_cycles_input(nt, inputs['IOR'], 
-                                 rman_parent, param_prefix + 'Ior')
-        elif node_type == 'ShaderNodeBsdfTranslucent':
-            pass
-        elif node_type == 'ShaderNodeBsdfTransparent':
-            enable_param_name = 'enableRR' if \
-                rman_parent.plugin_name == 'PxrLayer' else 'enableGlass'
-            setattr(rman_parent, enable_param_name, True)
-            param_prefix = 'rrR' if rman_parent.plugin_name == 'PxrLayer' else \
-                            'r'
-            setattr(rman_parent, param_prefix + 'efractionGain', 1.0)
-            convert_cycles_input(nt, inputs['Color'], 
-                                 rman_parent, param_prefix + 'efractionColor')
-            param_prefix = 'rr' if rman_parent.plugin_name == 'PxrLayer' else \
-                'glass'
-            setattr(rman_parent, param_prefix + 'Ior', 1.0)
-        elif node_type == 'ShaderNodeBsdfVelvet':
-            setattr(rman_parent, 'enableFuzz', True)
-            setattr(rman_parent, 'fuzzGain', 1.0)
-            convert_cycles_input(nt, inputs['Color'], rman_parent, "fuzzColor")
-            convert_cycles_input(
-                nt, inputs['Normal'], rman_parent, "fuzzBumpNormal")
-        elif node_type == 'ShaderNodeBsdfHair':
-            pass
+        
+        if node_type == 'ShaderNodeBsdfGlossy':
+            bsdf_map[node_type][1](nt, node, rman_parent, spec_lobe)
+        else:
+            bsdf_map[node_type][1](nt, node, rman_parent)
+
+    else:
+        print('doing node ' + node.name)
+        rman_node = convert_cycles_node(nt, node)
+        nt.links.new(rman_node.outputs[0], rman_parent.inputs[input_index])
 
 
 def convert_cycles_nodetree(id, ouput_node):
@@ -1563,7 +1475,9 @@ def convert_cycles_nodetree(id, ouput_node):
 
     # walk tree
     base_surface = create_rman_surface(nt, ouput_node, 0)
-    convert_cycles_node(nt, base_surface, cycles_output_node.inputs[0].links[0].from_node, 0)
+    print('here')
+    convert_cycles_bsdf(nt, base_surface, cycles_output_node.inputs[0].links[0].from_node, 0)
+    print('done with bsdf')
     return True
 
 cycles_node_map = {
