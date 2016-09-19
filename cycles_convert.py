@@ -1,12 +1,16 @@
-
+converted_nodes = {}
 
 def convert_cycles_node(nt, node):
     node_type = node.bl_idname
     if node_type in node_map.keys():
         rman_name, convert_func = node_map[node_type]
-        rman_node = nt.nodes.new(rman_name + 'PatternNode')
-        convert_func(nt, node, rman_node)
-        return rman_node
+        if node.name in converted_nodes:
+            return nt.nodes[converted_nodes[node.name]]
+        else:
+            rman_node = nt.nodes.new(rman_name + 'PatternNode')
+            convert_func(nt, node, rman_node)
+            converted_nodes[node.name] = rman_node.name
+            return rman_node
     else:
         print('No conversion for node type %s!!!!' % node_type)
         return None
@@ -28,6 +32,8 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
 
 #########  other node conversion methods  ############
 def convert_tex_image_node(nt, cycles_node, rman_node):
+    if cycles_node.image.packed_file:
+        cycles_node.image.unpack()
     setattr(rman_node, 'filename', cycles_node.image.filepath)
     convert_cycles_input(nt, cycles_node.inputs['Vector'], rman_node, 'manifold')
 

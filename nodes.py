@@ -1462,6 +1462,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
 
 def convert_cycles_nodetree(id, ouput_node):
     # find base node
+    converted_nodes = {}
     nt = id.node_tree
     cycles_output_node = find_node(id, 'ShaderNodeOutputMaterial')
     if not cycles_output_node:
