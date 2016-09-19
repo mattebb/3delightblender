@@ -1442,7 +1442,6 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
 
     # else set lobe on parent
     elif 'Bsdf' in node.bl_idname:
-        print('doing bsdf ' + node.name)
         if rman_parent.plugin_name == 'PxrLayerMixer':
             rman_parent = create_rman_surface(nt, rman_parent, input_index, 
                                               'PxrLayerPatternNode')
@@ -1455,7 +1454,6 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
             bsdf_map[node_type][1](nt, node, rman_parent)
 
     else:
-        print('doing node ' + node.name)
         rman_node = convert_cycles_node(nt, node)
         nt.links.new(rman_node.outputs[0], rman_parent.inputs[input_index])
 
@@ -1476,7 +1474,6 @@ def convert_cycles_nodetree(id, ouput_node):
 
     # walk tree
     base_surface = create_rman_surface(nt, ouput_node, 0)
-    print('here')
     convert_cycles_bsdf(nt, base_surface, cycles_output_node.inputs[0].links[0].from_node, 0)
     print('done with bsdf')
     return True
