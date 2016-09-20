@@ -1062,6 +1062,16 @@ class RendermanTextureSettings(bpy.types.PropertyGroup):
         description="Generate if optimised image is older than corresponding source image",
         default=True)
 
+class RendermanLightFilter(bpy.types.PropertyGroup):
+    def get_filters(self, context):
+        obs = context.scene.objects
+        items = []
+        for o in obs:
+            if o.type == 'LAMP' and o.data.renderman.renderman_type == 'FILTER':
+                items.append((o.name, o.name, o.name))
+        return items
+
+    filter_name = EnumProperty(items=get_filters)
 
 class RendermanLightSettings(bpy.types.PropertyGroup):
     def get_light_node(self):
@@ -1086,6 +1096,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             lamp.type = 'SUN'
         elif light_type == 'PORTAL':
             lamp.type = 'AREA'
+        elif light_type == 'FILTER':
+            lamp.type = 'AREA'
         else:
             lamp.type = light_type
 
@@ -1101,6 +1113,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             light_shader = 'PxrSphereLight'
         elif light_type == 'DIST':
             light_shader = 'PxrDistantLight'
+        elif light_type == 'FILTER':
+            light_shader = 'PxrBlockerLightFilter'
         elif light_type == 'AREA':
             try:
                 lamp.size = 1.0
@@ -1123,6 +1137,10 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         
         self.light_node = light_shader + "_settings"
 
+    def update_filter_type(self, context):
+        
+        self.light_node = 'PxrBlockerLightFilter' + "_settings"
+
     use_renderman_node = BoolProperty(
         name="Use RenderMans Light Node",
         description="Will enable RenderMan light Nodes, opening more options",
@@ -1137,7 +1155,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                ('DIST', 'Distant', 'Distant Light'),
                ('SPOT', 'Spot', 'Spot Light'),
                ('POINT', 'Point', 'Point Light'),
-               ('PORTAL', 'Portal', 'Portal Light')],
+               ('PORTAL', 'Portal', 'Portal Light'),
+               ('FILTER', 'Filter', 'Light Filter')],
         default='AREA'
     )
 
@@ -1149,6 +1168,19 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                ('sphere', 'Sphere', 'Sphere'),],
         default='rect'
     )
+
+    filter_type = EnumProperty(
+        name="Area Shape",
+        update=update_filter_type,
+        items=[('blocker', 'Blocker', 'Blocker'),
+               ],
+        default='blocker'
+    )
+
+    light_filters = CollectionProperty(
+        type=RendermanLightFilter
+    )
+    light_filters_index = IntProperty(min=-1, default=-1)
 
     shadingrate = FloatProperty(
         name="Light Shading Rate",
@@ -1769,6 +1801,7 @@ plugin_mapping = {
     'integrator': (get_integrator_names, RendermanSceneSettings),
     'projection': (prune_perspective_camera, RendermanCameraSettings),
     'light': (None, RendermanLightSettings),
+    'lightfilter': (None, RendermanLightSettings),
 }
 
 def register_plugin_to_parent(ntype, name, args_xml, plugin_type, parent):
@@ -1840,6 +1873,7 @@ classes = [RendermanPath,
            RendermanMaterialSettings,
            RendermanAnimSequenceSettings,
            RendermanTextureSettings,
+           RendermanLightFilter,
            RendermanLightSettings,
            RendermanParticleSettings,
            RendermanPluginSettings,

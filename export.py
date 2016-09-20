@@ -696,6 +696,16 @@ def export_light_source(ri, lamp):
               "color lightColor": rib(lamp.color)}
     ri.Light(names[lamp.type], lamp.name, params)
 
+def export_light_filters(ri, lamp):
+    rm = lamp.renderman
+    for lf in rm.light_filters:
+        if lf.filter_name in bpy.data.objects:
+            light_filter = bpy.data.objects[lf.filter_name]
+            filter_plugin = light_filter.data.renderman.get_light_node()
+            params = property_group_to_params(filter_plugin)
+            params['__instanceid'] = light_filter.name
+            ri.LightFilter(light_filter.data.renderman.get_light_node_name(), handle, params)
+            
 
 def export_light_shaders(ri, lamp, do_geometry=True):
     def point():
@@ -729,6 +739,7 @@ def export_light_shaders(ri, lamp, do_geometry=True):
     rm = lamp.renderman
     # need this for rerendering
     ri.Attribute('identifier', {'string name': handle})
+    
     # do the shader
     light_shader = rm.get_light_node()
     if light_shader:
@@ -801,6 +812,12 @@ def export_light(ri, instance):
     rm = lamp.renderman
     params = []
 
+    #if this is a filter do nothing theyll be exported with the lamp 
+    #they're attached to
+    if rm.renderman_type == 'FILTER':
+        return
+
+
     ri.AttributeBegin()
     export_transform(ri, instance, lamp.type ==
                      'HEMI' and lamp.renderman.renderman_type != "SKY")
@@ -810,6 +827,8 @@ def export_light(ri, instance):
     ri.ShadingRate(rm.shadingrate)
 
     export_light_shaders(ri, lamp)
+
+    export_light_filters(ri, lamp)
 
     ri.AttributeEnd()
 

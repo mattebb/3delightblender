@@ -440,6 +440,8 @@ def generate_property(sp):
         renderman_type = 'int'
 
     elif param_type == 'color':
+        if 'arraySize' in sp.attrib.keys():
+            return (None, None, None)
         if param_default == 'null' or param_default == None:
             param_default = '0 0 0'
         param_default = [float(c) for c in

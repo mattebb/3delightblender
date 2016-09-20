@@ -350,6 +350,9 @@ def draw_props(node, prop_names, layout):
                 draw_props(node, prop, layout)
 
         else:
+            if 'widget' in prop_meta.keys() and prop_meta['widget'] == 'null':
+                continue
+
             row.label('', icon='BLANK1')
             # indented_label(row, socket.name+':')
             row.prop(node, prop_name)
@@ -895,6 +898,8 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
             return
         else:
             layout.prop(lamp.renderman, "renderman_type", expand=True)
+            if lamp.renderman.renderman_type == 'FILTER':
+                layout.prop(lamp.renderman, "filter_type", expand=True)
             if lamp.renderman.renderman_type == "AREA":
                 layout.prop(lamp.renderman, "area_shape", expand=True)
                 row = layout.row()
@@ -919,9 +924,29 @@ class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
 
         lamp_node = lamp.renderman.get_light_node()
         if lamp_node:
-            layout.prop(lamp.renderman, 'light_primary_visibility')
+            if lamp.renderman.renderman_type != 'FILTER':
+                layout.prop(lamp.renderman, 'light_primary_visibility')
             draw_props(lamp_node, lamp_node.prop_names, layout)
 
+
+class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
+    bl_label = "Light Filters"
+    bl_context = 'data'
+
+    def draw(self, context):
+        layout = self.layout
+        lamp = context.lamp
+
+        for lf in lamp.renderman.light_filters:
+            row = layout.row()
+            row.prop(lf, 'filter_name')
+
+        layout.separator()
+        row = layout.row()
+        add = row.operator('collection.add_remove', 'Add Light Filter')
+        add.context = "lamp.renderman"
+        add.collection = 'light_filters'
+        add.collection_index = 'light_filters_index'
 
 class OBJECT_PT_renderman_object_geometry(Panel):
     bl_space_type = 'PROPERTIES'
