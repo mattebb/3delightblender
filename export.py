@@ -2519,7 +2519,7 @@ def export_camera(ri, scene, instances, camera_to_use=None):
             dof_distance = (ob.location - cam.dof_object.location).length
         else:
             dof_distance = cam.dof_distance
-        ri.DepthOfField(rm.fstop, (cam.lens * 0.001), dof_distance)
+        ri.DepthOfField(cam.renderman.fstop, (cam.lens * 0.001), dof_distance)
 
     if scene.renderman.motion_blur:
         shutter_interval = rm.shutter_angle / 360.0

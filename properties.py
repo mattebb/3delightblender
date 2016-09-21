@@ -59,6 +59,11 @@ class RendermanCameraSettings(bpy.types.PropertyGroup):
     use_physical_camera = BoolProperty(
         name="Use Physical Camera", default=False)
 
+    fstop = FloatProperty(
+        name="F-Stop",
+        description="Aperture size for depth of field.  Decreasing this value increases the blur on out of focus areas.",
+        default=4.0)
+
     dof_aspect = FloatProperty(
         name="DOF Aspect",  default=1,  max=2,  min=0,
         description="The ratio of blur in the 'x' and 'y' directions. Changing this value from the default will simulate anamorphic lens bokeh effects.  Values less than 1 elongate the blur on the 'y' axis.  Values greater than 1 elongate the blur on the 'x' axis.")
@@ -1832,7 +1837,9 @@ def prune_perspective_camera(args_xml, name):
             page_name = page.get('name')
             if page_name == 'Standard Perspective':
                 args_xml.remove(page)
-    projection_names.append((name, name[3:], ''))
+    
+    pretty_name = name.replace('Pxr', '')
+    projection_names.append((name, pretty_name, ''))
     return args_xml
 
 
@@ -1906,8 +1913,8 @@ def register_plugin_types():
         ntype.plugin_name = name
 
         if prune_method:
-            arg_xml = prune_method(args_xml, name)
-        if not arg_xml:
+            args_xml = prune_method(args_xml, name)
+        if not args_xml:
             continue
 
         register_plugin_to_parent(ntype, name, args_xml, plugin_type, parent)
