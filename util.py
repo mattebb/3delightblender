@@ -584,7 +584,7 @@ def guess_rmantree_initial():
         if "RenderManProServer" in d:
             vers_major, vers_minor, vers_mod = get_rman_version(d)
             if vers_major >= l_vers_major and \
-                vers_major == 20 and \
+                vers_major == 21 and \
                 (vers_minor > l_vers_minor or \
                 (vers_minor == l_vers_minor and \
                 vers_mod >= l_vers_mod)):
