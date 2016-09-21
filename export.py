@@ -42,8 +42,8 @@ from .util import get_sequence_path
 from .util import user_path
 from .util import path_list_convert, get_real_path
 from .util import get_properties, check_if_archive_dirty
-from .util import debug
 from .util import locate_openVDB_cache
+from .util import debug, get_addon_prefs
 
 from .util import find_it_path
 from .nodes import export_shader_nodetree, get_textures, get_textures_for_node
@@ -1707,7 +1707,7 @@ def has_emissive_material(db):
 # NB:  we ALWAYS need the animating psys if the emitter is transforming,
 # not just if MB is on
 def is_psys_animating(ob, psys, do_mb):
-    return (psys.settings.animation_data is not None) or is_transforming(ob, True, recurse=True)
+    return (psys.settings.frame_start != psys.settings.frame_end) or is_transforming(ob, True, recurse=True)
 
 # constructs a list of instances and data blocks based on objects in a scene
 # only the needed for rendering data blocks and instances are cached
@@ -2467,7 +2467,7 @@ def export_render_settings(ri, rpass, scene, preview=False):
     ri.Attribute("trace", depths)
     if rm.use_statistics:
         ri.Option("statistics", {'int endofframe': 1,
-                                 'string xmlfilename': 'stats.xml'})
+                                 'string xmlfilename': 'stats.%04d.xml' % scene.frame_current})
 
 
 def export_camera_matrix(ri, scene, ob, motion_data=[]):
@@ -2772,11 +2772,11 @@ def export_display(ri, rpass, scene):
     display_driver = rpass.display_driver
     rpass.output_files = []
     rpass.aov_denoise_files = []
+    addon_prefs = get_addon_prefs()
     main_display = user_path(
-        rm.path_display_driver_image, scene=scene, display_driver=rpass.display_driver)
+        addon_prefs.path_display_driver_image, scene=scene, display_driver=rpass.display_driver)
     debug("info", "Main_display: " + main_display)
-    image_base, ext = main_display.rsplit('.', 1)
-
+    
     # just going to always output rgba
     ri.Display(main_display, display_driver, "rgba", {})
     rpass.output_files.append(main_display)
@@ -2845,8 +2845,9 @@ def export_display(ri, rpass, scene):
             for aov, doit, declare, source in aovs:
                 params = {"int asrgba": 1}
                 if doit:
-                    dspy_name = image_base + \
-                        '.%s.%s.' % (layer_name, aov) + ext
+                    dspy_name = user_path(
+                        addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                        layer_name=layer_name, pass_name=aov)
                     ri.Display('+' + dspy_name, display_driver, aov, params)
                     rpass.output_files.append(dspy_name)
 
@@ -2859,6 +2860,9 @@ def export_display(ri, rpass, scene):
 
             for aov in rm_rl.custom_aovs:
                 aov_name = aov.name.replace(' ', '')
+                # if theres a blank name we can't make a channel
+                if aov_name == '':
+                    continue
                 source = aov.channel_type
                 channel_name = aov_name
                 source_type = "color"
@@ -2957,8 +2961,10 @@ def export_display(ri, rpass, scene):
                     params["string type"] = rm_rl.exr_format_options
                 if rm_rl.exr_compression != 'default':
                     params["string compression"] = rm_rl.exr_compression
-                ri.Display('+' + image_base + '.%s' % layer_name +
-                           '.multilayer.' + ext, out_type, ','.join(channels), params)
+                dspy_name = user_path(
+                        addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                        layer_name=layer_name, pass_name='multilayer')
+                ri.Display('+' + dspy_name, out_type, ','.join(channels), params)
                 if denoise:
                     rpass.aov_denoise_files.append(image_base + '.%s' % layer_name +
                            '.multilayer.' + ext)
@@ -2966,6 +2972,8 @@ def export_display(ri, rpass, scene):
             else:
                 for aov in rm_rl.custom_aovs:
                     aov_name = aov.name.replace(' ', '')
+                    if aov_name == '' or aov.channel_name == '':
+                        continue
                     if aov.channel_type == "rgba":
                         aov.channel_name = "rgba"
                     if layer == scene.render.layers[0] and aov == 'rgba':
@@ -2975,13 +2983,16 @@ def export_display(ri, rpass, scene):
                     if not rpass.external_render:
                         params = {"int asrgba": 1}
                     if aov.denoise_aov:
-                        ri.Display('+' + image_base + '.%s.%s.denoiseable.' %
-                                   (layer_name, aov_name) + ext, display_driver, aov.channel_name)
+                        dspy_name = user_path(
+                            addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                            layer_name=layer_name, pass_name=aov_name + '.denoisable')
+                        ri.Display('+' + dspy_name, display_driver, aov.channel_name)
                         rpass.aov_denoise_files.append(image_base + '.%s.%s.denoiseable.' %
                                    (layer_name, aov_name) + ext)
                     else:
-                        dspy_name = image_base + \
-                            '.%s.%s.' % (layer_name, aov_name) + ext
+                        dspy_name = user_path(
+                            addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                            layer_name=layer_name, pass_name=aov_name)
                         ri.Display('+' + dspy_name, display_driver,
                                    aov.channel_name, params)
                         rpass.output_files.append(dspy_name)
@@ -3021,6 +3032,7 @@ def export_display(ri, rpass, scene):
             ri.DisplayChannel('%s %s' % (declare_type, aov), params)
 
         # output denoise_data.exr
+        image_base, ext = main_display.rsplit('.', 1)
         ri.Display('+' + image_base + '.variance.exr', 'openexr',
                    "Ci,a,mse,albedo,albedo_var,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
                    {"string storage": "tiled"})
@@ -3343,6 +3355,12 @@ def add_light(rpass, ri, active, prman):
 
 
 def delete_light(rpass, ri, name, prman):
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
+    ri.EditBegin('attribute', {'string scopename': name})
+    ri.Attribute('visibility', {'int camera':0,})
+    ri.Bxdf('null', 'null', {})
+    ri.EditEnd()
     rpass.edit_num += 1
     edit_flush(ri, rpass.edit_num, prman)
     ri.EditBegin('overrideilluminate')

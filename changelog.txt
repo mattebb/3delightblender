@@ -2,13 +2,12 @@ v21.0.0 9/2/16
 * NOTE SIGNIFICANT CHANGE - Nodetrees are moved to use the built in cycles nodetree!
   * This will help file linking and allow node groups
   * However you will have to redo your nodetrees.
-  * as an added bonus, users can use existing cycles nodetrees but will NEED to add a PRMan Bxdf
-  * Currently should work, however with a few known issues (when removed they'll be updated here)
-  	* IPR works only with PRMan nodes currently
-  	* There may be display issues on the properties display.  Use node editor
-  	* Only textures from the PRMan PxrTexture node at the moment.
+  * Using "add renderman nodetree" will attempt to convert and hook up your cycles nodetree
 * Support for PRMan 21 features - specifically new shaders and lights.
 * portal lights are supported
+* light filters are added - using a light and set it to "Filter type", then link the filters to your lights 
+* sample and display filters are now under the scene properties
+* Support for all Projection plugins (VR rendering with OmniDirectional!) under the camera props
 * icons are updated to renderman 21 icons
 
 
