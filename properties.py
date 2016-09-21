@@ -755,7 +755,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items=[('ribgen', 'Generate RIB only',
                 'Only Generate RIB and job file (no render)'),
                ('spool', 'Spool Job', 'Spool Job to queuing system')],
-        default='render')
+        default='spool')
         
     custom_alfname = StringProperty(
         name="Custom Spool Name", 

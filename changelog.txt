@@ -1,8 +1,9 @@
-v21.0.0 9/2/16
+v21.0.0 9/21/16
 * NOTE SIGNIFICANT CHANGE - Nodetrees are moved to use the built in cycles nodetree!
   * This will help file linking and allow node groups
   * However you will have to redo your nodetrees.
   * Using "add renderman nodetree" will attempt to convert and hook up your cycles nodetree
+     * this is still a work in progress
 * Support for PRMan 21 features - specifically new shaders and lights.
 * portal lights are supported
 * light filters are added - using a light and set it to "Filter type", then link the filters to your lights 
