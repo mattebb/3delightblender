@@ -54,7 +54,7 @@ class RendermanCameraSettings(bpy.types.PropertyGroup):
     def get_projection_node(self):
         return getattr(self, self.projection_type + '_settings')
 
-    projection_type = EnumProperty(items=projection_names)
+    projection_type = EnumProperty(items=projection_names, name='Projection Plugin')
 
     use_physical_camera = BoolProperty(
         name="Use Physical Camera", default=False)
@@ -385,7 +385,7 @@ class RendermanDisplayFilterSettings(bpy.types.PropertyGroup):
     def get_filter_node(self):
         return getattr(self, self.filter_type + '_settings')
 
-    filter_type = EnumProperty(items=displayfilter_names)
+    filter_type = EnumProperty(items=displayfilter_names, name='Filter')
 
 
 samplefilter_names = []
@@ -396,7 +396,7 @@ class RendermanSampleFilterSettings(bpy.types.PropertyGroup):
     def get_filter_node(self):
         return getattr(self, self.filter_type + '_settings')
 
-    filter_type = EnumProperty(items=samplefilter_names)
+    filter_type = EnumProperty(items=samplefilter_names, name='Filter')
 
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):

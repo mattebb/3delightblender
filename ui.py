@@ -836,7 +836,7 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
         row.prop(scene.renderman, "depth_of_field")
         sub = row.row()
         sub.enabled = scene.renderman.depth_of_field
-        sub.prop(scene.renderman, "fstop")
+        sub.prop(cam.renderman, "fstop")
 
         split = layout.split()
 

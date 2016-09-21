@@ -2541,14 +2541,15 @@ def export_camera(ri, scene, instances, camera_to_use=None):
         ri.CropWindow(scene.render.border_min_x, scene.render.border_max_x,
                       1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y)
 
-    if cam.renderman.project_type != 'none':
+    if cam.renderman.projection_type != 'none':
         # use pxr Camera
-        params = property_group_to_params(cam.renderman.get_projection_node)
-        lens = cam.lens
-        sensor = cam.sensor_height \
-            if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
-        params['float fov'] = 360.0 * \
-            math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
+        params = property_group_to_params(cam.renderman.get_projection_node())
+        if cam.renderman.get_projection_name() == 'PxrCamera':
+            lens = cam.lens
+            sensor = cam.sensor_height \
+                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+            params['float fov'] = 360.0 * \
+                math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
         ri.Projection(cam.renderman.get_projection_name(), params)
     elif cam.type == 'PERSP':
         lens = cam.lens
