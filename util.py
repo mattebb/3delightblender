@@ -497,6 +497,7 @@ def get_addon_prefs():
 def guess_rmantree():
     prefs = get_addon_prefs()
     rmantree_method = prefs.rmantree_method
+    rmantree = None
 
     if rmantree_method == 'MANUAL':
         rmantree = prefs.path_rmantree
@@ -523,7 +524,7 @@ def guess_rmantree():
                 if "RenderManProServer" in d:
                     vers_major, vers_minor, vers_mod = get_rman_version(d)
                     if vers_major >= l_vers_major and \
-                        vers_major == 20 and \
+                        vers_major == 21 and \
                         (vers_minor > l_vers_minor or \
                         (vers_minor == l_vers_minor and \
                         vers_mod >= l_vers_mod)):
@@ -533,11 +534,11 @@ def guess_rmantree():
         else:
             rmantree = choice
 
-    # check rmantree valid
-    if not check_valid_rmantree(rmantree):
-        print("ERROR!!! See RenderMan location in User Preferences.")
-        print("RenderMan Location is set to %s which does not appear valid." % rmantree)
+    if not rmantree:
+        print('ERROR!!!  You need RenderMan version 21.0 or above.')
+        print('Correct in User Preferences.')
         return None
+
     # check that it's > 20
     vstr = rmantree.split('-')[-1]
     vf = float(vstr.strip('/\\'))
@@ -545,6 +546,13 @@ def guess_rmantree():
         print('ERROR!!!  You need RenderMan version 21.0 or above.')
         print('Correct in User Preferences.')
         return None
+
+    # check rmantree valid
+    if not check_valid_rmantree(rmantree):
+        print("ERROR!!! See RenderMan location in User Preferences.")
+        print("RenderMan Location is set to %s which does not appear valid." % rmantree)
+        return None
+    
 
     return rmantree
 
