@@ -43,9 +43,19 @@ from bpy.app.handlers import persistent
 
 integrator_names = []
 
+projection_names = [('none', 'None', 'None')]
 class RendermanCameraSettings(bpy.types.PropertyGroup):
     bl_label = "Renderman Camera Settings"
     bl_idname = 'RendermanCameraSettings'
+    
+    def get_projection_name(self):
+        return self.projection_type.replace('_settings', '')
+
+    def get_projection_node(self):
+        return getattr(self, self.projection_type + '_settings')
+
+    projection_type = EnumProperty(items=projection_names)
+
     use_physical_camera = BoolProperty(
         name="Use Physical Camera", default=False)
 
@@ -366,7 +376,35 @@ class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
             ('tiled', 'Tiled Storage', '')],
         default='scanline')
 
+
+displayfilter_names = []
+class RendermanDisplayFilterSettings(bpy.types.PropertyGroup):
+    def get_filter_name(self):
+        return self.filter_type.replace('_settings', '')
+
+    def get_filter_node(self):
+        return getattr(self, self.filter_type + '_settings')
+
+    filter_type = EnumProperty(items=displayfilter_names)
+
+
+samplefilter_names = []
+class RendermanSampleFilterSettings(bpy.types.PropertyGroup):
+    def get_filter_name(self):
+        return self.filter_type.replace('_settings', '')
+    
+    def get_filter_node(self):
+        return getattr(self, self.filter_type + '_settings')
+
+    filter_type = EnumProperty(items=samplefilter_names)
+
+
 class RendermanSceneSettings(bpy.types.PropertyGroup):
+    display_filters = CollectionProperty(type=RendermanDisplayFilterSettings, name='Display Filters')
+    display_filters_index = IntProperty(min=-1, default=-1)
+    sample_filters = CollectionProperty(type=RendermanSampleFilterSettings, name='Sample Filters')
+    sample_filters_index = IntProperty(min=-1, default=-1)
+
     light_groups = CollectionProperty(type=RendermanGroup,
                                       name='Light Groups')
     light_groups_index = IntProperty(min=-1, default=-1)
@@ -1138,8 +1176,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         self.light_node = light_shader + "_settings"
 
     def update_filter_type(self, context):
-        
-        self.light_node = 'PxrBlockerLightFilter' + "_settings"
+        filter_name = self.filter_type.capitalize()
+        self.light_node = 'Pxr%sLightFilter_settings' % filter_name
 
     use_renderman_node = BoolProperty(
         name="Use RenderMans Light Node",
@@ -1173,6 +1211,13 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         name="Area Shape",
         update=update_filter_type,
         items=[('blocker', 'Blocker', 'Blocker'),
+                ('barn', 'Barn', 'Barn'),
+                ('combiner', 'Combiner', 'Combiner'),
+                ('cookie', 'Cookie', 'Cookie'),
+                ('gobo', 'Gobo', 'Gobo'),
+                ('intmult', 'Multiply', 'Multiply'),
+                ('ramp', 'Ramp', 'Ramp'),
+                ('rod', 'Rod', 'Rod')
                ],
         default='blocker'
     )
@@ -1787,6 +1832,7 @@ def prune_perspective_camera(args_xml, name):
             page_name = page.get('name')
             if page_name == 'Standard Perspective':
                 args_xml.remove(page)
+    projection_names.append((name, name[3:], ''))
     return args_xml
 
 
@@ -1797,11 +1843,28 @@ def get_integrator_names(args_xml, name):
     return args_xml
 
 
+def get_samplefilter_names(args_xml, name):
+    if 'Combiner' in name:
+        return None
+    else:
+        samplefilter_names.append((name, name[3:], ''))
+        return args_xml
+
+def get_displayfilter_names(args_xml, name):
+    if 'Combiner' in name:
+        return None
+    else:
+        displayfilter_names.append((name, name[3:], ''))
+        return args_xml
+
+
 plugin_mapping = {
     'integrator': (get_integrator_names, RendermanSceneSettings),
     'projection': (prune_perspective_camera, RendermanCameraSettings),
     'light': (None, RendermanLightSettings),
     'lightfilter': (None, RendermanLightSettings),
+    'displayfilter': (get_displayfilter_names, RendermanDisplayFilterSettings),
+    'samplefilter': (get_samplefilter_names, RendermanSampleFilterSettings),
 }
 
 def register_plugin_to_parent(ntype, name, args_xml, plugin_type, parent):
@@ -1881,6 +1944,8 @@ classes = [RendermanPath,
            RendermanAOV,
            RendermanRenderLayerSettings,
            RendermanCameraSettings,
+           RendermanDisplayFilterSettings,
+           RendermanSampleFilterSettings,
            RendermanSceneSettings,
            RendermanMeshGeometrySettings,
            RendermanCurveGeometrySettings,

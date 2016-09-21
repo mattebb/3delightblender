@@ -857,11 +857,10 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
         sub.prop(cam.renderman, "aperture_roundness", text="Roundness")
         sub.prop(cam.renderman, "aperture_density", text="Density")
 
-        layout.prop(cam.renderman, "use_physical_camera")
-        if cam.renderman.use_physical_camera:
-            pxrcamera = getattr(cam.renderman, "PxrCamera_settings")
-
-            draw_props(pxrcamera, pxrcamera.prop_names, layout)
+        layout.prop(cam.renderman, "projection_type")
+        if cam.renderman.projection_type != 'none':
+            projection_node = cam.renderman.get_projection_node()
+            draw_props(projection_node, projection_node.prop_names, layout)
 
 
 class DATA_PT_renderman_world(ShaderPanel, Panel):
@@ -929,7 +928,59 @@ class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
             draw_props(lamp_node, lamp_node.prop_names, layout)
 
 
-class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
+class DATA_PT_renderman_display_filters(CollectionPanel, Panel):
+    bl_label = "Display Filters"
+    bl_context = 'scene'
+
+    def draw_item(self, layout, context, item):
+        layout.prop(item, 'filter_type')
+        layout.separator()
+        filter_node = item.get_filter_node()
+        draw_props(filter_node, filter_node.prop_names, layout)
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+
+        self._draw_collection(context, layout, rm, "Display Filters:",
+                              "collection.add_remove", "scene", "display_filters",
+                              "display_filters_index")
+
+
+class DATA_PT_renderman_Sample_filters(CollectionPanel, Panel):
+    bl_label = "Sample Filters"
+    bl_context = 'scene'
+
+    def draw_item(self, layout, context, item):
+        layout.prop(item, 'filter_type')
+        layout.separator()
+        filter_node = item.get_filter_node()
+        draw_props(filter_node, filter_node.prop_names, layout)
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+
+        self._draw_collection(context, layout, rm, "Sample Filters:",
+                              "collection.add_remove", "scene", "sample_filters",
+                              "sample_filters_index")
+
+
+class DATA_PT_renderman_node_filters_lamp(ShaderNodePanel, Panel):
     bl_label = "Light Filters"
     bl_context = 'data'
 
@@ -947,6 +998,7 @@ class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
         add.context = "lamp.renderman"
         add.collection = 'light_filters'
         add.collection_index = 'light_filters_index'
+
 
 class OBJECT_PT_renderman_object_geometry(Panel):
     bl_space_type = 'PROPERTIES'

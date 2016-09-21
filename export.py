@@ -704,7 +704,8 @@ def export_light_filters(ri, lamp):
             filter_plugin = light_filter.data.renderman.get_light_node()
             params = property_group_to_params(filter_plugin)
             params['__instanceid'] = light_filter.name
-            ri.LightFilter(light_filter.data.renderman.get_light_node_name(), handle, params)
+            params['string coordsys'] = light_filter.name
+            ri.LightFilter(light_filter.data.renderman.get_light_node_name(), lamp.name, params)
             
 
 def export_light_shaders(ri, lamp, do_geometry=True):
@@ -814,9 +815,7 @@ def export_light(ri, instance):
 
     #if this is a filter do nothing theyll be exported with the lamp 
     #they're attached to
-    if rm.renderman_type == 'FILTER':
-        return
-
+    
 
     ri.AttributeBegin()
     export_transform(ri, instance, lamp.type ==
@@ -824,20 +823,22 @@ def export_light(ri, instance):
     #as of 21 lights are fliped around x
     if lamp.type == 'AREA':
         ri.Rotate(180, 1, 0, 0)
-    ri.ShadingRate(rm.shadingrate)
-
-    export_light_shaders(ri, lamp)
-
-    export_light_filters(ri, lamp)
+    
+    # if this is a filter just export the coord sys
+    if rm.renderman_type != 'FILTER':
+        export_light_filters(ri, lamp)
+        export_light_shaders(ri, lamp)
+        
 
     ri.AttributeEnd()
 
-    # illuminate if illumintaes and not muted
-    do_light = rm.illuminates_by_default and not rm.mute
-    if bpy.context.scene.renderman.solo_light:
-        # check if solo
-        do_light = do_light and rm.solo
-    ri.Illuminate(lamp.name, do_light)
+    if rm.renderman_type != 'FILTER':
+        # illuminate if illumintaes and not muted
+        do_light = rm.illuminates_by_default and not rm.mute
+        if bpy.context.scene.renderman.solo_light:
+            # check if solo
+            do_light = do_light and rm.solo
+        ri.Illuminate(lamp.name, do_light)
 
 
 def export_material(ri, mat, handle=None):
@@ -1109,9 +1110,16 @@ def get_texture_list_preview(scene):
 
 def export_scene_lights(ri, instances):
     # if not rpass.light_shaders: return
+    export_comment(ri, '##Light Filters')
+    for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
+        if instance.ob.data.renderman.renderman_type == 'FILTER':
+            export_light(ri, instance)
+
     export_comment(ri, '##Lights')
     for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
-        export_light(ri, instance)
+        if instance.ob.data.renderman.renderman_type != 'FILTER':
+            export_light(ri, instance)
+
 
 
 def export_default_bxdf(ri, name):
@@ -2533,15 +2541,15 @@ def export_camera(ri, scene, instances, camera_to_use=None):
         ri.CropWindow(scene.render.border_min_x, scene.render.border_max_x,
                       1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y)
 
-    if cam.renderman.use_physical_camera:
+    if cam.renderman.project_type != 'none':
         # use pxr Camera
-        params = property_group_to_params(cam.renderman.PxrCamera_settings)
+        params = property_group_to_params(cam.renderman.get_projection_node)
         lens = cam.lens
         sensor = cam.sensor_height \
             if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
         params['float fov'] = 360.0 * \
             math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
-        ri.Projection("PxrCamera", params)
+        ri.Projection(cam.renderman.get_projection_name(), params)
     elif cam.type == 'PERSP':
         lens = cam.lens
 
@@ -2699,6 +2707,30 @@ def preview_model(ri, scene, mat):
         ri.Rotate(45, 1, 0, 0)
         export_geometry_data(ri, scene, scene.objects[
                              'preview.002'], data=None)
+
+def export_displayfilters(ri, scene):
+    rm = scene.renderman
+    display_filter_names = []
+    for df in rm.display_filters:
+        params = property_group_to_params(df.get_filter_node())
+        ri.DisplayFilter(df.get_filter_name(), df.name, params)
+        display_filter_names.append(df.name)
+
+    if len(display_filter_names) > 1:
+        params = {'reference displayfilter[%d] filter' % len(display_filter_names): display_filter_names}
+        ri.DisplayFilter('PxrDisplayFilterCombiner', 'combiner', params)
+
+def export_samplefilters(ri, scene):
+    rm = scene.renderman
+    filter_names = []
+    for sf in rm.sample_filters:
+        params = property_group_to_params(sf.get_filter_node())
+        ri.DisplayFilter(sf.get_filter_name(), sf.name, params)
+        filter_names.append(df.name)
+
+    if len(filter_names) > 1:
+        params = {'reference samplefilter[%d] filter' % len(filter_names): filter_names}
+        ri.SampleFilter('PxrSampleFilterCombiner', 'combiner', params)
 
 
 def export_display(ri, rpass, scene):
@@ -3047,6 +3079,10 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
     export_options(ri, scene)
 
     export_display(ri, rpass, scene)
+
+    export_displayfilters(ri, scene)
+    export_samplefilters(ri, scene)
+
     export_hider(ri, rpass, scene)
     export_integrator(ri, rpass, scene)
 
