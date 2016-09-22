@@ -599,10 +599,13 @@ class RPass:
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.ri, self.scene, prman)
-        if self.is_prman_running():
-            self.is_interactive_running = True
-            self.ri.EditBegin('null', {})
-            self.ri.EditEnd()
+        
+        while not self.is_prman_running():
+            time.sleep(.1)
+
+        self.ri.EditBegin('null', {})
+        self.ri.EditEnd()
+        self.is_interactive_ready = True
         return
 
     # find the changed object and send for edits
