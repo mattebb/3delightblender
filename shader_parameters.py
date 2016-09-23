@@ -117,48 +117,67 @@ def parse_float(fs):
     return float(fs[:-1]) if 'f' in fs else float(fs)
 
 
+
+
 def generate_page(sp, node, parent_name, first_level=False):
-    param_names = []
+    prop_names = []
     prop_meta = {}
-    props = []
     # don't add the sub group to prop names,
     # they'll be gotten through recursion
     if first_level:
         param_name = 'enable' + parent_name.replace(' ', '')
-        param_names.append(param_name)
+        prop_names.append(param_name)
         prop_meta[param_name] = {'renderman_type':'enum', 'renderman_name': param_name}
         default = parent_name == 'PxrSurface.Diffuse'
-        props.append(BoolProperty(name=param_name,
+        prop = BoolProperty(name=param_name,
                                     default=bool(default),
-                                    update=update_func))
+                                    update=update_func)
+        setattr(node, param_name, prop)
 
 
     for sub_param in sp.findall('param') + sp.findall('page'):
         if sub_param.tag == 'page':
             name = parent_name + '.' + sub_param.attrib['name']
-            sub_names, sub_meta, sub_props = generate_page(sub_param, node, name)
-            props.append(sub_names)
-            props.append(sub_props)
+            sub_names, sub_meta = generate_page(sub_param, node, name)
+            setattr(node, name, sub_names)
+            #props.append(sub_props)
             prop_meta.update(sub_meta)
             prop_meta[name] = {'renderman_type': 'page'}
-            param_names.append(name)
+            prop_names.append(name)
             ui_label = "%s_ui_open" % name
             setattr(node, ui_label, BoolProperty(name=ui_label,
                                                  default=False))
-            for i in range(len(sub_names)):
-                setattr(node, sub_names[i], sub_props[i])
         else:
+            
             name, meta, prop = generate_property(sub_param)
             if name is None:
                 continue
-            # another fix for sloppy args files
-            if name == sp.attrib['name']:
-                name = name + '_prop'
-            param_names.append(name)
+            
+            prop_names.append(name)
             prop_meta[name] = meta
-            props.append(prop)
+            setattr(node, name, prop)
+            # If a texture is involved and not an environment texture add
+            # options
+            if name == "filename":
+                optionsNames, optionsMeta, optionsProps = \
+                    generate_txmake_options(parent_name)
+                # make texoptions hider
+                prop_names.append("txmake_options")
+                prop_meta["txmake_options"] = {'renderman_type': 'page'}
+                setattr(node, "txmake_options", optionsNames)
+                ui_label = "%s_ui_open" % "txmake_options"
+                setattr(node, ui_label, BoolProperty(name=ui_label,
+                                                     default=False))
+                prop_meta.update(optionsMeta)
+                for Texname in optionsNames:
+                    setattr(
+                        node, Texname + "_ui_open", optionsProps[Texname])
+                    setattr(node, Texname, optionsProps[Texname])
 
-    return param_names, prop_meta, props
+            #if name == sp.attrib['name']:
+            #    name = name + '_prop'
+            
+    return prop_names, prop_meta
 
 
 def class_generate_properties(node, parent_name, shaderparameters):
@@ -171,34 +190,20 @@ def class_generate_properties(node, parent_name, shaderparameters):
             if parent_name == "PxrOSL" or parent_name == "PxrSeExpr":
                 pass
             else:
-                page_name = sp.attrib['name']
+                page_name = parent_name + '.' + sp.attrib['name']
                 first_level = parent_name == 'PxrSurface' and page_name != 'Globals'
-                sub_param_names, sub_params_meta, sub_props = generate_page(
+                sub_prop_names, sub_params_meta = generate_page(
                     sp, node, page_name, first_level=first_level)
                 prop_names.append(page_name)
                 prop_meta[page_name] = {'renderman_type': 'page'}
-                setattr(node, page_name, sub_param_names)
                 ui_label = "%s_ui_open" % page_name
                 setattr(node, ui_label, BoolProperty(name=ui_label,
                                                      default=False))
                 prop_meta.update(sub_params_meta)
-                for i in range(len(sub_param_names)):
-                    setattr(node, sub_param_names[i], sub_props[i])
-                    if sub_param_names[i] == "filename":
-                        optionsNames, optionsMeta, optionsProps = \
-                            generate_txmake_options(parent_name)
-                        # make texoptions hider
-                        prop_names.append("texoptions")
-                        prop_meta["texoptions"] = {'renderman_type': 'page'}
-                        setattr(node, "texoptions", optionsNames)
-                        ui_label = "%s_ui_open" % "texoptions"
-                        setattr(node, ui_label, BoolProperty(name=ui_label,
-                                                             default=False))
-                        prop_meta.update(optionsMeta)
-                        for Texname in optionsNames:
-                            setattr(node, Texname + "_ui_open",
-                                    optionsProps[Texname])
-                            setattr(node, Texname, optionsProps[Texname])
+                setattr(node, page_name, sub_prop_names)
+
+                # for i in range(len(sub_param_names)):
+                #     
         elif sp.tag == 'output':
             output_meta[sp.attrib['name']] = sp.attrib        
         else:
