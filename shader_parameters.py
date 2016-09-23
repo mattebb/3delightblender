@@ -128,7 +128,7 @@ def generate_page(sp, node, parent_name, first_level=False):
         param_name = 'enable' + parent_name.replace(' ', '')
         prop_names.append(param_name)
         prop_meta[param_name] = {'renderman_type':'enum', 'renderman_name': param_name}
-        default = parent_name == 'PxrSurface.Diffuse'
+        default = parent_name == 'Diffuse'
         prop = BoolProperty(name=param_name,
                                     default=bool(default),
                                     update=update_func)
@@ -185,12 +185,13 @@ def class_generate_properties(node, parent_name, shaderparameters):
     prop_meta = {}
     output_meta = {}
     i = 0
+
     for sp in shaderparameters:
         if sp.tag == 'page':
             if parent_name == "PxrOSL" or parent_name == "PxrSeExpr":
                 pass
             else:
-                page_name = parent_name + '.' + sp.attrib['name']
+                page_name = sp.attrib['name']
                 first_level = parent_name == 'PxrSurface' and page_name != 'Globals'
                 sub_prop_names, sub_params_meta = generate_page(
                     sp, node, page_name, first_level=first_level)
@@ -288,6 +289,12 @@ def class_generate_properties(node, parent_name, shaderparameters):
     setattr(node, 'output_meta', output_meta)
 
 
+def update_conditional_visops(node):
+    for param_name, prop_meta in getattr(node, 'prop_meta').items():
+        if 'conditionalVisOp' in prop_meta:
+            prop_meta['hidden'] = not eval(prop_meta['conditionalVisOp'])
+        
+
 # send updates to ipr if running
 def update_func(self, context):
     from . import engine
@@ -299,8 +306,18 @@ def update_func(self, context):
         if mat:
             self.update_mat(mat)
 
+    # update the conditional_vis_ops
+    update_conditional_visops(self)
+
     if self.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
-        update_inputs(self)
+        update_inputs(self)         
+
+    #set any inputs that are visible and param is hidden to hidden
+    prop_meta = getattr(self, 'prop_meta')
+    for input_name, socket in self.inputs.items():
+        if 'hidden' in prop_meta[input_name] \
+            and prop_meta[input_name]['hidden'] and not socket.hide:
+                socket.hide = True
 
 
 def update_inputs(node):
@@ -319,6 +336,69 @@ def recursive_enable_inputs(node, prop_names, enable=True):
             node.inputs[prop_name].hide = not enable
         else:
             continue
+
+# take a set of condtional visops and make a python string
+def parse_conditional_visop(hintdict):
+    op_map = {
+        'notEqualTo' : "!=",
+        'equalTo': '==',
+        'greaterThan': '>',
+        'lessThan': '<'
+    }
+    visop = hintdict.find("string[@name='conditionalVisOp']").attrib['value']
+    if visop == 'and':
+        vis1op = hintdict.find("string[@name='conditionalVis1Op']").attrib['value']
+        vis1path = hintdict.find("string[@name='conditionalVis1Path']").attrib['value']
+        vis1Value = hintdict.find("string[@name='conditionalVis1Value']").attrib['value']
+        vis2op = hintdict.find("string[@name='conditionalVis2Op']").attrib['value']
+        vis2path = hintdict.find("string[@name='conditionalVis2Path']").attrib['value']
+        vis2Value = hintdict.find("string[@name='conditionalVis2Value']").attrib['value']
+        
+        vis1 = ''
+        vis2 = ''
+        if vis1Value.isalpha():
+            vis1 = "getattr(node, '%s') %s '%s'" % \
+                (vis1path.rsplit('/', 1)[-1], op_map[vis1op], vis1Value)
+        else:
+            vis1 = "float(getattr(node, '%s')) %s float(%s)" % \
+                (vis1path.rsplit('/', 1)[-1], op_map[vis1op], vis1Value)
+
+        if vis2Value.isalpha():
+            vis2 = "getattr(node, '%s') %s '%s'" % \
+                (vis2path.rsplit('/', 1)[-1], op_map[vis2op], vis2Value)
+        else:
+            vis2 = "float(getattr(node, '%s')) %s float(%s)" % \
+                (vis2path.rsplit('/', 1)[-1], op_map[vis2op], vis2Value)
+
+        return "%s and %s" % (vis1, vis2)
+    else:
+        vispath = hintdict.find("string[@name='conditionalVisPath']").attrib['value']
+        visValue = hintdict.find("string[@name='conditionalVisValue']").attrib['value']
+        if visValue.isalpha():
+            return "getattr(node, '%s') %s '%s'" % \
+                (vispath.rsplit('/', 1)[-1], op_map[visop], visValue)
+        else:
+            return "float(getattr(node, '%s')) %s float(%s)" % \
+                (vispath.rsplit('/', 1)[-1], op_map[visop], visValue)
+
+
+def parse_conditional_visop_attrib(attrib):
+    op_map = {
+        'notEqualTo' : "!=",
+        'equalTo': '==',
+        'greaterThan': '>',
+        'lessThan': '<'
+    }
+
+    visop = attrib['conditionalVisOp']
+    vispath = attrib['conditionalVisPath']
+    visValue = attrib['conditionalVisValue']
+    if visValue.isalpha():
+        return "getattr(node, '%s') %s '%s'" % \
+            (vispath.rsplit('/', 1)[-1], op_map[visop], visValue)
+    else:
+        return "float(getattr(node, '%s')) %s float(%s)" % \
+            (vispath.rsplit('/', 1)[-1], op_map[visop], visValue)
                     
 
 # map args params to props
@@ -352,6 +432,17 @@ def generate_property(sp):
     prop_meta = sp.attrib
     renderman_type = param_type
     prop = None
+
+    # if has conditionalVisOps parse them
+    if sp.find("hintdict[@name='conditionalVisOps']"):
+        prop_meta['conditionalVisOp'] = parse_conditional_visop( \
+            sp.find("hintdict[@name='conditionalVisOps']"))
+
+    # sigh, some visops are in attrib:
+    elif 'conditionalVisOp' in sp.attrib:
+        prop_meta['conditionalVisOp'] = parse_conditional_visop_attrib( \
+            sp.attrib)
+
 
     if 'coshaderPort' in prop_meta and prop_meta['coshaderPort'] == 'True':
         param_type = 'shader'

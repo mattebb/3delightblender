@@ -350,7 +350,8 @@ def draw_props(node, prop_names, layout):
                 draw_props(node, prop, layout)
 
         else:
-            if 'widget' in prop_meta.keys() and prop_meta['widget'] == 'null':
+            if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
+                'hidden' in prop_meta and prop_meta['hidden']:
                 continue
 
             row.label('', icon='BLANK1')

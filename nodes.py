@@ -307,7 +307,8 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 if prop_name in ["lightGroup", "rman__Shape", "coneAngle", "penumbraAngle"]:
                     continue
                 prop_meta = self.prop_meta[prop_name]
-                if 'widget' in prop_meta and prop_meta['widget'] == 'null':
+                if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
+                        'hidden' in prop_meta and prop_meta['hidden']:
                     continue
                 if prop_name not in self.inputs:
                     if prop_meta['renderman_type'] == 'page':
@@ -437,6 +438,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         return ok
 
     def update(self):
+        #print(self.name + "updated")
         debug("info", "UPDATING: ", self.name)
 
     @classmethod
@@ -863,7 +865,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     prop_meta = node.prop_meta[prop_name]
                     prop = getattr(node, prop_name)
 
-                    if 'widget' in prop_meta and prop_meta['widget'] == 'null':
+                    if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
+                        'hidden' in prop_meta and prop_meta['hidden']:
                         continue
 
                     # else check if the socket with this name is connected
