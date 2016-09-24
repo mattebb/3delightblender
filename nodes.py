@@ -438,7 +438,6 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         return ok
 
     def update(self):
-        #print(self.name + "updated")
         debug("info", "UPDATING: ", self.name)
 
     @classmethod

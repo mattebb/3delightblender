@@ -129,7 +129,7 @@ def generate_page(sp, node, parent_name, first_level=False):
         prop_names.append(param_name)
         prop_meta[param_name] = {'renderman_type':'enum', 'renderman_name': param_name}
         default = parent_name == 'Diffuse'
-        prop = BoolProperty(name=param_name,
+        prop = BoolProperty(name="Enable " + parent_name, 
                                     default=bool(default),
                                     update=update_func)
         setattr(node, param_name, prop)
@@ -192,7 +192,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 pass
             else:
                 page_name = sp.attrib['name']
-                first_level = parent_name == 'PxrSurface' and page_name != 'Globals'
+                first_level = parent_name == 'PxrSurface' and 'Globals' not in page_name
                 sub_prop_names, sub_params_meta = generate_page(
                     sp, node, page_name, first_level=first_level)
                 prop_names.append(page_name)

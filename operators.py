@@ -99,7 +99,6 @@ class Renderman_start_it(bpy.types.Operator):
             subprocess.Popen([it_path], env=environ, shell=True)
         return {'FINISHED'}
 
-
 class Renderman_open_last_RIB(bpy.types.Operator):
     bl_idname = 'rman.open_rib'
     bl_label = "Open Last RIB Scene file."
