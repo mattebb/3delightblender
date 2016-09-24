@@ -276,11 +276,12 @@ class RendermanShadingNode(bpy.types.ShaderNode):
 
     def draw_nonconnectable_props(self, context, layout, prop_names):
         if self.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
+            col = layout.column(align=True)
             for prop_name in prop_names:
                 if prop_name not in self.inputs:
                     for name in getattr(self, prop_name):
                         if name.startswith('enable'):
-                            layout.prop(self, name, text="Enable " +
+                            col.prop(self, name, text="Enable " +
                                         prop_name.split('.')[-1])
                             break
             return
