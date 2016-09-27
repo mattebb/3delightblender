@@ -134,6 +134,8 @@ def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files
             denoise_options = ['--crossframe -v variance', '-F 1', '-L 1']
             if rm.spool_denoise_aov and denoise_aov_files != []:
                 denoise_options.append('--filtervariance 1')
+            if rm.denoise_cmd != '':
+                denoise_options.append(rm.denoise_cmd)
             if frame_num - frame_begin < 1:
                 pass
             elif frame_num - frame_begin == 1:
@@ -152,7 +154,7 @@ def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files
                                                            for f in denoise_files[frame_num - frame_begin - 2: frame_num - frame_begin + 1]]
                 if rm.spool_denoise_aov and denoise_aov_files != []:
                     files = [item for sublist in denoise_aov_files[
-                        frame_num - 3: frame_num] for item in sublist]
+                        frame_num - frame_begin - 2: frame_num - frame_begin + 1] for item in sublist]
                     cmd_str = ['denoise'] + denoise_options + [f[0]
                                                                for f in denoise_files[frame_num - frame_begin - 2: frame_num - frame_begin + 1]] + files
                 write_cmd_task_line(f, 'Denoise frame %d' % (frame_num - 1),
@@ -163,7 +165,7 @@ def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files
                                                            for f in denoise_files[frame_num - frame_begin - 1: frame_num - frame_begin + 1]]
                 if rm.spool_denoise_aov and denoise_aov_files != []:
                     files = [item for sublist in denoise_aov_files[
-                        frame_num - 2: frame_num] for item in sublist]
+                        frame_num - frame_begin - 1: frame_num - frame_begin + 1] for item in sublist]
                     cmd_str = ['denoise'] + denoise_options + [f[0]
                                                                for f in denoise_files[frame_num - frame_begin - 1: frame_num - frame_begin + 1]] + files
 
