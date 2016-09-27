@@ -41,6 +41,8 @@ class PRManRender(bpy.types.RenderEngine):
     bl_label = "RenderMan Render"
     bl_use_preview = True
     bl_use_save_buffers = True
+    bl_use_shading_nodes = True
+    bl_use_shading_nodes_custom = False
 
     def __init__(self):
         self.render_pass = None
