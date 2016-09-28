@@ -16,7 +16,7 @@ def write_parent_task_line(f, title, serial_subtasks, indent_level):
 def write_cmd_task_line(f, title, cmds, indent_level):
     f.write("%sTask {%s} -cmds {\n" % ('\t' * indent_level, title))
     for key, cmd in cmds:
-        f.write("%sCmd -service {%s} {%s}\n" % ('\t' * (indent_level + 1),
+        f.write("%sRemoteCmd -service {%s} {%s}\n" % ('\t' * (indent_level + 1),
                                                 key, " ".join(cmd)))
     f.write("%s}\n" % ('\t' * indent_level))
 
