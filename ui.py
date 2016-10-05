@@ -113,6 +113,19 @@ for member in dir(properties_particle):
         pass
 del properties_particle
 
+import bl_ui
+bl_ui.properties_physics_common.PHYSICS_PT_add.COMPAT_ENGINES.add('PRMAN_RENDER')
+import bl_ui.properties_physics_smoke as properties_smoke
+for member in dir(properties_smoke):
+    subclass = getattr(properties_smoke, member)
+    try:
+        subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
+    except:
+        pass
+del properties_smoke
+
+
+
 # icons
 import os
 from . icons.icons import load_icons
