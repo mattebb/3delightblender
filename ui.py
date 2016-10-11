@@ -1626,7 +1626,6 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
             columns.label('Name')
             columns.label('Solo')
             columns.label('Mute')
-            columns.label('Visibility')
             columns.label('Intensity')
             columns.label('Exposure')
             columns.label('Color')
@@ -1640,11 +1639,9 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                 columns.label(light_name)
                 columns.prop(lamp_rm, 'solo', text='')
                 columns.prop(lamp_rm, 'mute', text='')
-                if lamp.renderman.node:
-                    light_shader = lamp.renderman.node
-
-                    columns.prop(
-                        lamp_rm, 'light_primary_visibility', text='')
+                light_shader = lamp.renderman.get_light_node()
+                if light_shader:
+                    
                     columns.prop(light_shader, 'intensity', text='')
                     columns.prop(light_shader, 'exposure', text='')
                     if light_shader.bl_label == 'PxrEnvDayLight':
@@ -1653,7 +1650,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                         column.label('')
                     else:
                         columns.prop(light_shader, 'lightColor', text='')
-                        row = columns.row(align=True)
+                        row = columns.row()
                         row.prop(light_shader, 'enableTemperature', text='')
                         row.prop(light_shader, 'temperature', text='')
                 else:
