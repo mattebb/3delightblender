@@ -113,17 +113,20 @@ for member in dir(properties_particle):
         pass
 del properties_particle
 
-import bl_ui
-bl_ui.properties_physics_common.PHYSICS_PT_add.COMPAT_ENGINES.add('PRMAN_RENDER')
-import bl_ui.properties_physics_smoke as properties_smoke
-for member in dir(properties_smoke):
-    subclass = getattr(properties_smoke, member)
-    try:
-        subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
-    except:
-        pass
-del properties_smoke
-
+# this is here for 2.78
+try: 
+    import bl_ui
+    bl_ui.properties_physics_common.PHYSICS_PT_add.COMPAT_ENGINES.add('PRMAN_RENDER')
+    import bl_ui.properties_physics_smoke as properties_smoke
+    for member in dir(properties_smoke):
+        subclass = getattr(properties_smoke, member)
+        try:
+            subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
+        except:
+            pass
+    del properties_smoke
+except:
+    pass
 
 
 # icons
@@ -369,7 +372,11 @@ def draw_props(node, prop_names, layout):
 
             row.label('', icon='BLANK1')
             # indented_label(row, socket.name+':')
-            row.prop(node, prop_name)
+            if "Subset" in prop_name and prop_meta['type'] == 'string':
+                row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
+                                "object_groups")
+            else:
+                row.prop(node, prop_name)
 
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     bl_label = "Sampling"
@@ -905,26 +912,37 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
         layout = self.layout
 
         lamp = context.lamp
+        ipr_running = engine.ipr != None
         if not lamp.renderman.use_renderman_node:
             layout.prop(lamp, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype = 'lamp'
             return
         else:
-            layout.prop(lamp.renderman, "renderman_type", expand=True)
+            if ipr_running:
+                layout.label("Note: Some items cannot be edited while IPR running.")
+            row = layout.row()
+            row.enabled = not ipr_running
+            row.prop(lamp.renderman, "renderman_type", expand=True)
             if lamp.renderman.renderman_type == 'FILTER':
-                layout.prop(lamp.renderman, "filter_type", expand=True)
+                row = layout.row()
+                row.enabled = not ipr_running
+                row.prop(lamp.renderman, "filter_type", expand=True)
             if lamp.renderman.renderman_type == "AREA":
-                layout.prop(lamp.renderman, "area_shape", expand=True)
+                row = layout.row()
+                row.enabled = not ipr_running
+                row.prop(lamp.renderman, "area_shape", expand=True)
                 row = layout.row()
                 if lamp.renderman.area_shape == "rect":
                     row.prop(lamp, 'size', text="Size X")
                     row.prop(lamp, 'size_y')
                 else:
                     row.prop(lamp, 'size', text="Radius")
-            layout.prop(lamp.renderman, "shadingrate")
+            #layout.prop(lamp.renderman, "shadingrate")
 
         #layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
-        layout.prop(lamp.renderman, 'illuminates_by_default')
+        row = layout.row()
+        row.enabled = not ipr_running
+        row.prop(lamp.renderman, 'illuminates_by_default')
 
 
 class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):

@@ -1153,6 +1153,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             light_shader = 'PxrBlockerLightFilter'
         elif light_type == 'AREA':
             try:
+                lamp.shape = 'RECTANGLE'
                 lamp.size = 1.0
                 lamp.size_y = 1.0
             except:
@@ -1162,16 +1163,32 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         #setattr(node, 'renderman_portal', light_type == 'PORTAL')
 
     def update_area_shape(self, context):
-        
+        lamp = context.lamp if hasattr(context, 'lamp') else context.scene.objects.active.data
         area_shape = self.area_shape
         # use pxr area light for everything but env, sky
         light_shader = 'PxrRectLight'
+        
         if area_shape == 'disk':
+            lamp.shape = 'SQUARE'
             light_shader = 'PxrDiskLight'
         elif area_shape == 'sphere':
+            lamp.shape = 'SQUARE'
             light_shader = 'PxrSphereLight'
+        else:
+            lamp.shape = 'RECTANGLE'
         
         self.light_node = light_shader + "_settings"
+
+        from . import engine
+        if engine.is_ipr_running():
+            engine.ipr.issue_shader_edits()
+
+    def update_vis(self, context):
+        lamp = context.lamp if hasattr(context, 'lamp') else context.scene.objects.active.data
+        
+        from . import engine
+        if engine.is_ipr_running():
+            engine.ipr.update_light_visibility(lamp)
 
     def update_filter_type(self, context):
         filter_name = self.filter_type.capitalize()
@@ -1239,6 +1256,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
     light_primary_visibility = BoolProperty(
             name="Light Primary Visibility",
             description="Camera visibility for this light",
+            update=update_vis,
             default=True)
 
     def update_mute(self, context):

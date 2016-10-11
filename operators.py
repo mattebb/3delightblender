@@ -175,7 +175,23 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 default.location[0] -= 300
                 nt.links.new(default.outputs[0], output.inputs[0])
         elif idtype == 'lamp':
+            light_type = idblock.type
+            if light_type == 'SUN':
+                context.lamp.renderman.renderman_type = 'DIST'
+            elif light_type == 'HEMI':
+                
+                context.lamp.renderman.renderman_type = 'ENV'
+            else:
+                context.lamp.renderman.renderman_type = light_type
+                
+            if light_type == 'AREA':
+                context.lamp.shape = 'RECTANGLE'
+                context.lamp.size = 1.0
+                context.lamp.size_y = 1.0
+
             idblock.renderman.use_renderman_node = True
+            
+            
         else:
             idblock.renderman.renderman_type = "ENV"
             # light_type = idblock.type

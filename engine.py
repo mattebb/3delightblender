@@ -59,7 +59,7 @@ from bpy.app.handlers import persistent
 from .export import write_rib, write_preview_rib, get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
     interactive_initial_rib, update_light_link, delete_light,\
-    reset_light_illum, solo_light, mute_lights
+    reset_light_illum, solo_light, mute_lights, issue_light_vis
 
 from .nodes import get_tex_file_name
 
@@ -611,7 +611,7 @@ class RPass:
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
         active = scene.objects.active
-        if active and active.is_updated:
+        if (active and active.is_updated) or (active and active.type == 'LAMP' and active.is_updated_data):
             if is_ipr_running():
                 issue_transform_edits(self, self.ri, active, prman)
             else:
@@ -639,6 +639,9 @@ class RPass:
 
     def update_illuminates(self):
         update_illuminates(self, self.ri, prman)
+
+    def update_light_visibility(self, lamp):
+        issue_light_vis(self, self.ri, lamp, prman)
 
     def solo_light(self):
         if self.current_solo_light:

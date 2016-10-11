@@ -314,10 +314,11 @@ def update_func(self, context):
 
     #set any inputs that are visible and param is hidden to hidden
     prop_meta = getattr(self, 'prop_meta')
-    for input_name, socket in self.inputs.items():
-        if 'hidden' in prop_meta[input_name] \
-            and prop_meta[input_name]['hidden'] and not socket.hide:
-                socket.hide = True
+    if hasattr(self, 'inputs'):
+        for input_name, socket in self.inputs.items():
+            if 'hidden' in prop_meta[input_name] \
+                and prop_meta[input_name]['hidden'] and not socket.hide:
+                    socket.hide = True
 
 
 def update_inputs(node):
