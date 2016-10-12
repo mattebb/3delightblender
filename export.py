@@ -3158,12 +3158,16 @@ def write_preview_rib(rpass, scene, ri):
     ri.Translate(0, 0, 0.75)
 
     mat = find_preview_material(scene)
-    export_material(ri, mat, 'preview')
-    preview_model(ri, scene, mat)
+    if mat: 
+        export_material(ri, mat, 'preview')
+        preview_model(ri, scene, mat)
     ri.AttributeEnd()
 
     ri.WorldEnd()
     ri.FrameEnd()
+
+    # if mat is none this will tell the render pass not to render
+    return mat != None
 
 
 def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, exportRange):
@@ -3317,7 +3321,7 @@ def reissue_textures(ri, rpass, mat):
     made_tex = False
     if mat is not None:
         textures = get_textures(mat) if type(map) == bpy.types.Material else \
-            get_textures_for_node(mat.data.renderman.get_light_node())
+            get_textures_for_node(mat.renderman.get_light_node())
 
         files = rpass.convert_textures(textures)
         if files and len(files) > 0:
@@ -3470,10 +3474,9 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
                 rpass.material_dict[mat] = [bpy.context.object]
         lamp = None
         world = bpy.context.scene.world
-        if mat is None and bpy.data.scenes[0].objects.active \
-                and bpy.data.scenes[0].objects.active.type == 'LAMP':
-            lamp = bpy.data.scenes[0].objects.active
-            mat = bpy.data.scenes[0].objects.active
+        if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
+            lamp = node.id_data
+            mat = node.id_data
         elif mat is None and nt and nt.name == 'World':
             mat = world
         if mat is None:
@@ -3496,7 +3499,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
                 export_material(ri, mat)
                 ri.EditEnd()
         elif lamp:
-            delete_light(rpass, ri, lamp.data.name, prman)
+            delete_light(rpass, ri, lamp.name, prman)
             add_light(rpass, ri, lamp, prman)
             rpass.edit_num += 1
             edit_flush(ri, rpass.edit_num, prman)
@@ -3517,9 +3520,8 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         if bpy.context.object:
             mat = bpy.context.object.active_material
         # if this is a lamp use that for the mat/name
-        if mat is None and bpy.data.scenes[0].objects.active \
-                and bpy.data.scenes[0].objects.active.type == 'LAMP':
-            mat = bpy.data.scenes[0].objects.active
+        if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
+            mat = node.id_data
         elif mat is None and nt and nt.name == 'World':
             mat = bpy.context.scene.world
         elif mat is None:

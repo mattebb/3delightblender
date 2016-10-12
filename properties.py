@@ -1123,7 +1123,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
     # do this to keep the nice viewport update
     def update_light_type(self, context):
-        lamp = context.lamp if hasattr(context, 'lamp') else context.scene.objects.active.data
+        lamp = self.id_data
         light_type = lamp.renderman.renderman_type
         
         if light_type in ['SKY', 'ENV']:
@@ -1163,7 +1163,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         #setattr(node, 'renderman_portal', light_type == 'PORTAL')
 
     def update_area_shape(self, context):
-        lamp = context.lamp if hasattr(context, 'lamp') else context.scene.objects.active.data
+        lamp = self.id_data
         area_shape = self.area_shape
         # use pxr area light for everything but env, sky
         light_shader = 'PxrRectLight'
@@ -1184,7 +1184,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             engine.ipr.issue_shader_edits()
 
     def update_vis(self, context):
-        lamp = context.lamp if hasattr(context, 'lamp') else context.scene.objects.active.data
+        lamp = self.id_data
         
         from . import engine
         if engine.is_ipr_running():
@@ -1270,7 +1270,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         default=False)
 
     def update_solo(self, context):
-        lamp = context.lamp
+        lamp = self.id_data
         scene = context.scene
 
         # if the scene solo is on already find the old one and turn off

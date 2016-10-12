@@ -114,7 +114,8 @@ def free(engine):
 def render(engine):
     if hasattr(engine, 'render_pass') and engine.render_pass.do_render:
         if engine.is_preview:
-            engine.render_pass.preview_render(engine)
+            if engine.render_pass.rib_done:
+                engine.render_pass.preview_render(engine)
         else:
             engine.render_pass.render(engine)
 
@@ -175,6 +176,7 @@ def format_seconds_to_hhmmss(seconds):
 class RPass:
 
     def __init__(self, scene, interactive=False, external_render=False, preview_render=False):
+        self.rib_done = False
         self.scene = scene
         self.output_files = []
         self.aov_denoise_files = []
@@ -743,7 +745,7 @@ class RPass:
 
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
-        write_preview_rib(self, self.scene, self.ri)
+        self.rib_done = write_preview_rib(self, self.scene, self.ri)
         self.ri.End()
 
     def convert_textures(self, temp_texture_list):
