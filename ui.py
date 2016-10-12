@@ -113,6 +113,22 @@ for member in dir(properties_particle):
         pass
 del properties_particle
 
+# this is here for 2.78
+try: 
+    import bl_ui
+    bl_ui.properties_physics_common.PHYSICS_PT_add.COMPAT_ENGINES.add('PRMAN_RENDER')
+    import bl_ui.properties_physics_smoke as properties_smoke
+    for member in dir(properties_smoke):
+        subclass = getattr(properties_smoke, member)
+        try:
+            subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
+        except:
+            pass
+    del properties_smoke
+except:
+    pass
+
+
 # icons
 import os
 from . icons.icons import load_icons
@@ -135,7 +151,7 @@ class CollectionPanel():
         return rd.engine == 'PRMAN_RENDER'
 
     def _draw_collection(self, context, layout, ptr, name, operator,
-                         opcontext, prop_coll, collection_index):
+                         opcontext, prop_coll, collection_index, default_name=''):
         layout.label(name)
         row = layout.row()
         row.template_list("UI_UL_list", "PRMAN", ptr, prop_coll, ptr,
@@ -146,7 +162,7 @@ class CollectionPanel():
         op.context = opcontext
         op.collection = prop_coll
         op.collection_index = collection_index
-        op.defaultname = ''
+        op.defaultname = default_name
         op.action = 'ADD'
 
         op = col.operator(operator, icon="ZOOMOUT", text="")
@@ -356,7 +372,11 @@ def draw_props(node, prop_names, layout):
 
             row.label('', icon='BLANK1')
             # indented_label(row, socket.name+':')
-            row.prop(node, prop_name)
+            if "Subset" in prop_name and prop_meta['type'] == 'string':
+                row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
+                                "object_groups")
+            else:
+                row.prop(node, prop_name)
 
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     bl_label = "Sampling"
@@ -892,26 +912,37 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
         layout = self.layout
 
         lamp = context.lamp
+        ipr_running = engine.ipr != None
         if not lamp.renderman.use_renderman_node:
             layout.prop(lamp, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype = 'lamp'
             return
         else:
-            layout.prop(lamp.renderman, "renderman_type", expand=True)
+            if ipr_running:
+                layout.label("Note: Some items cannot be edited while IPR running.")
+            row = layout.row()
+            row.enabled = not ipr_running
+            row.prop(lamp.renderman, "renderman_type", expand=True)
             if lamp.renderman.renderman_type == 'FILTER':
-                layout.prop(lamp.renderman, "filter_type", expand=True)
+                row = layout.row()
+                row.enabled = not ipr_running
+                row.prop(lamp.renderman, "filter_type", expand=True)
             if lamp.renderman.renderman_type == "AREA":
-                layout.prop(lamp.renderman, "area_shape", expand=True)
+                row = layout.row()
+                row.enabled = not ipr_running
+                row.prop(lamp.renderman, "area_shape", expand=True)
                 row = layout.row()
                 if lamp.renderman.area_shape == "rect":
                     row.prop(lamp, 'size', text="Size X")
                     row.prop(lamp, 'size_y')
                 else:
                     row.prop(lamp, 'size', text="Radius")
-            layout.prop(lamp.renderman, "shadingrate")
+            #layout.prop(lamp.renderman, "shadingrate")
 
         #layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
-        layout.prop(lamp.renderman, 'illuminates_by_default')
+        row = layout.row()
+        row.enabled = not ipr_running
+        row.prop(lamp.renderman, 'illuminates_by_default')
 
 
 class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
@@ -1562,8 +1593,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
         self._draw_collection(context, layout, rm, "",
                               "collection.add_remove",
                               "scene.renderman",
-                              "light_groups", "light_groups_index")
-
+                              "light_groups", "light_groups_index", default_name=str(len(rm.light_groups)))
     def draw_item(self, layout, context, item):
         scene = context.scene
         rm = scene.renderman
@@ -1595,7 +1625,6 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
             columns.label('Name')
             columns.label('Solo')
             columns.label('Mute')
-            columns.label('Visibility')
             columns.label('Intensity')
             columns.label('Exposure')
             columns.label('Color')
@@ -1609,11 +1638,9 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                 columns.label(light_name)
                 columns.prop(lamp_rm, 'solo', text='')
                 columns.prop(lamp_rm, 'mute', text='')
-                if lamp.renderman.node:
-                    light_shader = lamp.renderman.node
-
-                    columns.prop(
-                        lamp_rm, 'light_primary_visibility', text='')
+                light_shader = lamp.renderman.get_light_node()
+                if light_shader:
+                    
                     columns.prop(light_shader, 'intensity', text='')
                     columns.prop(light_shader, 'exposure', text='')
                     if light_shader.bl_label == 'PxrEnvDayLight':
@@ -1622,7 +1649,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                         column.label('')
                     else:
                         columns.prop(light_shader, 'lightColor', text='')
-                        row = columns.row(align=True)
+                        row = columns.row()
                         row.prop(light_shader, 'enableTemperature', text='')
                         row.prop(light_shader, 'temperature', text='')
                 else:
@@ -1772,7 +1799,8 @@ class Renderman_Object_Panel(CollectionPanel, Panel):
         self._draw_collection(context, layout, rm, "",
                               "collection.add_remove",
                               "scene.renderman",
-                              "object_groups", "object_groups_index")
+                              "object_groups", "object_groups_index",
+                              default_name=str(len(rm.object_groups)))
 
     def draw_item(self, layout, context, item):
         row = layout.row()

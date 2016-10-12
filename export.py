@@ -653,10 +653,27 @@ def export_transform(ri, instance, flip_x=False, concat=False, flatten=False):
         if flip_x:
             m = m.copy()
             m[0] *= -1.0
-        if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type == "SKY":
+        
+        if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type in ["SKY"]:
             m = m.copy()
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m2 * m
+        
+        if instance.type == 'LAMP' and instance.ob.data.type == 'AREA':
+            m = m.copy()
+            m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+            m = m * m2
+            data = instance.ob.data
+            if data.renderman.area_shape == 'rect':
+                m[0][0] *= data.size
+                m[1][1] *= data.size_y
+            else:
+                m[0][0] *= data.size
+                m[1][1] *= data.size
+                m[2][2] *= data.size
+
+            
+
         if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type == "DIST":
             m = m.copy()
             m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
@@ -681,9 +698,21 @@ def export_object_transform(ri, ob, flip_x=False):
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
         m = m2 * m
     if ob.type == 'LAMP' and ob.data.renderman.renderman_type == "DIST":
-            m = m.copy()
-            m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
-            m = m2 * m
+        m = m.copy()
+        m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
+        m = m2 * m
+    if ob.type == 'LAMP' and ob.data.type == 'AREA':
+        m = m.copy()
+        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+        m = m * m2
+        data = ob.data
+        if data.renderman.area_shape == 'rect':
+            m[0][0] *= data.size
+            m[1][1] *= data.size_y
+        else:
+            m[0][0] *= data.size
+            m[1][1] *= data.size
+            m[2][2] *= data.size
     ri.Transform(rib(m))
     ri.CoordinateSystem(ob.name)
 
@@ -709,33 +738,6 @@ def export_light_filters(ri, lamp):
             
 
 def export_light_shaders(ri, lamp, do_geometry=True):
-    def point():
-        ri.Scale(.01, .01, .01)
-    
-    def geometry(type):
-        if lamp.renderman.renderman_type == 'AREA' and lamp.type == 'AREA':
-            if lamp.renderman.area_shape == 'rect':
-                ri.Scale(lamp.size, lamp.size_y, 1.0)
-            elif lamp.renderman.area_shape == 'sphere':
-                ri.Scale(lamp.size, lamp.size, lamp.size)
-                #ri.Geometry('spherelight', {})
-            ri.Rotate(180, 1, 0, 0)
-        else:
-            params = {}
-            if lamp.renderman.renderman_type == 'SKY':
-                params['constant float[2] resolution'] = [1024, 512]
-    
-    def spot():
-        ri.ReverseOrientation()
-        
-    shapes = {
-        "POINT": ("sphere", point),
-        "SUN": ("distant", lambda: geometry('distantlight')),
-        "SPOT": ("spot", spot),
-        "AREA": ("rect", lambda: geometry('area')),
-        "HEMI": ("env", lambda: geometry('envsphere'))
-    }
-
     handle = lamp.name
     rm = lamp.renderman
     # need this for rerendering
@@ -760,10 +762,6 @@ def export_light_shaders(ri, lamp, do_geometry=True):
         ri.Light(rm.get_light_node_name(), handle, params)
     else:
         export_light_source(ri, lamp)
-
-    # now the geometry
-    #if do_geometry:
-    #    shapes[lamp.type][1]()
 
 
 def export_world_rib(ri, world):
@@ -820,9 +818,6 @@ def export_light(ri, instance):
     ri.AttributeBegin()
     export_transform(ri, instance, lamp.type ==
                      'HEMI' and lamp.renderman.renderman_type != "SKY")
-    #as of 21 lights are fliped around x
-    if lamp.type == 'AREA':
-        ri.Rotate(180, 1, 0, 0)
     
     # if this is a filter just export the coord sys
     if rm.renderman_type != 'FILTER':
@@ -3163,12 +3158,16 @@ def write_preview_rib(rpass, scene, ri):
     ri.Translate(0, 0, 0.75)
 
     mat = find_preview_material(scene)
-    export_material(ri, mat, 'preview')
-    preview_model(ri, scene, mat)
+    if mat: 
+        export_material(ri, mat, 'preview')
+        preview_model(ri, scene, mat)
     ri.AttributeEnd()
 
     ri.WorldEnd()
     ri.FrameEnd()
+
+    # if mat is none this will tell the render pass not to render
+    return mat != None
 
 
 def write_archive_RIB(rpass, scene, ri, object, overridePath, exportMats, exportRange):
@@ -3286,11 +3285,17 @@ def interactive_initial_rib(rpass, ri, scene, prman):
     prman.RicFlush("_initial", 0, ri.FINISHRENDERING)
 
 # flush the current edit
-
-
 def edit_flush(ri, edit_num, prman):
     ri.ArchiveRecord("structure", ri.STREAMMARKER + "%d" % edit_num)
     prman.RicFlush("%d" % edit_num, 0, ri.SUSPENDRENDERING)
+
+def issue_light_vis(rpass, ri, lamp, prman):
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
+
+    ri.EditBegin('attribute', {'string scopename': lamp.name})
+    ri.Attribute('visibility', {'int camera':int(lamp.renderman.light_primary_visibility),})
+    ri.EditEnd()
 
 
 def issue_light_transform_edit(ri, obj):
@@ -3315,7 +3320,8 @@ def issue_camera_edit(ri, rpass, camera):
 def reissue_textures(ri, rpass, mat):
     made_tex = False
     if mat is not None:
-        textures = get_textures(mat)
+        textures = get_textures(mat) if type(map) == bpy.types.Material else \
+            get_textures_for_node(mat.renderman.get_light_node())
 
         files = rpass.convert_textures(textures)
         if files and len(files) > 0:
@@ -3440,7 +3446,7 @@ def update_light_link(rpass, ri, prman, link, remove=False):
     edit_flush(ri, rpass.edit_num, prman)
     strs = link.name.split('>')
     ob_names = [strs[3]] if strs[2] == "obj_object" else \
-        rpass.scene.renderman.object_groups[strs[3]].members.keys
+        rpass.scene.renderman.object_groups[strs[3]].members.keys()
 
     for ob_name in ob_names:
         ri.EditBegin('attribute', {'string scopename': ob_name})
@@ -3468,10 +3474,9 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
                 rpass.material_dict[mat] = [bpy.context.object]
         lamp = None
         world = bpy.context.scene.world
-        if mat is None and bpy.data.scenes[0].objects.active \
-                and bpy.data.scenes[0].objects.active.type == 'LAMP':
-            lamp = bpy.data.scenes[0].objects.active
-            mat = bpy.data.scenes[0].objects.active.data
+        if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
+            lamp = node.id_data
+            mat = node.id_data
         elif mat is None and nt and nt.name == 'World':
             mat = world
         if mat is None:
@@ -3494,24 +3499,29 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
                 export_material(ri, mat)
                 ri.EditEnd()
         elif lamp:
-            ri.EditBegin('attribute', {'string scopename': lamp.name})
-            export_light_shaders(ri, mat)
+            delete_light(rpass, ri, lamp.name, prman)
+            add_light(rpass, ri, lamp, prman)
+            rpass.edit_num += 1
+            edit_flush(ri, rpass.edit_num, prman)
+            ri.EditBegin('overrideilluminate')
+            ri.Illuminate(lamp.data.name, 
+                          lamp.data.renderman.illuminates_by_default)
             ri.EditEnd()
+
         elif world:
             ri.EditBegin('attribute', {'string scopename': world.name})
-            export_world(ri, mat, do_geometry=True)
+            export_world(ri, mat.data, do_geometry=True)
             ri.EditEnd()
 
     else:
         world = bpy.context.scene.world
         mat = None
-
+        
         if bpy.context.object:
             mat = bpy.context.object.active_material
         # if this is a lamp use that for the mat/name
-        if mat is None and bpy.data.scenes[0].objects.active \
-                and bpy.data.scenes[0].objects.active.type == 'LAMP':
-            mat = bpy.data.scenes[0].objects.active.data
+        if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
+            mat = node.id_data
         elif mat is None and nt and nt.name == 'World':
             mat = bpy.context.scene.world
         elif mat is None:
@@ -3528,6 +3538,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             edit_flush(ri, rpass.edit_num, prman)
         rpass.edit_num += 1
         edit_flush(ri, rpass.edit_num, prman)
+        
         ri.EditBegin('instance')
         shader_node_rib(ri, node, mat.name)
         ri.EditEnd()

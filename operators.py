@@ -175,7 +175,23 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 default.location[0] -= 300
                 nt.links.new(default.outputs[0], output.inputs[0])
         elif idtype == 'lamp':
+            light_type = idblock.type
+            if light_type == 'SUN':
+                context.lamp.renderman.renderman_type = 'DIST'
+            elif light_type == 'HEMI':
+                
+                context.lamp.renderman.renderman_type = 'ENV'
+            else:
+                context.lamp.renderman.renderman_type = light_type
+                
+            if light_type == 'AREA':
+                context.lamp.shape = 'RECTANGLE'
+                context.lamp.size = 1.0
+                context.lamp.size_y = 1.0
+
             idblock.renderman.use_renderman_node = True
+            
+            
         else:
             idblock.renderman.renderman_type = "ENV"
             # light_type = idblock.type
@@ -300,27 +316,10 @@ class ExternalRender(bpy.types.Operator):
         frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
         frame_end = scene.frame_end if rm.external_animation else scene.frame_current
         alf_file = spool_render(
-            str(rm_version), rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
+                str(rm_version), rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass)
 
         # if spooling send job to queuing
         if rm.external_action == 'spool':
-            exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
-            self.report(
-                {'INFO'}, 'RenderMan External Rendering done rendering.')
-
-        # else gen spool job
-        else:
-            denoise = rm.external_denoise
-            rm_version = rm.path_rmantree.split('-')[-1]
-            if denoise:
-                denoise = 'crossframe' if rm.crossframe_denoise else 'frame'
-            frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
-            frame_end = scene.frame_end if rm.external_animation else scene.frame_current
-            alf_file = spool_render(
-                str(rm_version), rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass)
-
-            # if spooling send job to queuing
-            if rm.external_action == 'spool':
                 exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
                 self.report(
                     {'INFO'}, 'RenderMan External Rendering spooling to %s.' % rm.queuing_system)
