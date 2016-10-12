@@ -151,7 +151,7 @@ class CollectionPanel():
         return rd.engine == 'PRMAN_RENDER'
 
     def _draw_collection(self, context, layout, ptr, name, operator,
-                         opcontext, prop_coll, collection_index):
+                         opcontext, prop_coll, collection_index, default_name=''):
         layout.label(name)
         row = layout.row()
         row.template_list("UI_UL_list", "PRMAN", ptr, prop_coll, ptr,
@@ -162,7 +162,7 @@ class CollectionPanel():
         op.context = opcontext
         op.collection = prop_coll
         op.collection_index = collection_index
-        op.defaultname = ''
+        op.defaultname = default_name
         op.action = 'ADD'
 
         op = col.operator(operator, icon="ZOOMOUT", text="")
@@ -1593,8 +1593,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
         self._draw_collection(context, layout, rm, "",
                               "collection.add_remove",
                               "scene.renderman",
-                              "light_groups", "light_groups_index")
-
+                              "light_groups", "light_groups_index", default_name=str(len(rm.light_groups)))
     def draw_item(self, layout, context, item):
         scene = context.scene
         rm = scene.renderman
@@ -1800,7 +1799,8 @@ class Renderman_Object_Panel(CollectionPanel, Panel):
         self._draw_collection(context, layout, rm, "",
                               "collection.add_remove",
                               "scene.renderman",
-                              "object_groups", "object_groups_index")
+                              "object_groups", "object_groups_index",
+                              default_name=str(len(rm.object_groups)))
 
     def draw_item(self, layout, context, item):
         row = layout.row()

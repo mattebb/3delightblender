@@ -3446,7 +3446,7 @@ def update_light_link(rpass, ri, prman, link, remove=False):
     edit_flush(ri, rpass.edit_num, prman)
     strs = link.name.split('>')
     ob_names = [strs[3]] if strs[2] == "obj_object" else \
-        rpass.scene.renderman.object_groups[strs[3]].members.keys
+        rpass.scene.renderman.object_groups[strs[3]].members.keys()
 
     for ob_name in ob_names:
         ri.EditBegin('attribute', {'string scopename': ob_name})
