@@ -258,16 +258,15 @@ class ExternalRender(bpy.types.Operator):
         
         render_output = rpass.paths['render_output']
         images_dir = os.path.split(render_output)[0]
+        aov_output = rpass.paths['aov_output']
+        aov_dir = os.path.split(aov_output)[0]
+        
         if not os.path.exists(images_dir):
             os.makedirs(images_dir)
+        if not os.path.exists(aov_dir):
+            os.makedirs(aov_dir)
         if not os.path.exists(rpass.paths['texture_output']):
             os.mkdir(rpass.paths['texture_output'])
-                
-
-        render_output = rpass.paths['render_output']
-        images_dir = os.path.split(render_output)[0]
-        if not os.path.exists(images_dir):
-            os.makedirs(images_dir)
 
         # rib gen each frame
         rpass.display_driver = scene.renderman.display_driver
