@@ -882,7 +882,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         indented_label(row, None, level)
                         row.prop(socket, "ui_open", icon=icon, text='',
                                  icon_only=True, emboss=False)
-                        row.label(prop_meta['label'] + ':')
+                        label = prop_meta.get('label', prop_name)
+                        row.label(label + ':')
                         split.operator_menu_enum("node.add_pattern", "node_type",
                                                  text=input_node.bl_label, icon="LAYER_USED")
 
