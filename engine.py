@@ -238,6 +238,7 @@ class RPass:
         addon_prefs = get_addon_prefs()
         self.paths['render_output'] = user_path(addon_prefs.path_display_driver_image,
                                                 scene=scene, display_driver=self.display_driver)
+        self.paths['aov_output'] = user_path(addon_prefs.path_aov_image, scene=scene, display_driver=self.display_driver)
         debug("info", self.paths)
         self.paths['shader'] = [user_path(rm.out_dir, scene=scene)] +\
             get_path_list_converted(rm, 'shader')
@@ -266,6 +267,7 @@ class RPass:
         addon_prefs = get_addon_prefs()
         self.paths['render_output'] = user_path(addon_prefs.path_display_driver_image,
                                                 scene=self.scene, display_driver=self.display_driver)
+        self.paths['aov_output'] = user_path(addon_prefs.path_aov_image, scene=self.scene, display_driver=self.display_driver)
         temp_archive_name = self.scene.renderman.path_object_archive_animated
         frame_archive_dir = os.path.dirname(user_path(temp_archive_name,
                                                       scene=self.scene))
@@ -328,11 +330,15 @@ class RPass:
     def render(self, engine):
         DELAY = 1
         render_output = self.paths['render_output']
+        aov_output = self.paths['aov_output']
         cdir = os.path.dirname(self.paths['rib_output'])
 
         images_dir = os.path.split(render_output)[0]
+        aov_dir = os.path.split(aov_output)[0]
         if not os.path.exists(images_dir):
             os.makedirs(images_dir)
+        if not os.path.exists(aov_dir):
+            os.makedirs(aov_dir)
         if os.path.exists(render_output):
             try:
                 os.remove(render_output)  # so as not to load the old file
