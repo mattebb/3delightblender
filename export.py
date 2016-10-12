@@ -2961,8 +2961,7 @@ def export_display(ri, rpass, scene):
                         layer_name=layer_name, pass_name='multilayer')
                 ri.Display('+' + dspy_name, out_type, ','.join(channels), params)
                 if denoise:
-                    rpass.aov_denoise_files.append(image_base + '.%s' % layer_name +
-                           '.multilayer.' + ext)
+                    rpass.aov_denoise_files.append(dspy_name)
 
             else:
                 for aov in rm_rl.custom_aovs:
@@ -2982,8 +2981,7 @@ def export_display(ri, rpass, scene):
                             addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                             layer_name=layer_name, pass_name=aov_name + '.denoisable')
                         ri.Display('+' + dspy_name, display_driver, aov.channel_name)
-                        rpass.aov_denoise_files.append(image_base + '.%s.%s.denoiseable.' %
-                                   (layer_name, aov_name) + ext)
+                        rpass.aov_denoise_files.append(dspy_name)
                     else:
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
