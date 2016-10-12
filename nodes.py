@@ -594,9 +594,7 @@ class RendermanOutputNode(RendermanShadingNode):
     def update(self):
         from . import engine
         if engine.is_ipr_running():
-            nt, mat, something_else = RendermanPatternGraph.get_from_context(
-                bpy.context)
-            engine.ipr.issue_shader_edits(nt=nt)
+            engine.ipr.issue_shader_edits(nt=self.id_data)
 
 
 # Final output node, used as a dummy to find top level shaders

@@ -3320,7 +3320,7 @@ def issue_camera_edit(ri, rpass, camera):
 def reissue_textures(ri, rpass, mat):
     made_tex = False
     if mat is not None:
-        textures = get_textures(mat) if type(map) == bpy.types.Material else \
+        textures = get_textures(mat) if type(mat) == bpy.types.Material else \
             get_textures_for_node(mat.renderman.get_light_node())
 
         files = rpass.convert_textures(textures)
