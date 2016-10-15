@@ -921,6 +921,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
 
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
+    instance_num = IntProperty(name='Instance number for IPR', default=0)
 
     displacementbound = FloatProperty(
         name="Displacement Bound",

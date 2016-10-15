@@ -594,9 +594,7 @@ class RendermanOutputNode(RendermanShadingNode):
     def update(self):
         from . import engine
         if engine.is_ipr_running():
-            nt, mat, something_else = RendermanPatternGraph.get_from_context(
-                bpy.context)
-            engine.ipr.issue_shader_edits(nt=nt)
+            engine.ipr.issue_shader_edits(nt=self.id_data)
 
 
 # Final output node, used as a dummy to find top level shaders
@@ -884,7 +882,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         indented_label(row, None, level)
                         row.prop(socket, "ui_open", icon=icon, text='',
                                  icon_only=True, emboss=False)
-                        row.label(prop_meta['label'] + ':')
+                        label = prop_meta.get('label', prop_name)
+                        row.label(label + ':')
                         split.operator_menu_enum("node.add_pattern", "node_type",
                                                  text=input_node.bl_label, icon="LAYER_USED")
 
@@ -1596,7 +1595,9 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
 
     params = gen_params(ri, node, mat_name)
     instance = mat_name + '.' + node.name
-    params['__instanceid'] = mat_name + '.' + node.name
+    
+    params['__instanceid'] = instance
+
     if node.renderman_node_type == "pattern":
         if node.bl_label == 'PxrOSL':
             getLocation = bpy.context.scene.OSLProps
@@ -1664,7 +1665,7 @@ def gather_nodes(node):
 
 
 # for an input node output all "nodes"
-def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
+def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0, iterate_instance=False):
 
     if id and id.node_tree:
 
@@ -1677,6 +1678,16 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0):
             nt = id.node_tree
             if not handle:
                 handle = id.name
+
+            # if ipr we need to iterate instance num on nodes for edits
+            from . import engine
+            if engine.ipr and hasattr(id.renderman, 'instance_num'):
+                if iterate_instance:
+                    id.renderman.instance_num += 1
+                else:
+                    id.renderman.instance_num = 0
+                if id.renderman.instance_num > 0:
+                    handle += "_%d" % id.renderman.instance_num
 
             out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and
                         n.renderman_node_type == 'output'),

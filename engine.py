@@ -572,6 +572,7 @@ class RPass:
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         self.material_dict = {}
+        self.instance_dict = {}
         self.lights = {}
         self.current_solo_light = None
         self.muted_lights = []
