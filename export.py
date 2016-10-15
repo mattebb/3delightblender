@@ -836,14 +836,15 @@ def export_light(ri, instance):
         ri.Illuminate(lamp.name, do_light)
 
 
-def export_material(ri, mat, handle=None):
+def export_material(ri, mat, handle=None, iterate_instance=False):
     if mat == None:
         return
     rm = mat.renderman
 
     if mat.node_tree:
         export_shader_nodetree(
-            ri, mat, handle, disp_bound=rm.displacementbound)
+            ri, mat, handle, disp_bound=rm.displacementbound,
+            iterate_instance=iterate_instance)
     else:
         export_shader(ri, mat)
 
@@ -3494,7 +3495,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         if mat in rpass.material_dict:
             for obj in rpass.material_dict[mat]:
                 ri.EditBegin('attribute', {'string scopename': obj.name})
-                export_material(ri, mat)
+                export_material(ri, mat, iterate_instance=True)
                 ri.EditEnd()
         elif lamp:
             delete_light(rpass, ri, lamp.name, prman)
@@ -3514,9 +3515,12 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
     else:
         world = bpy.context.scene.world
         mat = None
-        
+        instance_num = 0
+
         if bpy.context.object:
             mat = bpy.context.object.active_material
+            if mat:
+                instance_num = mat.renderman.instance_num
         # if this is a lamp use that for the mat/name
         if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
             mat = node.id_data
@@ -3538,5 +3542,8 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         edit_flush(ri, rpass.edit_num, prman)
         
         ri.EditBegin('instance')
+        handle = mat.name
+        if instance_num > 0:
+            handle += "_%d" % instance_num
         shader_node_rib(ri, node, mat.name)
         ri.EditEnd()
