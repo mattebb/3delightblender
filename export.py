@@ -2706,6 +2706,8 @@ def export_display(ri, rpass, scene):
     ri.Display(main_display, display_driver, "rgba", {})
     rpass.output_files.append(main_display)
 
+    display_params = {'int asrgba': 1}
+
     for layer in scene.render.layers:
         # custom aovs
         rm_rl = None
@@ -2768,12 +2770,11 @@ def export_display(ri, rpass, scene):
 
             # exports all AOV's
             for aov, doit, declare, source in aovs:
-                params = {"int asrgba": 1}
                 if doit:
                     dspy_name = user_path(
                         addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                         layer_name=layer_name, pass_name=aov)
-                    ri.Display('+' + dspy_name, display_driver, aov, params)
+                    ri.Display('+' + dspy_name, display_driver, aov, display_params)
                     rpass.output_files.append(dspy_name)
 
         # else we have custom rman render layer settings
@@ -2898,14 +2899,14 @@ def export_display(ri, rpass, scene):
                     if layer == scene.render.layers[0] and aov == 'rgba':
                         # we already output this skip
                         continue
-                    params = {}
-                    if not rpass.external_render:
-                        params = {"int asrgba": 1}
+                    params = display_params
                     if aov.denoise_aov:
+                        # can't have asrgba in denoisable aov
+                        params = {}
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                             layer_name=layer_name, pass_name=aov_name + '.denoisable')
-                        ri.Display('+' + dspy_name, display_driver, aov.channel_name)
+                        ri.Display('+' + dspy_name, display_driver, aov.channel_name, params)
                     else:
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
