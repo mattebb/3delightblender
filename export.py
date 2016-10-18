@@ -2970,26 +2970,22 @@ def export_display(ri, rpass, scene):
                     if aov_name == '' or aov.channel_name == '':
                         continue
                     if aov.channel_type == "rgba":
-                        aov.channel_name = "rgba"
+                        aov.channel_name = "Ci,a"
                     if layer == scene.render.layers[0] and aov == 'rgba':
                         # we already output this skip
                         continue
-                    params = {}
-                    if not rpass.external_render:
-                        params = {"int asrgba": 1}
+                    params = {} if aov.denoise_aov or rm.enable_checkpoint else {"int asrgba": 1}
                     if aov.denoise_aov:
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                             layer_name=layer_name, pass_name=aov_name + '.denoisable')
-                        ri.Display('+' + dspy_name, display_driver, aov.channel_name)
                         rpass.aov_denoise_files.append(dspy_name)
                     else:
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                             layer_name=layer_name, pass_name=aov_name)
-                        ri.Display('+' + dspy_name, display_driver,
-                                   aov.channel_name, params)
                         rpass.output_files.append(dspy_name)
+                    ri.Display('+' + dspy_name, display_driver, aov.channel_name, params)
 
     if (rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render) and not rpass.is_interactive:
         # add display channels for denoising
