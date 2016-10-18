@@ -680,6 +680,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
         if mat and not is_renderman_nodetree(mat):
             layout.operator(
                 'shading.add_renderman_nodetree').idtype = "material"
+            layout.operator('shading.convert_renderman_nodetrees')
         # self._draw_shader_menu_params(layout, context, rm)
 
 

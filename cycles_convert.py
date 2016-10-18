@@ -1,4 +1,5 @@
 converted_nodes = {}
+report = None
 
 def convert_cycles_node(nt, node):
     node_type = node.bl_idname
@@ -12,7 +13,7 @@ def convert_cycles_node(nt, node):
             converted_nodes[node.name] = rman_node.name
             return rman_node
     else:
-        print('No conversion for node type %s!!!!' % node_type)
+        report({'WARNING'}, 'No conversion for node type %s' % node_type)
         return None
 
 def convert_cycles_input(nt, socket, rman_node, param_name):

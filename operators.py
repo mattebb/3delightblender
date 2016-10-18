@@ -56,7 +56,7 @@ from .export import write_archive_RIB
 from .export import EXCLUDED_OBJECT_TYPES
 from . import engine
 
-from .nodes import convert_cycles_nodetree
+from .nodes import convert_cycles_nodetree, is_renderman_nodetree
 
 from .properties import aov_mapping
 
@@ -145,6 +145,30 @@ class RENDERMAN_OT_add_remove_output(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "shading.convert_renderman_nodetrees"
+    bl_label = "Convert all nodetrees"
+    bl_description = "Convert all nodetrees to renderman"
+
+    
+    def execute(self, context):
+        for mat in bpy.data.materials:
+            mat.use_nodes = True
+            nt = mat.node_tree
+            if is_renderman_nodetree(mat):
+                continue
+            output = nt.nodes.new('RendermanOutputNode')
+            if not convert_cycles_nodetree(mat, output, self.report):
+                default = nt.nodes.new('PxrSurfaceBxdfNode')
+                default.location = output.location
+                default.location[0] -= 300
+                nt.links.new(default.outputs[0], output.inputs[0])
+
+        return {'FINISHED'}
+
+
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
     ''''''
@@ -169,7 +193,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
-            if not convert_cycles_nodetree(idblock, output):
+            if not convert_cycles_nodetree(idblock, output, self.report):
                 default = nt.nodes.new('%sBxdfNode' % self.properties.bxdf_name)
                 default.location = output.location
                 default.location[0] -= 300

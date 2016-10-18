@@ -1439,7 +1439,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
         # this is a heterogenous mix
         else:
             convert_cycles_bsdf(nt, rman_parent, node1, 0)
-            convert_cycles_bsdf(nt, rman_parent, node2, 1, 
+            convert_cycles_bsdf(nt, rman_parent, node2, 1,
                                 spec_lobe='clearcoat')
 
     # else set lobe on parent
@@ -1460,24 +1460,25 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
         nt.links.new(rman_node.outputs[0], rman_parent.inputs[input_index])
 
 
-def convert_cycles_nodetree(id, ouput_node):
+def convert_cycles_nodetree(id, ouput_node, reporter):
     # find base node
     converted_nodes = {}
     nt = id.node_tree
+    reporter({'INFO'}, 'Converting material ' + id.name)
     cycles_output_node = find_node(id, 'ShaderNodeOutputMaterial')
     if not cycles_output_node:
-        print('No Cycles output found! ' + nt.name)
+        reporter({'WARNING'}, 'No Cycles output found ' + id.name)
         return False
 
     # if no bsdf return false
     if not cycles_output_node.inputs[0].is_linked:
-        print('No Cycles BSDF found! ' + nt.name)
+        reporter({'WARNING'}, 'No Cycles bsdf found ' + id.name)
         return False
 
     # walk tree
+    report = reporter
     base_surface = create_rman_surface(nt, ouput_node, 0)
     convert_cycles_bsdf(nt, base_surface, cycles_output_node.inputs[0].links[0].from_node, 0)
-    print('done with bsdf')
     return True
 
 cycles_node_map = {
