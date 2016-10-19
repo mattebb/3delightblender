@@ -166,6 +166,24 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 default.location[0] -= 300
                 nt.links.new(default.outputs[0], output.inputs[0])
 
+        for lamp in bpy.data.lamps:
+            if lamp.renderman.use_renderman_node:
+                continue
+            light_type = lamp.type
+            if light_type == 'SUN':
+                lamp.renderman.renderman_type = 'DIST'
+            elif light_type == 'HEMI':
+                lamp.renderman.renderman_type = 'ENV'
+            else:
+                lamp.renderman.renderman_type = light_type
+                
+            if light_type == 'AREA':
+                lamp.shape = 'RECTANGLE'
+                lamp.size = 1.0
+                lamp.size_y = 1.0
+
+            lamp.renderman.use_renderman_node = True
+
         return {'FINISHED'}
 
 

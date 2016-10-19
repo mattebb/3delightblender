@@ -917,6 +917,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
         if not lamp.renderman.use_renderman_node:
             layout.prop(lamp, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype = 'lamp'
+            layout.operator('shading.convert_renderman_nodetrees')
             return
         else:
             if ipr_running:
