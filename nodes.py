@@ -1411,7 +1411,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
     if node.bl_idname in combine_nodes:
         i = 0 if node.bl_idname == 'ShaderNodeAddShader' else 1
         node1 = node.inputs[0 + i].links[0].from_node
-        spec_type2 = 'roughSpecular' if "Glossy" in node1.bl_idname else 'specular'
+        spec_type2 = 'clearcoat' if "Glossy" in node1.bl_idname else 'specular'
         node2 = node.inputs[1 + i].links[0].from_node
         # if ones a cobiner or they're of the same type and not glossy we need
         # to make a mixer
@@ -1429,7 +1429,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
             if node.bl_idname == 'ShaderNodeAddShader':
                 mixer.layer1Mask = .5
             else:
-                convert_cycles_input(nt, node.inputs['Fac'], rman_parent, 'layer1Mask')
+                convert_cycles_input(nt, node.inputs['Fac'], mixer, 'layer1Mask')
 
             # make a new node for each
             convert_cycles_bsdf(nt, mixer, node1, 0)

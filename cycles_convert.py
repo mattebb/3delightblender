@@ -45,6 +45,51 @@ def convert_rgb_to_bw_node(nt, cycles_node, rman_node):
 def convert_tex_coord_node(nt, cycles_node, rman_node):
     return
 
+def convert_mix_rgb_node(nt, cycles_node, rman_node):
+    setattr(rman_node, 'clampOutput', cycles_node.use_clamp)
+    convert_cycles_input(nt, cycles_node.inputs['Color1'], rman_node, 'bottomRGB')
+    convert_cycles_input(nt, cycles_node.inputs['Color2'], rman_node, 'topRGB')
+    convert_cycles_input(nt, cycles_node.inputs['Fac'], rman_node, 'topA')
+    conversion  = {'MIX': '10',
+                'ADD': '19', 
+                'MULTIPLY': '18', 
+                'SUBTRACT': '25', 
+                'SCREEN': '23',
+                'DIVIDE': '7',
+                'DIFFERENCE': '5',
+                'DARKEN': '3',
+                'LIGHTEN': '12',
+                'OVERLAY': '20',
+                'DODGE': '15',
+                'BURN': '14', 
+                'HUE': '11',
+                'SATURATION': '22',
+                'VALUE': '17',
+                'COLOR': '0',
+                'SOFT_LIGHT': '24',
+                'LINEAR_LIGHT': '16'}
+    setattr(rman_node, 'operation', conversion[cycles_node.blend_type])
+
+def convert_voronoi_node(nt, cycles_node, rman_node):
+    convert_cycles_input(nt, cycles_node.inputs['Scale'], rman_node, 'frequency')
+    return
+
+def convert_normal_map_node(nt, cycles_node, rman_node):
+    convert_cycles_input(nt, cycles_node.inputs['Strength'], rman_node, 'bumpScale')
+    convert_cycles_input(nt, cycles_node.inputs['Color'], rman_node, 'inputRGB')
+    return
+
+def convert_hsv_node(nt, cycles_node, rman_node):
+    convert_cycles_input(nt, cycles_node.inputs['Hue'], rman_node, 'hue')
+    convert_cycles_input(nt, cycles_node.inputs['Saturation'], rman_node, 'saturation')
+    convert_cycles_input(nt, cycles_node.inputs['Value'], rman_node, 'luminance')
+    convert_cycles_input(nt, cycles_node.inputs['Color'], rman_node, 'inputRGB')
+    return
+
+def convert_tex_noise(nt, cycles_node, rman_node):
+    convert_cycles_input(nt, cycles_node.inputs['Scale'], rman_node, 'frequency')
+    return
+
 #########  BSDF conversion methods  ############
 def convert_diffuse_bsdf(nt, node, rman_node):
     inputs = node.inputs
@@ -56,12 +101,12 @@ def convert_diffuse_bsdf(nt, node, rman_node):
 
 def convert_glossy_bsdf(nt, node, rman_node, spec_lobe):
     inputs = node.inputs
-    lobe_name = "PrimarySpecular" if spec_lobe == 'specular' else 'RoughSpecular'
+    lobe_name = "PrimarySpecular" if spec_lobe == 'specular' else 'Clearcoat'
     setattr(rman_node, 'enable' + lobe_name, True)
     if rman_node.plugin_name == 'PxrLayer':
         setattr(rman_node, spec_lobe + 'Gain', 1.0)
-    if spec_lobe == 'specular':
-        setattr(rman_node, spec_lobe + 'FresnelMode', '1')
+    #if spec_lobe == 'specular':
+    #    setattr(rman_node, spec_lobe + 'FresnelMode', '1')
     convert_cycles_input(
         nt, inputs['Color'], rman_node, "%sEdgeColor" % spec_lobe)
     convert_cycles_input(
@@ -141,6 +186,11 @@ bsdf_map = {
 node_map = {
     'ShaderNodeTexImage': ('PxrTexture', convert_tex_image_node),
     'ShaderNodeTexCoord': ('PxrManifold2D', convert_tex_coord_node),
-    'ShaderNodeRGBToBW': ('PxrToFloat', convert_rgb_to_bw_node)
+    'ShaderNodeRGBToBW': ('PxrToFloat', convert_rgb_to_bw_node),
+    'ShaderNodeMixRGB': ('PxrBlend', convert_mix_rgb_node),
+    'ShaderNodeTexVoronoi': ('PxrVoronoise', convert_voronoi_node),
+    'ShaderNodeNormalMap': ('PxrNormalMap', convert_normal_map_node),
+    'ShaderNodeHueSaturation': ('PxrHSL', convert_hsv_node),
+    'ShaderNodeTexNoise': ('PxrVoronoise', convert_tex_noise),
 }
 
