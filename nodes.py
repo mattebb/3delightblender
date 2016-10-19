@@ -1472,9 +1472,20 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
         nt.links.new(rman_node.outputs[0], rman_parent.inputs[input_index])
 
 
-def convert_cycles_nodetree(id, ouput_node, reporter):
+def convert_cycles_displacement(nt, output_node, displace_socket):
+    if displace_socket.is_linked:
+        displace = nt.nodes.new("PxrDisplaceDisplacementNode")
+        nt.links.new(displace.outputs[0], output_node.inputs['Displacement'])
+        displace.location = output_node.location
+        displace.location[0] -= 300
+        convert_cycles_input(nt, displace_socket, displace, "dispScalar")
+    
+
+
+def convert_cycles_nodetree(id, output_node, reporter):
     # find base node
-    converted_nodes = {}
+    from . import cycles_convert
+    cycles_convert.converted_nodes = {}
     nt = id.node_tree
     reporter({'INFO'}, 'Converting material ' + id.name + ' to RenderMan')
     cycles_output_node = find_node(id, 'ShaderNodeOutputMaterial')
@@ -1488,10 +1499,10 @@ def convert_cycles_nodetree(id, ouput_node, reporter):
         return False
 
     # walk tree
-    from . import cycles_convert
     cycles_convert.report = reporter
-    base_surface = create_rman_surface(nt, ouput_node, 0)
+    base_surface = create_rman_surface(nt, output_node, 0)
     convert_cycles_bsdf(nt, base_surface, cycles_output_node.inputs[0].links[0].from_node, 0)
+    convert_cycles_displacement(nt, output_node, cycles_output_node.inputs[2])
     return True
 
 cycles_node_map = {

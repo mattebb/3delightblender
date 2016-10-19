@@ -38,6 +38,10 @@ def convert_tex_image_node(nt, cycles_node, rman_node):
     setattr(rman_node, 'filename', cycles_node.image.filepath)
     convert_cycles_input(nt, cycles_node.inputs['Vector'], rman_node, 'manifold')
 
+def convert_rgb_to_bw_node(nt, cycles_node, rman_node):
+    convert_cycles_input(nt, cycles_node.inputs['Color'], rman_node, 'input')
+    setattr(rman_node, 'mode', '3') #luminance
+
 def convert_tex_coord_node(nt, cycles_node, rman_node):
     return
 
@@ -136,6 +140,7 @@ bsdf_map = {
 
 node_map = {
     'ShaderNodeTexImage': ('PxrTexture', convert_tex_image_node),
-    'ShaderNodeTexCoord': ('PxrManifold2D', convert_tex_coord_node)
+    'ShaderNodeTexCoord': ('PxrManifold2D', convert_tex_coord_node),
+    'ShaderNodeRGBToBW': ('PxrToFloat', convert_rgb_to_bw_node)
 }
 
