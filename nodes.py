@@ -1412,6 +1412,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
     if node.bl_idname in combine_nodes:
         i = 0 if node.bl_idname == 'ShaderNodeAddShader' else 1
         node1 = node.inputs[0 + i].links[0].from_node
+        spec_type2 = 'roughSpecular' if "Glossy" in node1.bl_idname else 'specular'
         node2 = node.inputs[1 + i].links[0].from_node
         # if ones a cobiner or they're of the same type and not glossy we need
         # to make a mixer
@@ -1434,13 +1435,13 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
             # make a new node for each
             convert_cycles_bsdf(nt, mixer, node1, 0)
             convert_cycles_bsdf(nt, mixer, node2, 1, 
-                                spec_lobe='clearcoat')
+                                spec_lobe=spec_type2)
 
         # this is a heterogenous mix
         else:
             convert_cycles_bsdf(nt, rman_parent, node1, 0)
             convert_cycles_bsdf(nt, rman_parent, node2, 1,
-                                spec_lobe='clearcoat')
+                                spec_lobe=spec_type2)
 
     # else set lobe on parent
     elif 'Bsdf' in node.bl_idname:
@@ -1454,6 +1455,18 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
             bsdf_map[node_type][1](nt, node, rman_parent, spec_lobe)
         else:
             bsdf_map[node_type][1](nt, node, rman_parent)
+    # if we find an emission node, naively make it a meshlight
+    # note this will only make the last emission node the light
+    elif node.bl_idname == 'ShaderNodeEmission':
+        output = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and
+                        n.renderman_node_type == 'output'),
+                       None)
+        meshlight = nt.nodes.new("PxrMeshLightLightNode")
+        nt.links.new(meshlight.outputs[0], output.inputs["Light"])
+        meshlight.location = output.location
+        meshlight.location[0] -= 300
+        convert_cycles_input(nt, node.inputs['Color'], meshlight, "lightColor")
+        convert_cycles_input(nt, node.inputs['Strength'], meshlight, "intensity")
 
     else:
         rman_node = convert_cycles_node(nt, node)
@@ -1464,7 +1477,7 @@ def convert_cycles_nodetree(id, ouput_node, reporter):
     # find base node
     converted_nodes = {}
     nt = id.node_tree
-    reporter({'INFO'}, 'Converting material ' + id.name)
+    reporter({'INFO'}, 'Converting material ' + id.name + ' to RenderMan')
     cycles_output_node = find_node(id, 'ShaderNodeOutputMaterial')
     if not cycles_output_node:
         reporter({'WARNING'}, 'No Cycles output found ' + id.name)
@@ -1476,7 +1489,8 @@ def convert_cycles_nodetree(id, ouput_node, reporter):
         return False
 
     # walk tree
-    report = reporter
+    from . import cycles_convert
+    cycles_convert.report = reporter
     base_surface = create_rman_surface(nt, ouput_node, 0)
     convert_cycles_bsdf(nt, base_surface, cycles_output_node.inputs[0].links[0].from_node, 0)
     return True

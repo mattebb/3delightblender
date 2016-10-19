@@ -242,33 +242,37 @@ def psys_name(ob, psys):
     return "%s.%s-%s" % (ob.name, psys.name, psys.settings.type)
 
 
+# if we don't replace slashes could end up with them in file names
+def fix_name(name):
+    return name.replace('/', '')
+
 # get a name for the data block.  if it's modified by the obj we need it
 # specified
 def data_name(ob, scene):
     if not ob.data:
-        return ob.name
+        return fix_name(ob.name)
 
     # if this is a blob return the family name
     if ob.type == 'META':
-        return ob.name.split('.')[0]
+        return fix_name(ob.name.split('.')[0])
 
     if is_smoke(ob):
-        return "%s-VOLUME" % ob.name
+        return "%s-VOLUME" % fix_name(ob.name)
 
     if ob.data.users > 1 and (ob.is_modified(scene, "RENDER") or
                               ob.is_deform_modified(scene, "RENDER") or
                               ob.renderman.primitive != 'AUTO' or
                               (ob.renderman.motion_segments_override and
                                is_deforming(ob))):
-        return "%s.%s-MESH" % (ob.name, ob.data.name)
+        return "%s.%s-MESH" % (fix_name(ob.name), fix_name(ob.data.name))
 
     else:
-        return "%s-MESH" % ob.data.name
+        return "%s-MESH" % fix_name(ob.data.name)
 
 
 def get_name(ob):
     return psys_name(ob) if type(ob) == bpy.types.ParticleSystem \
-        else ob.data.name
+        else fix_name(ob.data.name)
 
 
 # ------------- Geometry Access -------------

@@ -52,14 +52,16 @@ def convert_diffuse_bsdf(nt, node, rman_node):
 
 def convert_glossy_bsdf(nt, node, rman_node, spec_lobe):
     inputs = node.inputs
-    lobe_name = "PrimarySpecular" if spec_lobe == 'specular' else 'ClearCoat'
+    lobe_name = "PrimarySpecular" if spec_lobe == 'specular' else 'RoughSpecular'
     setattr(rman_node, 'enable' + lobe_name, True)
     if rman_node.plugin_name == 'PxrLayer':
         setattr(rman_node, spec_lobe + 'Gain', 1.0)
-    convert_cycles_input(
-        nt, inputs['Color'], rman_node, "%sFaceColor" % spec_lobe)
+    if spec_lobe == 'specular':
+        setattr(rman_node, spec_lobe + 'FresnelMode', '1')
     convert_cycles_input(
         nt, inputs['Color'], rman_node, "%sEdgeColor" % spec_lobe)
+    convert_cycles_input(
+        nt, inputs['Color'], rman_node, "%sFaceColor" % spec_lobe)
     convert_cycles_input(
         nt, inputs['Roughness'], rman_node, "%sRoughness" % spec_lobe)
     convert_cycles_input(
