@@ -1192,7 +1192,14 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             engine.ipr.update_light_visibility(lamp)
 
     def update_filter_type(self, context):
-        filter_name = self.filter_type.capitalize()
+        filter_name = 'IntMult' if self.filter_type == 'intmult' else self.filter_type.capitalize()
+        # set the lamp type
+
+        if self.filter_type in ['gobo', 'cookie']:
+            self.id_data.id_data.type = 'AREA'
+        else:
+            self.id_data.id_data.type = 'POINT'
+        
         self.light_node = 'Pxr%sLightFilter_settings' % filter_name
 
     use_renderman_node = BoolProperty(
@@ -1226,9 +1233,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
     filter_type = EnumProperty(
         name="Area Shape",
         update=update_filter_type,
-        items=[('blocker', 'Blocker', 'Blocker'),
-                ('barn', 'Barn', 'Barn'),
-                ('combiner', 'Combiner', 'Combiner'),
+        items=[ ('barn', 'Barn', 'Barn'),
+                ('blocker', 'Blocker', 'Blocker'),
+                #('combiner', 'Combiner', 'Combiner'),
                 ('cookie', 'Cookie', 'Cookie'),
                 ('gobo', 'Gobo', 'Gobo'),
                 ('intmult', 'Multiply', 'Multiply'),
