@@ -1353,8 +1353,7 @@ def gen_params(ri, node, mat_name=None):
 
                     if 'options' in meta and meta['options'] == 'texture' \
                         and node.bl_idname != "PxrPtexturePatternNode" or \
-                        (node.renderman_node_type == 'light' and
-                            'widget' in meta and meta['widget'] == 'assetIdInput'):
+                        ('widget' in meta and meta['widget'] == 'assetIdInput'):
                         params['%s %s' % (meta['renderman_type'],
                                           meta['renderman_name'])] = \
                             rib(get_tex_file_name(prop),

@@ -46,7 +46,7 @@ from .util import locate_openVDB_cache
 from .util import debug, get_addon_prefs
 
 from .util import find_it_path
-from .nodes import export_shader_nodetree, get_textures, get_textures_for_node
+from .nodes import export_shader_nodetree, get_textures, get_textures_for_node, get_tex_file_name
 from .nodes import shader_node_rib
 
 addon_version = bl_info['version']
@@ -806,7 +806,7 @@ def export_world(ri, world, do_geometry=True):
     
     ri.AttributeEnd()
 
-    ri.Illuminate("World", rm.illuminates_by_default)
+    ri.Illuminate(handle, rm.illuminates_by_default)
 
 
 def export_light(ri, instance):
@@ -2398,6 +2398,11 @@ def property_group_to_params(node):
             if 'arraySize' in meta:
                 params['%s[%d] %s' % (meta['renderman_type'], len(prop),
                                       meta['renderman_name'])] = rib(prop)
+            elif ('widget' in meta and meta['widget'] == 'assetIdInput'):
+                params['%s %s' % (meta['renderman_type'],
+                                  meta['renderman_name'])] = \
+                    rib(get_tex_file_name(prop),
+                        type_hint=meta['renderman_type'])
             else:
                 params['%s %s' % (meta['renderman_type'],
                                   meta['renderman_name'])] = \
