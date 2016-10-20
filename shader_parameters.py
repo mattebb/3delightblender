@@ -297,11 +297,14 @@ def update_conditional_visops(node):
 
 # send updates to ipr if running
 def update_func(self, context):
+    if self.renderman_node_type == 'lightfilter' and context and hasattr(context, 'lamp'):
+        context.lamp.renderman.update_filter_shape()
+
     from . import engine
     if engine.is_ipr_running():
         engine.ipr.issue_shader_edits(node=self)
 
-    if context and 'material' and hasattr(context, 'material'):
+    if context and hasattr(context, 'material'):
         mat = context.material
         if mat:
             self.update_mat(mat)
