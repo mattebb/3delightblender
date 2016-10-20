@@ -682,11 +682,7 @@ def generate_node_type(prefs, name, args):
             node_add_outputs(self, outputs)
         elif self.renderman_node_type == 'light':
             # only make a few sockets connectable
-            connectable_sockets = ['lightColor', 'intensity', 'exposure',
-                                   'sunTint', 'skyTint', 'envTint']
-            light_inputs = [p for p in inputs
-                            if p.attrib['name'] in connectable_sockets]
-            node_add_inputs(self, name, light_inputs)
+            node_add_inputs(self, name, inputs)
             self.outputs.new('RendermanShaderSocket', "Light")
         elif self.renderman_node_type == 'displacement':
             # only make the color connectable
@@ -1404,20 +1400,17 @@ def create_rman_surface(nt, parent_node, input_index, node_type="PxrSurfaceBxdfN
 combine_nodes = ['ShaderNodeAddShader', 'ShaderNodeMixShader']
 
 # rman_parent could be PxrSurface or PxrMixer
-def convert_cycles_bsdf(nt, rman_parent, node, input_index, 
-                        spec_lobe='specular'):
+def convert_cycles_bsdf(nt, rman_parent, node, input_index):
 
     # if mix or add pass both to parent
     if node.bl_idname in combine_nodes:
         i = 0 if node.bl_idname == 'ShaderNodeAddShader' else 1
         node1 = node.inputs[0 + i].links[0].from_node
-        spec_type2 = 'clearcoat' if "Glossy" in node1.bl_idname else 'specular'
         node2 = node.inputs[1 + i].links[0].from_node
-        # if ones a cobiner or they're of the same type and not glossy we need
+        # if ones a combiner or they're of the same type and not glossy we need
         # to make a mixer
         if node1.bl_idname in combine_nodes or node2.bl_idname in combine_nodes or \
-                (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0] and
-                 node1.bl_idname != 'ShaderNodeBsdfGlossy'):
+                (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0]):
             mixer = nt.nodes.new('PxrLayerMixerPatternNode')
             # if parent is output make a pxr surface first
             nt.links.new(mixer.outputs["pxrMaterialOut"],
@@ -1433,14 +1426,12 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
 
             # make a new node for each
             convert_cycles_bsdf(nt, mixer, node1, 0)
-            convert_cycles_bsdf(nt, mixer, node2, 1, 
-                                spec_lobe=spec_type2)
+            convert_cycles_bsdf(nt, mixer, node2, 1)
 
         # this is a heterogenous mix
         else:
             convert_cycles_bsdf(nt, rman_parent, node1, 0)
-            convert_cycles_bsdf(nt, rman_parent, node2, 1,
-                                spec_lobe=spec_type2)
+            convert_cycles_bsdf(nt, rman_parent, node2, 1)
 
     # else set lobe on parent
     elif 'Bsdf' in node.bl_idname:
@@ -1451,7 +1442,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
         node_type = node.bl_idname
         
         if node_type == 'ShaderNodeBsdfGlossy':
-            bsdf_map[node_type][1](nt, node, rman_parent, spec_lobe)
+            bsdf_map[node_type][1](nt, node, rman_parent)
         else:
             bsdf_map[node_type][1](nt, node, rman_parent)
     # if we find an emission node, naively make it a meshlight
@@ -1464,8 +1455,11 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index,
         nt.links.new(meshlight.outputs[0], output.inputs["Light"])
         meshlight.location = output.location
         meshlight.location[0] -= 300
-        convert_cycles_input(nt, node.inputs['Color'], meshlight, "lightColor")
-        convert_cycles_input(nt, node.inputs['Strength'], meshlight, "intensity")
+        setattr(meshlight, 'intensity', node.inputs['Strength'].default_value)
+        if node.inputs['Color'].is_linked:
+            convert_cycles_input(nt, node.inputs['Color'], meshlight, "textureColor")
+        else:
+            setattr(meshlight, 'lightColor', node.inputs['Color'].default_value[:3])
 
     else:
         rman_node = convert_cycles_node(nt, node)

@@ -36,7 +36,8 @@ def convert_tex_image_node(nt, cycles_node, rman_node):
     if cycles_node.image.packed_file:
         cycles_node.image.unpack()
     setattr(rman_node, 'filename', cycles_node.image.filepath)
-    convert_cycles_input(nt, cycles_node.inputs['Vector'], rman_node, 'manifold')
+    if cycles_node.inputs['Vector'].is_linked:
+        convert_cycles_input(nt, cycles_node.inputs['Vector'], rman_node, 'manifold')
 
 def convert_rgb_to_bw_node(nt, cycles_node, rman_node):
     convert_cycles_input(nt, cycles_node.inputs['Color'], rman_node, 'input')
@@ -99,22 +100,22 @@ def convert_diffuse_bsdf(nt, node, rman_node):
     convert_cycles_input(nt, inputs['Roughness'], rman_node, "diffuseRoughness")
     convert_cycles_input(nt, inputs['Normal'], rman_node, "diffuseBumpNormal")
 
-def convert_glossy_bsdf(nt, node, rman_node, spec_lobe):
+def convert_glossy_bsdf(nt, node, rman_node):
     inputs = node.inputs
-    lobe_name = "PrimarySpecular" if spec_lobe == 'specular' else 'Clearcoat'
+    lobe_name = "Specular" if rman_node.plugin_name == 'PxrLayer' else "PrimarySpecular"
     setattr(rman_node, 'enable' + lobe_name, True)
     if rman_node.plugin_name == 'PxrLayer':
-        setattr(rman_node, spec_lobe + 'Gain', 1.0)
+        setattr(rman_node, 'specularGain', 1.0)
     #if spec_lobe == 'specular':
     #    setattr(rman_node, spec_lobe + 'FresnelMode', '1')
     convert_cycles_input(
-        nt, inputs['Color'], rman_node, "%sEdgeColor" % spec_lobe)
+        nt, inputs['Color'], rman_node, "specularEdgeColor")
     convert_cycles_input(
-        nt, inputs['Color'], rman_node, "%sFaceColor" % spec_lobe)
+        nt, inputs['Color'], rman_node, "specularFaceColor")
     convert_cycles_input(
-        nt, inputs['Roughness'], rman_node, "%sRoughness" % spec_lobe)
+        nt, inputs['Roughness'], rman_node, "specularRoughness")
     convert_cycles_input(
-            nt, inputs['Normal'], rman_node, "%sBumpNormal" % spec_lobe)
+            nt, inputs['Normal'], rman_node, "specularBumpNormal")
 
 def convert_glass_bsdf(nt, node, rman_node):
     inputs = node.inputs
@@ -164,6 +165,16 @@ def convert_transparent_bsdf(nt, node, rman_node):
         'glass'
     setattr(rman_node, param_prefix + 'Ior', 1.0)
 
+def convert_translucent_bsdf(nt, node, rman_node):
+    inputs = node.inputs
+    enable = 'enableSinglescatter' if rman_node.plugin_name == 'PxrLayer' else \
+                    'enableSingleScatter'
+    setattr(rman_node, enable, True)
+    setattr(rman_node, 'singlescatterGain', 1.0)
+    setattr(rman_node, 'singlescatterMfpColor', [1.0, 1.0, 1.0])
+    convert_cycles_input(nt, inputs['Color'], rman_node, "singlescatterColor")
+
+
 def convert_velvet_bsdf(nt, node, rman_node):
     inputs = node.inputs
     setattr(rman_node, 'enableFuzz', True)
@@ -179,8 +190,11 @@ bsdf_map = {
     'ShaderNodeBsdfGlass': ('glass', convert_glass_bsdf),
     'ShaderNodeBsdfRefraction': ('glass', convert_refraction_bsdf),
     'ShaderNodeBsdfTransparent': ('glass', convert_transparent_bsdf),
+    'ShaderNodeBsdfTranslucent': ('singlescatter', convert_translucent_bsdf),
     'ShaderNodeBsdfVelvet': ('fuzz', convert_velvet_bsdf),
-    'ShaderNodeBsdfHair': (None, None)
+    'ShaderNodeBsdfHair': (None, None),
+    'ShaderNodeEmission': (None, None),
+    'ShaderNodeGroup': (None, None)
 }
 
 node_map = {

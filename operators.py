@@ -160,11 +160,15 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
             if is_renderman_nodetree(mat):
                 continue
             output = nt.nodes.new('RendermanOutputNode')
-            if not convert_cycles_nodetree(mat, output, self.report):
-                default = nt.nodes.new('PxrSurfaceBxdfNode')
-                default.location = output.location
-                default.location[0] -= 300
-                nt.links.new(default.outputs[0], output.inputs[0])
+            try:
+                if not convert_cycles_nodetree(mat, output, self.report):
+                    default = nt.nodes.new('PxrSurfaceBxdfNode')
+                    default.location = output.location
+                    default.location[0] -= 300
+                    nt.links.new(default.outputs[0], output.inputs[0])
+            except Exception as e:
+                self.report({'ERROR'}, "Error converting " + mat.name)
+                self.report({'ERROR'}, str(e))
 
         for lamp in bpy.data.lamps:
             if lamp.renderman.use_renderman_node:
