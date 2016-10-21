@@ -1313,6 +1313,9 @@ def gen_params(ri, node, mat_name=None):
                 # if property group recurse
                 if meta['renderman_type'] == 'page':
                     continue
+                elif prop_name == 'inputMaterial' or \
+                    ('type' in meta and meta['type'] == 'vstruct'):
+                    continue
                 # see if vstruct linked
                 elif is_vstruct_and_linked(node, prop_name):
                     vstruct_name, vstruct_member = meta[
@@ -1409,8 +1412,9 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         node2 = node.inputs[1 + i].links[0].from_node
         # if ones a combiner or they're of the same type and not glossy we need
         # to make a mixer
-        if node1.bl_idname in combine_nodes or node2.bl_idname in combine_nodes or \
-                (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0]):
+        if node.bl_idname == 'ShaderNodeMixShader' or node1.bl_idname in combine_nodes \
+            or node2.bl_idname in combine_nodes or \
+            (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0]):
             mixer = nt.nodes.new('PxrLayerMixerPatternNode')
             # if parent is output make a pxr surface first
             nt.links.new(mixer.outputs["pxrMaterialOut"],
@@ -1428,7 +1432,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
             convert_cycles_bsdf(nt, mixer, node1, 0)
             convert_cycles_bsdf(nt, mixer, node2, 1)
 
-        # this is a heterogenous mix
+        # this is a heterogenous mix of add
         else:
             convert_cycles_bsdf(nt, rman_parent, node1, 0)
             convert_cycles_bsdf(nt, rman_parent, node2, 1)
@@ -1472,6 +1476,7 @@ def convert_cycles_displacement(nt, output_node, displace_socket):
         nt.links.new(displace.outputs[0], output_node.inputs['Displacement'])
         displace.location = output_node.location
         displace.location[0] -= 300
+        setattr(displace, 'dispAmount', .01)
         convert_cycles_input(nt, displace_socket, displace, "dispScalar")
     
 

@@ -8,7 +8,8 @@ def convert_cycles_node(nt, node):
         if node.name in converted_nodes:
             return nt.nodes[converted_nodes[node.name]]
         else:
-            rman_node = nt.nodes.new(rman_name + 'PatternNode')
+            node_name = node.bl_idname if rman_name == 'copy' else rman_name + 'PatternNode'
+            rman_node = nt.nodes.new(node_name)
             convert_func(nt, node, rman_node)
             converted_nodes[node.name] = rman_node.name
             return rman_node
@@ -22,14 +23,25 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
         if node:
             location_diff = socket.node.location - socket.links[0].from_node.location
             node.location = rman_node.location - location_diff
-            #TODO make this better
-            nt.links.new(node.outputs[0], rman_node.inputs[param_name])
+            
+            #find the appropriate socket to hook up. 
+            input = rman_node.inputs[param_name]
+            for output in node.outputs:
+                if type(output) == type(input):
+                    nt.links.new(output, input)
+                    break
+            else:
+                nt.links.new(node.outputs[0], rman_node.inputs[param_name])
 
     elif hasattr(socket, 'default_value'):
-        if type(getattr(rman_node, param_name)).__name__ == 'Color':
-            setattr(rman_node, param_name, socket.default_value[:3])
+        if hasattr(rman_node, 'renderman_node_type'):
+            if type(getattr(rman_node, param_name)).__name__ == 'Color':
+                setattr(rman_node, param_name, socket.default_value[:3])
+            else:
+                setattr(rman_node, param_name, socket.default_value)
         else:
-            setattr(rman_node, param_name, socket.default_value)
+            #this is a cycles node
+            rman_node.inputs[param_name].default_value = socket.default_value
 
 #########  other node conversion methods  ############
 def convert_tex_image_node(nt, cycles_node, rman_node):
@@ -89,6 +101,11 @@ def convert_hsv_node(nt, cycles_node, rman_node):
 
 def convert_tex_noise(nt, cycles_node, rman_node):
     convert_cycles_input(nt, cycles_node.inputs['Scale'], rman_node, 'frequency')
+    return
+
+def copy_cycles_node(nt, cycles_node, rman_node):
+    for input in cycles_node.inputs:
+        convert_cycles_input(nt, input, rman_node, input.name)
     return
 
 #########  BSDF conversion methods  ############
@@ -163,6 +180,7 @@ def convert_transparent_bsdf(nt, node, rman_node):
                          rman_node, param_prefix + 'efractionColor')
     param_prefix = 'rr' if rman_node.plugin_name == 'PxrLayer' else \
         'glass'
+    setattr(rman_node, param_prefix + 'Roughness', 0.0)
     setattr(rman_node, param_prefix + 'Ior', 1.0)
 
 def convert_translucent_bsdf(nt, node, rman_node):
@@ -205,6 +223,7 @@ node_map = {
     'ShaderNodeTexVoronoi': ('PxrVoronoise', convert_voronoi_node),
     'ShaderNodeNormalMap': ('PxrNormalMap', convert_normal_map_node),
     'ShaderNodeHueSaturation': ('PxrHSL', convert_hsv_node),
-    'ShaderNodeTexNoise': ('PxrVoronoise', convert_tex_noise),
+    'ShaderNodeTexNoise': ('copy', copy_cycles_node),
+    'ShaderNodeLayerWeight': ('copy', copy_cycles_node),
 }
 
