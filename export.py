@@ -2704,9 +2704,17 @@ def preview_model(ri, scene, mat):
     elif mat.preview_render_type == 'CUBE':
         ri.Scale(.75, .75, .75)
         export_geometry_data(ri, scene, scene.objects[
-                             'previewcube'], data=None)
+                             'preview_cube'], data=None)
     elif mat.preview_render_type == 'HAIR':
-        return  # skipping for now
+        ri.Scale(.75, .75, .75)
+        export_geometry_data(ri, scene, scene.objects[
+                             'preview_hair'], data=None)
+    elif mat.preview_render_type == 'MONKEY':
+        ri.Scale(.75, .75, .75)
+        ri.Rotate(90, 1, 0, 0)
+        ri.Rotate(90, 0,1,0)
+        export_geometry_data(ri, scene, scene.objects[
+                             'preview_monkey'], data=None)
     else:
         ri.Scale(2, 2, 2)
         ri.Rotate(90, 0, 0, 1)
