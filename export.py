@@ -2328,6 +2328,8 @@ def export_dupli_archive(ri, scene, rpass, data_block, data_blocks):
             if mat:
                 export_material_archive(ri, mat)
             source_data_name = data_name(dupob.object, scene)
+            if hasattr(dupob.object, 'dupli_type') and dupob.object.dupli_type in SUPPORTED_DUPLI_TYPES:
+                source_data_name = dupob.object.name + '-DUPLI'
             deforming = is_deforming(dupob.object)
             ri.ReadArchive(get_archive_filename(source_data_name, rpass,
                                                 deforming, True))
