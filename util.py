@@ -504,6 +504,7 @@ def guess_rmantree():
     elif rmantree_method == 'ENV':
         rmantree = rmantree_from_env()
     else:
+        rmantree = rmantree_from_env()
         # get from detected installed
         if platform.system() == 'Windows':
             # default installation path

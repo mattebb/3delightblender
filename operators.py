@@ -240,6 +240,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             
         else:
             idblock.renderman.renderman_type = "ENV"
+            idblock.renderman.use_renderman_node = True
             # light_type = idblock.type
             # light_shader = 'PxrStdAreaLightLightNode'
             # if light_type == 'SUN':

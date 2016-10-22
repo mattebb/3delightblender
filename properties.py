@@ -1630,6 +1630,11 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
         default='NONE'
     )
 
+    use_renderman_node = BoolProperty(
+        name="Use RenderMans World Node",
+        description="Will enable RenderMan World Nodes, opening more options",
+        default=False, update=update_light_type)
+
     light_node = StringProperty(
         name="Light Node",
         default='')

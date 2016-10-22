@@ -724,9 +724,11 @@ def export_object_transform(ri, ob, flip_x=False):
 def export_light_source(ri, lamp):
     names = {'POINT': 'PxrSphereLight', 'SUN':'PxrEnvDayLight',
             'SPOT':'PxrDiskLight', 'HEMI':'PxrDomeLight', 'AREA':'PxrRectLight'}
-    params = {"float exposure": [lamp.energy], 
+    params = {"float exposure": [lamp.energy * 5.0], 
               "__instanceid": lamp.name, 
               "color lightColor": rib(lamp.color)}
+    if lamp.type not in ["SUN", 'ENV']:
+        params['int areaNormalize'] = 1
     ri.Light(names[lamp.type], lamp.name, params)
 
 def export_light_filters(ri, lamp):
@@ -746,12 +748,12 @@ def export_light_shaders(ri, lamp, do_geometry=True):
     rm = lamp.renderman
     # need this for rerendering
     ri.Attribute('identifier', {'string name': handle})
+    if lamp.type == 'POINT':
+        ri.Scale(.01, .01, .01)
     
     # do the shader
     light_shader = rm.get_light_node()
     if light_shader:
-        if lamp.type == 'POINT':
-            ri.Scale(.01, .01, .01)
         # make sure the shape is set on PxrStdAreaLightShape
         if lamp.type == 'SPOT':
             light_shader.coneAngle = .5 * \
@@ -776,17 +778,18 @@ def export_world_rib(ri, world):
 def export_world(ri, world, do_geometry=True):
     rm = world.renderman
     # if no shader do nothing!
-    if rm.renderman_type == 'NONE':
+    if rm.use_renderman_node and rm.renderman_type == 'NONE':
         return
     params = []
 
     ri.AttributeBegin()
 
+    world_type = rm.renderman_type if rm.use_renderman_node else 'ENV'
     if do_geometry:
         m = Matrix.Identity(4)
-        if rm.renderman_type == 'ENV':
+        if world_type == 'ENV':
             m[0] *= -1.0
-        if rm.renderman_type == 'SKY':
+        if world_type == 'SKY':
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m2 * m
         ri.Transform(rib(m))
@@ -799,10 +802,16 @@ def export_world(ri, world, do_geometry=True):
     # do the light only if nodetree
     # make sure the shape is set on PxrStdAreaLightShape
     light_shader = rm.get_light_node()
-    params = property_group_to_params(light_shader)
+    
+    if rm.use_renderman_node:
+        plugin_name = rm.get_light_node_name()
+        params = property_group_to_params(light_shader)
+    else:
+        plugin_name = "PxrDomeLight"
+        params = {'color lightColor': rib(world.horizon_color)}
     ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
                                 'int camera': 1})
-    ri.Light(rm.get_light_node_name(), handle, params)
+    ri.Light(plugin_name, handle, params)
     
     ri.AttributeEnd()
 

@@ -895,12 +895,17 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         layout = self.layout
         world = context.scene.world
 
-        layout.prop(world.renderman, "renderman_type", expand=True)
-        if world.renderman.renderman_type == 'NONE':
+        if not world.renderman.use_renderman_node:
+            layout.prop(world, "horizon_color")
+            layout.operator('shading.add_renderman_nodetree').idtype = 'world'
             return
-        lamp_node = world.renderman.get_light_node()
-        if lamp_node:
-            draw_props(lamp_node, lamp_node.prop_names, layout)
+        else:
+            layout.prop(world.renderman, "renderman_type", expand=True)
+            if world.renderman.renderman_type == 'NONE':
+                return
+            lamp_node = world.renderman.get_light_node()
+            if lamp_node:
+                draw_props(lamp_node, lamp_node.prop_names, layout)
 
 
 class DATA_PT_renderman_lamp(ShaderPanel, Panel):
