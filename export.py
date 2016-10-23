@@ -2991,10 +2991,11 @@ def export_display(ri, rpass, scene):
             else:
                 for aov in rm_rl.custom_aovs:
                     aov_name = aov.name.replace(' ', '')
+                    channel_type = aov.channel_name
                     if aov_name == '' or aov.channel_name == '':
                         continue
                     if aov.channel_type == "rgba":
-                        aov.channel_name = "rgba"
+                        channel_type = "Ci,a"
                     if layer == scene.render.layers[0] and aov == 'rgba':
                         # we already output this skip
                         continue
@@ -3005,14 +3006,14 @@ def export_display(ri, rpass, scene):
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                             layer_name=layer_name, pass_name=aov_name + '.denoisable')
-                        ri.Display('+' + dspy_name, display_driver, aov.channel_name)
+                        ri.Display('+' + dspy_name, display_driver, channel_type)
                         rpass.aov_denoise_files.append(dspy_name)
                     else:
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                             layer_name=layer_name, pass_name=aov_name)
                         ri.Display('+' + dspy_name, display_driver,
-                                   aov.channel_name, params)
+                                   channel_type, params)
                         rpass.output_files.append(dspy_name)
 
     if (rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render) and not rpass.is_interactive:
