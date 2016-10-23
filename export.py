@@ -2164,17 +2164,14 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         ri.Attribute("Ri", approx_params)
 
     # visibility attributes
-    vis_params = {}
-    if not ob.renderman.visibility_camera:
-        vis_params["int camera"] = 0
+    vis_params = {'int camera': int(ob.renderman.visibility_camera),
+                  'int indirect': int(ob.renderman.visibility_trace_indirect),
+                  'int transmission': int(ob.renderman.visibility_trace_transmission)}
+
     if visible_objects and ob.name not in visible_objects:
         vis_params["int camera"] = 0
-    if not ob.renderman.visibility_trace_indirect:
-        vis_params["int indirect"] = 0
-    if not ob.renderman.visibility_trace_transmission:
-        vis_params["int transmission"] = 0
-    if len(vis_params) > 0:
-        ri.Attribute("visibility", vis_params)
+    ri.Attribute("visibility", vis_params)
+
     if ob.renderman.matte:
         ri.Matte(ob.renderman.matte)
 
