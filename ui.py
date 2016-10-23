@@ -43,7 +43,7 @@ from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive, loa
 import bl_ui.properties_render as properties_render
 # properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('PRMAN_RENDER')
-# properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_render
 
@@ -58,6 +58,7 @@ import bl_ui.properties_scene as properties_scene
 properties_scene.SCENE_PT_scene.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_scene.SCENE_PT_unit.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_scene.SCENE_PT_physics.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_scene.SCENE_PT_color_management.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_scene
 
 import bl_ui.properties_data_lamp as properties_data_lamp
