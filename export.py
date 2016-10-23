@@ -2220,10 +2220,14 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     # for each light link do illuminates
     for link in lls:
         strs = link.name.split('>')
-        light_names = [strs[1]] if strs[0] == "lg_light" else \
-            scene.renderman.light_groups[strs[1]].members.keys()
-        if strs[0] == 'lg_group' and strs[1] == 'All':
+        light_names = []
+        if strs[0] == "lg_light":
+            light_names = [strs[1]]
+        elif strs[0] == 'lg_group' and strs[1] == 'All':
             light_names = [l.name for l in scene.objects if l.type == 'LAMP']
+        elif strs[0] == 'lg_group' and strs[1] in scene.renderman.light_groups:
+            scene.renderman.light_groups[strs[1]].members.keys()
+        
         for light_name in light_names:
             if link.illuminate != "DEFAULT" and light_name in scene.objects:
                 ri.Illuminate(light_name, link.illuminate == 'ON')
