@@ -2046,10 +2046,7 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
     ri.AttributeBegin()
     ri.Attribute("identifier", {"string name": instance.name})
     if instance.ob:
-        print(instance.name + " obj attrs")
         export_object_attributes(ri, rpass.scene, instance.ob, visible_objects)
-    else:
-        print(instance.name + " not visibile??")
     # now the matrix, if we're transforming do the motion here
     export_transform(ri, instance, concat=is_child)
 
