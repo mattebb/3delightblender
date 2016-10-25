@@ -128,8 +128,6 @@ class RendermanNodeSocketFloat(bpy.types.NodeSocketFloat, RendermanSocket):
     bl_idname = 'RendermanNodeSocketFloat'
     bl_label = 'Renderman Float Socket'
 
-    default_value = FloatProperty()
-
     def draw_color(self, context, node):
         return (0.5, .5, 0.5, 0.75)
 
@@ -139,8 +137,6 @@ class RendermanNodeSocketInt(bpy.types.NodeSocketInt, RendermanSocket):
     '''Renderman int input/output'''
     bl_idname = 'RendermanNodeSocketInt'
     bl_label = 'Renderman Int Socket'
-
-    default_value = IntProperty()
 
     def draw_color(self, context, node):
         return (1.0, 1.0, 1.0, 0.75)
@@ -168,19 +164,11 @@ class RendermanNodeSocketColor(bpy.types.NodeSocketColor, RendermanSocket):
     bl_idname = 'RendermanNodeSocketColor'
     bl_label = 'Renderman Color Socket'
 
-    default_value = FloatVectorProperty(subtype="COLOR")
-
-    def draw_color(self, context, node):
-        return (1.0, 1.0, .5, 0.75)
-
-
 class RendermanNodeSocketVector(bpy.types.NodeSocketVector, RendermanSocket):
 
     '''Renderman vector input/output'''
     bl_idname = 'RendermanNodeSocketVector'
     bl_label = 'Renderman Vector Socket'
-
-    default_value = FloatVectorProperty()
 
     def draw_color(self, context, node):
         return (.2, .2, 1.0, 0.75)
@@ -603,12 +591,6 @@ class RendermanBxdfNode(RendermanShadingNode):
     renderman_node_type = 'bxdf'
 
     shading_compatibility = {'NEW_SHADING'}
-
-    @classmethod
-    def output_template(cls, i):
-        print('running output template ', str(i))
-        if i == 0:
-            return {'identifier': 'Bxdf', 'name': 'Bxdf', 'type': 'SHADER'}
 
 
 class RendermanDisplacementNode(RendermanShadingNode):
@@ -1408,11 +1390,20 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
     # if mix or add pass both to parent
     if node.bl_idname in combine_nodes:
         i = 0 if node.bl_idname == 'ShaderNodeAddShader' else 1
-        node1 = node.inputs[0 + i].links[0].from_node
-        node2 = node.inputs[1 + i].links[0].from_node
+        
+        node1 = node.inputs[0 + i].links[0].from_node if node.inputs[0 + i].is_linked else None
+        node2 = node.inputs[1 + i].links[0].from_node if node.inputs[1 + i].is_linked else None
+        
+        if not node1 and not node2:
+            return
+        elif not node1:
+            convert_cycles_bsdf(nt, rman_parent, node2, input_index)
+        elif not node2:
+            convert_cycles_bsdf(nt, rman_parent, node1, input_index)
+            
         # if ones a combiner or they're of the same type and not glossy we need
         # to make a mixer
-        if node.bl_idname == 'ShaderNodeMixShader' or node1.bl_idname in combine_nodes \
+        elif node.bl_idname == 'ShaderNodeMixShader' or node1.bl_idname in combine_nodes \
             or node2.bl_idname in combine_nodes or \
             (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0]):
             mixer = nt.nodes.new('PxrLayerMixerPatternNode')
@@ -1438,7 +1429,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
             convert_cycles_bsdf(nt, rman_parent, node2, 1)
 
     # else set lobe on parent
-    elif 'Bsdf' in node.bl_idname:
+    elif 'Bsdf' in node.bl_idname or node.bl_idname == 'ShaderNodeSubsurfaceScattering':
         if rman_parent.plugin_name == 'PxrLayerMixer':
             rman_parent = create_rman_surface(nt, rman_parent, input_index, 
                                               'PxrLayerPatternNode')
@@ -1884,7 +1875,6 @@ nodetypes = {}
 
 
 def register():
-
     for cls in classes:
         bpy.utils.register_class(cls)
 
