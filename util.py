@@ -54,6 +54,9 @@ def clamp(i, low, high):
         i = high
     return i
 
+def throw_error(msg):
+    raise ImportError(msg)
+    #print(msg)
 
 def getattr_recursive(ptr, attrstring):
     for attr in attrstring.split("."):
@@ -478,17 +481,20 @@ def check_valid_rmantree(rmantree):
 
 # return the major, minor rman version
 def get_rman_version(rmantree):
-    vstr = rmantree.split('-')[1]
-    vstr = vstr.strip('/\\')
-    major_vers, minor_vers = vstr.split('.')
-    vers_modifier = ''
-    for v in ['b', 'rc']:
-        if v in minor_vers:
-            i = minor_vers.find(v)
-            vers_modifier = minor_vers[i:]
-            minor_vers = minor_vers[:i]
-            break
-    return int(major_vers), int(minor_vers), vers_modifier
+    try:
+        vstr = rmantree.split('-')[1]
+        vstr = vstr.strip('/\\')
+        major_vers, minor_vers = vstr.split('.')
+        vers_modifier = ''
+        for v in ['b', 'rc']:
+            if v in minor_vers:
+                i = minor_vers.find(v)
+                vers_modifier = minor_vers[i:]
+                minor_vers = minor_vers[:i]
+                break
+        return int(major_vers), int(minor_vers), vers_modifier
+    except:
+        return 0,0,''
 
 def get_addon_prefs():
     addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
@@ -521,77 +527,54 @@ def guess_rmantree():
 
         if choice == 'NEWEST':
             l_vers_major, l_vers_minor, l_vers_mod  = 0, 0, ''
+            
+            try:
+                vers_major, vers_minor, vers_mod = get_rman_version(rmantree)
+                if vers_major >= l_vers_major and \
+                    vers_major == 21 and \
+                    (vers_minor > l_vers_minor or \
+                    (vers_minor == l_vers_minor and \
+                    vers_mod >= l_vers_mod)):
+                    l_vers_major, l_vers_minor, l_vers_mod = \
+                        vers_major, vers_minor, vers_mod
+            except:
+                pass
+
             for d in os.listdir(base):
                 if "RenderManProServer" in d:
-                    vers_major, vers_minor, vers_mod = get_rman_version(d)
-                    if vers_major >= l_vers_major and \
-                        vers_major == 21 and \
-                        (vers_minor > l_vers_minor or \
-                        (vers_minor == l_vers_minor and \
-                        vers_mod >= l_vers_mod)):
-                        l_vers_major, l_vers_minor, l_vers_mod = \
-                            vers_major, vers_minor, vers_mod
-                        rmantree = os.path.join(base, d)
+                    try:
+                        vers_major, vers_minor, vers_mod = get_rman_version(d)
+                        if vers_major >= l_vers_major and \
+                            vers_major == 21 and \
+                            (vers_minor > l_vers_minor or \
+                            (vers_minor == l_vers_minor and \
+                            vers_mod >= l_vers_mod)):
+                            l_vers_major, l_vers_minor, l_vers_mod = \
+                                vers_major, vers_minor, vers_mod
+                            rmantree = os.path.join(base, d)
+                    except:
+                        pass
         else:
             rmantree = choice
 
-    if not rmantree:
-        print('ERROR!!!  You need RenderMan version 21.0 or above.')
-        print('Correct in User Preferences.')
-        return None
+    if rmantree:
+        # check that it's > 20
+        vstr = rmantree.split('-')[-1]
+        vf = 0.0
+        try:
+            vf = float(vstr.strip('/\\'))
+        except:
+            return None
 
-    # check that it's > 20
-    vstr = rmantree.split('-')[-1]
-    vf = float(vstr.strip('/\\'))
-    if vf < 21.0:
-        print('ERROR!!!  You need RenderMan version 21.0 or above.')
-        print('Correct in User Preferences.')
-        return None
-
-    # check rmantree valid
-    if not check_valid_rmantree(rmantree):
-        print("ERROR!!! See RenderMan location in User Preferences.")
-        print("RenderMan Location is set to %s which does not appear valid." % rmantree)
-        return None
+        if vf < 21.0:
+            throw_error("Error loading addon using RMANTREE=%s.  RMANTREE must be version 21.0 or greater.  Correct RMANTREE setting in addon preferences." % rmantree)
+            return None
     
 
-    return rmantree
-
-# we need this for populating preferences
-
-
-def guess_rmantree_initial():
-    # get from detected installed
-    if platform.system() == 'Windows':
-        # default installation path
-        # or base = 'C:/Program Files/Pixar'
-        base = r'C:\Program Files\Pixar'
-
-    elif platform.system() == 'Darwin':
-        base = '/Applications/Pixar'
-
-    elif platform.system() == 'Linux':
-        base = '/opt/pixar'
-
-    rmantree = rmantree_from_env()
-    if rmantree != '':
-        vstr = rmantree.split('-')[-1]
-        vf = float(vstr.strip('/\\'))
-        if vf >= 21.0:
-            return rmantree
-
-    l_vers_major, l_vers_minor, l_vers_mod = 0,0,''
-    for d in os.listdir(base):
-        if "RenderManProServer" in d:
-            vers_major, vers_minor, vers_mod = get_rman_version(d)
-            if vers_major >= l_vers_major and \
-                vers_major == 21 and \
-                (vers_minor > l_vers_minor or \
-                (vers_minor == l_vers_minor and \
-                vers_mod >= l_vers_mod)):
-                l_vers_major, l_vers_minor, l_vers_mod = \
-                    vers_major, vers_minor, vers_mod
-                rmantree = os.path.join(base, d)
+        # check rmantree valid
+        if not check_valid_rmantree(rmantree):
+            throw_error("Error loading addon.  RMANTREE %s is not valid.  Correct RMANTREE setting in addon preferences." % rmantree)
+            return None
     
     return rmantree
 
@@ -612,8 +595,11 @@ def get_installed_rendermans():
     rendermans = []
     for d in os.listdir(base):
         if "RenderManProServer" in d:
-            vstr = d.split('-')[1]
-            rendermans.append((vstr, os.path.join(base, d)))
+            try:
+                vstr = d.split('-')[1]
+                rendermans.append((vstr, os.path.join(base, d)))
+            except:
+                pass
 
     return rendermans
 

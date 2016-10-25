@@ -92,7 +92,7 @@ class Renderman_start_it(bpy.types.Operator):
         rm = scene.renderman
         it_path = find_it_path()
         if not it_path:
-            print({"ERROR"},
+            self.report({"ERROR"},
                   "Could not find 'it'. Install RenderMan Studio.")
         else:
             environ = os.environ.copy()
@@ -120,18 +120,6 @@ class Renderman_open_last_RIB(bpy.types.Operator):
             except Exception:
                 debug(
                     'error', "File or text editor not available. (Check and make sure text editor is in system path.)")
-        return {'FINISHED'}
-
-
-# Prints a string to the info box.  Not sure how to use it but it's here
-# anyway.
-class PrintToInfo(bpy.types.Operator):
-    bl_idname = "renderman.print_info"
-    bl_label = "Print to Info"
-    info_string = StringProperty()
-
-    def execute(self, context):
-        self.report({'INFO'}, self.info_string)
         return {'FINISHED'}
 
 
@@ -168,7 +156,10 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                     nt.links.new(default.outputs[0], output.inputs[0])
             except Exception as e:
                 self.report({'ERROR'}, "Error converting " + mat.name)
-                self.report({'ERROR'}, str(e))
+                #self.report({'ERROR'}, str(e))
+                # uncomment to debug conversion
+                import traceback
+                traceback.print_exc()
 
         for lamp in bpy.data.lamps:
             if lamp.renderman.use_renderman_node:
