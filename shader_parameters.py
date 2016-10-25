@@ -397,7 +397,7 @@ def parse_conditional_visop_attrib(attrib):
     visop = attrib['conditionalVisOp']
     vispath = attrib['conditionalVisPath']
     visValue = attrib['conditionalVisValue']
-    if visValue.isalpha():
+    if visValue.isalpha() or visValue == '':
         return "getattr(node, '%s') %s '%s'" % \
             (vispath.rsplit('/', 1)[-1], op_map[visop], visValue)
     else:
