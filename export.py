@@ -249,6 +249,9 @@ def fix_name(name):
 # get a name for the data block.  if it's modified by the obj we need it
 # specified
 def data_name(ob, scene):
+    if not ob:
+        return ''
+
     if not ob.data:
         return fix_name(ob.name)
 
@@ -1797,6 +1800,9 @@ def get_instance(ob, scene, do_mb):
 
 # get the data_block needed for a dupli
 def get_dupli_block(ob, rpass, do_mb):
+    if not ob:
+        return []
+    
     if hasattr(ob, 'dupli_type') and ob.dupli_type in SUPPORTED_DUPLI_TYPES:
         name = ob.name + '-DUPLI'
         # duplis aren't animated
