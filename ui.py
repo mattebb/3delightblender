@@ -1639,6 +1639,8 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
             columns.label('Temperature')
 
             for light_name in light_names:
+                if light_name not in scene.objects:
+                    continue
                 lamp = scene.objects[light_name].data
                 lamp_rm = lamp.renderman
                 row = box.row()
