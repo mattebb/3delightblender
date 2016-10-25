@@ -45,9 +45,11 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
 
 #########  other node conversion methods  ############
 def convert_tex_image_node(nt, cycles_node, rman_node):
-    if cycles_node.image.packed_file:
-        cycles_node.image.unpack()
-    setattr(rman_node, 'filename', cycles_node.image.filepath)
+    if cycles_node.image:
+        if cycles_node.image.packed_file:
+            cycles_node.image.unpack()
+        setattr(rman_node, 'filename', cycles_node.image.filepath)
+    
     if cycles_node.inputs['Vector'].is_linked:
         convert_cycles_input(nt, cycles_node.inputs['Vector'], rman_node, 'manifold')
 
@@ -134,6 +136,10 @@ def convert_glossy_bsdf(nt, node, rman_node):
     convert_cycles_input(
             nt, inputs['Normal'], rman_node, "specularBumpNormal")
 
+    if type(node).__class__ == 'ShaderNodeBsdfAnisotropic':
+        convert_cycles_input(
+            nt, inputs['Anisotropy'], rman_node, "specularAnisotropy")
+
 def convert_glass_bsdf(nt, node, rman_node):
     inputs = node.inputs
     enable_param_name = 'enableRR' if \
@@ -192,6 +198,12 @@ def convert_translucent_bsdf(nt, node, rman_node):
     setattr(rman_node, 'singlescatterMfpColor', [1.0, 1.0, 1.0])
     convert_cycles_input(nt, inputs['Color'], rman_node, "singlescatterColor")
 
+def convert_sss_bsdf(nt, node, rman_node):
+    inputs = node.inputs
+    setattr(rman_node, 'enableSubsurface', True)
+    convert_cycles_input(nt, inputs['Color'], rman_node, "subsurfaceColor")
+    convert_cycles_input(nt, inputs['Radius'], rman_node, "subsurfaceDmfpColor")
+    convert_cycles_input(nt, inputs['Scale'], rman_node, "subsurfaceDmfp")
 
 def convert_velvet_bsdf(nt, node, rman_node):
     inputs = node.inputs
@@ -205,11 +217,13 @@ def convert_velvet_bsdf(nt, node, rman_node):
 bsdf_map = {
     'ShaderNodeBsdfDiffuse': ('diffuse', convert_diffuse_bsdf),
     'ShaderNodeBsdfGlossy': ('specular', convert_glossy_bsdf),
+    'ShaderNodeBsdfAnisotropic': ('specular', convert_glossy_bsdf),
     'ShaderNodeBsdfGlass': ('glass', convert_glass_bsdf),
     'ShaderNodeBsdfRefraction': ('glass', convert_refraction_bsdf),
     'ShaderNodeBsdfTransparent': ('glass', convert_transparent_bsdf),
     'ShaderNodeBsdfTranslucent': ('singlescatter', convert_translucent_bsdf),
     'ShaderNodeBsdfVelvet': ('fuzz', convert_velvet_bsdf),
+    'ShaderNodeSubsurfaceScattering': ('subsurface', convert_sss_bsdf),
     'ShaderNodeBsdfHair': (None, None),
     'ShaderNodeEmission': (None, None),
     'ShaderNodeGroup': (None, None)
@@ -225,5 +239,10 @@ node_map = {
     'ShaderNodeHueSaturation': ('PxrHSL', convert_hsv_node),
     'ShaderNodeTexNoise': ('copy', copy_cycles_node),
     'ShaderNodeLayerWeight': ('copy', copy_cycles_node),
+    'ShaderNodeBrightContrast': ('copy', copy_cycles_node),
+    'ShaderNodeMath': ('copy', copy_cycles_node),
+    #TODO switch val to rgb to pxr ramp
+    'ShaderNodeValToRGB': ('copy', copy_cycles_node),
+    'ShaderNodeRGBCurve': ('copy', copy_cycles_node),
 }
 
