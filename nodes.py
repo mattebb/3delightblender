@@ -41,7 +41,6 @@ from .shader_parameters import node_add_inputs
 from .shader_parameters import node_add_outputs
 from .shader_parameters import socket_map
 from .shader_parameters import txmake_options
-from .shader_parameters import generate_property
 from .util import args_files_in_path
 from .util import get_path_list
 from .util import rib
@@ -57,57 +56,21 @@ import os.path
 NODE_LAYOUT_SPLIT = 0.5
 
 
-def load_tree_from_lib(mat):
-    if mat.library:
-        with bpy.data.libraries.load(mat.library.filepath) as (data_from, data_to):
-            data_to.node_groups = data_from.node_groups
-
 # Default Types
-
-
-# class RendermanPatternGraph(bpy.types.NodeTree):
-
-#     '''A node tree comprised of renderman nodes'''
-#     bl_idname = 'RendermanPatternGraph'
-#     bl_label = 'Renderman Pattern Graph'
-#     bl_icon = 'TEXTURE_SHADED'
-#     nodetypes = {}
-
-#     @classmethod
-#     def poll(cls, context):
-#         return context.scene.render.engine == 'PRMAN_RENDER'
-
-#     # Return a node tree from the context to be used in the editor
-#     @classmethod
-#     def get_from_context(cls, context):
-#         ob = context.active_object
-#         if ob and ob.type not in {'LAMP', 'CAMERA'}:
-#             ma = ob.active_material
-#             if ma is not None:
-#                 if ma.node_tree:
-#                     return ma.node_tree, ma, ma
-#         elif ob and ob.type == 'LAMP':
-#             la = ob.data
-#             nt_name = la.renderman.nodetree
-#             if nt_name != '':
-#                 return bpy.data.node_groups[la.renderman.nodetree], la, la
-#         return (None, None, None)
-
-
 class RendermanSocket:
     ui_open = BoolProperty(name='UI Open', default=True)
     # Optional function for drawing the socket input value
     label = StringProperty()
 
     def draw_value(self, context, layout, node):
-        layout.prop(node, self.name)
+        layout.prop(node, self.identifier)
 
     def draw_color(self, context, node):
         return (0.1, 1.0, 0.2, 0.75)
 
     def draw(self, context, layout, node, text):
         if self.is_linked or self.is_output or self.hide_value:
-            layout.label(self.label)
+            layout.label(self.identifier)
         elif node.bl_idname == "PxrOSLPatternNode":
             if hasattr(context.scene, "OSLProps"):
                 oslProps = context.scene.OSLProps
@@ -118,7 +81,7 @@ class RendermanSocket:
                 # else:
                 #    rebuild_OSL_nodes(context.scene, context)
         else:
-            layout.prop(node, self.name, text=self.label)
+            layout.prop(node, self.name, text=self.identifier, slider=True)
 
 
 # socket types (need this just for the ui_open)
@@ -269,8 +232,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 if prop_name not in self.inputs:
                     for name in getattr(self, prop_name):
                         if name.startswith('enable'):
-                            col.prop(self, name, text="Enable " +
-                                        prop_name.split('.')[-1])
+                            col.prop(self, name, text=prop_name.split('.')[-1])
                             break
             return
 
@@ -293,8 +255,6 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         nt.nodes[self.color_ramp_dummy_name], 'color_ramp')
 
             for prop_name in prop_names:
-                if prop_name in ["lightGroup", "rman__Shape", "coneAngle", "penumbraAngle"]:
-                    continue
                 prop_meta = self.prop_meta[prop_name]
                 if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
                         'hidden' in prop_meta and prop_meta['hidden']:
@@ -309,7 +269,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         split = layout.split(NODE_LAYOUT_SPLIT)
                         row = split.row()
                         row.prop(self, ui_prop, icon=icon, text='',
-                                 icon_only=True, emboss=False)
+                                 icon_only=True, emboss=False,slider=True)
                         row.label(prop_name.split('.')[-1] + ':')
 
                         if ui_open:
@@ -320,7 +280,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         layout.prop_search(self, prop_name, bpy.data.scenes[0].renderman,
                                            "object_groups")
                     else:
-                        layout.prop(self, prop_name)
+                        layout.prop(self, prop_name,slider=True)
 
     def copy(self, node):
         pass
@@ -603,6 +563,8 @@ class RendermanDisplacementNode(RendermanShadingNode):
 class RendermanPatternNode(RendermanShadingNode):
     bl_label = 'Texture'
     renderman_node_type = 'pattern'
+    bl_type = 'TEX_IMAGE'
+    bl_static_type = 'TEX_IMAGE'
 
 
 class RendermanLightNode(RendermanShadingNode):
@@ -625,7 +587,7 @@ def generate_osl_node():
     outputs = []
 
     def init(self, context):
-        node_add_inputs(self, name, inputs)
+        node_add_inputs(self, name, self.prop_names)
         node_add_outputs(self, outputs)
 
     ntype.init = init
@@ -660,21 +622,21 @@ def generate_node_type(prefs, name, args):
         if self.renderman_node_type == 'bxdf':
             self.outputs.new('RendermanShaderSocket', "Bxdf").type = 'SHADER'
             #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
-            node_add_inputs(self, name, inputs)
+            node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self, outputs)
         elif self.renderman_node_type == 'light':
             # only make a few sockets connectable
-            node_add_inputs(self, name, inputs)
+            node_add_inputs(self, name, self.prop_names)
             self.outputs.new('RendermanShaderSocket', "Light")
         elif self.renderman_node_type == 'displacement':
             # only make the color connectable
             self.outputs.new('RendermanShaderSocket', "Displacement")
-            node_add_inputs(self, name, inputs)
+            node_add_inputs(self, name, self.prop_names)
         # else pattern
         elif name == "PxrOSL":
             self.outputs.clear()
         else:
-            node_add_inputs(self, name, inputs)
+            node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self, outputs)
 
         if name == "PxrRamp":
@@ -897,7 +859,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                                 "object_groups")
                             else:
                                 if prop_meta['renderman_type'] != 'struct':
-                                    row.prop(node, prop_name)
+                                    row.prop(node, prop_name,slider=True)
                                 else:
                                     row.label(prop_meta['label'])
                             if prop_name in node.inputs:

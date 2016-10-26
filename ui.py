@@ -31,13 +31,10 @@ from .nodes import NODE_LAYOUT_SPLIT, is_renderman_nodetree, panel_node_draw
 
 from . import engine
 # global dictionaries
-from .shader_parameters import exclude_lamp_params
 from bl_ui.properties_particle import ParticleButtonsPanel
 
 # helper functions for parameters
-from .shader_parameters import tex_optimised_path
-from .shader_parameters import tex_source_path
-from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive, load_tree_from_lib
+from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
@@ -890,8 +887,7 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
     bl_context = "world"
     bl_label = "World"
     shader_type = 'world'
-    param_exclude = exclude_lamp_params
-
+    
     def draw(self, context):
         layout = self.layout
         world = context.scene.world
@@ -913,8 +909,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
     bl_context = "data"
     bl_label = "Lamp"
     shader_type = 'light'
-    param_exclude = exclude_lamp_params
-
+    
     def draw(self, context):
         layout = self.layout
 

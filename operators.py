@@ -45,9 +45,6 @@ from .util import get_real_path
 from .util import readOSO, find_it_path, find_local_queue, find_tractor_spool
 from .util import get_Files_in_Directory
 
-from .shader_parameters import tex_source_path
-from .shader_parameters import tex_optimised_path
-
 from .export import export_archive
 from .export import get_texture_list
 from .engine import RPass
