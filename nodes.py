@@ -59,14 +59,12 @@ NODE_LAYOUT_SPLIT = 0.5
 # Default Types
 class RendermanSocket:
     ui_open = BoolProperty(name='UI Open', default=True)
-    # Optional function for drawing the socket input value
-    label = StringProperty()
+    
+    def draw_color(self, context, node):
+        return (0.25, 1.0, 0.25, 1.0)
 
     def draw_value(self, context, layout, node):
         layout.prop(node, self.identifier)
-
-    def draw_color(self, context, node):
-        return (0.1, 1.0, 0.2, 0.75)
 
     def draw(self, context, layout, node, text):
         if self.is_linked or self.is_output or self.hide_value:
@@ -84,85 +82,126 @@ class RendermanSocket:
             layout.prop(node, self.name, text=self.identifier, slider=True)
 
 
+class RendermanSocketInterface:
+    def draw_color(self, context):
+        return (0.25, 1.0, 0.25, 1.0)
+
+    def draw_value(self, context, layout, node):
+        layout.prop(node, self.identifier)
+
+    def draw(self, context, layout):
+        if self.is_linked or self.is_output or self.hide_value:
+            layout.label(self.identifier)
+        else:
+            layout.prop(node, self.name, text=self.identifier, slider=True)
+
 # socket types (need this just for the ui_open)
 class RendermanNodeSocketFloat(bpy.types.NodeSocketFloat, RendermanSocket):
-
     '''Renderman float input/output'''
     bl_idname = 'RendermanNodeSocketFloat'
     bl_label = 'Renderman Float Socket'
-
+    
     def draw_color(self, context, node):
-        return (0.5, .5, 0.5, 0.75)
+        return (0.5, 0.5, 0.5, 1.0)
 
+class RendermanNodeSocketInterfaceFloat(bpy.types.NodeSocketInterfaceFloat, RendermanSocketInterface):
+    '''Renderman float input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceFloat'
+    bl_label = 'Renderman Float Socket'
+    bl_socket_idname = 'RendermanNodeSocketFloat'
+
+    def draw_color(self, context):
+        return (0.5, 0.5, 0.5, 1.0)
 
 class RendermanNodeSocketInt(bpy.types.NodeSocketInt, RendermanSocket):
-
     '''Renderman int input/output'''
     bl_idname = 'RendermanNodeSocketInt'
     bl_label = 'Renderman Int Socket'
-
+    
     def draw_color(self, context, node):
-        return (1.0, 1.0, 1.0, 0.75)
+        return (1.0, 1.0, 1.0, 1.0)
 
+class RendermanNodeSocketInterfaceInt(bpy.types.NodeSocketInterfaceInt, RendermanSocketInterface):
+    '''Renderman float input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceInt'
+    bl_label = 'Renderman Int Socket'
+    bl_socket_idname = 'RendermanNodeSocketInt'
 
+    def draw_color(self, context):
+        return (1.0, 1.0, 1.0, 1.0)
+    
 class RendermanNodeSocketString(bpy.types.NodeSocketString, RendermanSocket):
-
     '''Renderman string input/output'''
     bl_idname = 'RendermanNodeSocketString'
     bl_label = 'Renderman String Socket'
 
-
 class RendermanNodeSocketStruct(bpy.types.NodeSocketString, RendermanSocket):
-
     '''Renderman struct input/output'''
     bl_idname = 'RendermanNodeSocketStruct'
     bl_label = 'Renderman Struct Socket'
+    hide_value = True
 
-    struct_type = StringProperty(default='')
-
+class RendermanNodeSocketInterfaceStruct(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):
+    '''Renderman struct input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceStruct'
+    bl_label = 'Renderman Struct Socket'
+    bl_socket_idname = 'RendermanNodeSocketStruct'
+    hide_value = True
 
 class RendermanNodeSocketColor(bpy.types.NodeSocketColor, RendermanSocket):
-
     '''Renderman color input/output'''
     bl_idname = 'RendermanNodeSocketColor'
     bl_label = 'Renderman Color Socket'
 
-class RendermanNodeSocketVector(bpy.types.NodeSocketVector, RendermanSocket):
+    def draw_color(self, context, node):
+        return (1.0, 1.0, .5, 1.0)
 
+class RendermanNodeSocketInterfaceColor(bpy.types.NodeSocketInterfaceColor, RendermanSocketInterface):
+    '''Renderman color input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceColor'
+    bl_label = 'Renderman Color Socket'
+    bl_socket_idname = 'RendermanNodeSocketColor'
+
+    def draw_color(self, context):
+        return (1.0, 1.0, .5, 1.0)
+
+class RendermanNodeSocketVector(RendermanSocket, bpy.types.NodeSocketVector):
     '''Renderman vector input/output'''
     bl_idname = 'RendermanNodeSocketVector'
     bl_label = 'Renderman Vector Socket'
+    hide_value = True
 
     def draw_color(self, context, node):
-        return (.2, .2, 1.0, 0.75)
+        return (.25, .25, .75, 1.0)
+
+class RendermanNodeSocketInterfaceVector(bpy.types.NodeSocketInterfaceVector, RendermanSocketInterface):
+    '''Renderman color input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceVector'
+    bl_label = 'Renderman Vector Socket'
+    bl_socket_idname = 'RendermanNodeSocketVector'
+    hide_value = True
+
+    def draw_color(self, context):
+        return (.25, .25, .75, 1.0)
 
 # Custom socket type for connecting shaders
-
-
 class RendermanShaderSocket(bpy.types.NodeSocketShader, RendermanSocket):
-
     '''Renderman shader input/output'''
     bl_idname = 'RendermanShaderSocket'
     bl_label = 'Renderman Shader Socket'
+    hide_value = True
 
-    def draw_value(self, context, layout, node):
-        layout.label(self.name)
+# Custom socket type for connecting shaders
+class RendermanShaderSocketInterface(bpy.types.NodeSocketInterfaceShader, RendermanSocketInterface):
+    '''Renderman shader input/output'''
+    bl_idname = 'RendermanShaderInterfaceSocket'
+    bl_label = 'Renderman Shader Socket'
+    bl_socket_idname = 'RendermanShaderSocket'
+    hide_value = True
 
-    def draw_color(self, context, node):
-        return (0.1, 1.0, 0.2, 0.75)
-
-    def draw(self, context, layout, node, text):
-        layout.label(text)
-        pass
-
-
-class RendermanPropertyGroup(bpy.types.PropertyGroup):
-    ui_open = BoolProperty(name='UI Open', default=True)
 
 # Base class for all custom nodes in this tree type.
 # Defines a poll function to enable instantiation.
-
-
 class RendermanShadingNode(bpy.types.ShaderNode):
     bl_label = 'Output'
 

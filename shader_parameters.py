@@ -718,6 +718,9 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
         socket = node.inputs.new(socket_map[param_type], param_name, param_label)
         socket.link_limit = 1
         
+        if param_type in ['struct', 'normal', 'vector', 'vstruct', 'void']:
+            socket.hide_value = True
+
     update_inputs(node)
 
 
@@ -733,8 +736,5 @@ def node_add_outputs(node, shaderparameters):
         if 'vstructmember' in sp.attrib.keys():
             socket.hide = True
 
-        # for struct type look for the type of connection
-        if tag.attrib['value'] == 'struct':
-            socket.struct_type = sp.findall('*/tag')[-1].attrib['value']
 
     
