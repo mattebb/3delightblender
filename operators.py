@@ -41,6 +41,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 from .util import init_env
 from .util import getattr_recursive
 from .util import user_path
+from .util import get_addon_prefs
 from .util import get_real_path
 from .util import readOSO, find_it_path, find_local_queue, find_tractor_spool
 from .util import get_Files_in_Directory
@@ -331,17 +332,20 @@ class StartInteractive(bpy.types.Operator):
         blf.disable(0, blf.SHADOW)
 
     def invoke(self, context, event=None):
+        addon_prefs = get_addon_prefs()
         if engine.ipr is None:
             engine.ipr = RPass(context.scene, interactive=True)
             engine.ipr.start_interactive()
-            engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
-                self.draw, (context,), 'WINDOW', 'POST_PIXEL')
+            if addon_prefs.draw_ipr_text:
+                engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
+                    self.draw, (context,), 'WINDOW', 'POST_PIXEL')
             bpy.app.handlers.scene_update_post.append(
                 engine.ipr.issue_transform_edits)
             bpy.app.handlers.load_pre.append(self.invoke)
         else:
-            bpy.types.SpaceView3D.draw_handler_remove(
-                engine.ipr_handle, 'WINDOW')
+            if addon_prefs.draw_ipr_text:    
+                bpy.types.SpaceView3D.draw_handler_remove(
+                    engine.ipr_handle, 'WINDOW')
             bpy.app.handlers.scene_update_post.remove(
                 engine.ipr.issue_transform_edits)
             engine.ipr.end_interactive()
