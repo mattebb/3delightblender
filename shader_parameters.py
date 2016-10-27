@@ -575,7 +575,7 @@ def generate_txmake_options(parent_name):
                                                  'type': 'bool',
                                                  'options': '',
                                                  'widget': 'mapper',
-                                                 'connectable': 'false'}
+                                                 '__noconnection': True}
             optionsProps[optionObject["name"]] = bpy.props.BoolProperty(name=optionObject[
                                                                         'dispName'], default=optionObject['default'], description=optionObject['help'])
         elif optionObject['type'] == "enum":
@@ -593,7 +593,7 @@ def generate_txmake_options(parent_name):
                                                  'type': 'enum',
                                                  'options': '',
                                                  'widget': 'mapper',
-                                                 'connectable': 'false'}
+                                                 '__noconnection': True}
         elif optionObject['type'] == "float":
             optionsMeta[optionObject["name"]] = {'renderman_name': 'ishouldnotexport',
                                                  'name': optionObject["name"],
@@ -603,7 +603,7 @@ def generate_txmake_options(parent_name):
                                                  'type': 'float',
                                                  'options': '',
                                                  'widget': 'mapper',
-                                                 'connectable': 'false'}
+                                                 '__noconnection': True}
             optionsProps[optionObject["name"]] = FloatProperty(name=optionObject["dispName"],
                                                                default=optionObject[
                                                                    "default"],
@@ -662,7 +662,7 @@ class txmake_options():
 
     sblur = {'name': "sblur", 'type': "float", 'default': 1.0, 'dispName': "Sblur",
              'help': "Amount of X blur applied to texture.",
-             'exportType': "name"}
+             'exportType': "name"} 
     tblur = {'name': "tblur", 'type': "float", 'default': 1.0, 'dispName': "Tblur",
              'help': "Amount of Y blur applied to texture.",
              'exportType': "name"}
@@ -733,6 +733,7 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
             continue
 
         param_name = name
+        
         param_label = label_prefix + meta.get('label', param_name)
 
         socket = node.inputs.new(socket_map[param_type], param_name, param_label)
