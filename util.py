@@ -239,6 +239,8 @@ def get_path_list(rm, type):
         if type == 'shader':
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                          'shaders'))
+            paths.append(os.path.join(bpy.utils.resource_path('LOCAL'), 'scripts', 
+                        'addons', 'cycles', 'shader'))
 
     if rm.use_builtin_paths:
         paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -318,7 +320,7 @@ def get_sequence_path(path, blender_frame, anim):
     return make_frame_path(path, frame)
 
 
-def user_path(path, scene=None, ob=None, rpass=None):
+def user_path(path, scene=None, ob=None, display_driver=None, layer_name=None, pass_name=None):
     '''
     # bit more complicated system to allow accessing scene or object attributes.
     # let's stay simple for now...
@@ -352,14 +354,21 @@ def user_path(path, scene=None, ob=None, rpass=None):
         path = path.replace('{blend}', blendpath)
     if scene is not None:
         path = path.replace('{scene}', scene.name)
-    if rpass is not None:
-        display_driver = rpass.display_driver
+
+    if display_driver is not None:
         if display_driver == "tiff":
             path = path.replace('{file_type}', display_driver[-4:])
         else:
             path = path.replace('{file_type}', display_driver[-3:])
+
     if ob is not None:
         path = path.replace('{object}', ob.name)
+
+    if layer_name is not None:
+        path = path.replace('{layer}', layer_name)
+
+    if pass_name is not None:
+        path = path.replace('{pass}', pass_name)
 
     # convert ### to frame number
     if scene is not None:
@@ -379,6 +388,10 @@ def user_path(path, scene=None, ob=None, rpass=None):
 def rib(v, type_hint=None):
 
     # float, int
+    if type_hint == 'color':
+        return list(v)[:3]
+
+
     if type(v) in (mathutils.Vector, mathutils.Color) or\
             v.__class__.__name__ == 'bpy_prop_array'\
             or v.__class__.__name__ == 'Euler':
@@ -463,17 +476,35 @@ def check_valid_rmantree(rmantree):
         return True
     return False
 
+# return the major, minor rman version
+def get_rman_version(rmantree):
+    vstr = rmantree.split('-')[1]
+    vstr = vstr.strip('/\\')
+    major_vers, minor_vers = vstr.split('.')
+    vers_modifier = ''
+    for v in ['b', 'rc']:
+        if v in minor_vers:
+            i = minor_vers.find(v)
+            vers_modifier = minor_vers[i:]
+            minor_vers = minor_vers[:i]
+            break
+    return int(major_vers), int(minor_vers), vers_modifier
+
+def get_addon_prefs():
+    addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
+    return addon.preferences
 
 def guess_rmantree():
-    addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
-    prefs = addon.preferences
+    prefs = get_addon_prefs()
     rmantree_method = prefs.rmantree_method
+    rmantree = None
 
     if rmantree_method == 'MANUAL':
         rmantree = prefs.path_rmantree
     elif rmantree_method == 'ENV':
         rmantree = rmantree_from_env()
     else:
+        rmantree = rmantree_from_env()
         # get from detected installed
         if platform.system() == 'Windows':
             # default installation path
@@ -489,22 +520,26 @@ def guess_rmantree():
         choice = prefs.rmantree_choice
 
         if choice == 'NEWEST':
-            latestver = 0.0
+            l_vers_major, l_vers_minor, l_vers_mod  = 0, 0, ''
             for d in os.listdir(base):
                 if "RenderManProServer" in d:
-                    vstr = d.split('-')[1]
-                    vf = float(vstr[:4])
-                    if vf >= latestver:
-                        latestver = vf
+                    vers_major, vers_minor, vers_mod = get_rman_version(d)
+                    if vers_major >= l_vers_major and \
+                        vers_major == 21 and \
+                        (vers_minor > l_vers_minor or \
+                        (vers_minor == l_vers_minor and \
+                        vers_mod >= l_vers_mod)):
+                        l_vers_major, l_vers_minor, l_vers_mod = \
+                            vers_major, vers_minor, vers_mod
                         rmantree = os.path.join(base, d)
         else:
             rmantree = choice
 
-    # check rmantree valid
-    if not check_valid_rmantree(rmantree):
-        print("ERROR!!! See RenderMan location in User Preferences.")
-        print("RenderMan Location is set to %s which does not appear valid." % rmantree)
+    if not rmantree:
+        print('ERROR!!!  You need RenderMan version 21.0 or above.')
+        print('Correct in User Preferences.')
         return None
+
     # check that it's > 20
     vstr = rmantree.split('-')[-1]
     vf = float(vstr.strip('/\\'))
@@ -512,6 +547,13 @@ def guess_rmantree():
         print('ERROR!!!  You need RenderMan version 21.0 or above.')
         print('Correct in User Preferences.')
         return None
+
+    # check rmantree valid
+    if not check_valid_rmantree(rmantree):
+        print("ERROR!!! See RenderMan location in User Preferences.")
+        print("RenderMan Location is set to %s which does not appear valid." % rmantree)
+        return None
+    
 
     return rmantree
 
@@ -538,14 +580,19 @@ def guess_rmantree_initial():
         if vf >= 21.0:
             return rmantree
 
-    latestver = 0.0
+    l_vers_major, l_vers_minor, l_vers_mod = 0,0,''
     for d in os.listdir(base):
         if "RenderManProServer" in d:
-            vstr = d.split('-')[1]
-            vf = float(vstr[:4])
-            if vf >= latestver:
-                latestver = vf
+            vers_major, vers_minor, vers_mod = get_rman_version(d)
+            if vers_major >= l_vers_major and \
+                vers_major == 21 and \
+                (vers_minor > l_vers_minor or \
+                (vers_minor == l_vers_minor and \
+                vers_mod >= l_vers_mod)):
+                l_vers_major, l_vers_minor, l_vers_mod = \
+                    vers_major, vers_minor, vers_mod
                 rmantree = os.path.join(base, d)
+    
     return rmantree
 
 

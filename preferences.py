@@ -159,6 +159,18 @@ class RendermanPreferences(AddonPreferences):
         description="Draw PRMan Interactive Mode Running when IPR is running",
         default=True)
 
+    path_display_driver_image = StringProperty(
+        name="Main Image path",
+        description="Path for the rendered main image.",
+        subtype='FILE_PATH',
+        default=os.path.join('$OUT', 'images', '{scene}.####.{file_type}'))
+
+    path_aov_image = StringProperty(
+        name="AOV Image path",
+        description="Path for the rendered aov images.",
+        subtype='FILE_PATH',
+        default=os.path.join('$OUT', 'images', '{scene}.{layer}.{pass}.####.{file_type}'))
+
     env_vars = PointerProperty(
         type=RendermanEnvVarSettings,
         name="Environment Variable Settings")
@@ -200,6 +212,8 @@ class RendermanPreferences(AddonPreferences):
 
         env = self.env_vars
         layout.prop(env, "out")
+        layout.prop(self, 'path_display_driver_image')
+        layout.prop(self, 'path_aov_image')
         layout.prop(self, 'draw_ipr_text')
         #layout.prop(env, "shd")
         #layout.prop(env, "ptc")

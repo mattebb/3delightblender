@@ -50,6 +50,7 @@ from .util import path_list_convert, guess_rmantree, set_pythonpath,\
 from .util import get_real_path, find_it_path
 from .util import debug
 from .util import get_Selected_Objects
+from .util import get_addon_prefs
 from random import randint
 import sys
 from bpy.app.handlers import persistent
@@ -58,14 +59,14 @@ from bpy.app.handlers import persistent
 from .export import write_rib, write_preview_rib, get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
     interactive_initial_rib, update_light_link, delete_light,\
-    reset_light_illum, solo_light, mute_lights
+    reset_light_illum, solo_light, mute_lights, issue_light_vis
 
 from .nodes import get_tex_file_name
 
 addon_version = bl_info['version']
 
 prman_inited = False
-
+ipr_handle = None
 
 def init_prman():
     # set pythonpath before importing prman
@@ -84,6 +85,19 @@ def init():
     pass
 
 
+def is_ipr_running():
+    if ipr is not None and ipr.is_interactive and ipr.is_interactive_ready:
+        if ipr.is_prman_running():
+            return True
+        else:
+            # shutdown IPR
+            ipr.is_interactive_ready = False
+            bpy.ops.lighting.start_interactive('INVOKE_DEFAULT')
+            return False
+    else:
+        return False
+
+
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
     # TODO add support for regions (rerendering)
     engine.render_pass = RPass(scene, preview_render=engine.is_preview)
@@ -91,7 +105,7 @@ def create(engine, data, scene, region=0, space_data=0, region_data=0):
 
 def free(engine):
     if hasattr(engine, 'render_pass'):
-        if engine.render_pass.is_interactive_running:
+        if engine.render_pass.is_interactive and engine.render_pass.is_prman_running():
             engine.render_pass.end_interactive()
         if engine.render_pass:
             del engine.render_pass
@@ -100,12 +114,17 @@ def free(engine):
 def render(engine):
     if hasattr(engine, 'render_pass') and engine.render_pass.do_render:
         if engine.is_preview:
-            engine.render_pass.preview_render(engine)
+            if engine.render_pass.rib_done:
+                engine.render_pass.preview_render(engine)
         else:
             engine.render_pass.render(engine)
 
 
 def reset(engine, data, scene):
+    del engine.render_pass.ri
+    if prman:
+        prman.Cleanup()
+    engine.render_pass.ri = prman.Ri()
     engine.render_pass.set_scene(scene)
 
 
@@ -157,8 +176,10 @@ def format_seconds_to_hhmmss(seconds):
 class RPass:
 
     def __init__(self, scene, interactive=False, external_render=False, preview_render=False):
+        self.rib_done = False
         self.scene = scene
         self.output_files = []
+        self.aov_denoise_files = []
         # set the display driver
         if external_render:
             self.display_driver = scene.renderman.display_driver
@@ -174,8 +195,8 @@ class RPass:
         self.rm = scene.renderman
         self.external_render = external_render
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
-        self.is_interactive_running = False
         self.is_interactive = interactive
+        self.is_interactive_ready = False
         self.options = []
         # check if prman is imported
         if not prman_inited:
@@ -190,7 +211,8 @@ class RPass:
         self.update_time = None
 
     def __del__(self):
-        if self.is_interactive_running:
+
+        if self.is_interactive and self.is_prman_running():
             self.ri.EditWorldEnd()
             self.ri.End()
         del self.ri
@@ -213,8 +235,10 @@ class RPass:
         if not os.path.exists(self.paths['export_dir']):
             os.makedirs(self.paths['export_dir'])
 
-        self.paths['render_output'] = user_path(rm.path_display_driver_image,
-                                                scene=scene, rpass=self)
+        addon_prefs = get_addon_prefs()
+        self.paths['render_output'] = user_path(addon_prefs.path_display_driver_image,
+                                                scene=scene, display_driver=self.display_driver)
+        self.paths['aov_output'] = user_path(addon_prefs.path_aov_image, scene=scene, display_driver=self.display_driver)
         debug("info", self.paths)
         self.paths['shader'] = [user_path(rm.out_dir, scene=scene)] +\
             get_path_list_converted(rm, 'shader')
@@ -240,6 +264,16 @@ class RPass:
         self.scene.frame_set(num)
         self.paths['rib_output'] = user_path(self.scene.renderman.path_rib_output,
                                              scene=self.scene)
+        addon_prefs = get_addon_prefs()
+        self.paths['render_output'] = user_path(addon_prefs.path_display_driver_image,
+                                                scene=self.scene, display_driver=self.display_driver)
+        self.paths['aov_output'] = user_path(addon_prefs.path_aov_image, scene=self.scene, display_driver=self.display_driver)
+        temp_archive_name = self.scene.renderman.path_object_archive_animated
+        frame_archive_dir = os.path.dirname(user_path(temp_archive_name,
+                                                      scene=self.scene))
+        self.paths['frame_archives'] = frame_archive_dir
+        if not os.path.exists(self.paths['frame_archives']):
+            os.makedirs(self.paths['frame_archives'])
 
     def preview_render(self, engine):
         render_output = self.paths['render_output']
@@ -296,11 +330,15 @@ class RPass:
     def render(self, engine):
         DELAY = 1
         render_output = self.paths['render_output']
+        aov_output = self.paths['aov_output']
         cdir = os.path.dirname(self.paths['rib_output'])
 
         images_dir = os.path.split(render_output)[0]
+        aov_dir = os.path.split(aov_output)[0]
         if not os.path.exists(images_dir):
             os.makedirs(images_dir)
+        if not os.path.exists(aov_dir):
+            os.makedirs(aov_dir)
         if os.path.exists(render_output):
             try:
                 os.remove(render_output)  # so as not to load the old file
@@ -450,7 +488,7 @@ class RPass:
                 try:
                     # denoise to _filtered
                     cmd = [os.path.join(self.paths['rmantree'], 'bin',
-                                        'denoise')] + [denoise_options] + [denoise_data]
+                                        'denoise')] + denoise_options + [denoise_data]
 
                     engine.update_stats("", ("PRMan: Denoising image"))
                     t1 = time.time()
@@ -505,14 +543,21 @@ class RPass:
         # Load all output images into image editor
         if self.rm.import_images and self.rm.render_into == 'blender':
             for image in self.output_files:
-                bpy.ops.image.open(filepath=image)
+                try:
+                    bpy.ops.image.open(filepath=image)
+                except:
+                    pass
 
     def set_scene(self, scene):
         self.scene = scene
 
+    def is_prman_running(self):
+        return prman.RicGetProgress() < 100
+
     # start the interactive session.  Basically the same as ribgen, only
     # save the file
     def start_interactive(self):
+        
         if find_it_path() == None:
             debug('error', "ERROR no 'it' installed.  \
                     Cannot start interactive rendering.")
@@ -524,10 +569,10 @@ class RPass:
             self.end_interactive()
             return
 
-        self.is_interactive = True
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         self.material_dict = {}
+        self.instance_dict = {}
         self.lights = {}
         self.current_solo_light = None
         self.muted_lights = []
@@ -563,31 +608,49 @@ class RPass:
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.ri, self.scene, prman)
-        self.is_interactive_running = True
+        
+        while not self.is_prman_running():
+            time.sleep(.1)
+
+        self.ri.EditBegin('null', {})
+        self.ri.EditEnd()
+        self.is_interactive_ready = True
         return
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
         active = scene.objects.active
-        if active and active.is_updated:
-            issue_transform_edits(self, self.ri, active, prman)
+        if (active and active.is_updated) or (active and active.type == 'LAMP' and active.is_updated_data):
+            if is_ipr_running():
+                issue_transform_edits(self, self.ri, active, prman)
+            else:
+                return
         # record the marker to rib and flush to that point
         # also do the camera in case the camera is locked to display.
         if scene.camera != active and scene.camera.is_updated:
-            issue_transform_edits(self, self.ri, scene.camera, prman)
+            if is_ipr_running():
+                issue_transform_edits(self, self.ri, scene.camera, prman)
+            else:
+                return
         # check for light deleted
         if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
             lights_deleted = []
             for light_name, data_name in self.lights.items():
                 if light_name not in scene.objects:
-                    delete_light(self, self.ri, data_name, prman)
-                    lights_deleted.append(light_name)
+                    if is_ipr_running():
+                        delete_light(self, self.ri, data_name, prman)
+                        lights_deleted.append(light_name)
+                    else:
+                        return
 
             for light_name in lights_deleted:
                 self.lights.pop(light_name, None)
 
     def update_illuminates(self):
         update_illuminates(self, self.ri, prman)
+
+    def update_light_visibility(self, lamp):
+        issue_light_vis(self, self.ri, lamp, prman)
 
     def solo_light(self):
         if self.current_solo_light:
@@ -635,13 +698,13 @@ class RPass:
     # ri.end
     def end_interactive(self):
         self.is_interactive = False
-        self.is_interactive_running = False
-        self.edit_num += 1
-        # output a flush to stop rendering.
-        self.ri.ArchiveRecord(
-            "structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
-        prman.RicFlush("%d" % self.edit_num, 0, self.ri.SUSPENDRENDERING)
-        self.ri.EditWorldEnd()
+        if self.is_prman_running():
+            self.edit_num += 1
+            # output a flush to stop rendering.
+            self.ri.ArchiveRecord(
+                "structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
+            prman.RicFlush("%d" % self.edit_num, 0, self.ri.SUSPENDRENDERING)
+            self.ri.EditWorldEnd()
         self.ri.End()
         self.material_dict = {}
         self.lights = {}
@@ -659,8 +722,7 @@ class RPass:
         if engine:
             engine.report({"INFO"}, "Texture generation took %s" %
                           format_seconds_to_hhmmss(time.time() - time_start))
-        else:
-            self.scene.frame_set(self.scene.frame_current)
+        self.scene.frame_set(self.scene.frame_current)
         time_start = time.time()
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
@@ -690,7 +752,7 @@ class RPass:
 
         self.ri.Begin(self.paths['rib_output'])
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
-        write_preview_rib(self, self.scene, self.ri)
+        self.rib_done = write_preview_rib(self, self.scene, self.ri)
         self.ri.End()
 
     def convert_textures(self, temp_texture_list):
@@ -699,6 +761,9 @@ class RPass:
 
         files_converted = []
         texture_list = []
+
+        if not temp_texture_list:
+            return
 
         # for UDIM textures
         for in_file, out_file, options in temp_texture_list:
