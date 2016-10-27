@@ -168,7 +168,7 @@ class RendermanPreferences(AddonPreferences):
 
     draw_ipr_text = BoolProperty(
         name="Draw IPR Text",
-        description="Draw PRMan Interactive Mode Running when IPR is running",
+        description="Draw notice on View3D when IPR is active",
         default=True)
 
     env_vars = PointerProperty(
