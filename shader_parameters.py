@@ -93,10 +93,10 @@ def generate_page(sp, node, parent_name, first_level=False):
                 optionsNames, optionsMeta, optionsProps = \
                     generate_txmake_options(parent_name)
                 # make texoptions hider
-                prop_names.append("txmake_options")
-                prop_meta["txmake_options"] = {'renderman_type': 'page'}
-                setattr(node, "txmake_options", optionsNames)
-                ui_label = "%s_ui_open" % "txmake_options"
+                prop_names.append("Txmake Options")
+                prop_meta["TxMake Options"] = {'renderman_type': 'page'}
+                setattr(node, "TxMake Options", optionsNames)
+                ui_label = "%s_ui_open" % "TxMake Options"
                 setattr(node, ui_label, BoolProperty(name=ui_label,
                                                      default=False))
                 prop_meta.update(optionsMeta)
@@ -207,10 +207,10 @@ def class_generate_properties(node, parent_name, shaderparameters):
                     optionsNames, optionsMeta, optionsProps = \
                         generate_txmake_options(parent_name)
                     # make texoptions hider
-                    prop_names.append("txmake_options")
-                    prop_meta["txmake_options"] = {'renderman_type': 'page'}
-                    setattr(node, "txmake_options", optionsNames)
-                    ui_label = "%s_ui_open" % "txmake_options"
+                    prop_names.append("TxMake Options")
+                    prop_meta["TxMake Options"] = {'renderman_type': 'page'}
+                    setattr(node, "TxMake Options", optionsNames)
+                    ui_label = "%s_ui_open" % "TxMake Options"
                     setattr(node, ui_label, BoolProperty(name=ui_label,
                                                          default=False))
                     prop_meta.update(optionsMeta)
