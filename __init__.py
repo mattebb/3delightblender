@@ -28,10 +28,10 @@ import sys
 bl_info = {
     "name": "RenderMan For Blender",
     "author": "Brian Savery",
-    "version": (21, 0, 0),
+    "version": (21, 2, 0),
     "blender": (2, 77, 0),
     "location": "Info Header, render engine menu",
-    "description": "RenderMan 21.0 integration",
+    "description": "RenderMan 21.2 integration",
     "warning": "",
     "category": "Render"}
 
@@ -41,6 +41,8 @@ class PRManRender(bpy.types.RenderEngine):
     bl_label = "RenderMan Render"
     bl_use_preview = True
     bl_use_save_buffers = True
+    bl_use_shading_nodes = True
+    bl_use_shading_nodes_custom = False
 
     def __init__(self):
         self.render_pass = None

@@ -43,7 +43,7 @@ from .util import getattr_recursive
 from .util import user_path
 from .util import get_addon_prefs
 from .util import get_real_path
-from .util import readOSO, find_it_path, find_local_queue
+from .util import readOSO, find_it_path, find_local_queue, find_tractor_spool
 from .util import get_Files_in_Directory
 
 from .shader_parameters import tex_source_path
@@ -57,9 +57,11 @@ from .export import write_archive_RIB
 from .export import EXCLUDED_OBJECT_TYPES
 from . import engine
 
+from .nodes import convert_cycles_nodetree, is_renderman_nodetree
+
 from .properties import aov_mapping
 
-from .nodes import RendermanPatternGraph
+#from .nodes import RendermanPatternGraph
 
 from .spool import spool_render
 
@@ -68,8 +70,8 @@ from bpy_extras.io_utils import ExportHelper
 
 class Renderman_open_stats(bpy.types.Operator):
     bl_idname = 'rman.open_stats'
-    bl_label = "Open Last Stats"
-    bl_description = "Open Last stats file"
+    bl_label = "Open Frame Stats"
+    bl_description = "Open Current Frame stats file"
 
     def execute(self, context):
         scene = context.scene
@@ -77,7 +79,7 @@ class Renderman_open_stats(bpy.types.Operator):
         output_dir = os.path.dirname(
             user_path(rm.path_rib_output, scene=scene))
         bpy.ops.wm.url_open(
-            url="file://" + os.path.join(output_dir, 'stats.xml'))
+            url="file://" + os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current))
         return {'FINISHED'}
 
 
@@ -97,7 +99,6 @@ class Renderman_start_it(bpy.types.Operator):
             environ = os.environ.copy()
             subprocess.Popen([it_path], env=environ, shell=True)
         return {'FINISHED'}
-
 
 class Renderman_open_last_RIB(bpy.types.Operator):
     bl_idname = 'rman.open_rib'
@@ -145,6 +146,52 @@ class RENDERMAN_OT_add_remove_output(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "shading.convert_renderman_nodetrees"
+    bl_label = "Convert all nodetrees"
+    bl_description = "Convert all nodetrees to renderman"
+
+    
+    def execute(self, context):
+        for mat in bpy.data.materials:
+            mat.use_nodes = True
+            nt = mat.node_tree
+            if is_renderman_nodetree(mat):
+                continue
+            output = nt.nodes.new('RendermanOutputNode')
+            try:
+                if not convert_cycles_nodetree(mat, output, self.report):
+                    default = nt.nodes.new('PxrSurfaceBxdfNode')
+                    default.location = output.location
+                    default.location[0] -= 300
+                    nt.links.new(default.outputs[0], output.inputs[0])
+            except Exception as e:
+                self.report({'ERROR'}, "Error converting " + mat.name)
+                self.report({'ERROR'}, str(e))
+
+        for lamp in bpy.data.lamps:
+            if lamp.renderman.use_renderman_node:
+                continue
+            light_type = lamp.type
+            if light_type == 'SUN':
+                lamp.renderman.renderman_type = 'DIST'
+            elif light_type == 'HEMI':
+                lamp.renderman.renderman_type = 'ENV'
+            else:
+                lamp.renderman.renderman_type = light_type
+                
+            if light_type == 'AREA':
+                lamp.shape = 'RECTANGLE'
+                lamp.size = 1.0
+                lamp.size_y = 1.0
+
+            lamp.renderman.use_renderman_node = True
+
+        return {'FINISHED'}
+
+
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
     ''''''
@@ -161,29 +208,40 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                         'lamp': context.lamp, 'world': context.scene.world}
         idblock = context_data[idtype]
 
-        nt = bpy.data.node_groups.new(idblock.name,
-                                      type='RendermanPatternGraph')
-        nt.use_fake_user = True
-        idblock.renderman.nodetree = nt.name
+        #nt = bpy.data.node_groups.new(idblock.name,
+        #                              type='RendermanPatternGraph')
+        #nt.use_fake_user = True
+        idblock.use_nodes = True
+        nt = idblock.node_tree
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
-            default = nt.nodes.new('%sBxdfNode' % self.properties.bxdf_name)
-            default.location = output.location
-            default.location[0] -= 300
-            nt.links.new(default.outputs[0], output.inputs[0])
+            if not convert_cycles_nodetree(idblock, output, self.report):
+                default = nt.nodes.new('%sBxdfNode' % self.properties.bxdf_name)
+                default.location = output.location
+                default.location[0] -= 300
+                nt.links.new(default.outputs[0], output.inputs[0])
         elif idtype == 'lamp':
-            # we only need to set the renderman type as the update method there
-            # handles making the nodetree
             light_type = idblock.type
-            if light_type == "SUN":
-                idblock.renderman.renderman_type = "DIST"
-            elif light_type == "HEMI":
-                idblock.renderman.renderman_type = "ENV"
+            if light_type == 'SUN':
+                context.lamp.renderman.renderman_type = 'DIST'
+            elif light_type == 'HEMI':
+                
+                context.lamp.renderman.renderman_type = 'ENV'
             else:
-                idblock.renderman.renderman_type = light_type
+                context.lamp.renderman.renderman_type = light_type
+                
+            if light_type == 'AREA':
+                context.lamp.shape = 'RECTANGLE'
+                context.lamp.size = 1.0
+                context.lamp.size_y = 1.0
+
+            idblock.renderman.use_renderman_node = True
+            
+            
         else:
             idblock.renderman.renderman_type = "ENV"
+            idblock.renderman.use_renderman_node = True
             # light_type = idblock.type
             # light_shader = 'PxrStdAreaLightLightNode'
             # if light_type == 'SUN':
@@ -233,7 +291,7 @@ class ExternalRender(bpy.types.Operator):
 
     def gen_rib_frame(self, rpass):
         try:
-            rpass.gen_rib()
+            rpass.gen_rib(convert_textures=False)
         except Exception as err:
             self.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
 
@@ -245,11 +303,24 @@ class ExternalRender(bpy.types.Operator):
         scene = context.scene
         rpass = RPass(scene, external_render=True)
         rm = scene.renderman
+        
+        render_output = rpass.paths['render_output']
+        images_dir = os.path.split(render_output)[0]
+        aov_output = rpass.paths['aov_output']
+        aov_dir = os.path.split(aov_output)[0]
+        
+        if not os.path.exists(images_dir):
+            os.makedirs(images_dir)
+        if not os.path.exists(aov_dir):
+            os.makedirs(aov_dir)
+        if not os.path.exists(rpass.paths['texture_output']):
+            os.mkdir(rpass.paths['texture_output'])
 
         # rib gen each frame
         rpass.display_driver = scene.renderman.display_driver
         rib_names = []
         denoise_files = []
+        denoise_aov_files = []
         job_tex_cmds = []
         frame_tex_cmds = {}
         if rm.external_animation:
@@ -265,9 +336,12 @@ class ExternalRender(bpy.types.Operator):
                     {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % frame)
                 self.gen_rib_frame(rpass)
                 rib_names.append(rpass.paths['rib_output'])
-                frame_tex_cmds[frame] = [cmd for cmd in get_texture_list(rpass.scene) if cmd not in job_tex_cmds]
+                frame_tex_cmds[frame] = [cmd for cmd in get_texture_list(
+                    rpass.scene) if cmd not in job_tex_cmds]
                 if rm.external_denoise:
                     denoise_files.append(rpass.get_denoise_names())
+                    if rpass.aov_denoise_files:
+                        denoise_aov_files.append(rpass.aov_denoise_files)
 
         else:
             self.report(
@@ -277,57 +351,27 @@ class ExternalRender(bpy.types.Operator):
             frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
             if rm.external_denoise:
                 denoise_files.append(rpass.get_denoise_names())
+                if rpass.aov_denoise_files:
+                        denoise_aov_files.append(rpass.aov_denoise_files)
 
-        # if render locally launch prman (externally)
-        if rm.external_action == 'render':
-            render_output = rpass.paths['render_output']
-            images_dir = os.path.split(render_output)[0]
-            if not os.path.exists(images_dir):
-                os.makedirs(images_dir)
-            # create command and start process
-            options = ["-t:%d" % rpass.rm.threads]
-            if rm.enable_checkpoint:
-                if rm.render_limit == 0:
-                    options = options + ["-checkpoint", "%d%s" %
-                                         (rm.checkpoint_interval, rm.checkpoint_type)]
-                else:
-                    options = options + ['-checkpoint', '%d%s,%d%s' % (
-                        rm.checkpoint_interval, rm.checkpoint_type, rm.render_limit, rm.checkpoint_type)]
-            prman_executable = os.path.join(rpass.paths['rmantree'], 'bin',
-                                            rpass.paths['rman_binary'])
-            cmd = [prman_executable] + options + rib_names
-            cdir = os.path.dirname(rib_names[0])
-            environ = os.environ.copy()
-            environ['RMANTREE'] = rpass.paths['rmantree']
+        # gen spool job
+        denoise = rm.external_denoise
+        rm_version = rm.path_rmantree.split('-')[-1]
+        rm_version = rm_version.strip('/\\')
+        if denoise:
+            denoise = 'crossframe' if rm.crossframe_denoise and scene.frame_start != scene.frame_end and rm.external_animation else 'frame'
+        frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
+        frame_end = scene.frame_end if rm.external_animation else scene.frame_current
+        alf_file = spool_render(
+                str(rm_version), rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass)
 
-            # Launch the command to begin rendering.
-            self.report(
-                {'INFO'}, 'RenderMan External Rendering rendering ribs ' + str(rib_names))
-            try:
-                process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE, env=environ)
-            except:
-                self.report({'ERROR'}, 'Error launching prman')
-
-            self.report(
-                {'INFO'}, 'RenderMan External Rendering done rendering.')
-
-        # else gen spool job
-        elif rm.external_action == 'spool':
-            denoise = rm.external_denoise
-            if denoise:
-                denoise = 'crossframe' if rm.crossframe_denoise else 'frame'
-            frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
-            frame_end = scene.frame_end if rm.external_animation else scene.frame_current
-            alf_file = spool_render(
-                '21.0', rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
-
-            # if spooling send job to queuing
-            if rm.external_action == 'spool':
+        # if spooling send job to queuing
+        if rm.external_action == 'spool':
                 exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
                 self.report(
                     {'INFO'}, 'RenderMan External Rendering spooling to %s.' % rm.queuing_system)
                 subprocess.Popen([exe, alf_file])
+
 
         rpass = None
         return {'FINISHED'}
@@ -381,6 +425,7 @@ class StartInteractive(bpy.types.Operator):
                 for area in context.screen.areas:
                     if area.type == 'VIEW_3D':
                         area.tag_redraw()
+
         return {'FINISHED'}
 ######################
 # Export RIB Operators
@@ -509,18 +554,38 @@ class RendermanRenderPresets():
     FinalDenoisePreset = [
         "rm = bpy.context.scene.renderman",
         "rm.pixel_variance = 0.01",
-        "rm.min_samples = 24",
-        "rm.max_samples = 124",
+        "rm.min_samples = 32",
+        "rm.max_samples = 256",
         "rm.max_specular_depth = 6",
         "rm.max_diffuse_depth = 2",
         "rm.motion_blur = True",
         "rm.do_denoise = True",
         "rm.PxrPathTracer_settings.maxPathLength = 10", ]
+    FinalHighPreset = [
+        "rm = bpy.context.scene.renderman",
+        "rm.pixel_variance = 0.0025",
+        "rm.min_samples = 64",
+        "rm.max_samples = 1024",
+        "rm.max_specular_depth = 6",
+        "rm.max_diffuse_depth = 3",
+        "rm.motion_blur = True",
+        "rm.do_denoise = False",
+        "rm.PxrPathTracer_settings.maxPathLength = 10", ]
     FinalPreset = [
         "rm = bpy.context.scene.renderman",
-        "rm.pixel_variance = 0.01",
-        "rm.min_samples = 24",
-        "rm.max_samples = 124",
+        "rm.pixel_variance = 0.005",
+        "rm.min_samples = 32",
+        "rm.max_samples = 512",
+        "rm.max_specular_depth = 6",
+        "rm.max_diffuse_depth = 2",
+        "rm.motion_blur = True",
+        "rm.do_denoise = False",
+        "rm.PxrPathTracer_settings.maxPathLength = 10", ]
+    MidPreset = [
+        "rm = bpy.context.scene.renderman",
+        "rm.pixel_variance = 0.05",
+        "rm.min_samples = 0",
+        "rm.max_samples = 64",
         "rm.max_specular_depth = 6",
         "rm.max_diffuse_depth = 2",
         "rm.motion_blur = True",
@@ -528,9 +593,9 @@ class RendermanRenderPresets():
         "rm.PxrPathTracer_settings.maxPathLength = 10", ]
     PreviewPreset = [
         "rm = bpy.context.scene.renderman",
-        "rm.pixel_variance = 0.15",
-        "rm.min_samples = 2",
-        "rm.max_samples = 24",
+        "rm.pixel_variance = 0.1",
+        "rm.min_samples = 0",
+        "rm.max_samples = 16",
         "rm.max_specular_depth = 2",
         "rm.max_diffuse_depth = 1",
         "rm.motion_blur = False",
@@ -849,7 +914,7 @@ class OT_remove_add_rem_light_link(bpy.types.Operator):
             ll.name = ll_name
         else:
             ll_index = scene.renderman.ll.keys().index(ll_name)
-            if engine.ipr is not None and engine.ipr.is_interactive_running:
+            if engine.is_ipr_running():
                 engine.ipr.remove_light_link(
                     context, scene.renderman.ll[ll_index])
             scene.renderman.ll.remove(ll_index)
@@ -924,10 +989,10 @@ class Add_bxdf(bpy.types.Operator):
 
     def get_type_items(self, context):
         items = []
-        for nodetype in RendermanPatternGraph.nodetypes.values():
-            if nodetype.renderman_node_type == 'bxdf':
-                items.append((nodetype.bl_label, nodetype.bl_label,
-                              nodetype.bl_label))
+        #for nodetype in RendermanPatternGraph.nodetypes.values():
+        #    if nodetype.renderman_node_type == 'bxdf':
+        #        items.append((nodetype.bl_label, nodetype.bl_label,
+        #                      nodetype.bl_label))
         items = sorted(items, key=itemgetter(1))
         return items
     bxdf_name = EnumProperty(items=get_type_items, name="Bxdf Name")
@@ -1199,9 +1264,13 @@ def register():
     # Register any default presets here. This includes render based and
     # Material based
     quickAddPresets(RendermanRenderPresets.FinalDenoisePreset,
-                    os.path.join("renderman", "render"), "FinalDenoise")
+                    os.path.join("renderman", "render"), "FinalDenoisePreset")
+    quickAddPresets(RendermanRenderPresets.FinalHighPreset,
+                    os.path.join("renderman", "render"), "FinalHigh_Preset")
     quickAddPresets(RendermanRenderPresets.FinalPreset,
                     os.path.join("renderman", "render"), "FinalPreset")
+    quickAddPresets(RendermanRenderPresets.MidPreset,
+                    os.path.join("renderman", "render"), "MidPreset")
     quickAddPresets(RendermanRenderPresets.PreviewPreset,
                     os.path.join("renderman", "render"), "PreviewPreset")
     quickAddPresets(RendermanRenderPresets.TractorLocalQueuePreset, os.path.join(
