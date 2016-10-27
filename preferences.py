@@ -154,6 +154,11 @@ class RendermanPreferences(AddonPreferences):
         subtype='FILE_PATH',
         default="txmake")
 
+    draw_ipr_text = BoolProperty(
+        name="Draw IPR Text",
+        description="Draw PRMan Interactive Mode Running when IPR is running",
+        default=True)
+
     env_vars = PointerProperty(
         type=RendermanEnvVarSettings,
         name="Environment Variable Settings")
@@ -195,6 +200,7 @@ class RendermanPreferences(AddonPreferences):
 
         env = self.env_vars
         layout.prop(env, "out")
+        layout.prop(self, 'draw_ipr_text')
         #layout.prop(env, "shd")
         #layout.prop(env, "ptc")
         #layout.prop(env, "arc")
