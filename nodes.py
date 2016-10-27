@@ -1423,6 +1423,7 @@ def create_rman_surface(nt, parent_node, input_index, node_type="PxrSurfaceBxdfN
     layer = nt.nodes.new(node_type)
     nt.links.new(layer.outputs[0], parent_node.inputs[input_index])
     setattr(layer, 'enableDiffuse', False)
+    
     layer.location = parent_node.location
     layer.diffuseGain = 0
     layer.location[0] -= 300
@@ -1456,8 +1457,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
             # if parent is output make a pxr surface first
             nt.links.new(mixer.outputs["pxrMaterialOut"],
                          rman_parent.inputs[input_index])
-            mixer.location = rman_parent.location
-            mixer.location[0] -= 300
+            offset_node_location(rman_parent, mixer, node)
 
             # set the layer masks
             if node.bl_idname == 'ShaderNodeAddShader':
@@ -1477,15 +1477,13 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
     # else set lobe on parent
     elif 'Bsdf' in node.bl_idname or node.bl_idname == 'ShaderNodeSubsurfaceScattering':
         if rman_parent.plugin_name == 'PxrLayerMixer':
+            old_parent = rman_parent
             rman_parent = create_rman_surface(nt, rman_parent, input_index, 
                                               'PxrLayerPatternNode')
+            offset_node_location(old_parent, rman_parent, node)
 
         node_type = node.bl_idname
-        
-        if node_type == 'ShaderNodeBsdfGlossy':
-            bsdf_map[node_type][1](nt, node, rman_parent)
-        else:
-            bsdf_map[node_type][1](nt, node, rman_parent)
+        bsdf_map[node_type][1](nt, node, rman_parent)
     # if we find an emission node, naively make it a meshlight
     # note this will only make the last emission node the light
     elif node.bl_idname == 'ShaderNodeEmission':
@@ -1512,12 +1510,26 @@ def convert_cycles_displacement(nt, output_node, displace_socket):
         displace = nt.nodes.new("PxrDisplaceDisplacementNode")
         nt.links.new(displace.outputs[0], output_node.inputs['Displacement'])
         displace.location = output_node.location
-        displace.location[0] -= 300
+        offset_node_location(output_node, displace, displace_socket.links[0].from_node)
+        
         setattr(displace, 'dispAmount', .01)
         convert_cycles_input(nt, displace_socket, displace, "dispScalar")
+
     
+# could make this more robust to shift the entire nodetree to below the 
+# bounds of the cycles nodetree
+def set_ouput_node_location(nt, output_node, cycles_output):
+    output_node.location = cycles_output.location
+    output_node.location[1] -= 500
 
+def offset_node_location(rman_parent, rman_node, cycles_node):
+    linked_socket = next((sock for sock in cycles_node.outputs if sock.is_linked),
+                       None)
+    rman_node.location = rman_parent.location
+    if linked_socket:
+        rman_node.location += (cycles_node.location - linked_socket.links[0].to_node.location)
 
+    
 def convert_cycles_nodetree(id, output_node, reporter):
     # find base node
     from . import cycles_convert
@@ -1534,10 +1546,15 @@ def convert_cycles_nodetree(id, output_node, reporter):
         reporter({'WARNING'}, 'No Cycles bsdf found ' + id.name)
         return False
 
+    #set the output node location
+    set_ouput_node_location(nt, output_node, cycles_output_node)
+
     # walk tree
     cycles_convert.report = reporter
+    begin_cycles_node = cycles_output_node.inputs[0].links[0].from_node
     base_surface = create_rman_surface(nt, output_node, 0)
-    convert_cycles_bsdf(nt, base_surface, cycles_output_node.inputs[0].links[0].from_node, 0)
+    offset_node_location(output_node, base_surface, begin_cycles_node)
+    convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
     convert_cycles_displacement(nt, output_node, cycles_output_node.inputs[2])
     return True
 
