@@ -228,7 +228,7 @@ def update_conditional_visops(node):
     for param_name, prop_meta in getattr(node, 'prop_meta').items():
         if 'conditionalVisOp' in prop_meta:
             prop_meta['hidden'] = not eval(prop_meta['conditionalVisOp'])
-        
+            
 
 # send updates to ipr if running
 def update_func(self, context):
@@ -316,7 +316,7 @@ def parse_conditional_visop(hintdict):
     else:
         vispath = hintdict.find("string[@name='conditionalVisPath']").attrib['value']
         visValue = hintdict.find("string[@name='conditionalVisValue']").attrib['value']
-        if visValue.isalpha():
+        if visValue.isalpha() or visValue == '':
             return "getattr(node, '%s') %s '%s'" % \
                 (vispath.rsplit('/', 1)[-1], op_map[visop], visValue)
         else:

@@ -1360,8 +1360,8 @@ def gen_params(ri, node, mat_name=None):
                         vstruct_name].links[0].from_socket
                     vstruct_from_param = "%s_%s" % (
                         from_socket.identifier, vstruct_member)
-                    if vstruct_from_param in from_socket.node.out_meta:
-                        actual_socket = from_socket.node.out_meta[
+                    if vstruct_from_param in from_socket.node.output_meta:
+                        actual_socket = from_socket.node.output_meta[
                             vstruct_from_param]
                         params['reference %s %s' % (meta['renderman_type'],
                                                     meta['renderman_name'])] = \
