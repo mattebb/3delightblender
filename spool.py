@@ -1,5 +1,6 @@
 import bpy
 import os
+import time
 from .util import user_path
 
 
@@ -33,7 +34,7 @@ def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, fram
     cdir = user_path(out_dir)
     scene = context.scene
     rm = scene.renderman
-    alf_file = os.path.join(cdir, 'spool.alf')
+    alf_file = os.path.join(cdir, 'spool_%s.alf' % time.strftime("%m%d%y%H%M%S"))
     per_frame_denoise = denoise == 'frame'
     crossframe_denoise = denoise == 'crossframe'
 
@@ -107,18 +108,28 @@ def spool_render(rman_version_short, rib_files, denoise_files, frame_begin, fram
 
         # denoise frame
         if per_frame_denoise:
-            cmd_str = ['denoise', denoise_files[frame_num - frame_begin][0]]
+            cmd_str = ['denoise'] + [denoise_files[frame_num - frame_begin][0]]
             write_cmd_task_line(f, 'Denoise frame %d' % frame_num,
                                 [('PixarRender', cmd_str)], 3)
         elif crossframe_denoise:
-            if frame_num - frame_begin < 3:
+            denoise_options = ['--crossframe -v variance', '-F 1', '-L 1']
+            if frame_num - frame_begin < 1:
                 pass
+            elif frame_num - frame_begin == 1:
+                denoise_options.remove('-F 1')
+                cmd_str = ['denoise'] + denoise_options + [f[0]
+                                                           for f in denoise_files[0:2]]
+                write_cmd_task_line(f, 'Denoise frame %d' % (frame_num - 1),
+                                    [('PixarRender', cmd_str)], 3)
             else:
-                denoise_options = ['-L'] if frame_num < frame_end else []
-                if frame_num - frame_begin > 3:
-                    denoise_options.append('-F')
-                cmd_str = ['denoise'] + denoise_options + \
-                    [f[0] for f in denoise_files[frame_num - 2: frame_num]]
+                cmd_str = ['denoise'] + denoise_options + [f[0]
+                                                           for f in denoise_files[frame_num - frame_begin - 2: frame_num - frame_begin + 1]]
+                write_cmd_task_line(f, 'Denoise frame %d' % (frame_num - 1),
+                                    [('PixarRender', cmd_str)], 3)
+            if frame_num == frame_end:
+                denoise_options.remove('-L 1')
+                cmd_str = ['denoise'] + denoise_options + [f[0]
+                                                           for f in denoise_files[frame_num - frame_begin - 1: frame_num - frame_begin + 1]]
                 write_cmd_task_line(f, 'Denoise frame %d' % frame_num,
                                     [('PixarRender', cmd_str)], 3)
 

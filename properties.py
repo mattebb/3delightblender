@@ -168,7 +168,7 @@ class RendermanGroup(bpy.types.PropertyGroup):
 class LightLinking(bpy.types.PropertyGroup):
 
     def update_link(self, context):
-        if engine.ipr is not None and engine.ipr.is_ipr_running():
+        if engine.is_ipr_running():
             engine.ipr.update_light_link(context, self)
 
     illuminate = EnumProperty(
@@ -661,7 +661,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         min=0.0, max=1024.0, default=10.0)
     use_statistics = BoolProperty(
         name="Statistics",
-        description="Print statistics to /tmp/stats.txt after render",
+        description="Print statistics to stats.xml after render",
         default=False)
     editor_override = StringProperty(
         name="Text Editor",
@@ -828,11 +828,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     external_action = EnumProperty(
         name="Action",
         description="Action for rendering externally.",
-        items=[('render', 'Local render', 'Render to the Display Driver choosen'),
-               ('ribgen', 'Generate RIB only',
+        items=[('ribgen', 'Generate RIB only',
                 'Only Generate RIB and job file (no render)'),
                ('spool', 'Spool Job', 'Spool Job to queuing system')],
-        default='render')
+        default='spool')
 
     queuing_system = EnumProperty(
         name="Spool to",
@@ -891,12 +890,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Crossframe Denoise",
         description="Only available when denoising an external render.\n  This is more efficient especially with motion blur.",
         default=False)
-
-    path_display_driver_image = StringProperty(
-        name="Display Image",
-        description="Path to the raw render result directly from PRMan, without passing through Blender's render pipeline.",
-        subtype='FILE_PATH',
-        default=os.path.join('$OUT', 'images', '{scene}_####.{file_type}'))
 
     update_frequency = IntProperty(
         name="Update frequency",
@@ -1319,7 +1312,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         default=True)
 
     def update_mute(self, context):
-        if engine.ipr is not None and engine.ipr.is_ipr_running():
+        if engine.is_ipr_running():
             engine.ipr.mute_light()
 
     mute = BoolProperty(
@@ -1340,9 +1333,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                         ob.data.renderman.solo = False
                         break
 
-            if engine.ipr is not None and engine.ipr.is_ipr_running():
+            if engine.is_ipr_running():
                 engine.ipr.solo_light()
-        elif engine.ipr is not None and engine.ipr.is_ipr_running():
+        elif engine.is_ipr_running():
                 engine.ipr.un_solo_light()
 
 

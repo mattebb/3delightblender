@@ -67,8 +67,8 @@ from bpy_extras.io_utils import ExportHelper
 
 class Renderman_open_stats(bpy.types.Operator):
     bl_idname = 'rman.open_stats'
-    bl_label = "Open Last Stats"
-    bl_description = "Open Last stats file"
+    bl_label = "Open Frame Stats"
+    bl_description = "Open Current Frame stats file"
 
     def execute(self, context):
         scene = context.scene
@@ -76,7 +76,7 @@ class Renderman_open_stats(bpy.types.Operator):
         output_dir = os.path.dirname(
             user_path(rm.path_rib_output, scene=scene))
         bpy.ops.wm.url_open(
-            url="file://" + os.path.join(output_dir, 'stats.xml'))
+            url="file://" + os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current))
         return {'FINISHED'}
 
 
@@ -245,6 +245,11 @@ class ExternalRender(bpy.types.Operator):
         rpass = RPass(scene, external_render=True)
         rm = scene.renderman
 
+        render_output = rpass.paths['render_output']
+        images_dir = os.path.split(render_output)[0]
+        if not os.path.exists(images_dir):
+            os.makedirs(images_dir)
+
         # rib gen each frame
         rpass.display_driver = scene.renderman.display_driver
         rib_names = []
@@ -264,7 +269,8 @@ class ExternalRender(bpy.types.Operator):
                     {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % frame)
                 self.gen_rib_frame(rpass)
                 rib_names.append(rpass.paths['rib_output'])
-                frame_tex_cmds[frame] = [cmd for cmd in get_texture_list(rpass.scene) if cmd not in job_tex_cmds]
+                frame_tex_cmds[frame] = [cmd for cmd in get_texture_list(
+                    rpass.scene) if cmd not in job_tex_cmds]
                 if rm.external_denoise:
                     denoise_files.append(rpass.get_denoise_names())
 
@@ -277,57 +283,23 @@ class ExternalRender(bpy.types.Operator):
             if rm.external_denoise:
                 denoise_files.append(rpass.get_denoise_names())
 
-        # if render locally launch prman (externally)
-        if rm.external_action == 'render':
-            render_output = rpass.paths['render_output']
-            images_dir = os.path.split(render_output)[0]
-            if not os.path.exists(images_dir):
-                os.makedirs(images_dir)
-            # create command and start process
-            options = ["-t:%d" % rpass.rm.threads]
-            if rm.enable_checkpoint:
-                if rm.render_limit == 0:
-                    options = options + ["-checkpoint", "%d%s" %
-                                         (rm.checkpoint_interval, rm.checkpoint_type)]
-                else:
-                    options = options + ['-checkpoint', '%d%s,%d%s' % (
-                        rm.checkpoint_interval, rm.checkpoint_type, rm.render_limit, rm.checkpoint_type)]
-            prman_executable = os.path.join(rpass.paths['rmantree'], 'bin',
-                                            rpass.paths['rman_binary'])
-            cmd = [prman_executable] + options + rib_names
-            cdir = os.path.dirname(rib_names[0])
-            environ = os.environ.copy()
-            environ['RMANTREE'] = rpass.paths['rmantree']
+        # gen spool job
+        denoise = rm.external_denoise
+        rm_version = rm.path_rmantree.split('-')[-1]
+        rm_version = rm_version.strip('/\\')
+        if denoise:
+            denoise = 'crossframe' if rm.crossframe_denoise and scene.frame_start != scene.frame_end and rm.external_animation else 'frame'
+        frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
+        frame_end = scene.frame_end if rm.external_animation else scene.frame_current
+        alf_file = spool_render(
+            str(rm_version), rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
 
-            # Launch the command to begin rendering.
+        # if spooling send job to queuing
+        if rm.external_action == 'spool':
+            exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
             self.report(
-                {'INFO'}, 'RenderMan External Rendering rendering ribs ' + str(rib_names))
-            try:
-                process = subprocess.Popen(cmd, cwd=cdir, stdout=subprocess.PIPE,
-                                           stderr=subprocess.PIPE, env=environ)
-            except:
-                self.report({'ERROR'}, 'Error launching prman')
-
-            self.report(
-                {'INFO'}, 'RenderMan External Rendering done rendering.')
-
-        # else gen spool job
-        elif rm.external_action == 'spool':
-            denoise = rm.external_denoise
-            rm_version = rm.path_rmantree.split('-')[-1]
-            if denoise:
-                denoise = 'crossframe' if rm.crossframe_denoise else 'frame'
-            frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
-            frame_end = scene.frame_end if rm.external_animation else scene.frame_current
-            alf_file = spool_render(
-                str(rm_version), rib_names, denoise_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context)
-
-            # if spooling send job to queuing
-            if rm.external_action == 'spool':
-                exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
-                self.report(
-                    {'INFO'}, 'RenderMan External Rendering spooling to %s.' % rm.queuing_system)
-                subprocess.Popen([exe, alf_file])
+                {'INFO'}, 'RenderMan External Rendering spooling to %s.' % rm.queuing_system)
+            subprocess.Popen([exe, alf_file])
 
         rpass = None
         return {'FINISHED'}
@@ -378,7 +350,7 @@ class StartInteractive(bpy.types.Operator):
                 for area in context.screen.areas:
                     if area.type == 'VIEW_3D':
                         area.tag_redraw()
-            
+
         return {'FINISHED'}
 ######################
 # Export RIB Operators
@@ -507,18 +479,38 @@ class RendermanRenderPresets():
     FinalDenoisePreset = [
         "rm = bpy.context.scene.renderman",
         "rm.pixel_variance = 0.01",
-        "rm.min_samples = 24",
-        "rm.max_samples = 124",
+        "rm.min_samples = 32",
+        "rm.max_samples = 256",
         "rm.max_specular_depth = 6",
         "rm.max_diffuse_depth = 2",
         "rm.motion_blur = True",
         "rm.do_denoise = True",
         "rm.PxrPathTracer_settings.maxPathLength = 10", ]
+    FinalHighPreset = [
+        "rm = bpy.context.scene.renderman",
+        "rm.pixel_variance = 0.0025",
+        "rm.min_samples = 64",
+        "rm.max_samples = 1024",
+        "rm.max_specular_depth = 6",
+        "rm.max_diffuse_depth = 3",
+        "rm.motion_blur = True",
+        "rm.do_denoise = False",
+        "rm.PxrPathTracer_settings.maxPathLength = 10", ]
     FinalPreset = [
         "rm = bpy.context.scene.renderman",
-        "rm.pixel_variance = 0.01",
-        "rm.min_samples = 24",
-        "rm.max_samples = 124",
+        "rm.pixel_variance = 0.005",
+        "rm.min_samples = 32",
+        "rm.max_samples = 512",
+        "rm.max_specular_depth = 6",
+        "rm.max_diffuse_depth = 2",
+        "rm.motion_blur = True",
+        "rm.do_denoise = False",
+        "rm.PxrPathTracer_settings.maxPathLength = 10", ]
+    MidPreset = [
+        "rm = bpy.context.scene.renderman",
+        "rm.pixel_variance = 0.05",
+        "rm.min_samples = 0",
+        "rm.max_samples = 64",
         "rm.max_specular_depth = 6",
         "rm.max_diffuse_depth = 2",
         "rm.motion_blur = True",
@@ -526,9 +518,9 @@ class RendermanRenderPresets():
         "rm.PxrPathTracer_settings.maxPathLength = 10", ]
     PreviewPreset = [
         "rm = bpy.context.scene.renderman",
-        "rm.pixel_variance = 0.15",
-        "rm.min_samples = 2",
-        "rm.max_samples = 24",
+        "rm.pixel_variance = 0.1",
+        "rm.min_samples = 0",
+        "rm.max_samples = 16",
         "rm.max_specular_depth = 2",
         "rm.max_diffuse_depth = 1",
         "rm.motion_blur = False",
@@ -847,7 +839,7 @@ class OT_remove_add_rem_light_link(bpy.types.Operator):
             ll.name = ll_name
         else:
             ll_index = scene.renderman.ll.keys().index(ll_name)
-            if engine.ipr is not None and engine.ipr.is_ipr_running():
+            if engine.is_ipr_running():
                 engine.ipr.remove_light_link(
                     context, scene.renderman.ll[ll_index])
             scene.renderman.ll.remove(ll_index)
@@ -1197,9 +1189,13 @@ def register():
     # Register any default presets here. This includes render based and
     # Material based
     quickAddPresets(RendermanRenderPresets.FinalDenoisePreset,
-                    os.path.join("renderman", "render"), "FinalDenoise")
+                    os.path.join("renderman", "render"), "FinalDenoisePreset")
+    quickAddPresets(RendermanRenderPresets.FinalHighPreset,
+                    os.path.join("renderman", "render"), "FinalHigh_Preset")
     quickAddPresets(RendermanRenderPresets.FinalPreset,
                     os.path.join("renderman", "render"), "FinalPreset")
+    quickAddPresets(RendermanRenderPresets.MidPreset,
+                    os.path.join("renderman", "render"), "MidPreset")
     quickAddPresets(RendermanRenderPresets.PreviewPreset,
                     os.path.join("renderman", "render"), "PreviewPreset")
     quickAddPresets(RendermanRenderPresets.TractorLocalQueuePreset, os.path.join(

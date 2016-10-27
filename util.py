@@ -287,7 +287,7 @@ def get_sequence_path(path, blender_frame, anim):
     return make_frame_path(path, frame)
 
 
-def user_path(path, scene=None, ob=None, display_driver=None):
+def user_path(path, scene=None, ob=None, display_driver=None, layer_name=None, pass_name=None):
     '''
     # bit more complicated system to allow accessing scene or object attributes.
     # let's stay simple for now...
@@ -330,6 +330,12 @@ def user_path(path, scene=None, ob=None, display_driver=None):
 
     if ob is not None:
         path = path.replace('{object}', ob.name)
+
+    if layer_name is not None:
+        path = path.replace('{layer}', layer_name)
+
+    if pass_name is not None:
+        path = path.replace('{pass}', pass_name)
 
     # convert ### to frame number
     if scene is not None:
@@ -433,10 +439,26 @@ def check_valid_rmantree(rmantree):
         return True
     return False
 
+# return the major, minor rman version
+def get_rman_version(rmantree):
+    vstr = rmantree.split('-')[1]
+    vstr = vstr.strip('/\\')
+    major_vers, minor_vers = vstr.split('.')
+    vers_modifier = ''
+    for v in ['b', 'rc']:
+        if v in minor_vers:
+            i = minor_vers.find(v)
+            vers_modifier = minor_vers[i:]
+            minor_vers = minor_vers[:i]
+            break
+    return int(major_vers), int(minor_vers), vers_modifier
+
+def get_addon_prefs():
+    addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
+    return addon.preferences
 
 def guess_rmantree():
-    addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
-    prefs = addon.preferences
+    prefs = get_addon_prefs()
     rmantree_method = prefs.rmantree_method
 
     if rmantree_method == 'MANUAL':
@@ -459,13 +481,17 @@ def guess_rmantree():
         choice = prefs.rmantree_choice
 
         if choice == 'NEWEST':
-            latestver = 0.0
+            l_vers_major, l_vers_minor, l_vers_mod  = 0, 0, ''
             for d in os.listdir(base):
                 if "RenderManProServer" in d:
-                    vstr = d.split('-')[1]
-                    vf = float(vstr[:4])
-                    if vf >= latestver:
-                        latestver = vf
+                    vers_major, vers_minor, vers_mod = get_rman_version(d)
+                    if vers_major >= l_vers_major and \
+                        vers_major == 20 and \
+                        (vers_minor > l_vers_minor or \
+                        (vers_minor == l_vers_minor and \
+                        vers_mod >= l_vers_mod)):
+                        l_vers_major, l_vers_minor, l_vers_mod = \
+                            vers_major, vers_minor, vers_mod
                         rmantree = os.path.join(base, d)
         else:
             rmantree = choice
@@ -476,9 +502,9 @@ def guess_rmantree():
         print("RenderMan Location is set to %s which does not appear valid." % rmantree)
         return None
     # check that it's > 20
-    vstr = rmantree.split('-')[-1]
-    vf = float(vstr.strip('/\\'))
-    if vf < 20.0:
+    vers_major, vers_minor, vers_mod = get_rman_version(rmantree)
+    #vf = float(vstr.strip('/\\'))
+    if vers_major != 20:
         print('ERROR!!!  You need RenderMan version 20.0 or above.')
         print('Correct in User Preferences.')
         return None
@@ -503,19 +529,23 @@ def guess_rmantree_initial():
 
     rmantree = rmantree_from_env()
     if rmantree != '':
-        vstr = rmantree.split('-')[-1]
-        vf = float(vstr.strip('/\\'))
-        if vf > 20.0:
+        vers_major, vers_minor, vers_mod = get_rman_version(rmantree)
+        if vers_major == 20:
             return rmantree
 
-    latestver = 0.0
+    l_vers_major, l_vers_minor, l_vers_mod = 0,0,''
     for d in os.listdir(base):
         if "RenderManProServer" in d:
-            vstr = d.split('-')[1]
-            vf = float(vstr[:4])
-            if vf >= latestver:
-                latestver = vf
+            vers_major, vers_minor, vers_mod = get_rman_version(d)
+            if vers_major >= l_vers_major and \
+                vers_major == 20 and \
+                (vers_minor > l_vers_minor or \
+                (vers_minor == l_vers_minor and \
+                vers_mod >= l_vers_mod)):
+                l_vers_major, l_vers_minor, l_vers_mod = \
+                    vers_major, vers_minor, vers_mod
                 rmantree = os.path.join(base, d)
+    
     return rmantree
 
 
