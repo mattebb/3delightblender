@@ -104,22 +104,20 @@ class RendermanSocketInterface:
 
     def draw(self, context, layout):
         layout.label(self.name)
-        #if self.is_linked or self.is_output or self.hide_value:
-        #    layout.label(self.name)
-        #else:
-        #    layout.prop(self.node, self.name, text=self.name, slider=True)
-
+    
     def from_socket(self, node, socket):
-        self.name = socket.name
         if hasattr(self, 'default_value'):
             self.default_value = socket.get_value(node)
-
+        self.name = socket.name
+        
+    
     def init_socket(self, node, socket, data_path):
+        sleep(.01)
         socket.name = self.name
         if hasattr(self, 'default_value'):
             socket.default_value = self.default_value
-
-
+        
+        
 # socket types (need this just for the ui_open)
 class RendermanNodeSocketFloat(bpy.types.NodeSocketFloat, RendermanSocket):
     '''Renderman float input/output'''
@@ -671,7 +669,7 @@ def generate_osl_node():
 
     def init(self, context):
         node_add_inputs(self, name, self.prop_names)
-        node_add_outputs(self, outputs)
+        node_add_outputs(self)
 
     ntype.init = init
     ntype.plugin_name = StringProperty(name='Plugin Name',
@@ -706,7 +704,7 @@ def generate_node_type(prefs, name, args):
             self.outputs.new('RendermanShaderSocket', "Bxdf").type = 'SHADER'
             #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
             node_add_inputs(self, name, self.prop_names)
-            node_add_outputs(self, outputs)
+            node_add_outputs(self)
         elif self.renderman_node_type == 'light':
             # only make a few sockets connectable
             node_add_inputs(self, name, self.prop_names)
@@ -720,7 +718,7 @@ def generate_node_type(prefs, name, args):
             self.outputs.clear()
         else:
             node_add_inputs(self, name, self.prop_names)
-            node_add_outputs(self, outputs)
+            node_add_outputs(self)
 
         if name == "PxrRamp":
             active_mat = bpy.context.active_object.active_material
@@ -1343,24 +1341,6 @@ def gen_params(ri, node, mat_name=None):
                 elif prop_name == 'inputMaterial' or \
                     ('type' in meta and meta['type'] == 'vstruct'):
                     continue
-                # see if vstruct linked
-                elif is_vstruct_and_linked(node, prop_name):
-                    vstruct_name, vstruct_member = meta[
-                        'vstructmember'].split('.')
-                    from_socket = node.inputs[
-                        vstruct_name].links[0].from_socket
-                    vstruct_from_param = "%s_%s" % (
-                        from_socket.identifier, vstruct_member)
-                    if vstruct_from_param in from_socket.node.outputs:
-                        actual_socket = from_socket.node.outputs[
-                            vstruct_from_param]
-                        params['reference %s %s' % (meta['renderman_type'],
-                                                    meta['renderman_name'])] = \
-                            [get_output_param_str(
-                                from_socket.node, mat_name, actual_socket)]
-                    else:
-                        print('Warning! %s not found on %s' %
-                              (vstruct_from_param, from_socket.node.name))
 
                 # if input socket is linked reference that
                 elif hasattr(node, 'inputs') and prop_name in node.inputs and \
@@ -1371,6 +1351,27 @@ def gen_params(ri, node, mat_name=None):
                                                 meta['renderman_name'])] = \
                         [get_output_param_str(
                             from_node, mat_name, from_socket)]
+                
+                # see if vstruct linked
+                elif is_vstruct_and_linked(node, prop_name):
+                    vstruct_name, vstruct_member = meta[
+                        'vstructmember'].split('.')
+                    from_socket = node.inputs[
+                        vstruct_name].links[0].from_socket
+                    vstruct_from_param = "%s_%s" % (
+                        from_socket.identifier, vstruct_member)
+                    if vstruct_from_param in from_socket.node.out_meta:
+                        actual_socket = from_socket.node.out_meta[
+                            vstruct_from_param]
+                        params['reference %s %s' % (meta['renderman_type'],
+                                                    meta['renderman_name'])] = \
+                            [get_output_param_str(
+                                from_socket.node, mat_name, actual_socket)]
+                    else:
+                        print('Warning! %s not found on %s' %
+                              (vstruct_from_param, from_socket.node.name))
+
+                
                 # else output rib
                 else:
                     # if struct is not linked continue
@@ -1600,8 +1601,11 @@ def get_node_name(node, mat_name):
 
 
 def get_socket_name(node, socket):
+    if type(socket) == dict:
+        return socket['name']
     # if this is a renderman node we can just use the socket name,
-    return socket.identifier
+    else:
+        return socket.identifier
 
 
 def get_socket_type(node, socket):

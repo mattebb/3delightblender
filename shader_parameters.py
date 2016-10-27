@@ -137,7 +137,11 @@ def class_generate_properties(node, parent_name, shaderparameters):
                 # for i in range(len(sub_param_names)):
                 #     
         elif sp.tag == 'output':
-            output_meta[sp.attrib['name']] = sp.attrib        
+            tag = sp.find('*/tag')
+            renderman_type = tag.attrib['value']
+
+            output_meta[sp.attrib['name']] = sp.attrib
+            output_meta[sp.attrib['name']]['renderman_type'] = renderman_type
         else:
             if (parent_name == "PxrOSL" and i == 0) or (parent_name == "PxrSeExpr" and i == 0):
                 # Enum for internal, external type selection
@@ -247,7 +251,7 @@ def update_func(self, context):
     update_conditional_visops(node)
 
     if node.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
-        update_inputs(node)         
+        node_add_inputs(node, node.name, node.prop_names)         
 
     #set any inputs that are visible and param is hidden to hidden
     prop_meta = getattr(node, 'prop_meta')
@@ -688,25 +692,40 @@ def find_enable_param(params):
             return prop_name
 
 # add input sockets
-def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=''):
+def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix='', remove=False):
     for name in prop_names:
         meta = node.prop_meta[name]
         param_type = meta['renderman_type']
 
-        
+        if name in node.inputs.keys() and remove:
+            node.inputs.remove(node.inputs[name])
+            continue
+        elif name in node.inputs.keys():
+            continue
+
         # if this is a page recursively add inputs
         if 'renderman_type' in meta and meta['renderman_type'] == 'page':
             if first_level and node.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
-                node_add_inputs(node, node_name, getattr(node, name), 
-                                        label_prefix=name + ' ',
-                                        first_level=False)
+                #add these
+                enable_param = find_enable_param(getattr(node, name))
+                if enable_param and getattr(node, enable_param):
+                    node_add_inputs(node, node_name, getattr(node, name), 
+                                            label_prefix=name + ' ',
+                                            first_level=False)
+                else:
+                    node_add_inputs(node, node_name, getattr(node, name), 
+                                            label_prefix=name + ' ',
+                                            first_level=False, remove=True)
                 continue
 
             else:
                 node_add_inputs(node, node_name, getattr(node, name), 
                                 first_level=first_level, 
-                                label_prefix=label_prefix)
+                                label_prefix=label_prefix, remove=remove)
                 continue
+
+        if remove:
+            continue
         # # if this is not connectable don't add socket
         if param_type not in socket_map:
             continue
@@ -715,6 +734,7 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
 
         param_name = name
         param_label = label_prefix + meta.get('label', param_name)
+
         socket = node.inputs.new(socket_map[param_type], param_name, param_label)
         socket.link_limit = 1
         
@@ -725,16 +745,12 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
 
 
 # add output sockets
-def node_add_outputs(node, shaderparameters):
-    # Generate RNA properties for each shader parameter
-    for sp in shaderparameters:
+def node_add_outputs(node):
+    for name,meta in node.output_meta.items():
+        rman_type = meta['renderman_type']
+        if rman_type in socket_map and 'vstructmember' not in meta:
+            socket = node.outputs.new(socket_map[rman_type], name)
+            socket.label = name
         
-        param_name = sp.attrib['name']
-        tag = sp.find('*/tag')
-        socket = node.outputs.new(socket_map[tag.attrib['value']], param_name)
-        socket.label = param_name
-        if 'vstructmember' in sp.attrib.keys():
-            socket.hide = True
-
 
     
