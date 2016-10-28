@@ -947,12 +947,46 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                 row.operator_menu_enum("node.add_pattern", "node_type",
                                                        text='', icon="LAYER_USED")
 
-    if node.plugin_name == 'PxrRamp':
-        dummy_nt = bpy.context.active_object.active_material.node_tree
-        if dummy_nt:
-            layout.template_color_ramp(
-                dummy_nt.nodes[node.color_ramp_dummy_name], 'color_ramp')
-    draw_props(node.prop_names, layout, level)
+    # if this is a cycles node do something different
+    if not hasattr(node, 'plugin_name'):
+        node.draw_buttons(context, layout)
+        for input in node.inputs:
+            if input.is_linked:
+                input_node = socket_node_input(nt, input)
+                icon = 'DISCLOSURE_TRI_DOWN' if input.show_expanded \
+                    else 'DISCLOSURE_TRI_RIGHT'
+
+                split = layout.split(NODE_LAYOUT_SPLIT)
+                row = split.row()
+                indented_label(row, None, level)
+                row.prop(input, "show_expanded", icon=icon, text='',
+                         icon_only=True, emboss=False)
+                row.label(input.name + ':')
+                split.operator_menu_enum("node.add_pattern", "node_type",
+                                         text=input_node.bl_label, icon="LAYER_USED")
+
+                if input.show_expanded:
+                    draw_node_properties_recursive(layout, context, nt,
+                                                   input_node, level=level + 1)
+
+            else:
+                row = layout.row(align=True)
+                indented_label(row, None, level)
+                # indented_label(row, socket.name+':')
+                # don't draw prop for struct type
+                if input.hide_value:
+                    row.label(input.name)
+                else:
+                    row.prop(input, 'default_value', slider=True)
+                row.operator_menu_enum("node.add_pattern", "node_type",
+                                           text='', icon="LAYER_USED")
+    else:
+        if node.plugin_name == 'PxrRamp':
+            dummy_nt = bpy.context.active_object.active_material.node_tree
+            if dummy_nt:
+                layout.template_color_ramp(
+                    dummy_nt.nodes[node.color_ramp_dummy_name], 'color_ramp')
+        draw_props(node.prop_names, layout, level)
     layout.separator()
 
 
