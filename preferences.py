@@ -154,6 +154,11 @@ class RendermanPreferences(AddonPreferences):
         subtype='FILE_PATH',
         default="txmake")
 
+    draw_ipr_text = BoolProperty(
+        name="Draw IPR Text",
+        description="Draw notice on View3D when IPR is active",
+        default=True)
+
     path_display_driver_image = StringProperty(
         name="Main Image path",
         description="Path for the rendered main image.",
@@ -188,6 +193,10 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(env, "out")
         layout.prop(self, 'path_display_driver_image')
         layout.prop(self, 'path_aov_image')
+        layout.prop(self, 'draw_ipr_text')
+        #layout.prop(env, "shd")
+        #layout.prop(env, "ptc")
+        #layout.prop(env, "arc")
 
 
 def register():
