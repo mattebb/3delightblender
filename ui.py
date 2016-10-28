@@ -271,17 +271,18 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
 
         layout.separator()
 
-        row = layout.row()
-        split = row.split(percentage=0.33)
-        col = split.column()
-        col.prop(rm, "external_denoise")
-        sub_row = col.row()
-        sub_row.enabled = rm.external_denoise
-        sub_row.prop(rm, "crossframe_denoise")
-
-        # display driver
-        split = split.split()
-        col = split.column()
+#        row = layout.row()
+#        split = row.split(percentage=0.33)
+#        col = split.column()
+#        col.prop(rm, "external_denoise")
+#        sub_row = col.row()
+#        sub_row.enabled = rm.external_denoise
+#        sub_row.prop(rm, "crossframe_denoise")
+#
+#        # display driver
+#        split = split.split()
+#        col = split.column()
+        col = layout.column()
         col.prop(rm, "display_driver", text='Render To')
 
 #        sub_row = col.row()
@@ -316,27 +317,34 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         col = layout.column()
         col.label('Spooling Options:')
         col = layout.column()
-        col.enabled = rm.external_action != 'render'
-        col.prop(rm, 'recover')
         col.prop(rm, 'custom_cmd')
         col.prop(rm, 'custom_alfname')
+        col.prop(rm, 'external_denoise')
+        row = col.row()
+        row.enabled = rm.external_denoise
+        row.prop(rm, 'crossframe_denoise')
         row = col.row()
         row.enabled = rm.external_denoise
         row.prop(rm, 'spool_denoise_aov')
         if rm.spool_denoise_aov:
-            col.label("At least one AOV must be tagged as 'denoiseable'.",  icon='ERROR')
+            row =col.row()
+            row.label("At least one AOV must be tagged as 'denoiseable'.",  icon='ERROR')
         row =col.row()
         row.enabled = rm.external_denoise
         row.prop(rm, 'denoise_cmd')
 
         # checkpointing
-        layout.separator()
-        row = layout.row()
+        row = col.row()
+        row.prop(rm, 'recover')
+        row = col.row()
         row.prop(rm, 'enable_checkpoint')
-        row = layout.row()
+        if rm.enable_checkpoint:
+            row = col.row()
+            row.label("Images output with checkpointing enabled cannot be read by Blender",  icon='ERROR')
+        row = col.row()
         row.enabled = rm.enable_checkpoint
         row.prop(rm, 'checkpoint_type')
-        row = layout.row(align=True)
+        row = col.row(align=True)
         row.enabled = rm.enable_checkpoint
         row.prop(rm, 'checkpoint_interval')
         row.prop(rm, 'render_limit')
@@ -1314,6 +1322,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row.prop(item, "show_advanced", icon=icon, text="Advanced",
                  icon_only=True, emboss=False)
         if item.show_advanced:
+            col.prop(item, "asrgba")
             if not item.channel_type in ["custom_lpe_string", "built_in_aov", "custom_aov_string",
                                          "rgba",
                                          "lpe:C<.D%G>[S]+<L.%LG>",
@@ -1322,8 +1331,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
                                          "lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)"]:
                 col.prop(item, "denoise_aov")
                 if item.denoise_aov:
-                    col.label(
-                        "Denoiseable AOV's cannot be imported into Blender's image editor",  icon='ERROR')
+                    col.label("AOV's formatted for denoising cannot be read by Blender",  icon='ERROR')
             col.label("Exposure Settings")
             col.prop(item, "exposure_gain")
             col.prop(item, "exposure_gamma")
