@@ -482,8 +482,10 @@ def check_valid_rmantree(rmantree):
 # return the major, minor rman version
 def get_rman_version(rmantree):
     try:
-        vstr = rmantree.split('-')[1]
-        vstr = vstr.strip('/\\')
+        prman = 'prman.exe' if platform.system() == 'Windows' else 'prman'
+        exe = os.path.join(rmantree, 'bin', prman)
+        desc = subprocess.check_output([exe, "-version"], stderr=subprocess.STDOUT)
+        vstr = str(desc,'ascii').split('\n')[0].split()[-1]
         major_vers, minor_vers = vstr.split('.')
         vers_modifier = ''
         for v in ['b', 'rc']:
@@ -503,79 +505,43 @@ def get_addon_prefs():
 def guess_rmantree():
     prefs = get_addon_prefs()
     rmantree_method = prefs.rmantree_method
-    rmantree = None
+    choice = prefs.rmantree_choice
 
     if rmantree_method == 'MANUAL':
         rmantree = prefs.path_rmantree
-    elif rmantree_method == 'ENV':
+    elif rmantree_method == 'ENV' or choice == 'NEWEST':
         rmantree = rmantree_from_env()
     else:
-        rmantree = rmantree_from_env()
-        # get from detected installed
-        if platform.system() == 'Windows':
-            # default installation path
-            # or base = 'C:/Program Files/Pixar'
-            base = r'C:\Program Files\Pixar'
+        rmantree = choice
+    version = get_rman_version(rmantree) # major, minor, mod
 
-        elif platform.system() == 'Darwin':
-            base = '/Applications/Pixar'
+    if choice == 'NEWEST':
 
-        elif platform.system() == 'Linux':
-            base = '/opt/pixar'
-
-        choice = prefs.rmantree_choice
-
-        if choice == 'NEWEST':
-            l_vers_major, l_vers_minor, l_vers_mod  = 0, 0, ''
-            
-            try:
-                vers_major, vers_minor, vers_mod = get_rman_version(rmantree)
-                if vers_major >= l_vers_major and \
-                    vers_major == 21 and \
-                    (vers_minor > l_vers_minor or \
-                    (vers_minor == l_vers_minor and \
-                    vers_mod >= l_vers_mod)):
-                    l_vers_major, l_vers_minor, l_vers_mod = \
-                        vers_major, vers_minor, vers_mod
-            except:
-                pass
-
+        # get from detected installs (at default installation path)
+        try:
+            base = { 'Windows': r'C:\Program Files\Pixar',
+                     'Darwin': '/Applications/Pixar',
+                     'Linux': '/opt/pixar' }[ platform.system() ]
             for d in os.listdir(base):
                 if "RenderManProServer" in d:
-                    try:
-                        vers_major, vers_minor, vers_mod = get_rman_version(d)
-                        if vers_major >= l_vers_major and \
-                            vers_major == 21 and \
-                            (vers_minor > l_vers_minor or \
-                            (vers_minor == l_vers_minor and \
-                            vers_mod >= l_vers_mod)):
-                            l_vers_major, l_vers_minor, l_vers_mod = \
-                                vers_major, vers_minor, vers_mod
-                            rmantree = os.path.join(base, d)
-                    except:
-                        pass
-        else:
-            rmantree = choice
-
-    if rmantree:
-        # check that it's > 20
-        vstr = rmantree.split('-')[-1]
-        vf = 0.0
-        try:
-            vf = float(vstr.strip('/\\'))
+                    d_rmantree = os.path.join(base, d)
+                    d_version = get_rman_version(d_rmantree)
+                    if d_version > version:
+                        rmantree = d_rmantree
+                        version = d_version
         except:
-            return None
+            pass
 
-        if vf < 21.0:
-            throw_error("Error loading addon using RMANTREE=%s.  RMANTREE must be version 21.0 or greater.  Correct RMANTREE setting in addon preferences." % rmantree)
-            return None
-    
+    # check rmantree valid
+    if version[0] == 0:
+        throw_error("Error loading addon.  RMANTREE %s is not valid.  Correct RMANTREE setting in addon preferences." % rmantree)
+        return None
 
-        # check rmantree valid
-        if not check_valid_rmantree(rmantree):
-            throw_error("Error loading addon.  RMANTREE %s is not valid.  Correct RMANTREE setting in addon preferences." % rmantree)
-            return None
-    
+    # check that it's >= 21
+    if version[0] < 21:
+        throw_error("Error loading addon using RMANTREE=%s.  RMANTREE must be version 21.0 or greater.  Correct RMANTREE setting in addon preferences." % rmantree)
+        return None
+
     return rmantree
 
 
@@ -593,13 +559,16 @@ def get_installed_rendermans():
         base = '/opt/pixar'
 
     rendermans = []
-    for d in os.listdir(base):
-        if "RenderManProServer" in d:
-            try:
-                vstr = d.split('-')[1]
-                rendermans.append((vstr, os.path.join(base, d)))
-            except:
-                pass
+    try:
+        for d in os.listdir(base):
+            if "RenderManProServer" in d:
+                try:
+                    vstr = d.split('-')[1]
+                    rendermans.append((vstr, os.path.join(base, d)))
+                except:
+                    pass
+    except:
+        pass
 
     return rendermans
 
