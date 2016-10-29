@@ -2164,17 +2164,14 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         ri.Attribute("Ri", approx_params)
 
     # visibility attributes
-    vis_params = {}
-    if not ob.renderman.visibility_camera:
-        vis_params["int camera"] = 0
+    vis_params = {'int camera': int(ob.renderman.visibility_camera),
+                  'int indirect': int(ob.renderman.visibility_trace_indirect),
+                  'int transmission': int(ob.renderman.visibility_trace_transmission)}
+
     if visible_objects and ob.name not in visible_objects:
         vis_params["int camera"] = 0
-    if not ob.renderman.visibility_trace_indirect:
-        vis_params["int indirect"] = 0
-    if not ob.renderman.visibility_trace_transmission:
-        vis_params["int transmission"] = 0
-    if len(vis_params) > 0:
-        ri.Attribute("visibility", vis_params)
+    ri.Attribute("visibility", vis_params)
+
     if ob.renderman.matte:
         ri.Matte(ob.renderman.matte)
 
@@ -2220,10 +2217,14 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     # for each light link do illuminates
     for link in lls:
         strs = link.name.split('>')
-        light_names = [strs[1]] if strs[0] == "lg_light" else \
-            scene.renderman.light_groups[strs[1]].members.keys()
-        if strs[0] == 'lg_group' and strs[1] == 'All':
+        light_names = []
+        if strs[0] == "lg_light":
+            light_names = [strs[1]]
+        elif strs[0] == 'lg_group' and strs[1] == 'All':
             light_names = [l.name for l in scene.objects if l.type == 'LAMP']
+        elif strs[0] == 'lg_group' and strs[1] in scene.renderman.light_groups:
+            scene.renderman.light_groups[strs[1]].members.keys()
+        
         for light_name in light_names:
             if link.illuminate != "DEFAULT" and light_name in scene.objects:
                 ri.Illuminate(light_name, link.illuminate == 'ON')
@@ -2706,6 +2707,8 @@ def export_display(ri, rpass, scene):
     ri.Display(main_display, display_driver, "rgba", {})
     rpass.output_files.append(main_display)
 
+    display_params = {'int asrgba': 1}
+
     for layer in scene.render.layers:
         # custom aovs
         rm_rl = None
@@ -2768,12 +2771,11 @@ def export_display(ri, rpass, scene):
 
             # exports all AOV's
             for aov, doit, declare, source in aovs:
-                params = {"int asrgba": 1}
                 if doit:
                     dspy_name = user_path(
                         addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                         layer_name=layer_name, pass_name=aov)
-                    ri.Display('+' + dspy_name, display_driver, aov, params)
+                    ri.Display('+' + dspy_name, display_driver, aov, display_params)
                     rpass.output_files.append(dspy_name)
 
         # else we have custom rman render layer settings
@@ -2898,14 +2900,14 @@ def export_display(ri, rpass, scene):
                     if layer == scene.render.layers[0] and aov == 'rgba':
                         # we already output this skip
                         continue
-                    params = {}
-                    if not rpass.external_render:
-                        params = {"int asrgba": 1}
+                    params = display_params
                     if aov.denoise_aov:
+                        # can't have asrgba in denoisable aov
+                        params = {}
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                             layer_name=layer_name, pass_name=aov_name + '.denoisable')
-                        ri.Display('+' + dspy_name, display_driver, aov.channel_name)
+                        ri.Display('+' + dspy_name, display_driver, aov.channel_name, params)
                     else:
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
