@@ -1972,8 +1972,6 @@ classes = [
 ]
 
 nodetypes = {}
-
-
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -2010,6 +2008,7 @@ def register():
             light_nodeitems.append(node_item)
         elif node_type.renderman_node_type == 'displacement':
             displacement_nodeitems.append(node_item)
+
 
     # all categories in a list
     node_categories = [

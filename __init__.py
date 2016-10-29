@@ -106,6 +106,7 @@ def load_addon():
         ui.register()
         add_handlers(None)
         nodes.register()
+
     else:
         # display loading error
         throw_error("Error loading addon.  Correct RMANTREE setting in addon preferences.")
@@ -115,6 +116,8 @@ def register():
     from . import preferences
     preferences.register()
     load_addon()
+    from . import presets
+    presets.register()
     bpy.utils.register_module(__name__)
 
 def unregister():
@@ -125,6 +128,7 @@ def unregister():
     operators.unregister()
     ui.unregister()
     nodes.unregister()
-    
     preferences.unregister()
+    from . import presets
+    presets.unregister()
     bpy.utils.unregister_module(__name__)
