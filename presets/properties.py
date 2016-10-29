@@ -44,10 +44,18 @@ class RendermanPreset(PropertyGroup):
     def get_enum_items(self, context):
         return icons.enum_items
 
+    @classmethod
+    def get_from_path(cls, lib_path):
+        group_path,preset = lib_path.rsplit('/', 1)
+
+        group = RendermanPresetGroup.get_from_path(group_path)
+        return group.presets[preset] if preset in group.presets.keys() else None
+    
     name = StringProperty(default='')
     thumbnail = EnumProperty(items=get_enum_items)
     thumb_path = StringProperty(subtype='FILE_PATH')
     path = StringProperty(subtype='FILE_PATH')
+    json_path = StringProperty(subtype='FILE_PATH')
 
 
 # forward define preset group

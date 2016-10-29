@@ -87,7 +87,9 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
             if active:
                 for preset in active.get_presets():
                     if preset.thumbnail in icons.asset_previews:
+                        col.label(preset.name)
                         col.template_icon_view(preset, 'thumbnail')
+                        col.operator("renderman.load_asset_to_scene", text="Load to Scene").preset_path =  preset.path
 
 def register():
     try:

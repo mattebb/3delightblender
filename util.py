@@ -672,6 +672,7 @@ def init_env(rm):
     # init_exporter_env(scene.renderman)
     # try user set (or guessed) path
     RMANTREE = guess_rmantree()
+    os.environ['RMANTREE'] = RMANTREE
     RMANTREE_BIN = os.path.join(RMANTREE, 'bin')
     if RMANTREE_BIN not in sys.path:
         sys.path.append(RMANTREE_BIN)

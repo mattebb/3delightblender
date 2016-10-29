@@ -28,7 +28,7 @@ import os
 import shutil
 import bpy
 from bpy.props import StringProperty
-from .properties import RendermanPresetGroup
+from .properties import RendermanPresetGroup, RendermanPreset
 from . import icons
 
 # update the tree structure from disk file
@@ -47,6 +47,7 @@ def refresh_presets_libraries(disk_lib, preset_library):
             preset = preset_library.presets.add()
             preset.name = dir
             preset.path = path
+            preset.json_path = os.path.join(path, 'asset.json')
 
         else:
             sub_group = preset_library.sub_groups.get(dir, None)
@@ -87,10 +88,14 @@ class load_asset_to_scene(bpy.types.Operator):
     bl_label = "Load Asset to Scene"
     bl_description = "Load the Asset to scene"
 
-    asset_path = StringProperty(default='')
+    preset_path = StringProperty(default='')
 
     def invoke(self, context, event):
-        print('loading asset! ' + asset_path)
+        presets_path = util.get_addon_prefs().presets_library.path
+        path = os.path.relpath(self.properties.preset_path, presets_path)
+        preset = RendermanPreset.get_from_path(path)
+        from . import rmanAssetsBlender
+        rmanAssetsBlender.importAsset(preset.json_path)
 
         return {'FINISHED'}
 
