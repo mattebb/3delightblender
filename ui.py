@@ -31,19 +31,16 @@ from .nodes import NODE_LAYOUT_SPLIT, is_renderman_nodetree, panel_node_draw
 
 from . import engine
 # global dictionaries
-from .shader_parameters import exclude_lamp_params
 from bl_ui.properties_particle import ParticleButtonsPanel
 
 # helper functions for parameters
-from .shader_parameters import tex_optimised_path
-from .shader_parameters import tex_source_path
-from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive, load_tree_from_lib
+from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
 # properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('PRMAN_RENDER')
-# properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_render
 
@@ -58,6 +55,7 @@ import bl_ui.properties_scene as properties_scene
 properties_scene.SCENE_PT_scene.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_scene.SCENE_PT_unit.COMPAT_ENGINES.add('PRMAN_RENDER')
 properties_scene.SCENE_PT_physics.COMPAT_ENGINES.add('PRMAN_RENDER')
+properties_scene.SCENE_PT_color_management.COMPAT_ENGINES.add('PRMAN_RENDER')
 del properties_scene
 
 import bl_ui.properties_data_lamp as properties_data_lamp
@@ -688,6 +686,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
         if mat and not is_renderman_nodetree(mat):
             layout.operator(
                 'shading.add_renderman_nodetree').idtype = "material"
+            layout.operator('shading.convert_renderman_nodetrees')
         # self._draw_shader_menu_params(layout, context, rm)
 
 
@@ -896,26 +895,29 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
     bl_context = "world"
     bl_label = "World"
     shader_type = 'world'
-    param_exclude = exclude_lamp_params
-
+    
     def draw(self, context):
         layout = self.layout
         world = context.scene.world
 
-        layout.prop(world.renderman, "renderman_type", expand=True)
-        if world.renderman.renderman_type == 'NONE':
+        if not world.renderman.use_renderman_node:
+            layout.prop(world, "horizon_color")
+            layout.operator('shading.add_renderman_nodetree').idtype = 'world'
             return
-        lamp_node = world.renderman.get_light_node()
-        if lamp_node:
-            draw_props(lamp_node, lamp_node.prop_names, layout)
+        else:
+            layout.prop(world.renderman, "renderman_type", expand=True)
+            if world.renderman.renderman_type == 'NONE':
+                return
+            lamp_node = world.renderman.get_light_node()
+            if lamp_node:
+                draw_props(lamp_node, lamp_node.prop_names, layout)
 
 
 class DATA_PT_renderman_lamp(ShaderPanel, Panel):
     bl_context = "data"
     bl_label = "Lamp"
     shader_type = 'light'
-    param_exclude = exclude_lamp_params
-
+    
     def draw(self, context):
         layout = self.layout
 
@@ -924,6 +926,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
         if not lamp.renderman.use_renderman_node:
             layout.prop(lamp, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype = 'lamp'
+            layout.operator('shading.convert_renderman_nodetrees')
             return
         else:
             if ipr_running:
@@ -1639,6 +1642,8 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
             columns.label('Temperature')
 
             for light_name in light_names:
+                if light_name not in scene.objects:
+                    continue
                 lamp = scene.objects[light_name].data
                 lamp_rm = lamp.renderman
                 row = box.row()

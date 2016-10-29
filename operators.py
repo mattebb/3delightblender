@@ -41,12 +41,10 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 from .util import init_env
 from .util import getattr_recursive
 from .util import user_path
+from .util import get_addon_prefs
 from .util import get_real_path
 from .util import readOSO, find_it_path, find_local_queue, find_tractor_spool
 from .util import get_Files_in_Directory
-
-from .shader_parameters import tex_source_path
-from .shader_parameters import tex_optimised_path
 
 from .export import export_archive
 from .export import get_texture_list
@@ -56,7 +54,7 @@ from .export import write_archive_RIB
 from .export import EXCLUDED_OBJECT_TYPES
 from . import engine
 
-from .nodes import convert_cycles_nodetree
+from .nodes import convert_cycles_nodetree, is_renderman_nodetree
 
 from .properties import aov_mapping
 
@@ -92,7 +90,7 @@ class Renderman_start_it(bpy.types.Operator):
         rm = scene.renderman
         it_path = find_it_path()
         if not it_path:
-            print({"ERROR"},
+            self.report({"ERROR"},
                   "Could not find 'it'. Install RenderMan Studio.")
         else:
             environ = os.environ.copy()
@@ -123,18 +121,6 @@ class Renderman_open_last_RIB(bpy.types.Operator):
         return {'FINISHED'}
 
 
-# Prints a string to the info box.  Not sure how to use it but it's here
-# anyway.
-class PrintToInfo(bpy.types.Operator):
-    bl_idname = "renderman.print_info"
-    bl_label = "Print to Info"
-    info_string = StringProperty()
-
-    def execute(self, context):
-        self.report({'INFO'}, self.info_string)
-        return {'FINISHED'}
-
-
 class RENDERMAN_OT_add_remove_output(bpy.types.Operator):
     bl_idname = "renderman.add_remove_output"
     bl_label = "Add or remove channel from output"
@@ -142,6 +128,55 @@ class RENDERMAN_OT_add_remove_output(bpy.types.Operator):
 
     def execute(self, context):
         self.report({'INFO'}, self.info_string)
+        return {'FINISHED'}
+
+
+class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "shading.convert_renderman_nodetrees"
+    bl_label = "Convert all nodetrees"
+    bl_description = "Convert all nodetrees to renderman"
+
+    
+    def execute(self, context):
+        for mat in bpy.data.materials:
+            mat.use_nodes = True
+            nt = mat.node_tree
+            if is_renderman_nodetree(mat):
+                continue
+            output = nt.nodes.new('RendermanOutputNode')
+            try:
+                if not convert_cycles_nodetree(mat, output, self.report):
+                    default = nt.nodes.new('PxrSurfaceBxdfNode')
+                    default.location = output.location
+                    default.location[0] -= 300
+                    nt.links.new(default.outputs[0], output.inputs[0])
+            except Exception as e:
+                self.report({'ERROR'}, "Error converting " + mat.name)
+                #self.report({'ERROR'}, str(e))
+                # uncomment to debug conversion
+                import traceback
+                traceback.print_exc()
+
+        for lamp in bpy.data.lamps:
+            if lamp.renderman.use_renderman_node:
+                continue
+            light_type = lamp.type
+            if light_type == 'SUN':
+                lamp.renderman.renderman_type = 'DIST'
+            elif light_type == 'HEMI':
+                lamp.renderman.renderman_type = 'ENV'
+            else:
+                lamp.renderman.renderman_type = light_type
+                
+            if light_type == 'AREA':
+                lamp.shape = 'RECTANGLE'
+                lamp.size = 1.0
+                lamp.size_y = 1.0
+
+            lamp.renderman.use_renderman_node = True
+
         return {'FINISHED'}
 
 
@@ -169,7 +204,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
-            if not convert_cycles_nodetree(idblock, output):
+            if not convert_cycles_nodetree(idblock, output, self.report):
                 default = nt.nodes.new('%sBxdfNode' % self.properties.bxdf_name)
                 default.location = output.location
                 default.location[0] -= 300
@@ -194,6 +229,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             
         else:
             idblock.renderman.renderman_type = "ENV"
+            idblock.renderman.use_renderman_node = True
             # light_type = idblock.type
             # light_shader = 'PxrStdAreaLightLightNode'
             # if light_type == 'SUN':
@@ -355,19 +391,22 @@ class StartInteractive(bpy.types.Operator):
         blf.disable(0, blf.SHADOW)
 
     def invoke(self, context, event=None):
+        addon_prefs = get_addon_prefs()
         if engine.ipr is None:
             engine.ipr = RPass(context.scene, interactive=True)
             engine.ipr.start_interactive()
-            engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
-                self.draw, (context,), 'WINDOW', 'POST_PIXEL')
+            if addon_prefs.draw_ipr_text:
+                engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
+                    self.draw, (context,), 'WINDOW', 'POST_PIXEL')
             bpy.app.handlers.scene_update_post.append(
                 engine.ipr.issue_transform_edits)
             bpy.app.handlers.load_pre.append(self.invoke)
         else:
             bpy.types.SpaceView3D.draw_handler_remove(
                 engine.ipr_handle, 'WINDOW')
-            bpy.app.handlers.scene_update_post.remove(
-                engine.ipr.issue_transform_edits)
+            if addon_prefs.draw_ipr_text: # The user should not turn this on and off during IPR rendering.
+                bpy.app.handlers.scene_update_post.remove(
+                    engine.ipr.issue_transform_edits)
             engine.ipr.end_interactive()
             engine.ipr = None
             if context:

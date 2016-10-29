@@ -46,7 +46,7 @@ from .util import locate_openVDB_cache
 from .util import debug, get_addon_prefs
 
 from .util import find_it_path
-from .nodes import export_shader_nodetree, get_textures, get_textures_for_node
+from .nodes import export_shader_nodetree, get_textures, get_textures_for_node, get_tex_file_name
 from .nodes import shader_node_rib
 
 addon_version = bl_info['version']
@@ -242,33 +242,40 @@ def psys_name(ob, psys):
     return "%s.%s-%s" % (ob.name, psys.name, psys.settings.type)
 
 
+# if we don't replace slashes could end up with them in file names
+def fix_name(name):
+    return name.replace('/', '')
+
 # get a name for the data block.  if it's modified by the obj we need it
 # specified
 def data_name(ob, scene):
+    if not ob:
+        return ''
+
     if not ob.data:
-        return ob.name
+        return fix_name(ob.name)
 
     # if this is a blob return the family name
     if ob.type == 'META':
-        return ob.name.split('.')[0]
+        return fix_name(ob.name.split('.')[0])
 
     if is_smoke(ob):
-        return "%s-VOLUME" % ob.name
+        return "%s-VOLUME" % fix_name(ob.name)
 
     if ob.data.users > 1 and (ob.is_modified(scene, "RENDER") or
                               ob.is_deform_modified(scene, "RENDER") or
                               ob.renderman.primitive != 'AUTO' or
                               (ob.renderman.motion_segments_override and
                                is_deforming(ob))):
-        return "%s.%s-MESH" % (ob.name, ob.data.name)
+        return "%s.%s-MESH" % (fix_name(ob.name), fix_name(ob.data.name))
 
     else:
-        return "%s-MESH" % ob.data.name
+        return "%s-MESH" % fix_name(ob.data.name)
 
 
 def get_name(ob):
     return psys_name(ob) if type(ob) == bpy.types.ParticleSystem \
-        else ob.data.name
+        else fix_name(ob.data.name)
 
 
 # ------------- Geometry Access -------------
@@ -720,9 +727,11 @@ def export_object_transform(ri, ob, flip_x=False):
 def export_light_source(ri, lamp):
     names = {'POINT': 'PxrSphereLight', 'SUN':'PxrEnvDayLight',
             'SPOT':'PxrDiskLight', 'HEMI':'PxrDomeLight', 'AREA':'PxrRectLight'}
-    params = {"float exposure": [lamp.energy], 
+    params = {"float exposure": [lamp.energy * 5.0], 
               "__instanceid": lamp.name, 
               "color lightColor": rib(lamp.color)}
+    if lamp.type not in ["SUN", 'ENV']:
+        params['int areaNormalize'] = 1
     ri.Light(names[lamp.type], lamp.name, params)
 
 def export_light_filters(ri, lamp):
@@ -742,12 +751,12 @@ def export_light_shaders(ri, lamp, do_geometry=True):
     rm = lamp.renderman
     # need this for rerendering
     ri.Attribute('identifier', {'string name': handle})
+    if lamp.type == 'POINT':
+        ri.Scale(.01, .01, .01)
     
     # do the shader
     light_shader = rm.get_light_node()
     if light_shader:
-        if lamp.type == 'POINT':
-            ri.Scale(.01, .01, .01)
         # make sure the shape is set on PxrStdAreaLightShape
         if lamp.type == 'SPOT':
             light_shader.coneAngle = .5 * \
@@ -772,17 +781,18 @@ def export_world_rib(ri, world):
 def export_world(ri, world, do_geometry=True):
     rm = world.renderman
     # if no shader do nothing!
-    if rm.renderman_type == 'NONE':
+    if rm.use_renderman_node and rm.renderman_type == 'NONE':
         return
     params = []
 
     ri.AttributeBegin()
 
+    world_type = rm.renderman_type if rm.use_renderman_node else 'ENV'
     if do_geometry:
         m = Matrix.Identity(4)
-        if rm.renderman_type == 'ENV':
+        if world_type == 'ENV':
             m[0] *= -1.0
-        if rm.renderman_type == 'SKY':
+        if world_type == 'SKY':
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m2 * m
         ri.Transform(rib(m))
@@ -795,14 +805,20 @@ def export_world(ri, world, do_geometry=True):
     # do the light only if nodetree
     # make sure the shape is set on PxrStdAreaLightShape
     light_shader = rm.get_light_node()
-    params = property_group_to_params(light_shader)
+    
+    if rm.use_renderman_node:
+        plugin_name = rm.get_light_node_name()
+        params = property_group_to_params(light_shader)
+    else:
+        plugin_name = "PxrDomeLight"
+        params = {'color lightColor': rib(world.horizon_color)}
     ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
                                 'int camera': 1})
-    ri.Light(rm.get_light_node_name(), handle, params)
+    ri.Light(plugin_name, handle, params)
     
     ri.AttributeEnd()
 
-    ri.Illuminate("World", rm.illuminates_by_default)
+    ri.Illuminate(handle, rm.illuminates_by_default)
 
 
 def export_light(ri, instance):
@@ -1784,6 +1800,9 @@ def get_instance(ob, scene, do_mb):
 
 # get the data_block needed for a dupli
 def get_dupli_block(ob, rpass, do_mb):
+    if not ob:
+        return []
+    
     if hasattr(ob, 'dupli_type') and ob.dupli_type in SUPPORTED_DUPLI_TYPES:
         name = ob.name + '-DUPLI'
         # duplis aren't animated
@@ -2209,17 +2228,13 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         ri.Attribute("Ri", approx_params)
 
     # visibility attributes
-    vis_params = {}
-    if not ob.renderman.visibility_camera:
-        vis_params["int camera"] = 0
+    vis_params = {'int camera': int(ob.renderman.visibility_camera),
+                  'int indirect': int(ob.renderman.visibility_trace_indirect),
+                  'int transmission': int(ob.renderman.visibility_trace_transmission)}
+
     if visible_objects and ob.name not in visible_objects:
         vis_params["int camera"] = 0
-    if not ob.renderman.visibility_trace_indirect:
-        vis_params["int indirect"] = 0
-    if not ob.renderman.visibility_trace_transmission:
-        vis_params["int transmission"] = 0
-    if len(vis_params) > 0:
-        ri.Attribute("visibility", vis_params)
+    ri.Attribute("visibility", vis_params)
     if ob.renderman.matte:
         ri.Matte(ob.renderman.matte)
 
@@ -2324,6 +2339,8 @@ def export_dupli_archive(ri, scene, rpass, data_block, data_blocks):
             if mat:
                 export_material_archive(ri, mat)
             source_data_name = data_name(dupob.object, scene)
+            if hasattr(dupob.object, 'dupli_type') and dupob.object.dupli_type in SUPPORTED_DUPLI_TYPES:
+                source_data_name = dupob.object.name + '-DUPLI'
             deforming = is_deforming(dupob.object)
             ri.ReadArchive(get_archive_filename(source_data_name, rpass,
                                                 deforming, True))
@@ -2394,6 +2411,11 @@ def property_group_to_params(node):
             if 'arraySize' in meta:
                 params['%s[%d] %s' % (meta['renderman_type'], len(prop),
                                       meta['renderman_name'])] = rib(prop)
+            elif ('widget' in meta and meta['widget'] == 'assetIdInput'):
+                params['%s %s' % (meta['renderman_type'],
+                                  meta['renderman_name'])] = \
+                    rib(get_tex_file_name(prop),
+                        type_hint=meta['renderman_type'])
             else:
                 params['%s %s' % (meta['renderman_type'],
                                   meta['renderman_name'])] = \
@@ -2695,9 +2717,17 @@ def preview_model(ri, scene, mat):
     elif mat.preview_render_type == 'CUBE':
         ri.Scale(.75, .75, .75)
         export_geometry_data(ri, scene, scene.objects[
-                             'previewcube'], data=None)
+                             'preview_cube'], data=None)
     elif mat.preview_render_type == 'HAIR':
-        return  # skipping for now
+        ri.Scale(.75, .75, .75)
+        export_geometry_data(ri, scene, scene.objects[
+                             'preview_hair'], data=None)
+    elif mat.preview_render_type == 'MONKEY':
+        ri.Scale(.75, .75, .75)
+        ri.Rotate(90, 1, 0, 0)
+        ri.Rotate(90, 0,1,0)
+        export_geometry_data(ri, scene, scene.objects[
+                             'preview_monkey'], data=None)
     else:
         ri.Scale(2, 2, 2)
         ri.Rotate(90, 0, 0, 1)
@@ -2967,6 +2997,7 @@ def export_display(ri, rpass, scene):
             else:
                 for aov in rm_rl.custom_aovs:
                     aov_name = aov.name.replace(' ', '')
+                    channel_type = aov.channel_name
                     if aov_name == '' or aov.channel_name == '':
                         continue
                     if aov.channel_type == "rgba":
