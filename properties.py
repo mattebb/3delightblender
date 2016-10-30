@@ -791,6 +791,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Denoises tagged AOV's", 
         default=False)
 
+    denoise_gpu = BoolProperty(
+        name="Use GPU for denoising",
+        description="The denoiser will attempt to use the GPU (if available)",
+        default=True)
+
     external_animation = BoolProperty(
         name="Render Animation",
         description="Spool Animation",

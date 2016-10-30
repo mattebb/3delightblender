@@ -122,10 +122,12 @@ def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files
             if rm.denoise_cmd != '':
                 denoise_options.append(rm.denoise_cmd)
             if rm.spool_denoise_aov and denoise_aov_files != []:
-                denoise_options.append('--filtervariance 1')
+                denoise_options.insert(0, '--filtervariance 1')
                 cmd_str = ['denoise'] + denoise_options + [denoise_files[
                     frame_num - frame_begin][0]] + [" ".join(denoise_aov_files[frame_num - frame_begin])]
             else:
+                if rm.denoise_gpu:
+                    denoise_options.append('--override gpuIndex 0 --')
                 cmd_str = ['denoise'] + denoise_options + \
                     [denoise_files[frame_num - frame_begin][0]]
             write_cmd_task_line(f, 'Denoise frame %d' % frame_num,
@@ -136,6 +138,8 @@ def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files
                 denoise_options.append('--filtervariance 1')
             if rm.denoise_cmd != '':
                 denoise_options.append(rm.denoise_cmd)
+            if rm.denoise_gpu and not rm.spool_denoise_aov:
+                denoise_options.append('--override gpuIndex 0 --')
             if frame_num - frame_begin < 1:
                 pass
             elif frame_num - frame_begin == 1:
