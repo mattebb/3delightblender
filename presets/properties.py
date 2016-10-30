@@ -46,7 +46,7 @@ class RendermanPreset(PropertyGroup):
 
     @classmethod
     def get_from_path(cls, lib_path):
-        group_path,preset = lib_path.rsplit('/', 1)
+        group_path, preset = os.path.split(lib_path)
 
         group = RendermanPresetGroup.get_from_path(group_path)
         return group.presets[preset] if preset in group.presets.keys() else None
