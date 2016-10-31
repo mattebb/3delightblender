@@ -29,7 +29,6 @@ import sys
 import xml.etree.ElementTree as ET
 import time
 from mathutils import Vector
-from .presets.properties import RendermanPresetGroup
 
 from .util import guess_rmantree
 

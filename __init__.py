@@ -116,8 +116,6 @@ def register():
     from . import preferences
     preferences.register()
     load_addon()
-    from . import presets
-    presets.register()
     bpy.utils.register_module(__name__)
 
 def unregister():
@@ -129,6 +127,4 @@ def unregister():
     ui.unregister()
     nodes.unregister()
     preferences.unregister()
-    from . import presets
-    presets.unregister()
     bpy.utils.unregister_module(__name__)

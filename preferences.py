@@ -33,8 +33,6 @@ from bpy.props import IntProperty, PointerProperty, EnumProperty
 from .util import get_installed_rendermans,\
     rmantree_from_env, guess_rmantree
 
-from .presets.properties import RendermanPresetGroup
-
 class RendermanPreferencePath(bpy.types.PropertyGroup):
     name = StringProperty(name="", subtype='DIR_PATH')
 
@@ -176,12 +174,6 @@ class RendermanPreferences(AddonPreferences):
         type=RendermanEnvVarSettings,
         name="Environment Variable Settings")
 
-    presets_library = PointerProperty(
-        type=RendermanPresetGroup,
-    )
-
-    active_presets_path = StringProperty(default = '')
-
     def draw(self, context):
         layout = self.layout
         layout.prop(self, 'rmantree_method')
@@ -201,7 +193,6 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(self, 'path_display_driver_image')
         layout.prop(self, 'path_aov_image')
         layout.prop(self, 'draw_ipr_text')
-        layout.prop(self.presets_library, 'path')
         #layout.prop(env, "shd")
         #layout.prop(env, "ptc")
         #layout.prop(env, "arc")
@@ -209,8 +200,6 @@ class RendermanPreferences(AddonPreferences):
 
 def register():
     try:
-        from .presets import properties
-        properties.register()
         bpy.utils.register_class(RendermanPreferencePath)
         bpy.utils.register_class(RendermanEnvVarSettings)
         bpy.utils.register_class(RendermanPreferences)
@@ -218,8 +207,6 @@ def register():
         pass #allready registered
 
 def unregister():
-    from .presets import properties
-    properties.unregister()
     bpy.utils.unregister_class(RendermanPreferences)
     bpy.utils.unregister_class(RendermanEnvVarSettings)
     bpy.utils.unregister_class(RendermanPreferencePath)
