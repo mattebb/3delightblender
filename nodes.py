@@ -1736,6 +1736,11 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
             light_name = 'PxrPortalLight'
             params['string domeColorMap'] = params.pop('string lightColorMap')
         ri.Light(light_name, mat_name, params)
+    elif node.renderman_node_type == "lightfilter":
+        params['__instanceid'] = mat_name
+
+        light_name = node.bl_label
+        ri.LightFilter(light_name, mat_name, params)
     elif node.renderman_node_type == "displacement":
         ri.Attribute('displacementbound', {'sphere': disp_bound})
         ri.Displace(node.bl_label, mat_name, params)

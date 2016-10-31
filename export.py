@@ -743,7 +743,7 @@ def export_light_filters(ri, lamp):
             params = property_group_to_params(filter_plugin)
             params['__instanceid'] = light_filter.name
             params['string coordsys'] = light_filter.name
-            ri.LightFilter(light_filter.data.renderman.get_light_node_name(), lamp.name, params)
+            ri.LightFilter(light_filter.data.renderman.get_light_node_name(), light_filter.data.name, params)
             
 
 def export_light_shaders(ri, lamp, do_geometry=True):
@@ -832,6 +832,8 @@ def export_light(ri, instance):
     
 
     ri.AttributeBegin()
+    ri.Attribute("identifier", {"string name": lamp.name})
+    
     export_transform(ri, instance, lamp.type ==
                      'HEMI' and lamp.renderman.renderman_type != "SKY")
     
@@ -839,8 +841,7 @@ def export_light(ri, instance):
     if rm.renderman_type != 'FILTER':
         export_light_filters(ri, lamp)
         export_light_shaders(ri, lamp)
-        
-
+    
     ri.AttributeEnd()
 
     if rm.renderman_type != 'FILTER':
