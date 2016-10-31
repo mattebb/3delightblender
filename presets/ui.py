@@ -44,6 +44,8 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
     # draw each group and subgroups
     def draw_preset_library(self, lib, lay, indent=0):
         row = lay.row()
+        row.alert = lib.is_active()
+
         for i in range(indent):
             row.label('', icon='BLANK1')
 
@@ -76,20 +78,28 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
             layout.operator("renderman.init_preset_library", text="Set up Library",
                      ) 
         else:
-            flow = layout.column_flow(columns=2)
+            split = layout.split()
 
-            col = flow.column()
+            col = split.column()
             self.draw_preset_library(presets_library, col, indent=0)
-            layout.separator()
+            row = col.row()
+            #row.operator("renderman.init_preset_library", text="Add Folder",
+            #         ) 
+            #row.operator("renderman.init_preset_library", text="Remove Folder",
+            #         ) 
             
-            col = flow.column()
+            col = split.column()
             active = RendermanPresetGroup.get_active_library()
             if active:
                 for preset in active.get_presets():
                     if preset.thumbnail in icons.asset_previews:
                         col.label(preset.name)
                         col.template_icon_view(preset, 'thumbnail')
-                        col.operator("renderman.load_asset_to_scene", text="Load to Scene").preset_path =  preset.path
+                        col.operator("renderman.load_asset_to_scene", text="Load to Scene").preset_path = preset.path
+
+                col.operator("renderman.save_asset_to_library", text="Save to Scene").lib_path = active.path
+
+
 
 def register():
     try:

@@ -1496,11 +1496,41 @@ def importAsset(filepath):
     if assetType == "nodeGraph":
         nt,newNodes = createNodes(Asset)
         connectNodes(Asset, nt, newNodes)
-        #for v in newNodes.itervalues():
-        #    if mc.nodeType(v) == 'shadingEngine':
-        #        return v
 
-    # elif assetType == "envMap":
+    elif assetType == "envMap":
+        scene = bpy.context.scene
+        dome_lights = [ob for ob in scene.objects if ob.type == 'LAMP' \
+            and ob.data.renderman.renderman_type == 'ENV']
+
+        selected_dome_lights = [ob for ob in dome_lights if ob.select]
+        env_map_path = Asset.envMapPath()
+
+        if not selected_dome_lights:
+            if not dome_lights:
+                # check the world node
+                if scene.world.renderman_type == 'ENV':
+                    plugin_node = scene.world.renderman.get_light_node()
+                    plugin_node.lightColorMap = env_map_path
+                # create a new dome light
+                else:
+                    bpy.ops.object.mr_add_hemi()
+                    ob = scene.objects.active
+                    plugin_node = ob.data.renderman.get_light_node()
+                    plugin_node.lightColorMap = env_map_path
+
+            elif len(dome_lights) == 1:
+                lamp = dome_lights[0].data
+                plugin_node = lamp.renderman.get_light_node()
+                plugin_node.lightColorMap = env_map_path
+            else:
+                print('More than one dome in scene.  Not sure which to use')
+        else:
+            for light in selected_dome_lights:
+                lamp = dome_lights[0].data
+                plugin_node = lamp.renderman.get_light_node()
+                plugin_node.lightColorMap = env_map_path
+
+
     #     selectedLights = mc.ls(sl=True, dag=True, shapes=True)
     #     # nothing selected ?
     #     if not len(selectedLights):

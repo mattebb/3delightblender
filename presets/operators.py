@@ -100,6 +100,22 @@ class load_asset_to_scene(bpy.types.Operator):
         return {'FINISHED'}
 
 
+# save the current material to the library
+class save_asset_to_lib(bpy.types.Operator):
+    bl_idname = "renderman.save_asset_to_library"
+    bl_label = "Save Asset to Library"
+    bl_description = "Save Asset to Library"
+
+    lib_path = StringProperty(default='')
+
+    def invoke(self, context, event):
+        presets_path = util.get_addon_prefs().presets_library.path
+        path = os.path.relpath(self.properties.lib_path, presets_path)
+        library = RendermanPresetGroup.get_from_path(path)
+
+        return {'FINISHED'}
+
+
 # if the library isn't present copy it from rmantree to the path in addon prefs
 class set_active_preset_library(bpy.types.Operator):
     bl_idname = "renderman.set_active_preset_library"

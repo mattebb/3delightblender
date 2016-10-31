@@ -106,6 +106,11 @@ class RendermanPresetGroup(PropertyGroup):
             all_presets += group.get_presets()
         return all_presets 
 
+    def is_active(self):
+        presets_path = util.get_addon_prefs().presets_library.path
+        path = os.path.relpath(self.path, presets_path)
+        return path == util.get_addon_prefs().active_presets_path
+
 
 def register():
     try:
