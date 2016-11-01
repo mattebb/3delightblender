@@ -27,7 +27,7 @@ import bpy
 converted_nodes = {}
 report = None
 
-def convert_cycles_node(nt, node):
+def convert_cycles_node(nt, node, location=None):
     node_type = node.bl_idname
     if node.name in converted_nodes:
         return nt.nodes[converted_nodes[node.name]]
@@ -35,6 +35,8 @@ def convert_cycles_node(nt, node):
     elif node_type == 'ShaderNodeGroup':
         node_name = node.bl_idname
         rman_node = nt.nodes.new(node_name)
+        if location:
+            rman_node.location = location
         convert_node_group(nt, node, rman_node)
         converted_nodes[node.name] = rman_node.name
         return rman_node
@@ -42,6 +44,8 @@ def convert_cycles_node(nt, node):
         rman_name, convert_func = node_map[node_type]
         node_name = rman_name + 'PatternNode'
         rman_node = nt.nodes.new(node_name)
+        if location:
+            rman_node.location = location
         convert_func(nt, node, rman_node)
         converted_nodes[node.name] = rman_node.name
         return rman_node
@@ -50,6 +54,8 @@ def convert_cycles_node(nt, node):
     elif node_type != 'NodeUndefined':
         node_name = node.bl_idname
         rman_node = nt.nodes.new(node_name)
+        if location:
+            rman_node.location = location
         copy_cycles_node(nt, node, rman_node)
         converted_nodes[node.name] = rman_node.name
         return rman_node
@@ -60,19 +66,20 @@ def convert_cycles_node(nt, node):
 
 def convert_cycles_input(nt, socket, rman_node, param_name):
     if socket.is_linked:
-        node = convert_cycles_node(nt, socket.links[0].from_node)
+        location = rman_node.location - (socket.node.location - socket.links[0].from_node.location)
+        node = convert_cycles_node(nt, socket.links[0].from_node, location)
         if node:
-            location_diff = socket.node.location - socket.links[0].from_node.location
-            node.location = rman_node.location - location_diff
-            
             #find the appropriate socket to hook up. 
             input = rman_node.inputs[param_name]
-            for output in node.outputs:
-                if type(output) == type(input):
-                    nt.links.new(output, input)
-                    break
+            if socket.links[0].from_socket.name in node.outputs:
+                nt.links.new(node.outputs[socket.links[0].from_socket.name], input)
             else:
-                nt.links.new(node.outputs[0], rman_node.inputs[param_name])
+                for output in node.outputs:
+                    if output.type == input.type:
+                        nt.links.new(output, input)
+                        break
+                else:
+                    nt.links.new(node.outputs[0], rman_node.inputs[param_name])
 
     elif hasattr(socket, 'default_value'):
         if hasattr(rman_node, 'renderman_node_type'):

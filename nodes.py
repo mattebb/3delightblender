@@ -1627,7 +1627,8 @@ def convert_cycles_displacement(nt, output_node, displace_socket):
         displace = nt.nodes.new("PxrDisplaceDisplacementNode")
         nt.links.new(displace.outputs[0], output_node.inputs['Displacement'])
         displace.location = output_node.location
-        offset_node_location(output_node, displace, displace_socket.links[0].from_node)
+        displace.location[0] -= 200
+        displace.location[1] -= 100
         
         setattr(displace, 'dispAmount', .01)
         convert_cycles_input(nt, displace_socket, displace, "dispScalar")
