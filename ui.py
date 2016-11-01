@@ -326,9 +326,9 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         row = col.row()
         row.enabled = rm.external_denoise
         row.prop(rm, 'spool_denoise_aov')
-        if rm.spool_denoise_aov:
-            row =col.row()
-            row.label("At least one AOV must be tagged as 'denoiseable'.",  icon='ERROR')
+        row = col.row()
+        row.enabled = rm.external_denoise and not rm.spool_denoise_aov
+        row.prop(rm, "denoise_gpu")
         row =col.row()
         row.enabled = rm.external_denoise
         row.prop(rm, 'denoise_cmd')
@@ -440,7 +440,9 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
         sub = layout.row()
         sub.enabled = rm.motion_blur
         sub.prop(rm, "motion_segments")
-
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "sample_motion_blur")
         row = layout.row()
         row.enabled = rm.motion_blur
         row.prop(rm, "shutter_timing")
@@ -513,9 +515,6 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row.prop(rm, "pixelfilter_x", text="Size X")
         row.prop(rm, "pixelfilter_y", text="Size Y")
 
-        layout.separator()
-        row = layout.row()
-        row.prop(rm,  "sample_motion_blur")
 
         layout.separator()
         row = layout.row()
