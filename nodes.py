@@ -905,7 +905,17 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                  icon_only=True, emboss=False)
                         label = prop_meta.get('label', prop_name)
                         row.label(label + ':')
-                        split.operator_menu_enum("node.add_pattern", "node_type",
+                        if prop_meta['renderman_type'] == 'vstruct' or prop_name == 'inputMaterial':
+                            split.operator_menu_enum("node.add_layer", "node_type",
+                                                 text=input_node.bl_label, icon="LAYER_USED")
+                        elif prop_meta['renderman_type'] == 'struct':
+                            split.operator_menu_enum("node.add_manifold", "node_type",
+                                                 text=input_node.bl_label, icon="LAYER_USED")
+                        elif prop_meta['renderman_type'] == 'normal':
+                            split.operator_menu_enum("node.add_bump", "node_type",
+                                                 text=input_node.bl_label, icon="LAYER_USED")
+                        else:
+                            split.operator_menu_enum("node.add_pattern", "node_type",
                                                  text=input_node.bl_label, icon="LAYER_USED")
 
                         if socket.ui_open:
@@ -944,8 +954,18 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                 else:
                                     row.label(prop_meta['label'])
                             if prop_name in node.inputs:
-                                row.operator_menu_enum("node.add_pattern", "node_type",
-                                                       text='', icon="LAYER_USED")
+                                if prop_meta['renderman_type'] == 'vstruct' or prop_name == 'inputMaterial':
+                                    row.operator_menu_enum("node.add_layer", "node_type",
+                                                         text='', icon="LAYER_USED")
+                                elif prop_meta['renderman_type'] == 'struct':
+                                    row.operator_menu_enum("node.add_manifold", "node_type",
+                                                         text='', icon="LAYER_USED")
+                                elif prop_meta['renderman_type'] == 'normal':
+                                    row.operator_menu_enum("node.add_bump", "node_type",
+                                                         text='', icon="LAYER_USED")
+                                else:
+                                    row.operator_menu_enum("node.add_pattern", "node_type",
+                                                         text='', icon="LAYER_USED")
 
     # if this is a cycles node do something different
     if not hasattr(node, 'plugin_name'):
@@ -1023,19 +1043,49 @@ class Add_Node:
 
     def get_type_items(self, context):
         items = []
-        for nodetype in nodetypes.values():
-            if self.input_type.lower() == 'light' and nodetype.renderman_node_type == 'light':
-                if nodetype.__name__ == 'PxrMeshLightLightNode':
+        # if this is a pattern input do columns!
+        if self.input_type.lower() == 'pattern':
+            i = 0
+            for pattern_cat, patterns in pattern_categories.items():
+                if pattern_cat.lower() in ['layer','script','manifold','bump','displace']:
+                    continue
+                items.append(('', pattern_cat, pattern_cat, '', 0))
+                for nodename in sorted(patterns):
+                    nodetype = patterns[nodename]
                     items.append((nodetype.typename, nodetype.bl_label,
-                                  nodetype.bl_label))
-            elif nodetype.renderman_node_type == self.input_type.lower():
+                                  nodetype.bl_label, '', i))
+                    i += 1
+                items.append(('', '', '', '', 0))
+            items.append(('REMOVE', 'Remove',
+                  'Remove the node connected to this socket', '', i+1))
+            items.append(('DISCONNECT', 'Disconnect',
+                  'Disconnect the node connected to this socket', '', i+2))
+                
+        elif self.input_type.lower() in ['layer', 'manifold', 'bump']:
+            patterns = pattern_categories[self.input_type]
+            for nodename in sorted(patterns):
+                nodetype = patterns[nodename]
                 items.append((nodetype.typename, nodetype.bl_label,
                               nodetype.bl_label))
-        items = sorted(items, key=itemgetter(1))
-        items.append(('REMOVE', 'Remove',
-                      'Remove the node connected to this socket'))
-        items.append(('DISCONNECT', 'Disconnect',
-                      'Disconnect the node connected to this socket'))
+                
+            items.append(('REMOVE', 'Remove',
+                  'Remove the node connected to this socket'))
+            items.append(('DISCONNECT', 'Disconnect',
+                  'Disconnect the node connected to this socket'))
+        else:
+            for nodetype in nodetypes.values():
+                if self.input_type.lower() == 'light' and nodetype.renderman_node_type == 'light':
+                    if nodetype.__name__ == 'PxrMeshLightLightNode':
+                        items.append((nodetype.typename, nodetype.bl_label,
+                                      nodetype.bl_label))
+                elif nodetype.renderman_node_type == self.input_type.lower():
+                    items.append((nodetype.typename, nodetype.bl_label,
+                                  nodetype.bl_label))
+            items = sorted(items, key=itemgetter(1))
+            items.append(('REMOVE', 'Remove',
+                          'Remove the node connected to this socket'))
+            items.append(('DISCONNECT', 'Disconnect',
+                          'Disconnect the node connected to this socket'))
         return items
 
     node_type = EnumProperty(name="Node Type",
@@ -1138,6 +1188,39 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
     bl_label = 'Add Pattern Node'
     bl_description = 'Connect a Pattern to this socket'
     input_type = StringProperty(default='Pattern')
+
+class NODE_OT_add_layer(bpy.types.Operator, Add_Node):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
+    bl_idname = 'node.add_layer'
+    bl_label = 'Add Layer Node'
+    bl_description = 'Connect a PxrLayer'
+    input_type = StringProperty(default='Layer')
+
+class NODE_OT_add_manifold(bpy.types.Operator, Add_Node):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
+    bl_idname = 'node.add_manifold'
+    bl_label = 'Add Manifold Node'
+    bl_description = 'Connect a Manifold'
+    input_type = StringProperty(default='Manifold')
+
+class NODE_OT_add_bump(bpy.types.Operator, Add_Node):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
+    bl_idname = 'node.add_bump'
+    bl_label = 'Add Bump Node'
+    bl_description = 'Connect a bump node'
+    input_type = StringProperty(default='Bump')
 
 # return if this param has a vstuct connection or linked independently
 
@@ -1994,6 +2077,7 @@ classes = [
 ]
 
 nodetypes = {}
+pattern_categories = {}
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -2039,8 +2123,13 @@ def register():
             pattern_cat = GetPatternCategory(node_type.bl_label)
             if pattern_cat == 'deprecated':
                 continue
-            node_cat = 'patterns_' + GetPatternCategory(node_type.bl_label)
-            node_cats[node_cat][1].append(node_item) 
+            node_cat = 'patterns_' + pattern_cat
+            node_cats[node_cat][1].append(node_item)
+            pattern_cat = pattern_cat.capitalize()
+            if pattern_cat not in pattern_categories:
+                pattern_categories[pattern_cat] = {}
+            pattern_categories[pattern_cat][name] = node_type
+
         elif 'LM' in name and node_type.renderman_node_type == 'bxdf':
             #skip LM materials
             continue
@@ -2048,9 +2137,7 @@ def register():
             #skip light nodes
             continue
         else:
-            node_cats[node_type.renderman_node_type][1].append(node_item)
-
-        
+            node_cats[node_type.renderman_node_type][1].append(node_item)            
 
     # all categories in a list
     node_categories = [
