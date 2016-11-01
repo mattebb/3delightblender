@@ -1938,6 +1938,23 @@ def get_textures(id):
     return textures
 
 
+pattern_node_categories_map = {"texture": ["PxrFractal", "PxrProjectionLayer", "PxrPtexture", "PxrTexture", "PxrVoronoise", "PxrWorley", "PxrFractalize", "PxrDirt", "PxrLayeredTexture", "PxrMultiTexture"],
+                           "bump": ["PxrBump", "PxrNormalMap", "PxrFlakes", "aaOceanPrmanShader", 'PxrAdjustNormal'],
+                           "color": ["PxrBlackBody", "PxrBlend", "PxrLayeredBlend", "PxrClamp", "PxrExposure", "PxrGamma", "PxrHSL", "PxrInvert", "PxrMix", "PxrProjectionStack", "PxrRamp", "PxrRemap", "PxrThinFilm", "PxrThreshold", "PxrVary", "PxrChecker", "PxrColorCorrect"],
+                           "manifold": ["PxrManifold2D", "PxrManifold3D", "PxrManifold3DN", "PxrProjector", "PxrRoundCube", "PxrBumpManifold2D", "PxrTileManifold"],
+                           "geometry": ["PxrDot", "PxrCross", "PxrFacingRatio", "PxrTangentField"],
+                           "script": ["PxrOSL", "PxrSeExpr"],
+                           "utility": ["PxrAttribute", "PxrGeometricAOVs", "PxrMatteID", "PxrPrimvar", "PxrShadedSide", "PxrTee", "PxrToFloat", "PxrToFloat3", "PxrVariable"],
+                           "displace": ["PxrDispScalarLayer", 'PxrDispTransform', 'PxrDispVectorLayer'],
+                           "layer": ['PxrLayer', 'PxrLayerMixer']}
+# Node Chatagorization List
+def GetPatternCategory(name): 
+    for cat_name, node_names in pattern_node_categories_map.items():
+        if name in node_names:
+            return cat_name
+    else:
+        return 'deprecated'
+
 @persistent
 def rebuildOSLSystem(dummy):
     pass
@@ -1999,41 +2016,54 @@ def register():
     # need to specially make an osl node
     # generate_osl_node()
 
-    pattern_nodeitems = []
-    bxdf_nodeitems = []
-    light_nodeitems = []
-    displacement_nodeitems = []
+    node_cats = {
+        'bxdf': ('PRMan Bxdfs', []),
+        'light': ('PRMan Lights', []),
+        'patterns_texture': ('PRMan Texture Patterns', []),
+        'patterns_bump': ('PRMan Bump Patterns', []),
+        'patterns_color': ('PRMan Color Patterns', []),
+        'patterns_manifold': ('PRMan Manifold Patterns', []),
+        'patterns_geometry': ('PRMan Geometry Patterns', []),
+        'patterns_utility': ('PRMan Utility Patterns', []),
+        'patterns_script': ('PRMan Script Patterns', []),
+        'patterns_displace': ('PRMan Displacement Patterns', []),
+        'patterns_layer': ('PRMan Layers', []),
+        'displacement': ('PRMan Displacements', [])
+    }
+
     for name, node_type in nodetypes.items():
         node_item = NodeItem(name, label=node_type.bl_label)
+        
         if node_type.renderman_node_type == 'pattern':
-            pattern_nodeitems.append(node_item)
-        elif node_type.renderman_node_type == 'bxdf':
-            bxdf_nodeitems.append(node_item)
-        elif node_type.renderman_node_type == 'light':
-            light_nodeitems.append(node_item)
-        elif node_type.renderman_node_type == 'displacement':
-            displacement_nodeitems.append(node_item)
+            # insert pxr layer in bxdf
+            pattern_cat = GetPatternCategory(node_type.bl_label)
+            if pattern_cat == 'deprecated':
+                continue
+            node_cat = 'patterns_' + GetPatternCategory(node_type.bl_label)
+            node_cats[node_cat][1].append(node_item) 
+        elif 'LM' in name and node_type.renderman_node_type == 'bxdf':
+            #skip LM materials
+            continue
+        elif node_type.renderman_node_type == 'light' and 'PxrMeshLight' not in name:
+            #skip light nodes
+            continue
+        else:
+            node_cats[node_type.renderman_node_type][1].append(node_item)
 
+        
 
     # all categories in a list
     node_categories = [
         # identifier, label, items list
         RendermanPatternNodeCategory("PRMan_output_nodes", "PRMan Outputs",
                                      items=[NodeItem('RendermanOutputNode', label=RendermanOutputNode.bl_label)]),
-        RendermanPatternNodeCategory("shader", "PRMan Bxdfs",
-                                     items=sorted(bxdf_nodeitems,
-                                                  key=attrgetter('_label'))),
-        RendermanPatternNodeCategory("PRMan_patterns", "PRMan Patterns",
-                                     items=sorted(pattern_nodeitems,
-                                                  key=attrgetter('_label'))),
-        RendermanPatternNodeCategory("PRMan_lights", "PRMan Lights",
-                                     items=sorted(light_nodeitems,
-                                                  key=attrgetter('_label'))),
-        RendermanPatternNodeCategory("PRMan_displacements", "PRMan Displacements",
-                                     items=sorted(displacement_nodeitems,
-                                                  key=attrgetter('_label')))
-
     ]
+
+    for name, (desc, items) in node_cats.items():
+        node_categories.append(RendermanPatternNodeCategory(name, desc,
+                                     items=sorted(items,
+                                                  key=attrgetter('_label'))))
+
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES",
                                              node_categories)
 
