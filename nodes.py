@@ -1755,10 +1755,57 @@ def get_socket_type(node, socket):
 
 
 def get_output_param_str(node, mat_name, socket):
+    # if this is a node group, hook it up to the input node inside!
+    if node.bl_idname == 'ShaderNodeGroup':
+        ng = node.node_tree
+        group_output = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
+                       None)
+        if group_output is None:
+            return "error:error"
+
+        in_sock = group_output.inputs[socket.name]
+        if len(in_sock.links):
+            link = in_sock.links[0]
+            return "%s:%s" % (get_node_name(link.from_node, mat_name), get_socket_name(link.from_node, link.from_socket))
+        else:
+            return "error:error"
+    if node.bl_idname == 'NodeGroupInput':
+        global current_group_node
+        
+        if current_group_node is None:
+            return "error:error"
+
+        in_sock = current_group_node.inputs[socket.name]
+        if len(in_sock.links):
+            link = in_sock.links[0]
+            return "%s:%s" % (get_node_name(link.from_node, mat_name), get_socket_name(link.from_node, link.from_socket))
+        else:
+            return "error:error"
+
     return "%s:%s" % (get_node_name(node, mat_name), get_socket_name(node, socket))
 
+# hack!!!
+current_group_node = None
+def translate_node_group(ri, group_node, mat_name):
+    ng = group_node.node_tree
+    out = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
+                       None)
+    if out is None:
+        return
+
+    nodes_to_export = gather_nodes(out)
+    global current_group_node
+    current_group_node = group_node
+    for node in nodes_to_export:
+        shader_node_rib(ri, node, mat_name=mat_name)
+    current_group_node = None
+    
 
 def translate_cycles_node(ri, node, mat_name):
+    if node.bl_idname == 'ShaderNodeGroup':
+        translate_node_group(ri, node, mat_name)
+        return
+
     if node.bl_idname not in cycles_node_map.keys():
         print('No translation for node of type %s named %s' %
               (node.bl_idname, node.name))
@@ -1861,7 +1908,7 @@ def gather_nodes(node):
                     nodes.append(sub_node)
     if hasattr(node, 'renderman_node_type') and node.renderman_node_type != 'output':
         nodes.append(node)
-    elif not hasattr(node, 'renderman_node_type') and not node.bl_idname == 'ShaderNodeOutputMaterial':
+    elif not hasattr(node, 'renderman_node_type') and node.bl_idname not in ['ShaderNodeOutputMaterial', 'NodeGroupInput', 'NodeGroupOutput']:
         nodes.append(node)
 
     return nodes
