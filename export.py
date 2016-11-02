@@ -2631,11 +2631,11 @@ def export_options(ri, scene):
               'int texturememory': rm.texture_cache_size * 100,
               }
     ri.Option("limits", params)
-    ri.Option("ribparse", {"string varsubst" : ["$"]})
     ri.Option("searchpath", {"string procedural" : [".:${RMANTREE}/lib/plugins:@"]})
 
 
 def export_searchpaths(ri, paths):
+    ri.Option("ribparse", {"string varsubst" : ["$"]})
     ri.Option("searchpath", {"string shader": ["%s" %
                                                ':'.join(path_list_convert(paths['shader'], to_unix=True))]})
     rel_tex_paths = [os.path.relpath(path, paths['export_dir'])

@@ -232,7 +232,6 @@ def args_files_in_path(prefs, idblock, shader_type='', threaded=True):
 def get_path_list(rm, type):
     paths = []
     if rm.use_default_paths:
-        paths.append('@')
         # here for getting args
         if type == 'args':
             rmantree = guess_rmantree()
@@ -244,6 +243,8 @@ def get_path_list(rm, type):
                          'shaders'))
             paths.append(os.path.join(bpy.utils.resource_path('LOCAL'), 'scripts', 
                         'addons', 'cycles', 'shader'))
+            paths.append(os.path.join('${RMANTREE}', 'lib', 'shaders'))
+        paths.append('@')
 
     if rm.use_builtin_paths:
         paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -291,14 +292,14 @@ def get_path_list_converted(rm, type, to_unix=False):
 
 
 def path_win_to_unixy(winpath, escape_slashes=False):
-    if escape_slashes:
-        p = winpath.replace('\\', '\\\\')
-    else:
-        # convert pattern C:\\blah to //C/blah so 3delight can understand
-        p = re.sub(r'([A-Za-z]):\\', r'//\1/', winpath)
-        p = p.replace('\\', '/')
+    #if escape_slashes:
+    #    p = winpath.replace('\\', '\\\\')
+    #else:
+    #    # convert pattern C:\\blah to //C/blah so 3delight can understand
+    #    p = re.sub(r'([A-Za-z]):\\', r'//\1/', winpath)
+    #    p = p.replace('\\', '/')
 
-    return p
+    return winpath
 
 
 # convert ### to frame number
