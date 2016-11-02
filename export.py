@@ -3075,7 +3075,7 @@ def export_hider(ri, rpass, scene, preview=False):
         hider_params['int incremental'] = 1
         pv = rm.preview_pixel_variance
 
-    if (not rpass.external_render and rm.render_into == 'blender') or (rm.integrator is 'PxrVCM' or 'PxrUPBP'):
+    if (not rpass.external_render and rm.render_into == 'blender') or (rm.integrator is 'PxrVCM' or 'PxrUPBP') or rm.enable_checkpoint:
         hider_params['int incremental'] = 1
 
     if not preview:
