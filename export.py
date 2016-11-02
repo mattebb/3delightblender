@@ -687,10 +687,10 @@ def export_transform(ri, instance, flip_x=False, concat=False, flatten=False):
             m = m2 * m
         if concat and ob.parent_type == "object":
             ri.ConcatTransform(rib(m))
-            ri.CoordinateSystem(instance.ob.name)
+            ri.ScopedCoordinateSystem(instance.ob.name)
         else:
             ri.Transform(rib(m))
-            ri.CoordinateSystem(instance.ob.name)
+            ri.ScopedCoordinateSystem(instance.ob.name)
     export_motion_end(ri, instance.motion_data)
 
 
@@ -721,7 +721,7 @@ def export_object_transform(ri, ob, flip_x=False):
             m[1][1] *= data.size
             m[2][2] *= data.size
     ri.Transform(rib(m))
-    ri.CoordinateSystem(ob.name)
+    ri.ScopedCoordinateSystem(ob.name)
 
 
 def export_light_source(ri, lamp):
@@ -743,7 +743,7 @@ def export_light_filters(ri, lamp):
             params = property_group_to_params(filter_plugin)
             params['__instanceid'] = light_filter.name
             params['string coordsys'] = light_filter.name
-            ri.LightFilter(light_filter.data.renderman.get_light_node_name(), lamp.name, params)
+            ri.LightFilter(light_filter.data.renderman.get_light_node_name(), light_filter.data.name, params)
             
 
 def export_light_shaders(ri, lamp, do_geometry=True):
@@ -827,23 +827,24 @@ def export_light(ri, instance):
     rm = lamp.renderman
     params = []
 
-    #if this is a filter do nothing theyll be exported with the lamp 
-    #they're attached to
-    
-
-    ri.AttributeBegin()
-    export_transform(ri, instance, lamp.type ==
-                     'HEMI' and lamp.renderman.renderman_type != "SKY")
-    
     # if this is a filter just export the coord sys
-    if rm.renderman_type != 'FILTER':
+    if rm.renderman_type == 'FILTER':
+        ri.TransformBegin()
+        export_transform(ri, instance)
+        ri.TransformEnd()
+
+    else:
+        ri.AttributeBegin()
+        ri.Attribute("identifier", {"string name": lamp.name})
+        
+        export_transform(ri, instance, lamp.type ==
+                         'HEMI' and lamp.renderman.renderman_type != "SKY")
+        
         export_light_filters(ri, lamp)
         export_light_shaders(ri, lamp)
         
+        ri.AttributeEnd()
 
-    ri.AttributeEnd()
-
-    if rm.renderman_type != 'FILTER':
         # illuminate if illumintaes and not muted
         do_light = rm.illuminates_by_default and not rm.mute
         if bpy.context.scene.renderman.solo_light:
@@ -3336,6 +3337,25 @@ def issue_light_transform_edit(ri, obj):
         ri.Scale(.01, .01, .01)
     ri.EditEnd()
 
+def issue_light_filter_transform_edit(ri, rpass, obj):
+    lights_attached_to = rpass.light_filter_map[obj.name]
+    for light_data_name, light_name in lights_attached_to:
+        ri.EditBegin('instance')
+        ri.TransformBegin()
+        export_object_transform(ri, obj)
+        ri.TransformEnd()
+        # reset the transform for light
+        light_obj = bpy.data.objects[light_name]
+        lamp = light_obj.data
+        export_object_transform(ri, light_obj, light_obj.type == 'LAMP' and (
+            lamp.type == 'HEMI' and lamp.renderman.renderman_type != "SKY"))
+        if lamp.renderman.renderman_type == 'POINT':
+            ri.Scale(.01, .01, .01)
+
+        export_light_filters(ri, lamp)
+        export_light_shaders(ri, lamp)
+        ri.EditEnd()
+
 
 def issue_camera_edit(ri, rpass, camera):
     ri.EditBegin('option')
@@ -3461,7 +3481,10 @@ def issue_transform_edits(rpass, ri, active, prman):
     # only update lamp if shader is update or pos, seperately
     if active.type == 'LAMP':
         lamp = active.data
-        issue_light_transform_edit(ri, active)
+        if lamp.renderman.renderman_type == 'FILTER':
+            issue_light_filter_transform_edit(ri, rpass, active)
+        else:
+            issue_light_transform_edit(ri, active)
 
     elif active.type == 'CAMERA' and active.is_updated:
         issue_camera_edit(ri, rpass, active)

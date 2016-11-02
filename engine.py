@@ -574,10 +574,16 @@ class RPass:
         self.material_dict = {}
         self.instance_dict = {}
         self.lights = {}
+        self.light_filter_map = {}
         self.current_solo_light = None
         self.muted_lights = []
         for obj in self.scene.objects:
             if obj.type == 'LAMP' and obj.name not in self.lights:
+                # add the filters to the filter ma
+                for lf in obj.data.renderman.light_filters:
+                    if lf.filter_name not in self.light_filter_map:
+                        self.light_filter_map[lf.filter_name] = []
+                    self.light_filter_map[lf.filter_name].append((obj.data.name, obj.name))
                 self.lights[obj.name] = obj.data.name
                 if obj.data.renderman.solo:
                     self.current_solo_light = obj
