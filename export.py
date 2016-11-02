@@ -2211,11 +2211,9 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     # add to lpe groups
     #ri.Attribute("identifier", {"string lpegroup": obj_groups_str})
 
-    # Hack for one lpe group per object restriction in Renderman 20.  Can be
-    # removed for 21.
     if obj_groups_str != '*':
         ri.Attribute("identifier", {
-                     "string lpegroup": obj_groups_str.split(',')[1]})
+                     "string lpegroup": obj_groups_str})
 
     if ob.renderman.shading_override:
         ri.ShadingRate(ob.renderman.shadingrate)
@@ -3033,7 +3031,7 @@ def export_display(ri, rpass, scene):
              'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
              None, None),
             ("albedo_var", 'color', 'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
-            "variance", True),
+            "variance", None),
             ("diffuse", 'color', 'color lpe:C(D[DS]*[LO])|O', None, None),
             ("diffuse_mse", 'color', 'color lpe:C(D[DS]*[LO])|O', 'mse', None),
             ("specular", 'color', 'color lpe:CS[DS]*[LO]', None, None),
@@ -3077,7 +3075,7 @@ def export_hider(ri, rpass, scene, preview=False):
         hider_params['int incremental'] = 1
         pv = rm.preview_pixel_variance
 
-    if (not rpass.external_render and rm.render_into == 'blender') or (rm.integrator is 'PxrVCM' or 'PxrUPBP'):
+    if (not rpass.external_render and rm.render_into == 'blender') or (rm.integrator is 'PxrVCM' or 'PxrUPBP') or rm.enable_checkpoint:
         hider_params['int incremental'] = 1
 
     if not preview:
