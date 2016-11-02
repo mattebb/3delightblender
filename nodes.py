@@ -705,6 +705,9 @@ def generate_node_type(prefs, name, args):
             #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
             node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self)
+            # if this is PxrLayerSurface set the diffusegain to 0.  The default of 1 is unintuitive
+            if self.plugin_name == 'PxrLayerSurface':
+                self.diffuseGain = 0
         elif self.renderman_node_type == 'light':
             # only make a few sockets connectable
             node_add_inputs(self, name, self.prop_names)
@@ -905,7 +908,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                  icon_only=True, emboss=False)
                         label = prop_meta.get('label', prop_name)
                         row.label(label + ':')
-                        if prop_meta['renderman_type'] == 'vstruct' or prop_name == 'inputMaterial':
+                        if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
                             split.operator_menu_enum("node.add_layer", "node_type",
                                                  text=input_node.bl_label, icon="LAYER_USED")
                         elif prop_meta['renderman_type'] == 'struct':
@@ -954,7 +957,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                 else:
                                     row.label(prop_meta['label'])
                             if prop_name in node.inputs:
-                                if prop_meta['renderman_type'] == 'vstruct' or prop_name == 'inputMaterial':
+                                if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
                                     row.operator_menu_enum("node.add_layer", "node_type",
                                                          text='', icon="LAYER_USED")
                                 elif prop_meta['renderman_type'] == 'struct':
@@ -1022,7 +1025,10 @@ def link_node(nt, from_node, in_socket):
                                            next((s for s in from_node.outputs
                                                  if type(s).__name__ == 'RendermanNodeSocketColor'), None))
     elif type(in_socket).__name__ == 'RendermanNodeSocketStruct':
-        out_socket = from_node.outputs.get('result', None)
+        out_socket = from_node.outputs.get('pxrMaterialOut', None)
+        if not out_socket:
+            out_socket = from_node.outputs.get('result', None)
+
     else:
         out_socket = from_node.outputs.get('resultF',
                                            next((s for s in from_node.outputs
@@ -1117,7 +1123,7 @@ class Add_Node:
             newnode.location = node.location
             newnode.location[0] -= 300
             newnode.selected = False
-            if self.input_type == 'Pattern':
+            if self.input_type in ['Pattern', 'Layer', 'Manifold', 'Bump']:
                 link_node(nt, newnode, socket)
             else:
                 nt.links.new(newnode.outputs[self.input_type], socket)
