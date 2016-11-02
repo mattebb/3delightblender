@@ -1362,10 +1362,11 @@ def gen_params(ri, node, mat_name=None):
                     pass
                 elif prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
-                    from_socket = node.inputs[prop_name].links[0].from_socket
+                    to_socket = node.inputs[prop_name]
+                    from_socket = to_socket.links[0].from_socket
                     params['reference %s %s' % (prop_type, prop_name)] = \
                         [get_output_param_str(
-                            from_socket.node, mat_name, from_socket)]
+                            from_socket.node, mat_name, from_socket, to_socket)]
                 else:
                     if prop_type == "string" and getattr(getLocation,
                                                          osl_prop_name) != "":
@@ -1413,11 +1414,12 @@ def gen_params(ri, node, mat_name=None):
                 # if input socket is linked reference that
                 elif prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
-                    from_socket = node.inputs[prop_name].links[0].from_socket
+                    to_socket = node.inputs[prop_name]
+                    from_socket = to_socket.links[0].from_socket
                     params['reference %s %s' % (meta['renderman_type'],
                                                 meta['renderman_name'])] = \
                         [get_output_param_str(
-                            from_socket.node, mat_name, from_socket)]
+                            from_socket.node, mat_name, from_socket, to_socket)]
                 # else output rib
                 else:
                     # if struct is not linked continue
@@ -1462,12 +1464,13 @@ def gen_params(ri, node, mat_name=None):
                 # if input socket is linked reference that
                 elif hasattr(node, 'inputs') and prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
-                    from_socket = node.inputs[prop_name].links[0].from_socket
-                    from_node = node.inputs[prop_name].links[0].from_node
+                    to_socket = node.inputs[prop_name]
+                    from_socket = to_socket.links[0].from_socket
+                    from_node = to_socket.links[0].from_node
                     params['reference %s %s' % (meta['renderman_type'],
                                                 meta['renderman_name'])] = \
                         [get_output_param_str(
-                            from_node, mat_name, from_socket)]
+                            from_node, mat_name, from_socket, to_socket)]
                 
                 # see if vstruct linked
                 elif is_vstruct_and_linked(node, prop_name):
@@ -1754,8 +1757,28 @@ def get_socket_type(node, socket):
     else:
         return sock_type
 
+# do we need to convert this socket?
+def do_convert_socket(from_socket, to_socket):
+    if not to_socket:
+        return False
+    return (is_float_type(from_socket) and is_float3_type(to_socket)) or \
+        (is_float3_type(from_socket) and is_float_type(to_socket))
 
-def get_output_param_str(node, mat_name, socket):
+def build_output_param_str(mat_name, from_node, from_socket, convert_socket=False):
+    from_node_name = get_node_name(from_node, mat_name)
+    from_sock_name = get_socket_name(from_node, from_socket)
+    
+    # replace with the convert node's output
+    if convert_socket:
+        if is_float_type(from_socket):
+            return "convert_%s.%s:resultRGB" % (from_node_name, from_sock_name)
+        else:
+            return "convert_%s.%s:resultF" % (from_node_name, from_sock_name)
+
+    else:
+        return "%s:%s" % (from_node_name, from_sock_name)
+
+def get_output_param_str(node, mat_name, socket, to_socket=None):
     # if this is a node group, hook it up to the input node inside!
     if node.bl_idname == 'ShaderNodeGroup':
         ng = node.node_tree
@@ -1767,7 +1790,7 @@ def get_output_param_str(node, mat_name, socket):
         in_sock = group_output.inputs[socket.name]
         if len(in_sock.links):
             link = in_sock.links[0]
-            return "%s:%s" % (get_node_name(link.from_node, mat_name), get_socket_name(link.from_node, link.from_socket))
+            return build_output_param_str(mat_name, link.from_node, link.from_socket, do_convert_socket(link.from_socket, to_socket))
         else:
             return "error:error"
     if node.bl_idname == 'NodeGroupInput':
@@ -1779,11 +1802,11 @@ def get_output_param_str(node, mat_name, socket):
         in_sock = current_group_node.inputs[socket.name]
         if len(in_sock.links):
             link = in_sock.links[0]
-            return "%s:%s" % (get_node_name(link.from_node, mat_name), get_socket_name(link.from_node, link.from_socket))
+            return build_output_param_str(mat_name, link.from_node, link.from_socket, do_convert_socket(link.from_socket, to_socket))
         else:
             return "error:error"
 
-    return "%s:%s" % (get_node_name(node, mat_name), get_socket_name(node, socket))
+    return build_output_param_str(mat_name, node, socket, do_convert_socket(socket, to_socket))
 
 # hack!!!
 current_group_node = None
@@ -1821,7 +1844,7 @@ def translate_cycles_node(ri, node, mat_name):
             param_name = 'reference ' + param_name
             link = input.links[0]
             param_val = get_output_param_str(
-                link.from_node, mat_name, link.from_socket)
+                link.from_node, mat_name, link.from_socket, input)
 
         else:
             param_val = rib(input.default_value,
@@ -1836,13 +1859,28 @@ def translate_cycles_node(ri, node, mat_name):
 
 # Export to rib
 def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
-    if not hasattr(node, 'renderman_node_type'):
+    # this is tuple telling us to convert 
+    if type(node) == type(()):
+        shader,from_node,from_socket = node
+        input_type = 'float' if shader == 'PxrToFloat3' else 'color'
+        node_name = 'convert_%s.%s' % (get_node_name(from_node, mat_name), from_socket.name)
+        if from_node.bl_idname == 'ShaderNodeGroup':
+            node_name = 'convert_' + get_output_param_str(
+                            from_node, mat_name, from_socket).replace(':', '.')
+        params = {"reference %s input" % input_type: get_output_param_str(
+                            from_node, mat_name, from_socket)}
+        params['__instanceid'] = node_name
+
+        ri.Pattern(shader, node_name, params)
+        return
+    elif not hasattr(node, 'renderman_node_type'):
         return translate_cycles_node(ri, node, mat_name)
 
     params = gen_params(ri, node, mat_name)
     instance = mat_name + '.' + node.name
     
     params['__instanceid'] = instance
+
 
     if node.renderman_node_type == "pattern":
         if node.bl_label == 'PxrOSL':
@@ -1898,15 +1936,53 @@ def get_tex_file_name(prop):
     else:
         return prop
 
+def is_same_type(socket1, socket2):
+    return (is_float_type(socket1) and is_float_type(socket2)) or \
+        (is_float3_type(socket1) and is_float3_type(socket2))  
+
+def is_float_type(socket):
+    # this is a prman node
+    if type(socket) == type({}):
+        return socket['renderman_type'] in ['int', 'float']
+    elif hasattr(socket.node, 'plugin_name'):
+        prop_meta = getattr(socket.node, 'output_meta', []) if socket.is_output else getattr(socket.node, 'prop_meta', [])
+        if socket.name in prop_meta:
+            return prop_meta[socket.name]['renderman_type'] in ['int', 'float']
+
+    else:
+        return socket.type in ['INT', 'VALUE']
+
+def is_float3_type(socket):
+    # this is a prman node
+    if type(socket) == type({}):
+        return socket['renderman_type'] in ['int', 'float']
+    elif hasattr(socket.node, 'plugin_name'):
+        prop_meta = getattr(socket.node, 'output_meta', []) if socket.is_output else getattr(socket.node, 'prop_meta', [])
+        if socket.name in prop_meta:
+            return prop_meta[socket.name]['renderman_type'] in ['color', 'vector', 'normal']
+    else:
+        return socket.type in ['RGBA', 'VECTOR']
 
 # walk the tree for nodes to export
 def gather_nodes(node):
     nodes = []
     for socket in node.inputs:
         if socket.is_linked:
+            link = socket.links[0]
             for sub_node in gather_nodes(socket.links[0].from_node):
                 if sub_node not in nodes:
                     nodes.append(sub_node)
+
+            # if this is a float -> color inset a tofloat3
+            if is_float_type(link.from_socket) and is_float3_type(socket):
+                convert_node = ('PxrToFloat3', link.from_node, link.from_socket)
+                if convert_node not in nodes:
+                    nodes.append(convert_node)
+            elif is_float3_type(link.from_socket) and is_float_type(socket):
+                convert_node = ('PxrToFloat', link.from_node, link.from_socket)
+                if convert_node not in nodes:
+                    nodes.append(convert_node)
+
     if hasattr(node, 'renderman_node_type') and node.renderman_node_type != 'output':
         nodes.append(node)
     elif not hasattr(node, 'renderman_node_type') and node.bl_idname not in ['ShaderNodeOutputMaterial', 'NodeGroupInput', 'NodeGroupOutput']:
