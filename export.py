@@ -2211,11 +2211,9 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     # add to lpe groups
     #ri.Attribute("identifier", {"string lpegroup": obj_groups_str})
 
-    # Hack for one lpe group per object restriction in Renderman 20.  Can be
-    # removed for 21.
     if obj_groups_str != '*':
         ri.Attribute("identifier", {
-                     "string lpegroup": obj_groups_str.split(',')[1]})
+                     "string lpegroup": obj_groups_str})
 
     if ob.renderman.shading_override:
         ri.ShadingRate(ob.renderman.shadingrate)
