@@ -330,10 +330,10 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         else:
             # temp until we can create ramps natively
             if self.plugin_name == 'PxrRamp':
-                nt = bpy.context.active_object.active_material.node_tree
+                nt = bpy.data.node_groups[self.node_group]
                 if nt:
                     layout.template_color_ramp(
-                        nt.nodes[self.color_ramp_dummy_name], 'color_ramp')
+                        nt.nodes["ColorRamp"], 'color_ramp')
 
             for prop_name in prop_names:
                 prop_meta = self.prop_meta[prop_name]
@@ -724,15 +724,20 @@ def generate_node_type(prefs, name, args):
             node_add_outputs(self)
 
         if name == "PxrRamp":
-            active_mat = bpy.context.active_object.active_material
-            if not active_mat.use_nodes:
-                active_mat.use_nodes = True
-            color_ramp = active_mat.node_tree.nodes.new('ShaderNodeValToRGB')
-            self.color_ramp_dummy_name = color_ramp.name
+            node_group = bpy.data.node_groups.new('PxrRamp_nodegroup', 'ShaderNodeTree')
+            node_group.nodes.new('ShaderNodeValToRGB')
+            node_group.use_fake_user = True
+            self.node_group = node_group.name
+
+    def free(self):
+        if name == "PxrRamp":
+            bpy.data.node_groups.remove(bpy.data.node_groups[self.node_group])
 
     ntype.init = init
+    ntype.free = free
+
     if name == 'PxrRamp':
-        ntype.color_ramp_dummy_name = StringProperty('color_ramp', default='')
+        ntype.node_group = StringProperty('color_ramp', default='')
 
     ntype.plugin_name = StringProperty(name='Plugin Name',
                                        default=name, options={'HIDDEN'})
@@ -1005,10 +1010,10 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                            text='', icon="LAYER_USED")
     else:
         if node.plugin_name == 'PxrRamp':
-            dummy_nt = bpy.context.active_object.active_material.node_tree
+            dummy_nt = bpy.data.node_groups[node.node_group]
             if dummy_nt:
                 layout.template_color_ramp(
-                    dummy_nt.nodes[node.color_ramp_dummy_name], 'color_ramp')
+                    dummy_nt.nodes['ColorRamp'], 'color_ramp')
         draw_props(node.prop_names, layout, level)
     layout.separator()
 
@@ -1524,9 +1529,9 @@ def gen_params(ri, node, mat_name=None):
     if node.plugin_name == 'PxrRamp':
         if mat_name not in bpy.data.materials:
             return params
-        nt = bpy.data.materials[mat_name].node_tree
+        nt = bpy.data.node_groups[node.node_group]
         if nt:
-            dummy_ramp = nt.nodes[node.color_ramp_dummy_name]
+            dummy_ramp = nt.nodes['ColorRamp']
             colors = []
             positions = []
             # double the start and end points
@@ -1540,8 +1545,7 @@ def gen_params(ri, node, mat_name=None):
             colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
             params['color[%d] colors' % len(positions)] = colors
             params['float[%d] positions' % len(positions)] = positions
-            debug('error', "Params gen: ", params)
-
+    
     return params
 
 
