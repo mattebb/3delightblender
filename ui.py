@@ -1026,14 +1026,15 @@ class DATA_PT_renderman_node_filters_lamp(CollectionPanel, Panel):
     bl_label = "Light Filters"
     bl_context = 'data'
 
+
     def draw_item(self, layout, context, item):
         layout.prop(item, 'filter_name')
 
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER'
-    
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "lamp") and context.lamp is not None
+
     def draw(self, context):
         layout = self.layout
         lamp = context.lamp
