@@ -382,7 +382,18 @@ def draw_props(node, prop_names, layout):
                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
                                 "object_groups")
             else:
-                row.prop(node, prop_name)
+                if 'widget' in prop_meta and prop_meta['widget'] == 'floatRamp':
+                    rm = bpy.context.lamp.renderman
+                    nt = bpy.context.lamp.node_tree
+                    float_node = nt.nodes[rm.float_ramp_node]
+                    layout.template_curve_mapping(float_node, 'mapping')
+                elif 'widget' in prop_meta and prop_meta['widget'] == 'colorRamp':
+                    rm = bpy.context.lamp.renderman
+                    nt = bpy.context.lamp.node_tree
+                    ramp_node = nt.nodes[rm.color_ramp_node]
+                    layout.template_color_ramp(ramp_node, 'color_ramp')
+                else:
+                    row.prop(node, prop_name)
 
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     bl_label = "Sampling"

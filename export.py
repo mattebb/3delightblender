@@ -740,7 +740,7 @@ def export_light_filters(ri, lamp):
         if lf.filter_name in bpy.data.objects:
             light_filter = bpy.data.objects[lf.filter_name]
             filter_plugin = light_filter.data.renderman.get_light_node()
-            params = property_group_to_params(filter_plugin)
+            params = property_group_to_params(filter_plugin, lamp=light_filter.data)
             params['__instanceid'] = light_filter.name
             params['string coordsys'] = light_filter.name
             ri.LightFilter(light_filter.data.renderman.get_light_node_name(), light_filter.data.name, params)
@@ -2397,7 +2397,7 @@ def update_timestamp(rpass, obj):
 # takes a list of bpy.types.properties and converts to params for rib
 
 
-def property_group_to_params(node):
+def property_group_to_params(node, lamp=None):
     params = {}
     for prop_name, meta in node.prop_meta.items():
         prop = getattr(node, prop_name)
@@ -2415,10 +2415,51 @@ def property_group_to_params(node):
                                   meta['renderman_name'])] = \
                     rib(get_tex_file_name(prop),
                         type_hint=meta['renderman_type'])
+
             else:
                 params['%s %s' % (meta['renderman_type'],
                                   meta['renderman_name'])] = \
                     rib(prop, type_hint=meta['renderman_type'])
+
+    if lamp and node.plugin_name in ['PxrBlockerLightFilter', 'PxrRampLightFilter',
+                            'PxrRodLightFilter']:
+        rm = lamp.renderman
+        nt = lamp.node_tree
+        if nt and rm.float_ramp_node in nt.nodes.keys():
+            del params['float[16] falloff_Knots']
+            del params['float[16] falloff_Floats']
+            float_node = nt.nodes[rm.float_ramp_node]
+            curve = float_node.mapping.curves[0]
+            knots = []
+            vals = []
+            # double the start and end points
+            knots.append(curve.points[0].location[0])
+            vals.append(curve.points[0].location[1])
+            for p in curve.points:
+                knots.append(p.location[0])
+                vals.append(p.location[1])
+            knots.append(curve.points[-1].location[0])
+            vals.append(curve.points[-1].location[1])
+            params['float[%d] falloff_Knots' % len(knots)] = knots
+            params['float[%d] falloff_Floats' % len(vals)] = vals
+             
+        if nt and rm.color_ramp_node in nt.nodes.keys():
+            del params['float[16] colorRamp_Knots']
+            color_node = nt.nodes[rm.color_ramp_node]
+            color_ramp = color_node.color_ramp
+            colors = []
+            positions = []
+            # double the start and end points
+            positions.append(float(color_ramp.elements[0].position))
+            colors.extend(color_ramp.elements[0].color[:3])
+            for e in color_ramp.elements:
+                positions.append(float(e.position))
+                colors.extend(e.color[:3])
+            positions.append(
+                float(color_ramp.elements[-1].position))
+            colors.extend(color_ramp.elements[-1].color[:3])
+            params['float[%d] colorRamp_Knots' % len(positions)] = positions
+            params['color[%d] colorRamp_Colors' % len(positions)] = colors
 
     return params
 

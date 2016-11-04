@@ -1132,6 +1132,10 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         name="Light Node",
         default='')
 
+    # thes are used for light filters
+    color_ramp_node = StringProperty(default='')
+    float_ramp_node = StringProperty(default='')
+
     # do this to keep the nice viewport update
     def update_light_type(self, context):
         lamp = self.id_data
@@ -1172,7 +1176,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
         self.light_node = light_shader + "_settings"
         if light_type == 'FILTER':
-            self.update_filter_type(self)
+            self.update_filter_type(context)
 
         #setattr(node, 'renderman_portal', light_type == 'PORTAL')
 
@@ -1273,6 +1277,16 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         else:
             self.id_data.id_data.type = 'POINT'
             self.update_filter_shape()
+        if self.filter_type in ['blocker', 'ramp', 'rod']:
+            lamp = context.lamp
+            if not lamp.use_nodes:
+                lamp.use_nodes = True
+            nt = lamp.node_tree
+            if self.color_ramp_node not in nt.nodes.keys():
+                # make a new color ramp node to use 
+                self.color_ramp_node = nt.nodes.new('ShaderNodeValToRGB').name
+            if self.float_ramp_node not in nt.nodes.keys():
+                self.float_ramp_node = nt.nodes.new('ShaderNodeVectorCurve').name
         
     #updates the filter shape when a node params change
     def update_filter_shape(self):
