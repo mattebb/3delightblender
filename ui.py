@@ -1022,24 +1022,25 @@ class DATA_PT_renderman_Sample_filters(CollectionPanel, Panel):
                               "sample_filters_index")
 
 
-class DATA_PT_renderman_node_filters_lamp(ShaderNodePanel, Panel):
+class DATA_PT_renderman_node_filters_lamp(CollectionPanel, Panel):
     bl_label = "Light Filters"
     bl_context = 'data'
 
+    def draw_item(self, layout, context, item):
+        layout.prop(item, 'filter_name')
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+    
     def draw(self, context):
         layout = self.layout
         lamp = context.lamp
 
-        for lf in lamp.renderman.light_filters:
-            row = layout.row()
-            row.prop(lf, 'filter_name')
-
-        layout.separator()
-        row = layout.row()
-        add = row.operator('collection.add_remove', 'Add Light Filter')
-        add.context = "lamp.renderman"
-        add.collection = 'light_filters'
-        add.collection_index = 'light_filters_index'
+        self._draw_collection(context, layout, lamp.renderman, "Light Filters:",
+                              "collection.add_remove", "lamp", "light_filters",
+                              "light_filters_index")
 
 
 class OBJECT_PT_renderman_object_geometry(Panel):

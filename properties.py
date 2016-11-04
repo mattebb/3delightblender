@@ -1114,7 +1114,11 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
                 items.append((o.name, o.name, o.name))
         return items
 
-    filter_name = EnumProperty(items=get_filters)
+    def update_name(self,context):
+        self.name = self.filter_name
+
+    name = StringProperty(default='SET FILTER')
+    filter_name = EnumProperty(items=get_filters, update=update_name)
 
 class RendermanLightSettings(bpy.types.PropertyGroup):
     def get_light_node(self):
