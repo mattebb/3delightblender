@@ -2440,8 +2440,10 @@ def property_group_to_params(node, lamp=None):
         rm = lamp.renderman
         nt = lamp.node_tree
         if nt and rm.float_ramp_node in nt.nodes.keys():
-            del params['float[16] falloff_Knots']
-            del params['float[16] falloff_Floats']
+            knot_param = 'ramp_Knots' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Knots'
+            float_param = 'ramp_Floats' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Floats'
+            del params['float[16] %s' % knot_param]
+            del params['float[16] %s' % float_param]
             float_node = nt.nodes[rm.float_ramp_node]
             curve = float_node.mapping.curves[0]
             knots = []
@@ -2454,8 +2456,8 @@ def property_group_to_params(node, lamp=None):
                 vals.append(p.location[1])
             knots.append(curve.points[-1].location[0])
             vals.append(curve.points[-1].location[1])
-            params['float[%d] falloff_Knots' % len(knots)] = knots
-            params['float[%d] falloff_Floats' % len(vals)] = vals
+            params['float[%d] %s' % (len(knots), knot_param)] = knots
+            params['float[%d] %s' % (len(vals), float_param)] = vals
              
         if nt and rm.color_ramp_node in nt.nodes.keys():
             del params['float[16] colorRamp_Knots']
