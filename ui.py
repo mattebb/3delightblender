@@ -1690,7 +1690,7 @@ class RENDERMAN_LL_LIGHT_list(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
         icon = 'NONE'
-        ll_prefix = "lg_%s>%s" % (rm.ll_light_type[:-1], item.name)
+        ll_prefix = "lg_%s>%s" % (rm.ll_light_type, item.name)
         label = item.name
         for ll in rm.ll.keys():
             if ll_prefix in ll:
@@ -1706,10 +1706,10 @@ class RENDERMAN_LL_OBJECT_list(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
         icon = 'NONE'
-        light_type = rm.ll_light_type[:-1]
+        light_type = rm.ll_light_type
         lg = bpy.data.lamps if light_type == "light" else rm.light_groups
         ll_prefix = "lg_%s>%s>obj_%s>%s" % (
-            light_type, lg[rm.ll_light_index].name, rm.ll_object_type[:-1], item.name)
+            light_type, lg[rm.ll_light_index].name, rm.ll_object_type, item.name)
 
         label = item.name
         if ll_prefix in rm.ll.keys():
