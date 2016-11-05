@@ -127,7 +127,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
     def aov_list(self, context):
         items = [
             # Basic lpe
-            ("", "Basic lpe", "Basic lpe", "", 0),
+            ("", "Basic LPE's", "Basic LPE's", "", 0),
             ("color rgba", "rgba", "Combined (beauty)", "", 1),
             ("color lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse", "", 2),
             ("color lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
@@ -149,7 +149,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
             ("color lpe:C<.D%G>[S]+<L.%LG>",
              "Caustics", "Caustics", "", 12),
             # PxrSurface lpe
-            ("", "PxrSurface lobe lpe", "PxrSurface lobe lpe", "", 0),
+            ("", "PxrSurface lobe LPE's", "PxrSurface lobe LPE's", "", 0),
             ("color lpe:C<.D2%G>[<L.%LG>O]",
              "directDiffuseLobe", "", "", 13),
             ("color lpe:C<.D2%G>[DS]+[<L.%LG>O]",
@@ -185,7 +185,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
             ("color lpe:C<TS8%G>[DS]*[<L.%LG>O]",
              "transmissiveGlassLobe", "", "", 29),
             # Data AOV's
-            ("", "Data AOV", "Data AOV", "", 0),
+            ("", "Data AOV's", "Data AOV's", "", 0),
             ("float a", "alpha", "", "", 30),
             ("float id", "id", "Returns the integer assigned via the 'identifier' attribute as the pixel value", "", 31),
             ("float z", "z_depth", "Depth from the camera in world space", "", 32),
@@ -249,7 +249,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
              "Reference World Normal primvar (if available)", "", 69),
             # Custom lpe
             ("", "Custom", "Custom", "", 0),
-            ("custom_lpe", "Custom lpe", "Custom lpe", "", 70)
+            ("custom_lpe", "Custom LPE", "Custom LPE", "", 70)
         ]
         return items
 
