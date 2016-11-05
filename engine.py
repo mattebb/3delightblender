@@ -68,6 +68,7 @@ addon_version = bl_info['version']
 prman_inited = False
 ipr_handle = None
 
+
 def init_prman():
     # set pythonpath before importing prman
     set_rmantree(guess_rmantree())
@@ -238,7 +239,8 @@ class RPass:
         addon_prefs = get_addon_prefs()
         self.paths['render_output'] = user_path(addon_prefs.path_display_driver_image,
                                                 scene=scene, display_driver=self.display_driver)
-        self.paths['aov_output'] = user_path(addon_prefs.path_aov_image, scene=scene, display_driver=self.display_driver)
+        self.paths['aov_output'] = user_path(
+            addon_prefs.path_aov_image, scene=scene, display_driver=self.display_driver)
         debug("info", self.paths)
         self.paths['shader'] = [user_path(rm.out_dir, scene=scene)] +\
             get_path_list_converted(rm, 'shader')
@@ -267,7 +269,8 @@ class RPass:
         addon_prefs = get_addon_prefs()
         self.paths['render_output'] = user_path(addon_prefs.path_display_driver_image,
                                                 scene=self.scene, display_driver=self.display_driver)
-        self.paths['aov_output'] = user_path(addon_prefs.path_aov_image, scene=self.scene, display_driver=self.display_driver)
+        self.paths['aov_output'] = user_path(
+            addon_prefs.path_aov_image, scene=self.scene, display_driver=self.display_driver)
         temp_archive_name = self.scene.renderman.path_object_archive_animated
         frame_archive_dir = os.path.dirname(user_path(temp_archive_name,
                                                       scene=self.scene))
@@ -332,6 +335,7 @@ class RPass:
         render_output = self.paths['render_output']
         aov_output = self.paths['aov_output']
         cdir = os.path.dirname(self.paths['rib_output'])
+        update_frequency = 10 if not self.rm.do_denoise else 60
 
         images_dir = os.path.split(render_output)[0]
         aov_dir = os.path.split(aov_output)[0]
@@ -375,7 +379,7 @@ class RPass:
         prman_executable = 'prman'
         if self.display_driver in ['openexr', 'tiff']:
             options = options + ['-checkpoint',
-                                 "%ds" % self.rm.update_frequency]
+                                 "%ds" % update_frequency]
         cmd = [prman_executable] + options + ["-t:%d" % self.rm.threads] + \
             [self.paths['rib_output']]
 
@@ -567,7 +571,7 @@ class RPass:
     # start the interactive session.  Basically the same as ribgen, only
     # save the file
     def start_interactive(self):
-        
+
         if find_it_path() == None:
             debug('error', "ERROR no 'it' installed.  \
                     Cannot start interactive rendering.")
@@ -593,7 +597,8 @@ class RPass:
                 for lf in obj.data.renderman.light_filters:
                     if lf.filter_name not in self.light_filter_map:
                         self.light_filter_map[lf.filter_name] = []
-                    self.light_filter_map[lf.filter_name].append((obj.data.name, obj.name))
+                    self.light_filter_map[lf.filter_name].append(
+                        (obj.data.name, obj.name))
                 self.lights[obj.name] = obj.data.name
                 if obj.data.renderman.solo:
                     self.current_solo_light = obj
@@ -624,7 +629,7 @@ class RPass:
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.ri, self.scene, prman)
-        
+
         while not self.is_prman_running():
             time.sleep(.1)
 

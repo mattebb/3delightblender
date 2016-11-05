@@ -56,8 +56,6 @@ from . import engine
 
 from .nodes import convert_cycles_nodetree, is_renderman_nodetree
 
-from .properties import aov_mapping
-
 #from .nodes import RendermanPatternGraph
 
 from .spool import spool_render
@@ -91,11 +89,12 @@ class Renderman_start_it(bpy.types.Operator):
         it_path = find_it_path()
         if not it_path:
             self.report({"ERROR"},
-                  "Could not find 'it'. Install RenderMan Studio.")
+                        "Could not find 'it'. Install RenderMan Studio.")
         else:
             environ = os.environ.copy()
             subprocess.Popen([it_path], env=environ, shell=True)
         return {'FINISHED'}
+
 
 class Renderman_open_last_RIB(bpy.types.Operator):
     bl_idname = 'rman.open_rib'
@@ -138,7 +137,6 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
     bl_label = "Convert all nodetrees"
     bl_description = "Convert all nodetrees to renderman"
 
-    
     def execute(self, context):
         for mat in bpy.data.materials:
             mat.use_nodes = True
@@ -169,7 +167,7 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 lamp.renderman.renderman_type = 'ENV'
             else:
                 lamp.renderman.renderman_type = light_type
-                
+
             if light_type == 'AREA':
                 lamp.shape = 'RECTANGLE'
                 lamp.size = 1.0
@@ -196,7 +194,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                         'lamp': context.lamp, 'world': context.scene.world}
         idblock = context_data[idtype]
 
-        #nt = bpy.data.node_groups.new(idblock.name,
+        # nt = bpy.data.node_groups.new(idblock.name,
         #                              type='RendermanPatternGraph')
         #nt.use_fake_user = True
         idblock.use_nodes = True
@@ -205,7 +203,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
             if not convert_cycles_nodetree(idblock, output, self.report):
-                default = nt.nodes.new('%sBxdfNode' % self.properties.bxdf_name)
+                default = nt.nodes.new('%sBxdfNode' %
+                                       self.properties.bxdf_name)
                 default.location = output.location
                 default.location[0] -= 300
                 nt.links.new(default.outputs[0], output.inputs[0])
@@ -214,19 +213,18 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             if light_type == 'SUN':
                 context.lamp.renderman.renderman_type = 'DIST'
             elif light_type == 'HEMI':
-                
+
                 context.lamp.renderman.renderman_type = 'ENV'
             else:
                 context.lamp.renderman.renderman_type = light_type
-                
+
             if light_type == 'AREA':
                 context.lamp.shape = 'RECTANGLE'
                 context.lamp.size = 1.0
                 context.lamp.size_y = 1.0
 
             idblock.renderman.use_renderman_node = True
-            
-            
+
         else:
             idblock.renderman.renderman_type = "ENV"
             idblock.renderman.use_renderman_node = True
@@ -291,12 +289,12 @@ class ExternalRender(bpy.types.Operator):
         scene = context.scene
         rpass = RPass(scene, external_render=True)
         rm = scene.renderman
-        
+
         render_output = rpass.paths['render_output']
         images_dir = os.path.split(render_output)[0]
         aov_output = rpass.paths['aov_output']
         aov_dir = os.path.split(aov_output)[0]
-        
+
         if not os.path.exists(images_dir):
             os.makedirs(images_dir)
         if not os.path.exists(aov_dir):
@@ -340,7 +338,7 @@ class ExternalRender(bpy.types.Operator):
             if rm.external_denoise:
                 denoise_files.append(rpass.get_denoise_names())
                 if rpass.aov_denoise_files:
-                        denoise_aov_files.append(rpass.aov_denoise_files)
+                    denoise_aov_files.append(rpass.aov_denoise_files)
 
         # gen spool job
         denoise = rm.external_denoise
@@ -351,15 +349,14 @@ class ExternalRender(bpy.types.Operator):
         frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
         frame_end = scene.frame_end if rm.external_animation else scene.frame_current
         alf_file = spool_render(
-                str(rm_version), rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass)
+            str(rm_version), rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass)
 
         # if spooling send job to queuing
         if rm.external_action == 'spool':
-                exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
-                self.report(
-                    {'INFO'}, 'RenderMan External Rendering spooling to %s.' % rm.queuing_system)
-                subprocess.Popen([exe, alf_file])
-
+            exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
+            self.report(
+                {'INFO'}, 'RenderMan External Rendering spooling to %s.' % rm.queuing_system)
+            subprocess.Popen([exe, alf_file])
 
         rpass = None
         return {'FINISHED'}
@@ -404,7 +401,8 @@ class StartInteractive(bpy.types.Operator):
         else:
             bpy.types.SpaceView3D.draw_handler_remove(
                 engine.ipr_handle, 'WINDOW')
-            if addon_prefs.draw_ipr_text: # The user should not turn this on and off during IPR rendering.
+            # The user should not turn this on and off during IPR rendering.
+            if addon_prefs.draw_ipr_text:
                 bpy.app.handlers.scene_update_post.remove(
                     engine.ipr.issue_transform_edits)
             engine.ipr.end_interactive()
@@ -779,32 +777,40 @@ class OT_add_renderman_aovs(bpy.types.Operator):
 
         aovs = [
             # (name, do?, declare type/name, source)
-            ("rgba", active_layer.use_pass_combined),
-            ("z", active_layer.use_pass_z),
-            ("Nn", active_layer.use_pass_normal),
-            ("dPdtime", active_layer.use_pass_vector),
-            ("u", active_layer.use_pass_uv),
-            ("v", active_layer.use_pass_uv),
-            ("id", active_layer.use_pass_object_index),
-            ("shadows", active_layer.use_pass_shadow),
-            ("reflection", active_layer.use_pass_reflection),
-            ("diffuse", active_layer.use_pass_diffuse_direct),
-            ("indirectdiffuse", active_layer.use_pass_diffuse_indirect),
-            ("albedo", active_layer.use_pass_diffuse_color),
-            ("specular", active_layer.use_pass_glossy_direct),
-            ("indirectspecular", active_layer.use_pass_glossy_indirect),
-            ("subsurface", active_layer.use_pass_subsurface_indirect),
-            ("refraction", active_layer.use_pass_refraction),
-            ("emission", active_layer.use_pass_emit),
+            ("color rgba", active_layer.use_pass_combined, "rgba"),
+            ("float z", active_layer.use_pass_z, "z"),
+            ("normal Nn", active_layer.use_pass_normal, "Normal"),
+            ("vector dPdtime", active_layer.use_pass_vector, "Vectors"),
+            ("float u", active_layer.use_pass_uv, "u"),
+            ("float v", active_layer.use_pass_uv, "v"),
+            ("float id", active_layer.use_pass_object_index, "id"),
+            ("color lpe:shadows;C[<.D%G><.S%G>]<L.%LG>",
+             active_layer.use_pass_shadow, "Shadows"),
+            ("color lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
+             active_layer.use_pass_reflection, "Reflections"),
+            ("color lpe:C<.D%G><L.%LG>",
+             active_layer.use_pass_diffuse_direct, "Diffuse"),
+            ("color lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
+             active_layer.use_pass_diffuse_indirect, "IndirectDiffuse"),
+            ("color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O",
+             active_layer.use_pass_diffuse_color, "Albedo"),
+            ("color lpe:C<.S%G><L.%LG>",
+             active_layer.use_pass_glossy_direct, "Specular"),
+            ("color lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
+             active_layer.use_pass_glossy_indirect, "IndirectSpecular"),
+            ("color lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
+             active_layer.use_pass_subsurface_indirect, "Subsurface"),
+            ("color lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
+             active_layer.use_pass_refraction, "Refraction"),
+            ("color lpe:emission", active_layer.use_pass_emit, "Emission"),
         ]
 
-        for aov_type, attr in aovs:
+        for aov_type, attr, name in aovs:
             if attr:
                 aov_setting = rm_rl.custom_aovs.add()
-                for aov_map in aov_mapping:
-                    if aov_map[0] == aov_type or aov_map[1].lower() == aov_type.lower():
-                        aov_setting.channel_type = aov_type
-                        break
+                aov_setting.channel_id = aov_type
+                aov_setting.name = name
+                aov_setting.channel_name = name
 
         return {'FINISHED'}
 
@@ -977,7 +983,7 @@ class Add_bxdf(bpy.types.Operator):
 
     def get_type_items(self, context):
         items = []
-        #for nodetype in RendermanPatternGraph.nodetypes.values():
+        # for nodetype in RendermanPatternGraph.nodetypes.values():
         #    if nodetype.renderman_node_type == 'bxdf':
         #        items.append((nodetype.bl_label, nodetype.bl_label,
         #                      nodetype.bl_label))
