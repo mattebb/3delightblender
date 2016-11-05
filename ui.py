@@ -382,7 +382,18 @@ def draw_props(node, prop_names, layout):
                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
                                 "object_groups")
             else:
-                row.prop(node, prop_name)
+                if 'widget' in prop_meta and prop_meta['widget'] == 'floatRamp':
+                    rm = bpy.context.lamp.renderman
+                    nt = bpy.context.lamp.node_tree
+                    float_node = nt.nodes[rm.float_ramp_node]
+                    layout.template_curve_mapping(float_node, 'mapping')
+                elif 'widget' in prop_meta and prop_meta['widget'] == 'colorRamp':
+                    rm = bpy.context.lamp.renderman
+                    nt = bpy.context.lamp.node_tree
+                    ramp_node = nt.nodes[rm.color_ramp_node]
+                    layout.template_color_ramp(ramp_node, 'color_ramp')
+                else:
+                    row.prop(node, prop_name)
 
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     bl_label = "Sampling"
@@ -1022,24 +1033,26 @@ class DATA_PT_renderman_Sample_filters(CollectionPanel, Panel):
                               "sample_filters_index")
 
 
-class DATA_PT_renderman_node_filters_lamp(ShaderNodePanel, Panel):
+class DATA_PT_renderman_node_filters_lamp(CollectionPanel, Panel):
     bl_label = "Light Filters"
     bl_context = 'data'
+
+
+    def draw_item(self, layout, context, item):
+        layout.prop(item, 'filter_name')
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "lamp") and context.lamp is not None
 
     def draw(self, context):
         layout = self.layout
         lamp = context.lamp
 
-        for lf in lamp.renderman.light_filters:
-            row = layout.row()
-            row.prop(lf, 'filter_name')
-
-        layout.separator()
-        row = layout.row()
-        add = row.operator('collection.add_remove', 'Add Light Filter')
-        add.context = "lamp.renderman"
-        add.collection = 'light_filters'
-        add.collection_index = 'light_filters_index'
+        self._draw_collection(context, layout, lamp.renderman, "Light Filters:",
+                              "collection.add_remove", "lamp", "light_filters",
+                              "light_filters_index")
 
 
 class OBJECT_PT_renderman_object_geometry(Panel):
