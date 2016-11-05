@@ -2279,13 +2279,23 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     # for each light link do illuminates
     for link in lls:
         strs = link.name.split('>')
+        scene_lights = [l.name for l in scene.objects if l.type == 'LAMP']
         light_names = [strs[1]] if strs[0] == "lg_light" else \
             scene.renderman.light_groups[strs[1]].members.keys()
         if strs[0] == 'lg_group' and strs[1] == 'All':
-            light_names = [l.name for l in scene.objects if l.type == 'LAMP']
+            light_names = scene_lights
         for light_name in light_names:
             if link.illuminate != "DEFAULT" and light_name in scene.objects:
-                ri.Illuminate(light_name, link.illuminate == 'ON')
+                light_ob = scene.objects[light_name]
+                lamp = light_ob.data
+                if lamp.renderman.renderman_type == 'FILTER':
+                    # for each lamp this is a part of do enable light filter
+                    filter_name = light_name
+                    for light_nm in scene_lights:
+                        if filter_name in scene.objects[light_nm].data.renderman.light_filters.keys():
+                            ri.EnableLightFilter(light_nm, filter_name, link.illuminate == 'ON')
+                else:
+                    ri.Illuminate(light_name, link.illuminate == 'ON')
 
 
 def get_bounding_box(ob):
