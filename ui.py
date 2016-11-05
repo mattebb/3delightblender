@@ -1303,16 +1303,10 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         #row = layout.row()
         #row.prop(item, "layers")
         col = layout.column()
-        if item.channel_type in ["custom_lpe_string", "custom_aov_string"]:
+        col.prop(item, "aov_name")
+        if item.aov_name == "custom_lpe":
             col.prop(item, "name")
-        col.prop(item, "channel_type")
-        if item.channel_type == "custom_lpe_string":
             col.prop(item, "custom_lpe_string")
-        if item.channel_type == "custom_aov_string":
-            col.prop(item, "custom_aov_type")
-            col.prop(item, "custom_aov_string")
-        if item.channel_type == "built_in_aov":
-            col.prop(item,  "aov_channel_type")
 
         col = layout.column()
         icon = 'DISCLOSURE_TRI_DOWN' if item.show_advanced \
@@ -1322,16 +1316,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row.prop(item, "show_advanced", icon=icon, text="Advanced",
                  icon_only=True, emboss=False)
         if item.show_advanced:
-            col.prop(item, "asrgba")
-            if not item.channel_type in ["custom_lpe_string", "built_in_aov", "custom_aov_string",
-                                         "rgba",
-                                         "lpe:C<.D%G>[S]+<L.%LG>",
-                                         "lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
-                                         "lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
-                                         "lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)"]:
-                col.prop(item, "denoise_aov")
-                if item.denoise_aov:
-                    col.label("AOV's formatted for denoising cannot be read by Blender",  icon='ERROR')
             col.label("Exposure Settings")
             col.prop(item, "exposure_gain")
             col.prop(item, "exposure_gamma")
