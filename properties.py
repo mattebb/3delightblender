@@ -1108,7 +1108,7 @@ class RendermanTextureSettings(bpy.types.PropertyGroup):
 class RendermanLightFilter(bpy.types.PropertyGroup):
     def get_filters(self, context):
         obs = context.scene.objects
-        items = []
+        items = [('None', 'Not Set', 'Not Set')]
         for o in obs:
             if o.type == 'LAMP' and o.data.renderman.renderman_type == 'FILTER':
                 items.append((o.name, o.name, o.name))
@@ -1116,6 +1116,10 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
 
     def update_name(self,context):
         self.name = self.filter_name
+        from . import engine
+        if engine.is_ipr_running():
+            engine.ipr.reset_filter_names()
+            engine.ipr.issue_shader_edits()
 
     name = StringProperty(default='SET FILTER')
     filter_name = EnumProperty(name="Linked Filter:", items=get_filters, update=update_name)
