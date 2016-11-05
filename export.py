@@ -2948,41 +2948,40 @@ def export_display(ri, rpass, scene):
                 pixelfilter_x = aov.aov_pixelfilter_x
                 pixelfilter_y = aov.aov_pixelfilter_y
 
-                name_map = [
-                    ("directDiffuseLobe", "diffuse11"),
-                    ("subsurfaceLobe", "diffuse12"),
-                    ("Subsurface", "diffuse13"),
-                    ("transmissiveSingleScatterLobe", "diffuse14"),
-                    ("Caustics", "diffuse15"),
-                    ("Albedo", "diffuse16"),
-                    ("Diffuse", "diffuse17"),
-                    ("IndirectDiffuse", "indirectdiffuse11"),
-                    ("indirectDiffuseLobe", "indirectdiffuse12"),
-                    ("directSpecularPrimaryLobe", "specular11"),
-                    ("directSpecularRoughLobe", "specular12"),
-                    ("directSpecularClearcoatLobe", "specular13"),
-                    ("directSpecularIridescenceLobe", "specular14"),
-                    ("directSpecularFuzzLobe", "specular15"),
-                    ("directSpecularGlassLobe", "specular16"),
-                    ("transmissiveGlassLobe", "specular17"),
-                    ("Reflection", "specular18"),
-                    ("Refraction", "specular19"),
-                    ("Specular", "specular20"),
-                    ("indirectSpecularPrimaryLobe", "indirectspecular11"),
-                    ("indirectSpecularRoughLobe", "indirectspecular12"),
-                    ("IndirectSpecular", "indirectspecular13"),
-                    ("indirectSpecularClearcoatLobe", "indirectspecular14"),
-                    ("indirectSpecularIridescenceLobe", "indirectspecular15"),
-                    ("indirectSpecularFuzzLobe", "indirectspecular16"),
-                    ("indirectSpecularGlassLobe", "indirectspecular17"),
-                    ("Shadows", "emission10"),
-                    ("Emission", "emission11")
-                ]
+                name_map = {
+                    "directDiffuseLobe": "diffuse11",
+                    "subsurfaceLobe": "diffuse12",
+                    "Subsurface": "diffuse13",
+                    "transmissiveSingleScatterLobe": "diffuse14",
+                    "Caustics": "diffuse15",
+                    "Albedo": "diffuse16",
+                    "Diffuse": "diffuse17",
+                    "IndirectDiffuse": "indirectdiffuse11",
+                    "indirectDiffuseLobe": "indirectdiffuse12",
+                    "directSpecularPrimaryLobe": "specular11",
+                    "directSpecularRoughLobe": "specular12",
+                    "directSpecularClearcoatLobe": "specular13",
+                    "directSpecularIridescenceLobe": "specular14",
+                    "directSpecularFuzzLobe": "specular15",
+                    "directSpecularGlassLobe": "specular16",
+                    "transmissiveGlassLobe": "specular17",
+                    "Reflection": "specular18",
+                    "Refraction": "specular19",
+                    "Specular": "specular20",
+                    "indirectSpecularPrimaryLobe": "indirectspecular11",
+                    "indirectSpecularRoughLobe": "indirectspecular12",
+                    "IndirectSpecular": "indirectspecular13",
+                    "indirectSpecularClearcoatLobe": "indirectspecular14",
+                    "indirectSpecularIridescenceLobe": "indirectspecular15",
+                    "indirectSpecularFuzzLobe": "indirectspecular16",
+                    "indirectSpecularGlassLobe": "indirectspecular17",
+                    "Shadows": "emission10",
+                    "Emission": "emission11"
+                }
 
                 # Remaps any color lpe channel names to a denoise friendly one
-                for name, channel in name_map:
-                    if name == aov_name:
-                        aov.channel_name = channel
+                if aov_name in name_map.keys():
+                    aov.channel_name = name_map[aov_name]
 
                 if aov.aov_name == "custom_lpe":
                     source_type == 'color'
