@@ -1658,6 +1658,8 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                     continue
                 lamp = scene.objects[light_name].data
                 lamp_rm = lamp.renderman
+                if lamp_rm.renderman_type =='FILTER':
+                    continue
                 row = box.row()
                 columns = box.column_flow(columns=8)
                 columns.label(light_name)
