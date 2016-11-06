@@ -371,7 +371,7 @@ def draw_props(node, prop_names, layout):
 
         else:
             if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
-                    'hidden' in prop_meta and prop_meta['hidden']:
+                'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
                 continue
 
             row.label('', icon='BLANK1')
@@ -1033,7 +1033,9 @@ class DATA_PT_renderman_node_filters_lamp(CollectionPanel, Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "lamp") and context.lamp is not None
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "lamp") \
+            and context.lamp is not None and hasattr(context.lamp, 'renderman') \
+            and context.lamp.renderman.renderman_type != 'FILTER'
 
     def draw(self, context):
         layout = self.layout
@@ -1629,6 +1631,8 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                     continue
                 lamp = scene.objects[light_name].data
                 lamp_rm = lamp.renderman
+                if lamp_rm.renderman_type =='FILTER':
+                    continue
                 row = box.row()
                 columns = box.column_flow(columns=8)
                 columns.label(light_name)
@@ -1686,11 +1690,11 @@ class RENDERMAN_LL_OBJECT_list(bpy.types.UIList):
         if ll_prefix in rm.ll.keys():
             ll = rm.ll[ll_prefix]
             if ll.illuminate == 'DEFAULT':
-                icon = 'TRIA_RIGHT'
+                icon = 'DISCLOSURE_TRI_RIGHT'
             elif ll.illuminate == 'ON':
-                icon = 'TRIA_UP'
+                icon = 'DISCLOSURE_TRI_UP'
             else:
-                icon = 'TRIA_DOWN'
+                icon = 'DISCLOSURE_TRI_DOWN'
 
         layout.alignment = 'CENTER'
         layout.label(label, icon=icon)

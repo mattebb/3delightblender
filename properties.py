@@ -1153,7 +1153,7 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
 
     def get_filters(self, context):
         obs = context.scene.objects
-        items = []
+        items = [('None', 'Not Set', 'Not Set')]
         for o in obs:
             if o.type == 'LAMP' and o.data.renderman.renderman_type == 'FILTER':
                 items.append((o.name, o.name, o.name))
@@ -1161,9 +1161,13 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
 
     def update_name(self, context):
         self.name = self.filter_name
+        from . import engine
+        if engine.is_ipr_running():
+            engine.ipr.reset_filter_names()
+            engine.ipr.issue_shader_edits()
 
     name = StringProperty(default='SET FILTER')
-    filter_name = EnumProperty(items=get_filters, update=update_name)
+    filter_name = EnumProperty(name="Linked Filter:", items=get_filters, update=update_name)
 
 
 class RendermanLightSettings(bpy.types.PropertyGroup):
@@ -1358,8 +1362,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                 return
             else:
                 if self.filter_type == 'barn':
-                    width = node.width * node.scaleWidth * .5
-                    height = node.height * node.scaleHeight * .5
+                    width = node.width * node.scaleWidth
+                    height = node.height * node.scaleHeight
                     mesh = ob.data
                     mesh.vertices[0].co = Vector((0 - width - node.left,
                                                   0 - height - node.bottom, 0.0))
@@ -1385,10 +1389,10 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                     ob.modifiers['bevel'].width = node.radius
 
                 if self.filter_type == 'blocker':
-                    width = node.width * .5
-                    height = node.height * .5
-                    depth = node.depth * .5
-
+                    width = node.width
+                    height = node.height
+                    depth = node.depth 
+                    
                     mesh = ob.data
                     edge = node.edge
                     # xy inner
@@ -1441,9 +1445,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                     ob.modifiers['bevel'].width = node.radius
 
                 if self.filter_type == 'rod':
-                    width = node.width * node.scaleWidth * .5
-                    height = node.height * node.scaleHeight * .5
-                    depth = node.depth * node.scaleDepth * .5
+                    width = node.width * node.scaleWidth
+                    height = node.height * node.scaleHeight
+                    depth = node.depth * node.scaleDepth
                     left_edge = node.edge * node.leftEdge
                     right_edge = node.edge * node.rightEdge
                     top_edge = node.edge * node.topEdge

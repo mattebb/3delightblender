@@ -567,12 +567,13 @@ class OSLProps(bpy.types.PropertyGroup):
                 if shader_meta[prop_name]["type"] == "matrix" or \
                         shader_meta[prop_name]["type"] == "point":
                     if(not saveProps):
-                        self.inputs.new(socket_map["struct"], prop_name)
+                        self.inputs.new(socket_map["struct"], prop_name, prop_name)
                 elif shader_meta[prop_name]["type"] == "void":
                     pass
                 elif(not saveProps):
+                    print('adding input' + prop_name)
                     self.inputs.new(socket_map[shader_meta[prop_name]["type"]],
-                                    prop_name)
+                                    prop_name, prop_name)
         debug('osl', "Shader: ", shader_meta["shader"], "Properties: ",
               prop_names, "Shader meta data: ", shader_meta)
         compileLocation = self.name + "Compile"
@@ -1895,9 +1896,17 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
     if node.renderman_node_type == "pattern":
         if node.bl_label == 'PxrOSL':
             getLocation = bpy.context.scene.OSLProps
-            shader = getattr(getLocation, mat_name + node.name + "shader")
+            shader = None
+            if mat_name == 'preview':
+                for key in getLocation.keys():
+                    if node.name + 'shader' in key:
+                        shader = getattr(key)
+                        break
+            else:
+                shader = getattr(getLocation, mat_name + node.name + "shader")
 
-            ri.Pattern(shader, instance, params)
+            if shader:
+                ri.Pattern(shader, instance, params)
         else:
             ri.Pattern(node.bl_label, instance, params)
     elif node.renderman_node_type == "light":
