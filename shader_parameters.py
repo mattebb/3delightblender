@@ -128,7 +128,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                     'renderman_type': 'string',
                     'default': '', 'label': 'codetypeswitch',
                     'type': 'enum', 'options': '',
-                    'widget': 'mapper', 'connectable': 'false'}
+                    'widget': 'mapper', '__noconnection': True}
         setattr(node, EnumName, EnumProp)
         prop_names.append(EnumName)
         prop_meta[EnumName] = EnumMeta
@@ -142,7 +142,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                         'renderman_type': 'string',
                         'default': '', 'label': 'internalSearch',
                         'type': 'string', 'options': '',
-                        'widget': 'fileinput', 'connectable': 'false'}
+                        'widget': 'fileinput', '__noconnection': True}
         setattr(node, InternalName, InternalProp)
         prop_names.append(InternalName)
         prop_meta[InternalName] = InternalMeta
@@ -154,7 +154,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                     'name': 'ShaderCode', 'renderman_type': 'string',
                     'default': '', 'label': 'ShaderCode',
                     'type': 'string', 'options': '',
-                    'widget': 'fileinput', 'connectable': 'false'}
+                    'widget': 'fileinput', '__noconnection': True}
         setattr(node, codeName, codeProp)
         prop_names.append(codeName)
         prop_meta[codeName] = codeMeta

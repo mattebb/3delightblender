@@ -1258,7 +1258,7 @@ def gen_params(ri, node, mat_name=None):
         fileInputType = node.codetypeswitch
 
         for prop_name, meta in node.prop_meta.items():
-            if prop_name in txmake_options.index or prop_name == "codetypeswitch":
+            if prop_name in ["codetypeswitch", 'filename']:
                 pass
             elif prop_name == "internalSearch" and fileInputType == 'INT':
                 if node.internalSearch != "":
@@ -1279,11 +1279,8 @@ def gen_params(ri, node, mat_name=None):
                         rib(outputString, type_hint=meta['renderman_type'])
             else:
                 prop = getattr(node, prop_name)
-                # if property group recurse
-                if meta['renderman_type'] == 'page':
-                    continue
                 # if input socket is linked reference that
-                elif prop_name in node.inputs and \
+                if prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
                     to_socket = node.inputs[prop_name]
                     from_socket = to_socket.links[0].from_socket
@@ -1293,26 +1290,11 @@ def gen_params(ri, node, mat_name=None):
                             from_socket.node, mat_name, from_socket, to_socket)]
                 # else output rib
                 else:
-                    # if struct is not linked continue
-                    if meta['renderman_type'] == 'struct':
-                        continue
-
-                    if 'options' in meta and meta['options'] == 'texture' or \
-                        (node.renderman_node_type == 'light' and
-                            'widget' in meta and meta['widget'] == 'fileInput'):
-
-                        params['%s %s' % (meta['renderman_type'],
-                                          meta['renderman_name'])] = \
-                            rib(get_tex_file_name(prop),
-                                type_hint=meta['renderman_type'])
-                    elif 'arraySize' in meta:
-                        params['%s[%d] %s' % (meta['renderman_type'], len(prop),
-                                              meta['renderman_name'])] \
-                            = rib(prop)
-                    else:
-                        params['%s %s' % (meta['renderman_type'],
+                    params['%s %s' % (meta['renderman_type'],
                                           meta['renderman_name'])] = \
                             rib(prop, type_hint=meta['renderman_type'])
+
+
     else:
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
