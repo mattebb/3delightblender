@@ -1768,13 +1768,6 @@ class RendermanParticlePrimVar(bpy.types.PropertyGroup):
     )
 
 
-class oslProps(bpy.types.PropertyGroup):
-    shaderString = StringProperty(
-        name="Shader",
-        description="OSL shader to use",
-        default="")
-
-
 class RendermanParticleSettings(bpy.types.PropertyGroup):
 
     particle_type_items = [('particle', 'Particle', 'Point primitive'),
