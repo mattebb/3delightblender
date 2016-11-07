@@ -649,7 +649,7 @@ def create_mesh(ob, scene):
     return mesh
 
 
-def export_transform(ri, instance, flip_x=False, concat=False, flatten=False):
+def export_transform(ri, instance, concat=False, flatten=False):
     ob = instance.ob
     export_motion_begin(ri, instance.motion_data)
 
@@ -659,14 +659,8 @@ def export_transform(ri, instance, flip_x=False, concat=False, flatten=False):
         samples = [ob.matrix_local] if ob.parent and  ob.parent_type == "object" and ob.type != 'LAMP'\
             else [ob.matrix_world]
     for m in samples:
-        if flip_x:
-            m = m.copy()
+        if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type in ["SKY", 'ENV']:
             m[0] *= -1.0
-
-        if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type in ["SKY"]:
-            m = m.copy()
-            m2 = Matrix.Rotation(math.radians(180), 4, 'X')
-            m = m2 * m
 
         if instance.type == 'LAMP' and instance.ob.data.type in ['AREA']:
             m = m.copy()
@@ -699,16 +693,11 @@ def export_transform(ri, instance, flip_x=False, concat=False, flatten=False):
     export_motion_end(ri, instance.motion_data)
 
 
-def export_object_transform(ri, ob, flip_x=False):
+def export_object_transform(ri, ob):
     m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
         else ob.matrix_world
-    if flip_x:
-        m = m.copy()
+    if ob.type == 'LAMP' and ob.data.renderman.renderman_type == ["SKY", 'ENV']:
         m[0] *= -1.0
-    if ob.type == 'LAMP' and ob.data.renderman.renderman_type == "SKY":
-        m = m.copy()
-        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
-        m = m2 * m
     if ob.type == 'LAMP' and ob.data.renderman.renderman_type == "DIST":
         m = m.copy()
         m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
@@ -852,8 +841,7 @@ def export_light(ri, instance):
         ri.AttributeBegin()
         ri.Attribute("identifier", {"string name": lamp.name})
 
-        export_transform(ri, instance, lamp.type ==
-                         'HEMI' and lamp.renderman.renderman_type != "SKY")
+        export_transform(ri, instance)
 
         export_light_filters(ri, lamp)
         export_light_shaders(ri, lamp)
@@ -3401,8 +3389,7 @@ def issue_light_vis(rpass, ri, lamp, prman):
 def issue_light_transform_edit(ri, obj):
     lamp = obj.data
     ri.EditBegin('attribute', {'string scopename': obj.data.name})
-    export_object_transform(ri, obj, obj.type == 'LAMP' and (
-        lamp.type == 'HEMI' and lamp.renderman.renderman_type != "SKY"))
+    export_object_transform(ri, obj)
     if lamp.renderman.renderman_type == 'POINT':
         ri.Scale(.01, .01, .01)
     ri.EditEnd()
@@ -3418,8 +3405,7 @@ def issue_light_filter_transform_edit(ri, rpass, obj):
         export_light_filters(ri, lamp, do_coordsys=True)
         
         # reset the transform for light
-        export_object_transform(ri, light_obj, light_obj.type == 'LAMP' and (
-            lamp.type == 'HEMI' and lamp.renderman.renderman_type != "SKY"))
+        export_object_transform(ri, light_obj)
         if lamp.renderman.renderman_type == 'POINT':
             ri.Scale(.01, .01, .01)
 
@@ -3468,8 +3454,7 @@ def add_light(rpass, ri, active, prman):
     lamp = ob.data
     rm = lamp.renderman
     ri.AttributeBegin()
-    export_object_transform(
-        ri, ob, (lamp.type == 'HEMI' and lamp.renderman.renderman_type != "SKY"))
+    export_object_transform(ri, ob)
     ri.ShadingRate(rm.shadingrate)
 
     export_light_shaders(ri, lamp)
@@ -3637,8 +3622,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             ri.EditBegin('attribute', {'string scopename': lamp.name})
             export_light_filters(ri, lamp, do_coordsys=True)
 
-            export_object_transform(ri, lamp_ob, lamp_ob.type == 'LAMP' and (
-                lamp_ob.type == 'HEMI' and lamp.renderman.renderman_type != "SKY"))
+            export_object_transform(ri, lamp_ob)
             if lamp.renderman.renderman_type == 'POINT':
                 ri.Scale(.01, .01, .01)
             export_light_shaders(ri, lamp)
