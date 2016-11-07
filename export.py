@@ -659,7 +659,8 @@ def export_transform(ri, instance, concat=False, flatten=False):
         samples = [ob.matrix_local] if ob.parent and  ob.parent_type == "object" and ob.type != 'LAMP'\
             else [ob.matrix_world]
     for m in samples:
-        if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type in ["SKY", 'ENV']:
+        if instance.type == 'LAMP':
+            m = m.copy()
             m[0] *= -1.0
 
         if instance.type == 'LAMP' and instance.ob.data.type in ['AREA']:
@@ -696,7 +697,8 @@ def export_transform(ri, instance, concat=False, flatten=False):
 def export_object_transform(ri, ob):
     m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
         else ob.matrix_world
-    if ob.type == 'LAMP' and ob.data.renderman.renderman_type == ["SKY", 'ENV']:
+    if ob.type == 'LAMP':
+        m = m.copy()
         m[0] *= -1.0
     if ob.type == 'LAMP' and ob.data.renderman.renderman_type == "DIST":
         m = m.copy()
