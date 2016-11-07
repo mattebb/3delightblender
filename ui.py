@@ -31,13 +31,10 @@ from .nodes import NODE_LAYOUT_SPLIT, is_renderman_nodetree, panel_node_draw
 
 from . import engine
 # global dictionaries
-from .shader_parameters import exclude_lamp_params
 from bl_ui.properties_particle import ParticleButtonsPanel
 
 # helper functions for parameters
-from .shader_parameters import tex_optimised_path
-from .shader_parameters import tex_source_path
-from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive, load_tree_from_lib
+from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
 
 # Use some of the existing buttons.
 import bl_ui.properties_render as properties_render
@@ -115,9 +112,10 @@ for member in dir(properties_particle):
 del properties_particle
 
 # this is here for 2.78
-try: 
+try:
     import bl_ui
-    bl_ui.properties_physics_common.PHYSICS_PT_add.COMPAT_ENGINES.add('PRMAN_RENDER')
+    bl_ui.properties_physics_common.PHYSICS_PT_add.COMPAT_ENGINES.add(
+        'PRMAN_RENDER')
     import bl_ui.properties_physics_smoke as properties_smoke
     for member in dir(properties_smoke):
         subclass = getattr(properties_smoke, member)
@@ -274,17 +272,18 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
 
         layout.separator()
 
-        row = layout.row()
-        split = row.split(percentage=0.33)
-        col = split.column()
-        col.prop(rm, "external_denoise")
-        sub_row = col.row()
-        sub_row.enabled = rm.external_denoise
-        sub_row.prop(rm, "crossframe_denoise")
-
-        # display driver
-        split = split.split()
-        col = split.column()
+#        row = layout.row()
+#        split = row.split(percentage=0.33)
+#        col = split.column()
+#        col.prop(rm, "external_denoise")
+#        sub_row = col.row()
+#        sub_row.enabled = rm.external_denoise
+#        sub_row.prop(rm, "crossframe_denoise")
+#
+#        # display driver
+#        split = split.split()
+#        col = split.column()
+        col = layout.column()
         col.prop(rm, "display_driver", text='Render To')
 
 #        sub_row = col.row()
@@ -314,32 +313,36 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         sub_row = split.row()
         sub_row.enabled = rm.external_action == 'spool'
         sub_row.prop(rm, "queuing_system")
-        
+
         # options
         col = layout.column()
         col.label('Spooling Options:')
         col = layout.column()
-        col.enabled = rm.external_action != 'render'
-        col.prop(rm, 'recover')
         col.prop(rm, 'custom_cmd')
         col.prop(rm, 'custom_alfname')
+        col.prop(rm, 'external_denoise')
+        row = col.row()
+        row.enabled = rm.external_denoise
+        row.prop(rm, 'crossframe_denoise')
         row = col.row()
         row.enabled = rm.external_denoise
         row.prop(rm, 'spool_denoise_aov')
-        if rm.spool_denoise_aov:
-            col.label("At least one AOV must be tagged as 'denoiseable'.",  icon='ERROR')
-        row =col.row()
+        row = col.row()
+        row.enabled = rm.external_denoise and not rm.spool_denoise_aov
+        row.prop(rm, "denoise_gpu")
+        row = col.row()
         row.enabled = rm.external_denoise
         row.prop(rm, 'denoise_cmd')
 
         # checkpointing
-        layout.separator()
-        row = layout.row()
+        row = col.row()
+        row.prop(rm, 'recover')
+        row = col.row()
         row.prop(rm, 'enable_checkpoint')
-        row = layout.row()
+        row = col.row()
         row.enabled = rm.enable_checkpoint
         row.prop(rm, 'checkpoint_type')
-        row = layout.row(align=True)
+        row = col.row(align=True)
         row.enabled = rm.enable_checkpoint
         row.prop(rm, 'checkpoint_interval')
         row.prop(rm, 'render_limit')
@@ -368,7 +371,7 @@ def draw_props(node, prop_names, layout):
 
         else:
             if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
-                'hidden' in prop_meta and prop_meta['hidden']:
+                'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
                 continue
 
             row.label('', icon='BLANK1')
@@ -377,7 +380,19 @@ def draw_props(node, prop_names, layout):
                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
                                 "object_groups")
             else:
-                row.prop(node, prop_name)
+                if 'widget' in prop_meta and prop_meta['widget'] == 'floatRamp':
+                    rm = bpy.context.lamp.renderman
+                    nt = bpy.context.lamp.node_tree
+                    float_node = nt.nodes[rm.float_ramp_node]
+                    layout.template_curve_mapping(float_node, 'mapping')
+                elif 'widget' in prop_meta and prop_meta['widget'] == 'colorRamp':
+                    rm = bpy.context.lamp.renderman
+                    nt = bpy.context.lamp.node_tree
+                    ramp_node = nt.nodes[rm.color_ramp_node]
+                    layout.template_color_ramp(ramp_node, 'color_ramp')
+                else:
+                    row.prop(node, prop_name)
+
 
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     bl_label = "Sampling"
@@ -419,7 +434,8 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row.prop(rm, "show_integrator_settings", icon=icon, text=text,
                  icon_only=True, emboss=False)
         if rm.show_integrator_settings:
-            draw_props(integrator_settings, integrator_settings.prop_names, col)
+            draw_props(integrator_settings,
+                       integrator_settings.prop_names, col)
 
 
 class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
@@ -435,7 +451,9 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
         sub = layout.row()
         sub.enabled = rm.motion_blur
         sub.prop(rm, "motion_segments")
-
+        row = layout.row()
+        row.enabled = rm.motion_blur
+        row.prop(rm, "sample_motion_blur")
         row = layout.row()
         row.enabled = rm.motion_blur
         row.prop(rm, "shutter_timing")
@@ -479,13 +497,6 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         scene = context.scene
         rm = scene.renderman
 
-        if rm.render_into == 'blender':
-            row = layout.row()
-            row.prop(rm, "update_frequency",
-                     text='Display Update Interval (seconds)')
-            row = layout.row()
-            row.prop(rm, "import_images")
-
         layout.separator()
 
         row = layout.row()
@@ -507,10 +518,6 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row = layout.row()
         row.prop(rm, "pixelfilter_x", text="Size X")
         row.prop(rm, "pixelfilter_y", text="Size Y")
-
-        layout.separator()
-        row = layout.row()
-        row.prop(rm,  "sample_motion_blur")
 
         layout.separator()
         row = layout.row()
@@ -596,7 +603,7 @@ class MATERIAL_PT_renderman_preview(Panel):
         row = layout.row()
         if mat:
             row.template_preview(context.material, show_buttons=1)
-            #if mat.node_tree:
+            # if mat.node_tree:
             #    layout.prop_search(
             #        mat, "node_tree", bpy.data, "node_groups")
 
@@ -647,8 +654,6 @@ class ShaderPanel():
                     rd.engine in {'PRMAN_RENDER'})
 
 
-
-
 class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
     bl_context = "material"
     bl_label = "Bxdf"
@@ -659,10 +664,11 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
         layout = self.layout
         if context.material.renderman and context.material.node_tree:
             nt = context.material.node_tree
-            
+
             if is_renderman_nodetree(mat):
-                panel_node_draw(layout, context, mat, 'RendermanOutputNode', 'Bxdf')
-                #draw_nodes_properties_ui(
+                panel_node_draw(layout, context, mat,
+                                'RendermanOutputNode', 'Bxdf')
+                # draw_nodes_properties_ui(
                 #    self.layout, context, nt, input_name=self.shader_type)
             else:
                 if not panel_node_draw(layout, context, mat, 'ShaderNodeOutputMaterial', 'Surface'):
@@ -890,7 +896,6 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
     bl_context = "world"
     bl_label = "World"
     shader_type = 'world'
-    param_exclude = exclude_lamp_params
 
     def draw(self, context):
         layout = self.layout
@@ -913,7 +918,6 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
     bl_context = "data"
     bl_label = "Lamp"
     shader_type = 'light'
-    param_exclude = exclude_lamp_params
 
     def draw(self, context):
         layout = self.layout
@@ -927,7 +931,8 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
             return
         else:
             if ipr_running:
-                layout.label("Note: Some items cannot be edited while IPR running.")
+                layout.label(
+                    "Note: Some items cannot be edited while IPR running.")
             row = layout.row()
             row.enabled = not ipr_running
             row.prop(lamp.renderman, "renderman_type", expand=True)
@@ -983,7 +988,6 @@ class DATA_PT_renderman_display_filters(CollectionPanel, Panel):
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
 
-
     def draw(self, context):
         layout = self.layout
         scene = context.scene
@@ -1009,7 +1013,6 @@ class DATA_PT_renderman_Sample_filters(CollectionPanel, Panel):
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
 
-
     def draw(self, context):
         layout = self.layout
         scene = context.scene
@@ -1020,24 +1023,27 @@ class DATA_PT_renderman_Sample_filters(CollectionPanel, Panel):
                               "sample_filters_index")
 
 
-class DATA_PT_renderman_node_filters_lamp(ShaderNodePanel, Panel):
+class DATA_PT_renderman_node_filters_lamp(CollectionPanel, Panel):
     bl_label = "Light Filters"
     bl_context = 'data'
+
+    def draw_item(self, layout, context, item):
+        layout.prop(item, 'filter_name')
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "lamp") \
+            and context.lamp is not None and hasattr(context.lamp, 'renderman') \
+            and context.lamp.renderman.renderman_type != 'FILTER'
 
     def draw(self, context):
         layout = self.layout
         lamp = context.lamp
 
-        for lf in lamp.renderman.light_filters:
-            row = layout.row()
-            row.prop(lf, 'filter_name')
-
-        layout.separator()
-        row = layout.row()
-        add = row.operator('collection.add_remove', 'Add Light Filter')
-        add.context = "lamp.renderman"
-        add.collection = 'light_filters'
-        add.collection_index = 'light_filters_index'
+        self._draw_collection(context, layout, lamp.renderman, "Light Filters:",
+                              "collection.add_remove", "lamp", "light_filters",
+                              "light_filters_index")
 
 
 class OBJECT_PT_renderman_object_geometry(Panel):
@@ -1281,7 +1287,6 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
             rm, "raytrace_intersectpriority", text="Intersection Priority")
 
 
-
 class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
     bl_label = "Passes"
     bl_context = "render_layer"
@@ -1300,16 +1305,10 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         #row = layout.row()
         #row.prop(item, "layers")
         col = layout.column()
-        if item.channel_type in ["custom_lpe_string", "custom_aov_string"]:
+        col.prop(item, "aov_name")
+        if item.aov_name == "custom_lpe":
             col.prop(item, "name")
-        col.prop(item, "channel_type")
-        if item.channel_type == "custom_lpe_string":
             col.prop(item, "custom_lpe_string")
-        if item.channel_type == "custom_aov_string":
-            col.prop(item, "custom_aov_type")
-            col.prop(item, "custom_aov_string")
-        if item.channel_type == "built_in_aov":
-            col.prop(item,  "aov_channel_type")
 
         col = layout.column()
         icon = 'DISCLOSURE_TRI_DOWN' if item.show_advanced \
@@ -1319,16 +1318,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row.prop(item, "show_advanced", icon=icon, text="Advanced",
                  icon_only=True, emboss=False)
         if item.show_advanced:
-            if not item.channel_type in ["custom_lpe_string", "built_in_aov", "custom_aov_string",
-                                         "rgba",
-                                         "lpe:C<.D%G>[S]+<L.%LG>",
-                                         "lpe:shadows;C[<.D%G><.S%G>]<L.%LG>", "lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
-                                         "lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
-                                         "lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)"]:
-                col.prop(item, "denoise_aov")
-                if item.denoise_aov:
-                    col.label(
-                        "Denoiseable AOV's cannot be imported into Blender's image editor",  icon='ERROR')
             col.label("Exposure Settings")
             col.prop(item, "exposure_gain")
             col.prop(item, "exposure_gamma")
@@ -1415,8 +1404,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             self._draw_collection(context, layout, rm_rl, "AOVs",
                                   "collection.add_remove", "pass_list",
                                   "custom_aovs", "custom_aov_index")
-
-
 
 
 class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
@@ -1602,6 +1589,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                               "collection.add_remove",
                               "scene.renderman",
                               "light_groups", "light_groups_index", default_name=str(len(rm.light_groups)))
+
     def draw_item(self, layout, context, item):
         scene = context.scene
         rm = scene.renderman
@@ -1639,8 +1627,12 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
             columns.label('Temperature')
 
             for light_name in light_names:
+                if light_name not in scene.objects:
+                    continue
                 lamp = scene.objects[light_name].data
                 lamp_rm = lamp.renderman
+                if lamp_rm.renderman_type =='FILTER':
+                    continue
                 row = box.row()
                 columns = box.column_flow(columns=8)
                 columns.label(light_name)
@@ -1648,7 +1640,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                 columns.prop(lamp_rm, 'mute', text='')
                 light_shader = lamp.renderman.get_light_node()
                 if light_shader:
-                    
+
                     columns.prop(light_shader, 'intensity', text='')
                     columns.prop(light_shader, 'exposure', text='')
                     if light_shader.bl_label == 'PxrEnvDayLight':
@@ -1673,7 +1665,7 @@ class RENDERMAN_LL_LIGHT_list(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
         icon = 'NONE'
-        ll_prefix = "lg_%s>%s" % (rm.ll_light_type[:-1], item.name)
+        ll_prefix = "lg_%s>%s" % (rm.ll_light_type, item.name)
         label = item.name
         for ll in rm.ll.keys():
             if ll_prefix in ll:
@@ -1689,20 +1681,20 @@ class RENDERMAN_LL_OBJECT_list(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
         icon = 'NONE'
-        light_type = rm.ll_light_type[:-1]
+        light_type = rm.ll_light_type
         lg = bpy.data.lamps if light_type == "light" else rm.light_groups
         ll_prefix = "lg_%s>%s>obj_%s>%s" % (
-            light_type, lg[rm.ll_light_index].name, rm.ll_object_type[:-1], item.name)
+            light_type, lg[rm.ll_light_index].name, rm.ll_object_type, item.name)
 
         label = item.name
         if ll_prefix in rm.ll.keys():
             ll = rm.ll[ll_prefix]
             if ll.illuminate == 'DEFAULT':
-                icon = 'TRIA_RIGHT'
+                icon = 'DISCLOSURE_TRI_RIGHT'
             elif ll.illuminate == 'ON':
-                icon = 'TRIA_UP'
+                icon = 'DISCLOSURE_TRI_UP'
             else:
-                icon = 'TRIA_DOWN'
+                icon = 'DISCLOSURE_TRI_DOWN'
 
         layout.alignment = 'CENTER'
         layout.label(label, icon=icon)

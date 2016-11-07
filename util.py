@@ -54,6 +54,9 @@ def clamp(i, low, high):
         i = high
     return i
 
+def throw_error(msg):
+    raise ImportError(msg)
+    #print(msg)
 
 def getattr_recursive(ptr, attrstring):
     for attr in attrstring.split("."):
@@ -229,7 +232,6 @@ def args_files_in_path(prefs, idblock, shader_type='', threaded=True):
 def get_path_list(rm, type):
     paths = []
     if rm.use_default_paths:
-        paths.append('@')
         # here for getting args
         if type == 'args':
             rmantree = guess_rmantree()
@@ -241,6 +243,8 @@ def get_path_list(rm, type):
                          'shaders'))
             paths.append(os.path.join(bpy.utils.resource_path('LOCAL'), 'scripts', 
                         'addons', 'cycles', 'shader'))
+            paths.append(os.path.join('${RMANTREE}', 'lib', 'shaders'))
+        paths.append('@')
 
     if rm.use_builtin_paths:
         paths.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -288,14 +292,14 @@ def get_path_list_converted(rm, type, to_unix=False):
 
 
 def path_win_to_unixy(winpath, escape_slashes=False):
-    if escape_slashes:
-        p = winpath.replace('\\', '\\\\')
-    else:
-        # convert pattern C:\\blah to //C/blah so 3delight can understand
-        p = re.sub(r'([A-Za-z]):\\', r'//\1/', winpath)
-        p = p.replace('\\', '/')
+    #if escape_slashes:
+    #    p = winpath.replace('\\', '\\\\')
+    #else:
+    #    # convert pattern C:\\blah to //C/blah so 3delight can understand
+    #    p = re.sub(r'([A-Za-z]):\\', r'//\1/', winpath)
+    #    p = p.replace('\\', '/')
 
-    return p
+    return winpath
 
 
 # convert ### to frame number
@@ -478,17 +482,22 @@ def check_valid_rmantree(rmantree):
 
 # return the major, minor rman version
 def get_rman_version(rmantree):
-    vstr = rmantree.split('-')[1]
-    vstr = vstr.strip('/\\')
-    major_vers, minor_vers = vstr.split('.')
-    vers_modifier = ''
-    for v in ['b', 'rc']:
-        if v in minor_vers:
-            i = minor_vers.find(v)
-            vers_modifier = minor_vers[i:]
-            minor_vers = minor_vers[:i]
-            break
-    return int(major_vers), int(minor_vers), vers_modifier
+    try:
+        prman = 'prman.exe' if platform.system() == 'Windows' else 'prman'
+        exe = os.path.join(rmantree, 'bin', prman)
+        desc = subprocess.check_output([exe, "-version"], stderr=subprocess.STDOUT)
+        vstr = str(desc,'ascii').split('\n')[0].split()[-1]
+        major_vers, minor_vers = vstr.split('.')
+        vers_modifier = ''
+        for v in ['b', 'rc']:
+            if v in minor_vers:
+                i = minor_vers.find(v)
+                vers_modifier = minor_vers[i:]
+                minor_vers = minor_vers[:i]
+                break
+        return int(major_vers), int(minor_vers), vers_modifier
+    except:
+        return 0,0,''
 
 def get_addon_prefs():
     addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
@@ -497,102 +506,43 @@ def get_addon_prefs():
 def guess_rmantree():
     prefs = get_addon_prefs()
     rmantree_method = prefs.rmantree_method
-    rmantree = None
+    choice = prefs.rmantree_choice
 
     if rmantree_method == 'MANUAL':
         rmantree = prefs.path_rmantree
-    elif rmantree_method == 'ENV':
+    elif rmantree_method == 'ENV' or choice == 'NEWEST':
         rmantree = rmantree_from_env()
     else:
-        rmantree = rmantree_from_env()
-        # get from detected installed
-        if platform.system() == 'Windows':
-            # default installation path
-            # or base = 'C:/Program Files/Pixar'
-            base = r'C:\Program Files\Pixar'
+        rmantree = choice
+    version = get_rman_version(rmantree) # major, minor, mod
 
-        elif platform.system() == 'Darwin':
-            base = '/Applications/Pixar'
+    if choice == 'NEWEST':
 
-        elif platform.system() == 'Linux':
-            base = '/opt/pixar'
-
-        choice = prefs.rmantree_choice
-
-        if choice == 'NEWEST':
-            l_vers_major, l_vers_minor, l_vers_mod  = 0, 0, ''
+        # get from detected installs (at default installation path)
+        try:
+            base = { 'Windows': r'C:\Program Files\Pixar',
+                     'Darwin': '/Applications/Pixar',
+                     'Linux': '/opt/pixar' }[ platform.system() ]
             for d in os.listdir(base):
                 if "RenderManProServer" in d:
-                    vers_major, vers_minor, vers_mod = get_rman_version(d)
-                    if vers_major >= l_vers_major and \
-                        vers_major == 21 and \
-                        (vers_minor > l_vers_minor or \
-                        (vers_minor == l_vers_minor and \
-                        vers_mod >= l_vers_mod)):
-                        l_vers_major, l_vers_minor, l_vers_mod = \
-                            vers_major, vers_minor, vers_mod
-                        rmantree = os.path.join(base, d)
-        else:
-            rmantree = choice
-
-    if not rmantree:
-        print('ERROR!!!  You need RenderMan version 21.0 or above.')
-        print('Correct in User Preferences.')
-        return None
-
-    # check that it's > 20
-    vstr = rmantree.split('-')[-1]
-    vf = float(vstr.strip('/\\'))
-    if vf < 21.0:
-        print('ERROR!!!  You need RenderMan version 21.0 or above.')
-        print('Correct in User Preferences.')
-        return None
+                    d_rmantree = os.path.join(base, d)
+                    d_version = get_rman_version(d_rmantree)
+                    if d_version > version:
+                        rmantree = d_rmantree
+                        version = d_version
+        except:
+            pass
 
     # check rmantree valid
-    if not check_valid_rmantree(rmantree):
-        print("ERROR!!! See RenderMan location in User Preferences.")
-        print("RenderMan Location is set to %s which does not appear valid." % rmantree)
+    if version[0] == 0:
+        throw_error("Error loading addon.  RMANTREE %s is not valid.  Correct RMANTREE setting in addon preferences." % rmantree)
         return None
-    
 
-    return rmantree
+    # check that it's >= 21
+    if version[0] < 21:
+        throw_error("Error loading addon using RMANTREE=%s.  RMANTREE must be version 21.0 or greater.  Correct RMANTREE setting in addon preferences." % rmantree)
+        return None
 
-# we need this for populating preferences
-
-
-def guess_rmantree_initial():
-    # get from detected installed
-    if platform.system() == 'Windows':
-        # default installation path
-        # or base = 'C:/Program Files/Pixar'
-        base = r'C:\Program Files\Pixar'
-
-    elif platform.system() == 'Darwin':
-        base = '/Applications/Pixar'
-
-    elif platform.system() == 'Linux':
-        base = '/opt/pixar'
-
-    rmantree = rmantree_from_env()
-    if rmantree != '':
-        vstr = rmantree.split('-')[-1]
-        vf = float(vstr.strip('/\\'))
-        if vf >= 21.0:
-            return rmantree
-
-    l_vers_major, l_vers_minor, l_vers_mod = 0,0,''
-    for d in os.listdir(base):
-        if "RenderManProServer" in d:
-            vers_major, vers_minor, vers_mod = get_rman_version(d)
-            if vers_major >= l_vers_major and \
-                vers_major == 21 and \
-                (vers_minor > l_vers_minor or \
-                (vers_minor == l_vers_minor and \
-                vers_mod >= l_vers_mod)):
-                l_vers_major, l_vers_minor, l_vers_mod = \
-                    vers_major, vers_minor, vers_mod
-                rmantree = os.path.join(base, d)
-    
     return rmantree
 
 
@@ -610,10 +560,16 @@ def get_installed_rendermans():
         base = '/opt/pixar'
 
     rendermans = []
-    for d in os.listdir(base):
-        if "RenderManProServer" in d:
-            vstr = d.split('-')[1]
-            rendermans.append((vstr, os.path.join(base, d)))
+    try:
+        for d in os.listdir(base):
+            if "RenderManProServer" in d:
+                try:
+                    vstr = d.split('-')[1]
+                    rendermans.append((vstr, os.path.join(base, d)))
+                except:
+                    pass
+    except:
+        pass
 
     return rendermans
 
@@ -658,7 +614,7 @@ def find_local_queue():
             lq = os.path.join(rmantree, 'LocalQueue.exe')
         elif platform.system() == 'Darwin':
             lq = os.path.join(
-                rmantree, 'LocalQueue.app', 'Contents', 'MacOS', 'launch_LocalQueue')
+                rmantree, 'LocalQueue.app', 'Contents', 'MacOS', 'LocalQueue')
         elif platform.system() == 'Linux':
             lq = os.path.join(rmantree, 'LocalQueue')
         if os.path.exists(lq):
@@ -717,6 +673,7 @@ def init_env(rm):
     # init_exporter_env(scene.renderman)
     # try user set (or guessed) path
     RMANTREE = guess_rmantree()
+    os.environ['RMANTREE'] = RMANTREE
     RMANTREE_BIN = os.path.join(RMANTREE, 'bin')
     if RMANTREE_BIN not in sys.path:
         sys.path.append(RMANTREE_BIN)

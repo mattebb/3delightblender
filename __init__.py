@@ -86,37 +86,45 @@ def remove_handlers():
         bpy.app.handlers.scene_update_post.remove(engine.update_timestamp)
 
 
+def load_addon():
+    # if rmantree is ok load the stuff
+    from .util import guess_rmantree, throw_error
+    from . import preferences
+
+    if guess_rmantree():
+        # else display an error, tell user to correct
+        # and don't load anything else
+        from . import ui
+        from . import properties
+        from . import operators
+        from . import nodes
+        # need this now rather than at beginning to make
+        # sure preferences are loaded
+        from . import engine
+        properties.register()
+        operators.register()
+        ui.register()
+        add_handlers(None)
+        nodes.register()
+
+    else:
+        # display loading error
+        throw_error("Error loading addon.  Correct RMANTREE setting in addon preferences.")
+    
+
 def register():
     from . import preferences
     preferences.register()
-    from . import ui
-    from . import properties
-    from . import operators
-    from . import nodes
-    # need this now rather than at beginning to make
-    # sure preferences are loaded
-    from . import engine
-    properties.register()
-    operators.register()
-    ui.register()
-    nodes.register()
+    load_addon()
     bpy.utils.register_module(__name__)
-    add_handlers(None)
-    # if add_handlers not in bpy.app.handlers.load_post:
-    #    bpy.app.handlers.load_post.append(add_handlers)
-
 
 def unregister():
+    from . import preferences
     remove_handlers()
 
-    from . import ui
-    from . import properties
-    from . import operators
-    from . import nodes
-    from . import icons
-    preferences.unregister()
     properties.unregister()
     operators.unregister()
     ui.unregister()
     nodes.unregister()
+    preferences.unregister()
     bpy.utils.unregister_module(__name__)
