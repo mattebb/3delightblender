@@ -1232,9 +1232,25 @@ def vstruct_conditional(node, param):
 
 # Rib export
 
+gains_to_enable = {
+    'diffuseGain': 'enableDiffuse',
+    'specularFaceColor': 'enablePrimarySpecular',
+    'specularEdgeColor': 'enablePrimarySpecular',
+    'roughSpecularFaceColor': 'enableRoughSpecular',
+    'roughSpecularEdgeColor': 'enableRoughSpecular',
+    'clearcoatFaceColor': 'enableClearCoat',
+    'clearcoatEdgeColor': 'enableClearCoat',
+    'iridescenceFaceGain': 'enableIridescence',
+    'iridescenceEdgeGain': 'enableIridescence',
+    'fuzzGain': 'enableFuzz',
+    'subsurfaceGain': 'enableSubsurface',
+    'singlescatterGain': 'enableSingleScatter',
+    'refractionGain': 'enableGlass',
+    'reflectionGain': 'enableGlass',
+    'glowGain': 'enableGlow',
+}
+
 # generate param list
-
-
 def gen_params(ri, node, mat_name=None):
     params = {}
     # If node is OSL node get properties from dynamic location.
@@ -1317,6 +1333,7 @@ def gen_params(ri, node, mat_name=None):
                 # if input socket is linked reference that
                 elif hasattr(node, 'inputs') and prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
+
                     to_socket = node.inputs[prop_name]
                     from_socket = to_socket.links[0].from_socket
                     from_node = to_socket.links[0].from_node
@@ -1351,7 +1368,15 @@ def gen_params(ri, node, mat_name=None):
                     if meta['renderman_type'] in ['struct', 'enum']:
                         continue
 
-                    if 'options' in meta and meta['options'] == 'texture' \
+                    # if this is a gain on PxrSurface and the lobe isn't enabled
+                    if node.bl_idname == 'PxrSurfaceBxdfNode' and \
+                            prop_name in gains_to_enable and \
+                            not getattr(node, gains_to_enable[prop_name]):
+                        val = [0,0,0] if meta['renderman_type'] == 'color' else 0
+                        params['%s %s' % (meta['renderman_type'],
+                                          meta['renderman_name'])] = val
+
+                    elif 'options' in meta and meta['options'] == 'texture' \
                         and node.bl_idname != "PxrPtexturePatternNode" or \
                         ('widget' in meta and meta['widget'] == 'assetIdInput'):
                         params['%s %s' % (meta['renderman_type'],
