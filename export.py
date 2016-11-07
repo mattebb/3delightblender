@@ -668,7 +668,7 @@ def export_transform(ri, instance, flip_x=False, concat=False, flatten=False):
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m2 * m
 
-        if instance.type == 'LAMP' and instance.ob.data.type == 'AREA':
+        if instance.type == 'LAMP' and instance.ob.data.type in ['AREA']:
             m = m.copy()
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m * m2
@@ -681,6 +681,11 @@ def export_transform(ri, instance, flip_x=False, concat=False, flatten=False):
                 m[1][1] *= data.size
                 m[2][2] *= data.size
 
+        if instance.type == 'LAMP' and instance.ob.data.type in ['SPOT']:
+            m = m.copy()
+            m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+            m = m * m2
+        
         if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type == "DIST":
             m = m.copy()
             m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
@@ -720,6 +725,10 @@ def export_object_transform(ri, ob, flip_x=False):
             m[0][0] *= data.size
             m[1][1] *= data.size
             m[2][2] *= data.size
+    if ob.type == 'LAMP' and ob.data.type == 'SPOT':
+        m = m.copy()
+        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+        m = m * m2
     ri.Transform(rib(m))
     ri.ScopedCoordinateSystem(ob.name)
 

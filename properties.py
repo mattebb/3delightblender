@@ -1216,6 +1216,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             light_shader = 'PxrDistantLight'
         elif light_type == 'FILTER':
             light_shader = 'PxrBlockerLightFilter'
+        elif light_type == 'SPOT':
+            light_shader = 'PxrDiskLight'
         elif light_type == 'AREA':
             try:
                 lamp.shape = 'RECTANGLE'
