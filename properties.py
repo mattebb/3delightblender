@@ -269,7 +269,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
 
     channel_name = StringProperty()
 
-    aov_name = EnumProperty(name="AOV's",
+    aov_name = EnumProperty(name="AOV Type",
                             description="",
                             items=aov_list,  update=update_type)
 
@@ -374,8 +374,8 @@ class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
                                      name='Custom AOVs')
     custom_aov_index = IntProperty(min=-1, default=-1)
     camera = StringProperty()
-    object_group = StringProperty()
-    light_group = StringProperty()
+    object_group = StringProperty(name='Object Group')
+    light_group = StringProperty(name='Light Group')
 
     export_multilayer = BoolProperty(
         name="Export Multilayer",

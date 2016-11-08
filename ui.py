@@ -1041,7 +1041,7 @@ class DATA_PT_renderman_node_filters_lamp(CollectionPanel, Panel):
         layout = self.layout
         lamp = context.lamp
 
-        self._draw_collection(context, layout, lamp.renderman, "Light Filters:",
+        self._draw_collection(context, layout, lamp.renderman, "",
                               "collection.add_remove", "lamp", "light_filters",
                               "light_filters_index")
 
@@ -1401,7 +1401,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             col.prop(rl, "use_pass_ambient_occlusion")
         else:
             layout.context_pointer_set("pass_list", rm_rl)
-            self._draw_collection(context, layout, rm_rl, "AOVs",
+            self._draw_collection(context, layout, rm_rl, "",
                                   "collection.add_remove", "pass_list",
                                   "custom_aovs", "custom_aov_index")
 
