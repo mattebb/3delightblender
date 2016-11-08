@@ -115,27 +115,64 @@ def class_generate_properties(node, parent_name, shaderparameters):
     prop_names = []
     prop_meta = {}
     output_meta = {}
-    i = 0
+    
+    # pxr osl and seexpr need these to find the code
+    if parent_name in ["PxrOSL", "PxrSeExpr"]:
+        # Enum for internal, external type selection
+        EnumName = "codetypeswitch"
+        EnumProp = EnumProperty(items=(('EXT', "External", ""),
+                                       ('INT', "Internal", "")),
+                                name="Shader Location", default='INT')
+        EnumMeta = {'renderman_name': 'filename',
+                    'name': 'codetypeswitch',
+                    'renderman_type': 'string',
+                    'default': '', 'label': 'codetypeswitch',
+                    'type': 'enum', 'options': '',
+                    'widget': 'mapper', '__noconnection': True}
+        setattr(node, EnumName, EnumProp)
+        prop_names.append(EnumName)
+        prop_meta[EnumName] = EnumMeta
+        # Internal file search prop
+        InternalName = "internalSearch"
+        InternalProp = StringProperty(name="Shader to use",
+                                      description="Storage space for internal text data block",
+                                      default="")
+        InternalMeta = {'renderman_name': 'filename',
+                        'name': 'internalSearch',
+                        'renderman_type': 'string',
+                        'default': '', 'label': 'internalSearch',
+                        'type': 'string', 'options': '',
+                        'widget': 'fileinput', '__noconnection': True}
+        setattr(node, InternalName, InternalProp)
+        prop_names.append(InternalName)
+        prop_meta[InternalName] = InternalMeta
+        # External file prop
+        codeName = "shadercode"
+        codeProp = StringProperty(name='External File', default='',
+                                  subtype="FILE_PATH", description='')
+        codeMeta = {'renderman_name': 'filename',
+                    'name': 'ShaderCode', 'renderman_type': 'string',
+                    'default': '', 'label': 'ShaderCode',
+                    'type': 'string', 'options': '',
+                    'widget': 'fileinput', '__noconnection': True}
+        setattr(node, codeName, codeProp)
+        prop_names.append(codeName)
+        prop_meta[codeName] = codeMeta
 
     for sp in shaderparameters:
         if sp.tag == 'page':
-            if parent_name == "PxrOSL" or parent_name == "PxrSeExpr":
-                pass
-            else:
-                page_name = sp.attrib['name']
-                first_level = parent_name == 'PxrSurface' and 'Globals' not in page_name
-                sub_prop_names, sub_params_meta = generate_page(
-                    sp, node, page_name, first_level=first_level)
-                prop_names.append(page_name)
-                prop_meta[page_name] = {'renderman_type': 'page'}
-                ui_label = "%s_ui_open" % page_name
-                setattr(node, ui_label, BoolProperty(name=ui_label,
-                                                     default=False))
-                prop_meta.update(sub_params_meta)
-                setattr(node, page_name, sub_prop_names)
+            page_name = sp.attrib['name']
+            first_level = parent_name == 'PxrSurface' and 'Globals' not in page_name
+            sub_prop_names, sub_params_meta = generate_page(
+                sp, node, page_name, first_level=first_level)
+            prop_names.append(page_name)
+            prop_meta[page_name] = {'renderman_type': 'page'}
+            ui_label = "%s_ui_open" % page_name
+            setattr(node, ui_label, BoolProperty(name=ui_label,
+                                                 default=False))
+            prop_meta.update(sub_params_meta)
+            setattr(node, page_name, sub_prop_names)
 
-                # for i in range(len(sub_param_names)):
-                #     
         elif sp.tag == 'output':
             tag = sp.find('*/tag')
             renderman_type = tag.attrib['value']
@@ -143,82 +180,31 @@ def class_generate_properties(node, parent_name, shaderparameters):
             output_meta[sp.attrib['name']] = sp.attrib
             output_meta[sp.attrib['name']]['renderman_type'] = renderman_type
         else:
-            if (parent_name == "PxrOSL" and i == 0) or (parent_name == "PxrSeExpr" and i == 0):
-                # Enum for internal, external type selection
-                EnumName = "codetypeswitch"
-                EnumProp = EnumProperty(items=(('EXT', "External", ""),
-                                               ('INT', "Internal", "")),
-                                        name="Shader Location", default='INT')
-                EnumMeta = {'renderman_name': 'filename',
-                            'name': 'codetypeswitch',
-                            'renderman_type': 'string',
-                            'default': '', 'label': 'codetypeswitch',
-                            'type': 'enum', 'options': '',
-                            'widget': 'mapper', 'connectable': 'false'}
-                setattr(node, EnumName, EnumProp)
-                prop_names.append(EnumName)
-                prop_meta[EnumName] = EnumMeta
-                # Internal file search prop
-                InternalName = "internalSearch"
-                InternalProp = StringProperty(name="Shader to use",
-                                              description="Storage space for internal text data block",
-                                              default="")
-                InternalMeta = {'renderman_name': 'filename',
-                                'name': 'internalSearch',
-                                'renderman_type': 'string',
-                                'default': '', 'label': 'internalSearch',
-                                'type': 'string', 'options': '',
-                                'widget': 'fileinput', 'connectable': 'false'}
-                setattr(node, InternalName, InternalProp)
-                prop_names.append(InternalName)
-                prop_meta[InternalName] = InternalMeta
-                # External file prop
-                codeName = "shadercode"
-                codeProp = StringProperty(name='External File', default='',
-                                          subtype="FILE_PATH", description='')
-                codeMeta = {'renderman_name': 'filename',
-                            'name': 'ShaderCode', 'renderman_type': 'string',
-                            'default': '', 'label': 'ShaderCode',
-                            'type': 'string', 'options': '',
-                            'widget': 'fileinput', 'connectable': 'false'}
-                setattr(node, codeName, codeProp)
-                prop_names.append(codeName)
-                prop_meta[codeName] = codeMeta
-                if parent_name == "PxrSeExpr":
-                    name, meta, prop = generate_property(sp)
-                    prop_names.append(name)
-                    prop_meta[name] = meta
-                    setattr(node, name, prop)
-                # else:
-                 #   getLocation = bpy.context.scene.OSLProps
-                #    mataterial =
-                #    for
-                #    setattr(node, name, prop)
-            else:
-                name, meta, prop = generate_property(sp)
-                if name is None:
-                    continue
-                prop_names.append(name)
-                prop_meta[name] = meta
-                setattr(node, name, prop)
-                # If a texture is involved and not an environment texture add
-                # options
-                if name == "filename":
-                    optionsNames, optionsMeta, optionsProps = \
-                        generate_txmake_options(parent_name)
-                    # make texoptions hider
-                    prop_names.append("TxMake Options")
-                    prop_meta["TxMake Options"] = {'renderman_type': 'page'}
-                    setattr(node, "TxMake Options", optionsNames)
-                    ui_label = "%s_ui_open" % "TxMake Options"
-                    setattr(node, ui_label, BoolProperty(name=ui_label,
-                                                         default=False))
-                    prop_meta.update(optionsMeta)
-                    for Texname in optionsNames:
-                        setattr(
-                            node, Texname + "_ui_open", optionsProps[Texname])
-                        setattr(node, Texname, optionsProps[Texname])
-        i += 1
+            
+            name, meta, prop = generate_property(sp)
+            if name is None:
+                continue
+            prop_names.append(name)
+            prop_meta[name] = meta
+            setattr(node, name, prop)
+            # If a texture is involved and not an environment texture add
+            # options
+            if name == "filename":
+                optionsNames, optionsMeta, optionsProps = \
+                    generate_txmake_options(parent_name)
+                # make texoptions hider
+                prop_names.append("TxMake Options")
+                prop_meta["TxMake Options"] = {'renderman_type': 'page'}
+                setattr(node, "TxMake Options", optionsNames)
+                ui_label = "%s_ui_open" % "TxMake Options"
+                setattr(node, ui_label, BoolProperty(name=ui_label,
+                                                     default=False))
+                prop_meta.update(optionsMeta)
+                for Texname in optionsNames:
+                    setattr(
+                        node, Texname + "_ui_open", optionsProps[Texname])
+                    setattr(node, Texname, optionsProps[Texname])
+    
     setattr(node, 'prop_names', prop_names)
     setattr(node, 'prop_meta', prop_meta)
     setattr(node, 'output_meta', output_meta)

@@ -614,7 +614,7 @@ def find_local_queue():
             lq = os.path.join(rmantree, 'LocalQueue.exe')
         elif platform.system() == 'Darwin':
             lq = os.path.join(
-                rmantree, 'LocalQueue.app', 'Contents', 'MacOS', 'launch_LocalQueue')
+                rmantree, 'LocalQueue.app', 'Contents', 'MacOS', 'LocalQueue')
         elif platform.system() == 'Linux':
             lq = os.path.join(rmantree, 'LocalQueue')
         if os.path.exists(lq):

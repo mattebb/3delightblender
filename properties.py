@@ -1216,6 +1216,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             light_shader = 'PxrDistantLight'
         elif light_type == 'FILTER':
             light_shader = 'PxrBlockerLightFilter'
+        elif light_type == 'SPOT':
+            light_shader = 'PxrDiskLight'
         elif light_type == 'AREA':
             try:
                 lamp.shape = 'RECTANGLE'
@@ -1766,13 +1768,6 @@ class RendermanParticlePrimVar(bpy.types.PropertyGroup):
                ('LIFE_TIME', 'Lifetime', '')
                ]   # XXX: Would be nice to have particle ID, needs adding in RNA
     )
-
-
-class oslProps(bpy.types.PropertyGroup):
-    shaderString = StringProperty(
-        name="Shader",
-        description="OSL shader to use",
-        default="")
 
 
 class RendermanParticleSettings(bpy.types.PropertyGroup):
