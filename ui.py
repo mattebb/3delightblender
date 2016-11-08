@@ -2183,7 +2183,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
         if lamp_area:
 
             row.prop(context.scene, "rm_area", text="",
-                     icon='DISCLOSURE_TRI_UP' if context.scene.rm_area else 'DISCLOSURE_TRI_DOWN')
+                     icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_area else 'DISCLOSURE_TRI_RIGHT')
 
             if context.scene.rm_area:
                 ob = bpy.context.object
