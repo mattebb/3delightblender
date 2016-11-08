@@ -1854,7 +1854,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                      icon_value=rman_render.icon_id)
 
         row.prop(context.scene, "rm_render", text="",
-                 icon='TRIA_UP' if context.scene.rm_render else 'TRIA_DOWN')
+                 icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_render else 'DISCLOSURE_TRI_RIGHT')
 
         if context.scene.rm_render:
             scene = context.scene
@@ -1947,7 +1947,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                          icon_value=rman_rerender_controls.icon_id)
 
             row.prop(context.scene, "rm_ipr", text="",
-                     icon='TRIA_UP' if context.scene.rm_ipr else 'TRIA_DOWN')
+                     icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_ipr else 'DISCLOSURE_TRI_RIGHT')
 
             if context.scene.rm_ipr:
 
@@ -2033,7 +2033,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                      text="Add Camera", icon='CAMERA_DATA')
 
         row.prop(context.scene, "prm_cam", text="",
-                 icon= 'TRIA_UP' if context.scene.prm_cam else 'TRIA_DOWN')
+                 icon= 'DISCLOSURE_TRI_DOWN' if context.scene.prm_cam else 'DISCLOSURE_TRI_RIGHT')
 
         if context.scene.prm_cam:
             ob = bpy.context.object
