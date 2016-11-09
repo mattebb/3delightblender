@@ -1617,10 +1617,10 @@ def get_node_name(node, mat_name):
 
 def get_socket_name(node, socket):
     if type(socket) == dict:
-        return socket['name']
+        return socket['name'].replace(' ', '')
     # if this is a renderman node we can just use the socket name,
     else:
-        return socket.identifier
+        return socket.identifier.replace(' ', '')
 
 
 def get_socket_type(node, socket):
