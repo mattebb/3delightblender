@@ -135,6 +135,10 @@ def convert_node_group(nt, cycles_node, rman_node):
     rman_nt = bpy.data.node_groups.new(rman_node.name, 'ShaderNodeTree')
     rman_node.node_tree = rman_nt
     cycles_nt = cycles_node.node_tree
+    # save converted nodes to temp
+    global converted_nodes
+    temp_converted_nodes = converted_nodes
+    converted_nodes = {}
 
     # create the output node
     cycles_output_node = next((n for n in cycles_nt.nodes if n.bl_idname == 'NodeGroupOutput'), None)
@@ -163,7 +167,7 @@ def convert_node_group(nt, cycles_node, rman_node):
         for input in cycles_output_node.inputs:
             convert_cycles_input(rman_nt, input, rman_output_node, input.name)
 
-
+    converted_nodes = temp_converted_nodes
     # find the output node
     #cycles_output_node = next((n for n in cycles_nt.nodes if n.bl_idname == 'NodeGroupOutput'), None)
     #if cycles_output_node:
