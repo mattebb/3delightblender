@@ -180,7 +180,7 @@ def convert_node_group(nt, cycles_node, rman_node):
     return
 
 def convert_bump_node(nt, cycles_node, rman_node):
-    convert_cycles_input(nt, cycles_node.inputs['Strength'], rman_node, 'bumpScale')
+    convert_cycles_input(nt, cycles_node.inputs['Strength'], rman_node, 'scale')
     convert_cycles_input(nt, cycles_node.inputs['Height'], rman_node, 'inputBump')
     convert_cycles_input(nt, cycles_node.inputs['Normal'], rman_node, 'inputN')
     return
@@ -191,7 +191,7 @@ def convert_normal_map_node(nt, cycles_node, rman_node):
     return
 
 def copy_cycles_node(nt, cycles_node, rman_node):
-    print("copying %s node" % cycles_node.bl_idname)
+    #print("copying %s node" % cycles_node.bl_idname)
     # TODO copy props
     for input in cycles_node.inputs:
         convert_cycles_input(nt, input, rman_node, input.name)

@@ -14,6 +14,7 @@ v21.2.0 11/8/16
 * Support for all Projection plugins (VR rendering with OmniDirectional!) under the camera props.
 * Icons are updated to renderman 21 icons.
 * Render checkpointing and recovery are now supported with external rendering.
+* Fix for external rendering with spaces in the filename.
 * Thanks to rgordon, aek, jdent02, jdbener for contributions.
 
 
