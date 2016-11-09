@@ -93,7 +93,7 @@ def generate_page(sp, node, parent_name, first_level=False):
                 optionsNames, optionsMeta, optionsProps = \
                     generate_txmake_options(parent_name)
                 # make texoptions hider
-                prop_names.append("Txmake Options")
+                prop_names.append("TxMake Options")
                 prop_meta["TxMake Options"] = {'renderman_type': 'page'}
                 setattr(node, "TxMake Options", optionsNames)
                 ui_label = "%s_ui_open" % "TxMake Options"
