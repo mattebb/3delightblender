@@ -1749,7 +1749,7 @@ def translate_cycles_node(ri, node, mat_name):
         
         for i in range(ramp_size):
             v = float(i)/(ramp_size - 1.0)
-            colors.extend([r.evaluate(val), g.evaluate(val), b.evaluate(val)])
+            colors.extend([r.evaluate(v), g.evaluate(v), b.evaluate(v)])
 
         params['color[%d] ramp' % ramp_size] = colors
 
@@ -1762,8 +1762,8 @@ def translate_cycles_node(ri, node, mat_name):
         
         for i in range(ramp_size):
             v = float(i)/(ramp_size - 1.0)
-            c_val = c.evaluate(val)
-            colors.extend([r.evaluate(val)*c_val, g.evaluate(val)* c_val, b.evaluate(val)* c_val])
+            c_val = c.evaluate(v)
+            colors.extend([r.evaluate(v)*c_val, g.evaluate(v)* c_val, b.evaluate(v)* c_val])
 
         params['color[%d] ramp' % ramp_size] = colors
         

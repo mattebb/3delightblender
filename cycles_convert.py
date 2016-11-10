@@ -40,6 +40,14 @@ def convert_cycles_node(nt, node, location=None):
         convert_node_group(nt, node, rman_node)
         converted_nodes[node.name] = rman_node.name
         return rman_node
+    elif node_type in ['ShaderNodeRGBCurve', 'ShaderNodeVectorCurve']:
+        node_name = node.bl_idname
+        rman_node = nt.nodes.new(node_name)
+        if location:
+            rman_node.location = location
+        convert_rgb_curve_node(nt, node, rman_node)
+        converted_nodes[node.name] = rman_node.name
+        return rman_node
     elif node_type in node_map.keys():
         rman_name, convert_func = node_map[node_type]
         node_name = rman_name + 'PatternNode'
@@ -212,6 +220,19 @@ def convert_ramp_node(nt, cycles_node, rman_node):
         new_e.alpha = e.alpha
         new_e.color = e.color
 
+    return
+
+# this needs a special case to init the stuff
+def convert_rgb_curve_node(nt, cycles_node, rman_node):
+    for input in cycles_node.inputs:
+        convert_cycles_input(nt, input, rman_node, input.name)
+
+    rman_node.mapping.initialize()
+    for i,mapping in cycles_node.mapping.curves.items():
+    #    new_map = rman_node.mapping.curves.new()
+        new_map = rman_node.mapping.curves[i]
+        for p in mapping.points:
+            new_map.points.new(p.location[0], p.location[1])
     return
 
 def copy_cycles_node(nt, cycles_node, rman_node):
