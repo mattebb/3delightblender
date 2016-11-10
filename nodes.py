@@ -1621,6 +1621,10 @@ def get_socket_name(node, socket):
         return socket['name'].replace(' ', '')
     # if this is a renderman node we can just use the socket name,
     else:
+        if not hasattr('node', 'plugin_name'):
+            if socket.name in node.inputs and socket.name in node.outputs:
+                suffix = 'Out' if socket.is_output else 'In'
+                return socket.name.replace(' ', '') + suffix
         return socket.identifier.replace(' ', '')
 
 
@@ -1743,6 +1747,7 @@ def translate_cycles_node(ri, node, mat_name):
         params['float[%d] ramp_alpha' % ramp_size] = alphas
     elif node.bl_idname == 'ShaderNodeVectorCurve':
         colors = []
+        node.mapping.initialize()
         r = node.mapping.curves[0]
         g = node.mapping.curves[1]
         b = node.mapping.curves[2]
@@ -1755,6 +1760,7 @@ def translate_cycles_node(ri, node, mat_name):
 
     elif node.bl_idname == 'ShaderNodeRGBCurve':
         colors = []
+        node.mapping.initialize()
         c = node.mapping.curves[0]
         r = node.mapping.curves[1]
         g = node.mapping.curves[2]
