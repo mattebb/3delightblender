@@ -1176,7 +1176,8 @@ def get_val_vstruct(node, param):
 
 
 def vstruct_conditional(node, param):
-
+    if not hasattr(node, 'shader_meta') and not hasattr(node, 'output_meta'):
+        return False
     meta = getattr(
         node, 'shader_meta') if node.bl_idname == "PxrOSLPatternNode" else node.output_meta
     if param not in meta:
@@ -1729,6 +1730,43 @@ def translate_cycles_node(ri, node, mat_name):
 
         params[param_name] = param_val
 
+    ramp_size = 256
+    if node.bl_idname == 'ShaderNodeValToRGB':
+        colors = []
+        alphas = []
+        
+        for i in range(ramp_size):
+            c = node.color_ramp.evaluate(float(i)/(ramp_size - 1.0))
+            colors.extend(c[:3])
+            alphas.append(c[3])
+        params['color[%d] ramp_color' % ramp_size] = colors
+        params['float[%d] ramp_alpha' % ramp_size] = alphas
+    elif node.bl_idname == 'ShaderNodeVectorCurve':
+        colors = []
+        r = node.mapping.curves[0]
+        g = node.mapping.curves[1]
+        b = node.mapping.curves[2]
+        
+        for i in range(ramp_size):
+            v = float(i)/(ramp_size - 1.0)
+            colors.extend([r.evaluate(val), g.evaluate(val), b.evaluate(val)])
+
+        params['color[%d] ramp' % ramp_size] = colors
+
+    elif node.bl_idname == 'ShaderNodeRGBCurve':
+        colors = []
+        c = node.mapping.curves[0]
+        r = node.mapping.curves[1]
+        g = node.mapping.curves[2]
+        b = node.mapping.curves[3]
+        
+        for i in range(ramp_size):
+            v = float(i)/(ramp_size - 1.0)
+            c_val = c.evaluate(val)
+            colors.extend([r.evaluate(val)*c_val, g.evaluate(val)* c_val, b.evaluate(val)* c_val])
+
+        params['color[%d] ramp' % ramp_size] = colors
+        
     #print('doing %s %s' % (node.bl_idname, node.name))
     # print(params)
     ri.Pattern(mapping, get_node_name(node, mat_name), params)

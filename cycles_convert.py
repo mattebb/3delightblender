@@ -190,6 +190,30 @@ def convert_normal_map_node(nt, cycles_node, rman_node):
     convert_cycles_input(nt, cycles_node.inputs['Color'], rman_node, 'inputRGB')
     return
 
+def convert_ramp_node(nt, cycles_node, rman_node):
+    convert_cycles_input(nt, cycles_node.inputs['Fac'], rman_node, 'splineMap')
+    actual_ramp = bpy.data.node_groups[rman_node.node_group].nodes[0]
+    actual_ramp.color_ramp.interpolation = cycles_node.color_ramp.interpolation
+    
+    elms = actual_ramp.color_ramp.elements
+    
+    e = cycles_node.color_ramp.elements[0]
+    elms[0].alpha = e.alpha
+    elms[0].position = e.position
+    elms[0].color = e.color
+
+    e = cycles_node.color_ramp.elements[-1]
+    elms[-1].alpha = e.alpha
+    elms[-1].position = e.position
+    elms[-1].color = e.color
+
+    for e in cycles_node.color_ramp.elements[1:-1]:
+        new_e = actual_ramp.color_ramp.elements.new(e.position)
+        new_e.alpha = e.alpha
+        new_e.color = e.color
+
+    return
+
 def copy_cycles_node(nt, cycles_node, rman_node):
     #print("copying %s node" % cycles_node.bl_idname)
     # TODO copy props
@@ -319,22 +343,11 @@ bsdf_map = {
 # we only convert the important shaders, all others are copied from cycles osl
 node_map = {
     'ShaderNodeTexImage': ('PxrTexture', convert_tex_image_node),
-    #'ShaderNodeTexCoord': ('PxrManifold2D', convert_tex_coord_node),
-    #'ShaderNodeRGBToBW': ('PxrToFloat', convert_rgb_to_bw_node),
     'ShaderNodeMixRGB': ('PxrBlend', convert_mix_rgb_node),
-    #'ShaderNodeTexVoronoi': ('PxrVoronoise', convert_voronoi_node),
     'ShaderNodeNormalMap': ('PxrNormalMap', convert_normal_map_node),
     'ShaderNodeGroup': ('PxrNodeGroup', convert_node_group),
-    'ShaderNodeBump': ('PxrBump', convert_bump_node)
-    #'ShaderNodeHueSaturation': ('PxrHSL', convert_hsv_node),
-    #'ShaderNodeTexNoise': ('copy', copy_cycles_node),
-    #'ShaderNodeLayerWeight': ('copy', copy_cycles_node),
-    #'ShaderNodeBrightContrast': ('copy', copy_cycles_node),
-    #'ShaderNodeMath': ('copy', copy_cycles_node),
-    #'ShaderNodeFresnel': ('copy', copy_cycles_node),
-    #'ShaderNodeMapping': ('copy', copy_cycles_node),
-    #TODO switch val to rgb to pxr ramp
-    #'ShaderNodeValToRGB': ('copy', copy_cycles_node),
+    'ShaderNodeBump': ('PxrBump', convert_bump_node),
+    'ShaderNodeValToRGB': ('PxrRamp', convert_ramp_node),
     #'ShaderNodeRGBCurve': ('copy', copy_cycles_node),
 }
 
