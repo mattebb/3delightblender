@@ -1690,9 +1690,9 @@ class RENDERMAN_LL_OBJECT_list(bpy.types.UIList):
         if ll_prefix in rm.ll.keys():
             ll = rm.ll[ll_prefix]
             if ll.illuminate == 'DEFAULT':
-                icon = 'DISCLOSURE_TRI_RIGHT'
+                icon = 'TRIA_RIGHT'
             elif ll.illuminate == 'ON':
-                icon = 'DISCLOSURE_TRI_UP'
+                icon = 'DISCLOSURE_TRI_RIGHT'
             else:
                 icon = 'DISCLOSURE_TRI_DOWN'
 

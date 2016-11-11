@@ -863,6 +863,10 @@ def export_light(ri, instance):
             # check if solo
             do_light = do_light and rm.solo
         ri.Illuminate(lamp.name, do_light)
+        for lf in rm.light_filters:
+            if lf.filter_name in bpy.data.objects:
+                filter = bpy.data.objects[lf.filter_name].data
+                ri.EnableLightFilter(lamp.name, filter.name, filter.renderman.illuminates_by_default)
 
 
 def export_material(ri, mat, handle=None, iterate_instance=False):

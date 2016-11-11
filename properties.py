@@ -1327,7 +1327,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             self.id_data.shape = 'RECTANGLE'
         else:
             self.id_data.id_data.type = 'POINT'
-            self.update_filter_shape()
+            if self.filter_type != 'intmult':
+                self.update_filter_shape()
         if self.filter_type in ['blocker', 'ramp', 'rod']:
             lamp = context.lamp
             if not lamp.use_nodes:

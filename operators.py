@@ -173,6 +173,8 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 lamp.size = 1.0
                 lamp.size_y = 1.0
 
+            lamp.renderman.primary_visibility = lamp.use_nodes
+
             lamp.renderman.use_renderman_node = True
 
         return {'FINISHED'}
