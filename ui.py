@@ -341,6 +341,9 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         row.prop(rm, 'enable_checkpoint')
         row = col.row()
         row.enabled = rm.enable_checkpoint
+        row.prop(rm, 'asfinal')
+        row = col.row()
+        row.enabled = rm.enable_checkpoint
         row.prop(rm, 'checkpoint_type')
         row = col.row(align=True)
         row.enabled = rm.enable_checkpoint
