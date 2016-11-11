@@ -334,9 +334,8 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 prop = getattr(self, "internalSearch")
                 layout.prop_search(
                     self, "internalSearch", bpy.data, "texts", text="")
-            elif getattr(self, "codetypeswitch") == 'EXT':
-                prop = getattr(self, "shadercode")
-                layout.prop(self, "shadercode")
+            elif getattr(self, "codetypeswitch") == 'NODE':
+                layout.prop(self, "expression")
         else:
             # temp until we can create ramps natively
             if self.plugin_name == 'PxrRamp':
@@ -1284,16 +1283,8 @@ def gen_params(ri, node, mat_name=None):
                                       "expression")] = \
                         rib(script.as_string(),
                             type_hint=meta['renderman_type'])
-            elif prop_name == "shadercode" and fileInputType == "EXT":
-                fileInput = user_path(getattr(node, 'shadercode'))
-                if fileInput != "":
-                    outputString = ""
-                    with open(fileInput, encoding='utf-8') as SeExprFile:
-                        for line in SeExprFile:
-                            outputString += line
-                    params['%s %s' % ("string",
-                                      "expression")] = \
-                        rib(outputString, type_hint=meta['renderman_type'])
+            elif prop_name == "shadercode" and fileInputType == "NODE":
+                params['%s %s' % ("string", "expression")] = node.expression
             else:
                 prop = getattr(node, prop_name)
                 # if input socket is linked reference that

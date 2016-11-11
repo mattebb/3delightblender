@@ -166,7 +166,7 @@ def convert_node_group(nt, cycles_node, rman_node):
         #tree outputs
         for tree_input in cycles_nt.inputs:
             input_type = tree_input.__class__.__name__.replace('Interface', '')
-            rman_nt.input.new(input_type, tree_input.name)
+            rman_nt.inputs.new(input_type, tree_input.name)
         
         converted_nodes[cycles_input_node.name] = rman_input_node.name
     
@@ -219,6 +219,41 @@ def convert_ramp_node(nt, cycles_node, rman_node):
         new_e = actual_ramp.color_ramp.elements.new(e.position)
         new_e.alpha = e.alpha
         new_e.color = e.color
+
+    return
+
+math_map = {
+    'ADD': 'floatInput1 + floatInput2',
+    'SUBTRACT': 'floatInput1 - floatInput2',
+    'MULTIPLY': 'floatInput1 * floatInput2',
+    'DIVIDE': 'floatInput1 / floatInput2',
+    'SINE': 'sin(floatInput1)',
+    'COSINE': 'cos(floatInput1)',
+    'TANGENT': 'tan(floatInput1)',
+    'ARCSINE': 'asin(floatInput1)',
+    'ARCCOSINE': 'acos(floatInput1)',
+    'ARCTANGENT': 'atan(floatInput1)',
+    'POWER': 'floatInput1 ^ floatInput2',
+    'LOGARITHM': 'log(floatInput1)',
+    'MINIMUM': 'floatInput1 < floatInput2 ? floatInput1 : floatInput2',
+    'MAXIMUM': 'floatInput1 > floatInput2 ? floatInput1 : floatInput2',
+    'ROUND': 'round(floatInput1)',
+    'LESS_THAN': 'floatInput1 < floatInput2',
+    'GREATER_THAN': 'floatInput1 < floatInput2',
+    'MODULO': 'floatInput1 % floatInput2',
+    'ABSOLUTE': 'abs(floatInput1)',
+}
+
+def convert_math_node(nt, cycles_node, rman_node):
+    convert_cycles_input(nt, cycles_node.inputs[0], rman_node, 'floatInput1')
+    convert_cycles_input(nt, cycles_node.inputs[1], rman_node, 'floatInput2')
+
+    op = cycles_node.operation
+    clamp = cycles_node.use_clamp
+    expr = math_map[op]
+    if clamp:
+        expr = 'clamp((%s), 0, 1)' % expr
+    rman_node.expression = expr
 
     return
 
@@ -369,6 +404,7 @@ node_map = {
     'ShaderNodeGroup': ('PxrNodeGroup', convert_node_group),
     'ShaderNodeBump': ('PxrBump', convert_bump_node),
     'ShaderNodeValToRGB': ('PxrRamp', convert_ramp_node),
+    'ShaderNodeMath': ('PxrSeExpr', convert_math_node),
     #'ShaderNodeRGBCurve': ('copy', copy_cycles_node),
 }
 

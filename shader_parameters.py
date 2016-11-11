@@ -120,9 +120,15 @@ def class_generate_properties(node, parent_name, shaderparameters):
     if parent_name in ["PxrOSL", "PxrSeExpr"]:
         # Enum for internal, external type selection
         EnumName = "codetypeswitch"
-        EnumProp = EnumProperty(items=(('EXT', "External", ""),
+        if parent_name == 'PxrOSL':
+            EnumProp = EnumProperty(items=(('EXT', "External", ""),
                                        ('INT', "Internal", "")),
-                                name="Shader Location", default='INT')
+                                    name="Shader Location", default='INT')
+        else:
+            EnumProp = EnumProperty(items=(('NODE', "Node", ""),
+                                       ('INT', "Internal", "")),
+                                    name="Expr Location", default='NODE')
+
         EnumMeta = {'renderman_name': 'filename',
                     'name': 'codetypeswitch',
                     'renderman_type': 'string',
