@@ -2694,6 +2694,8 @@ def export_options(ri, scene):
               'int texturememory': rm.texture_cache_size * 100,
               }
     ri.Option("limits", params)
+    if rm.asfinal:
+        ri.Option("checkpoint", {"int asfinal": 1})
     ri.Option("searchpath", {"string procedural": [
               ".:${RMANTREE}/lib/plugins:@"]})
 
