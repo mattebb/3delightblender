@@ -729,6 +729,8 @@ class RPass:
         self.ri.End()
         self.material_dict = {}
         self.lights = {}
+        self.light_filter_map = {}
+        self.instance_dict = {}
         pass
 
     def gen_rib(self, engine=None, convert_textures=True):

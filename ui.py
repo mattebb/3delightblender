@@ -1041,7 +1041,7 @@ class DATA_PT_renderman_node_filters_lamp(CollectionPanel, Panel):
         layout = self.layout
         lamp = context.lamp
 
-        self._draw_collection(context, layout, lamp.renderman, "Light Filters:",
+        self._draw_collection(context, layout, lamp.renderman, "",
                               "collection.add_remove", "lamp", "light_filters",
                               "light_filters_index")
 
@@ -1401,7 +1401,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             col.prop(rl, "use_pass_ambient_occlusion")
         else:
             layout.context_pointer_set("pass_list", rm_rl)
-            self._draw_collection(context, layout, rm_rl, "AOVs",
+            self._draw_collection(context, layout, rm_rl, "",
                                   "collection.add_remove", "pass_list",
                                   "custom_aovs", "custom_aov_index")
 
@@ -1854,7 +1854,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                      icon_value=rman_render.icon_id)
 
         row.prop(context.scene, "rm_render", text="",
-                 icon='TRIA_UP' if context.scene.rm_render else 'TRIA_DOWN')
+                 icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_render else 'DISCLOSURE_TRI_RIGHT')
 
         if context.scene.rm_render:
             scene = context.scene
@@ -1947,7 +1947,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                          icon_value=rman_rerender_controls.icon_id)
 
             row.prop(context.scene, "rm_ipr", text="",
-                     icon='DISCLOSURE_TRI_UP' if context.scene.rm_ipr else 'DISCLOSURE_TRI_DOWN')
+                     icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_ipr else 'DISCLOSURE_TRI_RIGHT')
 
             if context.scene.rm_ipr:
 
@@ -2033,7 +2033,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                      text="Add Camera", icon='CAMERA_DATA')
 
         row.prop(context.scene, "prm_cam", text="",
-                 icon='DISCLOSURE_TRI_UP' if context.scene.prm_cam else 'DISCLOSURE_TRI_DOWN')
+                 icon= 'DISCLOSURE_TRI_DOWN' if context.scene.prm_cam else 'DISCLOSURE_TRI_RIGHT')
 
         if context.scene.prm_cam:
             ob = bpy.context.object
@@ -2183,7 +2183,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
         if lamp_area:
 
             row.prop(context.scene, "rm_area", text="",
-                     icon='DISCLOSURE_TRI_UP' if context.scene.rm_area else 'DISCLOSURE_TRI_DOWN')
+                     icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_area else 'DISCLOSURE_TRI_RIGHT')
 
             if context.scene.rm_area:
                 ob = bpy.context.object
