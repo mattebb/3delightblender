@@ -1316,7 +1316,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                 if name in ob.name:
                     return ob
                 else:
-                    self.remove_filter_geo
+                    self.remove_filter_geo()
                     return self.add_filter_geo(name)
         return self.add_filter_geo(name)
 
