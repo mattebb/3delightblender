@@ -1153,6 +1153,17 @@ def is_vstruct_and_linked(node, param):
         vstruct_name, vstruct_member = meta['vstructmember'].split('.')
         if node.inputs[vstruct_name].is_linked:
             from_socket = node.inputs[vstruct_name].links[0].from_socket
+            # if coming from a shader group hookup across that
+            if from_socket.node.bl_idname == 'ShaderNodeGroup':
+                ng = from_socket.node.node_tree
+                group_output = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
+                               None)
+                if group_output is None:
+                    return False
+
+                in_sock = group_output.inputs[from_socket.name]
+                if len(in_sock.links):
+                    from_socket = in_sock.links[0].from_socket
             vstruct_from_param = "%s_%s" % (
                 from_socket.identifier, vstruct_member)
             return vstruct_conditional(from_socket.node, vstruct_from_param)
@@ -1304,6 +1315,7 @@ def gen_params(ri, node, mat_name=None):
 
 
     else:
+
         for prop_name, meta in node.prop_meta.items():
             if prop_name in txmake_options.index:
                 pass
@@ -1340,6 +1352,18 @@ def gen_params(ri, node, mat_name=None):
                         'vstructmember'].split('.')
                     from_socket = node.inputs[
                         vstruct_name].links[0].from_socket
+
+                    if from_socket.node.bl_idname == 'ShaderNodeGroup':
+                        ng = from_socket.node.node_tree
+                        group_output = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
+                                       None)
+                        if group_output is None:
+                            return False
+
+                        in_sock = group_output.inputs[from_socket.name]
+                        if len(in_sock.links):
+                            from_socket = in_sock.links[0].from_socket
+
                     vstruct_from_param = "%s_%s" % (
                         from_socket.identifier, vstruct_member)
                     if vstruct_from_param in from_socket.node.output_meta:
@@ -1441,7 +1465,8 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         # to make a mixer
         elif node.bl_idname == 'ShaderNodeMixShader' or node1.bl_idname in combine_nodes \
             or node2.bl_idname in combine_nodes or \
-            (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0]):
+            node1.bl_idname == 'ShaderNodeGroup' or node2.bl_idname == 'ShaderNodeGroup' \
+            or (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0]):
             mixer = nt.nodes.new('PxrLayerMixerPatternNode')
             # if parent is output make a pxr surface first
             nt.links.new(mixer.outputs["pxrMaterialOut"],
@@ -1483,7 +1508,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         nt.links.new(meshlight.outputs[0], output.inputs["Light"])
         meshlight.location = output.location
         meshlight.location[0] -= 300
-        setattr(meshlight, 'intensity', node.inputs['Strength'].default_value)
+        convert_cycles_input(nt, node.inputs['Strength'], meshlight, "intensity")
         if node.inputs['Color'].is_linked:
             convert_cycles_input(nt, node.inputs['Color'], meshlight, "textureColor")
         else:
@@ -1542,14 +1567,27 @@ def convert_cycles_nodetree(id, output_node, reporter):
     # walk tree
     cycles_convert.report = reporter
     begin_cycles_node = cycles_output_node.inputs[0].links[0].from_node
-    base_surface = create_rman_surface(nt, output_node, 0)
-    offset_node_location(output_node, base_surface, begin_cycles_node)
-    convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
-    convert_cycles_displacement(nt, output_node, cycles_output_node.inputs[2])
+    # if this is an emission use PxrLightEmission
+    if begin_cycles_node.bl_idname == "ShaderNodeEmission":
+        meshlight = nt.nodes.new("PxrMeshLightLightNode")
+        nt.links.new(meshlight.outputs[0], output_node.inputs["Light"])
+        offset_node_location(output_node, meshlight, begin_cycles_node)
+        convert_cycles_input(nt, begin_cycles_node.inputs['Strength'], meshlight, "intensity")
+        if begin_cycles_node.inputs['Color'].is_linked:
+            convert_cycles_input(nt, begin_cycles_node.inputs['Color'], meshlight, "textureColor")
+        else:
+            setattr(meshlight, 'lightColor', begin_cycles_node.inputs['Color'].default_value[:3])
+        bxdf = nt.nodes.new('PxrBlackBxdfNode')
+        nt.links.new(bxdf.outputs[0], output_node.inputs["Bxdf"])
+    else:
+        base_surface = create_rman_surface(nt, output_node, 0)
+        offset_node_location(output_node, base_surface, begin_cycles_node)
+        convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
+        convert_cycles_displacement(nt, output_node, cycles_output_node.inputs[2])
     return True
 
 cycles_node_map = {
-    'ShaderNodeAttribute': 'node_checker_attribute',
+    'ShaderNodeAttribute': 'node_attribute',
     'ShaderNodeBlackbody': 'node_checker_blackbody',
     'ShaderNodeTexBrick': 'node_brick_texture',
     'ShaderNodeBrightContrast': 'node_brightness',
@@ -1563,7 +1601,7 @@ cycles_node_map = {
     'ShaderNodeTexEnvironment': 'node_environment_texture',
     'ShaderNodeFresnel': 'node_fresnel',
     'ShaderNodeGamma': 'node_gamma',
-    'ShaderNodeGeometry': 'node_geometry',
+    'ShaderNodeNewGeometry': 'node_geometry',
     'ShaderNodeTexGradient': 'node_gradient_texture',
     'ShaderNodeHairInfo': 'node_hair_info',
     'ShaderNodeInvert': 'node_invert',
@@ -1722,6 +1760,9 @@ def translate_cycles_node(ri, node, mat_name):
         else:
             param_val = rib(input.default_value,
                             type_hint=get_socket_type(node, input))
+            #skip if this is a vector set to 0 0 0
+            if input.type == 'VECTOR' and param_val == [0.0, 0.0, 0.0]:
+                continue
 
         params[param_name] = param_val
 
@@ -1775,7 +1816,7 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
     if type(node) == type(()):
         shader,from_node,from_socket = node
         input_type = 'float' if shader == 'PxrToFloat3' else 'color'
-        node_name = 'convert_%s.%s' % (get_node_name(from_node, mat_name), from_socket.name)
+        node_name = 'convert_%s.%s' % (get_node_name(from_node, mat_name), get_socket_name(from_node, from_socket))
         if from_node.bl_idname == 'ShaderNodeGroup':
             node_name = 'convert_' + get_output_param_str(
                             from_node, mat_name, from_socket).replace(':', '.')
@@ -1947,7 +1988,7 @@ def get_textures_for_node(node, matName=""):
     if hasattr(node, 'bl_idname'):
         if node.bl_idname == "PxrPtexturePatternNode":
             return textures
-        if node.bl_idname == "PxrOSLPatternNode":
+        elif node.bl_idname == "PxrOSLPatternNode":
             for input_name,input in node.inputs.items():
                 if hasattr(input, 'is_texture') and input.is_texture:
                     prop = input.default_value
@@ -1955,10 +1996,11 @@ def get_textures_for_node(node, matName=""):
                     textures.append((replace_frame_num(prop), out_file_name,
                                      ['-smode', 'periodic', '-tmode',
                                       'periodic']))
-                elif input.is_linked:
-                    from_socket = input.links[0].from_socket
-                    textures = textures + \
-                        get_textures_for_node(from_socket.node, matName)
+            return textures
+        elif node.bl_idname == 'ShaderNodeGroup':
+            nt = node.node_tree
+            for node in nt.nodes:
+                textures.extend(get_textures_for_node(node, matName=""))
             return textures
 
     if hasattr(node, 'prop_meta'):
@@ -1970,13 +2012,6 @@ def get_textures_for_node(node, matName=""):
 
                 if meta['renderman_type'] == 'page':
                     continue
-
-                # if input socket is linked reference that
-                elif hasattr(node, 'inputs') and prop_name in node.inputs and \
-                        node.inputs[prop_name].is_linked:
-                    from_socket = node.inputs[prop_name].links[0].from_socket
-                    textures = textures + \
-                        get_textures_for_node(from_socket.node, matName)
 
                 # else return a tuple of in name/outname
                 else:
@@ -2037,14 +2072,8 @@ def get_textures(id):
         return textures
 
     nt = id.node_tree
-    out = find_node(id, 'RendermanOutputNode')
-    if out is None:
-        return
-
-    for name, inp in out.inputs.items():
-        if inp.is_linked:
-            textures = textures + \
-                get_textures_for_node(inp.links[0].from_node, id.name)
+    for node in nt.nodes:
+        textures.extend(get_textures_for_node(node, id.name))
 
     return textures
 

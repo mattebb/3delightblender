@@ -133,8 +133,8 @@ class RENDERMAN_OT_add_remove_output(bpy.types.Operator):
 class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
 
     ''''''
-    bl_idname = "shading.convert_renderman_nodetrees"
-    bl_label = "Convert all nodetrees"
+    bl_idname = "shading.convert_cycles_stuff"
+    bl_label = "Convert Cycles to Renderman"
     bl_description = "Convert all nodetrees to renderman"
 
     def execute(self, context):
@@ -161,10 +161,12 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
             if lamp.renderman.use_renderman_node:
                 continue
             light_type = lamp.type
+            lamp.renderman.light_primary_visibility = False
             if light_type == 'SUN':
                 lamp.renderman.renderman_type = 'DIST'
             elif light_type == 'HEMI':
                 lamp.renderman.renderman_type = 'ENV'
+                lamp.renderman.light_primary_visibility = True
             else:
                 lamp.renderman.renderman_type = light_type
 
@@ -172,11 +174,19 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 lamp.shape = 'RECTANGLE'
                 lamp.size = 1.0
                 lamp.size_y = 1.0
-
-            lamp.renderman.primary_visibility = lamp.use_nodes
+                
+            #lamp.renderman.primary_visibility = not lamp.use_nodes
 
             lamp.renderman.use_renderman_node = True
 
+        # convert cycles vis settings
+        for ob in context.scene.objects:
+            if not ob.cycles_visibility.camera:
+                ob.renderman.visibility_camera = False
+            if not ob.cycles_visibility.diffuse or not ob.cycles_visibility.glossy:
+                ob.renderman.visibility_trace_indirect = False
+            if not ob.cycles_visibility.transmission:
+                ob.renderman.visibility_trace_transmission = False
         return {'FINISHED'}
 
 
@@ -945,6 +955,22 @@ class RM_Add_Area(bpy.types.Operator):
         bpy.ops.object.lamp_add(type='AREA')
         bpy.ops.shading.add_renderman_nodetree(
             {'material': None, 'lamp': bpy.context.active_object.data}, idtype='lamp')
+        return {"FINISHED"}
+
+
+class RM_Add_LightFilter(bpy.types.Operator):
+    bl_idname = "object.mr_add_light_filter"
+    bl_label = "Add Renderman Light Filter"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+
+        bpy.ops.object.lamp_add(type='POINT')
+        lamp = bpy.context.active_object.data
+        bpy.ops.shading.add_renderman_nodetree(
+            {'material': None, 'lamp': lamp}, idtype='lamp')
+        lamp.renderman.renderman_type = 'FILTER'
         return {"FINISHED"}
 
 

@@ -57,6 +57,35 @@ def convert_cycles_node(nt, node, location=None):
         convert_func(nt, node, rman_node)
         converted_nodes[node.name] = rman_node.name
         return rman_node
+    elif node_type in ['ShaderNodeAddShader', 'ShaderNodeMixShader']:
+        i = 0 if node.bl_idname == 'ShaderNodeAddShader' else 1
+        node1 = node.inputs[0 + i].links[0].from_node if node.inputs[0 + i].is_linked else None
+        node2 = node.inputs[1 + i].links[0].from_node if node.inputs[1 + i].is_linked else None
+        
+        mixer = nt.nodes.new('PxrLayerMixerPatternNode')
+        if location: 
+            mixer.location = location
+        # set the layer masks
+        if node.bl_idname == 'ShaderNodeAddShader':
+            mixer.layer1Mask = .5
+        else:
+            convert_cycles_input(nt, node.inputs['Fac'], mixer, 'layer1Mask')
+
+        # make a new node for each
+        convert_cycles_input(nt, node.inputs[0 + i], mixer, 'baselayer')
+        convert_cycles_input(nt, node.inputs[1 + i], mixer, 'layer1')
+        return mixer
+    elif node_type in bsdf_map.keys():
+        rman_name, convert_func = bsdf_map[node_type]
+        node_name = 'PxrLayerPatternNode'
+        rman_node = nt.nodes.new(node_name)
+        rman_node.enableDiffuse = False
+        rman_node.diffuseGain = 0
+        if location:
+            rman_node.location = location
+        convert_func(nt, node, rman_node)
+        converted_nodes[node.name] = rman_node.name
+        return rman_node
     # else this is just copying the osl node!
     # TODO make this an RMAN osl node
     elif node_type != 'NodeUndefined':
@@ -82,13 +111,13 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
             if socket.links[0].from_socket.name in node.outputs:
                 nt.links.new(node.outputs[socket.links[0].from_socket.name], input)
             else:
+                from .nodes import is_same_type
                 for output in node.outputs:
-                    from .nodes import is_same_type
                     if output.type == input.type or is_same_type(input, output):
                         nt.links.new(output, input)
                         break
                 else:
-                    nt.links.new(node.outputs[0], rman_node.inputs[param_name])
+                    nt.links.new(node.outputs[0], input)
 
     elif hasattr(socket, 'default_value'):
         if hasattr(rman_node, 'renderman_node_type'):
@@ -176,15 +205,15 @@ def convert_node_group(nt, cycles_node, rman_node):
             convert_cycles_input(rman_nt, input, rman_output_node, input.name)
 
     converted_nodes = temp_converted_nodes
-    # find the output node
-    #cycles_output_node = next((n for n in cycles_nt.nodes if n.bl_idname == 'NodeGroupOutput'), None)
-    #if cycles_output_node:
-    #    rman_output_node = rman_nt.nodes.new('NodeGroupOutput')
-    #    rman_output_node.location = cycles_output_node.location
-    #    for input in cycles_output_node.inputs:
-    #        rman_output_node.inputs.new(input.name, input.bl_idname)
-    #        convert_cycles_input(rman_nt, input, rman_output_node, input.name)
 
+    # rename nodes in node_group
+    for node in rman_nt.nodes:
+        node.name = rman_nt.name + '.' + node.name
+    
+    # convert the inputs to the group
+    for input in cycles_node.inputs:
+        convert_cycles_input(nt, input, rman_node, input.name)
+    
     return
 
 def convert_bump_node(nt, cycles_node, rman_node):
@@ -196,6 +225,15 @@ def convert_bump_node(nt, cycles_node, rman_node):
 def convert_normal_map_node(nt, cycles_node, rman_node):
     convert_cycles_input(nt, cycles_node.inputs['Strength'], rman_node, 'bumpScale')
     convert_cycles_input(nt, cycles_node.inputs['Color'], rman_node, 'inputRGB')
+    return
+
+def convert_rgb_node(nt, cycles_node, rman_node):
+    rman_node.inputRGB = cycles_node.outputs[0].default_value[:3]
+    return
+
+def convert_node_value(nt, cycles_node, rman_node):
+    rman_node.floatInput1 = cycles_node.outputs[0].default_value
+    rman_node.expression = 'floatInput1'
     return
 
 def convert_ramp_node(nt, cycles_node, rman_node):
@@ -405,6 +443,9 @@ node_map = {
     'ShaderNodeBump': ('PxrBump', convert_bump_node),
     'ShaderNodeValToRGB': ('PxrRamp', convert_ramp_node),
     'ShaderNodeMath': ('PxrSeExpr', convert_math_node),
+    'ShaderNodeRGB': ('PxrHSL', convert_rgb_node),
+    'ShaderNodeValue': ('PxrSeExpr', convert_node_value),
     #'ShaderNodeRGBCurve': ('copy', copy_cycles_node),
 }
+
 

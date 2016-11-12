@@ -357,14 +357,16 @@ def generate_property(sp):
     if 'type' in sp.attrib:
         param_type = sp.attrib['type']
     tags = sp.find('tags')
-    if tags and tags.find('tag').attrib['value'] == "vstruct":
-        param_type = 'struct'
-
+    
     param_help = ""
     param_default = sp.attrib['default'] if 'default' in sp.attrib else None
 
     prop_meta = sp.attrib
+    if tags and tags.find('tag').attrib['value'] == "vstruct":
+        param_type = 'struct'
+        prop_meta['is_vstruct'] = True
     renderman_type = param_type
+
     prop = None
 
     # set this prop as non connectable

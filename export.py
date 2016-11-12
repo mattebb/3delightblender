@@ -3422,7 +3422,7 @@ def issue_light_filter_transform_edit(ri, rpass, obj):
         if lamp.renderman.renderman_type == 'POINT':
             ri.Scale(.01, .01, .01)
 
-        export_light_shaders(ri, lamp, get_light_group(ob))
+        export_light_shaders(ri, lamp, get_light_group(light_obj))
         ri.EditEnd()
 
 
