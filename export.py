@@ -661,7 +661,6 @@ def export_transform(ri, instance, concat=False, flatten=False):
     for m in samples:
         if instance.type == 'LAMP':
             m = m.copy()
-            m[0] *= -1.0
 
         if instance.type == 'LAMP' and instance.ob.data.type in ['AREA']:
             m = m.copy()
@@ -699,7 +698,6 @@ def export_object_transform(ri, ob):
         else ob.matrix_world
     if ob.type == 'LAMP':
         m = m.copy()
-        m[0] *= -1.0
     if ob.type == 'LAMP' and ob.data.renderman.renderman_type == "DIST":
         m = m.copy()
         m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
@@ -2832,11 +2830,8 @@ def export_samplefilters(ri, scene):
 def export_display(ri, rpass, scene):
     rm = scene.renderman
 
-    # Set bucket shape.
-    if rpass.is_interactive:
-        ri.Option("bucket", {"string order": ['spiral']})
-
-    if rm.enable_checkpoint:
+    # Set bucket shape
+    if rm.enable_checkpoint and not rpass.is_interactive:
         ri.Option("bucket", {"string order": ['horizontal']})
 
     elif rm.bucket_shape == 'SPIRAL':
