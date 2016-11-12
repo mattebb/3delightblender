@@ -2830,10 +2830,7 @@ def export_samplefilters(ri, scene):
 def export_display(ri, rpass, scene):
     rm = scene.renderman
 
-    # Set bucket shape.
-    if rpass.is_interactive:
-        ri.Option("bucket", {"string order": ['spiral']})
-
+    # Set bucket shape
     if rm.enable_checkpoint and not rpass.is_interactive:
         ri.Option("bucket", {"string order": ['horizontal']})
 
