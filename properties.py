@@ -868,6 +868,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Limit",
         description="The maximum interval that will be reached before the render terminates.  0 will disable this option.",
         default=0)
+        
+    asfinal = BoolProperty(
+        name="Final Image as Checkpoint", 
+        description="Saves the final image as a checkpoint.  This allows you to resume it after raising the sample count.", 
+        default=False)
 
     header_rib_boxes = StringProperty(
         name="External RIB File",

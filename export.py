@@ -2698,6 +2698,8 @@ def export_options(ri, scene):
               'int texturememory': rm.texture_cache_size * 100,
               }
     ri.Option("limits", params)
+    if rm.asfinal:
+        ri.Option("checkpoint", {"int asfinal": 1})
     ri.Option("searchpath", {"string procedural": [
               ".:${RMANTREE}/lib/plugins:@"]})
 
@@ -2834,11 +2836,8 @@ def export_samplefilters(ri, scene):
 def export_display(ri, rpass, scene):
     rm = scene.renderman
 
-    # Set bucket shape.
-    if rpass.is_interactive:
-        ri.Option("bucket", {"string order": ['spiral']})
-
-    if rm.enable_checkpoint:
+    # Set bucket shape
+    if rm.enable_checkpoint and not rpass.is_interactive:
         ri.Option("bucket", {"string order": ['horizontal']})
 
     elif rm.bucket_shape == 'SPIRAL':
