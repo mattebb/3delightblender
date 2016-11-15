@@ -1485,6 +1485,11 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
 
         # this is a heterogenous mix of add
         else:
+            if rman_parent.plugin_name == 'PxrLayerMixer':
+                old_parent = rman_parent
+                rman_parent = create_rman_surface(nt, rman_parent, input_index, 
+                                                  'PxrLayerPatternNode')
+                offset_node_location(old_parent, rman_parent, node)
             convert_cycles_bsdf(nt, rman_parent, node1, 0)
             convert_cycles_bsdf(nt, rman_parent, node2, 1)
 
@@ -1519,16 +1524,27 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         nt.links.new(rman_node.outputs[0], rman_parent.inputs[input_index])
 
 
-def convert_cycles_displacement(nt, output_node, displace_socket):
+def convert_cycles_displacement(nt, surface_node, displace_socket):
+    # for now just do bump
     if displace_socket.is_linked:
-        displace = nt.nodes.new("PxrDisplaceDisplacementNode")
-        nt.links.new(displace.outputs[0], output_node.inputs['Displacement'])
-        displace.location = output_node.location
-        displace.location[0] -= 200
-        displace.location[1] -= 100
+        bump = nt.nodes.new("PxrBumpPatternNode")
+        nt.links.new(bump.outputs[0], surface_node.inputs['bumpNormal'])
+        bump.location = surface_node.location
+        bump.location[0] -= 200
+        bump.location[1] -= 100
         
-        setattr(displace, 'dispAmount', .01)
-        convert_cycles_input(nt, displace_socket, displace, "dispScalar")
+        convert_cycles_input(nt, displace_socket, bump, "inputBump")  
+    
+    #return
+    #if displace_socket.is_linked:
+    #    displace = nt.nodes.new("PxrDisplaceDisplacementNode")
+    #    nt.links.new(displace.outputs[0], output_node.inputs['Displacement'])
+    #    displace.location = output_node.location
+    #    displace.location[0] -= 200
+    #    displace.location[1] -= 100
+        
+    #    setattr(displace, 'dispAmount', .01)
+    #    convert_cycles_input(nt, displace_socket, displace, "dispScalar")
 
     
 # could make this more robust to shift the entire nodetree to below the 
@@ -1583,7 +1599,7 @@ def convert_cycles_nodetree(id, output_node, reporter):
         base_surface = create_rman_surface(nt, output_node, 0)
         offset_node_location(output_node, base_surface, begin_cycles_node)
         convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
-        convert_cycles_displacement(nt, output_node, cycles_output_node.inputs[2])
+        convert_cycles_displacement(nt, base_surface, cycles_output_node.inputs[2])
     return True
 
 cycles_node_map = {
@@ -1889,7 +1905,7 @@ def get_tex_file_name(prop):
         return prop
 
 def is_same_type(socket1, socket2):
-    return (is_float_type(socket1) and is_float_type(socket2)) or \
+    return (type(socket1) == type(socket2)) or (is_float_type(socket1) and is_float_type(socket2)) or \
         (is_float3_type(socket1) and is_float3_type(socket2))  
 
 def is_float_type(socket):

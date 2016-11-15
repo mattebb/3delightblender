@@ -113,7 +113,7 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
             else:
                 from .nodes import is_same_type
                 for output in node.outputs:
-                    if output.type == input.type or is_same_type(input, output):
+                    if is_same_type(input, output):
                         nt.links.new(output, input)
                         break
                 else:

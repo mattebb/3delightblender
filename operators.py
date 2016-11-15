@@ -134,7 +134,7 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
 
     ''''''
     bl_idname = "shading.convert_cycles_stuff"
-    bl_label = "Convert Cycles to Renderman"
+    bl_label = "Convert All Cycles to Renderman"
     bl_description = "Convert all nodetrees to renderman"
 
     def execute(self, context):
