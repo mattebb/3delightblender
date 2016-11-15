@@ -1,7 +1,7 @@
 PRMan for Blender
 ===============
 
-<a href="https://github.com/bsavery/PRMan-for-Blender/releases"'><H1>Get Latest Release</H1></a>
+<a href="https://github.com/bsavery/PRMan-for-Blender/releases"'><H2>Get Latest Release</H2></a>
 
 Blender render addon for Pixar's RenderMan 21.0 and beyond.  To use, install RenderMan, 
 (free from http://renderman.pixar.com/view/non-commercial-renderman), 
