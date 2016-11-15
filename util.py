@@ -354,7 +354,7 @@ def user_path(path, scene=None, ob=None, display_driver=None, layer_name=None, p
         if '$' not in path:
             break
 
-    unsaved = True if bpy.data.filepath == '' else False
+    unsaved = True if not bpy.data.filepath else False
     # first builtin special blender variables
     if unsaved:
         path = path.replace('{blend}', 'untitled')
@@ -656,7 +656,7 @@ def find_tractor_spool():
                 guess = os.path.join(base, d)
     tractor_dir = guess
 
-    if tractor_dir == '':
+    if not tractor_dir:
         return None
     else:
         spool_name = os.path.join(tractor_dir, 'bin', 'tractor-spool')

@@ -49,7 +49,7 @@ def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files
     # write header
     f.write('##AlfredToDo 3.0\n')
     # job line
-    job_title = 'untitled' if bpy.data.filepath == '' else \
+    job_title = 'untitled' if not bpy.data.filepath else \
         os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]
     job_title += " frames %d-%d" % (frame_begin, frame_end) if frame_end \
         else " frame %d" % frame_begin

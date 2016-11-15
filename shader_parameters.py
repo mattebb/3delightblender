@@ -46,7 +46,7 @@ def sp_optionmenu_to_string(options):
 
 
 def parse_float(fs):
-    if fs == None:
+    if fs is None:
         return 0.0
     return float(fs[:-1]) if 'f' in fs else float(fs)
 
@@ -321,7 +321,7 @@ def parse_conditional_visop(hintdict):
             "string[@name='conditionalVisPath']").attrib['value']
         visValue = hintdict.find(
             "string[@name='conditionalVisValue']").attrib['value']
-        if visValue.isalpha() or visValue == '':
+        if visValue.isalpha() or not visValue:
             return "getattr(node, '%s') %s '%s'" % \
                 (vispath.rsplit('/', 1)[-1], op_map[visop], visValue)
         else:
@@ -340,7 +340,7 @@ def parse_conditional_visop_attrib(attrib):
     visop = attrib['conditionalVisOp']
     vispath = attrib['conditionalVisPath']
     visValue = attrib['conditionalVisValue']
-    if visValue.isalpha() or visValue == '':
+    if visValue.isalpha() or not visValue:
         return "getattr(node, '%s') %s '%s'" % \
             (vispath.rsplit('/', 1)[-1], op_map[visop], visValue)
     else:
@@ -492,7 +492,7 @@ def generate_property(sp):
     elif param_type == 'color':
         if 'arraySize' in sp.attrib.keys():
             return (None, None, None)
-        if param_default == 'null' or param_default == None:
+        if param_default == 'null' or param_default is None:
             param_default = '0 0 0'
         param_default = [float(c) for c in
                          param_default.replace(',', ' ').split()]

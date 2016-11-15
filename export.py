@@ -444,7 +444,7 @@ def get_mesh(mesh, get_normals=False):
 # requires facevertex interpolation
 def get_mesh_uv(mesh, name=""):
     uvs = []
-    if name == "":
+    if not name:
         uv_loop_layer = mesh.uv_layers.active
     else:
         # assuming uv loop layers and uv textures share identical indices
@@ -516,7 +516,7 @@ def get_primvars(ob, geo, interpolation=""):
 
     rm = ob.data.renderman
 
-    interpolation = 'facevarying' if interpolation == '' else interpolation
+    interpolation = 'facevarying' if not interpolation else interpolation
 
     # get material id if this is a multi-material mesh
     if is_multi_material(geo):
@@ -874,7 +874,7 @@ def export_light(ri, instance):
 
 
 def export_material(ri, mat, handle=None, iterate_instance=False):
-    if mat == None:
+    if mat is None:
         return
     rm = mat.renderman
 
@@ -1923,7 +1923,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
 
 
 def relpath_archive(archive_filename, rpass):
-    if archive_filename == '':
+    if not archive_filename:
         return ''
     else:
         return os.path.relpath(archive_filename, rpass.paths['archive'])
@@ -2963,7 +2963,7 @@ def export_display(ri, rpass, scene):
             for aov in rm_rl.custom_aovs:
                 aov_name = aov.name.replace(' ', '')
                 # if theres a blank name we can't make a channel
-                if aov_name == '':
+                if not aov_name:
                     continue
                 source_type, source = aov.channel_id.split()
                 exposure_gain = aov.exposure_gain
@@ -3078,7 +3078,7 @@ def export_display(ri, rpass, scene):
                 for aov in rm_rl.custom_aovs:
                     aov_name = aov.name.replace(' ', '')
                     aov_channel_name = aov.channel_name
-                    if aov_name == '' or aov.channel_name == '':
+                    if not aov_name or not aov.channel_name:
                         continue
                     if aov.channel_id == "color rgba":
                         aov_channel_name = "Ci,a"

@@ -573,12 +573,12 @@ class RPass:
     # save the file
     def start_interactive(self):
 
-        if find_it_path() == None:
+        if find_it_path() is None:
             debug('error', "ERROR no 'it' installed.  \
                     Cannot start interactive rendering.")
             return
 
-        if self.scene.camera == None:
+        if self.scene.camera is None:
             debug('error', "ERROR no Camera.  \
                     Cannot start interactive rendering.")
             self.end_interactive()
@@ -735,7 +735,7 @@ class RPass:
         pass
 
     def gen_rib(self, engine=None, convert_textures=True):
-        if self.scene.camera == None:
+        if self.scene.camera is None:
             debug('error', "ERROR no Camera.  \
                     Cannot generate rib.")
             return
@@ -817,7 +817,7 @@ class RPass:
                 debug("info", "TXMAKE STARTED!", cmd)
 
                 Blendcdir = bpy.path.abspath("//")
-                if Blendcdir == '':
+                if not Blendcdir:
                     Blendcdir = None
 
                 environ = os.environ.copy()

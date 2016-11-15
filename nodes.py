@@ -484,7 +484,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             debug("osl", "NODE COMPILATION FAILED")
 
     def compile_osl(self, inFile, outPath, nameOverride=""):
-        if nameOverride == "":
+        if not nameOverride:
             FileName = os.path.basename(inFile)
             FileNameNoEXT = os.path.splitext(FileName)[0]
             out_file = os.path.join(outPath, FileNameNoEXT)

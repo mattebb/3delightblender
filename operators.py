@@ -105,7 +105,7 @@ class Renderman_open_last_RIB(bpy.types.Operator):
         rm = context.scene.renderman
         rpass = RPass(context.scene, interactive=False)
         path = rpass.paths['rib_output']
-        if rm.editor_override == "":
+        if not rm.editor_override:
             try:
                 webbrowser.open(path)
             except Exception:

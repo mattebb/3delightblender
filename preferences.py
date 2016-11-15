@@ -189,7 +189,7 @@ class RendermanPreferences(AddonPreferences):
             layout.label(text="RMANTREE: %s " % rmantree_from_env())
         else:
             layout.prop(self, "path_rmantree")
-        if guess_rmantree() == None:
+        if guess_rmantree() is None:
             row = layout.row()
             row.alert = True
             row.label('Error in RMANTREE. Reload addon to reset.', icon='ERROR')
