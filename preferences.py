@@ -33,6 +33,7 @@ from bpy.props import IntProperty, PointerProperty, EnumProperty
 from .util import get_installed_rendermans,\
     rmantree_from_env, guess_rmantree
 
+
 class RendermanPreferencePath(bpy.types.PropertyGroup):
     name = StringProperty(name="", subtype='DIR_PATH')
 
@@ -209,7 +210,8 @@ def register():
         bpy.utils.register_class(RendermanEnvVarSettings)
         bpy.utils.register_class(RendermanPreferences)
     except:
-        pass #allready registered
+        pass  # allready registered
+
 
 def unregister():
     bpy.utils.unregister_class(RendermanPreferences)

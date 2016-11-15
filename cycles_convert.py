@@ -27,6 +27,7 @@ import bpy
 converted_nodes = {}
 report = None
 
+
 def convert_cycles_node(nt, node, location=None):
     node_type = node.bl_idname
     if node.name in converted_nodes:
@@ -59,11 +60,13 @@ def convert_cycles_node(nt, node, location=None):
         return rman_node
     elif node_type in ['ShaderNodeAddShader', 'ShaderNodeMixShader']:
         i = 0 if node.bl_idname == 'ShaderNodeAddShader' else 1
-        node1 = node.inputs[0 + i].links[0].from_node if node.inputs[0 + i].is_linked else None
-        node2 = node.inputs[1 + i].links[0].from_node if node.inputs[1 + i].is_linked else None
-        
+        node1 = node.inputs[
+            0 + i].links[0].from_node if node.inputs[0 + i].is_linked else None
+        node2 = node.inputs[
+            1 + i].links[0].from_node if node.inputs[1 + i].is_linked else None
+
         mixer = nt.nodes.new('PxrLayerMixerPatternNode')
-        if location: 
+        if location:
             mixer.location = location
         # set the layer masks
         if node.bl_idname == 'ShaderNodeAddShader':
@@ -97,19 +100,22 @@ def convert_cycles_node(nt, node, location=None):
         converted_nodes[node.name] = rman_node.name
         return rman_node
     else:
-        report({'ERROR'}, 'Error converting node %s of type %s.' % (node.name, node_type))
+        report({'ERROR'}, 'Error converting node %s of type %s.' %
+               (node.name, node_type))
         return None
-        
+
 
 def convert_cycles_input(nt, socket, rman_node, param_name):
     if socket.is_linked:
-        location = rman_node.location - (socket.node.location - socket.links[0].from_node.location)
+        location = rman_node.location - \
+            (socket.node.location - socket.links[0].from_node.location)
         node = convert_cycles_node(nt, socket.links[0].from_node, location)
         if node:
-            #find the appropriate socket to hook up. 
+            # find the appropriate socket to hook up.
             input = rman_node.inputs[param_name]
             if socket.links[0].from_socket.name in node.outputs:
-                nt.links.new(node.outputs[socket.links[0].from_socket.name], input)
+                nt.links.new(node.outputs[socket.links[
+                             0].from_socket.name], input)
             else:
                 from .nodes import is_same_type
                 for output in node.outputs:
@@ -126,47 +132,53 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
             else:
                 setattr(rman_node, param_name, socket.default_value)
         else:
-            #this is a cycles node
+            # this is a cycles node
             rman_node.inputs[param_name].default_value = socket.default_value
 
 #########  other node conversion methods  ############
+
+
 def convert_tex_image_node(nt, cycles_node, rman_node):
     if cycles_node.image:
         if cycles_node.image.packed_file:
             cycles_node.image.unpack()
         setattr(rman_node, 'filename', cycles_node.image.filepath)
-    
+
     # can't link a vector to a manifold :(
-    #if cycles_node.inputs['Vector'].is_linked:
+    # if cycles_node.inputs['Vector'].is_linked:
     #    convert_cycles_input(nt, cycles_node.inputs['Vector'], rman_node, 'manifold')
+
 
 def convert_tex_coord_node(nt, cycles_node, rman_node):
     return
 
+
 def convert_mix_rgb_node(nt, cycles_node, rman_node):
     setattr(rman_node, 'clampOutput', cycles_node.use_clamp)
-    convert_cycles_input(nt, cycles_node.inputs['Color1'], rman_node, 'bottomRGB')
+    convert_cycles_input(nt, cycles_node.inputs[
+                         'Color1'], rman_node, 'bottomRGB')
     convert_cycles_input(nt, cycles_node.inputs['Color2'], rman_node, 'topRGB')
     convert_cycles_input(nt, cycles_node.inputs['Fac'], rman_node, 'topA')
-    conversion  = {'MIX': '10',
-                'ADD': '19', 
-                'MULTIPLY': '18', 
-                'SUBTRACT': '25', 
-                'SCREEN': '23',
-                'DIVIDE': '7',
-                'DIFFERENCE': '5',
-                'DARKEN': '3',
-                'LIGHTEN': '12',
-                'OVERLAY': '20',
-                'DODGE': '15',
-                'BURN': '14', 
-                'HUE': '11',
-                'SATURATION': '22',
-                'VALUE': '17',
-                'COLOR': '0',
-                'SOFT_LIGHT': '24',
-                'LINEAR_LIGHT': '16'}
+    conversion = {'MIX': '10',
+                  'ADD': '19',
+                  'MULTIPLY': '18',
+                  'SUBTRACT': '25',
+                  'SCREEN': '23',
+                  'DIVIDE': '7',
+                  'DIFFERENCE': '5',
+                  'DARKEN': '3',
+                  'LIGHTEN': '12',
+                  'OVERLAY': '20',
+                  'DODGE': '15',
+                  'BURN': '14',
+                  'HUE': '11',
+                  'SATURATION': '22',
+                  'VALUE': '17',
+                  'COLOR': '0',
+                  'SOFT_LIGHT': '24',
+                  'LINEAR_LIGHT': '16'}
     setattr(rman_node, 'operation', conversion[cycles_node.blend_type])
+
 
 def convert_node_group(nt, cycles_node, rman_node):
     rman_nt = bpy.data.node_groups.new(rman_node.name, 'ShaderNodeTree')
@@ -178,27 +190,29 @@ def convert_node_group(nt, cycles_node, rman_node):
     converted_nodes = {}
 
     # create the output node
-    cycles_output_node = next((n for n in cycles_nt.nodes if n.bl_idname == 'NodeGroupOutput'), None)
+    cycles_output_node = next(
+        (n for n in cycles_nt.nodes if n.bl_idname == 'NodeGroupOutput'), None)
     if cycles_output_node:
         rman_output_node = rman_nt.nodes.new('NodeGroupOutput')
         rman_output_node.location = cycles_output_node.location
-       
-        #tree outputs
+
+        # tree outputs
         for tree_output in cycles_nt.outputs:
             out_type = tree_output.__class__.__name__.replace('Interface', '')
             rman_nt.outputs.new(out_type, tree_output.name)
     # create the input node
-    cycles_input_node = next((n for n in cycles_nt.nodes if n.bl_idname == 'NodeGroupInput'), None)
+    cycles_input_node = next(
+        (n for n in cycles_nt.nodes if n.bl_idname == 'NodeGroupInput'), None)
     if cycles_input_node:
         rman_input_node = rman_nt.nodes.new('NodeGroupInput')
         rman_input_node.location = cycles_input_node.location
-        #tree outputs
+        # tree outputs
         for tree_input in cycles_nt.inputs:
             input_type = tree_input.__class__.__name__.replace('Interface', '')
             rman_nt.inputs.new(input_type, tree_input.name)
-        
+
         converted_nodes[cycles_input_node.name] = rman_input_node.name
-    
+
     # now connect up outputs
     if cycles_output_node:
         for input in cycles_output_node.inputs:
@@ -209,40 +223,49 @@ def convert_node_group(nt, cycles_node, rman_node):
     # rename nodes in node_group
     for node in rman_nt.nodes:
         node.name = rman_nt.name + '.' + node.name
-    
+
     # convert the inputs to the group
     for input in cycles_node.inputs:
         convert_cycles_input(nt, input, rman_node, input.name)
-    
+
     return
 
+
 def convert_bump_node(nt, cycles_node, rman_node):
-    convert_cycles_input(nt, cycles_node.inputs['Strength'], rman_node, 'scale')
-    convert_cycles_input(nt, cycles_node.inputs['Height'], rman_node, 'inputBump')
+    convert_cycles_input(nt, cycles_node.inputs[
+                         'Strength'], rman_node, 'scale')
+    convert_cycles_input(nt, cycles_node.inputs[
+                         'Height'], rman_node, 'inputBump')
     convert_cycles_input(nt, cycles_node.inputs['Normal'], rman_node, 'inputN')
     return
 
+
 def convert_normal_map_node(nt, cycles_node, rman_node):
-    convert_cycles_input(nt, cycles_node.inputs['Strength'], rman_node, 'bumpScale')
-    convert_cycles_input(nt, cycles_node.inputs['Color'], rman_node, 'inputRGB')
+    convert_cycles_input(nt, cycles_node.inputs[
+                         'Strength'], rman_node, 'bumpScale')
+    convert_cycles_input(nt, cycles_node.inputs[
+                         'Color'], rman_node, 'inputRGB')
     return
+
 
 def convert_rgb_node(nt, cycles_node, rman_node):
     rman_node.inputRGB = cycles_node.outputs[0].default_value[:3]
     return
+
 
 def convert_node_value(nt, cycles_node, rman_node):
     rman_node.floatInput1 = cycles_node.outputs[0].default_value
     rman_node.expression = 'floatInput1'
     return
 
+
 def convert_ramp_node(nt, cycles_node, rman_node):
     convert_cycles_input(nt, cycles_node.inputs['Fac'], rman_node, 'splineMap')
     actual_ramp = bpy.data.node_groups[rman_node.node_group].nodes[0]
     actual_ramp.color_ramp.interpolation = cycles_node.color_ramp.interpolation
-    
+
     elms = actual_ramp.color_ramp.elements
-    
+
     e = cycles_node.color_ramp.elements[0]
     elms[0].alpha = e.alpha
     elms[0].position = e.position
@@ -282,6 +305,7 @@ math_map = {
     'ABSOLUTE': 'abs(floatInput1)',
 }
 
+
 def convert_math_node(nt, cycles_node, rman_node):
     convert_cycles_input(nt, cycles_node.inputs[0], rman_node, 'floatInput1')
     convert_cycles_input(nt, cycles_node.inputs[1], rman_node, 'floatInput2')
@@ -296,17 +320,20 @@ def convert_math_node(nt, cycles_node, rman_node):
     return
 
 # this needs a special case to init the stuff
+
+
 def convert_rgb_curve_node(nt, cycles_node, rman_node):
     for input in cycles_node.inputs:
         convert_cycles_input(nt, input, rman_node, input.name)
 
     rman_node.mapping.initialize()
-    for i,mapping in cycles_node.mapping.curves.items():
-    #    new_map = rman_node.mapping.curves.new()
+    for i, mapping in cycles_node.mapping.curves.items():
+        #    new_map = rman_node.mapping.curves.new()
         new_map = rman_node.mapping.curves[i]
         for p in mapping.points:
             new_map.points.new(p.location[0], p.location[1])
     return
+
 
 def copy_cycles_node(nt, cycles_node, rman_node):
     #print("copying %s node" % cycles_node.bl_idname)
@@ -316,13 +343,17 @@ def copy_cycles_node(nt, cycles_node, rman_node):
     return
 
 #########  BSDF conversion methods  ############
+
+
 def convert_diffuse_bsdf(nt, node, rman_node):
     inputs = node.inputs
     setattr(rman_node, 'enableDiffuse', True)
     setattr(rman_node, 'diffuseGain', 1.0)
     convert_cycles_input(nt, inputs['Color'], rman_node, "diffuseColor")
-    convert_cycles_input(nt, inputs['Roughness'], rman_node, "diffuseRoughness")
+    convert_cycles_input(nt, inputs['Roughness'],
+                         rman_node, "diffuseRoughness")
     convert_cycles_input(nt, inputs['Normal'], rman_node, "diffuseBumpNormal")
+
 
 def convert_glossy_bsdf(nt, node, rman_node):
     inputs = node.inputs
@@ -330,7 +361,7 @@ def convert_glossy_bsdf(nt, node, rman_node):
     setattr(rman_node, 'enable' + lobe_name, True)
     if rman_node.plugin_name == 'PxrLayer':
         setattr(rman_node, 'specularGain', 1.0)
-    #if spec_lobe == 'specular':
+    # if spec_lobe == 'specular':
     #    setattr(rman_node, spec_lobe + 'FresnelMode', '1')
     convert_cycles_input(
         nt, inputs['Color'], rman_node, "specularEdgeColor")
@@ -339,11 +370,12 @@ def convert_glossy_bsdf(nt, node, rman_node):
     convert_cycles_input(
         nt, inputs['Roughness'], rman_node, "specularRoughness")
     convert_cycles_input(
-            nt, inputs['Normal'], rman_node, "specularBumpNormal")
+        nt, inputs['Normal'], rman_node, "specularBumpNormal")
 
     if type(node).__class__ == 'ShaderNodeBsdfAnisotropic':
         convert_cycles_input(
             nt, inputs['Anisotropy'], rman_node, "specularAnisotropy")
+
 
 def convert_glass_bsdf(nt, node, rman_node):
     inputs = node.inputs
@@ -351,33 +383,36 @@ def convert_glass_bsdf(nt, node, rman_node):
         rman_node.plugin_name == 'PxrLayer' else 'enableGlass'
     setattr(rman_node, enable_param_name, True)
     param_prefix = 'rrR' if rman_node.plugin_name == 'PxrLayer' else \
-                    'r'
+        'r'
     setattr(rman_node, param_prefix + 'efractionGain', 1.0)
     setattr(rman_node, param_prefix + 'eflectionGain', 1.0)
-    convert_cycles_input(nt, inputs['Color'], 
+    convert_cycles_input(nt, inputs['Color'],
                          rman_node, param_prefix + 'efractionColor')
     param_prefix = 'rr' if rman_node.plugin_name == 'PxrLayer' else \
         'glass'
-    convert_cycles_input(nt, inputs['Roughness'], 
+    convert_cycles_input(nt, inputs['Roughness'],
                          rman_node, param_prefix + 'Roughness')
-    convert_cycles_input(nt, inputs['IOR'], 
-                             rman_node, param_prefix + 'Ior')
+    convert_cycles_input(nt, inputs['IOR'],
+                         rman_node, param_prefix + 'Ior')
+
+
 def convert_refraction_bsdf(nt, node, rman_node):
     inputs = node.inputs
     enable_param_name = 'enableRR' if \
         rman_node.plugin_name == 'PxrLayer' else 'enableGlass'
     setattr(rman_node, enable_param_name, True)
     param_prefix = 'rrR' if rman_node.plugin_name == 'PxrLayer' else \
-                    'r'
+        'r'
     setattr(rman_node, param_prefix + 'efractionGain', 1.0)
-    convert_cycles_input(nt, inputs['Color'], 
+    convert_cycles_input(nt, inputs['Color'],
                          rman_node, param_prefix + 'efractionColor')
     param_prefix = 'rr' if rman_node.plugin_name == 'PxrLayer' else \
         'glass'
-    convert_cycles_input(nt, inputs['Roughness'], 
+    convert_cycles_input(nt, inputs['Roughness'],
                          rman_node, param_prefix + 'Roughness')
-    convert_cycles_input(nt, inputs['IOR'], 
-                             rman_node, param_prefix + 'Ior')
+    convert_cycles_input(nt, inputs['IOR'],
+                         rman_node, param_prefix + 'Ior')
+
 
 def convert_transparent_bsdf(nt, node, rman_node):
     inputs = node.inputs
@@ -385,30 +420,34 @@ def convert_transparent_bsdf(nt, node, rman_node):
         rman_node.plugin_name == 'PxrLayer' else 'enableGlass'
     setattr(rman_node, enable_param_name, True)
     param_prefix = 'rrR' if rman_node.plugin_name == 'PxrLayer' else \
-                    'r'
+        'r'
     setattr(rman_node, param_prefix + 'efractionGain', 1.0)
-    convert_cycles_input(nt, inputs['Color'], 
+    convert_cycles_input(nt, inputs['Color'],
                          rman_node, param_prefix + 'efractionColor')
     param_prefix = 'rr' if rman_node.plugin_name == 'PxrLayer' else \
         'glass'
     setattr(rman_node, param_prefix + 'Roughness', 0.0)
     setattr(rman_node, param_prefix + 'Ior', 1.0)
 
+
 def convert_translucent_bsdf(nt, node, rman_node):
     inputs = node.inputs
     enable = 'enableSinglescatter' if rman_node.plugin_name == 'PxrLayer' else \
-                    'enableSingleScatter'
+        'enableSingleScatter'
     setattr(rman_node, enable, True)
     setattr(rman_node, 'singlescatterGain', 1.0)
     setattr(rman_node, 'singlescatterMfpColor', [1.0, 1.0, 1.0])
     convert_cycles_input(nt, inputs['Color'], rman_node, "singlescatterColor")
 
+
 def convert_sss_bsdf(nt, node, rman_node):
     inputs = node.inputs
     setattr(rman_node, 'enableSubsurface', True)
     convert_cycles_input(nt, inputs['Color'], rman_node, "subsurfaceColor")
-    convert_cycles_input(nt, inputs['Radius'], rman_node, "subsurfaceDmfpColor")
+    convert_cycles_input(nt, inputs['Radius'],
+                         rman_node, "subsurfaceDmfpColor")
     convert_cycles_input(nt, inputs['Scale'], rman_node, "subsurfaceDmfp")
+
 
 def convert_velvet_bsdf(nt, node, rman_node):
     inputs = node.inputs
@@ -447,5 +486,3 @@ node_map = {
     'ShaderNodeValue': ('PxrSeExpr', convert_node_value),
     #'ShaderNodeRGBCurve': ('copy', copy_cycles_node),
 }
-
-

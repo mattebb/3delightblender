@@ -868,10 +868,10 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Limit",
         description="The maximum interval that will be reached before the render terminates.  0 will disable this option.",
         default=0)
-        
+
     asfinal = BoolProperty(
-        name="Final Image as Checkpoint", 
-        description="Saves the final image as a checkpoint.  This allows you to resume it after raising the sample count.", 
+        name="Final Image as Checkpoint",
+        description="Saves the final image as a checkpoint.  This allows you to resume it after raising the sample count.",
         default=False)
 
     header_rib_boxes = StringProperty(
@@ -1172,7 +1172,8 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
             engine.ipr.issue_shader_edits()
 
     name = StringProperty(default='SET FILTER')
-    filter_name = EnumProperty(name="Linked Filter:", items=get_filters, update=update_name)
+    filter_name = EnumProperty(
+        name="Linked Filter:", items=get_filters, update=update_name)
 
 
 class RendermanLightSettings(bpy.types.PropertyGroup):
@@ -1399,8 +1400,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                 if self.filter_type == 'blocker':
                     width = node.width
                     height = node.height
-                    depth = node.depth 
-                    
+                    depth = node.depth
+
                     mesh = ob.data
                     edge = node.edge
                     # xy inner

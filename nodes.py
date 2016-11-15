@@ -60,6 +60,8 @@ group_nodes = ['ShaderNodeGroup', 'NodeGroupInput', 'NodeGroupOutput']
 # Default Types
 
 # update node during ipr for a socket default_value
+
+
 def update_func(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
@@ -69,12 +71,15 @@ def update_func(self, context):
         engine.ipr.issue_shader_edits(node=node)
 
 # socket name corresponds to the param on the node
+
+
 class RendermanSocket:
     ui_open = BoolProperty(name='UI Open', default=True)
+
     def get_pretty_name(self, node):
         if node.bl_idname in group_nodes:
             return self.name
-        else: 
+        else:
             return self.identifier
 
     def get_value(self, node):
@@ -93,42 +98,45 @@ class RendermanSocket:
         if self.is_linked or self.is_output or self.hide_value or not hasattr(self, 'default_value'):
             layout.label(self.get_pretty_name(node))
         elif node.bl_idname in group_nodes or node.bl_idname == "PxrOSLPatternNode":
-            layout.prop(self, 'default_value', text=self.get_pretty_name(node), slider=True)
+            layout.prop(self, 'default_value',
+                        text=self.get_pretty_name(node), slider=True)
         else:
-            layout.prop(node, self.name, text=self.get_pretty_name(node), slider=True)
+            layout.prop(node, self.name,
+                        text=self.get_pretty_name(node), slider=True)
 
 
 class RendermanSocketInterface:
+
     def draw_color(self, context):
         return (0.25, 1.0, 0.25, 1.0)
 
     def draw(self, context, layout):
         layout.label(self.name)
-    
+
     def from_socket(self, node, socket):
         if hasattr(self, 'default_value'):
             self.default_value = socket.get_value(node)
         self.name = socket.name
-        
-    
+
     def init_socket(self, node, socket, data_path):
         sleep(.01)
         socket.name = self.name
         if hasattr(self, 'default_value'):
             socket.default_value = self.default_value
-        
-        
+
+
 # socket types (need this just for the ui_open)
 class RendermanNodeSocketFloat(bpy.types.NodeSocketFloat, RendermanSocket):
     '''Renderman float input/output'''
     bl_idname = 'RendermanNodeSocketFloat'
     bl_label = 'Renderman Float Socket'
-    
+
     default_value = FloatProperty(update=update_func)
     renderman_type = 'float'
 
     def draw_color(self, context, node):
         return (0.5, 0.5, 0.5, 1.0)
+
 
 class RendermanNodeSocketInterfaceFloat(bpy.types.NodeSocketInterfaceFloat, RendermanSocketInterface):
     '''Renderman float input/output'''
@@ -137,20 +145,22 @@ class RendermanNodeSocketInterfaceFloat(bpy.types.NodeSocketInterfaceFloat, Rend
     bl_socket_idname = 'RendermanNodeSocketFloat'
 
     default_value = FloatProperty()
-    
+
     def draw_color(self, context):
         return (0.5, 0.5, 0.5, 1.0)
+
 
 class RendermanNodeSocketInt(bpy.types.NodeSocketInt, RendermanSocket):
     '''Renderman int input/output'''
     bl_idname = 'RendermanNodeSocketInt'
     bl_label = 'Renderman Int Socket'
-    
+
     default_value = IntProperty(update=update_func)
     renderman_type = 'int'
-    
+
     def draw_color(self, context, node):
         return (1.0, 1.0, 1.0, 1.0)
+
 
 class RendermanNodeSocketInterfaceInt(bpy.types.NodeSocketInterfaceInt, RendermanSocketInterface):
     '''Renderman float input/output'''
@@ -159,10 +169,11 @@ class RendermanNodeSocketInterfaceInt(bpy.types.NodeSocketInterfaceInt, Renderma
     bl_socket_idname = 'RendermanNodeSocketInt'
 
     default_value = IntProperty()
-    
+
     def draw_color(self, context):
         return (1.0, 1.0, 1.0, 1.0)
-    
+
+
 class RendermanNodeSocketString(bpy.types.NodeSocketString, RendermanSocket):
     '''Renderman string input/output'''
     bl_idname = 'RendermanNodeSocketString'
@@ -170,6 +181,7 @@ class RendermanNodeSocketString(bpy.types.NodeSocketString, RendermanSocket):
     default_value = StringProperty(update=update_func)
     is_texture = BoolProperty(default=False)
     renderman_type = 'string'
+
 
 class RendermanNodeSocketStruct(bpy.types.NodeSocketString, RendermanSocket):
     '''Renderman struct input/output'''
@@ -179,6 +191,7 @@ class RendermanNodeSocketStruct(bpy.types.NodeSocketString, RendermanSocket):
     renderman_type = 'string'
     default_value = ''
 
+
 class RendermanNodeSocketInterfaceStruct(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):
     '''Renderman struct input/output'''
     bl_idname = 'RendermanNodeSocketInterfaceStruct'
@@ -186,17 +199,19 @@ class RendermanNodeSocketInterfaceStruct(bpy.types.NodeSocketInterfaceString, Re
     bl_socket_idname = 'RendermanNodeSocketStruct'
     hide_value = True
 
+
 class RendermanNodeSocketColor(bpy.types.NodeSocketColor, RendermanSocket):
     '''Renderman color input/output'''
     bl_idname = 'RendermanNodeSocketColor'
     bl_label = 'Renderman Color Socket'
 
     default_value = FloatVectorProperty(size=3,
-                                   subtype="COLOR", update=update_func)
+                                        subtype="COLOR", update=update_func)
     renderman_type = 'color'
 
     def draw_color(self, context, node):
         return (1.0, 1.0, .5, 1.0)
+
 
 class RendermanNodeSocketInterfaceColor(bpy.types.NodeSocketInterfaceColor, RendermanSocketInterface):
     '''Renderman color input/output'''
@@ -205,10 +220,11 @@ class RendermanNodeSocketInterfaceColor(bpy.types.NodeSocketInterfaceColor, Rend
     bl_socket_idname = 'RendermanNodeSocketColor'
 
     default_value = FloatVectorProperty(size=3,
-                                   subtype="COLOR")
+                                        subtype="COLOR")
 
     def draw_color(self, context):
         return (1.0, 1.0, .5, 1.0)
+
 
 class RendermanNodeSocketVector(RendermanSocket, bpy.types.NodeSocketVector):
     '''Renderman vector input/output'''
@@ -222,6 +238,7 @@ class RendermanNodeSocketVector(RendermanSocket, bpy.types.NodeSocketVector):
 
     def draw_color(self, context, node):
         return (.25, .25, .75, 1.0)
+
 
 class RendermanNodeSocketInterfaceVector(bpy.types.NodeSocketInterfaceVector, RendermanSocketInterface):
     '''Renderman color input/output'''
@@ -237,6 +254,8 @@ class RendermanNodeSocketInterfaceVector(bpy.types.NodeSocketInterfaceVector, Re
         return (.25, .25, .75, 1.0)
 
 # Custom socket type for connecting shaders
+
+
 class RendermanShaderSocket(bpy.types.NodeSocketShader, RendermanSocket):
     '''Renderman shader input/output'''
     bl_idname = 'RendermanShaderSocket'
@@ -244,6 +263,8 @@ class RendermanShaderSocket(bpy.types.NodeSocketShader, RendermanSocket):
     hide_value = True
 
 # Custom socket type for connecting shaders
+
+
 class RendermanShaderSocketInterface(bpy.types.NodeSocketInterfaceShader, RendermanSocketInterface):
     '''Renderman shader input/output'''
     bl_idname = 'RendermanShaderInterfaceSocket'
@@ -359,7 +380,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         split = layout.split(NODE_LAYOUT_SPLIT)
                         row = split.row()
                         row.prop(self, ui_prop, icon=icon, text='',
-                                 icon_only=True, emboss=False,slider=True)
+                                 icon_only=True, emboss=False, slider=True)
                         row.label(prop_name.split('.')[-1] + ':')
 
                         if ui_open:
@@ -370,7 +391,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         layout.prop_search(self, prop_name, bpy.data.scenes[0].renderman,
                                            "object_groups")
                     else:
-                        layout.prop(self, prop_name,slider=True)
+                        layout.prop(self, prop_name, slider=True)
 
     def copy(self, node):
         pass
@@ -491,14 +512,14 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             prop_type = shader_meta[prop_name]["type"]
             if shader_meta[prop_name]["IO"] == "out":
                 self.outputs.new(
-                        socket_map[prop_type], prop_name)
+                    socket_map[prop_type], prop_name)
             else:
                 prop_default = shader_meta[prop_name]["default"]
                 if prop_type == "float":
                     prop_default = float(prop_default)
                 elif prop_type == "int":
-                    prop_default=int(float(prop_default))
-                
+                    prop_default = int(float(prop_default))
+
                 if prop_type == "matrix" or \
                         shader_meta[prop_name]["type"] == "point":
                     self.inputs.new(socket_map["struct"], prop_name, prop_name)
@@ -506,13 +527,14 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     pass
                 else:
                     input = self.inputs.new(socket_map[shader_meta[prop_name]["type"]],
-                                    prop_name, prop_name)
+                                            prop_name, prop_name)
                     input.default_value = prop_default
                     if prop_type == 'struct':
                         input.hide_value = True
         debug('osl', "Shader: ", shader_meta["shader"], "Properties: ",
               prop_names, "Shader meta data: ", shader_meta)
         compileLocation = self.name + "Compile"
+
 
 class RendermanOutputNode(RendermanShadingNode):
     bl_label = 'PRMan Material'
@@ -570,6 +592,8 @@ class RendermanLightNode(RendermanShadingNode):
     renderman_node_type = 'light'
 
 # Generate dynamic types
+
+
 def generate_node_type(prefs, name, args):
     ''' Dynamically generate a node type from pattern '''
 
@@ -595,7 +619,8 @@ def generate_node_type(prefs, name, args):
             #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
             node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self)
-            # if this is PxrLayerSurface set the diffusegain to 0.  The default of 1 is unintuitive
+            # if this is PxrLayerSurface set the diffusegain to 0.  The default
+            # of 1 is unintuitive
             if self.plugin_name == 'PxrLayerSurface':
                 self.diffuseGain = 0
         elif self.renderman_node_type == 'light':
@@ -614,7 +639,8 @@ def generate_node_type(prefs, name, args):
             node_add_outputs(self)
 
         if name == "PxrRamp":
-            node_group = bpy.data.node_groups.new('PxrRamp_nodegroup', 'ShaderNodeTree')
+            node_group = bpy.data.node_groups.new(
+                'PxrRamp_nodegroup', 'ShaderNodeTree')
             node_group.nodes.new('ShaderNodeValToRGB')
             node_group.use_fake_user = True
             self.node_group = node_group.name
@@ -780,7 +806,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 prop = getattr(node, prop_name)
 
                 if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
-                    'hidden' in prop_meta and prop_meta['hidden']:
+                        'hidden' in prop_meta and prop_meta['hidden']:
                     continue
 
                 # else check if the socket with this name is connected
@@ -802,16 +828,16 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     row.label(label + ':')
                     if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
                         split.operator_menu_enum("node.add_layer", "node_type",
-                                             text=input_node.bl_label, icon="LAYER_USED")
+                                                 text=input_node.bl_label, icon="LAYER_USED")
                     elif prop_meta['renderman_type'] == 'struct':
                         split.operator_menu_enum("node.add_manifold", "node_type",
-                                             text=input_node.bl_label, icon="LAYER_USED")
+                                                 text=input_node.bl_label, icon="LAYER_USED")
                     elif prop_meta['renderman_type'] == 'normal':
                         split.operator_menu_enum("node.add_bump", "node_type",
-                                             text=input_node.bl_label, icon="LAYER_USED")
+                                                 text=input_node.bl_label, icon="LAYER_USED")
                     else:
                         split.operator_menu_enum("node.add_pattern", "node_type",
-                                             text=input_node.bl_label, icon="LAYER_USED")
+                                                 text=input_node.bl_label, icon="LAYER_USED")
 
                     if socket.ui_open:
                         draw_node_properties_recursive(layout, context, nt,
@@ -845,22 +871,22 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                             "object_groups")
                         else:
                             if prop_meta['renderman_type'] != 'struct':
-                                row.prop(node, prop_name,slider=True)
+                                row.prop(node, prop_name, slider=True)
                             else:
                                 row.label(prop_meta['label'])
                         if prop_name in node.inputs:
                             if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
                                 row.operator_menu_enum("node.add_layer", "node_type",
-                                                     text='', icon="LAYER_USED")
+                                                       text='', icon="LAYER_USED")
                             elif prop_meta['renderman_type'] == 'struct':
                                 row.operator_menu_enum("node.add_manifold", "node_type",
-                                                     text='', icon="LAYER_USED")
+                                                       text='', icon="LAYER_USED")
                             elif prop_meta['renderman_type'] == 'normal':
                                 row.operator_menu_enum("node.add_bump", "node_type",
-                                                     text='', icon="LAYER_USED")
+                                                       text='', icon="LAYER_USED")
                             else:
                                 row.operator_menu_enum("node.add_pattern", "node_type",
-                                                     text='', icon="LAYER_USED")
+                                                       text='', icon="LAYER_USED")
 
     # if this is a cycles node do something different
     if not hasattr(node, 'plugin_name') or node.bl_idname == 'PxrOSLPatternNode':
@@ -892,9 +918,10 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 if input.hide_value:
                     row.label(input.name)
                 else:
-                    row.prop(input, 'default_value', slider=True, text=input.name)
+                    row.prop(input, 'default_value',
+                             slider=True, text=input.name)
                 row.operator_menu_enum("node.add_pattern", "node_type",
-                                           text='', icon="LAYER_USED")
+                                       text='', icon="LAYER_USED")
     else:
         if node.plugin_name == 'PxrRamp':
             dummy_nt = bpy.data.node_groups[node.node_group]
@@ -945,7 +972,7 @@ class Add_Node:
         if self.input_type.lower() == 'pattern':
             i = 0
             for pattern_cat, patterns in pattern_categories.items():
-                if pattern_cat.lower() in ['layer','script','manifold','bump','displace']:
+                if pattern_cat.lower() in ['layer', 'script', 'manifold', 'bump', 'displace']:
                     continue
                 items.append(('', pattern_cat, pattern_cat, '', 0))
                 for nodename in sorted(patterns):
@@ -955,21 +982,21 @@ class Add_Node:
                     i += 1
                 items.append(('', '', '', '', 0))
             items.append(('REMOVE', 'Remove',
-                  'Remove the node connected to this socket', '', i+1))
+                          'Remove the node connected to this socket', '', i + 1))
             items.append(('DISCONNECT', 'Disconnect',
-                  'Disconnect the node connected to this socket', '', i+2))
-                
+                          'Disconnect the node connected to this socket', '', i + 2))
+
         elif self.input_type.lower() in ['layer', 'manifold', 'bump']:
             patterns = pattern_categories[self.input_type]
             for nodename in sorted(patterns):
                 nodetype = patterns[nodename]
                 items.append((nodetype.typename, nodetype.bl_label,
                               nodetype.bl_label))
-                
+
             items.append(('REMOVE', 'Remove',
-                  'Remove the node connected to this socket'))
+                          'Remove the node connected to this socket'))
             items.append(('DISCONNECT', 'Disconnect',
-                  'Disconnect the node connected to this socket'))
+                          'Disconnect the node connected to this socket'))
         else:
             for nodetype in nodetypes.values():
                 if self.input_type.lower() == 'light' and nodetype.renderman_node_type == 'light':
@@ -1087,6 +1114,7 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
     bl_description = 'Connect a Pattern to this socket'
     input_type = StringProperty(default='Pattern')
 
+
 class NODE_OT_add_layer(bpy.types.Operator, Add_Node):
     '''
     For generating cycles-style ui menus to add new nodes,
@@ -1098,6 +1126,7 @@ class NODE_OT_add_layer(bpy.types.Operator, Add_Node):
     bl_description = 'Connect a PxrLayer'
     input_type = StringProperty(default='Layer')
 
+
 class NODE_OT_add_manifold(bpy.types.Operator, Add_Node):
     '''
     For generating cycles-style ui menus to add new nodes,
@@ -1108,6 +1137,7 @@ class NODE_OT_add_manifold(bpy.types.Operator, Add_Node):
     bl_label = 'Add Manifold Node'
     bl_description = 'Connect a Manifold'
     input_type = StringProperty(default='Manifold')
+
 
 class NODE_OT_add_bump(bpy.types.Operator, Add_Node):
     '''
@@ -1157,7 +1187,7 @@ def is_vstruct_and_linked(node, param):
             if from_socket.node.bl_idname == 'ShaderNodeGroup':
                 ng = from_socket.node.node_tree
                 group_output = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
-                               None)
+                                    None)
                 if group_output is None:
                     return False
 
@@ -1262,11 +1292,13 @@ gains_to_enable = {
 }
 
 # generate param list
+
+
 def gen_params(ri, node, mat_name=None):
     params = {}
     # If node is OSL node get properties from dynamic location.
     if node.bl_idname == "PxrOSLPatternNode":
-        for input_name,input in node.inputs.items():
+        for input_name, input in node.inputs.items():
             prop_type = input.renderman_type
             if input.is_linked:
                 to_socket = input
@@ -1276,8 +1308,8 @@ def gen_params(ri, node, mat_name=None):
                         from_socket.node, mat_name, from_socket, to_socket)]
             elif type(input) != RendermanNodeSocketStruct:
                 params['%s %s' % (prop_type, input_name)] = \
-                        rib(input.default_value,
-                            type_hint=prop_type)
+                    rib(input.default_value,
+                        type_hint=prop_type)
 
     # Special case for SeExpr Nodes. Assume that the code will be in a file so
     # that needs to be extracted.
@@ -1310,9 +1342,8 @@ def gen_params(ri, node, mat_name=None):
                 # else output rib
                 else:
                     params['%s %s' % (meta['renderman_type'],
-                                          meta['renderman_name'])] = \
-                            rib(prop, type_hint=meta['renderman_type'])
-
+                                      meta['renderman_name'])] = \
+                        rib(prop, type_hint=meta['renderman_type'])
 
     else:
 
@@ -1331,7 +1362,7 @@ def gen_params(ri, node, mat_name=None):
                 if meta['renderman_type'] == 'page':
                     continue
                 elif prop_name == 'inputMaterial' or \
-                    ('type' in meta and meta['type'] == 'vstruct'):
+                        ('type' in meta and meta['type'] == 'vstruct'):
                     continue
 
                 # if input socket is linked reference that
@@ -1345,7 +1376,7 @@ def gen_params(ri, node, mat_name=None):
                                                 meta['renderman_name'])] = \
                         [get_output_param_str(
                             from_node, mat_name, from_socket, to_socket)]
-                
+
                 # see if vstruct linked
                 elif is_vstruct_and_linked(node, prop_name):
                     vstruct_name, vstruct_member = meta[
@@ -1356,7 +1387,7 @@ def gen_params(ri, node, mat_name=None):
                     if from_socket.node.bl_idname == 'ShaderNodeGroup':
                         ng = from_socket.node.node_tree
                         group_output = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
-                                       None)
+                                            None)
                         if group_output is None:
                             return False
 
@@ -1377,24 +1408,25 @@ def gen_params(ri, node, mat_name=None):
                         print('Warning! %s not found on %s' %
                               (vstruct_from_param, from_socket.node.name))
 
-                
                 # else output rib
                 else:
                     # if struct is not linked continue
                     if meta['renderman_type'] in ['struct', 'enum']:
                         continue
 
-                    # if this is a gain on PxrSurface and the lobe isn't enabled
+                    # if this is a gain on PxrSurface and the lobe isn't
+                    # enabled
                     if node.bl_idname == 'PxrSurfaceBxdfNode' and \
                             prop_name in gains_to_enable and \
                             not getattr(node, gains_to_enable[prop_name]):
-                        val = [0,0,0] if meta['renderman_type'] == 'color' else 0
+                        val = [0, 0, 0] if meta[
+                            'renderman_type'] == 'color' else 0
                         params['%s %s' % (meta['renderman_type'],
                                           meta['renderman_name'])] = val
 
                     elif 'options' in meta and meta['options'] == 'texture' \
-                        and node.bl_idname != "PxrPtexturePatternNode" or \
-                        ('widget' in meta and meta['widget'] == 'assetIdInput'):
+                            and node.bl_idname != "PxrPtexturePatternNode" or \
+                            ('widget' in meta and meta['widget'] == 'assetIdInput'):
                         params['%s %s' % (meta['renderman_type'],
                                           meta['renderman_name'])] = \
                             rib(get_tex_file_name(prop),
@@ -1428,7 +1460,7 @@ def gen_params(ri, node, mat_name=None):
             colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
             params['color[%d] colors' % len(positions)] = colors
             params['float[%d] positions' % len(positions)] = positions
-    
+
     return params
 
 
@@ -1436,7 +1468,7 @@ def create_rman_surface(nt, parent_node, input_index, node_type="PxrSurfaceBxdfN
     layer = nt.nodes.new(node_type)
     nt.links.new(layer.outputs[0], parent_node.inputs[input_index])
     setattr(layer, 'enableDiffuse', False)
-    
+
     layer.location = parent_node.location
     layer.diffuseGain = 0
     layer.location[0] -= 300
@@ -1445,28 +1477,32 @@ def create_rman_surface(nt, parent_node, input_index, node_type="PxrSurfaceBxdfN
 combine_nodes = ['ShaderNodeAddShader', 'ShaderNodeMixShader']
 
 # rman_parent could be PxrSurface or PxrMixer
+
+
 def convert_cycles_bsdf(nt, rman_parent, node, input_index):
 
     # if mix or add pass both to parent
     if node.bl_idname in combine_nodes:
         i = 0 if node.bl_idname == 'ShaderNodeAddShader' else 1
-        
-        node1 = node.inputs[0 + i].links[0].from_node if node.inputs[0 + i].is_linked else None
-        node2 = node.inputs[1 + i].links[0].from_node if node.inputs[1 + i].is_linked else None
-        
+
+        node1 = node.inputs[
+            0 + i].links[0].from_node if node.inputs[0 + i].is_linked else None
+        node2 = node.inputs[
+            1 + i].links[0].from_node if node.inputs[1 + i].is_linked else None
+
         if not node1 and not node2:
             return
         elif not node1:
             convert_cycles_bsdf(nt, rman_parent, node2, input_index)
         elif not node2:
             convert_cycles_bsdf(nt, rman_parent, node1, input_index)
-            
+
         # if ones a combiner or they're of the same type and not glossy we need
         # to make a mixer
         elif node.bl_idname == 'ShaderNodeMixShader' or node1.bl_idname in combine_nodes \
-            or node2.bl_idname in combine_nodes or \
-            node1.bl_idname == 'ShaderNodeGroup' or node2.bl_idname == 'ShaderNodeGroup' \
-            or (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0]):
+                or node2.bl_idname in combine_nodes or \
+                node1.bl_idname == 'ShaderNodeGroup' or node2.bl_idname == 'ShaderNodeGroup' \
+                or (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0]):
             mixer = nt.nodes.new('PxrLayerMixerPatternNode')
             # if parent is output make a pxr surface first
             nt.links.new(mixer.outputs["pxrMaterialOut"],
@@ -1477,7 +1513,8 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
             if node.bl_idname == 'ShaderNodeAddShader':
                 mixer.layer1Mask = .5
             else:
-                convert_cycles_input(nt, node.inputs['Fac'], mixer, 'layer1Mask')
+                convert_cycles_input(
+                    nt, node.inputs['Fac'], mixer, 'layer1Mask')
 
             # make a new node for each
             convert_cycles_bsdf(nt, mixer, node1, 0)
@@ -1487,7 +1524,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         else:
             if rman_parent.plugin_name == 'PxrLayerMixer':
                 old_parent = rman_parent
-                rman_parent = create_rman_surface(nt, rman_parent, input_index, 
+                rman_parent = create_rman_surface(nt, rman_parent, input_index,
                                                   'PxrLayerPatternNode')
                 offset_node_location(old_parent, rman_parent, node)
             convert_cycles_bsdf(nt, rman_parent, node1, 0)
@@ -1497,7 +1534,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
     elif 'Bsdf' in node.bl_idname or node.bl_idname == 'ShaderNodeSubsurfaceScattering':
         if rman_parent.plugin_name == 'PxrLayerMixer':
             old_parent = rman_parent
-            rman_parent = create_rman_surface(nt, rman_parent, input_index, 
+            rman_parent = create_rman_surface(nt, rman_parent, input_index,
                                               'PxrLayerPatternNode')
             offset_node_location(old_parent, rman_parent, node)
 
@@ -1507,17 +1544,20 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
     # note this will only make the last emission node the light
     elif node.bl_idname == 'ShaderNodeEmission':
         output = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and
-                        n.renderman_node_type == 'output'),
-                       None)
+                       n.renderman_node_type == 'output'),
+                      None)
         meshlight = nt.nodes.new("PxrMeshLightLightNode")
         nt.links.new(meshlight.outputs[0], output.inputs["Light"])
         meshlight.location = output.location
         meshlight.location[0] -= 300
-        convert_cycles_input(nt, node.inputs['Strength'], meshlight, "intensity")
+        convert_cycles_input(
+            nt, node.inputs['Strength'], meshlight, "intensity")
         if node.inputs['Color'].is_linked:
-            convert_cycles_input(nt, node.inputs['Color'], meshlight, "textureColor")
+            convert_cycles_input(
+                nt, node.inputs['Color'], meshlight, "textureColor")
         else:
-            setattr(meshlight, 'lightColor', node.inputs['Color'].default_value[:3])
+            setattr(meshlight, 'lightColor', node.inputs[
+                    'Color'].default_value[:3])
 
     else:
         rman_node = convert_cycles_node(nt, node)
@@ -1532,35 +1572,37 @@ def convert_cycles_displacement(nt, surface_node, displace_socket):
         bump.location = surface_node.location
         bump.location[0] -= 200
         bump.location[1] -= 100
-        
-        convert_cycles_input(nt, displace_socket, bump, "inputBump")  
-    
-    #return
-    #if displace_socket.is_linked:
+
+        convert_cycles_input(nt, displace_socket, bump, "inputBump")
+
+    # return
+    # if displace_socket.is_linked:
     #    displace = nt.nodes.new("PxrDisplaceDisplacementNode")
     #    nt.links.new(displace.outputs[0], output_node.inputs['Displacement'])
     #    displace.location = output_node.location
     #    displace.location[0] -= 200
     #    displace.location[1] -= 100
-        
+
     #    setattr(displace, 'dispAmount', .01)
     #    convert_cycles_input(nt, displace_socket, displace, "dispScalar")
 
-    
-# could make this more robust to shift the entire nodetree to below the 
+
+# could make this more robust to shift the entire nodetree to below the
 # bounds of the cycles nodetree
 def set_ouput_node_location(nt, output_node, cycles_output):
     output_node.location = cycles_output.location
     output_node.location[1] -= 500
 
+
 def offset_node_location(rman_parent, rman_node, cycles_node):
     linked_socket = next((sock for sock in cycles_node.outputs if sock.is_linked),
-                       None)
+                         None)
     rman_node.location = rman_parent.location
     if linked_socket:
-        rman_node.location += (cycles_node.location - linked_socket.links[0].to_node.location)
+        rman_node.location += (cycles_node.location -
+                               linked_socket.links[0].to_node.location)
 
-    
+
 def convert_cycles_nodetree(id, output_node, reporter):
     # find base node
     from . import cycles_convert
@@ -1577,7 +1619,7 @@ def convert_cycles_nodetree(id, output_node, reporter):
         reporter({'WARNING'}, 'No Cycles bsdf found ' + id.name)
         return False
 
-    #set the output node location
+    # set the output node location
     set_ouput_node_location(nt, output_node, cycles_output_node)
 
     # walk tree
@@ -1588,18 +1630,22 @@ def convert_cycles_nodetree(id, output_node, reporter):
         meshlight = nt.nodes.new("PxrMeshLightLightNode")
         nt.links.new(meshlight.outputs[0], output_node.inputs["Light"])
         offset_node_location(output_node, meshlight, begin_cycles_node)
-        convert_cycles_input(nt, begin_cycles_node.inputs['Strength'], meshlight, "intensity")
+        convert_cycles_input(nt, begin_cycles_node.inputs[
+                             'Strength'], meshlight, "intensity")
         if begin_cycles_node.inputs['Color'].is_linked:
-            convert_cycles_input(nt, begin_cycles_node.inputs['Color'], meshlight, "textureColor")
+            convert_cycles_input(nt, begin_cycles_node.inputs[
+                                 'Color'], meshlight, "textureColor")
         else:
-            setattr(meshlight, 'lightColor', begin_cycles_node.inputs['Color'].default_value[:3])
+            setattr(meshlight, 'lightColor', begin_cycles_node.inputs[
+                    'Color'].default_value[:3])
         bxdf = nt.nodes.new('PxrBlackBxdfNode')
         nt.links.new(bxdf.outputs[0], output_node.inputs["Bxdf"])
     else:
         base_surface = create_rman_surface(nt, output_node, 0)
         offset_node_location(output_node, base_surface, begin_cycles_node)
         convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
-        convert_cycles_displacement(nt, base_surface, cycles_output_node.inputs[2])
+        convert_cycles_displacement(
+            nt, base_surface, cycles_output_node.inputs[2])
     return True
 
 cycles_node_map = {
@@ -1685,16 +1731,19 @@ def get_socket_type(node, socket):
         return sock_type
 
 # do we need to convert this socket?
+
+
 def do_convert_socket(from_socket, to_socket):
     if not to_socket:
         return False
     return (is_float_type(from_socket) and is_float3_type(to_socket)) or \
         (is_float3_type(from_socket) and is_float_type(to_socket))
 
+
 def build_output_param_str(mat_name, from_node, from_socket, convert_socket=False):
     from_node_name = get_node_name(from_node, mat_name)
     from_sock_name = get_socket_name(from_node, from_socket)
-    
+
     # replace with the convert node's output
     if convert_socket:
         if is_float_type(from_socket):
@@ -1705,12 +1754,13 @@ def build_output_param_str(mat_name, from_node, from_socket, convert_socket=Fals
     else:
         return "%s:%s" % (from_node_name, from_sock_name)
 
+
 def get_output_param_str(node, mat_name, socket, to_socket=None):
     # if this is a node group, hook it up to the input node inside!
     if node.bl_idname == 'ShaderNodeGroup':
         ng = node.node_tree
         group_output = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
-                       None)
+                            None)
         if group_output is None:
             return "error:error"
 
@@ -1722,7 +1772,7 @@ def get_output_param_str(node, mat_name, socket, to_socket=None):
             return "error:error"
     if node.bl_idname == 'NodeGroupInput':
         global current_group_node
-        
+
         if current_group_node is None:
             return "error:error"
 
@@ -1737,10 +1787,12 @@ def get_output_param_str(node, mat_name, socket, to_socket=None):
 
 # hack!!!
 current_group_node = None
+
+
 def translate_node_group(ri, group_node, mat_name):
     ng = group_node.node_tree
     out = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
-                       None)
+               None)
     if out is None:
         return
 
@@ -1750,7 +1802,7 @@ def translate_node_group(ri, group_node, mat_name):
     for node in nodes_to_export:
         shader_node_rib(ri, node, mat_name=mat_name)
     current_group_node = None
-    
+
 
 def translate_cycles_node(ri, node, mat_name):
     if node.bl_idname == 'ShaderNodeGroup':
@@ -1776,7 +1828,7 @@ def translate_cycles_node(ri, node, mat_name):
         else:
             param_val = rib(input.default_value,
                             type_hint=get_socket_type(node, input))
-            #skip if this is a vector set to 0 0 0
+            # skip if this is a vector set to 0 0 0
             if input.type == 'VECTOR' and param_val == [0.0, 0.0, 0.0]:
                 continue
 
@@ -1786,9 +1838,9 @@ def translate_cycles_node(ri, node, mat_name):
     if node.bl_idname == 'ShaderNodeValToRGB':
         colors = []
         alphas = []
-        
+
         for i in range(ramp_size):
-            c = node.color_ramp.evaluate(float(i)/(ramp_size - 1.0))
+            c = node.color_ramp.evaluate(float(i) / (ramp_size - 1.0))
             colors.extend(c[:3])
             alphas.append(c[3])
         params['color[%d] ramp_color' % ramp_size] = colors
@@ -1799,9 +1851,9 @@ def translate_cycles_node(ri, node, mat_name):
         r = node.mapping.curves[0]
         g = node.mapping.curves[1]
         b = node.mapping.curves[2]
-        
+
         for i in range(ramp_size):
-            v = float(i)/(ramp_size - 1.0)
+            v = float(i) / (ramp_size - 1.0)
             colors.extend([r.evaluate(v), g.evaluate(v), b.evaluate(v)])
 
         params['color[%d] ramp' % ramp_size] = colors
@@ -1813,14 +1865,15 @@ def translate_cycles_node(ri, node, mat_name):
         r = node.mapping.curves[1]
         g = node.mapping.curves[2]
         b = node.mapping.curves[3]
-        
+
         for i in range(ramp_size):
-            v = float(i)/(ramp_size - 1.0)
+            v = float(i) / (ramp_size - 1.0)
             c_val = c.evaluate(v)
-            colors.extend([r.evaluate(v)*c_val, g.evaluate(v)* c_val, b.evaluate(v)* c_val])
+            colors.extend([r.evaluate(v) * c_val, g.evaluate(v)
+                           * c_val, b.evaluate(v) * c_val])
 
         params['color[%d] ramp' % ramp_size] = colors
-        
+
     #print('doing %s %s' % (node.bl_idname, node.name))
     # print(params)
     ri.Pattern(mapping, get_node_name(node, mat_name), params)
@@ -1828,16 +1881,17 @@ def translate_cycles_node(ri, node, mat_name):
 
 # Export to rib
 def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
-    # this is tuple telling us to convert 
+    # this is tuple telling us to convert
     if type(node) == type(()):
-        shader,from_node,from_socket = node
+        shader, from_node, from_socket = node
         input_type = 'float' if shader == 'PxrToFloat3' else 'color'
-        node_name = 'convert_%s.%s' % (get_node_name(from_node, mat_name), get_socket_name(from_node, from_socket))
+        node_name = 'convert_%s.%s' % (get_node_name(
+            from_node, mat_name), get_socket_name(from_node, from_socket))
         if from_node.bl_idname == 'ShaderNodeGroup':
             node_name = 'convert_' + get_output_param_str(
-                            from_node, mat_name, from_socket).replace(':', '.')
+                from_node, mat_name, from_socket).replace(':', '.')
         params = {"reference %s input" % input_type: get_output_param_str(
-                            from_node, mat_name, from_socket)}
+            from_node, mat_name, from_socket)}
         params['__instanceid'] = node_name
 
         ri.Pattern(shader, node_name, params)
@@ -1847,9 +1901,8 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
 
     params = gen_params(ri, node, mat_name)
     instance = mat_name + '.' + node.name
-    
-    params['__instanceid'] = instance
 
+    params['__instanceid'] = instance
 
     if node.renderman_node_type == "pattern":
         if node.bl_label == 'PxrOSL':
@@ -1904,34 +1957,41 @@ def get_tex_file_name(prop):
     else:
         return prop
 
+
 def is_same_type(socket1, socket2):
     return (type(socket1) == type(socket2)) or (is_float_type(socket1) and is_float_type(socket2)) or \
-        (is_float3_type(socket1) and is_float3_type(socket2))  
+        (is_float3_type(socket1) and is_float3_type(socket2))
+
 
 def is_float_type(socket):
     # this is a prman node
     if type(socket) == type({}):
         return socket['renderman_type'] in ['int', 'float']
     elif hasattr(socket.node, 'plugin_name'):
-        prop_meta = getattr(socket.node, 'output_meta', []) if socket.is_output else getattr(socket.node, 'prop_meta', [])
+        prop_meta = getattr(socket.node, 'output_meta', [
+        ]) if socket.is_output else getattr(socket.node, 'prop_meta', [])
         if socket.name in prop_meta:
             return prop_meta[socket.name]['renderman_type'] in ['int', 'float']
 
     else:
         return socket.type in ['INT', 'VALUE']
 
+
 def is_float3_type(socket):
     # this is a prman node
     if type(socket) == type({}):
         return socket['renderman_type'] in ['int', 'float']
     elif hasattr(socket.node, 'plugin_name'):
-        prop_meta = getattr(socket.node, 'output_meta', []) if socket.is_output else getattr(socket.node, 'prop_meta', [])
+        prop_meta = getattr(socket.node, 'output_meta', [
+        ]) if socket.is_output else getattr(socket.node, 'prop_meta', [])
         if socket.name in prop_meta:
             return prop_meta[socket.name]['renderman_type'] in ['color', 'vector', 'normal']
     else:
         return socket.type in ['RGBA', 'VECTOR']
 
 # walk the tree for nodes to export
+
+
 def gather_nodes(node):
     nodes = []
     for socket in node.inputs:
@@ -1943,7 +2003,8 @@ def gather_nodes(node):
 
             # if this is a float -> color inset a tofloat3
             if is_float_type(link.from_socket) and is_float3_type(socket):
-                convert_node = ('PxrToFloat3', link.from_node, link.from_socket)
+                convert_node = ('PxrToFloat3', link.from_node,
+                                link.from_socket)
                 if convert_node not in nodes:
                     nodes.append(convert_node)
             elif is_float3_type(link.from_socket) and is_float_type(socket):
@@ -2005,7 +2066,7 @@ def get_textures_for_node(node, matName=""):
         if node.bl_idname == "PxrPtexturePatternNode":
             return textures
         elif node.bl_idname == "PxrOSLPatternNode":
-            for input_name,input in node.inputs.items():
+            for input_name, input in node.inputs.items():
                 if hasattr(input, 'is_texture') and input.is_texture:
                     prop = input.default_value
                     out_file_name = get_tex_file_name(prop)
@@ -2095,16 +2156,18 @@ def get_textures(id):
 
 
 pattern_node_categories_map = {"texture": ["PxrFractal", "PxrProjectionLayer", "PxrPtexture", "PxrTexture", "PxrVoronoise", "PxrWorley", "PxrFractalize", "PxrDirt", "PxrLayeredTexture", "PxrMultiTexture"],
-                           "bump": ["PxrBump", "PxrNormalMap", "PxrFlakes", "aaOceanPrmanShader", 'PxrAdjustNormal'],
-                           "color": ["PxrBlackBody", "PxrBlend", "PxrLayeredBlend", "PxrClamp", "PxrExposure", "PxrGamma", "PxrHSL", "PxrInvert", "PxrMix", "PxrProjectionStack", "PxrRamp", "PxrRemap", "PxrThinFilm", "PxrThreshold", "PxrVary", "PxrChecker", "PxrColorCorrect"],
-                           "manifold": ["PxrManifold2D", "PxrManifold3D", "PxrManifold3DN", "PxrProjector", "PxrRoundCube", "PxrBumpManifold2D", "PxrTileManifold"],
-                           "geometry": ["PxrDot", "PxrCross", "PxrFacingRatio", "PxrTangentField"],
-                           "script": ["PxrOSL", "PxrSeExpr"],
-                           "utility": ["PxrAttribute", "PxrGeometricAOVs", "PxrMatteID", "PxrPrimvar", "PxrShadedSide", "PxrTee", "PxrToFloat", "PxrToFloat3", "PxrVariable"],
-                           "displace": ["PxrDispScalarLayer", 'PxrDispTransform', 'PxrDispVectorLayer'],
-                           "layer": ['PxrLayer', 'PxrLayerMixer']}
+                               "bump": ["PxrBump", "PxrNormalMap", "PxrFlakes", "aaOceanPrmanShader", 'PxrAdjustNormal'],
+                               "color": ["PxrBlackBody", "PxrBlend", "PxrLayeredBlend", "PxrClamp", "PxrExposure", "PxrGamma", "PxrHSL", "PxrInvert", "PxrMix", "PxrProjectionStack", "PxrRamp", "PxrRemap", "PxrThinFilm", "PxrThreshold", "PxrVary", "PxrChecker", "PxrColorCorrect"],
+                               "manifold": ["PxrManifold2D", "PxrManifold3D", "PxrManifold3DN", "PxrProjector", "PxrRoundCube", "PxrBumpManifold2D", "PxrTileManifold"],
+                               "geometry": ["PxrDot", "PxrCross", "PxrFacingRatio", "PxrTangentField"],
+                               "script": ["PxrOSL", "PxrSeExpr"],
+                               "utility": ["PxrAttribute", "PxrGeometricAOVs", "PxrMatteID", "PxrPrimvar", "PxrShadedSide", "PxrTee", "PxrToFloat", "PxrToFloat3", "PxrVariable"],
+                               "displace": ["PxrDispScalarLayer", 'PxrDispTransform', 'PxrDispVectorLayer'],
+                               "layer": ['PxrLayer', 'PxrLayerMixer']}
 # Node Chatagorization List
-def GetPatternCategory(name): 
+
+
+def GetPatternCategory(name):
     for cat_name, node_names in pattern_node_categories_map.items():
         if name in node_names:
             return cat_name
@@ -2113,6 +2176,8 @@ def GetPatternCategory(name):
 
 # our own base class with an appropriate poll function,
 # so the categories only show up in our own tree type
+
+
 class RendermanPatternNodeCategory(NodeCategory):
 
     @classmethod
@@ -2131,6 +2196,8 @@ classes = [
 
 nodetypes = {}
 pattern_categories = {}
+
+
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -2145,7 +2212,7 @@ def register():
         if vals:
             typename, nodetype = vals
             nodetypes[typename] = nodetype
-    
+
     node_cats = {
         'bxdf': ('PRMan Bxdfs', []),
         'light': ('PRMan Lights', []),
@@ -2163,7 +2230,7 @@ def register():
 
     for name, node_type in nodetypes.items():
         node_item = NodeItem(name, label=node_type.bl_label)
-        
+
         if node_type.renderman_node_type == 'pattern':
             # insert pxr layer in bxdf
             pattern_cat = GetPatternCategory(node_type.bl_label)
@@ -2177,13 +2244,13 @@ def register():
             pattern_categories[pattern_cat][name] = node_type
 
         elif 'LM' in name and node_type.renderman_node_type == 'bxdf':
-            #skip LM materials
+            # skip LM materials
             continue
         elif node_type.renderman_node_type == 'light' and 'PxrMeshLight' not in name:
-            #skip light nodes
+            # skip light nodes
             continue
         else:
-            node_cats[node_type.renderman_node_type][1].append(node_item)            
+            node_cats[node_type.renderman_node_type][1].append(node_item)
 
     # all categories in a list
     node_categories = [
@@ -2194,13 +2261,12 @@ def register():
 
     for name, (desc, items) in node_cats.items():
         node_categories.append(RendermanPatternNodeCategory(name, desc,
-                                     items=sorted(items,
-                                                  key=attrgetter('_label'))))
+                                                            items=sorted(items,
+                                                                         key=attrgetter('_label'))))
 
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES",
                                              node_categories)
 
- 
 
 def unregister():
     nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")

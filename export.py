@@ -680,7 +680,7 @@ def export_transform(ri, instance, concat=False, flatten=False):
             m = m.copy()
             m2 = Matrix.Rotation(math.radians(180), 4, 'X')
             m = m * m2
-        
+
         if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type == "DIST":
             m = m.copy()
             m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
@@ -733,6 +733,7 @@ def export_light_source(ri, lamp):
     if lamp.type not in ["SUN", 'ENV']:
         params['int areaNormalize'] = 1
     ri.Light(names[lamp.type], lamp.name, params)
+
 
 def export_light_filters(ri, lamp, do_coordsys=False):
     rm = lamp.renderman
@@ -827,12 +828,14 @@ def export_world(ri, world, do_geometry=True):
 
     ri.Illuminate(handle, rm.illuminates_by_default)
 
+
 def get_light_group(light_ob):
     scene_rm = bpy.context.scene.renderman
     for lg in scene_rm.light_groups:
         if lg.name != 'All' and light_ob.name in lg.members:
             return lg.name
     return ''
+
 
 def export_light(ri, instance):
     ob = instance.ob
@@ -866,7 +869,8 @@ def export_light(ri, instance):
         for lf in rm.light_filters:
             if lf.filter_name in bpy.data.objects:
                 filter = bpy.data.objects[lf.filter_name].data
-                ri.EnableLightFilter(lamp.name, filter.name, filter.renderman.illuminates_by_default)
+                ri.EnableLightFilter(lamp.name, filter.name,
+                                     filter.renderman.illuminates_by_default)
 
 
 def export_material(ri, mat, handle=None, iterate_instance=False):
@@ -2308,7 +2312,8 @@ def export_object_attributes(ri, scene, ob, visible_objects):
                     filter_name = light_name
                     for light_nm in scene_lights:
                         if filter_name in scene.objects[light_nm].data.renderman.light_filters.keys():
-                            ri.EnableLightFilter(light_nm, filter_name, link.illuminate == 'ON')
+                            ri.EnableLightFilter(
+                                light_nm, filter_name, link.illuminate == 'ON')
                 else:
                     ri.Illuminate(light_name, link.illuminate == 'ON')
 
@@ -2469,7 +2474,7 @@ def property_group_to_params(node, lamp=None):
             vals.append(curve.points[-1].location[1])
             params['float[%d] %s' % (len(knots), knot_param)] = knots
             params['float[%d] %s' % (len(vals), float_param)] = vals
-             
+
         if nt and rm.color_ramp_node in nt.nodes.keys():
             del params['float[16] colorRamp_Knots']
             color_node = nt.nodes[rm.color_ramp_node]
@@ -2949,7 +2954,8 @@ def export_display(ri, rpass, scene):
                     dspy_name = user_path(
                         addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                         layer_name=layer_name, pass_name=aov)
-                    ri.Display('+' + dspy_name, display_driver, aov, display_params)
+                    ri.Display('+' + dspy_name, display_driver,
+                               aov, display_params)
                     rpass.output_files.append(dspy_name)
 
         # else we have custom rman render layer settings
@@ -3416,9 +3422,9 @@ def issue_light_filter_transform_edit(ri, rpass, obj):
         ri.EditBegin('instance')
         light_obj = bpy.data.objects[light_name]
         lamp = light_obj.data
-        
+
         export_light_filters(ri, lamp, do_coordsys=True)
-        
+
         # reset the transform for light
         export_object_transform(ri, light_obj)
         if lamp.renderman.renderman_type == 'POINT':
@@ -3589,10 +3595,12 @@ def update_light_link(rpass, ri, prman, link, remove=False):
                         if remove or link.illuminate == "DEFAULT":
                             ri.EnableLightFilter(lamp_nm, filter_name, 1)
                         else:
-                            ri.EnableLightFilter(lamp_nm, filter_name, link.illuminate == 'ON')
+                            ri.EnableLightFilter(
+                                lamp_nm, filter_name, link.illuminate == 'ON')
             else:
                 if remove or link.illuminate == "DEFAULT":
-                    ri.Illuminate(lamp.name, lamp.renderman.illuminates_by_default)
+                    ri.Illuminate(
+                        lamp.name, lamp.renderman.illuminates_by_default)
                 else:
                     ri.Illuminate(lamp.name, link.illuminate == 'ON')
         ri.EditEnd()

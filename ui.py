@@ -374,7 +374,7 @@ def draw_props(node, prop_names, layout):
 
         else:
             if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
-                'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
+                    'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
                 continue
 
             row.label('', icon='BLANK1')
@@ -1634,7 +1634,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                     continue
                 lamp = scene.objects[light_name].data
                 lamp_rm = lamp.renderman
-                if lamp_rm.renderman_type =='FILTER':
+                if lamp_rm.renderman_type == 'FILTER':
                     continue
                 row = box.row()
                 columns = box.column_flow(columns=8)
@@ -2036,7 +2036,7 @@ class Renderman_UI_Panel(bpy.types.Panel):
                      text="Add Camera", icon='CAMERA_DATA')
 
         row.prop(context.scene, "prm_cam", text="",
-                 icon= 'DISCLOSURE_TRI_DOWN' if context.scene.prm_cam else 'DISCLOSURE_TRI_RIGHT')
+                 icon='DISCLOSURE_TRI_DOWN' if context.scene.prm_cam else 'DISCLOSURE_TRI_RIGHT')
 
         if context.scene.prm_cam:
             ob = bpy.context.object

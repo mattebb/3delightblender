@@ -54,9 +54,11 @@ def clamp(i, low, high):
         i = high
     return i
 
+
 def throw_error(msg):
     raise ImportError(msg)
-    #print(msg)
+    # print(msg)
+
 
 def getattr_recursive(ptr, attrstring):
     for attr in attrstring.split("."):
@@ -65,13 +67,15 @@ def getattr_recursive(ptr, attrstring):
     return ptr
 
 # return a list of meta tuples
+
+
 def get_osl_line_meta(line):
     if "%%meta" not in line:
         return {}
     meta = {}
     for m in re.finditer('meta{', line):
         sub_str = line[m.start(), line.find('}', beg=m.start())]
-        item_type,item_name,item_value = sub_str.split(',', 2)
+        item_type, item_name, item_value = sub_str.split(',', 2)
         val = item_value
         if item_type == 'string':
             val = val[1:-1]
@@ -83,6 +87,7 @@ def get_osl_line_meta(line):
         meta[item_name] = val
     return meta
 
+
 def locate_openVDB_cache(frameNum):
     if not bpy.data.is_saved:
         return None
@@ -91,9 +96,9 @@ def locate_openVDB_cache(frameNum):
     if not os.path.exists(cacheDir):
         return None
     for f in os.listdir(os.path.join(bpy.path.abspath("//"), cacheDir)):
-        if '.vdb' in f and "%06d" %frameNum in f:
+        if '.vdb' in f and "%06d" % frameNum in f:
             return os.path.join(bpy.path.abspath("//"), cacheDir, f)
-    
+
     return None
 
 
@@ -237,12 +242,12 @@ def get_path_list(rm, type):
             rmantree = guess_rmantree()
             paths.append(os.path.join(rmantree, 'lib', 'plugins'))
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         'Args'))
+                                      'Args'))
         if type == 'shader':
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                         'shaders'))
-            paths.append(os.path.join(bpy.utils.resource_path('LOCAL'), 'scripts', 
-                        'addons', 'cycles', 'shader'))
+                                      'shaders'))
+            paths.append(os.path.join(bpy.utils.resource_path('LOCAL'), 'scripts',
+                                      'addons', 'cycles', 'shader'))
             paths.append(os.path.join('${RMANTREE}', 'lib', 'shaders'))
         paths.append('@')
 
@@ -292,9 +297,9 @@ def get_path_list_converted(rm, type, to_unix=False):
 
 
 def path_win_to_unixy(winpath, escape_slashes=False):
-    #if escape_slashes:
+    # if escape_slashes:
     #    p = winpath.replace('\\', '\\\\')
-    #else:
+    # else:
     #    # convert pattern C:\\blah to //C/blah so 3delight can understand
     #    p = re.sub(r'([A-Za-z]):\\', r'//\1/', winpath)
     #    p = p.replace('\\', '/')
@@ -395,7 +400,6 @@ def rib(v, type_hint=None):
     if type_hint == 'color':
         return list(v)[:3]
 
-
     if type(v) in (mathutils.Vector, mathutils.Color) or\
             v.__class__.__name__ == 'bpy_prop_array'\
             or v.__class__.__name__ == 'Euler':
@@ -481,12 +485,15 @@ def check_valid_rmantree(rmantree):
     return False
 
 # return the major, minor rman version
+
+
 def get_rman_version(rmantree):
     try:
         prman = 'prman.exe' if platform.system() == 'Windows' else 'prman'
         exe = os.path.join(rmantree, 'bin', prman)
-        desc = subprocess.check_output([exe, "-version"], stderr=subprocess.STDOUT)
-        vstr = str(desc,'ascii').split('\n')[0].split()[-1]
+        desc = subprocess.check_output(
+            [exe, "-version"], stderr=subprocess.STDOUT)
+        vstr = str(desc, 'ascii').split('\n')[0].split()[-1]
         major_vers, minor_vers = vstr.split('.')
         vers_modifier = ''
         for v in ['b', 'rc']:
@@ -497,11 +504,13 @@ def get_rman_version(rmantree):
                 break
         return int(major_vers), int(minor_vers), vers_modifier
     except:
-        return 0,0,''
+        return 0, 0, ''
+
 
 def get_addon_prefs():
     addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
     return addon.preferences
+
 
 def guess_rmantree():
     prefs = get_addon_prefs()
@@ -514,15 +523,15 @@ def guess_rmantree():
         rmantree = rmantree_from_env()
     else:
         rmantree = choice
-    version = get_rman_version(rmantree) # major, minor, mod
+    version = get_rman_version(rmantree)  # major, minor, mod
 
     if choice == 'NEWEST':
 
         # get from detected installs (at default installation path)
         try:
-            base = { 'Windows': r'C:\Program Files\Pixar',
-                     'Darwin': '/Applications/Pixar',
-                     'Linux': '/opt/pixar' }[ platform.system() ]
+            base = {'Windows': r'C:\Program Files\Pixar',
+                    'Darwin': '/Applications/Pixar',
+                    'Linux': '/opt/pixar'}[platform.system()]
             for d in os.listdir(base):
                 if "RenderManProServer" in d:
                     d_rmantree = os.path.join(base, d)
@@ -535,7 +544,8 @@ def guess_rmantree():
 
     # check rmantree valid
     if version[0] == 0:
-        throw_error("Error loading addon.  RMANTREE %s is not valid.  Correct RMANTREE setting in addon preferences." % rmantree)
+        throw_error(
+            "Error loading addon.  RMANTREE %s is not valid.  Correct RMANTREE setting in addon preferences." % rmantree)
         return None
 
     # check that it's >= 21
@@ -585,7 +595,7 @@ def check_if_archive_dirty(update_time, archive_filename):
 
 def find_it_path():
     rmantree = guess_rmantree()
-    
+
     if not rmantree:
         return None
     else:
@@ -605,7 +615,7 @@ def find_it_path():
 
 def find_local_queue():
     rmantree = guess_rmantree()
-    
+
     if not rmantree:
         return None
     else:

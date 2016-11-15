@@ -566,8 +566,9 @@ class RPass:
                 for lf in obj.data.renderman.light_filters:
                     if lf.filter_name not in self.light_filter_map:
                         self.light_filter_map[lf.filter_name] = []
-                    self.light_filter_map[lf.filter_name].append((obj.data.name, obj.name))
-        
+                    self.light_filter_map[lf.filter_name].append(
+                        (obj.data.name, obj.name))
+
     # start the interactive session.  Basically the same as ribgen, only
     # save the file
     def start_interactive(self):

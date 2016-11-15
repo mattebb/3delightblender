@@ -44,6 +44,7 @@ def sp_optionmenu_to_string(options):
     return [(opt.attrib['value'], opt.attrib['name'],
              '') for opt in options.findall('string')]
 
+
 def parse_float(fs):
     if fs == None:
         return 0.0
@@ -58,20 +59,20 @@ def generate_page(sp, node, parent_name, first_level=False):
     if first_level:
         param_name = 'enable' + parent_name.replace(' ', '')
         prop_names.append(param_name)
-        prop_meta[param_name] = {'renderman_type':'enum', 'renderman_name': param_name}
+        prop_meta[param_name] = {
+            'renderman_type': 'enum', 'renderman_name': param_name}
         default = parent_name == 'Diffuse'
-        prop = BoolProperty(name="Enable " + parent_name, 
-                                    default=bool(default),
-                                    update=update_func)
+        prop = BoolProperty(name="Enable " + parent_name,
+                            default=bool(default),
+                            update=update_func)
         setattr(node, param_name, prop)
-
 
     for sub_param in sp.findall('param') + sp.findall('page'):
         if sub_param.tag == 'page':
             name = parent_name + '.' + sub_param.attrib['name']
             sub_names, sub_meta = generate_page(sub_param, node, name)
             setattr(node, name, sub_names)
-            #props.append(sub_props)
+            # props.append(sub_props)
             prop_meta.update(sub_meta)
             prop_meta[name] = {'renderman_type': 'page'}
             prop_names.append(name)
@@ -79,11 +80,11 @@ def generate_page(sp, node, parent_name, first_level=False):
             setattr(node, ui_label, BoolProperty(name=ui_label,
                                                  default=False))
         else:
-            
+
             name, meta, prop = generate_property(sub_param)
             if name is None:
                 continue
-            
+
             prop_names.append(name)
             prop_meta[name] = meta
             setattr(node, name, prop)
@@ -105,9 +106,9 @@ def generate_page(sp, node, parent_name, first_level=False):
                         node, Texname + "_ui_open", optionsProps[Texname])
                     setattr(node, Texname, optionsProps[Texname])
 
-            #if name == sp.attrib['name']:
+            # if name == sp.attrib['name']:
             #    name = name + '_prop'
-            
+
     return prop_names, prop_meta
 
 
@@ -115,18 +116,18 @@ def class_generate_properties(node, parent_name, shaderparameters):
     prop_names = []
     prop_meta = {}
     output_meta = {}
-    
+
     # pxr osl and seexpr need these to find the code
     if parent_name in ["PxrOSL", "PxrSeExpr"]:
         # Enum for internal, external type selection
         EnumName = "codetypeswitch"
         if parent_name == 'PxrOSL':
             EnumProp = EnumProperty(items=(('EXT', "External", ""),
-                                       ('INT', "Internal", "")),
+                                           ('INT', "Internal", "")),
                                     name="Shader Location", default='INT')
         else:
             EnumProp = EnumProperty(items=(('NODE', "Node", ""),
-                                       ('INT', "Internal", "")),
+                                           ('INT', "Internal", "")),
                                     name="Expr Location", default='NODE')
 
         EnumMeta = {'renderman_name': 'filename',
@@ -186,7 +187,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
             output_meta[sp.attrib['name']] = sp.attrib
             output_meta[sp.attrib['name']]['renderman_type'] = renderman_type
         else:
-            
+
             name, meta, prop = generate_property(sp)
             if name is None:
                 continue
@@ -210,7 +211,7 @@ def class_generate_properties(node, parent_name, shaderparameters):
                     setattr(
                         node, Texname + "_ui_open", optionsProps[Texname])
                     setattr(node, Texname, optionsProps[Texname])
-    
+
     setattr(node, 'prop_names', prop_names)
     setattr(node, 'prop_meta', prop_meta)
     setattr(node, 'output_meta', output_meta)
@@ -220,7 +221,7 @@ def update_conditional_visops(node):
     for param_name, prop_meta in getattr(node, 'prop_meta').items():
         if 'conditionalVisOp' in prop_meta:
             prop_meta['hidden'] = not eval(prop_meta['conditionalVisOp'])
-            
+
 
 # send updates to ipr if running
 def update_func(self, context):
@@ -243,15 +244,15 @@ def update_func(self, context):
     update_conditional_visops(node)
 
     if node.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
-        node_add_inputs(node, node.name, node.prop_names)         
+        node_add_inputs(node, node.name, node.prop_names)
 
-    #set any inputs that are visible and param is hidden to hidden
+    # set any inputs that are visible and param is hidden to hidden
     prop_meta = getattr(node, 'prop_meta')
     if hasattr(node, 'inputs'):
         for input_name, socket in node.inputs.items():
             if 'hidden' in prop_meta[input_name] \
-                and prop_meta[input_name]['hidden'] and not socket.hide:
-                    socket.hide = True
+                    and prop_meta[input_name]['hidden'] and not socket.hide:
+                socket.hide = True
 
 
 def update_inputs(node):
@@ -259,8 +260,10 @@ def update_inputs(node):
         if node.prop_meta[page_name]['renderman_type'] == 'page':
             for prop_name in getattr(node, page_name):
                 if prop_name.startswith('enable'):
-                    recursive_enable_inputs(node, getattr(node, page_name), getattr(node, prop_name))
+                    recursive_enable_inputs(node, getattr(
+                        node, page_name), getattr(node, prop_name))
                     break
+
 
 def recursive_enable_inputs(node, prop_names, enable=True):
     for prop_name in prop_names:
@@ -272,22 +275,30 @@ def recursive_enable_inputs(node, prop_names, enable=True):
             continue
 
 # take a set of condtional visops and make a python string
+
+
 def parse_conditional_visop(hintdict):
     op_map = {
-        'notEqualTo' : "!=",
+        'notEqualTo': "!=",
         'equalTo': '==',
         'greaterThan': '>',
         'lessThan': '<'
     }
     visop = hintdict.find("string[@name='conditionalVisOp']").attrib['value']
     if visop == 'and':
-        vis1op = hintdict.find("string[@name='conditionalVis1Op']").attrib['value']
-        vis1path = hintdict.find("string[@name='conditionalVis1Path']").attrib['value']
-        vis1Value = hintdict.find("string[@name='conditionalVis1Value']").attrib['value']
-        vis2op = hintdict.find("string[@name='conditionalVis2Op']").attrib['value']
-        vis2path = hintdict.find("string[@name='conditionalVis2Path']").attrib['value']
-        vis2Value = hintdict.find("string[@name='conditionalVis2Value']").attrib['value']
-        
+        vis1op = hintdict.find(
+            "string[@name='conditionalVis1Op']").attrib['value']
+        vis1path = hintdict.find(
+            "string[@name='conditionalVis1Path']").attrib['value']
+        vis1Value = hintdict.find(
+            "string[@name='conditionalVis1Value']").attrib['value']
+        vis2op = hintdict.find(
+            "string[@name='conditionalVis2Op']").attrib['value']
+        vis2path = hintdict.find(
+            "string[@name='conditionalVis2Path']").attrib['value']
+        vis2Value = hintdict.find(
+            "string[@name='conditionalVis2Value']").attrib['value']
+
         vis1 = ''
         vis2 = ''
         if vis1Value.isalpha():
@@ -306,8 +317,10 @@ def parse_conditional_visop(hintdict):
 
         return "%s and %s" % (vis1, vis2)
     else:
-        vispath = hintdict.find("string[@name='conditionalVisPath']").attrib['value']
-        visValue = hintdict.find("string[@name='conditionalVisValue']").attrib['value']
+        vispath = hintdict.find(
+            "string[@name='conditionalVisPath']").attrib['value']
+        visValue = hintdict.find(
+            "string[@name='conditionalVisValue']").attrib['value']
         if visValue.isalpha() or visValue == '':
             return "getattr(node, '%s') %s '%s'" % \
                 (vispath.rsplit('/', 1)[-1], op_map[visop], visValue)
@@ -318,7 +331,7 @@ def parse_conditional_visop(hintdict):
 
 def parse_conditional_visop_attrib(attrib):
     op_map = {
-        'notEqualTo' : "!=",
+        'notEqualTo': "!=",
         'equalTo': '==',
         'greaterThan': '>',
         'lessThan': '<'
@@ -333,7 +346,7 @@ def parse_conditional_visop_attrib(attrib):
     else:
         return "float(getattr(node, '%s')) %s float(%s)" % \
             (vispath.rsplit('/', 1)[-1], op_map[visop], visValue)
-                    
+
 
 # map args params to props
 def generate_property(sp):
@@ -350,14 +363,14 @@ def generate_property(sp):
     param_label = sp.attrib['label'] if 'label' in sp.attrib else param_name
     param_widget = sp.attrib['widget'].lower() if 'widget' in sp.attrib \
         else 'default'
-    #if param_widget == 'null':
+    # if param_widget == 'null':
     #    return (None, None, None)
 
     param_type = 'float'  # for default. Some args files are sloppy
     if 'type' in sp.attrib:
         param_type = sp.attrib['type']
     tags = sp.find('tags')
-    
+
     param_help = ""
     param_default = sp.attrib['default'] if 'default' in sp.attrib else None
 
@@ -376,16 +389,16 @@ def generate_property(sp):
     if tags and tags.find('tag').attrib['value'] == "__nonconnection" or \
         ("connectable" in sp.attrib and
             sp.attrib['connectable'].lower() == 'false'):
-        prop_meta['__noconnection'] = True  
+        prop_meta['__noconnection'] = True
 
     # if has conditionalVisOps parse them
     if sp.find("hintdict[@name='conditionalVisOps']"):
-        prop_meta['conditionalVisOp'] = parse_conditional_visop( \
+        prop_meta['conditionalVisOp'] = parse_conditional_visop(
             sp.find("hintdict[@name='conditionalVisOps']"))
 
     # sigh, some visops are in attrib:
     elif 'conditionalVisOp' in sp.attrib:
-        prop_meta['conditionalVisOp'] = parse_conditional_visop_attrib( \
+        prop_meta['conditionalVisOp'] = parse_conditional_visop_attrib(
             sp.attrib)
 
     for s in sp:
@@ -439,21 +452,21 @@ def generate_property(sp):
         if 'arraySize' in sp.attrib.keys():
             if "," in sp.attrib['default']:
                 param_default = tuple(int(f) for f in
-                                  sp.attrib['default'].split(','))
+                                      sp.attrib['default'].split(','))
             else:
                 param_default = tuple(int(f) for f in
-                                  sp.attrib['default'].split())
+                                      sp.attrib['default'].split())
             prop = IntVectorProperty(name=param_label,
-                                       default=param_default,
-                                       size=len(param_default),
-                                       description=param_help,
-                                       update=update_func)
+                                     default=param_default,
+                                     size=len(param_default),
+                                     description=param_help,
+                                     update=update_func)
         else:
             param_default = int(param_default) if param_default else 0
             # make invertT default 0
             if param_name == 'invertT':
                 param_default = 0
-        
+
             if param_widget == 'checkbox' or param_widget == 'switch':
                 prop = BoolProperty(name=param_label,
                                     default=bool(param_default),
@@ -656,7 +669,7 @@ class txmake_options():
 
     sblur = {'name': "sblur", 'type': "float", 'default': 1.0, 'dispName': "Sblur",
              'help': "Amount of X blur applied to texture.",
-             'exportType': "name"} 
+             'exportType': "name"}
     tblur = {'name': "tblur", 'type': "float", 'default': 1.0, 'dispName': "Tblur",
              'help': "Amount of Y blur applied to texture.",
              'exportType': "name"}
@@ -686,6 +699,8 @@ def find_enable_param(params):
             return prop_name
 
 # add input sockets
+
+
 def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix='', remove=False):
     for name in prop_names:
         meta = node.prop_meta[name]
@@ -700,21 +715,21 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
         # if this is a page recursively add inputs
         if 'renderman_type' in meta and meta['renderman_type'] == 'page':
             if first_level and node.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode'] and name != 'Globals':
-                #add these
+                # add these
                 enable_param = find_enable_param(getattr(node, name))
                 if enable_param and getattr(node, enable_param):
-                    node_add_inputs(node, node_name, getattr(node, name), 
-                                            label_prefix=name + ' ',
-                                            first_level=False)
+                    node_add_inputs(node, node_name, getattr(node, name),
+                                    label_prefix=name + ' ',
+                                    first_level=False)
                 else:
-                    node_add_inputs(node, node_name, getattr(node, name), 
-                                            label_prefix=name + ' ',
-                                            first_level=False, remove=True)
+                    node_add_inputs(node, node_name, getattr(node, name),
+                                    label_prefix=name + ' ',
+                                    first_level=False, remove=True)
                 continue
 
             else:
-                node_add_inputs(node, node_name, getattr(node, name), 
-                                first_level=first_level, 
+                node_add_inputs(node, node_name, getattr(node, name),
+                                first_level=first_level,
                                 label_prefix=label_prefix, remove=remove)
                 continue
 
@@ -727,12 +742,13 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
             continue
 
         param_name = name
-        
+
         param_label = label_prefix + meta.get('label', param_name)
 
-        socket = node.inputs.new(socket_map[param_type], param_name, param_label)
+        socket = node.inputs.new(
+            socket_map[param_type], param_name, param_label)
         socket.link_limit = 1
-        
+
         if param_type in ['struct', 'normal', 'vector', 'vstruct', 'void']:
             socket.hide_value = True
 
@@ -741,11 +757,8 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
 
 # add output sockets
 def node_add_outputs(node):
-    for name,meta in node.output_meta.items():
+    for name, meta in node.output_meta.items():
         rman_type = meta['renderman_type']
         if rman_type in socket_map and 'vstructmember' not in meta:
             socket = node.outputs.new(socket_map[rman_type], name)
             socket.label = name
-        
-
-    

@@ -109,14 +109,16 @@ def load_addon():
 
     else:
         # display loading error
-        throw_error("Error loading addon.  Correct RMANTREE setting in addon preferences.")
-    
+        throw_error(
+            "Error loading addon.  Correct RMANTREE setting in addon preferences.")
+
 
 def register():
     from . import preferences
     preferences.register()
     load_addon()
     bpy.utils.register_module(__name__)
+
 
 def unregister():
     from . import preferences

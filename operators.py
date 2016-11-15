@@ -174,7 +174,7 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 lamp.shape = 'RECTANGLE'
                 lamp.size = 1.0
                 lamp.size_y = 1.0
-                
+
             #lamp.renderman.primary_visibility = not lamp.use_nodes
 
             lamp.renderman.use_renderman_node = True
@@ -412,12 +412,12 @@ class StartInteractive(bpy.types.Operator):
             bpy.app.handlers.load_pre.append(self.invoke)
         else:
             bpy.app.handlers.scene_update_post.remove(
-                    engine.ipr.issue_transform_edits)
+                engine.ipr.issue_transform_edits)
             # The user should not turn this on and off during IPR rendering.
             if addon_prefs.draw_ipr_text:
                 bpy.types.SpaceView3D.draw_handler_remove(
                     engine.ipr_handle, 'WINDOW')
-                
+
             engine.ipr.end_interactive()
             engine.ipr = None
             if context:
