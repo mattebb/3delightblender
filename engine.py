@@ -375,7 +375,8 @@ class RPass:
             engine.end_result(result)
 
         # create command and start process
-        options = self.options + ['-Progress'] + ['-cwd', cdir]
+        options = self.options + ['-Progress'] + ['-cwd', cdir] + \
+            ['-woff', 'N02003']
         prman_executable = 'prman'
         if self.display_driver in ['openexr', 'tiff']:
             options = options + ['-checkpoint',
