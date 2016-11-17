@@ -627,7 +627,7 @@ class RPass:
             -dspyserver it" % self.paths['export_dir']
         else:
             filename = "launch:prman? -t:%d" % self.rm.threads + " -cwd %s -ctrl $ctrlin $ctrlout \
-            -dspyserver it" % self.paths['export_dir']
+            -dspyserver it" % self.paths['export_dir'].replace(' ', '%20')
         self.ri.Begin(filename)
         self.ri.Option("rib", {"string asciistyle": "indented,wide"})
         interactive_initial_rib(self, self.ri, self.scene, prman)
