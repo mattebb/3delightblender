@@ -3013,8 +3013,8 @@ def export_display(ri, rpass, scene):
 
                 # Remaps any color lpe channel names to a denoise friendly one
                 if aov_name in name_map.keys():
-                    aov.channel_name = '%s%s' % (
-                        name_map[aov_name], layer_name)
+                    aov.channel_name = '%s%s%s' % (
+                        name_map[aov_name], aov_name, layer_name)
 
                 if aov.aov_name == "custom_lpe":
                     source_type == 'color'
