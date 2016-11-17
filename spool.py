@@ -79,7 +79,7 @@ def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files
         in_name = bpy.path.abspath(in_name)
         out_name = os.path.join(rpass.paths['texture_output'], out_name)
         txmake_task(f, "TxMake %s" % os.path.split(in_name)
-                    [-1], quote(in_name), quot(out_name), options, 2)
+                    [-1], quote(in_name), quote(out_name), options, 2)
     if job_texture_cmds:
         end_block(f, 1)
 

@@ -2981,39 +2981,40 @@ def export_display(ri, rpass, scene):
                 pixelfilter_y = aov.aov_pixelfilter_y
 
                 name_map = {
-                    "directDiffuseLobe": "diffuse11",
-                    "subsurfaceLobe": "diffuse12",
-                    "Subsurface": "diffuse13",
-                    "transmissiveSingleScatterLobe": "diffuse14",
-                    "Caustics": "diffuse15",
-                    "Albedo": "diffuse16",
-                    "Diffuse": "diffuse17",
-                    "IndirectDiffuse": "indirectdiffuse11",
-                    "indirectDiffuseLobe": "indirectdiffuse12",
-                    "directSpecularPrimaryLobe": "specular11",
-                    "directSpecularRoughLobe": "specular12",
-                    "directSpecularClearcoatLobe": "specular13",
-                    "directSpecularIridescenceLobe": "specular14",
-                    "directSpecularFuzzLobe": "specular15",
-                    "directSpecularGlassLobe": "specular16",
-                    "transmissiveGlassLobe": "specular17",
-                    "Reflection": "specular18",
-                    "Refraction": "specular19",
-                    "Specular": "specular20",
-                    "indirectSpecularPrimaryLobe": "indirectspecular11",
-                    "indirectSpecularRoughLobe": "indirectspecular12",
-                    "IndirectSpecular": "indirectspecular13",
-                    "indirectSpecularClearcoatLobe": "indirectspecular14",
-                    "indirectSpecularIridescenceLobe": "indirectspecular15",
-                    "indirectSpecularFuzzLobe": "indirectspecular16",
-                    "indirectSpecularGlassLobe": "indirectspecular17",
-                    "Shadows": "emission10",
-                    "Emission": "emission11"
+                    "directDiffuseLobe": "diffuse",
+                    "subsurfaceLobe": "diffuse",
+                    "Subsurface": "diffuse",
+                    "transmissiveSingleScatterLobe": "diffuse",
+                    "Caustics": "diffuse",
+                    "Albedo": "diffuse",
+                    "Diffuse": "diffuse",
+                    "IndirectDiffuse": "indirectdiffuse",
+                    "indirectDiffuseLobe": "indirectdiffuse",
+                    "directSpecularPrimaryLobe": "specular",
+                    "directSpecularRoughLobe": "specular",
+                    "directSpecularClearcoatLobe": "specular",
+                    "directSpecularIridescenceLobe": "specular",
+                    "directSpecularFuzzLobe": "specular",
+                    "directSpecularGlassLobe": "specular",
+                    "transmissiveGlassLobe": "specular",
+                    "Reflection": "specular",
+                    "Refraction": "specular",
+                    "Specular": "specular",
+                    "indirectSpecularPrimaryLobe": "indirectspecular",
+                    "indirectSpecularRoughLobe": "indirectspecular",
+                    "IndirectSpecular": "indirectspecular",
+                    "indirectSpecularClearcoatLobe": "indirectspecular",
+                    "indirectSpecularIridescenceLobe": "indirectspecular",
+                    "indirectSpecularFuzzLobe": "indirectspecular",
+                    "indirectSpecularGlassLobe": "indirectspecular",
+                    "Shadows": "emission",
+                    "Emission": "emission"
                 }
 
                 # Remaps any color lpe channel names to a denoise friendly one
                 if aov_name in name_map.keys():
-                    aov.channel_name = name_map[aov_name]
+                    aov.channel_name = '%s%s%s' % (
+                        name_map[aov_name], aov_name, layer_name)
 
                 if aov.aov_name == "custom_lpe":
                     source_type == 'color'
@@ -3050,8 +3051,8 @@ def export_display(ri, rpass, scene):
             if rm_rl.export_multilayer and rpass.external_render:
                 channels = []
                 for aov in rm_rl.custom_aovs:
-                    channels.append(
-                        aov.channel_name) if aov.channel_name != "rgba" else channels.append("Ci,a")
+                    channels.append("Ci,a") if aov.channel_name is 'rgba' else channels.append(
+                        aov.channel_name)
                 out_type, ext = ('openexr', 'exr')
                 # removes 'z' and 'zback' channels as DeepEXR will
                 # automatically add them
