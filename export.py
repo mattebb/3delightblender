@@ -2234,7 +2234,7 @@ def export_object_attributes(ri, scene, ob, visible_objects):
                      "string lpegroup": obj_groups_str})
 
     if ob.renderman.shading_override:
-        ri.Attribute("dice", {"float micropolygonlength": ob.renderman.shadingrate})
+        ri.ShadingRate(ob.renderman.shadingrate)
         approx_params = {}
         # output motionfactor always, could not find documented default value?
         approx_params[
@@ -2553,7 +2553,7 @@ def export_render_settings(ri, rpass, scene, preview=False):
 
     # ri.PixelSamples(rm.pixelsamples_x, rm.pixelsamples_y)
     ri.PixelFilter(rm.pixelfilter, rm.pixelfilter_x, rm.pixelfilter_y)
-    ri.Attribute("dice", {"float micropolygonlength": rm.shadingrate})
+    ri.ShadingRate(rm.shadingrate)
     ri.Attribute("trace", depths)
     if rm.use_statistics:
         ri.Option("statistics", {'int endofframe': 1,
