@@ -31,7 +31,7 @@ import sys
 import time
 import traceback
 import platform
-from mathutils import Matrix, Vector, Quaternion
+from mathutils import Matrix, Vector, Quaternion, Euler
 
 from . import bl_info
 
@@ -677,11 +677,11 @@ def export_transform(ri, instance, concat=False, flatten=False):
                 m[2][2] *= data.size
 
         if instance.type == 'LAMP' and instance.ob.data.type == "SUN":
-            m = m.copy()
-            m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
-            m = m2 * m
-            m2 = Matrix.Rotation(math.radians(90), 4, 'Z')
-            m = m2 * m
+            eul = m.to_euler()
+            eul = Euler([eul[0], eul[1], eul[2]], eul.order)
+            m = eul.to_matrix().to_4x4()
+            m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+            m = m * m2
         if concat and ob.parent_type == "object":
             ri.ConcatTransform(rib(m))
             ri.ScopedCoordinateSystem(instance.ob.name)
@@ -697,12 +697,12 @@ def export_object_transform(ri, ob):
     if ob.type == 'LAMP' and ob.data.renderman.renderman_type != "FILTER":
         m = m.copy()
         m[0][0] *= -1.0
-    if ob.type == 'LAMP' and ob.data.rtype == "SUN":
-        m = m.copy()
-        m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
-        m = m2 * m
-        m2 = Matrix.Rotation(math.radians(90), 4, 'Z')
-        m = m2 * m
+    if ob.type == 'LAMP' and ob.data.type == "SUN":
+        eul = m.to_euler()
+        eul = Euler([eul[0], eul[1], eul[2]], eul.order)
+        m = eul.to_matrix().to_4x4()
+        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+        m = m * m2
     if ob.type == 'LAMP' and ob.data.type == 'AREA':
         m = m.copy()
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
@@ -724,13 +724,15 @@ def export_object_transform(ri, ob):
 
 
 def export_light_source(ri, lamp):
-    names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrEnvDayLight',
+    names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrDistantLight',
              'SPOT': 'PxrDiskLight', 'HEMI': 'PxrDomeLight', 'AREA': 'PxrRectLight'}
     params = {"float exposure": [lamp.energy * 5.0],
               "__instanceid": lamp.name,
               "color lightColor": rib(lamp.color)}
-    if lamp.type not in ["SUN", 'ENV']:
+    if lamp.type not in ['HEMI']:
         params['int areaNormalize'] = 1
+    if lamp.type == 'SUN':
+        params["float exposure"] = 0
     ri.Light(names[lamp.type], lamp.name, params)
 
 
