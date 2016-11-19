@@ -676,14 +676,11 @@ def export_transform(ri, instance, concat=False, flatten=False):
                 m[1][1] *= data.size
                 m[2][2] *= data.size
 
-        if instance.type == 'LAMP' and instance.ob.data.type in ['SPOT']:
-            m = m.copy()
-            m2 = Matrix.Rotation(math.radians(180), 4, 'X')
-            m = m * m2
-
-        if instance.type == 'LAMP' and instance.ob.data.renderman.renderman_type == "DIST":
+        if instance.type == 'LAMP' and instance.ob.data.type == "SUN":
             m = m.copy()
             m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
+            m = m2 * m
+            m2 = Matrix.Rotation(math.radians(90), 4, 'Z')
             m = m2 * m
         if concat and ob.parent_type == "object":
             ri.ConcatTransform(rib(m))
@@ -700,9 +697,11 @@ def export_object_transform(ri, ob):
     if ob.type == 'LAMP' and ob.data.renderman.renderman_type != "FILTER":
         m = m.copy()
         m[0][0] *= -1.0
-    if ob.type == 'LAMP' and ob.data.renderman.renderman_type == "DIST":
+    if ob.type == 'LAMP' and ob.data.rtype == "SUN":
         m = m.copy()
         m2 = Matrix.Rotation(math.radians(180), 4, 'Y')
+        m = m2 * m
+        m2 = Matrix.Rotation(math.radians(90), 4, 'Z')
         m = m2 * m
     if ob.type == 'LAMP' and ob.data.type == 'AREA':
         m = m.copy()
