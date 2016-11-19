@@ -648,6 +648,34 @@ def create_mesh(ob, scene):
         ob.modifiers[len(ob.modifiers) - 1].show_render = True
     return mesh
 
+def modify_light_matrix(m, ob):
+    if ob.data.type in ['AREA', 'SPOT']:
+        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+        m = m * m2
+        data = ob.data
+        if ob.data.type == 'HEMI':
+            if data.renderman.area_shape == 'rect':
+                m[0][0] *= data.size
+                m[1][1] *= data.size_y
+            else:
+                m[0][0] *= data.size
+                m[1][1] *= data.size
+                m[2][2] *= data.size
+
+    if ob.data.type in ["SUN", 'HEMI']:
+        eul = m.to_euler()
+        eul = Euler([-eul[0], -eul[1], eul[2]], eul.order)
+        m = eul.to_matrix().to_4x4()
+        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+        m = m * m2
+    elif ob.data.renderman.renderman_type != "FILTER":
+        m[0][0] *= -1.0
+    
+    if ob.data.type == 'HEMI':
+        m[2][2] *= -1
+
+    return m
+
 
 def export_transform(ri, instance, concat=False, flatten=False):
     ob = instance.ob
@@ -659,29 +687,9 @@ def export_transform(ri, instance, concat=False, flatten=False):
         samples = [ob.matrix_local] if ob.parent and  ob.parent_type == "object" and ob.type != 'LAMP'\
             else [ob.matrix_world]
     for m in samples:
-        if ob.type == 'LAMP' and ob.data.renderman.renderman_type != "FILTER":
-            m = m.copy()
-            m[0][0] *= -1.0
+        if instance.type == 'LAMP':
+            m = modify_light_matrix(m.copy(), ob)
 
-        if instance.type == 'LAMP' and instance.ob.data.type in ['AREA']:
-            m = m.copy()
-            m2 = Matrix.Rotation(math.radians(180), 4, 'X')
-            m = m * m2
-            data = instance.ob.data
-            if data.renderman.area_shape == 'rect':
-                m[0][0] *= data.size
-                m[1][1] *= data.size_y
-            else:
-                m[0][0] *= data.size
-                m[1][1] *= data.size
-                m[2][2] *= data.size
-
-        if instance.type == 'LAMP' and instance.ob.data.type == "SUN":
-            eul = m.to_euler()
-            eul = Euler([eul[0], eul[1], eul[2]], eul.order)
-            m = eul.to_matrix().to_4x4()
-            m2 = Matrix.Rotation(math.radians(180), 4, 'X')
-            m = m * m2
         if concat and ob.parent_type == "object":
             ri.ConcatTransform(rib(m))
             ri.ScopedCoordinateSystem(instance.ob.name)
@@ -694,31 +702,8 @@ def export_transform(ri, instance, concat=False, flatten=False):
 def export_object_transform(ri, ob):
     m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
         else ob.matrix_world
-    if ob.type == 'LAMP' and ob.data.renderman.renderman_type != "FILTER":
-        m = m.copy()
-        m[0][0] *= -1.0
-    if ob.type == 'LAMP' and ob.data.type == "SUN":
-        eul = m.to_euler()
-        eul = Euler([eul[0], eul[1], eul[2]], eul.order)
-        m = eul.to_matrix().to_4x4()
-        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
-        m = m * m2
-    if ob.type == 'LAMP' and ob.data.type == 'AREA':
-        m = m.copy()
-        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
-        m = m * m2
-        data = ob.data
-        if data.renderman.area_shape == 'rect':
-            m[0][0] *= data.size
-            m[1][1] *= data.size_y
-        else:
-            m[0][0] *= data.size
-            m[1][1] *= data.size
-            m[2][2] *= data.size
-    if ob.type == 'LAMP' and ob.data.type == 'SPOT':
-        m = m.copy()
-        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
-        m = m * m2
+    if ob.type == 'LAMP':
+        m = modify_light_matrix(m.copy(), ob)
     ri.Transform(rib(m))
     ri.ScopedCoordinateSystem(ob.name)
 
