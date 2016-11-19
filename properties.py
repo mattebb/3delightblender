@@ -1788,6 +1788,12 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                             'Instanced objects at each point')
                            ]
 
+    use_object_material = BoolProperty(
+        name="Use Master Object's Material",
+        description="Use the master object's material for instancing.",
+        default=False
+    )
+
     particle_type = EnumProperty(
         name="Point Type",
         description="Geometric primitive for points to be rendered as.",

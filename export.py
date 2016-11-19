@@ -1001,8 +1001,8 @@ def export_particle_instances(ri, scene, rpass, psys, ob, motion_data, type='OBJ
         ri.Disk(0, 1.0, 360.0)
     ri.ObjectEnd()
 
-    if rm.use_object_material and len(master_ob.data.materials) > 0:
-        export_material_archive(ri, master_ob.data.materials[0].name)
+    if type == 'OBJECT' and rm.use_object_material and len(master_ob.data.materials) > 0:
+        export_material_archive(ri, master_ob.data.materials[0])
 
     width = rm.width
 
