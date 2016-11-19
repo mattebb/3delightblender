@@ -286,6 +286,8 @@ def update_func(self, context):
 
 
 def update_inputs(node):
+    if node.bl_idname == 'PxrMeshLightLightNode':
+        return
     for page_name in node.prop_names:
         if node.prop_meta[page_name]['renderman_type'] == 'page':
             for prop_name in getattr(node, page_name):
