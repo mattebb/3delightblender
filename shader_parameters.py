@@ -244,6 +244,8 @@ def update_func_with_inputs(self, context):
 
     if node.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
         node_add_inputs(node, node.name, node.prop_names)
+    else:
+        update_inputs(node)
 
     # set any inputs that are visible and param is hidden to hidden
     prop_meta = getattr(node, 'prop_meta')
