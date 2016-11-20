@@ -821,7 +821,7 @@ class OT_add_renderman_aovs(bpy.types.Operator):
         for aov_type, attr, name in aovs:
             if attr:
                 aov_setting = rm_rl.custom_aovs.add()
-                aov_setting.channel_id = aov_type
+                aov_setting.aov_name = aov_type
                 aov_setting.name = name
                 aov_setting.channel_name = name
 

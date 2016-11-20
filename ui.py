@@ -1309,7 +1309,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         #row.prop(item, "layers")
         col = layout.column()
         col.prop(item, "aov_name")
-        if item.aov_name == "custom_lpe":
+        if item.aov_name == "color custom_lpe":
             col.prop(item, "name")
             col.prop(item, "custom_lpe_string")
 

@@ -2951,7 +2951,7 @@ def export_display(ri, rpass, scene):
                 # if theres a blank name we can't make a channel
                 if not aov_name:
                     continue
-                source_type, source = aov.channel_id.split()
+                source_type, source = aov.aov_name.split()
                 exposure_gain = aov.exposure_gain
                 exposure_gamma = aov.exposure_gamma
                 remap_a = aov.remap_a
@@ -2999,12 +2999,11 @@ def export_display(ri, rpass, scene):
 
                 # Remaps any color lpe channel names to a denoise friendly one
                 if aov_name in name_map.keys():
-                    aov.channel_name = '%s%s%s' % (
+                    aov.channel_name = '%s_%s_%s' % (
                         name_map[aov_name], aov_name, layer_name)
 
-                if aov.aov_name == "custom_lpe":
-                    source_type == 'color'
-                    source = 'custom_lpe_string'
+                if aov.aov_name == "color custom_lpe":
+                    source = aov.custom_lpe_string
 
                 # light groups need to be surrounded with '' in lpes
                 G_string = "'%s'" % rm_rl.object_group if rm_rl.object_group != '' else ""
