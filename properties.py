@@ -249,7 +249,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
              "Reference World Normal primvar (if available)", "", 69),
             # Custom lpe
             ("", "Custom", "Custom", "", 0),
-            ("custom_lpe", "Custom LPE", "Custom LPE", "", 70)
+            ("color custom_lpe", "Custom LPE", "Custom LPE", "", 70)
         ]
         return items
 
@@ -257,13 +257,10 @@ class RendermanAOV(bpy.types.PropertyGroup):
         types = self.aov_list(context)
         for item in types:
             if self.aov_name == item[0]:
-                self.channel_id = item[0]
                 self.name = item[1]
                 self.channel_name = item[1]
 
     show_advanced = BoolProperty(name='Advanced Options', default=False)
-
-    channel_id = StringProperty()
 
     name = StringProperty(name='Channel Name')
 
@@ -277,10 +274,6 @@ class RendermanAOV(bpy.types.PropertyGroup):
         name="lpe String",
         description="This is where you enter the custom lpe string")
 
-    custom_aov_string = StringProperty(
-        name="AOV name",
-        description="This is where you enter the name of the custom AOV pass")
-
     stats_type = EnumProperty(
         name="Statistics",
         description="this is the name of the statistics to display in this AOV (if any)",
@@ -292,16 +285,6 @@ class RendermanAOV(bpy.types.PropertyGroup):
             ('even', 'Even', 'this image is created from half the total camera samples'),
             ('odd', 'Odd', 'this image is created from the other half of the camera samples')],
         default='none')
-
-    denoise_aov = BoolProperty(
-        name="Format for denoising",
-        description="If checked this pass will be properly formatted for use by the denoise utility",
-        default=False)
-
-    custom_aov_type = StringProperty(
-        name="AOV type",
-        description="Information type for the AOV (normal, float, vector or color)",
-        default="")
 
     exposure_gain = FloatProperty(
         name="Gain",
@@ -393,7 +376,7 @@ class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
 
     use_deep = BoolProperty(
         name="Use Deep Data",
-        description="The output file will contain extra 'deep' information that can aid with compositing.  This can increase file sizes dramatically.",
+        description="The output file will contain extra 'deep' information that can aid with compositing.  This can increase file sizes dramatically.  Z channels will automatically be generated so they do not need to be added to the AOV panel",
         default=False)
 
     exr_compression = EnumProperty(
@@ -2117,6 +2100,10 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Intersect Priority",
         description="Dictates a priority used when ray tracing overlapping materials",
         default=0)
+    raytrace_ior = FloatProperty(
+        name="Index of Refraction",
+        description="When using nested dielectrics (overlapping materials), this should be set to the same value as the ior of your material",
+        default=1.0)
 
     trace_displacements = BoolProperty(
         name="Trace Displacements",

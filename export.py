@@ -210,7 +210,7 @@ def is_subdmesh(ob):
 # XXX do this better, perhaps by hooking into modifier type data in RNA?
 # Currently assumes too much is deforming when it isn't
 def is_deforming(ob):
-    deforming_modifiers = ['ARMATURE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE',
+    deforming_modifiers = ['ARMATURE', 'MESH_SEQUENCE_CACHE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE',
                            'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP',
                            'SIMPLE_DEFORM', 'SMOOTH', 'WAVE', 'SOFT_BODY',
                            'SURFACE', 'MESH_CACHE', 'FLUID_SIMULATION',
@@ -648,6 +648,7 @@ def create_mesh(ob, scene):
         ob.modifiers[len(ob.modifiers) - 1].show_render = True
     return mesh
 
+
 def modify_light_matrix(m, ob):
     if ob.data.type in ['AREA', 'SPOT']:
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
@@ -670,7 +671,7 @@ def modify_light_matrix(m, ob):
         m = m * m2
     elif ob.data.renderman.renderman_type != "FILTER":
         m[0][0] *= -1.0
-    
+
     if ob.data.type == 'HEMI':
         m[2][2] *= -1
 
@@ -2220,7 +2221,8 @@ def export_object_attributes(ri, scene, ob, visible_objects):
                      "string lpegroup": obj_groups_str})
 
     if ob.renderman.shading_override:
-        ri.Attribute("dice", {"float micropolygonlength": ob.renderman.shadingrate})
+        ri.Attribute(
+            "dice", {"float micropolygonlength": ob.renderman.shadingrate})
         approx_params = {}
         # output motionfactor always, could not find documented default value?
         approx_params[
@@ -2242,8 +2244,14 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         ri.Matte(ob.renderman.matte)
 
     # ray tracing attributes
+    trace_params = {}
+    shade_params = {}
+    if ob.renderman.raytrace_intersectpriority != 0:
+        trace_params[
+            "int intersectpriority"] = ob.renderman.raytrace_intersectpriority
+        shade_params["float indexofrefraction"] = ob.renderman.raytrace_ior
+
     if ob.renderman.raytrace_override:
-        trace_params = {}
         if ob.renderman.raytrace_maxdiffusedepth != 1:
             trace_params[
                 "int maxdiffusedepth"] = ob.renderman.raytrace_maxdiffusedepth
@@ -2265,9 +2273,12 @@ def export_object_attributes(ri, scene, ob, visible_objects):
             trace_params[
                 "int intersectpriority"] = ob.renderman.raytrace_intersectpriority
         if ob.renderman.raytrace_pixel_variance != 1.0:
-            ri.Attribute(
-                "shade",  {"relativepixelvariance": ob.renderman.raytrace_pixel_variance})
+            shade_params[
+                "relativepixelvariance"] = ob.renderman.raytrace_pixel_variance
 
+    if shade_params:
+        ri.Attribute("shade", shade_params)
+    if trace_params:
         ri.Attribute("trace", trace_params)
 
     # light linking
@@ -2951,7 +2962,7 @@ def export_display(ri, rpass, scene):
                 # if theres a blank name we can't make a channel
                 if not aov_name:
                     continue
-                source_type, source = aov.channel_id.split()
+                source_type, source = aov.aov_name.split()
                 exposure_gain = aov.exposure_gain
                 exposure_gamma = aov.exposure_gamma
                 remap_a = aov.remap_a
@@ -2999,12 +3010,11 @@ def export_display(ri, rpass, scene):
 
                 # Remaps any color lpe channel names to a denoise friendly one
                 if aov_name in name_map.keys():
-                    aov.channel_name = '%s%s%s' % (
+                    aov.channel_name = '%s_%s_%s' % (
                         name_map[aov_name], aov_name, layer_name)
 
-                if aov.aov_name == "custom_lpe":
-                    source_type == 'color'
-                    source = 'custom_lpe_string'
+                if aov.aov_name == "color custom_lpe":
+                    source = aov.custom_lpe_string
 
                 # light groups need to be surrounded with '' in lpes
                 G_string = "'%s'" % rm_rl.object_group if rm_rl.object_group != '' else ""
