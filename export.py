@@ -2584,15 +2584,13 @@ def export_camera_matrix(ri, scene, ob, motion_data=[]):
 
 
 def export_camera(ri, scene, instances, camera_to_use=None):
-
-    if not scene.camera or scene.camera.type != 'CAMERA':
-        return
-
     r = scene.render
     if camera_to_use:
         ob = camera_to_use
         motion = []
     else:
+        if not scene.camera or scene.camera.type != 'CAMERA':
+            return
         i = instances[scene.camera.name]
         ob = i.ob
         motion = i.motion_data
@@ -3433,8 +3431,7 @@ def issue_light_filter_transform_edit(ri, rpass, obj):
 
 def issue_camera_edit(ri, rpass, camera):
     ri.EditBegin('option')
-    export_camera(
-        ri, rpass.scene, [], camera_to_use=camera)
+    export_camera(ri, rpass.scene, [], camera_to_use=camera)
     ri.EditEnd()
 
 # search this material/lamp for textures to re txmake and do them
