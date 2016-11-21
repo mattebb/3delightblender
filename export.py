@@ -3077,7 +3077,7 @@ def export_display(ri, rpass, scene):
                     aov_channel_name = aov.channel_name
                     if not aov_name or not aov.channel_name:
                         continue
-                    if aov.channel_id == "color rgba":
+                    if aov.aov_name == "color rgba":
                         aov_channel_name = "Ci,a"
                     if layer == scene.render.layers[0] and aov == 'rgba':
                         # we already output this skip
