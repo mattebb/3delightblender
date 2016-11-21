@@ -210,7 +210,7 @@ def is_subdmesh(ob):
 # XXX do this better, perhaps by hooking into modifier type data in RNA?
 # Currently assumes too much is deforming when it isn't
 def is_deforming(ob):
-    deforming_modifiers = ['ARMATURE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE',
+    deforming_modifiers = ['ARMATURE', 'MESH_SEQUENCE_CACHE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE',
                            'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP',
                            'SIMPLE_DEFORM', 'SMOOTH', 'WAVE', 'SOFT_BODY',
                            'SURFACE', 'MESH_CACHE', 'FLUID_SIMULATION',
