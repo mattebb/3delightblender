@@ -648,6 +648,7 @@ def create_mesh(ob, scene):
         ob.modifiers[len(ob.modifiers) - 1].show_render = True
     return mesh
 
+
 def modify_light_matrix(m, ob):
     if ob.data.type in ['AREA', 'SPOT']:
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
@@ -670,7 +671,7 @@ def modify_light_matrix(m, ob):
         m = m * m2
     elif ob.data.renderman.renderman_type != "FILTER":
         m[0][0] *= -1.0
-    
+
     if ob.data.type == 'HEMI':
         m[2][2] *= -1
 
@@ -2220,7 +2221,8 @@ def export_object_attributes(ri, scene, ob, visible_objects):
                      "string lpegroup": obj_groups_str})
 
     if ob.renderman.shading_override:
-        ri.Attribute("dice", {"float micropolygonlength": ob.renderman.shadingrate})
+        ri.Attribute(
+            "dice", {"float micropolygonlength": ob.renderman.shadingrate})
         approx_params = {}
         # output motionfactor always, could not find documented default value?
         approx_params[
@@ -2242,8 +2244,14 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         ri.Matte(ob.renderman.matte)
 
     # ray tracing attributes
+    trace_params = {}
+    shade_params = {}
+    if ob.renderman.raytrace_intersectpriority != 0:
+        trace_params[
+            "int intersectpriority"] = ob.renderman.raytrace_intersectpriority
+        shade_params["float indexofrefraction"] = ob.renderman.raytrace_ior
+
     if ob.renderman.raytrace_override:
-        trace_params = {}
         if ob.renderman.raytrace_maxdiffusedepth != 1:
             trace_params[
                 "int maxdiffusedepth"] = ob.renderman.raytrace_maxdiffusedepth
@@ -2265,9 +2273,12 @@ def export_object_attributes(ri, scene, ob, visible_objects):
             trace_params[
                 "int intersectpriority"] = ob.renderman.raytrace_intersectpriority
         if ob.renderman.raytrace_pixel_variance != 1.0:
-            ri.Attribute(
-                "shade",  {"relativepixelvariance": ob.renderman.raytrace_pixel_variance})
+            shade_params[
+                "relativepixelvariance"] = ob.renderman.raytrace_pixel_variance
 
+    if shade_params:
+        ri.Attribute("shade", shade_params)
+    if trace_params:
         ri.Attribute("trace", trace_params)
 
     # light linking
