@@ -769,11 +769,14 @@ def export_light_shaders(ri, lamp, group_name=''):
 
 
 def export_world_rib(ri, world):
-    if world.renderman.world_rib_box != '':
+    if world and world.renderman.world_rib_box != '':
         export_rib_box(ri, world.renderman.world_rib_box)
 
 
 def export_world(ri, world, do_geometry=True):
+    if not world:
+        return
+
     rm = world.renderman
     # if no shader do nothing!
     if rm.use_renderman_node and rm.renderman_type == 'NONE':
@@ -1101,7 +1104,7 @@ def get_texture_list(scene):
                     get_textures_for_node(o.data.renderman.get_light_node())
         else:
             mats_to_scan += recursive_texture_set(o)
-    if scene.world.renderman.renderman_type != 'NONE':
+    if scene.world and scene.world.renderman.renderman_type != 'NONE':
         textures = textures + \
             get_textures_for_node(scene.world.renderman.get_light_node())
 
