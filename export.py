@@ -2338,6 +2338,8 @@ def export_mesh_archive(ri, scene, data_block):
     else:
         export_geometry_data(ri, scene, ob)
 
+    data_block.motion_data = None
+
 
 # export the archives for an mesh. If this is a
 # deforming mesh the particle export will handle it
@@ -2346,6 +2348,7 @@ def export_particle_archive(ri, scene, rpass, data_block, objectCorrectionMatrix
     data = data_block.motion_data if data_block.deforming else None
     export_particle_system(ri, scene, rpass, ob, psys,
                            objectCorrectionMatrix, data=data)
+    data_block.motion_data = None
 
 # export the archives for an mesh. If this is a
 # deforming mesh the particle export will handle it
