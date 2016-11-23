@@ -649,17 +649,15 @@ def create_mesh(ob, scene):
 
 def modify_light_matrix(m, ob):
     if ob.data.type in ['AREA', 'SPOT']:
+        data = ob.data
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
         m = m * m2
-        data = ob.data
-        if ob.data.type == 'HEMI':
+        if ob.data.type == 'AREA':
             if data.renderman.area_shape == 'rect':
-                m[0][0] *= data.size
-                m[1][1] *= data.size_y
+                m = m * Matrix.Scale(data.size, 4, (1, 0, 0)) * \
+                    Matrix.Scale(data.size_y, 4, (0, 1, 0))
             else:
-                m[0][0] *= data.size
-                m[1][1] *= data.size
-                m[2][2] *= data.size
+                m = m * Matrix.Scale(data.size, 4, (1,1,1))
 
     if ob.data.type in ["SUN", 'HEMI']:
         eul = m.to_euler()
@@ -668,7 +666,7 @@ def modify_light_matrix(m, ob):
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
         m = m * m2
     elif ob.data.renderman.renderman_type != "FILTER":
-        m[0][0] *= -1.0
+        m = m * Matrix.Scale(-1.0, 4, (1, 0, 0))
 
     if ob.data.type == 'HEMI':
         m[2][2] *= -1
@@ -683,7 +681,7 @@ def export_transform(ri, instance, concat=False, flatten=False):
     if instance.transforming and len(instance.motion_data) > 0:
         samples = [sample[1] for sample in instance.motion_data]
     else:
-        samples = [ob.matrix_local] if ob.parent and  ob.parent_type == "object" and ob.type != 'LAMP'\
+        samples = [ob.matrix_local] if ob.parent and ob.parent_type == "object" and ob.type != 'LAMP'\
             else [ob.matrix_world]
     for m in samples:
         if instance.type == 'LAMP':
