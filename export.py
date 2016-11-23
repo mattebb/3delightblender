@@ -390,10 +390,8 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
 
 # only export particles that are alive,
 # or have been born since the last frame
-
-
 def valid_particle(pa, valid_frames):
-    return pa.die_time >= valid_frames[0] and pa.birth_time <= valid_frames[1]
+    return pa.die_time >= valid_frames[-1] and pa.birth_time <= valid_frames[0]
 
 
 def get_particles(scene, ob, psys, valid_frames=None):
@@ -1939,7 +1937,7 @@ def get_transform(instance, subframe):
         instance.motion_data.append((subframe, mat.copy()))
 
 
-def get_deformation(data_block, subframe, scene):
+def get_deformation(data_block, subframe, scene, subframes):
     if not data_block.deforming or not data_block.do_export:
         return
     else:
@@ -1952,7 +1950,7 @@ def get_deformation(data_block, subframe, scene):
                 begin_frame = scene.frame_current - 1 if subframe == 1 else scene.frame_current
                 end_frame = scene.frame_current + 1 if subframe != 1 else scene.frame_current
                 points = get_particles(
-                    scene, ob, psys, [begin_frame, end_frame])
+                    scene, ob, psys, subframes)
                 data_block.motion_data.append((subframe, points))
             else:
                 # this is hair
@@ -1980,7 +1978,9 @@ def cache_motion(scene, rpass, objects=None):
         # ordered from future to present,
         # to prevent too many scene updates
         # (since loop ends on current frame/subframe)
-        for seg in get_subframes(num_segs, scene):
+        subframes = get_subframes(num_segs, scene)
+        actual_subframes = [origframe + subframe for subframe in subframes]
+        for seg in subframes:
             if seg < 0.0:
                 scene.frame_set(origframe - 1, 1.0 + seg)
             else:
@@ -1990,7 +1990,7 @@ def cache_motion(scene, rpass, objects=None):
                 get_transform(instances[name], seg)
 
             for name in data_names:
-                get_deformation(data_blocks[name], seg, scene)
+                get_deformation(data_blocks[name], seg, scene, actual_subframes)
 
     scene.frame_set(origframe, 0)
 
