@@ -321,7 +321,7 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
     scalpT = []
     nverts = 0
     for pindex in range(total_hair_count):
-        if not psys.settings.show_guide_hairs and pindex < num_parents:
+        if psys.settings.child_type != 'NONE' and pindex < num_parents:
             continue
 
         strand_points = []
@@ -2063,7 +2063,8 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
     if instance.ob:
         export_object_attributes(ri, rpass.scene, instance.ob, visible_objects)
     # now the matrix, if we're transforming do the motion here
-    export_transform(ri, instance, concat=is_child)
+    if instance.type != 'META':
+        export_transform(ri, instance, concat=is_child)
 
     for db_name in instance.data_block_names:
         if db_name in data_blocks:
