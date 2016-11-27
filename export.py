@@ -940,7 +940,7 @@ def geometry_source_rib(ri, scene, ob):
             for channel in rm.openvdb_channels:
                 if channel.name != '':
                     params['varying %s %s' % (channel.type, channel.name)] = []
-            ri.Volume("blobbydso:impl_openvdb", rib_ob_bounds(ob.bound_box), [0, 0, 0],
+            ri.Volume("blobbydso:impl_openvdb", rib(bounds), [0, 0, 0],
                 params)
 
 def export_blobby_particles(ri, scene, psys, ob, motion_data):
