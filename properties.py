@@ -1853,6 +1853,15 @@ class RendermanCurveGeometrySettings(bpy.types.PropertyGroup):
     prim_vars_index = IntProperty(min=-1, default=-1)
 
 
+class OpenVDBChannel(bpy.types.PropertyGroup):
+    name = StringProperty(name="Channel Name")
+    type = EnumProperty(name="Channel Type", 
+                        items=[
+                            ('float', 'Float', ''),
+                            ('vector', 'Vector', ''),
+                            ('color', 'Color', ''),
+                        ])
+
 class RendermanObjectSettings(bpy.types.PropertyGroup):
 
     # for some odd reason blender truncates this as a float
@@ -1877,6 +1886,8 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         items=[('BLENDER_SCENE_DATA', 'Blender Scene Data', 'Exports and renders blender scene data directly from memory'),
                ('ARCHIVE', 'Archive',
                 'Renders a prevously exported RIB archive'),
+               ('OPENVDB', 'OpenVDB File',
+                'Renders a prevously exported OpenVDB file'),
                ('DELAYED_LOAD_ARCHIVE', 'Delayed Load Archive',
                 'Loads and renders geometry from an archive only when its bounding box is visible'),
                ('PROCEDURAL_RUN_PROGRAM', 'Procedural Run Program',
@@ -1885,6 +1896,10 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 'Generates procedural geometry at render time from a dynamic shared object library')
                ],
         default='BLENDER_SCENE_DATA')
+
+    openvdb_channels = CollectionProperty(
+        type=OpenVDBChannel, name="OpenVDB Channels")
+    openvdb_channel_index = IntProperty(min=-1, default=-1)
 
     archive_anim_settings = PointerProperty(
         type=RendermanAnimSequenceSettings,
@@ -2352,6 +2367,7 @@ classes = [RendermanPath,
            RendermanSceneSettings,
            RendermanMeshGeometrySettings,
            RendermanCurveGeometrySettings,
+           OpenVDBChannel,
            RendermanObjectSettings,
            Tab_CollectionGroup
            ]
