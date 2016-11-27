@@ -648,7 +648,7 @@ def create_mesh(ob, scene):
 
 
 def modify_light_matrix(m, ob):
-    if ob.data.type in ['AREA', 'SPOT']:
+    if ob.data.type in ['AREA', 'SPOT', 'SUN']:
         data = ob.data
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
         m = m * m2
@@ -659,7 +659,7 @@ def modify_light_matrix(m, ob):
             else:
                 m = m * Matrix.Scale(data.size, 4, (1,1,1))
 
-    if ob.data.type in ["SUN", 'HEMI']:
+    if ob.data.type in ['HEMI']:
         eul = m.to_euler()
         eul = Euler([-eul[0], -eul[1], eul[2]], eul.order)
         m = eul.to_matrix().to_4x4()
