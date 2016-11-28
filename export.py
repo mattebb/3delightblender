@@ -2854,6 +2854,55 @@ def export_samplefilters(ri, scene):
         ri.SampleFilter('PxrSampleFilterCombiner', 'combiner', params)
 
 
+channel_name_map = {
+                    "directDiffuseLobe": "diffuse",
+                    "subsurfaceLobe": "diffuse",
+                    "Subsurface": "diffuse",
+                    "transmissiveSingleScatterLobe": "diffuse",
+                    "Caustics": "diffuse",
+                    "Albedo": "diffuse",
+                    "Diffuse": "diffuse",
+                    "IndirectDiffuse": "indirectdiffuse",
+                    "indirectDiffuseLobe": "indirectdiffuse",
+                    "directSpecularPrimaryLobe": "specular",
+                    "directSpecularRoughLobe": "specular",
+                    "directSpecularClearcoatLobe": "specular",
+                    "directSpecularIridescenceLobe": "specular",
+                    "directSpecularFuzzLobe": "specular",
+                    "directSpecularGlassLobe": "specular",
+                    "transmissiveGlassLobe": "specular",
+                    "Reflection": "specular",
+                    "Refraction": "specular",
+                    "Specular": "specular",
+                    "indirectSpecularPrimaryLobe": "indirectspecular",
+                    "indirectSpecularRoughLobe": "indirectspecular",
+                    "IndirectSpecular": "indirectspecular",
+                    "indirectSpecularClearcoatLobe": "indirectspecular",
+                    "indirectSpecularIridescenceLobe": "indirectspecular",
+                    "indirectSpecularFuzzLobe": "indirectspecular",
+                    "indirectSpecularGlassLobe": "indirectspecular",
+                    "Shadows": "emission",
+                    "Emission": "emission"
+                }
+
+def get_channel_name(aov, layer_name):
+    aov_name = aov.name.replace(' ', '')
+    aov_channel_name = aov.channel_name
+    if not aov.aov_name or not aov.channel_name:
+        return ''
+    elif aov.aov_name == "color rgba":
+        aov_channel_name = "Ci,a"
+    # Remaps any color lpe channel names to a denoise friendly one
+    elif aov_name in channel_name_map.keys():
+        aov_channel_name = '%s_%s_%s' % (
+            channel_name_map[aov_name], aov_name, layer_name)
+
+    elif aov.aov_name == "color custom_lpe":
+        aov_channel_name = aov.name
+
+    return aov_channel_name
+
+
 def export_display(ri, rpass, scene):
     rm = scene.renderman
 
@@ -2994,43 +3043,10 @@ def export_display(ri, rpass, scene):
                 stats = aov.stats_type
                 pixelfilter_x = aov.aov_pixelfilter_x
                 pixelfilter_y = aov.aov_pixelfilter_y
-
-                name_map = {
-                    "directDiffuseLobe": "diffuse",
-                    "subsurfaceLobe": "diffuse",
-                    "Subsurface": "diffuse",
-                    "transmissiveSingleScatterLobe": "diffuse",
-                    "Caustics": "diffuse",
-                    "Albedo": "diffuse",
-                    "Diffuse": "diffuse",
-                    "IndirectDiffuse": "indirectdiffuse",
-                    "indirectDiffuseLobe": "indirectdiffuse",
-                    "directSpecularPrimaryLobe": "specular",
-                    "directSpecularRoughLobe": "specular",
-                    "directSpecularClearcoatLobe": "specular",
-                    "directSpecularIridescenceLobe": "specular",
-                    "directSpecularFuzzLobe": "specular",
-                    "directSpecularGlassLobe": "specular",
-                    "transmissiveGlassLobe": "specular",
-                    "Reflection": "specular",
-                    "Refraction": "specular",
-                    "Specular": "specular",
-                    "indirectSpecularPrimaryLobe": "indirectspecular",
-                    "indirectSpecularRoughLobe": "indirectspecular",
-                    "IndirectSpecular": "indirectspecular",
-                    "indirectSpecularClearcoatLobe": "indirectspecular",
-                    "indirectSpecularIridescenceLobe": "indirectspecular",
-                    "indirectSpecularFuzzLobe": "indirectspecular",
-                    "indirectSpecularGlassLobe": "indirectspecular",
-                    "Shadows": "emission",
-                    "Emission": "emission"
-                }
-
-                # Remaps any color lpe channel names to a denoise friendly one
-                if aov_name in name_map.keys():
-                    aov.channel_name = '%s_%s_%s' % (
-                        name_map[aov_name], aov_name, layer_name)
-
+                channel_name = get_channel_name(aov, layer_name)
+                
+                if channel_name == '':
+                    continue
                 if aov.aov_name == "color custom_lpe":
                     source = aov.custom_lpe_string
 
@@ -3059,7 +3075,7 @@ def export_display(ri, rpass, scene):
                     ri.DisplayChannel("float a",  params)
                 else:
                     ri.DisplayChannel(source_type + ' %s' %
-                                      aov.channel_name, params)
+                                      channel_name, params)
 
             # if this is a multilayer combine em!
             if rm_rl.export_multilayer and rpass.external_render:
@@ -3092,11 +3108,10 @@ def export_display(ri, rpass, scene):
             else:
                 for aov in rm_rl.custom_aovs:
                     aov_name = aov.name.replace(' ', '')
-                    aov_channel_name = aov.channel_name
-                    if not aov_name or not aov.channel_name:
+                    aov_channel_name = get_channel_name(aov, layer_name)
+                    if aov_channel_name == '':
                         continue
-                    if aov.aov_name == "color rgba":
-                        aov_channel_name = "Ci,a"
+
                     if layer == scene.render.layers[0] and aov == 'rgba':
                         # we already output this skip
                         continue
