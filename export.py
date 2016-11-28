@@ -1871,7 +1871,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                 if psys.settings.render_type == 'OBJECT':
                     data_blocks.extend(get_dupli_block(
                         psys.settings.dupli_object, rpass, do_mb))
-                else:
+                elif psys.settings.dupli_group:
                     for dupli_ob in psys.settings.dupli_group.objects:
                         data_blocks.extend(
                             get_dupli_block(dupli_ob, rpass, do_mb))
