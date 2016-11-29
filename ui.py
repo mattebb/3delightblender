@@ -912,6 +912,7 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
             layout.prop(world.renderman, "renderman_type", expand=True)
             if world.renderman.renderman_type == 'NONE':
                 return
+            layout.prop(world.renderman, 'light_primary_visibility')
             lamp_node = world.renderman.get_light_node()
             if lamp_node:
                 draw_props(lamp_node, lamp_node.prop_names, layout)

@@ -807,7 +807,7 @@ def export_world(ri, world, do_geometry=True):
         plugin_name = "PxrDomeLight"
         params = {'color lightColor': rib(world.horizon_color)}
     ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
-                                'int camera': 1})
+                                'int camera': int(rm.light_primary_visibility)})
     ri.Light(plugin_name, handle, params)
 
     ri.AttributeEnd()

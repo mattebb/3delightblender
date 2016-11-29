@@ -1688,6 +1688,14 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
 
         self.light_node = light_shader + "_settings"
 
+
+    def update_vis(self, context):
+        lamp = context.scene.world
+
+        from . import engine
+        if engine.is_ipr_running():
+            engine.ipr.update_light_visibility(lamp)
+
     renderman_type = EnumProperty(
         name="World Type",
         update=update_light_type,
@@ -1707,6 +1715,12 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
     light_node = StringProperty(
         name="Light Node",
         default='')
+
+    light_primary_visibility = BoolProperty(
+        name="Light Primary Visibility",
+        description="Camera visibility for this light",
+        update=update_vis,
+        default=True)
 
     shadingrate = FloatProperty(
         name="Light Shading Rate",
