@@ -748,14 +748,14 @@ def export_light_shaders(ri, lamp, group_name=''):
     light_shader = rm.get_light_node()
     if light_shader:
         # make sure the shape is set on PxrStdAreaLightShape
-        if lamp.type == 'SPOT':
-            light_shader.coneAngle = .5 * \
-                math.degrees(lamp.spot_size)
-            light_shader.penumbraAngle = math.degrees(
-                lamp.spot_blend)
+        
         params = property_group_to_params(light_shader)
         params['__instanceid'] = handle
         params['string lightGroup'] = group_name
+        if lamp.type == 'SPOT':
+            params['float coneAngle'] = math.degrees(lamp.spot_size)
+            params['float coneSoftness'] = lamp.spot_blend
+
         primary_vis = rm.light_primary_visibility
         ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,
                                     'int camera': int(primary_vis)})
