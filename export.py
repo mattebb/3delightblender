@@ -648,7 +648,6 @@ def create_mesh(ob, scene):
 
 
 def modify_light_matrix(m, ob):
-    print('here', ob.data.type)
     if ob.data.type in ['AREA', 'SPOT', 'SUN']:
         data = ob.data
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
