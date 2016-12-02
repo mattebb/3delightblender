@@ -2336,6 +2336,16 @@ def export_object_attributes(ri, scene, ob, visible_objects):
                 else:
                     ri.Illuminate(light_name, link.illuminate == 'ON')
 
+    user_attr = {}
+    for i in range(8):
+        name = 'MatteID%d' % i
+        if getattr(rm, name) != [0.0, 0.0, 0.0]:
+            user_attr["color %s" % name] = rib(getattr(rm, name))
+
+    if len(user_attr):
+        ri.Attribute('user', user_attr)
+    
+
 
 def get_bounding_box(ob):
     bounds = rib_ob_bounds(ob.bound_box)

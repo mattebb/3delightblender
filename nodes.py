@@ -1467,14 +1467,6 @@ def gen_params(ri, node, mat_name=None):
             colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
             params['color[%d] colors' % len(positions)] = colors
             params['float[%d] positions' % len(positions)] = positions
-    if node.plugin_name == 'PxrMatteID':
-        user_attr = {}
-        for name, val in params.items():
-            if 'matteTexture' in name:
-                i = name.split('matteTexture')[1]
-                new_val = [1, 1, 1] if 'reference' in name else val
-                user_attr['color MatteID' + i] = new_val
-        ri.Attribute('user', user_attr)
     return params
 
 
