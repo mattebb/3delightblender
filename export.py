@@ -789,14 +789,16 @@ def export_world(ri, world, do_geometry=True):
     world_type = rm.renderman_type if rm.use_renderman_node else 'ENV'
     if do_geometry:
         m = Matrix.Identity(4)
-        if world_type == 'ENV':
-            m[0] *= -1.0
-        if world_type == 'SKY':
-            m2 = Matrix.Rotation(math.radians(180), 4, 'X')
-            m = m2 * m
+        m = m * Matrix.Rotation(math.radians(180), 4, 'Y')
+        eul = m.to_euler()
+        eul = Euler([-eul[0], -eul[1], eul[2]], eul.order)
+        m = eul.to_matrix().to_4x4()
+        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
+        m = m * m2
+        m = m * Matrix.Scale(-1.0, 4, (1, 0, 0))
         ri.Transform(rib(m))
         # No need to name Coordinate System system for world.
-        ri.ShadingRate(rm.shadingrate)
+        #ri.ShadingRate(rm.shadingrate)
 
     handle = world.name
     # need this for rerendering
