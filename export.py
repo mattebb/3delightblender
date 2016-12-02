@@ -1467,7 +1467,7 @@ def export_openVDB(ri, ob):
         debug('error', "Please save and export OpenVDB files before rendering.")
         return
     params = {"constant string[2] blobbydso:stringargs": [cacheFile, "density:fogvolume"], "varying float density": [],
-              "varying float flame": [], "varying color smoke_color": []}
+              "varying float flame": [], "varying color color": []}
     ri.Volume("blobbydso:impl_openvdb", rib_ob_bounds(ob.bound_box), [0, 0, 0],
               params)
 
@@ -1491,7 +1491,7 @@ def export_smoke(ri, ob):
     params = {
         "varying float density": smoke_data.density_grid,
         "varying float flame": smoke_data.flame_grid,
-        "varying color smoke_color": [item for index, item in enumerate(smoke_data.color_grid) if index % 4 != 0]
+        "varying color color": [item for index, item in enumerate(smoke_data.color_grid) if index % 4 != 0]
     }
 
     smoke_res = rib(smoke_data.domain_resolution)
