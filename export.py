@@ -2746,6 +2746,19 @@ def export_options(ri, scene):
     ri.Option("searchpath", {"string procedural": [
               ".:${RMANTREE}/lib/plugins:@"]})
 
+    lpe_options = {
+        "string diffuse2": "Diffuse",
+        "string diffuse3": "Subsurface",
+        "string specular2": "Specular",
+        "string specular3": "RoughSpecular",
+        "string specular4": "Clearcoat",
+        "string specular5": "Iridescence",
+        "string specular6": "Fuzz",
+        "string specular7": "SingleScatter",
+        "string specular8": "Glass",
+    }
+
+    ri.Option('lpe', lpe_options)
 
 def export_searchpaths(ri, paths):
     ri.Option("ribparse", {"string varsubst": ["$"]})
