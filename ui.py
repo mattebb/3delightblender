@@ -542,6 +542,12 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row = layout.row()
         row.operator('rman.open_rib')
         row.prop(rm, "editor_override")
+        row = layout.row()
+        row.label(text="RIB Format:")
+        row.label(text="RIB Compression")
+        row = layout.row()
+        row.prop(rm, "rib_format", text="")
+        row.prop(rm, "rib_compression", text="")
 
         layout.separator()
         layout.prop(rm, "always_generate_textures")
