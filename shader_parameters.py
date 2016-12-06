@@ -437,7 +437,7 @@ def generate_property(sp):
 
     for s in sp:
         if s.tag == 'help' and s.text:
-            param_help = s.text
+            param_help = s.text.rstrip('.')
 
     if 'float' in param_type:
         if 'arraySize' in sp.attrib.keys():
@@ -702,10 +702,10 @@ class txmake_options():
               "exportType": "name"}
 
     sblur = {'name': "sblur", 'type': "float", 'default': 1.0, 'dispName': "Sblur",
-             'help': "Amount of X blur applied to texture.",
+             'help': "Amount of X blur applied to texture",
              'exportType': "name"}
     tblur = {'name': "tblur", 'type': "float", 'default': 1.0, 'dispName': "Tblur",
-             'help': "Amount of Y blur applied to texture.",
+             'help': "Amount of Y blur applied to texture",
              'exportType': "name"}
     pattern = {'name': "pattern", 'type': "enum", 'default': "diagonal",
                'items': [("diagonal", "Diagonal", ""), ("single", "Single", ""),
