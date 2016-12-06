@@ -661,7 +661,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items=[
             ("ascii", "ASCII", ""),
             ("binary", "Binary", "")],
-        default="ascii")
+        default="binary")
 
     rib_compression = EnumProperty(
         name="RIB Compression",
