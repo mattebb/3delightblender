@@ -546,10 +546,17 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row = col.row()
         row.operator('rman.open_rib')
         row.prop(rm, "editor_override")
-        row = col.row()
-        col.prop(rm, "always_generate_textures")
-        col.prop(rm, "lazy_rib_gen")
-        col.prop(rm, "threads")
+        row = layout.row()
+        row.label(text="RIB Format:")
+        row.label(text="RIB Compression")
+        row = layout.row()
+        row.prop(rm, "rib_format", text="")
+        row.prop(rm, "rib_compression", text="")
+
+        layout.separator()
+        layout.prop(rm, "always_generate_textures")
+        layout.prop(rm, "lazy_rib_gen")
+        layout.prop(rm, "threads")
 
 
 class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):

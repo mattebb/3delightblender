@@ -675,6 +675,20 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         subtype='FILE_PATH',
         default="./shaders")
 
+    rib_format = EnumProperty(
+        name="RIB Format",
+        items=[
+            ("ascii", "ASCII", ""),
+            ("binary", "Binary", "")],
+        default="binary")
+
+    rib_compression = EnumProperty(
+        name="RIB Compression",
+        items=[
+            ("none", "None", ""),
+            ("gzip", "GZip", "")],
+        default="none")
+
     texture_cache_size = IntProperty(
         name="Texture Cache Size (MB)",
         description="Maximum number of megabytes to devote to texture caching.",
