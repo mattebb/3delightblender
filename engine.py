@@ -160,7 +160,7 @@ def update_interactive(engine, context):
 @persistent
 def update_timestamp(scene):
     active = scene.objects.active
-    if active and active.is_updated_data:
+    if active and (active.is_updated_data or (active.data and active.data.is_updated)):
         # mark object for update
         now = int(time.time())
         active.renderman.update_timestamp = now
