@@ -1391,7 +1391,7 @@ def gen_params(ri, node, mat_name=None):
                     from_socket = node.inputs[
                         vstruct_name].links[0].from_socket
 
-                    temp_map_name = map_name
+                    temp_mat_name = mat_name
 
                     if from_socket.node.bl_idname == 'ShaderNodeGroup':
                         ng = from_socket.node.node_tree
@@ -1403,7 +1403,7 @@ def gen_params(ri, node, mat_name=None):
                         in_sock = group_output.inputs[from_socket.name]
                         if len(in_sock.links):
                             from_socket = in_sock.links[0].from_socket
-                            temp_map_name = map_name + '.' + from_socket.node.name    
+                            temp_mat_name = mat_name + '.' + from_socket.node.name    
 
                     vstruct_from_param = "%s_%s" % (
                         from_socket.identifier, vstruct_member)
@@ -1413,7 +1413,7 @@ def gen_params(ri, node, mat_name=None):
                         params['reference %s %s' % (meta['renderman_type'],
                                                     meta['renderman_name'])] = \
                             [get_output_param_str(
-                                from_socket.node, temp_map_name, actual_socket)]
+                                from_socket.node, temp_mat_name, actual_socket)]
                     else:
                         print('Warning! %s not found on %s' %
                               (vstruct_from_param, from_socket.node.name))
