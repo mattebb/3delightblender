@@ -171,11 +171,6 @@ class RendermanPreferences(AddonPreferences):
         subtype='FILE_PATH',
         default=os.path.join('$OUT', 'images', '{scene}.{layer}.{pass}.####.{file_type}'))
 
-    draw_ipr_text = BoolProperty(
-        name="Draw IPR Text",
-        description="Draw notice on View3D when IPR is active",
-        default=True)
-
     env_vars = PointerProperty(
         type=RendermanEnvVarSettings,
         name="Environment Variable Settings")

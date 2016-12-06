@@ -29,7 +29,7 @@ bl_info = {
     "name": "RenderMan For Blender",
     "author": "Brian Savery",
     "version": (21, 2, 0),
-    "blender": (2, 77, 0),
+    "blender": (2, 78, 0),
     "location": "Info Header, render engine menu",
     "description": "RenderMan 21.2 integration",
     "warning": "",
@@ -123,7 +123,6 @@ def register():
 def unregister():
     from . import preferences
     remove_handlers()
-
     properties.unregister()
     operators.unregister()
     ui.unregister()
