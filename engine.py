@@ -720,7 +720,6 @@ class RPass:
             mute_lights(self, self.ri, prman, new_muted_lights)
 
     def issue_shader_edits(self, nt=None, node=None):
-        print('shader edit', nt, node)
         issue_shader_edits(self, self.ri, prman, nt=nt, node=node)
 
     def update_light_link(self, context, ll):
