@@ -435,7 +435,7 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
 
         row = col.row()
         row.prop(rm, "show_integrator_settings", icon=icon, text=text,
-                 icon_only=False, emboss=False)
+                 emboss=False)
         if rm.show_integrator_settings:
             draw_props(integrator_settings,
                        integrator_settings.prop_names, col)
@@ -1377,7 +1377,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
 
         row = col.row()
         row.prop(item, "show_advanced", icon=icon, text="Advanced",
-                 icon_only=True, emboss=False)
+                 emboss=False)
         if item.show_advanced:
             col.label("Exposure Settings")
             col.prop(item, "exposure_gain")
