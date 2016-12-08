@@ -1436,7 +1436,7 @@ def gen_params(ri, node, mat_name=None):
 
                     elif 'options' in meta and meta['options'] == 'texture' \
                             and node.bl_idname != "PxrPtexturePatternNode" or \
-                            ('widget' in meta and meta['widget'] == 'assetIdInput'):
+                            ('widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
                         params['%s %s' % (meta['renderman_type'],
                                           meta['renderman_name'])] = \
                             rib(get_tex_file_name(prop),
@@ -2103,7 +2103,7 @@ def get_textures_for_node(node, matName=""):
                 else:
                     if ('options' in meta and meta['options'] == 'texture') or \
                         (node.renderman_node_type == 'light' and
-                            'widget' in meta and meta['widget'] == 'assetIdInput'):
+                            'widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
                         out_file_name = get_tex_file_name(prop)
                         # if they don't match add this to the list
                         if out_file_name != prop:

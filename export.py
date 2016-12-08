@@ -2479,7 +2479,7 @@ def property_group_to_params(node, lamp=None):
             if 'arraySize' in meta:
                 params['%s[%d] %s' % (meta['renderman_type'], len(prop),
                                       meta['renderman_name'])] = rib(prop)
-            elif ('widget' in meta and meta['widget'] == 'assetIdInput'):
+            elif ('widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
                 params['%s %s' % (meta['renderman_type'],
                                   meta['renderman_name'])] = \
                     rib(get_tex_file_name(prop),
