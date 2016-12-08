@@ -2049,8 +2049,6 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0, iterate_instance
             if engine.ipr and hasattr(id.renderman, 'instance_num'):
                 if iterate_instance:
                     id.renderman.instance_num += 1
-                else:
-                    id.renderman.instance_num = 0
                 if id.renderman.instance_num > 0:
                     handle += "_%d" % id.renderman.instance_num
 
