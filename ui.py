@@ -1584,6 +1584,23 @@ class DrawRenderHeaderInfo(bpy.types.Header):
             row.operator('lighting.start_interactive', text="Start IPR",
                          icon_value=rman_rerender_controls.icon_id)
 
+class DrawRenderHeaderNode(bpy.types.Header):
+    bl_space_type = "NODE_EDITOR"
+
+    def draw(self, context):
+        if context.scene.render.engine != "PRMAN_RENDER":
+            return
+        layout = self.layout
+        
+        row = layout.row(align=True)
+        
+        if hasattr(context.space_data, 'id') and \
+            type(context.space_data.id) == bpy.types.Material and \
+            not is_renderman_nodetree(context.space_data.id):
+            row.operator(
+                'shading.add_renderman_nodetree', text="Convert to RenderMan").idtype = "node_editor"
+
+        row.operator('nodes.new_bxdf')
 
 class DrawRenderHeaderImage(bpy.types.Header):
     bl_space_type = "IMAGE_EDITOR"

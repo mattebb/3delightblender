@@ -202,9 +202,13 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
     def execute(self, context):
         idtype = self.properties.idtype
-        context_data = {'material': context.material,
-                        'lamp': context.lamp, 'world': context.scene.world}
-        idblock = context_data[idtype]
+        if idtype == 'node_editor':
+            idblock = context.space_data.id
+            idtype = 'material'
+        else:
+            context_data = {'material': context.material,
+                            'lamp': context.lamp, 'world': context.scene.world}
+            idblock = context_data[idtype]
 
         # nt = bpy.data.node_groups.new(idblock.name,
         #                              type='RendermanPatternGraph')
@@ -1021,18 +1025,41 @@ class Add_bxdf(bpy.types.Operator):
     bxdf_name = EnumProperty(items=get_type_items, name="Bxdf Name")
 
     def execute(self, context):
-        selection = bpy.context.selected_objects
+        selection = bpy.context.selected_objects if hasattr(bpy.context, 'selected_objects') else []
+        #selection = bpy.context.selected_objects
         bxdf_name = self.properties.bxdf_name
         mat = bpy.data.materials.new(bxdf_name)
 
         bpy.ops.shading.add_renderman_nodetree(
-            {'lamp': None, 'material': mat}, idtype='material', bxdf_name=bxdf_name)
+            {'lamp': None, 'material': mat}, idtype='material')
 
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
                 bpy.ops.object.material_slot_add()
 
                 obj.material_slots[-1].material = mat
+
+        return {"FINISHED"}
+
+class New_bxdf(bpy.types.Operator):
+    bl_idname = "nodes.new_bxdf"
+    bl_label = "New RenderMan Material"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        ob = context.object
+        bxdf_name = 'PxrSurface'
+        mat = bpy.data.materials.new(bxdf_name)
+        ob.active_material = mat
+        mat.use_nodes = True
+        nt = mat.node_tree
+
+        output = nt.nodes.new('RendermanOutputNode')
+        default = nt.nodes.new('PxrSurfaceBxdfNode')
+        default.location = output.location
+        default.location[0] -= 300
+        nt.links.new(default.outputs[0], output.inputs[0])
 
         return {"FINISHED"}
 

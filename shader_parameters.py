@@ -235,7 +235,6 @@ def update_func_with_inputs(self, context):
     if engine.is_ipr_running():
         engine.ipr.issue_shader_edits(node=node)
 
-    print(context, dir(context))
     if context and hasattr(context, 'material'):
         mat = context.material
         if mat:
