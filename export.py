@@ -3757,6 +3757,6 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         ri.EditBegin('instance')
         handle = mat.name
         if instance_num > 0:
-            mat.name += "_%d" % instance_num
-        shader_node_rib(ri, node, mat.name)
+            handle += "_%d" % instance_num
+        shader_node_rib(ri, node, handle)
         ri.EditEnd()
