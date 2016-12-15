@@ -2393,9 +2393,10 @@ def export_particle_archive(ri, scene, rpass, data_block, objectCorrectionMatrix
 
 def export_dupli_archive(ri, scene, rpass, data_block, data_blocks):
     ob = data_block.data
-    ob.dupli_list_create(scene, "RENDER")
+    
 
-    if ob.dupli_type == 'GROUP':
+    if ob.dupli_type == 'GROUP' and ob.dupli_group:
+        ob.dupli_list_create(scene, "RENDER")
         for dupob in ob.dupli_list:
             ri.AttributeBegin()
             dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
