@@ -1070,24 +1070,16 @@ class add_GeoLight(bpy.types.Operator):
     bl_description = ""
     bl_options = {"REGISTER", "UNDO"}
 
-    bxdf_name = StringProperty(name="Bxdf Name", default="PxrDisney")
-
     def execute(self, context):
         selection = bpy.context.selected_objects
-        bxdf_name = self.properties.bxdf_name
-        mat = bpy.data.materials.new(bxdf_name)
+        mat = bpy.data.materials.new("PxrMeshLight")
 
-        bpy.ops.shading.add_renderman_nodetree(
-            {'lamp': None, 'material': mat}, idtype='material')
 
-        matName = mat.name
-        nt = bpy.data.node_groups[matName]
-        output = None
-        for node in nt.nodes:
-            if(node.name == "Output"):
-                output = node
-        geoLight = nt.nodes.new('PxrRectLightLightNode')
-        geoLight["exposure"] = 5.0
+        mat.use_nodes = True
+        nt = mat.node_tree
+
+        output = nt.nodes.new('RendermanOutputNode')
+        geoLight = nt.nodes.new('PxrMeshLightLightNode')
         geoLight.location[0] -= 300
         geoLight.location[1] -= 420
         if(output is not None):
