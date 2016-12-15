@@ -1015,12 +1015,17 @@ class Add_bxdf(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def get_type_items(self, context):
-        items = []
+        items = [
+            ("PxrSurface", "PxrSurface", 'PxrSurface Uber shader. For most hard surfaces'),
+            ("PxrLayerSurface", "PxrLayerSurface", "PxrLayerSurface, creates a surface with two Layers"),
+            ("PxrMarschnerHair", "PxrMarschnerHair", "Hair Shader"),
+            ("PxrDisney", "PxrDisney", "Disney Bxdf, a simple uber shader with no layering"),
+            ("PxrVolume", "PxrVolume", "Volume Shader")
+        ]
         # for nodetype in RendermanPatternGraph.nodetypes.values():
         #    if nodetype.renderman_node_type == 'bxdf':
         #        items.append((nodetype.bl_label, nodetype.bl_label,
         #                      nodetype.bl_label))
-        items = sorted(items, key=itemgetter(1))
         return items
     bxdf_name = EnumProperty(items=get_type_items, name="Bxdf Name")
 
@@ -1030,8 +1035,35 @@ class Add_bxdf(bpy.types.Operator):
         bxdf_name = self.properties.bxdf_name
         mat = bpy.data.materials.new(bxdf_name)
 
-        bpy.ops.shading.add_renderman_nodetree(
-            {'lamp': None, 'material': mat}, idtype='material')
+        mat.use_nodes = True
+        nt = mat.node_tree
+
+        output = nt.nodes.new('RendermanOutputNode')
+        default = nt.nodes.new('%sBxdfNode' % bxdf_name)
+        default.location = output.location
+        default.location[0] -= 300
+        nt.links.new(default.outputs[0], output.inputs[0])
+
+        if bxdf_name == 'PxrLayerSurface':
+            mixer = nt.nodes.new("PxrLayerMixerPatternNode")
+            layer1 = nt.nodes.new("PxrLayerPatternNode")
+            layer2 = nt.nodes.new("PxrLayerPatternNode")
+
+            mixer.location = default.location
+            mixer.location[0] -= 300
+
+            layer1.location = mixer.location
+            layer1.location[0] -= 300            
+            layer1.location[1] += 300
+
+            layer2.location = mixer.location
+            layer2.location[0] -= 300            
+            layer2.location[1] -= 300
+
+            nt.links.new(mixer.outputs[0], default.inputs[0])
+            nt.links.new(layer1.outputs[0], mixer.inputs['baselayer'])
+            nt.links.new(layer2.outputs[0], mixer.inputs['layer1'])
+
 
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
