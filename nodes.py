@@ -614,7 +614,6 @@ def generate_node_type(prefs, name, args):
     outputs = [p for p in args.findall('.//output')]
 
     def init(self, context):
-        update_conditional_visops(self)
         if self.renderman_node_type == 'bxdf':
             self.outputs.new('RendermanShaderSocket', "Bxdf").type = 'SHADER'
             #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
@@ -645,6 +644,8 @@ def generate_node_type(prefs, name, args):
             node_group.nodes.new('ShaderNodeValToRGB')
             node_group.use_fake_user = True
             self.node_group = node_group.name
+        update_conditional_visops(self)
+        
 
     def free(self):
         if name == "PxrRamp":
