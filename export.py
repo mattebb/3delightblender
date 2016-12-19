@@ -3744,6 +3744,14 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             mat = node.id_data
         elif mat is None and nt and nt.name == 'World':
             mat = bpy.context.scene.world
+        elif mat is None and bpy.context.object and bpy.context.object.type == 'CAMERA':
+            rpass.edit_num += 1
+            edit_flush(ri, rpass.edit_num, prman)
+
+            ri.EditBegin('option')
+            export_camera(ri, rpass.scene, [], camera_to_use=rpass.scene.camera)
+            ri.EditEnd()
+            return
         elif mat is None:
             return
         mat_name = mat.name
