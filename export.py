@@ -2236,9 +2236,12 @@ def export_object_attributes(ri, scene, ob, visible_objects):
 
     # This is a temporary hack until multiple lpe groups are introduced in 21.0
     obj_groups_str = "*"
+    do_holdout = False
     for obj_group in scene.renderman.object_groups:
         if ob.name in obj_group.members.keys():
             obj_groups_str += ',' + obj_group.name
+            if obj_group.name == 'collector':
+                do_holdout = True
     # add to trace sets
     ri.Attribute("grouping", {"string membership": obj_groups_str})
 
@@ -2275,6 +2278,8 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     # ray tracing attributes
     trace_params = {}
     shade_params = {}
+    if do_holdout:
+        trace_params['int holdout'] = True
     if ob.renderman.raytrace_intersectpriority != 0:
         trace_params[
             "int intersectpriority"] = ob.renderman.raytrace_intersectpriority
