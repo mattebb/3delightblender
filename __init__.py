@@ -73,15 +73,15 @@ class PRManRender(bpy.types.RenderEngine):
 
 
 def add_handlers(scene):
-    if engine.update_timestamp not in bpy.app.handlers.scene_update_pre:
-        bpy.app.handlers.scene_update_pre.append(engine.update_timestamp)
+    if engine.update_timestamp not in bpy.app.handlers.scene_update_post:
+        bpy.app.handlers.scene_update_post.append(engine.update_timestamp)
     if properties.initial_groups not in bpy.app.handlers.scene_update_post:
         bpy.app.handlers.load_post.append(properties.initial_groups)
 
 
 def remove_handlers():
-    if properties.initial_groups in bpy.app.handlers.scene_update_pre:
-        bpy.app.handlers.scene_update_pre.remove(properties.initial_groups)
+    if properties.initial_groups in bpy.app.handlers.scene_update_post:
+        bpy.app.handlers.scene_update_post.remove(properties.initial_groups)
     if engine.update_timestamp in bpy.app.handlers.scene_update_post:
         bpy.app.handlers.scene_update_post.remove(engine.update_timestamp)
 
