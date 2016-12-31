@@ -28,6 +28,7 @@ import subprocess
 import bpy
 import re
 import sys
+from collections import OrderedDict
 
 from .util import init_env
 from .util import get_path_list
@@ -115,7 +116,7 @@ def generate_page(sp, node, parent_name, first_level=False):
 def class_generate_properties(node, parent_name, shaderparameters):
     prop_names = []
     prop_meta = {}
-    output_meta = {}
+    output_meta = OrderedDict()
 
     # pxr osl and seexpr need these to find the code
     if parent_name in ["PxrOSL", "PxrSeExpr"]:
