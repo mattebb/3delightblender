@@ -673,6 +673,7 @@ socket_map = {
     'struct': 'RendermanNodeSocketStruct',
     'normal': 'RendermanNodeSocketVector',
     'vector': 'RendermanNodeSocketVector',
+    'point': 'RendermanNodeSocketVector',
     'void': 'RendermanNodeSocketStruct',
     'vstruct': 'RendermanNodeSocketStruct',
 }

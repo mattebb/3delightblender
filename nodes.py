@@ -355,6 +355,9 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 prop = getattr(self, "internalSearch")
                 layout.prop_search(
                     self, "internalSearch", bpy.data, "texts", text="")
+            elif getattr(self, "codetypeswitch") == 'EXT':
+                prop = getattr(self, "shadercode")
+                layout.prop(self, "shadercode")
             elif getattr(self, "codetypeswitch") == 'NODE':
                 layout.prop(self, "expression")
         else:
@@ -427,9 +430,9 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             export_path = os.path.join(
                 user_path(prefs.env_vars.out), "shaders", FileNameOSO)
             if os.path.splitext(FileName)[1] == ".oso":
-                if(not os.path.samefile(osl_path, os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO))):
-                    shutil.copy(osl_path, os.path.join(
-                        user_path(prefs.env_vars.out), "shaders"))
+                out_file = os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO)
+                if not os.path.exists(out_file) or not os.path.samefile(osl_path, out_file):
+                    shutil.copy(osl_path, out_file)
                 # Assume that the user knows what they were doing when they
                 # compiled the osl file.
                 ok = True
@@ -520,8 +523,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 elif prop_type == "int":
                     prop_default = int(float(prop_default))
 
-                if prop_type == "matrix" or \
-                        shader_meta[prop_name]["type"] == "point":
+                if prop_type == "matrix":
                     self.inputs.new(socket_map["struct"], prop_name, prop_name)
                 elif prop_type == "void":
                     pass
@@ -529,7 +531,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     input = self.inputs.new(socket_map[shader_meta[prop_name]["type"]],
                                             prop_name, prop_name)
                     input.default_value = prop_default
-                    if prop_type == 'struct':
+                    if prop_type == 'struct' or prop_type == 'point':
                         input.hide_value = True
         debug('osl', "Shader: ", shader_meta["shader"], "Properties: ",
               prop_names, "Shader meta data: ", shader_meta)
