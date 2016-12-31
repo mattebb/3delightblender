@@ -419,6 +419,10 @@ def generate_property(sp):
         param_type = 'struct'
         prop_meta['is_vstruct'] = True
     renderman_type = param_type
+    
+    #correct for param_type mismatch with tag value
+    if param_type == 'vector' and tags and tags.find('tag').attrib['value'] == 'color':
+        param_type = 'color'
 
     update_function = update_func_with_inputs if 'enable' in param_name else update_func
 
@@ -583,7 +587,7 @@ def generate_property(sp):
         param_default = [float(v) for v in param_default.split()]
         prop = FloatVectorProperty(name=param_label,
                                    default=param_default, size=3,
-                                   subtype="EULER",
+                                   subtype="NONE",
                                    description=param_help, update=update_function)
     elif param_type == 'point':
         if param_default is None:
