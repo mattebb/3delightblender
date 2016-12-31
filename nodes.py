@@ -132,7 +132,7 @@ class RendermanNodeSocketFloat(bpy.types.NodeSocketFloat, RendermanSocket):
     bl_label = 'Renderman Float Socket'
 
     default_value = FloatProperty(update=update_func)
-    renderman_type = 'float'
+    renderman_type = StringProperty(default='float')
 
     def draw_color(self, context, node):
         return (0.5, 0.5, 0.5, 1.0)
@@ -156,7 +156,7 @@ class RendermanNodeSocketInt(bpy.types.NodeSocketInt, RendermanSocket):
     bl_label = 'Renderman Int Socket'
 
     default_value = IntProperty(update=update_func)
-    renderman_type = 'int'
+    renderman_type = StringProperty(default='int')
 
     def draw_color(self, context, node):
         return (1.0, 1.0, 1.0, 1.0)
@@ -180,7 +180,7 @@ class RendermanNodeSocketString(bpy.types.NodeSocketString, RendermanSocket):
     bl_label = 'Renderman String Socket'
     default_value = StringProperty(update=update_func)
     is_texture = BoolProperty(default=False)
-    renderman_type = 'string'
+    renderman_type = StringProperty(default='string')
 
 
 class RendermanNodeSocketStruct(bpy.types.NodeSocketString, RendermanSocket):
@@ -207,7 +207,7 @@ class RendermanNodeSocketColor(bpy.types.NodeSocketColor, RendermanSocket):
 
     default_value = FloatVectorProperty(size=3,
                                         subtype="COLOR", update=update_func)
-    renderman_type = 'color'
+    renderman_type = StringProperty(default='color')
 
     def draw_color(self, context, node):
         return (1.0, 1.0, .5, 1.0)
@@ -234,7 +234,7 @@ class RendermanNodeSocketVector(RendermanSocket, bpy.types.NodeSocketVector):
 
     default_value = FloatVectorProperty(size=3,
                                         subtype="EULER", update=update_func)
-    renderman_type = 'string'
+    renderman_type = StringProperty(default='vector')
 
     def draw_color(self, context, node):
         return (.25, .25, .75, 1.0)
@@ -533,6 +533,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     input.default_value = prop_default
                     if prop_type == 'struct' or prop_type == 'point':
                         input.hide_value = True
+                    input.renderman_type = prop_type
         debug('osl', "Shader: ", shader_meta["shader"], "Properties: ",
               prop_names, "Shader meta data: ", shader_meta)
         compileLocation = self.name + "Compile"
