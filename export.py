@@ -675,6 +675,7 @@ def modify_light_matrix(m, ob):
 
     if ob.data.type == 'HEMI':
         m[2][2] *= -1
+        m[1][1] *= -1
 
     return m
 
