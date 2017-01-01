@@ -666,16 +666,11 @@ def modify_light_matrix(m, ob):
         
     if ob.data.type in ['HEMI']:
         eul = m.to_euler()
-        eul = Euler([-eul[0], -eul[1], eul[2]], eul.order)
+        eul = Euler([eul[0], eul[1], eul[2]], eul.order)
         m = eul.to_matrix().to_4x4()
-        m2 = Matrix.Rotation(math.radians(180), 4, 'X')
-        m = m * m2
+        m = m * Matrix.Rotation(math.pi, 4, 'Z')
     elif ob.data.renderman.renderman_type != "FILTER":
         m = m * Matrix.Scale(-1.0, 4, (1, 0, 0))
-
-    if ob.data.type == 'HEMI':
-        m[2][2] *= -1
-        m[1][1] *= -1
 
     return m
 
