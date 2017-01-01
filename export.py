@@ -1833,12 +1833,21 @@ def get_dupli_block(ob, rpass, do_mb):
     if hasattr(ob, 'dupli_type') and ob.dupli_type in SUPPORTED_DUPLI_TYPES:
         name = ob.name + '-DUPLI'
         # duplis aren't animated
-        archive_filename = get_archive_filename(name, rpass, False)
-        dbs = [DataBlock(name, "DUPLI", archive_filename, ob, dupli_data=True,
-                         do_export=file_is_dirty(rpass.scene, ob, archive_filename))]
+        dbs = []
+        deforming = False
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupli_ob in ob.dupli_group.objects:
-                dbs.extend(get_dupli_block(dupli_ob, rpass, do_mb))
+                sub_dbs = get_dupli_block(dupli_ob, rpass, do_mb)
+                if not deforming:
+                    for db in sub_dbs:
+                        if db.deforming:
+                            deforming = True
+                            break
+                dbs.extend(sub_dbs)
+        archive_filename = get_archive_filename(name, rpass, deforming)
+        dbs.append(DataBlock(name, "DUPLI", archive_filename, ob, deforming=deforming,
+                             dupli_data=True, 
+                             do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
         return dbs
 
     else:
@@ -1898,12 +1907,17 @@ def get_data_blocks_needed(ob, rpass, do_mb):
     if hasattr(ob, 'dupli_type') and ob.dupli_type in SUPPORTED_DUPLI_TYPES and not dupli_emitted:
         name = ob.name + '-DUPLI'
         # duplis aren't animated
-        archive_filename = get_archive_filename(name, rpass, False)
-        data_blocks.append(DataBlock(name, "DUPLI", archive_filename, ob,
-                                     do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
+        dupli_deforming = False
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupli_ob in ob.dupli_group.objects:
-                data_blocks.extend(get_dupli_block(dupli_ob, rpass, do_mb))
+                sub_dbs = get_dupli_block(dupli_ob, rpass, do_mb)
+                if not dupli_deforming:
+                    dupli_deforming = any(db.deforming for db in sub_dbs)
+                data_blocks.extend(sub_dbs)
+        archive_filename = get_archive_filename(name, rpass, dupli_deforming)
+        data_blocks.append(DataBlock(name, "DUPLI", archive_filename, ob, dupli_deforming,
+                                     do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
+        
 
     # now the objects data
     if is_data_renderable(rpass.scene, ob) and emit_ob:
