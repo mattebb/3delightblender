@@ -211,7 +211,7 @@ def is_subdmesh(ob):
 # Currently assumes too much is deforming when it isn't
 def is_deforming(ob):
     deforming_modifiers = ['ARMATURE', 'MESH_SEQUENCE_CACHE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE',
-                           'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP',
+                           'HOOK', 'LATTICE', 'MESH_DEFORM', 'SHRINKWRAP', 'EXPLODE',
                            'SIMPLE_DEFORM', 'SMOOTH', 'WAVE', 'SOFT_BODY',
                            'SURFACE', 'MESH_CACHE', 'FLUID_SIMULATION',
                            'DYNAMIC_PAINT']
