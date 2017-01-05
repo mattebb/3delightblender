@@ -1256,6 +1256,8 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
         colgroup = layout.column()
         colgroup.enabled = rm.shading_override
         row = colgroup.row()
+        row.prop(rm, "watertight")
+        row = colgroup.row()
         row.prop(rm, "shadingrate")
         row = colgroup.row()
         row.prop(rm, "geometric_approx_motion")
