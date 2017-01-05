@@ -2263,15 +2263,18 @@ def export_object_attributes(ri, scene, ob, visible_objects):
                      "string lpegroup": obj_groups_str})
 
     if ob.renderman.shading_override:
-        ri.Attribute(
-            "dice", {"float micropolygonlength": ob.renderman.shadingrate})
         approx_params = {}
+        dice_params = {}
         # output motionfactor always, could not find documented default value?
-        approx_params[
-            "float motionfactor"] = ob.renderman.geometric_approx_motion
         if ob.renderman.geometric_approx_focus != -1.0:
-            approx_params[
-                "float focusfactor"] = ob.renderman.geometric_approx_focus
+            approx_params["float focusfactor"] = ob.renderman.geometric_approx_focus
+        if ob.renderman.geometric_approx_motion != 1.0:
+            approx_params["float motionfactor"] = ob.renderman.geometric_approx_motion
+        if ob.renderman.shadingrate != 1:
+            dice_params["float micropolygonlength"] = ob.renderman.shadingrate
+        if ob.renderman.watertight:
+            dice_params["int watertight"] = 1
+        ri.Attribute("dice", dice_params)
         ri.Attribute("Ri", approx_params)
 
     # visibility attributes

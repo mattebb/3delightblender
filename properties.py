@@ -2098,6 +2098,10 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Micropolygon Length",
         description="Maximum distance between displacement samples (lower = more detailed shading)",
         default=1.0)
+    watertight = BoolProperty(
+        name="Watertight Dicing", 
+        description="Enables watertight dicing, which can solve cases where displacement causes visible seams in objects", 
+        default=False)
     geometric_approx_motion = FloatProperty(
         name="Motion Approximation",
         description="Shading Rate is scaled up by motionfactor/16 times the number of pixels of motion",
