@@ -751,6 +751,7 @@ def export_light_shaders(ri, lamp, group_name=''):
         params = property_group_to_params(light_shader)
         params['__instanceid'] = handle
         params['string lightGroup'] = group_name
+        params['string iesProfile'] = bpy.path.abspath(rm.iesProfile)
         if lamp.type == 'SPOT':
             params['float coneAngle'] = math.degrees(lamp.spot_size)
             params['float coneSoftness'] = lamp.spot_blend
