@@ -158,7 +158,6 @@ class RendermanAOV(bpy.types.PropertyGroup):
             ("color MatteID5", "MatteID5", "MatteID5", "", 18),
             ("color MatteID6", "MatteID6", "MatteID6", "", 19),
             ("color MatteID7", "MatteID7", "MatteID7", "", 20),
-            ("color MatteID8", "MatteID8", "MatteID8", "", 21),
             # PxrSurface lpe
             ("", "PxrSurface lobe LPE's", "PxrSurface lobe LPE's", "", 0),
             ("color lpe:C<.D2%G>[<L.%LG>O]",
