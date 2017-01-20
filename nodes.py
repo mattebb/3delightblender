@@ -1291,6 +1291,7 @@ gains_to_enable = {
     'fuzzGain': 'enableFuzz',
     'subsurfaceGain': 'enableSubsurface',
     'singlescatterGain': 'enableSingleScatter',
+    'singlescatterDirectGain': 'enableSingleScatter',
     'refractionGain': 'enableGlass',
     'reflectionGain': 'enableGlass',
     'glowGain': 'enableGlow',
