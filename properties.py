@@ -158,7 +158,6 @@ class RendermanAOV(bpy.types.PropertyGroup):
             ("color MatteID5", "MatteID5", "MatteID5", "", 18),
             ("color MatteID6", "MatteID6", "MatteID6", "", 19),
             ("color MatteID7", "MatteID7", "MatteID7", "", 20),
-            ("color MatteID8", "MatteID8", "MatteID8", "", 21),
             # PxrSurface lpe
             ("", "PxrSurface lobe LPE's", "PxrSurface lobe LPE's", "", 0),
             ("color lpe:C<.D2%G>[<L.%LG>O]",
@@ -1892,6 +1891,16 @@ class RendermanMeshGeometrySettings(bpy.types.PropertyGroup):
         name="Export Default Vertex Color",
         description="Export the active Vertex Color set as the default 'Cs' primitive variable",
         default=True)
+    interp_boundary = IntProperty(
+        name="Subdivision Edge Interpolation Mode", 
+        description="Defines how a subdivided mesh interpolates its boundary edges", 
+        default=1, 
+        min=0, max=2)
+    face_boundary = IntProperty(
+        name="Subdivision UV Interpolation Mode", 
+        description="Defines how a subdivided mesh interpolates its UV coordinates", 
+        default=3, 
+        min=0, max=3)
 
     prim_vars = CollectionProperty(
         type=RendermanMeshPrimVar, name="Primitive Variables")

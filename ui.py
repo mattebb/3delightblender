@@ -112,6 +112,15 @@ for member in dir(properties_particle):
         pass
 del properties_particle
 
+import bl_ui.properties_physics_fluid as properties_fluid
+for member in dir(properties_fluid):
+    subclass = getattr(properties_fluid, member)
+    try:
+        subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
+    except:
+        pass
+del properties_fluid
+
 # this is here for 2.78
 try:
     import bl_ui
@@ -597,6 +606,8 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
 
         layout.prop(rm, "export_default_uv")
         layout.prop(rm, "export_default_vcol")
+        layout.prop(rm, "interp_boundary")
+        layout.prop(rm, "face_boundary")
 
 
 class MATERIAL_PT_renderman_preview(Panel):

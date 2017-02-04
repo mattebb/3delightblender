@@ -640,7 +640,7 @@ def create_mesh(ob, scene):
     # elif is_subd_displace_last(ob):
     #    ob.modifiers[len(ob.modifiers)-2].show_render = False
     #    ob.modifiers[len(ob.modifiers)-1].show_render = False
-    mesh = ob.to_mesh(scene, True, 'RENDER', calc_tessface=True,
+    mesh = ob.to_mesh(scene, True, 'RENDER', calc_tessface=False,
                       calc_undeformed=True)
     if reset_subd_mod:
         ob.modifiers[len(ob.modifiers) - 1].show_render = True
@@ -751,7 +751,12 @@ def export_light_shaders(ri, lamp, group_name=''):
         params = property_group_to_params(light_shader)
         params['__instanceid'] = handle
         params['string lightGroup'] = group_name
+<<<<<<< HEAD
         params['string iesProfile'] = bpy.path.abspath(rm.iesProfile)
+=======
+        if hasattr(light_shader, 'iesProfile'):
+            params['string iesProfile'] = bpy.path.abspath(light_shader.iesProfile)
+>>>>>>> refs/remotes/bsavery/master
         if lamp.type == 'SPOT':
             params['float coneAngle'] = math.degrees(lamp.spot_size)
             params['float coneSoftness'] = lamp.spot_blend
@@ -1269,13 +1274,10 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
         debug("error empty subdiv mesh %s" % ob.name)
         removeMeshFromMemory(mesh.name)
         return
-    tags = []
-    nargs = []
-    intargs = []
+    tags = ['interpolateboundary', 'facevaryinginterpolateboundary']
+    nargs = [1, 0, 1, 0]
+    intargs = [ob.data.renderman.interp_boundary, ob.data.renderman.face_boundary]
     floatargs = []
-
-    tags.append('interpolateboundary')
-    nargs.extend([0, 0])
 
     primvars = get_primvars(ob, mesh, "facevarying")
     primvars['P'] = P
@@ -1291,7 +1293,7 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
         ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
                            intargs, floatargs, primvars)
     else:
-        nargs = [0, 0, 0]
+        nargs = [1, 0, 0, 1, 0, 0]
         if len(creases) > 0:
             for c in creases:
                 tags.append('crease')
