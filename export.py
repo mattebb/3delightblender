@@ -751,12 +751,8 @@ def export_light_shaders(ri, lamp, group_name=''):
         params = property_group_to_params(light_shader)
         params['__instanceid'] = handle
         params['string lightGroup'] = group_name
-<<<<<<< HEAD
-        params['string iesProfile'] = bpy.path.abspath(rm.iesProfile)
-=======
         if hasattr(light_shader, 'iesProfile'):
             params['string iesProfile'] = bpy.path.abspath(light_shader.iesProfile)
->>>>>>> refs/remotes/bsavery/master
         if lamp.type == 'SPOT':
             params['float coneAngle'] = math.degrees(lamp.spot_size)
             params['float coneSoftness'] = lamp.spot_blend
@@ -2247,7 +2243,6 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     if rm.pre_object_rib_box != '':
         export_rib_box(ri, rm.pre_object_rib_box)
 
-    # This is a temporary hack until multiple lpe groups are introduced in 21.0
     obj_groups_str = "*"
     do_holdout = False
     for obj_group in scene.renderman.object_groups:
@@ -3011,7 +3006,6 @@ def export_display(ri, rpass, scene):
 
     display_driver = rpass.display_driver
     rpass.output_files = []
-    rpass.aov_denoise_files = []
     addon_prefs = get_addon_prefs()
     main_display = user_path(
         addon_prefs.path_display_driver_image, scene=scene, display_driver=rpass.display_driver)
@@ -3171,8 +3165,6 @@ def export_display(ri, rpass, scene):
                     layer_name=layer_name, pass_name='multilayer')
                 ri.Display('+' + dspy_name, out_type,
                            ','.join(channels), params)
-                if rm.external_denoise:
-                    rpass.aov_denoise_files.append(dspy_name)
 
             else:
                 for aov in rm_rl.custom_aovs:
@@ -3191,8 +3183,6 @@ def export_display(ri, rpass, scene):
                         addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
                         layer_name=layer_name, pass_name=aov_name)
                     rpass.output_files.append(dspy_name)
-                    if rm.external_denoise:
-                        rpass.aov_denoise_files.append(dspy_name)
                     ri.Display('+' + dspy_name, display_driver,
                                aov_channel_name, params)
 

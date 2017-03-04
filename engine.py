@@ -180,7 +180,6 @@ class RPass:
         self.rib_done = False
         self.scene = scene
         self.output_files = []
-        self.aov_denoise_files = []
         # set the display driver
         if external_render:
             self.display_driver = scene.renderman.display_driver

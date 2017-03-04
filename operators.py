@@ -296,6 +296,33 @@ class ExternalRender(bpy.types.Operator):
             rpass.gen_rib(convert_textures=False)
         except Exception as err:
             self.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
+            
+    def gen_denoise_aov_name(self, scene,  rpass):
+        addon_prefs = get_addon_prefs()
+        files = []
+        rm = scene.renderman
+        for layer in scene.render.layers:
+        # custom aovs
+            rm_rl = None
+            for render_layer_settings in rm.render_layers:
+                if layer.name == render_layer_settings.render_layer:
+                    rm_rl = render_layer_settings
+            layer_name = layer.name.replace(' ', '')
+            if rm_rl.export_multilayer:
+                dspy_name = user_path(
+                    addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                    layer_name=layer_name, pass_name='multilayer')
+                files.append(dspy_name)
+            else:
+                 for aov in rm_rl.custom_aovs:
+                    aov_name = aov.name.replace(' ', '')
+                    dspy_name = user_path(
+                        addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                        layer_name=layer_name, pass_name=aov_name)
+                    files.append(dspy_name)
+        return files
+                
+                    
 
     def execute(self, context):
         if engine.ipr:
@@ -342,8 +369,8 @@ class ExternalRender(bpy.types.Operator):
                     rpass.scene) if cmd not in job_tex_cmds]
                 if rm.external_denoise:
                     denoise_files.append(rpass.get_denoise_names())
-                    if rpass.aov_denoise_files:
-                        denoise_aov_files.append(rpass.aov_denoise_files)
+                    if rm.spool_denoise_aov:
+                        denoise_aov_files.append(self.gen_denoise_aov_name(scene, rpass))
 
         else:
             self.report(
@@ -353,8 +380,8 @@ class ExternalRender(bpy.types.Operator):
             frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
             if rm.external_denoise:
                 denoise_files.append(rpass.get_denoise_names())
-                if rpass.aov_denoise_files:
-                    denoise_aov_files.append(rpass.aov_denoise_files)
+                if rm.spool_denoise_aov:
+                    denoise_aov_files.append(self.gen_denoise_aov_name(scene, rpass))
 
         # gen spool job
         denoise = rm.external_denoise
