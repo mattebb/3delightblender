@@ -668,15 +668,16 @@ class RPass:
             for light_name in lights_deleted:
                 self.lights.pop(light_name, None)
 
-        if active and active.type in  ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'LATTICE']:
-            
+        if active and active.type in ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'LATTICE']:
+
             for mat_slot in active.material_slots:
                 if mat_slot.material not in self.material_dict:
                     self.material_dict[mat_slot.material] = []
                 if active not in self.material_dict[mat_slot.material]:
                     self.material_dict[mat_slot.material].append(active)
                 if mat_slot.material.is_updated:
-                    issue_shader_edits(self, self.ri, prman, nt=mat_slot.material.node_tree)
+                    issue_shader_edits(self, self.ri, prman,
+                                       nt=mat_slot.material.node_tree)
 
     def update_illuminates(self):
         update_illuminates(self, self.ri, prman)

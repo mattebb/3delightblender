@@ -1052,10 +1052,13 @@ class Add_bxdf(bpy.types.Operator):
 
     def get_type_items(self, context):
         items = [
-            ("PxrSurface", "PxrSurface", 'PxrSurface Uber shader. For most hard surfaces'),
-            ("PxrLayerSurface", "PxrLayerSurface", "PxrLayerSurface, creates a surface with two Layers"),
+            ("PxrSurface", "PxrSurface",
+             'PxrSurface Uber shader. For most hard surfaces'),
+            ("PxrLayerSurface", "PxrLayerSurface",
+             "PxrLayerSurface, creates a surface with two Layers"),
             ("PxrMarschnerHair", "PxrMarschnerHair", "Hair Shader"),
-            ("PxrDisney", "PxrDisney", "Disney Bxdf, a simple uber shader with no layering"),
+            ("PxrDisney", "PxrDisney",
+             "Disney Bxdf, a simple uber shader with no layering"),
             ("PxrVolume", "PxrVolume", "Volume Shader")
         ]
         # for nodetype in RendermanPatternGraph.nodetypes.values():
@@ -1066,7 +1069,8 @@ class Add_bxdf(bpy.types.Operator):
     bxdf_name = EnumProperty(items=get_type_items, name="Bxdf Name")
 
     def execute(self, context):
-        selection = bpy.context.selected_objects if hasattr(bpy.context, 'selected_objects') else []
+        selection = bpy.context.selected_objects if hasattr(
+            bpy.context, 'selected_objects') else []
         #selection = bpy.context.selected_objects
         bxdf_name = self.properties.bxdf_name
         mat = bpy.data.materials.new(bxdf_name)
@@ -1089,11 +1093,11 @@ class Add_bxdf(bpy.types.Operator):
             mixer.location[0] -= 300
 
             layer1.location = mixer.location
-            layer1.location[0] -= 300            
+            layer1.location[0] -= 300
             layer1.location[1] += 300
 
             layer2.location = mixer.location
-            layer2.location[0] -= 300            
+            layer2.location[0] -= 300
             layer2.location[1] -= 300
 
             nt.links.new(mixer.outputs[0], default.inputs[0])

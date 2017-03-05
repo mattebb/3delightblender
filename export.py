@@ -390,6 +390,8 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
 
 # only export particles that are alive,
 # or have been born since the last frame
+
+
 def valid_particle(pa, valid_frames):
     return pa.die_time >= valid_frames[-1] and pa.birth_time <= valid_frames[0]
 
@@ -657,13 +659,14 @@ def modify_light_matrix(m, ob):
                 m = m * Matrix.Scale(data.size, 4, (1, 0, 0)) * \
                     Matrix.Scale(data.size_y, 4, (0, 1, 0))
             else:
-                m = m * Matrix.Scale(data.size, 4, (1,1,1))
+                m = m * Matrix.Scale(data.size, 4, (1, 1, 1))
         elif ob.data.type == 'SPOT':
             m = m * Matrix.Scale(.01, 4, (1, 0, 0)) * \
-                    Matrix.Scale(.01, 4, (0, 1, 0))
+                Matrix.Scale(.01, 4, (0, 1, 0))
     elif ob.data.type == 'POINT':
-        m = m * Matrix.Scale(.001, 4, (1, 0, 0)) * Matrix.Scale(.001, 4, (0, 1, 0)) * Matrix.Scale(.001, 4, (0, 0, 1))
-        
+        m = m * Matrix.Scale(.001, 4, (1, 0, 0)) * Matrix.Scale(.001,
+                                                                4, (0, 1, 0)) * Matrix.Scale(.001, 4, (0, 0, 1))
+
     if ob.data.type in ['HEMI']:
         eul = m.to_euler()
         eul = Euler([eul[0], eul[1], eul[2]], eul.order)
@@ -742,17 +745,18 @@ def export_light_shaders(ri, lamp, group_name=''):
     rm = lamp.renderman
     # need this for rerendering
     ri.Attribute('identifier', {'string name': handle})
-    
+
     # do the shader
     light_shader = rm.get_light_node()
     if light_shader:
         # make sure the shape is set on PxrStdAreaLightShape
-        
+
         params = property_group_to_params(light_shader)
         params['__instanceid'] = handle
         params['string lightGroup'] = group_name
         if hasattr(light_shader, 'iesProfile'):
-            params['string iesProfile'] = bpy.path.abspath(light_shader.iesProfile)
+            params['string iesProfile'] = bpy.path.abspath(
+                light_shader.iesProfile)
         if lamp.type == 'SPOT':
             params['float coneAngle'] = math.degrees(lamp.spot_size)
             params['float coneSoftness'] = lamp.spot_blend
@@ -796,7 +800,7 @@ def export_world(ri, world, do_geometry=True):
         m = m * Matrix.Scale(-1.0, 4, (1, 0, 0))
         ri.Transform(rib(m))
         # No need to name Coordinate System system for world.
-        #ri.ShadingRate(rm.shadingrate)
+        # ri.ShadingRate(rm.shadingrate)
 
     handle = world.name
     # need this for rerendering
@@ -941,12 +945,14 @@ def geometry_source_rib(ri, scene, ob):
         elif rm.geometry_source == 'OPENVDB':
             openvdb_file = rib_path(get_sequence_path(rm.path_archive,
                                                       blender_frame, anim))
-            params = {"constant string[2] blobbydso:stringargs": [openvdb_file, "density"]}
+            params = {"constant string[2] blobbydso:stringargs": [
+                openvdb_file, "density"]}
             for channel in rm.openvdb_channels:
                 if channel.name != '':
                     params['varying %s %s' % (channel.type, channel.name)] = []
             ri.Volume("blobbydso:impl_openvdb", rib(bounds), [0, 0, 0],
-                params)
+                      params)
+
 
 def export_blobby_particles(ri, scene, psys, ob, motion_data):
     rm = psys.settings.renderman
@@ -1272,7 +1278,8 @@ def export_subdivision_mesh(ri, scene, ob, data=None):
         return
     tags = ['interpolateboundary', 'facevaryinginterpolateboundary']
     nargs = [1, 0, 1, 0]
-    intargs = [ob.data.renderman.interp_boundary, ob.data.renderman.face_boundary]
+    intargs = [ob.data.renderman.interp_boundary,
+               ob.data.renderman.face_boundary]
     floatargs = []
 
     primvars = get_primvars(ob, mesh, "facevarying")
@@ -1498,9 +1505,11 @@ def export_smoke(ri, ob):
     ri.Volume("box", rib_ob_bounds(ob.bound_box),
               smoke_res, params)
 
-def export_volume(ri,ob):
+
+def export_volume(ri, ob):
     rm = ob.renderman
     ri.Volume("box", rib_ob_bounds(ob.bound_box), [0, 0, 0])
+
 
 def export_sphere(ri, ob):
     rm = ob.renderman
@@ -1840,7 +1849,7 @@ def get_dupli_block(ob, rpass, do_mb):
                 dbs.extend(sub_dbs)
         archive_filename = get_archive_filename(name, rpass, deforming)
         dbs.append(DataBlock(name, "DUPLI", archive_filename, ob, deforming=deforming,
-                             dupli_data=True, 
+                             dupli_data=True,
                              do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
         return dbs
 
@@ -1911,7 +1920,6 @@ def get_data_blocks_needed(ob, rpass, do_mb):
         archive_filename = get_archive_filename(name, rpass, dupli_deforming)
         data_blocks.append(DataBlock(name, "DUPLI", archive_filename, ob, dupli_deforming,
                                      do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
-        
 
     # now the objects data
     if is_data_renderable(rpass.scene, ob) and emit_ob:
@@ -2018,7 +2026,8 @@ def cache_motion(scene, rpass, objects=None):
                 get_transform(instances[name], seg)
 
             for name in data_names:
-                get_deformation(data_blocks[name], seg, scene, actual_subframes)
+                get_deformation(data_blocks[name],
+                                seg, scene, actual_subframes)
 
     scene.frame_set(origframe, 0)
 
@@ -2150,7 +2159,7 @@ def export_data_rib_archive(ri, data_block, instance, rpass):
 
     for mat in data_block.material:
         export_material_archive(ri, mat)
-    
+
     if rm.geometry_source == "ARCHIVE":
         arvhiveInfo = instance.ob.renderman
         relPath = os.path.splitext(get_real_path(arvhiveInfo.path_archive))[0]
@@ -2244,19 +2253,12 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         export_rib_box(ri, rm.pre_object_rib_box)
 
     obj_groups_str = "*"
-    do_holdout = False
     for obj_group in scene.renderman.object_groups:
         if ob.name in obj_group.members.keys():
             obj_groups_str += ',' + obj_group.name
-            if obj_group.name == 'collector':
-                do_holdout = True
     # add to trace sets
-    ri.Attribute("grouping", {"string membership": obj_groups_str})
-
-    # add to lpe groups
-    #ri.Attribute("identifier", {"string lpegroup": obj_groups_str})
-
     if obj_groups_str != '*':
+        ri.Attribute("grouping", {"string membership": obj_groups_str})
         ri.Attribute("identifier", {
                      "string lpegroup": obj_groups_str})
 
@@ -2265,9 +2267,11 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         dice_params = {}
         # output motionfactor always, could not find documented default value?
         if ob.renderman.geometric_approx_focus != -1.0:
-            approx_params["float focusfactor"] = ob.renderman.geometric_approx_focus
+            approx_params[
+                "float focusfactor"] = ob.renderman.geometric_approx_focus
         if ob.renderman.geometric_approx_motion != 1.0:
-            approx_params["float motionfactor"] = ob.renderman.geometric_approx_motion
+            approx_params[
+                "float motionfactor"] = ob.renderman.geometric_approx_motion
         if ob.renderman.shadingrate != 1:
             dice_params["float micropolygonlength"] = ob.renderman.shadingrate
         if ob.renderman.watertight:
@@ -2366,11 +2370,10 @@ def export_object_attributes(ri, scene, ob, visible_objects):
             user_attr["color %s" % name] = rib(getattr(rm, name))
 
     if hasattr(ob, 'color'):
-        user_attr["color Cs" ] = rib(ob.color[:3])
+        user_attr["color Cs"] = rib(ob.color[:3])
 
     if len(user_attr):
         ri.Attribute('user', user_attr)
-    
 
 
 def get_bounding_box(ob):
@@ -2412,7 +2415,7 @@ def export_particle_archive(ri, scene, rpass, data_block, objectCorrectionMatrix
 
 def export_dupli_archive(ri, scene, rpass, data_block, data_blocks):
     ob = data_block.data
-    
+
     ob.dupli_list_create(scene, "RENDER")
     if ob.dupli_type == 'GROUP' and ob.dupli_group:
         for dupob in ob.dupli_list:
@@ -2608,12 +2611,12 @@ def export_render_settings(ri, rpass, scene, preview=False):
         depths = {'int maxdiffusedepth': rm.preview_max_diffuse_depth,
                   'int maxspeculardepth': rm.preview_max_specular_depth,
                   'int displacements': 1}
-    
+
     dicing_params = {"float micropolygonlength": rm.shadingrate,
-                    "string strategy": rm.dicing_strategy,
-                    "string instancestrategy": "worlddistance", 
-                    "float instanceworlddistancelength": rm.instanceworlddistancelength}
-                    
+                     "string strategy": rm.dicing_strategy,
+                     "string instancestrategy": "worlddistance",
+                     "float instanceworlddistancelength": rm.instanceworlddistancelength}
+
     if rm.dicing_strategy is "worlddistance":
         dicing_params["float worlddistancelength"] = rm.worlddistancelength
 
@@ -2787,6 +2790,7 @@ def export_options(ri, scene):
 
     ri.Option('lpe', lpe_options)
 
+
 def export_searchpaths(ri, paths):
     ri.Option("ribparse", {"string varsubst": ["$"]})
     ri.Option("searchpath", {"string shader": ["%s" %
@@ -2917,35 +2921,36 @@ def export_samplefilters(ri, scene):
 
 
 channel_name_map = {
-                    "directDiffuseLobe": "diffuse",
-                    "subsurfaceLobe": "diffuse",
-                    "Subsurface": "diffuse",
-                    "transmissiveSingleScatterLobe": "diffuse",
-                    "Caustics": "diffuse",
-                    "Albedo": "diffuse",
-                    "Diffuse": "diffuse",
-                    "IndirectDiffuse": "indirectdiffuse",
-                    "indirectDiffuseLobe": "indirectdiffuse",
-                    "directSpecularPrimaryLobe": "specular",
-                    "directSpecularRoughLobe": "specular",
-                    "directSpecularClearcoatLobe": "specular",
-                    "directSpecularIridescenceLobe": "specular",
-                    "directSpecularFuzzLobe": "specular",
-                    "directSpecularGlassLobe": "specular",
-                    "transmissiveGlassLobe": "specular",
-                    "Reflection": "specular",
-                    "Refraction": "specular",
-                    "Specular": "specular",
-                    "indirectSpecularPrimaryLobe": "indirectspecular",
-                    "indirectSpecularRoughLobe": "indirectspecular",
-                    "IndirectSpecular": "indirectspecular",
-                    "indirectSpecularClearcoatLobe": "indirectspecular",
-                    "indirectSpecularIridescenceLobe": "indirectspecular",
-                    "indirectSpecularFuzzLobe": "indirectspecular",
-                    "indirectSpecularGlassLobe": "indirectspecular",
-                    "Shadows": "emission",
-                    "Emission": "emission"
-                }
+    "directDiffuseLobe": "diffuse",
+    "subsurfaceLobe": "diffuse",
+    "Subsurface": "diffuse",
+    "transmissiveSingleScatterLobe": "diffuse",
+    "Caustics": "diffuse",
+    "Albedo": "diffuse",
+    "Diffuse": "diffuse",
+    "IndirectDiffuse": "indirectdiffuse",
+    "indirectDiffuseLobe": "indirectdiffuse",
+    "directSpecularPrimaryLobe": "specular",
+    "directSpecularRoughLobe": "specular",
+    "directSpecularClearcoatLobe": "specular",
+    "directSpecularIridescenceLobe": "specular",
+    "directSpecularFuzzLobe": "specular",
+    "directSpecularGlassLobe": "specular",
+    "transmissiveGlassLobe": "specular",
+    "Reflection": "specular",
+    "Refraction": "specular",
+    "Specular": "specular",
+    "indirectSpecularPrimaryLobe": "indirectspecular",
+    "indirectSpecularRoughLobe": "indirectspecular",
+    "IndirectSpecular": "indirectspecular",
+    "indirectSpecularClearcoatLobe": "indirectspecular",
+    "indirectSpecularIridescenceLobe": "indirectspecular",
+    "indirectSpecularFuzzLobe": "indirectspecular",
+    "indirectSpecularGlassLobe": "indirectspecular",
+    "Shadows": "emission",
+    "Emission": "emission"
+}
+
 
 def get_channel_name(aov, layer_name):
     aov_name = aov.name.replace(' ', '')
@@ -2961,7 +2966,7 @@ def get_channel_name(aov, layer_name):
 
     elif aov.aov_name == "color custom_lpe":
         aov_channel_name = aov.name
-        
+
     else:
         aov_channel_name = '%s_%s' % (
             aov_name, layer_name)
@@ -3109,7 +3114,7 @@ def export_display(ri, rpass, scene):
                 pixelfilter_x = aov.aov_pixelfilter_x
                 pixelfilter_y = aov.aov_pixelfilter_y
                 channel_name = get_channel_name(aov, layer_name)
-                
+
                 if channel_name == '':
                     continue
                 if aov.aov_name == "color custom_lpe":
@@ -3514,7 +3519,7 @@ def issue_light_filter_transform_edit(ri, rpass, obj):
 
         # reset the transform for light
         export_object_transform(ri, light_obj)
-        
+
         export_light_shaders(ri, lamp, get_light_group(light_obj))
         ri.EditEnd()
 
@@ -3759,7 +3764,8 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             edit_flush(ri, rpass.edit_num, prman)
 
             ri.EditBegin('option')
-            export_camera(ri, rpass.scene, [], camera_to_use=rpass.scene.camera)
+            export_camera(ri, rpass.scene, [],
+                          camera_to_use=rpass.scene.camera)
             ri.EditEnd()
             return
         elif mat is None:
