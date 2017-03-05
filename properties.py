@@ -126,6 +126,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
 
     def aov_list(self, context):
         items = [
+            # (LPE, ID, Extra ID, no entry, sorting order)
             # Basic lpe
             ("", "Basic LPE's", "Basic LPE's", "", 0),
             ("color rgba", "rgba", "Combined (beauty)", "", 1),
@@ -569,24 +570,26 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Micropolygon Length",
         description="Default maximum distance between displacement samples.  This can be left at 1 unless you need more detail on displaced objects",
         default=1.0)
-        
+
     dicing_strategy = EnumProperty(
-        name="Dicing Strategy", 
-        description="Sets the method that PRMan uses to tessellate objects.  Spherical may help with volume rendering", 
+        name="Dicing Strategy",
+        description="Sets the method that PRMan uses to tessellate objects.  Spherical may help with volume rendering",
         items=[
-                ("planarprojection", "Planar Projection", "Tessellates using the screen space coordinates of a primitive projected onto a plane"),
-                ("sphericalprojection", "Spherical Projection", "Tessellates using the coordinates of a primitive projected onto a sphere"), 
-                ("worlddistance", "World Distance", "Tessellation is determined using distances measured in world space units compared to the current micropolygon length")], 
+            ("planarprojection", "Planar Projection",
+             "Tessellates using the screen space coordinates of a primitive projected onto a plane"),
+            ("sphericalprojection", "Spherical Projection",
+             "Tessellates using the coordinates of a primitive projected onto a sphere"),
+            ("worlddistance", "World Distance", "Tessellation is determined using distances measured in world space units compared to the current micropolygon length")],
         default="sphericalprojection")
-        
+
     worlddistancelength = FloatProperty(
-        name="World Distance Length", 
-        description="If this is a value above 0, it sets the length of a micropolygon after tessellation", 
+        name="World Distance Length",
+        description="If this is a value above 0, it sets the length of a micropolygon after tessellation",
         default=-1.0)
-        
+
     instanceworlddistancelength = FloatProperty(
-        name="Instance World Distance Length", 
-        description="Set the length of a micropolygon for tessellated instanced meshes", 
+        name="Instance World Distance Length",
+        description="Set the length of a micropolygon for tessellated instanced meshes",
         default=1e30)
 
     motion_blur = BoolProperty(
@@ -1921,14 +1924,14 @@ class RendermanMeshGeometrySettings(bpy.types.PropertyGroup):
         description="Export the active Vertex Color set as the default 'Cs' primitive variable",
         default=True)
     interp_boundary = IntProperty(
-        name="Subdivision Edge Interpolation Mode", 
-        description="Defines how a subdivided mesh interpolates its boundary edges", 
-        default=1, 
+        name="Subdivision Edge Interpolation Mode",
+        description="Defines how a subdivided mesh interpolates its boundary edges",
+        default=1,
         min=0, max=2)
     face_boundary = IntProperty(
-        name="Subdivision UV Interpolation Mode", 
-        description="Defines how a subdivided mesh interpolates its UV coordinates", 
-        default=3, 
+        name="Subdivision UV Interpolation Mode",
+        description="Defines how a subdivided mesh interpolates its UV coordinates",
+        default=3,
         min=0, max=3)
 
     prim_vars = CollectionProperty(
@@ -1957,12 +1960,13 @@ class RendermanCurveGeometrySettings(bpy.types.PropertyGroup):
 
 class OpenVDBChannel(bpy.types.PropertyGroup):
     name = StringProperty(name="Channel Name")
-    type = EnumProperty(name="Channel Type", 
+    type = EnumProperty(name="Channel Type",
                         items=[
                             ('float', 'Float', ''),
                             ('vector', 'Vector', ''),
                             ('color', 'Color', ''),
                         ])
+
 
 class RendermanObjectSettings(bpy.types.PropertyGroup):
 
@@ -2058,7 +2062,7 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                ('POLYGON_MESH', 'Polygon Mesh', 'Mesh object'),
                ('SUBDIVISION_MESH', 'Subdivision Mesh',
                 'Smooth subdivision surface formed by mesh cage'),
-               ('RI_VOLUME', 'Volume', 'Volume primitive'), 
+               ('RI_VOLUME', 'Volume', 'Volume primitive'),
                ('POINTS', 'Points',
                 'Renders object vertices as single points'),
                ('SPHERE', 'Sphere', 'Parametric sphere primitive'),
@@ -2137,8 +2141,8 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         description="Maximum distance between displacement samples (lower = more detailed shading)",
         default=1.0)
     watertight = BoolProperty(
-        name="Watertight Dicing", 
-        description="Enables watertight dicing, which can solve cases where displacement causes visible seams in objects", 
+        name="Watertight Dicing",
+        description="Enables watertight dicing, which can solve cases where displacement causes visible seams in objects",
         default=False)
     geometric_approx_motion = FloatProperty(
         name="Motion Approximation",

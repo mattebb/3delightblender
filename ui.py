@@ -565,7 +565,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
             row = col.row(align=True)
             row.prop(rm, "bucket_sprial_x", text="X")
             row.prop(rm, "bucket_sprial_y", text="Y")
-        
+
         layout.separator()
         col = layout.column()
         row = col.row()
@@ -1323,7 +1323,6 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
             rm, "raytrace_intersectpriority", text="Intersection Priority")
         row.prop(rm, "raytrace_ior")
 
-
         col.prop(
             rm, "raytrace_override", text="Override Default Ray Tracing")
 
@@ -1346,6 +1345,7 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
         row.prop(rm, "raytrace_samplemotion", text="Sample Motion Blur")
         row = col.row()
         row.prop(rm, "raytrace_decimationrate", text="Decimation Rate")
+
 
 class OBJECT_PT_renderman_object_matteid(Panel):
     bl_space_type = 'PROPERTIES'
@@ -1380,6 +1380,7 @@ class OBJECT_PT_renderman_object_matteid(Panel):
         row.prop(rm, 'MatteID6')
         row = layout.row()
         row.prop(rm, 'MatteID7')
+
 
 class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
     bl_label = "Passes"
@@ -1617,6 +1618,7 @@ class DrawRenderHeaderInfo(bpy.types.Header):
             row.operator('lighting.start_interactive', text="Start IPR",
                          icon_value=rman_rerender_controls.icon_id)
 
+
 class DrawRenderHeaderNode(bpy.types.Header):
     bl_space_type = "NODE_EDITOR"
 
@@ -1624,16 +1626,17 @@ class DrawRenderHeaderNode(bpy.types.Header):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
         layout = self.layout
-        
+
         row = layout.row(align=True)
-        
+
         if hasattr(context.space_data, 'id') and \
-            type(context.space_data.id) == bpy.types.Material and \
-            not is_renderman_nodetree(context.space_data.id):
+                type(context.space_data.id) == bpy.types.Material and \
+                not is_renderman_nodetree(context.space_data.id):
             row.operator(
                 'shading.add_renderman_nodetree', text="Convert to RenderMan").idtype = "node_editor"
 
         row.operator('nodes.new_bxdf')
+
 
 class DrawRenderHeaderImage(bpy.types.Header):
     bl_space_type = "IMAGE_EDITOR"
