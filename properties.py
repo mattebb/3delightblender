@@ -389,6 +389,10 @@ class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
         description="The output file will contain extra 'deep' information that can aid with compositing.  This can increase file sizes dramatically.  Z channels will automatically be generated so they do not need to be added to the AOV panel",
         default=False)
 
+    denoise_aov = BoolProperty(
+        name="Denoise AOVs",
+        default=False)
+
     exr_compression = EnumProperty(
         name="EXR Compression",
         description="Determined the compression used on the EXR file.  Leaving at 'default' will use the Renderman defaults",
@@ -820,13 +824,38 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
                ('it', 'it', 'External framebuffer display (must have RMS installed)')],
         default='blender')
 
-    external_action = EnumProperty(
-        name="Action",
-        description="Action for rendering externally",
-        items=[('ribgen', 'Generate RIB only',
-                'Only Generate RIB and job file (no render)'),
-               ('spool', 'Spool Job', 'Spool Job to queuing system')],
-        default='spool')
+    export_options = BoolProperty(
+        name="Export Options",
+        default=False)
+
+    generate_rib = BoolProperty(
+        name="Generate RIBs",
+        description="Generates RIB files for scene and objects",
+        default=True)
+
+    generate_alf = BoolProperty(
+        name="Generate ALF files",
+        description="Generates an ALF file.  This file contains a sequential list of commmands used for rendering",
+        default=True)
+
+    convert_textures = BoolProperty(
+        name="Convert Textures",
+        description="Add commands to the ALF file to convert textures to .tex files",
+        default=True)
+
+    generate_render = BoolProperty(
+        name="Generate render commands",
+        description="Add render commands to the ALF file",
+        default=True)
+
+    do_render = BoolProperty(
+        name="Initiate Renderer",
+        description="Spool RIB files to Renderman",
+        default=True)
+
+    alf_options = BoolProperty(
+        name="ALF Options",
+        default=False)
 
     custom_alfname = StringProperty(
         name="Custom Spool Name",
