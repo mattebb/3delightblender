@@ -3150,13 +3150,13 @@ def export_display(ri, rpass, scene):
             # if this is a multilayer combine em!
             if rm_rl.export_multilayer and rpass.external_render:
                 channels = []
-                channel_name = get_channel_name(aov, layer_name)
                 for aov in rm_rl.custom_aovs:
+                    channel_name = get_channel_name(aov, layer_name)
                     channels.append(channel_name)
                 out_type, ext = ('openexr', 'exr')
                 if rm_rl.use_deep:
-                    channels = [x for x in channels if x.split('_')[0] not in [
-                        'z_depth', 'z_back']]
+                    channels = [x for x in channels if not (
+                        "z_back" in x or 'z_depth' in x)]
                     out_type, ext = ('deepexr', 'exr')
                 params = {"string storage": rm_rl.exr_storage}
                 if rm_rl.exr_format_options != 'default':
