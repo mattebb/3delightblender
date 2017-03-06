@@ -745,7 +745,7 @@ class RPass:
         self.instance_dict = {}
         pass
 
-    def gen_rib(self, engine=None, convert_textures=True):
+    def gen_rib(self, do_objects=True, engine=None, convert_textures=True):
         rm = self.scene.renderman
         if self.scene.camera is None:
             debug('error', "ERROR no Camera.  \
@@ -772,7 +772,7 @@ class RPass:
             visible_objects = get_Selected_Objects(self.scene)
         else:
             visible_objects = None
-        write_rib(self, self.scene, self.ri, visible_objects, engine)
+        write_rib(self, self.scene, self.ri, do_objects, visible_objects, engine)
         self.ri.End()
         if engine:
             engine.report({"INFO"}, "RIB generation took %s" %

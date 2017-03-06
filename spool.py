@@ -105,8 +105,9 @@ def spool_render(rman_version_short, to_render, rib_files, denoise_files, denois
 
         # render frame
         if to_render:
+            threads = rm.threads if not rm.override_threads else rm.external_threads
             cmd_str = ['prman', '-Progress', '-cwd', quote(cdir), '-t:%d' %
-                       rm.threads, quote(rib_files[frame_num - frame_begin])]
+                       threads, quote(rib_files[frame_num - frame_begin])]
             if rm.enable_checkpoint:
                 if rm.render_limit == 0:
                     cmd_str.insert(5, '-checkpoint %d%s' %

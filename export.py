@@ -2293,8 +2293,6 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     # ray tracing attributes
     trace_params = {}
     shade_params = {}
-    if do_holdout:
-        trace_params['int holdout'] = True
     if ob.renderman.raytrace_intersectpriority != 0:
         trace_params[
             "int intersectpriority"] = ob.renderman.raytrace_intersectpriority
@@ -3268,7 +3266,7 @@ def export_hider(ri, rpass, scene, preview=False):
 
 
 # I hate to make rpass global but it makes things so much easier
-def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
+def write_rib(rpass, scene, ri, do_objects, visible_objects=None, engine=None):
 
     # precalculate motion blur data
     data_blocks, instances = cache_motion(scene, rpass)
@@ -3277,8 +3275,9 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None):
     # this should be the only time empties are evaluated.
     emptiesToExport = get_valid_empties(scene, rpass)
 
-    # export rib archives of objects
-    export_data_archives(ri, scene, rpass, data_blocks, engine)
+    if do_objects:
+        # export rib archives of objects
+        export_data_archives(ri, scene, rpass, data_blocks, engine)
 
     export_header(ri)
     export_header_rib(ri, scene)

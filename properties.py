@@ -635,6 +635,17 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Rendering Threads",
         description="Number of processor threads to use.  Note, 0 uses all cores, -1 uses all cores but one",
         min=-32, max=32, default=-1)
+
+    override_threads = BoolProperty(
+        name="Override Threads",
+        description="Overrides thread count for spooled render",
+        default=False)
+
+    external_threads = IntProperty(
+        name="Spool Rendering Threads",
+        description="Number of processor threads to use.  Note, 0 uses all cores, -1 uses all cores but one",
+        default=0, min=-32, max=32)
+
     max_trace_depth = IntProperty(
         name="Max Trace Depth",
         description="Maximum number of times a ray can bounce before the path is ended.  Lower settings will render faster but may change lighting",
@@ -833,7 +844,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     generate_rib = BoolProperty(
         name="Generate RIBs",
-        description="Generates RIB files for scene and objects",
+        description="Generates RIB files for the scene information",
+        default=True)
+
+    generate_object_rib = BoolProperty(
+        name="Generate object RIBs",
+        description="Generates RIB files for each object",
         default=True)
 
     generate_alf = BoolProperty(

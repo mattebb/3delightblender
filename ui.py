@@ -315,6 +315,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         sub_row.prop(scene, "frame_start", text="Start")
         sub_row.prop(scene, "frame_end", text="End")
         col = layout.column()
+        col.enabled = rm.generate_alf
         col.prop(rm, 'external_denoise')
         row = col.row()
         row.enabled = rm.external_denoise and rm.external_animation
@@ -328,6 +329,9 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
                  text="Export Options:", emboss=False)
         if rm.export_options:
             col.prop(rm, "generate_rib")
+            row = col.row()
+            row.enabled = rm.generate_rib
+            row.prop(rm, "generate_object_rib")
             col.prop(rm, "generate_alf")
             split = col.split(percentage=0.33)
             split.enabled = rm.generate_alf and rm.generate_render
@@ -350,6 +354,13 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
                 row = col.row()
                 row.enabled = rm.generate_render
                 row.prop(rm, 'custom_cmd')
+                split = col.split(percentage=0.33)
+                split.enabled = rm.generate_render
+                split.prop(rm, "override_threads")
+                sub_row = split.row()
+                sub_row.enabled = rm.override_threads
+                sub_row.prop(rm, "external_threads")
+
                 row = col.row()
                 row.enabled = rm.external_denoise
                 row.prop(rm, 'denoise_cmd')

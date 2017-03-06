@@ -291,9 +291,9 @@ class ExternalRender(bpy.types.Operator):
     rpass = None
     is_running = False
 
-    def gen_rib_frame(self, rpass):
+    def gen_rib_frame(self, rpass, do_objects):
         try:
-            rpass.gen_rib(convert_textures=False)
+            rpass.gen_rib(do_objects, convert_textures=False)
         except Exception as err:
             self.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
 
@@ -337,6 +337,7 @@ class ExternalRender(bpy.types.Operator):
         aov_output = rpass.paths['aov_output']
         aov_dir = os.path.split(aov_output)[0]
         do_rib = rm.generate_rib
+        do_objects = rm.generate_object_rib
         if not os.path.exists(images_dir):
             os.makedirs(images_dir)
         if not os.path.exists(aov_dir):
@@ -365,7 +366,7 @@ class ExternalRender(bpy.types.Operator):
                 if do_rib:
                     self.report(
                         {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
-                    self.gen_rib_frame(rpass)
+                    self.gen_rib_frame(rpass, do_objects)
                 rib_names.append(rpass.paths['rib_output'])
                 if rm.convert_textures:
                     frame_tex_cmds[frame] = [cmd for cmd in get_texture_list(
@@ -380,7 +381,7 @@ class ExternalRender(bpy.types.Operator):
             if do_rib:
                 self.report(
                     {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
-                self.gen_rib_frame(rpass)
+                self.gen_rib_frame(rpass, do_objects)
             rib_names.append(rpass.paths['rib_output'])
             if rm.convert_textures:
                 frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
