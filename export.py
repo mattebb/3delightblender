@@ -3266,7 +3266,7 @@ def export_hider(ri, rpass, scene, preview=False):
 
 
 # I hate to make rpass global but it makes things so much easier
-def write_rib(rpass, scene, ri, do_objects, visible_objects=None, engine=None):
+def write_rib(rpass, scene, ri, visible_objects=None, engine=None, do_objects=True):
 
     # precalculate motion blur data
     data_blocks, instances = cache_motion(scene, rpass)
