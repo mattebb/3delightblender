@@ -278,7 +278,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         row = layout.row()
         rman_batch = icons.get("batch_render")
         row.operator("renderman.external_render",
-                     text="External Render", icon_value=rman_batch.icon_id)
+                     text="Export", icon_value=rman_batch.icon_id)
 
         layout.separator()
 
@@ -314,51 +314,80 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         sub_row.enabled = rm.external_animation
         sub_row.prop(scene, "frame_start", text="Start")
         sub_row.prop(scene, "frame_end", text="End")
-
-        # queue Renders
-        layout.separator()
-        split = layout.split(percentage=0.33)
-        # spool render
-        split.prop(rm, "external_action")
-        sub_row = split.row()
-        sub_row.enabled = rm.external_action == 'spool'
-        sub_row.prop(rm, "queuing_system")
-
-        # options
         col = layout.column()
-        col.label('Spooling Options:')
-        col = layout.column()
-        col.prop(rm, 'custom_cmd')
-        col.prop(rm, 'custom_alfname')
+        col.enabled = rm.generate_alf
         col.prop(rm, 'external_denoise')
         row = col.row()
-        row.enabled = rm.external_denoise
+        row.enabled = rm.external_denoise and rm.external_animation
         row.prop(rm, 'crossframe_denoise')
-        row = col.row()
-        row.enabled = rm.external_denoise
-        row.prop(rm, 'spool_denoise_aov')
-        row = col.row()
-        row.enabled = rm.external_denoise and not rm.spool_denoise_aov
-        row.prop(rm, "denoise_gpu")
-        row = col.row()
-        row.enabled = rm.external_denoise
-        row.prop(rm, 'denoise_cmd')
 
-        # checkpointing
-        row = col.row()
-        row.prop(rm, 'recover')
-        row = col.row()
-        row.prop(rm, 'enable_checkpoint')
-        row = col.row()
-        row.enabled = rm.enable_checkpoint
-        row.prop(rm, 'asfinal')
-        row = col.row()
-        row.enabled = rm.enable_checkpoint
-        row.prop(rm, 'checkpoint_type')
-        row = col.row(align=True)
-        row.enabled = rm.enable_checkpoint
-        row.prop(rm, 'checkpoint_interval')
-        row.prop(rm, 'render_limit')
+        # render steps
+        layout.separator()
+        col = layout.column()
+        icon_export = 'DISCLOSURE_TRI_DOWN' if rm.export_options else 'DISCLOSURE_TRI_RIGHT'
+        col.prop(rm, "export_options", icon=icon_export,
+                 text="Export Options:", emboss=False)
+        if rm.export_options:
+            col.prop(rm, "generate_rib")
+            row = col.row()
+            row.enabled = rm.generate_rib
+            row.prop(rm, "generate_object_rib")
+            col.prop(rm, "generate_alf")
+            split = col.split(percentage=0.33)
+            split.enabled = rm.generate_alf and rm.generate_render
+            split.prop(rm, "do_render")
+            sub_row = split.row()
+            sub_row.enabled = rm.do_render and rm.generate_alf and rm.generate_render
+            sub_row.prop(rm, "queuing_system")
+
+        # options
+        layout.separator()
+        if rm.generate_alf:
+            icon_alf = 'DISCLOSURE_TRI_DOWN' if rm.alf_options else 'DISCLOSURE_TRI_RIGHT'
+            col = layout.column()
+            col.prop(rm, "alf_options", icon=icon_alf, text="ALF Options:",
+                     emboss=False)
+            if rm.alf_options:
+                col.prop(rm, 'custom_alfname')
+                col.prop(rm, "convert_textures")
+                col.prop(rm, "generate_render")
+                row = col.row()
+                row.enabled = rm.generate_render
+                row.prop(rm, 'custom_cmd')
+                split = col.split(percentage=0.33)
+                split.enabled = rm.generate_render
+                split.prop(rm, "override_threads")
+                sub_row = split.row()
+                sub_row.enabled = rm.override_threads
+                sub_row.prop(rm, "external_threads")
+
+                row = col.row()
+                row.enabled = rm.external_denoise
+                row.prop(rm, 'denoise_cmd')
+                row = col.row()
+                row.enabled = rm.external_denoise
+                row.prop(rm, 'spool_denoise_aov')
+                row = col.row()
+                row.enabled = rm.external_denoise and not rm.spool_denoise_aov
+                row.prop(rm, "denoise_gpu")
+
+                # checkpointing
+                col = layout.column()
+                col.enabled = rm.generate_render
+                row = col.row()
+                row.prop(rm, 'recover')
+                row = col.row()
+                row.prop(rm, 'enable_checkpoint')
+                row = col.row()
+                row.enabled = rm.enable_checkpoint
+                row.prop(rm, 'asfinal')
+                row = col.row()
+                row.enabled = rm.enable_checkpoint
+                row.prop(rm, 'checkpoint_type')
+                row = col.row(align=True)
+                row.enabled = rm.enable_checkpoint
+                row.prop(rm, 'checkpoint_interval')
+                row.prop(rm, 'render_limit')
 
 
 def draw_props(node, prop_names, layout):
@@ -547,7 +576,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
             row = col.row(align=True)
             row.prop(rm, "bucket_sprial_x", text="X")
             row.prop(rm, "bucket_sprial_y", text="Y")
-        
+
         layout.separator()
         col = layout.column()
         row = col.row()
@@ -807,6 +836,7 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
             col.prop_search(rm_rl, 'object_group',
                             scene.renderman, 'object_groups')
 
+            col.prop(rm_rl, "denoise_aov")
             col.prop(rm_rl, 'export_multilayer')
             if rm_rl.export_multilayer:
                 col.prop(rm_rl, 'use_deep')
@@ -1304,7 +1334,6 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
             rm, "raytrace_intersectpriority", text="Intersection Priority")
         row.prop(rm, "raytrace_ior")
 
-
         col.prop(
             rm, "raytrace_override", text="Override Default Ray Tracing")
 
@@ -1327,6 +1356,7 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
         row.prop(rm, "raytrace_samplemotion", text="Sample Motion Blur")
         row = col.row()
         row.prop(rm, "raytrace_decimationrate", text="Decimation Rate")
+
 
 class OBJECT_PT_renderman_object_matteid(Panel):
     bl_space_type = 'PROPERTIES'
@@ -1361,6 +1391,7 @@ class OBJECT_PT_renderman_object_matteid(Panel):
         row.prop(rm, 'MatteID6')
         row = layout.row()
         row.prop(rm, 'MatteID7')
+
 
 class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
     bl_label = "Passes"
@@ -1598,6 +1629,7 @@ class DrawRenderHeaderInfo(bpy.types.Header):
             row.operator('lighting.start_interactive', text="Start IPR",
                          icon_value=rman_rerender_controls.icon_id)
 
+
 class DrawRenderHeaderNode(bpy.types.Header):
     bl_space_type = "NODE_EDITOR"
 
@@ -1605,16 +1637,17 @@ class DrawRenderHeaderNode(bpy.types.Header):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
         layout = self.layout
-        
+
         row = layout.row(align=True)
-        
+
         if hasattr(context.space_data, 'id') and \
-            type(context.space_data.id) == bpy.types.Material and \
-            not is_renderman_nodetree(context.space_data.id):
+                type(context.space_data.id) == bpy.types.Material and \
+                not is_renderman_nodetree(context.space_data.id):
             row.operator(
                 'shading.add_renderman_nodetree', text="Convert to RenderMan").idtype = "node_editor"
 
         row.operator('nodes.new_bxdf')
+
 
 class DrawRenderHeaderImage(bpy.types.Header):
     bl_space_type = "IMAGE_EDITOR"

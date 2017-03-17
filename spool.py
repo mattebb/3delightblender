@@ -30,7 +30,7 @@ def quote(filename):
     return '"%s"' % filename
 
 
-def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files, frame_begin, frame_end=None, denoise=None, context=None,
+def spool_render(rman_version_short, to_render, rib_files, denoise_files, denoise_aov_files, frame_begin, frame_end=None, denoise=None, context=None,
                  job_texture_cmds=[], frame_texture_cmds={}, rpass=None):
     prefs = bpy.context.user_preferences.addons[__package__].preferences
 
@@ -104,21 +104,23 @@ def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files
             end_block(f, 3)
 
         # render frame
-        cmd_str = ['prman', '-Progress', '-cwd', quote(cdir), '-t:%d' %
-                   rm.threads, quote(rib_files[frame_num - frame_begin])]
-        if rm.enable_checkpoint:
-            if rm.render_limit == 0:
-                cmd_str.insert(5, '-checkpoint %d%s' %
-                               (rm.checkpoint_interval, rm.checkpoint_type))
-            else:
-                cmd_str.insert(5, '-checkpoint %d%s,%d%s' % (
-                    rm.checkpoint_interval, rm.checkpoint_type, rm.render_limit, rm.checkpoint_type))
-        if rm.recover:
-            cmd_str.insert(5, '-recover 1')
-        if rm.custom_cmd != '':
-            cmd_str.insert(5, rm.custom_cmd)
-        write_cmd_task_line(f, 'Render frame %d' % frame_num, [('PixarRender',
-                                                                cmd_str)], 3)
+        if to_render:
+            threads = rm.threads if not rm.override_threads else rm.external_threads
+            cmd_str = ['prman', '-Progress', '-cwd', quote(cdir), '-t:%d' %
+                       threads, quote(rib_files[frame_num - frame_begin])]
+            if rm.enable_checkpoint:
+                if rm.render_limit == 0:
+                    cmd_str.insert(5, '-checkpoint %d%s' %
+                                   (rm.checkpoint_interval, rm.checkpoint_type))
+                else:
+                    cmd_str.insert(5, '-checkpoint %d%s,%d%s' % (
+                        rm.checkpoint_interval, rm.checkpoint_type, rm.render_limit, rm.checkpoint_type))
+            if rm.recover:
+                cmd_str.insert(5, '-recover 1')
+            if rm.custom_cmd != '':
+                cmd_str.insert(5, rm.custom_cmd)
+            write_cmd_task_line(f, 'Render frame %d' % frame_num, [('PixarRender',
+                                                                    cmd_str)], 3)
 
         # denoise frame
         if per_frame_denoise:
@@ -135,7 +137,7 @@ def spool_render(rman_version_short, rib_files, denoise_files, denoise_aov_files
                     denoise_options.append('--override gpuIndex 0 --')
                 cmd_str = ['denoise'] + denoise_options + \
                     [quote(denoise_files[
-                    frame_num - frame_begin][0])]
+                        frame_num - frame_begin][0])]
             write_cmd_task_line(f, 'Denoise frame %d' % frame_num,
                                 [('PixarRender', cmd_str)], 3)
         elif crossframe_denoise:
