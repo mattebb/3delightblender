@@ -772,7 +772,7 @@ class RPass:
             visible_objects = get_Selected_Objects(self.scene)
         else:
             visible_objects = None
-        write_rib(self, self.scene, self.ri, do_objects, visible_objects, engine)
+        write_rib(self, self.scene, self.ri, visible_objects, engine, do_objects)
         self.ri.End()
         if engine:
             engine.report({"INFO"}, "RIB generation took %s" %
