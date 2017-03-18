@@ -176,7 +176,7 @@ def format_seconds_to_hhmmss(seconds):
 
 class RPass:
 
-    def __init__(self, scene, interactive=False, external_render=False, preview_render=False):
+    def __init__(self, scene, interactive=False, external_render=False, preview_render=False, bake=False):
         self.rib_done = False
         self.scene = scene
         self.output_files = []
@@ -194,6 +194,7 @@ class RPass:
         self.initialize_paths(scene)
         self.rm = scene.renderman
         self.external_render = external_render
+        self.bake=bake
         self.do_render = (scene.renderman.output_action == 'EXPORT_RENDER')
         self.is_interactive = interactive
         self.is_interactive_ready = False

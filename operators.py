@@ -280,7 +280,56 @@ class refresh_osl_shader(bpy.types.Operator):
     def invoke(self, context, event):
         context.node.RefreshNodes(context)
         return {'FINISHED'}
+        
+class RendermanBake(bpy.types.Operator):
+    bl_idname = "renderman.bake"
+    bl_label = "Baking"
+    bl_description = "Bake pattern nodes to texture"
+    rpass = None
+    is_running = False
+    
+    def gen_rib_frame(self, rpass):
+        try:
+            rpass.gen_rib(convert_textures=False)
+        except Exception as err:
+            self.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
+            
+    def execute(self, context):
+        if engine.ipr:
+            self.report(
+                {"ERROR"}, 'Please stop IPR before baking')
+            return {'FINISHED'}
+        scene = context.scene
+        rpass = RPass(scene, external_render=True, bake=True)
+        rm = scene.renderman
+        rpass.display_driver = scene.renderman.display_driver
+        rib_names = []
+        frame_tex_cmds = {}
+        if not os.path.exists(rpass.paths['texture_output']):
+            os.mkdir(rpass.paths['texture_output'])
+        self.report(
+                    {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
+        self.gen_rib_frame(rpass)
+        rib_names.append(rpass.paths['rib_output'])
+        if rm.convert_textures:
+            frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
+        rm_version = rm.path_rmantree.split('-')[-1]
+        rm_version = rm_version.strip('/\\')
+        frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
+        frame_end = scene.frame_end if rm.external_animation else scene.frame_current
+        to_render=True
+        denoise_files = []
+        denoise_aov_files = []
+        job_tex_cmds = []
+        denoise = False
+        alf_file = spool_render(str(rm_version), to_render, rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end, denoise, context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass,  bake=True)
+        exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
+        self.report(
+                    {'INFO'}, 'RenderMan Baking spooling to %s.' % rm.queuing_system)
+        subprocess.Popen([exe, alf_file])
 
+        rpass = None
+        return {'FINISHED'}
 
 class ExternalRender(bpy.types.Operator):
 
@@ -354,10 +403,10 @@ class ExternalRender(bpy.types.Operator):
         frame_tex_cmds = {}
         if rm.external_animation:
             rpass.update_frame_num(scene.frame_end + 1)
-            tmp_tex_cmds = get_texture_list(rpass.scene)
             rpass.update_frame_num(scene.frame_start)
-            tmp2_cmds = get_texture_list(rpass.scene)
             if rm.convert_textures:
+                tmp_tex_cmds = get_texture_list(rpass.scene)
+                tmp2_cmds = get_texture_list(rpass.scene)
                 job_tex_cmds = [
                     cmd for cmd in tmp_tex_cmds if cmd in tmp2_cmds]
 
@@ -402,7 +451,7 @@ class ExternalRender(bpy.types.Operator):
             frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
             frame_end = scene.frame_end if rm.external_animation else scene.frame_current
             alf_file = spool_render(
-                str(rm_version), to_render, rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end=frame_end, denoise=denoise, context=context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass)
+                str(rm_version), to_render, rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end, denoise, context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass)
 
             # if spooling send job to queuing
             if rm.do_render:

@@ -31,16 +31,17 @@ def quote(filename):
 
 
 def spool_render(rman_version_short, to_render, rib_files, denoise_files, denoise_aov_files, frame_begin, frame_end=None, denoise=None, context=None,
-                 job_texture_cmds=[], frame_texture_cmds={}, rpass=None):
+                 job_texture_cmds=[], frame_texture_cmds={}, rpass=None,  bake=False):
     prefs = bpy.context.user_preferences.addons[__package__].preferences
 
     out_dir = prefs.env_vars.out
     cdir = user_path(out_dir)
     scene = context.scene
     rm = scene.renderman
-
-    alf_file = os.path.join(cdir, 'spool_%s.alf' %
-                            time.strftime("%m%d%y%H%M%S"))
+    
+    alf_file = os.path.join(cdir, 'bake_%s.alf' %
+                            time.strftime("%m%d%y%H%M%S")) if bake else os.path.join(cdir, rm.custom_alfname + '_%s.alf' % time.strftime("%m%d%y%H%M%S"))
+        
     per_frame_denoise = denoise == 'frame'
     crossframe_denoise = denoise == 'crossframe'
 

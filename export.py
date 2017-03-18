@@ -3231,38 +3231,42 @@ def export_display(ri, rpass, scene):
 
 
 def export_hider(ri, rpass, scene, preview=False):
-    rm = scene.renderman
+    if rpass.bake:
+        ri.Hider("bake")
+    
+    else:
+        rm = scene.renderman
 
-    pv = rm.pixel_variance
-    hider_params = {'int maxsamples': rm.max_samples,
-                    'int minsamples': rm.min_samples,
-                    'int incremental': int(rm.incremental)}
-
-    if preview or rpass.is_interactive:
-        hider_params['int maxsamples'] = rm.preview_max_samples
-        hider_params['int minsamples'] = rm.preview_min_samples
-        hider_params['int incremental'] = 1
-        pv = rm.preview_pixel_variance
-
-    if (not rpass.external_render and rm.render_into == 'blender') or (rm.integrator in ['PxrVCM', 'PxrUPBP']) or rm.enable_checkpoint:
-        hider_params['int incremental'] = 1
-
-    if not preview:
-        cam = scene.camera.data.renderman
-        hider_params["float[4] aperture"] = [cam.aperture_sides,
-                                             cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
-        hider_params["float dofaspect"] = [cam.dof_aspect]
-        hider_params["float darkfalloff"] = [rm.dark_falloff]
-
-    if not rm.sample_motion_blur:
-        hider_params["samplemotion"] = 0
-
-    ri.PixelVariance(pv)
-
-    if rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render:
-        hider_params['string pixelfiltermode'] = 'importance'
-
-    ri.Hider("raytrace", hider_params)
+        pv = rm.pixel_variance
+        hider_params = {'int maxsamples': rm.max_samples,
+                        'int minsamples': rm.min_samples,
+                        'int incremental': int(rm.incremental)}
+    
+        if preview or rpass.is_interactive:
+            hider_params['int maxsamples'] = rm.preview_max_samples
+            hider_params['int minsamples'] = rm.preview_min_samples
+            hider_params['int incremental'] = 1
+            pv = rm.preview_pixel_variance
+    
+        if (not rpass.external_render and rm.render_into == 'blender') or (rm.integrator in ['PxrVCM', 'PxrUPBP']) or rm.enable_checkpoint:
+            hider_params['int incremental'] = 1
+    
+        if not preview:
+            cam = scene.camera.data.renderman
+            hider_params["float[4] aperture"] = [cam.aperture_sides,
+                                                 cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
+            hider_params["float dofaspect"] = [cam.dof_aspect]
+            hider_params["float darkfalloff"] = [rm.dark_falloff]
+    
+        if not rm.sample_motion_blur:
+            hider_params["samplemotion"] = 0
+    
+        ri.PixelVariance(pv)
+    
+        if rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render:
+            hider_params['string pixelfiltermode'] = 'importance'
+    
+        ri.Hider("raytrace", hider_params)
 
 
 # I hate to make rpass global but it makes things so much easier
