@@ -303,14 +303,12 @@ class RendermanBake(bpy.types.Operator):
         rpass = RPass(scene, external_render=True, bake=True)
         rm = scene.renderman
         rpass.display_driver = scene.renderman.display_driver
-        rib_names = []
-        frame_tex_cmds = {}
         if not os.path.exists(rpass.paths['texture_output']):
             os.mkdir(rpass.paths['texture_output'])
         self.report(
                     {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
         self.gen_rib_frame(rpass)
-        rib_names.append(rpass.paths['rib_output'])
+        rib_names = rpass.paths['rib_output']
         frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
         rm_version = rm.path_rmantree.split('-')[-1]
         rm_version = rm_version.strip('/\\')
@@ -321,7 +319,7 @@ class RendermanBake(bpy.types.Operator):
         denoise_aov_files = []
         job_tex_cmds = []
         denoise = False
-        alf_file = spool_render(str(rm_version), to_render, rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end, denoise, context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass,  bake=True)
+        alf_file = spool_render(str(rm_version), to_render, rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end, denoise, context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass, bake=True)
         exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
         self.report(
                     {'INFO'}, 'RenderMan Baking spooling to %s.' % rm.queuing_system)
