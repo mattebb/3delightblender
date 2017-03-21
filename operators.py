@@ -311,12 +311,11 @@ class RendermanBake(bpy.types.Operator):
                     {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
         self.gen_rib_frame(rpass)
         rib_names.append(rpass.paths['rib_output'])
-        if rm.convert_textures:
-            frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
+        frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
         rm_version = rm.path_rmantree.split('-')[-1]
         rm_version = rm_version.strip('/\\')
-        frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
-        frame_end = scene.frame_end if rm.external_animation else scene.frame_current
+        frame_begin = scene.frame_current
+        frame_end = scene.frame_current
         to_render=True
         denoise_files = []
         denoise_aov_files = []
