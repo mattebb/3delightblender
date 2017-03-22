@@ -3018,7 +3018,34 @@ def export_display(ri, rpass, scene):
     debug("info", "Main_display: " + main_display)
 
     # just going to always output rgba
-    ri.Display(main_display, display_driver, "rgba", {})
+    params = {}
+    # if it inject some image info
+    if display_driver == 'it':
+        from time import gmtime, strftime
+        dspy_notes = "(%s)\nSamples: %d-%d@%f  %s  " % (strftime("%a %b %d %H:%M:%S %Z %Y", gmtime()), 
+                                                        rm.min_samples, rm.max_samples, rm.pixel_variance,
+                                                        rm.integrator)
+        if rm.integrator == 'PxrPathTracer':
+            integrator = getattr(rm, "%s_settings" % rm.integrator)
+            dspy_notes += "Mode: %s  " % integrator.sampleMode
+            dspy_notes += "Light: %d  Bxdf: %d  " % (integrator.numLightSamples,
+                                                     integrator.numBxdfSamples)
+            if integrator.sampleMode == 'bxdf':
+                dspy_notes += "Indirect: %d" % integrator.numIndirectSamples
+            else:
+                dspy_notes += "Diffuse: %d  Specular: %d  Subsurface: %d  Refraction: %d" % (integrator.numDiffuseSamples,
+                    integrator.numSpecularSamples, integrator.numSubsurfaceSamples, integrator.numRefractionSamples)
+        elif rm.integrator == "PxrVCM":
+            integrator = getattr(rm, "%s_settings" % rm.integrator)
+            dspy_notes += "Light: %d  Bxdf: %d  " % (integrator.numLightSamples,
+                                                     integrator.numBxdfSamples)
+            
+        params["string dspyParams"] = """ itOpenHandler {::ice::startTimer;};;; itCloseHandler {::ice::endTimer %%arglist; };;; 
+                                        dspyRender -renderer preview -time %d -crop %f %f %f %f  
+                                        -notes \"%s\"""" % (scene.frame_current, scene.render.border_min_x, 
+                                                            scene.render.border_max_x, 1.0 - scene.render.border_min_y, 
+                                                            1.0 - scene.render.border_max_y, dspy_notes)
+    ri.Display(main_display, display_driver, "rgba", params)
     rpass.output_files.append(main_display)
 
     display_params = {'int asrgba': 1}
