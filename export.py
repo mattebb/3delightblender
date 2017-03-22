@@ -762,6 +762,9 @@ def export_light_shaders(ri, lamp, group_name=''):
             params['float coneSoftness'] = lamp.spot_blend
         if lamp.type in ['SPOT', 'POINT']:
             params['int areaNormalize'] = 1
+        if rm.renderman_type == 'PORTAL':
+            params['string domeColorMap'] = params.pop('string lightColorMap')
+
 
         primary_vis = rm.light_primary_visibility
         ri.Attribute("visibility", {'int transmission': 0, 'int indirect': 0,

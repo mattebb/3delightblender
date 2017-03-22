@@ -1261,6 +1261,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
     def get_light_node_name(self):
         if self.renderman_type == 'SPOT':
             return 'PxrRectLight' if self.id_data.use_square else 'PxrDiskLight'
+        if self.renderman_type == 'PORTAL':
+            return 'PxrPortalLight'
         else:
             return self.light_node.replace('_settings', '')
 
