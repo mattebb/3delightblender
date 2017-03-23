@@ -672,7 +672,7 @@ def modify_light_matrix(m, ob):
         eul = Euler([eul[0], eul[1], eul[2]], eul.order)
         m = eul.to_matrix().to_4x4()
         m = m * Matrix.Rotation(math.pi, 4, 'Z')
-    elif ob.data.renderman.renderman_type != "FILTER":
+    elif ob.data.renderman.renderman_type not in ["FILTER"]:
         m = m * Matrix.Scale(-1.0, 4, (1, 0, 0))
 
     return m
@@ -764,6 +764,7 @@ def export_light_shaders(ri, lamp, group_name=''):
             params['int areaNormalize'] = 1
         if rm.renderman_type == 'PORTAL':
             params['string domeColorMap'] = params.pop('string lightColorMap')
+            params['string domeSpace'] = "ENV_LIGHT"
 
 
         primary_vis = rm.light_primary_visibility
@@ -850,6 +851,15 @@ def export_light(ri, instance):
     else:
         ri.AttributeBegin()
         ri.Attribute("identifier", {"string name": lamp.name})
+
+        if rm.renderman_type == 'PORTAL':
+            m = Matrix.Identity(4)
+            eul = m.to_euler()
+            eul = Euler([eul[0], eul[1], eul[2]], eul.order)
+            m = eul.to_matrix().to_4x4()
+            m = m * Matrix.Rotation(math.pi, 4, 'Z')
+            ri.Transform(rib(m))
+            ri.ScopedCoordinateSystem("ENV_LIGHT")
 
         export_transform(ri, instance)
 
