@@ -221,9 +221,13 @@ def class_generate_properties(node, parent_name, shaderparameters):
 def update_conditional_visops(node):
     for param_name, prop_meta in getattr(node, 'prop_meta').items():
         if 'conditionalVisOp' in prop_meta:
-            prop_meta['hidden'] = not eval(prop_meta['conditionalVisOp'])
-            if hasattr(node, 'inputs') and param_name in node.inputs:
-                node.inputs[param_name].hide = not eval(prop_meta['conditionalVisOp'])
+            try:
+                hidden = not eval(prop_meta['conditionalVisOp'])
+                prop_meta['hidden'] = hidden
+                if hasattr(node, 'inputs') and param_name in node.inputs:
+                    node.inputs[param_name].hide = hidden
+            except:
+                print("Error in conditional visop")
 
 def update_func_with_inputs(self, context):
     # check if this prop is set on an input
@@ -235,7 +239,7 @@ def update_func_with_inputs(self, context):
     from . import engine
     if engine.is_ipr_running():
         engine.ipr.issue_shader_edits(node=node)
-
+    
     if context and hasattr(context, 'material'):
         mat = context.material
         if mat:
@@ -259,7 +263,7 @@ def update_func_with_inputs(self, context):
         for input_name, socket in node.inputs.items():
             if 'hidden' in prop_meta[input_name]:
                 socket.hide = prop_meta[input_name]['hidden']
-
+    
 
 # send updates to ipr if running
 def update_func(self, context):
@@ -272,7 +276,7 @@ def update_func(self, context):
     from . import engine
     if engine.is_ipr_running():
         engine.ipr.issue_shader_edits(node=node)
-
+    
     if context and hasattr(context, 'material'):
         mat = context.material
         if mat:
@@ -292,7 +296,7 @@ def update_func(self, context):
             if 'hidden' in prop_meta[input_name] \
                     and prop_meta[input_name]['hidden'] and not socket.hide:
                 socket.hide = True
-
+    
 
 def update_inputs(node):
     if node.bl_idname == 'PxrMeshLightLightNode':
@@ -310,7 +314,7 @@ def recursive_enable_inputs(node, prop_names, enable=True):
     for prop_name in prop_names:
         if type(prop_name) == str and node.prop_meta[prop_name]['renderman_type'] == 'page':
             recursive_enable_inputs(node, getattr(node, prop_name), enable)
-        elif prop_name in node.inputs.keys():
+        elif hasattr(node, 'inputs') and prop_name in node.inputs:
             node.inputs[prop_name].hide = not enable
         else:
             continue
