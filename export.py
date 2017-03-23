@@ -740,7 +740,7 @@ def export_light_filters(ri, lamp, do_coordsys=False):
             ), light_filter.data.name, params)
 
 
-def export_light_shaders(ri, lamp, group_name=''):
+def export_light_shaders(ri, lamp, group_name='', portal_parent=''):
     handle = lamp.name
     rm = lamp.renderman
     # need this for rerendering
@@ -762,9 +762,25 @@ def export_light_shaders(ri, lamp, group_name=''):
             params['float coneSoftness'] = lamp.spot_blend
         if lamp.type in ['SPOT', 'POINT']:
             params['int areaNormalize'] = 1
-        if rm.renderman_type == 'PORTAL':
-            params['string domeColorMap'] = params.pop('string lightColorMap')
-            params['string domeSpace'] = "ENV_LIGHT"
+        if rm.renderman_type == 'PORTAL' and portal_parent and portal_parent.type == 'LAMP' \
+            and portal_parent.data.renderman.renderman_type == 'ENV':
+            parent_node = portal_parent.data.renderman.get_light_node()
+            parent_params = property_group_to_params(parent_node)
+            params['string domeSpace'] = portal_parent.name
+            params['string portalName'] = handle
+            params['string domeColorMap'] = parent_params['string lightColorMap']
+            params['float intensity'] = parent_params['float intensity'] * params['float intensityMult']
+            del params['float intensityMult']
+            params['float exposure'] = parent_params['float exposure']
+            params['color lightColor'] = [i*j for i,j in zip(parent_params['color lightColor'],params['color tint'])]
+            del params['color tint']
+            if not params['int enableTemperature']:
+                params['int enableTemperature'] = parent_params['int enableTemperature']
+                params['float temperature'] = parent_params['float temperature']
+            params['float specular'] *= parent_params['float specular']
+            params['float diffuse'] *= parent_params['float diffuse']
+
+
 
 
         primary_vis = rm.light_primary_visibility
@@ -836,7 +852,7 @@ def get_light_group(light_ob):
     return ''
 
 
-def export_light(ri, instance):
+def export_light(ri, instance, instances):
     ob = instance.ob
     lamp = ob.data
     rm = lamp.renderman
@@ -847,38 +863,39 @@ def export_light(ri, instance):
         ri.TransformBegin()
         export_transform(ri, instance)
         ri.TransformEnd()
-
     else:
         ri.AttributeBegin()
         ri.Attribute("identifier", {"string name": lamp.name})
 
-        if rm.renderman_type == 'PORTAL':
-            m = Matrix.Identity(4)
-            eul = m.to_euler()
-            eul = Euler([eul[0], eul[1], eul[2]], eul.order)
-            m = eul.to_matrix().to_4x4()
-            m = m * Matrix.Rotation(math.pi, 4, 'Z')
-            ri.Transform(rib(m))
-            ri.ScopedCoordinateSystem("ENV_LIGHT")
-
+        if rm.renderman_type == 'PORTAL' and ob.parent and ob.parent.type == 'LAMP' and \
+            ob.parent.data.renderman.renderman_type == 'ENV':
+            export_transform(ri, instances[ob.parent.name])
+        
         export_transform(ri, instance)
 
         export_light_filters(ri, lamp)
-        export_light_shaders(ri, lamp, get_light_group(ob))
+        child_portals = []
+        if rm.renderman_type == 'ENV' and ob.children:
+            child_portals = [child for child in ob.children if child.type == 'LAMP' and \
+                child.data.renderman.renderman_type == 'PORTAL']
+        # if this is an env light and there are portals just do those instead of shader
+        if not child_portals:
+            export_light_shaders(ri, lamp, get_light_group(ob), ob.parent)
 
         ri.AttributeEnd()
 
-        # illuminate if illumintaes and not muted
-        do_light = rm.illuminates_by_default and not rm.mute
-        if bpy.context.scene.renderman.solo_light:
-            # check if solo
-            do_light = do_light and rm.solo
-        ri.Illuminate(lamp.name, do_light)
-        for lf in rm.light_filters:
-            if lf.filter_name in bpy.data.objects:
-                filter = bpy.data.objects[lf.filter_name].data
-                ri.EnableLightFilter(lamp.name, filter.name,
-                                     filter.renderman.illuminates_by_default)
+        if not child_portals:
+            # illuminate if illumintaes and not muted
+            do_light = rm.illuminates_by_default and not rm.mute
+            if bpy.context.scene.renderman.solo_light:
+                # check if solo
+                do_light = do_light and rm.solo
+            ri.Illuminate(lamp.name, do_light)
+            for lf in rm.light_filters:
+                if lf.filter_name in bpy.data.objects:
+                    filter = bpy.data.objects[lf.filter_name].data
+                    ri.EnableLightFilter(lamp.name, filter.name,
+                                         filter.renderman.illuminates_by_default)
 
 
 def export_material(ri, mat, handle=None, iterate_instance=False):
@@ -1165,12 +1182,12 @@ def export_scene_lights(ri, instances):
     export_comment(ri, '##Light Filters')
     for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
         if instance.ob.data.renderman.renderman_type == 'FILTER':
-            export_light(ri, instance)
+            export_light(ri, instance, instances)
 
     export_comment(ri, '##Lights')
     for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
-        if instance.ob.data.renderman.renderman_type != 'FILTER':
-            export_light(ri, instance)
+        if instance.ob.data.renderman.renderman_type not in ['FILTER']:
+            export_light(ri, instance, instances)
 
 
 def export_default_bxdf(ri, name):
@@ -3559,7 +3576,7 @@ def issue_light_filter_transform_edit(ri, rpass, obj):
         # reset the transform for light
         export_object_transform(ri, light_obj)
 
-        export_light_shaders(ri, lamp, get_light_group(light_obj))
+        export_light_shaders(ri, lamp, get_light_group(light_obj), obj.parent)
         ri.EditEnd()
 
 

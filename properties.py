@@ -1297,7 +1297,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         elif light_type == 'SKY':
             light_shader = 'PxrEnvDayLight'
         elif light_type == 'PORTAL':
-            light_shader = 'PxrDomeLight'
+            light_shader = 'PxrPortalLight'
         elif light_type == 'POINT':
             light_shader = 'PxrSphereLight'
         elif light_type == 'DIST':
