@@ -3049,7 +3049,9 @@ def export_display(ri, rpass, scene):
     # if it inject some image info
     if display_driver == 'it':
         from time import gmtime, strftime
-        dspy_notes = "(%s)\nSamples: %d-%d@%f  %s  " % (strftime("%a %b %d %H:%M:%S %Z %Y", gmtime()), 
+        ts = strftime("%a %b %d %H:%M:%S %Z %Y", gmtime())
+        ts = bytes(ts, 'ascii').decode('utf-8', 'ignore')
+        dspy_notes = "(%s)\nSamples: %d-%d@%f  %s  " % (ts, 
                                                         rm.min_samples, rm.max_samples, rm.pixel_variance,
                                                         rm.integrator)
         if rm.integrator == 'PxrPathTracer':
