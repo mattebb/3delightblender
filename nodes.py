@@ -1947,9 +1947,27 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
         params['__instanceid'] = mat_name
 
         light_name = node.bl_label
-        if portal:
-            light_name = 'PxrPortalLight'
-            params['string domeColorMap'] = params.pop('string lightColorMap')
+        if light_name == 'PxrPortalLight':
+            if mat_name in bpy.data.lamps:
+                lamp = bpy.context.scene.objects.active
+                if lamp and lamp.parent and lamp.parent.type == 'LAMP' \
+                    and lamp.parent.data.renderman.renderman_type == 'ENV':
+                    from .export import property_group_to_params
+                    parent_node = lamp.parent.data.renderman.get_light_node()
+                    parent_params = property_group_to_params(parent_node)
+                    params['string domeSpace'] = lamp.parent.name
+                    params['string portalName'] = mat_name
+                    params['string domeColorMap'] = parent_params['string lightColorMap']
+                    params['float intensity'] = parent_params['float intensity'] * params['float intensityMult']
+                    del params['float intensityMult']
+                    params['float exposure'] = parent_params['float exposure']
+                    params['color lightColor'] = [i*j for i,j in zip(parent_params['color lightColor'],params['color tint'])]
+                    del params['color tint']
+                    if not params['int enableTemperature']:
+                        params['int enableTemperature'] = parent_params['int enableTemperature']
+                        params['float temperature'] = parent_params['float temperature']
+                    params['float specular'] *= parent_params['float specular']
+                    params['float diffuse'] *= parent_params['float diffuse']
         ri.Light(light_name, mat_name, params)
     elif node.renderman_node_type == "lightfilter":
         params['__instanceid'] = mat_name
