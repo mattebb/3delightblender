@@ -3785,7 +3785,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         # for obj in objs:
         if mat in rpass.material_dict:
             for obj in rpass.material_dict[mat]:
-                ri.EditBegin('attribute', {'string scopename': obj.name})
+                ri.EditBegin('attribute', {'string scopename': "/^" + obj.name + "$/"})
                 export_material(ri, mat, iterate_instance=True)
                 ri.EditEnd()
         elif lamp:
