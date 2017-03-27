@@ -3755,7 +3755,7 @@ def update_light_link(rpass, ri, prman, link, remove=False):
 # test the active object type for edits to do then do them
 
 
-def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
+def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
     if node is None:
         mat = None
         if bpy.context.object:
@@ -3789,10 +3789,15 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         edit_flush(ri, rpass.edit_num, prman)
         # for obj in objs:
         if mat in rpass.material_dict:
-            for obj in rpass.material_dict[mat]:
-                ri.EditBegin('attribute', {'string scopename': "^" + obj.name + "$"})
+            if ob:
+                ri.EditBegin('attribute', {'string scopename': "^" + ob.name + "$"})
                 export_material(ri, mat, iterate_instance=True)
                 ri.EditEnd()
+            else:
+                for obj in rpass.material_dict[mat]:
+                    ri.EditBegin('attribute', {'string scopename': "^" + obj.name + "$"})
+                    export_material(ri, mat, iterate_instance=True)
+                    ri.EditEnd()
         elif lamp:
             lamp_ob = lamp
             lamp = mat
@@ -3817,6 +3822,9 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             mat = bpy.context.object.active_material
             if mat:
                 instance_num = mat.renderman.instance_num
+                if rpass.last_edit_mat == mat:
+                    rpass.last_edit_mat = None
+                    return
                 rpass.last_edit_mat = mat
         # if this is a lamp use that for the mat/name
         if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
