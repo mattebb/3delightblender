@@ -209,6 +209,7 @@ class RPass:
         self.ri = prman.Ri()
         self.edit_num = 0
         self.update_time = None
+        self.last_edit_mat = None
 
     def __del__(self):
 
@@ -675,9 +676,10 @@ class RPass:
                     self.material_dict[mat_slot.material] = []
                 if active not in self.material_dict[mat_slot.material]:
                     self.material_dict[mat_slot.material].append(active)
-                if mat_slot.material.is_updated:
+                if mat_slot.material.is_updated and mat_slot.material and \
+                    mat_slot.material.renderman:
                     issue_shader_edits(self, self.ri, prman,
-                                       nt=mat_slot.material.node_tree)
+                                           nt=mat_slot.material.node_tree)
 
     def update_illuminates(self):
         update_illuminates(self, self.ri, prman)

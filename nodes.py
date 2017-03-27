@@ -565,6 +565,7 @@ class RendermanOutputNode(RendermanShadingNode):
     def update(self):
         from . import engine
         if engine.is_ipr_running():
+            engine.ipr.last_edit_mat = None
             engine.ipr.issue_shader_edits(nt=self.id_data)
 
 

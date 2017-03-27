@@ -3762,6 +3762,11 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             mat = bpy.context.object.active_material
             if mat not in rpass.material_dict:
                 rpass.material_dict[mat] = [bpy.context.object]
+            # if the last edit was a material edit skip the attribute edit
+            # we get two edits when should get one.
+            if rpass.last_edit_mat == mat:
+                rpass.last_edit_mat = None
+                return
         lamp = None
         world = bpy.context.scene.world
         if mat is None and hasattr(bpy.context, 'lamp') and bpy.context.lamp:
@@ -3785,7 +3790,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
         # for obj in objs:
         if mat in rpass.material_dict:
             for obj in rpass.material_dict[mat]:
-                ri.EditBegin('attribute', {'string scopename': "/^" + obj.name + "$/"})
+                ri.EditBegin('attribute', {'string scopename': "^" + obj.name + "$"})
                 export_material(ri, mat, iterate_instance=True)
                 ri.EditEnd()
         elif lamp:
@@ -3812,6 +3817,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None):
             mat = bpy.context.object.active_material
             if mat:
                 instance_num = mat.renderman.instance_num
+                rpass.last_edit_mat = mat
         # if this is a lamp use that for the mat/name
         if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
             mat = node.id_data
