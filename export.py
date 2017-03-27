@@ -3050,7 +3050,7 @@ def export_display(ri, rpass, scene):
     if display_driver == 'it':
         from time import gmtime, strftime
         ts = strftime("%a %b %d %H:%M:%S %Z %Y", gmtime())
-        ts = bytes(ts, 'ascii').decode('utf-8', 'ignore')
+        ts = bytes(ts, 'ascii', 'ignore').decode('utf-8', 'ignore')
         dspy_notes = "(%s)\nSamples: %d-%d@%f  %s  " % (ts, 
                                                         rm.min_samples, rm.max_samples, rm.pixel_variance,
                                                         rm.integrator)
