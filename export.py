@@ -2148,7 +2148,7 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
     for child_name in instance.children:
         if child_name in instances:
             export_instance_read_archive(
-                ri, instances[child_name], instances, data_blocks, rpass, is_child=True)
+                ri, instances[child_name], instances, data_blocks, rpass, is_child=True, visible_objects=visible_objects)
     ri.AttributeEnd()
 
 
