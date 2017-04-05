@@ -2476,11 +2476,28 @@ def export_dupli_archive(ri, scene, rpass, data_block, data_blocks):
                 export_material_archive(ri, mat)
             ri.Transform(rib(Matrix.Identity(4)))
             ri.CoordinateSystem(dupob.object.name)
-            source_data_name = data_name(dupob.object, scene)
-            deforming = is_deforming(dupob.object)
+            
 
-            ri.ReadArchive(get_archive_filename(source_data_name, rpass,
-                                                deforming, True))
+
+            if dupob.object.renderman.geometry_source == 'ARCHIVE':
+                dupob_rm = dupob.object.renderman
+                relPath = os.path.splitext(get_real_path(dupob_rm.path_archive))[0]
+                archiveFileExtention = ".zip"
+                objectName = os.path.split(os.path.splitext(relPath)[0])[1]
+                if dupob_rm.archive_anim_settings.animated_sequence:
+                    current_frame = bpy.context.scene.frame_current
+                    zero_fill = str(current_frame).zfill(4)
+                    archive_filename = relPath + archiveFileExtention + \
+                        "!" + os.path.join(zero_fill, objectName + ".rib")
+                    ri.ReadArchive(archive_filename)
+                else:
+                    archive_filename = relPath + archiveFileExtention + "!" + objectName + ".rib"
+                    ri.ReadArchive(archive_filename)
+            else:
+                source_data_name = data_name(dupob.object, scene)
+                deforming = is_deforming(dupob.object)
+                ri.ReadArchive(get_archive_filename(source_data_name, rpass,
+                                                    deforming, True))
             ri.ObjectEnd()
             object_masters[dupob.object.name] = instance_handle
             # export "null" bxdf to clear material for object master
