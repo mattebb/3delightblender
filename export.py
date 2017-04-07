@@ -1371,19 +1371,17 @@ def get_mats_faces(nverts, primvars):
 def split_multi_mesh(nverts, verts, primvars):
     if "uniform float material_id" not in primvars:
         return {0: (nverts, verts, primvars)}
-
     else:
         meshes = {}
         vert_index = 0
-
         for face_id, num_verts in enumerate(nverts):
             mat_id = primvars["uniform float material_id"][face_id]
             if mat_id not in meshes:
                 meshes[mat_id] = ([], [], {'P': []})
                 if "facevarying float[2] st" in primvars:
                     meshes[mat_id][2]["facevarying float[2] st"] = []
-                if "varying normal N" in primvars:
-                    meshes[mat_id][2]["varying normal N"] = []
+                if "facevarying normal N" in primvars:
+                    meshes[mat_id][2]["facevarying normal N"] = []
 
             meshes[mat_id][0].append(num_verts)
             meshes[mat_id][1].extend(verts[vert_index:vert_index + num_verts])
@@ -1391,6 +1389,10 @@ def split_multi_mesh(nverts, verts, primvars):
                 meshes[mat_id][2]["facevarying float[2] st"].extend(
                     primvars["facevarying float[2] st"][vert_index * 2:
                                                         vert_index * 2 + num_verts * 2])
+            if "facevarying normal N" in primvars:
+                meshes[mat_id][2]['facevarying normal N'].extend(
+                        primvars['facevarying normal N'][vert_index * 3:
+                                                     vert_index * 3 + num_verts * 3])
             vert_index += num_verts
 
         # now sort the verts and replace
@@ -1401,14 +1403,10 @@ def split_multi_mesh(nverts, verts, primvars):
                 vert_mapping[v_index] = i
                 mat_mesh[2]['P'].extend(
                     primvars['P'][int(v_index * 3):int(v_index * 3) + 3])
-                if "varying normal N" in primvars:
-                    mat_mesh[2]['varying normal N'].extend(
-                        primvars['varying normal N'][int(v_index * 3):
-                                                     int(v_index * 3) + 3])
+                
 
             for i, vert_old in enumerate(mat_mesh[1]):
                 mat_mesh[1][i] = vert_mapping[vert_old]
-
         return meshes
 
 
