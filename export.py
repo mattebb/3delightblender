@@ -1711,6 +1711,8 @@ def is_transforming(ob, do_mb, recurse=False):
     transforming = (do_mb and ob.animation_data is not None)
     if not transforming and ob.parent:
         transforming = is_transforming(ob.parent, do_mb, recurse=True)
+        if not transforming and ob.parent.type == 'CURVE' and ob.parent.data:
+            transforming = ob.parent.data.use_path
     return transforming
 
 
