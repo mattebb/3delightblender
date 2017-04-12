@@ -552,7 +552,7 @@ def get_primvars(ob, geo, interpolation=""):
     return primvars
 
 
-def get_primvars_particle(scene, psys):
+def get_primvars_particle(scene, psys, subframes):
     primvars = {}
     rm = psys.settings.renderman
     cfra = scene.frame_current
@@ -563,37 +563,39 @@ def get_primvars_particle(scene, psys):
         if p.data_source in ('VELOCITY', 'ANGULAR_VELOCITY'):
             if p.data_source == 'VELOCITY':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, [cfra, cfra])]:
+                        [p for p in psys.particles if valid_particle(p, subframes)]:
                     pvars.extend(pa.velocity)
             elif p.data_source == 'ANGULAR_VELOCITY':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, [cfra, cfra])]:
+                        [p for p in psys.particles if valid_particle(p, subframes)]:
                     pvars.extend(pa.angular_velocity)
 
             primvars["uniform float[3] %s" % p.name] = pvars
 
         elif p.data_source in \
-                ('SIZE', 'AGE', 'BIRTH_TIME', 'DIE_TIME', 'LIFE_TIME'):
+                ('SIZE', 'AGE', 'BIRTH_TIME', 'DIE_TIME', 'LIFE_TIME', 'ID'):
             if p.data_source == 'SIZE':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, [cfra, cfra])]:
+                        [p for p in psys.particles if valid_particle(p, subframes)]:
                     pvars.append(pa.size)
             elif p.data_source == 'AGE':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, [cfra, cfra])]:
+                        [p for p in psys.particles if valid_particle(p, subframes)]:
                     pvars.append((cfra - pa.birth_time) / pa.lifetime)
             elif p.data_source == 'BIRTH_TIME':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, [cfra, cfra])]:
+                        [p for p in psys.particles if valid_particle(p, subframes)]:
                     pvars.append(pa.birth_time)
             elif p.data_source == 'DIE_TIME':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, [cfra, cfra])]:
+                        [p for p in psys.particles if valid_particle(p, subframes)]:
                     pvars.append(pa.die_time)
             elif p.data_source == 'LIFE_TIME':
                 for pa in \
-                        [p for p in psys.particles if valid_particle(p, [cfra, cfra])]:
+                        [p for p in psys.particles if valid_particle(p, subframes)]:
                     pvars.append(pa.lifetime)
+            elif p.data_source == 'ID':
+                pvars = [id for id,p in psys.particles.items() if valid_particle(p, subframes)]
 
             primvars["varying float %s" % p.name] = pvars
 
@@ -989,6 +991,8 @@ def export_blobby_particles(ri, scene, psys, ob, motion_data):
     if len(motion_data) > 1:
         export_motion_begin(ri, motion_data)
 
+    subframes = [scene.frame_current + i for (i, data) in motion_data]
+
     for (i, (P, rot, widths)) in motion_data:
         op = []
         count = len(widths)
@@ -1011,7 +1015,7 @@ def export_blobby_particles(ri, scene, psys, ob, motion_data):
             op.append(n)
 
         st = ('',)
-        parm = get_primvars_particle(scene, psys)
+        parm = get_primvars_particle(scene, psys, subframes)
         ri.Blobby(count, op, tform, st, parm)
     if len(motion_data) > 1:
         ri.MotionEnd()
@@ -1020,7 +1024,7 @@ def export_blobby_particles(ri, scene, psys, ob, motion_data):
 def export_particle_instances(ri, scene, rpass, psys, ob, motion_data, type='OBJECT'):
     rm = psys.settings.renderman
 
-    params = get_primvars_particle(scene, psys)
+    params = get_primvars_particle(scene, psys, [scene.frame_current + i for (i, data) in motion_data])
 
     if type == 'OBJECT':
         master_ob = bpy.data.objects[rm.particle_instance_object]
@@ -1082,7 +1086,7 @@ def export_particle_points(ri, scene, psys, ob, motion_data, objectCorrectionMat
         export_motion_begin(ri, motion_data)
 
     for (i, (P, rot, width)) in motion_data:
-        params = get_primvars_particle(scene, psys)
+        params = get_primvars_particle(scene, psys, [scene.frame_current + i for (i, data) in motion_data])
         params[ri.P] = rib(P)
         params["uniform string type"] = rm.particle_type
         if rm.constant_width:

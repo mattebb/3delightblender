@@ -1868,7 +1868,8 @@ class RendermanParticlePrimVar(bpy.types.PropertyGroup):
                ('AGE', 'Age', ''),
                ('BIRTH_TIME', 'Birth Time', ''),
                ('DIE_TIME', 'Die Time', ''),
-               ('LIFE_TIME', 'Lifetime', '')
+               ('LIFE_TIME', 'Lifetime', ''),
+               ('ID', 'ID', '')
                ]   # XXX: Would be nice to have particle ID, needs adding in RNA
     )
 
