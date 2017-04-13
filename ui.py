@@ -36,106 +36,64 @@ from bl_ui.properties_particle import ParticleButtonsPanel
 # helper functions for parameters
 from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
 
-# Use some of the existing buttons.
-import bl_ui.properties_render as properties_render
-# properties_render.RENDER_PT_render.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_render.RENDER_PT_dimensions.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_render.RENDER_PT_output.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_render.RENDER_PT_post_processing.COMPAT_ENGINES.add('PRMAN_RENDER')
-del properties_render
+def get_panels():
+    exclude_panels = {
+        'DATA_PT_area',
+        'DATA_PT_camera_dof',
+        'DATA_PT_falloff_curve',
+        'DATA_PT_lamp',
+        'DATA_PT_preview',
+        'DATA_PT_shadow',
+        #'DATA_PT_spot',
+        'DATA_PT_sunsky',
+        #'MATERIAL_PT_context_material',
+        'MATERIAL_PT_diffuse',
+        'MATERIAL_PT_flare',
+        'MATERIAL_PT_halo',
+        'MATERIAL_PT_mirror',
+        'MATERIAL_PT_options',
+        'MATERIAL_PT_pipeline',
+        'MATERIAL_PT_preview',
+        'MATERIAL_PT_shading',
+        'MATERIAL_PT_shadow',
+        'MATERIAL_PT_specular',
+        'MATERIAL_PT_sss',
+        'MATERIAL_PT_strand',
+        'MATERIAL_PT_transp',
+        'MATERIAL_PT_volume_density',
+        'MATERIAL_PT_volume_integration',
+        'MATERIAL_PT_volume_lighting',
+        'MATERIAL_PT_volume_options',
+        'MATERIAL_PT_volume_shading',
+        'MATERIAL_PT_volume_transp',
+        'RENDERLAYER_PT_layer_options',
+        'RENDERLAYER_PT_layer_passes',
+        'RENDERLAYER_PT_views',
+        'RENDER_PT_antialiasing',
+        'RENDER_PT_bake',
+        'RENDER_PT_motion_blur',
+        'RENDER_PT_performance',
+        'RENDER_PT_freestyle',
+        #'RENDER_PT_post_processing',
+        'RENDER_PT_shading',
+        'SCENE_PT_simplify',
+        'TEXTURE_PT_context_texture',
+        'WORLD_PT_ambient_occlusion',
+        'WORLD_PT_environment_lighting',
+        'WORLD_PT_gather',
+        'WORLD_PT_indirect_lighting',
+        'WORLD_PT_mist',
+        'WORLD_PT_preview',
+        'WORLD_PT_world',
+        }
 
-import bl_ui.properties_material as properties_material
-properties_material.MATERIAL_PT_context_material.COMPAT_ENGINES.add(
-    'PRMAN_RENDER')
-# properties_material.MATERIAL_PT_preview.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_material.MATERIAL_PT_custom_props.COMPAT_ENGINES.add('PRMAN_RENDER')
-del properties_material
+    panels = []
+    for t in bpy.types.Panel.__subclasses__():
+        if hasattr(t, 'COMPAT_ENGINES') and 'BLENDER_RENDER' in t.COMPAT_ENGINES:
+            if t.__name__ not in exclude_panels:
+                panels.append(t)
 
-import bl_ui.properties_scene as properties_scene
-properties_scene.SCENE_PT_scene.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_scene.SCENE_PT_unit.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_scene.SCENE_PT_physics.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_scene.SCENE_PT_rigid_body_world.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_scene.SCENE_PT_color_management.COMPAT_ENGINES.add('PRMAN_RENDER')
-del properties_scene
-
-import bl_ui.properties_data_lamp as properties_data_lamp
-properties_data_lamp.DATA_PT_context_lamp.COMPAT_ENGINES.add('PRMAN_RENDER')
-properties_data_lamp.DATA_PT_spot.COMPAT_ENGINES.add('PRMAN_RENDER')
-del properties_data_lamp
-
-# enable all existing panels for these contexts
-import bl_ui.properties_data_mesh as properties_data_mesh
-for member in dir(properties_data_mesh):
-    subclass = getattr(properties_data_mesh, member)
-    try:
-        subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
-    except:
-        pass
-del properties_data_mesh
-
-import bl_ui.properties_object as properties_object
-for member in dir(properties_object):
-    subclass = getattr(properties_object, member)
-    try:
-        subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
-    except:
-        pass
-del properties_object
-
-import bl_ui.properties_data_mesh as properties_data_mesh
-for member in dir(properties_data_mesh):
-    subclass = getattr(properties_data_mesh, member)
-    try:
-        subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
-    except:
-        pass
-del properties_data_mesh
-
-import bl_ui.properties_data_camera as properties_data_camera
-for member in dir(properties_data_camera):
-    subclass = getattr(properties_data_camera, member)
-    try:
-        if subclass != properties_data_camera.DATA_PT_camera_dof:
-            subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
-        pass
-    except:
-        pass
-del properties_data_camera
-
-import bl_ui.properties_particle as properties_particle
-for member in dir(properties_particle):
-    subclass = getattr(properties_particle, member)
-    try:
-        subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
-    except:
-        pass
-del properties_particle
-
-import bl_ui.properties_physics_fluid as properties_fluid
-for member in dir(properties_fluid):
-    subclass = getattr(properties_fluid, member)
-    try:
-        subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
-    except:
-        pass
-del properties_fluid
-
-# this is here for 2.78
-try:
-    import bl_ui
-    bl_ui.properties_physics_common.PHYSICS_PT_add.COMPAT_ENGINES.add(
-        'PRMAN_RENDER')
-    import bl_ui.properties_physics_smoke as properties_smoke
-    for member in dir(properties_smoke):
-        subclass = getattr(properties_smoke, member)
-        try:
-            subclass.COMPAT_ENGINES.add('PRMAN_RENDER')
-        except:
-            pass
-    del properties_smoke
-except:
-    pass
+    return panels
 
 
 # icons
@@ -772,32 +730,6 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
         row.prop(context.material.renderman, "displacementbound")
         # BBM addition end
         # self._draw_shader_menu_params(layout, context, rm)
-
-
-class RENDER_PT_layers(PRManButtonsPanel, Panel):
-    bl_label = "Layer List"
-    bl_context = "render_layer"
-    bl_options = {'HIDE_HEADER'}
-
-    def draw(self, context):
-        layout = self.layout
-
-        scene = context.scene
-        rd = scene.render
-        rl = rd.layers.active
-
-        row = layout.row()
-        row.template_list("RENDERLAYER_UL_renderlayers", "",
-                          rd, "layers", rd.layers, "active_index", rows=2)
-
-        col = row.column(align=True)
-        col.operator("scene.render_layer_add", icon='ZOOMIN', text="")
-        col.operator("scene.render_layer_remove", icon='ZOOMOUT', text="")
-
-        row = layout.row()
-        if rl:
-            row.prop(rl, "name")
-        row.prop(rd, "use_single_layer", text="", icon_only=True)
 
 
 class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
@@ -2472,6 +2404,9 @@ def register():
     # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
     bpy.types.INFO_MT_render.append(PRMan_menu_func)
 
+    for panel in get_panels():
+        panel.COMPAT_ENGINES.add('PRMAN_RENDER')
+
 
 def unregister():
     bpy.utils.unregister_class(RENDERMAN_GROUP_UL_List)
@@ -2480,3 +2415,6 @@ def unregister():
     # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
     # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
     bpy.types.INFO_MT_render.remove(PRMan_menu_func)
+
+    for panel in get_panels():
+        panel.COMPAT_ENGINES.add('PRMAN_RENDER')
