@@ -145,10 +145,11 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 continue
             output = nt.nodes.new('RendermanOutputNode')
             try:
-                default = nt.nodes.new('PxrDisneyBxdfNode')
-                default.location = output.location
-                default.location[0] -= 300
-                nt.links.new(default.outputs[0], output.inputs[0])
+                if not convert_cycles_nodetree(mat, output, self.report):
+                    default = nt.nodes.new('PxrSurfaceBxdfNode')
+                    default.location = output.location
+                    default.location[0] -= 300
+                    nt.links.new(default.outputs[0], output.inputs[0])
             except Exception as e:
                 self.report({'ERROR'}, "Error converting " + mat.name)
                 #self.report({'ERROR'}, str(e))
@@ -197,7 +198,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     bl_description = "Add a renderman shader node tree linked to this material"
 
     idtype = StringProperty(name="ID Type", default="material")
-    bxdf_name = StringProperty(name="Bxdf Name", default="PxrDisney")
+    bxdf_name = StringProperty(name="Bxdf Name", default="PxrSurface")
 
     def execute(self, context):
         idtype = self.properties.idtype
@@ -217,11 +218,12 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
-            default = nt.nodes.new('%sBxdfNode' %
-                                   self.properties.bxdf_name)
-            default.location = output.location
-            default.location[0] -= 300
-            nt.links.new(default.outputs[0], output.inputs[0])
+            if not convert_cycles_nodetree(idblock, output, self.report):
+                default = nt.nodes.new('%sBxdfNode' %
+                                       self.properties.bxdf_name)
+                default.location = output.location
+                default.location[0] -= 300
+                nt.links.new(default.outputs[0], output.inputs[0])
         elif idtype == 'lamp':
             light_type = idblock.type
             if light_type == 'SUN':
@@ -1097,6 +1099,10 @@ class Add_bxdf(bpy.types.Operator):
 
     def get_type_items(self, context):
         items = [
+            ("PxrSurface", "PxrSurface",
+             'PxrSurface Uber shader. For most hard surfaces'),
+            ("PxrLayerSurface", "PxrLayerSurface",
+             "PxrLayerSurface, creates a surface with two Layers"),
             ("PxrMarschnerHair", "PxrMarschnerHair", "Hair Shader"),
             ("PxrDisney", "PxrDisney",
              "Disney Bxdf, a simple uber shader with no layering"),
@@ -1162,14 +1168,14 @@ class New_bxdf(bpy.types.Operator):
 
     def execute(self, context):
         ob = context.object
-        bxdf_name = 'PxrDisney'
+        bxdf_name = 'PxrSurface'
         mat = bpy.data.materials.new(bxdf_name)
         ob.active_material = mat
         mat.use_nodes = True
         nt = mat.node_tree
 
         output = nt.nodes.new('RendermanOutputNode')
-        default = nt.nodes.new('PxrDisneyBxdfNode')
+        default = nt.nodes.new('PxrSurfaceBxdfNode')
         default.location = output.location
         default.location[0] -= 300
         nt.links.new(default.outputs[0], output.inputs[0])

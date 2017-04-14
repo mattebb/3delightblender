@@ -714,7 +714,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
         if mat and not is_renderman_nodetree(mat):
             layout.operator(
                 'shading.add_renderman_nodetree').idtype = "material"
-            #layout.operator('shading.convert_cycles_stuff')
+            layout.operator('shading.convert_cycles_stuff')
         # self._draw_shader_menu_params(layout, context, rm)
 
 
@@ -930,7 +930,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
         if not lamp.renderman.use_renderman_node:
             layout.prop(lamp, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype = 'lamp'
-            #layout.operator('shading.convert_cycles_stuff')
+            layout.operator('shading.convert_cycles_stuff')
             return
         else:
             if ipr_running:
