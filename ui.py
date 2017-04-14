@@ -77,6 +77,8 @@ def get_panels():
         'RENDER_PT_freestyle',
         #'RENDER_PT_post_processing',
         'RENDER_PT_shading',
+        'RENDER_PT_render',
+        'RENDER_PT_stamp',
         'SCENE_PT_simplify',
         'TEXTURE_PT_context_texture',
         'WORLD_PT_ambient_occlusion',
