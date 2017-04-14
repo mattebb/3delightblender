@@ -213,6 +213,19 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         col.prop(context.scene.renderman, "render_selected_objects_only")
         col.prop(rm, "do_denoise")
         addon_updater_ops.update_notice_box_ui(self, context)
+        
+class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
+    bl_label = "Baking"
+    bl_options = {'DEFAULT_CLOSED'}
+    
+    def draw (self, context):
+        layout = self.layout
+        row = layout.row()
+        icons = load_icons()
+        rman_batch = icons.get("batch_render")
+        row.operator("renderman.bake",
+                     text="Bake", icon_value=rman_batch.icon_id)
+        
 
 class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
     bl_label = "External Rendering"

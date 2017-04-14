@@ -424,8 +424,8 @@ def generate_property(sp):
         param_type = 'struct'
         prop_meta['is_vstruct'] = True
     renderman_type = param_type
-    
-    #correct for param_type mismatch with tag value
+
+    # correct for param_type mismatch with tag value
     if param_type == 'vector' and tags and tags.find('tag').attrib['value'] == 'color':
         param_type = 'color'
 
@@ -565,7 +565,7 @@ def generate_property(sp):
             param_default = ''
         # if '__' in param_name:
         #    param_name = param_name[2:]
-        if param_widget == 'fileinput' or param_widget == 'assetidinput':
+        if param_widget == 'fileinput' or param_widget == 'assetidinput' or (param_widget == 'default' and param_name == 'filename'):
             prop = StringProperty(name=param_label,
                                   default=param_default, subtype="FILE_PATH",
                                   description=param_help, update=update_function)
