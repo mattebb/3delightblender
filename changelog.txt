@@ -4,7 +4,7 @@ left to the default it will check once a day with github and download any change
 Thanks to CG Cookie for contributing the example and JDent for implementing
 https://github.com/CGCookie/blender-addon-updater
 * Portal lights now must be parented under the corresponding Hemi light in the outliner.  They need this to get the rotation from the hemi light.
-* Material Baking is enabled now.  To use insert a PxrBakeTexture node in a shader graph and use the bake button.  (thanks to JDent)
+* Material Baking is enabled now.  To use insert a PxrBakeTexture node in a shader graph and use the bake button after setting a filename.  Note the object needs uv unwrap  (thanks to JDent)
 * OpenVDB files can be exported in place of an object or empty under the "Geometry Source" on the object properties
 * An object can be exported as an RiVolume cube using the bounding box under the "Primitive Type" in the object properties.
 * Fix Rotation of directional lights and other lights
