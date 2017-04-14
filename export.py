@@ -3288,10 +3288,10 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None, do_objects=Tr
     export_searchpaths(ri, rpass.paths)
     export_options(ri, scene)
 
-    export_display(ri, rpass, scene)
-
-    export_displayfilters(ri, scene)
-    export_samplefilters(ri, scene)
+    if not rpass.bake:
+        export_display(ri, rpass, scene)
+        export_displayfilters(ri, scene)
+        export_samplefilters(ri, scene)
 
     export_hider(ri, rpass, scene)
     export_integrator(ri, rpass, scene)
