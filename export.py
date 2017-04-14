@@ -2153,6 +2153,10 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
         if child_name in instances:
             export_instance_read_archive(
                 ri, instances[child_name], instances, data_blocks, rpass, is_child=True, visible_objects=visible_objects)
+    
+    if instance.ob and instance.ob.renderman.post_object_rib_box != '':
+        export_rib_box(ri, instance.ob.renderman.post_object_rib_box)
+
     ri.AttributeEnd()
 
 
