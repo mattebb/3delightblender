@@ -319,7 +319,7 @@ class RendermanBake(bpy.types.Operator):
         denoise_aov_files = []
         job_tex_cmds = []
         denoise = False
-        alf_file = spool_render(str(rm_version), to_render, rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end, denoise, context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass, bake=True)
+        alf_file = spool_render(str(rm_version), to_render, [rib_names], denoise_files, denoise_aov_files, frame_begin, frame_end, denoise, context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass, bake=True)
         exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
         self.report(
                     {'INFO'}, 'RenderMan Baking spooling to %s.' % rm.queuing_system)

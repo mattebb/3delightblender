@@ -2163,11 +2163,9 @@ def export_data_read_archive(ri, data_block, rpass):
         export_material_archive(ri, mat)
 
     archive_filename = relpath_archive(data_block.archive_filename, rpass)
-    for mat in data_block.material:
-        export_material_archive(ri, mat)
-
+    
     # we want these relative paths of the archive
-    if data_block.type == 'MESH':
+    if data_block.type == 'MESH' and not rpass.bake:
         # PxrMeshLight can't be in DRA
         if has_emissive_material(data_block):
             ri.ReadArchive(archive_filename)
@@ -3372,6 +3370,8 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None, do_objects=Tr
         export_display(ri, rpass, scene)
         export_displayfilters(ri, scene)
         export_samplefilters(ri, scene)
+    else:
+        ri.Display("null", "null", "rgba")
 
     export_hider(ri, rpass, scene)
     export_integrator(ri, rpass, scene)

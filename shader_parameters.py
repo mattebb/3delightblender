@@ -221,7 +221,11 @@ def class_generate_properties(node, parent_name, shaderparameters):
 def update_conditional_visops(node):
     for param_name, prop_meta in getattr(node, 'prop_meta').items():
         if 'conditionalVisOp' in prop_meta:
+<<<<<<< HEAD
            try:
+=======
+            try:
+>>>>>>> jdent02-master
                 hidden = not eval(prop_meta['conditionalVisOp'])
                 prop_meta['hidden'] = hidden
                 if hasattr(node, 'inputs') and param_name in node.inputs:
