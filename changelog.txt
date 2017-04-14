@@ -1,4 +1,4 @@
-v21.3.0 11/8/16
+v21.3.0 4/15/17
 * Auto updater for addon added.  In the addon preferences there is settings for auto updating.  If
 left to the default it will check once a day with github and download any changes.
 Thanks to CG Cookie for contributing the example and JDent for implementing
