@@ -29,10 +29,10 @@ from . import addon_updater_ops
 bl_info = {
     "name": "RenderMan For Blender",
     "author": "Brian Savery",
-    "version": (21, 2, 0),
+    "version": (21, 3, 0),
     "blender": (2, 78, 0),
     "location": "Info Header, render engine menu",
-    "description": "RenderMan 21.2 integration",
+    "description": "RenderMan 21.3 integration",
     "warning": "",
     "category": "Render"}
 
