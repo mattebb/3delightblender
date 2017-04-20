@@ -69,7 +69,7 @@ class RendermanCameraSettings(bpy.types.PropertyGroup):
         default=4.0)
 
     dof_aspect = FloatProperty(
-        name="DOF Aspect",  default=1,  max=2,  min=0,
+        name="DOF Aspect", default=1, max=2, min=0,
         description="The ratio of blur in the 'x' and 'y' directions. Changing this value from the default will simulate anamorphic lens bokeh effects.  Values less than 1 elongate the blur on the 'y' axis.  Values greater than 1 elongate the blur on the 'x' axis")
 
     aperture_sides = IntProperty(
@@ -130,35 +130,36 @@ class RendermanAOV(bpy.types.PropertyGroup):
             # Basic lpe
             ("", "Basic LPE's", "Basic LPE's", "", 0),
             ("color rgba", "rgba", "Combined (beauty)", "", 1),
-            ("color lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse", "", 2),
+            ("color lpe:C[<.D%G><.S%G>]*[<L.%LG>O]",
+             "All Lighting", "All Lighting", "", 2),
+            ("color lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse", "", 3),
             ("color lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
-             "IndirectDiffuse", "IndirectDiffuse", "", 3),
-            ("color lpe:C<.S%G><L.%LG>", "Specular", "Specular", "", 4),
+             "IndirectDiffuse", "IndirectDiffuse", "", 4),
+            ("color lpe:C<.S%G><L.%LG>", "Specular", "Specular", "", 5),
             ("color lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
-             "IndirectSpecular", "IndirectSpecular", "", 5),
+             "IndirectSpecular", "IndirectSpecular", "", 6),
             ("color lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
-             "Subsurface", "Subsurface", "", 6),
+             "Subsurface", "Subsurface", "", 7),
             ("color lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
-             "Reflection", "Reflection", "", 7),
+             "Reflection", "Reflection", "", 8),
             ("color lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
-             "Refraction", "Refraction", "", 8),
-            ("color lpe:emission", "Emission", "Emission", "", 9),
+             "Refraction", "Refraction", "", 9),
+            ("color lpe:emission", "Emission", "Emission", "", 10),
             ("color lpe:shadows;C[<.D%G><.S%G>]<L.%LG>",
-             "Shadows", "Shadows", "", 10),
+             "Shadows", "Shadows", "", 11),
             ("color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O",
-             "Albedo", "Albedo", "", 11),
-            ("color lpe:C<.D%G>[S]+<L.%LG>",
-             "Caustics", "Caustics", "", 12),
+             "Albedo", "Albedo", "", 12),
+            ("color lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics", "", 13),
             # Matte ID
             ("", "Matte ID's", "Matte ID's", "", 0),
-            ("color MatteID0", "MatteID0", "MatteID0", "", 13),
-            ("color MatteID1", "MatteID1", "MatteID1", "", 14),
-            ("color MatteID2", "MatteID2", "MatteID2", "", 15),
-            ("color MatteID3", "MatteID3", "MatteID3", "", 16),
-            ("color MatteID4", "MatteID4", "MatteID4", "", 17),
-            ("color MatteID5", "MatteID5", "MatteID5", "", 18),
-            ("color MatteID6", "MatteID6", "MatteID6", "", 19),
-            ("color MatteID7", "MatteID7", "MatteID7", "", 20),
+            ("color MatteID0", "MatteID0", "MatteID0", "", 14),
+            ("color MatteID1", "MatteID1", "MatteID1", "", 15),
+            ("color MatteID2", "MatteID2", "MatteID2", "", 16),
+            ("color MatteID3", "MatteID3", "MatteID3", "", 17),
+            ("color MatteID4", "MatteID4", "MatteID4", "", 18),
+            ("color MatteID5", "MatteID5", "MatteID5", "", 19),
+            ("color MatteID6", "MatteID6", "MatteID6", "", 20),
+            ("color MatteID7", "MatteID7", "MatteID7", "", 21),
             # PxrSurface lpe
             ("", "PxrSurface lobe LPE's", "PxrSurface lobe LPE's", "", 0),
             ("color lpe:C<.D2%G>[<L.%LG>O]",
@@ -202,7 +203,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
             ("float z", "z_depth", "Depth from the camera in world space", "", 41),
             ("float zback", "z_back",
              "Depth at the back of volumetric objects in world space", "", 42),
-            ("point P",  "P",  "Position of the point hit by the incident ray", "", 43),
+            ("point P", "P", "Position of the point hit by the incident ray", "", 43),
             ("float PRadius", "PRadius",
              "Cross-sectional size of the ray at the hit point", "", 44),
             ("float cpuTime", "cpuTime",
@@ -256,7 +257,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
              "Reference Normal primvar (if available)", "", 76),
             ("point __WPref", "WPref",
              "Reference World Position primvar (if available)", "", 77),
-            ("normal __WNref",  "WNref",
+            ("normal __WNref", "WNref",
              "Reference World Normal primvar (if available)", "", 78),
             # Custom lpe
             ("", "Custom", "Custom", "", 0),
@@ -279,7 +280,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
 
     aov_name = EnumProperty(name="AOV Type",
                             description="",
-                            items=aov_list,  update=update_type)
+                            items=aov_list, update=update_type)
 
     custom_lpe_string = StringProperty(
         name="lpe String",
@@ -345,12 +346,12 @@ class RendermanAOV(bpy.types.PropertyGroup):
     aov_pixelfilter = EnumProperty(
         name="Pixel Filter",
         description="Filter to use to combine pixel samples.  If 'default' is selected the aov will use the filter set in the render panel",
-        items=[('default',  'Default',  ''),
+        items=[('default', 'Default', ''),
                ('box', 'Box', ''),
                ('sinc', 'Sinc', ''),
                ('gaussian', 'Gaussian', ''),
-               ('triangle',  'Triangle',  ''),
-               ('catmull-rom',  'Catmull-Rom', '')],
+               ('triangle', 'Triangle', ''),
+               ('catmull-rom', 'Catmull-Rom', '')],
         default='default')
     aov_pixelfilter_x = IntProperty(
         name="Filter Size X",
@@ -380,9 +381,9 @@ class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
         name="EXR Bit Depth",
         description="Sets the bit depth of the .exr file.  Leaving at 'default' will use the Renderman defaults",
         items=[
-            ('default',  'Default', ''),
-            ('half',  'Half (16 bit)',  ''),
-            ('float',  'Float (32 bit)', '')],
+            ('default', 'Default', ''),
+            ('half', 'Half (16 bit)', ''),
+            ('float', 'Float (32 bit)', '')],
         default='default')
 
     use_deep = BoolProperty(
@@ -398,14 +399,14 @@ class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
         name="EXR Compression",
         description="Determined the compression used on the EXR file.  Leaving at 'default' will use the Renderman defaults",
         items=[
-            ('default',  'Default',  ''),
-            ('none',  'None',  ''),
-            ('rle',  'rle',  ''),
-            ('zip',  'zip',  ''),
-            ('zips',  'zips', ''),
-            ('pixar',  'pixar',  ''),
+            ('default', 'Default', ''),
+            ('none', 'None', ''),
+            ('rle', 'rle', ''),
+            ('zip', 'zip', ''),
+            ('zips', 'zips', ''),
+            ('pixar', 'pixar', ''),
             ('b44', 'b44', ''),
-            ('piz',  'piz',  '')],
+            ('piz', 'piz', '')],
         default='default')
 
     exr_storage = EnumProperty(
@@ -503,8 +504,8 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         items=[('box', 'Box', ''),
                ('sinc', 'Sinc', ''),
                ('gaussian', 'Gaussian', ''),
-               ('triangle',  'Triangle',  ''),
-               ('catmull-rom',  'Catmull-Rom', '')],
+               ('triangle', 'Triangle', ''),
+               ('catmull-rom', 'Catmull-Rom', '')],
         default='gaussian')
     pixelfilter_x = IntProperty(
         name="Filter Size X",
@@ -812,23 +813,23 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Bit Depth",
         description="Sets the bit depth of the main EXR file.  Leaving at 'default' will use the Renderman defaults",
         items=[
-            ('default',  'Default', ''),
-            ('half',  'Half (16 bit)',  ''),
-            ('float',  'Float (32 bit)', '')],
+            ('default', 'Default', ''),
+            ('half', 'Half (16 bit)', ''),
+            ('float', 'Float (32 bit)', '')],
         default='default')
 
     exr_compression = EnumProperty(
         name="Compression",
         description="Determined the compression used on the main EXR file.  Leaving at 'default' will use the Renderman defaults",
         items=[
-            ('default',  'Default',  ''),
-            ('none',  'None',  ''),
-            ('rle',  'rle',  ''),
-            ('zip',  'zip',  ''),
-            ('zips',  'zips', ''),
-            ('pixar',  'pixar',  ''),
+            ('default', 'Default', ''),
+            ('none', 'None', ''),
+            ('rle', 'rle', ''),
+            ('zip', 'zip', ''),
+            ('zips', 'zips', ''),
+            ('pixar', 'pixar', ''),
             ('b44', 'b44', ''),
-            ('piz',  'piz',  '')],
+            ('piz', 'piz', '')],
         default='default')
 
     render_into = EnumProperty(
@@ -1318,7 +1319,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         if light_type == 'FILTER':
             self.update_filter_type(context)
 
-        #setattr(node, 'renderman_portal', light_type == 'PORTAL')
+        # setattr(node, 'renderman_portal', light_type == 'PORTAL')
 
     def update_area_shape(self, context):
         lamp = self.id_data
@@ -1787,7 +1788,6 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
 
         self.light_node = light_shader + "_settings"
 
-
     def update_vis(self, context):
         lamp = context.scene.world
 
@@ -2192,6 +2192,12 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Matte Object",
         description="Render the object as a matte cutout (alpha 0.0 in final frame)",
         default=False)
+
+    holdout = BoolProperty(
+        name="Holdout",
+        description="Render the object as a holdout",
+        default=False)
+
     visibility_camera = BoolProperty(
         name="Visible to Camera Rays",
         description="Object visibility to Camera Rays",
@@ -2378,7 +2384,7 @@ initial_aov_channels = [("a", "alpha", ""),
                         ("z", "z_depth", "Depth from the camera in world space"),
                         ("zback", "z_back",
                          "Depth at the back of volumetric objects in world space"),
-                        ("P",  "P",  "Position of the point hit by the incident ray"),
+                        ("P", "P", "Position of the point hit by the incident ray"),
                         ("PRadius", "PRadius",
                          "Cross-sectional size of the ray at the hit point"),
                         ("cpuTime", "cpuTime", "The time taken to render a pixel"),
@@ -2422,7 +2428,7 @@ initial_aov_channels = [("a", "alpha", ""),
                         ("__Nref", "Nref", "Reference Normal primvar (if available)"),
                         ("__WPref", "WPref",
                          "Reference World Position primvar (if available)"),
-                        ("__WNref",  "WNref", "Reference World Normal primvar (if available)")]
+                        ("__WNref", "WNref", "Reference World Normal primvar (if available)")]
 
 
 class RendermanPluginSettings(bpy.types.PropertyGroup):
