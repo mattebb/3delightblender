@@ -1828,7 +1828,7 @@ def get_instances_and_blocks(obs, rpass):
             # now get the data_blocks for the instance
             inst_data_blocks = get_data_blocks_needed(ob, rpass, mb_on)
             for db in inst_data_blocks:
-                do_db = False if (bake and export_for_bake(db)) else True
+                do_db = False if (bake and not export_for_bake(db)) else True
 
                 if do_db and not db.dupli_data:
                     inst.data_block_names.append(db.name)
