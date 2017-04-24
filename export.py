@@ -1817,7 +1817,6 @@ def get_instances_and_blocks(obs, rpass):
     for ob in obs:
         inst = get_instance(ob, rpass.scene, mb_on)
         if inst:
-            do_inst = False
             ob_mb_segs = ob.renderman.motion_segments if ob.renderman.motion_segments_override else mb_segs
 
             # add the instance to the motion segs list if transforming
@@ -1829,7 +1828,9 @@ def get_instances_and_blocks(obs, rpass):
             # now get the data_blocks for the instance
             inst_data_blocks = get_data_blocks_needed(ob, rpass, mb_on)
             for db in inst_data_blocks:
-                if not db.dupli_data:
+                do_db = False if (bake and export_for_bake(db)) else True
+
+                if do_db and not db.dupli_data:
                     inst.data_block_names.append(db.name)
 
                 # if this data_block is already in the list to export...
@@ -1837,17 +1838,15 @@ def get_instances_and_blocks(obs, rpass):
                     continue
 
                 # add data_block to mb list
-                if db.deforming and mb_on:
+                if do_db and db.deforming and mb_on:
                     if ob_mb_segs not in motion_segs:
                         motion_segs[ob_mb_segs] = ([], [])
                     motion_segs[ob_mb_segs][1].append(db.name)
 
-                if (bake and export_for_bake(db)) or not bake:
+                if do_db:
                     data_blocks[db.name] = db
-                    do_inst = True
-
-            if do_inst:
-                instances[inst.name] = inst
+                    
+            instances[inst.name] = inst
 
     return instances, data_blocks, motion_segs
 
