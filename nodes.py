@@ -527,6 +527,8 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     self.inputs.new(socket_map["struct"], prop_name, prop_name)
                 elif prop_type == "void":
                     pass
+                elif 'lockgeom' in shader_meta[prop_name] and shader_meta[prop_name]['lockgeom'] == 0:
+                    pass
                 else:
                     input = self.inputs.new(socket_map[shader_meta[prop_name]["type"]],
                                             prop_name, prop_name)
@@ -1318,6 +1320,7 @@ def gen_params(ri, node, mat_name=None):
                     if not os.path.exists(os.path.join(user_path(prefs.env_vars.out), "shaders")):
                         os.mkdir(os.path.join(user_path(prefs.env_vars.out), "shaders"))
                     shutil.copy(osl_path, out_file)
+        print(dir(node))
         for input_name, input in node.inputs.items():
             prop_type = input.renderman_type
             if input.is_linked:
