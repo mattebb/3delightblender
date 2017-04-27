@@ -1320,7 +1320,6 @@ def gen_params(ri, node, mat_name=None):
                     if not os.path.exists(os.path.join(user_path(prefs.env_vars.out), "shaders")):
                         os.mkdir(os.path.join(user_path(prefs.env_vars.out), "shaders"))
                     shutil.copy(osl_path, out_file)
-        print(dir(node))
         for input_name, input in node.inputs.items():
             prop_type = input.renderman_type
             if input.is_linked:
