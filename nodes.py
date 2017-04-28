@@ -863,12 +863,21 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         row = split.row()
                         for i in range(level):
                             row.label('', icon='BLANK1')
+
                         row.prop(node, ui_prop, icon=icon, text='',
                                  icon_only=True, emboss=False)
+                        sub_prop_names = list(prop)
+                        if node.bl_idname in {"PxrSurfaceBxdfNode", "PxrLayerPatternNode"}:
+                            for pn in sub_prop_names:
+                                if pn.startswith('enable'):
+                                    row.prop(node, pn, text='')
+                                    sub_prop_names.remove(pn)
+                                    break
+                        
                         row.label(prop_name.split('.')[-1] + ':')
 
                         if ui_open:
-                            draw_props(prop, layout, level + 1)
+                            draw_props(sub_prop_names, layout, level + 1)
 
                     else:
                         indented_label(row, None, level)
