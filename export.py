@@ -936,7 +936,7 @@ def export_hair(ri, scene, ob, psys, data, objectCorrectionMatrix=False):
         scene, ob, psys, objectCorrectionMatrix)
 
     for vertsArray, points, widthString, widths, scalpS, scalpT in curves:
-        params = {"P": rib(points), widthString: widths}
+        params = {"P": rib(points), widthString: widths, 'uniform integer index': range(len(vertsArray))}
         if len(scalpS):
             params['uniform float scalpS'] = scalpS
             params['uniform float scalpT'] = scalpT
