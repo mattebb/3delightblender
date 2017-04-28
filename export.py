@@ -1845,7 +1845,7 @@ def get_instances_and_blocks(obs, rpass):
 
                 if do_db:
                     data_blocks[db.name] = db
-                    
+
             instances[inst.name] = inst
 
     return instances, data_blocks, motion_segs
