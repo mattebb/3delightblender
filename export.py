@@ -772,10 +772,12 @@ def export_light_shaders(ri, lamp, group_name='', portal_parent=''):
             params['string portalName'] = handle
             params['string domeColorMap'] = parent_params[
                 'string lightColorMap']
-            params['vector colorMapGamma'] = parent_params[
-                'vector colorMapGamma']
-            params['float colorMapSaturation'] = parent_params[
-                'float colorMapSaturation']
+            if params['vector colorMapGamma'] == (1.0,1.0,1.0):
+                params['vector colorMapGamma'] = parent_params[
+                    'vector colorMapGamma']
+            if params['float colorMapSaturation'] == 1.0:
+                params['float colorMapSaturation'] = parent_params[
+                    'float colorMapSaturation']
             params['float intensity'] = parent_params[
                 'float intensity'] * params['float intensityMult']
             del params['float intensityMult']
