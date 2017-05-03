@@ -3461,7 +3461,7 @@ def write_rib(rpass, scene, ri, visible_objects=None, engine=None, do_objects=Tr
     export_materials_archive(ri, rpass, scene)
     # now output the object archives
     for name, instance in instances.items():
-        if instance.type not in ['CAMERA', 'LAMP'] and not instance.parent:
+        if not instance.parent:
             export_instance_read_archive(
                 ri, instance, instances, data_blocks, rpass, visible_objects=visible_objects)
 
