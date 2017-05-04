@@ -41,18 +41,21 @@ class RendermanPreset(PropertyGroup):
     bl_label = "Renderman Preset Group"
     bl_idname = 'RendermanPresetGroup'
 
-    def get_enum_items(self, context):
-        return icons.enum_items
+    #def get_enum_items(self, context):
+    #    return icons.enum_items
 
     @classmethod
     def get_from_path(cls, lib_path):
+        if not lib_path:
+            return
         group_path,preset = lib_path.rsplit('/', 1)
 
         group = RendermanPresetGroup.get_from_path(group_path)
         return group.presets[preset] if preset in group.presets.keys() else None
     
     name = StringProperty(default='')
-    thumbnail = EnumProperty(items=get_enum_items)
+    label= StringProperty(default='')
+    #thumbnail = EnumProperty(items=get_enum_items)
     thumb_path = StringProperty(subtype='FILE_PATH')
     path = StringProperty(subtype='FILE_PATH')
     json_path = StringProperty(subtype='FILE_PATH')
@@ -90,14 +93,16 @@ class RendermanPresetGroup(PropertyGroup):
     name = StringProperty(default='')
     ui_open = BoolProperty(default=True)
 
+    def generate_previews(self, context):
+        return icons.load_previews(self)
+    
     presets = CollectionProperty(type=RendermanPreset)
     path = StringProperty(
         name="Path for preset files",
         description="Path for preset files, if not present these will be copied from RMANTREE.",
         subtype='FILE_PATH',
         default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'library'))
-
-    
+    current_preset = EnumProperty(items=generate_previews)
 
     # gets the presets and all from children
     def get_presets(self):

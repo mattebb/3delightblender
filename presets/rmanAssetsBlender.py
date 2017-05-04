@@ -1344,30 +1344,31 @@ def createNodes(Asset):
         if nodeClass == 'bxdf':
             created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
             created_node.name = nodeId
-    #     elif nodeClass == 'pattern':
-    #         if node.externalOSL():
-    #             # if externalOSL() is True, it is a dynamic OSL node i.e. one
-    #             # loaded through a PxrOSL node.
-    #             # if PxrOSL is used, we need to find the oso in the asset to
-    #             # use it in a PxrOSL node.
-    #             oso = Asset.getDependencyPath(nodeType + '.oso')
-    #             if oso is None:
-    #                 err = ('createNodes: OSL file is missing "%s"'
-    #                        % nodeType)
-    #                 raise RmanAssetBlenderError(err)
-    #             nodeName = mc.shadingNode('PxrOSL', name=nodeId,
-    #                                       asTexture=True)
-    #             mc.setAttr(nodeName + '.shadername', ra.externalPath(oso),
-    #                        type='string')
-    #             # Call the reload callback to create pattern params
-    #             mel.eval('rmanLoadOSLShader("%s", 1)' % nodeName)
-    #         else:
-    #             # the nodeType should in general correspond to a maya node
-    #             # type.
-    #             if nodeType in g_PxrToMayaNodes:
-    #                 nodeType = g_PxrToMayaNodes[nodeType]
-    #             nodeName = mc.shadingNode(nodeType, name=nodeId,
-    #                                       asTexture=True)
+        elif nodeClass == 'pattern':
+            if node.externalOSL():
+                # if externalOSL() is True, it is a dynamic OSL node i.e. one
+                # loaded through a PxrOSL node.
+                # if PxrOSL is used, we need to find the oso in the asset to
+                # use it in a PxrOSL node.
+                oso = Asset.getDependencyPath(nodeType + '.oso')
+                if oso is None:
+                    err = ('createNodes: OSL file is missing "%s"'
+                           % nodeType)
+                    raise RmanAssetBlenderError(err)
+                created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
+                created_node.codetypeswitch = 'EXT'
+                created_node.shadercode = oso
+            else:
+                # the nodeType should in general correspond to a maya node
+                # type.
+                if nodeType in g_PxrToBlenderNodes:
+                    created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
+                    created_node.name = nodeId
+                else:
+                    err = ('createNodes: Unknown nodetype "%s"'
+                           % nodeType)
+                    raise RmanAssetBlenderError(err)
+
         elif nodeClass == 'root':
             created_node = nt.nodes.new('RendermanOutputNode')
             created_node.name = nodeId
@@ -1384,7 +1385,7 @@ def createNodes(Asset):
 
     # # restore selection
     # mc.select(sel)
-    return nt,nodeDict
+    return mat,nt,nodeDict
 
 
 ##
@@ -1494,8 +1495,9 @@ def importAsset(filepath):
         return
 
     if assetType == "nodeGraph":
-        nt,newNodes = createNodes(Asset)
+        mat,nt,newNodes = createNodes(Asset)
         connectNodes(Asset, nt, newNodes)
+        return mat
 
     elif assetType == "envMap":
         scene = bpy.context.scene

@@ -4,22 +4,26 @@ import bpy.utils.previews
 from .. import util
 
 asset_previews = bpy.utils.previews.new()
-enum_items = [('0', '0', '0')]
 
 def load_previews(lib):
     global asset_previews
+    enum_items = []
+
     lib_dir = presets_library = bpy.context.scene.renderman.presets_library.path
 
-    for asset_name,asset in lib.presets.items():
+    for i,asset in enumerate(lib.presets):
         path = asset.path
         
         if path not in asset_previews:
             thumb_path = os.path.join(asset.path, 'asset_100.png')
             
             thumb = asset_previews.load(path, thumb_path, 'IMAGE', force_reload=True)
-            enum_items.append((path, path, "", thumb.icon_id, len(enum_items) + 1))
-            asset.thumbnail = path
-
+        else:
+            thumb = asset_previews[path]
+        enum_items.append((asset.path, asset.label, '', thumb.icon_id, i))
+            #asset.thumbnail = thumb.icon_id
 
     for sub_group in lib.sub_groups:
-        load_previews(sub_group)
+        enum_items.extend(load_previews(sub_group))
+
+    return enum_items if enum_items else [('', '', '')]

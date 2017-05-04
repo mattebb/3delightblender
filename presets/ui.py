@@ -25,7 +25,7 @@
 
 from .. import util
 import bpy
-from .properties import RendermanPresetGroup
+from .properties import RendermanPresetGroup, RendermanPreset
 from . import icons
 
 # panel for the toolbar of node editor 
@@ -65,7 +65,8 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
 
         if lib.is_active():
             row.operator('renderman.add_preset_library', text='', icon='ZOOMIN')
-            row.operator('renderman.remove_preset_library', text='', icon='ZOOMOUT')
+            row.operator('renderman.move_preset_library', text='', icon='MAN_TRANS').lib_path = lib.path
+            row.operator('renderman.remove_preset_library', text='', icon='X')
             
 
 
@@ -88,17 +89,31 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
 
             col = split.column()
             self.draw_preset_library(presets_library, col, indent=0)
-            row = col.row()
-            row.operator("renderman.init_preset_library", text="", icon="FILE_REFRESH")
-            col = split.column()
             active = RendermanPresetGroup.get_active_library()
+            col.operator("renderman.init_preset_library", text="", icon="FILE_REFRESH")
+            col = split.column()
             if active:
-                for preset in active.get_presets():
-                    if preset.thumbnail in icons.asset_previews:
-                        col.label(preset.name)
-                        col.template_icon_view(preset, 'thumbnail')
-                        col.operator("renderman.load_asset_to_scene", text="Load to Scene").preset_path = preset.path
+                col.prop(active, 'name', text='Library')
+                current_preset = RendermanPreset.get_from_path(active.current_preset)
+                
+                if current_preset:
+                    col.label("Current Preset:")
+                    col.prop_menu_enum(active, 'current_preset', text=current_preset.label)
+                    col.template_icon_view(active, "current_preset")
+                    # row of controls for preset
+                    row = col.row(align=True)
+                    row.prop(current_preset, 'label', text="")
+                    row.operator('renderman.move_preset', icon='MAN_TRANS', text="").preset_path = current_preset.path
+                    row.operator('renderman.remove_preset', icon='X', text="").preset_path = current_preset.path
 
+                    # add to scene
+                    row = col.row(align=True)
+                    row.operator("renderman.load_asset_to_scene", text="Load to Scene", ).preset_path = current_preset.path
+                    assign = row.operator("renderman.load_asset_to_scene", text="Assign", )
+                    assign.preset_path = current_preset.path
+                    assign.assign = True
+
+                # get from scene
                 col.operator("renderman.save_asset_to_library", text="Save Current to Library").lib_path = active.path
 
 
