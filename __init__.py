@@ -119,6 +119,8 @@ def register():
     preferences.register()
     addon_updater_ops.register(bl_info)
     load_addon()
+    from . import presets
+    presets.register()
     bpy.utils.register_module(__name__)
 
 
@@ -132,4 +134,6 @@ def unregister():
     nodes.unregister()
     preferences.unregister()
     addon_updater_ops.unregister()
+    from . import presets
+    presets.unregister()
     bpy.utils.unregister_module(__name__)
