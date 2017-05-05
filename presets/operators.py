@@ -31,6 +31,7 @@ from bpy.props import StringProperty, EnumProperty, BoolProperty
 from .properties import RendermanPresetGroup, RendermanPreset
 from . import icons
 import json
+from bpy.types import NodeTree
 
 # update the tree structure from disk file
 def refresh_presets_libraries(disk_lib, preset_library):
@@ -127,6 +128,17 @@ class save_asset_to_lib(bpy.types.Operator):
         presets_path = context.scene.renderman.presets_library.path
         path = os.path.relpath(self.properties.lib_path, presets_path)
         library = RendermanPresetGroup.get_from_path(path)
+        ob = context.active_object
+        mat = ob.active_material
+        nt = mat.node_tree
+        if nt:
+            from . import rmanAssetsBlender
+            rmanAssetsBlender.exportAsset(nt, 'nodeGraph', 
+                                          {'label':mat.name,
+                                           'author': '',
+                                           'version': ''},
+                                           path
+                                           )
 
         return {'FINISHED'}
 

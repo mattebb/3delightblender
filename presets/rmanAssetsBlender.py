@@ -181,9 +181,9 @@ class BlenderNode:
     __safeToIgnore = ['Maya_UsePref', 'Maya_Pref']
     __conversionNodeTypes = ['PxrToFloat', 'PxrToFloat3']
 
-    def __init__(self, name, nodetype):
+    def __init__(self, node, nodetype):
         # the node name / handle
-        self.name = name
+        self.name = node.name
         # the maya node type
         self.blenderNodeType = nodetype
         # The rman node it translates to. Could be same as mayaNodeType or not.
@@ -218,17 +218,14 @@ class BlenderNode:
             self.rmanNodeType = os.path.splitext(fileext)[0]
             self.oslPath = path
 
-        if mc.objExists(self.name):
-            self.has3dManifold = mc.objExists('%s.placementMatrix' %
-                                              (self.name))
-            self.ReadParams()
-        else:
-            # this will fail if we insert a node that doesn't exist in maya,
-            # but it's OK if it is a conversion plug.
-            if nodetype not in self.__conversionNodeTypes:
-                raise RmanAssetBlenderError(sysErr())
-            else:
-                self.DefaultParams()
+        self.ReadParams()
+        # else:
+        #     # this will fail if we insert a node that doesn't exist in maya,
+        #     # but it's OK if it is a conversion plug.
+        #     if nodetype not in self.__conversionNodeTypes:
+        #         raise RmanAssetBlenderError(sysErr())
+        #     else:
+        #         self.DefaultParams()
 
     ##
     # @brief      simple method to make sure we respect the natural parameter
@@ -512,7 +509,7 @@ class BlenderNode:
         self.AddParam(pname, {'type': 'reference %s' % ptype, 'value': None})
 
     def AddParamMetadata(self, pname, pdict):
-        for k, v in pdict.iteritems():
+        for k, v in pdict.items():
             if k == 'type' or k == 'value':
                 continue
             self._params[pname][k] = v
@@ -549,7 +546,7 @@ class BlenderNode:
 #           It is safer to handle these exceptions once the graph has been
 #           parsed.
 #
-class MayaGraph:
+class BlenderGraph:
     __CompToAttr = {'R': 'inputR', 'X': 'inputR',
                     'G': 'inputG', 'Y': 'inputG',
                     'B': 'inputB', 'Z': 'inputB'}
@@ -566,29 +563,29 @@ class MayaGraph:
     def NodeList(self):
         return self._nodes
 
-    def AddNode(self, nodename, nodetype=None):
+    def AddNode(self, node, nodetype=None):
         global g_validNodeTypes
 
         # make sure we always consider the node if we get 'node.attr'
-        node = nodename.split('.')[0]
-        if nodetype is None:
-            nodetype = mc.nodeType(node)
-        # print 'MayaGraph.AddNode  >>> %s' % nodename
-
+        #node = nodename.split('.')[0]
+        
         if node in self._invalids:
             # print '    already in invalids'
+            print('%s invalid' % node.name)
             return False
 
-        if nodetype not in g_validNodeTypes:
+        if node.__class__.__name__ not in g_validNodeTypes:
             self._invalids.append(node)
             # we must warn the user, as this is not really supposed to happen.
-            mc.warning('%s is not a valid node type (%s)' %
-                       (nodename, nodetype))
+            print('%s is not a valid node type (%s)' %
+                       (node.name, node.__class__.__name__))
             # print '    not a valid node type -> %s' % nodetype
             return False
 
+
         if node not in self._nodes:
-            self._nodes[node] = MayaNode(node, nodetype)
+            print('adding %s ' % node.name)
+            self._nodes[node] = BlenderNode(node, node.renderman_node_type)
             # print '    add to node list'
             return True
 
@@ -611,60 +608,58 @@ class MayaGraph:
         for node in self._nodes:
 
             # get incoming connections (both plugs)
-            cnx = mc.listConnections(node, s=True, d=False, c=True, p=True)
+            cnx = [l for l in inp.links for inp in node.inputs]
             # print 'topo: %s -> %s' % (node, cnx)
             if not cnx:
                 continue
 
-            for i in range(0, len(cnx), 2):
-                srcPlug = cnx[i + 1]
-                dstPlug = cnx[i]
-
+            for l in cnx:
                 # don't store connections to un-related nodes.
                 #
-                ignoreDst = mc.nodeType(dstPlug) not in g_validNodeTypes
-                ignoreSrc = mc.nodeType(srcPlug) not in g_validNodeTypes
+                ignoreDst = type(l.to_node) not in g_validNodeTypes
+                ignoreSrc = type(l.from_node) not in g_validNodeTypes
                 if ignoreDst or ignoreSrc:
                     continue
 
-                # detect special cases
-                #
-                srcIsChildPlug = self._isChildPlug(srcPlug)
-                dstIsChildPlug = self._isChildPlug(dstPlug)
-                # 1: if the connection involves a child plug, we need to insert
-                #    one or more conversion node(s).
-                #
-                if srcIsChildPlug and not dstIsChildPlug:
-                    self._f3_to_f1_connection(srcPlug, dstPlug)
-                    continue
+                # # detect special cases
+                # #
+                # srcIsChildPlug = self._isChildPlug(srcPlug)
+                # dstIsChildPlug = self._isChildPlug(dstPlug)
+                # # 1: if the connection involves a child plug, we need to insert
+                # #    one or more conversion node(s).
+                # #
+                # if srcIsChildPlug and not dstIsChildPlug:
+                #     self._f3_to_f1_connection(srcPlug, dstPlug)
+                #     continue
 
-                elif not srcIsChildPlug and dstIsChildPlug:
-                    self._f1_to_f3_connection(srcPlug, dstPlug)
-                    continue
+                # elif not srcIsChildPlug and dstIsChildPlug:
+                #     self._f1_to_f3_connection(srcPlug, dstPlug)
+                #     continue
 
-                elif srcIsChildPlug and dstIsChildPlug:
-                    self._f3_to_f3_connection(srcPlug, dstPlug)
-                    continue
+                # elif srcIsChildPlug and dstIsChildPlug:
+                #     self._f3_to_f3_connection(srcPlug, dstPlug)
+                #     continue
 
                 # 2: if a PxrMayaPlacement2d or PxrMayaPlacement3d ...
                 #
-                srcNodeType = mc.nodeType(srcPlug)
-                if srcNodeType in ['place2dTexture', 'place3dTexture']:
-                    # store a connection srf.result -> dst.manifold
-                    resPlug = '%s.result' % srcPlug.split(".")[0]
-                    manPlug = '%s.manifold' % dstPlug.split(".")[0]
-                    self._connections.append((resPlug, manPlug))
-                    # tag the manifold param as connected
-                    self._nodes[node].SetConnected('manifold')
+                # srcNodeType = mc.nodeType(srcPlug)
+                # if srcNodeType in ['place2dTexture', 'place3dTexture']:
+                #     # store a connection srf.result -> dst.manifold
+                #     resPlug = '%s.result' % srcPlug.split(".")[0]
+                #     manPlug = '%s.manifold' % dstPlug.split(".")[0]
+                #     self._connections.append((resPlug, manPlug))
+                #     # tag the manifold param as connected
+                #     self._nodes[node].SetConnected('manifold')
 
-                self._connections.append((srcPlug, dstPlug))
+                self._connections.append(("%s.%s" % (l.from_node.name, l.from_socket.name), 
+                                          "%s.%s" % (l.to_node.name, l.to_socket.name)))
 
         # remove duplicates
         self._connections = list(set(self._connections))
 
         # add the extra conversion nodes to the node list
-        for k, v in self._extras.iteritems():
-            self._nodes[k] = v
+        #for k, v in self._extras.iteritems():
+        #    self._nodes[k] = v
 
     ##
     # @brief      prepare data for the jason file
@@ -685,51 +680,52 @@ class MayaGraph:
 
         # register nodes
         #
-        for nodeNm, node in self._nodes.iteritems():
+        for nodeNm, node in self._nodes.items():
 
             # Add node to asset
             #
             rmanNode = None
             nodeClass = None
-            rmanNodeName = node.mayaNodeType
-            if node.mayaNodeType == 'shadingEngine':
+            rmanNodeName = node.renderman_node_type
+            if node.mayaNodeType == 'output':
                 nodeClass = 'root'
             else:
                 # print 'Serialize %s' % node.mayaNodeType
-                rmanNode = ra.RmanShadingNode(node.rmanNodeType,
-                                              osoPath=node.oslPath)
+                oslPath = node.shadercode if node.renderman_type == 'PxrOslPatternNode' else None
+                rmanNode = ra.RmanShadingNode(node.renderman_node_type,
+                                              osoPath=oslPath)
                 nodeClass = rmanNode.nodeType()
                 rmanNodeName = rmanNode.rmanNode()
                 # Register the oso file as a dependency that should be saved with
                 # the asset.
-                if node.oslPath is not None:
+                if oslPath:
                     osoFile = os.path.join(node.oslPath,
                                            '%s.oso' % node.rmanNodeType)
                     Asset.processExternalFile(osoFile)
 
-            Asset.addNode(node.name, node.rmanNodeType,
+            Asset.addNode(node.name, node.renderman_type,
                           nodeClass, rmanNodeName,
-                          externalosl=(node.oslPath is not None))
+                          externalosl=(oslPath is not None))
 
             # some nodes may have an associated transformation
             # keep it simple for now: we support a single world-space
             # matrix or the TRS values in world-space.
             #
-            if node.HasTransform():
-                Asset.addNodeTransform(node.name, node.transform,
-                                       trStorage=node.tr_storage,
-                                       trSpace=node.tr_space,
-                                       trMode=node.tr_mode,
-                                       trType=node.tr_type)
+            # if node.HasTransform():
+            #     Asset.addNodeTransform(node.name, node.transform,
+            #                            trStorage=node.tr_storage,
+            #                            trSpace=node.tr_space,
+            #                            trMode=node.tr_mode,
+            #                            trType=node.tr_type)
 
-            for pname in node.OrderedParams():
-                Asset.addParam(node.name, pname, node.ParamDict(pname))
+            for pname, prop in node.prop_meta.items():
+                Asset.addParam(node.name, pname, prop)
 
             # if the node is a native maya node, add it to the hostNodes
             # compatibility list.
             #
-            if node.mayaNodeType != node.rmanNodeType:
-                Asset.registerHostNode(node.rmanNodeType)
+            #if node.mayaNodeType != node.rmanNodeType:
+            #    Asset.registerHostNode(node.rmanNodeType)
 
     def _parentPlug(self, plug):
         tokens = plug.split('.')
@@ -1023,75 +1019,22 @@ def mayaParams(nodetype):
 #
 # @return     none
 #
-def parseNodeGraph(nodes, Asset):
+def parseNodeGraph(nt, Asset):
+    out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and
+                    n.renderman_node_type == 'output'), None)
+    if out is None:
+        return
 
-    for root in nodes:
-        if mc.objExists(root):
-            # print ">> %s" % root
-            graph = MayaGraph()
-            graph.AddNode(root)
+    graph = BlenderGraph()
+    graph.AddNode(out)
+    from ..nodes import gather_nodes
+    nodes_to_convert = gather_nodes(out)
 
-            # gather all connected nodes.
-            # we get a list of input nodes connected to our root (dst), looking
-            # like so : [dst.attr0, src0.attr, dst.attr1, src1.attr, ...]
-            #
-            tmpc = mc.listConnections(root, source=True, destination=False,
-                                      plugs=True)
-            upstream = []
-
-            if tmpc and len(tmpc) > 0:
-                for plug in tmpc:
-                    # make sure we don't catch shape connections on
-                    # shading groups
-                    if 'instObjGroups' in plug:
-                        # print('skip 1: %s' % plug)
-                        continue
-                    # upstream[] will store all input nodes that need to be
-                    # recursively processed.
-                    upstream.append(plug)
-
-            # remove duplicate upstream
-            upstream = list(set(upstream))
-
-            # Start recursively processing connected nodes.
-            # we limit the number of recursions to 10.000 just in case we hit a
-            # circular dependency case (bug !)...
-            recursions = 0
-            _max_recursion = 10000
-            while upstream != [] and recursions < _max_recursion:
-                # print 'upstream = %s' % upstream
-
-                # this is the first node name in the list of upstream
-                this = upstream.pop(0)
-                this = this.split('.')[0]
-
-                # return False if already in our list or not a valid node type.
-                if graph.AddNode(this) is False:
-                    continue
-
-                # get input nodes of this node
-                tmpc = mc.listConnections(this, s=True, d=False,
-                                          p=True)
-                if tmpc is not None:
-                    # add list of input nodes to upstream list
-                    upstream += tmpc
-                    # remove duplicate upstream
-                    upstream = list(set(upstream))
-
-                # safety check
-                recursions += 1
-                if recursions == _max_recursion:
-                    raise RmanAssetBlenderError('Reached max recursions (%d)'
-                                             ' in graph ! (This is a bug)'
-                                             % _max_recursion)
-
-            graph.Process()
-            graph.Serialize(Asset)
-
-            # print graph
-            # print 'node %s : done' % node
-        else:
-            raise RmanAssetBlenderError("Can not find node %s" % root)
+    for node in nodes_to_convert:
+        graph.AddNode(node)
+    
+    graph.Process()
+    graph.Serialize(Asset)
 
 
 ##
@@ -1121,14 +1064,14 @@ def parseTexture(nodes, Asset):
 #
 # @return     none
 #
-def exportAsset(nodes, atype, infodict, category, renderPreview=True,
+def exportAsset(nt, atype, infodict, category, renderPreview=True,
                 alwaysOverwrite=False):
     label = infodict['label']
     Asset = RmanAsset(atype, label)
 
     # Add user metadata
     #
-    for k, v in infodict.iteritems():
+    for k, v in infodict.items():
         if k == 'label':
             continue
         Asset.addMetadata(k, v)
@@ -1136,17 +1079,17 @@ def exportAsset(nodes, atype, infodict, category, renderPreview=True,
     # Compatibility data
     # This will help other application decide if they can use this asset.
     #
-    prmanVersion = (mc.rman('getversion')).split(' ')[0]
-    Asset.setCompatibility(hostName='Maya',
-                           hostVersion=mayaVersion(),
-                           rendererVersion=prmanVersion)
+    prmanversion = "%d.%d.%s" % util.get_rman_version(rmantree)
+    Asset.setCompatibility(hostName='Blender',
+                           hostVersion=bpy.app.version,
+                           rendererVersion=prmanversion)
 
     # parse maya scene
     #
     if atype is "nodeGraph":
-        parseNodeGraph(nodes, Asset)
+        parseNodeGraph(nt, Asset)
     elif atype is "envMap":
-        parseTexture(nodes, Asset)
+        parseTexture(nt, Asset)
     else:
         raise RmanAssetBlenderError("%s is not a known asset type !" % atype)
 
@@ -1164,18 +1107,18 @@ def exportAsset(nodes, atype, infodict, category, renderPreview=True,
     #   Check if we are overwriting an existing asset
     #
     jsonfile = os.path.join(dirPath, "asset.json")
-    if os.path.exists(jsonfile):
-        if mc.about(batch=True) or alwaysOverwrite:
-            mc.warning('Replacing existing file : %s' % jsonfile)
-        else:
-            replace = mc.confirmDialog(title='This file already exists !',
-                                       message='Do you want to overwrite it ?',
-                                       button=['Overwrite', 'Cancel'],
-                                       defaultButton='Replace',
-                                       cancelButton='Cancel',
-                                       dismissString='Cancel')
-            if replace == 'Cancel':
-                return
+    # if os.path.exists(jsonfile):
+    #     if mc.about(batch=True) or alwaysOverwrite:
+    #         mc.warning('Replacing existing file : %s' % jsonfile)
+    #     else:
+    #         replace = mc.confirmDialog(title='This file already exists !',
+    #                                    message='Do you want to overwrite it ?',
+    #                                    button=['Overwrite', 'Cancel'],
+    #                                    defaultButton='Replace',
+    #                                    cancelButton='Cancel',
+    #                                    dismissString='Cancel')
+    #         if replace == 'Cancel':
+    #             return
 
     #  Save our json file
     #
@@ -1188,14 +1131,14 @@ def exportAsset(nodes, atype, infodict, category, renderPreview=True,
         return
     json = Asset.jsonFilePath()
     Asset.load(json, localizeFilePaths=True)
-    prog = MayaProgress()
-    resizer = MayaResizer()
+    #prog = MayaProgress()
+    #resizer = MayaResizer()
     if category.startswith('Materials'):
-        ral.renderAssetPreview(Asset, progress=prog, resize=resizer)
+        ral.renderAssetPreview(Asset, progress=None, resize=None)
     elif category.startswith('LightRigs'):
         pass
     elif Asset._type == 'envMap':
-        ral.renderAssetPreview(Asset, progress=prog, resize=resizer)
+        ral.renderAssetPreview(Asset, progress=None, resize=None)
 
 
 ##
