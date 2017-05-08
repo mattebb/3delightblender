@@ -764,13 +764,8 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
         draw_node_properties_recursive(layout, context, nt, node)
 
 
-def node_shader_handle(nt, node):
-    return '%s_%s' % (nt.name, node.name)
-
-
 def socket_node_input(nt, socket):
     return next((l.from_node for l in nt.links if l.to_socket == socket), None)
-
 
 def socket_socket_input(nt, socket):
     return next((l.from_socket for l in nt.links if l.to_socket == socket and socket.is_linked),
@@ -1739,6 +1734,8 @@ cycles_node_map = {
     'ShaderNodeWireframe': 'node_wireframe',
 }
 
+def get_mat_name(mat_name):
+    return mat_name.replace(' ', '')
 
 def get_node_name(node, mat_name):
     return "%s.%s" % (mat_name, node.name.replace(' ', ''))

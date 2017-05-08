@@ -47,7 +47,7 @@ from .util import debug, get_addon_prefs
 
 from .util import find_it_path
 from .nodes import export_shader_nodetree, get_textures, get_textures_for_node, get_tex_file_name
-from .nodes import shader_node_rib
+from .nodes import shader_node_rib, get_mat_name
 
 addon_version = bl_info['version']
 
@@ -922,9 +922,10 @@ def export_material(ri, mat, handle=None, iterate_instance=False):
         export_shader(ri, mat)
 
 
+
 def export_material_archive(ri, mat):
     if mat:
-        ri.ReadArchive('material.' + mat.name)
+        ri.ReadArchive('material.' + get_mat_name(mat.name))
 
 
 def export_motion_begin(ri, motion_data):
@@ -1214,10 +1215,10 @@ def export_default_bxdf(ri, name):
 def export_shader(ri, mat):
     rm = mat.renderman
     # if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
-    name = mat.name
+    name = get_mat_name(mat.name)
     params = {"color baseColor": rib(mat.diffuse_color),
               "float specular": mat.specular_intensity,
-              'string __instanceid': mat.name}
+              'string __instanceid': get_mat_name(mat.name)}
 
     if mat.emit:
         params["color emitColor"] = rib(mat.diffuse_color)
@@ -1227,7 +1228,7 @@ def export_shader(ri, mat):
             rib(mat.subsurface_scattering.color)
     if mat.raytrace_mirror.use:
         params["float metallic"] = mat.raytrace_mirror.reflect_factor
-    ri.Bxdf("PxrDisney", mat.name, params)
+    ri.Bxdf("PxrDisney", get_mat_name(mat.name), params)
 
 
 def is_smoke(ob):
@@ -3909,6 +3910,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
         world = bpy.context.scene.world
         mat = None
         instance_num = 0
+        mat_name = None
 
         if bpy.context.object:
             mat = bpy.context.object.active_material
@@ -3918,6 +3920,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
                     rpass.last_edit_mat = None
                     return
                 rpass.last_edit_mat = mat
+                mat_name = get_mat_name(mat)
         # if this is a lamp use that for the mat/name
         if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
             mat = node.id_data
@@ -3934,7 +3937,9 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
             return
         elif mat is None:
             return
-        mat_name = mat.name
+
+        if not mat_name:
+            mat_name = mat.name # for world/light
 
         tex_made = False
         if reissue_textures(ri, rpass, mat):
@@ -3948,7 +3953,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
         edit_flush(ri, rpass.edit_num, prman)
 
         ri.EditBegin('instance')
-        handle = mat.name
+        handle = mat_name
         if instance_num > 0:
             handle += "_%d" % instance_num
         shader_node_rib(ri, node, handle)
