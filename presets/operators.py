@@ -133,6 +133,7 @@ class save_asset_to_lib(bpy.types.Operator):
         nt = mat.node_tree
         if nt:
             from . import rmanAssetsBlender
+            os.environ['RMAN_ASSET_LIBRARY'] = presets_path
             rmanAssetsBlender.exportAsset(nt, 'nodeGraph', 
                                           {'label':mat.name,
                                            'author': '',

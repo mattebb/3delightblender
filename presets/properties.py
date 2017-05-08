@@ -101,7 +101,7 @@ class RendermanPresetGroup(PropertyGroup):
         name="Path for preset files",
         description="Path for preset files, if not present these will be copied from RMANTREE.",
         subtype='FILE_PATH',
-        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'library'))
+        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'RenderManAssetLibrary'))
     current_preset = EnumProperty(items=generate_previews)
 
     # gets the presets and all from children

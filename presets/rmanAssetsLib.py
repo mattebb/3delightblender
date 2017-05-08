@@ -403,7 +403,7 @@ class DefaultResizer:
 #
 def renderAssetPreview(Asset, progress=None, resize=None):
 
-    rmstree = internalPath(ra.envGet('RMSTREE'))
+    rmstree = internalPath(ra.envGet('RMAN_ASSET_LIBRARY'))
     rmantree = internalPath(ra.envGet('RMANTREE'))
 
     progressReporter = progress
@@ -421,7 +421,7 @@ def renderAssetPreview(Asset, progress=None, resize=None):
 
     # get the main RIB file
     #
-    ribroot = os.path.join(rmstree, 'lib', 'rfm', 'RenderManAssets')
+    ribroot = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'RenderManAssets')
     if not os.path.exists(ribroot):
         progressReporter.End()
         raise RmanAssetLibError('BAD ROOT PATH: %s' % ribroot)
@@ -574,7 +574,7 @@ IfEnd
         progressReporter.End()
         raise RmanAssetLibError(">> Unexpected error: %s" % sysErr())
 
-    l = p.stderr.readline()
+    l = p.stderr.readline().decode('utf-8')
     while l:
         # l = errdata
         if 'R90000' in l:
@@ -599,7 +599,7 @@ IfEnd
         # is actually running, but it is not available.
         status = p.poll()
         if status is None:
-            l = p.stderr.readline()
+            l = p.stderr.readline().decode('utf-8')
         else:
             if status < 0:
                 print('The renderer has crashed ! (%d)' % status)

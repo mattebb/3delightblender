@@ -8,6 +8,7 @@ import sys
 import time
 import bpy as mc # just a test
 import bpy
+import mathutils
 from .. import util
 
 ##
@@ -30,12 +31,12 @@ class RmanAssetBlenderError(Exception):
 class BlenderEnv:
     def getenv(self, key):
         util.init_env(None)
-        val = os.environ[key]
+        val = os.environ[key] if key in os.environ else None
         return val
 
     def Exists(self, key):
         # print '++++ MayaEnv::Exists %s' % key
-        if self.getenv(key) is not None:
+        if self.getenv(key):
             return True
         else:
             return False
@@ -44,7 +45,8 @@ class BlenderEnv:
         # print '++++ MayaEnv::GetValue %s' % key
         val = self.getenv(key)
         if val is None:
-            raise RmanAssetError('%s is not an registered environment ' +
+            print(key,val)
+            raise ra.RmanAssetError('%s is not an registered environment ' +
                                  'variable !' % key)
         # print 'MayaEnv.GetValue( %s ) = %s' % (key, repr(val))
         return os.path.expandvars(val)
@@ -184,6 +186,7 @@ class BlenderNode:
     def __init__(self, node, nodetype):
         # the node name / handle
         self.name = node.name
+        self.node = node
         # the maya node type
         self.blenderNodeType = nodetype
         # The rman node it translates to. Could be same as mayaNodeType or not.
@@ -330,46 +333,27 @@ class BlenderNode:
 
         return self.hasTransform
 
-    def BlenderGetAttr(self, nodeattr, ptype):
+    def BlenderGetAttr(self, nodeattr):
         fail = False
         arraysize = -1
 
         # get actual parameter value
         pvalue = None
         try:
-            pvalue = mc.getAttr(nodeattr)
+            pvalue = getattr(self.node, nodeattr)
+            if type(pvalue) in (mathutils.Vector, mathutils.Color) or\
+                    pvalue.__class__.__name__ == 'bpy_prop_array'\
+                    or pvalue.__class__.__name__ == 'Euler':
+                # BBM modified from if to elif
+                pvalue = list(pvalue)
+
         except:
             fail = True
-            mi = None
-            try:
-                # could it be an array ? get the array indices.
-                mi = mc.getAttr(nodeattr, mi=True)
-            except:
-                fail = True
-            else:
-                fail = False
-
-            if mi is not None:
-                # this is an array !
-                arraysize = len(mi)
-                pvalue = mc.getAttr(nodeattr + '[*]')
-
+            
         if fail:
             # ignore unreadable but warn
-            mc.warning("Ignoring un-readable parameter : %s" % nodeattr)
+            print("Ignoring un-readable parameter : %s" % nodeattr)
             return None
-
-        if pvalue is None:
-            # some maya parameters are not readable unless
-            # connected. Remain silent.
-            return None
-
-        # some types are returned as [[...]] rather than [...]
-        # this is the case for arrays and color, vector, etc.
-        if arraysize < 0 and ('[' in ptype or ptype in self.__float3):
-            pvalue = pvalue[0]
-
-        # print "   + %s -> %s %s" % (nodeattr, ptype, pvalue)
 
         return pvalue
 
@@ -377,8 +361,8 @@ class BlenderNode:
         # get node parameters
         #
         params = []
-        if self.mayaNodeType == 'shadingEngine':
-            params = mayaParams(self.mayaNodeType)
+        if self.blenderNodeType == 'output':
+            params = blenderParams(self.blenderNodeType)
         else:
             # This is a rman node
             rmanNode = ra.RmanShadingNode(self.rmanNodeType,
@@ -388,110 +372,40 @@ class BlenderNode:
         # loop through parameters
         #
         for param in params:
-            at = param['name']
+            p_name = param['name']
             ptype = param['type']
-            nodeattr = '%s.%s' % (self.name, at)
-
+            node = self.node
             # safety check
-            if not mc.objExists(nodeattr):
-                # sometimes there isn't a one to one correspondence
-                # between maya and rman nodes. For example, we use a struct
-                # connection to a 'manifold' attr when maya connects 2
-                # attrs (uvCoord and uvFilterSize).
-                if at == 'manifold':
-                    try:
-                        c = mc.listConnections('%s.uvCoord' % self.name,
-                                               s=True, d=False)
-                    except:
-                        c = mc.listConnections('%s.placementMatrix' %
-                                               self.name,
-                                               s=True, d=False)
-                    if c is not None:
-                        self.AddParam(at, {'type': ptype, 'value': None})
-                else:
-                    self.AddParam(at, {'type': ptype,
-                                       'value': param['default']})
-                    if at not in self.__safeToIgnore:
-                        mc.warning("Setting missing parameter to default"
-                                   " value :" + " %s = %s (%s)" %
-                                   (nodeattr, param['default'],
-                                    self.mayaNodeType))
-                continue
-
-            # store connected params as 'reference type' with
-            # None value
-            conx = mc.listConnections(nodeattr, s=True, d=False, plugs=True)
+            if not p_name in node.prop_meta:
+                self.AddParam(p_name, {'type': ptype,
+                                   'value': param['default']})
+                if p_name not in self.__safeToIgnore:
+                    print("Setting missing parameter to default"
+                               " value :" + " %s = %s (%s)" %
+                               (node.name + '.' + p_name, param['default'],
+                                self.blenderNodeType))
+                
 
             # if the attr is a float3 and one or more components are connected
             # we need to find out.
-            if conx is None:
-                kidAttrs = None
-                # is it a multi (array) ?
-                if mc.attributeQuery(at, n=self.name, multi=True):
-                    indices = mc.getAttr(nodeattr, mi=True)
-                    if indices is not None:
-                        kidAttrs = []
-                        for i in indices:
-                            kidAttrs.append('%s[%d]' % (at, i))
-                else:
-                    kidAttrs = mc.attributeQuery(at, n=self.name,
-                                                 listChildren=True)
-                if kidAttrs is not None:
-                    for kid in kidAttrs:
-                        conx = mc.listConnections('%s.%s' % (self.name, kid),
-                                                  s=True, d=False, plugs=True)
-                        if conx is not None:
-                            break
-
-            if conx is not None and len(conx):
-                srcNode = conx[0].split('.')[0]
-                if at == 'placementMatrix':
-                    # special case !
-                    # we don't reference a node connection but we store the
-                    # connected node's world inverse matrix
-                    manifoldNode = srcNode
-                    pvalue = mc.getAttr('%s.wim' % manifoldNode)
-                    self.AddParam(at, {'type': ptype, 'value': pvalue})
-                else:
-                    # connected parameter
-                    connectAnyways = (self.mayaNodeType == 'shadingEngine')
-                    srcType = mc.nodeType(srcNode)
-                    if connectAnyways or isValidNodeType(srcType):
-                        self.SetConnected(at, ptype)
-                    else:
-                        # this could be a random maya node : just read the
-                        # src attr value and set it as the parameter's value.
-                        # print ('setconnected to alien: %s -> %s (%s)'
-                        #        % (at, conx, mc.nodeType(conx[0])))
-                        pvalue = self.MayaGetAttr(conx[0], ptype)
-                        if pvalue is None:
-                            # unreadable : skip
-                            continue
-                        self.AddParam(at, {'type': ptype, 'value': pvalue})
-                        self.AddParamMetadata(at, param)
-                continue
-
-            # do not store un-connected input structs
-            if ptype[0:6] == 'struct':
-                continue
-
-            # get actual parameter value
-            pvalue = self.MayaGetAttr(nodeattr, ptype)
+            if p_name in node.inputs and node.inputs[p_name].is_linked:
+                link = node.inputs[p_name].links[0]
+                # connected parameter
+                self.SetConnected(p_name, ptype)
+                
+            else:
+                # get actual parameter value
+                pvalue = self.BlenderGetAttr(p_name)
+            
             if pvalue is None:
                 # unreadable : skip
                 continue
 
-            # adjust the array size
-            if '[]' in ptype:
-                ptype = ptype[:-2]
-                arraysize = len(pvalue)
-                ptype += '[%d]' % arraysize
-
             # set basic data
-            self.AddParam(at, {'type': ptype, 'value': pvalue})
+            self.AddParam(p_name, {'type': ptype, 'value': pvalue})
 
             # there may be additional data like vstruct stuff...
-            self.AddParamMetadata(at, param)
+            self.AddParamMetadata(p_name, param)
 
     def DefaultParams(self):
             rmanNode = ra.RmanShadingNode(self.rmanNodeType)
@@ -585,7 +499,10 @@ class BlenderGraph:
 
         if node not in self._nodes:
             print('adding %s ' % node.name)
-            self._nodes[node] = BlenderNode(node, node.renderman_node_type)
+            if node.renderman_node_type == 'output':
+                pass
+            else:
+                self._nodes[node] = BlenderNode(node, node.plugin_name)
             # print '    add to node list'
             return True
 
@@ -608,7 +525,7 @@ class BlenderGraph:
         for node in self._nodes:
 
             # get incoming connections (both plugs)
-            cnx = [l for l in inp.links for inp in node.inputs]
+            cnx = [l for inp in node.inputs for l in inp.links ]
             # print 'topo: %s -> %s' % (node, cnx)
             if not cnx:
                 continue
@@ -686,13 +603,13 @@ class BlenderGraph:
             #
             rmanNode = None
             nodeClass = None
-            rmanNodeName = node.renderman_node_type
-            if node.mayaNodeType == 'output':
+            rmanNodeName = node.rmanNodeType
+            if node.blenderNodeType == 'output':
                 nodeClass = 'root'
             else:
                 # print 'Serialize %s' % node.mayaNodeType
-                oslPath = node.shadercode if node.renderman_type == 'PxrOslPatternNode' else None
-                rmanNode = ra.RmanShadingNode(node.renderman_node_type,
+                oslPath = node.shadercode if node.rmanNodeType == 'PxrOslPatternNode' else None
+                rmanNode = ra.RmanShadingNode(node.rmanNodeType,
                                               osoPath=oslPath)
                 nodeClass = rmanNode.nodeType()
                 rmanNodeName = rmanNode.rmanNode()
@@ -703,7 +620,7 @@ class BlenderGraph:
                                            '%s.oso' % node.rmanNodeType)
                     Asset.processExternalFile(osoFile)
 
-            Asset.addNode(node.name, node.renderman_type,
+            Asset.addNode(node.name, node.rmanNodeType,
                           nodeClass, rmanNodeName,
                           externalosl=(oslPath is not None))
 
@@ -718,7 +635,7 @@ class BlenderGraph:
             #                            trMode=node.tr_mode,
             #                            trType=node.tr_type)
 
-            for pname, prop in node.prop_meta.items():
+            for pname, prop in node._params.items():
                 Asset.addParam(node.name, pname, prop)
 
             # if the node is a native maya node, add it to the hostNodes
@@ -996,7 +913,7 @@ def jsonFilePath(relpath):
 #
 # @return     Array of structs
 #
-def mayaParams(nodetype):
+def blenderParams(nodetype):
     params = []
     if nodetype == 'shadingEngine':
         params.append({'type': 'float[]', 'name': 'surfaceShader'})
@@ -1007,7 +924,7 @@ def mayaParams(nodetype):
         params.append({'type': 'float[]', 'name': 'rotate'})
         params.append({'type': 'float[]', 'name': 'scale'})
     else:
-        mc.warning('Ignoring unsupported node type: %s !' % nodetype)
+        print('Ignoring unsupported node type: %s !' % nodetype)
     return params
 
 

@@ -408,12 +408,12 @@ class RmanShadingNode:
         self.__readIniPaths(user_ini)
 
         # rms args files path if RMS is installed
-        if envExists('RMSTREE'):
-            rmstree = internalPath(envGet('RMSTREE'))
-            rms_args_path = os.path.join(rmstree, 'lib', 'rfm', 'ris',
-                                         'mayaNodes')
-            if os.path.exists(rms_args_path):
-                g_rmanShadingNodePaths.append(rms_args_path)
+        #if envExists('RMSTREE'):
+        #    rmstree = internalPath(envGet('RMSTREE'))
+        #    rms_args_path = os.path.join(rmstree, 'lib', 'rfm', 'ris',
+        #                                 'mayaNodes')
+        #    if os.path.exists(rms_args_path):
+        #        g_rmanShadingNodePaths.append(rms_args_path)
 
         # print g_rmanShadingNodePaths
         if len(g_rmanShadingNodePaths) < 1:
@@ -730,7 +730,7 @@ class RmanShadingNode:
         s += 'type: %s\n' % g_rmanShadingNodeCache[self.name]['nodeType']
         s += 'rman node: %s\n' % g_rmanShadingNodeCache[self.name]['rmanNode']
         for p in g_rmanShadingNodeCache[self.name]['params']:
-            for k, v in sorted(p.iteritems()):
+            for k, v in sorted(p.items()):
                 s += '  %s:"%s"' % (k, v)
             s += '\n'
         s += '-' * 80
@@ -944,7 +944,7 @@ class RmanAssetNodeParam:
         else:
             if isinstance(val, float):
                 rib += '%g ' % val
-            elif isinstance(val, str) or isinstance(val, unicode):
+            elif isinstance(val, str) or isinstance(val, bytes):
                 rib += '"%s" ' % val
             else:
                 try:
@@ -1791,7 +1791,7 @@ class RmanAsset:
 
         while graph_unsorted:
             acyclic = False
-            for node, edges in graph_unsorted.items():
+            for node, edges in list(graph_unsorted.items()):
                 for edge in edges:
                     if edge in graph_unsorted:
                         break
@@ -1915,7 +1915,7 @@ class RmanAsset:
                       'Image Description': 'description',
                       'Display Window Origin': 'displayWindowOrigin',
                       'Display Window Size': 'displayWindowSize'}
-        for k, v in specFields.iteritems():
+        for k, v in specFields.items():
             try:
                 val = fspecs[k]
             except:
@@ -2085,7 +2085,7 @@ class RmanAsset:
     def registerUsedNodeTypes(self):
         nodetypes = []
         if self._type is 'nodeGraph':
-            for k, v in self._assetData['nodeList'].iteritems():
+            for k, v in self._assetData['nodeList'].items():
                 nodetypes.append(v['rmanNode'])
         self._json['RenderManAsset']['usedNodeTypes'] = nodetypes
 
