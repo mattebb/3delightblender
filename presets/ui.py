@@ -115,7 +115,7 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
 
                 # get from scene
                 col.separator()
-                col.operator("renderman.save_asset_to_library", text="Save Current to Library").lib_path = active.path
+                col.operator("renderman.save_asset_to_library", text="Save Nodetree to Library").lib_path = active.path
 
 
 
