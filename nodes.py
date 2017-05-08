@@ -2086,6 +2086,8 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0, iterate_instance
             nt = id.node_tree
             if not handle:
                 handle = id.name
+                if type(id) == bpy.types.Material:
+                    handle = get_mat_name(handle)
 
             # if ipr we need to iterate instance num on nodes for edits
             from . import engine

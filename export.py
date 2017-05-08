@@ -2550,7 +2550,7 @@ def export_materials_archive(ri, rpass, scene):
                                  scene).replace('{object}', 'materials')
     ri.Begin(archive_filename)
     for mat_name, mat in bpy.data.materials.items():
-        ri.ArchiveBegin('material.' + mat_name)
+        ri.ArchiveBegin('material.' + get_mat_name(mat_name))
         # ri.Attribute("identifier", {"name": mat_name})
         export_material(ri, mat)
         ri.ArchiveEnd()
@@ -3920,7 +3920,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
                     rpass.last_edit_mat = None
                     return
                 rpass.last_edit_mat = mat
-                mat_name = get_mat_name(mat)
+                mat_name = get_mat_name(mat.name)
         # if this is a lamp use that for the mat/name
         if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
             mat = node.id_data
