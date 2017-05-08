@@ -109,7 +109,7 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
                     # add to scene
                     row = col.row(align=True)
                     row.operator("renderman.load_asset_to_scene", text="Load to Scene", ).preset_path = current_preset.path
-                    assign = row.operator("renderman.load_asset_to_scene", text="Assign", )
+                    assign = row.operator("renderman.load_asset_to_scene", text="Assign to selected", )
                     assign.preset_path = current_preset.path
                     assign.assign = True
 

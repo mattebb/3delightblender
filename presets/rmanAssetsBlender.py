@@ -1105,6 +1105,38 @@ def setParams(node, paramsList):
                     except:
                         if type(getattr(node, pname)) == bpy.types.EnumProperty:
                             setattr(node, pname, str(pval))
+
+    # if this is a PxrSurface and default != val, then turn on the enable.
+    if hasattr(node, 'plugin_name') and node.plugin_name == 'PxrSurface':
+        gains_to_check = {
+            'diffuseGain': 'enableDiffuse',
+            'specularFaceColor': 'enablePrimarySpecular',
+            'specularEdgeColor': 'enablePrimarySpecular',
+            'roughSpecularFaceColor': 'enableRoughSpecular',
+            'roughSpecularEdgeColor': 'enableRoughSpecular',
+            'clearcoatFaceColor': 'enableClearCoat',
+            'clearcoatEdgeColor': 'enableClearCoat',
+            'iridescenceFaceGain': 'enableIridescence',
+            'iridescenceEdgeGain': 'enableIridescence',
+            'fuzzGain': 'enableFuzz',
+            'subsurfaceGain': 'enableSubsurface',
+            'singlescatterGain': 'enableSingleScatter',
+            'singlescatterDirectGain': 'enableSingleScatter',
+            'refractionGain': 'enableGlass',
+            'reflectionGain': 'enableGlass',
+            'glowGain': 'enableGlow',
+        }
+        setattr(node, 'enableDiffuse', False)
+        for gain,enable in gains_to_check.items():
+            val = getattr(node, gain)
+            if val and node.bl_rna.properties[gain].default != getattr(node, gain):
+                if len(val):
+                    for i in val:
+                        if i:
+                            break
+                    else:
+                        continue
+                setattr(node, enable, True)
                         
                         # if ptype == 'riattr':
                         #     mayatype = mc.getAttr(nattr, type=True)
