@@ -79,11 +79,10 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
 
-        presets_library = context.scene.renderman.presets_library
+        presets_library = util.get_addon_prefs().presets_library
 
         if presets_library.name == '':
-            layout.operator("renderman.init_preset_library", text="Set up Library",
-                     ) 
+            layout.operator("renderman.init_preset_library", text="Set up Library") 
         else:
             split = layout.split()
 

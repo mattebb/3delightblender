@@ -210,6 +210,19 @@ class RendermanPreferences(AddonPreferences):
         max=59
         )
 
+    presets_library = PointerProperty(
+        type=RendermanPresetGroup,
+    )
+
+    # both these paths are absolute
+    active_presets_path = StringProperty(default = '')
+    presets_path = StringProperty(
+        name="Path for preset Library",
+        description="Path for preset files, if not present these will be copied from RMANTREE.\n  Set this if you want to pull in an external library.",
+        subtype='FILE_PATH',
+        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'presets', 'RenderManAssetLibrary'))
+    
+
     def draw(self, context):
         layout = self.layout
         layout.prop(self, 'rmantree_method')

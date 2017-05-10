@@ -82,16 +82,17 @@ class init_preset_library(bpy.types.Operator):
     bl_description = "Copies the Preset Library from RMANTREE to the library path if not present"
 
     def invoke(self, context, event):
-        presets_path = context.scene.renderman.presets_library.path
-        presets_library = context.scene.renderman.presets_library
-
+        presets_library = util.get_addon_prefs().presets_library
+        presets_path = util.get_addon_prefs().presets_path
+        
         if not os.path.exists(presets_path):
             rmantree_lib_path = os.path.join(util.guess_rmantree(), 'lib', 'RenderManAssetLibrary')
             shutil.copytree(rmantree_lib_path, presets_path)
             
         presets_library.name = 'Library'
+        presets_library.path = presets_path
         refresh_presets_libraries(presets_path, presets_library)
-
+        bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
@@ -104,9 +105,7 @@ class load_asset_to_scene(bpy.types.Operator):
     assign = BoolProperty(default=False)
 
     def invoke(self, context, event):
-        presets_path = context.scene.renderman.presets_library.path
-        path = os.path.relpath(self.properties.preset_path, presets_path)
-        preset = RendermanPreset.get_from_path(path)
+        preset = RendermanPreset.get_from_path(self.properties.preset_path)
         from . import rmanAssetsBlender
         mat = rmanAssetsBlender.importAsset(preset.json_path)
         if self.properties.assign and mat and type(mat) == bpy.types.Material:
@@ -125,9 +124,9 @@ class save_asset_to_lib(bpy.types.Operator):
     lib_path = StringProperty(default='')
 
     def invoke(self, context, event):
-        presets_path = context.scene.renderman.presets_library.path
+        presets_path = util.get_addon_prefs().presets_library.path
         path = os.path.relpath(self.properties.lib_path, presets_path)
-        library = RendermanPresetGroup.get_from_path(path)
+        library = RendermanPresetGroup.get_from_path(self.properties.lib_path)
         ob = context.active_object
         mat = ob.active_material
         nt = mat.node_tree
@@ -140,7 +139,8 @@ class save_asset_to_lib(bpy.types.Operator):
                                            'version': ''},
                                            path
                                            )
-
+        refresh_presets_libraries(library.path, library)
+        bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
 
@@ -155,14 +155,7 @@ class set_active_preset_library(bpy.types.Operator):
     def execute(self, context):
         lib_path = self.properties.lib_path
         if lib_path:
-            presets_path = context.scene.renderman.presets_library.path
-            path = os.path.relpath(lib_path, presets_path)
-            active = RendermanPresetGroup.get_from_path(path)
-            context.scene.renderman.active_presets_path = path
-            #if active:
-            #    icons.load_previews(active)
-            #else:
-            #    print('error ' + lib_path, presets_path, path)
+            util.get_addon_prefs().active_presets_path = lib_path
         return {'FINISHED'}
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
@@ -178,15 +171,14 @@ class add_preset_library(bpy.types.Operator):
         lib_path = active.path
         new_folder = self.properties.new_name
         if lib_path and new_folder:
-            preset_library = context.scene.renderman.presets_library
-            path = os.path.join(preset_library.path, lib_path, new_folder)
+            path = os.path.join(lib_path, new_folder)
             os.mkdir(path)
             sub_group = active.sub_groups.add()
             sub_group.name = new_folder
             sub_group.path = path
 
-            context.scene.renderman.active_presets_path = os.path.relpath(path, preset_library.path)
-            
+            util.get_addon_prefs().active_presets_path = path
+        bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -205,15 +197,14 @@ class remove_preset_library(bpy.types.Operator):
         active = RendermanPresetGroup.get_active_library()
         lib_path = active.path
         if lib_path:
-            presets_path = context.scene.renderman.presets_library.path
-            parent_path = os.path.split(context.scene.renderman.active_presets_path)[0]
+            parent_path = os.path.split(active.path)[0]
             parent = RendermanPresetGroup.get_from_path(parent_path)
-            context.scene.renderman.active_presets_path = parent_path
+            util.get_addon_prefs().active_presets_path = parent_path
             
             shutil.rmtree(active.path)
 
             refresh_presets_libraries(parent.path, parent)
-            
+        bpy.ops.wm.save_userpref()  
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -228,7 +219,6 @@ class remove_preset(bpy.types.Operator):
 
     def execute(self, context):
         preset_path = self.properties.preset_path
-        print(preset_path)
         active = RendermanPreset.get_from_path(preset_path)
         if active:
             parent_path = os.path.split(preset_path)[0]
@@ -237,7 +227,7 @@ class remove_preset(bpy.types.Operator):
             shutil.rmtree(active.path)
 
             refresh_presets_libraries(parent.path, parent)
-            
+        bpy.ops.wm.save_userpref()   
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -254,8 +244,7 @@ class move_preset(bpy.types.Operator):
             for lib in parent_lib.sub_groups:
                 enum.extend(get_libs(lib))
             return enum
-
-        return get_libs(context.scene.renderman.presets_library)
+        return get_libs(util.get_addon_prefs().presets_library)
 
     preset_path = StringProperty(default='')
     new_library = EnumProperty(items=get_libraries, description='New Library', name="New Library")
@@ -272,7 +261,7 @@ class move_preset(bpy.types.Operator):
             
             refresh_presets_libraries(old_parent.path, old_parent)
             refresh_presets_libraries(new_parent.path, new_parent)
-
+        bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -294,7 +283,7 @@ class move_preset_library(bpy.types.Operator):
                 enum.extend(get_libs(lib))
             return enum
 
-        return get_libs(context.scene.renderman.presets_library)
+        return get_libs(util.get_addon_prefs().presets_library)
 
     lib_path = StringProperty(default='')
     new_library = EnumProperty(items=get_libraries, description='New Library', name="New Library")
@@ -311,7 +300,7 @@ class move_preset_library(bpy.types.Operator):
             
             refresh_presets_libraries(old_parent.path, old_parent)
             refresh_presets_libraries(new_parent.path, new_parent)
-
+        bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
     def invoke(self, context, event):

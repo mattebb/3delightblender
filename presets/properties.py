@@ -35,7 +35,6 @@ import os
 
 # get the enum items
 
-
 # an actual preset
 class RendermanPreset(PropertyGroup):
     bl_label = "Renderman Preset Group"
@@ -48,7 +47,7 @@ class RendermanPreset(PropertyGroup):
     def get_from_path(cls, lib_path):
         if not lib_path:
             return
-        group_path,preset = lib_path.rsplit('/', 1)
+        group_path,preset = os.path.split(lib_path)
 
         group = RendermanPresetGroup.get_from_path(group_path)
         return group.presets[preset] if preset in group.presets.keys() else None
@@ -74,9 +73,11 @@ class RendermanPresetGroup(PropertyGroup):
 
     @classmethod
     def get_from_path(cls, lib_path):
-        head = bpy.context.scene.renderman.presets_library
+        ''' get from abs lib_path '''
+        head = util.get_addon_prefs().presets_library
+        lib_path = os.path.relpath(lib_path, head.path)
         active = head
-        for sub_path in lib_path.split('/'):
+        for sub_path in lib_path.split(os.sep):
             if sub_path in active.sub_groups.keys():
                 active = active.sub_groups[sub_path]
         return active
@@ -84,7 +85,7 @@ class RendermanPresetGroup(PropertyGroup):
     # get the active library from the addon pref
     @classmethod
     def get_active_library(cls):
-        active_path = bpy.context.scene.renderman.active_presets_path
+        active_path = util.get_addon_prefs().active_presets_path
         if active_path != '':
             return cls.get_from_path(active_path)
         else:
@@ -96,12 +97,8 @@ class RendermanPresetGroup(PropertyGroup):
     def generate_previews(self, context):
         return icons.load_previews(self)
     
+    path = StringProperty(default='')
     presets = CollectionProperty(type=RendermanPreset)
-    path = StringProperty(
-        name="Path for preset files",
-        description="Path for preset files, if not present these will be copied from RMANTREE.",
-        subtype='FILE_PATH',
-        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'RenderManAssetLibrary'))
     current_preset = EnumProperty(items=generate_previews)
 
     # gets the presets and all from children
@@ -112,9 +109,7 @@ class RendermanPresetGroup(PropertyGroup):
         return all_presets 
 
     def is_active(self):
-        presets_path = bpy.context.scene.renderman.presets_library.path
-        path = os.path.relpath(self.path, presets_path)
-        return path == bpy.context.scene.renderman.active_presets_path
+        return self.path == util.get_addon_prefs().active_presets_path
 
 
 def register():

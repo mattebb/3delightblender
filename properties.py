@@ -29,7 +29,6 @@ import sys
 import xml.etree.ElementTree as ET
 import time
 from mathutils import Vector
-from .presets.properties import RendermanPresetGroup
 
 from .util import guess_rmantree
 
@@ -448,13 +447,6 @@ class RendermanSampleFilterSettings(bpy.types.PropertyGroup):
 
 
 class RendermanSceneSettings(bpy.types.PropertyGroup):
-    presets_library = PointerProperty(
-        type=RendermanPresetGroup,
-    )
-
-    active_presets_path = StringProperty(default = '')
-
-    
     display_filters = CollectionProperty(
         type=RendermanDisplayFilterSettings, name='Display Filters')
     display_filters_index = IntProperty(min=-1, default=-1)

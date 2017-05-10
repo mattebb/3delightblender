@@ -9,7 +9,7 @@ def load_previews(lib):
     global asset_previews
     enum_items = []
 
-    lib_dir = presets_library = bpy.context.scene.renderman.presets_library.path
+    lib_dir = presets_library = util.get_addon_prefs().presets_library.path
 
     for i,asset in enumerate(lib.presets):
         path = asset.path
