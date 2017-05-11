@@ -79,7 +79,7 @@ def refresh_presets_libraries(disk_lib, preset_library):
 class init_preset_library(bpy.types.Operator):
     bl_idname = "renderman.init_preset_library"
     bl_label = "Init RenderMan Preset Library"
-    bl_description = "Copies the Preset Library from RMANTREE to the library path if not present"
+    bl_description = "Copies the Preset Library from RMANTREE to the library path if not present\n Or refreshes if changed on disk."
 
     def invoke(self, context, event):
         presets_library = util.get_addon_prefs().presets_library
