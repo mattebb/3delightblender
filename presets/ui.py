@@ -27,7 +27,10 @@ from .. import util
 import bpy
 from .properties import RendermanPresetGroup, RendermanPreset
 from . import icons
+from bpy.props import StringProperty
 
+
+   
 # panel for the toolbar of node editor 
 class Renderman_Presets_UI_Panel(bpy.types.Panel):
     bl_idname = "renderman_presets_ui_panel"
@@ -40,35 +43,6 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
     def poll(cls, context):
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
-
-    # draw each group and subgroups
-    def draw_preset_library(self, lib, lay, indent=0):
-        row = lay.row(align=True)
-        #row.alert = lib.is_active()
-
-        for i in range(indent):
-            row.label('', icon='BLANK1')
-
-        if len(lib.sub_groups) > 0:
-            icon = 'DISCLOSURE_TRI_DOWN' if lib.ui_open \
-                            else 'DISCLOSURE_TRI_RIGHT'
-
-            row.prop(lib, 'ui_open', icon=icon, text='',
-                                 icon_only=True, emboss=False)
-
-            row.operator('renderman.set_active_preset_library',text=lib.name, emboss=lib.is_active()).lib_path = lib.path
-            if lib.ui_open:
-                for sub in lib.sub_groups:
-                    self.draw_preset_library(sub, lay, indent+1)
-        else:
-            row.operator('renderman.set_active_preset_library',text=lib.name, emboss=lib.is_active()).lib_path = lib.path
-
-        if lib.is_active():
-            row.operator('renderman.add_preset_library', text='', icon='ZOOMIN')
-            row.operator('renderman.move_preset_library', text='', icon='MAN_TRANS').lib_path = lib.path
-            row.operator('renderman.remove_preset_library', text='', icon='X')
-            
-
 
     # draws the panel
     def draw(self, context):
@@ -84,42 +58,68 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
         if presets_library.name == '':
             layout.operator("renderman.init_preset_library", text="Set up Library") 
         else:
-            split = layout.split()
-
-            col = split.column()
-            self.draw_preset_library(presets_library, col, indent=0)
+            layout = self.layout
+            
+            row = layout.row(align=True)
+            row.context_pointer_set('renderman_preset', util.get_addon_prefs().presets_library)
+            row.menu('renderman_presets_menu', text="Select Library")
+            row.operator("renderman.init_preset_library", text="", icon="FILE_REFRESH")
             active = RendermanPresetGroup.get_active_library()
-            col.operator("renderman.init_preset_library", text="", icon="FILE_REFRESH")
-            col = split.column()
+            
             if active:
-                col.prop(active, 'name', text='Library')
+                row = layout.row(align=True)
+                row.prop(active, 'name', text='Library')
+                row.operator('renderman.add_preset_library', text='', icon='ZOOMIN')
+                row.operator('renderman.move_preset_library', text='', icon='MAN_TRANS').lib_path = active.path
+                row.operator('renderman.remove_preset_library', text='', icon='X')
                 current_preset = RendermanPreset.get_from_path(active.current_preset)
                 
                 if current_preset:
-                    col.label("Current Preset:")
-                    col.prop_menu_enum(active, 'current_preset', text=current_preset.label)
-                    col.template_icon_view(active, "current_preset")
+                    row = layout.row()
+                    row.label("Current Preset:")
+                    row.prop_menu_enum(active, 'current_preset', text=current_preset.label)
+                    layout.template_icon_view(active, "current_preset")
                     # row of controls for preset
-                    row = col.row(align=True)
+                    row = layout.row(align=True)
                     row.prop(current_preset, 'label', text="")
                     row.operator('renderman.move_preset', icon='MAN_TRANS', text="").preset_path = current_preset.path
                     row.operator('renderman.remove_preset', icon='X', text="").preset_path = current_preset.path
 
                     # add to scene
-                    row = col.row(align=True)
+                    row = layout.row(align=True)
                     row.operator("renderman.load_asset_to_scene", text="Load to Scene", ).preset_path = current_preset.path
                     assign = row.operator("renderman.load_asset_to_scene", text="Assign to selected", )
                     assign.preset_path = current_preset.path
                     assign.assign = True
 
                 # get from scene
-                col.separator()
-                col.operator("renderman.save_asset_to_library", text="Save Nodetree to Library").lib_path = active.path
+                layout.separator()
+                layout.operator("renderman.save_asset_to_library", text="Save Nodetree to Library").lib_path = active.path
 
+class Renderman_Presets_Menu(bpy.types.Menu):
+    bl_idname = "renderman_presets_menu"
+    bl_label = "Renderman Presets Menu"
+
+    path = StringProperty(default="")
+
+    def draw(self, context):
+        lib = context.renderman_preset
+        prefix = "* " if lib.is_active() else ''
+        self.layout.operator('renderman.set_active_preset_library',text=prefix + lib.name).lib_path = lib.path
+        if len(lib.sub_groups) > 0:
+            for sub in lib.sub_groups:
+                self.layout.context_pointer_set('renderman_preset', sub)
+                prefix = "* " if sub.is_active() else ''
+                if len(sub.sub_groups):
+                    self.layout.menu('renderman_presets_menu', text=prefix + sub.name)
+                else:
+                    prefix = "* " if sub.is_active() else ''
+                    self.layout.operator('renderman.set_active_preset_library',text=prefix + sub.name).lib_path = sub.path
 
 
 def register():
     try:
+        bpy.utils.register_class(Renderman_Presets_Menu)
         bpy.utils.register_class(Renderman_Presets_UI_Panel)
     except:
         pass #allready registered
