@@ -98,7 +98,7 @@ g_PxrToBlenderNodes['shadingEngine'] = 'RendermanOutputNode'
 
 # global list of nodes we can translate from a maya DAG
 #
-g_validNodeTypes = []
+g_validNodeTypes = ['shadingEngine']
 # add prman nodes
 # classifications = ['rendernode/RenderMan/bxdf',
 #                    'rendernode/RenderMan/legacybxdf',
@@ -361,7 +361,7 @@ class BlenderNode:
         # get node parameters
         #
         params = []
-        if self.blenderNodeType == 'output':
+        if self.blenderNodeType == 'RendermanOutputNode':
             params = blenderParams(self.blenderNodeType)
         else:
             # This is a rman node
@@ -430,7 +430,7 @@ class BlenderNode:
 
     def __str__(self):
         return ('[[name: %s   mayaNodeType: %s   rmanNodeType: %s]]' %
-                (self.name, self.mayaNodeType, self.rmanNodeType))
+                (self.name, self.blenderNodeType, self.rmanNodeType))
 
     def __repr__(self):
         return str(self)
@@ -500,7 +500,7 @@ class BlenderGraph:
         if node not in self._nodes:
             print('adding %s ' % node.name)
             if node.renderman_node_type == 'output':
-                pass
+                self._nodes[node] = BlenderNode(node, 'RendermanOutputNode')
             else:
                 self._nodes[node] = BlenderNode(node, node.plugin_name)
             # print '    add to node list'
@@ -604,8 +604,9 @@ class BlenderGraph:
             rmanNode = None
             nodeClass = None
             rmanNodeName = node.rmanNodeType
-            if node.blenderNodeType == 'output':
+            if node.blenderNodeType == 'RendermanOutputNode':
                 nodeClass = 'root'
+                oslPath=None
             else:
                 # print 'Serialize %s' % node.mayaNodeType
                 oslPath = node.shadercode if node.rmanNodeType == 'PxrOslPatternNode' else None
