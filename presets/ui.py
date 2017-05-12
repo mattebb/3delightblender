@@ -34,10 +34,10 @@ from bpy.props import StringProperty
 # panel for the toolbar of node editor 
 class Renderman_Presets_UI_Panel(bpy.types.Panel):
     bl_idname = "renderman_presets_ui_panel"
-    bl_label = "Renderman Presets"
-    bl_space_type = "NODE_EDITOR"
+    bl_label = "RenderMan Presets"
+    bl_space_type = "VIEW_3D"
     bl_region_type = "TOOLS"
-    bl_category = "Renderman Presets"
+    bl_category = "Renderman"
 
     @classmethod
     def poll(cls, context):
@@ -94,7 +94,7 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
 
                 # get from scene
                 layout.separator()
-                layout.operator("renderman.save_asset_to_library", text="Save Nodetree to Library").lib_path = active.path
+                layout.operator("renderman.save_asset_to_library", text="Save Material to Library").lib_path = active.path
 
 class Renderman_Presets_Menu(bpy.types.Menu):
     bl_idname = "renderman_presets_menu"
