@@ -397,15 +397,15 @@ class BlenderNode:
                 # get actual parameter value
                 pvalue = self.BlenderGetAttr(p_name)
             
-            if pvalue is None:
-                # unreadable : skip
-                continue
+                if pvalue is None:
+                    # unreadable : skip
+                    continue
 
-            # set basic data
-            self.AddParam(p_name, {'type': ptype, 'value': pvalue})
+                # set basic data
+                self.AddParam(p_name, {'type': ptype, 'value': pvalue})
 
-            # there may be additional data like vstruct stuff...
-            self.AddParamMetadata(p_name, param)
+                # there may be additional data like vstruct stuff...
+                self.AddParamMetadata(p_name, param)
 
     def DefaultParams(self):
             rmanNode = ra.RmanShadingNode(self.rmanNodeType)
@@ -533,9 +533,10 @@ class BlenderGraph:
             for l in cnx:
                 # don't store connections to un-related nodes.
                 #
-                ignoreDst = type(l.to_node) not in g_validNodeTypes
-                ignoreSrc = type(l.from_node) not in g_validNodeTypes
+                ignoreDst = type(l.to_node).__name__ not in g_validNodeTypes
+                ignoreSrc = type(l.to_node).__name__ not in g_validNodeTypes
                 if ignoreDst or ignoreSrc:
+                    print("Ignoring connection %s -> %s" % (l.from_node.name, l.to_node.name))
                     continue
 
                 # # detect special cases
