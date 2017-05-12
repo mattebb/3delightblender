@@ -639,7 +639,7 @@ IfEnd
     #
     progressReporter.Start()
     progressReporter.Update(0, 'clean-up : %s' % assetName)
-    if not cancelCleanup:
+    if 0:
         for f in [tif100, matribfile]:
             try:
                 # print "cleanup: %s" % f

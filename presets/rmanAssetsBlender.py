@@ -212,8 +212,8 @@ class BlenderNode:
 
         # special case: osl objects can be injected though the PxrOSL node.
         self.oslPath = None
-        if nodetype == 'PxrOSL':
-            osl = mc.getAttr(name + '.shadername')
+        if node.bl_label == 'PxrOSL':
+            osl = getattr(node, 'shadercode')
             if not os.path.exists(osl):
                 err = ('Cant read osl file: %s' % osl)
                 raise RmanAssetBlenderError(err)
@@ -369,6 +369,15 @@ class BlenderNode:
                                           osoPath=self.oslPath)
             params = rmanNode.params()
 
+        if self.node.bl_label == "PxrOSL":
+            for inp in self.node.inputs:
+                ptype = inp.renderman_type
+                if inp.is_linked:
+                    self.SetConnected(inp.name, ptype)
+                else:
+                    self.AddParam(inp.name, {'type': ptype, 'value': inp.default_value})
+            return
+
         # loop through parameters
         #
         for param in params:
@@ -400,7 +409,6 @@ class BlenderNode:
                 if pvalue is None:
                     # unreadable : skip
                     continue
-
                 # set basic data
                 self.AddParam(p_name, {'type': ptype, 'value': pvalue})
 
@@ -498,7 +506,7 @@ class BlenderGraph:
 
 
         if node not in self._nodes:
-            print('adding %s ' % node.name)
+            #print('adding %s ' % node.name)
             if node.renderman_node_type == 'output':
                 self._nodes[node] = BlenderNode(node, 'RendermanOutputNode')
             else:
@@ -610,7 +618,7 @@ class BlenderGraph:
                 oslPath=None
             else:
                 # print 'Serialize %s' % node.mayaNodeType
-                oslPath = node.shadercode if node.rmanNodeType == 'PxrOslPatternNode' else None
+                oslPath = node.oslPath if node.name == 'PxrOSL' else None
                 rmanNode = ra.RmanShadingNode(node.rmanNodeType,
                                               osoPath=oslPath)
                 nodeClass = rmanNode.nodeType()
@@ -1088,7 +1096,6 @@ def setParams(node, paramsList):
             if pname == "placementMatrix":
                 # this param is always connected.
                 continue
-            # print(' +  set: %s  (%s) -> %s' % (nattr, ptype, pval))
             if 'string' in ptype:
                 setattr(node, pname, pval)
             elif ptype in float3:
@@ -1257,11 +1264,12 @@ def createNodes(Asset):
                     err = ('createNodes: OSL file is missing "%s"'
                            % nodeType)
                     raise RmanAssetBlenderError(err)
-                created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
+                created_node = nt.nodes.new('PxrOSLPatternNode')
                 created_node.location[0] = -curr_x
                 curr_x = curr_x + 250
                 created_node.codetypeswitch = 'EXT'
                 created_node.shadercode = oso
+                created_node.RefreshNodes({}, nodeOR=created_node)
             else:
                 # the nodeType should in general correspond to a maya node
                 # type.

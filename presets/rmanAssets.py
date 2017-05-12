@@ -633,6 +633,7 @@ class RmanShadingNode:
                              bufsize=-1)
         out, err = p.communicate()
         # make sure we use the os' favorite end-of-line sequence.
+        out = out.decode('utf-8')
         lines = out.split(os.linesep)
         rmanNode = lines[0].split()[1].replace('"', '')
         g_rmanShadingNodeCache[self.name] = {'params': [],
