@@ -1101,7 +1101,10 @@ def setParams(node, paramsList):
                     setattr(node, pname, pval)
                 else:
                     try:
-                        setattr(node, pname, pval)
+                        if type(getattr(node,pname)) == type(""):
+                            setattr(node, pname, str(pval))
+                        else:
+                            setattr(node, pname, pval)
                     except:
                         if type(getattr(node, pname)) == bpy.types.EnumProperty:
                             setattr(node, pname, str(pval))
