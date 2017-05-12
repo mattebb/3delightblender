@@ -1209,7 +1209,7 @@ def createNodes(Asset):
             mat.use_nodes = True
             nt = mat.node_tree
 
-
+    curr_x = 250
     for node in Asset.nodeList():
         nodeId = node.name()
         nodeType = node.type()
@@ -1241,6 +1241,8 @@ def createNodes(Asset):
     #         nodeName = mc.listRelatives(transformName, shapes=True)[0]
         if nodeClass == 'bxdf':
             created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
+            created_node.location[0] = -curr_x
+            curr_x = curr_x + 250
             created_node.name = nodeId
         elif nodeClass == 'pattern':
             if node.externalOSL():
@@ -1254,6 +1256,8 @@ def createNodes(Asset):
                            % nodeType)
                     raise RmanAssetBlenderError(err)
                 created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
+                created_node.location[0] = -curr_x
+                curr_x = curr_x + 250
                 created_node.codetypeswitch = 'EXT'
                 created_node.shadercode = oso
             else:
@@ -1261,6 +1265,8 @@ def createNodes(Asset):
                 # type.
                 if nodeType in g_PxrToBlenderNodes:
                     created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
+                    created_node.location[0] = -curr_x
+                    curr_x = curr_x + 250
                     created_node.name = nodeId
                 else:
                     err = ('createNodes: Unknown nodetype "%s"'
