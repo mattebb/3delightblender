@@ -1130,7 +1130,10 @@ def setParams(node, paramsList):
         for gain,enable in gains_to_check.items():
             val = getattr(node, gain)
             if val and node.bl_rna.properties[gain].default != getattr(node, gain):
-                if len(val):
+                if type(val) == float:
+                    if val == 0.0:
+                        continue
+                else:
                     for i in val:
                         if i:
                             break
