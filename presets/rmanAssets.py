@@ -444,7 +444,7 @@ class RmanShadingNode:
             ini_keys = ['standardrixpluginpath',  # c++ plugins
                         'standardshaderpath']     # osl shaders
             for key in ini_keys:
-                m = re.search('/' + key + '\s+(.+)' + os.linesep, ini)
+                m = re.search('/' + key + '\s+(.+)', ini)
                 if m:
                     # print '0: "%s"' % m.group(0)
                     # print 'match 1: %s' % repr(m.group(1))
@@ -458,6 +458,7 @@ class RmanShadingNode:
                             g_rmanShadingNodePaths.append(argspath)
                         else:
                             g_rmanShadingNodePaths.append(thispath)
+                
                 else:
                     print('RmanShadingNode: Could not find '
                           'standardrixpluginpath in rendermn.ini !')
@@ -1684,7 +1685,7 @@ class RmanAsset:
                 return filename
         else:
             logExternalFiles('  > not a file : only escape...')
-            return str(stringvalue).encode('string_escape')
+            return str(stringvalue).encode('unicode_escape').decode('utf-8')
 
     ##
     # @brief      Copies all referenced files (textures) to the asset

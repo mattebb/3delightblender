@@ -1267,12 +1267,36 @@ def createNodes(Asset):
         elif nodeClass == 'root':
             created_node = nt.nodes.new('RendermanOutputNode')
             created_node.name = nodeId
+        elif nodeClass == 'light':
+            bpy.ops.object.lamp_add(type='AREA')
+            light = bpy.context.active_object
+            light.name = nodeId
+            light.data.name = nodeId
+            bpy.ops.shading.add_renderman_nodetree(
+                {'material': None, 'lamp': bpy.context.active_object.data}, idtype='lamp')
+            light.matrix_world[0] = vals[0:4]
+            light.matrix_world[1] = vals[4:8]
+            light.matrix_world[2] = vals[8:12]
+            light.matrix_world[3] = vals[12:]
+            light.matrix_world.transpose()
+            if nodeType in {'PxrDiskLight', 'PxrRectLight', 'PxrSphereLight'}:
+                light.data.renderman.area_shape = nodeType[3:-5].lower()
+            else:
+                mapping = {'PxrDistantLight': 'DIST',
+                            'PxrDomeLight': 'ENV',
+                            'PxrEnvDayLight': 'SKY'}
+                light.data.renderman.renderman_type = mapping[nodeType]
+
+            created_node = light.data.renderman.get_light_node()
+            mat = light
+            nt = light.data.renderman
     #         nodeName = mc.sets(name=nodeId, renderable=True,
     #                            noSurfaceShader=True, empty=True)
     #     else:
     #         nodeName = mc.shadingNode(nodeType, name=nodeId, asUtility=True)
-        nodeDict[nodeId] = created_node.name
-        setParams(created_node, node.paramsDict())
+        if created_node:
+            nodeDict[nodeId] = created_node.name
+            setParams(created_node, node.paramsDict())
     #     # print '+ transformName: %s' % (transformName)
 
     #     if transformName is not None:
@@ -1405,7 +1429,7 @@ def importAsset(filepath):
         if not selected_dome_lights:
             if not dome_lights:
                 # check the world node
-                if scene.world.renderman_type == 'ENV':
+                if scene.world.renderman.renderman_type == 'ENV':
                     plugin_node = scene.world.renderman.get_light_node()
                     plugin_node.lightColorMap = env_map_path
                 # create a new dome light
