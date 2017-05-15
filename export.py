@@ -48,6 +48,7 @@ from .util import debug, get_addon_prefs
 from .util import find_it_path
 from .nodes import export_shader_nodetree, get_textures, get_textures_for_node, get_tex_file_name
 from .nodes import shader_node_rib, get_mat_name
+from .nodes import replace_frame_num
 
 addon_version = bl_info['version']
 
@@ -985,8 +986,7 @@ def geometry_source_rib(ri, scene, ob):
                           rib(bounds))
 
         elif rm.geometry_source == 'OPENVDB':
-            openvdb_file = rib_path(get_sequence_path(rm.path_archive,
-                                                      blender_frame, anim))
+            openvdb_file = rib_path(replace_frame_num(rm.path_archive))
             params = {"constant string[2] blobbydso:stringargs": [
                 openvdb_file, "density"]}
             for channel in rm.openvdb_channels:
@@ -1514,7 +1514,7 @@ def export_openVDB(ri, ob):
         debug('error', "Please save and export OpenVDB files before rendering.")
         return
     params = {"constant string[2] blobbydso:stringargs": [cacheFile, "density:fogvolume"], "varying float density": [],
-              "varying float flame": [], "varying color color": []}
+              "varying float flame": []}
     ri.Volume("blobbydso:impl_openvdb", rib_ob_bounds(ob.bound_box), [0, 0, 0],
               params)
 
@@ -1852,7 +1852,7 @@ def get_instances_and_blocks(obs, rpass):
 
                 if do_db:
                     data_blocks[db.name] = db
-                    
+
             instances[inst.name] = inst
 
     return instances, data_blocks, motion_segs
