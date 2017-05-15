@@ -34,6 +34,7 @@ from bpy.props import IntProperty, PointerProperty, EnumProperty
 from .util import get_installed_rendermans,\
     rmantree_from_env, guess_rmantree
 
+from .presets.properties import RendermanPresetGroup
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
     name = StringProperty(name="", subtype='DIR_PATH')
@@ -209,6 +210,19 @@ class RendermanPreferences(AddonPreferences):
         max=59
         )
 
+    presets_library = PointerProperty(
+        type=RendermanPresetGroup,
+    )
+
+    # both these paths are absolute
+    active_presets_path = StringProperty(default = '')
+    presets_path = StringProperty(
+        name="Path for preset Library",
+        description="Path for preset files, if not present these will be copied from RMANTREE.\n  Set this if you want to pull in an external library.",
+        subtype='FILE_PATH',
+        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'presets', 'RenderManAssetLibrary'))
+    
+
     def draw(self, context):
         layout = self.layout
         layout.prop(self, 'rmantree_method')
@@ -229,6 +243,7 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(self, 'path_aov_image')
         layout.prop(self, 'draw_ipr_text')
         addon_updater_ops.update_settings_ui(self,context)
+        layout.prop(self.presets_library, 'path')
         #layout.prop(env, "shd")
         #layout.prop(env, "ptc")
         #layout.prop(env, "arc")
@@ -236,6 +251,8 @@ class RendermanPreferences(AddonPreferences):
 
 def register():
     try:
+        from .presets import properties
+        properties.register()
         bpy.utils.register_class(RendermanPreferencePath)
         bpy.utils.register_class(RendermanEnvVarSettings)
         bpy.utils.register_class(RendermanPreferences)
@@ -244,6 +261,8 @@ def register():
 
 
 def unregister():
+    from .presets import properties
+    properties.unregister()
     bpy.utils.unregister_class(RendermanPreferences)
     bpy.utils.unregister_class(RendermanEnvVarSettings)
     bpy.utils.unregister_class(RendermanPreferencePath)
