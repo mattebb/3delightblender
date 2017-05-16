@@ -346,7 +346,9 @@ class BlenderNode:
                     or pvalue.__class__.__name__ == 'Euler':
                 # BBM modified from if to elif
                 pvalue = list(pvalue)
-
+            meta = getattr(self.node, 'prop_meta')[nodeattr]
+            if 'renderman_type' in meta and meta['renderman_type'] in 'int':
+                pvalue = int(pvalue)
         except:
             fail = True
             
@@ -1138,7 +1140,7 @@ def setParams(node, paramsList):
             'reflectionGain': 'enableGlass',
             'glowGain': 'enableGlow',
         }
-        setattr(node, 'enableDiffuse', False)
+        setattr(node, 'enableDiffuse', (getattr(node, 'diffuseGain') != 0))
         for gain,enable in gains_to_check.items():
             val = getattr(node, gain)
             if val and node.bl_rna.properties[gain].default != getattr(node, gain):

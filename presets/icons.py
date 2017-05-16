@@ -5,7 +5,7 @@ from .. import util
 
 asset_previews = bpy.utils.previews.new()
 
-def load_previews(lib):
+def load_previews(lib, start=0):
     global asset_previews
     enum_items = []
 
@@ -20,10 +20,10 @@ def load_previews(lib):
             thumb = asset_previews.load(path, thumb_path, 'IMAGE', force_reload=True)
         else:
             thumb = asset_previews[path]
-        enum_items.append((asset.path, asset.label, '', thumb.icon_id, i))
-            #asset.thumbnail = thumb.icon_id
-
+        enum_items.append((asset.path, asset.label, '', thumb.icon_id, start + i))
+        
+    start += len(enum_items)
     for sub_group in lib.sub_groups:
-        enum_items.extend(load_previews(sub_group))
+        enum_items.extend(load_previews(sub_group, start))
 
     return enum_items if enum_items else [('', '', '')]

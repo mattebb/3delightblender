@@ -99,7 +99,7 @@ class RendermanPresetGroup(PropertyGroup):
     
     path = StringProperty(default='')
     presets = CollectionProperty(type=RendermanPreset)
-    current_preset = EnumProperty(items=generate_previews)
+    current_preset = EnumProperty(items=generate_previews, name='Current Preset')
 
     # gets the presets and all from children
     def get_presets(self):

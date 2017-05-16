@@ -77,7 +77,7 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
                 if current_preset:
                     row = layout.row()
                     row.label("Current Preset:")
-                    row.prop_menu_enum(active, 'current_preset', text=current_preset.label)
+                    row.prop(active, 'current_preset', text='')
                     layout.template_icon_view(active, "current_preset")
                     # row of controls for preset
                     row = layout.row(align=True)
