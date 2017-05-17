@@ -2975,6 +2975,7 @@ def export_displayfilters(ri, scene):
     display_filter_names = []
     for df in rm.display_filters:
         params = property_group_to_params(df.get_filter_node())
+        params['__instanceid'] = df.name
         ri.DisplayFilter(df.get_filter_name(), df.name, params)
         display_filter_names.append(df.name)
 
@@ -3933,6 +3934,14 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
             ri.EditBegin('option')
             export_camera(ri, rpass.scene, [],
                           camera_to_use=rpass.scene.camera)
+            ri.EditEnd()
+            return
+        elif mat is None and hasattr(node, "renderman_node_type") and \
+            node.renderman_node_type in {'displayfilter', 'displaysamplefilter'}:
+            edit_flush(ri, rpass.edit_num, prman)
+
+            ri.EditBegin('instance')
+            export_displayfilters(ri, bpy.context.scene)
             ri.EditEnd()
             return
         elif mat is None:
