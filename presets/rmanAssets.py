@@ -2066,21 +2066,23 @@ class RmanAsset:
         if not sameHostOK:
             # Are there any host-specific nodes in that asset ?
             # If not, we consider this asset compatible.
-            if len(cdata['hostNodeTypes']) > 0:
-                # if the validNodeTypes list has been passed, check if we have
-                # all required nodes...
-                allHostNodesAreAvailable = False
-                if len(validNodeTypes):
-                    allHostNodesAreAvailable = True
-                    for n in cdata['hostNodeTypes']:
-                        if n not in validNodeTypes:
-                            allHostNodesAreAvailable = False
-                            break
-                if not allHostNodesAreAvailable:
-                    print ('This asset was created with %s %s and is not '
-                           'compatible' % (cdata['renderer']['version']))
-                    print('Missing node types : %s' % cdata['hostNodeTypes'])
-                return False
+            pass
+            # if len(cdata['hostNodeTypes']) > 0:
+            #     # if the validNodeTypes list has been passed, check if we have
+            #     # all required nodes...
+            #     allHostNodesAreAvailable = False
+            #     if len(validNodeTypes):
+            #         allHostNodesAreAvailable = True
+            #         for n in cdata['hostNodeTypes']:
+            #             if n not in validNodeTypes:
+            #                 allHostNodesAreAvailable = False
+            #                 break
+            #     if not allHostNodesAreAvailable:
+            #         print(cdata['renderer']['version'], cdata['hostNodeTypes'])
+            #         #print ('This asset was created with %s %s and is not '
+            #         #       'compatible' % (cdata['renderer']['version']))
+            #         #print('Missing node types : %s' % cdata['hostNodeTypes'])
+            #     return False
 
         return True
 

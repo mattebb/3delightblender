@@ -1144,7 +1144,10 @@ def setParams(node, paramsList):
         for gain,enable in gains_to_check.items():
             val = getattr(node, gain)
             if val and node.bl_rna.properties[gain].default != getattr(node, gain):
-                if type(val) == float:
+                param = next(x for x in paramsList if x.name() == gain)
+                if "reference" in param.type():
+                    pass #if this is connected we need to enable
+                elif type(val) == float:
                     if val == 0.0:
                         continue
                 else:
@@ -1389,7 +1392,7 @@ def connectNodes(Asset, nt, nodeDict):
 #             the renderman version. We pass g_validNodeTypes to help determine
 #             if we have any substitution nodes available. To support
 #             Katana/Blender/Houdini nodes in Maya, you would just need to
-#             implement a node with the same name (C++ or OSL) and make it
+#             implement a node with the same nßame (C++ or OSL) and make it
 #             available to RfM.
 #
 # @param      Asset  The asset we are checking out.
@@ -1405,11 +1408,8 @@ def compatibilityCheck(Asset):
                                     validNodeTypes=g_validNodeTypes)
     if not compatible:
         str1 = 'This Asset is incompatible ! '
-        str2 = 'See Script Editor for details...'
-        if not mc.about(batch=True):
-            mc.confirmDialog(title=str1, message=str2, button=['OK'])
-        else:
-            print(str1 + str2)
+        str2 = 'See Console for details...'
+        print(str1 + str2)
     return compatible
 
 
