@@ -776,7 +776,7 @@ def export_light_shaders(ri, lamp, group_name='', portal_parent=''):
             if 'vector colorMapGamma' in params and params['vector colorMapGamma'] == (1.0,1.0,1.0):
                 params['vector colorMapGamma'] = parent_params[
                     'vector colorMapGamma']
-            if 'float colorMapSaturation' in params params['float colorMapSaturation'] == 1.0:
+            if 'float colorMapSaturation' in params and params['float colorMapSaturation'] == 1.0:
                 params['float colorMapSaturation'] = parent_params[
                     'float colorMapSaturation']
             params['float intensity'] = parent_params[
@@ -2853,6 +2853,7 @@ def export_options(ri, scene):
         ri.Option("checkpoint", {"int asfinal": 1})
     ri.Option("searchpath", {"string procedural": [
               ".:${RMANTREE}/lib/plugins:@"]})
+    ri.Option("user", {"int osl:lazy_builtins": 1, "int osl:lazy_inputs": 1})
 
     lpe_options = {
         "string diffuse2": "Diffuse",
