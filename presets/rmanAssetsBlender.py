@@ -1143,7 +1143,7 @@ def setParams(node, paramsList):
         setattr(node, 'enableDiffuse', (getattr(node, 'diffuseGain') != 0))
         for gain,enable in gains_to_check.items():
             val = getattr(node, gain)
-            param = next(x for x in paramsList if x.name() == gain, None)
+            param = next((x for x in paramsList if x.name() == gain), None)
             if param and "reference" in param.type():
                 setattr(node, enable, True)
             elif val and node.bl_rna.properties[gain].default != getattr(node, gain):
