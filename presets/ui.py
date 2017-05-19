@@ -107,7 +107,8 @@ class Renderman_Presets_Menu(bpy.types.Menu):
         prefix = "* " if lib.is_active() else ''
         self.layout.operator('renderman.set_active_preset_library',text=prefix + lib.name).lib_path = lib.path
         if len(lib.sub_groups) > 0:
-            for sub in lib.sub_groups:
+            for key in sorted(lib.sub_groups.keys(), key=lambda k: k.lower()):
+                sub = lib.sub_groups[key]
                 self.layout.context_pointer_set('renderman_preset', sub)
                 prefix = "* " if sub.is_active() else ''
                 if len(sub.sub_groups):
