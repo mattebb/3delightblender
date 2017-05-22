@@ -1258,6 +1258,7 @@ def createNodes(Asset):
             created_node.location[0] = -curr_x
             curr_x = curr_x + 250
             created_node.name = nodeId
+            created_node.label = nodeId
         elif nodeClass == 'pattern':
             if node.externalOSL():
                 # if externalOSL() is True, it is a dynamic OSL node i.e. one
@@ -1283,6 +1284,7 @@ def createNodes(Asset):
                     created_node.location[0] = -curr_x
                     curr_x = curr_x + 250
                     created_node.name = nodeId
+                    created_node.label = nodeId
                 else:
                     err = ('createNodes: Unknown nodetype "%s"'
                            % nodeType)
@@ -1291,6 +1293,7 @@ def createNodes(Asset):
         elif nodeClass == 'root':
             created_node = nt.nodes.new('RendermanOutputNode')
             created_node.name = nodeId
+            created_node.label = nodeId
         elif nodeClass == 'light':
             bpy.ops.object.lamp_add(type='AREA')
             light = bpy.context.active_object
