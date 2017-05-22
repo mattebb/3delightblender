@@ -1259,6 +1259,12 @@ def createNodes(Asset):
             curr_x = curr_x + 250
             created_node.name = nodeId
             created_node.label = nodeId
+        elif nodeClass == 'displace':
+            created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
+            created_node.location[0] = -curr_x
+            curr_x = curr_x + 250
+            created_node.name = nodeId
+            created_node.label = nodeId
         elif nodeClass == 'pattern':
             if node.externalOSL():
                 # if externalOSL() is True, it is a dynamic OSL node i.e. one
@@ -1358,6 +1364,8 @@ def connectNodes(Asset, nt, nodeDict):
             nt.links.new(srcNode.outputs[srcSocket], dstNode.inputs[dstSocket])
         elif dstSocket == 'surfaceShader':
             nt.links.new(srcNode.outputs['Bxdf'], dstNode.inputs['Bxdf'])
+        elif dstSocket == 'displacementShader':
+            nt.links.new(srcNode.outputs['Displacement'], dstNode.inputs['Displacement'])
         else:
             print('error connecting %s.%s to %s.%s' % (srcNode,srcSocket, dstNode, dstSocket))
         
