@@ -1394,21 +1394,25 @@ def split_multi_mesh(nverts, verts, primvars):
             mat_id = primvars["uniform float material_id"][face_id]
             if mat_id not in meshes:
                 meshes[mat_id] = ([], [], {'P': []})
-                if "facevarying float[2] st" in primvars:
-                    meshes[mat_id][2]["facevarying float[2] st"] = []
-                if "facevarying normal N" in primvars:
-                    meshes[mat_id][2]["facevarying normal N"] = []
+                for key,val in primvars.items():
+                    if "facevarying" not in key:
+                        continue
+                    meshes[mat_id][2][key] = []
 
             meshes[mat_id][0].append(num_verts)
             meshes[mat_id][1].extend(verts[vert_index:vert_index + num_verts])
-            if "facevarying float[2] st" in primvars:
-                meshes[mat_id][2]["facevarying float[2] st"].extend(
-                    primvars["facevarying float[2] st"][vert_index * 2:
-                                                        vert_index * 2 + num_verts * 2])
-            if "facevarying normal N" in primvars:
-                meshes[mat_id][2]['facevarying normal N'].extend(
-                    primvars['facevarying normal N'][vert_index * 3:
-                                                     vert_index * 3 + num_verts * 3])
+            for key,val in primvars.items():
+                if "facevarying" not in key:
+                    continue
+                item_len = 3
+                item_type = key.split()[1]
+                if "int" in item_type or "float" in item_type:
+                    item_len = 1
+                    if "[" in item_type:
+                        item_len = int(item_type.split('[')[1].split(']')[0])
+                meshes[mat_id][2][key].extend(
+                    primvars[key][vert_index * item_len:
+                                  vert_index * item_len + num_verts * item_len])
             vert_index += num_verts
 
         # now sort the verts and replace
