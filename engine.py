@@ -574,7 +574,7 @@ class RPass:
     # start the interactive session.  Basically the same as ribgen, only
     # save the file
     def start_interactive(self):
-
+        rm = self.scene.renderman
         if find_it_path() is None:
             debug('error', "ERROR no 'it' installed.  \
                     Cannot start interactive rendering.")
