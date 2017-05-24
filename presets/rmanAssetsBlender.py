@@ -172,7 +172,8 @@ class BlenderProgress:
         self._pbar.progress_end(val)
 
 
-
+def fix_blender_name(name):
+    return name.replace(' ', '').replace('.', '')
 
 ##
 # @brief    Class representing a node in Maya's DAG
@@ -185,7 +186,7 @@ class BlenderNode:
 
     def __init__(self, node, nodetype):
         # the node name / handle
-        self.name = node.name
+        self.name = fix_blender_name(node.name)
         self.node = node
         # the maya node type
         self.blenderNodeType = nodetype
@@ -345,10 +346,12 @@ class BlenderNode:
                     pvalue.__class__.__name__ == 'bpy_prop_array'\
                     or pvalue.__class__.__name__ == 'Euler':
                 # BBM modified from if to elif
-                pvalue = list(pvalue)
+                pvalue = list(pvalue)[:3]
             meta = getattr(self.node, 'prop_meta')[nodeattr]
-            if 'renderman_type' in meta and meta['renderman_type'] in 'int':
+            if 'renderman_type' in meta and meta['renderman_type'] == 'int':
                 pvalue = int(pvalue)
+            if 'renderman_type' in meta and meta['renderman_type'] == 'float':
+                pvalue = float(pvalue)
         except:
             fail = True
             
@@ -382,6 +385,7 @@ class BlenderNode:
 
         # loop through parameters
         #
+        prop_meta = getattr(self.node, 'prop_meta', None)
         for param in params:
             p_name = param['name']
             ptype = param['type']
@@ -390,16 +394,17 @@ class BlenderNode:
             if not p_name in node.prop_meta:
                 self.AddParam(p_name, {'type': ptype,
                                    'value': param['default']})
-                if p_name not in self.__safeToIgnore:
+                if p_name not in self.__safeToIgnore and not ptype.startswith('output'):
                     print("Setting missing parameter to default"
                                " value :" + " %s = %s (%s)" %
                                (node.name + '.' + p_name, param['default'],
                                 self.blenderNodeType))
+
                 
 
             # if the attr is a float3 and one or more components are connected
             # we need to find out.
-            if p_name in node.inputs and node.inputs[p_name].is_linked:
+            elif p_name in node.inputs and node.inputs[p_name].is_linked:
                 link = node.inputs[p_name].links[0]
                 # connected parameter
                 self.SetConnected(p_name, ptype)
@@ -414,9 +419,8 @@ class BlenderNode:
                 # set basic data
                 self.AddParam(p_name, {'type': ptype, 'value': pvalue})
 
-                # there may be additional data like vstruct stuff...
-                self.AddParamMetadata(p_name, param)
-
+            self.AddParamMetadata(p_name, param)
+            
     def DefaultParams(self):
             rmanNode = ra.RmanShadingNode(self.rmanNodeType)
             params = rmanNode.params()
@@ -579,8 +583,8 @@ class BlenderGraph:
                 #     # tag the manifold param as connected
                 #     self._nodes[node].SetConnected('manifold')
 
-                self._connections.append(("%s.%s" % (l.from_node.name, l.from_socket.name), 
-                                          "%s.%s" % (l.to_node.name, l.to_socket.name)))
+                self._connections.append(("%s.%s" % (fix_blender_name(l.from_node.name), l.from_socket.name), 
+                                          "%s.%s" % (fix_blender_name(l.to_node.name), l.to_socket.name)))
 
         # remove duplicates
         self._connections = list(set(self._connections))
