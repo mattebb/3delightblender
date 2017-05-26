@@ -127,7 +127,7 @@ def reset(engine, data, scene):
         prman.Cleanup()
     engine.render_pass.ri = prman.Ri()
     engine.render_pass.set_scene(scene)
-
+    engine.render_pass.update_frame_num(scene.frame_current)
 
 def update(engine, data, scene):
     engine.render_pass.update_time = int(time.time())
