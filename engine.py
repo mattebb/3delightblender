@@ -574,7 +574,7 @@ class RPass:
     # start the interactive session.  Basically the same as ribgen, only
     # save the file
     def start_interactive(self):
-
+        rm = self.scene.renderman
         if find_it_path() is None:
             debug('error', "ERROR no 'it' installed.  \
                     Cannot start interactive rendering.")
@@ -587,7 +587,11 @@ class RPass:
             return
 
         self.ri.Begin(self.paths['rib_output'])
-        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
+        rib_options = {"string format": "binary"} if rm.rib_format == "binary" else {
+            "string format": "ascii", "string asciistyle": "indented,wide"}
+        if rm.rib_compression == "gzip":
+            rib_options["string compression"] = "gzip"
+        self.ri.Option("rib", rib_options)
         self.material_dict = {}
         self.instance_dict = {}
         self.lights = {}
