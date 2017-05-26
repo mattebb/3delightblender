@@ -6,7 +6,7 @@ import os.path
 import re
 import sys
 import time
-import bpy as mc # just a test
+import bpy as mc  # just a test
 import bpy
 import mathutils
 from math import radians
@@ -1215,24 +1215,14 @@ def createNodes(Asset):
     nodeDict = {}
     nt = None
 
-    # To handle light rigs easily like a single object, group the lights into
+    # To handle light rigs easily like a single object, group lights into
     # an empty parent.
-    #
-    lrcEmpty = None
-    lrcName = None
+    lightrig_helper = None
+    lightrig_name = None
 
-    # TODO: type and size of Empty should be also options in settings
-    #
-    lrcType = 'SPHERE'
-    lrcSize = 2
-
-    # Pre- and postfix which are added to the name of this Asset, what shows
-    # that this is object is created by this addon (and not from JSON) and
-    # can be used as a nice filter in the outliner windows
-    #
-    lrcPRE = 'RfB_'
-    lrcPFX = ''     # if this got implemented in the settings, it may contain
-                    # something
+    # TODO: type and size should be options in settings
+    lightrig_type = 'SPHERE'
+    lightrig_size = 2
 
     asset_list = Asset.nodeList()
     #first go through and create materials if we need them
@@ -1321,20 +1311,20 @@ def createNodes(Asset):
             created_node.name = nodeId
             created_node.label = nodeId
         elif nodeClass == 'light':
-            # if the empty object used as rig controller isn't there,
-            # create one - it's the first light node from JSON.
-            if lrcEmpty is None:
-                lrcName =  lrcPRE + Asset.label().replace(" ", "") + lrcPFX
-                lrcEmpty = bpy.data.objects.new( lrcName, None )
-                bpy.context.scene.objects.link( lrcEmpty )
-                lrcEmpty.empty_draw_size = lrcSize
-                lrcEmpty.empty_draw_type = lrcType
+            # if the helper object isn't there, create one. it's the first
+            # light node from JSON.
+            if not lightrig_helper:
+                lightrig_name = Asset.label()
+                lightrig_helper = bpy.data.objects.new(lightrig_name, None)
+                bpy.context.scene.objects.link(lightrig_helper)
+                lightrig_helper.empty_draw_size = lightrig_size
+                lightrig_helper.empty_draw_type = lightrig_type
 
             bpy.ops.object.lamp_add(type='AREA')
             light = bpy.context.active_object
 
-            # add current light object from JSON to rig controller
-            light.parent = lrcEmpty
+            # add current light object from JSON to helper
+            light.parent = lightrig_helper
 
             light.name = nodeId
             light.data.name = nodeId
@@ -1375,11 +1365,19 @@ def createNodes(Asset):
     #
     # NOTE: In Maya +Y is pointing upwards, +Z is near and -Z far, in Blender
     #       things are differnt, +Z is to the sky, -Y is near and +Y far.
+    if lightrig_helper:
+        lightrig_helper.rotation_euler = (radians(90), 0, 0)
 
-    #
-    if lrcEmpty is not None:
-        lrcEmpty.rotation_euler = ( radians(90), 0, 0 )
-        # like scale property, we didn't apply the rotation
+        # deselect all selected obejects
+        for ob in bpy.context.selected_objects:
+            ob.select = False
+
+        # select lightrig and make active (same behavior like adding a object via UI)
+        lightrig_helper.select = True
+        bpy.context.scene.objects.active = lightrig_helper
+
+        # apply former rotation
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
 
     # # restore selection
     # mc.select(sel)
