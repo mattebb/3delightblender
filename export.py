@@ -2225,7 +2225,7 @@ def export_data_rib_archive(ri, data_block, instance, rpass):
     for mat in data_block.material:
         export_material_archive(ri, mat)
 
-    if rm.geometry_source == "ARCHIVE":
+    if rm.geometry_source == "ARCHIVE" and ".zip" in instance.ob.renderman.path_archive:
         arvhiveInfo = instance.ob.renderman
         relPath = os.path.splitext(get_real_path(arvhiveInfo.path_archive))[0]
         archiveFileExtention = ".zip"
