@@ -6,9 +6,10 @@ import os.path
 import re
 import sys
 import time
-import bpy as mc # just a test
+import bpy as mc  # just a test
 import bpy
 import mathutils
+from math import radians
 from .. import util
 
 ##
@@ -167,7 +168,7 @@ class BlenderProgress:
 
     def Update(self, val, msg=None):
         self._pbar.progress_update(val)
-        
+
     def End(self):
         self._pbar.progress_end(val)
 
@@ -354,7 +355,7 @@ class BlenderNode:
                 pvalue = float(pvalue)
         except:
             fail = True
-            
+
         if fail:
             # ignore unreadable but warn
             print("Ignoring un-readable parameter : %s" % nodeattr)
@@ -400,19 +401,17 @@ class BlenderNode:
                                (node.name + '.' + p_name, param['default'],
                                 self.blenderNodeType))
 
-                
-
             # if the attr is a float3 and one or more components are connected
             # we need to find out.
             elif p_name in node.inputs and node.inputs[p_name].is_linked:
                 link = node.inputs[p_name].links[0]
                 # connected parameter
                 self.SetConnected(p_name, ptype)
-                
+
             else:
                 # get actual parameter value
                 pvalue = self.BlenderGetAttr(p_name)
-            
+
                 if pvalue is None:
                     # unreadable : skip
                     continue
@@ -420,7 +419,7 @@ class BlenderNode:
                 self.AddParam(p_name, {'type': ptype, 'value': pvalue})
 
             self.AddParamMetadata(p_name, param)
-            
+
     def DefaultParams(self):
             rmanNode = ra.RmanShadingNode(self.rmanNodeType)
             params = rmanNode.params()
@@ -496,7 +495,7 @@ class BlenderGraph:
 
         # make sure we always consider the node if we get 'node.attr'
         #node = nodename.split('.')[0]
-        
+
         if node in self._invalids:
             # print '    already in invalids'
             print('%s invalid' % node.name)
@@ -583,7 +582,7 @@ class BlenderGraph:
                 #     # tag the manifold param as connected
                 #     self._nodes[node].SetConnected('manifold')
 
-                self._connections.append(("%s.%s" % (fix_blender_name(l.from_node.name), l.from_socket.name), 
+                self._connections.append(("%s.%s" % (fix_blender_name(l.from_node.name), l.from_socket.name),
                                           "%s.%s" % (fix_blender_name(l.to_node.name), l.to_socket.name)))
 
         # remove duplicates
@@ -965,7 +964,7 @@ def parseNodeGraph(nt, Asset):
 
     for node in nodes_to_convert:
         graph.AddNode(node)
-    
+
     graph.Process()
     graph.Serialize(Asset)
 
@@ -1161,7 +1160,7 @@ def setParams(node, paramsList):
                     else:
                         continue
                 setattr(node, enable, True)
-                        
+
                         # if ptype == 'riattr':
                         #     mayatype = mc.getAttr(nattr, type=True)
                         #     try:
@@ -1217,6 +1216,15 @@ def createNodes(Asset):
 
     nodeDict = {}
     nt = None
+
+    # To handle light rigs easily like a single object, group lights into
+    # an empty parent.
+    lightrig_helper = None
+    lightrig_name = None
+
+    # TODO: type and size should be options in settings
+    lightrig_type = 'SPHERE'
+    lightrig_size = 2
 
     asset_list = Asset.nodeList()
     #first go through and create materials if we need them
@@ -1305,8 +1313,21 @@ def createNodes(Asset):
             created_node.name = nodeId
             created_node.label = nodeId
         elif nodeClass == 'light':
+            # if the helper object isn't there, create one. it's the first
+            # light node from JSON.
+            if not lightrig_helper:
+                lightrig_name = Asset.label()
+                lightrig_helper = bpy.data.objects.new(lightrig_name, None)
+                bpy.context.scene.objects.link(lightrig_helper)
+                lightrig_helper.empty_draw_size = lightrig_size
+                lightrig_helper.empty_draw_type = lightrig_type
+
             bpy.ops.object.lamp_add(type='AREA')
             light = bpy.context.active_object
+
+            # add current light object from JSON to helper
+            light.parent = lightrig_helper
+
             light.name = nodeId
             light.data.name = nodeId
             bpy.ops.shading.add_renderman_nodetree(
@@ -1339,6 +1360,27 @@ def createNodes(Asset):
     #     if transformName is not None:
     #         setTransform(transformName, fmt, vals)
 
+
+
+    # if we have a light rig after iterating over the JSON, then correct
+    # Maya to Blender world by rotation around x-axis with a value of +90°.
+    #
+    # NOTE: In Maya +Y is pointing upwards, +Z is near and -Z far, in Blender
+    #       things are differnt, +Z is to the sky, -Y is near and +Y far.
+    if lightrig_helper:
+        lightrig_helper.rotation_euler = (radians(90), 0, 0)
+
+        # deselect all selected obejects
+        for ob in bpy.context.selected_objects:
+            ob.select = False
+
+        # select lightrig and make active (same behavior like adding a object via UI)
+        lightrig_helper.select = True
+        bpy.context.scene.objects.active = lightrig_helper
+
+        # apply former rotation
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+
     # # restore selection
     # mc.select(sel)
     return mat,nt,nodeDict
@@ -1361,7 +1403,7 @@ def connectNodes(Asset, nt, nodeDict):
         #                             nodeDict[con.dstNode()](), con.dstParam()))
         srcNode = nt.nodes[nodeDict[con.srcNode()]]
         dstNode = nt.nodes[nodeDict[con.dstNode()]]
-        
+
         srcSocket = con.srcParam()
         dstSocket = con.dstParam()
         if srcSocket in srcNode.outputs and dstSocket in dstNode.inputs:
@@ -1372,7 +1414,7 @@ def connectNodes(Asset, nt, nodeDict):
             nt.links.new(srcNode.outputs['Displacement'], dstNode.inputs['Displacement'])
         else:
             print('error connecting %s.%s to %s.%s' % (srcNode,srcSocket, dstNode, dstSocket))
-        
+
             # # special cases for maya placement nodes
             # #
             # # print '+ OOOPS: %s' % sysErr()
