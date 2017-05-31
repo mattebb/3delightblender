@@ -59,7 +59,7 @@ from bpy.app.handlers import persistent
 from .export import write_rib, write_preview_rib, get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
     interactive_initial_rib, update_light_link, delete_light,\
-    reset_light_illum, solo_light, mute_lights, issue_light_vis
+    reset_light_illum, solo_light, mute_lights, issue_light_vis, update_crop_window
 
 from .nodes import get_tex_file_name
 
@@ -598,6 +598,8 @@ class RPass:
         self.light_filter_map = {}
         self.current_solo_light = None
         self.muted_lights = []
+        self.crop_window = (self.scene.render.border_min_x, self.scene.render.border_max_x,
+                      1.0 - self.scene.render.border_min_y, 1.0 - self.scene.render.border_max_y)
         for obj in self.scene.objects:
             if obj.type == 'LAMP' and obj.name not in self.lights:
                 # add the filters to the filter ma
@@ -647,10 +649,16 @@ class RPass:
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
+        cw = (scene.render.border_min_x, scene.render.border_max_x,
+                      1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y)
+        if cw != self.crop_window:
+            self.crop_window = cw
+            update_crop_window(self.ri, self, prman, cw)
+
         active = scene.objects.active
         if (active and active.is_updated) or (active and active.type == 'LAMP' and active.is_updated_data):
             if is_ipr_running():
-                issue_transform_edits(self, self.ri, active, prman)
+                issue_transform_edits(self.ri, self, active, prman)
             else:
                 return
         # record the marker to rib and flush to that point
