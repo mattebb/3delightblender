@@ -2225,7 +2225,7 @@ def export_data_rib_archive(ri, data_block, instance, rpass):
     for mat in data_block.material:
         export_material_archive(ri, mat)
 
-    if rm.geometry_source == "ARCHIVE":
+    if rm.geometry_source == "ARCHIVE" and ".zip" in instance.ob.renderman.path_archive:
         arvhiveInfo = instance.ob.renderman
         relPath = os.path.splitext(get_real_path(arvhiveInfo.path_archive))[0]
         archiveFileExtention = ".zip"
@@ -3634,6 +3634,8 @@ def interactive_initial_rib(rpass, ri, scene, prman):
     ri.EditWorldBegin(
         rpass.paths['rib_output'], {"string rerenderer": "raytrace"})
     ri.Option('rerender', {'int[2] lodrange': [0, 3]})
+    cw = rpass.crop_window
+    ri.CropWindow(cw[0], cw[1], cw[2], cw[3])
 
     ri.ArchiveRecord("structure", ri.STREAMMARKER + "_initial")
     prman.RicFlush("_initial", 0, ri.FINISHRENDERING)
@@ -3682,6 +3684,13 @@ def issue_light_filter_transform_edit(ri, rpass, obj):
 def issue_camera_edit(ri, rpass, camera):
     ri.EditBegin('option')
     export_camera(ri, rpass.scene, [], camera_to_use=camera)
+    ri.EditEnd()
+
+def update_crop_window(ri, rpass, prman, cw):
+    rpass.edit_num += 1
+    edit_flush(ri, rpass.edit_num, prman)
+    ri.EditBegin('option')
+    ri.CropWindow(cw[0], cw[1], cw[2], cw[3])
     ri.EditEnd()
 
 # search this material/lamp for textures to re txmake and do them
