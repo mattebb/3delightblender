@@ -654,6 +654,7 @@ class RPass:
         if cw != self.crop_window:
             self.crop_window = cw
             update_crop_window(self.ri, self, prman, cw)
+            return
 
         active = scene.objects.active
         if (active and active.is_updated) or (active and active.type == 'LAMP' and active.is_updated_data):
