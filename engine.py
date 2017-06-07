@@ -659,7 +659,7 @@ class RPass:
         active = scene.objects.active
         if (active and active.is_updated) or (active and active.type == 'LAMP' and active.is_updated_data):
             if is_ipr_running():
-                issue_transform_edits(self.ri, self, active, prman)
+                issue_transform_edits(self, self.ri, active, prman)
             else:
                 return
         # record the marker to rib and flush to that point
