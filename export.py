@@ -773,7 +773,7 @@ def export_light_shaders(ri, lamp, group_name='', portal_parent=''):
             params['string portalName'] = handle
             params['string domeColorMap'] = parent_params[
                 'string lightColorMap']
-            if 'vector colorMapGamma' in params and params['vector colorMapGamma'] == (1.0,1.0,1.0):
+            if 'vector colorMapGamma' in params and params['vector colorMapGamma'] == (1.0, 1.0, 1.0):
                 params['vector colorMapGamma'] = parent_params[
                     'vector colorMapGamma']
             if 'float colorMapSaturation' in params and params['float colorMapSaturation'] == 1.0:
@@ -921,7 +921,6 @@ def export_material(ri, mat, handle=None, iterate_instance=False):
             iterate_instance=iterate_instance)
     else:
         export_shader(ri, mat)
-
 
 
 def export_material_archive(ri, mat):
@@ -1394,14 +1393,14 @@ def split_multi_mesh(nverts, verts, primvars):
             mat_id = primvars["uniform float material_id"][face_id]
             if mat_id not in meshes:
                 meshes[mat_id] = ([], [], {'P': []})
-                for key,val in primvars.items():
+                for key, val in primvars.items():
                     if "facevarying" not in key:
                         continue
                     meshes[mat_id][2][key] = []
 
             meshes[mat_id][0].append(num_verts)
             meshes[mat_id][1].extend(verts[vert_index:vert_index + num_verts])
-            for key,val in primvars.items():
+            for key, val in primvars.items():
                 if "facevarying" not in key:
                     continue
                 item_len = 3
@@ -2182,7 +2181,7 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
         if child_name in instances:
             export_instance_read_archive(
                 ri, instances[child_name], instances, data_blocks, rpass, is_child=True, visible_objects=visible_objects)
-    
+
     if instance.ob and instance.ob.renderman.post_object_rib_box != '':
         export_rib_box(ri, instance.ob.renderman.post_object_rib_box)
 
@@ -3134,32 +3133,43 @@ def export_display(ri, rpass, scene):
     params = {}
     # if it inject some image info
     if display_driver == 'it':
-        from time import gmtime, strftime
-        ts = strftime("%a %b %d %H:%M:%S %Z %Y", gmtime())
+        from time import localtime, strftime
+        ts = strftime("%a %x, %X", localtime())
         ts = bytes(ts, 'ascii', 'ignore').decode('utf-8', 'ignore')
-        dspy_notes = "(%s)\nSamples: %d-%d@%f  %s  " % (ts,
-                                                        rm.min_samples, rm.max_samples, rm.pixel_variance,
-                                                        rm.integrator)
+        dspy_notes = "Started:\t%s\r\r" % ts
+        dspy_notes += "Integrator:\t%s\r" % rm.integrator
+        dspy_notes += "Samples:\t%d - %d\r" % (rm.min_samples, rm.max_samples)
+        dspy_notes += "Pixel Variance:\t%f\r\r" % rm.pixel_variance
+
         if rm.integrator == 'PxrPathTracer':
             integrator = getattr(rm, "%s_settings" % rm.integrator)
-            dspy_notes += "Mode: %s  " % integrator.sampleMode
-            dspy_notes += "Light: %d  Bxdf: %d  " % (integrator.numLightSamples,
-                                                     integrator.numBxdfSamples)
+            dspy_notes += "Mode:\t%s\r" % integrator.sampleMode
+            dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
+            dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
+
             if integrator.sampleMode == 'bxdf':
-                dspy_notes += "Indirect: %d" % integrator.numIndirectSamples
+                dspy_notes += "Indirect:\t%d\r" % integrator.numIndirectSamples
             else:
-                dspy_notes += "Diffuse: %d  Specular: %d  Subsurface: %d  Refraction: %d" % (integrator.numDiffuseSamples,
-                                                                                             integrator.numSpecularSamples, integrator.numSubsurfaceSamples, integrator.numRefractionSamples)
+                dspy_notes += "Diffuse:\t%d\r" % integrator.numDiffuseSamples
+                dspy_notes += "Specular:\t%d\r" % integrator.numSpecularSamples
+                dspy_notes += "Subsurface:\t%d\r" % integrator.numSubsurfaceSamples
+                dspy_notes += "Refraction:\t%d\r\r" % integrator.numRefractionSamples
+
         elif rm.integrator == "PxrVCM":
             integrator = getattr(rm, "%s_settings" % rm.integrator)
-            dspy_notes += "Light: %d  Bxdf: %d  " % (integrator.numLightSamples,
-                                                     integrator.numBxdfSamples)
+            dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
+            dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
 
-        params["string dspyParams"] = """ itOpenHandler {::ice::startTimer;};;; itCloseHandler {::ice::endTimer %%arglist; };;;
-                                        dspyRender -renderer preview -time %d -crop %f %f %f %f
-                                        -notes \"%s\"""" % (scene.frame_current, scene.render.border_min_x,
-                                                            scene.render.border_max_x, 1.0 - scene.render.border_min_y,
-                                                            1.0 - scene.render.border_max_y, dspy_notes)
+        params["string dspyParams"] = """ itOpenHandler {::ice::startTimer;};;;                     \
+                                          itCloseHandler {::ice::endTimer %%arglist; };;;           \
+                                          dspyRender -renderer preview -time %d -crop %f %f %f %f   \
+                                          -notes %s""" % (scene.frame_current,
+                                                        scene.render.border_min_x,
+                                                        scene.render.border_max_x,
+                                                        1.0 - scene.render.border_min_y,
+                                                        1.0 - scene.render.border_max_y,
+                                                        dspy_notes)
+
     ri.Display(main_display, display_driver, "rgba", params)
     rpass.output_files.append(main_display)
 
@@ -3628,7 +3638,50 @@ def write_auto_archives(paths, scene, info_callback):
 
 
 def interactive_initial_rib(rpass, ri, scene, prman):
-    ri.Display('rerender', 'it', 'rgba')
+    params = {}
+    rm = scene.renderman
+
+    from time import localtime, strftime
+
+    ts = strftime("%a %x, %X", localtime())
+    ts = bytes(ts, 'ascii', 'ignore').decode('utf-8', 'ignore')
+    dspy_notes = "Started:\t%s\r\r" % ts
+    dspy_notes += "Integrator:\t%s\r" % rm.integrator
+    dspy_notes += "Samples:\t%d - %d\r" % (rm.min_samples, rm.max_samples)
+    dspy_notes += "Pixel Variance:\t%f\r\r" % rm.pixel_variance
+
+    integrator = getattr(rm, "%s_settings" % rm.integrator)
+
+    if rm.integrator == 'PxrPathTracer':
+        # integrator = getattr(rm, "%s_settings" % rm.integrator)
+        dspy_notes += "Mode:\t%s\r" % integrator.sampleMode
+        dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
+        dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
+
+        if integrator.sampleMode == 'bxdf':
+            dspy_notes += "Indirect:\t%d\r" % integrator.numIndirectSamples
+        else:
+            dspy_notes += "Diffuse:\t%d\r" % integrator.numDiffuseSamples
+            dspy_notes += "Specular:\t%d\r" % integrator.numSpecularSamples
+            dspy_notes += "Subsurface:\t%d\r" % integrator.numSubsurfaceSamples
+            dspy_notes += "Refraction:\t%d\r" % integrator.numRefractionSamples
+
+    elif rm.integrator == "PxrVCM":
+        # integrator = getattr(rm, "%s_settings" % rm.integrator)
+        dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
+        dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
+
+    params["string dspyParams"] = """ itOpenHandler {::ice::startTimer;};;;                     \
+                                      itCloseHandler {::ice::endTimer %%arglist; };;;           \
+                                      dspyRender -renderer preview -time %d -crop %f %f %f %f   \
+                                      -notes %s""" % (scene.frame_current,
+                                                    scene.render.border_min_x,
+                                                    scene.render.border_max_x,
+                                                    1.0 - scene.render.border_min_y,
+                                                    1.0 - scene.render.border_max_y,
+                                                    dspy_notes)
+
+    ri.Display('rerender', 'it', 'rgba', params)
     export_hider(ri, rpass, scene, True)
 
     ri.EditWorldBegin(
@@ -3685,6 +3738,7 @@ def issue_camera_edit(ri, rpass, camera):
     ri.EditBegin('option')
     export_camera(ri, rpass.scene, [], camera_to_use=camera)
     ri.EditEnd()
+
 
 def update_crop_window(ri, rpass, prman, cw):
     rpass.edit_num += 1
@@ -3950,8 +4004,10 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
                           camera_to_use=rpass.scene.camera)
             ri.EditEnd()
             return
-        elif mat is None and hasattr(node, "renderman_node_type") and \
-            node.renderman_node_type in {'displayfilter', 'displaysamplefilter'}:
+        elif mat is None \
+                and hasattr(node, "renderman_node_type") \
+                and node.renderman_node_type \
+                in {'displayfilter', 'displaysamplefilter'}:
             edit_flush(ri, rpass.edit_num, prman)
 
             ri.EditBegin('instance')
@@ -3962,7 +4018,7 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
             return
 
         if not mat_name:
-            mat_name = mat.name # for world/light
+            mat_name = mat.name  # for world/light
 
         tex_made = False
         if reissue_textures(ri, rpass, mat):
