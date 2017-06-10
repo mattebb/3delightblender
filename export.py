@@ -3130,47 +3130,13 @@ def export_display(ri, rpass, scene):
     debug("info", "Main_display: " + main_display)
 
     # just going to always output rgba
-    params = {}
+    dspy_info = {}
+
     # if it inject some image info
     if display_driver == 'it':
-        from time import localtime, strftime
-        ts = strftime("%a %x, %X", localtime())
-        ts = bytes(ts, 'ascii', 'ignore').decode('utf-8', 'ignore')
-        dspy_notes = "Started:\t%s\r\r" % ts
-        dspy_notes += "Integrator:\t%s\r" % rm.integrator
-        dspy_notes += "Samples:\t%d - %d\r" % (rm.min_samples, rm.max_samples)
-        dspy_notes += "Pixel Variance:\t%f\r\r" % rm.pixel_variance
+        dspy_info = make_dspy_info(scene)
 
-        if rm.integrator == 'PxrPathTracer':
-            integrator = getattr(rm, "%s_settings" % rm.integrator)
-            dspy_notes += "Mode:\t%s\r" % integrator.sampleMode
-            dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
-            dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
-
-            if integrator.sampleMode == 'bxdf':
-                dspy_notes += "Indirect:\t%d\r" % integrator.numIndirectSamples
-            else:
-                dspy_notes += "Diffuse:\t%d\r" % integrator.numDiffuseSamples
-                dspy_notes += "Specular:\t%d\r" % integrator.numSpecularSamples
-                dspy_notes += "Subsurface:\t%d\r" % integrator.numSubsurfaceSamples
-                dspy_notes += "Refraction:\t%d\r\r" % integrator.numRefractionSamples
-
-        elif rm.integrator == "PxrVCM":
-            integrator = getattr(rm, "%s_settings" % rm.integrator)
-            dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
-            dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
-
-        params["string dspyParams"] = """ itOpenHandler {::ice::startTimer;};;;                     \
-                                          itCloseHandler {::ice::endTimer %%arglist; };;;           \
-                                          dspyRender -renderer preview -time %d -crop %f %f %f %f   \
-                                          -notes %s""" % (scene.frame_current,
-                                                        scene.render.border_min_x,
-                                                        scene.render.border_max_x,
-                                                        1.0 - scene.render.border_min_y,
-                                                        1.0 - scene.render.border_max_y,
-                                                        dspy_notes)
-
-    ri.Display(main_display, display_driver, "rgba", params)
+    ri.Display(main_display, display_driver, "rgba", dspy_info)
     rpass.output_files.append(main_display)
 
     display_params = {'int asrgba': 1}
@@ -3638,50 +3604,10 @@ def write_auto_archives(paths, scene, info_callback):
 
 
 def interactive_initial_rib(rpass, ri, scene, prman):
-    params = {}
-    rm = scene.renderman
 
-    from time import localtime, strftime
+    dspy_info = make_dspy_info(scene)
 
-    ts = strftime("%a %x, %X", localtime())
-    ts = bytes(ts, 'ascii', 'ignore').decode('utf-8', 'ignore')
-    dspy_notes = "Started:\t%s\r\r" % ts
-    dspy_notes += "Integrator:\t%s\r" % rm.integrator
-    dspy_notes += "Samples:\t%d - %d\r" % (rm.min_samples, rm.max_samples)
-    dspy_notes += "Pixel Variance:\t%f\r\r" % rm.pixel_variance
-
-    integrator = getattr(rm, "%s_settings" % rm.integrator)
-
-    if rm.integrator == 'PxrPathTracer':
-        # integrator = getattr(rm, "%s_settings" % rm.integrator)
-        dspy_notes += "Mode:\t%s\r" % integrator.sampleMode
-        dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
-        dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
-
-        if integrator.sampleMode == 'bxdf':
-            dspy_notes += "Indirect:\t%d\r" % integrator.numIndirectSamples
-        else:
-            dspy_notes += "Diffuse:\t%d\r" % integrator.numDiffuseSamples
-            dspy_notes += "Specular:\t%d\r" % integrator.numSpecularSamples
-            dspy_notes += "Subsurface:\t%d\r" % integrator.numSubsurfaceSamples
-            dspy_notes += "Refraction:\t%d\r" % integrator.numRefractionSamples
-
-    elif rm.integrator == "PxrVCM":
-        # integrator = getattr(rm, "%s_settings" % rm.integrator)
-        dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
-        dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
-
-    params["string dspyParams"] = """ itOpenHandler {::ice::startTimer;};;;                     \
-                                      itCloseHandler {::ice::endTimer %%arglist; };;;           \
-                                      dspyRender -renderer preview -time %d -crop %f %f %f %f   \
-                                      -notes %s""" % (scene.frame_current,
-                                                    scene.render.border_min_x,
-                                                    scene.render.border_max_x,
-                                                    1.0 - scene.render.border_min_y,
-                                                    1.0 - scene.render.border_max_y,
-                                                    dspy_notes)
-
-    ri.Display('rerender', 'it', 'rgba', params)
+    ri.Display('rerender', 'it', 'rgba', dspy_info)
     export_hider(ri, rpass, scene, True)
 
     ri.EditWorldBegin(
@@ -3692,6 +3618,59 @@ def interactive_initial_rib(rpass, ri, scene, prman):
 
     ri.ArchiveRecord("structure", ri.STREAMMARKER + "_initial")
     prman.RicFlush("_initial", 0, ri.FINISHRENDERING)
+
+
+def make_dspy_info(scene):
+    """
+    Create some render parameter from scene and pass it to image tool.
+
+    If current scene renders to "it", collect some useful infos from scene
+    and send them alongside the render job to Rendermans image tool. Applies to
+    renderpass result only, does not affect postprocessing like denoise.
+    """
+    params = {}
+    rm = scene.renderman
+    from time import localtime, strftime
+    ts = strftime("%a %x, %X", localtime())
+    ts = bytes(ts, 'ascii', 'ignore').decode('utf-8', 'ignore')
+
+    dspy_notes = "Render start:\t%s\r\r" % ts
+    dspy_notes += "Integrator:\t%s\r\r" % rm.integrator
+    dspy_notes += "Samples:\t%d - %d\r" % (rm.min_samples, rm.max_samples)
+    dspy_notes += "Pixel Variance:\t%f\r\r" % rm.pixel_variance
+
+    # moved this in front of integrator check. Was called redundant in
+    # both cases
+    integrator = getattr(rm, "%s_settings" % rm.integrator)
+
+    if rm.integrator == 'PxrPathTracer':
+        dspy_notes += "Mode:\t%s\r" % integrator.sampleMode
+        dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
+        dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
+
+        if integrator.sampleMode == 'bxdf':
+            dspy_notes += "Indirect:\t%d\r\r" % integrator.numIndirectSamples
+        else:
+            dspy_notes += "Diffuse:\t%d\r" % integrator.numDiffuseSamples
+            dspy_notes += "Specular:\t%d\r" % integrator.numSpecularSamples
+            dspy_notes += "Subsurface:\t%d\r" % integrator.numSubsurfaceSamples
+            dspy_notes += "Refraction:\t%d\r" % integrator.numRefractionSamples
+
+    elif rm.integrator == "PxrVCM":
+        dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
+        dspy_notes += "Bxdf:\t%d\r\r" % integrator.numBxdfSamples
+
+    # escaping line break is requiered
+    params["string dspyParams"] = """ itOpenHandler {::ice::startTimer;};;;                     \
+                                      itCloseHandler {::ice::endTimer %%arglist; };;;           \
+                                      dspyRender -renderer preview -time %d -crop %f %f %f %f   \
+                                      -notes %s""" % (scene.frame_current,
+                                                      scene.render.border_min_x,
+                                                      scene.render.border_max_x,
+                                                      1.0 - scene.render.border_min_y,
+                                                      1.0 - scene.render.border_max_y,
+                                                      dspy_notes)
+    return params
 
 # flush the current edit
 
