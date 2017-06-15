@@ -126,4 +126,5 @@ def register():
         pass #allready registered
 
 def unregister():
-    bpy.utils.register_class(Renderman_Presets_UI_Panel)
+    bpy.utils.unregister_class(Renderman_Presets_Menu)
+    bpy.utils.unregister_class(Renderman_Presets_UI_Panel)

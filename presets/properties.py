@@ -38,7 +38,7 @@ import os
 # an actual preset
 class RendermanPreset(PropertyGroup):
     bl_label = "Renderman Preset Group"
-    bl_idname = 'RendermanPresetGroup'
+    bl_idname = 'RendermanPreset'
 
     #def get_enum_items(self, context):
     #    return icons.enum_items
