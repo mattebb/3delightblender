@@ -963,7 +963,9 @@ def parseNodeGraph(nt, Asset):
     nodes_to_convert = gather_nodes(out)
 
     for node in nodes_to_convert:
-        graph.AddNode(node)
+        # some "nodes" are actually tuples
+        if type(node) != type((1,2,3)):
+            graph.AddNode(node)
 
     graph.Process()
     graph.Serialize(Asset)
