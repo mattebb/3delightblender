@@ -658,18 +658,18 @@ def modify_light_matrix(m, ob):
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
         m = m * m2
         if ob.data.type == 'AREA':
-            if data.renderman.area_shape == 'rect':
-                m = m * Matrix.Scale(data.size, 4, (1, 0, 0)) * \
-                    Matrix.Scale(data.size_y, 4, (0, 1, 0))
-            else:
-                m = m * Matrix.Scale(data.size, 4, (1, 1, 1))
+            m[0][0] *= data.size
+            m[1][1] *= data.size
+            if data.renderman.area_shape == 'sphere':
+                m[2][2] *= data.size
         elif ob.data.type == 'SPOT':
-            m = m * Matrix.Scale(.01, 4, (1, 0, 0)) * \
-                Matrix.Scale(.01, 4, (0, 1, 0))
+            m[0][0] *= .01
+            m[1][1] *= .01
     elif ob.data.type == 'POINT':
-        m = m * Matrix.Scale(.001, 4, (1, 0, 0)) * Matrix.Scale(.001,
-                                                                4, (0, 1, 0)) * Matrix.Scale(.001, 4, (0, 0, 1))
-
+        m[0][0] *= .001
+        m[1][1] *= .001
+        m[2][2] *= .001
+    
     if ob.data.type in ['HEMI']:
         eul = m.to_euler()
         eul = Euler([eul[0], eul[1], eul[2]], eul.order)
