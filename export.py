@@ -2574,7 +2574,7 @@ def property_group_to_params(node, lamp=None):
     for prop_name, meta in node.prop_meta.items():
         prop = getattr(node, prop_name)
         # if property group recurse
-        if meta['renderman_type'] == 'page' or prop_name == 'notes':
+        if meta['renderman_type'] == 'page' or prop_name == 'notes' or meta['renderman_type'] == 'enum':
             continue
         # if input socket is linked reference that
         else:
