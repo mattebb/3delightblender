@@ -112,7 +112,19 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 # ------- Subclassed Panel Types -------
 
 
-class CollectionPanel():
+class _RManPanelHeader():
+    def draw_header(self, context):
+        # """If enabled in user preferences, draw a leading icon on panels."""
+        # addon_prefs = get_addon_prefs()
+        # if addon_prefs.enable_panel_icons:
+        icons = load_icons()
+        rfb_icon = icons.get("rfb_panel")
+        self.layout.label(text="", icon_value=rfb_icon.icon_id)
+        # else:
+        #     pass
+
+
+class CollectionPanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
 
@@ -152,7 +164,7 @@ class CollectionPanel():
 narrowui = 180
 
 
-class PRManButtonsPanel():
+class PRManButtonsPanel(_RManPanelHeader):
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "render"
@@ -616,7 +628,7 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
         layout.prop(rm, "face_boundary")
 
 
-class MATERIAL_PT_renderman_preview(Panel):
+class MATERIAL_PT_renderman_preview(Panel, _RManPanelHeader):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_options = {'DEFAULT_CLOSED'}
@@ -639,7 +651,7 @@ class MATERIAL_PT_renderman_preview(Panel):
             #        mat, "node_tree", bpy.data, "node_groups")
 
 
-class ShaderNodePanel():
+class ShaderNodePanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_label = 'Node Panel'
@@ -662,7 +674,7 @@ class ShaderNodePanel():
         return False
 
 
-class ShaderPanel():
+class ShaderPanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     COMPAT_ENGINES = {'PRMAN_RENDER'}
@@ -1151,7 +1163,7 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         sub.prop(rm, "motion_segments")
 
 
-class RendermanRibBoxPanel():
+class RendermanRibBoxPanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_label = "RIB Box"
@@ -1310,7 +1322,7 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
         row.prop(rm, "raytrace_decimationrate", text="Decimation Rate")
 
 
-class OBJECT_PT_renderman_object_matteid(Panel):
+class OBJECT_PT_renderman_object_matteid(Panel, _RManPanelHeader):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
@@ -1464,7 +1476,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
                                   "custom_aovs", "custom_aov_index")
 
 
-class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel):
+class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel, _RManPanelHeader):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "particle"
@@ -1898,7 +1910,7 @@ class Renderman_Object_Panel(CollectionPanel, Panel):
                           type='GRID', columns=3)
 
 
-class Renderman_UI_Panel(bpy.types.Panel):
+class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
     bl_idname = "renderman_ui_panel"
     bl_label = "Renderman "
     bl_space_type = "VIEW_3D"
