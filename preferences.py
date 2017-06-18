@@ -261,8 +261,6 @@ def register():
 
 
 def unregister():
-    from .presets import properties
-    properties.unregister()
     bpy.utils.unregister_class(RendermanPreferences)
     bpy.utils.unregister_class(RendermanEnvVarSettings)
     bpy.utils.unregister_class(RendermanPreferencePath)

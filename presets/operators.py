@@ -314,9 +314,23 @@ def register():
     try:
         bpy.utils.register_class(init_preset_library)
         bpy.utils.register_class(set_active_preset_library)
+        bpy.utils.register_class(load_asset_to_scene)
+        bpy.utils.register_class(save_asset_to_lib)
+        bpy.utils.register_class(add_preset_library)
+        bpy.utils.register_class(remove_preset_library)
+        bpy.utils.register_class(move_preset_library)
+        bpy.utils.register_class(move_preset)
+        bpy.utils.register_class(remove_preset)
     except:
         pass #allready registered
 
 def unregister():
-    bpy.utils.register_class(init_preset_library)
+    bpy.utils.unregister_class(init_preset_library)
     bpy.utils.unregister_class(set_active_preset_library)
+    bpy.utils.unregister_class(load_asset_to_scene)
+    bpy.utils.unregister_class(save_asset_to_lib)
+    bpy.utils.unregister_class(add_preset_library)
+    bpy.utils.unregister_class(remove_preset_library)
+    bpy.utils.unregister_class(move_preset_library)
+    bpy.utils.unregister_class(move_preset)
+    bpy.utils.unregister_class(remove_preset)
