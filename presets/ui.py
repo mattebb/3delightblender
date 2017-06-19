@@ -24,14 +24,20 @@
 # ##### END MIT LICENSE BLOCK #####
 
 from .. import util
+
+# for panel icon
+from .. icons import icons as ui_icons
+
 import bpy
 from .properties import RendermanPresetGroup, RendermanPreset
+
+# for previews of assets
 from . import icons
+
 from bpy.props import StringProperty
 
 
-   
-# panel for the toolbar of node editor 
+# panel for the toolbar of node editor
 class Renderman_Presets_UI_Panel(bpy.types.Panel):
     bl_idname = "renderman_presets_ui_panel"
     bl_label = "RenderMan Presets"
@@ -43,6 +49,14 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
     def poll(cls, context):
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
+
+    def draw_header(self, context):
+        if util.get_addon_prefs().draw_panel_icon:
+            rfb_icons = ui_icons.load_icons()
+            rfb_icon = rfb_icons.get("rfb_panel")
+            self.layout.label(text="", icon_value=rfb_icon.icon_id)
+        else:
+            pass
 
     # draws the panel
     def draw(self, context):
@@ -56,16 +70,16 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
         presets_library = util.get_addon_prefs().presets_library
 
         if presets_library.name == '':
-            layout.operator("renderman.init_preset_library", text="Set up Library") 
+            layout.operator("renderman.init_preset_library", text="Set up Library")
         else:
             layout = self.layout
-            
+
             row = layout.row(align=True)
             row.context_pointer_set('renderman_preset', util.get_addon_prefs().presets_library)
             row.menu('renderman_presets_menu', text="Select Library")
             row.operator("renderman.init_preset_library", text="", icon="FILE_REFRESH")
             active = RendermanPresetGroup.get_active_library()
-            
+
             if active:
                 row = layout.row(align=True)
                 row.prop(active, 'name', text='Library')
@@ -73,7 +87,7 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
                 row.operator('renderman.move_preset_library', text='', icon='MAN_TRANS').lib_path = active.path
                 row.operator('renderman.remove_preset_library', text='', icon='X')
                 current_preset = RendermanPreset.get_from_path(active.current_preset)
-                
+
                 if current_preset:
                     row = layout.row()
                     row.label("Current Preset:")
