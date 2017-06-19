@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2015 Brian Savery
+# Copyright (c) 2015 - 2017 Pixar
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,6 @@
 import bpy
 import math
 import blf
-from . import addon_updater_ops
 from bpy.types import Panel
 from .nodes import NODE_LAYOUT_SPLIT, is_renderman_nodetree, panel_node_draw
 
@@ -184,8 +183,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         layout = self.layout
         rd = context.scene.render
         rm = context.scene.renderman
-        addon_updater_ops.check_for_update_background(context)
-
+        
         # Render
         row = layout.row(align=True)
         rman_render = icons.get("render")
@@ -225,7 +223,6 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         col = layout.column()
         col.prop(context.scene.renderman, "render_selected_objects_only")
         col.prop(rm, "do_denoise")
-        addon_updater_ops.update_notice_box_ui(self, context)
 
 
 class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):

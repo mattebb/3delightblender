@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2015 Brian Savery
+# Copyright (c) 2015 - 2017 Pixar
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,6 @@
 import bpy
 import sys
 import os
-from . import addon_updater_ops
 from bpy.types import AddonPreferences
 from bpy.props import CollectionProperty, BoolProperty, StringProperty
 from bpy.props import IntProperty, PointerProperty, EnumProperty
@@ -188,33 +187,6 @@ class RendermanPreferences(AddonPreferences):
         default = True,
         )
 
-    updater_intrval_months = bpy.props.IntProperty(
-        name='Months',
-        description = "Number of months between checking for updates",
-        default=0,
-        min=0
-        )
-    updater_intrval_days = bpy.props.IntProperty(
-        name='Days',
-        description = "Number of days between checking for updates",
-        default=1,
-        min=0,
-        )
-    updater_intrval_hours = bpy.props.IntProperty(
-        name='Hours',
-        description = "Number of hours between checking for updates",
-        default=0,
-        min=0,
-        max=23
-        )
-    updater_intrval_minutes = bpy.props.IntProperty(
-        name='Minutes',
-        description = "Number of minutes between checking for updates",
-        default=0,
-        min=0,
-        max=59
-        )
-
     presets_library = PointerProperty(
         type=RendermanPresetGroup,
     )
@@ -248,7 +220,6 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(self, 'path_aov_image')
         layout.prop(self, 'draw_ipr_text')
         layout.prop(self, 'draw_panel_icon')
-        addon_updater_ops.update_settings_ui(self,context)
         layout.prop(self.presets_library, 'path')
         #layout.prop(env, "shd")
         #layout.prop(env, "ptc")
