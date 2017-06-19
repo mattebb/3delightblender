@@ -648,6 +648,22 @@ class MATERIAL_PT_renderman_preview(Panel, _RManPanelHeader):
             #    layout.prop_search(
             #        mat, "node_tree", bpy.data, "node_groups")
 
+        layout.separator()
+        split = layout.split()
+
+        col = split.column(align=True)
+        col.label("Viewport Color:")
+        col.prop(mat, "diffuse_color", text="")
+        #col.prop(mat, "alpha")
+
+        #col.separator()
+        #col.label("Viewport Alpha:")
+        #col.prop(mat.game_settings, "alpha_blend", text="")
+
+        col = split.column(align=True)
+        col.label("Viewport Specular:")
+        col.prop(mat, "specular_color", text="")
+        col.prop(mat, "specular_hardness", text="Hardness")
 
 class ShaderNodePanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
