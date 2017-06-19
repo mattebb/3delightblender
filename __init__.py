@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2011 Matt Ebb
+# Copyright (c) 2015 - 2017 Pixar
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
 # ##### END MIT LICENSE BLOCK #####
 import bpy
 import sys
-from . import addon_updater_ops
 
 bl_info = {
     "name": "RenderMan For Blender",
@@ -117,7 +116,6 @@ def load_addon():
 def register():
     from . import preferences
     preferences.register()
-    addon_updater_ops.register(bl_info)
     load_addon()
     from . import presets
     presets.register()
@@ -133,7 +131,6 @@ def unregister():
     ui.unregister()
     nodes.unregister()
     preferences.unregister()
-    addon_updater_ops.unregister()
     from . import presets
     presets.unregister()
     bpy.utils.unregister_module(__name__)
