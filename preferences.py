@@ -161,6 +161,11 @@ class RendermanPreferences(AddonPreferences):
         description="Draw notice on View3D when IPR is active",
         default=True)
 
+    draw_panel_icon = BoolProperty(
+        name="Draw Panel Icon",
+        description="Draw an icon on Renderman Panels",
+        default=True)
+
     path_display_driver_image = StringProperty(
         name="Main Image path",
         description="Path for the rendered main image",
@@ -182,7 +187,7 @@ class RendermanPreferences(AddonPreferences):
         description = "If enabled, auto-check for updates using an interval",
         default = True,
         )
-    
+
     updater_intrval_months = bpy.props.IntProperty(
         name='Months',
         description = "Number of months between checking for updates",
@@ -221,7 +226,7 @@ class RendermanPreferences(AddonPreferences):
         description="Path for preset files, if not present these will be copied from RMANTREE.\n  Set this if you want to pull in an external library.",
         subtype='FILE_PATH',
         default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'presets', 'RenderManAssetLibrary'))
-    
+
 
     def draw(self, context):
         layout = self.layout
@@ -242,6 +247,7 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(self, 'path_display_driver_image')
         layout.prop(self, 'path_aov_image')
         layout.prop(self, 'draw_ipr_text')
+        layout.prop(self, 'draw_panel_icon')
         addon_updater_ops.update_settings_ui(self,context)
         layout.prop(self.presets_library, 'path')
         #layout.prop(env, "shd")

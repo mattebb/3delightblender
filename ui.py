@@ -103,25 +103,23 @@ def get_panels():
 # icons
 import os
 from . icons.icons import load_icons
+from . util import get_addon_prefs
 
 
-from bpy.props import PointerProperty, StringProperty, BoolProperty, \
-    EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
-    CollectionProperty
+from bpy.props import (PointerProperty, StringProperty, BoolProperty,
+                       EnumProperty, IntProperty, FloatProperty, FloatVectorProperty,
+                       CollectionProperty)
+
 
 # ------- Subclassed Panel Types -------
-
-
 class _RManPanelHeader():
     def draw_header(self, context):
-        # """If enabled in user preferences, draw a leading icon on panels."""
-        # addon_prefs = get_addon_prefs()
-        # if addon_prefs.enable_panel_icons:
-        icons = load_icons()
-        rfb_icon = icons.get("rfb_panel")
-        self.layout.label(text="", icon_value=rfb_icon.icon_id)
-        # else:
-        #     pass
+        if get_addon_prefs().draw_panel_icon:
+            icons = load_icons()
+            rfb_icon = icons.get("rfb_panel")
+            self.layout.label(text="", icon_value=rfb_icon.icon_id)
+        else:
+            pass
 
 
 class CollectionPanel(_RManPanelHeader):
