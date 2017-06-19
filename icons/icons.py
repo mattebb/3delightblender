@@ -100,6 +100,10 @@ def load_icons():
     custom_icons.load("reload_plugin", os.path.join(
         icons_dir, "rman_loadplugin.png"), 'IMAGE')
 
+    # Renderman for Blender UI-Panels Icon - "R"
+    custom_icons.load("rfb_panel", os.path.join(
+        icons_dir, "rman_blender.png"), 'IMAGE')
+
     renderman_icon_collections["main"] = custom_icons
     renderman_icons_loaded = True
 
