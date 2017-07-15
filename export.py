@@ -2165,6 +2165,13 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
     if instance.type != 'META':
         export_transform(ri, instance, concat=is_child)
 
+    object_material = False
+    if instance.ob and instance.type == 'MESH':
+        ob = instance.ob
+        object_material = ob.active_material and ob.material_slots[ob.active_material_index].link == 'OBJECT'
+        if object_material:
+            export_material_archive(ri, ob.active_material)
+
     for db_name in instance.data_block_names:
         if db_name in data_blocks:
             if(hasattr(data_blocks[db_name].data, 'renderman')):
@@ -2172,9 +2179,9 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
                     export_data_rib_archive(
                         ri, data_blocks[db_name], instance, rpass)
                 else:
-                    export_data_read_archive(ri, data_blocks[db_name], rpass)
+                    export_data_read_archive(ri, data_blocks[db_name], rpass, skip_material=object_material)
             else:
-                export_data_read_archive(ri, data_blocks[db_name], rpass)
+                export_data_read_archive(ri, data_blocks[db_name], rpass, skip_material=object_material)
 
         # now the children
     for child_name in instance.children:
@@ -2188,11 +2195,12 @@ def export_instance_read_archive(ri, instance, instances, data_blocks, rpass, is
     ri.AttributeEnd()
 
 
-def export_data_read_archive(ri, data_block, rpass):
+def export_data_read_archive(ri, data_block, rpass, skip_material=False):
     ri.AttributeBegin()
 
-    for mat in data_block.material:
-        export_material_archive(ri, mat)
+    if not skip_material:
+        for mat in data_block.material:
+            export_material_archive(ri, mat)
 
     archive_filename = relpath_archive(data_block.archive_filename, rpass)
 
