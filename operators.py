@@ -717,7 +717,7 @@ blenderAddonPaths = addon_utils.paths()
 rendermanExampleFilesList = []
 names = []
 for path in blenderAddonPaths:
-    basePath = os.path.join(path, "PRMan-for-Blender", "examples")
+    basePath = os.path.join(path, "RenderManForBlender", "examples")
     exists = os.path.exists(basePath)
     if exists:
         names = get_Files_in_Directory(basePath)
@@ -736,7 +736,7 @@ for name in names:
         def loadFile(self, context, exampleName):
             blenderAddonPaths = addon_utils.paths()
             for path in blenderAddonPaths:
-                basePath = os.path.join(path, "PRMan-for-Blender", "examples")
+                basePath = os.path.join(path, "RenderManForBlender", "examples")
                 exists = os.path.exists(basePath)
                 if exists:
                     examplePath = os.path.join(

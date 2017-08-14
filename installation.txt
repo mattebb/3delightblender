@@ -4,7 +4,7 @@ PRMan for Blender Installation Instructions
 1.  Install Blender if not already (2.78 recommended)
 
 2.  Register for the free Non-Commercial Version of RenderMan from Pixar.
-https://renderman.pixar.com/view/non-commercial-renderman
+https://renderman.pixar.com/store/intro
 
 3.  Download and install RenderMan Pro Server Package and 
 installation instructions at: http://rendermansite.pixar.com/view/get-renderman 
@@ -14,7 +14,7 @@ It is recommended to install RenderMan Pro Server in the default location (or se
 3.A If on Windows, be sure to restart after installing RenderMan Pro Server
 
 4.  Download the latest release of the RenderMan for Blender addon 
-https://github.com/bsavery/PRMan-for-Blender/releases save the zip file somewhere.
+https://github.com/prman-pixar/RenderManForBlender/releases save the zip file somewhere.
 
 5.  Start Blender, and from the File->User Preferences->Add-ons install the zip file from step 4.  
 

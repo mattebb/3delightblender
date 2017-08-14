@@ -2423,11 +2423,11 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.separator()
         # Renderman Doc
         rman_help = icons.get("help")
-        layout.operator("wm.url_open", text="Renderman Docs",
-                        icon_value=rman_help.icon_id).url = "https://github.com/bsavery/PRMan-for-Blender/wiki/Documentation-Home"
+        layout.operator("wm.url_open", text="RenderMan Docs",
+                        icon_value=rman_help.icon_id).url = "https://github.com/prman-pixar/RenderManForBlender/wiki/Documentation-Home"
         rman_info = icons.get("info")
-        layout.operator("wm.url_open", text="About Renderman",
-                        icon_value=rman_info.icon_id).url = "http://renderman.pixar.com/view/non-commercial-renderman"
+        layout.operator("wm.url_open", text="About RenderMan",
+                        icon_value=rman_info.icon_id).url = "https://renderman.pixar.com/store/intro"
 
         # Reload the addon
         # rman_reload = icons.get("reload_plugin")
