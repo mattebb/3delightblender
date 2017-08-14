@@ -162,7 +162,7 @@ class RendermanPreferences(AddonPreferences):
 
     draw_panel_icon = BoolProperty(
         name="Draw Panel Icon",
-        description="Draw an icon on Renderman Panels",
+        description="Draw an icon on RenderMan Panels",
         default=True)
 
     path_display_driver_image = StringProperty(

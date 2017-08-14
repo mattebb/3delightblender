@@ -3633,7 +3633,7 @@ def make_dspy_info(scene):
     Create some render parameter from scene and pass it to image tool.
 
     If current scene renders to "it", collect some useful infos from scene
-    and send them alongside the render job to Rendermans image tool. Applies to
+    and send them alongside the render job to RenderMan's image tool. Applies to
     renderpass result only, does not affect postprocessing like denoise.
     """
     params = {}
