@@ -1,6 +1,7 @@
 v21.5.0 8/14/17
 * Heat grid now available for Blender smoke sims cached with OpenVDB
 * RIB formatting now works with IPR renders
+* Icons have been added to all ui panels that contain Renderman settings
 * Numerous fixes to the preset browser
 * Light rig presets now have correct world rotation
 * Can now update crop window during IPR
