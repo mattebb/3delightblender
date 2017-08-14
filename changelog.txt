@@ -1,3 +1,15 @@
+v21.5.0 8/14/17
+* Heat grid now available for Blender smoke sims cached with OpenVDB
+* RIB formatting now works with IPR renders
+* Numerous fixes to the preset browser
+* Light rig presets now have correct world rotation
+* Can now update crop window during IPR
+* Viewport diffuse and specular color controls now work
+* Auto updater has been temporarily removed 
+* Materials can now be linked directly to an object instance
+* RenderManForBlender is now being released under the MIT license
+* Code contributed by adminradio, a-e-k, bsavery, jdent02, and Lightye
+
 v21.4.0 5/16/17
 * Support for PxrHairColor (per strand index)
 * Preset browser integration.  Found under the RenderMan tab in the View3D menu (press T).  This is an implementation of the same preset browser in RfM.  Allows you to share shader networks with RfM, and save and import your favorite materials, and apply them to selected objects.
