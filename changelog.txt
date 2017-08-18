@@ -1,4 +1,4 @@
-v21.5.0 8/14/17
+v21.5.0 8/18/17
 * Heat grid now available for Blender smoke sims cached with OpenVDB
 * RIB formatting now works with IPR renders
 * Icons have been added to all ui panels that contain RenderMan settings
@@ -6,7 +6,7 @@ v21.5.0 8/14/17
 * Light rig presets now have correct world rotation
 * Can now update crop window during IPR
 * Viewport diffuse and specular color controls now work
-* Auto updater has been temporarily removed 
+* Auto updater has been temporarily removed
 * Materials can now be linked directly to an object instance
 * Update a few paths, URLs, and other details
 * Spell RenderMan with bi-caps in user visible strings
@@ -51,7 +51,7 @@ v21.2.0 11/8/16
   * Using "add renderman nodetree" will attempt to convert and hook up your cycles nodetree.
      * this is still a work in progress and won't give you an exact conversion.
 * New PxrSurface lobe AOV's.  Due to changes in codebase you will have to reassign any existing AOV's to avoid export errors.
-* Support for PRMan 21 features - specifically new shaders and lights.
+* Support for RenderMan 21 features - specifically new shaders and lights.
 * Portal lights are supported.
 * Light filters are added - using a light and set it to "Filter type", then link the filters to your lights.
 * Sample and display filters are now under the scene properties.
@@ -85,7 +85,7 @@ v0.9.0 7/13/16
 * curves can render as ribbons now or round curves (default)
 * hair width correctly uses the Cycles settings rather than duplicating
 * High resolution smoke is supported (finally)
-* Darkfalloff is supported (thanks jdent) PRMan 20.9 feature
+* Darkfalloff is supported (thanks jdent) RenderMan 20.9 feature
 * Openexr renders can go to multilayer exrs for compositing (thanks Jdent)
 * some example files are provided - accesible though toolbar
 * Inline RIB boxes can now be inserted into the rib stream in various places (scene, world, object settings)
@@ -198,7 +198,7 @@ v0.1.1 25/03/2015
 * Changed RIB output for 19.0 specific construct (integrator, bxdf, etc)
 * TODO - proper shader network support of bxdf/pattern via args files
         - integrator settings and general settings cleanup
-        - move to prman python plugin for rib integration
+        - move to RenderMan python plugin for rib integration
         - lights integration
         - general code cleanup
 

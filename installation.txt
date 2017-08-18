@@ -1,4 +1,4 @@
-PRMan for Blender Installation Instructions
+RenderMan for Blender Installation Instructions
 ------------------------------------------
 
 1.  Install Blender if not already (2.78 recommended)
@@ -25,8 +25,8 @@ ADVANCED:
 RenderMan normally bases everything off a variable RMANTREE which is set to your installation
 folder, eg /Applications/Pixar/RenderManProServer-21.0 on OSX and C:\Program Files\Pixar\RenderManProServer-21.0 on Windows.
 
-PRMan for Blender will try and guess the appropriate RenderMan version to use and the location of
-the RMANTREE folder.  If you are installing PRMan to the standard location you shouldn't have to do anything!
+RenderMan for Blender will try and guess the appropriate RenderMan version to use and the location of
+the RMANTREE folder.  If you are installing RenderMan to the standard location you shouldn't have to do anything!
 
 However, if you installed in a non-standard location, set the RMANTREE 
 environment variable before starting blender.

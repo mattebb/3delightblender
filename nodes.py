@@ -542,7 +542,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
 
 
 class RendermanOutputNode(RendermanShadingNode):
-    bl_label = 'PRMan Material'
+    bl_label = 'RenderMan Material'
     renderman_node_type = 'output'
     bl_icon = 'MATERIAL'
     node_tree = None
@@ -2019,7 +2019,7 @@ def is_same_type(socket1, socket2):
 
 
 def is_float_type(socket):
-    # this is a prman node
+    # this is a renderman node
     if type(socket) == type({}):
         return socket['renderman_type'] in ['int', 'float']
     elif hasattr(socket.node, 'plugin_name'):
@@ -2033,7 +2033,7 @@ def is_float_type(socket):
 
 
 def is_float3_type(socket):
-    # this is a prman node
+    # this is a renderman node
     if type(socket) == type({}):
         return socket['renderman_type'] in ['int', 'float']
     elif hasattr(socket.node, 'plugin_name'):
@@ -2269,18 +2269,18 @@ def register():
             nodetypes[typename] = nodetype
 
     node_cats = {
-        'bxdf': ('PRMan Bxdfs', []),
-        'light': ('PRMan Lights', []),
-        'patterns_texture': ('PRMan Texture Patterns', []),
-        'patterns_bump': ('PRMan Bump Patterns', []),
-        'patterns_color': ('PRMan Color Patterns', []),
-        'patterns_manifold': ('PRMan Manifold Patterns', []),
-        'patterns_geometry': ('PRMan Geometry Patterns', []),
-        'patterns_utility': ('PRMan Utility Patterns', []),
-        'patterns_script': ('PRMan Script Patterns', []),
-        'patterns_displace': ('PRMan Displacement Patterns', []),
-        'patterns_layer': ('PRMan Layers', []),
-        'displacement': ('PRMan Displacements', [])
+        'bxdf': ('RenderMan Bxdfs', []),
+        'light': ('RenderMan Lights', []),
+        'patterns_texture': ('RenderMan Texture Patterns', []),
+        'patterns_bump': ('RenderMan Bump Patterns', []),
+        'patterns_color': ('RenderMan Color Patterns', []),
+        'patterns_manifold': ('RenderMan Manifold Patterns', []),
+        'patterns_geometry': ('RenderMan Geometry Patterns', []),
+        'patterns_utility': ('RenderMan Utility Patterns', []),
+        'patterns_script': ('RenderMan Script Patterns', []),
+        'patterns_displace': ('RenderMan Displacement Patterns', []),
+        'patterns_layer': ('RenderMan Layers', []),
+        'displacement': ('RenderMan Displacements', [])
     }
 
     for name, node_type in nodetypes.items():
@@ -2310,7 +2310,7 @@ def register():
     # all categories in a list
     node_categories = [
         # identifier, label, items list
-        RendermanPatternNodeCategory("PRMan_output_nodes", "PRMan Outputs",
+        RendermanPatternNodeCategory("PRMan_output_nodes", "RenderMan Outputs",
                                      items=[NodeItem('RendermanOutputNode', label=RendermanOutputNode.bl_label)]),
     ]
 

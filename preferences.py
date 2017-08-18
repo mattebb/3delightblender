@@ -104,13 +104,13 @@ class RendermanPreferences(AddonPreferences):
     archive_paths_index = IntProperty(min=-1, default=-1)
 
     use_default_paths = BoolProperty(
-        name="Use PRMan default paths",
+        name="Use RenderMan default paths",
         description="Includes paths for default shaders etc. from RenderMan Pro\
             Server install",
         default=True)
     use_builtin_paths = BoolProperty(
         name="Use built in paths",
-        description="Includes paths for default shaders etc. from PRMan\
+        description="Includes paths for default shaders etc. from RenderMan\
             exporter",
         default=False)
 

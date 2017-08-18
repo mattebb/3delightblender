@@ -474,7 +474,7 @@ class StartInteractive(bpy.types.Operator):
         w = context.region.width
         h = context.region.height
 
-        # Draw text area that PRMan is running.
+        # Draw text area that RenderMan is running.
         pos_x = w / 2 - 100
         pos_y = 20
         blf.enable(0, blf.SHADOW)
@@ -483,7 +483,7 @@ class StartInteractive(bpy.types.Operator):
         blf.size(0, 32, 36)
         blf.position(0, pos_x, pos_y, 0)
         bgl.glColor4f(1.0, 0.0, 0.0, 1.0)
-        blf.draw(0, "%s" % ('PRMan Interactive Mode Running'))
+        blf.draw(0, "%s" % ('RenderMan Interactive Mode Running'))
         blf.disable(0, blf.SHADOW)
 
     def invoke(self, context, event=None):

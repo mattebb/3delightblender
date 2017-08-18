@@ -574,7 +574,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     dicing_strategy = EnumProperty(
         name="Dicing Strategy",
-        description="Sets the method that PRMan uses to tessellate objects.  Spherical may help with volume rendering",
+        description="Sets the method that RenderMan uses to tessellate objects.  Spherical may help with volume rendering",
         items=[
             ("planarprojection", "Planar Projection",
              "Tessellates using the screen space coordinates of a primitive projected onto a plane"),
@@ -795,7 +795,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     enable_external_rendering = BoolProperty(
         name="Enable External Rendering",
-        description="This will allow extended rendering modes, which allow batch rendering to PRMan outside of Blender",
+        description="This will allow extended rendering modes, which allow batch rendering to RenderMan outside of Blender",
         default=False)
 
     display_driver = EnumProperty(
@@ -957,12 +957,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     do_denoise = BoolProperty(
         name="Denoise Post-Process",
-        description="Use PRMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image",
+        description="Use RenderMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image",
         default=False)
 
     external_denoise = BoolProperty(
         name="Denoise Post-Process",
-        description="Use PRMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image",
+        description="Use RenderMan's image denoiser to post process your render.  This allows you to use a higher pixel variance (and therefore faster render) while still producing a high quality image",
         default=False)
 
     crossframe_denoise = BoolProperty(

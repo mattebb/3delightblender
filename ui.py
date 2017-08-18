@@ -1657,10 +1657,10 @@ def PRMan_menu_func(self, context):
     self.layout.separator()
     if engine.ipr:
         self.layout.operator('lighting.start_interactive',
-                             text="PRMan Stop Interactive Rendering")
+                             text="RenderMan Stop Interactive Rendering")
     else:
         self.layout.operator('lighting.start_interactive',
-                             text="PRMan Start Interactive Rendering")
+                             text="RenderMan Start Interactive Rendering")
 
 
 #################
