@@ -653,23 +653,32 @@ def create_mesh(ob, scene):
 
 
 def modify_light_matrix(m, ob):
+    scale = [1.0, 1.0, 1.0]
     if ob.data.type in ['AREA', 'SPOT', 'SUN']:
         data = ob.data
         m2 = Matrix.Rotation(math.radians(180), 4, 'X')
         m = m * m2
         if ob.data.type == 'AREA':
-            m[0][0] *= data.size
-            m[1][1] *= data.size
-            if data.renderman.area_shape == 'sphere':
-                m[2][2] *= data.size
+            if data.renderman.area_shape == 'rect':
+                scale = [data.size, data.size_y, 1.0]
+            elif data.renderman.area_shape == 'disk':
+                scale = [data.size, data.size, 1.0]
+            elif data.renderman.area_shape == 'sphere':
+                # Force uniform scaling.  First rebuild transform w/o scale
+                loc, rot, sca = m.decompose()
+                med = m.median_scale
+                m = (Matrix.Translation(loc) *
+                     Matrix.Rotation(rot.angle, 4, rot.axis))
+                # Then factor in uniform approximation of old scale
+                scale = [data.size * med, data.size * med, data.size * med]
         elif ob.data.type == 'SPOT':
-            m[0][0] *= .01
-            m[1][1] *= .01
+            scale = [0.01, 0.01, 1.0]
     elif ob.data.type == 'POINT':
-        m[0][0] *= .001
-        m[1][1] *= .001
-        m[2][2] *= .001
-    
+        scale = [0.001, 0.001, 0.001]
+    m *= Matrix.Scale(scale[0], 4, (1.0, 0.0, 0.0))
+    m *= Matrix.Scale(scale[1], 4, (0.0, 1.0, 0.0))
+    m *= Matrix.Scale(scale[2], 4, (0.0, 0.0, 1.0))
+
     if ob.data.type in ['HEMI']:
         eul = m.to_euler()
         eul = Euler([eul[0], eul[1], eul[2]], eul.order)

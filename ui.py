@@ -978,7 +978,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
                     row.prop(lamp, 'size', text="Size X")
                     row.prop(lamp, 'size_y')
                 else:
-                    row.prop(lamp, 'size', text="Radius")
+                    row.prop(lamp, 'size', text="Diameter")
             # layout.prop(lamp.renderman, "shadingrate")
 
         # layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
