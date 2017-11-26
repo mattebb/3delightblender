@@ -1942,6 +1942,13 @@ class RendermanMeshGeometrySettings(bpy.types.PropertyGroup):
         name="Export Default Vertex Color",
         description="Export the active Vertex Color set as the default 'Cs' primitive variable",
         default=True)
+    export_flipv = EnumProperty(
+        name="FlipV",
+        description="Use this to flip the V texture coordinate on the exported geometry when rendering. The origin on Renderman texture coordinates are top-left (ie. Photoshop) of image, UV texture coordinates (ie. Maya) generally use the bottom-left of the image as the origin. It's generally better to do this flip using a pattern like PxrTexture or PxrManifold2d",
+        items=[('NONE', 'No Flip', 'Do not do anything to the UVs.'),
+               ('TILE', 'Flip Tile Space', 'Flips V in tile space. Works with UDIM.'),
+               ('UV', 'Flip UV Space', 'Flips V in UV space. This is here for backwards compatability.')],
+        default='NONE')
     interp_boundary = IntProperty(
         name="Subdivision Edge Interpolation Mode",
         description="Defines how a subdivided mesh interpolates its boundary edges",
