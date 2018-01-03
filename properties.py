@@ -519,12 +519,12 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     pixel_variance = FloatProperty(
         name="Pixel Variance",
         description="If a pixel changes by less than this amount when updated, it will not receive further samples in adaptive mode.  Lower values lead to increased render times and higher quality images",
-        min=0, max=1, default=.01)
+        min=0, max=1, default=.01, precision=3)
 
     dark_falloff = FloatProperty(
         name="Dark Falloff",
         description="Deprioritizes adaptive sampling in dark areas. Raising this can potentially reduce render times but may increase noise in dark areas",
-        min=0, max=1, default=.025)
+        min=0, max=1, default=.025, precision=3)
 
     min_samples = IntProperty(
         name="Min Samples",
@@ -756,7 +756,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     preview_pixel_variance = FloatProperty(
         name="Preview Pixel Variance",
         description="If a pixel changes by less than this amount when updated, it will not receive further samples in adaptive mode",
-        min=0, max=1, default=.05)
+        min=0, max=1, default=.05, precision=3)
 
     preview_bucket_order = EnumProperty(
         name="Preview Bucket Order",
