@@ -375,7 +375,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     continue
                 if prop_name not in self.inputs:
                     if prop_meta['renderman_type'] == 'page':
-                        ui_prop = prop_name + "_ui_open"
+                        ui_prop = prop_name + "_uio"
                         ui_open = getattr(self, ui_prop)
                         icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
                             else 'DISCLOSURE_TRI_RIGHT'
@@ -849,7 +849,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 else:
                     row = layout.row(align=True)
                     if prop_meta['renderman_type'] == 'page':
-                        ui_prop = prop_name + "_ui_open"
+                        ui_prop = prop_name + "_uio"
                         ui_open = getattr(node, ui_prop)
                         icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
                             else 'DISCLOSURE_TRI_RIGHT'
