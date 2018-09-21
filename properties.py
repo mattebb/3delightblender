@@ -41,7 +41,6 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 
 from . import engine
 from bpy.app.handlers import persistent
-import traceback
 
 integrator_names = []
 
@@ -2529,11 +2528,8 @@ def register_plugin_types():
         if not args_xml:
             continue
 
-        try:
-            register_plugin_to_parent(ntype, name, args_xml, plugin_type, parent)
-        except Exception as e:
-            print("Error registering plugin ", name)
-            traceback.print_exc()
+        register_plugin_to_parent(ntype, name, args_xml, plugin_type, parent)
+
 
 @persistent
 def initial_groups(scene):

@@ -53,7 +53,6 @@ from .cycles_convert import *
 from operator import attrgetter, itemgetter
 import os.path
 from time import sleep
-import traceback
 
 NODE_LAYOUT_SPLIT = 0.5
 
@@ -2272,14 +2271,10 @@ def register():
     categories = {}
 
     for name, arg_file in args_files_in_path(prefs, None).items():
-        try:
-            vals = generate_node_type(prefs, name, ET.parse(arg_file).getroot())
-            if vals:
-                typename, nodetype = vals
-                nodetypes[typename] = nodetype
-        except Exception:
-            print("Error parsing " + name)
-            traceback.print_exc()
+        vals = generate_node_type(prefs, name, ET.parse(arg_file).getroot())
+        if vals:
+            typename, nodetype = vals
+            nodetypes[typename] = nodetype
 
     node_cats = {
         'bxdf': ('RenderMan Bxdfs', []),
