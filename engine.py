@@ -66,8 +66,16 @@ from .nodes import get_tex_file_name
 addon_version = bl_info['version']
 
 prman_inited = False
+rman__sg__inited = False
+rman_sg_render_is_running = False
+
 ipr_handle = None
 
+def rman_sg_render_cb(e, d, ed):
+    rman_sg_render_is_running = ( d == 0)
+
+def rman_sg_is_prman_running():
+    return rman_sg_render_is_running
 
 def init_prman():
     # set pythonpath before importing prman
@@ -78,6 +86,25 @@ def init_prman():
     global prman
     import prman
     prman_inited = True
+
+    # for rman 22
+    try:
+        #pythonbindings = os.path.join(guess_rmantree(), 'bin', 'pythonbindings')
+        #rman_internal = os.path.join(os.environ['RMAN_INTERNAL'], 'pythonbindings')
+        #set_pythonpath(pythonbindings)
+        #set_pythonpath(rman_internal)
+        global rman__sg__inited
+        global rman
+        global rman_internal
+        global export_sg
+        import rman
+        import rman_internal
+        from . import export_sg
+        rman__sg__inited = True
+    except Exception as e:
+        print("Could not load scenegraph modules: %s" % str(e))
+        pass
+  
 
 ipr = None
 
@@ -147,7 +174,12 @@ def update(engine, data, scene):
 
 # assumes you have already set the scene
 def start_interactive(engine):
-    engine.render_pass.start_interactive()
+    global rman__sg__inited
+    if rman__sg__inited:
+        #engine.render_pass.start_interactive_sg()
+        print("DO IT")
+    else:
+        engine.render_pass.start_interactive()
 
 
 def update_interactive(engine, context):
@@ -199,27 +231,43 @@ class RPass:
         self.is_interactive = interactive
         self.is_interactive_ready = False
         self.options = []
+        global rman__sg__inited
+        global rman
+        global rman_internal
+
         # check if prman is imported
-        if not prman_inited:
+        if not prman_inited or not rman__sg__inited:
             init_prman()
 
-        if interactive:
-            prman.Init(['-woff', 'A57001'])  # need to disable for interactive
+        if rman__sg__inited:
+            self.rictl = rman.RiCtl.Get()
+            self.sgmngr = rman_internal.SGManager.Get()
+            self.sg_scene = None
+            self.sg_root = None
+            self.rman_sg_exporter = None
         else:
-            prman.Init()
-        self.ri = prman.Ri()
+            if interactive:
+                prman.Init(['-woff', 'A57001'])  # need to disable for interactive
+            else:
+                prman.Init()
+            self.ri = prman.Ri()
         self.edit_num = 0
         self.update_time = None
         self.last_edit_mat = None
 
     def __del__(self):
 
-        if self.is_interactive and self.is_prman_running():
-            self.ri.EditWorldEnd()
-            self.ri.End()
-        del self.ri
-        if prman:
-            prman.Cleanup()
+        global rman__sg__inited
+
+        if rman__sg__inited:
+            pass
+        else:
+            if self.is_interactive and self.is_prman_running():
+                self.ri.EditWorldEnd()
+                self.ri.End()
+            del self.ri
+            if prman:
+                prman.Cleanup()
 
     def initialize_paths(self, scene):
         rm = scene.renderman
@@ -558,7 +606,12 @@ class RPass:
         self.scene = scene
 
     def is_prman_running(self):
-        return prman.RicGetProgress() < 100
+        if rman__sg__inited:
+            #return self.rictl.GetProgress() < 100
+            if self.rman_sg_exporter:
+                return self.rman_sg_exporter.is_prman_running()
+        else:
+            return prman.RicGetProgress() < 100
 
     def reset_filter_names(self):
         self.light_filter_map = {}
@@ -570,6 +623,69 @@ class RPass:
                         self.light_filter_map[lf.filter_name] = []
                     self.light_filter_map[lf.filter_name].append(
                         (obj.data.name, obj.name))
+
+    # start the interactive session, using RixSceneGraph
+    def start_interactive_sg(self):
+        print("Starting interactive")
+        rm = self.scene.renderman
+        if find_it_path() is None:
+            debug('error', "ERROR no 'it' installed.  \
+                    Cannot start interactive rendering.")
+            return
+
+        if self.scene.camera is None:
+            debug('error', "ERROR no Camera.  \
+                    Cannot start interactive rendering.")
+            self.end_interactive()
+            return     
+
+        self.material_dict = {}
+        self.instance_dict = {}
+        self.lights = {}
+        self.light_filter_map = {}
+        self.current_solo_light = None
+        self.muted_lights = []
+        self.crop_window = (self.scene.render.border_min_x, self.scene.render.border_max_x,
+                      1.0 - self.scene.render.border_min_y, 1.0 - self.scene.render.border_max_y)
+        for obj in self.scene.objects:
+            if obj.type == 'LAMP' and obj.name not in self.lights:
+                # add the filters to the filter ma
+                for lf in obj.data.renderman.light_filters:
+                    if lf.filter_name not in self.light_filter_map:
+                        self.light_filter_map[lf.filter_name] = []
+                    self.light_filter_map[lf.filter_name].append(
+                        (obj.data.name, obj.name))
+                self.lights[obj.name] = obj.data.name
+                if obj.data.renderman.solo:
+                    self.current_solo_light = obj
+                if obj.data.renderman.mute:
+                    self.muted_lights.append(obj)
+            for mat_slot in obj.material_slots:
+                if mat_slot.material not in self.material_dict:
+                    self.material_dict[mat_slot.material] = []
+                self.material_dict[mat_slot.material].append(obj)
+
+        #self.convert_textures(get_texture_list(self.scene))
+
+        # Check if rendering select objects only.
+        if(self.scene.renderman.render_selected_objects_only):
+            visible_objects = get_Selected_Objects(self.scene)
+        else:
+            visible_objects = None
+
+        if self.rman_sg_exporter is None:            
+            self.rman_sg_exporter = export_sg.RmanSgExporter( rpass=self, scene=self.scene, rictl=self.rictl, sgmngr=self.sgmngr, rman=rman, rman_internal=rman_internal )
+        
+        self.rman_sg_exporter.start_ipr(visible_objects)
+       
+        
+        #interactive_initial_rib(self, self.ri, self.scene, prman)
+
+        #while not self.is_prman_running():
+        #    time.sleep(.1)
+
+        self.is_interactive_ready = True        
+        return           
 
     # start the interactive session.  Basically the same as ribgen, only
     # save the file
@@ -649,49 +765,56 @@ class RPass:
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
-        cw = (scene.render.border_min_x, scene.render.border_max_x,
-                      1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y)
-        if cw != self.crop_window:
-            self.crop_window = cw
-            update_crop_window(self.ri, self, prman, cw)
-            return
 
-        active = scene.objects.active
-        if (active and active.is_updated) or (active and active.type == 'LAMP' and active.is_updated_data):
-            if is_ipr_running():
-                issue_transform_edits(self, self.ri, active, prman)
-            else:
+        if rman__sg__inited:
+            if self.rman_sg_exporter.is_prman_running():
+                active = scene.objects.active
+                self.rman_sg_exporter.issue_transform_edits(active, scene)
+                pass
+        else:
+            cw = (scene.render.border_min_x, scene.render.border_max_x,
+                        1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y)
+            if cw != self.crop_window:
+                self.crop_window = cw
+                update_crop_window(self.ri, self, prman, cw)
                 return
-        # record the marker to rib and flush to that point
-        # also do the camera in case the camera is locked to display.
-        if scene.camera.name != active.name and scene.camera.is_updated:
-            if is_ipr_running():
-                issue_transform_edits(self, self.ri, scene.camera, prman)
-            else:
-                return
-        # check for light deleted
-        if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
-            lights_deleted = []
-            for light_name, data_name in self.lights.items():
-                if light_name not in scene.objects:
-                    if is_ipr_running():
-                        delete_light(self, self.ri, data_name, prman)
-                        lights_deleted.append(light_name)
-                    else:
-                        return
 
-            for light_name in lights_deleted:
-                self.lights.pop(light_name, None)
+            active = scene.objects.active
+            if (active and active.is_updated) or (active and active.type == 'LAMP' and active.is_updated_data):
+                if is_ipr_running():
+                    issue_transform_edits(self, self.ri, active, prman)
+                else:
+                    return
+            # record the marker to rib and flush to that point
+            # also do the camera in case the camera is locked to display.
+            if scene.camera.name != active.name and scene.camera.is_updated:
+                if is_ipr_running():
+                    issue_transform_edits(self, self.ri, scene.camera, prman)
+                else:
+                    return
+            # check for light deleted
+            if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
+                lights_deleted = []
+                for light_name, data_name in self.lights.items():
+                    if light_name not in scene.objects:
+                        if is_ipr_running():
+                            delete_light(self, self.ri, data_name, prman)
+                            lights_deleted.append(light_name)
+                        else:
+                            return
 
-        if active and active.type in ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'LATTICE']:
+                for light_name in lights_deleted:
+                    self.lights.pop(light_name, None)
 
-            for mat_slot in active.material_slots:
-                if mat_slot.material not in self.material_dict:
-                    self.material_dict[mat_slot.material] = []
-                if active not in self.material_dict[mat_slot.material]:
-                    self.material_dict[mat_slot.material].append(active)
-                    issue_shader_edits(self, self.ri, prman,
-                                        nt=mat_slot.material.node_tree, ob=active)
+            if active and active.type in ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'LATTICE']:
+
+                for mat_slot in active.material_slots:
+                    if mat_slot.material not in self.material_dict:
+                        self.material_dict[mat_slot.material] = []
+                    if active not in self.material_dict[mat_slot.material]:
+                        self.material_dict[mat_slot.material].append(active)
+                        issue_shader_edits(self, self.ri, prman,
+                                            nt=mat_slot.material.node_tree, ob=active)
 
     def update_illuminates(self):
         update_illuminates(self, self.ri, prman)
@@ -745,14 +868,19 @@ class RPass:
     # ri.end
     def end_interactive(self):
         self.is_interactive = False
-        if self.is_prman_running():
-            self.edit_num += 1
-            # output a flush to stop rendering.
-            self.ri.ArchiveRecord(
-                "structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
-            prman.RicFlush("%d" % self.edit_num, 0, self.ri.SUSPENDRENDERING)
-            self.ri.EditWorldEnd()
-        self.ri.End()
+        if rman__sg__inited:
+            #self.sgmngr.DeleteScene(self.sg_scene.sceneId)
+            #self.rictl.PRManEnd()
+            self.rman_sg_exporter.stop_ipr()
+        else:
+            if self.is_prman_running():
+                self.edit_num += 1
+                # output a flush to stop rendering.
+                self.ri.ArchiveRecord(
+                    "structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
+                prman.RicFlush("%d" % self.edit_num, 0, self.ri.SUSPENDRENDERING)
+                self.ri.EditWorldEnd()
+            self.ri.End()
         self.material_dict = {}
         self.lights = {}
         self.light_filter_map = {}

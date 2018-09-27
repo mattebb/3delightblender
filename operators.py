@@ -490,7 +490,10 @@ class StartInteractive(bpy.types.Operator):
         addon_prefs = get_addon_prefs()
         if engine.ipr is None:
             engine.ipr = RPass(context.scene, interactive=True)
-            engine.ipr.start_interactive()
+            if engine.rman__sg__inited:
+                engine.ipr.start_interactive_sg()
+            else:
+                engine.ipr.start_interactive()
             if addon_prefs.draw_ipr_text:
                 engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
                     self.draw, (context,), 'WINDOW', 'POST_PIXEL')
