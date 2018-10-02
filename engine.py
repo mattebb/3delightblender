@@ -763,6 +763,24 @@ class RPass:
         self.is_interactive_ready = True
         return
 
+    def blender_scene_updated_cb(self, scene):
+        if self.rman_sg_exporter.is_prman_running():
+            active = scene.objects.active
+            if (active and active.is_updated):
+                self.rman_sg_exporter.issue_transform_edits(active, scene)
+            elif (active and active.is_updated_data):
+                self.rman_sg_exporter.issue_object_edits(active, scene)
+
+            if active and active.type in ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'LATTICE']:
+                for mat_slot in active.material_slots:
+                    if mat_slot.material not in self.material_dict:
+                        self.material_dict[mat_slot.material] = []
+                    if active not in self.material_dict[mat_slot.material]:
+                        self.material_dict[mat_slot.material].append(active)
+                        #issue_shader_edits(self, self.ri, prman,
+                        #                    nt=mat_slot.material.node_tree, ob=active)                
+
+
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
 
