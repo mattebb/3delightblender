@@ -939,21 +939,24 @@ class RPass:
                           format_seconds_to_hhmmss(time.time() - time_start))
 
     def gen_preview_rib(self):
-        previewdir = os.path.join(self.paths['export_dir'], "preview")
+        if rman__sg__inited:
+            pass
+        else:
+            previewdir = os.path.join(self.paths['export_dir'], "preview")
 
-        self.paths['rib_output'] = os.path.join(previewdir, "preview.rib")
-        self.paths['render_output'] = os.path.join(previewdir, "preview.tif")
-        self.paths['export_dir'] = os.path.dirname(self.paths['rib_output'])
+            self.paths['rib_output'] = os.path.join(previewdir, "preview.rib")
+            self.paths['render_output'] = os.path.join(previewdir, "preview.tif")
+            self.paths['export_dir'] = os.path.dirname(self.paths['rib_output'])
 
-        if not os.path.exists(previewdir):
-            os.mkdir(previewdir)
+            if not os.path.exists(previewdir):
+                os.mkdir(previewdir)
 
-        self.convert_textures(get_texture_list_preview(self.scene))
+            self.convert_textures(get_texture_list_preview(self.scene))
 
-        self.ri.Begin(self.paths['rib_output'])
-        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
-        self.rib_done = write_preview_rib(self, self.scene, self.ri)
-        self.ri.End()
+            self.ri.Begin(self.paths['rib_output'])
+            self.ri.Option("rib", {"string asciistyle": "indented,wide"})
+            self.rib_done = write_preview_rib(self, self.scene, self.ri)
+            self.ri.End()
 
     def convert_textures(self, temp_texture_list):
         if not os.path.exists(self.paths['texture_output']):

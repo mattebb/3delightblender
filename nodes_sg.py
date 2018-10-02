@@ -600,6 +600,93 @@ class RendermanLightNode(RendermanShadingNode):
 
 # Generate dynamic types
 
+class RmanSgShadingExporter:
+
+    def __init__(self, **kwargs):
+        self.sgmngr = kwargs['sgmngr']
+        self.rman = kwargs['rman']
+        self.rman_internal = kwargs['rman_internal']
+
+        self.sg_scene = kwargs['sg_scene']
+        self.sg_root = kwargs['sg_root']
+        
+        # blender scene and rpass
+        self.scene = kwargs['scene']
+        self.rpass = kwargs['rpass']
+        self.rm = self.scene.renderman
+
+    # for an input node output all "nodes"
+    def export_shader_nodetree(self, id, handle=None, disp_bound=0.0, iterate_instance=False):
+
+        if id and id.node_tree:
+
+            if is_renderman_nodetree(id):
+                portal = type(
+                    id).__name__ == 'AreaLamp' and id.renderman.renderman_type == 'PORTAL'
+                # if id.renderman.nodetree not in bpy.data.node_groups:
+                #    load_tree_from_lib(id)
+
+                nt = id.node_tree
+                if not handle:
+                    handle = id.name
+                    if type(id) == bpy.types.Material:
+                        handle = get_mat_name(handle)
+
+                # if ipr we need to iterate instance num on nodes for edits
+                #from . import engine
+                #if engine.ipr and hasattr(id.renderman, 'instance_num'):
+                #    if iterate_instance:
+                #        id.renderman.instance_num += 1
+                #    if id.renderman.instance_num > 0:
+                #        handle += "_%d" % id.renderman.instance_num
+
+                out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and
+                            n.renderman_node_type == 'output'),
+                        None)
+                if out is None:
+                    return
+
+                nodes_to_export = gather_nodes(out)
+                sg_material = None
+                
+                if len(nodes_to_export) > 0:
+                    sg_material = self.sg_scene.CreateMaterial(None)
+                    bxdfList = []
+                    for node in nodes_to_export:
+                        sg_node = shader_node_sg(self.sg_scene, self.rman, node, mat_name=handle,
+                                    disp_bound=disp_bound, portal=portal)
+                        bxdfList.append(sg_node)
+                    sg_material.SetBxdf(bxdfList)
+
+                return sg_material
+                    
+                    
+            elif find_node(id, 'ShaderNodeOutputMaterial'):
+                print("Error Material %s needs a RenderMan BXDF" % id.name)
+
+    def export_simple_shader(self, mat):
+        rm = mat.renderman
+        # if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
+        name = get_mat_name(mat.name)
+
+        sg_material = None
+        sg_material = self.sg_scene.CreateMaterial(None)
+        sg_node = self.sg_scene.CreateNode("BxdfFactory", "PxrDisney", get_mat_name(mat.name))
+        sg_material.SetBxdf([sg_node])        
+
+        rix_params = sg_node.EditParameterBegin()
+        rix_params.SetColor('baseColor', rib(mat.diffuse_color))
+        rix_params.SetFloat('specular', mat.specular_intensity )
+        if mat.emit:
+            rix_params.SetColor("emitColor", rib(mat.diffuse_color))
+
+        if mat.subsurface_scattering:
+            rix_params.SetFloat("subsurface", mat.subsurface_scattering.scale)
+            rix_params.SetColor("subsurfaceColor", rib(mat.subsurface_scattering.color))
+
+        sg_node.EditParameterEnd(rix_params)
+
+        return sg_material
 
 def generate_node_type(prefs, name, args):
     ''' Dynamically generate a node type from pattern '''
@@ -2234,18 +2321,7 @@ def shader_node_sg(sg_scene, rman, node, mat_name, disp_bound=0.0, portal=False)
         #ri.Bxdf(node.bl_label, instance, params)
 
     if sg_node:
-        rix_params = sg_node.EditParameterBegin()
-        """for k,v in params.items():
-            param_type = ''
-            param_name = ''
-            tokens = k.split(' ')
-            if len(tokens) == 1:
-                param_name = tokens[0]
-            else:
-                param_type = tokens[0]
-                param_name = tokens[1]
-            print("TYPE: %s, NAME: %s" % (param_type, param_name))"""
-        
+        rix_params = sg_node.EditParameterBegin()       
         rix_params = gen_rixparams(node, rix_params, mat_name)
         sg_node.EditParameterEnd(rix_params)
 
@@ -2374,7 +2450,6 @@ def export_shader_nodetree(sg_scene, rman, id, handle=None, disp_bound=0.0, iter
                 return
 
             nodes_to_export = gather_nodes(out)
-            #ri.ArchiveRecord('comment', "Shader Graph")
             sg_material = None
             
             if len(nodes_to_export) > 0:

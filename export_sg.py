@@ -127,6 +127,9 @@ class RmanSgExporter:
         self.rpass = kwargs['rpass']
         self.rm = self.scene.renderman
 
+        # exporters
+        self.shader_exporter = nodes_sg.RmanSgShadingExporter( rpass=self.rpass, scene=self.scene, sgmngr=self.sgmngr, sg_scene=self.sg_scene, sg_root = self.sg_root, rman=self.rman, rman_internal=self.rman_internal )
+
         # handles to sg_nodes
         self.sg_nodes_dict = {}
         self.mesh_masters = {}
@@ -326,10 +329,6 @@ class RmanSgExporter:
 
             sg_node.EditPrimVarEnd(primvar)
 
-
-
-            #ri.SubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
-            #                intargs, floatargs, primvars)
         else:
             pass
             """nargs = [1, 0, 0, 1, 0, 0]
@@ -363,7 +362,6 @@ class RmanSgExporter:
             else detect_primitive(ob)
 
         if prim == 'POLYGON_MESH':
-            print('Got poly mesh')
             mesh_sg = self.sg_scene.CreateMesh(db_name)
             self.export_polygon_mesh(ob, mesh_sg, data)
             self.sg_nodes_dict[db_name] = mesh_sg  
@@ -687,34 +685,21 @@ class RmanSgExporter:
 
     # export materials
     def export_materials(self):
-        #if scene.renderman.external_animation:
-         #   _p_ = user_path(scene.renderman.path_object_archive_animated, scene)
-         #   archive_filename = _p_.replace('{object}', 'materials')
-        #else:
-         #   _p_ = user_path(scene.renderman.path_object_archive_static, scene)
-         #   archive_filename = _p_.replace('{object}', 'materials')
 
         for mat_name, mat in bpy.data.materials.items():
-            #ri.ArchiveBegin('material.' + get_mat_name(mat_name))
-            # ri.Attribute("identifier", {"name": mat_name})
-            #export_material(ri, mat)
-            #ri.ArchiveEnd()
-
-            print("MATERIAL NAME: %s" % mat_name)
 
             if mat is None:
                 continue
             rm = mat.renderman
 
             if mat.node_tree:
-                sg_material = nodes_sg.export_shader_nodetree(
-                    self.sg_scene, self.rman, mat, handle=None, disp_bound=rm.displacementbound,
+                sg_material = self.shader_exporter.export_shader_nodetree(
+                    mat, handle=None, disp_bound=rm.displacementbound,
                     iterate_instance=False)
-                self.sg_nodes_dict['material.%s' % mat_name] = sg_material
-
             else:
-                pass
-                #export_shader(ri, mat)
+                sg_material = self.shader_exporter.export_simple_shader(mat)
+
+            self.sg_nodes_dict['material.%s' % mat_name] = sg_material
         
     def write_instances(self, db_name, data_block, name, instance):
         if db_name not in self.sg_nodes_dict.keys():
@@ -727,8 +712,9 @@ class RmanSgExporter:
 
         for mat in data_block.material:
             mat_name = get_mat_name(mat.name)
-            if 'material.%s' in self.sg_nodes_dict.keys():
-                sg_material = self.sg_nodes_dict['material.%s' % mat_name]
+            mat_key = 'material.%s' % mat_name
+            if mat_key in self.sg_nodes_dict.keys():
+                sg_material = self.sg_nodes_dict[mat_key]
                 inst_sg.SetMaterial(sg_material)
 
         inst_sg.AddChild(mesh_sg)
@@ -1690,16 +1676,7 @@ def export_light(ri, instance, instances):
 
 
 def export_material(ri, mat, handle=None, iterate_instance=False):
-    if mat is None:
-        return
-    rm = mat.renderman
-
-    if mat.node_tree:
-        export_shader_nodetree(
-            ri, mat, handle, disp_bound=rm.displacementbound,
-            iterate_instance=iterate_instance)
-    else:
-        export_shader(ri, mat)
+    pass
 
 
 def export_material_archive(ri, mat):
