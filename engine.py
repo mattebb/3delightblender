@@ -67,15 +67,8 @@ addon_version = bl_info['version']
 
 prman_inited = False
 rman__sg__inited = False
-rman_sg_render_is_running = False
 
 ipr_handle = None
-
-def rman_sg_render_cb(e, d, ed):
-    rman_sg_render_is_running = ( d == 0)
-
-def rman_sg_is_prman_running():
-    return rman_sg_render_is_running
 
 def init_prman():
     # set pythonpath before importing prman
@@ -94,13 +87,11 @@ def init_prman():
         #set_pythonpath(pythonbindings)
         #set_pythonpath(rman_internal)
         global rman__sg__inited
-        global rman
-        global rman_internal
         global export_sg
-        import rman
-        import rman_internal
+        global rman_sg_exporter
         from . import export_sg
-        rman__sg__inited = True
+        from .export_sg import rman_sg_exporter
+        rman__sg__inited = export_sg.is_ready()
     except Exception as e:
         print("Could not load scenegraph modules: %s" % str(e))
         pass
@@ -125,6 +116,15 @@ def is_ipr_running():
     else:
         return False
 
+def shutdown_ipr():
+    global rman__sg__inited
+    if ipr is not None and rman__sg__inited:
+        if ipr.is_prman_running():
+            # shutdown IPR
+            ipr.is_interactive_ready = False
+            #bpy.ops.lighting.start_interactive('INVOKE_DEFAULT')
+            ipr.end_interactive()
+
 
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
     # TODO add support for regions (rerendering)
@@ -140,12 +140,18 @@ def free(engine):
 
 
 def render(engine):
+    global rman__sg__inited
     if hasattr(engine, 'render_pass') and engine.render_pass.do_render:
         if engine.is_preview:
-            if engine.render_pass.rib_done:
+            if rman__sg__inited:
+                engine.render_pass.render_sg(engine, for_preview=True)            
+            elif engine.render_pass.rib_done:
                 engine.render_pass.preview_render(engine)
         else:
-            engine.render_pass.render(engine)
+            if rman__sg__inited:
+                engine.render_pass.render_sg(engine)
+            else:
+                engine.render_pass.render(engine)
 
 
 def reset(engine, data, scene):
@@ -159,17 +165,23 @@ def reset(engine, data, scene):
 def update(engine, data, scene):
     engine.render_pass.update_time = int(time.time())
     if engine.is_preview:
-        try:
-            engine.render_pass.gen_preview_rib()
-        except Exception as err:
-            engine.report({'ERROR'}, 'Rib gen error: ' +
-                          traceback.format_exc())
+        if rman__sg__inited:
+            pass
+        else:
+            try:
+                engine.render_pass.gen_preview_rib()
+            except Exception as err:
+                engine.report({'ERROR'}, 'Rib gen error: ' +
+                            traceback.format_exc())
     else:
-        try:
-            engine.render_pass.gen_rib(engine=engine)
-        except Exception as err:
-            engine.report({'ERROR'}, 'Rib gen error: ' +
-                          traceback.format_exc())
+        if rman__sg__inited:
+            pass
+        else:
+            try:
+                engine.render_pass.gen_rib(engine=engine)
+            except Exception as err:
+                engine.report({'ERROR'}, 'Rib gen error: ' +
+                            traceback.format_exc())
 
 
 # assumes you have already set the scene
@@ -180,7 +192,6 @@ def start_interactive(engine):
         print("DO IT")
     else:
         engine.render_pass.start_interactive()
-
 
 def update_interactive(engine, context):
     engine.render_pass.issue_edits(context)
@@ -231,20 +242,13 @@ class RPass:
         self.is_interactive = interactive
         self.is_interactive_ready = False
         self.options = []
-        global rman__sg__inited
-        global rman
-        global rman_internal
 
         # check if prman is imported
         if not prman_inited or not rman__sg__inited:
             init_prman()
 
         if rman__sg__inited:
-            self.rictl = rman.RiCtl.Get()
-            self.sgmngr = rman_internal.SGManager.Get()
-            self.sg_scene = None
-            self.sg_root = None
-            self.rman_sg_exporter = None
+            pass
         else:
             if interactive:
                 prman.Init(['-woff', 'A57001'])  # need to disable for interactive
@@ -378,6 +382,72 @@ class RPass:
         base, ext = self.paths['render_output'].rsplit('.', 1)
         # denoise data has the name .denoise.exr
         return (base + '.variance.' + 'exr', base + '.filtered.' + 'exr')
+
+    def render_sg(self, engine, for_preview=False):
+        DELAY = 1
+        render_output = self.paths['render_output']
+        aov_output = self.paths['aov_output']
+        cdir = os.path.dirname(self.paths['rib_output'])
+        update_frequency = 10 if not self.rm.do_denoise else 60
+        rm = self.scene.renderman
+
+        images_dir = os.path.split(render_output)[0]
+        aov_dir = os.path.split(aov_output)[0]
+        if not os.path.exists(images_dir):
+            os.makedirs(images_dir)
+        if not os.path.exists(aov_dir):
+            os.makedirs(aov_dir)
+        if os.path.exists(render_output):
+            try:
+                os.remove(render_output)  # so as not to load the old file
+            except:
+                debug("error", "Unable to remove previous render",
+                      render_output)
+
+        # convert textures
+        self.convert_textures(get_texture_list_preview(self.scene))
+
+        if self.display_driver == 'it':
+            it_path = find_it_path()
+            if not it_path:
+                engine.report({"ERROR"},
+                              "Could not find 'it'. Install RenderMan Studio \
+                              or use a different display driver.")
+            else:
+                environ = os.environ.copy()
+                subprocess.Popen([it_path], env=environ, shell=True)
+
+        # Check if rendering select objects only.
+        if rm.render_selected_objects_only:
+            visible_objects = get_Selected_Objects(self.scene)
+        else:
+            visible_objects = None
+
+        def progress_cb(e, d, db):
+            engine.update_progress(float(d) / 100.0)             
+
+        if for_preview:
+            # TODO: fix material preview renders
+            return
+
+        rman_sg_exporter().start_render(visible_objects, self, self.scene, progress_cb, update_frequency, for_preview)     
+
+        if self.display_driver not in ['it']:
+            if os.path.exists(render_output):
+
+                render = self.scene.render
+                image_scale = 100.0 / render.resolution_percentage
+                result = engine.begin_result(0, 0,
+                                            render.resolution_x * image_scale,
+                                            render.resolution_y * image_scale)
+                lay = result.layers[0]
+                # possible the image wont load early on.
+                try:
+                    lay.load_from_file(render_output)
+                except:
+                    pass
+                engine.end_result(result) 
+ 
 
     def render(self, engine):
         DELAY = 1
@@ -608,8 +678,7 @@ class RPass:
     def is_prman_running(self):
         if rman__sg__inited:
             #return self.rictl.GetProgress() < 100
-            if self.rman_sg_exporter:
-                return self.rman_sg_exporter.is_prman_running()
+            return rman_sg_exporter().is_prman_running()
         else:
             return prman.RicGetProgress() < 100
 
@@ -672,11 +741,8 @@ class RPass:
             visible_objects = get_Selected_Objects(self.scene)
         else:
             visible_objects = None
-
-        if self.rman_sg_exporter is None:            
-            self.rman_sg_exporter = export_sg.RmanSgExporter( rpass=self, scene=self.scene, rictl=self.rictl, sgmngr=self.sgmngr, rman=rman, rman_internal=rman_internal )
-        
-        self.rman_sg_exporter.start_ipr(visible_objects)
+       
+        rman_sg_exporter().start_ipr(visible_objects, self, self.scene)    
        
         
         #interactive_initial_rib(self, self.ri, self.scene, prman)
@@ -764,12 +830,12 @@ class RPass:
         return
 
     def blender_scene_updated_cb(self, scene):
-        if self.rman_sg_exporter.is_prman_running():
+        if rman_sg_exporter().is_prman_running():
             active = scene.objects.active
             if (active and active.is_updated):
-                self.rman_sg_exporter.issue_transform_edits(active, scene)
+                rman_sg_exporter().issue_transform_edits(active, scene)
             elif (active and active.is_updated_data):
-                self.rman_sg_exporter.issue_object_edits(active, scene)
+                rman_sg_exporter().issue_object_edits(active, scene)
 
             if active and active.type in ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'LATTICE']:
                 for mat_slot in active.material_slots:
@@ -777,17 +843,16 @@ class RPass:
                         self.material_dict[mat_slot.material] = []
                     if active not in self.material_dict[mat_slot.material]:
                         self.material_dict[mat_slot.material].append(active)
-                        #issue_shader_edits(self, self.ri, prman,
-                        #                    nt=mat_slot.material.node_tree, ob=active)                
-
+                        rman_sg_exporter().issue_shader_edits(nt=mat_slot.material.node_tree, ob=active)
+               
 
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
 
         if rman__sg__inited:
-            if self.rman_sg_exporter.is_prman_running():
+            if rman_sg_exporter().is_prman_running():
                 active = scene.objects.active
-                self.rman_sg_exporter.issue_transform_edits(active, scene)
+                rman_sg_exporter().issue_transform_edits(active, scene)
                 pass
         else:
             cw = (scene.render.border_min_x, scene.render.border_max_x,
@@ -875,7 +940,10 @@ class RPass:
             mute_lights(self, self.ri, prman, new_muted_lights)
 
     def issue_shader_edits(self, nt=None, node=None):
-        issue_shader_edits(self, self.ri, prman, nt=nt, node=node)
+        if rman__sg__inited:
+            rman_sg_exporter().issue_shader_edits(nt=nt, node=node)
+        else:
+            issue_shader_edits(self, self.ri, prman, nt=nt, node=node)
 
     def update_light_link(self, context, ll):
         update_light_link(self, self.ri, prman, ll)
@@ -885,11 +953,10 @@ class RPass:
 
     # ri.end
     def end_interactive(self):
+        global rman__sg__inited
         self.is_interactive = False
         if rman__sg__inited:
-            #self.sgmngr.DeleteScene(self.sg_scene.sceneId)
-            #self.rictl.PRManEnd()
-            self.rman_sg_exporter.stop_ipr()
+            rman_sg_exporter().stop_ipr()
         else:
             if self.is_prman_running():
                 self.edit_num += 1

@@ -616,7 +616,7 @@ class RmanSgShadingExporter:
         self.rm = self.scene.renderman
 
     # for an input node output all "nodes"
-    def export_shader_nodetree(self, id, handle=None, disp_bound=0.0, iterate_instance=False):
+    def export_shader_nodetree(self, id, sg_node=None, handle=None, disp_bound=0.0, iterate_instance=False):
 
         if id and id.node_tree:
 
@@ -650,7 +650,10 @@ class RmanSgShadingExporter:
                 sg_material = None
                 
                 if len(nodes_to_export) > 0:
-                    sg_material = self.sg_scene.CreateMaterial(None)
+                    if sg_node:
+                        sg_material = sg_node
+                    else:
+                        sg_material = self.sg_scene.CreateMaterial(None)
                     bxdfList = []
                     for node in nodes_to_export:
                         sg_node = shader_node_sg(self.sg_scene, self.rman, node, mat_name=handle,
@@ -664,13 +667,16 @@ class RmanSgShadingExporter:
             elif find_node(id, 'ShaderNodeOutputMaterial'):
                 print("Error Material %s needs a RenderMan BXDF" % id.name)
 
-    def export_simple_shader(self, mat):
+    def export_simple_shader(self, mat, sg_node=None):
         rm = mat.renderman
         # if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
         name = get_mat_name(mat.name)
 
         sg_material = None
-        sg_material = self.sg_scene.CreateMaterial(None)
+        if sg_node:
+            sg_material = sg_node
+        else:
+            sg_material = self.sg_scene.CreateMaterial(None)
         sg_node = self.sg_scene.CreateNode("BxdfFactory", "PxrDisney", get_mat_name(mat.name))
         sg_material.SetBxdf([sg_node])        
 

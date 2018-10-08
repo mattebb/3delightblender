@@ -20,7 +20,7 @@
         Transform [ .3 0.000000 0.000000 0.000000 0.000000 .3 0.000000 0.000000 0.000000 0.000000 .3 0.000000 0 -2
          0.3 1.000000 ]
         Sides 2
-        Bxdf "PxrPxrSurface" "diffuse"
+        Bxdf "PxrSurface" "diffuse"
         Sphere 1 -1 1 360
     AttributeEnd
 

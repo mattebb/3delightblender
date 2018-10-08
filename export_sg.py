@@ -50,8 +50,28 @@ from .nodes import shader_node_rib, get_mat_name
 from .nodes import replace_frame_num
 
 from . import nodes_sg
+from . import engine
+
+from. import chatserver
+import socketserver
+import threading
 
 addon_version = bl_info['version']
+port = -1
+is_running = True
+
+__RMAN_SG_INITED__ = False
+__RMAN_SG_EXPORTER__ = None
+
+
+try:
+    import rman
+    import rman_internal
+    __RMAN_SG_INITED__ = True
+except:
+    pass
+
+
 
 # ------------- Atom's helper functions -------------
 GLOBAL_ZERO_PADDING = 5
@@ -98,10 +118,6 @@ s_orientPxrEnvDayLightInv = (-0.0, 1.0, -0.0, 0.0,
                             0.0, -0.0, -0.0, 1.0)
 
 
-def render_cb(e, d, rman_sg_exporter):
-    print('render_cb called: %d' % d)
-    rman_sg_exporter.is_prman_running = ( d == 0)
-
 def convert_matrix(m):
     v = (m[0][0], m[1][0], m[2][0], m[3][0],
         m[0][1], m[1][1], m[2][1], m[3][1],
@@ -110,34 +126,230 @@ def convert_matrix(m):
 
     return v
 
+class ItHandler(chatserver.ItBaseHandler):
+
+    def dspyRender(self):
+        pass
+        """maya.utils.executeDeferred(self.renderAgain)"""
+
+    def dspyIPR(self):
+        pass
+        """maya.utils.executeDeferred(self.cmdIPR)"""
+
+    def stopRender(self):
+        if engine.ipr:    
+            engine.shutdown_ipr()    
+        """maya.utils.executeDeferred(self.stopRendering)"""
+
+    def selectObjectById(self):
+        pass
+        #maya.utils.executeDeferred(self.selectObject)
+
+    def selectObject(self):
+        pass
+        """obj_id = int(self.msg.getOpt('id', '0'))
+        if obj_id < 0:
+            return
+
+        sgpath = maya.cmds.rman('pathFromId', obj_id)
+
+        if sgpath == '':
+            rfm_log().info('No object found')
+            return
+
+        rfm_log().info('Select path = %s', sgpath)
+        maya.cmds.select(sgpath)"""
+
+    def selectSurfaceById(self):
+        pass
+        #maya.utils.executeDeferred(self.selectSurface)
+
+    def selectSurface(self):
+        pass
+        """self.selectObject()
+        # We need call show_bxdf() deferred to make sure the attribute editor
+        # finished displaying the new selection.
+        maya.utils.executeDeferred(apinodes.show_bxdf)"""
+
+    def renderAgain(self):
+        
+        """crop = self.msg.getOpt('crop')
+        crop_tokens = crop.split(' ')
+
+        left = crop_tokens[0]
+        right = crop_tokens[1]
+        top = crop_tokens[2]
+        bottom = crop_tokens[3]
+        
+        # stash global crop and temporarily set to requested crop
+        rg = apinodes.rman_globals()
+        crop_enable = maya.cmds.getAttr('%s.opt_cropWindowEnable' % rg)
+        top_left = maya.cmds.getAttr('%s.opt_cropWindowTopLeft' % rg)
+        bottom_right = maya.cmds.getAttr('%s.opt_cropWindowBottomRight' % rg)
+
+        maya.cmds.setAttr('%s.opt_cropWindowEnable' % rg, 1)
+        maya.cmds.setAttr('%s.opt_cropWindowTopLeft0' % rg, float(left))
+        maya.cmds.setAttr('%s.opt_cropWindowTopLeft1' % rg, float(top))
+        maya.cmds.setAttr('%s.opt_cropWindowBottomRight0' % rg, float(right))
+        maya.cmds.setAttr('%s.opt_cropWindowBottomRight1' % rg, float(bottom))
+
+        camera = rfm2.ui.render_view.get_current_camera_panel()
+        width = maya.cmds.getAttr('defaultResolution.width')
+        height = maya.cmds.getAttr('defaultResolution.height')
+
+        rfm_log().info('rendering again with %s', ' '.join(self.msg.args))
+        rfm2.render.preview(rfm2.render.Message.kConfig, 'preview',
+                            width, height, camera)
+
+        # restore crop to original
+        maya.cmds.setAttr('%s.opt_cropWindowEnable' % rg, crop_enable)
+        maya.cmds.setAttr('%s.opt_cropWindowTopLeft0' % rg, top_left[0][0])
+        maya.cmds.setAttr('%s.opt_cropWindowTopLeft1' % rg, top_left[0][1])
+        maya.cmds.setAttr('%s.opt_cropWindowBottomRight0' % rg, bottom_right[0][0])
+        maya.cmds.setAttr('%s.opt_cropWindowBottomRight1' % rg, bottom_right[0][1])"""
+
+    def cmdIPR(self):
+
+        """if not rfm2.render.ipr_is_running():
+            # restart IPR if it's not already running
+
+            rfm_log().debug('requesting ipr start')
+            cam = rfm2.ui.render_view.get_current_camera_panel()
+            width = maya.cmds.getAttr('defaultResolution.width')
+            height = maya.cmds.getAttr('defaultResolution.height')
+
+            rfm2.render.ipr(rfm2.render.Message.kStart, 'it', width, height, cam)
+        try:
+            crop = self.msg.getOpt('crop')
+            rfm2.render.rman_cmd('setCropWindow %s' % crop)
+        except:
+            pass"""
+
+    def stopRendering(self):
+        if engine.ipr:    
+            engine.shutdown_ipr() 
+
+
 class RmanSgExporter:
 
     def __init__(self, **kwargs):
-        self.rictl = kwargs['rictl']
-        self.sgmngr = kwargs['sgmngr']
-        self.rman = kwargs['rman']
-        self.rman_internal = kwargs['rman_internal']
 
-        self.sg_scene = self.sgmngr.CreateScene()
-        self.sg_root = self.sg_scene.Root()
+        self.rictl = rman.RiCtl.Get()
+        self.sgmngr = rman_internal.SGManager.Get()
+
+        self.sg_scene = None
+        self.sg_root = None
         self.is_rendering = False   
 
         # blender scene and rpass
-        self.scene = kwargs['scene']
-        self.rpass = kwargs['rpass']
-        self.rm = self.scene.renderman
+        self.scene = None
+        self.rpass = None
+        self.rm = None
 
         # exporters
-        self.shader_exporter = nodes_sg.RmanSgShadingExporter( rpass=self.rpass, scene=self.scene, sgmngr=self.sgmngr, sg_scene=self.sg_scene, sg_root = self.sg_root, rman=self.rman, rman_internal=self.rman_internal )
+        self.shader_exporter = None
 
         # handles to sg_nodes
         self.sg_nodes_dict = {}
         self.mesh_masters = {}
+
+        self.port = -1
+        self.main_camera = None
+
+    def export_ready(self):
+        #if self.sg_scene is None:
+        #    self.sg_scene = self.sgmngr.CreateScene()
+        #else:
+        #    self.sg_scene.Clear()
+        self.sg_scene = self.sgmngr.CreateScene()
+        self.sg_root = self.sg_scene.Root()
+        self.shader_exporter = nodes_sg.RmanSgShadingExporter( rpass=self.rpass, 
+                                scene=self.scene, sgmngr=self.sgmngr, 
+                                sg_scene=self.sg_scene, sg_root = self.sg_root, 
+                                rman=rman, rman_internal=rman_internal )    
         
     def is_prman_running(self):
-        return self.is_rendering
+        global is_running
+        return is_running
+        #return self.is_rendering
 
-    def start_ipr(self, visible_objects):
+    def start_cmd_server(self):
+
+        global port
+
+        if port != -1:
+            return port
+
+        # zero port makes the OS pick one
+        host, port = "localhost", 0
+
+        # install handler
+        chatserver.protocols['it'] = ItHandler
+
+        # Create the server, binding to localhost on some port
+        server = socketserver.TCPServer((host, port),
+                                        chatserver.CommandHandler)
+        ip, port = server.server_address
+
+        thread = threading.Thread(target=server.serve_forever)
+
+        # Exit the server thread when the main thread terminates
+        thread.daemon = True
+        thread.start()
+
+        return port
+
+    def start_render(self, visible_objects, rpass, scene, progress_cb=None, check_point=-1, for_preview=False):
+
+        global is_running
+
+        self.rpass = rpass
+        self.scene = scene
+        self.rm = self.scene.renderman
+
+        self.export_ready()
+
+        argv = []
+        argv.append("prman") 
+        argv.append("-progress")
+        argv.append("-dspyserver")
+        argv.append("it")
+        argv.append("-t:%d" % self.rm.threads)
+        if check_point > 0:
+            argv.append("-checkpoint")
+            argv.append("%ds" % check_point)
+
+        if for_preview:
+            if self.write_preview_scene() is False:
+                # nothing to do?
+                return
+        else:
+            self.write_scene(visible_objects)
+                
+        if progress_cb:
+            ec = rman_internal.EventCallbacks.Get()
+            ec.RegisterCallback("Progress", progress_cb, self)
+
+        is_running = True
+        self.is_rendering = True
+        self.rictl.PRManBegin(argv)
+        self.sg_scene.Render("rib /var/tmp/blender.rib")       
+        self.sg_scene.Render("prman -blocking") 
+
+        is_running = False
+        self.sgmngr.DeleteScene(self.sg_scene.sceneId)
+        self.rictl.PRManEnd()
+        print("PRManEnd called.")
+
+    def start_ipr(self, visible_objects, rpass, scene, progress_cb=None):
+
+        global is_running    
+
+        self.rpass = rpass
+        self.scene = scene
+        self.rm = self.scene.renderman
+
+        self.export_ready()  
 
         argv = []
         argv.append("prman") 
@@ -150,23 +362,35 @@ class RmanSgExporter:
         self.rictl.PRManBegin(argv)
         self.write_scene(visible_objects)
 
-        #ec = self.rman_internal.EventCallbacks.Get()
+        #ec = rman_internal.EventCallbacks.Get()
         #ec.RegisterCallback("Render", render_cb, self)
-        
+
+        port = self.start_cmd_server()
+        camera_node_sg = self.sg_nodes_dict['camera']
+        display = self.sg_scene.CreateDisplay('it', 'ipr')
+        display.channels = 'Ci,a'
+        display.params.SetString("dspyParams", "dspyIPR -port %d -crop 1 0 1 0" % port)
+        camera_node_sg.SetDisplay(display)
+
+        is_running = True
+       
         self.sg_scene.Render("rib /var/tmp/blender.rib")
         self.sg_scene.Render("prman -live")
 
     def stop_ipr(self):
+        global is_running
 
         self.is_rendering = False
+        is_running = False
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         self.rictl.PRManEnd()
+        print("PRManEnd called.")
 
     def issue_transform_edits(self, active, scene):
         self.scene = scene
         if (active and active.is_updated): # or (active and active.type == 'LAMP' and active.is_updated_data):
             if active.type == 'CAMERA':
-                with self.rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                with rman_internal.SGManager.ScopedEdit(self.sg_scene):
                     camera_node_sg = self.sg_nodes_dict['camera']
                     if camera_node_sg:
                         self.export_camera_transform(camera_node_sg, scene.camera, [])
@@ -179,13 +403,13 @@ class RmanSgExporter:
                     if inst_sg:
                         #ob = inst.ob
                         #m = ob.matrix_world
-                        with self.rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                        with rman_internal.SGManager.ScopedEdit(self.sg_scene):
                             #mesh_sg.SetTransform(convert_matrix(m))
                             self.export_transform(instance, inst_sg)                       
 
 
         elif scene.camera.name != active.name and scene.camera.is_updated:
-            with self.rman_internal.SGManager.ScopedEdit(self.sg_scene):
+            with rman_internal.SGManager.ScopedEdit(self.sg_scene):
                 camera_node_sg = self.sg_nodes_dict['camera']
                 if camera_node_sg:
                     self.export_camera_transform(camera_node_sg, scene.camera, [])
@@ -198,9 +422,85 @@ class RmanSgExporter:
             db_name = '%s-MESH' % active.name
             mesh_sg = self.sg_nodes_dict[db_name]
             if mesh_sg:
-                with self.rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                with rman_internal.SGManager.ScopedEdit(self.sg_scene):
                     self.export_polygon_mesh(active, mesh_sg, active.data)
-        
+
+    def issue_shader_edits(self, nt=None, node=None, ob=None):
+        #pass
+        if node is None:
+            mat = None        
+        else:
+            world = bpy.context.scene.world
+            mat = None
+            instance_num = 0
+            mat_name = None  
+
+            if bpy.context.object:
+                mat = bpy.context.object.active_material
+                if mat:
+                    instance_num = mat.renderman.instance_num
+                    if self.rpass.last_edit_mat == mat:
+                        self.rpass.last_edit_mat = None
+                        return
+                    self.rpass.last_edit_mat = mat
+                    mat_name = get_mat_name(mat.name)
+            # if this is a lamp use that for the mat/name
+            if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
+                mat = node.id_data
+            elif mat is None and nt and nt.name == 'World':
+                mat = bpy.context.scene.world
+            elif mat is None and bpy.context.object and bpy.context.object.type == 'CAMERA':
+                self.rpass.edit_num += 1
+                #edit_flush(ri, rpass.edit_num, prman)
+
+                #ri.EditBegin('option')
+                #export_camera(ri, rpass.scene, [],
+                #            camera_to_use=rpass.scene.camera)
+                #ri.EditEnd()
+                return
+            elif mat is None \
+                    and hasattr(node, "renderman_node_type") \
+                    and node.renderman_node_type \
+                    in {'displayfilter', 'displaysamplefilter'}:
+                #edit_flush(ri, rpass.edit_num, prman)
+
+                #ri.EditBegin('instance')
+                #export_displayfilters(ri, bpy.context.scene)
+                #ri.EditEnd()
+                return
+            elif mat is None:
+                return
+
+            if not mat_name:
+                mat_name = mat.name  # for world/light
+
+            #tex_made = False
+            #if reissue_textures(ri, rpass, mat):
+            #    tex_made = True
+
+            # if texture made flush it
+            #if tex_made:
+            #    rpass.edit_num += 1
+            #    edit_flush(ri, rpass.edit_num, prman)
+            self.rpass.edit_num += 1
+            #edit_flush(ri, rpass.edit_num, prman)
+
+            #ri.EditBegin('instance')
+            handle = mat_name
+            #if instance_num > 0:
+            #    handle += "_%d" % instance_num
+            #shader_node_rib(ri, node, handle)
+            #ri.EditEnd()
+
+            sg_material = self.sg_nodes_dict['material.%s' % mat_name] 
+            if sg_material:
+                with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                    sg_material = self.shader_exporter.export_shader_nodetree(
+                        mat, sg_node=sg_material, handle=None, 
+                        disp_bound=mat.renderman.displacementbound,
+                        iterate_instance=False)
+                self.sg_nodes_dict['material.%s' % mat_name] = sg_material
+ 
 
     def create_mesh(self, ob):
         # 2 special cases to ignore:
@@ -256,22 +556,22 @@ class RmanSgExporter:
             removeMeshFromMemory(mesh.name)
             return
         primvars = get_primvars(ob, mesh, "facevarying")
-        #primvars['P'] = P
-        #primvars['facevarying normal N'] = N
+
         if not is_multi_material(mesh):        
             sg_node.Define( len(nverts), len(P), len(verts) )
           
+            print("----------------\n\tP: %s\n\tNVERTS: %s\n\tVERTS: %s\n--------------\n\n" % (str(P), str(nverts), str(verts)))
             primvar = sg_node.EditPrimVarBegin()
-            primvar.SetPointDetail(self.rman.Tokens.Rix.k_P, P, "vertex")
-            primvar.SetIntegerDetail(self.rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
-            primvar.SetIntegerDetail(self.rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")
-            primvar.SetNormalDetail(self.rman.Tokens.Rix.k_N, N, "facevarying")
+            primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
+            primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
+            primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")
+            primvar.SetNormalDetail(rman.Tokens.Rix.k_N, N, "facevarying")
             sg_node.EditPrimVarEnd(primvar)
-            #mesh_sg.SetMaterial(white)
+
             #attrs = mesh_sg.EditAttributeBegin()
-            #attrs.SetInteger(self.rman.Tokens.Rix.k_identifier_id, 2)
+            #attrs.SetInteger(rman.Tokens.Rix.k_identifier_id, 2)
             #mesh_sg.EditAttributeEnd(attrs)
-            #self.sg_root.AddChild(mesh_sg)
+
         else:
             pass
             """for mat_id, (nverts, verts, primvars) in \
@@ -295,13 +595,13 @@ class RmanSgExporter:
             removeMeshFromMemory(mesh.name)
             return
         tags = ['interpolateboundary', 'facevaryinginterpolateboundary']
-        nargs = [1, 0, 1, 0]
+        nargs = [1, 0, 0, 1, 0, 0]
         intargs = [ob.data.renderman.interp_boundary,
                 ob.data.renderman.face_boundary]
         floatargs = []
+        stringargs = []
 
         primvars = get_primvars(ob, mesh, "facevarying")
-        #primvars['P'] = P
 
         if not is_multi_material(mesh):
             if len(creases) > 0:
@@ -313,19 +613,20 @@ class RmanSgExporter:
 
             sg_node.Define( len(nverts), len(P), len(verts) )
           
+            print("----------------\n\tP: %s\n\tNVERTS: %s\n\tVERTS: %s\n--------------\n\n" % (str(P), str(nverts), str(verts)))
             primvar = sg_node.EditPrimVarBegin()
-            primvar.SetPointDetail(self.rman.Tokens.Rix.k_P, P, "vertex")
-            primvar.SetIntegerDetail(self.rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
-            primvar.SetIntegerDetail(self.rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")
+            primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
+            primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
+            primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")
         
-            #primvar.SetStringArray(self.rman.Tokens.Rix.k_Ri_subdivtags, tags, len(tags))
-            #primvar.SetIntegerArray(self.rman.Tokens.Rix.k_Ri_subdivtagnargs, nargs, len(nargs))
-            #primvar.SetIntegerArray(self.rman.Tokens.Rix.k_Ri_subdivtagintargs, intargs, len(intargs))
-            #primvar.SetFloatArray(self.rman.Tokens.Rix.k_Ri_subdivtagfloatargs, floatargs, len(floatargs))
-            #primvar.SetStringArray(self.rman.Tokens.Rix.k_Ri_subdivtagstringtags, sdata, nStrings);
+            primvar.SetStringArray(rman.Tokens.Rix.k_Ri_subdivtags, tags, len(tags))
+            primvar.SetIntegerArray(rman.Tokens.Rix.k_Ri_subdivtagnargs, nargs, len(nargs))
+            primvar.SetIntegerArray(rman.Tokens.Rix.k_Ri_subdivtagintargs, intargs, len(intargs))
+            primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_subdivtagfloatargs, floatargs, len(floatargs))
+            primvar.SetStringArray(rman.Tokens.Rix.k_Ri_subdivtagstringtags, stringargs, len(stringargs))
 
             # TODO make this selectable
-            sg_node.SetScheme(self.rman.Tokens.Rix.k_catmullclark)
+            sg_node.SetScheme(rman.Tokens.Rix.k_catmullclark)
 
             sg_node.EditPrimVarEnd(primvar)
 
@@ -405,10 +706,6 @@ class RmanSgExporter:
                 export_curve(ri, scene, ob, data)
 
         # mesh only
-        elif prim == 'POLYGON_MESH':
-            export_polygon_mesh(ri, scene, ob, data)
-        elif prim == 'SUBDIVISION_MESH':
-            export_subdivision_mesh(ri, scene, ob, data)
         elif prim == 'POINTS':
             export_points(ri, ob, data)"""
                 
@@ -439,7 +736,7 @@ class RmanSgExporter:
 
         integrator_sg = self.sg_scene.CreateNode("Integrator", integrator, "integrator")
         self.sg_scene.SetIntegrator(integrator_sg)
-        property_group_to_rixparams(integrator_settings, integrator_sg, self.rman)
+        property_group_to_rixparams(integrator_settings, integrator_sg, rman)
 
     def export_transform(self, instance, sg_node):
         ob = instance.ob
@@ -492,7 +789,7 @@ class RmanSgExporter:
                 light_shader_name = rm.get_light_node_name()
                 light_sg = self.sg_scene.CreateLight(handle)
                 node_sg = self.sg_scene.CreateNode("LightFactory", light_shader_name , "light")
-                property_group_to_rixparams(light_shader, node_sg, self.rman)
+                property_group_to_rixparams(light_shader, node_sg, rman)
 
                 params = node_sg.EditParameterBegin()
 
@@ -594,7 +891,7 @@ class RmanSgExporter:
                 shutter_open, shutter_close = 0 - shutter_interval, 0
             elif rm.shutter_timing == 'POST':
                 shutter_open, shutter_close = 0, shutter_interval
-            options.SetFloatArray(self.rman.Tokens.Rix.k_Ri_Shutter, (shutter_open, shutter_close), 2)
+            options.SetFloatArray(rman.Tokens.Rix.k_Ri_Shutter, (shutter_open, shutter_close), 2)
             
         #ri.Clipping(cam.clip_start, cam.clip_end)
 
@@ -616,7 +913,8 @@ class RmanSgExporter:
             res_y = resolution[1] * (self.scene.render.border_max_y -
                                     self.scene.render.border_min_y)
             #ri.Format(int(res_x), int(res_y), 1.0)
-            options.SetIntegerArray(self.rman.Tokens.Rix.k_Ri_FormatResolution, (int(res_x), int(res_y)), 2)
+            options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (int(res_x), int(res_y)), 2)
+            options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)        
         else:
             pass
             #if cam.type == 'PANO':
@@ -624,7 +922,8 @@ class RmanSgExporter:
             #else:
                 #ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
             #ri.Format(resolution[0], resolution[1], 1.0)
-            options.SetIntegerArray(self.rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
+            options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
+            options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)
 
         self.sg_scene.EditOptionEnd(options)
 
@@ -650,7 +949,7 @@ class RmanSgExporter:
             #ri.Projection("perspective", {"fov": fov})
             proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrPerspective", "proj")
             projparams = proj.EditParameterBegin()
-            projparams.SetFloat(self.rman.Tokens.Rix.k_fov, fov)
+            projparams.SetFloat(rman.Tokens.Rix.k_fov, fov)
             proj.EditParameterEnd(projparams)
         elif cam.type == 'PANO':
             pass
@@ -661,7 +960,7 @@ class RmanSgExporter:
             yaspect = yaspect * lens / (aspectratio * 2.0)
             #ri.Projection("orthographic")
 
-        s_rightHanded = self.rman.Types.RtMatrix4x4(1.0,0.0,0.0,0.0,
+        s_rightHanded = rman.Types.RtMatrix4x4(1.0,0.0,0.0,0.0,
                                     0.0,1.0,0.0,0.0,
                                     0.0,0.0,-1.0,0.0,
                                     0.0,0.0,0.0,1.0)
@@ -673,7 +972,7 @@ class RmanSgExporter:
         camera = self.sg_scene.CreateCamera("camera")
         camera.SetProjection(proj)
 
-        camtransform = self.rman.Types.RtMatrix4x4()
+        camtransform = rman.Types.RtMatrix4x4()
         camtransform.Identity()
         camera.SetOrientTransform(s_rightHanded)
 
@@ -682,6 +981,7 @@ class RmanSgExporter:
         group.AddChild(camera)
         camera.SetRenderable(True)
         self.sg_nodes_dict['camera'] = camera
+        self.main_camera = camera
 
     # export materials
     def export_materials(self):
@@ -694,7 +994,7 @@ class RmanSgExporter:
 
             if mat.node_tree:
                 sg_material = self.shader_exporter.export_shader_nodetree(
-                    mat, handle=None, disp_bound=rm.displacementbound,
+                    mat, sg_node=None, handle=None, disp_bound=rm.displacementbound,
                     iterate_instance=False)
             else:
                 sg_material = self.shader_exporter.export_simple_shader(mat)
@@ -711,6 +1011,8 @@ class RmanSgExporter:
         self.export_transform(instance, inst_sg)
 
         for mat in data_block.material:
+            if not hasattr(mat, 'name'):
+                continue
             mat_name = get_mat_name(mat.name)
             mat_key = 'material.%s' % mat_name
             if mat_key in self.sg_nodes_dict.keys():
@@ -721,6 +1023,424 @@ class RmanSgExporter:
         self.sg_root.AddChild(inst_sg)        
 
         self.sg_nodes_dict[name] = inst_sg
+
+    def export_displays(self):
+        rm = self.scene.renderman
+
+        display_driver = self.rpass.display_driver
+        self.rpass.output_files = []
+        addon_prefs = get_addon_prefs()
+        main_display = user_path(
+            addon_prefs.path_display_driver_image, scene=self.scene, display_driver=self.rpass.display_driver)
+        debug("info", "Main_display: " + main_display)
+        
+        display = self.sg_scene.CreateDisplay(display_driver, main_display)
+        display.channels = "Ci,a"
+        
+        if display_driver == 'it':
+            dspy_info = make_dspy_info(self.scene)
+            port = self.start_cmd_server()
+            display.params.SetString("dspyParams", 
+                                    "dspyIPR -port %d -crop 1 0 1 0 -notes %s" % (port, dspy_info))
+        elif display_driver == "openexr":
+            display.params.SetInteger("asrgba", 1)
+            pass
+            #display_params = export_metadata(ri, scene, display_params)
+
+        
+        self.main_camera.SetDisplay(display)
+
+        self.rpass.output_files.append(main_display)      
+
+
+        """for layer in scene.render.layers:
+            # custom aovs
+            rm_rl = None
+            for render_layer_settings in rm.render_layers:
+                if layer.name == render_layer_settings.render_layer:
+                    rm_rl = render_layer_settings
+                    break
+
+            layer_name = layer.name.replace(' ', '')
+
+            # there's no render layer settins
+            if not rm_rl:
+                # so use built in aovs
+                aovs = [
+                    # (name, do?, declare type/name, source)
+                    ("z", layer.use_pass_z, "float", None),
+                    ("Nn", layer.use_pass_normal, "normal", None),
+                    ("dPdtime", layer.use_pass_vector, "vector", None),
+                    ("u", layer.use_pass_uv, "float", None),
+                    ("v", layer.use_pass_uv, "float", None),
+                    ("id", layer.use_pass_object_index, "float", None),
+                    ("shadows", layer.use_pass_shadow, "color",
+                    "color lpe:shadowcollector"),
+                    ("reflection", layer.use_pass_reflection, "color",
+                    "color lpe:reflectioncollector"),
+                    ("diffuse", layer.use_pass_diffuse_direct, "color",
+                    "color lpe:diffuse"),
+                    ("indirectdiffuse", layer.use_pass_diffuse_indirect,
+                    "color", "color lpe:indirectdiffuse"),
+                    ("albedo", layer.use_pass_diffuse_color, "color",
+                    "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O"),
+                    ("specular", layer.use_pass_glossy_direct, "color",
+                    "color lpe:specular"),
+                    ("indirectspecular", layer.use_pass_glossy_indirect,
+                    "color", "color lpe:indirectspecular"),
+                    ("subsurface", layer.use_pass_subsurface_indirect,
+                    "color", "color lpe:subsurface"),
+                    ("refraction", layer.use_pass_refraction, "color",
+                    "color lpe:refraction"),
+                    ("emission", layer.use_pass_emit, "color",
+                    "color lpe:emission"),
+                ]
+
+                # declare display channels
+                for aov, doit, declare_type, source in aovs:
+                    if doit and declare_type:
+                        params = {"int[4] quantize": [0, 0, 0, 0]}
+                        if source:
+                            params['string source'] = source
+                        ri.DisplayChannel('%s %s' % (declare_type, aov), params)
+
+                # if layer.use_pass_combined:
+                #     main_params = {}
+
+                #     #if display_driver == 'openexr':
+                #     #    if rm.exr_format_options != 'default':
+                #     #        main_params["string type"] = rm.exr_format_options
+                #     #    if rm.exr_compression != 'default':
+                #     #        main_params["string compression"] = rm.exr_compression
+
+                # exports all AOV's
+                for aov, doit, declare, source in aovs:
+                    if doit:
+                        dspy_name = user_path(
+                            addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                            layer_name=layer_name, pass_name=aov)
+                        ri.Display('+' + dspy_name, display_driver,
+                                aov, display_params)
+                        rpass.output_files.append(dspy_name)
+
+            # else we have custom rman render layer settings
+            else:
+                for aov in rm_rl.custom_aovs:
+                    aov_name = aov.name.replace(' ', '')
+                    # if theres a blank name we can't make a channel
+                    if not aov_name:
+                        continue
+                    source_type, source = aov.aov_name.split()
+                    exposure_gain = aov.exposure_gain
+                    exposure_gamma = aov.exposure_gamma
+                    remap_a = aov.remap_a
+                    remap_b = aov.remap_b
+                    remap_c = aov.remap_c
+                    quantize_zero = aov.quantize_zero
+                    quantize_one = aov.quantize_one
+                    quantize_min = aov.quantize_min
+                    quantize_max = aov.quantize_max
+                    pixel_filter = aov.aov_pixelfilter
+                    stats = aov.stats_type
+                    pixelfilter_x = aov.aov_pixelfilter_x
+                    pixelfilter_y = aov.aov_pixelfilter_y
+                    channel_name = get_channel_name(aov, layer_name)
+
+                    if channel_name == '':
+                        continue
+                    if aov.aov_name == "color custom_lpe":
+                        source = aov.custom_lpe_string
+
+                    # light groups need to be surrounded with '' in lpes
+                    G_string = "'%s'" % rm_rl.object_group if rm_rl.object_group != '' else ""
+                    LG_string = "'%s'" % rm_rl.light_group if rm_rl.light_group != '' else ""
+                    try:
+                        source = source.replace("%G", G_string)
+                        source = source.replace("%LG", LG_string)
+                    except:
+                        pass
+
+                    params = {"string source": source_type + " " + source,
+                            "float[2] exposure": [exposure_gain, exposure_gamma],
+                            "float[3] remap": [remap_a, remap_b, remap_c],
+                            "int[4] quantize": [quantize_zero, quantize_one, quantize_min, quantize_max]}
+                    if pixel_filter != 'default':
+                        params["filter"] = pixel_filter
+                        params["filterwidth"] = [pixelfilter_x, pixelfilter_y]
+                    if stats != 'none':
+                        params["string statistics"] = stats
+
+                    if source == 'rgba':
+                        del params['string source']
+                        ri.DisplayChannel("color Ci", params)
+                        ri.DisplayChannel("float a", params)
+                    else:
+                        ri.DisplayChannel(source_type + ' %s' %
+                                        channel_name, params)
+                # if this is a multilayer combine em!
+                if rm_rl.export_multilayer and rpass.external_render:
+                    channels = []
+                    for aov in rm_rl.custom_aovs:
+                        channel_name = get_channel_name(aov, layer_name)
+                        channels.append(channel_name)
+                    out_type, ext = ('openexr', 'exr')
+                    if rm_rl.use_deep:
+                        channels = [x for x in channels if not (
+                            "z_back" in x or 'z_depth' in x)]
+                        out_type, ext = ('deepexr', 'exr')
+                    params = {"string storage": rm_rl.exr_storage}
+                    if rm_rl.exr_format_options != 'default':
+                        params["string type"] = rm_rl.exr_format_options
+                    if rm_rl.exr_compression != 'default':
+                        params["string compression"] = rm_rl.exr_compression
+                    if channels[0] == "Ci,a" and not rm.spool_denoise_aov and not rm.enable_checkpoint:
+                        params["int asrgba"] = 1
+                    if rm.use_metadata:
+                        params = export_metadata(ri, scene, params)
+                    dspy_name = user_path(
+                        addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                        layer_name=layer_name, pass_name='multilayer')
+                    ri.Display('+' + dspy_name, out_type,
+                            ','.join(channels), params)
+
+                else:
+                    for aov in rm_rl.custom_aovs:
+                        aov_name = aov.name.replace(' ', '')
+                        aov_channel_name = get_channel_name(aov, layer_name)
+                        if aov_channel_name == '':
+                            continue
+
+                        if layer == scene.render.layers[0] and aov == 'rgba':
+                            # we already output this skip
+                            continue
+                        
+                        params = {
+                            "int asrgba": 1} if not rm.spool_denoise_aov and not rm.enable_checkpoint else {}
+                        if rm.use_metadata:
+                            params = export_metadata(ri, scene, params)
+                        dspy_name = user_path(
+                            addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                            layer_name=layer_name, pass_name=aov_name)
+                        rpass.output_files.append(dspy_name)
+                        ri.Display('+' + dspy_name, display_driver,
+                                aov_channel_name, params)
+
+        if (rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render) and not rpass.is_interactive:
+            # add display channels for denoising
+            denoise_aovs = [
+                # (name, declare type/name, source, statistics, filter)
+                ("Ci", 'color', None, None, None),
+                ("a", 'float', None, None, None),
+                ("mse", 'color', 'color Ci', 'mse', None),
+                ("albedo", 'color',
+                'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
+                None, None),
+                ("albedo_var", 'color', 'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
+                "variance", None),
+                ("diffuse", 'color', 'color lpe:C(D[DS]*[LO])|O', None, None),
+                ("diffuse_mse", 'color', 'color lpe:C(D[DS]*[LO])|O', 'mse', None),
+                ("specular", 'color', 'color lpe:CS[DS]*[LO]', None, None),
+                ("specular_mse", 'color', 'color lpe:CS[DS]*[LO]', 'mse', None),
+                ("z", 'float', 'float z', None, True),
+                ("z_var", 'float', 'float z', "variance", True),
+                ("normal", 'normal', 'normal Nn', None, None),
+                ("normal_var", 'normal', 'normal Nn', "variance", None),
+                ("forward", 'vector', 'vector motionFore', None, None),
+                ("backward", 'vector', 'vector motionBack', None, None)
+            ]
+
+            for aov, declare_type, source, statistics, do_filter in denoise_aovs:
+                params = {}
+                if source:
+                    params['string source'] = source
+                if statistics:
+                    params['string statistics'] = statistics
+                if do_filter:
+                    params['string filter'] = rm.pixelfilter
+                #{"string storage": "tiled"}
+                ri.DisplayChannel('%s %s' % (declare_type, aov), params)
+            if rm.use_metadata:
+            display_params = export_metadata(ri, scene, display_params)
+            # output denoise_data.exr
+            image_base, ext = main_display.rsplit('.', 1)
+            ri.Display('+' + image_base + '.variance.exr', 'openexr',
+                    "Ci,a,mse,albedo,albedo_var,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
+                    display_params)"""
+
+    def export_global_options(self):
+        rm = self.scene.renderman
+        options = self.sg_scene.EditOptionBegin()
+
+        # Set bucket shape
+        bucket_order = rm.bucket_shape.lower()
+        bucket_orderorigin = []
+        if rm.enable_checkpoint and not self.rpass.is_interactive:
+            bucket_order = 'horizontal'
+            ri.Option("bucket", {"string order": ['horizontal']})
+
+        elif rm.bucket_shape == 'SPIRAL':
+            settings = self.scene.render
+
+            if rm.bucket_sprial_x <= settings.resolution_x and rm.bucket_sprial_y <= settings.resolution_y:
+                if rm.bucket_sprial_x == -1:
+                    halfX = settings.resolution_x / 2
+                    debug("info", halfX)
+                    bucket_orderorigin = [int(halfX), rm.bucket_sprial_y]
+
+                elif rm.bucket_sprial_y == -1:
+                    halfY = settings.resolution_y / 2
+                    bucket_orderorigin = [rm.bucket_sprial_y, int(halfY)]
+                else:
+                    bucket_orderorigin = [rm.bucket_sprial_x, rm.bucket_sprial_y]
+
+        options.SetString(rman.Tokens.Rix.k_bucket_order, bucket_order)
+        if bucket_orderorigin:
+            options.SetFloatArray(rman.Tokens.Rix.k_bucket_orderorigin, bucket_orderorigin, 2)
+
+        self.sg_scene.EditOptionEnd(options)
+
+    def preview_model(self, mat):
+
+        sg_node = None
+        name = "Preview"
+
+        print('PREVIEW TYPE: %s' % mat.preview_render_type)
+        if mat.preview_render_type == 'SPHERE':
+            sg_node = self.sg_scene.CreateQuadric(name)
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Sphere);
+            primvar = sg_node.EditPrimVarBegin()
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, 1.0)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmin, -1.0)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmax, 1.0)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, 360)
+            sg_node.EditPrimVarEnd(primvar)
+        
+        """elif mat.preview_render_type == 'FLAT':  # FLAT PLANE
+            # ri.Scale(0.75, 0.75, 0.75)
+            # ri.Translate(0.0, 0.0, 0.01)
+            ri.PointsPolygons([4, ],
+                            [0, 1, 2, 3],
+                            {ri.P: [0, -1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1]})
+        elif mat.preview_render_type == 'CUBE':
+            ri.Scale(.75, .75, .75)
+            export_geometry_data(ri, scene, scene.objects[
+                                'preview_cube'], data=None)
+        elif mat.preview_render_type == 'HAIR':
+            ri.Scale(.75, .75, .75)
+            export_geometry_data(ri, scene, scene.objects[
+                                'preview_hair'], data=None)
+        elif mat.preview_render_type == 'MONKEY':
+            ri.Scale(.75, .75, .75)
+            ri.Rotate(90, 1, 0, 0)
+            ri.Rotate(90, 0, 1, 0)
+            export_geometry_data(ri, scene, scene.objects[
+                                'preview_monkey'], data=None)
+        else:
+            ri.Scale(2, 2, 2)
+            ri.Rotate(90, 0, 0, 1)
+            ri.Rotate(45, 1, 0, 0)
+            export_geometry_data(ri, scene, scene.objects[
+                                'preview.002'], data=None)"""
+
+        return sg_node
+
+    def write_preview_scene(self):
+        org_scene = self.scene
+        #self.scene = bpy.data.scenes[0]
+        r = self.scene.render
+
+        proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrPerspective", "proj")
+        projparams = proj.EditParameterBegin()
+        projparams.SetFloat(rman.Tokens.Rix.k_fov, 37.8493)
+        proj.EditParameterEnd(projparams)
+
+        group = self.sg_scene.CreateGroup("group")
+        self.sg_root.AddChild(group)
+
+        camera = self.sg_scene.CreateCamera("camera")
+        camera.SetProjection(proj)
+
+        s_rightHanded = rman.Types.RtMatrix4x4(1.0,0.0,0.0,0.0,
+                                    0.0,1.0,0.0,0.0,
+                                    0.0,0.0,-1.0,0.0,
+                                    0.0,0.0,0.0,1.0)
+
+        #camtransform = rman.Types.RtMatrix4x4()
+        #camtransform.Identity()
+        #camera.SetOrientTransform(s_rightHanded)
+        #camera.SetTransform([0, -0.25, -1, 0, 1, 0, 0, 0, 0,
+        #          1, -0.25, 0, 0, -.75, 3.25, 1])
+
+        camtransform = rman.Types.RtMatrix4x4(0, -0.25, -1, 0, 1, 0, 0, 0, 0,
+                                                   1, -0.25, 0, 0, -.75, 3.25, 1)
+
+        camtransform.Rotate(60, 0, 1, 0)
+        camera.SetTransform(camtransform)
+
+        group.AddChild(camera)
+        camera.SetRenderable(True)
+
+        display = self.sg_scene.CreateDisplay("tiff", self.rpass.paths['render_output'])
+        display.channels = "Ci"
+        
+        camera.SetDisplay(display)
+
+        rm = self.scene.renderman
+        xaspect, yaspect, aspectratio = render_get_aspect(r)
+        resolution = render_get_resolution(self.scene.render)
+
+        options = self.sg_scene.EditOptionBegin()
+        options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, [-xaspect, xaspect, -yaspect, yaspect], 4)
+        options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
+        options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)        
+        options.SetInteger(rman.Tokens.Rix.k_hider_minsamples, rm.preview_min_samples)
+        options.SetInteger(rman.Tokens.Rix.k_hider_maxsamples, rm.preview_max_samples)
+        options.SetInteger(rman.Tokens.Rix.k_hider_incremental, 1)
+        self.sg_scene.EditOptionEnd(options)
+
+
+        integrator = "PxrPathTracer"
+        integrator_settings = getattr(rm, "%s_settings" % integrator)
+
+        integrator_sg = self.sg_scene.CreateNode("Integrator", integrator, "integrator")
+        self.sg_scene.SetIntegrator(integrator_sg)
+        property_group_to_rixparams(integrator_settings, integrator_sg, rman)
+
+        preview_rib_data_path = \
+        rib_path(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                              'preview', "preview_scene.rib"))
+
+        # preview scene: walls, lights
+        proc = self.sg_scene.CreateProcedural("preview_scene.rib")
+        proc.Define("DelayedReadArchive", None)
+        primvar = proc.EditPrimVarBegin()
+        primvar.SetString("filename", preview_rib_data_path)
+        primvar.SetFloatArray("__bound", [-1, 1, -1, 1, -1, 1], 6)
+        proc.EditPrimVarEnd(primvar)
+        self.sg_root.AddChild(proc)
+
+        mat = find_preview_material(self.scene)
+        if mat:
+            rm = mat.renderman
+            sg_material = None
+
+            if mat.node_tree:
+                sg_material = self.shader_exporter.export_shader_nodetree(
+                    mat, handle=None, disp_bound=rm.displacementbound,
+                    iterate_instance=False)
+            else:
+                sg_material = self.shader_exporter.export_simple_shader(mat)
+
+            m = rman.Types.RtMatrix4x4()
+            m.Identity()
+            m.Translate(0, 0, 0.2)
+            sg_node = self.preview_model(mat)
+            sg_node.SetMaterial(sg_material)
+            sg_node.SetTransform(m)
+            self.sg_root.AddChild(sg_node)
+
+        #self.scene = org_scene
+        return (mat != None)
 
     def write_scene(self, visible_objects=None, engine=None, do_objects=True):
 
@@ -740,13 +1460,6 @@ class RmanSgExporter:
         #export_searchpaths(ri, rpass.paths)
         #export_options(ri, scene)
 
-        #if not rpass.bake:
-        #    export_display(ri, rpass, scene)
-        #    export_displayfilters(ri, scene)
-        #    export_samplefilters(ri, rpass, scene)
-        #else:
-        #    ri.Display("null", "null", "rgba")
-
         #export_hider(ri, rpass, scene)
 
         if not self.rpass.bake:
@@ -758,8 +1471,19 @@ class RmanSgExporter:
         #ri.FrameBegin(scene.frame_current)
 
         if not self.rpass.bake:
+            self.export_global_options()
+
+        if not self.rpass.bake:
             self.export_camera(instances)
         #    export_render_settings(ri, rpass, scene)
+
+        if not self.rpass.bake:
+            self.export_displays()
+        #    export_displayfilters(ri, scene)
+        #    export_samplefilters(ri, rpass, scene)
+        #else:
+        #    ri.Display("null", "null", "rgba")
+
 
         # export_global_illumination_settings(ri, rpass, scene)
 
@@ -800,9 +1524,16 @@ class RmanSgExporter:
 
         #ri.FrameEnd()
 
+def is_ready():
+    global __RMAN_SG_INITED__
+    return __RMAN_SG_INITED__
 
+def rman_sg_exporter():
+    global __RMAN_SG_EXPORTER__
+    if __RMAN_SG_EXPORTER__ is None:
+        __RMAN_SG_EXPORTER__ = RmanSgExporter()
 
-
+    return __RMAN_SG_EXPORTER__
 
 def AddDisplay(scene, camera, plugin, path, channels=None):
     if channels is None:
@@ -3676,14 +4407,15 @@ def export_camera(sg_scene, sg_root, rman, scene, instances, camera_to_use=None)
                                  scene.render.border_min_y)
         #ri.Format(int(res_x), int(res_y), 1.0)
         options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (int(res_x), int(res_y)), 2)
+        options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)        
     else:
-        pass
         #if cam.type == 'PANO':
             #ri.ScreenWindow(-1, 1, -1, 1)
         #else:
             #ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
         #ri.Format(resolution[0], resolution[1], 1.0)
         options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
+        options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)    
 
     sg_scene.EditOptionEnd(options)
 
@@ -4627,17 +5359,7 @@ def make_dspy_info(scene):
         dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
         dspy_notes += "Bxdf:\t%d\r\r" % integrator.numBxdfSamples
 
-    # escaping line break is requiered
-    params["string dspyParams"] = """ itOpenHandler {::ice::startTimer;};;;                     \
-                                      itCloseHandler {::ice::endTimer %%arglist; };;;           \
-                                      dspyRender -renderer preview -time %d -crop %f %f %f %f   \
-                                      -notes %s""" % (scene.frame_current,
-                                                      scene.render.border_min_x,
-                                                      scene.render.border_max_x,
-                                                      1.0 - scene.render.border_min_y,
-                                                      1.0 - scene.render.border_max_y,
-                                                      dspy_notes)
-    return params
+    return dspy_notes
 
 # flush the current edit
 
