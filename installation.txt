@@ -1,18 +1,35 @@
-3Delight/Blender Installation Instructions
+RenderMan for Blender Installation Instructions
 ------------------------------------------
 
-Unpack and move the render_3delight folder into your blender addons folder. You can then enable the addon in the Addons tab of blender user preferences
+1.  Install Blender if not already (2.78 recommended)
+
+2.  Register for the free Non-Commercial Version of RenderMan from Pixar.
+https://renderman.pixar.com/store/intro
+
+3.  Download and install RenderMan Pro Server Package and 
+installation instructions at: http://rendermansite.pixar.com/view/get-renderman 
+You need to install at a minimum RenderMan Pro Server 21.0
+It is recommended to install RenderMan Pro Server in the default location (or see advanced instructions below)
+
+3.A If on Windows, be sure to restart after installing RenderMan Pro Server
+
+4.  Download the latest release of the RenderMan for Blender addon 
+https://github.com/prman-pixar/RenderManForBlender/releases save the zip file somewhere.
+
+5.  Start Blender, and from the File->User Preferences->Add-ons install the zip file from step 4.  
+
+6.  Change your renderer to RenderMan and start rendering!
 
 
-You may also need to tell blender the location of your 3Delight installation folder. When you start Blender and the add-on, it will try to guess where your 3Delight folder is, but it may not be correct. You can set this folder explicitly in the Blender Property Editor:
-Render Properties -> Search Paths panel -> 3Delight Path
+ADVANCED:
+RenderMan normally bases everything off a variable RMANTREE which is set to your installation
+folder, eg /Applications/Pixar/RenderManProServer-21.0 on OSX and C:\Program Files\Pixar\RenderManProServer-21.0 on Windows.
 
-Setting the location in Blender is enough to make it work, however if you want to avoid setting it manually each time, you can force it by editing the 3delight_env.txt file in the render_3delight add-on folder. Simply add the path to the 3Delight installation folder at the end of the first line and save the file. For example:
-DELIGHT=/Applications/Graphics/3Delight-9.0.84
+RenderMan for Blender will try and guess the appropriate RenderMan version to use and the location of
+the RMANTREE folder.  If you are installing RenderMan to the standard location you shouldn't have to do anything!
 
-The location specified in 3delight_env.txt will override anything set in the Render Properties -> 3Delight Path property.
+However, if you installed in a non-standard location, set the RMANTREE 
+environment variable before starting blender.
 
-Finally, if you have 3Delight's environment variables set ($DELIGHT, $DL_SHADERS_PATH, etc), these paths will override both the 3Delight Path property and the 3delight_env.txt file.
-
-
-Matt Ebb, 9 Feb 2011
+Furthermore, advanced options for finding the RenderMan Pro Server location 
+are in the addon preferences.
