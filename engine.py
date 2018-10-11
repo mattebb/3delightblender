@@ -677,7 +677,6 @@ class RPass:
 
     def is_prman_running(self):
         if rman__sg__inited:
-            #return self.rictl.GetProgress() < 100
             return rman_sg_exporter().is_prman_running()
         else:
             return prman.RicGetProgress() < 100
@@ -711,6 +710,7 @@ class RPass:
         self.material_dict = {}
         self.instance_dict = {}
         self.lights = {}
+        self.scene_objects = {}
         self.light_filter_map = {}
         self.current_solo_light = None
         self.muted_lights = []
@@ -729,6 +729,8 @@ class RPass:
                     self.current_solo_light = obj
                 if obj.data.renderman.mute:
                     self.muted_lights.append(obj)
+            elif obj.name not in self.scene_objects:
+                self.scene_objects[obj.name] = obj.data.name
             for mat_slot in obj.material_slots:
                 if mat_slot.material not in self.material_dict:
                     self.material_dict[mat_slot.material] = []
@@ -833,9 +835,19 @@ class RPass:
         if rman_sg_exporter().is_prman_running():
             active = scene.objects.active
             if (active and active.is_updated):
-                rman_sg_exporter().issue_transform_edits(active, scene)
+                if active.type == 'LAMP' and active.name not in self.lights:
+                    rman_sg_exporter().issue_new_object_edits(active, scene)
+                    self.lights[active.name] = active.data.name 
+                elif active.name not in self.scene_objects:
+                    rman_sg_exporter().issue_new_object_edits(active, scene)
+                    self.scene_objects[active.name] = active.data.name                       
+                else:
+                    rman_sg_exporter().issue_transform_edits(active, scene)
             elif (active and active.is_updated_data):
                 rman_sg_exporter().issue_object_edits(active, scene)
+
+            if active and scene.camera.name != active.name and scene.camera.is_updated:
+                rman_sg_exporter().issue_transform_edits(active, scene)
 
             if active and active.type in ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'LATTICE']:
                 for mat_slot in active.material_slots:

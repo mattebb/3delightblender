@@ -648,20 +648,20 @@ class RmanSgShadingExporter:
 
                 nodes_to_export = gather_nodes(out)
                 sg_material = None
+                bxdfList = []
                 
                 if len(nodes_to_export) > 0:
                     if sg_node:
                         sg_material = sg_node
                     else:
                         sg_material = self.sg_scene.CreateMaterial(None)
-                    bxdfList = []
                     for node in nodes_to_export:
                         sg_node = shader_node_sg(self.sg_scene, self.rman, node, mat_name=handle,
                                     disp_bound=disp_bound, portal=portal)
                         bxdfList.append(sg_node)
                     sg_material.SetBxdf(bxdfList)
 
-                return sg_material
+                return (sg_material, bxdfList)
                     
                     
             elif find_node(id, 'ShaderNodeOutputMaterial'):

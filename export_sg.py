@@ -239,7 +239,6 @@ class RmanSgExporter:
 
         self.sg_scene = None
         self.sg_root = None
-        self.is_rendering = False   
 
         # blender scene and rpass
         self.scene = None
@@ -249,18 +248,14 @@ class RmanSgExporter:
         # exporters
         self.shader_exporter = None
 
-        # handles to sg_nodes
-        self.sg_nodes_dict = {}
+        self.sg_nodes_dict = {} # handles to sg_nodes
+        self.mat_networks = {} # dict material to networks
         self.mesh_masters = {}
 
         self.port = -1
         self.main_camera = None
 
     def export_ready(self):
-        #if self.sg_scene is None:
-        #    self.sg_scene = self.sgmngr.CreateScene()
-        #else:
-        #    self.sg_scene.Clear()
         self.sg_scene = self.sgmngr.CreateScene()
         self.sg_root = self.sg_scene.Root()
         self.shader_exporter = nodes_sg.RmanSgShadingExporter( rpass=self.rpass, 
@@ -271,7 +266,6 @@ class RmanSgExporter:
     def is_prman_running(self):
         global is_running
         return is_running
-        #return self.is_rendering
 
     def start_cmd_server(self):
 
@@ -331,12 +325,10 @@ class RmanSgExporter:
             ec.RegisterCallback("Progress", progress_cb, self)
 
         is_running = True
-        self.is_rendering = True
         self.rictl.PRManBegin(argv)
         self.sg_scene.Render("rib /var/tmp/blender.rib")       
         self.sg_scene.Render("prman -blocking") 
 
-        is_running = False
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         self.rictl.PRManEnd()
         print("PRManEnd called.")
@@ -358,7 +350,6 @@ class RmanSgExporter:
         argv.append("it")
         argv.append("-t:%d" % self.rm.threads)
 
-        self.is_rendering = True
         self.rictl.PRManBegin(argv)
         self.write_scene(visible_objects)
 
@@ -380,7 +371,6 @@ class RmanSgExporter:
     def stop_ipr(self):
         global is_running
 
-        self.is_rendering = False
         is_running = False
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         self.rictl.PRManEnd()
@@ -398,23 +388,72 @@ class RmanSgExporter:
                         print("CANNOT FIND CAMERA!")
             else:
                 instance = get_instance(active, self.scene, False)
-                if instance:                    
-                    inst_sg = self.sg_nodes_dict[instance.name]
-                    if inst_sg:
-                        #ob = inst.ob
-                        #m = ob.matrix_world
-                        with rman_internal.SGManager.ScopedEdit(self.sg_scene):
-                            #mesh_sg.SetTransform(convert_matrix(m))
-                            self.export_transform(instance, inst_sg)                       
+                if instance:
+                    if instance.name in self.sg_nodes_dict.keys():                    
+                        inst_sg = self.sg_nodes_dict[instance.name]
+                        if inst_sg:
+                            with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                                self.export_transform(instance, inst_sg)                      
 
-
-        elif scene.camera.name != active.name and scene.camera.is_updated:
+        if active and scene.camera.name != active.name and scene.camera.is_updated:
             with rman_internal.SGManager.ScopedEdit(self.sg_scene):
                 camera_node_sg = self.sg_nodes_dict['camera']
                 if camera_node_sg:
                     self.export_camera_transform(camera_node_sg, scene.camera, [])
                 else:
                     print("CANNOT FIND CAMERA!")
+
+    def issue_new_object_edits(self, active, scene):
+        self.scene = scene
+        if active.type == 'LAMP':
+            # this is a new light
+            ob = active
+            lamp = ob.data
+            rm = lamp.renderman
+            handle = lamp.name
+
+            with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                self.export_light(ob, lamp, handle, rm)  
+        else:
+            print("NEW OBJECT: %s" % active.type) 
+            ob = active
+            if active.type == "MESH":
+                with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                    mb_on = scene.renderman.motion_blur 
+                    mb_segs = scene.renderman.motion_segments
+                    instance = get_instance(active, self.scene, mb_on)
+                    inst_data_blocks = get_data_blocks_needed(ob, self.rpass, mb_on)        
+
+                    if instance:
+                        ob_mb_segs = ob.renderman.motion_segments if ob.renderman.motion_segments_override else mb_segs
+
+                        # add the instance to the motion segs list if transforming
+                        if instance.transforming:
+                            if ob_mb_segs not in motion_segs:
+                                motion_segs[ob_mb_segs] = ([], [])
+                            motion_segs[ob_mb_segs][0].append(instance.name)
+
+                        # now get the data_blocks for the instance
+                        inst_data_blocks = get_data_blocks_needed(ob, self.rpass, mb_on)
+                        for db in inst_data_blocks:
+                            do_db = True #False if (bake and not export_for_bake(db)) else True
+
+                            if do_db and not db.dupli_data:
+                                instance.data_block_names.append(db.name)
+
+                            # add data_block to mb list
+                            if do_db and db.deforming and mb_on:
+                                if ob_mb_segs not in motion_segs:
+                                    motion_segs[ob_mb_segs] = ([], [])
+                                motion_segs[ob_mb_segs][1].append(db.name)
+
+                            if do_db:
+                                if db.type == "MESH":
+                                    self.export_mesh_archive(db)
+
+                    if not instance.parent:
+                        for db_name in instance.data_block_names:   
+                            self.write_instances(db_name, db, instance.name, instance)                 
 
     def issue_object_edits(self, active, scene):
         self.scene = scene
@@ -429,11 +468,72 @@ class RmanSgExporter:
         #pass
         if node is None:
             mat = None        
+            if bpy.context.object:
+                mat = bpy.context.object.active_material
+                if mat not in rpass.material_dict:
+                    rpass.material_dict[mat] = [bpy.context.object]
+                # if the last edit was a material edit skip the attribute edit
+                # we get two edits when should get one.
+                if rpass.last_edit_mat == mat:
+                    rpass.last_edit_mat = None
+                    return
+            lamp = None
+            world = bpy.context.scene.world
+            if mat is None and hasattr(bpy.context, 'lamp') and bpy.context.lamp:
+                lamp = bpy.context.object
+                mat = bpy.context.lamp
+            elif mat is None and nt and nt.name == 'World':
+                mat = world
+            if mat is None:
+                return
+            # do an attribute full rebind
+            tex_made = False
+            """if reissue_textures(ri, rpass, mat):
+                tex_made = True
+
+            # if texture made flush it
+            if tex_made:
+                rpass.edit_num += 1
+                edit_flush(ri, rpass.edit_num, prman)
+            rpass.edit_num += 1
+            edit_flush(ri, rpass.edit_num, prman)"""
+            # for obj in objs:
+            if mat in rpass.material_dict:
+                if ob:
+                    """ri.EditBegin(
+                        'attribute', {'string scopename': "^" + ob.name + "$"})
+                    export_material(ri, mat, iterate_instance=True)
+                    ri.EditEnd()"""
+                    pass
+                else:
+                    """for obj in rpass.material_dict[mat]:
+                        ri.EditBegin(
+                            'attribute', {'string scopename': "^" + obj.name + "$"})
+                        export_material(ri, mat, iterate_instance=True)
+                        ri.EditEnd()"""
+                    pass
+            elif lamp:
+                lamp_ob = lamp
+                lamp = mat
+                print('EDITING LIGHT')
+                """ri.EditBegin('attribute', {'string scopename': lamp.name})
+                export_light_filters(ri, lamp, do_coordsys=True)
+
+                export_object_transform(ri, lamp_ob)
+                export_light_shaders(ri, lamp, get_light_group(ob))
+                ri.EditEnd()"""
+
+            elif world:
+                pass
+                """ri.EditBegin('attribute', {'string scopename': world.name})
+                export_world(ri, mat.data, do_geometry=True)
+                ri.EditEnd()"""           
         else:
             world = bpy.context.scene.world
             mat = None
             instance_num = 0
             mat_name = None  
+            is_light = False
 
             if bpy.context.object:
                 mat = bpy.context.object.active_material
@@ -447,6 +547,7 @@ class RmanSgExporter:
             # if this is a lamp use that for the mat/name
             if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
                 mat = node.id_data
+                is_light = True
             elif mat is None and nt and nt.name == 'World':
                 mat = bpy.context.scene.world
             elif mat is None and bpy.context.object and bpy.context.object.type == 'CAMERA':
@@ -492,14 +593,36 @@ class RmanSgExporter:
             #shader_node_rib(ri, node, handle)
             #ri.EditEnd()
 
-            sg_material = self.sg_nodes_dict['material.%s' % mat_name] 
-            if sg_material:
-                with rman_internal.SGManager.ScopedEdit(self.sg_scene):
-                    sg_material = self.shader_exporter.export_shader_nodetree(
-                        mat, sg_node=sg_material, handle=None, 
-                        disp_bound=mat.renderman.displacementbound,
-                        iterate_instance=False)
-                self.sg_nodes_dict['material.%s' % mat_name] = sg_material
+            if is_light:
+                sg_light = self.sg_nodes_dict[mat_name]
+                sg_node = self.mat_networks[mat_name]
+                with rman_internal.SGManager.ScopedEdit(self.sg_scene): 
+                    rix_params = sg_node.EditParameterBegin()       
+                    rix_params = nodes_sg.gen_rixparams(node, rix_params, mat_name)
+                    sg_node.EditParameterEnd(rix_params) 
+                    sg_light.SetLight(sg_node)                               
+
+            else:
+                handle = mat_name + '.' + node.name
+                #print("HANDLE: %s MATNAME: %s" % (handle, node.name))
+
+                sg_material = self.sg_nodes_dict['material.%s' % mat_name] 
+                if handle in self.sg_nodes_dict.keys():    
+                    sg_node = self.sg_nodes_dict[handle]
+                    with rman_internal.SGManager.ScopedEdit(self.sg_scene):                   
+                        rix_params = sg_node.EditParameterBegin()       
+                        rix_params = nodes_sg.gen_rixparams(node, rix_params, mat_name)
+                        sg_node.EditParameterEnd(rix_params) 
+                        bxdfList = self.mat_networks['material.%s' % mat_name]
+                        sg_material.SetBxdf(bxdfList)               
+                else:            
+                    if sg_material:
+                        with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                            sg_material = self.shader_exporter.export_shader_nodetree(
+                                mat, sg_node=sg_material, handle=None, 
+                                disp_bound=mat.renderman.displacementbound,
+                                iterate_instance=False)
+                        self.sg_nodes_dict['material.%s' % mat_name] = sg_material
  
 
     def create_mesh(self, ob):
@@ -771,11 +894,7 @@ class RmanSgExporter:
         else:
             sg_node.SetTransform( transforms[0] )
 
-    def export_light(self, instance, instances):
-        ob = instance.ob
-        lamp = ob.data
-        handle = lamp.name
-        rm = lamp.renderman
+    def export_light(self, ob, lamp, handle, rm):
 
         group_name='' 
         portal_parent=''
@@ -784,16 +903,14 @@ class RmanSgExporter:
             pass
         else:
             light_shader = rm.get_light_node()
-
+            light_sg = self.sg_scene.CreateLight(handle)
+            node_sg = None            
+            light_shader_name = ''
             if light_shader:
                 light_shader_name = rm.get_light_node_name()
-                light_sg = self.sg_scene.CreateLight(handle)
+
                 node_sg = self.sg_scene.CreateNode("LightFactory", light_shader_name , "light")
                 property_group_to_rixparams(light_shader, node_sg, rman)
-
-                params = node_sg.EditParameterBegin()
-
-                node_sg.EditParameterEnd(params)
                 light_sg.SetLight(node_sg)
 
                 primary_vis = rm.light_primary_visibility
@@ -803,32 +920,58 @@ class RmanSgExporter:
                 attrs.SetInteger("visibility:indirect", 0)
                 light_sg.EditAttributeEnd(attrs)
 
-                if  light_shader_name in ("PxrRectLight", 
-                                        "PxrDiskLight",
-                                        "PxrPortalLight",
-                                        "PxrSphereLight",
-                                        "PxrDistantLight"):
-                    #light_sg.SetOrientTransform(s_orientTransform)
-                    light_sg.SetOrientTransform(s_orientPxrLight)
+            else:
+                names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrDistantLight',
+                        'SPOT': 'PxrDiskLight', 'HEMI': 'PxrDomeLight', 'AREA': 'PxrRectLight'}
+                light_shader_name = names[lamp.type]
 
-                """elif light_shader_name == "PxrDomeLight":
-                    light_sg.SetOrientTransform(s_orientPxrDomeLight)
-                    pass
+                node_sg = self.sg_scene.CreateNode("LightFactory", light_shader_name , "light")
+                rixparams = node_sg.EditParameterBegin()
+                rixparams.SetFloat("exposure", exposure)
+                rixparams.SetColor("lightColor", rib(lamp.color))
+                if lamp.type not in ['HEMI']:
+                    rixparams.SetInteger('areaNormalize', 1)
 
-                elif light_shader_name == "PxrEnvDayLight":
-                    light_sg.SetOrientTransform(s_orientPxrEnvDayLight)"""
+                light_sg.SetLight(node_sg)
 
-                self.sg_root.AddChild(light_sg)
-                self.sg_nodes_dict[handle] = light_sg
+
+            if  light_shader_name in ("PxrRectLight", 
+                                    "PxrDiskLight",
+                                    "PxrPortalLight",
+                                    "PxrSphereLight",
+                                    "PxrDistantLight"):
+                #light_sg.SetOrientTransform(s_orientTransform)
+                light_sg.SetOrientTransform(s_orientPxrLight)
+
+            """elif light_shader_name == "PxrDomeLight":
+                light_sg.SetOrientTransform(s_orientPxrDomeLight)
+                pass
+
+            elif light_shader_name == "PxrEnvDayLight":
+                light_sg.SetOrientTransform(s_orientPxrEnvDayLight)"""
+
+            self.sg_root.AddChild(light_sg)
+            self.sg_nodes_dict[handle] = light_sg
+            self.mat_networks[handle] = node_sg
                 
     def export_scene_lights(self, instances):
         for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
+            ob = instance.ob
+            lamp = ob.data
+            handle = lamp.name
+            rm = lamp.renderman
+            if instance.ob.data.renderman.renderman_type == 'FILTER':
+                pass  
+            elif instance.ob.data.renderman.renderman_type not in ['FILTER']:    
+                self.export_light(ob, lamp, handle, rm)
+        pass
+        """for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
             if instance.ob.data.renderman.renderman_type == 'FILTER':
                 self.export_light(instance, instances)
 
         for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
             if instance.ob.data.renderman.renderman_type not in ['FILTER']:
-                self.export_light(instance, instances)
+                self.export_light(instance, instances)"""
 
     def export_camera_transform(self, camera_sg, ob, motion):
         r = self.scene.render
@@ -874,13 +1017,6 @@ class RmanSgExporter:
 
         options = self.sg_scene.EditOptionBegin()
 
-        if rm.depth_of_field:
-            if cam.dof_object:
-                dof_distance = (ob.location - cam.dof_object.location).length
-            else:
-                dof_distance = cam.dof_distance
-            #ri.DepthOfField(cam.renderman.fstop, (cam.lens * 0.001), dof_distance)
-
         if self.scene.renderman.motion_blur:
             shutter_interval = rm.shutter_angle / 360.0
             shutter_open, shutter_close = 0, 1
@@ -892,13 +1028,10 @@ class RmanSgExporter:
             elif rm.shutter_timing == 'POST':
                 shutter_open, shutter_close = 0, shutter_interval
             options.SetFloatArray(rman.Tokens.Rix.k_Ri_Shutter, (shutter_open, shutter_close), 2)
-            
-        #ri.Clipping(cam.clip_start, cam.clip_end)
 
         if self.scene.render.use_border and not self.scene.render.use_crop_to_border:
-            pass
-            #ri.CropWindow(scene.render.border_min_x, scene.render.border_max_x,
-            #             1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y)
+            options.SetFloatArray(rman.Tokens.Rix.k_Ri_CropWindow, (scene.render.border_min_x, scene.render.border_max_x,
+                        1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y) , 4)
 
         # convert the crop border to screen window, flip y
         resolution = render_get_resolution(self.scene.render)
@@ -907,21 +1040,22 @@ class RmanSgExporter:
             screen_max_x = -xaspect + 2.0 * self.scene.render.border_max_x * xaspect
             screen_min_y = -yaspect + 2.0 * (self.scene.render.border_min_y) * yaspect
             screen_max_y = -yaspect + 2.0 * (self.scene.render.border_max_y) * yaspect
-            #ri.ScreenWindow(screen_min_x, screen_max_x, screen_min_y, screen_max_y)
+
+            options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (screen_min_x, screen_max_x, screen_min_y, screen_max_y), 4)
+
             res_x = resolution[0] * (self.scene.render.border_max_x -
                                     self.scene.render.border_min_x)
             res_y = resolution[1] * (self.scene.render.border_max_y -
                                     self.scene.render.border_min_y)
-            #ri.Format(int(res_x), int(res_y), 1.0)
+
             options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (int(res_x), int(res_y)), 2)
             options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)        
-        else:
-            pass
-            #if cam.type == 'PANO':
-                #ri.ScreenWindow(-1, 1, -1, 1)
-            #else:
-                #ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
-            #ri.Format(resolution[0], resolution[1], 1.0)
+        else:            
+            if cam.type == 'PANO':
+                options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (-1, 1, -1, 1), 4)
+            else:
+                options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)
+
             options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
             options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)
 
@@ -936,9 +1070,13 @@ class RmanSgExporter:
                 lens = cam.lens
                 sensor = cam.sensor_height \
                     if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
-                params['float fov'] = 360.0 * \
+                fov = 360.0 * \
                     math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
-            #ri.Projection(cam.renderman.get_projection_name(), params)
+            proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrCamera", "proj")
+            projparams = proj.EditParameterBegin()
+            projparams.SetFloat("fov", fov )
+            proj.EditParameterEnd(projparams)                    
+            property_group_to_rixparams(cam.renderman.get_projection_node(), proj, rman)
         elif cam.type == 'PERSP':
             lens = cam.lens
 
@@ -946,31 +1084,51 @@ class RmanSgExporter:
                 if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
 
             fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
-            #ri.Projection("perspective", {"fov": fov})
             proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrPerspective", "proj")
             projparams = proj.EditParameterBegin()
             projparams.SetFloat(rman.Tokens.Rix.k_fov, fov)
+
+            if rm.depth_of_field:
+                if cam.dof_object:
+                    dof_distance = (ob.location - cam.dof_object.location).length
+                else:
+                    dof_distance = cam.dof_distance
+                projparams.SetFloat(rman.Tokens.Rix.k_fStop, cam.renderman.fstop)
+                #projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
+                projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens))
+                projparams.SetFloat(rman.Tokens.Rix.k_focalDistance, dof_distance)   
+                     
             proj.EditParameterEnd(projparams)
         elif cam.type == 'PANO':
-            pass
-            #ri.Projection("sphere", {"float hsweep": 360, "float vsweep": 180})
+            proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrOrthographic", "proj")
+            projparams = proj.EditParameterBegin()
+            projparams.SetFloat("hsweep", 360)
+            projparams.SetFloat("vsweep", 180)
+            proj.EditParameterEnd(projparams)            
         else:
             lens = cam.ortho_scale
             xaspect = xaspect * lens / (aspectratio * 2.0)
             yaspect = yaspect * lens / (aspectratio * 2.0)
-            #ri.Projection("orthographic")
+            proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrSphereCamera", "proj")
 
         s_rightHanded = rman.Types.RtMatrix4x4(1.0,0.0,0.0,0.0,
                                     0.0,1.0,0.0,0.0,
                                     0.0,0.0,-1.0,0.0,
                                     0.0,0.0,0.0,1.0)
 
-
         group = self.sg_scene.CreateGroup("group")
         self.sg_root.AddChild(group)
 
         camera = self.sg_scene.CreateCamera("camera")
         camera.SetProjection(proj)
+
+        prop = camera.EditPropertyBegin()
+
+        #clipping planes         
+        prop.SetFloat(rman.Tokens.Rix.k_nearClip, cam.clip_start)
+        prop.SetFloat(rman.Tokens.Rix.k_farClip, cam.clip_end)
+
+        camera.EditPropertyEnd(prop)
 
         camtransform = rman.Types.RtMatrix4x4()
         camtransform.Identity()
@@ -991,15 +1149,22 @@ class RmanSgExporter:
             if mat is None:
                 continue
             rm = mat.renderman
+            sg_material = None
+            bxdfList = []
 
             if mat.node_tree:
-                sg_material = self.shader_exporter.export_shader_nodetree(
+                sg_material, bxdfList = self.shader_exporter.export_shader_nodetree(
                     mat, sg_node=None, handle=None, disp_bound=rm.displacementbound,
                     iterate_instance=False)
             else:
                 sg_material = self.shader_exporter.export_simple_shader(mat)
 
             self.sg_nodes_dict['material.%s' % mat_name] = sg_material
+            self.mat_networks['material.%s' % mat_name] = bxdfList
+
+            for n in bxdfList:
+                handle = n.GetHandle().CStr()
+                self.sg_nodes_dict[handle] = n
         
     def write_instances(self, db_name, data_block, name, instance):
         if db_name not in self.sg_nodes_dict.keys():
