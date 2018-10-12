@@ -453,29 +453,36 @@ class RmanSgExporter:
 
                     if not instance.parent:
                         for db_name in instance.data_block_names:   
-                            self.write_instances(db_name, db, instance.name, instance)                 
+                            self.write_instances(db_name, db, instance.name, instance)   
+
+    def issue_delete_object_edits(self, handle):
+        if handle in self.sg_nodes_dict:
+            sg_node = self.sg_nodes_dict[handle]
+            with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                self.sg_scene.DeleteDagNode(sg_node)
+        pass                                          
 
     def issue_object_edits(self, active, scene):
         self.scene = scene
         if active.type == "MESH":
             db_name = '%s-MESH' % active.name
             mesh_sg = self.sg_nodes_dict[db_name]
-            if mesh_sg:
-                with rman_internal.SGManager.ScopedEdit(self.sg_scene):
-                    self.export_polygon_mesh(active, mesh_sg, active.data)
+            if mesh_sg:                
+                if active.update_from_editmode(): # get updated data
+                    with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                        self.export_polygon_mesh(active, mesh_sg, active.data)
 
     def issue_shader_edits(self, nt=None, node=None, ob=None):
-        #pass
         if node is None:
             mat = None        
             if bpy.context.object:
                 mat = bpy.context.object.active_material
-                if mat not in rpass.material_dict:
-                    rpass.material_dict[mat] = [bpy.context.object]
+                if mat not in self.rpass.material_dict:
+                    self.rpass.material_dict[mat] = [bpy.context.object]
                 # if the last edit was a material edit skip the attribute edit
                 # we get two edits when should get one.
-                if rpass.last_edit_mat == mat:
-                    rpass.last_edit_mat = None
+                if self.rpass.last_edit_mat == mat:
+                    self.rpass.last_edit_mat = None
                     return
             lamp = None
             world = bpy.context.scene.world
@@ -497,21 +504,35 @@ class RmanSgExporter:
                 edit_flush(ri, rpass.edit_num, prman)
             rpass.edit_num += 1
             edit_flush(ri, rpass.edit_num, prman)"""
-            # for obj in objs:
-            if mat in rpass.material_dict:
-                if ob:
-                    """ri.EditBegin(
-                        'attribute', {'string scopename': "^" + ob.name + "$"})
-                    export_material(ri, mat, iterate_instance=True)
-                    ri.EditEnd()"""
-                    pass
-                else:
-                    """for obj in rpass.material_dict[mat]:
-                        ri.EditBegin(
-                            'attribute', {'string scopename': "^" + obj.name + "$"})
-                        export_material(ri, mat, iterate_instance=True)
-                        ri.EditEnd()"""
-                    pass
+
+            # New material assignment. Loop over all objects:
+            if mat in self.rpass.material_dict:
+                mat_name = get_mat_name(mat.name)
+                with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                    sg_material = self.export_material(mat, mat_name)                    
+                    if ob:
+                        instance = get_instance(ob, self.scene, False)
+                        if instance:
+                            if instance.name in self.sg_nodes_dict:
+                                inst_sg = self.sg_nodes_dict[instance.name]
+                                inst_sg.SetMaterial(sg_material)
+
+                    else:
+                        for obj in self.rpass.material_dict[mat]:
+                            print("OBJ: %s" % obj.name)
+
+                            instance = get_instance(obj, self.scene, False)
+                            if instance:
+                                if instance.name in self.sg_nodes_dict:
+                                    inst_sg = self.sg_nodes_dict[instance.name]
+                                    inst_sg.SetMaterial(sg_material)                            
+
+                            """
+                            ri.EditBegin(
+                                'attribute', {'string scopename': "^" + obj.name + "$"})
+                            export_material(ri, mat, iterate_instance=True)
+                            ri.EditEnd()"""
+                        pass
             elif lamp:
                 lamp_ob = lamp
                 lamp = mat
@@ -668,7 +689,6 @@ class RmanSgExporter:
     def export_polygon_mesh(self, ob, sg_node, data=None):
         debug("info", "export_polygon_mesh [%s]" % ob.name)
 
-        #mesh = data if data is not None else create_mesh(ob, self.scene)
         mesh = data if data is not None else self.create_mesh(ob)
 
         # for multi-material output all those
@@ -924,7 +944,9 @@ class RmanSgExporter:
                 names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrDistantLight',
                         'SPOT': 'PxrDiskLight', 'HEMI': 'PxrDomeLight', 'AREA': 'PxrRectLight'}
                 light_shader_name = names[lamp.type]
-
+                exposure = lamp.energy * 5.0
+                if lamp.type == 'SUN':
+                    exposure = 0
                 node_sg = self.sg_scene.CreateNode("LightFactory", light_shader_name , "light")
                 rixparams = node_sg.EditParameterBegin()
                 rixparams.SetFloat("exposure", exposure)
@@ -934,6 +956,11 @@ class RmanSgExporter:
 
                 light_sg.SetLight(node_sg)
 
+                attrs = light_sg.EditAttributeBegin()
+                attrs.SetInteger("visibility:camera", 1)
+                attrs.SetInteger("visibility:transmission", 0)
+                attrs.SetInteger("visibility:indirect", 0)
+                light_sg.EditAttributeEnd(attrs)              
 
             if  light_shader_name in ("PxrRectLight", 
                                     "PxrDiskLight",
@@ -964,14 +991,6 @@ class RmanSgExporter:
                 pass  
             elif instance.ob.data.renderman.renderman_type not in ['FILTER']:    
                 self.export_light(ob, lamp, handle, rm)
-        pass
-        """for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
-            if instance.ob.data.renderman.renderman_type == 'FILTER':
-                self.export_light(instance, instances)
-
-        for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
-            if instance.ob.data.renderman.renderman_type not in ['FILTER']:
-                self.export_light(instance, instances)"""
 
     def export_camera_transform(self, camera_sg, ob, motion):
         r = self.scene.render
@@ -1141,6 +1160,27 @@ class RmanSgExporter:
         self.sg_nodes_dict['camera'] = camera
         self.main_camera = camera
 
+    def export_material(self, mat, mat_name):
+        rm = mat.renderman
+        sg_material = None
+        bxdfList = []
+
+        if mat.node_tree:
+            sg_material, bxdfList = self.shader_exporter.export_shader_nodetree(
+                mat, sg_node=None, handle=None, disp_bound=rm.displacementbound,
+                iterate_instance=False)
+        else:
+            sg_material = self.shader_exporter.export_simple_shader(mat)
+
+        self.sg_nodes_dict['material.%s' % mat_name] = sg_material
+        self.mat_networks['material.%s' % mat_name] = bxdfList
+
+        for n in bxdfList:
+            handle = n.GetHandle().CStr()
+            self.sg_nodes_dict[handle] = n 
+
+        return sg_material     
+
     # export materials
     def export_materials(self):
 
@@ -1148,23 +1188,7 @@ class RmanSgExporter:
 
             if mat is None:
                 continue
-            rm = mat.renderman
-            sg_material = None
-            bxdfList = []
-
-            if mat.node_tree:
-                sg_material, bxdfList = self.shader_exporter.export_shader_nodetree(
-                    mat, sg_node=None, handle=None, disp_bound=rm.displacementbound,
-                    iterate_instance=False)
-            else:
-                sg_material = self.shader_exporter.export_simple_shader(mat)
-
-            self.sg_nodes_dict['material.%s' % mat_name] = sg_material
-            self.mat_networks['material.%s' % mat_name] = bxdfList
-
-            for n in bxdfList:
-                handle = n.GetHandle().CStr()
-                self.sg_nodes_dict[handle] = n
+            self.export_material(mat, mat_name)
         
     def write_instances(self, db_name, data_block, name, instance):
         if db_name not in self.sg_nodes_dict.keys():

@@ -849,6 +849,26 @@ class RPass:
             if active and scene.camera.name != active.name and scene.camera.is_updated:
                 rman_sg_exporter().issue_transform_edits(active, scene)
 
+            if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
+                lights_deleted = []
+                for light_name, data_name in self.lights.items():
+                    if light_name not in scene.objects:
+                        rman_sg_exporter().issue_delete_object_edits(data_name)
+                        lights_deleted.append(light_name)
+
+                for light_name in lights_deleted:
+                    self.lights.pop(light_name, None)                
+
+            if not active and len(self.scene_objects) > len([o for o in scene.objects if o.type != 'LAMP']):
+                objects_deleted = []
+                for obj_name, data_name in self.scene_objects.items():
+                    if obj_name not in scene.objects:
+                        rman_sg_exporter().issue_delete_object_edits(data_name)
+                        objects_deleted.append(obj_name)
+
+                for obj_name in objects_deleted:
+                    self.scene_objects.pop(obj_name, None) 
+
             if active and active.type in ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'LATTICE']:
                 for mat_slot in active.material_slots:
                     if mat_slot.material not in self.material_dict:
