@@ -835,9 +835,14 @@ class RPass:
         if rman_sg_exporter().is_prman_running():
             active = scene.objects.active
             if (active and active.is_updated):
-                if active.type == 'LAMP' and active.name not in self.lights:
-                    rman_sg_exporter().issue_new_object_edits(active, scene)
-                    self.lights[active.name] = active.data.name 
+                if active.type == 'LAMP':
+                    lamp = active.data
+                    if lamp.renderman.renderman_type == 'FILTER':
+                        rman_sg_exporter().issue_transform_edits(active, scene)
+                    else:
+                        if active.name not in self.lights:
+                            rman_sg_exporter().issue_new_object_edits(active, scene)
+                            self.lights[active.name] = active.data.name 
                 elif active.name not in self.scene_objects:
                     rman_sg_exporter().issue_new_object_edits(active, scene)
                     self.scene_objects[active.name] = active.data.name                       
@@ -849,6 +854,7 @@ class RPass:
             if active and scene.camera.name != active.name and scene.camera.is_updated:
                 rman_sg_exporter().issue_transform_edits(active, scene)
 
+            # check if light is deleted
             if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
                 lights_deleted = []
                 for light_name, data_name in self.lights.items():
@@ -859,6 +865,7 @@ class RPass:
                 for light_name in lights_deleted:
                     self.lights.pop(light_name, None)                
 
+            # check if object has been deleted
             if not active and len(self.scene_objects) > len([o for o in scene.objects if o.type != 'LAMP']):
                 objects_deleted = []
                 for obj_name, data_name in self.scene_objects.items():
@@ -881,55 +888,49 @@ class RPass:
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
 
-        if rman__sg__inited:
-            if rman_sg_exporter().is_prman_running():
-                active = scene.objects.active
-                rman_sg_exporter().issue_transform_edits(active, scene)
-                pass
-        else:
-            cw = (scene.render.border_min_x, scene.render.border_max_x,
-                        1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y)
-            if cw != self.crop_window:
-                self.crop_window = cw
-                update_crop_window(self.ri, self, prman, cw)
+        cw = (scene.render.border_min_x, scene.render.border_max_x,
+                    1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y)
+        if cw != self.crop_window:
+            self.crop_window = cw
+            update_crop_window(self.ri, self, prman, cw)
+            return
+
+        active = scene.objects.active
+        if (active and active.is_updated) or (active and active.type == 'LAMP' and active.is_updated_data):
+            if is_ipr_running():
+                issue_transform_edits(self, self.ri, active, prman)
+            else:
                 return
+        # record the marker to rib and flush to that point
+        # also do the camera in case the camera is locked to display.
+        if scene.camera.name != active.name and scene.camera.is_updated:
+            if is_ipr_running():
+                issue_transform_edits(self, self.ri, scene.camera, prman)
+            else:
+                return
+        # check for light deleted
+        if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
+            lights_deleted = []
+            for light_name, data_name in self.lights.items():
+                if light_name not in scene.objects:
+                    if is_ipr_running():
+                        delete_light(self, self.ri, data_name, prman)
+                        lights_deleted.append(light_name)
+                    else:
+                        return
 
-            active = scene.objects.active
-            if (active and active.is_updated) or (active and active.type == 'LAMP' and active.is_updated_data):
-                if is_ipr_running():
-                    issue_transform_edits(self, self.ri, active, prman)
-                else:
-                    return
-            # record the marker to rib and flush to that point
-            # also do the camera in case the camera is locked to display.
-            if scene.camera.name != active.name and scene.camera.is_updated:
-                if is_ipr_running():
-                    issue_transform_edits(self, self.ri, scene.camera, prman)
-                else:
-                    return
-            # check for light deleted
-            if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
-                lights_deleted = []
-                for light_name, data_name in self.lights.items():
-                    if light_name not in scene.objects:
-                        if is_ipr_running():
-                            delete_light(self, self.ri, data_name, prman)
-                            lights_deleted.append(light_name)
-                        else:
-                            return
+            for light_name in lights_deleted:
+                self.lights.pop(light_name, None)
 
-                for light_name in lights_deleted:
-                    self.lights.pop(light_name, None)
+        if active and active.type in ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'LATTICE']:
 
-            if active and active.type in ['MESH', 'CURVE', 'SURFACE', 'META', 'FONT', 'LATTICE']:
-
-                for mat_slot in active.material_slots:
-                    if mat_slot.material not in self.material_dict:
-                        self.material_dict[mat_slot.material] = []
-                    if active not in self.material_dict[mat_slot.material]:
-                        self.material_dict[mat_slot.material].append(active)
-                        issue_shader_edits(self, self.ri, prman,
-                                            nt=mat_slot.material.node_tree, ob=active)
+            for mat_slot in active.material_slots:
+                if mat_slot.material not in self.material_dict:
+                    self.material_dict[mat_slot.material] = []
+                if active not in self.material_dict[mat_slot.material]:
+                    self.material_dict[mat_slot.material].append(active)
+                    issue_shader_edits(self, self.ri, prman,
+                                        nt=mat_slot.material.node_tree, ob=active)
 
     def update_illuminates(self):
         update_illuminates(self, self.ri, prman)
@@ -1002,6 +1003,7 @@ class RPass:
         self.lights = {}
         self.light_filter_map = {}
         self.instance_dict = {}
+        self.scene_objects = {}
         pass
 
     def gen_rib(self, do_objects=True, engine=None, convert_textures=True):

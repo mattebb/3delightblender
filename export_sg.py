@@ -251,9 +251,12 @@ class RmanSgExporter:
         self.sg_nodes_dict = {} # handles to sg_nodes
         self.mat_networks = {} # dict material to networks
         self.mesh_masters = {}
+        self.light_filters_dict = {} # dict light to light filters
+        self.lightfilters_dict = {} # dict light filters to light
 
         self.port = -1
         self.main_camera = None
+        self.ipr_mode = False
 
     def export_ready(self):
         self.sg_scene = self.sgmngr.CreateScene()
@@ -300,6 +303,7 @@ class RmanSgExporter:
         self.rpass = rpass
         self.scene = scene
         self.rm = self.scene.renderman
+        self.ipr_mode = False        
 
         self.export_ready()
 
@@ -340,6 +344,7 @@ class RmanSgExporter:
         self.rpass = rpass
         self.scene = scene
         self.rm = self.scene.renderman
+        self.ipr_mode = True
 
         self.export_ready()  
 
@@ -356,13 +361,6 @@ class RmanSgExporter:
         #ec = rman_internal.EventCallbacks.Get()
         #ec.RegisterCallback("Render", render_cb, self)
 
-        port = self.start_cmd_server()
-        camera_node_sg = self.sg_nodes_dict['camera']
-        display = self.sg_scene.CreateDisplay('it', 'ipr')
-        display.channels = 'Ci,a'
-        display.params.SetString("dspyParams", "dspyIPR -port %d -crop 1 0 1 0" % port)
-        camera_node_sg.SetDisplay(display)
-
         is_running = True
        
         self.sg_scene.Render("rib /var/tmp/blender.rib")
@@ -378,7 +376,7 @@ class RmanSgExporter:
 
     def issue_transform_edits(self, active, scene):
         self.scene = scene
-        if (active and active.is_updated): # or (active and active.type == 'LAMP' and active.is_updated_data):
+        if (active and active.is_updated):
             if active.type == 'CAMERA':
                 with rman_internal.SGManager.ScopedEdit(self.sg_scene):
                     camera_node_sg = self.sg_nodes_dict['camera']
@@ -386,6 +384,28 @@ class RmanSgExporter:
                         self.export_camera_transform(camera_node_sg, scene.camera, [])
                     else:
                         print("CANNOT FIND CAMERA!")
+            elif active.type == 'LAMP' and active.data.renderman.renderman_type == 'FILTER':
+                if active.name not in self.sg_nodes_dict:
+                    return
+                sg_lightfilter = self.sg_nodes_dict[active.name]
+                lights = self.lightfilters_dict[active.name]
+                coordsys_name = "%s_coordsys" % active.name
+                coordsys = self.sg_nodes_dict[coordsys_name]
+
+                with rman_internal.SGManager.ScopedEdit(self.sg_scene): 
+                    m = convert_matrix( active.matrix_world )
+                    coordsys.SetTransform(m)
+                    rix_params = sg_lightfilter.EditParameterBegin()       
+                    rix_params.SetString("coordsys", coordsys_name)
+                    sg_lightfilter.EditParameterEnd(rix_params)
+
+                    self.sg_nodes_dict[coordsys_name] = coordsys
+                    self.sg_nodes_dict[active.name] = sg_lightfilter
+
+                    for l in lights:
+                        sg_light = self.sg_nodes_dict[l]
+                        lightfilter_sg = self.light_filters_dict[l]
+                        sg_light.SetLightFilter(lightfilter_sg)   
             else:
                 instance = get_instance(active, self.scene, False)
                 if instance:
@@ -415,7 +435,6 @@ class RmanSgExporter:
             with rman_internal.SGManager.ScopedEdit(self.sg_scene):
                 self.export_light(ob, lamp, handle, rm)  
         else:
-            print("NEW OBJECT: %s" % active.type) 
             ob = active
             if active.type == "MESH":
                 with rman_internal.SGManager.ScopedEdit(self.sg_scene):
@@ -554,7 +573,7 @@ class RmanSgExporter:
             mat = None
             instance_num = 0
             mat_name = None  
-            is_light = False
+            is_lamp = False
 
             if bpy.context.object:
                 mat = bpy.context.object.active_material
@@ -568,7 +587,7 @@ class RmanSgExporter:
             # if this is a lamp use that for the mat/name
             if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
                 mat = node.id_data
-                is_light = True
+                is_lamp = True
             elif mat is None and nt and nt.name == 'World':
                 mat = bpy.context.scene.world
             elif mat is None and bpy.context.object and bpy.context.object.type == 'CAMERA':
@@ -614,14 +633,31 @@ class RmanSgExporter:
             #shader_node_rib(ri, node, handle)
             #ri.EditEnd()
 
-            if is_light:
-                sg_light = self.sg_nodes_dict[mat_name]
-                sg_node = self.mat_networks[mat_name]
-                with rman_internal.SGManager.ScopedEdit(self.sg_scene): 
-                    rix_params = sg_node.EditParameterBegin()       
-                    rix_params = nodes_sg.gen_rixparams(node, rix_params, mat_name)
-                    sg_node.EditParameterEnd(rix_params) 
-                    sg_light.SetLight(sg_node)                               
+            if is_lamp:
+                if node.renderman_node_type == "lightfilter":
+                    if mat_name in self.sg_nodes_dict:
+                        sg_lightfilter = self.sg_nodes_dict[mat_name]
+                        lights = self.lightfilters_dict[mat_name]
+                        with rman_internal.SGManager.ScopedEdit(self.sg_scene): 
+                            rix_params = sg_lightfilter.EditParameterBegin()       
+                            rix_params = nodes_sg.gen_rixparams(node, rix_params, mat_name)
+                            coordsys_name = "%s_coordsys" % mat_name
+                            rix_params.SetString("coordsys", coordsys_name)
+                            sg_lightfilter.EditParameterEnd(rix_params)
+
+                            for l in lights:
+                                sg_light = self.sg_nodes_dict[l]
+                                lightfilter_sg = self.light_filters_dict[l]
+                                sg_light.SetLightFilter(lightfilter_sg)                       
+                    pass
+                else:
+                    sg_light = self.sg_nodes_dict[mat_name]
+                    sg_node = self.mat_networks[mat_name]
+                    with rman_internal.SGManager.ScopedEdit(self.sg_scene): 
+                        rix_params = sg_node.EditParameterBegin()       
+                        rix_params = nodes_sg.gen_rixparams(node, rix_params, mat_name)
+                        sg_node.EditParameterEnd(rix_params) 
+                        sg_light.SetLight(sg_node)                               
 
             else:
                 handle = mat_name + '.' + node.name
@@ -645,6 +681,24 @@ class RmanSgExporter:
                                 iterate_instance=False)
                         self.sg_nodes_dict['material.%s' % mat_name] = sg_material
  
+    def export_searchpaths(self):
+        options = self.sg_scene.EditOptionBegin()
+        options.SetString("searchpath:shader", "%s" %
+                                                ':'.join(path_list_convert(self.rpass.paths['shader'], to_unix=True)))
+
+        rel_tex_paths = [os.path.relpath(path, self.rpass.paths['export_dir'])
+                        for path in self.rpass.paths['texture']]
+        options.SetString("searchpath:texture", "%s" %
+                                                    ':'.join(path_list_convert(rel_tex_paths + ["@"], to_unix=True)))
+
+        # FIXME: 'procedural' key doesn't seem to exist?
+        #options.SetString("searchpath:procedural", "%s" % \
+        #    ':'.join(path_list_convert(self.rpass.paths['procedural'], to_unix=True)))
+
+
+        options.SetString("searchpath:archive", os.path.relpath(
+            self.rpass.paths['archive'], self.rpass.paths['export_dir']))
+        self.sg_scene.EditOptionEnd(options)
 
     def create_mesh(self, ob):
         # 2 special cases to ignore:
@@ -879,7 +933,7 @@ class RmanSgExporter:
 
         integrator_sg = self.sg_scene.CreateNode("Integrator", integrator, "integrator")
         self.sg_scene.SetIntegrator(integrator_sg)
-        property_group_to_rixparams(integrator_settings, integrator_sg, rman)
+        property_group_to_rixparams(integrator_settings, integrator_sg)
 
     def export_transform(self, instance, sg_node):
         ob = instance.ob
@@ -918,68 +972,109 @@ class RmanSgExporter:
 
         group_name='' 
         portal_parent=''
+        light_filters = []
 
-        if rm.renderman_type == 'FILTER':
-            pass
+        light_sg = self.sg_scene.CreateLight(handle)
+        
+        for lf in rm.light_filters:
+            if lf.filter_name in bpy.data.objects:
+                light_filter_sg = None
+                light_filter = bpy.data.objects[lf.filter_name]
+
+                if light_filter.data.name in self.sg_nodes_dict:
+                    lightf_filter_sg = self.sg_nodes_dict[light_filter.name]
+                    self.lightfilters_dict[light_filter.name].append(handle)
+                else:
+
+                    filter_plugin = light_filter.data.renderman.get_light_node()  
+
+                    lightfilter_name = light_filter.data.renderman.get_light_node_name()
+                    light_filter_sg = self.sg_scene.CreateNode("LightFilter", lightfilter_name, light_filter.name)
+                    property_group_to_rixparams(filter_plugin, light_filter_sg)
+
+                    coordsys_name = "%s_coordsys" % light_filter.name
+                    rixparams = light_filter_sg.EditParameterBegin()
+                    rixparams.SetString("coordsys", coordsys_name)
+                    light_filter_sg.EditParameterEnd(rixparams)              
+
+                    self.sg_nodes_dict[light_filter.name] = light_filter_sg
+                    
+                    coordsys = self.sg_scene.CreateGroup(coordsys_name)
+                    m = convert_matrix( light_filter.matrix_world )
+                    coordsys.SetTransform(m)
+                    self.sg_root.AddChild(coordsys)
+                    light_sg.AddCoordinateSystem(coordsys)
+
+                    self.sg_nodes_dict[coordsys_name] = coordsys
+                    self.lightfilters_dict[light_filter.name] = [handle]
+
+                if light_filter_sg:
+                    light_filters.append(light_filter_sg)
+
+        if len(light_filters) > 0:
+            light_sg.SetLightFilter(light_filters)
+        
+        light_shader = rm.get_light_node()
+
+        node_sg = None            
+        light_shader_name = ''
+        if light_shader:
+            light_shader_name = rm.get_light_node_name()
+
+            node_sg = self.sg_scene.CreateNode("LightFactory", light_shader_name , handle)
+            property_group_to_rixparams(light_shader, node_sg)
+            light_sg.SetLight(node_sg)
+
+            primary_vis = rm.light_primary_visibility
+            attrs = light_sg.EditAttributeBegin()
+            attrs.SetInteger("visibility:camera", int(primary_vis))
+            attrs.SetInteger("visibility:transmission", 0)
+            attrs.SetInteger("visibility:indirect", 0)
+            light_sg.EditAttributeEnd(attrs)
+
         else:
-            light_shader = rm.get_light_node()
-            light_sg = self.sg_scene.CreateLight(handle)
-            node_sg = None            
-            light_shader_name = ''
-            if light_shader:
-                light_shader_name = rm.get_light_node_name()
+            names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrDistantLight',
+                    'SPOT': 'PxrDiskLight', 'HEMI': 'PxrDomeLight', 'AREA': 'PxrRectLight'}
+            light_shader_name = names[lamp.type]
+            exposure = lamp.energy * 5.0
+            if lamp.type == 'SUN':
+                exposure = 0
+            node_sg = self.sg_scene.CreateNode("LightFactory", light_shader_name , "light")
+            rixparams = node_sg.EditParameterBegin()
+            rixparams.SetFloat("exposure", exposure)
+            rixparams.SetColor("lightColor", rib(lamp.color))
+            if lamp.type not in ['HEMI']:
+                rixparams.SetInteger('areaNormalize', 1)
+            node_sg.EditParameterEnd(rixparams)
 
-                node_sg = self.sg_scene.CreateNode("LightFactory", light_shader_name , "light")
-                property_group_to_rixparams(light_shader, node_sg, rman)
-                light_sg.SetLight(node_sg)
+            light_sg.SetLight(node_sg)
 
-                primary_vis = rm.light_primary_visibility
-                attrs = light_sg.EditAttributeBegin()
-                attrs.SetInteger("visibility:camera", int(primary_vis))
-                attrs.SetInteger("visibility:transmission", 0)
-                attrs.SetInteger("visibility:indirect", 0)
-                light_sg.EditAttributeEnd(attrs)
+            attrs = light_sg.EditAttributeBegin()
+            attrs.SetInteger("visibility:camera", 1)
+            attrs.SetInteger("visibility:transmission", 0)
+            attrs.SetInteger("visibility:indirect", 0)
+            light_sg.EditAttributeEnd(attrs)              
 
-            else:
-                names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrDistantLight',
-                        'SPOT': 'PxrDiskLight', 'HEMI': 'PxrDomeLight', 'AREA': 'PxrRectLight'}
-                light_shader_name = names[lamp.type]
-                exposure = lamp.energy * 5.0
-                if lamp.type == 'SUN':
-                    exposure = 0
-                node_sg = self.sg_scene.CreateNode("LightFactory", light_shader_name , "light")
-                rixparams = node_sg.EditParameterBegin()
-                rixparams.SetFloat("exposure", exposure)
-                rixparams.SetColor("lightColor", rib(lamp.color))
-                if lamp.type not in ['HEMI']:
-                    rixparams.SetInteger('areaNormalize', 1)
+        if  light_shader_name in ("PxrRectLight", 
+                                "PxrDiskLight",
+                                "PxrPortalLight",
+                                "PxrSphereLight",
+                                "PxrDistantLight"):
+            #light_sg.SetOrientTransform(s_orientTransform)
+            light_sg.SetOrientTransform(s_orientPxrLight)
+            light_sg.SetTransform( convert_matrix(ob.matrix_world) )
 
-                light_sg.SetLight(node_sg)
+        """elif light_shader_name == "PxrDomeLight":
+            light_sg.SetOrientTransform(s_orientPxrDomeLight)
+            pass
 
-                attrs = light_sg.EditAttributeBegin()
-                attrs.SetInteger("visibility:camera", 1)
-                attrs.SetInteger("visibility:transmission", 0)
-                attrs.SetInteger("visibility:indirect", 0)
-                light_sg.EditAttributeEnd(attrs)              
+        elif light_shader_name == "PxrEnvDayLight":
+            light_sg.SetOrientTransform(s_orientPxrEnvDayLight)""" 
 
-            if  light_shader_name in ("PxrRectLight", 
-                                    "PxrDiskLight",
-                                    "PxrPortalLight",
-                                    "PxrSphereLight",
-                                    "PxrDistantLight"):
-                #light_sg.SetOrientTransform(s_orientTransform)
-                light_sg.SetOrientTransform(s_orientPxrLight)
-
-            """elif light_shader_name == "PxrDomeLight":
-                light_sg.SetOrientTransform(s_orientPxrDomeLight)
-                pass
-
-            elif light_shader_name == "PxrEnvDayLight":
-                light_sg.SetOrientTransform(s_orientPxrEnvDayLight)"""
-
-            self.sg_root.AddChild(light_sg)
-            self.sg_nodes_dict[handle] = light_sg
-            self.mat_networks[handle] = node_sg
+        self.sg_root.AddChild(light_sg)
+        self.sg_nodes_dict[handle] = light_sg
+        self.mat_networks[handle] = node_sg
+        self.light_filters_dict[handle] = light_filters
                 
     def export_scene_lights(self, instances):
         for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
@@ -1095,7 +1190,7 @@ class RmanSgExporter:
             projparams = proj.EditParameterBegin()
             projparams.SetFloat("fov", fov )
             proj.EditParameterEnd(projparams)                    
-            property_group_to_rixparams(cam.renderman.get_projection_node(), proj, rman)
+            property_group_to_rixparams(cam.renderman.get_projection_node(), proj)
         elif cam.type == 'PERSP':
             lens = cam.lens
 
@@ -1215,14 +1310,26 @@ class RmanSgExporter:
 
     def export_displays(self):
         rm = self.scene.renderman
+        sg_displays = []
+        displaychannels = []
 
-        display_driver = self.rpass.display_driver
+        # if IPR mode, always use it
+        if self.ipr_mode:
+            display_driver = 'it'
+        else:
+            display_driver = self.rpass.display_driver
+
         self.rpass.output_files = []
         addon_prefs = get_addon_prefs()
         main_display = user_path(
             addon_prefs.path_display_driver_image, scene=self.scene, display_driver=self.rpass.display_driver)
         debug("info", "Main_display: " + main_display)
-        
+
+        displaychannel = self.sg_scene.CreateDisplayChannel(rman.Tokens.Rix.k_color, "Ci")
+        displaychannels.append(displaychannel)
+        displaychannel = self.sg_scene.CreateDisplayChannel(rman.Tokens.Rix.k_float, "a")
+        displaychannels.append(displaychannel)
+                
         display = self.sg_scene.CreateDisplay(display_driver, main_display)
         display.channels = "Ci,a"
         
@@ -1236,13 +1343,11 @@ class RmanSgExporter:
             pass
             #display_params = export_metadata(ri, scene, display_params)
 
-        
-        self.main_camera.SetDisplay(display)
+        sg_displays.append(display)
 
         self.rpass.output_files.append(main_display)      
 
-
-        """for layer in scene.render.layers:
+        for layer in self.scene.render.layers:
             # custom aovs
             rm_rl = None
             for render_layer_settings in rm.render_layers:
@@ -1257,60 +1362,58 @@ class RmanSgExporter:
                 # so use built in aovs
                 aovs = [
                     # (name, do?, declare type/name, source)
-                    ("z", layer.use_pass_z, "float", None),
-                    ("Nn", layer.use_pass_normal, "normal", None),
-                    ("dPdtime", layer.use_pass_vector, "vector", None),
-                    ("u", layer.use_pass_uv, "float", None),
-                    ("v", layer.use_pass_uv, "float", None),
-                    ("id", layer.use_pass_object_index, "float", None),
-                    ("shadows", layer.use_pass_shadow, "color",
+                    ("z", layer.use_pass_z, rman.Tokens.Rix.k_float, None),
+                    ("Nn", layer.use_pass_normal, rman.Tokens.Rix.k_normal, None),
+                    ("dPdtime", layer.use_pass_vector, rman.Tokens.Rix.k_vector, None),
+                    ("u", layer.use_pass_uv, rman.Tokens.Rix.k_float, None),
+                    ("v", layer.use_pass_uv, rman.Tokens.Rix.k_float, None),
+                    ("id", layer.use_pass_object_index, rman.Tokens.Rix.k_float, None),
+                    ("shadows", layer.use_pass_shadow, rman.Tokens.Rix.k_color,
                     "color lpe:shadowcollector"),
-                    ("reflection", layer.use_pass_reflection, "color",
+                    ("reflection", layer.use_pass_reflection, rman.Tokens.Rix.k_color,
                     "color lpe:reflectioncollector"),
-                    ("diffuse", layer.use_pass_diffuse_direct, "color",
+                    ("diffuse", layer.use_pass_diffuse_direct, rman.Tokens.Rix.k_color,
                     "color lpe:diffuse"),
                     ("indirectdiffuse", layer.use_pass_diffuse_indirect,
-                    "color", "color lpe:indirectdiffuse"),
-                    ("albedo", layer.use_pass_diffuse_color, "color",
+                    rman.Tokens.Rix.k_color, "color lpe:indirectdiffuse"),
+                    ("albedo", layer.use_pass_diffuse_color, rman.Tokens.Rix.k_color,
                     "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O"),
-                    ("specular", layer.use_pass_glossy_direct, "color",
+                    ("specular", layer.use_pass_glossy_direct, rman.Tokens.Rix.k_color,
                     "color lpe:specular"),
                     ("indirectspecular", layer.use_pass_glossy_indirect,
-                    "color", "color lpe:indirectspecular"),
+                    rman.Tokens.Rix.k_color, "color lpe:indirectspecular"),
                     ("subsurface", layer.use_pass_subsurface_indirect,
-                    "color", "color lpe:subsurface"),
-                    ("refraction", layer.use_pass_refraction, "color",
+                    rman.Tokens.Rix.k_color, "color lpe:subsurface"),
+                    ("refraction", layer.use_pass_refraction, rman.Tokens.Rix.k_color,
                     "color lpe:refraction"),
-                    ("emission", layer.use_pass_emit, "color",
+                    ("emission", layer.use_pass_emit, rman.Tokens.Rix.k_color,
                     "color lpe:emission"),
                 ]
 
                 # declare display channels
                 for aov, doit, declare_type, source in aovs:
                     if doit and declare_type:
-                        params = {"int[4] quantize": [0, 0, 0, 0]}
+                        
+                        displaychannel = self.sg_scene.CreateDisplayChannel(declare_type, aov)
                         if source:
-                            params['string source'] = source
-                        ri.DisplayChannel('%s %s' % (declare_type, aov), params)
-
-                # if layer.use_pass_combined:
-                #     main_params = {}
-
-                #     #if display_driver == 'openexr':
-                #     #    if rm.exr_format_options != 'default':
-                #     #        main_params["string type"] = rm.exr_format_options
-                #     #    if rm.exr_compression != 'default':
-                #     #        main_params["string compression"] = rm.exr_compression
+                            if "lpe" in source:
+                                displaychannel.params.SetString(rman.Tokens.Rix.k_source, '%s %s' % (declare_type, source))                                
+                            else:
+                                displaychannel.params.SetString(rman.Tokens.Rix.k_source, source)
+                        displaychannels.append(displaychannel)
 
                 # exports all AOV's
                 for aov, doit, declare, source in aovs:
                     if doit:
                         dspy_name = user_path(
-                            addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                            addon_prefs.path_aov_image, scene=self.scene, display_driver=self.rpass.display_driver,
                             layer_name=layer_name, pass_name=aov)
-                        ri.Display('+' + dspy_name, display_driver,
-                                aov, display_params)
-                        rpass.output_files.append(dspy_name)
+                        #ri.Display('+' + dspy_name, display_driver,
+                        #        aov, display_params)
+                        display = self.sg_scene.CreateDisplay(display_driver, dspy_name)
+                        display.channels = aov
+                        sg_displays.append(display)
+                        self.rpass.output_files.append(dspy_name)
 
             # else we have custom rman render layer settings
             else:
@@ -1320,6 +1423,9 @@ class RmanSgExporter:
                     if not aov_name:
                         continue
                     source_type, source = aov.aov_name.split()
+                    if source == 'rgba':
+                        continue
+
                     exposure_gain = aov.exposure_gain
                     exposure_gamma = aov.exposure_gamma
                     remap_a = aov.remap_a
@@ -1337,6 +1443,10 @@ class RmanSgExporter:
 
                     if channel_name == '':
                         continue
+
+                    displaychannel = self.sg_scene.CreateDisplayChannel(source_type, channel_name)
+                    displaychannels.append(displaychannel)
+
                     if aov.aov_name == "color custom_lpe":
                         source = aov.custom_lpe_string
 
@@ -1349,6 +1459,11 @@ class RmanSgExporter:
                     except:
                         pass
 
+                    if "lpe" in source:
+                        displaychannel.params.SetString(rman.Tokens.Rix.k_source, '%s %s' % (source_type, source))
+                    else:
+                        displaychannel.params.SetString(rman.Tokens.Rix.k_source, source)
+
                     params = {"string source": source_type + " " + source,
                             "float[2] exposure": [exposure_gain, exposure_gamma],
                             "float[3] remap": [remap_a, remap_b, remap_c],
@@ -1359,15 +1474,8 @@ class RmanSgExporter:
                     if stats != 'none':
                         params["string statistics"] = stats
 
-                    if source == 'rgba':
-                        del params['string source']
-                        ri.DisplayChannel("color Ci", params)
-                        ri.DisplayChannel("float a", params)
-                    else:
-                        ri.DisplayChannel(source_type + ' %s' %
-                                        channel_name, params)
                 # if this is a multilayer combine em!
-                if rm_rl.export_multilayer and rpass.external_render:
+                if not self.ipr_mode and rm_rl.export_multilayer and self.rpass.external_render:
                     channels = []
                     for aov in rm_rl.custom_aovs:
                         channel_name = get_channel_name(aov, layer_name)
@@ -1384,13 +1492,16 @@ class RmanSgExporter:
                         params["string compression"] = rm_rl.exr_compression
                     if channels[0] == "Ci,a" and not rm.spool_denoise_aov and not rm.enable_checkpoint:
                         params["int asrgba"] = 1
-                    if rm.use_metadata:
-                        params = export_metadata(ri, scene, params)
+                    #if rm.use_metadata:
+                    #    params = export_metadata(ri, scene, params)
                     dspy_name = user_path(
-                        addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                        addon_prefs.path_aov_image, scene=self.scene, display_driver=self.rpass.display_driver,
                         layer_name=layer_name, pass_name='multilayer')
-                    ri.Display('+' + dspy_name, out_type,
-                            ','.join(channels), params)
+
+                    display = self.sg_scene.CreateDisplay(out_type, dspy_name)
+                    display.channels = ',' . join(channels)
+                    sg_displays.append(display)
+
 
                 else:
                     for aov in rm_rl.custom_aovs:
@@ -1399,22 +1510,28 @@ class RmanSgExporter:
                         if aov_channel_name == '':
                             continue
 
-                        if layer == scene.render.layers[0] and aov == 'rgba':
+                        if aov_channel_name == 'Ci,a':
+                            continue
+
+                        if layer == self.scene.render.layers[0] and aov == 'rgba':
                             # we already output this skip
                             continue
                         
                         params = {
                             "int asrgba": 1} if not rm.spool_denoise_aov and not rm.enable_checkpoint else {}
-                        if rm.use_metadata:
-                            params = export_metadata(ri, scene, params)
+                        #if rm.use_metadata:
+                        #    params = export_metadata(ri, scene, params)
                         dspy_name = user_path(
-                            addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
+                            addon_prefs.path_aov_image, scene=self.scene, display_driver=self.rpass.display_driver,
                             layer_name=layer_name, pass_name=aov_name)
-                        rpass.output_files.append(dspy_name)
-                        ri.Display('+' + dspy_name, display_driver,
-                                aov_channel_name, params)
+                        self.rpass.output_files.append(dspy_name)
 
-        if (rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render) and not rpass.is_interactive:
+                        display = self.sg_scene.CreateDisplay(display_driver, dspy_name)
+                        display.channels = aov_channel_name
+                        sg_displays.append(display)
+
+
+        """if (rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render) and not rpass.is_interactive:
             # add display channels for denoising
             denoise_aovs = [
                 # (name, declare type/name, source, statistics, filter)
@@ -1456,9 +1573,25 @@ class RmanSgExporter:
                     "Ci,a,mse,albedo,albedo_var,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
                     display_params)"""
 
+        self.main_camera.SetDisplay(sg_displays)
+        self.sg_scene.SetDisplayChannel(displaychannels)
+
+
     def export_global_options(self):
         rm = self.scene.renderman
         options = self.sg_scene.EditOptionBegin()
+
+        # LPE Tokens for PxrSurface
+        options.SetString("lpe:diffuse2", "Diffuse,HairDiffuse")
+        options.SetString("lpe:diffuse3", "Subsurface")
+        options.SetString("lpe:specular2", "Specular,HairSpecularR")
+        options.SetString("lpe:specular3", "RoughSpecular,HairSpecularTRT")
+        options.SetString("lpe:specular4", "Clearcoat")
+        options.SetString("lpe:specular5", "Iridescence")
+        options.SetString("lpe:specular6", "Fuzz,HairSpecularGLINTS")
+        options.SetString("lpe:specular7", "SingltScatter,HairSpecularTT")
+        options.SetString("lpe:specular8", "Glass")
+        options.SetString("lpe:user2", "Albedo,DiffuseAlbedo,SubsurfaceAlbedo,HairAlbedo")
 
         # Set bucket shape
         bucket_order = rm.bucket_shape.lower()
@@ -1593,7 +1726,7 @@ class RmanSgExporter:
 
         integrator_sg = self.sg_scene.CreateNode("Integrator", integrator, "integrator")
         self.sg_scene.SetIntegrator(integrator_sg)
-        property_group_to_rixparams(integrator_settings, integrator_sg, rman)
+        property_group_to_rixparams(integrator_settings, integrator_sg)
 
         preview_rib_data_path = \
         rib_path(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -1644,9 +1777,7 @@ class RmanSgExporter:
             # export rib archives of objects
     #     export_data_archives(ri, scene, rpass, data_blocks, engine)
 
-        #export_header(ri)
-        #export_header_rib(ri, scene)
-        #export_searchpaths(ri, rpass.paths)
+        self.export_searchpaths()
         #export_options(ri, scene)
 
         #export_hider(ri, rpass, scene)
@@ -4263,7 +4394,7 @@ def update_timestamp(rpass, obj):
     if obj and rpass.update_time:
         obj.renderman.update_timestamp = rpass.update_time
 
-def property_group_to_rixparams(node, sg_node, rman, lamp=None):
+def property_group_to_rixparams(node, sg_node, lamp=None):
 
     params = sg_node.EditParameterBegin()
     for prop_name, meta in node.prop_meta.items():
