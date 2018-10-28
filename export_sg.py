@@ -700,6 +700,141 @@ class RmanSgExporter:
             self.rpass.paths['archive'], self.rpass.paths['export_dir']))
         self.sg_scene.EditOptionEnd(options)
 
+    def export_object_primvars(self, ob, sg_node):
+        rm = ob.renderman
+        primvars = sg_node.EditPrimVarBegin()
+
+        if rm.shading_override:
+            if rm.shadingrate != 1:
+                attrs.SetFloat(rman.Tokens.Rix.k_dice_micropolygonlength, rm.shadingrate)
+            if rm.watertight:
+                attrs.SetFloat(rman.Tokens.Rix.k_dice_watertight, 1)
+
+        if rm.raytrace_override:                
+            if not rmraytrace_tracedisplacements:
+                attrs.SetInteger(rman.Tokens.Rix.k_trace_displacements, 0)
+            if not rm.raytrace_autobias:
+                attrs.SetFloat(rman.Tokens.Rix.k_trace_autobias, 0)
+                if rm.raytrace_bias != 0.01:
+                    attrs.SetFloat(rman.Tokens.Rix.k_trace_bias, rm.raytrace_bias)
+            if rm.raytrace_samplemotion:
+                attrs.SetInteger(rman.Tokens.Rix.k_trace_samplemotion, 1)
+
+        sg_node.EditPrimVarEnd(primvars)
+
+    def export_object_attributes(self, ob, sg_node, visible_objects):
+
+        # Adds external RIB to object_attributes
+        rm = ob.renderman
+        attrs = sg_node.EditAttributeBegin()        
+
+        """if rm.pre_object_rib_box != '':
+            export_rib_box(ri, rm.pre_object_rib_box)"""
+
+        obj_groups_str = "*"
+        for obj_group in self.scene.renderman.object_groups:
+            if ob.name in obj_group.members.keys():
+                obj_groups_str += ',' + obj_group.name
+        # add to trace sets
+        if obj_groups_str != '*':            
+            attrs.SetString(rman.Tokens.Rix.k_grouping_membership, obj_groups_str)
+            attrs.SetString(rman.Tokens.Rix.k_identifier_lpegroup, obj_groups_str)
+
+        # visibility attributes
+        attrs.SetInteger("visibility:transmission", int(ob.renderman.visibility_trace_transmission))
+        attrs.SetInteger("visibility:indirect", int(ob.renderman.visibility_trace_indirect))
+        if visible_objects and ob.name not in visible_objects:
+            vis_params["int camera"] = 0
+            attrs.SetInteger("visibility:camera", 0)
+        else:
+            attrs.SetInteger("visibility:camera", int(ob.renderman.visibility_camera))
+
+        if ob.renderman.matte:
+            atttrs.SetInteger(rman.Tokens.Rix.k_Ri_Matte, ob.renderman.matte)
+
+        # ray tracing attributes
+        trace_params = {}
+        shade_params = {}
+        if ob.renderman.raytrace_intersectpriority != 0:
+            attrs.SetInteger(rman.Tokens.Rix.k_trace_intersectpriority, ob.renderman.raytrace_intersectpriority)
+            attrs.SetFloat(rman.Tokens.Rix.k_shade_indexofrefraction, ob.renderman.raytrace_ior)
+
+        if ob.renderman.holdout:
+            attrs.SetInteger(rman.Tokens.Rix.k_trace_holdout, 1)
+
+        if ob.renderman.raytrace_override:
+            if ob.renderman.raytrace_maxdiffusedepth != 1:
+                attrs.SetInteger(rman.Tokens.Rix.k_trace_maxdiffusedepth, ob.renderman.raytrace_maxdiffusedepth)
+            if ob.renderman.raytrace_maxspeculardepth != 2:
+                attrs.SetInteger(rman.Tokens.Rix.k_trace_maxspeculardepth, ob.renderman.raytrace_maxspeculardepth)
+
+            #if ob.renderman.raytrace_decimationrate != 1:
+            #    trace_params[
+            #        "int decimationrate"] = ob.renderman.raytrace_decimationrate
+            if ob.renderman.raytrace_intersectpriority != 0:
+                attrs.SetInteger(rman.Tokens.Rix.k_trace_intersectpriority, ob.renderman.raytrace_intersectpriority)
+            #if ob.renderman.raytrace_pixel_variance != 1.0:
+           #     shade_params[
+           #         "relativepixelvariance"] = ob.renderman.raytrace_pixel_variance
+
+        
+        # light linking
+        # get links this is a part of
+        ll_str = "obj_object>%s" % ob.name
+        lls = [ll for ll in self.scene.renderman.ll if ll_str in ll.name]
+        # get links this is a group that is a part of
+        for group in self.scene.renderman.object_groups:
+            if ob.name in group.members.keys():
+                ll_str = "obj_group>%s" % group.name
+                lls += [ll for ll in self.scene.renderman.ll if ll_str in ll.name]
+
+        # for each light link do illuminates
+        exclude_subset = []
+        lightfilter_subset = []
+        for link in lls:
+            strs = link.name.split('>')
+
+            scene_lights = [l.name for l in self.scene.objects if l.type == 'LAMP']
+            light_names = [strs[1]] if strs[0] == "lg_light" else \
+                self.scene.renderman.light_groups[strs[1]].members.keys()
+            if strs[0] == 'lg_group' and strs[1] == 'All':
+                light_names = scene_lights
+            for light_name in light_names:
+                if link.illuminate != "DEFAULT" and light_name in self.scene.objects:
+                    light_ob = self.scene.objects[light_name]
+                    lamp = light_ob.data
+                    if lamp.renderman.renderman_type == 'FILTER':
+                        # for each lamp this is a part of do enable light filter
+                        filter_name = light_name
+                        for light_nm in scene_lights:
+                            if filter_name in self.scene.objects[light_nm].data.renderman.light_filters.keys():
+                                #ri.EnableLightFilter(
+                                #    light_nm, filter_name, link.illuminate == 'ON')
+                                if link.illuminate == 'ON':
+                                    lightfilter_subset.append(filter_name)
+                    else:
+                        #ri.Illuminate(light_name, link.illuminate == 'ON')
+                        if not link.illuminate == 'ON':
+                            exclude_subset.append(light_name)
+
+        if exclude_subset:
+            attrs.SetString(rman.Tokens.Rix.k_lighting_excludesubset, ' '. join(exclude_subset) )
+
+        if lightfilter_subset:
+            attrs.SetString(rman.Tokens.Rix.k_lightfilter_subset, ' ' . join(lightfilter_subset))
+
+        """user_attr = {}
+        for i in range(8):
+            name = 'MatteID%d' % i
+            if getattr(rm, name) != [0.0, 0.0, 0.0]:
+                user_attr["color %s" % name] = rib(getattr(rm, name))"""
+
+        if hasattr(ob, 'color'):
+            #user_attr["color Cs"] = rib(ob.color[:3])
+            attrs.SetColor('user:Cs', ob.color[:3])
+        
+        sg_node.EditAttributeEnd(attrs)
+
     def create_mesh(self, ob):
         # 2 special cases to ignore:
         # subsurf last or subsurf 2nd last +displace last
@@ -859,15 +994,20 @@ class RmanSgExporter:
         prim = ob.renderman.primitive if ob.renderman.primitive != 'AUTO' \
             else detect_primitive(ob)
 
+        sg_node = None
+
         if prim == 'POLYGON_MESH':
-            mesh_sg = self.sg_scene.CreateMesh(db_name)
-            self.export_polygon_mesh(ob, mesh_sg, data)
-            self.sg_nodes_dict[db_name] = mesh_sg  
+            sg_node = self.sg_scene.CreateMesh(db_name)
+            self.export_polygon_mesh(ob, sg_node, data)
+            self.sg_nodes_dict[db_name] = sg_node  
 
         elif prim == 'SUBDIVISION_MESH':
-            mesh_sg = self.sg_scene.CreateMesh(db_name)
-            self.export_subdivision_mesh(ob, mesh_sg, data) 
-            self.sg_nodes_dict[db_name] = mesh_sg                       
+            sg_node = self.sg_scene.CreateMesh(db_name)
+            self.export_subdivision_mesh(ob, sg_node, data) 
+
+        if sg_node:
+            self.export_object_primvars(ob, sg_node)
+            self.sg_nodes_dict[db_name] = sg_node                       
 
         # unsupported type
         """if prim == 'NONE':
@@ -1285,7 +1425,7 @@ class RmanSgExporter:
                 continue
             self.export_material(mat, mat_name)
         
-    def write_instances(self, db_name, data_block, name, instance):
+    def write_instances(self, db_name, data_block, name, instance, visible_objects=[]):
         if db_name not in self.sg_nodes_dict.keys():
             return
 
@@ -1293,6 +1433,7 @@ class RmanSgExporter:
 
         inst_sg = self.sg_scene.CreateGroup(name)
         self.export_transform(instance, inst_sg)
+        self.export_object_attributes(instance.ob, inst_sg, visible_objects)
 
         for mat in data_block.material:
             if not hasattr(mat, 'name'):
@@ -1778,6 +1919,7 @@ class RmanSgExporter:
     #     export_data_archives(ri, scene, rpass, data_blocks, engine)
 
         self.export_searchpaths()
+        
         #export_options(ri, scene)
 
         #export_hider(ri, rpass, scene)
@@ -1832,17 +1974,12 @@ class RmanSgExporter:
         for name, instance in instances.items():
             if not instance.parent:
                 for db_name in instance.data_block_names:                    
-                    self.write_instances(db_name, data_blocks[db_name], instance.name, instance)
-        #        export_instance_read_archive(
-        #            ri, instance, instances, data_blocks, rpass, visible_objects=visible_objects)
+                    self.write_instances(db_name, data_blocks[db_name], instance.name, instance, visible_objects=visible_objects)
 
         #for object in emptiesToExport:
         #    export_empties_archives(ri, object)
 
-        #instances = None
-        #ri.WorldEnd()
-
-        #ri.FrameEnd()
+        instances = None
 
 def is_ready():
     global __RMAN_SG_INITED__
