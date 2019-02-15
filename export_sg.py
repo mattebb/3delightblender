@@ -68,7 +68,8 @@ try:
     import rman
     import rman_internal
     __RMAN_SG_INITED__ = True
-except:
+except Exception as e:
+    print('Could not import rman modules: %s' % str(e))
     pass
 
 
@@ -95,34 +96,34 @@ PSYS_PREFIX = "psys_"
 DUPLI_PREFIX = "dupli_"
 DUPLI_SOURCE_PREFIX = "dup_src_"
 
-s_orientTransform = (0, 0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1)
+s_orientTransform = [0, 0, -1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]
 
-s_orientPxrLight = (-1.0, 0.0, -0.0, 0.0,
+s_orientPxrLight = [-1.0, 0.0, -0.0, 0.0,
                     -0.0, -1.0, -0.0, 0.0,
                     0.0, 0.0, -1.0, 0.0,
-                    0.0, 0.0, 0.0, 1.0)
+                    0.0, 0.0, 0.0, 1.0]
 
-s_orientPxrDomeLight = (0.0, 0.0, -1.0, 0.0,
+s_orientPxrDomeLight = [0.0, 0.0, -1.0, 0.0,
                        -1.0, -0.0, 0.0, 0.0,
                         0.0, 1.0, 0.0, 0.0,
-                        0.0, 0.0, 0.0, 1.0)
+                        0.0, 0.0, 0.0, 1.0]
 
-s_orientPxrEnvDayLight = (-0.0, 0.0, -1.0, 0.0,
+s_orientPxrEnvDayLight = [-0.0, 0.0, -1.0, 0.0,
                         1.0, 0.0, -0.0, -0.0,
                         -0.0, 1.0, 0.0, 0.0,
-                        0.0, 0.0, 0.0, 1.0)
+                        0.0, 0.0, 0.0, 1.0]
 
-s_orientPxrEnvDayLightInv = (-0.0, 1.0, -0.0, 0.0,
+s_orientPxrEnvDayLightInv = [-0.0, 1.0, -0.0, 0.0,
                             -0.0, 0.0, 1.0, -0.0,
                             -1.0, -0.0, 0.0, -0.0,
-                            0.0, -0.0, -0.0, 1.0)
+                            0.0, -0.0, -0.0, 1.0]
 
 
 def convert_matrix(m):
-    v = (m[0][0], m[1][0], m[2][0], m[3][0],
+    v = [m[0][0], m[1][0], m[2][0], m[3][0],
         m[0][1], m[1][1], m[2][1], m[3][1],
         m[0][2], m[1][2], m[2][2], m[3][2],
-        m[0][3], m[1][3], m[2][3], m[3][3])
+        m[0][3], m[1][3], m[2][3], m[3][3]]
 
     return v
 
@@ -436,7 +437,8 @@ class RmanSgExporter:
                 self.export_light(ob, lamp, handle, rm)  
         else:
             ob = active
-            if active.type == "MESH":
+            print("TYPE: %s" % active.type)
+            if active.type in ["MESH", "CURVE", "FONT"]:
                 with rman_internal.SGManager.ScopedEdit(self.sg_scene):
                     mb_on = scene.renderman.motion_blur 
                     mb_segs = scene.renderman.motion_segments
@@ -467,8 +469,8 @@ class RmanSgExporter:
                                 motion_segs[ob_mb_segs][1].append(db.name)
 
                             if do_db:
-                                if db.type == "MESH":
-                                    self.export_mesh_archive(db)
+                                #if db.type in ["MESH", "CURVE", "FONT"]:
+                                self.export_mesh_archive(db)
 
                     if not instance.parent:
                         for db_name in instance.data_block_names:   
@@ -890,9 +892,8 @@ class RmanSgExporter:
         primvars = get_primvars(ob, mesh, "facevarying")
 
         if not is_multi_material(mesh):        
-            sg_node.Define( len(nverts), len(P), len(verts) )
-          
-            print("----------------\n\tP: %s\n\tNVERTS: %s\n\tVERTS: %s\n--------------\n\n" % (str(P), str(nverts), str(verts)))
+            sg_node.Define( len(nverts), int(len(P)/3), len(verts) )
+
             primvar = sg_node.EditPrimVarBegin()
             primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
             primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
@@ -943,9 +944,8 @@ class RmanSgExporter:
                     intargs.extend([c[0], c[1]])
                     floatargs.append(c[2])
 
-            sg_node.Define( len(nverts), len(P), len(verts) )
-          
-            print("----------------\n\tP: %s\n\tNVERTS: %s\n\tVERTS: %s\n--------------\n\n" % (str(P), str(nverts), str(verts)))
+            sg_node.Define( len(nverts), int(len(P)/3), len(verts) )
+
             primvar = sg_node.EditPrimVarBegin()
             primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
             primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
@@ -988,7 +988,101 @@ class RmanSgExporter:
             ri.HierarchicalSubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
                                         intargs, floatargs, string_args, primvars)"""
 
-        removeMeshFromMemory(mesh.name)        
+        removeMeshFromMemory(mesh.name)       
+
+    def get_curve(self, curve):
+        splines = []
+
+        for spline in curve.splines:
+            P = []
+            width = []
+            npt = len(spline.bezier_points) * 3
+
+            for bp in spline.bezier_points:
+                P.extend(bp.handle_left)
+                P.extend(bp.co)
+                P.extend(bp.handle_right)
+                width.append(bp.radius * 0.01)
+
+            # basis = ["bezier", 3, "bezier", 3]
+            basis = ["BezierBasis", 3, "BezierBasis", 3]
+            if spline.use_cyclic_u:
+                period = 'periodic'
+                # wrap the initial handle around to the end, to begin on the CV
+                P = P[3:] + P[:3]
+            else:
+                period = 'nonperiodic'
+                # remove the two unused handles
+                npt -= 2
+                P = P[3:-3]
+
+            name = spline.id_data.name
+            splines.append((P, width, npt, basis, period, name))
+
+        return splines        
+
+    def export_curve(self, sg_node, ob, data):
+
+        if ob.type == 'CURVE':
+            curves = data if data is not None else self.get_curve(ob.data)
+
+            for P, width, npt, basis, period, name in curves:
+                curves_sg = self.sg_scene.CreateCurves(name)
+                curves_sg.Define(rman.Tokens.Rix.k_cubic, period, "bezier", 1, int(len(P)/3))
+                
+                primvar = curves_sg.EditPrimVarBegin()
+                primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")   
+                primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, [npt], "uniform")
+                if width:
+                    primvar.SetFloatDetail(rman.Tokens.Rix.k_width, width, "vertex")
+                curves_sg.EditPrimVarEnd(primvar)
+
+                sg_node.AddChild(curves_sg)
+
+                pass
+                #ri.Basis(basis[0], basis[1], basis[2], basis[3])
+                #ri.Curves("cubic", [npt], period, {"P": rib(P), "width": width})
+
+        else:
+            debug("error",
+                "export_curve: recieved a non-supported object type of [%s]." %
+                ob.type)  
+
+    def export_points(self, sg_node, ob, motion):
+        rm = ob.renderman
+
+        mesh = self.create_mesh(ob)
+
+        motion_blur = ob.name in motion['deformation']
+
+        if motion_blur:
+            #export_motion_begin(ri, scene, ob)
+            samples = motion['deformation'][ob.name]
+        else:
+            samples = [self.get_mesh(mesh)]
+
+        nverts
+
+        for nverts, verts, P, N in samples:
+            #params = {
+            #    ri.P: rib(P),
+            #    "uniform string type": rm.primitive_point_type,
+            #    "constantwidth": rm.primitive_point_width
+            #}
+            #ri.Points(params)
+            points_sg = self.sg_scene.CreatePoints()
+            points_sg.Define(s_npoints)
+            primvar = points_sg.EditPrimVarBegin()
+            primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
+            primvar.SetFloatDetail(rman.Tokens.Rix.k_width, s_widths, "vertex")
+            points_sg.EditPrimVarEnd(primvar)
+    
+            sg_node.AddChild(points_sg)
+
+        #if motion_blur:
+        #    ri.MotionEnd()
+
+        removeMeshFromMemory(mesh.name)       
 
     def export_geometry_data(self, ob, db_name, data=None):
         prim = ob.renderman.primitive if ob.renderman.primitive != 'AUTO' \
@@ -999,15 +1093,36 @@ class RmanSgExporter:
         if prim == 'POLYGON_MESH':
             sg_node = self.sg_scene.CreateMesh(db_name)
             self.export_polygon_mesh(ob, sg_node, data)
-            self.sg_nodes_dict[db_name] = sg_node  
+            self.export_object_primvars(ob, sg_node)
+            self.sg_nodes_dict[db_name] = sg_node              
 
         elif prim == 'SUBDIVISION_MESH':
             sg_node = self.sg_scene.CreateMesh(db_name)
             self.export_subdivision_mesh(ob, sg_node, data) 
-
-        if sg_node:
             self.export_object_primvars(ob, sg_node)
-            self.sg_nodes_dict[db_name] = sg_node                       
+            self.sg_nodes_dict[db_name] = sg_node              
+
+        # curve only
+        elif prim == 'CURVE' or prim == 'FONT':
+            # If this curve is extruded or beveled it can produce faces from a
+            # to_mesh call.
+            l = ob.data.extrude + ob.data.bevel_depth
+            if l > 0:
+                sg_node = self.sg_scene.CreateMesh(db_name)
+                self.export_polygon_mesh(ob, sg_node, data)
+                self.export_object_primvars(ob, sg_node)
+                self.sg_nodes_dict[db_name] = sg_node                 
+            else:
+                sg_node = self.sg_scene.CreateGroup(db_name)
+                self.export_curve(sg_node, ob, data)
+                self.sg_nodes_dict[db_name] = sg_node 
+                
+         # mesh only
+        elif prim == 'POINTS':
+            sg_node = self.sg_scene.CreateGroup(db_name)
+            export_points(sg_node, ob, data) 
+            self.sg_nodes_dict[db_name] = sg_node             
+                                                        
 
         # unsupported type
         """if prim == 'NONE':
@@ -1114,7 +1229,7 @@ class RmanSgExporter:
         portal_parent=''
         light_filters = []
 
-        light_sg = self.sg_scene.CreateLight(handle)
+        light_sg = self.sg_scene.CreateAnalyticLight(handle)
         
         for lf in rm.light_filters:
             if lf.filter_name in bpy.data.objects:
