@@ -605,7 +605,6 @@ class RmanSgShadingExporter:
     def __init__(self, **kwargs):
         self.sgmngr = kwargs['sgmngr']
         self.rman = kwargs['rman']
-        self.rman_internal = kwargs['rman_internal']
 
         self.sg_scene = kwargs['sg_scene']
         self.sg_root = kwargs['sg_root']

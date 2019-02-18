@@ -66,7 +66,6 @@ __RMAN_SG_EXPORTER__ = None
 
 try:
     import rman
-    import rman_internal
     __RMAN_SG_INITED__ = True
 except Exception as e:
     print('Could not import rman modules: %s' % str(e))
@@ -236,7 +235,7 @@ class RmanSgExporter:
     def __init__(self, **kwargs):
 
         self.rictl = rman.RiCtl.Get()
-        self.sgmngr = rman_internal.SGManager.Get()
+        self.sgmngr = rman.SGManager.Get()
 
         self.sg_scene = None
         self.sg_root = None
@@ -265,7 +264,7 @@ class RmanSgExporter:
         self.shader_exporter = nodes_sg.RmanSgShadingExporter( rpass=self.rpass, 
                                 scene=self.scene, sgmngr=self.sgmngr, 
                                 sg_scene=self.sg_scene, sg_root = self.sg_root, 
-                                rman=rman, rman_internal=rman_internal )    
+                                rman=rman)    
         
     def is_prman_running(self):
         global is_running
@@ -326,7 +325,7 @@ class RmanSgExporter:
             self.write_scene(visible_objects)
                 
         if progress_cb:
-            ec = rman_internal.EventCallbacks.Get()
+            ec = rman.EventCallbacks.Get()
             ec.RegisterCallback("Progress", progress_cb, self)
 
         is_running = True
@@ -359,7 +358,7 @@ class RmanSgExporter:
         self.rictl.PRManBegin(argv)
         self.write_scene(visible_objects)
 
-        #ec = rman_internal.EventCallbacks.Get()
+        #ec = rman.EventCallbacks.Get()
         #ec.RegisterCallback("Render", render_cb, self)
 
         is_running = True
@@ -379,7 +378,7 @@ class RmanSgExporter:
         self.scene = scene
         if (active and active.is_updated):
             if active.type == 'CAMERA':
-                with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                with rman.SGManager.ScopedEdit(self.sg_scene):
                     camera_node_sg = self.sg_nodes_dict['camera']
                     if camera_node_sg:
                         self.export_camera_transform(camera_node_sg, scene.camera, [])
@@ -393,7 +392,7 @@ class RmanSgExporter:
                 coordsys_name = "%s_coordsys" % active.name
                 coordsys = self.sg_nodes_dict[coordsys_name]
 
-                with rman_internal.SGManager.ScopedEdit(self.sg_scene): 
+                with rman.SGManager.ScopedEdit(self.sg_scene): 
                     m = convert_matrix( active.matrix_world )
                     coordsys.SetTransform(m)
                     rix_params = sg_lightfilter.EditParameterBegin()       
@@ -413,11 +412,11 @@ class RmanSgExporter:
                     if instance.name in self.sg_nodes_dict.keys():                    
                         inst_sg = self.sg_nodes_dict[instance.name]
                         if inst_sg:
-                            with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                            with rman.SGManager.ScopedEdit(self.sg_scene):
                                 self.export_transform(instance, inst_sg)                      
 
         if active and scene.camera.name != active.name and scene.camera.is_updated:
-            with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+            with rman.SGManager.ScopedEdit(self.sg_scene):
                 camera_node_sg = self.sg_nodes_dict['camera']
                 if camera_node_sg:
                     self.export_camera_transform(camera_node_sg, scene.camera, [])
@@ -433,13 +432,12 @@ class RmanSgExporter:
             rm = lamp.renderman
             handle = lamp.name
 
-            with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+            with rman.SGManager.ScopedEdit(self.sg_scene):
                 self.export_light(ob, lamp, handle, rm)  
         else:
             ob = active
-            print("TYPE: %s" % active.type)
             if active.type in ["MESH", "CURVE", "FONT"]:
-                with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                with rman.SGManager.ScopedEdit(self.sg_scene):
                     mb_on = scene.renderman.motion_blur 
                     mb_segs = scene.renderman.motion_segments
                     instance = get_instance(active, self.scene, mb_on)
@@ -479,18 +477,40 @@ class RmanSgExporter:
     def issue_delete_object_edits(self, handle):
         if handle in self.sg_nodes_dict:
             sg_node = self.sg_nodes_dict[handle]
-            with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+            with rman.SGManager.ScopedEdit(self.sg_scene):
                 self.sg_scene.DeleteDagNode(sg_node)
         pass                                          
 
-    def issue_object_edits(self, active, scene):
+    def issue_object_edits(self, active, scene, psys=None):
         self.scene = scene
-        if active.type == "MESH":
+        if psys:
+            if psys.settings.type == 'EMITTER':
+                db_name = '%s.%s-EMITTER' % (active.name, psys.name)
+                sg_node = self.sg_nodes_dict[db_name]
+                if sg_node:                
+                    with rman.SGManager.ScopedEdit(self.sg_scene): 
+                        data = [(0, self.get_particles(active, psys))]               
+                        self.export_particle_points(sg_node, psys, active, data)
+            else:
+                db_name = '%s.%s-HAIR' % (active.name, psys.name)
+                sg_node = self.sg_nodes_dict[db_name]
+                if sg_node:                
+                    with rman.SGManager.ScopedEdit(self.sg_scene):
+                        for i in range(0, sg_node.GetNumChildren()):
+                            c = sg_node.FindDagNode('%s-%d' % (db_name, i))
+                            sg_node.RemoveChild(c)
+                        self.sg_root.RemoveChild(sg_node)
+                        sg_node = self.sg_scene.CreateGroup(db_name)
+                        self.export_hair(sg_node, active, psys, db_name, None)
+                        self.sg_nodes_dict[db_name] = sg_node
+                        self.sg_root.AddChild(sg_node)
+
+        elif active.type == "MESH":
             db_name = '%s-MESH' % active.name
             mesh_sg = self.sg_nodes_dict[db_name]
             if mesh_sg:                
                 if active.update_from_editmode(): # get updated data
-                    with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                    with rman.SGManager.ScopedEdit(self.sg_scene):
                         self.export_polygon_mesh(active, mesh_sg, active.data)
 
     def issue_shader_edits(self, nt=None, node=None, ob=None):
@@ -529,7 +549,7 @@ class RmanSgExporter:
             # New material assignment. Loop over all objects:
             if mat in self.rpass.material_dict:
                 mat_name = get_mat_name(mat.name)
-                with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                with rman.SGManager.ScopedEdit(self.sg_scene):
                     sg_material = self.export_material(mat, mat_name)                    
                     if ob:
                         instance = get_instance(ob, self.scene, False)
@@ -640,7 +660,7 @@ class RmanSgExporter:
                     if mat_name in self.sg_nodes_dict:
                         sg_lightfilter = self.sg_nodes_dict[mat_name]
                         lights = self.lightfilters_dict[mat_name]
-                        with rman_internal.SGManager.ScopedEdit(self.sg_scene): 
+                        with rman.SGManager.ScopedEdit(self.sg_scene): 
                             rix_params = sg_lightfilter.EditParameterBegin()       
                             rix_params = nodes_sg.gen_rixparams(node, rix_params, mat_name)
                             coordsys_name = "%s_coordsys" % mat_name
@@ -655,7 +675,7 @@ class RmanSgExporter:
                 else:
                     sg_light = self.sg_nodes_dict[mat_name]
                     sg_node = self.mat_networks[mat_name]
-                    with rman_internal.SGManager.ScopedEdit(self.sg_scene): 
+                    with rman.SGManager.ScopedEdit(self.sg_scene): 
                         rix_params = sg_node.EditParameterBegin()       
                         rix_params = nodes_sg.gen_rixparams(node, rix_params, mat_name)
                         sg_node.EditParameterEnd(rix_params) 
@@ -668,7 +688,7 @@ class RmanSgExporter:
                 sg_material = self.sg_nodes_dict['material.%s' % mat_name] 
                 if handle in self.sg_nodes_dict.keys():    
                     sg_node = self.sg_nodes_dict[handle]
-                    with rman_internal.SGManager.ScopedEdit(self.sg_scene):                   
+                    with rman.SGManager.ScopedEdit(self.sg_scene):                   
                         rix_params = sg_node.EditParameterBegin()       
                         rix_params = nodes_sg.gen_rixparams(node, rix_params, mat_name)
                         sg_node.EditParameterEnd(rix_params) 
@@ -676,7 +696,7 @@ class RmanSgExporter:
                         sg_material.SetBxdf(bxdfList)               
                 else:            
                     if sg_material:
-                        with rman_internal.SGManager.ScopedEdit(self.sg_scene):
+                        with rman.SGManager.ScopedEdit(self.sg_scene):
                             sg_material = self.shader_exporter.export_shader_nodetree(
                                 mat, sg_node=sg_material, handle=None, 
                                 disp_bound=mat.renderman.displacementbound,
@@ -1100,7 +1120,13 @@ class RmanSgExporter:
             sg_node = self.sg_scene.CreateMesh(db_name)
             self.export_subdivision_mesh(ob, sg_node, data) 
             self.export_object_primvars(ob, sg_node)
-            self.sg_nodes_dict[db_name] = sg_node              
+            self.sg_nodes_dict[db_name] = sg_node     
+
+         # mesh only
+        elif prim == 'POINTS':
+            sg_node = self.sg_scene.CreateGroup(db_name)
+            export_points(sg_node, ob, data) 
+            self.sg_nodes_dict[db_name] = sg_node                       
 
         # curve only
         elif prim == 'CURVE' or prim == 'FONT':
@@ -1115,15 +1141,8 @@ class RmanSgExporter:
             else:
                 sg_node = self.sg_scene.CreateGroup(db_name)
                 self.export_curve(sg_node, ob, data)
-                self.sg_nodes_dict[db_name] = sg_node 
-                
-         # mesh only
-        elif prim == 'POINTS':
-            sg_node = self.sg_scene.CreateGroup(db_name)
-            export_points(sg_node, ob, data) 
-            self.sg_nodes_dict[db_name] = sg_node             
+                self.sg_nodes_dict[db_name] = sg_node         
                                                         
-
         # unsupported type
         """if prim == 'NONE':
             debug("WARNING", "Unsupported prim type on %s" % (ob.name))
@@ -1145,21 +1164,7 @@ class RmanSgExporter:
             export_blobby_family(ri, scene, ob)
 
         elif prim == 'SMOKE':
-            export_smoke(ri, ob)
-
-        # curve only
-        elif prim == 'CURVE' or prim == 'FONT':
-            # If this curve is extruded or beveled it can produce faces from a
-            # to_mesh call.
-            l = ob.data.extrude + ob.data.bevel_depth
-            if l > 0:
-                export_polygon_mesh(ri, scene, ob, data)
-            else:
-                export_curve(ri, scene, ob, data)
-
-        # mesh only
-        elif prim == 'POINTS':
-            export_points(ri, ob, data)"""
+            export_smoke(ri, ob)"""
                 
     def export_mesh_archive(self, data_block):
         # if we cached a deforming mesh get it.
@@ -1547,7 +1552,13 @@ class RmanSgExporter:
         mesh_sg = self.sg_nodes_dict[db_name]
 
         inst_sg = self.sg_scene.CreateGroup(name)
-        self.export_transform(instance, inst_sg)
+        if data_block.type == "PSYS":
+            # don't export transform if this is a hair system
+            ob, psys = data_block.data
+            if psys.settings.type == 'EMITTER':
+                self.export_transform(instance, inst_sg)
+        else:
+            self.export_transform(instance, inst_sg)
         self.export_object_attributes(instance.ob, inst_sg, visible_objects)
 
         for mat in data_block.material:
@@ -1882,7 +1893,6 @@ class RmanSgExporter:
         sg_node = None
         name = "Preview"
 
-        print('PREVIEW TYPE: %s' % mat.preview_render_type)
         if mat.preview_render_type == 'SPHERE':
             sg_node = self.sg_scene.CreateQuadric(name)
             sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Sphere);
@@ -2020,6 +2030,325 @@ class RmanSgExporter:
         #self.scene = org_scene
         return (mat != None)
 
+    def get_primvars_particle(self, psys, subframes):
+        primvars = {}
+        rm = psys.settings.renderman
+        cfra = self.scene.frame_current
+
+        for p in rm.prim_vars:
+            pvars = []
+
+            if p.data_source in ('VELOCITY', 'ANGULAR_VELOCITY'):
+                if p.data_source == 'VELOCITY':
+                    for pa in \
+                            [p for p in psys.particles if valid_particle(p, subframes)]:
+                        pvars.extend(pa.velocity)
+                elif p.data_source == 'ANGULAR_VELOCITY':
+                    for pa in \
+                            [p for p in psys.particles if valid_particle(p, subframes)]:
+                        pvars.extend(pa.angular_velocity)
+
+                primvars["uniform float[3] %s" % p.name] = pvars
+
+            elif p.data_source in \
+                    ('SIZE', 'AGE', 'BIRTH_TIME', 'DIE_TIME', 'LIFE_TIME', 'ID'):
+                if p.data_source == 'SIZE':
+                    for pa in \
+                            [p for p in psys.particles if valid_particle(p, subframes)]:
+                        pvars.append(pa.size)
+                elif p.data_source == 'AGE':
+                    for pa in \
+                            [p for p in psys.particles if valid_particle(p, subframes)]:
+                        pvars.append((cfra - pa.birth_time) / pa.lifetime)
+                elif p.data_source == 'BIRTH_TIME':
+                    for pa in \
+                            [p for p in psys.particles if valid_particle(p, subframes)]:
+                        pvars.append(pa.birth_time)
+                elif p.data_source == 'DIE_TIME':
+                    for pa in \
+                            [p for p in psys.particles if valid_particle(p, subframes)]:
+                        pvars.append(pa.die_time)
+                elif p.data_source == 'LIFE_TIME':
+                    for pa in \
+                            [p for p in psys.particles if valid_particle(p, subframes)]:
+                        pvars.append(pa.lifetime)
+                elif p.data_source == 'ID':
+                    pvars = [id for id, p in psys.particles.items(
+                    ) if valid_particle(p, subframes)]
+
+                primvars["varying float %s" % p.name] = pvars
+
+        return primvars        
+
+    def export_particle_points(self, sg_node, psys, ob, motion_data, objectCorrectionMatrix=False):
+        rm = psys.settings.renderman
+        if(objectCorrectionMatrix):
+            matrix = ob.matrix_world.inverted_safe()
+            loc, rot, sca = matrix.decompose()
+
+        primvar = sg_node.EditPrimVarBegin()
+        if len(motion_data) > 1:
+            sg_node.SetTimeSamples( len(motion_data))
+
+            nm_pts = -1
+
+            for (i, (P, rot, width)) in motion_data:
+                params = self.get_primvars_particle(
+                    psys, [self.scene.frame_current + i for (i, data) in motion_data])
+
+                if nm_pts == -1:
+                    sg_node.Define(int(len(P)/3))
+
+                primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex", i)
+                if rm.constant_width:
+                    primvar.SetFloatDetail(rman.Tokens.Rix.k_constantwidth, width, "constant", i)
+                else:
+                    primvar.SetFloatDetail(rman.Tokens.Rix.k_width, width, "vertex", i)                    
+
+        else:
+            (i, (P, rot, width)) = motion_data[0]
+            params = self.get_primvars_particle(
+                psys, [self.scene.frame_current + i for (i, data) in motion_data]) 
+
+            sg_node.Define(int(len(P)/3))
+            primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
+            if rm.constant_width:
+                primvar.SetFloatDetail(rman.Tokens.Rix.k_constantwidth, width, "constant")
+            else:
+                primvar.SetFloatDetail(rman.Tokens.Rix.k_width, width, "vertex")
+
+        sg_node.EditPrimVarEnd(primvar)
+
+    # only for emitter types for now
+
+    def get_particles(self, ob, psys, valid_frames=None):
+        P = []
+        rot = []
+        width = []
+
+        valid_frames = (self.scene.frame_current,
+                        self.scene.frame_current) if valid_frames is None else valid_frames
+        psys.set_resolution(self.scene, ob, 'RENDER')
+        for pa in [p for p in psys.particles if valid_particle(p, valid_frames)]:
+            P.extend(pa.location)
+            rot.extend(pa.rotation)
+
+            if pa.alive_state != 'ALIVE':
+                width.append(0.0)
+            else:
+                width.append(pa.size)
+        psys.set_resolution(self.scene, ob, 'PREVIEW')
+        return (P, rot, width)    
+
+
+    def export_particles(self, ob, psys, db_name, data=None, objectCorrectionMatrix=False):
+
+        rm = psys.settings.renderman
+
+        if not data:
+            data = [(0, self.get_particles(ob, psys))]
+        # Write object instances or points
+        if rm.particle_type == 'particle':
+            sg_node = self.sg_scene.CreatePoints(db_name)
+            self.export_particle_points(sg_node, psys, ob, data,
+                                objectCorrectionMatrix)
+            self.sg_nodes_dict[db_name] = sg_node
+        """elif rm.particle_type == 'blobby':
+            export_blobby_particles(ri, scene, psys, ob, data)
+        else:
+            export_particle_instances(
+                ri, scene, rpass, psys, ob, data, type=rm.particle_type)        """
+
+    # ------------- Geometry Access -------------
+    def get_strands(self, ob, psys, objectCorrectionMatrix=False):
+        # we need this to get st
+        if(objectCorrectionMatrix):
+            matrix = ob.matrix_world.inverted_safe()
+            loc, rot, sca = matrix.decompose()
+        psys_modifier = None
+        for mod in ob.modifiers:
+            if hasattr(mod, 'particle_system') and mod.particle_system == psys:
+                psys_modifier = mod
+                break
+
+        tip_width = psys.settings.cycles.tip_width * psys.settings.cycles.radius_scale
+        base_width = psys.settings.cycles.root_width * psys.settings.cycles.radius_scale
+        conwidth = (tip_width == base_width)
+        steps = 2 ** psys.settings.render_step
+        if conwidth:
+            widthString = rman.Tokens.Rix.k_constantwidth
+            hair_width = base_width
+            debug("info", widthString, hair_width)
+        else:
+            widthString = rman.Tokens.Rix.k_width
+            hair_width = []
+
+        psys.set_resolution(scene=self.scene, object=ob, resolution='RENDER')
+
+        num_parents = len(psys.particles)
+        num_children = len(psys.child_particles)
+        total_hair_count = num_parents + num_children
+        export_st = psys.settings.renderman.export_scalp_st and psys_modifier and len(
+            ob.data.uv_layers) > 0
+
+        curve_sets = []
+
+        points = []
+
+        vertsArray = []
+        scalpS = []
+        scalpT = []
+        nverts = 0
+        for pindex in range(total_hair_count):
+            if psys.settings.child_type != 'NONE' and pindex < num_parents:
+                continue
+
+            strand_points = []
+            # walk through each strand
+            for step in range(0, steps + 1):
+                pt = psys.co_hair(object=ob, particle_no=pindex, step=step)
+
+                if(objectCorrectionMatrix):
+                    pt = pt + loc
+
+                if not pt.length_squared == 0:
+                    strand_points.extend(pt)
+                else:
+                    # this strand ends prematurely
+                    break
+
+            if len(strand_points) > 1:
+                # double the first and last
+                strand_points = strand_points[:3] + \
+                    strand_points + strand_points[-3:]
+                vertsInStrand = len(strand_points) // 3
+                # for varying width make the width array
+                if not conwidth:
+                    decr = (base_width - tip_width) / (vertsInStrand - 2)
+                    hair_width.extend([base_width] + [(base_width - decr * i)
+                                                    for i in range(vertsInStrand - 2)] +
+                                    [tip_width])
+
+                # add the last point again
+                points.extend(strand_points)
+                vertsArray.append(vertsInStrand)
+                nverts += vertsInStrand
+
+                # get the scalp S
+                if export_st:
+                    if pindex >= num_parents:
+                        particle = psys.particles[
+                            (pindex - num_parents) % num_parents]
+                    else:
+                        particle = psys.particles[pindex]
+                    st = psys.uv_on_emitter(psys_modifier, particle, pindex)
+                    scalpS.append(st[0])
+                    scalpT.append(st[1])
+
+            # if we get more than 100000 vertices, export ri.Curve and reset.  This
+            # is to avoid a maxint on the array length
+            if nverts > 100000:
+                curve_sets.append(
+                    (vertsArray, points, widthString, hair_width, scalpS, scalpT))
+
+                nverts = 0
+                points = []
+                vertsArray = []
+                if not conwidth:
+                    hair_width = []
+                scalpS = []
+                scalpT = []
+
+        if nverts > 0:
+            curve_sets.append((vertsArray, points, widthString,
+                            hair_width, scalpS, scalpT))
+
+        psys.set_resolution(scene=self.scene, object=ob, resolution='PREVIEW')
+
+        return curve_sets                
+
+
+    def export_hair(self, sg_node, ob, psys, db_name, data, objectCorrectionMatrix=False):
+        
+        if data is not None and len(data) > 0:
+            # deformation blur case
+            num_time_samples = len(data)
+            time_samples =[sample[0] for sample in data]
+            num_curves = len(data[0])
+            curves_sg_nodes = list()           
+
+            for i in range(0, num_curves):
+                curves_sg = self.sg_scene.CreateCurves("%s-%d" % (db_name, i))                
+                primvar = curves.EditPrimVarBegin()
+                num_pts = -1
+
+                for subsample, sample in data:
+                    vertsArray, points, widthString, widths, scalpS, scalpT = sample[i]
+                    if num_pts == -1:
+                        num_pts = int(len(points)/3)
+                        curves_sg.Define(rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", 1, num_pts)
+
+                    primvar.SetPointDetail(rman.Tokens.Rix.k_P, points, "vertex", subsample)                
+                    primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, vertsArray, "uniform", subsample)
+                    primvar.SetIntegerDetail("index", range(len(vertsArray)), "uniform", subsample)
+                    if widthString == rman.Tokens.Rix.k_constantwidth:
+                        primvar.SetFloatDetail(widthString, widths, "constant", subsample)
+                    else:
+                        primvar.SetFloatDetail(widthString, widths, "vertex")
+
+                    if len(scalpS):
+                        primvar.SetFloatDetail("scalpS", scalpS, "uniform", subsample)                
+                        primvar.SetFloatDetail("scalpT", scalpT, "uniform", subsample)
+                    
+                curves.EditPrimVarEnd(primvar)
+                sg_node.AddChild(curves_sg)
+
+        else:
+            curves = self.get_strands(ob, psys, objectCorrectionMatrix)
+            i = 0
+            for vertsArray, points, widthString, widths, scalpS, scalpT in curves:
+                curves_sg = self.sg_scene.CreateCurves("%s-%d" % (db_name, i))
+                i += 1                
+                curves_sg.Define(rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", len(vertsArray), int(len(points)/3))
+                primvar = curves_sg.EditPrimVarBegin()
+
+                primvar.SetPointDetail(rman.Tokens.Rix.k_P, points, "vertex")                
+                primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, vertsArray, "uniform")
+                primvar.SetIntegerDetail("index", range(len(vertsArray)), "uniform")
+
+                if widthString == rman.Tokens.Rix.k_constantwidth:
+                    primvar.SetFloatDetail(widthString, widths, "constant")
+                else:
+                    primvar.SetFloatDetail(widthString, widths, "vertex")
+
+                if len(scalpS):
+                    primvar.SetFloatDetail("scalpS", scalpS, "uniform")                
+                    primvar.SetFloatDetail("scalpT", scalpT, "uniform")
+                    
+                curves_sg.EditPrimVarEnd(primvar)
+
+                sg_node.AddChild(curves_sg)            
+
+    def export_particle_system(self, ob, psys, db_name, objectCorrectionMatrix=False, data=None):
+        if psys.settings.type == 'EMITTER':
+            # particles are always deformation
+            self.export_particles(ob, psys, db_name,
+                            data, objectCorrectionMatrix)
+        else:
+            sg_node = self.sg_scene.CreateGroup(db_name)
+            self.export_hair(sg_node, ob, psys, db_name, data, objectCorrectionMatrix)
+            self.sg_nodes_dict[db_name] = sg_node       
+
+    # export the archives for an mesh. If this is a
+    # deforming mesh the particle export will handle it
+    def export_particle_archive(self, data_block, objectCorrectionMatrix=False):
+        ob, psys = data_block.data
+        data = data_block.motion_data if data_block.deforming else None
+        db_name = data_block.name
+        self.export_particle_system(ob, psys, db_name,
+                            objectCorrectionMatrix, data=data)
+        data_block.motion_data = None        
+
     def write_scene(self, visible_objects=None, engine=None, do_objects=True):
 
         # precalculate motion blur data
@@ -2080,8 +2409,8 @@ class RmanSgExporter:
         for name, db in data_blocks.items():
             if db.type == "MESH":
                 self.export_mesh_archive(db)
-            #elif db.type == "PSYS":
-            #    export_particle_archive(ri, scene, rpass, db)
+            elif db.type == "PSYS":
+                self.export_particle_archive(db)
             #elif db.type == "DUPLI":
             #    export_dupli_archive(ri, scene, rpass, db, data_blocks)
         

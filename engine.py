@@ -82,10 +82,8 @@ def init_prman():
 
     # for rman 22
     try:
-        #pythonbindings = os.path.join(guess_rmantree(), 'bin', 'pythonbindings')
-        #rman_internal = os.path.join(os.environ['RMAN_INTERNAL'], 'pythonbindings')
-        #set_pythonpath(pythonbindings)
-        #set_pythonpath(rman_internal)
+        pythonbindings = os.path.join(guess_rmantree(), 'bin', 'pythonbindings')
+        set_pythonpath(pythonbindings)
         global rman__sg__inited
         global export_sg
         global rman_sg_exporter
@@ -93,9 +91,7 @@ def init_prman():
         from .export_sg import rman_sg_exporter
         rman__sg__inited = export_sg.is_ready()
     except Exception as e:
-        print("Could not load scenegraph modules: %s" % str(e))
-        pass
-  
+        print("Could not load scenegraph modules: %s" % str(e)) 
 
 ipr = None
 
@@ -834,6 +830,12 @@ class RPass:
     def blender_scene_updated_cb(self, scene):
         if rman_sg_exporter().is_prman_running():
             active = scene.objects.active
+
+            if (active and active.particle_systems.active.id_data.is_updated_data):
+                # particles updated
+                psys_active = active.particle_systems.active
+                rman_sg_exporter().issue_object_edits(active, scene, psys=psys_active)            
+
             if (active and active.is_updated):
                 if active.type == 'LAMP':
                     lamp = active.data
@@ -850,6 +852,7 @@ class RPass:
                     rman_sg_exporter().issue_transform_edits(active, scene)
             elif (active and active.is_updated_data):
                 rman_sg_exporter().issue_object_edits(active, scene)
+
 
             if active and scene.camera.name != active.name and scene.camera.is_updated:
                 rman_sg_exporter().issue_transform_edits(active, scene)
