@@ -831,7 +831,7 @@ class RPass:
         if rman_sg_exporter().is_prman_running():
             active = scene.objects.active
 
-            if (active and active.particle_systems.active.id_data.is_updated_data):
+            if (active and active.particle_systems.active and active.particle_systems.active.id_data.is_updated_data):
                 # particles updated
                 psys_active = active.particle_systems.active
                 rman_sg_exporter().issue_object_edits(active, scene, psys=psys_active)            
@@ -852,6 +852,9 @@ class RPass:
                     rman_sg_exporter().issue_transform_edits(active, scene)
             elif (active and active.is_updated_data):
                 rman_sg_exporter().issue_object_edits(active, scene)
+
+            if active and active.renderman.id_data.is_updated_data:
+                rman_sg_exporter().issue_object_edits(active, scene)             
 
 
             if active and scene.camera.name != active.name and scene.camera.is_updated:
@@ -886,6 +889,9 @@ class RPass:
                     if active not in self.material_dict[mat_slot.material]:
                         self.material_dict[mat_slot.material].append(active)
                         rman_sg_exporter().issue_shader_edits(nt=mat_slot.material.node_tree, ob=active)
+
+
+
                
 
     # find the changed object and send for edits
