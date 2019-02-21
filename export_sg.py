@@ -49,6 +49,8 @@ from .nodes import export_shader_nodetree, get_textures, get_textures_for_node, 
 from .nodes import shader_node_rib, get_mat_name
 from .nodes import replace_frame_num
 
+from .nodes_sg import is_renderman_nodetree
+
 from . import nodes_sg
 from . import engine
 
@@ -69,8 +71,6 @@ try:
     __RMAN_SG_INITED__ = True
 except Exception as e:
     print('Could not import rman modules: %s' % str(e))
-    pass
-
 
 
 # ------------- Atom's helper functions -------------
@@ -125,6 +125,10 @@ def convert_matrix(m):
         m[0][3], m[1][3], m[2][3], m[3][3]]
 
     return v
+
+def convert_ob_bounds(ob_bb):
+    return (ob_bb[0][0], ob_bb[7][0], ob_bb[0][1],
+            ob_bb[7][1], ob_bb[0][2], ob_bb[1][2])    
 
 class ItHandler(chatserver.ItBaseHandler):
 
@@ -259,6 +263,12 @@ class RmanSgExporter:
         self.ipr_mode = False
 
     def export_ready(self):
+        self.sg_nodes_dict = {} 
+        self.mat_networks = {} 
+        self.mesh_masters = {}
+        self.light_filters_dict = {} 
+        self.lightfilters_dict = {} 
+
         self.sg_scene = self.sgmngr.CreateScene()
         self.sg_root = self.sg_scene.Root()
         self.shader_exporter = nodes_sg.RmanSgShadingExporter( rpass=self.rpass, 
@@ -384,28 +394,35 @@ class RmanSgExporter:
                         self.export_camera_transform(camera_node_sg, scene.camera, [])
                     else:
                         print("CANNOT FIND CAMERA!")
-            elif active.type == 'LAMP' and active.data.renderman.renderman_type == 'FILTER':
+            elif active.type == 'LAMP': 
                 if active.name not in self.sg_nodes_dict:
                     return
-                sg_lightfilter = self.sg_nodes_dict[active.name]
-                lights = self.lightfilters_dict[active.name]
-                coordsys_name = "%s_coordsys" % active.name
-                coordsys = self.sg_nodes_dict[coordsys_name]
+                if active.data.renderman.renderman_type == 'FILTER':
 
-                with rman.SGManager.ScopedEdit(self.sg_scene): 
-                    m = convert_matrix( active.matrix_world )
-                    coordsys.SetTransform(m)
-                    rix_params = sg_lightfilter.EditParameterBegin()       
-                    rix_params.SetString("coordsys", coordsys_name)
-                    sg_lightfilter.EditParameterEnd(rix_params)
+                    sg_lightfilter = self.sg_nodes_dict[active.name]
+                    lights = self.lightfilters_dict[active.name]
+                    coordsys_name = "%s_coordsys" % active.name
+                    coordsys = self.sg_nodes_dict[coordsys_name]
 
-                    self.sg_nodes_dict[coordsys_name] = coordsys
-                    self.sg_nodes_dict[active.name] = sg_lightfilter
+                    with rman.SGManager.ScopedEdit(self.sg_scene): 
+                        m = convert_matrix( active.matrix_world )
+                        coordsys.SetTransform(m)
+                        rix_params = sg_lightfilter.EditParameterBegin()       
+                        rix_params.SetString("coordsys", coordsys_name)
+                        sg_lightfilter.EditParameterEnd(rix_params)
 
-                    for l in lights:
-                        sg_light = self.sg_nodes_dict[l]
-                        lightfilter_sg = self.light_filters_dict[l]
-                        sg_light.SetLightFilter(lightfilter_sg)   
+                        self.sg_nodes_dict[coordsys_name] = coordsys
+                        self.sg_nodes_dict[active.name] = sg_lightfilter
+
+                        for l in lights:
+                            sg_light = self.sg_nodes_dict[l]
+                            lightfilter_sg = self.light_filters_dict[l]
+                            sg_light.SetLightFilter(lightfilter_sg)   
+                else:
+                    sg_light = self.sg_nodes_dict[active.name]
+                    instance = get_instance(active, self.scene, False)
+                    with rman.SGManager.ScopedEdit(self.sg_scene):
+                        self.export_transform(instance, sg_light) 
             else:
                 instance = get_instance(active, self.scene, False)
                 if instance:
@@ -474,36 +491,66 @@ class RmanSgExporter:
                         for db_name in instance.data_block_names:   
                             self.write_instances(db_name, db, instance.name, instance)   
 
-    def issue_delete_object_edits(self, handle):
+    def issue_delete_object_edits(self, obj_name, handle):
         if handle in self.sg_nodes_dict:
             sg_node = self.sg_nodes_dict[handle]
             with rman.SGManager.ScopedEdit(self.sg_scene):
                 self.sg_scene.DeleteDagNode(sg_node)
+                self.sg_nodes_dict.pop(handle, None)
+                for k in self.sg_nodes_dict.keys():
+                    if k.startswith(handle):
+                        if k.endswith('-EMITTER') or k.endswith("-HAIR"):
+                            sg_node = self.sg_nodes_dict[k]
+                            for i in range(0, sg_node.GetNumChildren()):
+                                c = sg_node.GetChild(i)
+                                sg_node.RemoveChild(c)
+                            self.sg_root.RemoveChild(sg_node)                        
         pass                                          
 
     def issue_object_edits(self, active, scene, psys=None):
         self.scene = scene
         if psys:
+            db_name_emitter = '%s.%s-EMITTER' % (active.name, psys.name)
+            db_name_hair = '%s.%s-HAIR' % (active.name, psys.name)
             if psys.settings.type == 'EMITTER':
-                db_name = '%s.%s-EMITTER' % (active.name, psys.name)
-                sg_node = self.sg_nodes_dict[db_name]
-                if sg_node:                
-                    with rman.SGManager.ScopedEdit(self.sg_scene): 
+                sg_node = None
+                with rman.SGManager.ScopedEdit(self.sg_scene):                 
+                    if db_name_emitter not in self.sg_nodes_dict:
+                        sg_node = self.sg_scene.CreatePoints(db_name_emitter)
+                        self.sg_nodes_dict[db_name_emitter] = sg_node
+                        instance = Instance(active.name, active.type, active, is_transforming(active, True))
+                        self.sg_root.AddChild(sg_node)
+                    else:    
+                        sg_node = self.sg_nodes_dict[db_name_emitter]
+
+                    if db_name_hair in self.sg_nodes_dict:
+                        hair_sg = self.sg_nodes_dict[db_name_hair]
+                        for i in range(0, hair_sg.GetNumChildren()):
+                            c = hair_sg.GetChild(i)
+                            hair_sg.RemoveChild(c)
+                        self.sg_root.RemoveChild(hair_sg)                    
+
+                    if sg_node:              
                         data = [(0, self.get_particles(active, psys))]               
                         self.export_particle_points(sg_node, psys, active, data)
             else:
-                db_name = '%s.%s-HAIR' % (active.name, psys.name)
-                sg_node = self.sg_nodes_dict[db_name]
-                if sg_node:                
-                    with rman.SGManager.ScopedEdit(self.sg_scene):
+                with rman.SGManager.ScopedEdit(self.sg_scene):   
+                    if db_name_emitter  in self.sg_nodes_dict:
+                        sg_node = self.sg_nodes_dict[db_name_emitter]
+                        for i in range(sg_node.GetNumParents()):
+                            p = sg_node.GetParent(i)
+                            p.RemoveChild(sg_node)
+                    if db_name_hair in self.sg_nodes_dict:                                       
+                        sg_node = self.sg_nodes_dict[db_name_hair]
                         for i in range(0, sg_node.GetNumChildren()):
-                            c = sg_node.FindDagNode('%s-%d' % (db_name, i))
+                            c = sg_node.GetChild(i)
                             sg_node.RemoveChild(c)
                         self.sg_root.RemoveChild(sg_node)
-                        sg_node = self.sg_scene.CreateGroup(db_name)
-                        self.export_hair(sg_node, active, psys, db_name, None)
-                        self.sg_nodes_dict[db_name] = sg_node
-                        self.sg_root.AddChild(sg_node)
+                    sg_node = self.sg_scene.CreateGroup(db_name_hair)
+                    if sg_node:                
+                            self.export_hair(sg_node, active, psys, db_name_hair, None)
+                            self.sg_nodes_dict[db_name_hair] = sg_node
+                            self.sg_root.AddChild(sg_node)
 
         elif active.type == "MESH":
             db_name = '%s-MESH' % active.name
@@ -511,14 +558,18 @@ class RmanSgExporter:
             if mesh_sg:
                 prim = active.renderman.primitive if active.renderman.primitive != 'AUTO' \
                     else detect_primitive(active)                
-                if active.update_from_editmode() or active.renderman.id_data.is_updated_data: # get updated data
+                if active.update_from_editmode():
                     with rman.SGManager.ScopedEdit(self.sg_scene):
-                        if prim == 'POLYGON_MESH':
-                            self.export_polygon_mesh(active, mesh_sg, active.data)
-                        elif prim == 'SUBDIVISION_MESH':
-                            self.export_subdivision_mesh(active, mesh_sg, active.data) 
-                        self.export_object_primvars(active, mesh_sg) 
-                
+                        if prim == ['POLYGON_MESH', 'SUBDIVISION_MESH']:
+                            self.export_mesh(active, mesh_sg, active.data, prim)                        
+                            self.export_object_primvars(active, mesh_sg) 
+                elif active.renderman.id_data.is_updated_data:
+                    with rman.SGManager.ScopedEdit(self.sg_scene):
+                        new_mesh_sg = self.export_geometry_data(active, db_name, data=None)
+                        for i in range(mesh_sg.GetNumParents()):
+                            p = mesh_sg.GetParent(i)
+                            p.RemoveChild(mesh_sg)
+                            p.AddChild(new_mesh_sg)                        
 
     def issue_shader_edits(self, nt=None, node=None, ob=None):
         if node is None:
@@ -553,34 +604,49 @@ class RmanSgExporter:
             rpass.edit_num += 1
             edit_flush(ri, rpass.edit_num, prman)"""
 
+
             # New material assignment. Loop over all objects:
-            if mat in self.rpass.material_dict:
+            if mat in self.rpass.material_dict and is_renderman_nodetree(mat):
                 mat_name = get_mat_name(mat.name)
-                with rman.SGManager.ScopedEdit(self.sg_scene):
-                    sg_material = self.export_material(mat, mat_name)                    
-                    if ob:
-                        instance = get_instance(ob, self.scene, False)
-                        if instance:
-                            if instance.name in self.sg_nodes_dict:
+
+                sg_material = None 
+ 
+                mat_handle = "material.%s" % mat_name
+                
+                if mat_handle in self.sg_nodes_dict.keys():
+                    sg_material = self.sg_nodes_dict[mat_handle]
+
+                with rman.SGManager.ScopedEdit(self.sg_scene): 
+                    sg_material, bxdfList = self.shader_exporter.export_shader_nodetree(
+                                mat, sg_node=sg_material, mat_sg_handle=mat_handle, handle=None, 
+                                disp_bound=mat.renderman.displacementbound, iterate_instance=False)
+                self.sg_nodes_dict['material.%s' % mat_name] = sg_material
+
+                if ob:
+                    instance = get_instance(ob, self.scene, False)
+                    if instance:
+                        if instance.name in self.sg_nodes_dict:
+                            with rman.SGManager.ScopedEdit(self.sg_scene):                            
                                 inst_sg = self.sg_nodes_dict[instance.name]
                                 inst_sg.SetMaterial(sg_material)
 
-                    else:
-                        for obj in self.rpass.material_dict[mat]:
-                            print("OBJ: %s" % obj.name)
+                else:
+                    for obj in self.rpass.material_dict[mat]:
+                        if not is_multi_material(obj):
+                            if obj.material_slots[0] == mat:
+                                instance = get_instance(obj, self.scene, False)
+                                if instance:
+                                    if instance.name in self.sg_nodes_dict:
+                                        with rman.SGManager.ScopedEdit(self.sg_scene):
+                                            inst_sg = self.sg_nodes_dict[instance.name]
+                                            inst_sg.SetMaterial(sg_material)                            
 
-                            instance = get_instance(obj, self.scene, False)
-                            if instance:
-                                if instance.name in self.sg_nodes_dict:
-                                    inst_sg = self.sg_nodes_dict[instance.name]
-                                    inst_sg.SetMaterial(sg_material)                            
-
-                            """
-                            ri.EditBegin(
-                                'attribute', {'string scopename': "^" + obj.name + "$"})
-                            export_material(ri, mat, iterate_instance=True)
-                            ri.EditEnd()"""
-                        pass
+                        """
+                        ri.EditBegin(
+                            'attribute', {'string scopename': "^" + obj.name + "$"})
+                        export_material(ri, mat, iterate_instance=True)
+                        ri.EditEnd()"""
+                    pass
             elif lamp:
                 lamp_ob = lamp
                 lamp = mat
@@ -691,24 +757,25 @@ class RmanSgExporter:
             else:
                 handle = mat_name + '.' + node.name
                 #print("HANDLE: %s MATNAME: %s" % (handle, node.name))
+                mat_handle = 'material.%s' % mat_name
 
-                sg_material = self.sg_nodes_dict['material.%s' % mat_name] 
+                sg_material = self.sg_nodes_dict[mat_handle] 
                 if handle in self.sg_nodes_dict.keys():    
                     sg_node = self.sg_nodes_dict[handle]
                     with rman.SGManager.ScopedEdit(self.sg_scene):                   
                         rix_params = sg_node.EditParameterBegin()       
                         rix_params = nodes_sg.gen_rixparams(node, rix_params, mat_name)
                         sg_node.EditParameterEnd(rix_params) 
-                        bxdfList = self.mat_networks['material.%s' % mat_name]
+                        bxdfList = self.mat_networks[mat_handle]
                         sg_material.SetBxdf(bxdfList)               
                 else:            
                     if sg_material:
                         with rman.SGManager.ScopedEdit(self.sg_scene):
-                            sg_material = self.shader_exporter.export_shader_nodetree(
-                                mat, sg_node=sg_material, handle=None, 
+                            sg_material,bxdfList = self.shader_exporter.export_shader_nodetree(
+                                mat, sg_node=sg_material, mat_sg_handle=mat_handle, handle=None, 
                                 disp_bound=mat.renderman.displacementbound,
                                 iterate_instance=False)
-                        self.sg_nodes_dict['material.%s' % mat_name] = sg_material
+                        self.sg_nodes_dict[mat_handle] = sg_material
  
     def export_searchpaths(self):
         options = self.sg_scene.EditOptionBegin()
@@ -880,6 +947,22 @@ class RmanSgExporter:
             ob.modifiers[len(ob.modifiers) - 1].show_render = True
         return mesh                    
 
+    def get_mesh_points(self, mesh):
+        # return just the points on the mesh
+        P = []
+        verts = []
+
+        for v in mesh.vertices:
+            P.extend(v.co)
+
+        for p in mesh.polygons:
+            verts.extend(p.vertices)
+
+        if len(verts) > 0:
+            P = P[:int(max(verts) + 1) * 3]
+
+        return P
+
     def get_mesh(self, mesh, get_normals=False):
         nverts = []
         verts = []
@@ -904,248 +987,106 @@ class RmanSgExporter:
         # return the P's minus any unconnected
         return (nverts, verts, P, N)
 
-    def export_polygon_mesh(self, ob, sg_node, motion_data=None):
-        debug("info", "export_polygon_mesh [%s]" % ob.name)
+    def export_mesh(self, ob, sg_node, motion_data=None, prim_type="POLYGON_MESH"):
+
+        if prim_type not in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
+            return
 
         primvar = sg_node.EditPrimVarBegin()
 
-        if motion_data is not None and len(motion_data):
+        is_deforming = False
+        mesh = None
+        if motion_data is not None and isinstance(motion_data, list) and len(motion_data):
             time_samples = [sample[0] for sample in motion_data]
             primvar.SetTimeSamples( time_samples )
-
-            sample = 0
-            nm_pts = -1
-            for (subframes, mesh) in motion_data:
-
-                # for multi-material output all those
-                (nverts, verts, P, N) = self.get_mesh(mesh, get_normals=True)
-                # if this is empty continue:
-                if nverts == []:
-                    debug("error empty poly mesh %s" % ob.name)
-                    removeMeshFromMemory(mesh.name)
-                    continue
-                    
-                primvars = get_primvars(ob, mesh, "facevarying")
-
-                if not is_multi_material(mesh):
-                    if nm_pts == -1:        
-                        nm_pts = int(len(P)/3)
-                        sg_node.Define( len(nverts), nm_pts, len(verts) )
-
-                    primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex", sample)
-                    primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform", sample)
-                    primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying", sample)
-                    primvar.SetNormalDetail(rman.Tokens.Rix.k_N, N, "facevarying", sample)
-
-                    sample += 1
-
-                    #attrs = mesh_sg.EditAttributeBegin()
-                    #attrs.SetInteger(rman.Tokens.Rix.k_identifier_id, 2)
-                    #mesh_sg.EditAttributeEnd(attrs)
-
-                else:
-                    pass
-                    """for mat_id, (nverts, verts, primvars) in \
-                            split_multi_mesh(nverts, verts, primvars).items():
-                        # if this is a multi_material mesh output materials
-                        export_material_archive(ri, mesh.materials[mat_id])
-                        ri.PointsPolygons(nverts, verts, primvars)"""                
-
+            is_deforming = True
         else:
             mesh = self.create_mesh(ob)
 
-            # for multi-material output all those
-            (nverts, verts, P, N) = self.get_mesh(mesh, get_normals=True)
-            # if this is empty continue:
-            if nverts == []:
-                debug("error empty poly mesh %s" % ob.name)
-                removeMeshFromMemory(mesh.name)
-                return
-            primvars = get_primvars(ob, mesh, "facevarying")
+        if mesh is None and isinstance(motion_data, list) and len(motion_data):
+            mesh = motion_data[0][1]
 
-            if not is_multi_material(mesh):        
-                sg_node.Define( len(nverts), int(len(P)/3), len(verts) )
+        (nverts, verts, P, N) = self.get_mesh(mesh, get_normals=True) 
+        nm_pts = int(len(P)/3)
+        sg_node.Define( len(nverts), nm_pts, len(verts) )        
 
+        # if this is empty continue:
+        if nverts == []:
+            debug("error empty mesh %s" % ob.name)
+            removeMeshFromMemory(mesh.name)
+            return         
 
-                primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
-                primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
-                primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")
-                primvar.SetNormalDetail(rman.Tokens.Rix.k_N, N, "facevarying")
-
-                #attrs = mesh_sg.EditAttributeBegin()
-                #attrs.SetInteger(rman.Tokens.Rix.k_identifier_id, 2)
-                #mesh_sg.EditAttributeEnd(attrs)
-
-            else:
-                pass
-                """for mat_id, (nverts, verts, primvars) in \
-                        split_multi_mesh(nverts, verts, primvars).items():
-                    # if this is a multi_material mesh output materials
-                    export_material_archive(ri, mesh.materials[mat_id])
-                    ri.PointsPolygons(nverts, verts, primvars)"""
-
-        sg_node.EditPrimVarEnd(primvar)                
-        removeMeshFromMemory(mesh.name)
-
-    def export_subdivision_mesh(self, ob, sg_node, motion_data=None):
-
-        primvar = sg_node.EditPrimVarBegin()
-
-        if motion_data is not None and len(motion_data):
-            time_samples = [sample[0] for sample in motion_data]
-            primvar.SetTimeSamples( time_samples )
-
+        if is_deforming:
             sample = 0
-            nm_pts = -1
-            for (subframes, mesh) in motion_data:
-
-                # if is_multi_material(mesh):
-                #    export_multi_material(ri, mesh)
-
-                creases = get_subd_creases(mesh)
-                (nverts, verts, P, N) = self.get_mesh(mesh)
-                if nm_pts == -1:
-                    nm_pts = int(len(P)/3)
-                    sg_node.Define( len(nverts), nm_pts, len(verts) )
-
-                # if this is empty continue:
-                if nverts == []:
-                    debug("error empty subdiv mesh %s" % ob.name)
-                    removeMeshFromMemory(mesh.name)
-                    continue
-
-                tags = ['interpolateboundary', 'facevaryinginterpolateboundary']
-                nargs = [1, 0, 0, 1, 0, 0]
-                intargs = [ob.data.renderman.interp_boundary,
-                        ob.data.renderman.face_boundary]
-                floatargs = []
-                stringargs = []
-
-                primvars = get_primvars(ob, mesh, "facevarying")
-
-                if not is_multi_material(mesh):
-                    if len(creases) > 0:
-                        for c in creases:
-                            tags.append('crease')
-                            nargs.extend([2, 1])
-                            intargs.extend([c[0], c[1]])
-                            floatargs.append(c[2])
-                    
-                    primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex", sample)
-                    sample += 1
-                    primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
-                    primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")
-                
-                    primvar.SetStringArray(rman.Tokens.Rix.k_Ri_subdivtags, tags, len(tags))
-                    primvar.SetIntegerArray(rman.Tokens.Rix.k_Ri_subdivtagnargs, nargs, len(nargs))
-                    primvar.SetIntegerArray(rman.Tokens.Rix.k_Ri_subdivtagintargs, intargs, len(intargs))
-                    primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_subdivtagfloatargs, floatargs, len(floatargs))
-                    primvar.SetStringArray(rman.Tokens.Rix.k_Ri_subdivtagstringtags, stringargs, len(stringargs))
-
-                    # TODO make this selectable
-                    sg_node.SetScheme(rman.Tokens.Rix.k_catmullclark)            
-
-                else:
-                    pass
-                    """nargs = [1, 0, 0, 1, 0, 0]
-                    if len(creases) > 0:
-                        for c in creases:
-                            tags.append('crease')
-                            nargs.extend([2, 1, 0])
-                            intargs.extend([c[0], c[1]])
-                            floatargs.append(c[2])
-
-                    string_args = []
-                    for mat_id, faces in \
-                            get_mats_faces(nverts, primvars).items():
-                        tags.append("faceedit")
-                        nargs.extend([2 * len(faces), 0, 3])
-                        for face in faces:
-                            intargs.extend([1, face])
-                        export_material_archive(ri, mesh.materials[mat_id])
-                        ri.Resource(mesh.materials[mat_id].name, "attributes",
-                                    {'string operation': 'save',
-                                    'string subset': 'shading'})
-                        string_args.extend(['attributes', mesh.materials[mat_id].name,
-                                            'shading'])
-                    ri.HierarchicalSubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
-                                                intargs, floatargs, string_args, primvars)"""                
-
-        else:       
+            for (subframes, m) in motion_data:
+                P = self.get_mesh_points(m)
+                primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex", sample)               
+                sample += 1
+        else:
+            primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
         
-            mesh = self.create_mesh(ob)
+        primvars = get_primvars(ob, mesh, "facevarying")
+        primvars['P'] = P
+        primvars['facevarying normal N'] = N         
 
-            # if is_multi_material(mesh):
-            #    export_multi_material(ri, mesh)
+        primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
+        primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")            
 
+        if prim_type == "SUBDIVISION_MESH":
             creases = get_subd_creases(mesh)
-            (nverts, verts, P, N) = self.get_mesh(mesh)
-            # if this is empty continue:
-            if nverts == []:
-                debug("error empty subdiv mesh %s" % ob.name)
-                removeMeshFromMemory(mesh.name)
-                return
             tags = ['interpolateboundary', 'facevaryinginterpolateboundary']
             nargs = [1, 0, 0, 1, 0, 0]
             intargs = [ob.data.renderman.interp_boundary,
                     ob.data.renderman.face_boundary]
             floatargs = []
-            stringargs = []
+            stringargs = []     
 
-            primvars = get_primvars(ob, mesh, "facevarying")
-
-            if not is_multi_material(mesh):
-                if len(creases) > 0:
-                    for c in creases:
-                        tags.append('crease')
-                        nargs.extend([2, 1])
-                        intargs.extend([c[0], c[1]])
-                        floatargs.append(c[2])
-
-                sg_node.Define( len(nverts), int(len(P)/3), len(verts) )
-
+            if len(creases) > 0:
+                for c in creases:
+                    tags.append('crease')
+                    nargs.extend([2, 1])
+                    intargs.extend([c[0], c[1]])
+                    floatargs.append(c[2])           
                 
-                primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
-                primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
-                primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")
-            
-                primvar.SetStringArray(rman.Tokens.Rix.k_Ri_subdivtags, tags, len(tags))
-                primvar.SetIntegerArray(rman.Tokens.Rix.k_Ri_subdivtagnargs, nargs, len(nargs))
-                primvar.SetIntegerArray(rman.Tokens.Rix.k_Ri_subdivtagintargs, intargs, len(intargs))
-                primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_subdivtagfloatargs, floatargs, len(floatargs))
-                primvar.SetStringArray(rman.Tokens.Rix.k_Ri_subdivtagstringtags, stringargs, len(stringargs))
+            primvar.SetStringArray(rman.Tokens.Rix.k_Ri_subdivtags, tags, len(tags))
+            primvar.SetIntegerArray(rman.Tokens.Rix.k_Ri_subdivtagnargs, nargs, len(nargs))
+            primvar.SetIntegerArray(rman.Tokens.Rix.k_Ri_subdivtagintargs, intargs, len(intargs))
+            primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_subdivtagfloatargs, floatargs, len(floatargs))
+            primvar.SetStringArray(rman.Tokens.Rix.k_Ri_subdivtagstringtags, stringargs, len(stringargs))
 
-                # TODO make this selectable
-                sg_node.SetScheme(rman.Tokens.Rix.k_catmullclark)            
+            # TODO make this selectable
+            sg_node.SetScheme(rman.Tokens.Rix.k_catmullclark) 
 
-            else:
-                pass
-                """nargs = [1, 0, 0, 1, 0, 0]
-                if len(creases) > 0:
-                    for c in creases:
-                        tags.append('crease')
-                        nargs.extend([2, 1, 0])
-                        intargs.extend([c[0], c[1]])
-                        floatargs.append(c[2])
+        elif prim_type == "POLYGON_MESH":
+            primvar.SetNormalDetail(rman.Tokens.Rix.k_N, N, "facevarying")            
 
-                string_args = []
-                for mat_id, faces in \
-                        get_mats_faces(nverts, primvars).items():
-                    tags.append("faceedit")
-                    nargs.extend([2 * len(faces), 0, 3])
-                    for face in faces:
-                        intargs.extend([1, face])
-                    export_material_archive(ri, mesh.materials[mat_id])
-                    ri.Resource(mesh.materials[mat_id].name, "attributes",
-                                {'string operation': 'save',
-                                'string subset': 'shading'})
-                    string_args.extend(['attributes', mesh.materials[mat_id].name,
-                                        'shading'])
-                ri.HierarchicalSubdivisionMesh("catmull-clark", nverts, verts, tags, nargs,
-                                            intargs, floatargs, string_args, primvars)"""
+        if is_multi_material(mesh):
+            for mat_id, faces in \
+                get_mats_faces(nverts, primvars).items():
 
+                mat = mesh.materials[mat_id]
+                mat_handle = "material.%s" % mat.name
+                sg_material = None
+                if mat_handle in self.sg_nodes_dict:
+                    sg_material = self.sg_nodes_dict[mat_handle]
+
+                if mat_id == 0:
+                    primvar.SetIntegerArray(rman.Tokens.Rix.k_shade_faceset, faces, len(faces))
+                    sg_node.SetMaterial(sg_material)
+                else: 
+                    sg_sub_mesh =  self.sg_scene.CreateMesh("")
+                    pvars = sg_sub_mesh.EditPrimVarBegin()
+                    sg_sub_mesh.Define( len(nverts), nm_pts, len(verts) )
+                    if prim_type == "SUBDIVISION_MESH":
+                        sg_sub_mesh.SetScheme(rman.Tokens.Rix.k_catmullclark)
+                    pvars.Inherit(primvar)
+                    pvars.SetIntegerArray(rman.Tokens.Rix.k_shade_faceset, faces, len(faces))
+                    sg_sub_mesh.EditPrimVarEnd(pvars)
+                    sg_sub_mesh.SetMaterial(sg_material)
+                    sg_node.AddChild(sg_sub_mesh)                  
+                       
         sg_node.EditPrimVarEnd(primvar)
-        removeMeshFromMemory(mesh.name)       
+        removeMeshFromMemory(mesh.name)  
 
     def get_curve(self, curve):
         splines = []
@@ -1206,39 +1147,44 @@ class RmanSgExporter:
                 ob.type)  
 
     def export_points(self, sg_node, ob, motion):
+
         rm = ob.renderman
 
         mesh = self.create_mesh(ob)
+        
+        primvar = sg_node.EditPrimVarBegin()
 
-        motion_blur = ob.name in motion['deformation']
+        motion_blur = None
+        if motion is not None: 
+            motion_blur = ob.name in motion['deformation']
 
         if motion_blur:
-            #export_motion_begin(ri, scene, ob)
             samples = motion['deformation'][ob.name]
+            primvar.SetTimeSamples([sample[0] for sample in ob])
+            
         else:
             samples = [self.get_mesh(mesh)]
+        
 
-        nverts
-
+        nm_pts = -1
+        time_sample = 0
         for nverts, verts, P, N in samples:
-            #params = {
-            #    ri.P: rib(P),
-            #    "uniform string type": rm.primitive_point_type,
-            #    "constantwidth": rm.primitive_point_width
-            #}
-            #ri.Points(params)
-            points_sg = self.sg_scene.CreatePoints()
-            points_sg.Define(s_npoints)
-            primvar = points_sg.EditPrimVarBegin()
-            primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
-            primvar.SetFloatDetail(rman.Tokens.Rix.k_width, s_widths, "vertex")
-            points_sg.EditPrimVarEnd(primvar)
-    
-            sg_node.AddChild(points_sg)
 
-        #if motion_blur:
-        #    ri.MotionEnd()
+            if nm_pts == -1:
+                nm_pts = int(len(P)/3)
+                sg_node.Define(nm_pts)
+            
+            if motion_blur:
+                primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex", time_sample)
+                time_sample += 1
+            else:
+                primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
 
+            primvar.SetStringDetail("type", rm.primitive_point_type, "uniform")
+            primvar.SetFloatDetail(rman.Tokens.Rix.k_constantwidth, rm.primitive_point_width, "constant")
+            
+  
+        sg_node.EditPrimVarEnd(primvar)
         removeMeshFromMemory(mesh.name)       
 
     def export_geometry_data(self, ob, db_name, data=None):
@@ -1247,23 +1193,16 @@ class RmanSgExporter:
 
         sg_node = None
 
-        if prim == 'POLYGON_MESH':
+        if prim in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
             sg_node = self.sg_scene.CreateMesh(db_name)
-            self.export_polygon_mesh(ob, sg_node, data)
+            self.export_mesh(ob, sg_node, data, prim)
             self.export_object_primvars(ob, sg_node)
             self.sg_nodes_dict[db_name] = sg_node              
 
-        elif prim == 'SUBDIVISION_MESH':
-            sg_node = self.sg_scene.CreateMesh(db_name)
-            self.export_subdivision_mesh(ob, sg_node, data) 
-            self.export_object_primvars(ob, sg_node)
-            self.sg_nodes_dict[db_name] = sg_node     
-
          # mesh only
         elif prim == 'POINTS':
-            sg_node = self.sg_scene.CreateGroup(db_name)
-            #export_points(sg_node, ob, data) 
-            export_points(sg_node, ob, None) 
+            sg_node = self.sg_scene.CreatePoints(db_name)
+            self.export_points(sg_node, ob, data) 
             self.sg_nodes_dict[db_name] = sg_node                       
 
         # curve only
@@ -1273,28 +1212,76 @@ class RmanSgExporter:
             l = ob.data.extrude + ob.data.bevel_depth
             if l > 0:
                 sg_node = self.sg_scene.CreateMesh(db_name)
-                self.export_polygon_mesh(ob, sg_node, data)
+                self.export_mesh(ob, sg_node, data, prim_type="POLYGON_MESH")
                 self.export_object_primvars(ob, sg_node)
                 self.sg_nodes_dict[db_name] = sg_node                 
             else:
                 sg_node = self.sg_scene.CreateGroup(db_name)
                 self.export_curve(sg_node, ob, data)
-                self.sg_nodes_dict[db_name] = sg_node         
+                self.sg_nodes_dict[db_name] = sg_node   
+
+        elif prim == 'SPHERE':
+            rm = ob.renderman
+            sg_node = self.sg_scene.CreateQuadric(db_name)
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Sphere)
+            primvar = sg_node.EditPrimVarBegin()
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmin, rm.primitive_zmin)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmax, rm.primitive_zmax)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
+            sg_node.EditPrimVarEnd(primvar)
+            self.sg_nodes_dict[db_name] = sg_node           
+        elif prim == 'CYLINDER':
+            rm = ob.renderman
+            sg_node = self.sg_scene.CreateQuadric(db_name)
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Cylinder)
+            primvar = sg_node.EditPrimVarBegin()
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmin, rm.primitive_zmin)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmax, rm.primitive_zmax)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
+            sg_node.EditPrimVarEnd(primvar)
+            self.sg_nodes_dict[db_name] = sg_node 
+        elif prim == 'CONE':
+            rm = ob.renderman
+            sg_node = self.sg_scene.CreateQuadric(db_name)
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Cone)
+            primvar = sg_node.EditPrimVarBegin()
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_height, rm.primitive_height)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
+            sg_node.EditPrimVarEnd(primvar)
+            self.sg_nodes_dict[db_name] = sg_node 
+        elif prim == 'DISK':
+            rm = ob.renderman
+            sg_node = self.sg_scene.CreateQuadric(db_name)
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Disk)
+            primvar = sg_node.EditPrimVarBegin()
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_height, rm.primitive_height)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
+            sg_node.EditPrimVarEnd(primvar)
+            self.sg_nodes_dict[db_name] = sg_node 
+        elif prim == 'TORUS':
+            rm = ob.renderman
+            sg_node = self.sg_scene.CreateQuadric(db_name)
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Torus)
+            primvar = sg_node.EditPrimVarBegin()
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_majorradius, rm.primitive_majorradius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_minorradius, rm.primitive_minorradius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_phimin, rm.primitive_phimin)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_phimax, rm.primitive_phimax)            
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
+            sg_node.EditPrimVarEnd(primvar)
+            self.sg_nodes_dict[db_name] = sg_node      
+
+        return sg_node                   
                                                         
         # unsupported type
-        """if prim == 'NONE':
+        """
+        if prim == 'NONE':
             debug("WARNING", "Unsupported prim type on %s" % (ob.name))
 
-        if prim == 'SPHERE':
-            export_sphere(ri, ob)
-        elif prim == 'CYLINDER':
-            export_cylinder(ri, ob)
-        elif prim == 'CONE':
-            export_cone(ri, ob)
-        elif prim == 'DISK':
-            export_disk(ri, ob)
-        elif prim == 'TORUS':
-            export_torus(ri, ob)
         elif prim == 'RI_VOLUME':
             export_volume(ri, ob)
 
@@ -1308,15 +1295,6 @@ class RmanSgExporter:
         # if we cached a deforming mesh get it.
         motion_data = data_block.motion_data if data_block.deforming else None
         ob = data_block.data
-
-        #if motion_data is not None and len(motion_data):
-            #pass
-            #export_motion_begin(ri, motion_data)
-            #for (subframes, sample) in motion_data:
-            #    export_geometry_data(ri, scene, ob, data=sample)
-            #ri.MotionEnd()
-        #else:
-            #self.export_geometry_data(ob, data_block.name)
 
         self.export_geometry_data(ob, data_block.name, motion_data)
 
@@ -1337,7 +1315,6 @@ class RmanSgExporter:
 
     def export_transform(self, instance, sg_node):
         ob = instance.ob
-        #export_motion_begin(ri, instance.motion_data)
 
         if instance.transforming and len(instance.motion_data) > 0:
             samples = [sample[1] for sample in instance.motion_data]
@@ -1352,16 +1329,6 @@ class RmanSgExporter:
 
             v = convert_matrix(m)
             transforms.append(v)
-
-            #if concat and ob.parent_type == "object":
-            #    pass
-                #ri.ConcatTransform(rib(m))
-                #ri.ScopedCoordinateSystem(instance.ob.name)
-            #else:
-            #    pass
-                #ri.Transform(rib(m))
-                #ri.ScopedCoordinateSystem(instance.ob.name)
-        #export_motion_end(ri, instance.motion_data)
 
         if len(instance.motion_data) > 1:
             time_samples = [sample[0] for sample in instance.motion_data]
@@ -1661,14 +1628,16 @@ class RmanSgExporter:
         sg_material = None
         bxdfList = []
 
+        mat_sg_handle = 'material.%s' % mat_name
+        
         if mat.node_tree:
             sg_material, bxdfList = self.shader_exporter.export_shader_nodetree(
-                mat, sg_node=None, handle=None, disp_bound=rm.displacementbound,
+                mat, sg_node=None, mat_sg_handle=mat_sg_handle, handle=None, disp_bound=rm.displacementbound,
                 iterate_instance=False)
         else:
             sg_material = self.shader_exporter.export_simple_shader(mat)
 
-        self.sg_nodes_dict['material.%s' % mat_name] = sg_material
+        self.sg_nodes_dict[mat_sg_handle] = sg_material
         self.mat_networks['material.%s' % mat_name] = bxdfList
 
         for n in bxdfList:

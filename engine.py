@@ -260,7 +260,8 @@ class RPass:
         global rman__sg__inited
 
         if rman__sg__inited:
-            pass
+            if rman_sg_exporter().is_prman_running():
+                rman_sg_exporter().stop_ipr()
         else:
             if self.is_interactive and self.is_prman_running():
                 self.ri.EditWorldEnd()
@@ -741,12 +742,6 @@ class RPass:
             visible_objects = None
        
         rman_sg_exporter().start_ipr(visible_objects, self, self.scene)    
-       
-        
-        #interactive_initial_rib(self, self.ri, self.scene, prman)
-
-        #while not self.is_prman_running():
-        #    time.sleep(.1)
 
         self.is_interactive_ready = True        
         return           
@@ -827,8 +822,12 @@ class RPass:
         self.is_interactive_ready = True
         return
 
+    def blender_scene_updated_pre_cb(self, scene):
+        return     
+
     def blender_scene_updated_cb(self, scene):
         if rman_sg_exporter().is_prman_running():
+
             active = scene.objects.active
 
             if (active and active.particle_systems.active and active.particle_systems.active.id_data.is_updated_data):
@@ -839,12 +838,12 @@ class RPass:
             if (active and active.is_updated):
                 if active.type == 'LAMP':
                     lamp = active.data
-                    if lamp.renderman.renderman_type == 'FILTER':
-                        rman_sg_exporter().issue_transform_edits(active, scene)
+                    if active.name not in self.lights:
+                        rman_sg_exporter().issue_new_object_edits(active, scene)
+                        self.lights[active.name] = active.data.name 
                     else:
-                        if active.name not in self.lights:
-                            rman_sg_exporter().issue_new_object_edits(active, scene)
-                            self.lights[active.name] = active.data.name 
+                        rman_sg_exporter().issue_transform_edits(active, scene)
+
                 elif active.name not in self.scene_objects:
                     rman_sg_exporter().issue_new_object_edits(active, scene)
                     self.scene_objects[active.name] = active.data.name                       
@@ -876,7 +875,7 @@ class RPass:
                 objects_deleted = []
                 for obj_name, data_name in self.scene_objects.items():
                     if obj_name not in scene.objects:
-                        rman_sg_exporter().issue_delete_object_edits(data_name)
+                        rman_sg_exporter().issue_delete_object_edits(obj_name, data_name)
                         objects_deleted.append(obj_name)
 
                 for obj_name in objects_deleted:
@@ -888,7 +887,8 @@ class RPass:
                         self.material_dict[mat_slot.material] = []
                     if active not in self.material_dict[mat_slot.material]:
                         self.material_dict[mat_slot.material].append(active)
-                        rman_sg_exporter().issue_shader_edits(nt=mat_slot.material.node_tree, ob=active)
+                        if mat_slot.material and mat_slot.material.node_tree:
+                            rman_sg_exporter().issue_shader_edits(nt=mat_slot.material.node_tree, ob=active)
 
 
 

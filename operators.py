@@ -492,25 +492,22 @@ class StartInteractive(bpy.types.Operator):
             engine.ipr = RPass(context.scene, interactive=True)
             if engine.rman__sg__inited:
                 engine.ipr.start_interactive_sg()
-            else:
-                engine.ipr.start_interactive()
             if addon_prefs.draw_ipr_text:
                 engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
                     self.draw, (context,), 'WINDOW', 'POST_PIXEL')
             if engine.rman__sg__inited:
                 bpy.app.handlers.scene_update_post.append(
-                    engine.ipr.blender_scene_updated_cb)
-            else:
+                    engine.ipr.blender_scene_updated_pre_cb)                
                 bpy.app.handlers.scene_update_post.append(
-                    engine.ipr.issue_transform_edits)
+                    engine.ipr.blender_scene_updated_cb)
             bpy.app.handlers.load_pre.append(self.invoke)
         else:
             if engine.rman__sg__inited:
                 bpy.app.handlers.scene_update_post.remove(
-                    engine.ipr.blender_scene_updated_cb)                
-            else:            
+                    engine.ipr.blender_scene_updated_pre_cb)                
                 bpy.app.handlers.scene_update_post.remove(
-                    engine.ipr.issue_transform_edits)
+                    engine.ipr.blender_scene_updated_cb)                
+                    
             # The user should not turn this on and off during IPR rendering.
             if addon_prefs.draw_ipr_text:
                 bpy.types.SpaceView3D.draw_handler_remove(

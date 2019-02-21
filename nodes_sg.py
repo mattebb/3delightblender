@@ -615,7 +615,7 @@ class RmanSgShadingExporter:
         self.rm = self.scene.renderman
 
     # for an input node output all "nodes"
-    def export_shader_nodetree(self, id, sg_node=None, handle=None, disp_bound=0.0, iterate_instance=False):
+    def export_shader_nodetree(self, id, sg_node=None, mat_sg_handle=None, handle=None, disp_bound=0.0, iterate_instance=False):
 
         if id and id.node_tree:
 
@@ -653,7 +653,7 @@ class RmanSgShadingExporter:
                     if sg_node:
                         sg_material = sg_node
                     else:
-                        sg_material = self.sg_scene.CreateMaterial(None)
+                        sg_material = self.sg_scene.CreateMaterial(mat_sg_handle)
                     for node in nodes_to_export:
                         sg_node = shader_node_sg(self.sg_scene, self.rman, node, mat_name=handle,
                                     disp_bound=disp_bound, portal=portal)
