@@ -853,8 +853,7 @@ class RPass:
                 rman_sg_exporter().issue_object_edits(active, scene)
 
             if active and active.renderman.id_data.is_updated_data:
-                rman_sg_exporter().issue_object_edits(active, scene)             
-
+                rman_sg_exporter().issue_object_edits(active, scene)
 
             if active and scene.camera.name != active.name and scene.camera.is_updated:
                 rman_sg_exporter().issue_transform_edits(active, scene)
@@ -984,8 +983,14 @@ class RPass:
     def issue_shader_edits(self, nt=None, node=None):
         if rman__sg__inited:
             rman_sg_exporter().issue_shader_edits(nt=nt, node=node)
-        else:
-            issue_shader_edits(self, self.ri, prman, nt=nt, node=node)
+
+    def issue_rman_prim_type_edit(self, active):
+        if rman__sg__inited:
+            rman_sg_exporter().issue_rman_prim_type_edit(active) 
+
+    def issue_rman_particle_prim_type_edit(self, active, psys):
+        if rman__sg__inited:
+            rman_sg_exporter().issue_rman_particle_prim_type_edit(active, psys)                  
 
     def update_light_link(self, context, ll):
         update_light_link(self, self.ri, prman, ll)
@@ -1050,7 +1055,7 @@ class RPass:
 
     def gen_preview_rib(self):
         if rman__sg__inited:
-            pass
+            return
         else:
             previewdir = os.path.join(self.paths['export_dir'], "preview")
 

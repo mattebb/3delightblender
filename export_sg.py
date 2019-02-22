@@ -257,6 +257,8 @@ class RmanSgExporter:
         self.mesh_masters = {}
         self.light_filters_dict = {} # dict light to light filters
         self.lightfilters_dict = {} # dict light filters to light
+        self.displayfilters_list = list()
+        self.samplefilters_list = list()
 
         self.port = -1
         self.main_camera = None
@@ -268,6 +270,8 @@ class RmanSgExporter:
         self.mesh_masters = {}
         self.light_filters_dict = {} 
         self.lightfilters_dict = {} 
+        self.displayfilters_list = list()
+        self.samplefilters_list = list()
 
         self.sg_scene = self.sgmngr.CreateScene()
         self.sg_root = self.sg_scene.Root()
@@ -505,7 +509,33 @@ class RmanSgExporter:
                                 c = sg_node.GetChild(i)
                                 sg_node.RemoveChild(c)
                             self.sg_root.RemoveChild(sg_node)                        
-        pass                                          
+        pass    
+
+    def issue_rman_prim_type_edit(self, active):
+        if active.type == "MESH":
+            db_name = '%s-MESH' % active.name
+            mesh_sg = self.sg_nodes_dict[db_name]
+            if mesh_sg:
+                with rman.SGManager.ScopedEdit(self.sg_scene):
+                    new_mesh_sg = self.export_geometry_data(active, db_name, data=None)
+                    for i in range(mesh_sg.GetNumParents()):
+                        p = mesh_sg.GetParent(i)
+                        p.RemoveChild(mesh_sg)
+                        p.AddChild(new_mesh_sg)          
+
+    def issue_rman_particle_prim_type_edit(self, active, psys):
+        if psys is None:
+            return
+        db_name_emitter = '%s.%s-EMITTER' % (active.name, psys.name)
+        sg_node = self.sg_nodes_dict[db_name_emitter]
+        if sg_node:
+            with rman.SGManager.ScopedEdit(self.sg_scene):                
+                new_sg_node = self.export_particles(active, psys, db_name_emitter)
+                if new_sg_node:
+                    for i in range(sg_node.GetNumParents()):
+                        p = sg_node.GetParent(i)
+                        p.RemoveChild(sg_node)
+                        p.AddChild(new_sg_node)                 
 
     def issue_object_edits(self, active, scene, psys=None):
         self.scene = scene
@@ -535,7 +565,7 @@ class RmanSgExporter:
                         self.export_particle_points(sg_node, psys, active, data)
             else:
                 with rman.SGManager.ScopedEdit(self.sg_scene):   
-                    if db_name_emitter  in self.sg_nodes_dict:
+                    if db_name_emitter in self.sg_nodes_dict:
                         sg_node = self.sg_nodes_dict[db_name_emitter]
                         for i in range(sg_node.GetNumParents()):
                             p = sg_node.GetParent(i)
@@ -639,7 +669,24 @@ class RmanSgExporter:
                                     if instance.name in self.sg_nodes_dict:
                                         with rman.SGManager.ScopedEdit(self.sg_scene):
                                             inst_sg = self.sg_nodes_dict[instance.name]
-                                            inst_sg.SetMaterial(sg_material)                            
+                                            inst_sg.SetMaterial(sg_material)   
+
+                        for psys in obj.particle_systems:
+                            if psys.settings.material:
+                                psys_mat = obj.material_slots[psys.settings.material-1].material
+                                if psys_mat == mat:
+                                    db_name_emitter = '%s.%s-EMITTER' % (obj.name, psys.name)
+                                    db_name_hair = '%s.%s-HAIR' % (obj.name, psys.name)
+                                    psys_node = None
+                                    if db_name_emitter in self.sg_nodes_dict:
+                                        psys_node = self.sg_nodes_dict[db_name_emitter]
+                                    elif db_name_hair in self.sg_nodes_dict:
+                                        psys_node = self.sg_nodes_dict[db_name_hair]
+                                    if psys_node:
+                                        with rman.SGManager.ScopedEdit(self.sg_scene):
+                                            psys_node.SetMaterial(sg_material)
+
+
 
                         """
                         ri.EditBegin(
@@ -698,12 +745,65 @@ class RmanSgExporter:
                     and hasattr(node, "renderman_node_type") \
                     and node.renderman_node_type \
                     in {'displayfilter', 'displaysamplefilter'}:
-                #edit_flush(ri, rpass.edit_num, prman)
 
-                #ri.EditBegin('instance')
-                #export_displayfilters(ri, bpy.context.scene)
-                #ri.EditEnd()
+                idx = bpy.context.scene.renderman.display_filters_index
+                df = bpy.context.scene.renderman.display_filters[idx]
+                df_name = df.name
+                if df_name == "":
+                    df_name = "rman_displayfilter_filter%d" % idx
+                with rman.SGManager.ScopedEdit(self.sg_scene): 
+                    if len(self.displayfilters_list) == 1:
+                        if len(self.displayfilters_list) != len(bpy.context.scene.renderman.display_filters):
+                            self.export_displayfilters()
+                            return
+                    elif len(bpy.context.scene.renderman.display_filters) > 1:
+                        if len(self.displayfilters_list)-1 != len(bpy.context.scene.renderman.display_filters):
+                            self.export_displayfilters()
+                            return
+
+                    if self.displayfilters_list:
+                        df_node = self.displayfilters_list[idx]
+                        if df_node.GetName().CStr() != df.get_filter_name():
+                            self.export_displayfilters()
+                        else:
+                            params = df_node.EditParameterBegin()
+                            property_group_to_rixparams(df.get_filter_node(), df_node)
+                            df_node.EditParameterEnd(params)
+                            self.sg_scene.SetDisplayFilter(self.displayfilters_list)
+                    else:
+                        self.export_displayfilters()
                 return
+            elif mat is None \
+                    and hasattr(node, "renderman_node_type") \
+                    and node.renderman_node_type \
+                    in {'samplefilter', 'displaysamplefilter'}:
+
+                idx = bpy.context.scene.renderman.sample_filters_index
+                df = bpy.context.scene.renderman.sample_filters[idx]
+                df_name = df.name
+                if df_name == "":
+                    df_name = "rman_samplefilter_filter%d" % idx
+                    if len(self.samplefilters_list) == 1:
+                        if len(self.samplefilters_list) != len(bpy.context.scene.renderman.sample_filters):
+                            self.export_samplefilters()
+                            return
+                    elif len(bpy.context.scene.renderman.sample_filters) > 1:
+                        if len(self.samplefilters_list)-1 != len(bpy.context.scene.renderman.sample_filters):
+                            self.export_samplefilters()
+                            return
+
+                    if self.samplefilters_list:
+                        df_node = self.samplefilters_list[idx]
+                        if df_node.GetName().CStr() != df.get_filter_name():
+                            self.export_samplefilters()
+                        else:                        
+                            params = df_node.EditParameterBegin()
+                            property_group_to_rixparams(df.get_filter_node(), df_node)
+                            df_node.EditParameterEnd(params)
+                            self.sg_scene.SetSampleFilter(self.samplefilters_list)
+                    else:
+                        self.export_samplefilters()
+                return                
             elif mat is None:
                 return
 
@@ -1299,7 +1399,75 @@ class RmanSgExporter:
         self.export_geometry_data(ob, data_block.name, motion_data)
 
         data_block.motion_data = None
-                    
+
+    def export_displayfilters(self):
+        rm = self.scene.renderman
+        display_filter_names = []
+        displayfilters_list = []
+        
+        self.displayfilters_list = list()
+
+        for i, df in enumerate(rm.display_filters):
+            df_name = df.name
+            if df.name == "":
+                df_name = "rman_displayfilter_filter%d" % i
+
+            df_node = self.sg_scene.CreateNode("DisplayFilter", df.get_filter_name(), df_name)
+            params = df_node.EditParameterBegin()
+            property_group_to_rixparams(df.get_filter_node(), df_node)
+            df_node.EditParameterEnd(params)
+            display_filter_names.append(df_name)
+            self.displayfilters_list.append(df_node)
+            self.sg_nodes_dict[df_name] = df_node
+
+        if len(display_filter_names) > 1:
+            df_name = "rman_displayfilter_combiner"
+            df_node = None
+            if df_name in self.sg_nodes_dict:
+                df_node = self.sg_nodes_dict[df_name]
+            else:
+                df_node = self.sg_scene.CreateNode("DisplayFilter", "PxrDisplayFilterCombiner", df_name)
+            params = df_node.EditParameterBegin()
+            params.ReferenceDisplayFilterArray("filter", display_filter_names, len(display_filter_names))
+            df_node.EditParameterEnd(params)
+            self.displayfilters_list.append(df_node)
+            self.sg_nodes_dict[df_name] = df_node
+
+        self.sg_scene.SetDisplayFilter(self.displayfilters_list)
+                 
+    def export_samplefilters(self):
+        rm = self.scene.renderman
+        sample_filter_names = []
+        
+        self.samplefilters_list = list()
+
+        for i, df in enumerate(rm.sample_filters):
+            df_name = df.name
+            if df.name == "":
+                df_name = "rman_samplefilter_filter%d" % i
+
+            df_node = self.sg_scene.CreateNode("SampleFilter", df.get_filter_name(), df_name)
+            params = df_node.EditParameterBegin()
+            property_group_to_rixparams(df.get_filter_node(), df_node)
+            df_node.EditParameterEnd(params)
+            sample_filter_names.append(df_name)
+            self.samplefilters_list.append(df_node)
+            self.sg_nodes_dict[df_name] = df_node
+
+        if len(sample_filter_names) > 1:
+            df_name = "rman_samplefilter_combiner"
+            df_node = None
+            if df_name in self.sg_nodes_dict:
+                df_node = self.sg_nodes_dict[df_name]
+            else:
+                df_node = self.sg_scene.CreateNode("SampleFilter", "PxrDisplayFilterCombiner", df_name)
+            params = df_node.EditParameterBegin()
+            params.ReferenceDisplayFilterArray("filter", display_filter_names, len(display_filter_names))
+            df_node.EditParameterEnd(params)
+            self.samplefilters_list.append(df_node)
+            self.sg_nodes_dict[df_name] = df_node
+
+        self.sg_scene.SetSampleFilter(self.samplefilters_list)                    
 
     def export_integrator(self, preview=False):
         rm = self.scene.renderman
@@ -1665,8 +1833,8 @@ class RmanSgExporter:
         if data_block.type == "PSYS":
             # don't export transform if this is a hair system
             ob, psys = data_block.data
-            if psys.settings.type == 'EMITTER':
-                self.export_transform(instance, inst_sg)
+            #if psys.settings.type == 'EMITTER':
+            #    self.export_transform(instance, inst_sg)
         else:
             self.export_transform(instance, inst_sg)
         self.export_object_attributes(instance.ob, inst_sg, visible_objects)
@@ -2306,6 +2474,7 @@ class RmanSgExporter:
     def export_particles(self, ob, psys, db_name, data=None, objectCorrectionMatrix=False):
 
         rm = psys.settings.renderman
+        sg_node = None
 
         if not data:
             data = [(0, self.get_particles(ob, psys))]
@@ -2322,6 +2491,8 @@ class RmanSgExporter:
         """else:
             export_particle_instances(
                 ri, scene, rpass, psys, ob, data, type=rm.particle_type)        """
+
+        return sg_node
 
 
     # ------------- Geometry Access -------------
@@ -2495,9 +2666,10 @@ class RmanSgExporter:
                 sg_node.AddChild(curves_sg)            
 
     def export_particle_system(self, ob, psys, db_name, objectCorrectionMatrix=False, data=None):
+        sg_node = None
         if psys.settings.type == 'EMITTER':
             # particles are always deformation
-            self.export_particles(ob, psys, db_name,
+            sg_node = self.export_particles(ob, psys, db_name,
                             data, objectCorrectionMatrix)
         else:
             sg_node = self.sg_scene.CreateGroup(db_name)
@@ -2550,8 +2722,8 @@ class RmanSgExporter:
 
         if not self.rpass.bake:
             self.export_displays()
-        #    export_displayfilters(ri, scene)
-        #    export_samplefilters(ri, rpass, scene)
+            self.export_displayfilters()
+            self.export_samplefilters()
         #else:
         #    ri.Display("null", "null", "rgba")
 

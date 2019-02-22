@@ -631,14 +631,6 @@ class RmanSgShadingExporter:
                     if type(id) == bpy.types.Material:
                         handle = get_mat_name(handle)
 
-                # if ipr we need to iterate instance num on nodes for edits
-                #from . import engine
-                #if engine.ipr and hasattr(id.renderman, 'instance_num'):
-                #    if iterate_instance:
-                #        id.renderman.instance_num += 1
-                #    if id.renderman.instance_num > 0:
-                #        handle += "_%d" % id.renderman.instance_num
-
                 out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and
                             n.renderman_node_type == 'output'),
                         None)
@@ -657,7 +649,10 @@ class RmanSgShadingExporter:
                     for node in nodes_to_export:
                         sg_node = shader_node_sg(self.sg_scene, self.rman, node, mat_name=handle,
                                     disp_bound=disp_bound, portal=portal)
-                        bxdfList.append(sg_node)
+                        if sg_node.GetName().CStr() == "PxrMeshLight":
+                            sg_material.SetLight(sg_node)
+                        else:    
+                            bxdfList.append(sg_node)
                     sg_material.SetBxdf(bxdfList)
 
                 return (sg_material, bxdfList)
@@ -2259,7 +2254,8 @@ def shader_node_sg(sg_scene, rman, node, mat_name, disp_bound=0.0, portal=False)
         sg_node = sg_scene.CreateNode("Pattern", node_name, instance)
         return
     elif not hasattr(node, 'renderman_node_type'):
-        return translate_cycles_node(ri, node, mat_name)
+        pass
+        #return translate_cycles_node(ri, node, mat_name)
 
     params = gen_params(node, mat_name)
     sg_node = None
@@ -2283,7 +2279,7 @@ def shader_node_sg(sg_scene, rman, node, mat_name, disp_bound=0.0, portal=False)
     elif node.renderman_node_type == "light":
         light_group_name = ''
         scene = bpy.context.scene
-        """for lg in scene.renderman.light_groups:
+        for lg in scene.renderman.light_groups:
             if mat_name in lg.members.keys():
                 light_group_name = lg.name
                 break
@@ -2291,7 +2287,10 @@ def shader_node_sg(sg_scene, rman, node, mat_name, disp_bound=0.0, portal=False)
         params['__instanceid'] = mat_name
 
         light_name = node.bl_label
-        if light_name == 'PxrPortalLight':
+        sg_node = sg_scene.CreateNode("LightFactory", node.bl_label, mat_name)
+
+
+        """if light_name == 'PxrPortalLight':
             if mat_name in bpy.data.lamps:
                 lamp = bpy.context.scene.objects.active
                 if lamp and lamp.parent and lamp.parent.type == 'LAMP' \

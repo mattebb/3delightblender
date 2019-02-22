@@ -1900,11 +1900,21 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
         default=False
     )
 
+    def update_point_type(self, context):
+        return
+        global engine
+        if engine.is_ipr_running():
+            active = context.scene.objects.active
+            psys = active.particle_systems.active
+            engine.ipr.issue_rman_particle_prim_type_edit(active, psys)
+
     particle_type = EnumProperty(
         name="Point Type",
         description="Geometric primitive for points to be rendered as",
         items=particle_type_items,
-        default='particle')
+        default='particle',
+        update=update_point_type)
+
     particle_instance_object = StringProperty(
         name="Instance Object",
         description="Object to instance on every particle",
@@ -2090,6 +2100,11 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         size=3,
         default=[1.0, 1.0, 1.0])
 
+    def update_prim_type(self, context):
+        global engine
+        if engine.is_ipr_running():
+            engine.ipr.issue_rman_prim_type_edit(context.scene.objects.active)
+
     primitive = EnumProperty(
         name="Primitive Type",
         description="Representation of this object's geometry in the renderer",
@@ -2106,7 +2121,8 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                ('DISK', 'Disk', 'Parametric 2D disk primitive'),
                ('TORUS', 'Torus', 'Parametric torus primitive')
                ],
-        default='AUTO')
+        default='AUTO',
+        update=update_prim_type)
 
     export_archive = BoolProperty(
         name="Export as Archive",
@@ -2153,6 +2169,7 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Maximum Cross-section",
         description="Maximum angle of cross-section circle",
         default=360.0)
+        
     primitive_point_type = EnumProperty(
         name="Point Type",
         description="Geometric primitive for points to be rendered as",
