@@ -1130,7 +1130,8 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
 
         if rm.geometry_source in ('DELAYED_LOAD_ARCHIVE',
                                   'PROCEDURAL_RUN_PROGRAM',
-                                  'DYNAMIC_LOAD_DSO'):
+                                  'DYNAMIC_LOAD_DSO',
+                                  'OPENVDB'):
             col.prop(rm, "procedural_bounds")
 
             if rm.procedural_bounds == 'MANUAL':

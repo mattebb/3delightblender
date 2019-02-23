@@ -243,6 +243,7 @@ class RmanSgExporter:
 
         self.sg_scene = None
         self.sg_root = None
+        self.sg_global_obj = None
 
         # blender scene and rpass
         self.scene = None
@@ -275,6 +276,7 @@ class RmanSgExporter:
 
         self.sg_scene = self.sgmngr.CreateScene()
         self.sg_root = self.sg_scene.Root()
+        self.sg_global_obj = None
         self.shader_exporter = nodes_sg.RmanSgShadingExporter( rpass=self.rpass, 
                                 scene=self.scene, sgmngr=self.sgmngr, 
                                 sg_scene=self.sg_scene, sg_root = self.sg_root, 
@@ -424,9 +426,8 @@ class RmanSgExporter:
                             sg_light.SetLightFilter(lightfilter_sg)   
                 else:
                     sg_light = self.sg_nodes_dict[active.name]
-                    instance = get_instance(active, self.scene, False)
                     with rman.SGManager.ScopedEdit(self.sg_scene):
-                        self.export_transform(instance, sg_light) 
+                        sg_light.SetTransform( convert_matrix(active.matrix_world) )
             else:
                 instance = get_instance(active, self.scene, False)
                 if instance:
@@ -890,6 +891,7 @@ class RmanSgExporter:
         # FIXME: 'procedural' key doesn't seem to exist?
         #options.SetString("searchpath:procedural", "%s" % \
         #    ':'.join(path_list_convert(self.rpass.paths['procedural'], to_unix=True)))
+        options.SetString("searchpath:procedural", ".:${RMANTREE}/lib/plugins:@")
 
 
         options.SetString("searchpath:archive", os.path.relpath(
@@ -1019,14 +1021,13 @@ class RmanSgExporter:
         if lightfilter_subset:
             attrs.SetString(rman.Tokens.Rix.k_lightfilter_subset, ' ' . join(lightfilter_subset))
 
-        """user_attr = {}
+        user_attr = {}
         for i in range(8):
             name = 'MatteID%d' % i
             if getattr(rm, name) != [0.0, 0.0, 0.0]:
-                user_attr["color %s" % name] = rib(getattr(rm, name))"""
+                attrs.SetColor('user:%s' % name, getattr(rm, name))
 
         if hasattr(ob, 'color'):
-            #user_attr["color Cs"] = rib(ob.color[:3])
             attrs.SetColor('user:Cs', ob.color[:3])
         
         sg_node.EditAttributeEnd(attrs)
@@ -1090,7 +1091,7 @@ class RmanSgExporter:
     def export_mesh(self, ob, sg_node, motion_data=None, prim_type="POLYGON_MESH"):
 
         if prim_type not in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
-            return
+            return False
 
         primvar = sg_node.EditPrimVarBegin()
 
@@ -1106,15 +1107,17 @@ class RmanSgExporter:
         if mesh is None and isinstance(motion_data, list) and len(motion_data):
             mesh = motion_data[0][1]
 
-        (nverts, verts, P, N) = self.get_mesh(mesh, get_normals=True) 
-        nm_pts = int(len(P)/3)
-        sg_node.Define( len(nverts), nm_pts, len(verts) )        
-
+        (nverts, verts, P, N) = self.get_mesh(mesh, get_normals=True)
+        
         # if this is empty continue:
         if nverts == []:
             debug("error empty mesh %s" % ob.name)
             removeMeshFromMemory(mesh.name)
-            return         
+            return False
+
+        nm_pts = int(len(P)/3)
+        sg_node.Define( len(nverts), nm_pts, len(verts) )        
+
 
         if is_deforming:
             sample = 0
@@ -1187,6 +1190,7 @@ class RmanSgExporter:
                        
         sg_node.EditPrimVarEnd(primvar)
         removeMeshFromMemory(mesh.name)  
+        return True
 
     def get_curve(self, curve):
         splines = []
@@ -1287,17 +1291,176 @@ class RmanSgExporter:
         sg_node.EditPrimVarEnd(primvar)
         removeMeshFromMemory(mesh.name)       
 
+    def export_quadrics(self, ob, prim, sg_node):
+        rm = ob.renderman
+        primvar = sg_node.EditPrimVarBegin()        
+        if prim == 'SPHERE':
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Sphere)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmin, rm.primitive_zmin)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmax, rm.primitive_zmax)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
+    
+        elif prim == 'CYLINDER':
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Cylinder)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmin, rm.primitive_zmin)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmax, rm.primitive_zmax)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
+
+        elif prim == 'CONE':
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Cone)
+            primvar = sg_node.EditPrimVarBegin()
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_height, rm.primitive_height)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
+
+        elif prim == 'DISK':
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Disk)
+            primvar = sg_node.EditPrimVarBegin()
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_height, rm.primitive_height)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
+
+        elif prim == 'TORUS':
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Torus)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_majorradius, rm.primitive_majorradius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_minorradius, rm.primitive_minorradius)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_phimin, rm.primitive_phimin)
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_phimax, rm.primitive_phimax)            
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
+
+        sg_node.EditPrimVarEnd(primvar)           
+
+    def export_blobby_family(self, sg_node, ob):
+
+        # we are searching the global metaball collection for all mballs
+        # linked to the current object context, so we can export them
+        # all as one family in RiBlobby
+
+        family = data_name(ob, self.scene)
+        master = bpy.data.objects[family]
+
+        fam_blobs = []
+
+        for mball in bpy.data.metaballs:
+            fam_blobs.extend([el for el in mball.elements if get_mball_parent(
+                el.id_data).name.split('.')[0] == family])
+
+        # transform
+        tform = []
+
+        # opcodes
+        op = []
+        count = len(fam_blobs)
+        for i in range(count):
+            op.append(1001)  # only blobby ellipsoids for now...
+            op.append(i * 16)
+
+        for meta_el in fam_blobs:
+
+            # Because all meta elements are stored in a single collection,
+            # these elements have a link to their parent MetaBall, but NOT the actual tree parent object.
+            # So I have to go find the parent that owns it.  We need the tree parent in order
+            # to get any world transforms that alter position of the metaball.
+            parent = get_mball_parent(meta_el.id_data)
+
+            m = {}
+            loc = meta_el.co
+
+            # mballs that are only linked to the master by name have their own position,
+            # and have to be transformed relative to the master
+            ploc, prot, psc = parent.matrix_world.decompose()
+
+            m = Matrix.Translation(loc)
+
+            sc = Matrix(((meta_el.radius, 0, 0, 0),
+                        (0, meta_el.radius, 0, 0),
+                        (0, 0, meta_el.radius, 0),
+                        (0, 0, 0, 1)))
+
+            ro = prot.to_matrix().to_4x4()
+
+            m2 = m * sc * ro
+            tform = tform + rib(parent.matrix_world * m2)
+
+        op.append(0)  # blob operation:add
+        op.append(count)
+        for n in range(count):
+            op.append(n)
+
+        primvar = sg_node.EditPrimVarBegin()
+        sg_node.Define(count)
+        primvar.SetIntegerArray(rman.Tokens.Rix.k_Ri_code, op, len(op))            
+        primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_floats, tform, len(tform))         
+        sg_node.EditPrimVarEnd(primvar)
+
+    def export_openVDB(self, sg_node, ob):
+        cacheFile = locate_openVDB_cache(bpy.context.scene.frame_current)
+        if not cacheFile:
+            debug('error', "Please save and export OpenVDB files before rendering.")
+            return
+
+        primvar = sg_node.EditPrimVarBegin() 
+        primvar.SetString(rman.Tokens.Rix.k_Ri_type, "blobbydso:impl_openvdb")
+        primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_Bound, rib_ob_bounds(ob.bound_box), 6)
+        primvar.SetStringArray(rman.Tokens.Rix.k_blobbydso_stringargs, [cacheFile, "density:fogvolume"], 2)
+
+        primvar.SetFloatDetail("density", [], "varying")
+        primvar.SetFloatDetail("flame", [], "varying")        
+        primvar.SetColorDetail("color", [], "varying")              
+        sg_node.EditPrimVarEnd(primvar)                              
+     
+    # make an ri Volume from the smoke modifier
+    def export_smoke(self, sg_node, ob):
+        smoke_modifier = None
+        for mod in ob.modifiers:
+            if mod.type == "SMOKE":
+                smoke_modifier = mod
+                break
+        smoke_data = smoke_modifier.domain_settings
+        # the original object has the modifier too.
+        if not smoke_data:
+            return
+
+        sg_node.Define(0,0,0)
+        if smoke_data.cache_file_format == 'OPENVDB':
+            self.export_openVDB(sg_node, ob)
+            return
+
+        smoke_res = rib(smoke_data.domain_resolution)
+        if smoke_data.use_high_resolution:
+            smoke_res = [(smoke_data.amplify + 1) * i for i in smoke_res]
+
+        primvar = sg_node.EditPrimVarBegin()
+        primvar.SetString(rman.Tokens.Rix.k_Ri_type, "box")
+        primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_Bound, rib_ob_bounds(ob.bound_box), 6)
+
+        primvar.SetFloatDetail("density", smoke_data.density_grid, "varying")
+        primvar.SetFloatDetail("flame", smoke_data.flame_grid, "varying")        
+        primvar.SetColorDetail("color", [item for index, item in enumerate(smoke_data.color_grid) if index % 4 != 0], "varying")
+        primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_Bound, rib_ob_bounds(ob.bound_box), 6)
+
+        sg_node.EditPrimVarEnd(primvar)     
+
     def export_geometry_data(self, ob, db_name, data=None):
         prim = ob.renderman.primitive if ob.renderman.primitive != 'AUTO' \
             else detect_primitive(ob)
+
+        # unsupported type
+        if prim == 'NONE':
+            debug("WARNING", "Unsupported prim type on %s" % (ob.name))   
+            return None    
 
         sg_node = None
 
         if prim in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
             sg_node = self.sg_scene.CreateMesh(db_name)
-            self.export_mesh(ob, sg_node, data, prim)
-            self.export_object_primvars(ob, sg_node)
-            self.sg_nodes_dict[db_name] = sg_node              
+            if self.export_mesh(ob, sg_node, data, prim):
+                self.export_object_primvars(ob, sg_node)
+                self.sg_nodes_dict[db_name] = sg_node
+            else:
+                self.sg_scene.DeleteDagNode(sg_node)
 
          # mesh only
         elif prim == 'POINTS':
@@ -1320,83 +1483,134 @@ class RmanSgExporter:
                 self.export_curve(sg_node, ob, data)
                 self.sg_nodes_dict[db_name] = sg_node   
 
-        elif prim == 'SPHERE':
-            rm = ob.renderman
+        # RenderMan quadrics
+        elif prim in ['SPHERE', 'CYLINDER', 'CONE', 'DISK', 'TORUS']:
             sg_node = self.sg_scene.CreateQuadric(db_name)
-            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Sphere)
-            primvar = sg_node.EditPrimVarBegin()
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmin, rm.primitive_zmin)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmax, rm.primitive_zmax)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
-            sg_node.EditPrimVarEnd(primvar)
-            self.sg_nodes_dict[db_name] = sg_node           
-        elif prim == 'CYLINDER':
-            rm = ob.renderman
-            sg_node = self.sg_scene.CreateQuadric(db_name)
-            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Cylinder)
-            primvar = sg_node.EditPrimVarBegin()
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmin, rm.primitive_zmin)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmax, rm.primitive_zmax)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
-            sg_node.EditPrimVarEnd(primvar)
+            self.export_quadrics(ob, prim, sg_node)
             self.sg_nodes_dict[db_name] = sg_node 
-        elif prim == 'CONE':
-            rm = ob.renderman
-            sg_node = self.sg_scene.CreateQuadric(db_name)
-            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Cone)
-            primvar = sg_node.EditPrimVarBegin()
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_height, rm.primitive_height)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
-            sg_node.EditPrimVarEnd(primvar)
-            self.sg_nodes_dict[db_name] = sg_node 
-        elif prim == 'DISK':
-            rm = ob.renderman
-            sg_node = self.sg_scene.CreateQuadric(db_name)
-            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Disk)
-            primvar = sg_node.EditPrimVarBegin()
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_height, rm.primitive_height)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
-            sg_node.EditPrimVarEnd(primvar)
-            self.sg_nodes_dict[db_name] = sg_node 
-        elif prim == 'TORUS':
-            rm = ob.renderman
-            sg_node = self.sg_scene.CreateQuadric(db_name)
-            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Torus)
-            primvar = sg_node.EditPrimVarBegin()
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_majorradius, rm.primitive_majorradius)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_minorradius, rm.primitive_minorradius)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_phimin, rm.primitive_phimin)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_phimax, rm.primitive_phimax)            
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
-            sg_node.EditPrimVarEnd(primvar)
-            self.sg_nodes_dict[db_name] = sg_node      
-
-        return sg_node                   
-                                                        
-        # unsupported type
-        """
-        if prim == 'NONE':
-            debug("WARNING", "Unsupported prim type on %s" % (ob.name))
 
         elif prim == 'RI_VOLUME':
-            export_volume(ri, ob)
+            rm = ob.renderman
+            sg_node = self.sg_scene.CreateVolume(db_name)
+            sg_node.Define(0,0,0)
+            primvar = sg_node.EditPrimVarBegin()
+            primvar.SetString(rman.Tokens.Rix.k_Ri_type, "box")
+            primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_Bound, rib_ob_bounds(ob.bound_box), 6)
+            sg_node.EditPrimVarEnd(primvar)            
+
+            self.sg_nodes_dict[db_name] = sg_node   
 
         elif prim == 'META':
-            export_blobby_family(ri, scene, ob)
+            sg_node = self.sg_scene.CreateBlobby(db_name)
+            self.export_blobby_family(sg_node, ob)  
+            self.sg_nodes_dict[db_name] = sg_node            
 
         elif prim == 'SMOKE':
-            export_smoke(ri, ob)"""
-                
+            sg_node = self.sg_scene.CreateVolume(db_name)
+            self.export_smoke(sg_node, ob)                    
+            self.sg_nodes_dict[db_name] = sg_node               
+                            
+
+        return sg_node  
+
+    def geometry_source_rib(self, ob, db_name):
+        rm = ob.renderman
+        anim = rm.archive_anim_settings
+        blender_frame = self.scene.frame_current
+
+        if rm.geometry_source == 'ARCHIVE':
+            archive_path = \
+                rib_path(get_sequence_path(rm.path_archive, blender_frame, anim))
+
+            sg_node = self.sg_scene.CreateProcedural(db_name)
+            sg_node.Define("DelayedReadArchive", None)
+            primvar = sg_moode.EditPrimVarBegin()
+            primvar.SetString(rman.Tokens.Rix.k_filename, archive_path)
+            bound = (-1, 1, -1, 1, -1, 1)
+            primvar.SetFloatArray(rman.Tokens.Rix.k_bound, bound, 6)
+            sg_node.EditPrimVarEnd(primvar)
+            
+            self.sg_nodes_dict[db_name] = sg_node
+
+        else:
+            if rm.procedural_bounds == 'MANUAL':
+                min = rm.procedural_bounds_min
+                max = rm.procedural_bounds_max
+                bounds = [min[0], max[0], min[1], max[1], min[2], max[2]]
+            else:
+                bounds = rib_ob_bounds(ob.bound_box)
+
+            if rm.geometry_source == 'DELAYED_LOAD_ARCHIVE':
+                archive_path = rib_path(get_sequence_path(rm.path_archive,
+                                                        blender_frame, anim))
+                bounds = (-100000, 100000, -100000, 100000, -100000, 100000 )
+                sg_node = self.sg_scene.CreateProcedural(db_name)
+                sg_node.Define("DelayedReadArchive", None)
+                primvar = sg_moode.EditPrimVarBegin()
+                primvar.SetString(rman.Tokens.Rix.k_filename, archive_path)
+                primvar.SetFloatArray(rman.Tokens.Rix.k_bound, bounds, 6)
+                sg_node.EditPrimVarEnd(primvar)
+            
+                self.sg_nodes_dict[db_name] = sg_node
+
+
+            elif rm.geometry_source == 'PROCEDURAL_RUN_PROGRAM':
+                path_runprogram = rib_path(rm.path_runprogram)
+                bounds = (-100000, 100000, -100000, 100000, -100000, 100000 )
+                sg_node = self.sg_scene.CreateProcedural(db_name)
+                sg_node.Define(rman.Tokens.Rix.k_RunProgram, None)
+                primvar = sg_node.EditPrimVarBegin()
+                primvar.SetString(rman.Tokens.Rix.k_filename, path_runprogram)
+                primvar.SetString(rman.Tokens.Rix.k_data, rm.path_runprogram_args )
+                primvar.SetFloatArray(rman.Tokens.Rix.k_bound, bounds, 6)
+                sg_node.EditPrimVarEnd(primvar)    
+
+                self.sg_nodes_dict[db_name] = sg_node                              
+
+            elif rm.geometry_source == 'DYNAMIC_LOAD_DSO':
+                path_dso = rib_path(rm.path_dso)
+                bounds = (-100000, 100000, -100000, 100000, -100000, 100000 )
+                sg_node = self.sg_scene.CreateProcedural(db_name)
+                sg_node.Define(rman.Tokens.Rix.k_DynamicLoad, None)
+                primvar = sg_node.EditPrimVarBegin()
+                primvar.SetString(rman.Tokens.Rix.k_dsoname, path_dso)
+                primvar.SetString(rman.Tokens.Rix.k_data, rm.path_dso_initial_data )
+                primvar.SetFloatArray(rman.Tokens.Rix.k_bound, bounds, 6)
+                sg_node.EditPrimVarEnd(primvar)    
+
+                self.sg_nodes_dict[db_name] = sg_node                        
+
+            elif rm.geometry_source == 'OPENVDB':
+                openvdb_file = rib_path(replace_frame_num(rm.path_archive))
+                sg_node = self.sg_scene.CreateVolume(db_name)
+                sg_node.Define(0,0,0)
+                primvar = sg_node.EditPrimVarBegin() 
+                primvar.SetString(rman.Tokens.Rix.k_Ri_type, "blobbydso:impl_openvdb")
+                primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_Bound, rib(bounds), 6)
+                primvar.SetStringArray(rman.Tokens.Rix.k_blobbydso_stringargs, [openvdb_file, "density:fogvolume"], 2)
+                for channel in rm.openvdb_channels:
+                    if channel.type == "float":
+                        primvar.SetFloatDetail(channel.name, [], "varying")
+                    elif channel.type == "vector":
+                        primvar.SetVectorDetail(channel.name, [], "varying")
+                    elif channel.type == "color":    
+                        primvar.SetColorDetail(channel.name, [], "varying")
+                    elif channel.type == "normal":    
+                        primvar.SetNormalDetail(channel.name, [], "varying")                    
+             
+                sg_node.EditPrimVarEnd(primvar)  
+                self.sg_nodes_dict[db_name] = sg_node           
+                                
     def export_mesh_archive(self, data_block):
         # if we cached a deforming mesh get it.
         motion_data = data_block.motion_data if data_block.deforming else None
         ob = data_block.data
+        rm = ob.renderman
 
-        self.export_geometry_data(ob, data_block.name, motion_data)
+        if rm.geometry_source == 'BLENDER_SCENE_DATA':
+            self.export_geometry_data(ob, data_block.name, motion_data)
+        else:
+            self.geometry_source_rib(ob, data_block.name)
 
         data_block.motion_data = None
 
@@ -1774,9 +1988,17 @@ class RmanSgExporter:
 
         prop = camera.EditPropertyBegin()
 
-        #clipping planes         
+        # clipping planes         
         prop.SetFloat(rman.Tokens.Rix.k_nearClip, cam.clip_start)
         prop.SetFloat(rman.Tokens.Rix.k_farClip, cam.clip_end)
+
+        # aperture
+        prop.SetInteger(rman.Tokens.Rix.k_apertureNSides, cam.renderman.aperture_sides)
+        prop.SetFloat(rman.Tokens.Rix.k_apertureAngle, cam.renderman.aperture_angle)
+        prop.SetFloat(rman.Tokens.Rix.k_apertureRoundness, cam.renderman.aperture_roundness)
+        prop.SetFloat(rman.Tokens.Rix.k_apertureDensity, cam.renderman.aperture_density)
+
+        prop.SetFloat(rman.Tokens.Rix.k_dofaspect, cam.renderman.dof_aspect)
 
         camera.EditPropertyEnd(prop)
 
@@ -1849,7 +2071,7 @@ class RmanSgExporter:
                 inst_sg.SetMaterial(sg_material)
 
         inst_sg.AddChild(mesh_sg)
-        self.sg_root.AddChild(inst_sg)        
+        self.sg_global_obj.AddChild(inst_sg)        
 
         self.sg_nodes_dict[name] = inst_sg
 
@@ -2121,13 +2343,95 @@ class RmanSgExporter:
         self.main_camera.SetDisplay(sg_displays)
         self.sg_scene.SetDisplayChannel(displaychannels)
 
+    def export_global_obj_settings(self, preview=False):
+        self.sg_global_obj = self.sg_scene.CreateGroup("rman_global_obj_settings")
+        rm = self.scene.renderman
+        r = self.scene.render
+
+        attrs = self.sg_global_obj.EditAttributeBegin()
+
+        max_diffuse_depth = rm.max_diffuse_depth
+        max_specular_depth = rm.max_specular_depth
+
+        if preview or self.rpass.is_interactive:
+            max_diffuse_depth = rm.preview_max_diffuse_depth
+            max_specular_depth = rm.preview_max_specular_depth
+                    
+        attrs.SetInteger(rman.Tokens.Rix.k_trace_maxdiffusedepth, max_diffuse_depth)
+        attrs.SetInteger(rman.Tokens.Rix.k_trace_maxspeculardepth, max_specular_depth)
+
+        attrs.SetFloat(rman.Tokens.Rix.k_dice_micropolygonlength, rm.shadingrate)
+        #attrs.SetString(rman.Tokens.Rix.k_dice_strategy, rm.dicing_strategy)
+        #attrs.SetString(rman.Tokens.Rix.k_dice_instancestrategy, "worlddistance")
+        #attrs.SetFloat(rman.Tokens.Rix.k_dice_instanceworlddistancelength, rm.instanceworlddistancelength)                        
+
+        if rm.dicing_strategy is "worlddistance":
+            pass
+            """
+            attrs.SetFloat(rman.Tokens.Rix.k_dice_worlddistancelength, rm.worlddistancelength)
+            """
+        self.sg_global_obj.EditAttributeEnd(attrs)
+
+        self.sg_root.AddChild(self.sg_global_obj)
+        
+
+    def export_hider(self, preview=False):
+        options = self.sg_scene.EditOptionBegin()
+        if self.rpass.bake:
+            options.SetString(rman.Tokens.Rix.k_hider, rman.Tokens.Rix.k_bake)
+        else:
+            rm = self.scene.renderman
+
+            pv = rm.pixel_variance
+
+            options.SetInteger(rman.Tokens.Rix.k_hider_maxsamples, rm.max_samples)
+            options.SetInteger(rman.Tokens.Rix.k_hider_minsamples, rm.min_samples)
+            options.SetInteger(rman.Tokens.Rix.k_hider_incremental, rm.incremental)
+
+            if preview or self.rpass.is_interactive:
+                options.SetInteger(rman.Tokens.Rix.k_hider_maxsamples, rm.preview_max_samples)
+                options.SetInteger(rman.Tokens.Rix.k_hider_minsamples, rm.preview_min_samples)
+                options.SetInteger(rman.Tokens.Rix.k_hider_incremental, 1)
+                pv = rm.preview_pixel_variance
+
+            if (not self.rpass.external_render and rm.render_into == 'blender') or (rm.integrator in ['PxrVCM', 'PxrUPBP']) or rm.enable_checkpoint:
+                options.SetInteger(rman.Tokens.Rix.k_hider_incremental, 1)
+
+            if not preview:
+                options.SetFloat(rman.Tokens.Rix.k_hider_darkfalloff, rm.dark_falloff)
+
+            if not rm.sample_motion_blur:
+                options.SetInteger(rman.Tokens.Rix.k_hider_samplemotion, 0)
+
+            options.SetFloat(rman.Tokens.Rix.k_Ri_PixelVariance, pv)
+
+            if rm.do_denoise and not self.rpass.external_render or rm.external_denoise and self.rpass.external_render:
+                options.SetString(rman.Tokens.Rix.k_hider_pixelfiltermode, 'importance')
+
+        self.sg_scene.EditOptionEnd(options)            
 
     def export_global_options(self):
         rm = self.scene.renderman
         options = self.sg_scene.EditOptionBegin()
 
+        # cache sizes
+        options.SetInteger(rman.Tokens.Rix.k_limits_geocachememory, rm.geo_cache_size * 100)
+        options.SetInteger(rman.Tokens.Rix.k_limits_opacitycachememory, rm.opacity_cache_size * 100)
+        options.SetInteger(rman.Tokens.Rix.k_limits_texturememory, rm.texture_cache_size * 100)
+
+        if rm.asfinal:
+            options.SetInteger(rman.Tokens.Rix.k_checkpoint_asfinal, 1)
+
+        options.SetInteger("user:osl:lazy_builtins", 1)
+        options.SetInteger("user:osl:lazy_inputs", 1)
+        
         # Set frame number 
         options.SetInteger(rman.Tokens.Rix.k_Ri_Frame, self.scene.frame_current)
+
+        # Stats
+        if rm.use_statistics:
+            options.SetInteger(rman.Tokens.Rix.k_statistics_endofframe, 1)
+            options.SetString(rman.Tokens.Rix.k_statistics_xmlfilename, 'stats.%04d.xml' % self.scene.frame_current)
 
         # LPE Tokens for PxrSurface
         options.SetString("lpe:diffuse2", "Diffuse,HairDiffuse")
@@ -2686,6 +2990,51 @@ class RmanSgExporter:
                             objectCorrectionMatrix, data=data)
         data_block.motion_data = None        
 
+    def export_dupli_archive(self, data_block, data_blocks):
+        ob = data_block.data
+
+        ob.dupli_list_create(self.scene, "RENDER")
+        if ob.dupli_type == 'GROUP' and ob.dupli_group:
+            for dupob in ob.dupli_list:
+                #ri.AttributeBegin()
+                dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
+                                                dupob.index)
+                #ri.Attribute('identifier', {'string name': dupli_name})
+                #ri.ConcatTransform(
+                #    rib(ob.matrix_world.inverted_safe() * dupob.matrix))
+                mat = dupob.object.active_material
+                #if mat:
+                #    export_material_archive(ri, mat)
+                source_data_name = data_name(dupob.object, self.scene)
+                if hasattr(dupob.object, 'dupli_type') and dupob.object.dupli_type in SUPPORTED_DUPLI_TYPES:
+                    source_data_name = dupob.object.name + '-DUPLI'
+                deforming = is_deforming(dupob.object)
+                #ri.ReadArchive(get_archive_filename(source_data_name, rpass,
+                #                                    deforming, True))
+                #ri.AttributeEnd()
+            ob.dupli_list_clear()
+            return
+
+        for num, dupob in enumerate(ob.dupli_list):
+
+            dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
+                                             dupob.index)
+
+            source_data_name = data_name(dupob.object, self.scene)
+            sg_node = self.sg_scene.CreateGroup(dupli_name)
+            source_data_name = data_name(dupob.object, self.scene)
+            if source_data_name in self.sg_nodes_dict:
+                sg_source = self.sg_nodes_dict[source_data_name]
+                sg_node.AddChild(sg_source)
+                sg_node.SetTransform( convert_matrix(dupob.matrix))
+                mat = dupob.object.active_material
+                mat_handle = "material.%s" % mat.name
+                if mat_handle in self.sg_nodes_dict:
+                    sg_material = self.sg_nodes_dict[mat_handle]
+                    sg_node.SetMaterial(sg_material)
+            self.sg_global_obj.AddChild(sg_node)
+
+
     def write_scene(self, visible_objects=None, engine=None, do_objects=True):
 
         # precalculate motion blur data
@@ -2699,57 +3048,50 @@ class RmanSgExporter:
             # export rib archives of objects
     #     export_data_archives(ri, scene, rpass, data_blocks, engine)
 
-        self.export_searchpaths()
-        
-        #export_options(ri, scene)
-
-        #export_hider(ri, rpass, scene)
+        self.export_searchpaths()      
+        self.export_hider()
 
         if not self.rpass.bake:
             self.export_integrator()
 
-        # export_inline_rib(ri, rpass, scene)
-
-        #scene.frame_set(scene.frame_current)
-        #ri.FrameBegin(scene.frame_current)
+        self.scene.frame_set(self.scene.frame_current)
 
         if not self.rpass.bake:
             self.export_global_options()
 
         if not self.rpass.bake:
             self.export_camera(instances)
-        #    export_render_settings(ri, rpass, scene)
 
         if not self.rpass.bake:
             self.export_displays()
             self.export_displayfilters()
             self.export_samplefilters()
-        #else:
-        #    ri.Display("null", "null", "rgba")
-
-
-        # export_global_illumination_settings(ri, rpass, scene)
-
-        #ri.WorldBegin()
+        else:
+            pass
+            #ri.Display("null", "null", "rgba")
 
         if not self.rpass.bake:
         #    export_world_rib(ri, scene.world)
         #    export_world(ri, scene.world)
 
             self.export_scene_lights(instances)
+            self.export_global_obj_settings()
 
 
         #    export_default_bxdf(ri, "default")
         self.export_materials()
 
-        # loop over object
+        # first, loop over objects
         for name, db in data_blocks.items():
             if db.type == "MESH":
                 self.export_mesh_archive(db)
             elif db.type == "PSYS":
                 self.export_particle_archive(db)
-            #elif db.type == "DUPLI":
-            #    export_dupli_archive(ri, scene, rpass, db, data_blocks)
+
+        # now do the duplis
+        for name, db in data_blocks.items():
+            if db.type == "DUPLI":                
+                self.export_dupli_archive(db, data_blocks)
         
         # now output the object archives
         for name, instance in instances.items():
