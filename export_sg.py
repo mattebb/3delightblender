@@ -429,13 +429,34 @@ class RmanSgExporter:
                     with rman.SGManager.ScopedEdit(self.sg_scene):
                         sg_light.SetTransform( convert_matrix(active.matrix_world) )
             else:
-                instance = get_instance(active, self.scene, False)
-                if instance:
-                    if instance.name in self.sg_nodes_dict.keys():                    
-                        inst_sg = self.sg_nodes_dict[instance.name]
-                        if inst_sg:
+                data_blocks, instances = cache_motion(self.scene, self.rpass, objects=[active], calc_mb=False)
+                is_dupli = False
+                for name, db in data_blocks.items():
+                    if db.type == "DUPLI":
+                        is_dupli = True
+                        sg_node = self.sg_nodes_dict[name]
+                        if sg_node:
+                            ob = db.data
+                            ob.dupli_list_create(self.scene, "RENDER")                            
                             with rman.SGManager.ScopedEdit(self.sg_scene):
-                                self.export_transform(instance, inst_sg)                      
+                                for num, dupob in enumerate(ob.dupli_list):
+
+                                    dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
+                                                                    dupob.index)
+
+                                    if dupli_name in self.sg_nodes_dict:
+                                        sg_dupli = self.sg_nodes_dict[dupli_name]
+                                        sg_dupli.SetTransform( convert_matrix(dupob.matrix))
+                            ob.dupli_list_clear()     
+
+                if not is_dupli:                
+                    instance = get_instance(active, self.scene, False)
+                    if instance:
+                        if instance.name in self.sg_nodes_dict.keys():                    
+                            inst_sg = self.sg_nodes_dict[instance.name]
+                            if inst_sg:
+                                with rman.SGManager.ScopedEdit(self.sg_scene):
+                                    self.export_transform(instance, inst_sg)                      
 
         if active and scene.camera.name != active.name and scene.camera.is_updated:
             with rman.SGManager.ScopedEdit(self.sg_scene):
@@ -458,43 +479,12 @@ class RmanSgExporter:
                 self.export_light(ob, lamp, handle, rm)  
         else:
             ob = active
-            if active.type in ["MESH", "CURVE", "FONT"]:
-                with rman.SGManager.ScopedEdit(self.sg_scene):
-                    mb_on = scene.renderman.motion_blur 
-                    mb_segs = scene.renderman.motion_segments
-                    instance = get_instance(active, self.scene, mb_on)
-                    inst_data_blocks = get_data_blocks_needed(ob, self.rpass, mb_on)        
 
-                    if instance:
-                        ob_mb_segs = ob.renderman.motion_segments if ob.renderman.motion_segments_override else mb_segs
+            data_blocks, instances = cache_motion(self.scene, self.rpass, objects=[ob], calc_mb=False)
+                
+            with rman.SGManager.ScopedEdit(self.sg_scene):
+                self.export_objects(data_blocks, instances)
 
-                        # add the instance to the motion segs list if transforming
-                        if instance.transforming:
-                            if ob_mb_segs not in motion_segs:
-                                motion_segs[ob_mb_segs] = ([], [])
-                            motion_segs[ob_mb_segs][0].append(instance.name)
-
-                        # now get the data_blocks for the instance
-                        inst_data_blocks = get_data_blocks_needed(ob, self.rpass, mb_on)
-                        for db in inst_data_blocks:
-                            do_db = True #False if (bake and not export_for_bake(db)) else True
-
-                            if do_db and not db.dupli_data:
-                                instance.data_block_names.append(db.name)
-
-                            # add data_block to mb list
-                            if do_db and db.deforming and mb_on:
-                                if ob_mb_segs not in motion_segs:
-                                    motion_segs[ob_mb_segs] = ([], [])
-                                motion_segs[ob_mb_segs][1].append(db.name)
-
-                            if do_db:
-                                #if db.type in ["MESH", "CURVE", "FONT"]:
-                                self.export_mesh_archive(db)
-
-                    if not instance.parent:
-                        for db_name in instance.data_block_names:   
-                            self.write_instances(db_name, db, instance.name, instance)   
 
     def issue_delete_object_edits(self, obj_name, handle):
         if handle in self.sg_nodes_dict:
@@ -1718,10 +1708,9 @@ class RmanSgExporter:
         else:
             sg_node.SetTransform( transforms[0] )
 
-    def export_light(self, ob, lamp, handle, rm):
+    def export_light(self, ob, lamp, handle, rm, portal_parent=''):
 
-        group_name='' 
-        portal_parent=''
+        group_name=get_light_group(ob)
         light_filters = []
 
         light_sg = self.sg_scene.CreateAnalyticLight(handle)
@@ -1773,6 +1762,72 @@ class RmanSgExporter:
 
             node_sg = self.sg_scene.CreateNode("LightFactory", light_shader_name , handle)
             property_group_to_rixparams(light_shader, node_sg)
+            
+            rixparams = node_sg.EditParameterBegin()
+            rixparams.SetString('lightGroup',group_name)
+            if hasattr(light_shader, 'iesProfile'):
+                rixparams.SetString('iesProfile',  bpy.path.abspath(
+                    light_shader.iesProfile) )
+
+            if lamp.type == 'SPOT':
+                rixparams.SetFloat('coneAngle', math.degrees(lamp.spot_size))
+                rixparams.SetFloat('coneSoftness',lamp.spot_blend)
+            if lamp.type in ['SPOT', 'POINT']:
+                rixparams.SetInteger('areaNormalize', 1)
+
+            # portal params
+            if rm.renderman_type == 'PORTAL' and portal_parent and portal_parent.type == 'LAMP' \
+                    and portal_parent.data.renderman.renderman_type == 'ENV':
+                parent_node = portal_parent.data.renderman.get_light_node()
+                parent_params = property_group_to_params(parent_node)
+                params = property_group_to_params(light_shader)
+
+                rixparams.SetString('portalName', handle)
+                rixparams.SetString('domeColorMap', parent_params['string lightColorMap'])
+
+                if 'vector colorMapGamma' in params and params['vector colorMapGamma'] == (1.0, 1.0, 1.0):
+                    rixparams.SetVector('colorMapGamma', parent_params['vector colorMapGamma'] )
+                if 'float colorMapSaturation' in params and params['float colorMapSaturation'] == 1.0:
+                    rixparams.SetFloat('colorMapSaturation', parent_params[
+                        'float colorMapSaturation'] ) 
+                rixparams.SetFloat('intensity', parent_params['float intensity'])
+                rixparams.SetFloat('exposure', parent_params['float exposure'])
+                rixparams.SetColor('lightColor', parent_params['color lightColor'])
+                if not params['int enableTemperature']:
+                    rixparams.SetInteger('enableTemperature', parent_params['int enableTemperature'])
+                    rixparams.SetFloat('temperature', parent_params['float temperature'])                    
+                rixparams.SetFloat('specular', params['float specular'] * parent_params['float specular'])
+                rixparams.SetFloat('diffuse', params['float diffuse'] * parent_params['float diffuse'])
+
+                orient_mtx = Matrix()
+                orient_mtx[0][0] = s_orientPxrLight[0]
+                orient_mtx[1][0] = s_orientPxrLight[1]
+                orient_mtx[2][0] = s_orientPxrLight[2]
+                orient_mtx[3][0] = s_orientPxrLight[3]
+
+                orient_mtx[0][1] = s_orientPxrLight[4]
+                orient_mtx[1][1] = s_orientPxrLight[5]
+                orient_mtx[2][1] = s_orientPxrLight[6]
+                orient_mtx[3][1] = s_orientPxrLight[7]
+
+                orient_mtx[0][2] = s_orientPxrLight[8]
+                orient_mtx[1][2] = s_orientPxrLight[9]
+                orient_mtx[2][2] = s_orientPxrLight[10]
+                orient_mtx[3][2] = s_orientPxrLight[11]
+
+                orient_mtx[0][3] = s_orientPxrLight[12]
+                orient_mtx[1][3] = s_orientPxrLight[13]
+                orient_mtx[2][3] = s_orientPxrLight[14]
+                orient_mtx[3][3] = s_orientPxrLight[15]
+                
+                portal_mtx = orient_mtx * Matrix(ob.matrix_world)                   
+                dome_mtx = Matrix(portal_parent.matrix_world)
+                dome_mtx.invert()
+                mtx = portal_mtx * dome_mtx  
+                 
+                rixparams.SetMatrix('portalToDome', convert_matrix(mtx) )
+
+            node_sg.EditParameterEnd(rixparams)
             light_sg.SetLight(node_sg)
 
             primary_vis = rm.light_primary_visibility
@@ -1809,17 +1864,11 @@ class RmanSgExporter:
                                 "PxrDiskLight",
                                 "PxrPortalLight",
                                 "PxrSphereLight",
-                                "PxrDistantLight"):
-            #light_sg.SetOrientTransform(s_orientTransform)
+                                "PxrDistantLight",
+                                "PxrPortalLight"):
+
             light_sg.SetOrientTransform(s_orientPxrLight)
             light_sg.SetTransform( convert_matrix(ob.matrix_world) )
-
-        """elif light_shader_name == "PxrDomeLight":
-            light_sg.SetOrientTransform(s_orientPxrDomeLight)
-            pass
-
-        elif light_shader_name == "PxrEnvDayLight":
-            light_sg.SetOrientTransform(s_orientPxrEnvDayLight)""" 
 
         self.sg_root.AddChild(light_sg)
         self.sg_nodes_dict[handle] = light_sg
@@ -1834,8 +1883,13 @@ class RmanSgExporter:
             rm = lamp.renderman
             if instance.ob.data.renderman.renderman_type == 'FILTER':
                 pass  
-            elif instance.ob.data.renderman.renderman_type not in ['FILTER']:    
-                self.export_light(ob, lamp, handle, rm)
+            elif instance.ob.data.renderman.renderman_type not in ['FILTER']:
+                child_portals = []
+                if rm.renderman_type == 'ENV' and ob.children:
+                    child_portals = [child for child in ob.children if child.type == 'LAMP' and
+                             child.data.renderman.renderman_type == 'PORTAL']
+                if not child_portals:
+                    self.export_light(ob, lamp, handle, rm, ob.parent)
 
     def export_camera_transform(self, camera_sg, ob, motion):
         r = self.scene.render
@@ -2045,9 +2099,9 @@ class RmanSgExporter:
                 continue
             self.export_material(mat, mat_name)
         
-    def write_instances(self, db_name, data_block, name, instance, visible_objects=[]):
+    def write_instances(self, db_name, data_block, name, instance, instance_parent, visible_objects=[]):
         if db_name not in self.sg_nodes_dict.keys():
-            return
+                return
 
         mesh_sg = self.sg_nodes_dict[db_name]
 
@@ -2057,6 +2111,8 @@ class RmanSgExporter:
             ob, psys = data_block.data
             #if psys.settings.type == 'EMITTER':
             #    self.export_transform(instance, inst_sg)
+        elif data_block.type == "DUPLI":
+            pass
         else:
             self.export_transform(instance, inst_sg)
         self.export_object_attributes(instance.ob, inst_sg, visible_objects)
@@ -2071,9 +2127,10 @@ class RmanSgExporter:
                 inst_sg.SetMaterial(sg_material)
 
         inst_sg.AddChild(mesh_sg)
-        self.sg_global_obj.AddChild(inst_sg)        
 
-        self.sg_nodes_dict[name] = inst_sg
+        if not instance_parent:
+            self.sg_global_obj.AddChild(inst_sg)        
+            self.sg_nodes_dict[name] = inst_sg
 
     def export_displays(self):
         rm = self.scene.renderman
@@ -2990,7 +3047,7 @@ class RmanSgExporter:
                             objectCorrectionMatrix, data=data)
         data_block.motion_data = None        
 
-    def export_dupli_archive(self, data_block, data_blocks):
+    def export_dupli_archive(self, sg_dupli, data_block, data_blocks):
         ob = data_block.data
 
         ob.dupli_list_create(self.scene, "RENDER")
@@ -3032,8 +3089,29 @@ class RmanSgExporter:
                 if mat_handle in self.sg_nodes_dict:
                     sg_material = self.sg_nodes_dict[mat_handle]
                     sg_node.SetMaterial(sg_material)
-            self.sg_global_obj.AddChild(sg_node)
+            sg_dupli.AddChild(sg_node)
+            self.sg_nodes_dict[dupli_name] = sg_node
 
+    def export_objects(self, data_blocks, instances, visible_objects=None):
+
+        # first, loop over objects
+        for name, db in data_blocks.items():
+            if db.type == "MESH":
+                self.export_mesh_archive(db)
+            elif db.type == "PSYS":
+                self.export_particle_archive(db)
+
+        # now do the duplis
+        for name, db in data_blocks.items():
+            if db.type == "DUPLI":             
+                sg_node = self.sg_scene.CreateGroup(name)   
+                self.export_dupli_archive(sg_node, db, data_blocks)
+                self.sg_nodes_dict[name] = sg_node
+        
+        # now output the object archives
+        for name, instance in instances.items():
+            for db_name in instance.data_block_names:                   
+                self.write_instances(db_name, data_blocks[db_name], instance.name, instance, instance.parent, visible_objects=visible_objects)
 
     def write_scene(self, visible_objects=None, engine=None, do_objects=True):
 
@@ -3081,23 +3159,7 @@ class RmanSgExporter:
         #    export_default_bxdf(ri, "default")
         self.export_materials()
 
-        # first, loop over objects
-        for name, db in data_blocks.items():
-            if db.type == "MESH":
-                self.export_mesh_archive(db)
-            elif db.type == "PSYS":
-                self.export_particle_archive(db)
-
-        # now do the duplis
-        for name, db in data_blocks.items():
-            if db.type == "DUPLI":                
-                self.export_dupli_archive(db, data_blocks)
-        
-        # now output the object archives
-        for name, instance in instances.items():
-            if not instance.parent:
-                for db_name in instance.data_block_names:                    
-                    self.write_instances(db_name, data_blocks[db_name], instance.name, instance, visible_objects=visible_objects)
+        self.export_objects(data_blocks, instances, visible_objects)
 
         #for object in emptiesToExport:
         #    export_empties_archives(ri, object)
@@ -5135,12 +5197,16 @@ def get_deformation(data_block, subframe, scene, subframes):
 # More efficient, and avoids too many frame updates in blender.
 
 
-def cache_motion(scene, rpass, objects=None):
+def cache_motion(scene, rpass, objects=None, calc_mb=True):
     if objects is None:
         objects = scene.objects
     origframe = scene.frame_current
     instances, data_blocks, motion_segs = \
         get_instances_and_blocks(objects, rpass)
+
+
+    if not calc_mb:
+        return data_blocks, instances
 
     # the aim here is to do only a minimal number of scene updates,
     # so we process objects in batches of equal numbers of segments

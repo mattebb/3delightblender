@@ -827,7 +827,7 @@ class RPass:
 
     def blender_scene_updated_cb(self, scene):
         if rman_sg_exporter().is_prman_running():
-
+            self.scene = scene
             active = scene.objects.active
 
             if (active and active.particle_systems.active and active.particle_systems.active.id_data.is_updated_data):

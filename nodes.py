@@ -2007,6 +2007,10 @@ def replace_frame_num(prop):
 
 def get_tex_file_name(prop):
     prop = replace_frame_num(prop)
+    filename,ext = os.path.splitext(prop)
+    if ext == '.tex':
+        return prop
+
     prop = bpy.path.basename(prop)
     part = prop.rpartition('.')
     prop = part[0]
