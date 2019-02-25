@@ -433,6 +433,8 @@ class RmanSgExporter:
                 if dupli_type != "NONE":
                     data_blocks, instances = cache_motion(self.scene, self.rpass, objects=[active], calc_mb=False)
                     for name, db in data_blocks.items():
+                        if db.type != "DUPLI":
+                            continue
                         sg_node = self.sg_nodes_dict[name]
                         if sg_node:
                             ob = db.data

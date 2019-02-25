@@ -733,7 +733,7 @@ class RPass:
                     self.material_dict[mat_slot.material] = []
                 self.material_dict[mat_slot.material].append(obj)
 
-        #self.convert_textures(get_texture_list(self.scene))
+        self.convert_textures(get_texture_list(self.scene))
 
         # Check if rendering select objects only.
         if(self.scene.renderman.render_selected_objects_only):
