@@ -727,7 +727,7 @@ class RPass:
                 if obj.data.renderman.mute:
                     self.muted_lights.append(obj)
             elif obj.name not in self.scene_objects:
-                self.scene_objects[obj.name] = obj.data.name
+                self.scene_objects[obj.name] = obj.data.name if obj.data else obj
             for mat_slot in obj.material_slots:
                 if mat_slot.material not in self.material_dict:
                     self.material_dict[mat_slot.material] = []
@@ -846,7 +846,7 @@ class RPass:
 
                 elif active.name not in self.scene_objects:
                     rman_sg_exporter().issue_new_object_edits(active, scene)
-                    self.scene_objects[active.name] = active.data.name                       
+                    self.scene_objects[active.name] = active.data.name if active.data else active                      
                 else:
                     rman_sg_exporter().issue_transform_edits(active, scene)
             elif (active and active.is_updated_data):

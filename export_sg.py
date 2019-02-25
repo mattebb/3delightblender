@@ -379,7 +379,7 @@ class RmanSgExporter:
 
         is_running = True
        
-        self.sg_scene.Render("rib /var/tmp/blender.rib")
+        #self.sg_scene.Render("rib /var/tmp/blender.rib")
         self.sg_scene.Render("prman -live")
 
     def stop_ipr(self):
@@ -429,34 +429,83 @@ class RmanSgExporter:
                     with rman.SGManager.ScopedEdit(self.sg_scene):
                         sg_light.SetTransform( convert_matrix(active.matrix_world) )
             else:
-                data_blocks, instances = cache_motion(self.scene, self.rpass, objects=[active], calc_mb=False)
-                is_dupli = False
-                for name, db in data_blocks.items():
-                    if db.type == "DUPLI":
-                        is_dupli = True
+                dupli_type = active.dupli_type                
+                if dupli_type != "NONE":
+                    data_blocks, instances = cache_motion(self.scene, self.rpass, objects=[active], calc_mb=False)
+                    for name, db in data_blocks.items():
                         sg_node = self.sg_nodes_dict[name]
                         if sg_node:
                             ob = db.data
                             ob.dupli_list_create(self.scene, "RENDER")                            
                             with rman.SGManager.ScopedEdit(self.sg_scene):
-                                for num, dupob in enumerate(ob.dupli_list):
+                                if ob.dupli_type == 'GROUP' and ob.dupli_group:
+                                    for dupob in ob.dupli_list:
+                                        dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
+                                                    dupob.index)
+                                        if dupli_name in self.sg_nodes_dict:
+                                            sg_dupli = self.sg_nodes_dict[dupli_name]
+                                            sg_dupli.SetTransform( convert_matrix(dupob.matrix))
 
-                                    dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
-                                                                    dupob.index)
+                                        for psys in dupob.object.particle_systems:
+                                            if psys:
+                                                db_name_emitter = '%s-EMITTER' % (dupli_name)
+                                                db_name_hair = '%s-HAIR' % (dupli_name)
+                                                group_sg = None
+                                                if db_name_emitter in self.sg_nodes_dict:                                                
+                                                    group_sg = self.sg_nodes_dict[db_name_emitter]
+                                                elif db_name_hair in self.sg_nodes_dict:                                                             
+                                                    group_sg = self.sg_nodes_dict[db_name_hair]
+                                                if group_sg:
+                                                    group_sg.SetTransform( convert_matrix(ob.matrix_local) )                                     
+                                            
+                                else:
+                                    for num, dupob in enumerate(ob.dupli_list):
 
-                                    if dupli_name in self.sg_nodes_dict:
-                                        sg_dupli = self.sg_nodes_dict[dupli_name]
-                                        sg_dupli.SetTransform( convert_matrix(dupob.matrix))
+                                        dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
+                                                                        dupob.index)
+
+                                        if dupli_name in self.sg_nodes_dict:
+                                            sg_dupli = self.sg_nodes_dict[dupli_name]
+                                            sg_dupli.SetTransform( convert_matrix(dupob.matrix))
                             ob.dupli_list_clear()     
 
-                if not is_dupli:                
+                else:        
                     instance = get_instance(active, self.scene, False)
                     if instance:
                         if instance.name in self.sg_nodes_dict.keys():                    
                             inst_sg = self.sg_nodes_dict[instance.name]
                             if inst_sg:
                                 with rman.SGManager.ScopedEdit(self.sg_scene):
-                                    self.export_transform(instance, inst_sg)                      
+                                    self.export_transform(instance, inst_sg) 
+
+                    # check if this object is part of a group/dupli
+                    # update accordingly.
+                    for group in active.users_group:  
+                        for dupli in group.users_dupli_group:
+                            dupli.dupli_list_create(self.scene, "RENDER")
+                            for dupob in dupli.dupli_list:
+                                if active.name == dupob.object.name:
+                                    with rman.SGManager.ScopedEdit(self.sg_scene):
+                                        dupli_name = "%s.DUPLI.%s.%d" % (dupli.name, dupob.object.name,
+                                                    dupob.index)
+                                        if dupli_name in self.sg_nodes_dict:
+                                            sg_dupli = self.sg_nodes_dict[dupli_name]
+                                            sg_dupli.SetTransform( convert_matrix(dupob.matrix))   
+                                        for psys in dupob.object.particle_systems:
+                                            if psys:
+                                                db_name_emitter = '%s-EMITTER' % (dupli_name)
+                                                db_name_hair = '%s-HAIR' % (dupli_name)
+                                                group_sg = None
+                                                if db_name_emitter in self.sg_nodes_dict:                                                
+                                                    group_sg = self.sg_nodes_dict[db_name_emitter]
+                                                elif db_name_hair in self.sg_nodes_dict:                                                             
+                                                    group_sg = self.sg_nodes_dict[db_name_hair]
+                                                if group_sg:
+                                                    group_sg.SetTransform( convert_matrix(dupli.matrix_local) )                                                                                 
+
+                            dupli.dupli_list_clear() 
+
+                    
 
         if active and scene.camera.name != active.name and scene.camera.is_updated:
             with rman.SGManager.ScopedEdit(self.sg_scene):
@@ -538,40 +587,69 @@ class RmanSgExporter:
                 with rman.SGManager.ScopedEdit(self.sg_scene):                 
                     if db_name_emitter not in self.sg_nodes_dict:
                         sg_node = self.sg_scene.CreatePoints(db_name_emitter)
+                        sg_node.SetInheritTransform(False)
                         self.sg_nodes_dict[db_name_emitter] = sg_node
                         instance = Instance(active.name, active.type, active, is_transforming(active, True))
-                        self.sg_root.AddChild(sg_node)
+                        psys_mat = active.material_slots[psys.settings.material-1].material
+                        if psys_mat:
+                            mat_handle = 'material.%s' % psys_mat.name
+                            sg_material = self.sg_nodes_dict[mat_handle]
+                            sg_node.SetMaterial(sg_material)                        
+                        if active.name in self.sg_nodes_dict:
+                            parent_sg = self.sg_nodes_dict[active.name]
+                            parent_sg.AddChild(sg_node)
                     else:    
                         sg_node = self.sg_nodes_dict[db_name_emitter]
 
                     if db_name_hair in self.sg_nodes_dict:
                         hair_sg = self.sg_nodes_dict[db_name_hair]
-                        for i in range(0, hair_sg.GetNumChildren()):
-                            c = hair_sg.GetChild(i)
+
+                        for c in [ hair_sg.GetChild(i) for i in range(0, hair_sg.GetNumChildren())]:                            
                             hair_sg.RemoveChild(c)
-                        self.sg_root.RemoveChild(hair_sg)                    
+                        for p in [ hair_sg.GetParent(i) for i in range(0, hair_sg.GetNumParents())]:                            
+                            p.RemoveChild(hair_sg)     
+                        self.sg_nodes_dict.pop(db_name_hair)                                               
 
                     if sg_node:              
                         data = [(0, self.get_particles(active, psys))]               
                         self.export_particle_points(sg_node, psys, active, data)
             else:
-                with rman.SGManager.ScopedEdit(self.sg_scene):   
+                with rman.SGManager.ScopedEdit(self.sg_scene):  
+                    sg_material = None 
                     if db_name_emitter in self.sg_nodes_dict:
                         sg_node = self.sg_nodes_dict[db_name_emitter]
-                        for i in range(sg_node.GetNumParents()):
-                            p = sg_node.GetParent(i)
+                        sg_material = sg_node.GetMaterial()
+
+                        for c in [ sg_node.GetChild(i) for i in range(0, sg_node.GetNumChildren())]:
+                            sg_node.RemoveChild(c)
+                        for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
                             p.RemoveChild(sg_node)
+                        self.sg_nodes_dict.pop(db_name_emitter)
+                            
+                    sg_node = None
                     if db_name_hair in self.sg_nodes_dict:                                       
                         sg_node = self.sg_nodes_dict[db_name_hair]
-                        for i in range(0, sg_node.GetNumChildren()):
-                            c = sg_node.GetChild(i)
+                        sg_material = sg_node.GetMaterial()
+                        for c in [ sg_node.GetChild(i) for i in range(0, sg_node.GetNumChildren())]:
                             sg_node.RemoveChild(c)
-                        self.sg_root.RemoveChild(sg_node)
-                    sg_node = self.sg_scene.CreateGroup(db_name_hair)
-                    if sg_node:                
-                            self.export_hair(sg_node, active, psys, db_name_hair, None)
-                            self.sg_nodes_dict[db_name_hair] = sg_node
-                            self.sg_root.AddChild(sg_node)
+                                                   
+                    new_sg_node = self.sg_scene.CreateGroup(db_name_hair)
+                    if sg_material is None:
+                        psys_mat = active.material_slots[psys.settings.material-1].material
+                        if psys_mat:
+                            mat_handle = 'material.%s' % psys_mat.name
+                            sg_material = self.sg_nodes_dict[mat_handle]                      
+                    if new_sg_node:                
+                            self.export_hair(new_sg_node, active, psys, db_name_hair, None)
+                            self.sg_nodes_dict[db_name_hair] = new_sg_node
+                            new_sg_node.SetMaterial(sg_material)
+                            if sg_node:
+                                for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
+                                    p.RemoveChild(sg_node)
+                                    p.AddChild(new_sg_node)
+                            else:
+                                parent_sg = self.sg_nodes_dict[active.name]
+                                parent_sg.AddChild(new_sg_node)
 
         elif active.type == "MESH":
             db_name = '%s-MESH' % active.name
@@ -581,14 +659,13 @@ class RmanSgExporter:
                     else detect_primitive(active)                
                 if active.update_from_editmode():
                     with rman.SGManager.ScopedEdit(self.sg_scene):
-                        if prim == ['POLYGON_MESH', 'SUBDIVISION_MESH']:
+                        if prim in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
                             self.export_mesh(active, mesh_sg, active.data, prim)                        
                             self.export_object_primvars(active, mesh_sg) 
                 elif active.renderman.id_data.is_updated_data:
                     with rman.SGManager.ScopedEdit(self.sg_scene):
                         new_mesh_sg = self.export_geometry_data(active, db_name, data=None)
-                        for i in range(mesh_sg.GetNumParents()):
-                            p = mesh_sg.GetParent(i)
+                        for p in [ mesh_sg.GetParent(i) for i in range(0, mesh_sg.GetNumParents())]:
                             p.RemoveChild(mesh_sg)
                             p.AddChild(new_mesh_sg)                        
 
@@ -2104,18 +2181,28 @@ class RmanSgExporter:
                 return
 
         mesh_sg = self.sg_nodes_dict[db_name]
+        psys_group = None
 
-        inst_sg = self.sg_scene.CreateGroup(name)
-        if data_block.type == "PSYS":
-            # don't export transform if this is a hair system
-            ob, psys = data_block.data
-            #if psys.settings.type == 'EMITTER':
-            #    self.export_transform(instance, inst_sg)
-        elif data_block.type == "DUPLI":
-            pass
+        inst_sg = None
+        if name in self.sg_nodes_dict:
+            inst_sg = self.sg_nodes_dict[name]
         else:
-            self.export_transform(instance, inst_sg)
-        self.export_object_attributes(instance.ob, inst_sg, visible_objects)
+            inst_sg = self.sg_scene.CreateGroup(name)
+
+        if data_block.type == "PSYS":            
+            ob, psys = data_block.data
+            # don't inherit transform
+            #mesh_sg.SetInheritTransform(False)
+            psys_group = self.sg_scene.CreateGroup('')
+            psys_group.AddChild(mesh_sg)
+            psys_group.SetInheritTransform(False)
+            inst_sg.AddChild(psys_group)
+        else:
+            if data_block.type == "DUPLI":
+                pass
+            else:
+                self.export_transform(instance, inst_sg)
+            inst_sg.AddChild(mesh_sg)               
 
         for mat in data_block.material:
             if not hasattr(mat, 'name'):
@@ -2124,10 +2211,15 @@ class RmanSgExporter:
             mat_key = 'material.%s' % mat_name
             if mat_key in self.sg_nodes_dict.keys():
                 sg_material = self.sg_nodes_dict[mat_key]
-                inst_sg.SetMaterial(sg_material)
+                if data_block.type == "PSYS":
+                    psys_group.SetMaterial(sg_material)
+                else:
+                    inst_sg.SetMaterial(sg_material) 
 
-        inst_sg.AddChild(mesh_sg)
+        self.export_object_attributes(instance.ob, inst_sg, visible_objects)                               
 
+   
+        
         if not instance_parent:
             self.sg_global_obj.AddChild(inst_sg)        
             self.sg_nodes_dict[name] = inst_sg
@@ -3053,22 +3145,58 @@ class RmanSgExporter:
         ob.dupli_list_create(self.scene, "RENDER")
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupob in ob.dupli_list:
-                #ri.AttributeBegin()
                 dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
                                                 dupob.index)
-                #ri.Attribute('identifier', {'string name': dupli_name})
-                #ri.ConcatTransform(
-                #    rib(ob.matrix_world.inverted_safe() * dupob.matrix))
+
                 mat = dupob.object.active_material
-                #if mat:
-                #    export_material_archive(ri, mat)
+
                 source_data_name = data_name(dupob.object, self.scene)
+
                 if hasattr(dupob.object, 'dupli_type') and dupob.object.dupli_type in SUPPORTED_DUPLI_TYPES:
                     source_data_name = dupob.object.name + '-DUPLI'
                 deforming = is_deforming(dupob.object)
-                #ri.ReadArchive(get_archive_filename(source_data_name, rpass,
-                #                                    deforming, True))
-                #ri.AttributeEnd()
+
+                sg_node = self.sg_scene.CreateGroup(dupli_name)
+                if source_data_name in self.sg_nodes_dict:   
+                    sg_source = self.sg_nodes_dict[source_data_name]                 
+                    sg_node.AddChild(sg_source)
+                    sg_node.SetTransform( convert_matrix(dupob.matrix))
+                    if not is_multi_material(dupob.object):
+                        if dupob.object.material_slots:
+                            mat = dupob.object.material_slots[0].material
+                            mat_handle = "material.%s" % mat.name
+                            if mat_handle in self.sg_nodes_dict:
+                                sg_material = self.sg_nodes_dict[mat_handle]
+                                sg_node.SetMaterial(sg_material)
+                    
+                    for psys in dupob.object.particle_systems:
+                        if psys:
+                            db_name_emitter = '%s.%s-EMITTER' % (dupob.object.data.name, psys.name)
+                            db_name_hair = '%s.%s-HAIR' % (dupob.object.data.name, psys.name)
+                            group_sg = None
+                            if db_name_emitter in self.sg_nodes_dict:
+                                group_sg_name = '%s-EMITTER' % dupli_name
+                                group_sg = self.sg_scene.CreateGroup(group_sg_name)
+                                group_sg.AddChild( self.sg_nodes_dict[db_name_emitter])
+                                self.sg_nodes_dict[group_sg_name] = group_sg
+                            elif db_name_hair in self.sg_nodes_dict:  
+                                group_sg_name = '%s-HAIR' % dupli_name                
+                                group_sg = self.sg_scene.CreateGroup(group_sg_name)            
+                                group_sg.AddChild(self.sg_nodes_dict[db_name_hair])
+                                self.sg_nodes_dict[group_sg_name] = group_sg
+                            if group_sg:
+                                group_sg.SetTransform( convert_matrix(ob.matrix_local) )
+                                psys_mat = dupob.object.material_slots[psys.settings.material-1].material
+                                if psys_mat:
+                                    mat_handle = 'material.%s' % psys_mat.name
+                                    sg_material = self.sg_nodes_dict[mat_handle]
+                                    group_sg.SetMaterial(sg_material)                                      
+
+                                sg_dupli.AddChild(group_sg)
+
+                sg_dupli.AddChild(sg_node)                
+                self.sg_nodes_dict[dupli_name] = sg_node
+
             ob.dupli_list_clear()
             return
 
@@ -3079,7 +3207,7 @@ class RmanSgExporter:
 
             source_data_name = data_name(dupob.object, self.scene)
             sg_node = self.sg_scene.CreateGroup(dupli_name)
-            source_data_name = data_name(dupob.object, self.scene)
+            
             if source_data_name in self.sg_nodes_dict:
                 sg_source = self.sg_nodes_dict[source_data_name]
                 sg_node.AddChild(sg_source)
@@ -3099,7 +3227,7 @@ class RmanSgExporter:
             if db.type == "MESH":
                 self.export_mesh_archive(db)
             elif db.type == "PSYS":
-                self.export_particle_archive(db)
+                self.export_particle_archive(db)            
 
         # now do the duplis
         for name, db in data_blocks.items():
@@ -3120,7 +3248,7 @@ class RmanSgExporter:
 
         # get a list of empties to check if they contain a RIB archive.
         # this should be the only time empties are evaluated.
-        #emptiesToExport = get_valid_empties(self.scene, self.rpass)
+        emptiesToExport = get_valid_empties(self.scene, self.rpass)
 
     # if do_objects:
             # export rib archives of objects
