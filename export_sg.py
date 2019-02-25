@@ -352,6 +352,26 @@ class RmanSgExporter:
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         self.rictl.PRManEnd()
         print("PRManEnd called.")
+        is_running = False
+
+    def write_frame_rib(self, visible_objects, rpass, scene, ribfile):
+
+        global is_running
+
+        self.rpass = rpass
+        self.scene = scene
+        self.rm = self.scene.renderman
+        self.ipr_mode = False        
+
+        self.export_ready()
+        self.write_scene(visible_objects)
+
+        is_running = True
+        print("Wrote RIB to: %s" % ribfile)
+        self.sg_scene.Render("rib %s" % ribfile)       
+
+        self.sgmngr.DeleteScene(self.sg_scene.sceneId)
+        is_running = False
 
     def start_ipr(self, visible_objects, rpass, scene, progress_cb=None):
 
@@ -379,7 +399,7 @@ class RmanSgExporter:
 
         is_running = True
        
-        #self.sg_scene.Render("rib /var/tmp/blender.rib")
+        self.sg_scene.Render("rib /var/tmp/blender.rib")
         self.sg_scene.Render("prman -live")
 
     def stop_ipr(self):

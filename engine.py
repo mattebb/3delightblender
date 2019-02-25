@@ -1021,6 +1021,8 @@ class RPass:
         pass
 
     def gen_rib(self, do_objects=True, engine=None, convert_textures=True):
+        global rman__sg__inited
+
         rm = self.scene.renderman
         if self.scene.camera is None:
             debug('error', "ERROR no Camera.  \
@@ -1033,22 +1035,31 @@ class RPass:
         if engine:
             engine.report({"INFO"}, "Texture generation took %s" %
                           format_seconds_to_hhmmss(time.time() - time_start))
+
         self.scene.frame_set(self.scene.frame_current)
         time_start = time.time()
-        rib_options = {"string format": "binary"} if rm.rib_format == "binary" else {
-            "string format": "ascii", "string asciistyle": "indented,wide"}
-        if rm.rib_compression == "gzip":
-            rib_options["string compression"] = "gzip"
-        self.ri.Option("rib", rib_options)
-        self.ri.Begin(self.paths['rib_output'])
 
         # Check if rendering select objects only.
         if rm.render_selected_objects_only:
             visible_objects = get_Selected_Objects(self.scene)
         else:
-            visible_objects = None
-        write_rib(self, self.scene, self.ri, visible_objects, engine, do_objects)
-        self.ri.End()
+            visible_objects = None  
+
+        if rman__sg__inited:      
+
+            #rib_options = {"string format": "binary"} if rm.rib_format == "binary" else {
+            #    "string format": "ascii", "string asciistyle": "indented,wide"}
+            #if rm.rib_compression == "gzip":
+            #    rib_options["string compression"] = "gzip"
+            #self.ri.Option("rib", rib_options)
+            #self.ri.Begin(self.paths['rib_output'])
+
+
+            #write_rib(self, self.scene, self.ri, visible_objects, engine, do_objects)
+            #self.ri.End()
+
+            rman_sg_exporter().write_frame_rib(visible_objects, self, self.scene, self.paths['rib_output'])
+
         if engine:
             engine.report({"INFO"}, "RIB generation took %s" %
                           format_seconds_to_hhmmss(time.time() - time_start))
