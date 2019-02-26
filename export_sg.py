@@ -60,7 +60,7 @@ import threading
 
 addon_version = bl_info['version']
 port = -1
-is_running = True
+is_running = False
 
 __RMAN_SG_INITED__ = False
 __RMAN_SG_EXPORTER__ = None
@@ -316,6 +316,10 @@ class RmanSgExporter:
 
         global is_running
 
+        if is_running:
+            debug('error', "ERROR render already running. Abort")
+            return False
+
         self.rpass = rpass
         self.scene = scene
         self.rm = self.scene.renderman
@@ -326,12 +330,13 @@ class RmanSgExporter:
         argv = []
         argv.append("prman") 
         argv.append("-progress")
-        argv.append("-dspyserver")
-        argv.append("it")
-        argv.append("-t:%d" % self.rm.threads)
-        if check_point > 0:
-            argv.append("-checkpoint")
-            argv.append("%ds" % check_point)
+        if not for_preview:
+            argv.append("-dspyserver")
+            argv.append("it")
+            argv.append("-t:%d" % self.rm.threads)
+            if check_point > 0:
+                argv.append("-checkpoint")
+                argv.append("%ds" % check_point)
 
         if for_preview:
             if self.write_preview_scene() is False:
@@ -354,6 +359,8 @@ class RmanSgExporter:
         print("PRManEnd called.")
         is_running = False
 
+        return True
+
     def write_frame_rib(self, visible_objects, rpass, scene, ribfile):
 
         global is_running
@@ -366,9 +373,16 @@ class RmanSgExporter:
         self.export_ready()
         self.write_scene(visible_objects)
 
+        rib_options = ""
+        if self.rm.rib_compression == "gzip":
+            rib_options += " -compression gzip"
+        rib_options += " -format %s" % self.rm.rib_format
+        if self.rm.rib_format == "ascii":
+            rib_options += " -indent"
+
         is_running = True
         print("Wrote RIB to: %s" % ribfile)
-        self.sg_scene.Render("rib %s" % ribfile)       
+        self.sg_scene.Render("rib %s %s" % (rib_options, ribfile))       
 
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         is_running = False
@@ -404,11 +418,11 @@ class RmanSgExporter:
 
     def stop_ipr(self):
         global is_running
-
-        is_running = False
-        self.sgmngr.DeleteScene(self.sg_scene.sceneId)
-        self.rictl.PRManEnd()
-        print("PRManEnd called.")
+        if is_running:
+            is_running = False
+            self.sgmngr.DeleteScene(self.sg_scene.sceneId)
+            self.rictl.PRManEnd()
+            print("PRManEnd called.")
 
     def issue_transform_edits(self, active, scene):
         self.scene = scene
@@ -1031,7 +1045,6 @@ class RmanSgExporter:
         attrs.SetInteger("visibility:transmission", int(ob.renderman.visibility_trace_transmission))
         attrs.SetInteger("visibility:indirect", int(ob.renderman.visibility_trace_indirect))
         if visible_objects and ob.name not in visible_objects:
-            vis_params["int camera"] = 0
             attrs.SetInteger("visibility:camera", 0)
         else:
             attrs.SetInteger("visibility:camera", int(ob.renderman.visibility_camera))
@@ -1992,7 +2005,6 @@ class RmanSgExporter:
 
     def export_camera_transform(self, camera_sg, ob, motion):
         r = self.scene.render
-        motion = []
         cam = ob.data
 
         times = []
@@ -2012,9 +2024,10 @@ class RmanSgExporter:
             transforms.append(v)
         
         if len(motion) > 1:
-            camera_sg.SetTransform( len(motions), transforms, times )
+            camera_sg.SetTransform( len(motion), transforms, times )
         else:
             camera_sg.SetTransform( transforms[0] )
+            
 
     def export_camera(self, instances, camera_to_use=None):
         r = self.scene.render
@@ -2110,10 +2123,12 @@ class RmanSgExporter:
                     dof_distance = (ob.location - cam.dof_object.location).length
                 else:
                     dof_distance = cam.dof_distance
-                projparams.SetFloat(rman.Tokens.Rix.k_fStop, cam.renderman.fstop)
-                #projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
-                projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens))
-                projparams.SetFloat(rman.Tokens.Rix.k_focalDistance, dof_distance)   
+                if dof_distance > 0.0:
+                    projparams.SetFloat(rman.Tokens.Rix.k_fStop, cam.renderman.fstop)
+                    #projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
+                    projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens))
+                    projparams.SetFloat(rman.Tokens.Rix.k_focalDistance, dof_distance)   
+                
                      
             proj.EditParameterEnd(projparams)
         elif cam.type == 'PANO':
@@ -2469,47 +2484,56 @@ class RmanSgExporter:
                         sg_displays.append(display)
 
 
-        """if (rm.do_denoise and not rpass.external_render or rm.external_denoise and rpass.external_render) and not rpass.is_interactive:
+        if (rm.do_denoise and not self.rpass.external_render or rm.external_denoise and self.rpass.external_render) and not self.rpass.is_interactive:
             # add display channels for denoising
-            denoise_aovs = [
-                # (name, declare type/name, source, statistics, filter)
-                ("Ci", 'color', None, None, None),
-                ("a", 'float', None, None, None),
-                ("mse", 'color', 'color Ci', 'mse', None),
-                ("albedo", 'color',
-                'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
-                None, None),
-                ("albedo_var", 'color', 'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
-                "variance", None),
-                ("diffuse", 'color', 'color lpe:C(D[DS]*[LO])|O', None, None),
-                ("diffuse_mse", 'color', 'color lpe:C(D[DS]*[LO])|O', 'mse', None),
-                ("specular", 'color', 'color lpe:CS[DS]*[LO]', None, None),
-                ("specular_mse", 'color', 'color lpe:CS[DS]*[LO]', 'mse', None),
-                ("z", 'float', 'float z', None, True),
-                ("z_var", 'float', 'float z', "variance", True),
-                ("normal", 'normal', 'normal Nn', None, None),
-                ("normal_var", 'normal', 'normal Nn', "variance", None),
-                ("forward", 'vector', 'vector motionFore', None, None),
-                ("backward", 'vector', 'vector motionBack', None, None)
-            ]
+            
+            if display_driver == "openexr":
 
-            for aov, declare_type, source, statistics, do_filter in denoise_aovs:
-                params = {}
-                if source:
-                    params['string source'] = source
-                if statistics:
-                    params['string statistics'] = statistics
-                if do_filter:
-                    params['string filter'] = rm.pixelfilter
-                #{"string storage": "tiled"}
-                ri.DisplayChannel('%s %s' % (declare_type, aov), params)
-            if rm.use_metadata:
-            display_params = export_metadata(ri, scene, display_params)
-            # output denoise_data.exr
-            image_base, ext = main_display.rsplit('.', 1)
-            ri.Display('+' + image_base + '.variance.exr', 'openexr',
-                    "Ci,a,mse,albedo,albedo_var,diffuse,diffuse_mse,specular,specular_mse,z,z_var,normal,normal_var,forward,backward",
-                    display_params)"""
+                denoise_aovs = [
+                    # (name, declare type/name, source, statistics, filter)
+                    ("Ci", rman.Tokens.Rix.k_color, None, None, None),
+                    ("a", rman.Tokens.Rix.k_float, None, None, None),
+                    ("mse", rman.Tokens.Rix.k_color, 'color Ci', 'mse', None),
+                    ("albedo", rman.Tokens.Rix.k_color,
+                    'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
+                    None, None),
+                    ("albedo_var", rman.Tokens.Rix.k_color, 'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
+                    "variance", None),
+                    ("diffuse", rman.Tokens.Rix.k_color, 'color lpe:C(D[DS]*[LO])|O', None, None),
+                    ("diffuse_mse", rman.Tokens.Rix.k_color, 'color lpe:C(D[DS]*[LO])|O', 'mse', None),
+                    ("specular", rman.Tokens.Rix.k_color, 'color lpe:CS[DS]*[LO]', None, None),
+                    ("specular_mse", rman.Tokens.Rix.k_color, 'color lpe:CS[DS]*[LO]', 'mse', None),
+                    ("zfiltered", rman.Tokens.Rix.k_float, 'zfiltered', None, True),
+                    ("zfiltered_var", rman.Tokens.Rix.k_float, 'zfiltered', "variance", True),
+                    ("normal", rman.Tokens.Rix.k_normal, 'normal Nn', None, None),
+                    ("normal_var", rman.Tokens.Rix.k_normal, 'normal Nn', "variance", None),
+                    ("forward", rman.Tokens.Rix.k_vector, 'vector motionFore', None, None),
+                    ("backward", rman.Tokens.Rix.k_vector, 'vector motionBack', None, None)
+                ]
+
+                for aov, declare_type, source, statistics, do_filter in denoise_aovs:
+                    displaychannel = self.sg_scene.CreateDisplayChannel(declare_type, aov)
+                    displaychannels.append(displaychannel)
+                    if source:
+                        if "lpe" in source:
+                            displaychannel.params.SetString(rman.Tokens.Rix.k_source, '%s %s' % (declare_type, source))                                
+                        else:
+                            displaychannel.params.SetString(rman.Tokens.Rix.k_source, source)
+                    if statistics:
+                            displaychannel.params.SetString(rman.Tokens.Rix.k_statistics, statistics)
+                    if do_filter:
+                            displaychannel.params.SetString(rman.Tokens.Rix.k_filter, rm.pixelfilter)
+                        
+                    displaychannel.params.SetString("storage", "tiled")
+
+                #if rm.use_metadata:
+                    #display_params = export_metadata(ri, scene, display_params)
+                # output denoise_data.exr
+                image_base, ext = main_display.rsplit('.', 1)
+                display = self.sg_scene.CreateDisplay("openexr", image_base + '.variance.exr')
+                display.channels = ',' . join([aov[0] for aov in denoise_aovs])
+
+                sg_displays.append(display)
 
         self.main_camera.SetDisplay(sg_displays)
         self.sg_scene.SetDisplayChannel(displaychannels)
@@ -2532,15 +2556,11 @@ class RmanSgExporter:
         attrs.SetInteger(rman.Tokens.Rix.k_trace_maxspeculardepth, max_specular_depth)
 
         attrs.SetFloat(rman.Tokens.Rix.k_dice_micropolygonlength, rm.shadingrate)
-        #attrs.SetString(rman.Tokens.Rix.k_dice_strategy, rm.dicing_strategy)
-        #attrs.SetString(rman.Tokens.Rix.k_dice_instancestrategy, "worlddistance")
-        #attrs.SetFloat(rman.Tokens.Rix.k_dice_instanceworlddistancelength, rm.instanceworlddistancelength)                        
+        attrs.SetString(rman.Tokens.Rix.k_dice_strategy, rm.dicing_strategy)                     
 
-        if rm.dicing_strategy is "worlddistance":
-            pass
-            """
+        if rm.dicing_strategy in ["objectdistance", "worlddistance"]:            
             attrs.SetFloat(rman.Tokens.Rix.k_dice_worlddistancelength, rm.worlddistancelength)
-            """
+            
         self.sg_global_obj.EditAttributeEnd(attrs)
 
         self.sg_root.AddChild(self.sg_global_obj)
@@ -2576,7 +2596,7 @@ class RmanSgExporter:
 
             options.SetFloat(rman.Tokens.Rix.k_Ri_PixelVariance, pv)
 
-            if rm.do_denoise and not self.rpass.external_render or rm.external_denoise and self.rpass.external_render:
+            if rm.do_denoise and not self.rpass.external_render or rm.external_denoise: # and self.rpass.external_render:
                 options.SetString(rman.Tokens.Rix.k_hider_pixelfiltermode, 'importance')
 
         self.sg_scene.EditOptionEnd(options)            
@@ -2769,7 +2789,7 @@ class RmanSgExporter:
             sg_material = None
 
             if mat.node_tree:
-                sg_material = self.shader_exporter.export_shader_nodetree(
+                sg_material, bxdfList = self.shader_exporter.export_shader_nodetree(
                     mat, handle=None, disp_bound=rm.displacementbound,
                     iterate_instance=False)
             else:

@@ -531,7 +531,6 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         row = col.row()
         row.enabled = rm.dicing_strategy == "worlddistance"
         row.prop(rm, "worlddistancelength")
-        col.prop(rm, "instanceworlddistancelength")
 
         layout.separator()
 

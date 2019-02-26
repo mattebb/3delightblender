@@ -80,7 +80,7 @@ def init_prman():
     import prman
     prman_inited = True
 
-    # for rman 22
+    # import RixSceneGraph modules
     try:
         pythonbindings = os.path.join(guess_rmantree(), 'bin', 'pythonbindings')
         set_pythonpath(pythonbindings)
@@ -141,13 +141,9 @@ def render(engine):
         if engine.is_preview:
             if rman__sg__inited:
                 engine.render_pass.render_sg(engine, for_preview=True)            
-            elif engine.render_pass.rib_done:
-                engine.render_pass.preview_render(engine)
         else:
             if rman__sg__inited:
                 engine.render_pass.render_sg(engine)
-            else:
-                engine.render_pass.render(engine)
 
 
 def reset(engine, data, scene):
@@ -160,34 +156,12 @@ def reset(engine, data, scene):
 
 def update(engine, data, scene):
     engine.render_pass.update_time = int(time.time())
-    if engine.is_preview:
-        if rman__sg__inited:
-            pass
-        else:
-            try:
-                engine.render_pass.gen_preview_rib()
-            except Exception as err:
-                engine.report({'ERROR'}, 'Rib gen error: ' +
-                            traceback.format_exc())
-    else:
-        if rman__sg__inited:
-            pass
-        else:
-            try:
-                engine.render_pass.gen_rib(engine=engine)
-            except Exception as err:
-                engine.report({'ERROR'}, 'Rib gen error: ' +
-                            traceback.format_exc())
-
 
 # assumes you have already set the scene
 def start_interactive(engine):
     global rman__sg__inited
     if rman__sg__inited:
-        #engine.render_pass.start_interactive_sg()
-        print("DO IT")
-    else:
-        engine.render_pass.start_interactive()
+        engine.render_pass.start_interactive_sg()
 
 def update_interactive(engine, context):
     engine.render_pass.issue_edits(context)
@@ -383,6 +357,11 @@ class RPass:
     def render_sg(self, engine, for_preview=False):
         DELAY = 1
         render_output = self.paths['render_output']
+        if for_preview:
+            previewdir = os.path.join(self.paths['export_dir'], "preview")
+            self.paths['render_output'] = os.path.join(previewdir, "preview.tif") 
+            render_output = self.paths['render_output']
+                   
         aov_output = self.paths['aov_output']
         cdir = os.path.dirname(self.paths['rib_output'])
         update_frequency = 10 if not self.rm.do_denoise else 60
@@ -399,7 +378,7 @@ class RPass:
                 os.remove(render_output)  # so as not to load the old file
             except:
                 debug("error", "Unable to remove previous render",
-                      render_output)
+                      render_output)                   
 
         # convert textures
         self.convert_textures(get_texture_list_preview(self.scene))
@@ -421,13 +400,17 @@ class RPass:
             visible_objects = None
 
         def progress_cb(e, d, db):
-            engine.update_progress(float(d) / 100.0)             
+            engine.update_progress(float(d) / 100.0)       
 
-        if for_preview:
+        progress_cb_ptr = progress_cb      
+
+        #if for_preview:
+        #    progress_cb_ptr = None
             # TODO: fix material preview renders
-            return
+        #    return
 
-        rman_sg_exporter().start_render(visible_objects, self, self.scene, progress_cb, update_frequency, for_preview)     
+        if not rman_sg_exporter().start_render(visible_objects, self, self.scene, progress_cb_ptr, update_frequency, for_preview):
+            return
 
         if self.display_driver not in ['it']:
             if os.path.exists(render_output):
@@ -746,82 +729,6 @@ class RPass:
         self.is_interactive_ready = True        
         return           
 
-    # start the interactive session.  Basically the same as ribgen, only
-    # save the file
-    def start_interactive(self):
-        rm = self.scene.renderman
-        if find_it_path() is None:
-            debug('error', "ERROR no 'it' installed.  \
-                    Cannot start interactive rendering.")
-            return
-
-        if self.scene.camera is None:
-            debug('error', "ERROR no Camera.  \
-                    Cannot start interactive rendering.")
-            self.end_interactive()
-            return
-
-        self.ri.Begin(self.paths['rib_output'])
-        rib_options = {"string format": "binary"} if rm.rib_format == "binary" else {
-            "string format": "ascii", "string asciistyle": "indented,wide"}
-        if rm.rib_compression == "gzip":
-            rib_options["string compression"] = "gzip"
-        self.ri.Option("rib", rib_options)
-        self.material_dict = {}
-        self.instance_dict = {}
-        self.lights = {}
-        self.light_filter_map = {}
-        self.current_solo_light = None
-        self.muted_lights = []
-        self.crop_window = (self.scene.render.border_min_x, self.scene.render.border_max_x,
-                      1.0 - self.scene.render.border_min_y, 1.0 - self.scene.render.border_max_y)
-        for obj in self.scene.objects:
-            if obj.type == 'LAMP' and obj.name not in self.lights:
-                # add the filters to the filter ma
-                for lf in obj.data.renderman.light_filters:
-                    if lf.filter_name not in self.light_filter_map:
-                        self.light_filter_map[lf.filter_name] = []
-                    self.light_filter_map[lf.filter_name].append(
-                        (obj.data.name, obj.name))
-                self.lights[obj.name] = obj.data.name
-                if obj.data.renderman.solo:
-                    self.current_solo_light = obj
-                if obj.data.renderman.mute:
-                    self.muted_lights.append(obj)
-            for mat_slot in obj.material_slots:
-                if mat_slot.material not in self.material_dict:
-                    self.material_dict[mat_slot.material] = []
-                self.material_dict[mat_slot.material].append(obj)
-
-        # export rib and bake
-
-        # Check if rendering select objects only.
-        if(self.scene.renderman.render_selected_objects_only):
-            visible_objects = get_Selected_Objects(self.scene)
-        else:
-            visible_objects = None
-        write_rib(self, self.scene, self.ri, visible_objects)
-        self.ri.End()
-        self.convert_textures(get_texture_list(self.scene))
-
-        if sys.platform == 'win32':
-            filename = "launch:prman? -t:%d" % self.rm.threads + " -cwd \"%s\" -ctrl $ctrlin $ctrlout \
-            -dspyserver it" % self.paths['export_dir']
-        else:
-            filename = "launch:prman? -t:%d" % self.rm.threads + " -cwd %s -ctrl $ctrlin $ctrlout \
-            -dspyserver it" % self.paths['export_dir'].replace(' ', '%20')
-        self.ri.Begin(filename)
-        self.ri.Option("rib", {"string asciistyle": "indented,wide"})
-        interactive_initial_rib(self, self.ri, self.scene, prman)
-
-        while not self.is_prman_running():
-            time.sleep(.1)
-
-        self.ri.EditBegin('null', {})
-        self.ri.EditEnd()
-        self.is_interactive_ready = True
-        return
-
     def blender_scene_updated_pre_cb(self, scene):
         return     
 
@@ -1004,21 +911,13 @@ class RPass:
         self.is_interactive = False
         if rman__sg__inited:
             rman_sg_exporter().stop_ipr()
-        else:
-            if self.is_prman_running():
-                self.edit_num += 1
-                # output a flush to stop rendering.
-                self.ri.ArchiveRecord(
-                    "structure", self.ri.STREAMMARKER + "%d" % self.edit_num)
-                prman.RicFlush("%d" % self.edit_num, 0, self.ri.SUSPENDRENDERING)
-                self.ri.EditWorldEnd()
-            self.ri.End()
+
         self.material_dict = {}
         self.lights = {}
         self.light_filter_map = {}
         self.instance_dict = {}
         self.scene_objects = {}
-        pass
+
 
     def gen_rib(self, do_objects=True, engine=None, convert_textures=True):
         global rman__sg__inited
@@ -1046,43 +945,11 @@ class RPass:
             visible_objects = None  
 
         if rman__sg__inited:      
-
-            #rib_options = {"string format": "binary"} if rm.rib_format == "binary" else {
-            #    "string format": "ascii", "string asciistyle": "indented,wide"}
-            #if rm.rib_compression == "gzip":
-            #    rib_options["string compression"] = "gzip"
-            #self.ri.Option("rib", rib_options)
-            #self.ri.Begin(self.paths['rib_output'])
-
-
-            #write_rib(self, self.scene, self.ri, visible_objects, engine, do_objects)
-            #self.ri.End()
-
             rman_sg_exporter().write_frame_rib(visible_objects, self, self.scene, self.paths['rib_output'])
 
         if engine:
             engine.report({"INFO"}, "RIB generation took %s" %
                           format_seconds_to_hhmmss(time.time() - time_start))
-
-    def gen_preview_rib(self):
-        if rman__sg__inited:
-            return
-        else:
-            previewdir = os.path.join(self.paths['export_dir'], "preview")
-
-            self.paths['rib_output'] = os.path.join(previewdir, "preview.rib")
-            self.paths['render_output'] = os.path.join(previewdir, "preview.tif")
-            self.paths['export_dir'] = os.path.dirname(self.paths['rib_output'])
-
-            if not os.path.exists(previewdir):
-                os.mkdir(previewdir)
-
-            self.convert_textures(get_texture_list_preview(self.scene))
-
-            self.ri.Begin(self.paths['rib_output'])
-            self.ri.Option("rib", {"string asciistyle": "indented,wide"})
-            self.rib_done = write_preview_rib(self, self.scene, self.ri)
-            self.ri.End()
 
     def convert_textures(self, temp_texture_list):
         if not os.path.exists(self.paths['texture_output']):
