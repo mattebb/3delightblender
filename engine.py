@@ -76,9 +76,6 @@ def init_prman():
     set_pythonpath(os.path.join(guess_rmantree(), 'bin'))
     it_dir = os.path.dirname(find_it_path()) if find_it_path() else None
     set_path([os.path.join(guess_rmantree(), 'bin'), it_dir])
-    global prman
-    import prman
-    prman_inited = True
 
     # import RixSceneGraph modules
     try:
@@ -90,6 +87,7 @@ def init_prman():
         from . import export_sg
         from .export_sg import rman_sg_exporter
         rman__sg__inited = export_sg.is_ready()
+        prman_inited = True
     except Exception as e:
         print("Could not load scenegraph modules: %s" % str(e)) 
 
@@ -148,9 +146,7 @@ def render(engine):
 
 def reset(engine, data, scene):
     del engine.render_pass.ri
-    if prman:
-        prman.Cleanup()
-    engine.render_pass.ri = prman.Ri()
+
     engine.render_pass.set_scene(scene)
     engine.render_pass.update_frame_num(scene.frame_current)
 
@@ -214,17 +210,9 @@ class RPass:
         self.options = []
 
         # check if prman is imported
-        if not prman_inited or not rman__sg__inited:
+        if not rman__sg__inited:
             init_prman()
 
-        if rman__sg__inited:
-            pass
-        else:
-            if interactive:
-                prman.Init(['-woff', 'A57001'])  # need to disable for interactive
-            else:
-                prman.Init()
-            self.ri = prman.Ri()
         self.edit_num = 0
         self.update_time = None
         self.last_edit_mat = None
@@ -236,13 +224,6 @@ class RPass:
         if rman__sg__inited:
             if rman_sg_exporter().is_prman_running():
                 rman_sg_exporter().stop_ipr()
-        else:
-            if self.is_interactive and self.is_prman_running():
-                self.ri.EditWorldEnd()
-                self.ri.End()
-            del self.ri
-            if prman:
-                prman.Cleanup()
 
     def initialize_paths(self, scene):
         rm = scene.renderman
@@ -658,8 +639,6 @@ class RPass:
     def is_prman_running(self):
         if rman__sg__inited:
             return rman_sg_exporter().is_prman_running()
-        else:
-            return prman.RicGetProgress() < 100
 
     def reset_filter_names(self):
         self.light_filter_map = {}
