@@ -165,7 +165,10 @@ class ItHandler(chatserver.ItBaseHandler):
                 if a.type == "PROPERTIES":
                     for s in a.spaces:
                         if s.type == "PROPERTIES":
-                            s.context = "MATERIAL"
+                            try:
+                                s.context = "MATERIAL"
+                            except:
+                                pass
                             return
 
 class RmanSgExporter:
