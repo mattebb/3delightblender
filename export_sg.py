@@ -718,7 +718,7 @@ class RmanSgExporter:
                 else:
                     for obj in self.rpass.material_dict[mat]:
                         if not is_multi_material(obj):
-                            if obj.material_slots[0] == mat:
+                            if obj.material_slots[0].name == mat.name:
                                 instance = get_instance(obj, self.scene, False)
                                 if instance:
                                     if instance.name in self.sg_nodes_dict:
@@ -729,7 +729,7 @@ class RmanSgExporter:
                         for psys in obj.particle_systems:
                             if psys.settings.material:
                                 psys_mat = obj.material_slots[psys.settings.material-1].material
-                                if psys_mat == mat:
+                                if psys_mat.name == mat.name:
                                     db_name_emitter = '%s.%s-EMITTER' % (obj.name, psys.name)
                                     db_name_hair = '%s.%s-HAIR' % (obj.name, psys.name)
                                     psys_node = None
