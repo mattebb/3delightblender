@@ -755,7 +755,7 @@ class RPass:
                 lights_deleted = []
                 for light_name, data_name in self.lights.items():
                     if light_name not in scene.objects:
-                        rman_sg_exporter().issue_delete_object_edits(data_name)
+                        rman_sg_exporter().issue_delete_object_edits(light_name, data_name)
                         lights_deleted.append(light_name)
 
                 for light_name in lights_deleted:

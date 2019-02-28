@@ -2220,9 +2220,9 @@ class RmanSgExporter:
 
    
         
-        if not instance_parent:
-            self.sg_global_obj.AddChild(inst_sg)        
-            self.sg_nodes_dict[name] = inst_sg
+        #if not instance_parent:
+        self.sg_global_obj.AddChild(inst_sg)        
+        self.sg_nodes_dict[name] = inst_sg
 
     def export_displays(self):
         rm = self.scene.renderman
@@ -3255,7 +3255,7 @@ class RmanSgExporter:
         
         # now output the object archives
         for name, instance in instances.items():
-            for db_name in instance.data_block_names:                   
+            for db_name in instance.data_block_names:                 
                 self.write_instances(db_name, data_blocks[db_name], instance.name, instance, instance.parent, visible_objects=visible_objects)
 
     def write_scene(self, visible_objects=None, engine=None, do_objects=True):
@@ -3305,6 +3305,7 @@ class RmanSgExporter:
         self.export_materials()
 
         self.export_objects(data_blocks, instances, visible_objects)
+
 
         #for object in emptiesToExport:
         #    export_empties_archives(ri, object)
