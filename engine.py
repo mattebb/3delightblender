@@ -114,9 +114,16 @@ def shutdown_ipr():
         if ipr.is_prman_running():
             # shutdown IPR
             ipr.is_interactive_ready = False
-            #bpy.ops.lighting.start_interactive('INVOKE_DEFAULT')
-            ipr.end_interactive()
 
+            # For some reason bpy.context.window is None
+            # So we have to make a copy and pass that on to bpy.ops
+            # We're assuming the window we're interested in is the first
+            # one in the window_manager
+            override = bpy.context.copy()
+            window = bpy.context.window_manager.windows[0]
+            override['window'] = window
+            override['screen'] = window.screen
+            bpy.ops.lighting.start_interactive(override, 'INVOKE_DEFAULT')
 
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
     # TODO add support for regions (rerendering)

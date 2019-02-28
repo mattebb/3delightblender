@@ -133,8 +133,8 @@ def convert_ob_bounds(ob_bb):
 class ItHandler(chatserver.ItBaseHandler):
 
     def dspyRender(self):
-        if not rman_sg_exporter().is_prman_running():        
-            bpy.ops.render.render()
+        if not rman_sg_exporter().is_prman_running():                          
+            bpy.ops.render.render()             
 
     def dspyIPR(self):
         if rman_sg_exporter().is_prman_running():
@@ -145,7 +145,7 @@ class ItHandler(chatserver.ItBaseHandler):
                 rman_sg_exporter().issue_cropwindow_edits(crop)
 
     def stopRender(self):
-        if engine.ipr:    
+        if engine.ipr: 
             engine.shutdown_ipr()    
 
     def selectObjectById(self):
@@ -158,69 +158,15 @@ class ItHandler(chatserver.ItBaseHandler):
 
 
     def selectSurfaceById(self):
-        pass
-        #maya.utils.executeDeferred(self.selectSurface)
-
-    def selectSurface(self):
-        pass
-        """self.selectObject()
-        # We need call show_bxdf() deferred to make sure the attribute editor
-        # finished displaying the new selection.
-        maya.utils.executeDeferred(apinodes.show_bxdf)"""
-
-    def renderAgain(self):
-        
-        """crop = self.msg.getOpt('crop')
-        crop_tokens = crop.split(' ')
-
-        left = crop_tokens[0]
-        right = crop_tokens[1]
-        top = crop_tokens[2]
-        bottom = crop_tokens[3]
-        
-        # stash global crop and temporarily set to requested crop
-        rg = apinodes.rman_globals()
-        crop_enable = maya.cmds.getAttr('%s.opt_cropWindowEnable' % rg)
-        top_left = maya.cmds.getAttr('%s.opt_cropWindowTopLeft' % rg)
-        bottom_right = maya.cmds.getAttr('%s.opt_cropWindowBottomRight' % rg)
-
-        maya.cmds.setAttr('%s.opt_cropWindowEnable' % rg, 1)
-        maya.cmds.setAttr('%s.opt_cropWindowTopLeft0' % rg, float(left))
-        maya.cmds.setAttr('%s.opt_cropWindowTopLeft1' % rg, float(top))
-        maya.cmds.setAttr('%s.opt_cropWindowBottomRight0' % rg, float(right))
-        maya.cmds.setAttr('%s.opt_cropWindowBottomRight1' % rg, float(bottom))
-
-        camera = rfm2.ui.render_view.get_current_camera_panel()
-        width = maya.cmds.getAttr('defaultResolution.width')
-        height = maya.cmds.getAttr('defaultResolution.height')
-
-        rfm_log().info('rendering again with %s', ' '.join(self.msg.args))
-        rfm2.render.preview(rfm2.render.Message.kConfig, 'preview',
-                            width, height, camera)
-
-        # restore crop to original
-        maya.cmds.setAttr('%s.opt_cropWindowEnable' % rg, crop_enable)
-        maya.cmds.setAttr('%s.opt_cropWindowTopLeft0' % rg, top_left[0][0])
-        maya.cmds.setAttr('%s.opt_cropWindowTopLeft1' % rg, top_left[0][1])
-        maya.cmds.setAttr('%s.opt_cropWindowBottomRight0' % rg, bottom_right[0][0])
-        maya.cmds.setAttr('%s.opt_cropWindowBottomRight1' % rg, bottom_right[0][1])"""
-
-    def cmdIPR(self):
-
-        """if not rfm2.render.ipr_is_running():
-            # restart IPR if it's not already running
-
-            rfm_log().debug('requesting ipr start')
-            cam = rfm2.ui.render_view.get_current_camera_panel()
-            width = maya.cmds.getAttr('defaultResolution.width')
-            height = maya.cmds.getAttr('defaultResolution.height')
-
-            rfm2.render.ipr(rfm2.render.Message.kStart, 'it', width, height, cam)
-        try:
-            crop = self.msg.getOpt('crop')
-            rfm2.render.rman_cmd('setCropWindow %s' % crop)
-        except:
-            pass"""
+        self.selectObjectById()
+        window = bpy.context.window_manager.windows[0]
+        if window.screen:
+            for a in window.screen.areas:
+                if a.type == "PROPERTIES":
+                    for s in a.spaces:
+                        if s.type == "PROPERTIES":
+                            s.context = "MATERIAL"
+                            return
 
 class RmanSgExporter:
 
@@ -2074,8 +2020,8 @@ class RmanSgExporter:
             options.SetFloatArray(rman.Tokens.Rix.k_Ri_Shutter, (shutter_open, shutter_close), 2)
 
         if self.scene.render.use_border and not self.scene.render.use_crop_to_border:
-            options.SetFloatArray(rman.Tokens.Rix.k_Ri_CropWindow, (scene.render.border_min_x, scene.render.border_max_x,
-                        1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y) , 4)
+            options.SetFloatArray(rman.Tokens.Rix.k_Ri_CropWindow, (self.scene.render.border_min_x, self.scene.render.border_max_x,
+                        1.0 - self.scene.render.border_min_y, 1.0 - self.scene.render.border_max_y) , 4)
 
         # convert the crop border to screen window, flip y
         resolution = render_get_resolution(self.scene.render)
