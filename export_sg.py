@@ -150,7 +150,7 @@ class ItHandler(chatserver.ItBaseHandler):
 
     def selectObjectById(self):
         obj_id = int(self.msg.getOpt('id', '0'))
-        if obj_id < 0 or not (obj_id in rman_sg_exporter().obj_hash:
+        if obj_id < 0 or not (obj_id in rman_sg_exporter().obj_hash):
             return
         name = rman_sg_exporter().obj_hash[obj_id]
         obj = bpy.context.scene.objects[name]
