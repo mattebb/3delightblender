@@ -65,7 +65,6 @@ from .nodes import get_tex_file_name
 
 addon_version = bl_info['version']
 
-prman_inited = False
 rman__sg__inited = False
 
 ipr_handle = None
@@ -76,18 +75,17 @@ def init_prman():
     set_pythonpath(os.path.join(guess_rmantree(), 'bin'))
     it_dir = os.path.dirname(find_it_path()) if find_it_path() else None
     set_path([os.path.join(guess_rmantree(), 'bin'), it_dir])
+    pythonbindings = os.path.join(guess_rmantree(), 'bin', 'pythonbindings')
+    set_pythonpath(pythonbindings)    
 
     # import RixSceneGraph modules
     try:
-        pythonbindings = os.path.join(guess_rmantree(), 'bin', 'pythonbindings')
-        set_pythonpath(pythonbindings)
         global rman__sg__inited
         global export_sg
         global rman_sg_exporter
         from . import export_sg
         from .export_sg import rman_sg_exporter
         rman__sg__inited = export_sg.is_ready()
-        prman_inited = True
     except Exception as e:
         print("Could not load scenegraph modules: %s" % str(e)) 
 
@@ -365,6 +363,7 @@ class RPass:
         self.convert_textures(get_texture_list_preview(self.scene))
 
         if self.display_driver == 'it':
+            update_frequency = -1
             it_path = find_it_path()
             if not it_path:
                 engine.report({"ERROR"},

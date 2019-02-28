@@ -133,36 +133,29 @@ def convert_ob_bounds(ob_bb):
 class ItHandler(chatserver.ItBaseHandler):
 
     def dspyRender(self):
-        pass
-        """maya.utils.executeDeferred(self.renderAgain)"""
+        if not rman_sg_exporter().is_prman_running():        
+            bpy.ops.render.render()
 
     def dspyIPR(self):
-        pass
-        """maya.utils.executeDeferred(self.cmdIPR)"""
+        if rman_sg_exporter().is_prman_running():
+            crop = []
+            for c in self.msg.getOpt('crop').split(' '):
+                crop.append(float(c))
+            if len(crop) == 4:
+                rman_sg_exporter().issue_cropwindow_edits(crop)
 
     def stopRender(self):
         if engine.ipr:    
             engine.shutdown_ipr()    
-        """maya.utils.executeDeferred(self.stopRendering)"""
 
     def selectObjectById(self):
-        pass
-        #maya.utils.executeDeferred(self.selectObject)
-
-    def selectObject(self):
-        pass
-        """obj_id = int(self.msg.getOpt('id', '0'))
-        if obj_id < 0:
+        obj_id = int(self.msg.getOpt('id', '0'))
+        if obj_id < 0 or not (obj_id in rman_sg_exporter().obj_hash:
             return
+        name = rman_sg_exporter().obj_hash[obj_id]
+        obj = bpy.context.scene.objects[name]
+        bpy.context.scene.objects.active = obj
 
-        sgpath = maya.cmds.rman('pathFromId', obj_id)
-
-        if sgpath == '':
-            rfm_log().info('No object found')
-            return
-
-        rfm_log().info('Select path = %s', sgpath)
-        maya.cmds.select(sgpath)"""
 
     def selectSurfaceById(self):
         pass
@@ -229,11 +222,6 @@ class ItHandler(chatserver.ItBaseHandler):
         except:
             pass"""
 
-    def stopRendering(self):
-        if engine.ipr:    
-            engine.shutdown_ipr() 
-
-
 class RmanSgExporter:
 
     def __init__(self, **kwargs):
@@ -253,26 +241,30 @@ class RmanSgExporter:
         # exporters
         self.shader_exporter = None
 
-        self.sg_nodes_dict = {} # handles to sg_nodes
-        self.mat_networks = {} # dict material to networks
-        self.mesh_masters = {}
-        self.light_filters_dict = {} # dict light to light filters
-        self.lightfilters_dict = {} # dict light filters to light
+        self.sg_nodes_dict = dict() # handles to sg_nodes
+        self.mat_networks = dict() # dict material to networks
+        self.mesh_masters = dict()
+        self.light_filters_dict = dict() # dict light to light filters
+        self.lightfilters_dict = dict() # dict light filters to light
         self.displayfilters_list = list()
         self.samplefilters_list = list()
+        self.obj_hash = dict()
+        self.obj_id = 1
 
         self.port = -1
         self.main_camera = None
         self.ipr_mode = False
 
     def export_ready(self):
-        self.sg_nodes_dict = {} 
-        self.mat_networks = {} 
-        self.mesh_masters = {}
-        self.light_filters_dict = {} 
-        self.lightfilters_dict = {} 
+        self.sg_nodes_dict = dict()
+        self.mat_networks = dict() 
+        self.mesh_masters = dict()
+        self.light_filters_dict = dict()
+        self.lightfilters_dict = dict() 
         self.displayfilters_list = list()
         self.samplefilters_list = list()
+        self.obj_hash = dict()
+        self.obj_id = 1
 
         self.sg_scene = self.sgmngr.CreateScene()
         self.sg_root = self.sg_scene.Root()
@@ -280,7 +272,7 @@ class RmanSgExporter:
         self.shader_exporter = nodes_sg.RmanSgShadingExporter( rpass=self.rpass, 
                                 scene=self.scene, sgmngr=self.sgmngr, 
                                 sg_scene=self.sg_scene, sg_root = self.sg_root, 
-                                rman=rman)    
+                                rman=rman) 
         
     def is_prman_running(self):
         global is_running
@@ -331,8 +323,9 @@ class RmanSgExporter:
         argv.append("prman") 
         argv.append("-progress")
         if not for_preview:
-            argv.append("-dspyserver")
-            argv.append("it")
+            if self.rpass.display_driver == "it":
+                argv.append("-dspyserver")
+                argv.append("it")
             argv.append("-t:%d" % self.rm.threads)
             if check_point > 0:
                 argv.append("-checkpoint")
@@ -358,6 +351,8 @@ class RmanSgExporter:
         self.rictl.PRManEnd()
         print("PRManEnd called.")
         is_running = False
+
+        ec.UnregisterCallback("Progress", progress_cb, self)
 
         return True
 
@@ -423,6 +418,13 @@ class RmanSgExporter:
             self.sgmngr.DeleteScene(self.sg_scene.sceneId)
             self.rictl.PRManEnd()
             print("PRManEnd called.")
+
+    def issue_cropwindow_edits(self, crop_window=[]):
+        if crop_window:
+            with rman.SGManager.ScopedEdit(self.sg_scene): 
+                options = self.sg_scene.EditOptionBegin()
+                options.SetFloatArray(rman.Tokens.Rix.k_Ri_CropWindow, crop_window, 4)
+                self.sg_scene.EditOptionEnd(options)                     
 
     def issue_transform_edits(self, active, scene):
         self.scene = scene
@@ -1023,11 +1025,17 @@ class RmanSgExporter:
 
         sg_node.EditPrimVarEnd(primvars)
 
-    def export_object_attributes(self, ob, sg_node, visible_objects):
+    def export_object_attributes(self, ob, sg_node, visible_objects, name=""):
 
         # Adds external RIB to object_attributes
         rm = ob.renderman
         attrs = sg_node.EditAttributeBegin()        
+
+        # Add ID
+        if name != "":            
+            self.obj_hash[self.obj_id] = name
+            attrs.SetInteger(rman.Tokens.Rix.k_identifier_id, self.obj_id)
+            self.obj_id += 1
 
         """if rm.pre_object_rib_box != '':
             export_rib_box(ri, rm.pre_object_rib_box)"""
@@ -1947,6 +1955,9 @@ class RmanSgExporter:
             attrs.SetInteger("visibility:camera", int(primary_vis))
             attrs.SetInteger("visibility:transmission", 0)
             attrs.SetInteger("visibility:indirect", 0)
+            attrs.SetInteger(rman.Tokens.Rix.k_identifier_id, self.obj_id)
+            self.obj_hash[self.obj_id] = handle
+            self.obj_id += 1
             light_sg.EditAttributeEnd(attrs)
 
         else:
@@ -1970,6 +1981,9 @@ class RmanSgExporter:
             attrs.SetInteger("visibility:camera", 1)
             attrs.SetInteger("visibility:transmission", 0)
             attrs.SetInteger("visibility:indirect", 0)
+            attrs.SetInteger(rman.Tokens.Rix.k_identifier_id, self.obj_id)
+            self.obj_hash[self.obj_id] = handle
+            self.obj_id += 1            
             light_sg.EditAttributeEnd(attrs)              
 
         if  light_shader_name in ("PxrRectLight", 
@@ -2253,7 +2267,7 @@ class RmanSgExporter:
                 else:
                     inst_sg.SetMaterial(sg_material) 
 
-        self.export_object_attributes(instance.ob, inst_sg, visible_objects)                               
+        self.export_object_attributes(instance.ob, inst_sg, visible_objects, name)                               
 
    
         
@@ -2289,8 +2303,11 @@ class RmanSgExporter:
         if display_driver == 'it':
             dspy_info = make_dspy_info(self.scene)
             port = self.start_cmd_server()
+            dspy_callback = "dspyRender"
+            if self.ipr_mode:
+                dspy_callback = "dspyIPR"
             display.params.SetString("dspyParams", 
-                                    "dspyIPR -port %d -crop 1 0 1 0 -notes %s" % (port, dspy_info))
+                                    "%s -port %d -crop 1 0 1 0 -notes %s" % (dspy_callback, port, dspy_info))
         elif display_driver == "openexr":
             display.params.SetInteger("asrgba", 1)
             pass
@@ -2298,9 +2315,18 @@ class RmanSgExporter:
 
         sg_displays.append(display)
 
-        self.rpass.output_files.append(main_display)      
+        self.rpass.output_files.append(main_display) 
+
+        if self.ipr_mode:
+            # add ID display
+            display = self.sg_scene.CreateDisplay("it", "_id")
+            displaychannel = self.sg_scene.CreateDisplayChannel("integer", "id")
+            displaychannels.append(displaychannel)
+            display.channels = "id"
+            sg_displays.append(display)
 
         for layer in self.scene.render.layers:
+            break
             # custom aovs
             rm_rl = None
             for render_layer_settings in rm.render_layers:
