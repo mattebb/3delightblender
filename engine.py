@@ -58,8 +58,7 @@ from bpy.app.handlers import persistent
 # global dictionaries
 from .export import write_rib, write_preview_rib, get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
-    interactive_initial_rib, update_light_link, delete_light,\
-    reset_light_illum, solo_light, mute_lights, issue_light_vis, update_crop_window
+    interactive_initial_rib, update_light_link, delete_light
 
 from .nodes import get_tex_file_name
 
@@ -680,8 +679,8 @@ class RPass:
         self.light_filter_map = {}
         self.current_solo_light = None
         self.muted_lights = []
-        self.crop_window = (self.scene.render.border_min_x, self.scene.render.border_max_x,
-                      1.0 - self.scene.render.border_min_y, 1.0 - self.scene.render.border_max_y)
+        self.crop_window = [self.scene.render.border_min_x, self.scene.render.border_max_x,
+                      1.0 - self.scene.render.border_min_y, 1.0 - self.scene.render.border_max_y]
         for obj in self.scene.objects:
             if obj.type == 'LAMP' and obj.name not in self.lights:
                 # add the filters to the filter ma
@@ -722,6 +721,14 @@ class RPass:
         if rman_sg_exporter().is_prman_running():
             self.scene = scene
             active = scene.objects.active
+
+            cw = [scene.render.border_min_x, scene.render.border_max_x,
+                        1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y]
+
+            if cw != self.crop_window:
+                self.crop_window = cw
+                rman_sg_exporter().issue_cropwindow_edits(cw)
+                return            
 
             if (active and active.particle_systems.active and active.particle_systems.active.id_data.is_updated_data):
                 # particles updated
@@ -789,13 +796,6 @@ class RPass:
     # find the changed object and send for edits
     def issue_transform_edits(self, scene):
 
-        cw = (scene.render.border_min_x, scene.render.border_max_x,
-                    1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y)
-        if cw != self.crop_window:
-            self.crop_window = cw
-            update_crop_window(self.ri, self, prman, cw)
-            return
-
         active = scene.objects.active
         if (active and active.is_updated) or (active and active.type == 'LAMP' and active.is_updated_data):
             if is_ipr_running():
@@ -832,46 +832,6 @@ class RPass:
                     self.material_dict[mat_slot.material].append(active)
                     issue_shader_edits(self, self.ri, prman,
                                         nt=mat_slot.material.node_tree, ob=active)
-
-    def update_illuminates(self):
-        update_illuminates(self, self.ri, prman)
-
-    def update_light_visibility(self, lamp):
-        issue_light_vis(self, self.ri, lamp, prman)
-
-    def solo_light(self):
-        if self.current_solo_light:
-            # if there was originally a solo light have to reset ALL
-            lights = [
-                light for light in self.scene.objects if light.type == 'LAMP']
-            rman_sg_exporter().reset_light_illum(lights, do_solo=False)
-
-        self.current_solo_light = rman_sg_exporter().solo_light()
-
-    def un_solo_light(self):
-        if self.current_solo_light:
-            # if there was originally a solo light have to reset ALL
-            lights = [
-                light for light in self.scene.objects if light.type == 'LAMP']
-            rman_sg_exporter().reset_light_illum(lights, do_solo=False)
-            self.current_solo_light = None
-
-    def mute_light(self):
-        new_muted_lights = []
-        un_muted_lights = []
-        for obj in self.scene.objects:
-            if obj.type == 'LAMP':
-                if obj.data.renderman.mute and obj not in self.muted_lights:
-                    new_muted_lights.append(obj)
-                    self.muted_lights.append(obj)
-                elif not obj.data.renderman.mute and obj in self.muted_lights:
-                    un_muted_lights.append(obj)
-                    self.muted_lights.remove(obj)
-
-        if len(un_muted_lights):
-            rman_sg_exporter().reset_light_illum(un_muted_lights)
-        if len(new_muted_lights):
-            rman_sg_exporter().mute_lights(new_muted_lights)
 
     def issue_shader_edits(self, nt=None, node=None):
         if rman__sg__inited:

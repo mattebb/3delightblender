@@ -45,11 +45,10 @@ from .util import get_properties, check_if_archive_dirty
 from .util import locate_openVDB_cache
 from .util import debug, get_addon_prefs
 
-from .nodes import export_shader_nodetree, get_textures, get_textures_for_node, get_tex_file_name
-from .nodes import shader_node_rib, get_mat_name
-from .nodes import replace_frame_num
-
-from .nodes_sg import is_renderman_nodetree
+from .nodes_sg import is_renderman_nodetree, get_textures, get_textures_for_node, get_tex_file_name
+from .nodes_sg import export_shader_nodetree
+from .nodes_sg import get_mat_name
+from .nodes_sg import replace_frame_num
 
 from . import nodes_sg
 from . import engine
@@ -566,7 +565,6 @@ class RmanSgExporter:
                                 c = sg_node.GetChild(i)
                                 sg_node.RemoveChild(c)
                             self.sg_root.RemoveChild(sg_node)                        
-        pass    
 
     def issue_rman_prim_type_edit(self, active):
         if active.type == "MESH":
@@ -708,17 +706,11 @@ class RmanSgExporter:
             if mat is None:
                 return
             # do an attribute full rebind
-            tex_made = False
-            """if reissue_textures(ri, rpass, mat):
-                tex_made = True
-
-            # if texture made flush it
-            if tex_made:
-                rpass.edit_num += 1
-                edit_flush(ri, rpass.edit_num, prman)
-            rpass.edit_num += 1
-            edit_flush(ri, rpass.edit_num, prman)"""
-
+            
+            # invalidate any textues that were re-made
+            tex_files_made = reissue_textures(self.rpass, mat)
+            for f in tex_files_made:
+                self.rictl.InvalidateTexture(f)
 
             # New material assignment. Loop over all objects:
             if mat in self.rpass.material_dict and is_renderman_nodetree(mat):
@@ -772,13 +764,6 @@ class RmanSgExporter:
                                             psys_node.SetMaterial(sg_material)
 
 
-
-                        """
-                        ri.EditBegin(
-                            'attribute', {'string scopename': "^" + obj.name + "$"})
-                        export_material(ri, mat, iterate_instance=True)
-                        ri.EditEnd()"""
-                    pass
             elif lamp:
                 lamp_ob = lamp
                 lamp = mat
@@ -895,24 +880,12 @@ class RmanSgExporter:
             if not mat_name:
                 mat_name = mat.name  # for world/light
 
-            #tex_made = False
-            #if reissue_textures(ri, rpass, mat):
-            #    tex_made = True
+            # invalidate any textues that were re-made
+            tex_files_made = reissue_textures(self.rpass, mat)
+            for f in tex_files_made:
+                self.rictl.InvalidateTexture(f)
 
-            # if texture made flush it
-            #if tex_made:
-            #    rpass.edit_num += 1
-            #    edit_flush(ri, rpass.edit_num, prman)
-            self.rpass.edit_num += 1
-            #edit_flush(ri, rpass.edit_num, prman)
-
-            #ri.EditBegin('instance')
             handle = mat_name
-            #if instance_num > 0:
-            #    handle += "_%d" % instance_num
-            #shader_node_rib(ri, node, handle)
-            #ri.EditEnd()
-
             if is_lamp:
                 if node.renderman_node_type == "lightfilter":
                     if mat_name in self.sg_nodes_dict:
@@ -941,7 +914,6 @@ class RmanSgExporter:
 
             else:
                 handle = mat_name + '.' + node.name
-                #print("HANDLE: %s MATNAME: %s" % (handle, node.name))
                 mat_handle = 'material.%s' % mat_name
 
                 sg_material = self.sg_nodes_dict[mat_handle] 
@@ -2683,32 +2655,55 @@ class RmanSgExporter:
             primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, 360)
             sg_node.EditPrimVarEnd(primvar)
         
-        """elif mat.preview_render_type == 'FLAT':  # FLAT PLANE
-            # ri.Scale(0.75, 0.75, 0.75)
-            # ri.Translate(0.0, 0.0, 0.01)
-            ri.PointsPolygons([4, ],
-                            [0, 1, 2, 3],
-                            {ri.P: [0, -1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1]})
+
+        elif mat.preview_render_type == 'FLAT':  # FLAT PLANE
+            sg_node = self.sg_scene.CreateMesh(name)        
+            sg_node.Define( 1, 4, 4)
+            primvar = sg_node.EditPrimVarBegin()        
+            primvar.SetPointDetail(rman.Tokens.Rix.k_P, [0, -1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1], "vertex")
+            primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, [4], "uniform")
+            primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_vertices, [0, 1, 2, 3], "facevarying")    
+            sg_node.EditPrimVarEnd(primvar)
+            transform = rman.Types.RtMatrix4x4()
+            transform.Identity()
+            transform.Scale(.75, .75, .75) 
+            transform.Rotate(90, 0, 0, 1)      
+            sg_node.SetTransform(transform)  
+              
         elif mat.preview_render_type == 'CUBE':
-            ri.Scale(.75, .75, .75)
-            export_geometry_data(ri, scene, scene.objects[
-                                'preview_cube'], data=None)
+            sg_node = self.sg_scene.CreateMesh(name)
+            self.export_mesh(self.scene.objects[
+                                'preview_cube'], sg_node)
+            transform = rman.Types.RtMatrix4x4()
+            transform.Identity()
+            transform.Scale(.75, .75, .75) 
+            sg_node.SetTransform(transform)                                               
+            
         elif mat.preview_render_type == 'HAIR':
-            ri.Scale(.75, .75, .75)
-            export_geometry_data(ri, scene, scene.objects[
-                                'preview_hair'], data=None)
+            sg_node = self.export_geometry_data(self.scene.objects[
+                                'preview_hair'], name)
+            transform = rman.Types.RtMatrix4x4()
+            transform.Identity()
+            transform.Scale(.75, .75, .75) 
+            sg_node.SetTransform(transform)                                 
+
         elif mat.preview_render_type == 'MONKEY':
-            ri.Scale(.75, .75, .75)
-            ri.Rotate(90, 1, 0, 0)
-            ri.Rotate(90, 0, 1, 0)
-            export_geometry_data(ri, scene, scene.objects[
-                                'preview_monkey'], data=None)
+            sg_node = self.sg_scene.CreateMesh(name)
+            self.export_mesh(self.scene.objects[
+                                'preview_monkey'], sg_node)    
+
+            transform = rman.Types.RtMatrix4x4()
+            transform.Identity()
+            transform.Scale(.75, .75, .75)
+            transform.Rotate(-90, 0, 0, 1)
+            sg_node.SetTransform(transform)                                                            
         else:
-            ri.Scale(2, 2, 2)
-            ri.Rotate(90, 0, 0, 1)
-            ri.Rotate(45, 1, 0, 0)
-            export_geometry_data(ri, scene, scene.objects[
-                                'preview.002'], data=None)"""
+            pass
+            """
+            sg_node = self.sg_scene.CreateMesh(name)
+            self.export_mesh(self.scene.objects[
+                                'preview.002'], sg_node)            
+            """
 
         return sg_node
 
@@ -2799,12 +2794,12 @@ class RmanSgExporter:
             else:
                 sg_material = self.shader_exporter.export_simple_shader(mat)
 
-            m = rman.Types.RtMatrix4x4()
-            m.Identity()
-            m.Translate(0, 0, 0.2)
+            #m = rman.Types.RtMatrix4x4()
+            #m.Identity()
+            #m.Translate(0, 0, 0.2)
             sg_node = self.preview_model(mat)
             sg_node.SetMaterial(sg_material)
-            sg_node.SetTransform(m)
+            #sg_node.SetTransform(m)
             self.sg_root.AddChild(sg_node)
 
         #self.scene = org_scene
@@ -7223,32 +7218,19 @@ def issue_light_filter_transform_edit(ri, rpass, obj):
         ri.EditEnd()
 
 
-def issue_camera_edit(ri, rpass, camera):
-    ri.EditBegin('option')
-    export_camera(ri, rpass.scene, [], camera_to_use=camera)
-    ri.EditEnd()
-
-
-def update_crop_window(ri, rpass, prman, cw):
-    rpass.edit_num += 1
-    edit_flush(ri, rpass.edit_num, prman)
-    ri.EditBegin('option')
-    ri.CropWindow(cw[0], cw[1], cw[2], cw[3])
-    ri.EditEnd()
-
 # search this material/lamp for textures to re txmake and do them
 
 
-def reissue_textures(ri, rpass, mat):
+def reissue_textures(rpass, mat):
     made_tex = False
+    files = []
     if mat is not None:
         textures = get_textures(mat) if type(mat) == bpy.types.Material else \
             get_textures_for_node(mat.renderman.get_light_node())
 
         files = rpass.convert_textures(textures)
-        if files and len(files) > 0:
-            return True
-    return False
+
+    return files
 
 # return true if an object has an emissive connection
 
@@ -7364,6 +7346,8 @@ def update_light_link(rpass, ri, prman, link, remove=False):
 
 
 def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
+    pass
+    """
     if node is None:
         mat = None
         if bpy.context.object:
@@ -7485,3 +7469,4 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
             handle += "_%d" % instance_num
         shader_node_rib(ri, node, handle)
         ri.EditEnd()
+    """
