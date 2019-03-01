@@ -123,6 +123,7 @@ def shutdown_ipr():
             window = bpy.context.window_manager.windows[0]
             override['window'] = window
             override['screen'] = window.screen
+            override['selected_bases'] = list(bpy.context.scene.object_bases)
             bpy.ops.lighting.start_interactive(override, 'INVOKE_DEFAULT')
 
 def create(engine, data, scene, region=0, space_data=0, region_data=0):
