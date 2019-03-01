@@ -844,16 +844,16 @@ class RPass:
             # if there was originally a solo light have to reset ALL
             lights = [
                 light for light in self.scene.objects if light.type == 'LAMP']
-            reset_light_illum(self, self.ri, prman, lights, do_solo=False)
+            rman_sg_exporter().reset_light_illum(lights, do_solo=False)
 
-        self.current_solo_light = solo_light(self, self.ri, prman)
+        self.current_solo_light = rman_sg_exporter().solo_light()
 
     def un_solo_light(self):
         if self.current_solo_light:
             # if there was originally a solo light have to reset ALL
             lights = [
                 light for light in self.scene.objects if light.type == 'LAMP']
-            reset_light_illum(self, self.ri, prman, lights, do_solo=False)
+            rman_sg_exporter().reset_light_illum(lights, do_solo=False)
             self.current_solo_light = None
 
     def mute_light(self):
@@ -869,9 +869,9 @@ class RPass:
                     self.muted_lights.remove(obj)
 
         if len(un_muted_lights):
-            reset_light_illum(self, self.ri, prman, un_muted_lights)
+            rman_sg_exporter().reset_light_illum(un_muted_lights)
         if len(new_muted_lights):
-            mute_lights(self, self.ri, prman, new_muted_lights)
+            rman_sg_exporter().mute_lights(new_muted_lights)
 
     def issue_shader_edits(self, nt=None, node=None):
         if rman__sg__inited:

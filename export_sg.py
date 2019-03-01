@@ -365,6 +365,39 @@ class RmanSgExporter:
             self.rictl.PRManEnd()
             print("PRManEnd called.")
 
+    def mute_lights(self, lights):
+        with rman.SGManager.ScopedEdit(self.sg_scene):
+            for light in lights:
+                sg_node = self.sg_nodes_dict[light.name]
+                sg_node.SetHidden(1)        
+
+    def reset_light_illum(self, lights, do_solo=True):
+        with rman.SGManager.ScopedEdit(self.sg_scene):
+            for light in lights:
+                rm = light.data.renderman
+                do_light = rm.illuminates_by_default and not rm.mute
+                if do_solo and self.rpass.scene.renderman.solo_light:
+                    # check if solo
+                    do_light = do_light and rm.solo
+                sg_node = self.sg_nodes_dict[light.name]
+                sg_node.SetHidden(not(do_light))
+
+    def solo_light(self):
+        solo_light = None
+        with rman.SGManager.ScopedEdit(self.sg_scene):
+            for light in self.rpass.scene.objects:
+                if light.type == "LAMP":
+                    rm = light.data.renderman
+                    sg_node = self.sg_nodes_dict[light.name]                
+                    if rm.solo and not solo_light:
+                        do_light = rm.illuminates_by_default and not rm.mute
+                        solo_light = light
+                        sg_node.SetHidden(not(do_light))                    
+                    else:
+                        sg_node.SetHidden(1)
+        
+        return solo_light
+
     def issue_cropwindow_edits(self, crop_window=[]):
         if crop_window:
             with rman.SGManager.ScopedEdit(self.sg_scene): 
@@ -7261,47 +7294,6 @@ def delete_light(rpass, ri, name, prman):
     ri.Illuminate(name, False)
     ri.EditEnd()
 
-
-def reset_light_illum(rpass, ri, prman, lights, do_solo=True):
-    rpass.edit_num += 1
-    edit_flush(ri, rpass.edit_num, prman)
-    ri.EditBegin('overrideilluminate')
-
-    for light in lights:
-        rm = light.data.renderman
-        do_light = rm.illuminates_by_default and not rm.mute
-        if do_solo and rpass.scene.renderman.solo_light:
-            # check if solo
-            do_light = do_light and rm.solo
-        ri.Illuminate(light.data.name, do_light)
-    ri.EditEnd()
-
-
-def mute_lights(rpass, ri, prman, lights):
-    rpass.edit_num += 1
-    edit_flush(ri, rpass.edit_num, prman)
-    ri.EditBegin('overrideilluminate')
-
-    for light in lights:
-        ri.Illuminate(light.data.name, 0)
-    ri.EditEnd()
-
-
-def solo_light(rpass, ri, prman):
-    rpass.edit_num += 1
-    edit_flush(ri, rpass.edit_num, prman)
-    ri.EditBegin('overrideilluminate')
-    ri.Illuminate("*", 0)
-    for light in rpass.scene.objects:
-        if light.type == "LAMP":
-            rm = light.data.renderman
-            if rm.solo:
-                do_light = rm.illuminates_by_default and not rm.mute
-                ri.Illuminate(light.data.name, do_light)
-                break
-    ri.EditEnd()
-    if rm.solo:
-        return light
 # test the active object type for edits to do then do them
 
 
