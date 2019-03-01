@@ -2218,11 +2218,10 @@ class RmanSgExporter:
 
         self.export_object_attributes(instance.ob, inst_sg, visible_objects, name)                               
 
-   
-        
-        #if not instance_parent:
-        self.sg_global_obj.AddChild(inst_sg)        
-        self.sg_nodes_dict[name] = inst_sg
+
+        if not instance_parent or instance.ob.parent.type=="EMPTY":
+            self.sg_global_obj.AddChild(inst_sg)        
+            self.sg_nodes_dict[name] = inst_sg
 
     def export_displays(self):
         rm = self.scene.renderman
@@ -3237,7 +3236,7 @@ class RmanSgExporter:
             sg_dupli.AddChild(sg_node)
             self.sg_nodes_dict[dupli_name] = sg_node
 
-    def export_objects(self, data_blocks, instances, visible_objects=None):
+    def export_objects(self, data_blocks, instances, visible_objects=None, emptiesToExport=None):
 
         # first, loop over objects
         for name, db in data_blocks.items():
@@ -3304,7 +3303,7 @@ class RmanSgExporter:
         #    export_default_bxdf(ri, "default")
         self.export_materials()
 
-        self.export_objects(data_blocks, instances, visible_objects)
+        self.export_objects(data_blocks, instances, visible_objects, emptiesToExport)
 
 
         #for object in emptiesToExport:
