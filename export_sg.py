@@ -352,9 +352,6 @@ class RmanSgExporter:
         self.rictl.PRManBegin(argv)
         self.write_scene(visible_objects)
 
-        #ec = rman.EventCallbacks.Get()
-        #ec.RegisterCallback("Render", render_cb, self)
-
         is_running = True
        
         self.sg_scene.Render("rib /var/tmp/blender.rib")
@@ -1910,7 +1907,7 @@ class RmanSgExporter:
             light_sg.EditAttributeEnd(attrs)
 
         else:
-            names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrDistantLight',
+            names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrEnvDayLight',
                     'SPOT': 'PxrDiskLight', 'HEMI': 'PxrDomeLight', 'AREA': 'PxrRectLight'}
             light_shader_name = names[lamp.type]
             exposure = lamp.energy * 5.0

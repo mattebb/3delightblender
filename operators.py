@@ -489,6 +489,8 @@ class StartInteractive(bpy.types.Operator):
     def invoke(self, context, event=None):
         addon_prefs = get_addon_prefs()
         if engine.ipr is None:
+            if not hasattr(context, 'scene'):
+                return {'FINISHED'}
             engine.ipr = RPass(context.scene, interactive=True)
             if engine.rman__sg__inited:
                 engine.ipr.start_interactive_sg()
