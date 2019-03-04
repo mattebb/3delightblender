@@ -82,8 +82,10 @@ def init_prman():
         global rman__sg__inited
         global export_sg
         global rman_sg_exporter
+        global __is_prman_running__
         from . import export_sg
         from .export_sg import rman_sg_exporter
+        from .export_sg import __is_prman_running__
         rman__sg__inited = export_sg.is_ready()
     except Exception as e:
         print("Could not load scenegraph modules: %s" % str(e)) 
@@ -227,7 +229,7 @@ class RPass:
         global rman__sg__inited
 
         if rman__sg__inited:
-            if rman_sg_exporter().is_prman_running():
+            if __is_prman_running__():
                 rman_sg_exporter().stop_ipr()
 
     def initialize_paths(self, scene):
@@ -644,7 +646,7 @@ class RPass:
 
     def is_prman_running(self):
         if rman__sg__inited:
-            return rman_sg_exporter().is_prman_running()
+            return __is_prman_running__()
 
     def reset_filter_names(self):
         self.light_filter_map = {}
@@ -718,7 +720,7 @@ class RPass:
         return     
 
     def blender_scene_updated_cb(self, scene):
-        if rman_sg_exporter().is_prman_running():
+        if __is_prman_running__():
             self.scene = scene
             active = scene.objects.active
 

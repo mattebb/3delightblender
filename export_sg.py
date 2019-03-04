@@ -129,14 +129,18 @@ def convert_ob_bounds(ob_bb):
     return (ob_bb[0][0], ob_bb[7][0], ob_bb[0][1],
             ob_bb[7][1], ob_bb[0][2], ob_bb[1][2])    
 
+def __is_prman_running__():
+    global is_running
+    return is_running            
+
 class ItHandler(chatserver.ItBaseHandler):
 
     def dspyRender(self):
-        if not rman_sg_exporter().is_prman_running():                          
+        if not __is_prman_running__():                          
             bpy.ops.render.render()             
 
     def dspyIPR(self):
-        if rman_sg_exporter().is_prman_running():
+        if __is_prman_running__():
             crop = []
             for c in self.msg.getOpt('crop').split(' '):
                 crop.append(float(c))
@@ -222,10 +226,6 @@ class RmanSgExporter:
                                 sg_scene=self.sg_scene, sg_root = self.sg_root, 
                                 rman=rman) 
         
-    def is_prman_running(self):
-        global is_running
-        return is_running
-
     def start_cmd_server(self):
 
         global port
@@ -709,8 +709,9 @@ class RmanSgExporter:
             
             # invalidate any textues that were re-made
             tex_files_made = reissue_textures(self.rpass, mat)
-            for f in tex_files_made:
-                self.rictl.InvalidateTexture(f)
+            if tex_files_made:
+                for f in tex_files_made:
+                    self.rictl.InvalidateTexture(f)
 
             # New material assignment. Loop over all objects:
             if mat in self.rpass.material_dict and is_renderman_nodetree(mat):
@@ -882,8 +883,9 @@ class RmanSgExporter:
 
             # invalidate any textues that were re-made
             tex_files_made = reissue_textures(self.rpass, mat)
-            for f in tex_files_made:
-                self.rictl.InvalidateTexture(f)
+            if tex_files_made:
+                for f in tex_files_made:
+                    self.rictl.InvalidateTexture(f)
 
             handle = mat_name
             if is_lamp:
