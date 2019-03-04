@@ -610,11 +610,12 @@ class RmanSgExporter:
                         sg_node.SetInheritTransform(False)
                         self.sg_nodes_dict[db_name_emitter] = sg_node
                         instance = Instance(active.name, active.type, active, is_transforming(active, True))
-                        psys_mat = active.material_slots[psys.settings.material-1].material
-                        if psys_mat:
-                            mat_handle = 'material.%s' % psys_mat.name
-                            sg_material = self.sg_nodes_dict[mat_handle]
-                            sg_node.SetMaterial(sg_material)                        
+                        if len(active.material_slots) > 0:
+                            psys_mat = active.material_slots[psys.settings.material-1].material
+                            if psys_mat:
+                                mat_handle = 'material.%s' % psys_mat.name
+                                sg_material = self.sg_nodes_dict[mat_handle]
+                                sg_node.SetMaterial(sg_material)                        
                         if active.name in self.sg_nodes_dict:
                             parent_sg = self.sg_nodes_dict[active.name]
                             parent_sg.AddChild(sg_node)
@@ -655,12 +656,13 @@ class RmanSgExporter:
                                                    
                     new_sg_node = self.sg_scene.CreateGroup(db_name_hair)
                     if sg_material is None:
-                        psys_mat = active.material_slots[psys.settings.material-1].material
-                        if psys_mat:
-                            mat_handle = 'material.%s' % psys_mat.name
-                            sg_material = self.sg_nodes_dict[mat_handle]                      
+                        if len(active.material_slots) > 0:
+                            psys_mat = active.material_slots[psys.settings.material-1].material
+                            if psys_mat:
+                                mat_handle = 'material.%s' % psys_mat.name
+                                sg_material = self.sg_nodes_dict[mat_handle]                      
                     if new_sg_node:                
-                            self.export_hair(new_sg_node, active, psys, db_name_hair, None)
+                            self.export_hair(new_sg_node, active, psys, db_name_hair, None, True)
                             self.sg_nodes_dict[db_name_hair] = new_sg_node
                             new_sg_node.SetMaterial(sg_material)
                             if sg_node:
