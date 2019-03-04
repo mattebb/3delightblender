@@ -569,8 +569,7 @@ class RmanSgExporter:
                     if k.startswith(handle):
                         if k.endswith('-EMITTER') or k.endswith("-HAIR"):
                             sg_node = self.sg_nodes_dict[k]
-                            for i in range(0, sg_node.GetNumChildren()):
-                                c = sg_node.GetChild(i)
+                            for c in [ sg_node.GetChild(i) for i in range(0, sg_node.GetNumChildren())]:
                                 sg_node.RemoveChild(c)
                             self.sg_root.RemoveChild(sg_node)                        
 
@@ -581,8 +580,7 @@ class RmanSgExporter:
             if mesh_sg:
                 with rman.SGManager.ScopedEdit(self.sg_scene):
                     new_mesh_sg = self.export_geometry_data(active, db_name, data=None)
-                    for i in range(mesh_sg.GetNumParents()):
-                        p = mesh_sg.GetParent(i)
+                    for p in [ mesh_sg.GetParent(i) for i in range(0, mesh_sg.GetNumParents())]:
                         p.RemoveChild(mesh_sg)
                         p.AddChild(new_mesh_sg)          
 
@@ -595,8 +593,7 @@ class RmanSgExporter:
             with rman.SGManager.ScopedEdit(self.sg_scene):                
                 new_sg_node = self.export_particles(active, psys, db_name_emitter)
                 if new_sg_node:
-                    for i in range(sg_node.GetNumParents()):
-                        p = sg_node.GetParent(i)
+                    for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
                         p.RemoveChild(sg_node)
                         p.AddChild(new_sg_node)                 
 
