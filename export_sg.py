@@ -220,7 +220,7 @@ class RmanSgExporter:
 
         if self.sg_scene:
             self.sgmngr.DeleteScene(self.sg_scene.sceneId)
-            
+
         self.sg_scene = self.sgmngr.CreateScene()
         self.sg_root = self.sg_scene.Root()
         self.sg_global_obj = None
@@ -491,11 +491,16 @@ class RmanSgExporter:
                 else:        
                     instance = get_instance(active, self.scene, False)
                     if instance:
+                        inst_sg = None
                         if instance.name in self.sg_nodes_dict.keys():                    
                             inst_sg = self.sg_nodes_dict[instance.name]
-                            if inst_sg:
-                                with rman.SGManager.ScopedEdit(self.sg_scene):
-                                    self.export_transform(instance, inst_sg) 
+                        else:
+                            db_name = data_name(active, self.scene)
+                            inst_sg = self.sg_nodes_dict[db_name]
+
+                        if inst_sg:
+                            with rman.SGManager.ScopedEdit(self.sg_scene):
+                                self.export_transform(instance, inst_sg)                                    
 
                     # check if this object is part of a group/dupli
                     # update accordingly.
