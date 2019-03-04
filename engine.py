@@ -393,10 +393,10 @@ class RPass:
 
         progress_cb_ptr = progress_cb      
 
-        #if for_preview:
+        if for_preview:
         #    progress_cb_ptr = None
             # TODO: fix material preview renders
-        #    return
+            return
 
         if not rman_sg_exporter().start_render(visible_objects, self, self.scene, progress_cb_ptr, update_frequency, for_preview):
             return

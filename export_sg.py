@@ -218,6 +218,9 @@ class RmanSgExporter:
         self.obj_hash = dict()
         self.obj_id = 1
 
+        if self.sg_scene:
+            self.sgmngr.DeleteScene(self.sg_scene.sceneId)
+            
         self.sg_scene = self.sgmngr.CreateScene()
         self.sg_root = self.sg_scene.Root()
         self.sg_global_obj = None
