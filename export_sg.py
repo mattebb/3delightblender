@@ -2822,7 +2822,7 @@ class RmanSgExporter:
                             [p for p in psys.particles if valid_particle(p, subframes)]:
                         pvars.extend(pa.angular_velocity)
 
-                #primvar.SetFloatArray(p.name, pvars, len(pvars), sample )
+                primvar.SetFloatArrayDetail(p.name, pvars, 3, "uniform", sample)
 
             elif p.data_source in \
                     ('SIZE', 'AGE', 'BIRTH_TIME', 'DIE_TIME', 'LIFE_TIME', 'ID'):
@@ -2850,7 +2850,7 @@ class RmanSgExporter:
                     pvars = [id for id, p in psys.particles.items(
                     ) if valid_particle(p, subframes)]
                 
-                #primvar.SetFloatDetail(p.name, pvars, "varying", sample)       
+                primvar.SetFloatDetail(p.name, pvars, "varying", sample)       
 
     def export_particle_points(self, sg_node, psys, ob, motion_data, objectCorrectionMatrix=False):
         rm = psys.settings.renderman
