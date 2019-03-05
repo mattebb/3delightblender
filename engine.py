@@ -56,9 +56,9 @@ import sys
 from bpy.app.handlers import persistent
 
 # global dictionaries
-from .export import write_rib, write_preview_rib, get_texture_list,\
+from .export import get_texture_list,\
     issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
-    interactive_initial_rib, update_light_link, delete_light
+    update_light_link
 
 from .nodes import get_tex_file_name
 
