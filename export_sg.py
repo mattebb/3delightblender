@@ -560,8 +560,8 @@ class RmanSgExporter:
 
 
     def issue_delete_object_edits(self, obj_name, handle):
-        if handle in self.sg_nodes_dict:
-            sg_node = self.sg_nodes_dict[handle]
+        sg_node = self.sg_nodes_dict.get(handle)
+        if sg_node:            
             with rman.SGManager.ScopedEdit(self.sg_scene):
                 self.sg_scene.DeleteDagNode(sg_node)
                 self.sg_nodes_dict.pop(handle, None)
@@ -574,21 +574,21 @@ class RmanSgExporter:
                             self.sg_root.RemoveChild(sg_node)                        
 
     def issue_rman_prim_type_edit(self, active):
-        if active.type == "MESH":
-            db_name = '%s-MESH' % active.name
-            mesh_sg = self.sg_nodes_dict[db_name]
+        if active.type == "MESH":            
+            db_name = data_name(active, self.scene)
+            mesh_sg = self.sg_nodes_dict.get(db_name)
             if mesh_sg:
                 with rman.SGManager.ScopedEdit(self.sg_scene):
                     new_mesh_sg = self.export_geometry_data(active, db_name, data=None)
                     for p in [ mesh_sg.GetParent(i) for i in range(0, mesh_sg.GetNumParents())]:
                         p.RemoveChild(mesh_sg)
-                        p.AddChild(new_mesh_sg)          
+                        p.AddChild(new_mesh_sg)     
 
     def issue_rman_particle_prim_type_edit(self, active, psys):
         if psys is None:
             return
         db_name_emitter = '%s.%s-EMITTER' % (active.name, psys.name)
-        sg_node = self.sg_nodes_dict[db_name_emitter]
+        sg_node = self.sg_nodes_dict.get(db_name_emitter)
         if sg_node:
             with rman.SGManager.ScopedEdit(self.sg_scene):                
                 new_sg_node = self.export_particles(active, psys, db_name_emitter)
@@ -674,8 +674,8 @@ class RmanSgExporter:
                                 parent_sg.AddChild(new_sg_node)
 
         elif active.type == "MESH":
-            db_name = '%s-MESH' % active.name
-            mesh_sg = self.sg_nodes_dict[db_name]
+            db_name = data_name(active, self.scene) 
+            mesh_sg = self.sg_nodes_dict.get(db_name)
             if mesh_sg:
                 prim = active.renderman.primitive if active.renderman.primitive != 'AUTO' \
                     else detect_primitive(active)                
@@ -698,11 +698,15 @@ class RmanSgExporter:
                 mat = bpy.context.object.active_material
                 if mat not in self.rpass.material_dict:
                     self.rpass.material_dict[mat] = [bpy.context.object]
+
                 # if the last edit was a material edit skip the attribute edit
                 # we get two edits when should get one.
+                ## ihsieh - is this still needed? Seems to cause issues
+                """
                 if self.rpass.last_edit_mat == mat:
                     self.rpass.last_edit_mat = None
                     return
+                """
             lamp = None
             world = bpy.context.scene.world
             if mat is None and hasattr(bpy.context, 'lamp') and bpy.context.lamp:
@@ -799,10 +803,14 @@ class RmanSgExporter:
                 mat = bpy.context.object.active_material
                 if mat:
                     instance_num = mat.renderman.instance_num
-                    if self.rpass.last_edit_mat == mat:
-                        self.rpass.last_edit_mat = None
-                        return
-                    self.rpass.last_edit_mat = mat
+                    ##
+                    ## ihsieh - is this still neeeded?
+                    ##
+                    #if self.rpass.last_edit_mat == mat:
+                    #    self.rpass.last_edit_mat = None
+                    #    return
+                    #self.rpass.last_edit_mat = mat
+                    
                     mat_name = get_mat_name(mat.name)
             # if this is a lamp use that for the mat/name
             if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
