@@ -2268,7 +2268,7 @@ def shader_node_sg(sg_scene, rman, node, mat_name, disp_bound=0.0, portal=False)
 
     if node.renderman_node_type == "pattern":
         if node.bl_label == 'PxrOSL':
-            shader = node.plugin_name
+            shader = node.shadercode #node.plugin_name
             if shader:
                 sg_node = sg_scene.CreateNode("Pattern", shader, instance)
                 #ri.Pattern(shader, instance, params)

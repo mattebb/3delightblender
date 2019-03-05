@@ -2193,6 +2193,7 @@ class RmanSgExporter:
 
             if mat is None:
                 continue
+            mat_name = get_mat_name(mat_name)
             self.export_material(mat, mat_name)
         
     def write_instances(self, db_name, data_block, name, instance, instance_parent, visible_objects=[]):
@@ -2233,7 +2234,7 @@ class RmanSgExporter:
                 if data_block.type == "PSYS":
                     psys_group.SetMaterial(sg_material)
                 else:
-                    inst_sg.SetMaterial(sg_material) 
+                    inst_sg.SetMaterial(sg_material)                   
 
         self.export_object_attributes(instance.ob, inst_sg, visible_objects, name)                               
 
