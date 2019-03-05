@@ -1165,10 +1165,10 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
             # if rm.export_archive:
             #    col.prop(rm, "export_archive_path")
 
-        rman_archive = load_icons().get("archive_RIB")
-        col = layout.column()
-        col.operator("export.export_rib_archive",
-                     text="Export Object as RIB Archive.", icon_value=rman_archive.icon_id)
+        #rman_archive = load_icons().get("archive_RIB")
+        #col = layout.column()
+        #col.operator("export.export_rib_archive",
+        #             text="Export Object as RIB Archive.", icon_value=rman_archive.icon_id)
 
         col = layout.column()
         # col.prop(rm, "export_coordsys")
@@ -1179,7 +1179,7 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         sub.active = rm.motion_segments_override
         sub.prop(rm, "motion_segments")
 
-
+"""
 class RendermanRibBoxPanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -1229,7 +1229,7 @@ class SCENE_PT_renderman_rib_box(RendermanRibBoxPanel, Panel):
     def draw(self, context):
         self.draw_rib_boxes(self.layout, ['frame_rib_box'],
                             context.scene)
-
+"""
 
 class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
     bl_space_type = 'PROPERTIES'
