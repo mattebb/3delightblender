@@ -607,7 +607,13 @@ class RmanSgExporter:
                 sg_node = None
                 with rman.SGManager.ScopedEdit(self.sg_scene):                 
                     if db_name_emitter not in self.sg_nodes_dict:
-                        sg_node = self.sg_scene.CreatePoints(db_name_emitter)
+                        if rm.particle_type == 'particle':
+                            sg_node = self.sg_scene.CreatePoints(db_name_emitter)
+                        elif rm.particle_type == 'blobby':
+                            sg_node = self.sg_scene.CreateBlobby(db_name_emitter)
+                        else:
+                            sg_node = self.sg_scene.CreateGroup(db_name_emitter)            
+
                         sg_node.SetInheritTransform(False)
                         self.sg_nodes_dict[db_name_emitter] = sg_node
                         instance = Instance(active.name, active.type, active, is_transforming(active, True))
@@ -667,25 +673,74 @@ class RmanSgExporter:
                         sg_material = sg_node.GetMaterial()
                         for c in [ sg_node.GetChild(i) for i in range(0, sg_node.GetNumChildren())]:
                             sg_node.RemoveChild(c)
+
+                        self.export_hair(sg_node, active, psys, db_name_hair, None, False)
+                        for group in active.users_group:  
+                            for dupli in group.users_dupli_group:
+                                dupli.dupli_list_create(self.scene, "RENDER")
+                                for dupob in dupli.dupli_list:
+                                    if active.name == dupob.object.name:
+                                            dupli_name = "%s.DUPLI.%s.%d" % (dupli.name, dupob.object.name,
+                                                        dupob.index)
+
+                                            sg_dupli = self.sg_nodes_dict.get(dupli_name)
+
+                                            if sg_dupli:    
+                                                    if psys:
+                                                        group_sg = None
+                                                        group_sg_name = '%s-HAIR' % dupli_name                
+                                                        group_sg = self.sg_nodes_dict.get(group_sg_name)
+                                                        if group_sg:
+                                                            for c in [ group_sg.GetChild(i) for i in range(0, group_sg.GetNumChildren())]:
+                                                                group_sg.RemoveChild(c)
+                                                            for i in range(0, sg_node.GetNumChildren()):
+                                                                c = sg_node.GetChild(i)            
+                                                                group_sg.AddChild(c)                        
+                    else:
                                                    
-                    new_sg_node = self.sg_scene.CreateGroup(db_name_hair)
-                    if sg_material is None:
-                        if len(active.material_slots) > 0:
-                            psys_mat = active.material_slots[psys.settings.material-1].material
-                            if psys_mat:
-                                mat_handle = 'material.%s' % psys_mat.name
-                                sg_material = self.sg_nodes_dict[mat_handle]                      
-                    if new_sg_node:                
-                            self.export_hair(new_sg_node, active, psys, db_name_hair, None, True)
+                        new_sg_node = self.sg_scene.CreateGroup(db_name_hair)
+                        if sg_material is None:
+                            if len(active.material_slots) > 0:
+                                psys_mat = active.material_slots[psys.settings.material-1].material
+                                if psys_mat:
+                                    mat_handle = 'material.%s' % psys_mat.name
+                                    sg_material = self.sg_nodes_dict[mat_handle]                      
+                        if new_sg_node:
+                            new_sg_node.SetInheritTransform(False)
+
+                            self.export_hair(new_sg_node, active, psys, db_name_hair, None, False)
                             self.sg_nodes_dict[db_name_hair] = new_sg_node
                             new_sg_node.SetMaterial(sg_material)
-                            if sg_node:
-                                for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
-                                    p.RemoveChild(sg_node)
-                                    p.AddChild(new_sg_node)
-                            else:
-                                parent_sg = self.sg_nodes_dict[active.name]
-                                parent_sg.AddChild(new_sg_node)
+
+                            parent_sg = self.sg_nodes_dict[active.name]
+                            parent_sg.AddChild(new_sg_node)
+
+                        for group in active.users_group:  
+                            for dupli in group.users_dupli_group:
+                                dupli.dupli_list_create(self.scene, "RENDER")
+                                for dupob in dupli.dupli_list:
+                                    if active.name == dupob.object.name:
+                                            dupli_name = "%s.DUPLI.%s.%d" % (dupli.name, dupob.object.name,
+                                                        dupob.index)
+
+                                            sg_dupli = self.sg_nodes_dict.get(dupli_name)
+
+                                            if sg_dupli:    
+                                                    if psys:
+                                                        group_sg = None
+                                                        group_sg_name = '%s-HAIR' % dupli_name                
+                                                        group_sg = self.sg_scene.CreateGroup(group_sg_name)
+                                                        for i in range(0, new_sg_node.GetNumChildren()):
+                                                            c = new_sg_node.GetChild(i)            
+                                                            group_sg.AddChild(c)
+                                                        self.sg_nodes_dict[group_sg_name] = group_sg
+                                                        group_sg.SetInheritTransform(False)
+                                                        group_sg.SetTransform( convert_matrix(dupli.matrix_local) )
+                                                        group_sg.SetMaterial(sg_material)    
+                                                        sg_dupli.AddChild(group_sg)                                                                                              
+
+                                dupli.dupli_list_clear()                             
+
 
         elif active.type == "MESH":
             db_name = data_name(active, self.scene) 
