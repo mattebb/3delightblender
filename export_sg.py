@@ -1240,13 +1240,11 @@ class RmanSgExporter:
         if prim_type not in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
             return False
 
-        primvar = sg_node.EditPrimVarBegin()
-
         is_deforming = False
         mesh = None
+        time_samples = []
         if motion_data is not None and isinstance(motion_data, list) and len(motion_data):
-            time_samples = [sample[0] for sample in motion_data]
-            primvar.SetTimeSamples( time_samples )
+            time_samples = [sample[0] for sample in motion_data]            
             is_deforming = True
         else:
             mesh = self.create_mesh(ob)
@@ -1263,8 +1261,11 @@ class RmanSgExporter:
             return False
 
         nm_pts = int(len(P)/3)
-        sg_node.Define( len(nverts), nm_pts, len(verts) )        
-
+        sg_node.Define( len(nverts), nm_pts, len(verts) )
+        primvar = sg_node.EditPrimVarBegin()
+        primvar.Clear()
+        if time_samples:        
+            primvar.SetTimeSamples( time_samples )
 
         if is_deforming:
             sample = 0
@@ -1308,6 +1309,7 @@ class RmanSgExporter:
             sg_node.SetScheme(rman.Tokens.Rix.k_catmullclark) 
 
         elif prim_type == "POLYGON_MESH":
+            sg_node.SetScheme(None)
             primvar.SetNormalDetail(rman.Tokens.Rix.k_N, N, "facevarying")            
 
         if is_multi_material(mesh):
@@ -1600,18 +1602,22 @@ class RmanSgExporter:
             return None    
 
         sg_node = None
+        sg_node = self.sg_nodes_dict.get(db_name)
 
         if prim in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
-            sg_node = self.sg_scene.CreateMesh(db_name)
-            if self.export_mesh(ob, sg_node, data, prim):
-                self.export_object_primvars(ob, sg_node)
+            if not sg_node:
+                sg_node = self.sg_scene.CreateMesh(db_name)
                 self.sg_nodes_dict[db_name] = sg_node
+            if self.export_mesh(ob, sg_node, data, prim):
+                self.export_object_primvars(ob, sg_node)                
             else:
                 self.sg_scene.DeleteDagNode(sg_node)
+                self.sg_nodes_dict[db_name] = None
 
          # mesh only
         elif prim == 'POINTS':
-            sg_node = self.sg_scene.CreatePoints(db_name)
+            if not sg_node:
+                sg_node = self.sg_scene.CreatePoints(db_name)
             self.export_points(sg_node, ob, data) 
             self.sg_nodes_dict[db_name] = sg_node                       
 
@@ -1621,7 +1627,8 @@ class RmanSgExporter:
             # to_mesh call.
             l = ob.data.extrude + ob.data.bevel_depth
             if l > 0:
-                sg_node = self.sg_scene.CreateMesh(db_name)
+                if not sg_node:
+                    sg_node = self.sg_scene.CreateMesh(db_name)
                 self.export_mesh(ob, sg_node, data, prim_type="POLYGON_MESH")
                 self.export_object_primvars(ob, sg_node)
                 self.sg_nodes_dict[db_name] = sg_node                 
@@ -1632,13 +1639,15 @@ class RmanSgExporter:
 
         # RenderMan quadrics
         elif prim in ['SPHERE', 'CYLINDER', 'CONE', 'DISK', 'TORUS']:
-            sg_node = self.sg_scene.CreateQuadric(db_name)
+            if not sg_node:
+                sg_node = self.sg_scene.CreateQuadric(db_name)
             self.export_quadrics(ob, prim, sg_node)
             self.sg_nodes_dict[db_name] = sg_node 
 
         elif prim == 'RI_VOLUME':
             rm = ob.renderman
-            sg_node = self.sg_scene.CreateVolume(db_name)
+            if not sg_node:
+                sg_node = self.sg_scene.CreateVolume(db_name)
             sg_node.Define(0,0,0)
             primvar = sg_node.EditPrimVarBegin()
             primvar.SetString(rman.Tokens.Rix.k_Ri_type, "box")
@@ -1648,12 +1657,14 @@ class RmanSgExporter:
             self.sg_nodes_dict[db_name] = sg_node   
 
         elif prim == 'META':
-            sg_node = self.sg_scene.CreateBlobby(db_name)
+            if not sg_node:
+                sg_node = self.sg_scene.CreateBlobby(db_name)
             self.export_blobby_family(sg_node, ob)  
             self.sg_nodes_dict[db_name] = sg_node            
 
         elif prim == 'SMOKE':
-            sg_node = self.sg_scene.CreateVolume(db_name)
+            if not sg_node:
+                sg_node = self.sg_scene.CreateVolume(db_name)
             self.export_smoke(sg_node, ob)                    
             self.sg_nodes_dict[db_name] = sg_node               
                             
