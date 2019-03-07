@@ -6089,18 +6089,20 @@ def property_group_to_rixparams(node, sg_node, lamp=None):
             name = meta['renderman_name']
             # if struct is not linked continue
             if 'arraySize' in meta:
+                if type == 'float':
+                    params.SetFloatArray(name, rib(prop), len(prop))
+                elif type == 'int':
+                    params.SetIntegerArray(name, rib(prop), len(prop))
+                elif type == 'color':
+                    params.SetColorArray(name, rib(prop), len(prop)/3)
+                elif type == 'string':
+                    params.SetStringArray(name, rib(prop), len(prop))
+
                 continue
                 #params['%s[%d] %s' % (meta['renderman_type'], len(prop),
                 #                      meta['renderman_name'])] = rib(prop)
             elif ('widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
-                #params.SetString(name, get_tex_file_name(prop))
-                params.SetString(name, str(prop))
-
-                continue
-                #params['%s %s' % (meta['renderman_type'],
-                #                  meta['renderman_name'])] = \
-                #    rib(get_tex_file_name(prop),
-                #        type_hint=meta['renderman_type'])
+                params.SetString(name, get_tex_file_name(prop))
 
             else:
                 

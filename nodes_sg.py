@@ -2345,6 +2345,10 @@ def replace_frame_num(prop):
 
 def get_tex_file_name(prop):
     prop = replace_frame_num(prop)
+    filename,ext = os.path.splitext(prop)
+    if ext == '.tex':
+        return prop
+
     prop = bpy.path.basename(prop)
     part = prop.rpartition('.')
     prop = part[0]
@@ -2358,7 +2362,6 @@ def get_tex_file_name(prop):
         return user_path(_f_)
     else:
         return prop
-
 
 def is_same_type(socket1, socket2):
     return (type(socket1) == type(socket2)) or (is_float_type(socket1) and is_float_type(socket2)) or \
