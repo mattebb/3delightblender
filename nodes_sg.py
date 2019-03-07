@@ -1607,7 +1607,7 @@ def gen_rixparams(node, params, mat_name=None):
                         elif param_type == "string":
                             params.SetString(param_name, val)
 
-    """if node.plugin_name == 'PxrRamp':
+    if node.plugin_name == 'PxrRamp':
         nt = bpy.data.node_groups[node.node_group]
         if nt:
             dummy_ramp = nt.nodes['ColorRamp']
@@ -1622,8 +1622,13 @@ def gen_rixparams(node, params, mat_name=None):
             positions.append(
                 float(dummy_ramp.color_ramp.elements[-1].position))
             colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
-            params['color[%d] colors' % len(positions)] = colors
-            params['float[%d] positions' % len(positions)] = positions"""
+
+            params.SetFloatArray("colorRamp_Knots", positions, len(positions))
+            params.SetColorArray("colorRamp_Colors", colors, len(positions))
+
+            rman_interp_map = { 'LINEAR': 'linear', 'CONSTANT': 'constant'}
+            interp = rman_interp_map.get(dummy_ramp.color_ramp.interpolation,'catmull-rom')
+            params.SetString("colorRamp_Interpolation", interp )
     return params
 
 # generate param list

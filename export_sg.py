@@ -6098,9 +6098,6 @@ def property_group_to_rixparams(node, sg_node, lamp=None):
                 elif type == 'string':
                     params.SetStringArray(name, rib(prop), len(prop))
 
-                continue
-                #params['%s[%d] %s' % (meta['renderman_type'], len(prop),
-                #                      meta['renderman_name'])] = rib(prop)
             elif ('widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
                 params.SetString(name, get_tex_file_name(prop))
 
@@ -6115,15 +6112,15 @@ def property_group_to_rixparams(node, sg_node, lamp=None):
                 elif type == 'string':
                     params.SetString(name, str(prop))
 
-    """if lamp and node.plugin_name in ['PxrBlockerLightFilter', 'PxrRampLightFilter',
+    if lamp and node.plugin_name in ['PxrBlockerLightFilter', 'PxrRampLightFilter',
                                      'PxrRodLightFilter']:
         rm = lamp.renderman
         nt = lamp.node_tree
         if nt and rm.float_ramp_node in nt.nodes.keys():
             knot_param = 'ramp_Knots' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Knots'
             float_param = 'ramp_Floats' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Floats'
-            del params['float[16] %s' % knot_param]
-            del params['float[16] %s' % float_param]
+            params.Remove('%s' % knot_param)
+            params.Remove('%s' % float_param)
             float_node = nt.nodes[rm.float_ramp_node]
             curve = float_node.mapping.curves[0]
             knots = []
@@ -6136,11 +6133,12 @@ def property_group_to_rixparams(node, sg_node, lamp=None):
                 vals.append(p.location[1])
             knots.append(curve.points[-1].location[0])
             vals.append(curve.points[-1].location[1])
-            params['float[%d] %s' % (len(knots), knot_param)] = knots
-            params['float[%d] %s' % (len(vals), float_param)] = vals
+
+            params.SetFloatArray(knot_param, knots, len(knots))
+            params.SetFloatArray(fkiat_param, vals, len(vals))
 
         if nt and rm.color_ramp_node in nt.nodes.keys():
-            del params['float[16] colorRamp_Knots']
+            params.Remove('colorRamp_Knots')
             color_node = nt.nodes[rm.color_ramp_node]
             color_ramp = color_node.color_ramp
             colors = []
@@ -6154,8 +6152,9 @@ def property_group_to_rixparams(node, sg_node, lamp=None):
             positions.append(
                 float(color_ramp.elements[-1].position))
             colors.extend(color_ramp.elements[-1].color[:3])
-            params['float[%d] colorRamp_Knots' % len(positions)] = positions
-            params['color[%d] colorRamp_Colors' % len(positions)] = colors"""
+
+            params.SetFloatArray('colorRamp_Knots', positions, len(positions))
+            params.SetColorArray('colorRamp_Colors', colors, len(positions))            
 
     sg_node.EditParameterEnd(params)
 
