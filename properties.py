@@ -1335,6 +1335,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         elif area_shape == 'sphere':
             lamp.shape = 'SQUARE'
             light_shader = 'PxrSphereLight'
+        elif area_shape == 'cylinder':
+            lamp.shape = 'RECTANGLE'
+            light_shader = 'PxrCylinderLight'
         else:
             lamp.shape = 'RECTANGLE'
 
@@ -1692,7 +1695,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         update=update_area_shape,
         items=[('rect', 'Rectangle', 'Rectangle'),
                ('disk', 'Disk', 'Disk'),
-               ('sphere', 'Sphere', 'Sphere'), ],
+               ('sphere', 'Sphere', 'Sphere'), 
+               ('cylinder', 'Cylinder', 'Cylinder')],
         default='rect'
     )
 

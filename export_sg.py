@@ -2039,7 +2039,8 @@ class RmanSgExporter:
                                 "PxrPortalLight",
                                 "PxrSphereLight",
                                 "PxrDistantLight",
-                                "PxrPortalLight"):
+                                "PxrPortalLight",
+                                "PxrCylinderLight"):
 
             light_sg.SetOrientTransform(s_orientPxrLight)
             light_sg.SetTransform( convert_matrix(ob.matrix_world) )
