@@ -56,8 +56,7 @@ import sys
 from bpy.app.handlers import persistent
 
 # global dictionaries
-from .export import get_texture_list,\
-    issue_shader_edits, get_texture_list_preview, issue_transform_edits,\
+from .export import issue_shader_edits, issue_transform_edits,\
     update_light_link
 
 from .nodes import get_tex_file_name
@@ -83,9 +82,12 @@ def init_prman():
         global export_sg
         global rman_sg_exporter
         global __is_prman_running__
+        global get_texture_list
+        global get_texture_list_preview
         from . import export_sg
         from .export_sg import rman_sg_exporter
         from .export_sg import __is_prman_running__
+        from .export_sg import get_texture_list, get_texture_list_preview
         rman__sg__inited = export_sg.is_ready()
     except Exception as e:
         print("Could not load scenegraph modules: %s" % str(e)) 
@@ -369,7 +371,10 @@ class RPass:
                       render_output)                   
 
         # convert textures
-        self.convert_textures(get_texture_list_preview(self.scene))
+        if for_preview:
+            self.convert_textures(get_texture_list_preview(self.scene))
+        else:
+            self.convert_textures(get_texture_list(self.scene))            
 
         if self.display_driver == 'it':
             update_frequency = -1

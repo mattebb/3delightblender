@@ -339,7 +339,7 @@ class ExternalRender(bpy.types.Operator):
 
     def gen_rib_frame(self, rpass, do_objects):
         try:
-            rpass.gen_rib(do_objects, convert_textures=False)
+            rpass.gen_rib(do_objects, convert_textures=True)
         except Exception as err:
             self.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
 

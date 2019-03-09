@@ -327,11 +327,12 @@ class RmanSgExporter:
             rib_options += " -indent"
 
         is_running = True
-        print("Wrote RIB to: %s" % ribfile)
-        self.sg_scene.Render("rib %s %s" % (rib_options, ribfile))       
+        #self.sg_scene.Render("rib %s %s" % (rib_options, ribfile))       
+        self.sg_scene.Render("rib %s" % (ribfile))       
 
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         is_running = False
+        print("Wrote RIB to: %s" % ribfile)        
 
     def start_ipr(self, visible_objects, rpass, scene, progress_cb=None):
 
