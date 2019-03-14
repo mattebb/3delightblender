@@ -740,7 +740,10 @@ class RPass:
             if (active and active.particle_systems.active and active.particle_systems.active.id_data.is_updated_data):
                 # particles updated
                 psys_active = active.particle_systems.active
-                rman_sg_exporter().issue_object_edits(active, scene, psys=psys_active)            
+                rman_sg_exporter().issue_object_edits(active, scene, psys=psys_active) 
+
+            if active and active.type != 'LAMP':
+                rman_sg_exporter().issue_visibility_edit(active, scene)           
 
             if (active and active.is_updated):
                 if active.type == 'LAMP':
