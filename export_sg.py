@@ -635,6 +635,13 @@ class RmanSgExporter:
                             p.RemoveChild(sg_node)
                             p.AddChild(new_sg_node)
 
+                if psys.settings.material:
+                    psys_mat = active.material_slots[psys.settings.material-1].material
+                    mat_handle = "material.%s" % psys_mat.name
+                    sg_material = self.sg_nodes_dict.get(mat_handle)
+                    if sg_material:
+                        new_sg_node.SetMaterial(sg_material)
+
                 if new_sg_node and new_sg_node.GetNumParents() == 0:
                     # new_sg_node is an orphan
                     # probably because it's a new particle system
@@ -2186,9 +2193,10 @@ class RmanSgExporter:
             # add the particle system as a child to the mesh
             parent_db_name = data_name(ob, self.scene)
             parent_sg_node = self.sg_nodes_dict[parent_db_name]
-            psys_group = self.sg_scene.CreateGroup('')
-            psys_group.AddChild(mesh_sg)
-            parent_sg_node.AddChild(psys_group)
+            #psys_group = self.sg_scene.CreateGroup('')
+            #psys_group.AddChild(mesh_sg)
+            #parent_sg_node.AddChild(psys_group)
+            parent_sg_node.AddChild(mesh_sg)
         else:
             if data_block.type == "DUPLI":
                 pass
@@ -2207,7 +2215,7 @@ class RmanSgExporter:
                     rm = psys.settings.renderman
                     if rm.particle_type == "OBJECT" and rm.use_object_material:
                         continue
-                    psys_group.SetMaterial(sg_material)
+                    mesh_sg.SetMaterial(sg_material)
                 else:
                     inst_sg.SetMaterial(sg_material)                   
 
