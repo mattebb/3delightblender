@@ -615,8 +615,9 @@ class RmanSgExporter:
             db_name_emitter = '%s.%s-EMITTER' % (active.name, psys.name)
             db_name_hair = '%s.%s-HAIR' % (active.name, psys.name)
             rm = psys.settings.renderman
-            if psys.settings.type == 'EMITTER':
-                with rman.SGManager.ScopedEdit(self.sg_scene):     
+            new_sg_node = None
+            with rman.SGManager.ScopedEdit(self.sg_scene): 
+                if psys.settings.type == 'EMITTER':    
                     db_name = psys_name(active, psys)
                     new_sg_node = self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None) 
 
@@ -625,18 +626,23 @@ class RmanSgExporter:
                         for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
                             p.RemoveChild(sg_node)
                             p.AddChild(new_sg_node)
-                        self.sg_scene.DeleteDagNode(sg_node)
-
-            else:
-                with rman.SGManager.ScopedEdit(self.sg_scene):  
-                    db_name = psys_name(active, psys)
+                else: 
+                    db_name = psys_name(active, psys)         
                     new_sg_node = self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None)
                     sg_node = self.sg_nodes_dict.get(db_name_emitter)
                     if sg_node:
                         for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
                             p.RemoveChild(sg_node)
                             p.AddChild(new_sg_node)
-                        self.sg_scene.DeleteDagNode(sg_node) 
+
+                if new_sg_node and new_sg_node.GetNumParents() == 0:
+                    # new_sg_node is an orphan
+                    # probably because it's a new particle system
+                    # add it to the active mesh
+                    mesh_db_name = data_name(active, self.scene)
+                    mesh_sg = self.sg_nodes_dict.get(mesh_db_name)
+                    if mesh_sg:
+                        mesh_sg.AddChild(new_sg_node)
 
         elif active.type == "MESH":
             db_name = data_name(active, self.scene) 
