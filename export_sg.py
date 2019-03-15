@@ -2261,8 +2261,7 @@ class RmanSgExporter:
                                     "%s -port %d -crop 1 0 1 0 -notes %s" % (dspy_callback, port, dspy_info))
         elif display_driver == "openexr":
             display.params.SetInteger("asrgba", 1)
-            pass
-            #display_params = export_metadata(ri, scene, display_params)
+            export_metadata(self.scene, display.params)
 
         sg_displays.append(display)
 
@@ -2338,8 +2337,7 @@ class RmanSgExporter:
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=self.scene, display_driver=self.rpass.display_driver,
                             layer_name=layer_name, pass_name=aov)
-                        #ri.Display('+' + dspy_name, display_driver,
-                        #        aov, display_params)
+
                         display = self.sg_scene.CreateDisplay(display_driver, dspy_name)
                         display.channels = aov
                         sg_displays.append(display)
@@ -2394,15 +2392,16 @@ class RmanSgExporter:
                     else:
                         displaychannel.params.SetString(rman.Tokens.Rix.k_source, source)
 
-                    params = {"string source": source_type + " " + source,
-                            "float[2] exposure": [exposure_gain, exposure_gamma],
-                            "float[3] remap": [remap_a, remap_b, remap_c],
-                            "int[4] quantize": [quantize_zero, quantize_one, quantize_min, quantize_max]}
+                    displaychannel.params.SetFloatArray("exposure", [exposure_gain, exposure_gamma], 2)
+                    displaychannel.params.SetFloatArray("remap", [remap_a, remap_b, remap_c], 3)
+                    displaychannel.params.SetFloatArray("quantize", [quantize_zero, quantize_one, quantize_min, quantize_max], 4)
+
                     if pixel_filter != 'default':
-                        params["filter"] = pixel_filter
-                        params["filterwidth"] = [pixelfilter_x, pixelfilter_y]
+                        displaychannel.params.SetString("filter", pixel_filter)
+                        displaychannel.params.SetFloatArray("filterwidth", [pixelfilter_x, pixelfilter_y], 2 )
+
                     if stats != 'none':
-                        params["string statistics"] = stats
+                        displaychannel.params.SetString("statistics", stats)
 
                 # if this is a multilayer combine em!
                 if not self.ipr_mode and rm_rl.export_multilayer and self.rpass.external_render:
@@ -2410,26 +2409,30 @@ class RmanSgExporter:
                     for aov in rm_rl.custom_aovs:
                         channel_name = get_channel_name(aov, layer_name)
                         channels.append(channel_name)
+
                     out_type, ext = ('openexr', 'exr')
                     if rm_rl.use_deep:
                         channels = [x for x in channels if not (
                             "z_back" in x or 'z_depth' in x)]
-                        out_type, ext = ('deepexr', 'exr')
-                    params = {"string storage": rm_rl.exr_storage}
-                    if rm_rl.exr_format_options != 'default':
-                        params["string type"] = rm_rl.exr_format_options
-                    if rm_rl.exr_compression != 'default':
-                        params["string compression"] = rm_rl.exr_compression
-                    if channels[0] == "Ci,a" and not rm.spool_denoise_aov and not rm.enable_checkpoint:
-                        params["int asrgba"] = 1
-                    #if rm.use_metadata:
-                    #    params = export_metadata(ri, scene, params)
+                        out_type, ext = ('deepexr', 'exr')                        
+
                     dspy_name = user_path(
                         addon_prefs.path_aov_image, scene=self.scene, display_driver=self.rpass.display_driver,
                         layer_name=layer_name, pass_name='multilayer')
 
                     display = self.sg_scene.CreateDisplay(out_type, dspy_name)
                     display.channels = ',' . join(channels)
+                    if rm.use_metadata:
+                        export_metadata(self.scene, display.params)
+
+                    display.params.SetString("storage", rm_rl.exr_storage)
+                    if rm_rl.exr_format_options != 'default':
+                        display.params.SetString("type", rm_rl.exr_format_options)
+                    if rm_rl.exr_compression != 'default':
+                        display.params.SetString("compression", rm_rl.exr_compression)
+                    if channels[0] == "Ci,a" and not rm.spool_denoise_aov and not rm.enable_checkpoint:
+                        display.params.SetInteger("asrgba", 1)
+
                     sg_displays.append(display)
 
 
@@ -2446,11 +2449,7 @@ class RmanSgExporter:
                         if layer == self.scene.render.layers[0] and aov == 'rgba':
                             # we already output this skip
                             continue
-                        
-                        params = {
-                            "int asrgba": 1} if not rm.spool_denoise_aov and not rm.enable_checkpoint else {}
-                        #if rm.use_metadata:
-                        #    params = export_metadata(ri, scene, params)
+
                         dspy_name = user_path(
                             addon_prefs.path_aov_image, scene=self.scene, display_driver=self.rpass.display_driver,
                             layer_name=layer_name, pass_name=aov_name)
@@ -2458,6 +2457,12 @@ class RmanSgExporter:
 
                         display = self.sg_scene.CreateDisplay(display_driver, dspy_name)
                         display.channels = aov_channel_name
+
+                        if rm.use_metadata:
+                            export_metadata(self.scene, display.params)
+                        if not rm.spool_denoise_aov and not rm.enable_checkpoint:
+                            display.params.SetInteger("asrgba", 1)
+
                         sg_displays.append(display)
 
 
@@ -2503,12 +2508,14 @@ class RmanSgExporter:
                         
                     displaychannel.params.SetString("storage", "tiled")
 
-                #if rm.use_metadata:
-                    #display_params = export_metadata(ri, scene, display_params)
+
                 # output denoise_data.exr
                 image_base, ext = main_display.rsplit('.', 1)
                 display = self.sg_scene.CreateDisplay("openexr", image_base + '.variance.exr')
                 display.channels = ',' . join([aov[0] for aov in denoise_aovs])
+
+                if rm.use_metadata:
+                    export_metadata(self.scene, display.params)
 
                 sg_displays.append(display)
 
@@ -3412,30 +3419,6 @@ def rman_sg_exporter():
         __RMAN_SG_EXPORTER__ = RmanSgExporter()
 
     return __RMAN_SG_EXPORTER__
-
-def AddDisplay(scene, camera, plugin, path, channels=None):
-    if channels is None:
-        # Use default beauty (Ci,a) channels
-        display = scene.CreateDisplay(plugin, path)
-        camera.SetDisplay(display)
-    elif plugin == "openexr":
-        # Pack channels into a single OpenEXR display
-        display = scene.CreateDisplay(plugin, path)
-        display.channels = ",".join(channels)
-        display.params.SetInteger("asrgba", 1)
-        camera.SetDisplay(display)
-    else:
-        # Create a display for each output channel
-        displays = list()
-        root, ext = SplitExt(path)
-        for channel in channels:
-            name = "beauty" if channel == "Ci,a" else channel
-            path = root + "_" + name + ext
-            display = scene.CreateDisplay(plugin, path)
-            display.channels = channel
-            displays.append(display)
-        camera.SetDisplay(displays)
-
 
 def get_matrix_for_object(passedOb):
     if passedOb.parent:
@@ -4759,7 +4742,7 @@ def render_get_aspect(r, camera=None):
 
     return xaspect, yaspect, aspectratio
 
-def export_metadata(ri, scene, params):
+def export_metadata(scene, params):
     rm = scene.renderman
     cam = bpy.data.cameras["Camera"]
     obj = bpy.data.objects["Camera"]
@@ -4769,37 +4752,22 @@ def export_metadata(ri, scene, params):
         dof_distance = cam.dof_distance
     output_dir = os.path.dirname(user_path(rm.path_rib_output, scene=scene))
     statspath=os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current)
-    params = {'string exrheader_dcc': 'Blender %s\nRenderman for Blender %s' % (bpy.app.version, bl_info['version']),
-    'float exrheader_fstop': cam.renderman.fstop,
-    'float exrheader_focaldistance': dof_distance,
-    'float exrheader_focal': cam.lens,
-    'float exrheader_haperture': cam.sensor_width,
-    'float exrheader_vaperture': cam.sensor_height,
-    'string exrheader_renderscene': bpy.data.filepath,
-    'string exrheader_user': os.getenv('USERNAME'),
-    'string exrheader_statistics': statspath,
-    'string exrheader_integrator': rm.integrator,
-    'float[2] exrheader_samples': [rm.min_samples, rm.max_samples],
-    'float exrheader_pixelvariance': rm.pixel_variance,
-    'string exrheader_comment': rm.custom_metadata
-    }
-    return params
     
-def export_camera_render_preview(ri, scene):
-    r = scene.render
+    params.SetString('exrheader_dcc', 'Blender %s\nRenderman for Blender %s' % (bpy.app.version, bl_info['version']))
+    params.SetFloat('exrheader_fstop', cam.renderman.fstop )
+    params.SetFloat('exrheader_focaldistance', dof_distance )
+    params.SetFloat('exrheader_focal', cam.lens )
+    params.SetFloat('exrheader_haperture', cam.sensor_width )
+    params.SetFloat('exrheader_vaperture', cam.sensor_height )
 
-    xaspect, yaspect, aspectratio = render_get_aspect(r)
-
-    ri.Clipping(0.100000, 100.000000)
-    ri.Projection("perspective", {"fov": 37.8493})
-    ri.ScreenWindow(-xaspect, xaspect, -yaspect, yaspect)
-    resolution = render_get_resolution(scene.render)
-    ri.Format(resolution[0], resolution[1], 1.0)
-    ri.Transform([0, -0.25, -1, 0, 1, 0, 0, 0, 0,
-                  1, -0.25, 0, 0, -.75, 3.25, 1])
-
-
-
+    params.SetString('exrheader_renderscene', bpy.data.filepath)
+    params.SetString('exrheader_user', os.getenv('USERNAME'))
+    params.SetString('exrheader_statistics', statspath)
+    params.SetString('exrheader_integrator', rm.integrator)
+    params.SetFloatArray('exrheader_samples', [rm.min_samples, rm.max_samples], 2)
+    params.SetFloat('exrheader_pixelvariance', rm.pixel_variance)
+    params.SetString('exrheader_comment', rm.custom_metadata)
+    
 # --------------- Hopefully temporary --------------- #
 
 
