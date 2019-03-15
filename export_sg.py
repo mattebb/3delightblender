@@ -636,11 +636,13 @@ class RmanSgExporter:
                             p.AddChild(new_sg_node)
 
                 if psys.settings.material:
-                    psys_mat = active.material_slots[psys.settings.material-1].material
-                    mat_handle = "material.%s" % psys_mat.name
-                    sg_material = self.sg_nodes_dict.get(mat_handle)
-                    if sg_material:
-                        new_sg_node.SetMaterial(sg_material)
+                    psys_mat = active.material_slots[psys.settings.material -
+                                     1].material if psys.settings.material and psys.settings.material <= len(active.material_slots) else None
+                    if psys_mat:
+                        mat_handle = "material.%s" % psys_mat.name
+                        sg_material = self.sg_nodes_dict.get(mat_handle)
+                        if sg_material:
+                            new_sg_node.SetMaterial(sg_material)
 
                 if new_sg_node and new_sg_node.GetNumParents() == 0:
                     # new_sg_node is an orphan
@@ -732,8 +734,9 @@ class RmanSgExporter:
 
                         for psys in obj.particle_systems:
                             if psys.settings.material:
-                                psys_mat = obj.material_slots[psys.settings.material-1].material
-                                if psys_mat.name == mat.name:
+                                psys_mat = active.material_slots[psys.settings.material -
+                                     1].material if psys.settings.material and psys.settings.material <= len(active.material_slots) else None
+                                if psys_mat and psys_mat.name == mat.name:
                                     db_name_emitter = '%s.%s-EMITTER' % (obj.name, psys.name)
                                     db_name_hair = '%s.%s-HAIR' % (obj.name, psys.name)
                                     psys_node = None
