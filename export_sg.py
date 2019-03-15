@@ -479,8 +479,11 @@ class RmanSgExporter:
                     for name, db in data_blocks.items():
                         if db.type != "DUPLI":
                             continue
-                        sg_node = self.sg_nodes_dict[name]
-                        if sg_node:
+                        sg_node = self.sg_nodes_dict.get(name)
+                        if not sg_node:
+                            with rman.SGManager.ScopedEdit(self.sg_scene):
+                                self.export_objects(data_blocks, instances)
+                        else:
                             ob = db.data
                             ob.dupli_list_create(self.scene, "RENDER")                            
                             with rman.SGManager.ScopedEdit(self.sg_scene):
@@ -3326,10 +3329,11 @@ class RmanSgExporter:
                 sg_node.AddChild(sg_source)
                 sg_node.SetTransform( convert_matrix(dupob.matrix))
                 mat = dupob.object.active_material
-                mat_handle = "material.%s" % mat.name
-                if mat_handle in self.sg_nodes_dict:
-                    sg_material = self.sg_nodes_dict[mat_handle]
-                    sg_node.SetMaterial(sg_material)
+                if mat:
+                    mat_handle = "material.%s" % mat.name
+                    if mat_handle in self.sg_nodes_dict:
+                        sg_material = self.sg_nodes_dict[mat_handle]
+                        sg_node.SetMaterial(sg_material)
             sg_dupli.AddChild(sg_node)
             self.sg_nodes_dict[dupli_name] = sg_node
 
