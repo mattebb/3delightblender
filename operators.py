@@ -561,7 +561,8 @@ class ExportRIBObject(bpy.types.Operator):
         rpass = RPass(context.scene, interactive=False)
         object = context.active_object
 
-        # rpass.convert_textures(get_texture_list(context.scene))
+        """
+        rpass.convert_textures(get_texture_list(context.scene))
         rpass.ri.Option("rib", {"string asciistyle": "indented,wide"})
 
         #export_filename = write_single_RIB(rpass, context.scene, rpass.ri, object)
@@ -587,6 +588,7 @@ class ExportRIBObject(bpy.types.Operator):
                 object.renderman.archive_anim_settings.animated_sequence = False
         else:
             self.report({'ERROR'}, "Archive Not Exported.")
+        """
         return {'FINISHED'}
 
     def invoke(self, context, event=None):
