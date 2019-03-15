@@ -1054,12 +1054,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
     instance_num = IntProperty(name='Instance number for IPR', default=0)
 
-    displacementbound = FloatProperty(
-        name="Displacement Bound",
-        description="Maximum distance the displacement shader can displace vertices.  This should be increased if you notice raised details being sharply cut off",
-        precision=4,
-        default=0.5)
-
     preview_render_type = EnumProperty(
         name="Preview Render Type",
         description="Object to display in material preview",
@@ -2210,6 +2204,12 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         name="Motion Samples",
         description="Number of motion samples to take for multi-segment motion blur.  This should be raised if you notice segment artifacts in blurs",
         min=2, max=16, default=2)
+
+    displacementbound = FloatProperty(
+        name="Displacement Bound",
+        description="Maximum distance the displacement shader can displace vertices.  This should be increased if you notice raised details being sharply cut off",
+        precision=4,
+        default=0.5)        
 
     shadinginterpolation = EnumProperty(
         name="Shading Interpolation",

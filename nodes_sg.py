@@ -615,7 +615,7 @@ class RmanSgShadingExporter:
         self.rm = self.scene.renderman
 
     # for an input node output all "nodes"
-    def export_shader_nodetree(self, id, sg_node=None, mat_sg_handle=None, handle=None, disp_bound=0.0, iterate_instance=False):
+    def export_shader_nodetree(self, id, sg_node=None, mat_sg_handle=None, handle=None, iterate_instance=False):
 
         if id and id.node_tree:
 
@@ -636,24 +636,47 @@ class RmanSgShadingExporter:
                         None)
                 if out is None:
                     return
-
-                nodes_to_export = gather_nodes(out)
+               
+                #nodes_to_export = gather_nodes(out)
                 sg_material = None
                 bxdfList = []
+                dispList = []
                 
-                if len(nodes_to_export) > 0:
-                    if sg_node:
-                        sg_material = sg_node
-                    else:
-                        sg_material = self.sg_scene.CreateMaterial(mat_sg_handle)
-                    for node in nodes_to_export:
-                        sg_node = shader_node_sg(self.sg_scene, self.rman, node, mat_name=handle,
-                                    disp_bound=disp_bound, portal=portal)
-                        if sg_node.GetName().CStr() == "PxrMeshLight":
-                            sg_material.SetLight(sg_node)
-                        else:    
-                            bxdfList.append(sg_node)
-                    sg_material.SetBxdf(bxdfList)
+                if sg_node:
+                    sg_material = sg_node
+                else:
+                    sg_material = self.sg_scene.CreateMaterial(mat_sg_handle)   
+
+                # bxdf
+                socket = out.inputs[0]
+                if socket.is_linked:
+                    for sub_node in gather_nodes(socket.links[0].from_node):
+                        shader_sg_node = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
+                                    portal=portal)
+                        bxdfList.append(shader_sg_node) 
+                    if bxdfList:
+                        sg_material.SetBxdf(bxdfList)         
+
+                # light
+                socket = out.inputs[1]
+                if socket.is_linked:
+                    for sub_node in gather_nodes(socket.links[0].from_node):
+                        shader_sg_node = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
+                                    portal=portal)
+
+                        if shader_sg_node.GetName().CStr() == "PxrMeshLight":
+                            sg_material.SetLight(shader_sg_node)
+                            break                                   
+
+                # displacement
+                socket = out.inputs[2]
+                if socket.is_linked:
+                    for sub_node in gather_nodes(socket.links[0].from_node):
+                        shader_sg_node = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
+                                    portal=portal)
+                        dispList.append(shader_sg_node) 
+                    if dispList:
+                        sg_material.SetDisplace(dispList)      
 
                 return (sg_material, bxdfList)
                     
@@ -2241,7 +2264,7 @@ def translate_cycles_node(ri, node, mat_name):
 
 
 # convert shader node to RixSceneGraph node
-def shader_node_sg(sg_scene, rman, node, mat_name, disp_bound=0.0, portal=False):
+def shader_node_sg(sg_scene, rman, node, mat_name, portal=False):
     # this is tuple telling us to convert
     if type(node) == type(()):
         shader, from_node, from_socket = node
@@ -2323,11 +2346,9 @@ def shader_node_sg(sg_scene, rman, node, mat_name, disp_bound=0.0, portal=False)
         light_name = node.bl_label
         #ri.LightFilter(light_name, mat_name, params)
     elif node.renderman_node_type == "displacement":
-        ri.Attribute('displacementbound', {'sphere': disp_bound})
-        #ri.Displace(node.bl_label, mat_name, params)
+        sg_node = sg_scene.CreateNode("DisplacementFactory", node.bl_label, instance)
     else:
         sg_node = sg_scene.CreateNode("BxdfFactory", node.bl_label, instance)        
-        #ri.Bxdf(node.bl_label, instance, params)
 
     if sg_node:
         rix_params = sg_node.EditParameterBegin()       
@@ -2428,56 +2449,6 @@ def gather_nodes(node):
         nodes.append(node)
 
     return nodes
-
-
-# for an input node output all "nodes"
-def export_shader_nodetree(sg_scene, rman, id, handle=None, disp_bound=0.0, iterate_instance=False):
-
-    if id and id.node_tree:
-
-        if is_renderman_nodetree(id):
-            portal = type(
-                id).__name__ == 'AreaLamp' and id.renderman.renderman_type == 'PORTAL'
-            # if id.renderman.nodetree not in bpy.data.node_groups:
-            #    load_tree_from_lib(id)
-
-            nt = id.node_tree
-            if not handle:
-                handle = id.name
-                if type(id) == bpy.types.Material:
-                    handle = get_mat_name(handle)
-
-            # if ipr we need to iterate instance num on nodes for edits
-            #from . import engine
-            #if engine.ipr and hasattr(id.renderman, 'instance_num'):
-            #    if iterate_instance:
-            #        id.renderman.instance_num += 1
-            #    if id.renderman.instance_num > 0:
-            #        handle += "_%d" % id.renderman.instance_num
-
-            out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and
-                        n.renderman_node_type == 'output'),
-                       None)
-            if out is None:
-                return
-
-            nodes_to_export = gather_nodes(out)
-            sg_material = None
-            
-            if len(nodes_to_export) > 0:
-                sg_material = sg_scene.CreateMaterial(None)
-                bxdfList = []
-                for node in nodes_to_export:
-                    sg_node = shader_node_sg(sg_scene, rman, node, mat_name=handle,
-                                disp_bound=disp_bound, portal=portal)
-                    bxdfList.append(sg_node)
-                sg_material.SetBxdf(bxdfList)
-
-            return sg_material
-                
-                
-        elif find_node(id, 'ShaderNodeOutputMaterial'):
-            print("Error Material %s needs a RenderMan BXDF" % id.name)
 
 
 def get_textures_for_node(node, matName=""):

@@ -46,7 +46,6 @@ from .util import locate_openVDB_cache
 from .util import debug, get_addon_prefs
 
 from .nodes_sg import is_renderman_nodetree, get_textures, get_textures_for_node, get_tex_file_name
-from .nodes_sg import export_shader_nodetree
 from .nodes_sg import get_mat_name
 from .nodes_sg import replace_frame_num
 
@@ -209,7 +208,6 @@ class RmanSgExporter:
 
         self.sg_nodes_dict = dict() # handles to sg_nodes
         self.mat_networks = dict() # dict material to networks
-        self.mesh_masters = dict()
         self.light_filters_dict = dict() # dict light to light filters
         self.lightfilters_dict = dict() # dict light filters to light
         self.displayfilters_list = list()
@@ -224,7 +222,6 @@ class RmanSgExporter:
     def export_ready(self):
         self.sg_nodes_dict = dict()
         self.mat_networks = dict() 
-        self.mesh_masters = dict()
         self.light_filters_dict = dict()
         self.lightfilters_dict = dict() 
         self.displayfilters_list = list()
@@ -708,7 +705,7 @@ class RmanSgExporter:
                 with rman.SGManager.ScopedEdit(self.sg_scene): 
                     sg_material, bxdfList = self.shader_exporter.export_shader_nodetree(
                                 mat, sg_node=sg_material, mat_sg_handle=mat_handle, handle=None, 
-                                disp_bound=mat.renderman.displacementbound, iterate_instance=False)
+                                iterate_instance=False)
                 self.sg_nodes_dict['material.%s' % mat_name] = sg_material
 
                 if ob:
@@ -892,26 +889,15 @@ class RmanSgExporter:
                         sg_light.SetLight(sg_node)                               
 
             else:
-                handle = mat_name + '.' + node.name
                 mat_handle = 'material.%s' % mat_name
-
                 sg_material = self.sg_nodes_dict[mat_handle] 
-                if handle in self.sg_nodes_dict.keys():    
-                    sg_node = self.sg_nodes_dict[handle]
-                    with rman.SGManager.ScopedEdit(self.sg_scene):                   
-                        rix_params = sg_node.EditParameterBegin()       
-                        rix_params = nodes_sg.gen_rixparams(node, rix_params, mat_name)
-                        sg_node.EditParameterEnd(rix_params) 
-                        bxdfList = self.mat_networks[mat_handle]
-                        sg_material.SetBxdf(bxdfList)               
-                else:            
-                    if sg_material:
-                        with rman.SGManager.ScopedEdit(self.sg_scene):
-                            sg_material,bxdfList = self.shader_exporter.export_shader_nodetree(
-                                mat, sg_node=sg_material, mat_sg_handle=mat_handle, handle=None, 
-                                disp_bound=mat.renderman.displacementbound,
-                                iterate_instance=False)
-                        self.sg_nodes_dict[mat_handle] = sg_material
+           
+                if sg_material:
+                    with rman.SGManager.ScopedEdit(self.sg_scene):
+                        sg_material,bxdfList = self.shader_exporter.export_shader_nodetree(
+                            mat, sg_node=sg_material, mat_sg_handle=mat_handle, handle=None, 
+                            iterate_instance=False)
+                    self.sg_nodes_dict[mat_handle] = sg_material
  
     def export_searchpaths(self):
         options = self.sg_scene.EditOptionBegin()
@@ -1230,6 +1216,7 @@ class RmanSgExporter:
                     sg_sub_mesh.SetMaterial(sg_material)
                     sg_node.AddChild(sg_sub_mesh)                  
                        
+        primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)
         sg_node.EditPrimVarEnd(primvar)
         removeMeshFromMemory(mesh.name)  
         return True
@@ -1329,7 +1316,7 @@ class RmanSgExporter:
             primvar.SetStringDetail("type", rm.primitive_point_type, "uniform")
             primvar.SetFloatDetail(rman.Tokens.Rix.k_constantwidth, rm.primitive_point_width, "constant")
             
-  
+        primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, rm.displacementbound)
         sg_node.EditPrimVarEnd(primvar)
         removeMeshFromMemory(mesh.name)       
 
@@ -1372,6 +1359,7 @@ class RmanSgExporter:
             primvar.SetFloat(rman.Tokens.Rix.k_Ri_phimax, rm.primitive_phimax)            
             primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
 
+        primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, rm.displacementbound)
         sg_node.EditPrimVarEnd(primvar) 
 
 
@@ -1436,7 +1424,8 @@ class RmanSgExporter:
         primvar = sg_node.EditPrimVarBegin()
         sg_node.Define(count)
         primvar.SetIntegerArray(rman.Tokens.Rix.k_Ri_code, op, len(op))            
-        primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_floats, tform, len(tform))         
+        primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_floats, tform, len(tform))      
+        primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)           
         sg_node.EditPrimVarEnd(primvar)
 
     def export_openVDB(self, sg_node, ob):
@@ -1452,7 +1441,8 @@ class RmanSgExporter:
 
         primvar.SetFloatDetail("density", [], "varying")
         primvar.SetFloatDetail("flame", [], "varying")        
-        primvar.SetColorDetail("color", [], "varying")              
+        primvar.SetColorDetail("color", [], "varying")      
+        primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)                
         sg_node.EditPrimVarEnd(primvar)                              
      
     # make an ri Volume from the smoke modifier
@@ -1485,6 +1475,7 @@ class RmanSgExporter:
         primvar.SetColorDetail("color", [item for index, item in enumerate(smoke_data.color_grid) if index % 4 != 0], "varying")
         primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_Bound, rib_ob_bounds(ob.bound_box), 6)
 
+        primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)
         sg_node.EditPrimVarEnd(primvar)     
 
     def export_geometry_data(self, ob, db_name, data=None):
@@ -2147,17 +2138,17 @@ class RmanSgExporter:
         
         if mat.node_tree:
             sg_material, bxdfList = self.shader_exporter.export_shader_nodetree(
-                mat, sg_node=None, mat_sg_handle=mat_sg_handle, handle=None, disp_bound=rm.displacementbound,
+                mat, sg_node=None, mat_sg_handle=mat_sg_handle, handle=None,
                 iterate_instance=False)
         else:
             sg_material = self.shader_exporter.export_simple_shader(mat)
 
         self.sg_nodes_dict[mat_sg_handle] = sg_material
-        self.mat_networks['material.%s' % mat_name] = bxdfList
+        #self.mat_networks['material.%s' % mat_name] = bxdfList
 
-        for n in bxdfList:
-            handle = n.GetHandle().CStr()
-            self.sg_nodes_dict[handle] = n 
+        #for n in bxdfList:
+        #    handle = n.GetHandle().CStr()
+        #    self.sg_nodes_dict[handle] = n 
 
         return sg_material     
 
@@ -2797,7 +2788,7 @@ class RmanSgExporter:
 
             if mat.node_tree:
                 sg_material, bxdfList = self.shader_exporter.export_shader_nodetree(
-                    mat, handle=None, disp_bound=rm.displacementbound,
+                    mat, handle=None,
                     iterate_instance=False)
             else:
                 sg_material = self.shader_exporter.export_simple_shader(mat)
@@ -2902,6 +2893,7 @@ class RmanSgExporter:
                 else:
                     primvar.SetFloatDetail(rman.Tokens.Rix.k_width, width, "vertex")                     
 
+        primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)
         sg_node.EditPrimVarEnd(primvar)
 
     # only for emitter types for now
@@ -2975,7 +2967,7 @@ class RmanSgExporter:
             else:                
                 primvar.SetFloatArray(rman.Tokens.Rix.k_Ri_floats, tform, len(tform)) 
           
-
+        primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)
         sg_node.EditPrimVarEnd(primvar)
 
     def export_particle_instances(self, sg_node, db_name, psys, ob, motion_data, type='OBJECT'):
@@ -2998,6 +2990,7 @@ class RmanSgExporter:
             primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmin, -1.0)
             primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmax, 1.0)
             primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, 360.0)
+            primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)
             master_sg.EditPrimVarEnd(primvar)
         else:
             master_sg = self.sg_scene.CreateQuadric("")
@@ -3005,7 +2998,8 @@ class RmanSgExporter:
             primvar = master_sg.EditPrimVarBegin()
             primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, 1.0)
             primvar.SetFloat(rman.Tokens.Rix.k_Ri_height, 0)
-            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, 360.0)            
+            primvar.SetFloat(rman.Tokens.Rix.k_Ri_thetamax, 360.0)  
+            primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)          
             primvar = master_sg.EditPrimVarBegin()
     
         

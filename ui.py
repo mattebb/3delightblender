@@ -772,8 +772,7 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name=self.shader_type)
             # BBM addition begin
-        row = self.layout.row()
-        row.prop(context.material.renderman, "displacementbound")
+
         # BBM addition end
         # self._draw_shader_menu_params(layout, context, rm)
 
@@ -1172,6 +1171,9 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
 
         col = layout.column()
         # col.prop(rm, "export_coordsys")
+
+        row = col.row()
+        row.prop(rm, "displacementbound", "Displacement Bound")
 
         row = col.row()
         row.prop(rm, "motion_segments_override", text="")
