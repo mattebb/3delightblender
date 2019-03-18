@@ -483,27 +483,39 @@ class RmanSgExporter:
                         if not sg_node:
                             with rman.SGManager.ScopedEdit(self.sg_scene):
                                 self.export_objects(data_blocks, instances)
-                        else:
-                            ob = db.data
-                            ob.dupli_list_create(self.scene, "RENDER")                            
-                            with rman.SGManager.ScopedEdit(self.sg_scene):
-                                if ob.dupli_type == 'GROUP' and ob.dupli_group:
-                                    for dupob in ob.dupli_list:
-                                        dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
-                                                    dupob.index)
-                                        if dupli_name in self.sg_nodes_dict:
-                                            sg_dupli = self.sg_nodes_dict[dupli_name]
-                                            sg_dupli.SetTransform( convert_matrix(dupob.matrix))
-                                else:
-                                    for num, dupob in enumerate(ob.dupli_list):
 
-                                        dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
-                                                                        dupob.index)
+                        ob = db.data
+                        ob.dupli_list_create(self.scene, "RENDER")                            
+                        with rman.SGManager.ScopedEdit(self.sg_scene):
+                            if ob.dupli_type == 'GROUP' and ob.dupli_group:
+                                for dupob in ob.dupli_list:
+                                    dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
+                                                dupob.index)
 
-                                        if dupli_name in self.sg_nodes_dict:
-                                            sg_dupli = self.sg_nodes_dict[dupli_name]
-                                            sg_dupli.SetTransform( convert_matrix(dupob.matrix))
-                            ob.dupli_list_clear()     
+                                    source_data_name = get_instance(dupob.object, self.scene, False).name
+                                    source_sg = self.sg_nodes_dict.get(source_data_name)
+                                    if source_sg and source_sg.GetHidden() != 1:
+                                        source_sg.SetHidden(1)
+
+                                    if dupli_name in self.sg_nodes_dict:
+                                        sg_dupli = self.sg_nodes_dict[dupli_name]
+                                        sg_dupli.SetTransform( convert_matrix(dupob.matrix))
+                            else:
+                                for num, dupob in enumerate(ob.dupli_list):
+
+                                    dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
+                                                                    dupob.index)
+
+                                    source_data_name = get_instance(dupob.object, self.scene, False).name
+                                    source_sg = self.sg_nodes_dict.get(source_data_name)
+                                    if source_sg and source_sg.GetHidden() != 1:
+                                        source_sg.SetHidden(1)                                                                    
+
+                                    if dupli_name in self.sg_nodes_dict:
+                                        sg_dupli = self.sg_nodes_dict[dupli_name]
+                                        sg_dupli.SetTransform( convert_matrix(dupob.matrix))
+                            
+                        ob.dupli_list_clear()     
 
                 else:        
                     instance = get_instance(active, self.scene, False)
@@ -2168,21 +2180,25 @@ class RmanSgExporter:
             mat_name = get_mat_name(mat_name)
             self.export_material(mat, mat_name)
         
-    def write_instances(self, db_name, data_block, name, instance, instance_parent, visible_objects=[]):
+    def write_instances(self, db_name, data_blocks, data_block, instances, instance, visible_objects=[], parent_sg_node=None):
         if db_name not in self.sg_nodes_dict.keys():
-                return
+            return
 
         mesh_sg = self.sg_nodes_dict[db_name]
         if not mesh_sg:
             return
 
-        psys_group = None
+        if not parent_sg_node:
+            parent_sg_node = self.sg_global_obj
 
+        psys_group = None
         inst_sg = None
-        if name in self.sg_nodes_dict:
-            inst_sg = self.sg_nodes_dict[name]
+        instance_name = instance.name
+
+        if instance_name in self.sg_nodes_dict:
+            inst_sg = self.sg_nodes_dict[instance_name]
         else:
-            inst_sg = self.sg_scene.CreateGroup(name)
+            inst_sg = self.sg_scene.CreateGroup(instance_name)
 
         if data_block.type == "PSYS":            
             ob, psys = data_block.data
@@ -2198,7 +2214,7 @@ class RmanSgExporter:
             if data_block.type == "DUPLI":
                 pass
             else:
-                self.export_transform(instance, inst_sg)
+                self.export_transform(instance, mesh_sg)
             inst_sg.AddChild(mesh_sg)               
 
         for mat in data_block.material:
@@ -2216,12 +2232,16 @@ class RmanSgExporter:
                 else:
                     inst_sg.SetMaterial(sg_material)                   
 
-        self.export_object_attributes(instance.ob, inst_sg, visible_objects, name)                               
+        self.export_object_attributes(instance.ob, inst_sg, visible_objects, instance_name)                               
 
-
-        if not instance_parent or instance.ob.parent.type=="EMPTY":
-            self.sg_global_obj.AddChild(inst_sg)        
-            self.sg_nodes_dict[name] = inst_sg
+        parent_sg_node.AddChild(inst_sg)        
+        self.sg_nodes_dict[instance_name] = inst_sg
+    
+        for child_name in instance.children:
+            if child_name in instances:
+                child_instance = instances[child_name]
+                for db_name in child_instance.data_block_names:
+                    self.write_instances(db_name, data_blocks, data_blocks[db_name], instances, child_instance, visible_objects=visible_objects, parent_sg_node=inst_sg)            
 
     def export_displays(self):
         rm = self.scene.renderman
@@ -3357,8 +3377,9 @@ class RmanSgExporter:
         
         # now output the object archives
         for name, instance in instances.items():
-            for db_name in instance.data_block_names:                 
-                self.write_instances(db_name, data_blocks[db_name], instance.name, instance, instance.parent, visible_objects=visible_objects)
+            if not instance.parent or instance.ob.parent.type=="EMPTY":
+                for db_name in instance.data_block_names:                 
+                    self.write_instances(db_name, data_blocks, data_blocks[db_name], instances, instance, visible_objects=visible_objects)
 
     def write_scene(self, visible_objects=None, engine=None, do_objects=True):
 
