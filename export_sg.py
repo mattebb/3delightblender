@@ -2059,9 +2059,9 @@ class RmanSgExporter:
 
             projparams = proj.EditParameterBegin()
             
-            # 3.5 chosen arbitrarily via trial-and-error
-            projparams.SetFloat("shiftX", cam.shift_x * 3.5)
-            projparams.SetFloat("shiftY", cam.shift_y * 3.5)               
+            # 3.6 chosen arbitrarily via trial-and-error
+            projparams.SetFloat("shiftX", cam.shift_x * 3.6)
+            projparams.SetFloat("shiftY", cam.shift_y * 3.6)               
 
             projparams.SetFloat(rman.Tokens.Rix.k_fov, fov)
 
