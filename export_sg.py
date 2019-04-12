@@ -2030,34 +2030,6 @@ class RmanSgExporter:
             options.SetFloatArray(rman.Tokens.Rix.k_Ri_CropWindow, (self.scene.render.border_min_x, self.scene.render.border_max_x,
                         1.0 - self.scene.render.border_min_y, 1.0 - self.scene.render.border_max_y) , 4)
 
-        # convert the crop border to screen window, flip y
-        resolution = render_get_resolution(self.scene.render)
-        if self.scene.render.use_border and self.scene.render.use_crop_to_border:
-            screen_min_x = -xaspect + 2.0 * self.scene.render.border_min_x * xaspect
-            screen_max_x = -xaspect + 2.0 * self.scene.render.border_max_x * xaspect
-            screen_min_y = -yaspect + 2.0 * (self.scene.render.border_min_y) * yaspect
-            screen_max_y = -yaspect + 2.0 * (self.scene.render.border_max_y) * yaspect
-
-            options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (screen_min_x, screen_max_x, screen_min_y, screen_max_y), 4)
-
-            res_x = resolution[0] * (self.scene.render.border_max_x -
-                                    self.scene.render.border_min_x)
-            res_y = resolution[1] * (self.scene.render.border_max_y -
-                                    self.scene.render.border_min_y)
-
-            options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (int(res_x), int(res_y)), 2)
-            options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)        
-        else:            
-            if cam.type == 'PANO':
-                options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (-1, 1, -1, 1), 4)
-            else:
-                options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)
-
-            options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
-            options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)
-
-        self.sg_scene.EditOptionEnd(options)
-
         proj = None
 
         if cam.renderman.projection_type != 'none':
@@ -2098,7 +2070,7 @@ class RmanSgExporter:
                      
             proj.EditParameterEnd(projparams)
         elif cam.type == 'PANO':
-            proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrOrthographic", "proj")
+            proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrSphereCamera", "proj")
             projparams = proj.EditParameterBegin()
             projparams.SetFloat("hsweep", 360)
             projparams.SetFloat("vsweep", 180)
@@ -2107,7 +2079,35 @@ class RmanSgExporter:
             lens = cam.ortho_scale
             xaspect = xaspect * lens / (aspectratio * 2.0)
             yaspect = yaspect * lens / (aspectratio * 2.0)
-            proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrSphereCamera", "proj")
+            proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrOrthographic", "proj")
+
+        # convert the crop border to screen window, flip y
+        resolution = render_get_resolution(self.scene.render)
+        if self.scene.render.use_border and self.scene.render.use_crop_to_border:
+            screen_min_x = -xaspect + 2.0 * self.scene.render.border_min_x * xaspect
+            screen_max_x = -xaspect + 2.0 * self.scene.render.border_max_x * xaspect
+            screen_min_y = -yaspect + 2.0 * (self.scene.render.border_min_y) * yaspect
+            screen_max_y = -yaspect + 2.0 * (self.scene.render.border_max_y) * yaspect
+
+            options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (screen_min_x, screen_max_x, screen_min_y, screen_max_y), 4)
+
+            res_x = resolution[0] * (self.scene.render.border_max_x -
+                                    self.scene.render.border_min_x)
+            res_y = resolution[1] * (self.scene.render.border_max_y -
+                                    self.scene.render.border_min_y)
+
+            options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (int(res_x), int(res_y)), 2)
+            options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)        
+        else:            
+            if cam.type == 'PANO':
+                options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (-1, 1, -1, 1), 4)
+            else:
+                options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)
+
+            options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
+            options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)
+
+        self.sg_scene.EditOptionEnd(options)
 
         s_rightHanded = rman.Types.RtMatrix4x4(1.0,0.0,0.0,0.0,
                                     0.0,1.0,0.0,0.0,
