@@ -2046,14 +2046,23 @@ class RmanSgExporter:
             proj.EditParameterEnd(projparams)                    
             property_group_to_rixparams(cam.renderman.get_projection_node(), proj)
         elif cam.type == 'PERSP':
+
             lens = cam.lens
 
             sensor = cam.sensor_height \
                 if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
 
             fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
-            proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrPerspective", "proj")
+
+            #proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrPerspective", "proj")            
+            proj = self.sg_scene.CreateNode("ProjectionFactory", "PxrCamera", "proj")
+
             projparams = proj.EditParameterBegin()
+            
+            # 3.5 chosen arbitrarily via trial-and-error
+            projparams.SetFloat("shiftX", cam.shift_x * 3.5)
+            projparams.SetFloat("shiftY", cam.shift_y * 3.5)               
+
             projparams.SetFloat(rman.Tokens.Rix.k_fov, fov)
 
             if rm.depth_of_field:
@@ -2140,7 +2149,7 @@ class RmanSgExporter:
         camtransform.Identity()
         camera.SetOrientTransform(s_rightHanded)
 
-        self.export_camera_transform(camera, ob, motion)
+        self.export_camera_transform(camera, ob, motion)        
 
         group.AddChild(camera)
         camera.SetRenderable(True)
