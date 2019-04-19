@@ -54,7 +54,7 @@ from .export import write_archive_RIB
 from .export import EXCLUDED_OBJECT_TYPES
 from . import engine
 
-from .nodes import convert_cycles_nodetree, is_renderman_nodetree
+from .nodes_sg import convert_cycles_nodetree, is_renderman_nodetree
 
 #from .nodes import RendermanPatternGraph
 
