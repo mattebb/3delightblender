@@ -561,34 +561,8 @@ class ExportRIBObject(bpy.types.Operator):
         rpass = RPass(context.scene, interactive=False)
         object = context.active_object
 
-        """
-        rpass.convert_textures(get_texture_list(context.scene))
-        rpass.ri.Option("rib", {"string asciistyle": "indented,wide"})
+        rpass.gen_rib_archive(object, export_path, export_mats, export_range, convert_textures=True)
 
-        #export_filename = write_single_RIB(rpass, context.scene, rpass.ri, object)
-        export_sucess = write_archive_RIB(rpass, context.scene, rpass.ri, object,
-                                          export_path, export_mats, export_range)
-
-        if(export_sucess[0] == True):
-            self.report({'INFO'}, "Archive Exported Successfully!")
-            object.renderman.geometry_source = 'ARCHIVE'
-            object.renderman.path_archive = export_sucess[1]
-            object.renderman.object_name = object.name
-            if(export_mats):
-                object.renderman.material_in_archive = True
-            else:
-                object.renderman.material_in_archive = False
-            object.show_bounds = True
-            if(export_range == True):
-                object.renderman.archive_anim_settings.animated_sequence = True
-                object.renderman.archive_anim_settings.sequence_in = context.scene.frame_start
-                object.renderman.archive_anim_settings.sequence_out = context.scene.frame_end
-                object.renderman.archive_anim_settings.blender_start = context.scene.frame_current
-            else:
-                object.renderman.archive_anim_settings.animated_sequence = False
-        else:
-            self.report({'ERROR'}, "Archive Not Exported.")
-        """
         return {'FINISHED'}
 
     def invoke(self, context, event=None):

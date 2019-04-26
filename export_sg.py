@@ -337,13 +337,37 @@ class RmanSgExporter:
         if self.rm.rib_format == "ascii":
             rib_options += " -indent"
 
-        is_running = True
-        #self.sg_scene.Render("rib %s %s" % (rib_options, ribfile))       
-        self.sg_scene.Render("rib %s" % (ribfile))       
+        is_running = True      
+        self.sg_scene.Render("rib %s %s" % (ribfile, rib_options))       
 
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         is_running = False
-        print("Wrote RIB to: %s" % ribfile)        
+        print("Wrote RIB to: %s" % ribfile)     
+
+    def write_archive_rib(self, obj, rpass, scene, ribfile):
+        global is_running
+
+        self.rpass = rpass
+        self.scene = scene
+        self.rm = self.scene.renderman
+        self.ipr_mode = False        
+
+        self.export_ready()
+        self.write_object_archive(obj)
+
+        rib_options = ""
+        if self.rm.rib_compression == "gzip":
+            rib_options += " -compression gzip"
+        rib_options += " -format %s" % self.rm.rib_format
+        if self.rm.rib_format == "ascii":
+            rib_options += " -indent"
+
+        is_running = True      
+        self.sg_scene.Render("rib %s -archive" % (ribfile))       
+
+        self.sgmngr.DeleteScene(self.sg_scene.sceneId)
+        is_running = False
+        print("Wrote RIB Archive to: %s" % ribfile)                
 
     def start_ipr(self, visible_objects, rpass, scene, progress_cb=None):
 
@@ -3439,6 +3463,26 @@ class RmanSgExporter:
         #    export_empties_archives(ri, object)
 
         instances = None
+
+    def write_object_archive(self, object, engine=None, do_objects=True):
+
+        # precalculate motion blur data
+        data_blocks, instances = cache_motion(self.scene, self.rpass, objects=[object, self.scene.camera])
+
+        # get a list of empties to check if they contain a RIB archive.
+        # this should be the only time empties are evaluated.
+        emptiesToExport = get_valid_empties(self.scene, self.rpass)
+
+        self.export_camera(instances)
+        self.export_global_obj_settings()
+        self.export_materials()
+        self.export_objects(data_blocks, instances, visible_objects=None, emptiesToExport=emptiesToExport)
+
+
+        #for object in emptiesToExport:
+        #    export_empties_archives(ri, object)
+
+        instances = None        
 
 def is_ready():
     global __RMAN_SG_INITED__

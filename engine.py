@@ -640,6 +640,47 @@ class RPass:
             engine.report({"INFO"}, "RIB generation took %s" %
                           format_seconds_to_hhmmss(time.time() - time_start))
 
+    def gen_rib_archive(self, object, ribfile, export_mats, export_range, convert_textures=True, engine=None):
+        global rman__sg__inited
+
+        rm = self.scene.renderman
+        if self.scene.camera is None:
+            debug('error', "ERROR no Camera.  \
+                    Cannot generate rib.")
+            return
+        time_start = time.time()
+        if convert_textures:
+            self.convert_textures(get_texture_list(self.scene))
+
+        if engine:
+            engine.report({"INFO"}, "Texture generation took %s" %
+                          format_seconds_to_hhmmss(time.time() - time_start))
+
+
+        time_start = time.time()
+        if export_range:
+            rangeStart = self.scene.frame_start
+            rangeEnd = self.scene.frame_end
+            rangeLength = rangeEnd - rangeStart
+            # Assume user is smart and wont pass us a negative range.
+            if rman__sg__inited:
+                dir_path = os.path.dirname(ribfile)
+                ext = '.rib'
+                basename = os.path.splitext(os.path.basename(ribfile))[0]
+                for i in range(rangeStart, rangeEnd + 1):      
+                    self.scene.frame_set(i)
+                    rib = os.path.join(dir_path, '%s_%04d%s' % (basename, i, ext))       
+                    rman_sg_exporter().write_archive_rib(object, self, self.scene, rib)
+        else:
+            self.scene.frame_set(self.scene.frame_current)
+
+            if rman__sg__inited:      
+                rman_sg_exporter().write_archive_rib(object, self, self.scene, ribfile)
+
+        if engine:
+            engine.report({"INFO"}, "RIB generation took %s" %
+                          format_seconds_to_hhmmss(time.time() - time_start))        
+
     def convert_textures(self, temp_texture_list):
         if not os.path.exists(self.paths['texture_output']):
             os.mkdir(self.paths['texture_output'])
