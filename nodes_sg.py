@@ -683,6 +683,7 @@ class RmanSgShadingExporter:
                     
             elif find_node(id, 'ShaderNodeOutputMaterial'):
                 print("Error Material %s needs a RenderMan BXDF" % id.name)
+                return (None, None)
 
     def export_simple_shader(self, mat, sg_node=None):
         rm = mat.renderman

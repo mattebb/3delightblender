@@ -2194,7 +2194,9 @@ class RmanSgExporter:
         else:
             sg_material = self.shader_exporter.export_simple_shader(mat)
 
-        self.sg_nodes_dict[mat_sg_handle] = sg_material
+        if sg_material:
+            self.sg_nodes_dict[mat_sg_handle] = sg_material
+            
         #self.mat_networks['material.%s' % mat_name] = bxdfList
 
         #for n in bxdfList:
