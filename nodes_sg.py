@@ -2468,8 +2468,9 @@ def get_textures_for_node(node, matName=""):
             return textures
         elif node.bl_idname == 'ShaderNodeGroup':
             nt = node.node_tree
-            for node in nt.nodes:
-                textures.extend(get_textures_for_node(node, matName=""))
+            if nt:
+                for node in nt.nodes:
+                    textures.extend(get_textures_for_node(node, matName=""))
             return textures
 
     if hasattr(node, 'prop_meta'):
