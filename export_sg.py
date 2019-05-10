@@ -518,8 +518,6 @@ class RmanSgExporter:
 
                                     source_data_name = get_instance(dupob.object, self.scene, False).name
                                     source_sg = self.sg_nodes_dict.get(source_data_name)
-                                    if source_sg and source_sg.GetHidden() != 1:
-                                        source_sg.SetHidden(1)
 
                                     if dupli_name in self.sg_nodes_dict:
                                         sg_dupli = self.sg_nodes_dict[dupli_name]
@@ -544,20 +542,24 @@ class RmanSgExporter:
                 else:        
                     instance = get_instance(active, self.scene, False)
                     if instance:
-                        inst_sg = None
-                        if instance.name in self.sg_nodes_dict.keys():                    
-                            inst_sg = self.sg_nodes_dict[instance.name]
+                        inst_mesh_sg = None
+                        db_name = data_name(active, self.scene)
+                        instance_name = '%s.%s' % (instance.name, db_name)
+                        if instance_name in self.sg_nodes_dict.keys():              
+                            inst_mesh_sg = self.sg_nodes_dict[instance_name]
                         else:
                             db_name = data_name(active, self.scene)
-                            inst_sg = self.sg_nodes_dict[db_name]
+                            inst_mesh_sg = self.sg_nodes_dict[db_name]
 
-                        if inst_sg:
+                        if inst_mesh_sg:
                             with rman.SGManager.ScopedEdit(self.sg_scene):
-                                self.export_transform(instance, inst_sg)   
+                                self.export_transform(instance, inst_mesh_sg)   
 
-                                for psys in active.particle_systems:
-                                    db_name = psys_name(active, psys)
-                                    self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None)                                 
+                                ## FIXME IS THIS NEEDED?
+                                
+                                #for psys in active.particle_systems:
+                                #    db_name = psys_name(active, psys)
+                                #    self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None)                                 
 
                     
                     # check if this object is part of a group/dupli
@@ -2249,10 +2251,12 @@ class RmanSgExporter:
             if data_block.type == "DUPLI":
                 pass
             else:
-                inst_mesh_sg = self.sg_scene.CreateGroup('%s.%s' % (instance_name, db_name))
+                inst_mesh_name = '%s.%s' % (instance_name, db_name)
+                inst_mesh_sg = self.sg_scene.CreateGroup(inst_mesh_name)
                 inst_mesh_sg.AddChild(mesh_sg)
                 self.export_transform(instance, inst_mesh_sg)
-                inst_sg.AddChild(inst_mesh_sg)               
+                inst_sg.AddChild(inst_mesh_sg)   
+                self.sg_nodes_dict[inst_mesh_name] = inst_mesh_sg            
 
         for mat in data_block.material:
             if not hasattr(mat, 'name'):
@@ -2928,6 +2932,8 @@ class RmanSgExporter:
             time_samples = [sample[0] for sample in motion_data]
             primvar.SetTimeSamples( time_samples )
             is_deforming = True
+        else:
+            primvar.SetTimeSamples([0])
 
         nm_pts = -1
 
@@ -3402,6 +3408,7 @@ class RmanSgExporter:
                         sg_node.SetMaterial(sg_material)
             sg_dupli.AddChild(sg_node)
             self.sg_nodes_dict[dupli_name] = sg_node
+        ob.dupli_list_clear()            
 
     def export_objects(self, data_blocks, instances, visible_objects=None, emptiesToExport=None):
 
