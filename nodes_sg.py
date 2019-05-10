@@ -1660,6 +1660,10 @@ def gen_rixparams(node, params, mat_name=None):
 
 def gen_params(node, mat_name=None):
     params = {}
+
+    if not hasattr(node, 'prop_meta'):
+        return params
+
     # If node is OSL node get properties from dynamic location.
     if node.bl_idname == "PxrOSLPatternNode":
 
@@ -2294,6 +2298,9 @@ def shader_node_sg(sg_scene, rman, node, mat_name, portal=False):
 
     if 'string filename' in params:
         params['string filename'] = bpy.path.abspath(params['string filename'])
+
+    if not hasattr(node, 'renderman_node_type'):
+        return
 
     if node.renderman_node_type == "pattern":
         if node.bl_label == 'PxrOSL':

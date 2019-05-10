@@ -549,7 +549,7 @@ class RmanSgExporter:
                             inst_mesh_sg = self.sg_nodes_dict[instance_name]
                         else:
                             db_name = data_name(active, self.scene)
-                            inst_mesh_sg = self.sg_nodes_dict[db_name]
+                            inst_mesh_sg = self.sg_nodes_dict.get(db_name)
 
                         if inst_mesh_sg:
                             with rman.SGManager.ScopedEdit(self.sg_scene):
