@@ -651,9 +651,10 @@ class RmanSgShadingExporter:
                 socket = out.inputs[0]
                 if socket.is_linked:
                     for sub_node in gather_nodes(socket.links[0].from_node):
-                        shader_sg_node = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
+                        shader_sg_nodes = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
                                     portal=portal)
-                        bxdfList.append(shader_sg_node) 
+                        for s in shader_sg_nodes:
+                            bxdfList.append(s) 
                     if bxdfList:
                         sg_material.SetBxdf(bxdfList)         
 
@@ -661,9 +662,10 @@ class RmanSgShadingExporter:
                 socket = out.inputs[1]
                 if socket.is_linked:
                     for sub_node in gather_nodes(socket.links[0].from_node):
-                        shader_sg_node = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
+                        shader_sg_nodes = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
                                     portal=portal)
 
+                        shader_sg_node = shader_sg_nodes[0]
                         if shader_sg_node.GetName().CStr() == "PxrMeshLight":
                             sg_material.SetLight(shader_sg_node)
                             break                                   
@@ -672,9 +674,10 @@ class RmanSgShadingExporter:
                 socket = out.inputs[2]
                 if socket.is_linked:
                     for sub_node in gather_nodes(socket.links[0].from_node):
-                        shader_sg_node = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
+                        shader_sg_nodes = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
                                     portal=portal)
-                        dispList.append(shader_sg_node) 
+                        for s in shader_sg_nodes:
+                            dispList.append(s) 
                     if dispList:
                         sg_material.SetDisplace(dispList)      
 
@@ -711,6 +714,36 @@ class RmanSgShadingExporter:
         sg_node.EditParameterEnd(rix_params)
 
         return sg_material
+
+def set_rix_param(params, param_type, param_name, val, is_reference=False):
+    if is_reference:
+        if param_type == "float":
+            params.ReferenceFloat(param_name, val)
+        elif param_type == "int":
+            params.ReferenceInteger(param_name, val)
+        elif param_type == "color":
+            params.ReferenceColor(param_name, val)
+        elif param_type == "point":
+            params.ReferencePoint(param_name, val)            
+        elif param_type == "vector":
+            params.ReferenceVector(param_name, val)
+        elif param_type == "normal":
+            params.ReferenceNormal(param_name, val)             
+    else:        
+        if param_type == "float":
+            params.SetFloat(param_name, val)
+        elif param_type == "int":
+            params.SetInteger(param_name, val)
+        elif param_type == "color":
+            params.SetColor(param_name, val)
+        elif param_type == "string":
+            params.SetString(param_name, val)
+        elif param_type == "point":
+            params.SetPoint(param_name, val)                            
+        elif param_type == "vector":
+            params.SetVector(param_name, val)
+        elif param_type == "normal":
+            params.SetNormal(param_name, val)
 
 def generate_node_type(prefs, name, args):
     ''' Dynamically generate a node type from pattern '''
@@ -1435,50 +1468,82 @@ def gen_rixparams(node, params, mat_name=None):
                     shutil.copy(osl_path, out_file)
         for input_name, input in node.inputs.items():
             prop_type = input.renderman_type
-            """if input.is_linked:
+            if input.is_linked:
                 to_socket = input
                 from_socket = input.links[0].from_socket
-                params['reference %s %s' % (prop_type, input_name)] = \
-                    [get_output_param_str(
-                        from_socket.node, mat_name, from_socket, to_socket)]
+                #params['reference %s %s' % (prop_type, input_name)] = \
+                #    [get_output_param_str(
+                #        from_socket.node, mat_name, from_socket, to_socket)]
+
+                param_type = prop_type
+                param_name = input_name
+
+                val = get_output_param_str(from_socket.node, mat_name, from_socket, to_socket)
+
+                set_rix_param(params, param_type, param_name, val, is_reference=True)    
+
             elif type(input) != RendermanNodeSocketStruct:
-                params['%s %s' % (prop_type, input_name)] = \
-                    rib(input.default_value,
-                        type_hint=prop_type)"""
+               # params['%s %s' % (prop_type, input_name)] = \
+               #     rib(input.default_value,
+               #         type_hint=prop_type)
+                param_type = prop_type
+                param_name = input_name
+                val = rib(input.default_value, type_hint=prop_type)
+                set_rix_param(params, param_type, param_name, val, is_reference=False)                
+
 
     # Special case for SeExpr Nodes. Assume that the code will be in a file so
     # that needs to be extracted.
     elif node.bl_idname == "PxrSeExprPatternNode":
         fileInputType = node.codetypeswitch
 
-        """for prop_name, meta in node.prop_meta.items():
+        for prop_name, meta in node.prop_meta.items():
             if prop_name in ["codetypeswitch", 'filename']:
                 pass
             elif prop_name == "internalSearch" and fileInputType == 'INT':
                 if node.internalSearch != "":
                     script = bpy.data.texts[node.internalSearch]
-                    params['%s %s' % ("string",
-                                      "expression")] = \
-                        rib(script.as_string(),
-                            type_hint=meta['renderman_type'])
+                    #params['%s %s' % ("string",
+                    #                  "expression")] = \
+                    #    rib(script.as_string(),
+                    #        type_hint=meta['renderman_type'])
+                    params.SetString("expression", script.as_string() )
             elif prop_name == "shadercode" and fileInputType == "NODE":
-                params['%s %s' % ("string", "expression")] = node.expression
+                #params['%s %s' % ("string", "expression")] = node.expression
+                params.SetString("expression", node.expression)
             else:
                 prop = getattr(node, prop_name)
                 # if input socket is linked reference that
                 if prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
+                    #to_socket = node.inputs[prop_name]
+                    #from_socket = to_socket.links[0].from_socket
+                    #params['reference %s %s' % (meta['renderman_type'],
+                    #                            meta['renderman_name'])] = \
+                    #    [get_output_param_str(
+                    #        from_socket.node, mat_name, from_socket, to_socket)]
+
                     to_socket = node.inputs[prop_name]
                     from_socket = to_socket.links[0].from_socket
-                    params['reference %s %s' % (meta['renderman_type'],
-                                                meta['renderman_name'])] = \
-                        [get_output_param_str(
-                            from_socket.node, mat_name, from_socket, to_socket)]
+                    from_node = to_socket.links[0].from_node
+
+                    param_type = meta['renderman_type']
+                    param_name = meta['renderman_name']
+
+                    val = get_output_param_str(
+                            from_socket.node, mat_name, from_socket, to_socket)
+
+                    set_rix_param(params, param_type, param_name, val, is_reference=True)                            
                 # else output rib
                 else:
-                    params['%s %s' % (meta['renderman_type'],
-                                      meta['renderman_name'])] = \
-                        rib(prop, type_hint=meta['renderman_type'])"""
+                    #params['%s %s' % (meta['renderman_type'],
+                    #                  meta['renderman_name'])] = \
+                    #    rib(prop, type_hint=meta['renderman_type'])
+                    param_type = meta['renderman_type']
+                    param_name = meta['renderman_name']
+
+                    val = rib(prop, type_hint=meta['renderman_type'])
+                    set_rix_param(params, param_type, param_name, val, is_reference=False)                          
 
     else:
 
@@ -1517,26 +1582,18 @@ def gen_rixparams(node, params, mat_name=None):
                         val = get_output_param_str(
                                 from_node, mat_name, from_socket, to_socket)
 
-                        if param_type == "float":
-                            params.ReferenceFloat(param_name, val)
-                        elif param_type == "int":
-                            params.ReferenceInteger(param_name, val)
-                        elif param_type == "color":
-                            params.ReferenceColor(param_name, val)
-                        elif param_type == "string":
-                            params.ReferenceString(param_name, val)
+                        set_rix_param(params, param_type, param_name, val, is_reference=True)
 
-
-                    """if 'arraySize' in meta:
-                        params['reference %s[1] %s' % (meta['renderman_type'],
-                                              meta['renderman_name'])] \
-                            = [get_output_param_str(
-                                from_node, mat_name, from_socket, to_socket)]
-                    else:
-                        params['reference %s %s' % (meta['renderman_type'],
-                                                meta['renderman_name'])] = \
-                            [get_output_param_str(
-                                from_node, mat_name, from_socket, to_socket)]"""
+                        #if param_type == "float":
+                        #    params.ReferenceFloat(param_name, val)
+                        #elif param_type == "int":
+                        #    params.ReferenceInteger(param_name, val)
+                        #elif param_type == "color":
+                        #    params.ReferenceColor(param_name, val)
+                        #elif param_type == "vector":
+                        #    params.ReferenceVector(param_name, val)
+                        #elif param_type == "normal":
+                        #    params.ReferenceNormal(param_name, val)                            
 
                 # see if vstruct linked
                 elif is_vstruct_and_linked(node, prop_name):
@@ -1545,7 +1602,7 @@ def gen_rixparams(node, params, mat_name=None):
                     from_socket = node.inputs[
                         vstruct_name].links[0].from_socket
 
-                    """temp_mat_name = mat_name
+                    temp_mat_name = mat_name
 
                     if from_socket.node.bl_idname == 'ShaderNodeGroup':
                         ng = from_socket.node.node_tree
@@ -1564,13 +1621,19 @@ def gen_rixparams(node, params, mat_name=None):
                     if vstruct_from_param in from_socket.node.output_meta:
                         actual_socket = from_socket.node.output_meta[
                             vstruct_from_param]
-                        params['reference %s %s' % (meta['renderman_type'],
-                                                    meta['renderman_name'])] = \
-                            [get_output_param_str(
-                                from_socket.node, temp_mat_name, actual_socket)]
+                        #params['reference %s %s' % (meta['renderman_type'],
+                        #                            meta['renderman_name'])] = \
+                        #    [get_output_param_str(
+                        #        from_socket.node, temp_mat_name, actual_socket)]
+                        param_type = meta['renderman_type']
+                        param_name = meta['renderman_name']
+                        val = get_output_param_str(
+                               from_socket.node, temp_mat_name, actual_socket)
+                        set_rix_param(params, param_type, param_name, val, is_reference=True)
+
                     else:
                         print('Warning! %s not found on %s' %
-                              (vstruct_from_param, from_socket.node.name))"""
+                              (vstruct_from_param, from_socket.node.name))
 
                 # else output rib
                 else:
@@ -1622,14 +1685,24 @@ def gen_rixparams(node, params, mat_name=None):
                     if isArray:
                         pass
                     else:
-                        if param_type == "float":
-                            params.SetFloat(param_name, val)
-                        elif param_type == "int":
-                            params.SetInteger(param_name, val)
-                        elif param_type == "color":
-                            params.SetColor(param_name, val)
-                        elif param_type == "string":
-                            params.SetString(param_name, val)
+                        set_rix_param(params, param_type, param_name, val, is_reference=False)
+
+
+                        # if param_type == "float":
+                        #     params.SetFloat(param_name, val)
+                        # elif param_type == "int":
+                        #     params.SetInteger(param_name, val)
+                        # elif param_type == "color":
+                        #     params.SetColor(param_name, val)
+                        # elif param_type == "string":
+                        #     params.SetString(param_name, val)
+                        # elif param_type == "point":
+                        #     params.SetPoint(param_name, val)                            
+                        # elif param_type == "vector":
+                        #     params.SetVector(param_name, val)
+                        # elif param_type == "normal":
+                        #     params.SetNormal(param_name, val)
+                        
 
     if node.plugin_name == 'PxrRamp':
         nt = bpy.data.node_groups[node.node_group]
@@ -2178,7 +2251,7 @@ def get_output_param_str(node, mat_name, socket, to_socket=None):
 current_group_node = None
 
 
-def translate_node_group(ri, group_node, mat_name):
+def translate_node_group(sg_scene, rman, group_node, mat_name):
     ng = group_node.node_tree
     out = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
                None)
@@ -2188,40 +2261,78 @@ def translate_node_group(ri, group_node, mat_name):
     nodes_to_export = gather_nodes(out)
     global current_group_node
     current_group_node = group_node
-    #for node in nodes_to_export:
+    sg_nodes = []
+    for node in nodes_to_export:
     #    shader_node_rib(ri, node, mat_name=(mat_name + '.' + group_node.name))
+        sg_nodes += shader_node_sg(sg_scene, rman, node, mat_name=(mat_name + '.' + group_node.name))
     current_group_node = None
+    return sg_nodes
 
 
-def translate_cycles_node(ri, node, mat_name):
+def translate_cycles_node(sg_scene, rman, node, mat_name):
     if node.bl_idname == 'ShaderNodeGroup':
-        translate_node_group(ri, node, mat_name)
-        return
+        return translate_node_group(sg_scene, rman, node, mat_name)
 
     if node.bl_idname not in cycles_node_map.keys():
         print('No translation for node of type %s named %s' %
               (node.bl_idname, node.name))
-        return
+        return []
 
     mapping = cycles_node_map[node.bl_idname]
-    params = {}
+    #params = {}
+
+    sg_node = sg_scene.CreateNode("Pattern", mapping, get_node_name(node, mat_name))
+    params = sg_node.EditParameterBegin()       
+      
     for in_name, input in node.inputs.items():
-        param_name = "%s %s" % (get_socket_type(
-            node, input), get_socket_name(node, input))
+        param_name = "%s" % get_socket_name(node, input)
+        param_type = "%s" % get_socket_type(node, input)
         if input.is_linked:
-            param_name = 'reference ' + param_name
+            #param_name = 'reference ' + param_name
             link = input.links[0]
-            param_val = get_output_param_str(
+            val = get_output_param_str(
                 link.from_node, mat_name, link.from_socket, input)
 
+            set_rix_param(params, param_type, param_name, val, is_reference=True)
+
+            # if param_type == "float":
+            #     params.ReferenceFloat(param_name, val)
+            # elif param_type == "int":
+            #     params.ReferenceInteger(param_name, val)
+            # elif param_type == "color":
+            #     params.ReferenceColor(param_name, val)
+            # elif param_type == "point":
+            #     params.ReferencePoint(param_name, val)                
+            # elif param_type == "vector":
+            #     params.ReferenceVector(param_name, val)
+            # elif param_type == "normal":
+            #     params.ReferenceNormal(param_name, val)                  
+
         else:
-            param_val = rib(input.default_value,
+            val = rib(input.default_value,
                             type_hint=get_socket_type(node, input))
             # skip if this is a vector set to 0 0 0
-            if input.type == 'VECTOR' and param_val == [0.0, 0.0, 0.0]:
+            if input.type == 'VECTOR' and val == [0.0, 0.0, 0.0]:
                 continue
 
-        params[param_name] = param_val
+            set_rix_param(params, param_type, param_name, val, is_reference=False)
+
+            # if param_type == "float":
+            #     params.SetFloat(param_name, val)
+            # elif param_type == "int":
+            #     params.SetInteger(param_name, val)
+            # elif param_type == "color":
+            #     params.SetColor(param_name, val)
+            # elif param_type == "string":
+            #     params.SetString(param_name, val) 
+            # elif param_type == "point":
+            #     params.SetPoint(param_name, val)                  
+            # elif param_type == "vector":
+            #     params.SetVector(param_name, val)
+            # elif param_type == "normal":
+            #     params.SetNormal(param_name, val)                             
+
+        #params[param_name] = param_val
 
     ramp_size = 256
     if node.bl_idname == 'ShaderNodeValToRGB':
@@ -2232,8 +2343,12 @@ def translate_cycles_node(ri, node, mat_name):
             c = node.color_ramp.evaluate(float(i) / (ramp_size - 1.0))
             colors.extend(c[:3])
             alphas.append(c[3])
-        params['color[%d] ramp_color' % ramp_size] = colors
-        params['float[%d] ramp_alpha' % ramp_size] = alphas
+        #params['color[%d] ramp_color' % ramp_size] = colors
+        #params['float[%d] ramp_alpha' % ramp_size] = alphas
+
+        params.SetColorArray('ramp_color', colors, ramp_size)
+        params.SetFloatArray('ramp_alpha', alphas, ramp_size)
+
     elif node.bl_idname == 'ShaderNodeVectorCurve':
         colors = []
         node.mapping.initialize()
@@ -2245,7 +2360,9 @@ def translate_cycles_node(ri, node, mat_name):
             v = float(i) / (ramp_size - 1.0)
             colors.extend([r.evaluate(v), g.evaluate(v), b.evaluate(v)])
 
-        params['color[%d] ramp' % ramp_size] = colors
+        #params['color[%d] ramp' % ramp_size] = colors
+
+        params.SetColorArray('ramp', colors, ramp_size)
 
     elif node.bl_idname == 'ShaderNodeRGBCurve':
         colors = []
@@ -2261,16 +2378,22 @@ def translate_cycles_node(ri, node, mat_name):
             colors.extend([r.evaluate(v) * c_val, g.evaluate(v)
                            * c_val, b.evaluate(v) * c_val])
 
-        params['color[%d] ramp' % ramp_size] = colors
+        #params['color[%d] ramp' % ramp_size] = colors
+
+        params.SetColorArray('ramp', colors, ramp_size)
 
     #print('doing %s %s' % (node.bl_idname, node.name))
     # print(params)
-    ri.Pattern(mapping, get_node_name(node, mat_name), params)
+    #ri.Pattern(mapping, get_node_name(node, mat_name), params)
 
+    sg_node.EditParameterEnd(params)    
+    return [sg_node]
 
 # convert shader node to RixSceneGraph node
 def shader_node_sg(sg_scene, rman, node, mat_name, portal=False):
     # this is tuple telling us to convert
+    sg_node = None
+
     if type(node) == type(()):
         shader, from_node, from_socket = node
         input_type = 'float' if shader == 'PxrToFloat3' else 'color'
@@ -2279,21 +2402,28 @@ def shader_node_sg(sg_scene, rman, node, mat_name, portal=False):
         if from_node.bl_idname == 'ShaderNodeGroup':
             node_name = 'convert_' + get_output_param_str(
                 from_node, mat_name, from_socket).replace(':', '.')
-        params = {"reference %s input" % input_type: get_output_param_str(
-            from_node, mat_name, from_socket)}
-        params['__instanceid'] = node_name
+                
+        #params = {"reference %s input" % input_type: get_output_param_str(
+        #    from_node, mat_name, from_socket)}
+        #params['__instanceid'] = node_name
 
         #ri.Pattern(shader, node_name, params)
-        sg_node = sg_scene.CreateNode("Pattern", node_name, instance)
-        return
+        val = get_output_param_str(from_node, mat_name, from_socket)
+        sg_node = sg_scene.CreateNode("Pattern", shader, node_name)
+        rix_params = sg_node.EditParameterBegin()       
+        if input_type == 'color':
+            rix_params.ReferenceColor('input', val)
+        else:
+            rix_params.ReferenceFloat('input', val)            
+        sg_node.EditParameterEnd(rix_params)
+                
+        return [sg_node]
     elif not hasattr(node, 'renderman_node_type'):
-        pass
-        #return translate_cycles_node(ri, node, mat_name)
+        #return [sg_node]       
+        return translate_cycles_node(sg_scene, rman, node, mat_name)
 
-    params = gen_params(node, mat_name)
-    sg_node = None
     instance = mat_name + '.' + node.name
-
+    params = gen_params(node, mat_name)
     params['__instanceid'] = instance
 
     if 'string filename' in params:
@@ -2363,7 +2493,7 @@ def shader_node_sg(sg_scene, rman, node, mat_name, portal=False):
         rix_params = gen_rixparams(node, rix_params, mat_name)
         sg_node.EditParameterEnd(rix_params)
 
-    return sg_node
+    return [sg_node]
 
 
 def replace_frame_num(prop):
