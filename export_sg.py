@@ -2024,15 +2024,18 @@ class RmanSgExporter:
 
     def export_camera(self, instances, camera_to_use=None):
         r = self.scene.render
+        motion = []
         if camera_to_use:
             ob = camera_to_use
-            motion = []
         else:
             if not self.scene.camera or self.scene.camera.type != 'CAMERA':
                 return
-            i = instances[self.scene.camera.name]
-            ob = i.ob
-            motion = i.motion_data
+            if self.scene.camera.name in instances:
+                i = instances[self.scene.camera.name]
+                ob = i.ob
+                motion = i.motion_data
+            else:
+                ob = self.scene.camera
         cam = ob.data
         rm = self.scene.renderman
 
@@ -3350,6 +3353,8 @@ class RmanSgExporter:
 
     def export_dupli_archive(self, sg_dupli, data_block, data_blocks):
         ob = data_block.data
+        if ob.dupli_type == "NONE":
+            return
 
         ob.dupli_list_create(self.scene, "RENDER")
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
@@ -3377,10 +3382,11 @@ class RmanSgExporter:
                     if not is_multi_material(dupob.object):
                         if dupob.object.material_slots:
                             mat = dupob.object.material_slots[0].material
-                            mat_handle = "material.%s" % mat.name
-                            if mat_handle in self.sg_nodes_dict:
-                                sg_material = self.sg_nodes_dict[mat_handle]
-                                sg_node.SetMaterial(sg_material)
+                            if mat:
+                                mat_handle = "material.%s" % mat.name
+                                if mat_handle in self.sg_nodes_dict:
+                                    sg_material = self.sg_nodes_dict[mat_handle]
+                                    sg_node.SetMaterial(sg_material)
 
                 sg_dupli.AddChild(sg_node)                
                 self.sg_nodes_dict[dupli_name] = sg_node
