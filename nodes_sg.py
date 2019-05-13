@@ -1621,15 +1621,24 @@ def gen_rixparams(node, params, mat_name=None):
                     if vstruct_from_param in from_socket.node.output_meta:
                         actual_socket = from_socket.node.output_meta[
                             vstruct_from_param]
-                        #params['reference %s %s' % (meta['renderman_type'],
-                        #                            meta['renderman_name'])] = \
-                        #    [get_output_param_str(
-                        #        from_socket.node, temp_mat_name, actual_socket)]
+
                         param_type = meta['renderman_type']
                         param_name = meta['renderman_name']
+
+                        node_meta = getattr(
+                            node, 'shader_meta') if node.bl_idname == "PxrOSLPatternNode" else node.output_meta                        
+                        node_meta = node_meta.get(vstruct_from_param)
+                        is_reference = True
                         val = get_output_param_str(
                                from_socket.node, temp_mat_name, actual_socket)
-                        set_rix_param(params, param_type, param_name, val, is_reference=True)
+                        if node_meta:
+                            expr = node_meta.get('vstructConditionalExpr')
+                            # check if we should connect or just set a value
+                            if expr:
+                                if expr.split(' ')[0] == 'set':
+                                    val = 1
+                                    is_reference = False                        
+                        set_rix_param(params, param_type, param_name, val, is_reference=is_reference)
 
                     else:
                         print('Warning! %s not found on %s' %

@@ -5,6 +5,14 @@
   <help>
     
   </help>
+  <param  name="enableDiffuseAlways"
+    type="int"
+    widget="null"
+    default="1">
+    <tags>
+      <tag value="int"/>
+    </tags>
+  </param>
   <param  name="baselayer"
     type="vstruct"
     label="Base Layer"
@@ -344,6 +352,26 @@
     default="0 0 0">
     <tags>
       <tag value="normal"/>
+    </tags>
+  </param>
+  <param  name="baselayer_clearcoatThickness"
+    type="float"
+    label="baselayer_clearcoatThickness"
+    widget="null"
+    vstructmember="baselayer.clearcoatThickness"
+    default="0">
+    <tags>
+      <tag value="float"/>
+    </tags>
+  </param>
+  <param  name="baselayer_clearcoatAbsorptionTint"
+    type="color"
+    label="baselayer_clearcoatAbsorptionTint"
+    widget="null"
+    vstructmember="baselayer.clearcoatAbsorptionTint"
+    default="0 0 0">
+    <tags>
+      <tag value="color"/>
     </tags>
   </param>
   <param  name="baselayer_enableIridescence"
@@ -1116,6 +1144,26 @@
       <tag value="normal"/>
     </tags>
   </param>
+  <param  name="layer1_clearcoatThickness"
+    type="float"
+    label="layer1_clearcoatThickness"
+    widget="null"
+    vstructmember="layer1.clearcoatThickness"
+    default="0">
+    <tags>
+      <tag value="float"/>
+    </tags>
+  </param>
+  <param  name="layer1_clearcoatAbsorptionTint"
+    type="color"
+    label="layer1_clearcoatAbsorptionTint"
+    widget="null"
+    vstructmember="layer1.clearcoatAbsorptionTint"
+    default="0 0 0">
+    <tags>
+      <tag value="color"/>
+    </tags>
+  </param>
   <param  name="layer1_enableIridescence"
     type="int"
     label="layer1_enableIridescence"
@@ -1884,6 +1932,26 @@
     default="0 0 0">
     <tags>
       <tag value="normal"/>
+    </tags>
+  </param>
+  <param  name="layer2_clearcoatThickness"
+    type="float"
+    label="layer2_clearcoatThickness"
+    widget="null"
+    vstructmember="layer2.clearcoatThickness"
+    default="0">
+    <tags>
+      <tag value="float"/>
+    </tags>
+  </param>
+  <param  name="layer2_clearcoatAbsorptionTint"
+    type="color"
+    label="layer2_clearcoatAbsorptionTint"
+    widget="null"
+    vstructmember="layer2.clearcoatAbsorptionTint"
+    default="0 0 0">
+    <tags>
+      <tag value="color"/>
     </tags>
   </param>
   <param  name="layer2_enableIridescence"
@@ -2656,6 +2724,26 @@
       <tag value="normal"/>
     </tags>
   </param>
+  <param  name="layer3_clearcoatThickness"
+    type="float"
+    label="layer3_clearcoatThickness"
+    widget="null"
+    vstructmember="layer3.clearcoatThickness"
+    default="0">
+    <tags>
+      <tag value="float"/>
+    </tags>
+  </param>
+  <param  name="layer3_clearcoatAbsorptionTint"
+    type="color"
+    label="layer3_clearcoatAbsorptionTint"
+    widget="null"
+    vstructmember="layer3.clearcoatAbsorptionTint"
+    default="0 0 0">
+    <tags>
+      <tag value="color"/>
+    </tags>
+  </param>
   <param  name="layer3_enableIridescence"
     type="int"
     label="layer3_enableIridescence"
@@ -3426,6 +3514,26 @@
       <tag value="normal"/>
     </tags>
   </param>
+  <param  name="layer4_clearcoatThickness"
+    type="float"
+    label="layer4_clearcoatThickness"
+    widget="null"
+    vstructmember="layer4.clearcoatThickness"
+    default="0">
+    <tags>
+      <tag value="float"/>
+    </tags>
+  </param>
+  <param  name="layer4_clearcoatAbsorptionTint"
+    type="color"
+    label="layer4_clearcoatAbsorptionTint"
+    widget="null"
+    vstructmember="layer4.clearcoatAbsorptionTint"
+    default="0 0 0">
+    <tags>
+      <tag value="color"/>
+    </tags>
+  </param>
   <param  name="layer4_enableIridescence"
     type="int"
     label="layer4_enableIridescence"
@@ -3897,7 +4005,7 @@
   </output>
   <output  name="pxrMaterialOut_diffuseColor"
     vstructmember="pxrMaterialOut.diffuseColor"
-    vstructConditionalExpr="connect if (baselayer_enableDiffuse == 1 or  layer1_enableDiffuse == 1 or  layer2_enableDiffuse == 1 or  layer3_enableDiffuse == 1 or  layer4_enableDiffuse == 1) ">
+    vstructConditionalExpr="connect if enableDiffuseAlways == 1 ">
     <tags>
       <tag value="color"/>
     </tags>
@@ -4103,6 +4211,20 @@
     vstructConditionalExpr="connect if (baselayer_enableClearcoat == 1 and baselayer_clearcoatBumpNormal is connected) or  (layer1_enableClearcoat == 1 and layer1_clearcoatBumpNormal is connected) or  (layer2_enableClearcoat == 1 and layer2_clearcoatBumpNormal is connected) or  (layer3_enableClearcoat == 1 and layer3_clearcoatBumpNormal is connected) or  (layer4_enableClearcoat == 1 and layer4_clearcoatBumpNormal is connected) ">
     <tags>
       <tag value="normal"/>
+    </tags>
+  </output>
+  <output  name="pxrMaterialOut_clearcoatThickness"
+    vstructmember="pxrMaterialOut.clearcoatThickness"
+    vstructConditionalExpr="connect if (baselayer_enableClearcoat == 1 or  layer1_enableClearcoat == 1 or  layer2_enableClearcoat == 1 or  layer3_enableClearcoat == 1 or  layer4_enableClearcoat == 1) ">
+    <tags>
+      <tag value="float"/>
+    </tags>
+  </output>
+  <output  name="pxrMaterialOut_clearcoatAbsorptionTint"
+    vstructmember="pxrMaterialOut.clearcoatAbsorptionTint"
+    vstructConditionalExpr="connect if (baselayer_enableClearcoat == 1 or  layer1_enableClearcoat == 1 or  layer2_enableClearcoat == 1 or  layer3_enableClearcoat == 1 or  layer4_enableClearcoat == 1) ">
+    <tags>
+      <tag value="color"/>
     </tags>
   </output>
   <output  name="pxrMaterialOut_enableFuzz"

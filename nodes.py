@@ -343,6 +343,10 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             col = layout.column(align=True)
             for prop_name in prop_names:
                 if prop_name not in self.inputs:
+                    prop_meta = self.prop_meta[prop_name]
+                    if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
+                        'hidden' in prop_meta and prop_meta['hidden']:
+                        continue
                     for name in getattr(self, prop_name):
                         if name.startswith('enable'):
                             col.prop(self, name, text=prop_name.split('.')[-1])

@@ -5,6 +5,25 @@
   <help>
     
   </help>
+  <param  name="enableDiffuseAlways"
+    type="int"
+    widget="null"
+    default="1">
+    <tags>
+      <tag value="int"/>
+    </tags>
+  </param>
+  <param  name="bumpNormal"
+    type="normal"
+    label="Global Bump"
+    default="0 0 0">
+    <help>
+      Connect a PxrBump node here if you need bump or normal-mapped normals. Only valid when provided as a texture/connection. If the individual lobe's bump normal is set, this global bump be ignored for that lobe.
+    </help>
+    <tags>
+      <tag value="normal"/>
+    </tags>
+  </param>
   <page name="Diffuse" open="False">
   <param  name="enableDiffuse"
     type="int"
@@ -438,6 +457,32 @@
       <tag value="color"/>
     </tags>
   </param>
+  <param  name="clearcoatThickness"
+    type="float"
+    label="Layer Thickness"
+    slider="1"
+    min="0"
+    max="1"
+    default="0">
+    <help>
+      Thickness of the clearcoat layer for attenuating through absorptionthe other active substrates.This method can work in addition to the clearcoatEnergyCompensation approach.
+    </help>
+    <tags>
+      <tag value="float"/>
+    </tags>
+  </param>
+  <param  name="clearcoatAbsorptionTint"
+    type="color"
+    label="Absorption Tint"
+    widget="color"
+    default="0 0 0">
+    <help>
+      Controls the wavelength dependence of the clearcoatThickness above. The clearcoat medium provides a filter to the substrates.At infinite Thickness, this would be the color observed on the substrates.
+    </help>
+    <tags>
+      <tag value="color"/>
+    </tags>
+  </param>
   </page>
   <page name="Clear Coat Advanced" open="False">
   <param  name="clearcoatAnisotropy"
@@ -578,7 +623,6 @@
     label="Gain"
     slider="1"
     min="0"
-    max="1"
     default="0">
     <help>
       Multiplier for the fuzz lobe.
@@ -1029,7 +1073,6 @@
     label="Gain"
     slider="1"
     min="0"
-    max="1"
     default="0">
     <help>
       Multiplier for the glow lobe.
@@ -1051,18 +1094,7 @@
     </tags>
   </param>
   </page>
-  <param  name="bumpNormal"
-    type="normal"
-    label="Global Bump"
-    default="0 0 0">
-    <help>
-      Connect a PxrBump node here if you need bump or normal-mapped normals. Only valid when provided as a texture/connection. If the individual lobe's bump normal is set, this global bump be ignored for that lobe.
-    </help>
-    <tags>
-      <tag value="normal"/>
-    </tags>
-  </param>
-  <output  name="pxrMaterialOut">
+<output  name="pxrMaterialOut">
     <help>
       This is a virtual struct output. It connects all shader parameters in the same scope.
     </help>
@@ -1093,7 +1125,7 @@
   </output>
   <output  name="pxrMaterialOut_diffuseColor"
     vstructmember="pxrMaterialOut.diffuseColor"
-    vstructConditionalExpr="connect if enableDiffuse == 1 ">
+    vstructConditionalExpr="connect if enableDiffuseAlways == 1 ">
     <tags>
       <tag value="color"/>
     </tags>
@@ -1299,6 +1331,20 @@
     vstructConditionalExpr="connect if enableClearcoat == 1 and clearcoatBumpNormal is connected ">
     <tags>
       <tag value="normal"/>
+    </tags>
+  </output>
+  <output  name="pxrMaterialOut_clearcoatThickness"
+    vstructmember="pxrMaterialOut.clearcoatThickness"
+    vstructConditionalExpr="connect if enableClearcoat == 1 ">
+    <tags>
+      <tag value="float"/>
+    </tags>
+  </output>
+  <output  name="pxrMaterialOut_clearcoatAbsorptionTint"
+    vstructmember="pxrMaterialOut.clearcoatAbsorptionTint"
+    vstructConditionalExpr="connect if enableClearcoat == 1 ">
+    <tags>
+      <tag value="color"/>
     </tags>
   </output>
   <output  name="pxrMaterialOut_enableIridescence"
@@ -1608,7 +1654,7 @@
     <tags>
       <tag value="color"/>
     </tags>
-  </output>
+  </output>  
   <rfcdata
     nodeid="1037674"
     description="Xpxrlayer"
