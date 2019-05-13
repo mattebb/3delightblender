@@ -306,7 +306,8 @@ class RmanSgExporter:
 
         is_running = True
         self.rictl.PRManBegin(argv)
-        self.sg_scene.Render("rib /var/tmp/blender.rib")       
+        if 'RFB_DUMP_RIB' in os.environ:
+            self.sg_scene.Render("rib /var/tmp/blender.rib")       
         self.sg_scene.Render("prman -blocking") 
 
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
@@ -391,8 +392,8 @@ class RmanSgExporter:
         self.write_scene(visible_objects)
 
         is_running = True
-       
-        self.sg_scene.Render("rib /var/tmp/blender.rib")
+        if 'RFB_DUMP_RIB' in os.environ:
+            self.sg_scene.Render("rib /var/tmp/blender.rib")
         self.sg_scene.Render("prman -live")
 
     def stop_ipr(self):
@@ -1218,7 +1219,7 @@ class RmanSgExporter:
             if len(creases) > 0:
                 for c in creases:
                     tags.append('crease')
-                    nargs.extend([2, 1])
+                    nargs.extend([2, 1, 0])
                     intargs.extend([c[0], c[1]])
                     floatargs.append(c[2])           
                 
@@ -3216,6 +3217,11 @@ class RmanSgExporter:
                 strand_points = strand_points[:3] + \
                     strand_points + strand_points[-3:]
                 vertsInStrand = len(strand_points) // 3
+
+                # catmull-rom requires at least 4 vertices
+                if vertsInStrand < 4:
+                    continue
+
                 # for varying width make the width array
                 if not conwidth:
                     decr = (base_width - tip_width) / (vertsInStrand - 2)
