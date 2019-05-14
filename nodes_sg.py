@@ -1971,7 +1971,8 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         elif node.bl_idname == 'ShaderNodeMixShader' or node1.bl_idname in combine_nodes \
                 or node2.bl_idname in combine_nodes or \
                 node1.bl_idname == 'ShaderNodeGroup' or node2.bl_idname == 'ShaderNodeGroup' \
-                or (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0]):
+                or ( (node1.bl_idname in bsdf_map) and (node2.bl_idname in bsdf_map)
+                and (bsdf_map[node1.bl_idname][0] == bsdf_map[node2.bl_idname][0])):
             mixer = nt.nodes.new('PxrLayerMixerPatternNode')
             # if parent is output make a pxr surface first
             nt.links.new(mixer.outputs["pxrMaterialOut"],
@@ -2008,7 +2009,8 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
             offset_node_location(old_parent, rman_parent, node)
 
         node_type = node.bl_idname
-        bsdf_map[node_type][1](nt, node, rman_parent)
+        if bsdf_map[node_type][1]:
+            bsdf_map[node_type][1](nt, node, rman_parent)
     # if we find an emission node, naively make it a meshlight
     # note this will only make the last emission node the light
     elif node.bl_idname == 'ShaderNodeEmission':
@@ -2297,25 +2299,11 @@ def translate_cycles_node(sg_scene, rman, node, mat_name):
         param_name = "%s" % get_socket_name(node, input)
         param_type = "%s" % get_socket_type(node, input)
         if input.is_linked:
-            #param_name = 'reference ' + param_name
             link = input.links[0]
             val = get_output_param_str(
                 link.from_node, mat_name, link.from_socket, input)
 
-            set_rix_param(params, param_type, param_name, val, is_reference=True)
-
-            # if param_type == "float":
-            #     params.ReferenceFloat(param_name, val)
-            # elif param_type == "int":
-            #     params.ReferenceInteger(param_name, val)
-            # elif param_type == "color":
-            #     params.ReferenceColor(param_name, val)
-            # elif param_type == "point":
-            #     params.ReferencePoint(param_name, val)                
-            # elif param_type == "vector":
-            #     params.ReferenceVector(param_name, val)
-            # elif param_type == "normal":
-            #     params.ReferenceNormal(param_name, val)                  
+            set_rix_param(params, param_type, param_name, val, is_reference=True)                
 
         else:
             val = rib(input.default_value,
@@ -2326,23 +2314,6 @@ def translate_cycles_node(sg_scene, rman, node, mat_name):
 
             set_rix_param(params, param_type, param_name, val, is_reference=False)
 
-            # if param_type == "float":
-            #     params.SetFloat(param_name, val)
-            # elif param_type == "int":
-            #     params.SetInteger(param_name, val)
-            # elif param_type == "color":
-            #     params.SetColor(param_name, val)
-            # elif param_type == "string":
-            #     params.SetString(param_name, val) 
-            # elif param_type == "point":
-            #     params.SetPoint(param_name, val)                  
-            # elif param_type == "vector":
-            #     params.SetVector(param_name, val)
-            # elif param_type == "normal":
-            #     params.SetNormal(param_name, val)                             
-
-        #params[param_name] = param_val
-
     ramp_size = 256
     if node.bl_idname == 'ShaderNodeValToRGB':
         colors = []
@@ -2352,8 +2323,6 @@ def translate_cycles_node(sg_scene, rman, node, mat_name):
             c = node.color_ramp.evaluate(float(i) / (ramp_size - 1.0))
             colors.extend(c[:3])
             alphas.append(c[3])
-        #params['color[%d] ramp_color' % ramp_size] = colors
-        #params['float[%d] ramp_alpha' % ramp_size] = alphas
 
         params.SetColorArray('ramp_color', colors, ramp_size)
         params.SetFloatArray('ramp_alpha', alphas, ramp_size)
@@ -2368,8 +2337,6 @@ def translate_cycles_node(sg_scene, rman, node, mat_name):
         for i in range(ramp_size):
             v = float(i) / (ramp_size - 1.0)
             colors.extend([r.evaluate(v), g.evaluate(v), b.evaluate(v)])
-
-        #params['color[%d] ramp' % ramp_size] = colors
 
         params.SetColorArray('ramp', colors, ramp_size)
 
@@ -2387,13 +2354,11 @@ def translate_cycles_node(sg_scene, rman, node, mat_name):
             colors.extend([r.evaluate(v) * c_val, g.evaluate(v)
                            * c_val, b.evaluate(v) * c_val])
 
-        #params['color[%d] ramp' % ramp_size] = colors
 
         params.SetColorArray('ramp', colors, ramp_size)
 
     #print('doing %s %s' % (node.bl_idname, node.name))
     # print(params)
-    #ri.Pattern(mapping, get_node_name(node, mat_name), params)
 
     sg_node.EditParameterEnd(params)    
     return [sg_node]
@@ -2412,11 +2377,6 @@ def shader_node_sg(sg_scene, rman, node, mat_name, portal=False):
             node_name = 'convert_' + get_output_param_str(
                 from_node, mat_name, from_socket).replace(':', '.')
                 
-        #params = {"reference %s input" % input_type: get_output_param_str(
-        #    from_node, mat_name, from_socket)}
-        #params['__instanceid'] = node_name
-
-        #ri.Pattern(shader, node_name, params)
         val = get_output_param_str(from_node, mat_name, from_socket)
         sg_node = sg_scene.CreateNode("Pattern", shader, node_name)
         rix_params = sg_node.EditParameterBegin()       
@@ -2428,7 +2388,7 @@ def shader_node_sg(sg_scene, rman, node, mat_name, portal=False):
                 
         return [sg_node]
     elif not hasattr(node, 'renderman_node_type'):
-        #return [sg_node]       
+   
         return translate_cycles_node(sg_scene, rman, node, mat_name)
 
     instance = mat_name + '.' + node.name

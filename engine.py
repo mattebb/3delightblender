@@ -51,6 +51,7 @@ from .util import get_real_path, find_it_path
 from .util import debug
 from .util import get_Selected_Objects
 from .util import get_addon_prefs
+from .util import format_seconds_to_hhmmss
 from random import randint
 import sys
 from bpy.app.handlers import persistent
@@ -182,14 +183,6 @@ def update_timestamp(scene):
         # mark object for update
         now = int(time.time())
         active.renderman.update_timestamp = now
-
-
-def format_seconds_to_hhmmss(seconds):
-    hours = seconds // (60 * 60)
-    seconds %= (60 * 60)
-    minutes = seconds // 60
-    seconds %= 60
-    return "%02i:%02i:%02i" % (hours, minutes, seconds)
 
 
 class RPass:

@@ -44,6 +44,7 @@ from .util import path_list_convert, get_real_path
 from .util import get_properties, check_if_archive_dirty
 from .util import locate_openVDB_cache
 from .util import debug, get_addon_prefs
+from .util import format_seconds_to_hhmmss
 
 from .nodes_sg import is_renderman_nodetree, get_textures, get_textures_for_node, get_tex_file_name
 from .nodes_sg import get_mat_name
@@ -293,6 +294,8 @@ class RmanSgExporter:
                 argv.append("-checkpoint")
                 argv.append("%ds" % check_point)
 
+        print("Parsing scene...")
+        time_start = time.time()
         if for_preview:
             if self.write_preview_scene() is False:
                 # nothing to do?
@@ -307,7 +310,8 @@ class RmanSgExporter:
         is_running = True
         self.rictl.PRManBegin(argv)
         if 'RFB_DUMP_RIB' in os.environ:
-            self.sg_scene.Render("rib /var/tmp/blender.rib")       
+            self.sg_scene.Render("rib /var/tmp/blender.rib")      
+        print("Finished parsing scene. Total time: %s" % format_seconds_to_hhmmss(time.time() - time_start))             
         self.sg_scene.Render("prman -blocking") 
 
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
@@ -389,11 +393,13 @@ class RmanSgExporter:
         argv.append("-t:%d" % self.rm.threads)
 
         self.rictl.PRManBegin(argv)
+        print("Parsing scene...")
+        time_start = time.time()
         self.write_scene(visible_objects)
-
         is_running = True
         if 'RFB_DUMP_RIB' in os.environ:
             self.sg_scene.Render("rib /var/tmp/blender.rib")
+        print("Finished parsing scene. Total time: %s" % format_seconds_to_hhmmss(time.time() - time_start))
         self.sg_scene.Render("prman -live")
 
     def stop_ipr(self):

@@ -80,6 +80,8 @@ def convert_cycles_node(nt, node, location=None):
         return mixer
     elif node_type in bsdf_map.keys():
         rman_name, convert_func = bsdf_map[node_type]
+        if not convert_func:
+            return None
         node_name = 'PxrLayerPatternNode'
         rman_node = nt.nodes.new(node_name)
         rman_node.enableDiffuse = False
