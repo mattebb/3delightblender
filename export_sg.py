@@ -1950,7 +1950,7 @@ class RmanSgExporter:
             rixparams = node_sg.EditParameterBegin()
             rixparams.SetFloat("exposure", exposure)
             rixparams.SetColor("lightColor", rib(lamp.color))
-            if lamp.type not in ['HEMI']:
+            if lamp.type not in ['HEMI', 'SUN']:
                 rixparams.SetInteger('areaNormalize', 1)
             node_sg.EditParameterEnd(rixparams)
 
@@ -3151,10 +3151,6 @@ class RmanSgExporter:
 
     # ------------- Geometry Access -------------
     def get_strands(self, ob, psys, objectCorrectionMatrix=False):
-        # we need this to get st
-        #if(objectCorrectionMatrix):
-        #    matrix = ob.matrix_world.inverted_safe()
-        #    loc, rot, sca = matrix.decompose()
 
         psys_modifier = None
         for mod in ob.modifiers:
@@ -3199,18 +3195,16 @@ class RmanSgExporter:
             for step in range(0, steps + 1):
                 pt = psys.co_hair(object=ob, particle_no=pindex, step=step)
 
+                if pt.length_squared == 0:
+                    # this strand ends prematurely                    
+                    break
+                
                 if(objectCorrectionMatrix):
-                    #pt = pt + loc
-
                     # put points in object space
                     m = ob.matrix_world.inverted_safe()
                     pt = Vector(transform_points( m, pt))
 
-                if not pt.length_squared == 0:
-                    strand_points.extend(pt)
-                else:
-                    # this strand ends prematurely
-                    break
+                strand_points.extend(pt)
 
             if len(strand_points) > 1:
                 # double the first and last
@@ -3359,10 +3353,12 @@ class RmanSgExporter:
 
     def export_dupli_archive(self, sg_dupli, data_block, data_blocks):
         ob = data_block.data
-        if ob.dupli_type == "NONE":
-            return
 
-        ob.dupli_list_create(self.scene, "RENDER")
+        try:
+            ob.dupli_list_create(self.scene, "RENDER")
+        except:
+            print("Cannot creat dupli list for: %s" % ob.name)
+            
         if ob.dupli_type == 'GROUP' and ob.dupli_group:
             for dupob in ob.dupli_list:
 
@@ -3370,7 +3366,7 @@ class RmanSgExporter:
                     continue
 
                 dupli_name = "%s.DUPLI.%s.%d" % (ob.name, dupob.object.name,
-                                                dupob.index)
+                                                    dupob.index)
 
                 mat = dupob.object.active_material
 
