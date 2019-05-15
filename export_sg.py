@@ -3441,7 +3441,12 @@ class RmanSgExporter:
         # we do this in sorted order, 
         # first, MESH, then, PSYS, then DUPLI
         print("\t\tExporting datablocks...")
-        for name, db in sorted(data_blocks.items(), key=lambda x: x[1]):
+        sorted_data_blocks = sorted(data_blocks.items(), key=lambda x: x[1])
+        total = len(sorted_data_blocks)
+        i = 1
+        print("\t\t    0%")
+        sys.stdout.flush()
+        for name, db in sorted_data_blocks:
             if db.type == "MESH":
                 self.export_mesh_archive(db)
             elif db.type == "PSYS":
@@ -3449,10 +3454,14 @@ class RmanSgExporter:
             elif db.type == "DUPLI":             
                 sg_node = self.sg_scene.CreateGroup(name)   
                 self.export_dupli_archive(sg_node, db, data_blocks)
-                self.sg_nodes_dict[name] = sg_node                          
-        
+                self.sg_nodes_dict[name] = sg_node                            
+            print("\t\t    Processed %d/%d objects (%d%%) " % (i, total, int((i/total) * 100)))
+            sys.stdout.flush()
+            i += 1  
+
         # now output the object archives
         print("\t\tExporting instances...")
+        sys.stdout.flush()
         for name, instance in instances.items():
             if not instance.parent or instance.ob.parent.type=="EMPTY":
                 for db_name in instance.data_block_names:                 
