@@ -659,48 +659,51 @@ class RmanSgShadingExporter:
                         sg_material.SetBxdf(bxdfList)         
 
                 # light
-                socket = out.inputs[1]
-                if socket.is_linked:
-                    for sub_node in gather_nodes(socket.links[0].from_node):
-                        shader_sg_nodes = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
-                                    portal=portal)
+                if len(out.inputs) > 1:
+                    socket = out.inputs[1]
+                    if socket.is_linked:
+                        for sub_node in gather_nodes(socket.links[0].from_node):
+                            shader_sg_nodes = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
+                                        portal=portal)
 
-                        shader_sg_node = shader_sg_nodes[0]
-                        if shader_sg_node.GetName().CStr() == "PxrMeshLight":
-                            sg_material.SetLight(shader_sg_node)
-                            break                                   
+                            shader_sg_node = shader_sg_nodes[0]
+                            if shader_sg_node.GetName().CStr() == "PxrMeshLight":
+                                sg_material.SetLight(shader_sg_node)
+                                break                                   
 
                 # displacement
-                socket = out.inputs[2]
-                if socket.is_linked:
-                    for sub_node in gather_nodes(socket.links[0].from_node):
-                        shader_sg_nodes = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
-                                    portal=portal)
-                        for s in shader_sg_nodes:
-                            dispList.append(s) 
-                    if dispList:
-                        sg_material.SetDisplace(dispList)      
+                if len(out.inputs) > 2:
+                    socket = out.inputs[2]
+                    if socket.is_linked:
+                        for sub_node in gather_nodes(socket.links[0].from_node):
+                            shader_sg_nodes = shader_node_sg(self.sg_scene, self.rman, sub_node, mat_name=handle,
+                                        portal=portal)
+                            for s in shader_sg_nodes:
+                                dispList.append(s) 
+                        if dispList:
+                            sg_material.SetDisplace(dispList)      
 
                 return (sg_material, bxdfList)
                     
                     
             elif find_node(id, 'ShaderNodeOutputMaterial'):
-                print("Error Material %s needs a RenderMan BXDF" % id.name)
+                #print("Error Material %s needs a RenderMan BXDF" % id.name)
                 return (None, None)
 
-    def export_simple_shader(self, mat, sg_node=None):
+    def export_simple_shader(self, mat, sg_node=None, mat_handle=''):
         rm = mat.renderman
         # if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
-        name = get_mat_name(mat.name)
+        name = mat_handle
+        if name == '':
+            name = 'material.%s' % get_mat_name(mat.name)
 
         sg_material = None
         if sg_node:
             sg_material = sg_node
         else:
-            sg_material = self.sg_scene.CreateMaterial(None)
-        sg_node = self.sg_scene.CreateNode("BxdfFactory", "PxrDisney", get_mat_name(mat.name))
-        sg_material.SetBxdf([sg_node])        
-
+            sg_material = self.sg_scene.CreateMaterial(name)
+        bxdf_name = '%s.PxrDisney' % name
+        sg_node = self.sg_scene.CreateNode("BxdfFactory", "PxrDisney", bxdf_name)
         rix_params = sg_node.EditParameterBegin()
         rix_params.SetColor('baseColor', rib(mat.diffuse_color))
         rix_params.SetFloat('specular', mat.specular_intensity )
@@ -711,7 +714,8 @@ class RmanSgShadingExporter:
             rix_params.SetFloat("subsurface", mat.subsurface_scattering.scale)
             rix_params.SetColor("subsurfaceColor", rib(mat.subsurface_scattering.color))
 
-        sg_node.EditParameterEnd(rix_params)
+        sg_node.EditParameterEnd(rix_params)        
+        sg_material.SetBxdf([sg_node])        
 
         return sg_material
 

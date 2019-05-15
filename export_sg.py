@@ -310,7 +310,10 @@ class RmanSgExporter:
         is_running = True
         self.rictl.PRManBegin(argv)
         if 'RFB_DUMP_RIB' in os.environ:
-            self.sg_scene.Render("rib /var/tmp/blender.rib")      
+            print("\tWriting to RIB...")
+            rib_time_start = time.time()
+            self.sg_scene.Render("rib /var/tmp/blender.rib")     
+            print("\tFinished writing RIB. Time: %s" % format_seconds_to_hhmmss(time.time() - rib_time_start))        
         print("Finished parsing scene. Total time: %s" % format_seconds_to_hhmmss(time.time() - time_start))             
         self.sg_scene.Render("prman -blocking") 
 
@@ -342,8 +345,11 @@ class RmanSgExporter:
         if self.rm.rib_format == "ascii":
             rib_options += " -indent"
 
-        is_running = True      
-        self.sg_scene.Render("rib %s %s" % (ribfile, rib_options))       
+        is_running = True  
+        print("Writing to RIB...")
+        rib_time_start = time.time()    
+        self.sg_scene.Render("rib %s %s" % (ribfile, rib_options))
+        print("Finished parsing scene. Time: %s" % format_seconds_to_hhmmss(time.time() - rib_time_start))       
 
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         is_running = False
@@ -398,7 +404,11 @@ class RmanSgExporter:
         self.write_scene(visible_objects)
         is_running = True
         if 'RFB_DUMP_RIB' in os.environ:
+            print("\tWriting to RIB...")
+            rib_time_start = time.time()            
             self.sg_scene.Render("rib /var/tmp/blender.rib")
+            print("\tFinished writing RIB. Time: %s" % format_seconds_to_hhmmss(time.time() - rib_time_start))                    
+            
         print("Finished parsing scene. Total time: %s" % format_seconds_to_hhmmss(time.time() - time_start))
         self.sg_scene.Render("prman -live")
 
@@ -779,8 +789,8 @@ class RmanSgExporter:
 
                         for psys in obj.particle_systems:
                             if psys.settings.material:
-                                psys_mat = active.material_slots[psys.settings.material -
-                                     1].material if psys.settings.material and psys.settings.material <= len(active.material_slots) else None
+                                psys_mat = obj.material_slots[psys.settings.material -
+                                     1].material if psys.settings.material and psys.settings.material <= len(obj.material_slots) else None
                                 if psys_mat and psys_mat.name == mat.name:
                                     db_name_emitter = '%s.%s-EMITTER' % (obj.name, psys.name)
                                     db_name_hair = '%s.%s-HAIR' % (obj.name, psys.name)
@@ -2197,14 +2207,15 @@ class RmanSgExporter:
         sg_material = None
         bxdfList = []
 
-        mat_sg_handle = 'material.%s' % mat_name
+        mat_sg_handle = 'material.%s' % get_mat_name(mat.name)
         
         if mat.node_tree:
             sg_material, bxdfList = self.shader_exporter.export_shader_nodetree(
                 mat, sg_node=None, mat_sg_handle=mat_sg_handle, handle=None,
                 iterate_instance=False)
-        else:
-            sg_material = self.shader_exporter.export_simple_shader(mat)
+        
+        if not sg_material:
+            sg_material = self.shader_exporter.export_simple_shader(mat, sg_node=None, mat_handle=mat_sg_handle)
 
         if sg_material:
             self.sg_nodes_dict[mat_sg_handle] = sg_material
@@ -2281,7 +2292,7 @@ class RmanSgExporter:
                         continue
                     mesh_sg.SetMaterial(sg_material)
                 else:
-                    inst_sg.SetMaterial(sg_material)                   
+                    inst_sg.SetMaterial(sg_material)             
 
 
         self.export_object_attributes(instance.ob, inst_sg, visible_objects, instance_name)      
@@ -3429,6 +3440,7 @@ class RmanSgExporter:
         # loop over objects
         # we do this in sorted order, 
         # first, MESH, then, PSYS, then DUPLI
+        print("\t\tExporting datablocks...")
         for name, db in sorted(data_blocks.items(), key=lambda x: x[1]):
             if db.type == "MESH":
                 self.export_mesh_archive(db)
@@ -3440,6 +3452,7 @@ class RmanSgExporter:
                 self.sg_nodes_dict[name] = sg_node                          
         
         # now output the object archives
+        print("\t\tExporting instances...")
         for name, instance in instances.items():
             if not instance.parent or instance.ob.parent.type=="EMPTY":
                 for db_name in instance.data_block_names:                 
@@ -3493,10 +3506,15 @@ class RmanSgExporter:
 
 
         #    export_default_bxdf(ri, "default")
+        print("\tExporting materials...")
+        time_start = time.time()
         self.export_materials()
+        print("\tFinished exporting materials. Time: %s" % format_seconds_to_hhmmss(time.time() - time_start))  
 
+        print("\tExporting objects.")
+        time_start = time.time()        
         self.export_objects(data_blocks, instances, visible_objects, emptiesToExport)
-
+        print("\tFinished exporting objects. Time: %s" % format_seconds_to_hhmmss(time.time() - time_start))  
 
         #for object in emptiesToExport:
         #    export_empties_archives(ri, object)
