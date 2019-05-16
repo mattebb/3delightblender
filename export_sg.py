@@ -1055,7 +1055,7 @@ class RmanSgExporter:
 
             #if ob.renderman.raytrace_decimationrate != 1:
             #    trace_params[
-            #        "int decimationrate"] = ob.renderman.raytrace_decimationrate
+            #        "int decimationrate"] = ob.renderman.raycreate_meshtrace_decimationrate
             if ob.renderman.raytrace_intersectpriority != 0:
                 attrs.SetInteger(rman.Tokens.Rix.k_trace_intersectpriority, ob.renderman.raytrace_intersectpriority)
             #if ob.renderman.raytrace_pixel_variance != 1.0:
@@ -1117,63 +1117,7 @@ class RmanSgExporter:
         if hasattr(ob, 'color'):
             attrs.SetColor('user:Cs', ob.color[:3])
         
-        sg_node.EditAttributeEnd(attrs)
-
-    def create_mesh(self, ob):
-        # 2 special cases to ignore:
-        # subsurf last or subsurf 2nd last +displace last
-        reset_subd_mod = False
-        if is_subd_last(ob) and ob.modifiers[len(ob.modifiers) - 1].show_render:
-            reset_subd_mod = True
-            ob.modifiers[len(ob.modifiers) - 1].show_render = False
-        # elif is_subd_displace_last(ob):
-        #    ob.modifiers[len(ob.modifiers)-2].show_render = False
-        #    ob.modifiers[len(ob.modifiers)-1].show_render = False
-        mesh = ob.to_mesh(self.scene, True, 'RENDER', calc_tessface=False,
-                        calc_undeformed=True)
-        if reset_subd_mod:
-            ob.modifiers[len(ob.modifiers) - 1].show_render = True
-        return mesh                    
-
-    def get_mesh_points(self, mesh):
-        # return just the points on the mesh
-        P = []
-        verts = []
-
-        for v in mesh.vertices:
-            P.extend(v.co)
-
-        for p in mesh.polygons:
-            verts.extend(p.vertices)
-
-        if len(verts) > 0:
-            P = P[:int(max(verts) + 1) * 3]
-
-        return P
-
-    def get_mesh(self, mesh, get_normals=False):
-        nverts = []
-        verts = []
-        P = []
-        N = []
-
-        for v in mesh.vertices:
-            P.extend(v.co)
-
-        for p in mesh.polygons:
-            nverts.append(p.loop_total)
-            verts.extend(p.vertices)
-            if get_normals:
-                if p.use_smooth:
-                    for vi in p.vertices:
-                        N.extend(mesh.vertices[vi].normal)
-                else:
-                    N.extend(list(p.normal) * p.loop_total)
-
-        if len(verts) > 0:
-            P = P[:int(max(verts) + 1) * 3]
-        # return the P's minus any unconnected
-        return (nverts, verts, P, N)
+        sg_node.EditAttributeEnd(attrs)       
 
     def export_mesh(self, ob, sg_node, motion_data=None, prim_type="POLYGON_MESH"):
 
@@ -1186,13 +1130,11 @@ class RmanSgExporter:
         if motion_data is not None and isinstance(motion_data, list) and len(motion_data):
             time_samples = [sample[0] for sample in motion_data]            
             is_deforming = True
-        else:
-            mesh = self.create_mesh(ob)
-
-        if mesh is None and isinstance(motion_data, list) and len(motion_data):
             mesh = motion_data[0][1]
+        else:
+            mesh = create_mesh(ob, self.scene)
 
-        (nverts, verts, P, N) = self.get_mesh(mesh, get_normals=True)
+        (nverts, verts, P, N) = get_mesh(mesh, get_normals=True)
         
         # if this is empty continue:
         if nverts == []:
@@ -1208,13 +1150,16 @@ class RmanSgExporter:
             primvar.SetTimeSamples( time_samples )
 
         if is_deforming:
-            sample = 0
-            for (subframes, m) in motion_data:
-                P = self.get_mesh_points(m)
-                primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex", sample)               
-                sample += 1
+            pts = list( zip(*[iter(P)]*3 ) )
+            primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex", 0)
+            for sample in range(1, len(motion_data)):
+                (subframes, m) = motion_data[sample]
+                P = get_mesh_points(m)
+                pts = list( zip(*[iter(P)]*3 ) )
+                primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex", sample)
         else:
-            primvar.SetPointDetail(rman.Tokens.Rix.k_P, P, "vertex")
+            pts = list( zip(*[iter(P)]*3 ) )
+            primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex")
         
         primvars = get_primvars(ob, mesh, "facevarying")
         primvars['P'] = P
@@ -1269,6 +1214,8 @@ class RmanSgExporter:
                     sg_sub_mesh =  self.sg_scene.CreateMesh("")
                     pvars = sg_sub_mesh.EditPrimVarBegin()
                     sg_sub_mesh.Define( len(nverts), nm_pts, len(verts) )
+                    if time_samples:
+                        pvars.SetTimeSamples( time_samples )
                     if prim_type == "SUBDIVISION_MESH":
                         sg_sub_mesh.SetScheme(rman.Tokens.Rix.k_catmullclark)
                     pvars.Inherit(primvar)
@@ -1279,7 +1226,11 @@ class RmanSgExporter:
                        
         primvar.SetFloat(rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)
         sg_node.EditPrimVarEnd(primvar)
-        removeMeshFromMemory(mesh.name)  
+        if is_deforming:
+            for (subframes, m) in motion_data:
+                removeMeshFromMemory(m.name)
+        else:
+            removeMeshFromMemory(mesh.name)
         return True
 
     def get_curve(self, curve):
@@ -1344,7 +1295,7 @@ class RmanSgExporter:
 
         rm = ob.renderman
 
-        mesh = self.create_mesh(ob)
+        mesh = create_mesh(ob, self.scene)
         
         primvar = sg_node.EditPrimVarBegin()
 
@@ -1357,7 +1308,7 @@ class RmanSgExporter:
             primvar.SetTimeSamples([sample[0] for sample in ob])
             
         else:
-            samples = [self.get_mesh(mesh)]
+            samples = [get_mesh(mesh)]
         
 
         nm_pts = -1
@@ -3163,159 +3114,52 @@ class RmanSgExporter:
                     sg_node.RemoveChild(c)                          
             self.export_particle_instances(sg_node, db_name, psys, ob, data, type=rm.particle_type)
             self.sg_nodes_dict[db_name] = sg_node
-        return sg_node
-
-
-    # ------------- Geometry Access -------------
-    def get_strands(self, ob, psys, objectCorrectionMatrix=False):
-
-        psys_modifier = None
-        for mod in ob.modifiers:
-            if hasattr(mod, 'particle_system') and mod.particle_system == psys:
-                psys_modifier = mod
-                break
-
-        tip_width = psys.settings.cycles.tip_width * psys.settings.cycles.radius_scale
-        base_width = psys.settings.cycles.root_width * psys.settings.cycles.radius_scale
-        conwidth = (tip_width == base_width)
-        steps = 2 ** psys.settings.render_step
-        if conwidth:
-            widthString = rman.Tokens.Rix.k_constantwidth
-            hair_width = base_width
-            debug("info", widthString, hair_width)
-        else:
-            widthString = rman.Tokens.Rix.k_width
-            hair_width = []
-
-        psys.set_resolution(scene=self.scene, object=ob, resolution='RENDER')
-
-        num_parents = len(psys.particles)
-        num_children = len(psys.child_particles)
-        total_hair_count = num_parents + num_children
-        export_st = psys.settings.renderman.export_scalp_st and psys_modifier and len(
-            ob.data.uv_layers) > 0
-
-        curve_sets = []
-
-        points = []
-
-        vertsArray = []
-        scalpS = []
-        scalpT = []
-        nverts = 0
-        for pindex in range(total_hair_count):
-            if psys.settings.child_type != 'NONE' and pindex < num_parents:
-                continue
-
-            strand_points = []
-            # walk through each strand
-            for step in range(0, steps + 1):
-                pt = psys.co_hair(object=ob, particle_no=pindex, step=step)
-
-                if pt.length_squared == 0:
-                    # this strand ends prematurely                    
-                    break
-                
-                if(objectCorrectionMatrix):
-                    # put points in object space
-                    m = ob.matrix_world.inverted_safe()
-                    pt = Vector(transform_points( m, pt))
-
-                strand_points.extend(pt)
-
-            if len(strand_points) > 1:
-                # double the first and last
-                strand_points = strand_points[:3] + \
-                    strand_points + strand_points[-3:]
-                vertsInStrand = len(strand_points) // 3
-
-                # catmull-rom requires at least 4 vertices
-                if vertsInStrand < 4:
-                    continue
-
-                # for varying width make the width array
-                if not conwidth:
-                    decr = (base_width - tip_width) / (vertsInStrand - 2)
-                    hair_width.extend([base_width] + [(base_width - decr * i)
-                                                    for i in range(vertsInStrand - 2)] +
-                                    [tip_width])
-
-                # add the last point again
-                points.extend(strand_points)
-                vertsArray.append(vertsInStrand)
-                nverts += vertsInStrand
-
-                # get the scalp S
-                if export_st:
-                    if pindex >= num_parents:
-                        particle = psys.particles[
-                            (pindex - num_parents) % num_parents]
-                    else:
-                        particle = psys.particles[pindex]
-                    st = psys.uv_on_emitter(psys_modifier, particle, pindex)
-                    scalpS.append(st[0])
-                    scalpT.append(st[1])
-
-            # if we get more than 100000 vertices, export ri.Curve and reset.  This
-            # is to avoid a maxint on the array length
-            if nverts > 100000:
-                curve_sets.append(
-                    (vertsArray, points, widthString, hair_width, scalpS, scalpT))
-
-                nverts = 0
-                points = []
-                vertsArray = []
-                if not conwidth:
-                    hair_width = []
-                scalpS = []
-                scalpT = []
-
-        if nverts > 0:
-            curve_sets.append((vertsArray, points, widthString,
-                            hair_width, scalpS, scalpT))
-
-        psys.set_resolution(scene=self.scene, object=ob, resolution='PREVIEW')
-
-        return curve_sets                
-
+        return sg_node           
 
     def export_hair(self, sg_node, ob, psys, db_name, data, objectCorrectionMatrix=False):
         
         if data is not None and len(data) > 0:
             # deformation blur case
             num_time_samples = len(data)
-            time_samples =[sample[0] for sample in data]
-            num_curves = len(data[0])
-            curves_sg_nodes = list()           
+            time_samples = [sample[0] for sample in data]
+            num_curves = len(data[0][1])
+
+            i = 0
 
             for i in range(0, num_curves):
-                curves_sg = self.sg_scene.CreateCurves("%s-%d" % (db_name, i))                
-                primvar = curves.EditPrimVarBegin()
+                curves_handle = '%s-%d' % (db_name, i)
+                curves_sg = self.sg_scene.CreateCurves(curves_handle)                
+                primvar = curves_sg.EditPrimVarBegin()
                 num_pts = -1
 
+                j = 0
                 for subsample, sample in data:
                     vertsArray, points, widthString, widths, scalpS, scalpT = sample[i]
                     if num_pts == -1:
                         num_pts = int(len(points)/3)
-                        curves_sg.Define(rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", 1, num_pts)
+                        curves_sg.Define(rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", len(vertsArray), num_pts)
+                        primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, vertsArray, "uniform")
+                        primvar.SetIntegerDetail("index", range(len(vertsArray)), "uniform")
+                        if widthString == rman.Tokens.Rix.k_constantwidth:
+                            primvar.SetFloatDetail(widthString, widths, "constant")
+                        else:
+                            primvar.SetFloatDetail(widthString, widths, "vertex")
 
-                    primvar.SetPointDetail(rman.Tokens.Rix.k_P, points, "vertex", subsample)                
-                    primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, vertsArray, "uniform", subsample)
-                    primvar.SetIntegerDetail("index", range(len(vertsArray)), "uniform", subsample)
-                    if widthString == rman.Tokens.Rix.k_constantwidth:
-                        primvar.SetFloatDetail(widthString, widths, "constant", subsample)
-                    else:
-                        primvar.SetFloatDetail(widthString, widths, "vertex")
+                        if len(scalpS):
+                            primvar.SetFloatDetail("scalpS", scalpS, "uniform")                
+                            primvar.SetFloatDetail("scalpT", scalpT, "uniform")
+                    pts = list( zip(*[iter(points)]*3 ) )   
+                    primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex", j)                
 
-                    if len(scalpS):
-                        primvar.SetFloatDetail("scalpS", scalpS, "uniform", subsample)                
-                        primvar.SetFloatDetail("scalpT", scalpT, "uniform", subsample)
+
+                    j += 1
                     
-                curves.EditPrimVarEnd(primvar)
+                curves_sg.EditPrimVarEnd(primvar)
                 sg_node.AddChild(curves_sg)
+                self.sg_nodes_dict[curves_handle] = curves_sg
 
         else:
-            curves = self.get_strands(ob, psys, objectCorrectionMatrix)
+            curves = get_strands(self.scene, ob, psys, objectCorrectionMatrix)
             i = 0
             for vertsArray, points, widthString, widths, scalpS, scalpT in curves:
                 curves_sg = self.sg_scene.CreateCurves("%s-%d" % (db_name, i))
@@ -3323,7 +3167,8 @@ class RmanSgExporter:
                 curves_sg.Define(rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", len(vertsArray), int(len(points)/3))
                 primvar = curves_sg.EditPrimVarBegin()
 
-                primvar.SetPointDetail(rman.Tokens.Rix.k_P, points, "vertex")                
+                pts = list( zip(*[iter(points)]*3 ) )
+                primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex")                
                 primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, vertsArray, "uniform")
                 primvar.SetIntegerDetail("index", range(len(vertsArray)), "uniform")
 
@@ -3478,7 +3323,11 @@ class RmanSgExporter:
     def write_scene(self, visible_objects=None, engine=None, do_objects=True):
 
         # precalculate motion blur data
+        print("\tPrecalculate phase...")
+        sys.stdout.flush()
+        time_start = time.time()        
         data_blocks, instances = cache_motion(self.scene, self.rpass)
+        print("\tFinished precalculation. Time: %s" % format_seconds_to_hhmmss(time.time() - time_start))          
 
         # get a list of empties to check if they contain a RIB archive.
         # this should be the only time empties are evaluated.
@@ -3516,14 +3365,18 @@ class RmanSgExporter:
 
         #    export_default_bxdf(ri, "default")
         print("\tExporting materials...")
+        sys.stdout.flush()
         time_start = time.time()
         self.export_materials()
         print("\tFinished exporting materials. Time: %s" % format_seconds_to_hhmmss(time.time() - time_start))  
+        sys.stdout.flush()
 
         print("\tExporting objects.")
+        sys.stdout.flush()
         time_start = time.time()        
         self.export_objects(data_blocks, instances, visible_objects, emptiesToExport)
         print("\tFinished exporting objects. Time: %s" % format_seconds_to_hhmmss(time.time() - time_start))  
+        sys.stdout.flush()
 
         #for object in emptiesToExport:
         #    export_empties_archives(ri, object)
@@ -3767,11 +3620,8 @@ def get_name(ob):
 
 
 # ------------- Geometry Access -------------
-def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
-    # we need this to get st
-    if(objectCorrectionMatrix):
-        matrix = ob.matrix_world.inverted_safe()
-        loc, rot, sca = matrix.decompose()
+def get_strands(scene, ob, psys, objectCorrectionMatrix=True):
+
     psys_modifier = None
     for mod in ob.modifiers:
         if hasattr(mod, 'particle_system') and mod.particle_system == psys:
@@ -3783,11 +3633,11 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
     conwidth = (tip_width == base_width)
     steps = 2 ** psys.settings.render_step
     if conwidth:
-        widthString = "constantwidth"
+        widthString = rman.Tokens.Rix.k_constantwidth
         hair_width = base_width
         debug("info", widthString, hair_width)
     else:
-        widthString = "vertex float width"
+        widthString = rman.Tokens.Rix.k_width
         hair_width = []
 
     psys.set_resolution(scene=scene, object=ob, resolution='RENDER')
@@ -3815,26 +3665,33 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
         for step in range(0, steps + 1):
             pt = psys.co_hair(object=ob, particle_no=pindex, step=step)
 
-            if(objectCorrectionMatrix):
-                pt = pt + loc
-
-            if not pt.length_squared == 0:
-                strand_points.extend(pt)
-            else:
-                # this strand ends prematurely
+            if pt.length_squared == 0:
+                # this strand ends prematurely                    
                 break
+            
+            if(objectCorrectionMatrix):
+                # put points in object space
+                m = ob.matrix_world.inverted_safe()
+                pt = Vector(transform_points( m, pt))
+
+            strand_points.extend(pt)
 
         if len(strand_points) > 1:
             # double the first and last
             strand_points = strand_points[:3] + \
                 strand_points + strand_points[-3:]
             vertsInStrand = len(strand_points) // 3
+
+            # catmull-rom requires at least 4 vertices
+            if vertsInStrand < 4:
+                continue
+
             # for varying width make the width array
             if not conwidth:
                 decr = (base_width - tip_width) / (vertsInStrand - 2)
                 hair_width.extend([base_width] + [(base_width - decr * i)
-                                                  for i in range(vertsInStrand - 2)] +
-                                  [tip_width])
+                                                for i in range(vertsInStrand - 2)] +
+                                [tip_width])
 
             # add the last point again
             points.extend(strand_points)
@@ -3868,11 +3725,11 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=False):
 
     if nverts > 0:
         curve_sets.append((vertsArray, points, widthString,
-                           hair_width, scalpS, scalpT))
+                        hair_width, scalpS, scalpT))
 
     psys.set_resolution(scene=scene, object=ob, resolution='PREVIEW')
 
-    return curve_sets
+    return curve_sets           
 
 # only export particles that are alive,
 # or have been born since the last frame
@@ -3901,6 +3758,21 @@ def get_particles(scene, ob, psys, valid_frames=None):
     psys.set_resolution(scene, ob, 'PREVIEW')
     return (P, rot, width)
 
+def get_mesh_points(mesh):
+    # return just the points on the mesh
+    P = []
+    verts = []
+
+    for v in mesh.vertices:
+        P.extend(v.co)
+
+    for p in mesh.polygons:
+        verts.extend(p.vertices)
+
+    if len(verts) > 0:
+        P = P[:int(max(verts) + 1) * 3]
+
+    return P
 
 def get_mesh(mesh, get_normals=False):
     nverts = []
@@ -4081,14 +3953,15 @@ def create_mesh(ob, scene):
     reset_subd_mod = False
     if is_subd_last(ob) and ob.modifiers[len(ob.modifiers) - 1].show_render:
         reset_subd_mod = True
-        ob.modifiers[len(ob.modifiers) - 1].show_render = False
+        #ob.modifiers[len(ob.modifiers) - 1].show_render = False
+
     # elif is_subd_displace_last(ob):
     #    ob.modifiers[len(ob.modifiers)-2].show_render = False
     #    ob.modifiers[len(ob.modifiers)-1].show_render = False
     mesh = ob.to_mesh(scene, True, 'RENDER', calc_tessface=False,
                       calc_undeformed=True)
-    if reset_subd_mod:
-        ob.modifiers[len(ob.modifiers) - 1].show_render = True
+    #if reset_subd_mod:
+    #    ob.modifiers[len(ob.modifiers) - 1].show_render = True
     return mesh
 
 def get_light_group(light_ob):
