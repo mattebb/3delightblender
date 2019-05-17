@@ -2024,8 +2024,18 @@ class RmanSgExporter:
             options.SetFloatArray(rman.Tokens.Rix.k_Ri_Shutter, (shutter_open, shutter_close), 2)
 
         if self.scene.render.use_border and not self.scene.render.use_crop_to_border:
-            options.SetFloatArray(rman.Tokens.Rix.k_Ri_CropWindow, (self.scene.render.border_min_x, self.scene.render.border_max_x,
-                        1.0 - self.scene.render.border_min_y, 1.0 - self.scene.render.border_max_y) , 4)
+            min_x = self.scene.render.border_min_x
+            max_x = self.scene.render.border_max_x
+            if (min_x >= max_x):
+                min_x = 0.0
+                max_x = 1.0
+            min_y = 1.0 - self.scene.render.border_min_y
+            max_y = 1.0 - self.scene.render.border_max_y
+            if (min_y >= max_y):
+                min_y = 0.0
+                max_y = 1.0
+
+            options.SetFloatArray(rman.Tokens.Rix.k_Ri_CropWindow, (min_x, max_x, min_y, max_y), 4)
 
         proj = None
 
@@ -2069,8 +2079,8 @@ class RmanSgExporter:
                     dof_distance = cam.dof_distance
                 if dof_distance > 0.0:
                     projparams.SetFloat(rman.Tokens.Rix.k_fStop, cam.renderman.fstop)
-                    #projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
-                    projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens))
+                    projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
+                    #projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens))
                     projparams.SetFloat(rman.Tokens.Rix.k_focalDistance, dof_distance)   
                 
                      
