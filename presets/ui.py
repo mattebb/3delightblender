@@ -70,14 +70,16 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
         presets_library = util.get_addon_prefs().presets_library
 
         if presets_library.name == '':
-            layout.operator("renderman.init_preset_library", text="Set up Library")
+            layout.operator("renderman.init_preset_library", text="Choose Library")
         else:
             layout = self.layout
 
             row = layout.row(align=True)
+            row.operator("renderman.init_preset_library", text="Select Another Library")
+            row = layout.row(align=True)
             row.context_pointer_set('renderman_preset', util.get_addon_prefs().presets_library)
-            row.menu('renderman_presets_menu', text="Select Library")
-            row.operator("renderman.init_preset_library", text="", icon="FILE_REFRESH")
+            row.menu('renderman_presets_menu', text="Select Category")
+            row.operator("renderman.refresh_libraries", text="", icon="FILE_REFRESH")
             active = RendermanPresetGroup.get_active_library()
 
             if active:

@@ -221,6 +221,7 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(self, 'draw_ipr_text')
         layout.prop(self, 'draw_panel_icon')
         layout.prop(self.presets_library, 'path')
+
         #layout.prop(env, "shd")
         #layout.prop(env, "ptc")
         #layout.prop(env, "arc")

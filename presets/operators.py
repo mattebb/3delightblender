@@ -74,25 +74,61 @@ def refresh_presets_libraries(disk_lib, preset_library):
         if preset.name not in dirs:
             preset_library.presets.remove(i)
 
+def get_library_name(jsonfile):
+    if not os.path.exists(jsonfile):
+        return 'Library'
+    data = json.load(open(jsonfile))
+    return data["RenderManAssetLibrary"]["name"]
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
 class init_preset_library(bpy.types.Operator):
     bl_idname = "renderman.init_preset_library"
     bl_label = "Init RenderMan Preset Library"
-    bl_description = "Copies the Preset Library from RMANTREE to the library path if not present\n Or refreshes if changed on disk."
+    bl_description = "Choose a preset browser library. If not found, copies the factory library from RMANTREE to the path chosen."
+
+    directory = bpy.props.StringProperty(subtype='FILE_PATH')
+
+    def invoke(self, context, event):
+        context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+
+        json_file = os.path.join(self.directory, 'library.json')
+        presets_library = util.get_addon_prefs().presets_library
+        #presets_path = util.get_addon_prefs().presets_path
+        if os.path.exists(json_file):
+            presets_library.name = get_library_name(json_file)
+            presets_library.path = self.directory
+            #util.get_addon_prefs().presets_path = self.directory
+        
+        elif os.access(self.directory, os.W_OK):
+            rmantree_lib_path = os.path.join(util.guess_rmantree(), 'lib', 'RenderManAssetLibrary')
+            shutil.copytree(rmantree_lib_path, self.directory)
+            presets_library.name = 'Library'
+            presets_library.path = self.directory
+        else:
+            raise Exception("No preset library found or directory chosen is not writable.")
+            return {'FINISHED'}
+       
+        #presets_library.path = presets_path
+        #refresh_presets_libraries(presets_path, presets_library)
+        refresh_presets_libraries(presets_library.path, presets_library)
+        bpy.ops.wm.save_userpref()
+        return {'FINISHED'}
+
+# if the library isn't present copy it from rmantree to the path in addon prefs
+class refresh_libraries(bpy.types.Operator):
+    bl_idname = "renderman.refresh_libraries"
+    bl_label = "Refresh Library"
+    bl_description = "Refresh preset browser library"
+
+    preset_path = StringProperty(default='')
+    assign = BoolProperty(default=False)
 
     def invoke(self, context, event):
         presets_library = util.get_addon_prefs().presets_library
-        presets_path = util.get_addon_prefs().presets_path
-        
-        if not os.path.exists(presets_path):
-            rmantree_lib_path = os.path.join(util.guess_rmantree(), 'lib', 'RenderManAssetLibrary')
-            shutil.copytree(rmantree_lib_path, presets_path)
-            
-        presets_library.name = 'Library'
-        presets_library.path = presets_path
-        refresh_presets_libraries(presets_path, presets_library)
-        bpy.ops.wm.save_userpref()
+        refresh_presets_libraries(presets_library.path, presets_library)
         return {'FINISHED'}
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
@@ -313,6 +349,7 @@ class move_preset_library(bpy.types.Operator):
 def register():
     try:
         bpy.utils.register_class(init_preset_library)
+        bpy.utils.register_class(refresh_libraries)
         bpy.utils.register_class(set_active_preset_library)
         bpy.utils.register_class(load_asset_to_scene)
         bpy.utils.register_class(save_asset_to_lib)
@@ -326,6 +363,7 @@ def register():
 
 def unregister():
     bpy.utils.unregister_class(init_preset_library)
+    bpy.utils.unregister_class(refresh_libraries)
     bpy.utils.unregister_class(set_active_preset_library)
     bpy.utils.unregister_class(load_asset_to_scene)
     bpy.utils.unregister_class(save_asset_to_lib)

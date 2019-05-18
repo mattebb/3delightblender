@@ -97,7 +97,10 @@ class RendermanPresetGroup(PropertyGroup):
     def generate_previews(self, context):
         return icons.load_previews(self)
     
-    path = StringProperty(default='')
+    def update_path(self, context):
+        util.get_addon_prefs().presets_path = self.path
+
+    path = StringProperty(default='', update=update_path, subtype="FILE_PATH")
     presets = CollectionProperty(type=RendermanPreset)
     current_preset = EnumProperty(items=generate_previews, name='Current Preset')
 
