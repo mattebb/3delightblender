@@ -991,7 +991,7 @@ class RmanSgExporter:
                 attrs.SetFloat(rman.Tokens.Rix.k_dice_watertight, 1)
 
         if rm.raytrace_override:                
-            if not rmraytrace_tracedisplacements:
+            if not rm.raytrace_tracedisplacements:
                 attrs.SetInteger(rman.Tokens.Rix.k_trace_displacements, 0)
             if not rm.raytrace_autobias:
                 attrs.SetFloat(rman.Tokens.Rix.k_trace_autobias, 0)

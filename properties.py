@@ -1061,6 +1061,11 @@ class RendermanMaterialSettings(bpy.types.PropertyGroup):
                ('CUBE', 'Cube', '')],
         default='SPHERE')
 
+    copy_color_params = BoolProperty(
+        name="Copy Color Parameters",
+        description="""Copy Blender material color parameters when adding a new RenderMan node tree. Copies
+                    diffuse_color, diffuse_intensity, and specular_color.""",
+        default=False)
 
 class RendermanAnimSequenceSettings(bpy.types.PropertyGroup):
     animated_sequence = BoolProperty(

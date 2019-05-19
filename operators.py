@@ -218,15 +218,25 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
+            
             # if not convert_cycles_nodetree(idblock, output, self.report):
             #     default = nt.nodes.new('%sBxdfNode' %
             #                            self.properties.bxdf_name)
             #     default.location = output.location
             #     default.location[0] -= 300
             #     nt.links.new(default.outputs[0], output.inputs[0])
+            
             default = nt.nodes.new('%sBxdfNode' %
                                     self.properties.bxdf_name)
             default.location = output.location
+
+            if idblock.renderman.copy_color_params:
+                default.diffuseColor = idblock.diffuse_color
+                default.diffuseGain = idblock.diffuse_intensity
+                default.enablePrimarySpecular = True
+                default.specularFaceColor = idblock.specular_color
+
+
             default.location[0] -= 300
             nt.links.new(default.outputs[0], output.inputs[0])                
         elif idtype == 'lamp':

@@ -743,6 +743,9 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
 
             layout.separator()
         if mat and not is_renderman_nodetree(mat):
+            rm = mat.renderman
+            row = layout.row()
+            row.prop(rm, "copy_color_params")
             layout.operator(
                 'shading.add_renderman_nodetree').idtype = "material"
             #layout.operator('shading.convert_cycles_stuff')
