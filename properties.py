@@ -1050,6 +1050,15 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         subtype='FILE_PATH',
         default="txmake")
 
+    do_holdout_matte = EnumProperty(
+        name="Render Holdouts",
+        description="Render a holdout matte.",
+        items=[('OFF', 'Off', ''),
+               ('ALPHA', 'In Alpha', ''),
+               ('AOV', 'Separate AOV', '')
+               ],        
+        default='OFF')        
+
 
 class RendermanMaterialSettings(bpy.types.PropertyGroup):
     instance_num = IntProperty(name='Instance number for IPR', default=0)

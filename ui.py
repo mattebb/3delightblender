@@ -223,6 +223,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         col = layout.column()
         col.prop(context.scene.renderman, "render_selected_objects_only")
         col.prop(rm, "do_denoise")
+        col.prop(rm, "do_holdout_matte", text="Render Holdouts")
 
 
 class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
@@ -1987,11 +1988,13 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             row.operator("render.renderman_preset_add", text="",
                          icon='ZOOMOUT').remove_active = True
 
-            # denoise and selected row
+            # denoise, holdouts and selected row
             row = box.row(align=True)
             row.prop(rm, "do_denoise", text="Denoise")
+            row.prop(rm, "do_holdout_matte", text="Render Holdouts")
             row.prop(rm, "render_selected_objects_only",
                      text="Render Selected")
+            
 
             # animation
             row = box.row(align=True)

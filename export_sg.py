@@ -1724,13 +1724,28 @@ class RmanSgExporter:
             self.samplefilters_list.append(df_node)
             self.sg_nodes_dict[df_name] = df_node
 
+        if rm.do_holdout_matte != "OFF":
+            df_node = self.sg_scene.CreateNode("SampleFilter", "PxrShadowFilter", "rm_PxrShadowFilter_shadows")
+            params = df_node.EditParameterBegin()
+            params.SetString("occludedAov", "occluded")
+            params.SetString("unoccludedAov", "holdoutMatte")
+            if rm.do_holdout_matte == "ALPHA":
+                params.SetString("shadowAov", "a")
+            else:
+                params.SetString("shadowAov", "holdoutMatte")
+
+            df_node.EditParameterEnd(params)
+            sample_filter_names.append("rm_PxrShadowFilter_shadows")
+            self.samplefilters_list.append(df_node)
+            self.sg_nodes_dict["rm_PxrShadowFilter_shadow"] = df_node            
+
         if len(sample_filter_names) > 1:
             df_name = "rman_samplefilter_combiner"
             df_node = None
             if df_name in self.sg_nodes_dict:
                 df_node = self.sg_nodes_dict[df_name]
             else:
-                df_node = self.sg_scene.CreateNode("SampleFilter", "PxrDisplayFilterCombiner", df_name)
+                df_node = self.sg_scene.CreateNode("SampleFilter", "PxrSampleFilterCombiner", df_name)
             params = df_node.EditParameterBegin()
             params.ReferenceDisplayFilterArray("filter", display_filter_names, len(display_filter_names))
             df_node.EditParameterEnd(params)
@@ -2560,6 +2575,34 @@ class RmanSgExporter:
                     export_metadata(self.scene, display.params)
 
                 sg_displays.append(display)
+
+        if rm.do_holdout_matte != "OFF":
+            # occluded
+            occluded = self.sg_scene.CreateDisplayChannel(rman.Tokens.Rix.k_color, "occluded")
+            source = "color lpe:holdouts;C[DS]+<L.>"
+            occluded.params.SetString(rman.Tokens.Rix.k_source, source)
+
+            display = self.sg_scene.CreateDisplay('null', 'occluded')
+            display.channels = 'occluded'
+            sg_displays.append(display)
+            
+            # holdoutMatte
+            holdout_matte = self.sg_scene.CreateDisplayChannel(rman.Tokens.Rix.k_color, "holdoutMatte")
+            source = "color lpe:holdouts;unoccluded;C[DS]+<L.>"
+            holdout_matte.params.SetString(rman.Tokens.Rix.k_source, source)
+
+            # user wants separate AOV for matte
+            if rm.do_holdout_matte == "AOV":
+                image_base, ext = main_display.rsplit('.', 1)
+                drv = 'openexr'
+                if self.ipr_mode:
+                    drv = 'it'
+                display = self.sg_scene.CreateDisplay(drv, image_base + '.holdoutMatte.exr')
+                display.channels = 'holdoutMatte'
+                sg_displays.append(display)
+
+            displaychannels.append(occluded)
+            displaychannels.append(holdout_matte)
 
         self.main_camera.SetDisplay(sg_displays)
         self.sg_scene.SetDisplayChannel(displaychannels)
