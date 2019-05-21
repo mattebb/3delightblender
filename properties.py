@@ -118,7 +118,8 @@ class LightLinking(bpy.types.PropertyGroup):
     illuminate = EnumProperty(
         name="Illuminate",
         update=update_link,
-        items=[('DEFAULT', 'Default', ''),
+        items=[
+              ('DEFAULT', 'Default', ''),
                ('ON', 'On', ''),
                ('OFF', 'Off', '')])
 

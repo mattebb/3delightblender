@@ -582,10 +582,12 @@ class RPass:
             rman_sg_exporter().issue_rman_particle_prim_type_edit(active, psys)                  
 
     def update_light_link(self, context, ll):
-        update_light_link(self, self.ri, prman, ll)
+        if rman__sg__inited:
+            rman_sg_exporter().update_light_link(ll)
 
     def remove_light_link(self, context, ll):
-        update_light_link(self, self.ri, prman, ll, remove=True)
+        if rman__sg__inited:
+            rman_sg_exporter().update_light_link(ll, remove=True)        
 
     # ri.end
     def end_interactive(self):

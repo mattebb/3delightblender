@@ -959,6 +959,58 @@ class RmanSgExporter:
                             mat, sg_node=sg_material, mat_sg_handle=mat_handle, handle=None, 
                             iterate_instance=False)
                     self.sg_nodes_dict[mat_handle] = sg_material
+
+    def update_light_link(self, link, remove=False):
+        strs = link.name.split('>')
+        ob_names = [strs[3]] if strs[2] == "obj_object" else \
+            self.scene.renderman.object_groups[strs[3]].members.keys()
+
+        with rman.SGManager.ScopedEdit(self.sg_scene):
+            for ob_name in ob_names:
+                sg_node = self.sg_nodes_dict.get(ob_name)
+                if not sg_node:
+                    continue
+                scene_lights = [l.name for l in self.scene.objects if l.type == 'LAMP']
+                light_names = [strs[1]] if strs[0] == "lg_light" else \
+                    self.scene.renderman.light_groups[strs[1]].members.keys()
+                if strs[0] == 'lg_group' and strs[1] == 'All':
+                    light_names = [l.name for l in scene.objects if l.type == 'LAMP']
+
+                subset = []
+                excludesubset = []
+                subset.append("World")
+                for light_name in light_names:
+                    lamp = self.scene.objects[light_name].data
+                    rm = lamp.renderman
+                    if rm.renderman_type == 'FILTER':
+                        filter_name = light_name
+                        for light_nm in light_names:
+                            if filter_name in self.scene.objects[light_nm].data.renderman.light_filters.keys():
+                                lamp_nm = self.scene.objects[light_nm].data.name
+                                if remove or link.illuminate == "DEFAULT":
+                                    pass
+                                    #ri.EnableLightFilter(lamp_nm, filter_name, 1)
+                                else:
+                                    pass
+                                    #ri.EnableLightFilter(
+                                    #    lamp_nm, filter_name, link.illuminate == 'ON')
+                    else:
+                        if remove:
+                            excludesubset.append(lamp.name)
+                        elif link.illuminate == "DEFAULT":
+                            if lamp.renderman.illuminates_by_default:
+                                subset.append(lamp.name)
+                            else:
+                                excludesubset.append(lamp.name)
+                        elif link.illuminate == 'ON':
+                            subset.append(lamp.name)
+                        else:
+                            excludesubset.append(lamp.name)
+
+                attrs = sg_node.EditAttributeBegin()
+                attrs.SetString(rman.Tokens.Rix.k_lighting_subset, ",".join(subset))
+                attrs.SetString(rman.Tokens.Rix.k_lighting_excludesubset, ",".join(excludesubset))
+                sg_node.EditAttributeEnd(attrs)                
  
     def export_searchpaths(self):
         options = self.sg_scene.EditOptionBegin()
@@ -1017,14 +1069,19 @@ class RmanSgExporter:
         """if rm.pre_object_rib_box != '':
             export_rib_box(ri, rm.pre_object_rib_box)"""
 
-        obj_groups_str = "*"
+        obj_groups_str = "World"
+        obj_groups_str += "," + name
+        lpe_groups_str = "*"
         for obj_group in self.scene.renderman.object_groups:
             if ob.name in obj_group.members.keys():
                 obj_groups_str += ',' + obj_group.name
+                lpe_groups_str += ',' + obj_group.name
+
+        attrs.SetString(rman.Tokens.Rix.k_grouping_membership, obj_groups_str)
+
         # add to trace sets
-        if obj_groups_str != '*':            
-            attrs.SetString(rman.Tokens.Rix.k_grouping_membership, obj_groups_str)
-            attrs.SetString(rman.Tokens.Rix.k_identifier_lpegroup, obj_groups_str)
+        if lpe_groups_str != '*':                       
+            attrs.SetString(rman.Tokens.Rix.k_identifier_lpegroup, lpe_groups_str)
 
         # visibility attributes
         attrs.SetInteger("visibility:transmission", int(ob.renderman.visibility_trace_transmission))
@@ -1914,6 +1971,8 @@ class RmanSgExporter:
             attrs.SetInteger("visibility:camera", int(primary_vis))
             attrs.SetInteger("visibility:transmission", 0)
             attrs.SetInteger("visibility:indirect", 0)
+            obj_groups_str = "World,%s" % handle
+            attrs.SetString(rman.Tokens.Rix.k_grouping_membership, obj_groups_str)
             attrs.SetInteger(rman.Tokens.Rix.k_identifier_id, self.obj_id)
             self.obj_hash[self.obj_id] = handle
             self.obj_id += 1
@@ -1940,6 +1999,8 @@ class RmanSgExporter:
             attrs.SetInteger("visibility:camera", 1)
             attrs.SetInteger("visibility:transmission", 0)
             attrs.SetInteger("visibility:indirect", 0)
+            obj_groups_str = "World,%s" % handle
+            attrs.SetString(rman.Tokens.Rix.k_grouping_membership, obj_groups_str)
             attrs.SetInteger(rman.Tokens.Rix.k_identifier_id, self.obj_id)
             self.obj_hash[self.obj_id] = handle
             self.obj_id += 1            
@@ -5025,31 +5086,32 @@ def update_light_link(rpass, ri, prman, link, remove=False):
         scene.renderman.object_groups[strs[3]].members.keys()
 
     for ob_name in ob_names:
-        ri.EditBegin('attribute', {'string scopename': ob_name})
-        scene_lights = [l.name for l in scene.objects if l.type == 'LAMP']
-        light_names = [strs[1]] if strs[0] == "lg_light" else \
-            scene.renderman.light_groups[strs[1]].members.keys()
-        if strs[0] == 'lg_group' and strs[1] == 'All':
-            light_names = [l.name for l in scene.objects if l.type == 'LAMP']
-        for light_name in light_names:
-            lamp = scene.objects[light_name].data
-            rm = lamp.renderman
-            if rm.renderman_type == 'FILTER':
-                filter_name = light_name
-                for light_nm in light_names:
-                    if filter_name in scene.objects[light_nm].data.renderman.light_filters.keys():
-                        lamp_nm = scene.objects[light_nm].data.name
-                        if remove or link.illuminate == "DEFAULT":
-                            ri.EnableLightFilter(lamp_nm, filter_name, 1)
-                        else:
-                            ri.EnableLightFilter(
-                                lamp_nm, filter_name, link.illuminate == 'ON')
-            else:
-                if remove or link.illuminate == "DEFAULT":
-                    ri.Illuminate(
-                        lamp.name, lamp.renderman.illuminates_by_default)
-                else:
-                    ri.Illuminate(lamp.name, link.illuminate == 'ON')
-        ri.EditEnd()
+        print("OB_NAME: %s" % ob_name)
+        # ri.EditBegin('attribute', {'string scopename': ob_name})
+        # scene_lights = [l.name for l in scene.objects if l.type == 'LAMP']
+        # light_names = [strs[1]] if strs[0] == "lg_light" else \
+        #     scene.renderman.light_groups[strs[1]].members.keys()
+        # if strs[0] == 'lg_group' and strs[1] == 'All':
+        #     light_names = [l.name for l in scene.objects if l.type == 'LAMP']
+        # for light_name in light_names:
+        #     lamp = scene.objects[light_name].data
+        #     rm = lamp.renderman
+        #     if rm.renderman_type == 'FILTER':
+        #         filter_name = light_name
+        #         for light_nm in light_names:
+        #             if filter_name in scene.objects[light_nm].data.renderman.light_filters.keys():
+        #                 lamp_nm = scene.objects[light_nm].data.name
+        #                 if remove or link.illuminate == "DEFAULT":
+        #                     ri.EnableLightFilter(lamp_nm, filter_name, 1)
+        #                 else:
+        #                     ri.EnableLightFilter(
+        #                         lamp_nm, filter_name, link.illuminate == 'ON')
+        #     else:
+        #         if remove or link.illuminate == "DEFAULT":
+        #             ri.Illuminate(
+        #                 lamp.name, lamp.renderman.illuminates_by_default)
+        #         else:
+        #             ri.Illuminate(lamp.name, link.illuminate == 'ON')
+        # ri.EditEnd()
 
 # test the active object type for edits to do then do them
