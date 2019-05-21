@@ -1134,6 +1134,7 @@ class RmanSgExporter:
         else:
             mesh = create_mesh(ob, self.scene)
 
+        get_normals = (prim_type == 'POLYGON_MESH')
         (nverts, verts, P, N) = get_mesh(mesh, get_normals=True)
         
         # if this is empty continue:
@@ -1161,9 +1162,7 @@ class RmanSgExporter:
             pts = list( zip(*[iter(P)]*3 ) )
             primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex")
         
-        primvars = get_primvars(ob, mesh, "facevarying")
-        primvars['P'] = P
-        primvars['facevarying normal N'] = N         
+        material_ids = get_primvars(ob, mesh, primvar, "facevarying")   
 
         primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
         primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")            
@@ -1199,7 +1198,7 @@ class RmanSgExporter:
 
         if is_multi_material(mesh):
             for mat_id, faces in \
-                get_mats_faces(nverts, primvars).items():
+                get_mats_faces(nverts, material_ids).items():
 
                 mat = mesh.materials[mat_id]
                 mat_handle = "material.%s" % mat.name
@@ -2740,7 +2739,7 @@ class RmanSgExporter:
 
         if mat.preview_render_type == 'SPHERE':
             sg_node = self.sg_scene.CreateQuadric(name)
-            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Sphere);
+            sg_node.SetGeometry(rman.Tokens.Rix.k_Ri_Sphere)
             primvar = sg_node.EditPrimVarBegin()
             primvar.SetFloat(rman.Tokens.Rix.k_Ri_radius, 1.0)
             primvar.SetFloat(rman.Tokens.Rix.k_Ri_zmin, -1.0)
@@ -3926,8 +3925,8 @@ def is_multi_material(mesh):
     return False
 
 
-def get_primvars(ob, geo, interpolation=""):
-    primvars = {}
+def get_primvars(ob, geo, rixparams, interpolation=""):
+    material_ids = {}
     if ob.type != 'MESH':
         return primvars
 
@@ -3937,36 +3936,42 @@ def get_primvars(ob, geo, interpolation=""):
 
     # get material id if this is a multi-material mesh
     if is_multi_material(geo):
-        primvars["uniform float material_id"] = rib([p.material_index
-                                                     for p in geo.polygons])
+        material_id = rib([p.material_index for p in geo.polygons])
+        material_ids["uniform float material_id"] = material_id
+        #rixparams.SetFloatDetail("material_id", material_id, "uniform")
 
     if rm.export_default_uv:
         uvs = get_mesh_uv(geo, flipvmode=rm.export_flipv)
         if uvs and len(uvs) > 0:
-            primvars["%s float[2] st" % interpolation] = uvs
+            #primvars["%s float[2] st" % interpolation] = uvs
+            rixparams.SetFloatArrayDetail("st", uvs, len(uvs), interpolation)
     if rm.export_default_vcol:
         vcols = get_mesh_vcol(geo)
         if vcols and len(vcols) > 0:
-            primvars["%s color Cs" % interpolation] = rib(vcols)
+            #primvars["%s color Cs" % interpolation] = rib(vcols)
+            rixparams.SetColorDetail("Cs", rib(vcols), interpolation)
 
     # custom prim vars
     for p in rm.prim_vars:
         if p.data_source == 'VERTEX_COLOR':
             vcols = get_mesh_vcol(geo, p.data_name)
             if vcols and len(vcols) > 0:
-                primvars["%s color %s" % (interpolation, p.name)] = rib(vcols)
+                #primvars["%s color %s" % (interpolation, p.name)] = rib(vcols)
+                rixparams.SetColorDetail(p.name, rib(vcols), interpolation)
 
         elif p.data_source == 'UV_TEXTURE':
             uvs = get_mesh_uv(geo, p.data_name, flipvmode=rm.export_flipv)
             if uvs and len(uvs) > 0:
-                primvars["%s float[2] %s" % (interpolation, p.name)] = uvs
+                #primvars["%s float[2] %s" % (interpolation, p.name)] = uvs
+                rixparams.SetFloatArrayDetail(p.name, uvs, len(uvs), interpolation)
 
         elif p.data_source == 'VERTEX_GROUP':
             weights = get_mesh_vgroup(ob, geo, p.data_name)
             if weights and len(weights) > 0:
-                primvars["vertex float %s" % p.name] = weights
+                #primvars["vertex float %s" % p.name] = weights
+                rixparams.SetFloatDetail(p.name, weights, "vertex")
 
-    return primvars
+    return material_ids
 
 def get_fluid_mesh(scene, ob):
 
