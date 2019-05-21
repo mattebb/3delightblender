@@ -1135,7 +1135,7 @@ class RmanSgExporter:
             mesh = create_mesh(ob, self.scene)
 
         get_normals = (prim_type == 'POLYGON_MESH')
-        (nverts, verts, P, N) = get_mesh(mesh, get_normals=True)
+        (nverts, verts, P, N) = get_mesh(mesh, get_normals=get_normals)
         
         # if this is empty continue:
         if nverts == []:
@@ -1161,7 +1161,6 @@ class RmanSgExporter:
         else:
             pts = list( zip(*[iter(P)]*3 ) )
             primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex")
-        
         material_ids = get_primvars(ob, mesh, primvar, "facevarying")   
 
         primvar.SetIntegerDetail(rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
@@ -3928,8 +3927,7 @@ def is_multi_material(mesh):
 def get_primvars(ob, geo, rixparams, interpolation=""):
     material_ids = {}
     if ob.type != 'MESH':
-        return material_ids
-
+        return None
     rm = ob.data.renderman
 
     interpolation = 'facevarying' if not interpolation else interpolation
@@ -3944,7 +3942,8 @@ def get_primvars(ob, geo, rixparams, interpolation=""):
         uvs = get_mesh_uv(geo, flipvmode=rm.export_flipv)
         if uvs and len(uvs) > 0:
             #primvars["%s float[2] st" % interpolation] = uvs
-            rixparams.SetFloatArrayDetail("st", uvs, len(uvs), interpolation)
+            rixparams.SetFloatArrayDetail("st", uvs, 2, interpolation)
+
     if rm.export_default_vcol:
         vcols = get_mesh_vcol(geo)
         if vcols and len(vcols) > 0:
@@ -3963,7 +3962,7 @@ def get_primvars(ob, geo, rixparams, interpolation=""):
             uvs = get_mesh_uv(geo, p.data_name, flipvmode=rm.export_flipv)
             if uvs and len(uvs) > 0:
                 #primvars["%s float[2] %s" % (interpolation, p.name)] = uvs
-                rixparams.SetFloatArrayDetail(p.name, uvs, len(uvs), interpolation)
+                rixparams.SetFloatArrayDetail(p.name, uvs, 2, interpolation)
 
         elif p.data_source == 'VERTEX_GROUP':
             weights = get_mesh_vgroup(ob, geo, p.data_name)
