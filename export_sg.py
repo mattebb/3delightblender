@@ -3928,7 +3928,7 @@ def is_multi_material(mesh):
 def get_primvars(ob, geo, rixparams, interpolation=""):
     material_ids = {}
     if ob.type != 'MESH':
-        return primvars
+        return material_ids
 
     rm = ob.data.renderman
 
