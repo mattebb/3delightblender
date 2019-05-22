@@ -978,6 +978,7 @@ class RmanSgExporter:
 
                 subset = []
                 excludesubset = []
+                lightfilter_subset = []
                 subset.append("World")
                 for light_name in light_names:
                     lamp = self.scene.objects[light_name].data
@@ -987,11 +988,12 @@ class RmanSgExporter:
                         for light_nm in light_names:
                             if filter_name in self.scene.objects[light_nm].data.renderman.light_filters.keys():
                                 lamp_nm = self.scene.objects[light_nm].data.name
-                                if remove or link.illuminate == "DEFAULT":
-                                    pass
+                                if link.illuminate == 'ON':
+                                    lightfilter_subset.append(filter_name)
+
+                                #if remove or link.illuminate == "DEFAULT":
                                     #ri.EnableLightFilter(lamp_nm, filter_name, 1)
-                                else:
-                                    pass
+                                #else:
                                     #ri.EnableLightFilter(
                                     #    lamp_nm, filter_name, link.illuminate == 'ON')
                     else:
@@ -1010,6 +1012,7 @@ class RmanSgExporter:
                 attrs = sg_node.EditAttributeBegin()
                 attrs.SetString(rman.Tokens.Rix.k_lighting_subset, ",".join(subset))
                 attrs.SetString(rman.Tokens.Rix.k_lighting_excludesubset, ",".join(excludesubset))
+                attrs.SetString(rman.Tokens.Rix.k_lighfilter_subset, ",".join(lightfilter_subset))
                 sg_node.EditAttributeEnd(attrs)                
  
     def export_searchpaths(self):
@@ -1150,12 +1153,9 @@ class RmanSgExporter:
                         filter_name = light_name
                         for light_nm in scene_lights:
                             if filter_name in self.scene.objects[light_nm].data.renderman.light_filters.keys():
-                                #ri.EnableLightFilter(
-                                #    light_nm, filter_name, link.illuminate == 'ON')
                                 if link.illuminate == 'ON':
                                     lightfilter_subset.append(filter_name)
                     else:
-                        #ri.Illuminate(light_name, link.illuminate == 'ON')
                         if not link.illuminate == 'ON':
                             exclude_subset.append(light_name)
 
