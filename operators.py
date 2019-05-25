@@ -207,7 +207,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             idtype = 'material'
         else:
             context_data = {'material': context.material,
-                            'lamp': context.lamp, 'world': context.scene.world}
+                            'lamp': context.light, 'world': context.scene.world}
             idblock = context_data[idtype]
 
         # nt = bpy.data.node_groups.new(idblock.name,
@@ -242,17 +242,17 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         elif idtype == 'lamp':
             light_type = idblock.type
             if light_type == 'SUN':
-                context.lamp.renderman.renderman_type = 'DIST'
+                context.light.renderman.renderman_type = 'DIST'
             elif light_type == 'HEMI':
 
-                context.lamp.renderman.renderman_type = 'ENV'
+                context.light.renderman.renderman_type = 'ENV'
             else:
-                context.lamp.renderman.renderman_type = light_type
+                context.light.renderman.renderman_type = light_type
 
             if light_type == 'AREA':
-                context.lamp.shape = 'RECTANGLE'
-                context.lamp.size = 1.0
-                context.lamp.size_y = 1.0
+                context.light.shape = 'RECTANGLE'
+                context.light.size = 1.0
+                context.light.size_y = 1.0
 
             idblock.renderman.use_renderman_node = True
 
@@ -618,7 +618,7 @@ class AddPresetRendermanRender(AddPresetBase, bpy.types.Operator):
     bl_idname = "render.renderman_preset_add"
     bl_label = "Add RenderMan Preset"
     bl_options = {'REGISTER', 'UNDO'}
-    preset_menu = "presets"
+    preset_menu = "PRMAN_MT_presets"
     preset_defines = ["scene = bpy.context.scene", ]
 
     preset_values = [
@@ -703,7 +703,7 @@ class RendermanRenderPresets():
 
 class PresetsMenu(bpy.types.Menu):
     bl_label = "RenderMan Presets"
-    bl_idname = "presets"
+    bl_idname = "PRMAN_MT_presets"
     preset_subdir = os.path.join("renderman", "render")
     preset_operator = "script.execute_preset"
     draw = bpy.types.Menu.draw_preset
@@ -752,7 +752,7 @@ for name in names:
 
 class LoadSceneMenu(bpy.types.Menu):
     bl_label = "RenderMan Examples"
-    bl_idname = "examples"
+    bl_idname = "PRMAN_MT_examples"
 
     def get_operator_failsafe(self, idname):
         op = bpy.ops
@@ -1226,7 +1226,7 @@ class Select_Lights(bpy.types.Operator):
 
 
 class Hemi_List_Menu(bpy.types.Menu):
-    bl_idname = "object.hemi_list_menu"
+    bl_idname = "PRMAN_MT_object.hemi_list_menu"
     bl_label = "EnvLight list"
 
     def draw(self, context):
@@ -1244,11 +1244,11 @@ class Hemi_List_Menu(bpy.types.Menu):
                     op.Light_Name = name
 
         else:
-            layout.label("No EnvLight in the Scene")
+            layout.label(text="No EnvLight in the Scene")
 
 
 class Area_List_Menu(bpy.types.Menu):
-    bl_idname = "object.area_list_menu"
+    bl_idname = "PRMAN_MT_object.area_list_menu"
     bl_label = "AreaLight list"
 
     def draw(self, context):
@@ -1266,11 +1266,11 @@ class Area_List_Menu(bpy.types.Menu):
                     op.Light_Name = name
 
         else:
-            layout.label("No AreaLight in the Scene")
+            layout.label(text="No AreaLight in the Scene")
 
 
 class DayLight_List_Menu(bpy.types.Menu):
-    bl_idname = "object.daylight_list_menu"
+    bl_idname = "PRMAN_MT_object.daylight_list_menu"
     bl_label = "DayLight list"
 
     def draw(self, context):
@@ -1288,7 +1288,7 @@ class DayLight_List_Menu(bpy.types.Menu):
                     op.Light_Name = name
 
         else:
-            layout.label("No Daylight in the Scene")
+            layout.label(text="No Daylight in the Scene")
 
 
 class Select_Cameras(bpy.types.Operator):
@@ -1307,7 +1307,7 @@ class Select_Cameras(bpy.types.Operator):
 
 
 class Camera_List_Menu(bpy.types.Menu):
-    bl_idname = "object.camera_list_menu"
+    bl_idname = "PRMAN_MT_object.camera_list_menu"
     bl_label = "Camera list"
 
     def draw(self, context):
@@ -1325,7 +1325,7 @@ class Camera_List_Menu(bpy.types.Menu):
                 op.Camera_Name = name
 
         else:
-            layout.label("No Camera in the Scene")
+            layout.label(text="No Camera in the Scene")
 
 
 class DeleteLights(bpy.types.Operator):
@@ -1416,11 +1416,55 @@ class RM_restart_addon(bpy.types.Operator):
 compile_shader_menu_func = (lambda self, context: self.layout.operator(
     TEXT_OT_compile_shader.bl_idname))
 
+classes = [
+    Renderman_open_stats,
+    Renderman_start_it,
+    Renderman_open_last_RIB,
+    RENDERMAN_OT_add_remove_output,
+    SHADING_OT_convert_all_renderman_nodetree,
+    SHADING_OT_add_renderman_nodetree,
+    refresh_osl_shader,
+    RendermanBake,
+    ExternalRender,
+    StartInteractive,
+    ExportRIBObject,
+    AddPresetRendermanRender,
+    PresetsMenu,
+    examplesRenderman,
+    LoadSceneMenu,
+    COLLECTION_OT_add_remove,
+    OT_add_renderman_aovs,
+    OT_add_multilayer_list,
+    OT_add_to_group,
+    OT_remove_from_group,
+    OT_remove_add_rem_light_link,
+    Add_Subdiv_Sheme,
+    RM_Add_Area,
+    RM_Add_LightFilter,
+    RM_Add_Hemi,
+    RM_Add_Sky,
+    Add_bxdf,
+    New_bxdf,
+    add_GeoLight,
+    Select_Lights,
+    Hemi_List_Menu,
+    Area_List_Menu,
+    DayLight_List_Menu,
+    Select_Cameras,
+    Camera_List_Menu,
+    DeleteLights,
+    Deletecameras,
+    AddCamera,
+    RM_restart_addon,
+]
 
 def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+    
     bpy.types.TEXT_MT_text.append(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.append(compile_shader_menu_func)
-    bpy.types.INFO_MT_help.append(menu_draw)
+    bpy.types.TOPBAR_MT_help.append(menu_draw)
 
     # Register any default presets here. This includes render based and
     # Material based
@@ -1441,6 +1485,9 @@ def register():
 def unregister():
     bpy.types.TEXT_MT_text.remove(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.remove(compile_shader_menu_func)
-    bpy.types.INFO_MT_help.remove(menu_draw)
-
+    bpy.types.TOPBAR_MT_help.remove(menu_draw)
+    
     # It should be fine to leave presets registered as they are not in memory.
+    
+    for cls in classes:
+        bpy.utils.unregister_class(cls)

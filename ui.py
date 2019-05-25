@@ -132,20 +132,20 @@ class CollectionPanel(_RManPanelHeader):
 
     def _draw_collection(self, context, layout, ptr, name, operator,
                          opcontext, prop_coll, collection_index, default_name=''):
-        layout.label(name)
+        layout.label(text=name)
         row = layout.row()
         row.template_list("UI_UL_list", "PRMAN", ptr, prop_coll, ptr,
                           collection_index, rows=1)
         col = row.column(align=True)
 
-        op = col.operator(operator, icon="ZOOMIN", text="")
+        op = col.operator(operator, icon="ADD", text="")
         op.context = opcontext
         op.collection = prop_coll
         op.collection_index = collection_index
         op.defaultname = default_name
         op.action = 'ADD'
 
-        op = col.operator(operator, icon="ZOOMOUT", text="")
+        op = col.operator(operator, icon="REMOVE", text="")
         op.context = opcontext
         op.collection = prop_coll
         op.collection_index = collection_index
@@ -209,7 +209,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
 
         layout.separator()
 
-        split = layout.split(percentage=0.33)
+        split = layout.split(factor=0.33)
 
         split.label(text="Display:")
         row = split.row(align=True)
@@ -251,7 +251,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         # note
         row = layout.row()
         row.label(
-            'Note:  External Rendering will render outside of Blender, images will not show up in the Image Editor.')
+            text='Note:  External Rendering will render outside of Blender, images will not show up in the Image Editor.')
 
         row = layout.row()
         row.prop(rm, 'enable_external_rendering')
@@ -268,7 +268,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         layout.separator()
 
 #        row = layout.row()
-#        split = row.split(percentage=0.33)
+#        split = row.split(factor=0.33)
 #        col = split.column()
 #        col.prop(rm, "external_denoise")
 #        sub_row = col.row()
@@ -291,7 +291,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         layout.separator()
 
         layout.separator()
-        split = layout.split(percentage=0.33)
+        split = layout.split(factor=0.33)
         # do animation
         split.prop(rm, "external_animation")
 
@@ -318,7 +318,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
             row.enabled = rm.generate_rib
             row.prop(rm, "generate_object_rib")
             col.prop(rm, "generate_alf")
-            split = col.split(percentage=0.33)
+            split = col.split(factor=0.33)
             split.enabled = rm.generate_alf and rm.generate_render
             split.prop(rm, "do_render")
             sub_row = split.row()
@@ -339,7 +339,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
                 row = col.row()
                 row.enabled = rm.generate_render
                 row.prop(rm, 'custom_cmd')
-                split = col.split(percentage=0.33)
+                split = col.split(factor=0.33)
                 split.enabled = rm.generate_render
                 split.prop(rm, "override_threads")
                 sub_row = split.row()
@@ -391,7 +391,7 @@ def draw_props(node, prop_names, layout):
             row = split.row()
             row.prop(node, ui_prop, icon=icon, text='',
                      icon_only=True, emboss=False)
-            row.label(prop_name.split('.')[-1] + ':')
+            row.label(text=prop_name.split('.')[-1] + ':')
 
             if ui_open:
                 draw_props(node, prop, layout)
@@ -401,7 +401,7 @@ def draw_props(node, prop_names, layout):
                     'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
                 continue
 
-            row.label('', icon='BLANK1')
+            row.label(text='', icon='BLANK1')
             # indented_label(row, socket.name+':')
             if "Subset" in prop_name and prop_meta['type'] == 'string':
                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
@@ -434,10 +434,10 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         # layout.prop(rm, "display_driver")
         col = layout.column()
         row = col.row(align=True)
-        row.menu("presets", text=bpy.types.presets.bl_label)
-        row.operator("render.renderman_preset_add", text="", icon='ZOOMIN')
+        row.menu("PRMAN_MT_presets", text=bpy.types.WM_MT_operator_presets.bl_label)
+        row.operator("render.renderman_preset_add", text="", icon='ADD')
         row.operator("render.renderman_preset_add", text="",
-                     icon='ZOOMOUT').remove_active = True
+                     icon='REMOVE').remove_active = True
         col.prop(rm, "pixel_variance")
         row = col.row(align=True)
         row.prop(rm, "min_samples", text="Min Samples")
@@ -543,7 +543,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         layout.separator()
         col = layout.column()
         row = col.row()
-        row.label("Pixel Filter:")
+        row.label(text="Pixel Filter:")
         row.prop(rm, "pixelfilter", text="")
         row = col.row(align=True)
         row.prop(rm, "pixelfilter_x", text="Size X")
@@ -655,7 +655,7 @@ class MATERIAL_PT_renderman_preview(Panel, _RManPanelHeader):
         split = layout.split()
 
         col = split.column(align=True)
-        col.label("Viewport Color:")
+        col.label(text="Viewport Color:")
         col.prop(mat, "diffuse_color", text="")
         #col.prop(mat, "alpha")
 
@@ -664,9 +664,9 @@ class MATERIAL_PT_renderman_preview(Panel, _RManPanelHeader):
         #col.prop(mat.game_settings, "alpha_blend", text="")
 
         col = split.column(align=True)
-        col.label("Viewport Specular:")
+        col.label(text="Viewport Specular:")
         col.prop(mat, "specular_color", text="")
-        col.prop(mat, "specular_hardness", text="Hardness")
+        #col.prop(mat, "specular_hardness", text="Hardness")
 
 class ShaderNodePanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
@@ -684,9 +684,9 @@ class ShaderNodePanel(_RManPanelHeader):
             if context.material and context.material.node_tree != '':
                 return True
         if cls.bl_context == 'data':
-            if not context.lamp:
+            if not context.light:
                 return False
-            if context.lamp.renderman.use_renderman_node:
+            if context.light.renderman.use_renderman_node:
                 return True
         return False
 
@@ -916,7 +916,7 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
 
         col = split.column()
         sub = col.column(align=True)
-        sub.label("Aperture Controls:")
+        sub.label(text="Aperture Controls:")
         sub.prop(cam.renderman, "dof_aspect", text="Aspect")
         sub.prop(cam.renderman, "aperture_sides", text="Sides")
         sub.prop(cam.renderman, "aperture_angle", text="Angle")
@@ -939,7 +939,7 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         world = context.scene.world
 
         if not world.renderman.use_renderman_node:
-            layout.prop(world, "horizon_color")
+            #layout.prop(world, "horizon_color")
             layout.operator('shading.add_renderman_nodetree').idtype = 'world'
             return
         else:
@@ -970,7 +970,7 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
         else:
             if ipr_running:
                 layout.label(
-                    "Note: Some items cannot be edited while IPR running.")
+                    text="Note: Some items cannot be edited while IPR running.")
             row = layout.row()
             row.enabled = not ipr_running
             row.prop(lamp.renderman, "renderman_type", expand=True)
@@ -1002,7 +1002,7 @@ class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
 
     def draw(self, context):
         layout = self.layout
-        lamp = context.lamp
+        lamp = context.light
 
         lamp_node = lamp.renderman.get_light_node()
         if lamp_node:
@@ -1178,7 +1178,7 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         # col.prop(rm, "export_coordsys")
 
         row = col.row()
-        row.prop(rm, "displacementbound", "Displacement Bound")
+        row.prop(rm, "displacementbound", text="Displacement Bound")
 
         row = col.row()
         row.prop(rm, "motion_segments_override", text="")
@@ -1412,12 +1412,12 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row.prop(item, "show_advanced", icon=icon, text="Advanced",
                  emboss=False)
         if item.show_advanced:
-            col.label("Exposure Settings")
+            col.label(text="Exposure Settings")
             col.prop(item, "exposure_gain")
             col.prop(item, "exposure_gamma")
 
             col = layout.column()
-            col.label("Remap Settings")
+            col.label(text="Remap Settings")
             row = col.row(align=True)
             row.prop(item, "remap_a", text="A")
             row.prop(item, "remap_b", text="B")
@@ -1546,10 +1546,10 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel, _RManPanelHead
 
         if psys.settings.type == 'HAIR':
             row = col.row()
-            row.prop(psys.settings.cycles, "root_width", 'Root Width')
-            row.prop(psys.settings.cycles, "tip_width", 'Tip Width')
+            row.prop(psys.settings.cycles, "root_width", text='Root Width')
+            row.prop(psys.settings.cycles, "tip_width", text='Tip Width')
             row = col.row()
-            row.prop(psys.settings.cycles, "radius_scale", 'Width Multiplier')
+            row.prop(psys.settings.cycles, "radius_scale", text='Width Multiplier')
 
             col.prop(rm, 'export_scalp_st')
             col.prop(rm, 'round_hair')
@@ -1588,7 +1588,7 @@ class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):
 # headers to draw the interactive start/stop buttons
 
 
-class DrawRenderHeaderInfo(bpy.types.Header):
+class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
     bl_space_type = "INFO"
 
     def draw(self, context):
@@ -1619,7 +1619,7 @@ class DrawRenderHeaderInfo(bpy.types.Header):
                          icon_value=rman_rerender_controls.icon_id)
 
 
-class DrawRenderHeaderNode(bpy.types.Header):
+class PRMAN_HT_DrawRenderHeaderNode(bpy.types.Header):
     bl_space_type = "NODE_EDITOR"
 
     def draw(self, context):
@@ -1638,7 +1638,7 @@ class DrawRenderHeaderNode(bpy.types.Header):
         row.operator('nodes.new_bxdf')
 
 
-class DrawRenderHeaderImage(bpy.types.Header):
+class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
     bl_space_type = "IMAGE_EDITOR"
 
     def draw(self, context):
@@ -1680,7 +1680,7 @@ def PRMan_menu_func(self, context):
 #################
 #       Tab     #
 #################
-class Renderman_Light_Panel(CollectionPanel, Panel):
+class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
     # bl_idname = "renderman_light_panel"
     bl_label = "RenderMan Light Groups"
     bl_context = "scene"
@@ -1732,13 +1732,13 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
             box = layout.box()
             row = box.row()
             columns = box.column_flow(columns=8)
-            columns.label('Name')
-            columns.label('Solo')
-            columns.label('Mute')
-            columns.label('Intensity')
-            columns.label('Exposure')
-            columns.label('Color')
-            columns.label('Temperature')
+            columns.label(text='Name')
+            columns.label(text='Solo')
+            columns.label(text='Mute')
+            columns.label(text='Intensity')
+            columns.label(text='Exposure')
+            columns.label(text='Color')
+            columns.label(text='Temperature')
 
             for light_name in light_names:
                 if light_name not in scene.objects:
@@ -1749,7 +1749,7 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                     continue
                 row = box.row()
                 columns = box.column_flow(columns=8)
-                columns.label(light_name)
+                columns.label(text=light_name)
                 columns.prop(lamp_rm, 'solo', text='')
                 columns.prop(lamp_rm, 'mute', text='')
                 light_shader = lamp.renderman.get_light_node()
@@ -1760,18 +1760,18 @@ class Renderman_Light_Panel(CollectionPanel, Panel):
                     if light_shader.bl_label == 'PxrEnvDayLight':
                         # columns.label('sun tint')
                         columns.prop(light_shader, 'skyTint', text='')
-                        columns.label('')
+                        columns.label(text='')
                     else:
                         columns.prop(light_shader, 'lightColor', text='')
                         row = columns.row()
                         row.prop(light_shader, 'enableTemperature', text='')
                         row.prop(light_shader, 'temperature', text='')
                 else:
-                    columns.label('')
-                    columns.label('')
+                    columns.label(text='')
+                    columns.label(text='')
                     columns.prop(lamp, 'energy', text='')
                     columns.prop(lamp, 'color', text='')
-                    columns.label('')
+                    columns.label(text='')
 
 
 class RENDERMAN_LL_LIGHT_list(bpy.types.UIList):
@@ -1787,7 +1787,7 @@ class RENDERMAN_LL_LIGHT_list(bpy.types.UIList):
                 break
 
         layout.alignment = 'CENTER'
-        layout.label(label, icon=icon)
+        layout.label(text=label, icon=icon)
 
 
 class RENDERMAN_LL_OBJECT_list(bpy.types.UIList):
@@ -1811,10 +1811,10 @@ class RENDERMAN_LL_OBJECT_list(bpy.types.UIList):
                 icon = 'DISCLOSURE_TRI_DOWN'
 
         layout.alignment = 'CENTER'
-        layout.label(label, icon=icon)
+        layout.label(text=label, icon=icon)
 
 
-class Renderman_Light_Link_Panel(CollectionPanel, Panel):
+class PRMAN_PT_Renderman_Light_Link_Panel(CollectionPanel, Panel):
     # bl_idname = "renderman_light_panel"
     bl_label = "RenderMan Light Linking"
     bl_context = "scene"
@@ -1836,7 +1836,7 @@ class Renderman_Light_Link_Panel(CollectionPanel, Panel):
         # first colomn select Light
         flow.prop(rm, 'll_light_type')
         flow.prop(rm, 'll_object_type')
-        flow.label('')
+        flow.label(text='')
 
         # second row the selectors
         row = layout.row()
@@ -1856,7 +1856,7 @@ class Renderman_Light_Link_Panel(CollectionPanel, Panel):
                                rm, "object_groups", rm, 'll_object_index')
 
         if rm.ll_light_index == -1 or rm.ll_object_index == -1:
-            flow.label("Select light and object")
+            flow.label(text="Select light and object")
         else:
             from_name = bpy.data.lamps[rm.ll_light_index] if rm.ll_light_type == 'light' \
                 else rm.light_groups[rm.ll_light_index]
@@ -1887,11 +1887,11 @@ class RENDERMAN_GROUP_UL_List(bpy.types.UIList):
         custom_icon = 'OBJECT_DATAMODE'
         # Make sure your code supports all 3 layout types
         layout.alignment = 'CENTER'
-        layout.label(item.name, icon=custom_icon)
+        layout.label(text=item.name, icon=custom_icon)
 
 
 class Renderman_Object_Panel(CollectionPanel, Panel):
-    bl_idname = "renderman_object_groups_panel"
+    bl_idname = "PRMAN_PT_renderman_object_groups_panel"
     bl_label = "RenderMan Object Groups"
     bl_context = "scene"
     bl_space_type = 'PROPERTIES'
@@ -1939,7 +1939,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
     bl_idname = "renderman_ui_panel"
     bl_label = "RenderMan"
     bl_space_type = "VIEW_3D"
-    bl_region_type = "TOOLS"
+    bl_region_type = "UI"
     bl_category = "Renderman"
 
     @classmethod
@@ -1982,8 +1982,8 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
             # presets
             row = box.row(align=True)
-            row.label("Sampling Preset:")
-            row.menu("presets", text=bpy.types.presets.bl_label)
+            row.label(text="Sampling Preset:")
+            row.menu("presets", text=bpy.types.WM_MT_operator_presets.bl_label)
             row.operator("render.renderman_preset_add", text="", icon='ZOOMIN')
             row.operator("render.renderman_preset_add", text="",
                          icon='ZOOMOUT').remove_active = True
@@ -2120,7 +2120,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
                 # presets
                 row = box.row(align=True)
-                row.label("Sampling Preset:")
+                row.label(text="Sampling Preset:")
                 row.menu("presets")
 
                 # denoise and selected row
@@ -2190,7 +2190,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                              text="", icon='MAN_TRANS')
 
                 row = box.row(align=True)
-                row.label("Depth Of Field :")
+                row.label(text="Depth Of Field :")
 
                 row = box.row(align=True)
                 row.prop(context.object.data, "dof_object", text="")
@@ -2201,7 +2201,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
             else:
                 row = layout.row(align=True)
-                row.label("No Camera Selected")
+                row.label(text="No Camera Selected")
 
         layout.separator()
 
@@ -2262,7 +2262,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
                 else:
                     row = layout.row(align=True)
-                    row.label("No EnvLight Selected")
+                    row.label(text="No EnvLight Selected")
 
         # Create Area Light
 
@@ -2320,7 +2320,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
                 else:
                     row = layout.row(align=True)
-                    row.label("No AreaLight Selected")
+                    row.label(text="No AreaLight Selected")
 
         # Daylight
 
@@ -2378,7 +2378,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
                 else:
                     row = layout.row(align=True)
-                    row.label("No DayLight Selected")
+                    row.label(text="No DayLight Selected")
 
         # Dynamic Binding Editor
 
@@ -2396,7 +2396,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
         if selected_objects:
             layout.separator()
-            layout.label("Seleced Objects:")
+            layout.label(text="Seleced Objects:")
             box = layout.box()
 
             # Create PxrLM Material
@@ -2454,14 +2454,53 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.separator()
         layout.menu("examples", icon_value=rman_help.icon_id)
 
+classes = [
+    RENDER_PT_renderman_render,
+    RENDER_PT_renderman_baking,
+    RENDER_PT_renderman_spooling,
+    RENDER_PT_renderman_sampling,
+    RENDER_PT_renderman_motion_blur,
+    RENDER_PT_renderman_sampling_preview,
+    RENDER_PT_renderman_advanced_settings,
+    MESH_PT_renderman_prim_vars,
+    MATERIAL_PT_renderman_preview,
+    MATERIAL_PT_renderman_shader_surface,
+    MATERIAL_PT_renderman_shader_light,
+    MATERIAL_PT_renderman_shader_displacement,
+    RENDER_PT_layer_options,
+    DATA_PT_renderman_camera,
+    DATA_PT_renderman_world,
+    DATA_PT_renderman_lamp,
+    DATA_PT_renderman_node_shader_lamp,
+    DATA_PT_renderman_display_filters,
+    DATA_PT_renderman_Sample_filters,
+    DATA_PT_renderman_node_filters_lamp,
+    OBJECT_PT_renderman_object_geometry,
+    OBJECT_PT_renderman_object_render,
+    OBJECT_PT_renderman_object_raytracing,
+    OBJECT_PT_renderman_object_matteid,
+    RENDER_PT_layer_custom_aovs,
+    PARTICLE_PT_renderman_particle,
+    PARTICLE_PT_renderman_prim_vars,
+    PRMAN_HT_DrawRenderHeaderInfo,
+    PRMAN_HT_DrawRenderHeaderNode,
+    PRMAN_HT_DrawRenderHeaderImage,
+    PRMAN_PT_Renderman_Light_Panel,
+    PRMAN_PT_Renderman_Light_Link_Panel,
+    Renderman_Object_Panel,
+    Renderman_UI_Panel,
+    ]
 
 def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+    
     bpy.utils.register_class(RENDERMAN_GROUP_UL_List)
     bpy.utils.register_class(RENDERMAN_LL_LIGHT_list)
     bpy.utils.register_class(RENDERMAN_LL_OBJECT_list)
     # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
     # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
-    bpy.types.INFO_MT_render.append(PRMan_menu_func)
+    bpy.types.TOPBAR_MT_render.append(PRMan_menu_func)
 
     for panel in get_panels():
         panel.COMPAT_ENGINES.add('PRMAN_RENDER')
@@ -2473,7 +2512,10 @@ def unregister():
     bpy.utils.unregister_class(RENDERMAN_LL_OBJECT_list)
     # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
     # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
-    bpy.types.INFO_MT_render.remove(PRMan_menu_func)
+    bpy.types.TOPBAR_MT_render.remove(PRMan_menu_func)
 
     for panel in get_panels():
         panel.COMPAT_ENGINES.add('PRMAN_RENDER')
+    
+    for cls in classes:
+        bpy.utils.unregister_class(cls)

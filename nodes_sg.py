@@ -97,7 +97,7 @@ class RendermanSocket:
 
     def draw(self, context, layout, node, text):
         if self.is_linked or self.is_output or self.hide_value or not hasattr(self, 'default_value'):
-            layout.label(self.get_pretty_name(node))
+            layout.label(text=self.get_pretty_name(node))
         elif node.bl_idname in group_nodes or node.bl_idname == "PxrOSLPatternNode":
             layout.prop(self, 'default_value',
                         text=self.get_pretty_name(node), slider=True)
@@ -112,7 +112,7 @@ class RendermanSocketInterface:
         return (0.25, 1.0, 0.25, 1.0)
 
     def draw(self, context, layout):
-        layout.label(self.name)
+        layout.label(text=self.name)
 
     def from_socket(self, node, socket):
         if hasattr(self, 'default_value'):
@@ -385,7 +385,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         row = split.row()
                         row.prop(self, ui_prop, icon=icon, text='',
                                  icon_only=True, emboss=False, slider=True)
-                        row.label(prop_name.split('.')[-1] + ':')
+                        row.label(text=prop_name.split('.')[-1] + ':')
 
                         if ui_open:
                             prop = getattr(self, prop_name)
@@ -410,7 +410,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             node = context.node
         else:
             node = nodeOR
-        prefs = bpy.context.user_preferences.addons[__package__].preferences
+        prefs = bpy.context.preferences.addons[__package__].preferences
 
         out_path = user_path(prefs.env_vars.out)
         compile_path = os.path.join(user_path(prefs.env_vars.out), "shaders")
@@ -898,7 +898,7 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
     layout.context_pointer_set("socket", socket)
 
     split = layout.split(0.35)
-    split.label(socket.name + ':')
+    split.label(text=socket.name + ':')
 
     if socket.is_linked:
         # for lights draw the shading rate ui.
@@ -931,9 +931,9 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
     def indented_label(layout, label, level):
         for i in range(level):
-            layout.label('', icon='BLANK1')
+            layout.label(text='', icon='BLANK1')
         if label:
-            layout.label(label)
+            layout.label(text=label)
 
     layout.context_pointer_set("node", node)
     layout.context_pointer_set("nodetree", nt)
@@ -977,7 +977,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     row.prop(socket, "ui_open", icon=icon, text='',
                              icon_only=True, emboss=False)
                     label = prop_meta.get('label', prop_name)
-                    row.label(label + ':')
+                    row.label(text=label + ':')
                     if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
                         split.operator_menu_enum("node.add_layer", "node_type",
                                                  text=input_node.bl_label, icon="LAYER_USED")
@@ -1006,7 +1006,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         split = layout.split(NODE_LAYOUT_SPLIT)
                         row = split.row()
                         for i in range(level):
-                            row.label('', icon='BLANK1')
+                            row.label(text='', icon='BLANK1')
 
                         row.prop(node, ui_prop, icon=icon, text='',
                                  icon_only=True, emboss=False)
@@ -1018,7 +1018,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                     sub_prop_names.remove(pn)
                                     break
 
-                        row.label(prop_name.split('.')[-1] + ':')
+                        row.label(text=prop_name.split('.')[-1] + ':')
 
                         if ui_open:
                             draw_props(sub_prop_names, layout, level + 1)
@@ -1034,7 +1034,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             if prop_meta['renderman_type'] != 'struct':
                                 row.prop(node, prop_name, slider=True)
                             else:
-                                row.label(prop_meta['label'])
+                                row.label(text=prop_meta['label'])
                         if prop_name in node.inputs:
                             if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
                                 row.operator_menu_enum("node.add_layer", "node_type",
@@ -1063,7 +1063,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 indented_label(row, None, level)
                 row.prop(input, "show_expanded", icon=icon, text='',
                          icon_only=True, emboss=False)
-                row.label(input.name + ':')
+                row.label(text=input.name + ':')
                 split.operator_menu_enum("node.add_pattern", "node_type",
                                          text=input_node.bl_label, icon="LAYER_USED")
 
@@ -1077,7 +1077,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 # indented_label(row, socket.name+':')
                 # don't draw prop for struct type
                 if input.hide_value:
-                    row.label(input.name)
+                    row.label(text=input.name)
                 else:
                     row.prop(input, 'default_value',
                              slider=True, text=input.name)
@@ -1459,7 +1459,7 @@ def gen_rixparams(node, params, mat_name=None):
     if node.bl_idname == "PxrOSLPatternNode":
 
         if getattr(node, "codetypeswitch") == "EXT":
-            prefs = bpy.context.user_preferences.addons[__package__].preferences
+            prefs = bpy.context.preferences.addons[__package__].preferences
             osl_path = user_path(getattr(node, 'shadercode'))
             FileName = os.path.basename(osl_path)
             FileNameNoEXT,ext = os.path.splitext(FileName)
@@ -1754,7 +1754,7 @@ def gen_params(node, mat_name=None):
     if node.bl_idname == "PxrOSLPatternNode":
 
         if getattr(node, "codetypeswitch") == "EXT":
-            prefs = bpy.context.user_preferences.addons[__package__].preferences
+            prefs = bpy.context.preferences.addons[__package__].preferences
             osl_path = user_path(getattr(node, 'shadercode'))
             FileName = os.path.basename(osl_path)
             FileNameNoEXT,ext = os.path.splitext(FileName)
@@ -2695,6 +2695,33 @@ classes = [
     RendermanNodeSocketString,
     RendermanNodeSocketVector,
     RendermanNodeSocketStruct,
+    
+    RendermanNodeSocketFloat,
+    RendermanNodeSocketInterfaceFloat,
+    RendermanNodeSocketInt,
+    RendermanNodeSocketInterfaceInt,
+    RendermanNodeSocketString,
+    RendermanNodeSocketStruct,
+    RendermanNodeSocketInterfaceStruct,
+    RendermanNodeSocketColor,
+    RendermanNodeSocketInterfaceColor,
+    RendermanNodeSocketVector,
+    RendermanNodeSocketInterfaceVector,
+    RendermanShaderSocket,
+    RendermanShaderSocketInterface,
+    RendermanShadingNode,
+    RendermanOutputNode,
+    RendermanBxdfNode,
+    RendermanDisplacementNode,
+    RendermanPatternNode,
+    RendermanLightNode,
+    NODE_OT_add_bxdf,
+    NODE_OT_add_displacement,
+    NODE_OT_add_light,
+    NODE_OT_add_pattern,
+    NODE_OT_add_layer,
+    NODE_OT_add_manifold,
+    NODE_OT_add_bump,
 ]
 
 nodetypes = {}
@@ -2705,7 +2732,7 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    user_preferences = bpy.context.user_preferences
+    user_preferences = bpy.context.preferences
     prefs = user_preferences.addons[__package__].preferences
 
     categories = {}

@@ -178,11 +178,12 @@ def update_interactive(engine, context):
 # if a script updates objects.  We would need to iterate through all objects
 @persistent
 def update_timestamp(scene):
-    active = scene.objects.active
-    if active and (active.is_updated_data or (active.data and active.data.is_updated)):
-        # mark object for update
-        now = int(time.time())
-        active.renderman.update_timestamp = now
+    active = bpy.context.view_layer.objects.active
+    #TODO: fixme
+    #if active and (active.is_updated_data or (active.data and active.data.is_updated)):
+    #    # mark object for update
+    #    now = int(time.time())
+    #    active.renderman.update_timestamp = now
 
 
 class RPass:
@@ -200,7 +201,7 @@ class RPass:
             self.display_driver = 'it' if scene.renderman.render_into == 'it' else 'openexr'
 
         # pass addon prefs to init_envs
-        addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
+        addon = bpy.context.preferences.addons[__name__.split('.')[0]]
         init_exporter_env(addon.preferences)
         self.initialize_paths(scene)
         self.rm = scene.renderman

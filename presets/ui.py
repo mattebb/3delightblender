@@ -42,7 +42,7 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
     bl_idname = "renderman_presets_ui_panel"
     bl_label = "RenderMan Presets"
     bl_space_type = "VIEW_3D"
-    bl_region_type = "TOOLS"
+    bl_region_type = "UI"
     bl_category = "Renderman"
 
     @classmethod
@@ -78,7 +78,7 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
             row.operator("renderman.init_preset_library", text="Select Another Library")
             row = layout.row(align=True)
             row.context_pointer_set('renderman_preset', util.get_addon_prefs().presets_library)
-            row.menu('renderman_presets_menu', text="Select Category")
+            row.menu('PRMAN_MT_renderman_presets_menu', text="Select Category")
             row.operator("renderman.refresh_libraries", text="", icon="FILE_REFRESH")
             active = RendermanPresetGroup.get_active_library()
 
@@ -92,7 +92,7 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
 
                 if current_preset:
                     row = layout.row()
-                    row.label("Current Preset:")
+                    row.label(text="Current Preset:")
                     row.prop(active, 'current_preset', text='')
                     layout.template_icon_view(active, "current_preset")
                     # row of controls for preset
@@ -113,7 +113,7 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
                 layout.operator("renderman.save_asset_to_library", text="Save Material to Library").lib_path = active.path
 
 class Renderman_Presets_Menu(bpy.types.Menu):
-    bl_idname = "renderman_presets_menu"
+    bl_idname = "PRMAN_MT_renderman_presets_menu"
     bl_label = "RenderMan Presets Menu"
 
     path = StringProperty(default="")
@@ -128,18 +128,15 @@ class Renderman_Presets_Menu(bpy.types.Menu):
                 self.layout.context_pointer_set('renderman_preset', sub)
                 prefix = "* " if sub.is_active() else ''
                 if len(sub.sub_groups):
-                    self.layout.menu('renderman_presets_menu', text=prefix + sub.name)
+                    self.layout.menu('PRMAN_MT_renderman_presets_menu', text=prefix + sub.name)
                 else:
                     prefix = "* " if sub.is_active() else ''
                     self.layout.operator('renderman.set_active_preset_library',text=prefix + sub.name).lib_path = sub.path
 
 
 def register():
-    try:
-        bpy.utils.register_class(Renderman_Presets_Menu)
-        bpy.utils.register_class(Renderman_Presets_UI_Panel)
-    except:
-        pass #allready registered
+    bpy.utils.register_class(Renderman_Presets_Menu)
+    bpy.utils.register_class(Renderman_Presets_UI_Panel)
 
 def unregister():
     bpy.utils.unregister_class(Renderman_Presets_Menu)
