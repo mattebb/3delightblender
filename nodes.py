@@ -385,7 +385,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
                             else 'DISCLOSURE_TRI_RIGHT'
 
-                        split = layout.split(NODE_LAYOUT_SPLIT)
+                        split = layout.split(factor=NODE_LAYOUT_SPLIT)
                         row = split.row()
                         row.prop(self, ui_prop, icon=icon, text='',
                                  icon_only=True, emboss=False, slider=True)
@@ -753,7 +753,7 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
     layout.context_pointer_set("node", output_node)
     layout.context_pointer_set("socket", socket)
 
-    split = layout.split(0.35)
+    split = layout.split(factor=0.35)
     split.label(text=socket.name + ':')
 
     if socket.is_linked:
@@ -827,7 +827,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     icon = 'DISCLOSURE_TRI_DOWN' if socket.ui_open \
                         else 'DISCLOSURE_TRI_RIGHT'
 
-                    split = layout.split(NODE_LAYOUT_SPLIT)
+                    split = layout.split(factor=NODE_LAYOUT_SPLIT)
                     row = split.row()
                     indented_label(row, None, level)
                     row.prop(socket, "ui_open", icon=icon, text='',
@@ -859,7 +859,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
                             else 'DISCLOSURE_TRI_RIGHT'
 
-                        split = layout.split(NODE_LAYOUT_SPLIT)
+                        split = layout.split(factor=NODE_LAYOUT_SPLIT)
                         row = split.row()
                         for i in range(level):
                             row.label(text='', icon='BLANK1')
@@ -914,7 +914,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 icon = 'DISCLOSURE_TRI_DOWN' if input.show_expanded \
                     else 'DISCLOSURE_TRI_RIGHT'
 
-                split = layout.split(NODE_LAYOUT_SPLIT)
+                split = layout.split(factor=NODE_LAYOUT_SPLIT)
                 row = split.row()
                 indented_label(row, None, level)
                 row.prop(input, "show_expanded", icon=icon, text='',
@@ -2264,7 +2264,7 @@ classes = [
     RendermanNodeSocketString,
     RendermanNodeSocketVector,
     RendermanNodeSocketStruct,
-	
+
     RendermanNodeSocketInterfaceFloat,
     RendermanNodeSocketInterfaceInt,
     RendermanNodeSocketInterfaceStruct,

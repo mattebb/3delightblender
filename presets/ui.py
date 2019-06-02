@@ -39,7 +39,7 @@ from bpy.props import StringProperty
 
 # panel for the toolbar of node editor
 class Renderman_Presets_UI_Panel(bpy.types.Panel):
-    bl_idname = "renderman_presets_ui_panel"
+    bl_idname = "PRMAN_PT_renderman_presets_ui_panel"
     bl_label = "RenderMan Presets"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"

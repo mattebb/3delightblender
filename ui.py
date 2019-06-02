@@ -387,7 +387,7 @@ def draw_props(node, prop_names, layout):
             icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
                 else 'DISCLOSURE_TRI_RIGHT'
 
-            split = layout.split(NODE_LAYOUT_SPLIT)
+            split = layout.split(factor=NODE_LAYOUT_SPLIT)
             row = split.row()
             row.prop(node, ui_prop, icon=icon, text='',
                      icon_only=True, emboss=False)
@@ -1713,13 +1713,13 @@ class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
         #                    rows=9, maxrows=100, type='GRID', columns=9)
 
         row = layout.row()
-        add = row.operator('renderman.add_to_group', 'Add Selected to Group')
+        add = row.operator('renderman.add_to_group', text='Add Selected to Group')
         add.item_type = 'light'
         add.group_index = rm.light_groups_index
 
         # row = layout.row()
         remove = row.operator('renderman.remove_from_group',
-                              'Remove Selected from Group')
+                              text='Remove Selected from Group')
         remove.item_type = 'light'
         remove.group_index = rm.light_groups_index
 
@@ -1796,7 +1796,7 @@ class RENDERMAN_LL_OBJECT_list(bpy.types.UIList):
         rm = context.scene.renderman
         icon = 'NONE'
         light_type = rm.ll_light_type
-        lg = bpy.data.lamps if light_type == "light" else rm.light_groups
+        lg = bpy.data.lights if light_type == "light" else rm.light_groups
         ll_prefix = "lg_%s>%s>obj_%s>%s" % (
             light_type, lg[rm.ll_light_index].name, rm.ll_object_type, item.name)
 
@@ -1869,12 +1869,12 @@ class PRMAN_PT_Renderman_Light_Link_Panel(CollectionPanel, Panel):
             if ll_name in rm.ll:
                 col.prop(rm.ll[ll_name], 'illuminate')
                 rem = col.operator(
-                    'renderman.add_rem_light_link', 'Remove Light Link')
+                    'renderman.add_rem_light_link', text='Remove Light Link')
                 rem.ll_name = ll_name
                 rem.add_remove = "remove"
             else:
                 add = col.operator(
-                    'renderman.add_rem_light_link', 'Add Light Link')
+                    'renderman.add_rem_light_link', text='Add Light Link')
                 add.ll_name = ll_name
                 add.add_remove = 'add'
 
@@ -1924,9 +1924,9 @@ class Renderman_Object_Panel(CollectionPanel, Panel):
 
         row = layout.row()
         row.operator('renderman.add_to_group',
-                     'Add Selected to Group').group_index = rm.object_groups_index
+                     text='Add Selected to Group').group_index = rm.object_groups_index
         row.operator('renderman.remove_from_group',
-                     'Remove Selected from Group').group_index = rm.object_groups_index
+                     text='Remove Selected from Group').group_index = rm.object_groups_index
 
         row = layout.row()
         row.template_list("RENDERMAN_GROUP_UL_List", "Renderman_group_list",

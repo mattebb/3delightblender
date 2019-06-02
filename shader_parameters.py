@@ -789,7 +789,7 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
         param_label = label_prefix + meta.get('label', param_name)
 
         socket = node.inputs.new(
-            socket_map[param_type], param_name, param_label)
+            socket_map[param_type], param_name, identifier=param_label)
         socket.link_limit = 1
 
         if param_type in ['struct', 'normal', 'vector', 'vstruct', 'void']:

@@ -53,21 +53,21 @@ class PRManRender(bpy.types.RenderEngine):
                 engine.free(self)
 
     # main scene render
-    def update(self, data, scene):
+    def update(self, data, depsgraph):
         if(engine.ipr):
             return
         if self.is_preview:
             if not self.render_pass:
-                engine.create(self, data, scene)
+                engine.create(self, data, depsgraph)
         else:
             if not self.render_pass:
-                engine.create(self, data, scene)
+                engine.create(self, data, depsgraph)
             else:
-                engine.reset(self, data, scene)
+                engine.reset(self, data, depsgraph)
 
-        engine.update(self, data, scene)
+        engine.update(self, data, depsgraph)
 
-    def render(self, scene):
+    def render(self, depsgraph):
         if self.render_pass is not None:
             engine.render(self)
 

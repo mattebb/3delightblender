@@ -75,7 +75,7 @@ def init_prman():
     it_dir = os.path.dirname(find_it_path()) if find_it_path() else None
     set_path([os.path.join(guess_rmantree(), 'bin'), it_dir])
     pythonbindings = os.path.join(guess_rmantree(), 'bin', 'pythonbindings')
-    set_pythonpath(pythonbindings)    
+    set_pythonpath(pythonbindings)
 
     # import RixSceneGraph modules
     try:
@@ -130,9 +130,9 @@ def shutdown_ipr():
             override['selected_bases'] = list(bpy.context.scene.object_bases)
             bpy.ops.lighting.start_interactive(override, 'INVOKE_DEFAULT')
 
-def create(engine, data, scene, region=0, space_data=0, region_data=0):
+def create(engine, data, depsgraph, region=0, space_data=0, region_data=0):
     # TODO add support for regions (rerendering)
-    engine.render_pass = RPass(scene, preview_render=engine.is_preview)
+    engine.render_pass = RPass(depsgraph.scene, preview_render=engine.is_preview)
 
 
 def free(engine):
@@ -154,13 +154,13 @@ def render(engine):
                 engine.render_pass.render_sg(engine)
 
 
-def reset(engine, data, scene):
+def reset(engine, data, depsgraph):
     del engine.render_pass.ri
 
-    engine.render_pass.set_scene(scene)
-    engine.render_pass.update_frame_num(scene.frame_current)
+    engine.render_pass.set_scene(depsgraph.scene)
+    engine.render_pass.update_frame_num(depsgraph.scene.frame_current)
 
-def update(engine, data, scene):
+def update(engine, data, depsgraph):
     engine.render_pass.update_time = int(time.time())
 
 # assumes you have already set the scene
