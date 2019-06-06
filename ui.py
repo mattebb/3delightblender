@@ -666,7 +666,7 @@ class MATERIAL_PT_renderman_preview(Panel, _RManPanelHeader):
         col = split.column(align=True)
         col.label(text="Viewport Specular:")
         col.prop(mat, "specular_color", text="")
-        #col.prop(mat, "specular_hardness", text="Hardness")
+        #FIXME col.prop(mat, "specular_hardness", text="Hardness")
 
 class ShaderNodePanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
@@ -800,7 +800,7 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
 
         rm = scene.renderman
         rm_rl = None
-        active_layer = scene.render.layers.active
+        active_layer = context.view_layer
         for l in rm.render_layers:
             if l.render_layer == active_layer.name:
                 rm_rl = l
@@ -939,7 +939,7 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         world = context.scene.world
 
         if not world.renderman.use_renderman_node:
-            #layout.prop(world, "horizon_color")
+            #FIXME layout.prop(world, "horizon_color")
             layout.operator('shading.add_renderman_nodetree').idtype = 'world'
             return
         else:
@@ -1446,7 +1446,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         scene = context.scene
         rm = scene.renderman
         rm_rl = None
-        active_layer = scene.render.layers.active
+        active_layer = context.view_layer
         for l in rm.render_layers:
             if l.render_layer == active_layer.name:
                 rm_rl = l
@@ -1774,7 +1774,7 @@ class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
                     columns.label(text='')
 
 
-class RENDERMAN_LL_LIGHT_list(bpy.types.UIList):
+class RENDERMAN_UL_LIGHT_list(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
@@ -1790,7 +1790,7 @@ class RENDERMAN_LL_LIGHT_list(bpy.types.UIList):
         layout.label(text=label, icon=icon)
 
 
-class RENDERMAN_LL_OBJECT_list(bpy.types.UIList):
+class RENDERMAN_UL_OBJECT_list(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
@@ -1842,17 +1842,17 @@ class PRMAN_PT_Renderman_Light_Link_Panel(CollectionPanel, Panel):
         row = layout.row()
         flow = row.column_flow(columns=3)
         if rm.ll_light_type == 'light':
-            flow.template_list("RENDERMAN_LL_LIGHT_list", "Renderman_light_link_list",
+            flow.template_list("RENDERMAN_UL_LIGHT_list", "Renderman_light_link_list",
                                bpy.data, "lamps", rm, 'll_light_index')
         else:
-            flow.template_list("RENDERMAN_LL_LIGHT_list", "Renderman_light_link_list",
+            flow.template_list("RENDERMAN_UL_LIGHT_list", "Renderman_light_link_list",
                                rm, "light_groups", rm, 'll_light_index')
 
         if rm.ll_object_type == 'object':
-            flow.template_list("RENDERMAN_LL_OBJECT_list", "Renderman_light_link_list",
+            flow.template_list("RENDERMAN_UL_OBJECT_list", "Renderman_light_link_list",
                                bpy.data, "objects", rm, 'll_object_index')
         else:
-            flow.template_list("RENDERMAN_LL_OBJECT_list", "Renderman_light_link_list",
+            flow.template_list("RENDERMAN_UL_OBJECT_list", "Renderman_light_link_list",
                                rm, "object_groups", rm, 'll_object_index')
 
         if rm.ll_light_index == -1 or rm.ll_object_index == -1:
@@ -1890,8 +1890,8 @@ class RENDERMAN_GROUP_UL_List(bpy.types.UIList):
         layout.label(text=item.name, icon=custom_icon)
 
 
-class Renderman_Object_Panel(CollectionPanel, Panel):
-    bl_idname = "PRMAN_PT_renderman_object_groups_panel"
+class PRMAN_PT_Renderman_Object_Panel(CollectionPanel, Panel):
+    #bl_idname = "renderman_object_groups_panel"
     bl_label = "RenderMan Object Groups"
     bl_context = "scene"
     bl_space_type = 'PROPERTIES'
@@ -1935,8 +1935,8 @@ class Renderman_Object_Panel(CollectionPanel, Panel):
                           type='GRID', columns=3)
 
 
-class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
-    bl_idname = "renderman_ui_panel"
+class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
+    #bl_idname = "renderman_ui_panel"
     bl_label = "RenderMan"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -1983,7 +1983,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             # presets
             row = box.row(align=True)
             row.label(text="Sampling Preset:")
-            row.menu("presets", text=bpy.types.WM_MT_operator_presets.bl_label)
+            row.menu("PRMAN_MT_presets", text=bpy.types.WM_MT_operator_presets.bl_label)
             row.operator("render.renderman_preset_add", text="", icon='ZOOMIN')
             row.operator("render.renderman_preset_add", text="",
                          icon='ZOOMOUT').remove_active = True
@@ -2121,7 +2121,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 # presets
                 row = box.row(align=True)
                 row.label(text="Sampling Preset:")
-                row.menu("presets")
+                row.menu("PRMAN_MT_presets")
 
                 # denoise and selected row
                 row = box.row(align=True)
@@ -2452,7 +2452,7 @@ class Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         # Enable the menu item to display the examples menu in the RenderMan
         # Panel.
         layout.separator()
-        layout.menu("examples", icon_value=rman_help.icon_id)
+        layout.menu("PRMAN_MT_examples", icon_value=rman_help.icon_id)
 
 classes = [
     RENDER_PT_renderman_render,
@@ -2487,8 +2487,8 @@ classes = [
     PRMAN_HT_DrawRenderHeaderImage,
     PRMAN_PT_Renderman_Light_Panel,
     PRMAN_PT_Renderman_Light_Link_Panel,
-    Renderman_Object_Panel,
-    Renderman_UI_Panel,
+    PRMAN_PT_Renderman_Object_Panel,
+    PRMAN_PT_Renderman_UI_Panel,
     ]
 
 def register():
@@ -2496,8 +2496,8 @@ def register():
         bpy.utils.register_class(cls)
     
     bpy.utils.register_class(RENDERMAN_GROUP_UL_List)
-    bpy.utils.register_class(RENDERMAN_LL_LIGHT_list)
-    bpy.utils.register_class(RENDERMAN_LL_OBJECT_list)
+    bpy.utils.register_class(RENDERMAN_UL_LIGHT_list)
+    bpy.utils.register_class(RENDERMAN_UL_OBJECT_list)
     # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
     # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
     bpy.types.TOPBAR_MT_render.append(PRMan_menu_func)
@@ -2508,8 +2508,8 @@ def register():
 
 def unregister():
     bpy.utils.unregister_class(RENDERMAN_GROUP_UL_List)
-    bpy.utils.unregister_class(RENDERMAN_LL_LIGHT_list)
-    bpy.utils.unregister_class(RENDERMAN_LL_OBJECT_list)
+    bpy.utils.unregister_class(RENDERMAN_UL_LIGHT_list)
+    bpy.utils.unregister_class(RENDERMAN_UL_OBJECT_list)
     # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
     # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
     bpy.types.TOPBAR_MT_render.remove(PRMan_menu_func)

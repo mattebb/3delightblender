@@ -705,14 +705,14 @@ class RmanSgShadingExporter:
         bxdf_name = '%s.PxrDisney' % name
         sg_node = self.sg_scene.CreateNode("BxdfFactory", "PxrDisney", bxdf_name)
         rix_params = sg_node.EditParameterBegin()
-        rix_params.SetColor('baseColor', rib(mat.diffuse_color))
+        rix_params.SetColor('baseColor', rib(mat.diffuse_color, 'color'))
         rix_params.SetFloat('specular', mat.specular_intensity )
-        if mat.emit:
-            rix_params.SetColor("emitColor", rib(mat.diffuse_color))
-
-        if mat.subsurface_scattering:
-            rix_params.SetFloat("subsurface", mat.subsurface_scattering.scale)
-            rix_params.SetColor("subsurfaceColor", rib(mat.subsurface_scattering.color))
+        #FIXME if mat.emit:
+        #    rix_params.SetColor("emitColor", rib(mat.diffuse_color, 'color'))
+        #
+        #if mat.subsurface_scattering:
+        #    rix_params.SetFloat("subsurface", mat.subsurface_scattering.scale)
+        #    rix_params.SetColor("subsurfaceColor", rib(mat.subsurface_scattering.color))
 
         sg_node.EditParameterEnd(rix_params)        
         sg_material.SetBxdf([sg_node])        

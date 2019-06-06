@@ -2391,7 +2391,7 @@ class RmanSgExporter:
             display.channels = "id"
             sg_displays.append(display)
 
-        for layer in self.scene.render.layers:
+        for layer in self.scene.view_layers:
             break
             # custom aovs
             rm_rl = None
@@ -2562,7 +2562,7 @@ class RmanSgExporter:
                         if aov_channel_name == 'Ci,a':
                             continue
 
-                        if layer == self.scene.render.layers[0] and aov == 'rgba':
+                        if layer == self.scene.view_layers[0] and aov == 'rgba':
                             # we already output this skip
                             continue
 
@@ -3551,11 +3551,11 @@ def export_object_instance(ri, mtx=None, instance_handle=None, num=None):
 
 # ------------- Filtering -------------
 def is_visible_layer(scene, ob):
-
-    for i in range(len(scene.layers)):
-        if scene.layers[i] and ob.layers[i]:
-            return True
-    return False
+    #
+    #FIXME for i in range(len(scene.layers)):
+    #    if scene.layers[i] and ob.layers[i]:
+    #        return True
+    return True
 
 
 def is_renderable(scene, ob):
@@ -4100,8 +4100,8 @@ def recursive_texture_set(ob):
     for child in ob.children:
         mat_set += recursive_texture_set(child)
 
-    if ob.dupli_group:
-        for child in ob.dupli_group.objects:
+    if ob.instance_collection:
+        for child in ob.instance_collection.objects:
             mat_set += recursive_texture_set(child)
 
     return mat_set
@@ -4647,7 +4647,7 @@ def cache_motion(scene, rpass, objects=None, calc_mb=True):
                 get_deformation(data_blocks[name],
                                 seg, scene, actual_subframes)
 
-    scene.frame_set(origframe, 0)
+    scene.frame_set(origframe, subframe=0)
 
     return data_blocks, instances
 

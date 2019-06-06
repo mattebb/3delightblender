@@ -3196,7 +3196,7 @@ def export_display(ri, rpass, scene):
     
 
 
-    for layer in scene.render.layers:
+    for layer in scene.view_layers:
         # custom aovs
         rm_rl = None
         for render_layer_settings in rm.render_layers:
@@ -3353,7 +3353,7 @@ def export_display(ri, rpass, scene):
                     if aov_channel_name == '':
                         continue
 
-                    if layer == scene.render.layers[0] and aov == 'rgba':
+                    if layer == scene.view_layers[0] and aov == 'rgba':
                         # we already output this skip
                         continue
                     

@@ -63,7 +63,7 @@ from .spool import spool_render
 from bpy_extras.io_utils import ExportHelper
 
 
-class Renderman_open_stats(bpy.types.Operator):
+class PRMAN_OT_Renderman_open_stats(bpy.types.Operator):
     bl_idname = 'rman.open_stats'
     bl_label = "Open Frame Stats"
     bl_description = "Open Current Frame stats file"
@@ -78,7 +78,7 @@ class Renderman_open_stats(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class Renderman_start_it(bpy.types.Operator):
+class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
     bl_idname = 'rman.start_it'
     bl_label = "Start IT"
     bl_description = "Start RenderMan's IT"
@@ -96,7 +96,7 @@ class Renderman_start_it(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class Renderman_open_last_RIB(bpy.types.Operator):
+class PRMAN_OT_Renderman_open_last_RIB(bpy.types.Operator):
     bl_idname = 'rman.open_rib'
     bl_label = "Open Last RIB Scene file."
     bl_description = "Opens the last generated Scene.rib file in the system default text editor"
@@ -287,7 +287,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 ######################
 
 
-class refresh_osl_shader(bpy.types.Operator):
+class PRMAN_OT_refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.refresh_osl_shader"
     bl_label = "Refresh OSL Node"
     bl_description = "Refreshes the OSL node This takes a second!!"
@@ -296,7 +296,7 @@ class refresh_osl_shader(bpy.types.Operator):
         context.node.RefreshNodes(context)
         return {'FINISHED'}
         
-class RendermanBake(bpy.types.Operator):
+class PRMAN_OT_RendermanBake(bpy.types.Operator):
     bl_idname = "renderman.bake"
     bl_label = "Baking"
     bl_description = "Bake pattern nodes to texture"
@@ -343,7 +343,7 @@ class RendermanBake(bpy.types.Operator):
         rpass = None
         return {'FINISHED'}
 
-class ExternalRender(bpy.types.Operator):
+class PRMAN_OT_ExternalRender(bpy.types.Operator):
 
     ''''''
     bl_idname = "renderman.external_render"
@@ -362,7 +362,7 @@ class ExternalRender(bpy.types.Operator):
         addon_prefs = get_addon_prefs()
         files = []
         rm = scene.renderman
-        for layer in scene.render.layers:
+        for layer in scene.view_layers:
             # custom aovs
             rm_rl = None
             for render_layer_settings in rm.render_layers:
@@ -476,7 +476,7 @@ class ExternalRender(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class StartInteractive(bpy.types.Operator):
+class PRMAN_OT_StartInteractive(bpy.types.Operator):
 
     ''''''
     bl_idname = "lighting.start_interactive"
@@ -543,7 +543,7 @@ class StartInteractive(bpy.types.Operator):
 ######################
 
 
-class ExportRIBObject(bpy.types.Operator):
+class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
     bl_idname = "export.export_rib_archive"
     bl_label = "Export Object as RIB Archive."
     bl_description = "Export single object as a RIB archive for use in other blend files or for other uses"
@@ -613,7 +613,7 @@ def quickAddPresets(presetList, pathFromPresetDir, name):
     file_preset.close()
 
 
-class AddPresetRendermanRender(AddPresetBase, bpy.types.Operator):
+class PRMAN_OT_AddPresetRendermanRender(AddPresetBase, bpy.types.Operator):
     '''Add or remove a RenderMan Sampling Preset'''
     bl_idname = "render.renderman_preset_add"
     bl_label = "Add RenderMan Preset"
@@ -701,7 +701,7 @@ class RendermanRenderPresets():
         "rm.external_action = \'spool\'", ]
 
 
-class PresetsMenu(bpy.types.Menu):
+class PRMAN_MT_PresetsMenu(bpy.types.Menu):
     bl_label = "RenderMan Presets"
     bl_idname = "PRMAN_MT_presets"
     preset_subdir = os.path.join("renderman", "render")
@@ -723,7 +723,7 @@ for path in blenderAddonPaths:
     if exists:
         names = get_Files_in_Directory(basePath)
 for name in names:
-    class examplesRenderman(bpy.types.Operator):
+    class PRMAN_OT_examplesRenderman(bpy.types.Operator):
         bl_idname = ("rendermanexamples." + name.lower())
         bl_label = name
         bl_description = name
@@ -747,10 +747,10 @@ for name in names:
                         return True
                     else:
                         return False
-    rendermanExampleFilesList.append(examplesRenderman)
+    rendermanExampleFilesList.append(PRMAN_OT_examplesRenderman)
 
 
-class LoadSceneMenu(bpy.types.Menu):
+class PRMAN_MT_LoadSceneMenu(bpy.types.Menu):
     bl_label = "RenderMan Examples"
     bl_idname = "PRMAN_MT_examples"
 
@@ -772,7 +772,7 @@ def menu_draw(self, context):
         return
     icons = load_icons()
     examples_menu = icons.get("help")
-    self.layout.menu("examples", icon_value=examples_menu.icon_id)
+    self.layout.menu("PRMAN_MT_examples", icon_value=examples_menu.icon_id)
 
 # Yuck, this should be built in to blender... Yes it should
 
@@ -857,14 +857,14 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OT_add_renderman_aovs(bpy.types.Operator):
+class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
     bl_idname = 'renderman.add_renderman_aovs'
     bl_label = "Switch to RenderMan Passes"
 
     def execute(self, context):
         scene = context.scene
         scene.renderman.render_layers.add()
-        active_layer = scene.render.layers.active
+        active_layer = context.view_layer
         # this sucks.  but can't find any other way to refer to render layer
         scene.renderman.render_layers[-1].render_layer = active_layer.name
 
@@ -872,7 +872,7 @@ class OT_add_renderman_aovs(bpy.types.Operator):
         scene = context.scene
         rm = scene.renderman
         rm_rl = scene.renderman.render_layers[-1]
-        active_layer = scene.render.layers.active
+        active_layer = context.view_layer
 
         rl = active_layer
 
@@ -916,19 +916,19 @@ class OT_add_renderman_aovs(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OT_add_multilayer_list(bpy.types.Operator):
+class PRMAN_OT_add_multilayer_list(bpy.types.Operator):
     bl_idname = 'renderman.add_multilayer_list'
     bl_label = 'Add multilayer list'
 
     def execute(self, context):
         scene = context.scene
         scene.renderman.multilayer_lists.add()
-        active_layer = scene.render.layers.active
+        active_layer = context.view_layer
         scene.renderman.multilayer_lists[-1].render_layer = active_layer.name
         return {'FINISHED'}
 
 
-class OT_add_to_group(bpy.types.Operator):
+class PRMAN_OT_add_to_group(bpy.types.Operator):
     bl_idname = 'renderman.add_to_group'
     bl_label = 'Add Selected to Object Group'
 
@@ -967,7 +967,7 @@ class OT_add_to_group(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OT_remove_from_group(bpy.types.Operator):
+class PRMAN_OT_remove_from_group(bpy.types.Operator):
     bl_idname = 'renderman.remove_from_group'
     bl_label = 'Remove Selected from Object Group'
 
@@ -991,7 +991,7 @@ class OT_remove_from_group(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OT_remove_add_rem_light_link(bpy.types.Operator):
+class PRMAN_OT_remove_add_rem_light_link(bpy.types.Operator):
     bl_idname = 'renderman.add_rem_light_link'
     bl_label = 'Add/Remove Selected from Object Group'
 
@@ -1021,7 +1021,7 @@ class OT_remove_add_rem_light_link(bpy.types.Operator):
 #       Tab     #
 #################
 
-class Add_Subdiv_Sheme(bpy.types.Operator):
+class PRMAN_OT_Add_Subdiv_Sheme(bpy.types.Operator):
     bl_idname = "object.add_subdiv_sheme"
     bl_label = "Add Subdiv Sheme"
     bl_description = ""
@@ -1033,7 +1033,7 @@ class Add_Subdiv_Sheme(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class RM_Add_Area(bpy.types.Operator):
+class PRMAN_OT_RM_Add_Area(bpy.types.Operator):
     bl_idname = "object.mr_add_area"
     bl_label = "Add RenderMan Area"
     bl_description = ""
@@ -1047,7 +1047,7 @@ class RM_Add_Area(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class RM_Add_LightFilter(bpy.types.Operator):
+class PRMAN_OT_RM_Add_LightFilter(bpy.types.Operator):
     bl_idname = "object.mr_add_light_filter"
     bl_label = "Add RenderMan Light Filter"
     bl_description = ""
@@ -1063,7 +1063,7 @@ class RM_Add_LightFilter(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class RM_Add_Hemi(bpy.types.Operator):
+class PRMAN_OT_RM_Add_Hemi(bpy.types.Operator):
     bl_idname = "object.mr_add_hemi"
     bl_label = "Add RenderMan Hemi"
     bl_description = ""
@@ -1077,7 +1077,7 @@ class RM_Add_Hemi(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class RM_Add_Sky(bpy.types.Operator):
+class PRMAN_OT_RM_Add_Sky(bpy.types.Operator):
     bl_idname = "object.mr_add_sky"
     bl_label = "Add RenderMan Sky"
     bl_description = ""
@@ -1092,7 +1092,7 @@ class RM_Add_Sky(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class Add_bxdf(bpy.types.Operator):
+class PRMAN_OT_Add_bxdf(bpy.types.Operator):
     bl_idname = "object.add_bxdf"
     bl_label = "Add BXDF"
     bl_description = ""
@@ -1161,7 +1161,7 @@ class Add_bxdf(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class New_bxdf(bpy.types.Operator):
+class PRMAN_OT_New_bxdf(bpy.types.Operator):
     bl_idname = "nodes.new_bxdf"
     bl_label = "New RenderMan Material"
     bl_description = ""
@@ -1184,7 +1184,7 @@ class New_bxdf(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class add_GeoLight(bpy.types.Operator):
+class PRMAN_OT_add_GeoLight(bpy.types.Operator):
     bl_idname = "object.addgeoarealight"
     bl_label = "Add GeoAreaLight"
     bl_description = ""
@@ -1210,7 +1210,7 @@ class add_GeoLight(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class Select_Lights(bpy.types.Operator):
+class PRMAN_OT_Select_Lights(bpy.types.Operator):
     bl_idname = "object.selectlights"
     bl_label = "Select Lights"
 
@@ -1225,8 +1225,8 @@ class Select_Lights(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class Hemi_List_Menu(bpy.types.Menu):
-    bl_idname = "PRMAN_MT_object.hemi_list_menu"
+class PRMAN_MT_Hemi_List_Menu(bpy.types.Menu):
+    #bl_idname = "object.hemi_list_menu"
     bl_label = "EnvLight list"
 
     def draw(self, context):
@@ -1247,8 +1247,8 @@ class Hemi_List_Menu(bpy.types.Menu):
             layout.label(text="No EnvLight in the Scene")
 
 
-class Area_List_Menu(bpy.types.Menu):
-    bl_idname = "PRMAN_MT_object.area_list_menu"
+class PRMAN_MT_Area_List_Menu(bpy.types.Menu):
+    #bl_idname = "object.area_list_menu"
     bl_label = "AreaLight list"
 
     def draw(self, context):
@@ -1269,8 +1269,8 @@ class Area_List_Menu(bpy.types.Menu):
             layout.label(text="No AreaLight in the Scene")
 
 
-class DayLight_List_Menu(bpy.types.Menu):
-    bl_idname = "PRMAN_MT_object.daylight_list_menu"
+class PRMAN_MT_DayLight_List_Menu(bpy.types.Menu):
+    #bl_idname = "object.daylight_list_menu"
     bl_label = "DayLight list"
 
     def draw(self, context):
@@ -1291,7 +1291,7 @@ class DayLight_List_Menu(bpy.types.Menu):
             layout.label(text="No Daylight in the Scene")
 
 
-class Select_Cameras(bpy.types.Operator):
+class PRMAN_OT_Select_Cameras(bpy.types.Operator):
     bl_idname = "object.select_cameras"
     bl_label = "Select Cameras"
 
@@ -1306,8 +1306,8 @@ class Select_Cameras(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class Camera_List_Menu(bpy.types.Menu):
-    bl_idname = "PRMAN_MT_object.camera_list_menu"
+class PRMAN_MT_Camera_List_Menu(bpy.types.Menu):
+    #bl_idname = "object.camera_list_menu"
     bl_label = "Camera list"
 
     def draw(self, context):
@@ -1328,7 +1328,7 @@ class Camera_List_Menu(bpy.types.Menu):
             layout.label(text="No Camera in the Scene")
 
 
-class DeleteLights(bpy.types.Operator):
+class PRMAN_OT_DeleteLights(bpy.types.Operator):
     bl_idname = "object.delete_lights"
     bl_label = "Delete Lights"
     bl_description = ""
@@ -1351,7 +1351,7 @@ class DeleteLights(bpy.types.Operator):
             return {"FINISHED"}
 
 
-class Deletecameras(bpy.types.Operator):
+class PRMAN_OT_Deletecameras(bpy.types.Operator):
     bl_idname = "object.delete_cameras"
     bl_label = "Delete Cameras"
     bl_description = ""
@@ -1374,7 +1374,7 @@ class Deletecameras(bpy.types.Operator):
             return {"FINISHED"}
 
 
-class AddCamera(bpy.types.Operator):
+class PRMAN_OT_AddCamera(bpy.types.Operator):
     bl_idname = "object.add_prm_camera"
     bl_label = "Add Camera"
     bl_description = "Add a Camera in the Scene"
@@ -1402,7 +1402,7 @@ class AddCamera(bpy.types.Operator):
 #   preserve any information during script restart.
 
 
-class RM_restart_addon(bpy.types.Operator):
+class PRMAN_OT_restart_addon(bpy.types.Operator):
     bl_idname = "renderman.restartaddon"
     bl_label = "Restart Addon"
     bl_description = "Restarts the RenderMan for Blender addon"
@@ -1417,45 +1417,45 @@ compile_shader_menu_func = (lambda self, context: self.layout.operator(
     TEXT_OT_compile_shader.bl_idname))
 
 classes = [
-    Renderman_open_stats,
-    Renderman_start_it,
-    Renderman_open_last_RIB,
+    PRMAN_OT_Renderman_open_stats,
+    PRMAN_OT_Renderman_start_it,
+    PRMAN_OT_Renderman_open_last_RIB,
     RENDERMAN_OT_add_remove_output,
     SHADING_OT_convert_all_renderman_nodetree,
     SHADING_OT_add_renderman_nodetree,
-    refresh_osl_shader,
-    RendermanBake,
-    ExternalRender,
-    StartInteractive,
-    ExportRIBObject,
-    AddPresetRendermanRender,
-    PresetsMenu,
-    examplesRenderman,
-    LoadSceneMenu,
+    PRMAN_OT_refresh_osl_shader,
+    PRMAN_OT_RendermanBake,
+    PRMAN_OT_ExternalRender,
+    PRMAN_OT_StartInteractive,
+    PRMAN_OT_ExportRIBObject,
+    PRMAN_OT_AddPresetRendermanRender,
+    PRMAN_MT_PresetsMenu,
+    PRMAN_OT_examplesRenderman,
+    PRMAN_MT_LoadSceneMenu,
     COLLECTION_OT_add_remove,
-    OT_add_renderman_aovs,
-    OT_add_multilayer_list,
-    OT_add_to_group,
-    OT_remove_from_group,
-    OT_remove_add_rem_light_link,
-    Add_Subdiv_Sheme,
-    RM_Add_Area,
-    RM_Add_LightFilter,
-    RM_Add_Hemi,
-    RM_Add_Sky,
-    Add_bxdf,
-    New_bxdf,
-    add_GeoLight,
-    Select_Lights,
-    Hemi_List_Menu,
-    Area_List_Menu,
-    DayLight_List_Menu,
-    Select_Cameras,
-    Camera_List_Menu,
-    DeleteLights,
-    Deletecameras,
-    AddCamera,
-    RM_restart_addon,
+    PRMAN_OT_add_renderman_aovs,
+    PRMAN_OT_add_multilayer_list,
+    PRMAN_OT_add_to_group,
+    PRMAN_OT_remove_from_group,
+    PRMAN_OT_remove_add_rem_light_link,
+    PRMAN_OT_Add_Subdiv_Sheme,
+    PRMAN_OT_RM_Add_Area,
+    PRMAN_OT_RM_Add_LightFilter,
+    PRMAN_OT_RM_Add_Hemi,
+    PRMAN_OT_RM_Add_Sky,
+    PRMAN_OT_Add_bxdf,
+    PRMAN_OT_New_bxdf,
+    PRMAN_OT_add_GeoLight,
+    PRMAN_OT_Select_Lights,
+    PRMAN_MT_Hemi_List_Menu,
+    PRMAN_MT_Area_List_Menu,
+    PRMAN_MT_DayLight_List_Menu,
+    PRMAN_OT_Select_Cameras,
+    PRMAN_MT_Camera_List_Menu,
+    PRMAN_OT_DeleteLights,
+    PRMAN_OT_Deletecameras,
+    PRMAN_OT_AddCamera,
+    PRMAN_OT_restart_addon,
 ]
 
 def register():
