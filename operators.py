@@ -123,7 +123,7 @@ class PRMAN_OT_Renderman_open_last_RIB(bpy.types.Operator):
 class RENDERMAN_OT_add_remove_output(bpy.types.Operator):
     bl_idname = "renderman.add_remove_output"
     bl_label = "Add or remove channel from output"
-    info_string = StringProperty()
+    info_string: StringProperty()
 
     def execute(self, context):
         self.report({'INFO'}, self.info_string)
@@ -197,8 +197,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     bl_label = "Add RenderMan Nodetree"
     bl_description = "Add a RenderMan shader node tree linked to this material"
 
-    idtype = StringProperty(name="ID Type", default="material")
-    bxdf_name = StringProperty(name="Bxdf Name", default="PxrSurface")
+    idtype: StringProperty(name="ID Type", default="material")
+    bxdf_name: StringProperty(name="Bxdf Name", default="PxrSurface")
 
     def execute(self, context):
         idtype = self.properties.idtype
@@ -548,20 +548,20 @@ class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
     bl_label = "Export Object as RIB Archive."
     bl_description = "Export single object as a RIB archive for use in other blend files or for other uses"
 
-    export_mat = BoolProperty(
+    export_mat: BoolProperty(
         name="Export Material",
         description="Do you want to export the material?",
         default=True)
 
-    export_all_frames = BoolProperty(
+    export_all_frames: BoolProperty(
         name="Export All Frames",
         description="Export entire animation time frame",
         default=False)
 
-    filepath = bpy.props.StringProperty(
+    filepath: bpy.props.StringProperty(
         subtype="FILE_PATH")
 
-    filename = bpy.props.StringProperty(
+    filename: bpy.props.StringProperty(
         subtype="FILE_NAME",
         default="")
 
@@ -781,31 +781,31 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
     bl_label = "Add or Remove Paths"
     bl_idname = "collection.add_remove"
 
-    action = EnumProperty(
+    action: EnumProperty(
         name="Action",
         description="Either add or remove properties",
         items=[('ADD', 'Add', ''),
                ('REMOVE', 'Remove', '')],
         default='ADD')
-    context = StringProperty(
+    context: StringProperty(
         name="Context",
         description="Name of context member to find renderman pointer in",
         default="")
-    collection = StringProperty(
+    collection: StringProperty(
         name="Collection",
         description="The collection to manipulate",
         default="")
-    collection_index = StringProperty(
+    collection_index: StringProperty(
         name="Index Property",
         description="The property used as a collection index",
         default="")
-    defaultname = StringProperty(
+    defaultname: StringProperty(
         name="Default Name",
         description="Default name to give this collection item",
         default="")
     # BBM addition begin
-    is_shader_param = BoolProperty(name='Is shader parameter', default=False)
-    shader_type = StringProperty(
+    is_shader_param: BoolProperty(name='Is shader parameter', default=False)
+    shader_type: StringProperty(
         name="shader type",
         default='surface')
     # BBM addition end
@@ -932,8 +932,8 @@ class PRMAN_OT_add_to_group(bpy.types.Operator):
     bl_idname = 'renderman.add_to_group'
     bl_label = 'Add Selected to Object Group'
 
-    group_index = IntProperty(default=0)
-    item_type = StringProperty(default='object')
+    group_index: IntProperty(default=0)
+    item_type: StringProperty(default='object')
 
     def execute(self, context):
         scene = context.scene
@@ -971,8 +971,8 @@ class PRMAN_OT_remove_from_group(bpy.types.Operator):
     bl_idname = 'renderman.remove_from_group'
     bl_label = 'Remove Selected from Object Group'
 
-    group_index = IntProperty(default=0)
-    item_type = StringProperty(default='object')
+    group_index: IntProperty(default=0)
+    item_type: StringProperty(default='object')
 
     def execute(self, context):
         scene = context.scene
@@ -995,8 +995,8 @@ class PRMAN_OT_remove_add_rem_light_link(bpy.types.Operator):
     bl_idname = 'renderman.add_rem_light_link'
     bl_label = 'Add/Remove Selected from Object Group'
 
-    add_remove = StringProperty(default='add')
-    ll_name = StringProperty(default='')
+    add_remove: StringProperty(default='add')
+    ll_name: StringProperty(default='')
 
     def execute(self, context):
         scene = context.scene
@@ -1114,7 +1114,7 @@ class PRMAN_OT_Add_bxdf(bpy.types.Operator):
         #        items.append((nodetype.bl_label, nodetype.bl_label,
         #                      nodetype.bl_label))
         return items
-    bxdf_name = EnumProperty(items=get_type_items, name="Bxdf Name")
+    bxdf_name: EnumProperty(items=get_type_items, name="Bxdf Name")
 
     def execute(self, context):
         selection = bpy.context.selected_objects if hasattr(
@@ -1214,7 +1214,7 @@ class PRMAN_OT_Select_Lights(bpy.types.Operator):
     bl_idname = "object.selectlights"
     bl_label = "Select Lights"
 
-    Light_Name = bpy.props.StringProperty(default="")
+    Light_Name: bpy.props.StringProperty(default="")
 
     def execute(self, context):
 
@@ -1295,7 +1295,7 @@ class PRMAN_OT_Select_Cameras(bpy.types.Operator):
     bl_idname = "object.select_cameras"
     bl_label = "Select Cameras"
 
-    Camera_Name = bpy.props.StringProperty(default="")
+    Camera_Name: bpy.props.StringProperty(default="")
 
     def execute(self, context):
 

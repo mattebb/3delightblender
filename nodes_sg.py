@@ -75,7 +75,7 @@ def update_func(self, context):
 
 
 class RendermanSocket:
-    ui_open = BoolProperty(name='UI Open', default=True)
+    ui_open: BoolProperty(name='UI Open', default=True)
 
     def get_pretty_name(self, node):
         if node.bl_idname in group_nodes:
@@ -1174,7 +1174,7 @@ class Add_Node:
                           'Disconnect the node connected to this socket'))
         return items
 
-    node_type = EnumProperty(name="Node Type",
+    node_type: EnumProperty(name="Node Type",
                              description='Node type to add to this socket',
                              items=get_type_items)
 

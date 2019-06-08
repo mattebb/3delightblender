@@ -120,11 +120,11 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     
+    from . import presets
+    presets.register()
     from . import preferences
     preferences.register()
     load_addon()
-    from . import presets
-    presets.register()
 
 
 

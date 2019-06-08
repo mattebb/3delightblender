@@ -81,12 +81,12 @@ def get_library_name(jsonfile):
     return data["RenderManAssetLibrary"]["name"]
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
-class init_preset_library(bpy.types.Operator):
+class PRMAN_OT_init_preset_library(bpy.types.Operator):
     bl_idname = "renderman.init_preset_library"
     bl_label = "Init RenderMan Preset Library"
     bl_description = "Choose a preset browser library. If not found, copies the factory library from RMANTREE to the path chosen."
 
-    directory = bpy.props.StringProperty(subtype='FILE_PATH')
+    directory: bpy.props.StringProperty(subtype='FILE_PATH')
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
@@ -118,13 +118,13 @@ class init_preset_library(bpy.types.Operator):
         return {'FINISHED'}
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
-class refresh_libraries(bpy.types.Operator):
+class PRMAN_OT_refresh_libraries(bpy.types.Operator):
     bl_idname = "renderman.refresh_libraries"
     bl_label = "Refresh Library"
     bl_description = "Refresh preset browser library"
 
-    preset_path = StringProperty(default='')
-    assign = BoolProperty(default=False)
+    preset_path: StringProperty(default='')
+    assign: BoolProperty(default=False)
 
     def invoke(self, context, event):
         presets_library = util.get_addon_prefs().presets_library
@@ -132,13 +132,13 @@ class refresh_libraries(bpy.types.Operator):
         return {'FINISHED'}
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
-class load_asset_to_scene(bpy.types.Operator):
+class PRMAN_OT_load_asset_to_scene(bpy.types.Operator):
     bl_idname = "renderman.load_asset_to_scene"
     bl_label = "Load Asset to Scene"
     bl_description = "Load the Asset to scene"
 
-    preset_path = StringProperty(default='')
-    assign = BoolProperty(default=False)
+    preset_path: StringProperty(default='')
+    assign: BoolProperty(default=False)
 
     def invoke(self, context, event):
         preset = RendermanPreset.get_from_path(self.properties.preset_path)
@@ -152,12 +152,12 @@ class load_asset_to_scene(bpy.types.Operator):
 
 
 # save the current material to the library
-class save_asset_to_lib(bpy.types.Operator):
+class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
     bl_idname = "renderman.save_asset_to_library"
     bl_label = "Save Asset to Library"
     bl_description = "Save Asset to Library"
 
-    lib_path = StringProperty(default='')
+    lib_path: StringProperty(default='')
 
     def invoke(self, context, event):
         presets_path = util.get_addon_prefs().presets_library.path
@@ -181,12 +181,12 @@ class save_asset_to_lib(bpy.types.Operator):
 
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
-class set_active_preset_library(bpy.types.Operator):
+class PRMAN_OT_set_active_preset_library(bpy.types.Operator):
     bl_idname = "renderman.set_active_preset_library"
     bl_label = "Set active RenderMan Preset Library"
     bl_description = "Sets the clicked library active"
 
-    lib_path = StringProperty(default='')
+    lib_path: StringProperty(default='')
 
     def execute(self, context):
         lib_path = self.properties.lib_path
@@ -195,12 +195,12 @@ class set_active_preset_library(bpy.types.Operator):
         return {'FINISHED'}
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
-class add_preset_library(bpy.types.Operator):
+class PRMAN_OT_add_preset_library(bpy.types.Operator):
     bl_idname = "renderman.add_preset_library"
     bl_label = "Add RenderMan Preset Library"
     bl_description = "Adds a new library"
 
-    new_name = StringProperty(default="")
+    new_name: StringProperty(default="")
     
     def execute(self, context):
         active = RendermanPresetGroup.get_active_library()
@@ -224,7 +224,7 @@ class add_preset_library(bpy.types.Operator):
         row = self.layout
         row.prop(self, "new_name", text="New Folder Name:")
 
-class remove_preset_library(bpy.types.Operator):
+class PRMAN_OT_remove_preset_library(bpy.types.Operator):
     bl_idname = "renderman.remove_preset_library"
     bl_label = "Remove RenderMan Preset Library"
     bl_description = "Remove a library"
@@ -246,12 +246,12 @@ class remove_preset_library(bpy.types.Operator):
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
 
-class remove_preset(bpy.types.Operator):
+class PRMAN_OT_remove_preset(bpy.types.Operator):
     bl_idname = "renderman.remove_preset"
     bl_label = "Remove RenderMan Preset"
     bl_description = "Remove a Preset"
 
-    preset_path = StringProperty()
+    preset_path: StringProperty()
 
     def execute(self, context):
         preset_path = self.properties.preset_path
@@ -269,7 +269,7 @@ class remove_preset(bpy.types.Operator):
     def invoke(self, context, event):
         return context.window_manager.invoke_confirm(self, event)
 
-class move_preset(bpy.types.Operator):
+class PRMAN_OT_move_preset(bpy.types.Operator):
     bl_idname = "renderman.move_preset"
     bl_label = "Move RenderMan Preset"
     bl_description = "Move a Preset"
@@ -282,8 +282,8 @@ class move_preset(bpy.types.Operator):
             return enum
         return get_libs(util.get_addon_prefs().presets_library)
 
-    preset_path = StringProperty(default='')
-    new_library = EnumProperty(items=get_libraries, description='New Library', name="New Library")
+    preset_path: StringProperty(default='')
+    new_library: EnumProperty(items=get_libraries, description='New Library', name="New Library")
 
     def execute(self, context):
         new_parent_path = self.properties.new_library
@@ -307,7 +307,7 @@ class move_preset(bpy.types.Operator):
         row = self.layout
         row.prop(self, "new_library", text="New Library")
 
-class move_preset_library(bpy.types.Operator):
+class PRMAN_OT_move_preset_library(bpy.types.Operator):
     bl_idname = "renderman.move_preset_library"
     bl_label = "Move RenderMan Preset Group"
     bl_description = "Move a Preset Group"
@@ -321,8 +321,8 @@ class move_preset_library(bpy.types.Operator):
 
         return get_libs(util.get_addon_prefs().presets_library)
 
-    lib_path = StringProperty(default='')
-    new_library = EnumProperty(items=get_libraries, description='New Library', name="New Library")
+    lib_path: StringProperty(default='')
+    new_library: EnumProperty(items=get_libraries, description='New Library', name="New Library")
 
     def execute(self, context):
         new_parent_path = self.properties.new_library
@@ -345,30 +345,24 @@ class move_preset_library(bpy.types.Operator):
     def draw(self, context):
         row = self.layout
         row.prop(self, "new_library", text="New Parent")
-        
+
+classes = [
+    PRMAN_OT_init_preset_library,
+    PRMAN_OT_refresh_libraries,
+    PRMAN_OT_set_active_preset_library,
+    PRMAN_OT_load_asset_to_scene,
+    PRMAN_OT_save_asset_to_lib,
+    PRMAN_OT_add_preset_library,
+    PRMAN_OT_remove_preset_library,
+    PRMAN_OT_move_preset_library,
+    PRMAN_OT_move_preset,
+    PRMAN_OT_remove_preset
+]
+
 def register():
-    try:
-        bpy.utils.register_class(init_preset_library)
-        bpy.utils.register_class(refresh_libraries)
-        bpy.utils.register_class(set_active_preset_library)
-        bpy.utils.register_class(load_asset_to_scene)
-        bpy.utils.register_class(save_asset_to_lib)
-        bpy.utils.register_class(add_preset_library)
-        bpy.utils.register_class(remove_preset_library)
-        bpy.utils.register_class(move_preset_library)
-        bpy.utils.register_class(move_preset)
-        bpy.utils.register_class(remove_preset)
-    except:
-        pass #allready registered
+    for cls in classes:
+        bpy.utils.register_class(cls)
 
 def unregister():
-    bpy.utils.unregister_class(init_preset_library)
-    bpy.utils.unregister_class(refresh_libraries)
-    bpy.utils.unregister_class(set_active_preset_library)
-    bpy.utils.unregister_class(load_asset_to_scene)
-    bpy.utils.unregister_class(save_asset_to_lib)
-    bpy.utils.unregister_class(add_preset_library)
-    bpy.utils.unregister_class(remove_preset_library)
-    bpy.utils.unregister_class(move_preset_library)
-    bpy.utils.unregister_class(move_preset)
-    bpy.utils.unregister_class(remove_preset)
+    for cls in classes:
+        bpy.utils.unregister_class(cls)

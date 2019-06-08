@@ -38,7 +38,7 @@ from bpy.props import StringProperty
 
 
 # panel for the toolbar of node editor
-class Renderman_Presets_UI_Panel(bpy.types.Panel):
+class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
     bl_idname = "PRMAN_PT_renderman_presets_ui_panel"
     bl_label = "RenderMan Presets"
     bl_space_type = "VIEW_3D"
@@ -112,11 +112,11 @@ class Renderman_Presets_UI_Panel(bpy.types.Panel):
                 layout.separator()
                 layout.operator("renderman.save_asset_to_library", text="Save Material to Library").lib_path = active.path
 
-class Renderman_Presets_Menu(bpy.types.Menu):
+class PRMAN_MT_Renderman_Presets_Menu(bpy.types.Menu):
     bl_idname = "PRMAN_MT_renderman_presets_menu"
     bl_label = "RenderMan Presets Menu"
 
-    path = StringProperty(default="")
+    path: StringProperty(default="")
 
     def draw(self, context):
         lib = context.renderman_preset
@@ -135,9 +135,9 @@ class Renderman_Presets_Menu(bpy.types.Menu):
 
 
 def register():
-    bpy.utils.register_class(Renderman_Presets_Menu)
-    bpy.utils.register_class(Renderman_Presets_UI_Panel)
+    bpy.utils.register_class(PRMAN_MT_Renderman_Presets_Menu)
+    bpy.utils.register_class(PRMAN_PT_Renderman_Presets_UI_Panel)
 
 def unregister():
-    bpy.utils.unregister_class(Renderman_Presets_Menu)
-    bpy.utils.unregister_class(Renderman_Presets_UI_Panel)
+    bpy.utils.unregister_class(PRMAN_MT_Renderman_Presets_Menu)
+    bpy.utils.unregister_class(PRMAN_PT_Renderman_Presets_UI_Panel)
