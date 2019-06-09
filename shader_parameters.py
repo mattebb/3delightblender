@@ -76,7 +76,7 @@ def generate_page(sp, node, parent_name, first_level=False):
         if sub_param.tag == 'page':
             name = parent_name + '.' + sub_param.attrib['name']
             sub_names, sub_meta = generate_page(sub_param, node, name)
-            node.__annotations__[name] = sub_names
+            setattr(node, name, sub_names)
             # props.append(sub_props)
             prop_meta.update(sub_meta)
             prop_meta[name] = {'renderman_type': 'page'}
@@ -234,8 +234,8 @@ def update_func_with_inputs(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
 
-    if node.renderman_node_type == 'lightfilter' and context and hasattr(context, 'lamp'):
-        context.lamp.renderman.update_filter_shape()
+    if node.renderman_node_type == 'lightfilter' and context and hasattr(context, 'light'):
+        context.light.renderman.update_filter_shape()
 
     from . import engine
     if engine.is_ipr_running():
@@ -271,8 +271,8 @@ def update_func(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
 
-    if node.renderman_node_type == 'lightfilter' and context and hasattr(context, 'lamp'):
-        context.lamp.renderman.update_filter_shape()
+    if node.renderman_node_type == 'lightfilter' and context and hasattr(context, 'light'):
+        context.light.renderman.update_filter_shape()
 
     from . import engine
     if engine.is_ipr_running():

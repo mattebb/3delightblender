@@ -1246,7 +1246,7 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
         obs = context.scene.objects
         items = [('None', 'Not Set', 'Not Set')]
         for o in obs:
-            if o.type == 'LAMP' and o.data.renderman.renderman_type == 'FILTER':
+            if o.type == 'LIGHT' and o.data.renderman.renderman_type == 'FILTER':
                 items.append((o.name, o.name, o.name))
         return items
 
@@ -1288,19 +1288,19 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
     # do this to keep the nice viewport update
     def update_light_type(self, context):
-        lamp = self.id_data
-        light_type = lamp.renderman.renderman_type
+        light = self.id_data
+        light_type = light.renderman.renderman_type
 
         if light_type in ['SKY', 'ENV']:
-            lamp.type = 'HEMI'
+            light.type = 'HEMI'
         elif light_type == 'DIST':
-            lamp.type = 'SUN'
+            light.type = 'SUN'
         elif light_type == 'PORTAL':
-            lamp.type = 'AREA'
+            light.type = 'AREA'
         elif light_type == 'FILTER':
-            lamp.type = 'AREA'
+            light.type = 'AREA'
         else:
-            lamp.type = light_type
+            light.type = light_type
 
         # use pxr area light for everything but env, sky
         light_shader = 'PxrRectLight'
@@ -1317,12 +1317,12 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         elif light_type == 'FILTER':
             light_shader = 'PxrBlockerLightFilter'
         elif light_type == 'SPOT':
-            light_shader = 'PxrRectLight' if lamp.use_square else 'PxrDiskLight'
+            light_shader = 'PxrRectLight' if light.use_square else 'PxrDiskLight'
         elif light_type == 'AREA':
             try:
-                lamp.shape = 'RECTANGLE'
-                lamp.size = 1.0
-                lamp.size_y = 1.0
+                light.shape = 'RECTANGLE'
+                light.size = 1.0
+                light.size_y = 1.0
             except:
                 pass
 
@@ -1333,22 +1333,22 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         # setattr(node, 'renderman_portal', light_type == 'PORTAL')
 
     def update_area_shape(self, context):
-        lamp = self.id_data
+        light = self.id_data
         area_shape = self.area_shape
         # use pxr area light for everything but env, sky
         light_shader = 'PxrRectLight'
 
         if area_shape == 'disk':
-            lamp.shape = 'SQUARE'
+            light.shape = 'SQUARE'
             light_shader = 'PxrDiskLight'
         elif area_shape == 'sphere':
-            lamp.shape = 'SQUARE'
+            light.shape = 'SQUARE'
             light_shader = 'PxrSphereLight'
         elif area_shape == 'cylinder':
-            lamp.shape = 'RECTANGLE'
+            light.shape = 'RECTANGLE'
             light_shader = 'PxrCylinderLight'
         else:
-            lamp.shape = 'RECTANGLE'
+            light.shape = 'RECTANGLE'
 
         self.light_node = light_shader + "_settings"
 
@@ -1357,16 +1357,16 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             engine.ipr.issue_shader_edits()
 
     def update_vis(self, context):
-        lamp = self.id_data
+        light = self.id_data
 
         from . import engine
         if engine.is_ipr_running():
-            engine.ipr.update_light_visibility(lamp)
+            engine.ipr.update_light_visibility(light)
 
-    # remove any filter control geo that might be on the lamp
+    # remove any filter control geo that might be on the light
     def remove_filter_geo(self):
-        lamp_ob = bpy.context.scene.objects.active
-        for ob in lamp_ob.children:
+        light_ob = bpy.context.scene.objects.active
+        for ob in light_ob.children:
             if 'rman_filter_shape' in ob.name:
                 data = ob.data
 
@@ -1386,7 +1386,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                         pass
 
     def add_filter_geo(self, name):
-        lamp_ob = bpy.context.scene.objects.active
+        light_ob = bpy.context.scene.objects.active
         # here we add some geo
         plugin_dir = os.path.dirname(os.path.realpath(__file__))
         filter_file = os.path.join(plugin_dir, 'filters',
@@ -1399,17 +1399,17 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         filter_geo_obj = bpy.context.selected_objects[0]
         filter_geo_obj.select = False
         filter_geo_obj.name = 'rman_filter_shape_' + name
-        filter_geo_obj.parent = lamp_ob
+        filter_geo_obj.parent = light_ob
         filter_geo_obj.hide_select = True
         filter_geo_obj.lock_rotation = [True, True, True]
         filter_geo_obj.lock_location = [True, True, True]
         filter_geo_obj.lock_scale = [True, True, True]
-        bpy.context.scene.objects.active = lamp_ob
+        bpy.context.scene.objects.active = light_ob
         return filter_geo_obj
 
     def get_filter_geo(self, name):
-        lamp_ob = bpy.context.scene.objects.active
-        for ob in lamp_ob.children:
+        light_ob = bpy.context.scene.objects.active
+        for ob in light_ob.children:
             if 'rman_filter_shape' in ob.name:
                 if name in ob.name:
                     return ob
@@ -1422,7 +1422,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         self.remove_filter_geo()
 
         filter_name = 'IntMult' if self.filter_type == 'intmult' else self.filter_type.capitalize()
-        # set the lamp type
+        # set the light type
 
         self.light_node = 'Pxr%sLightFilter_settings' % filter_name
         if self.filter_type in ['gobo', 'cookie']:
@@ -1433,10 +1433,10 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             if self.filter_type != 'intmult':
                 self.update_filter_shape()
         if self.filter_type in ['blocker', 'ramp', 'rod']:
-            lamp = context.lamp
-            if not lamp.use_nodes:
-                lamp.use_nodes = True
-            nt = lamp.node_tree
+            light = context.light
+            if not light.use_nodes:
+                light.use_nodes = True
+            nt = light.node_tree
             if self.color_ramp_node not in nt.nodes.keys():
                 # make a new color ramp node to use
                 self.color_ramp_node = nt.nodes.new('ShaderNodeValToRGB').name
@@ -1757,14 +1757,14 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         default=False)
 
     def update_solo(self, context):
-        lamp = self.id_data
+        light = self.id_data
         scene = context.scene
 
         # if the scene solo is on already find the old one and turn off
         if self.solo:
             if scene.renderman.solo_light:
                 for ob in scene.objects:
-                    if ob.type == 'LAMP' and ob.data.renderman != self and ob.data.renderman.solo:
+                    if ob.type == 'LIGHT' and ob.data.renderman != self and ob.data.renderman.solo:
                         ob.data.renderman.solo = False
                         break
 
@@ -1804,11 +1804,11 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
         self.light_node = light_shader + "_settings"
 
     def update_vis(self, context):
-        lamp = context.scene.world
+        light = context.scene.world
 
         from . import engine
         if engine.is_ipr_running():
-            engine.ipr.update_light_visibility(lamp)
+            engine.ipr.update_light_visibility(light)
 
     renderman_type: EnumProperty(
         name="World Type",

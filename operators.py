@@ -26,7 +26,6 @@
 import bpy
 import os
 import subprocess
-import bgl
 import blf
 import webbrowser
 import addon_utils
@@ -157,27 +156,27 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 import traceback
                 traceback.print_exc()
 
-        for lamp in bpy.data.lamps:
-            if lamp.renderman.use_renderman_node:
+        for light in bpy.data.lights:
+            if light.renderman.use_renderman_node:
                 continue
-            light_type = lamp.type
-            lamp.renderman.light_primary_visibility = False
+            light_type = light.type
+            light.renderman.light_primary_visibility = False
             if light_type == 'SUN':
-                lamp.renderman.renderman_type = 'DIST'
+                light.renderman.renderman_type = 'DIST'
             elif light_type == 'HEMI':
-                lamp.renderman.renderman_type = 'ENV'
-                lamp.renderman.light_primary_visibility = True
+                light.renderman.renderman_type = 'ENV'
+                light.renderman.light_primary_visibility = True
             else:
-                lamp.renderman.renderman_type = light_type
+                light.renderman.renderman_type = light_type
 
             if light_type == 'AREA':
-                lamp.shape = 'RECTANGLE'
-                lamp.size = 1.0
-                lamp.size_y = 1.0
+                light.shape = 'RECTANGLE'
+                light.size = 1.0
+                light.size_y = 1.0
 
-            #lamp.renderman.primary_visibility = not lamp.use_nodes
+            #light.renderman.primary_visibility = not light.use_nodes
 
-            lamp.renderman.use_renderman_node = True
+            light.renderman.use_renderman_node = True
 
         # convert cycles vis settings
         for ob in context.scene.objects:
@@ -207,7 +206,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             idtype = 'material'
         else:
             context_data = {'material': context.material,
-                            'lamp': context.light, 'world': context.scene.world}
+                            'light': context.light, 'world': context.scene.world}
             idblock = context_data[idtype]
 
         # nt = bpy.data.node_groups.new(idblock.name,
@@ -239,7 +238,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
             default.location[0] -= 300
             nt.links.new(default.outputs[0], output.inputs[0])                
-        elif idtype == 'lamp':
+        elif idtype == 'light':
             light_type = idblock.type
             if light_type == 'SUN':
                 context.light.renderman.renderman_type = 'DIST'
@@ -262,14 +261,14 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             # light_type = idblock.type
             # light_shader = 'PxrStdAreaLightLightNode'
             # if light_type == 'SUN':
-            #     context.lamp.renderman.type=
+            #     context.light.renderman.type=
             #     light_shader = 'PxrStdEnvDayLightLightNode'
             # elif light_type == 'HEMI':
             #     light_shader = 'PxrStdEnvMapLightLightNode'
             # elif light_type == 'AREA' or light_type == 'POINT':
             #     idblock.type = "AREA"
-            #     context.lamp.size = 1.0
-            #     context.lamp.size_y = 1.0
+            #     context.light.size = 1.0
+            #     context.light.size_y = 1.0
 
             # else:
             #     idblock.type = "AREA"
@@ -497,7 +496,7 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
         blf.shadow(0, 5, 0.0, 0.0, 0.0, 0.8)
         blf.size(0, 32, 36)
         blf.position(0, pos_x, pos_y, 0)
-        bgl.glColor4f(1.0, 0.0, 0.0, 1.0)
+        blf.color(0, 1.0, 0.0, 0.0, 1.0)
         blf.draw(0, "%s" % ('RenderMan Interactive Mode Running'))
         blf.disable(0, blf.SHADOW)
 
@@ -513,16 +512,16 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
                 engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
                     self.draw, (context,), 'WINDOW', 'POST_PIXEL')
             if engine.rman__sg__inited:
-                bpy.app.handlers.scene_update_post.append(
+                bpy.app.handlers.depsgraph_update_post.append(
                     engine.ipr.blender_scene_updated_pre_cb)                
-                bpy.app.handlers.scene_update_post.append(
+                bpy.app.handlers.depsgraph_update_post.append(
                     engine.ipr.blender_scene_updated_cb)
             bpy.app.handlers.load_pre.append(self.invoke)
         else:
             if engine.rman__sg__inited:
-                bpy.app.handlers.scene_update_post.remove(
+                bpy.app.handlers.depsgraph_update_post.remove(
                     engine.ipr.blender_scene_updated_pre_cb)                
-                bpy.app.handlers.scene_update_post.remove(
+                bpy.app.handlers.depsgraph_update_post.remove(
                     engine.ipr.blender_scene_updated_cb)                
                     
             # The user should not turn this on and off during IPR rendering.
@@ -817,8 +816,8 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
             id = getattr_recursive(context, self.properties.context)
             rm = id.renderman if hasattr(id, 'renderman') else id
         else:
-            if context.active_object.name in bpy.data.lamps.keys():
-                rm = bpy.data.lamps[context.active_object.name].renderman
+            if context.active_object.name in bpy.data.lights.keys():
+                rm = bpy.data.lights[context.active_object.name].renderman
             else:
                 rm = context.active_object.active_material.renderman
             id = getattr(rm, '%s_shaders' % self.properties.shader_type)
@@ -949,15 +948,15 @@ class PRMAN_OT_add_to_group(bpy.types.Operator):
 
             for ob in context.selected_objects:
                 if ob.name not in members:
-                    if item_type != 'light' or ob.type == 'LAMP':
+                    if item_type != 'light' or ob.type == 'LIGHT':
                         do_add = True
-                        if item_type == 'light' and ob.type == 'LAMP':
+                        if item_type == 'light' and ob.type == 'LIGHT':
                             # check if light is already in another group
                             # can only be in one
                             for lg in scene.renderman.light_groups:
                                 if ob.name in lg.members.keys():
                                     do_add = False
-                                    self.report({'WARNING'}, "Lamp %s cannot be added to light group %s, already a member of %s" % (
+                                    self.report({'WARNING'}, "Light %s cannot be added to light group %s, already a member of %s" % (
                                         ob.name, scene.renderman.light_groups[group_index].name, lg.name))
 
                         if do_add:
@@ -1041,9 +1040,9 @@ class PRMAN_OT_RM_Add_Area(bpy.types.Operator):
 
     def execute(self, context):
 
-        bpy.ops.object.lamp_add(type='AREA')
+        bpy.ops.object.light_add(type='AREA')
         bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'lamp': bpy.context.active_object.data}, idtype='lamp')
+            {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
         return {"FINISHED"}
 
 
@@ -1055,11 +1054,11 @@ class PRMAN_OT_RM_Add_LightFilter(bpy.types.Operator):
 
     def execute(self, context):
 
-        bpy.ops.object.lamp_add(type='POINT')
-        lamp = bpy.context.active_object.data
+        bpy.ops.object.light_add(type='POINT')
+        light = bpy.context.active_object.data
         bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'lamp': lamp}, idtype='lamp')
-        lamp.renderman.renderman_type = 'FILTER'
+            {'material': None, 'light': light}, idtype='light')
+        light.renderman.renderman_type = 'FILTER'
         return {"FINISHED"}
 
 
@@ -1071,9 +1070,9 @@ class PRMAN_OT_RM_Add_Hemi(bpy.types.Operator):
 
     def execute(self, context):
 
-        bpy.ops.object.lamp_add(type='HEMI')
+        bpy.ops.object.light_add(type='HEMI')
         bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'lamp': bpy.context.active_object.data}, idtype='lamp')
+            {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
         return {"FINISHED"}
 
 
@@ -1084,9 +1083,9 @@ class PRMAN_OT_RM_Add_Sky(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        bpy.ops.object.lamp_add(type='SUN')
+        bpy.ops.object.light_add(type='SUN')
         bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'lamp': bpy.context.active_object.data}, idtype='lamp')
+            {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
         bpy.context.object.data.renderman.renderman_type = 'SKY'
 
         return {"FINISHED"}
@@ -1233,14 +1232,14 @@ class PRMAN_MT_Hemi_List_Menu(bpy.types.Menu):
         layout = self.layout
         col = layout.column(align=True)
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type == "LIGHT"]
 
-        if len(lamps):
-            for lamp in lamps:
-                if lamp.data.type == 'HEMI':
-                    name = lamp.name
+        if len(lights):
+            for light in lights:
+                if light.data.type == 'HEMI':
+                    name = light.name
                     op = layout.operator(
-                        "object.selectlights", text=name, icon='LAMP_HEMI')
+                        "object.selectlights", text=name, icon='LIGHT_HEMI')
                     op.Light_Name = name
 
         else:
@@ -1255,14 +1254,14 @@ class PRMAN_MT_Area_List_Menu(bpy.types.Menu):
         layout = self.layout
         col = layout.column(align=True)
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type == "LIGHT"]
 
-        if len(lamps):
-            for lamp in lamps:
-                if lamp.data.type == 'AREA':
-                    name = lamp.name
+        if len(lights):
+            for light in lights:
+                if light.data.type == 'AREA':
+                    name = light.name
                     op = layout.operator(
-                        "object.selectlights", text=name, icon='LAMP_AREA')
+                        "object.selectlights", text=name, icon='LIGHT_AREA')
                     op.Light_Name = name
 
         else:
@@ -1277,14 +1276,14 @@ class PRMAN_MT_DayLight_List_Menu(bpy.types.Menu):
         layout = self.layout
         col = layout.column(align=True)
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type == "LIGHT"]
 
-        if len(lamps):
-            for lamp in lamps:
-                if lamp.data.type == 'SUN':
-                    name = lamp.name
+        if len(lights):
+            for light in lights:
+                if light.data.type == 'SUN':
+                    name = light.name
                     op = layout.operator(
-                        "object.selectlights", text=name, icon='LAMP_SUN')
+                        "object.selectlights", text=name, icon='LIGHT_SUN')
                     op.Light_Name = name
 
         else:
@@ -1339,12 +1338,12 @@ class PRMAN_OT_DeleteLights(bpy.types.Operator):
         type_light = bpy.context.object.data.type
         bpy.ops.object.delete()
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type ==
-                 "LAMP" and obj.data.type == type_light]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type ==
+                 "LIGHT" and obj.data.type == type_light]
 
-        if len(lamps):
-            lamps[0].select = True
-            bpy.context.scene.objects.active = lamps[0]
+        if len(lights):
+            lights[0].select = True
+            bpy.context.view_layer.objects.active = lights[0]
             return {"FINISHED"}
 
         else:

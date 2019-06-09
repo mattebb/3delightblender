@@ -282,17 +282,17 @@ class RendermanShadingNode(bpy.types.ShaderNode):
     def update_mat(self, mat):
         if self.renderman_node_type == 'bxdf' and self.outputs['Bxdf'].is_linked:
             mat.specular_color = [1, 1, 1]
-            mat.diffuse_color = [1, 1, 1]
-            mat.use_transparency = False
+            mat.diffuse_color = [1, 1, 1, 1]
+            #FIXME mat.use_transparency = False
             mat.specular_intensity = 0
-            mat.diffuse_intensity = 1
+            #mat.diffuse_intensity = 1
 
             if hasattr(self, "baseColor"):
                 mat.diffuse_color = self.baseColor
             elif hasattr(self, "emitColor"):
                 mat.diffuse_color = self.emitColor
             elif hasattr(self, "diffuseColor"):
-                mat.diffuse_color = self.diffuseColor
+                mat.diffuse_color = (*self.diffuseColor, 1.0)
             elif hasattr(self, "midColor"):
                 mat.diffuse_color = self.midColor
             elif hasattr(self, "transmissionColor"):
@@ -315,11 +315,11 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 mat.specular_color = self.reflectionColor
 
             if self.bl_idname in ["PxrGlassBxdfNode", "PxrLMGlassBxdfNode"]:
-                mat.use_transparency = True
-                mat.alpha = .5
+                #FIXME mat.use_transparency = True
+                mat.diffuse_color[3] = .5#alpha
 
             if self.bl_idname == "PxrLMMetalBxdfNode":
-                mat.diffuse_color = [0, 0, 0]
+                mat.diffuse_color = [0, 0, 0, 1]
                 mat.specular_intensity = 1
                 mat.specular_color = self.specularColor
                 mat.mirror_color = [1, 1, 1]
@@ -664,21 +664,24 @@ def generate_node_type(prefs, name, args):
 
     ntype.init = init
     ntype.free = free
+    
+    if "__annotations__" not in ntype.__dict__:
+            setattr(ntype, "__annotations__", {})
 
     if name == 'PxrRamp':
-        ntype.node_group: StringProperty('color_ramp', default='')
+        ntype.__annotations__['node_group'] = StringProperty('color_ramp', default='')
 
-    ntype.plugin_name: StringProperty(name='Plugin Name',
+    ntype.__annotations__['plugin_name'] = StringProperty(name='Plugin Name',
                                        default=name, options={'HIDDEN'})
     # lights cant connect to a node tree in 20.0
     class_generate_properties(ntype, name, inputs + outputs)
     if nodeType == 'light':
-        ntype.light_shading_rate: FloatProperty(
+        ntype.__annotations__['light_shading_rate'] = FloatProperty(
             name="Light Shading Rate",
             description="Shading Rate for this light.  \
                 Leave this high unless detail is missing",
             default=100.0)
-        ntype.light_primary_visibility: BoolProperty(
+        ntype.__annotations__['light_primary_visibility'] = BoolProperty(
             name="Light Primary Visibility",
             description="Camera visibility for this light",
             default=True)
@@ -1965,14 +1968,14 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
 
         light_name = node.bl_label
         if light_name == 'PxrPortalLight':
-            if mat_name in bpy.data.lamps:
-                lamp = bpy.context.scene.objects.active
-                if lamp and lamp.parent and lamp.parent.type == 'LAMP' \
-                    and lamp.parent.data.renderman.renderman_type == 'ENV':
+            if mat_name in bpy.data.lights:
+                light = bpy.context.scene.objects.active
+                if light and light.parent and light.parent.type == 'LIGHT' \
+                    and light.parent.data.renderman.renderman_type == 'ENV':
                     from .export import property_group_to_params
-                    parent_node = lamp.parent.data.renderman.get_light_node()
+                    parent_node = light.parent.data.renderman.get_light_node()
                     parent_params = property_group_to_params(parent_node)
-                    params['string domeSpace'] = lamp.parent.name
+                    params['string domeSpace'] = light.parent.name
                     params['string portalName'] = mat_name
                     params['string domeColorMap'] = parent_params['string lightColorMap']
                     params['float intensity'] = parent_params['float intensity'] * params['float intensityMult']
@@ -2099,7 +2102,7 @@ def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0, iterate_instance
 
         if is_renderman_nodetree(id):
             portal = type(
-                id).__name__ == 'AreaLamp' and id.renderman.renderman_type == 'PORTAL'
+                id).__name__ == 'AreaLight' and id.renderman.renderman_type == 'PORTAL'
             # if id.renderman.nodetree not in bpy.data.node_groups:
             #    load_tree_from_lib(id)
 

@@ -61,7 +61,7 @@ SUPPORTED_DUPLI_TYPES = ['FACES', 'VERTS', 'GROUP']    # Supported dupli types.
 # These object types can have materials.
 MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT']
 # Objects without to_mesh() conversion capabilities.
-EXCLUDED_OBJECT_TYPES = ['LAMP', 'CAMERA', 'ARMATURE']
+EXCLUDED_OBJECT_TYPES = ['LIGHT', 'CAMERA', 'ARMATURE']
 # Only these light types affect volumes.
 VOLUMETRIC_LIGHT_TYPES = ['SPOT', 'AREA', 'POINT']
 MATERIAL_PREFIX = "mat_"
@@ -703,10 +703,10 @@ def export_transform(ri, instance, concat=False, flatten=False):
     if instance.transforming and len(instance.motion_data) > 0:
         samples = [sample[1] for sample in instance.motion_data]
     else:
-        samples = [ob.matrix_local] if ob.parent and ob.parent_type == "object" and ob.type != 'LAMP'\
+        samples = [ob.matrix_local] if ob.parent and ob.parent_type == "object" and ob.type != 'LIGHT'\
             else [ob.matrix_world]
     for m in samples:
-        if instance.type == 'LAMP':
+        if instance.type == 'LIGHT':
             m = modify_light_matrix(m.copy(), ob)
 
         if concat and ob.parent_type == "object":
@@ -721,27 +721,27 @@ def export_transform(ri, instance, concat=False, flatten=False):
 def export_object_transform(ri, ob):
     m = ob.parent.matrix_world * ob.matrix_local if ob.parent \
         else ob.matrix_world
-    if ob.type == 'LAMP':
+    if ob.type == 'LIGHT':
         m = modify_light_matrix(m.copy(), ob)
     ri.Transform(rib(m))
     ri.ScopedCoordinateSystem(ob.name)
 
 
-def export_light_source(ri, lamp):
+def export_light_source(ri, light):
     names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrDistantLight',
              'SPOT': 'PxrDiskLight', 'HEMI': 'PxrDomeLight', 'AREA': 'PxrRectLight'}
-    params = {"float exposure": [lamp.energy * 5.0],
-              "__instanceid": lamp.name,
-              "color lightColor": rib(lamp.color)}
-    if lamp.type not in ['HEMI']:
+    params = {"float exposure": [light.energy / 200.0],
+              "__instanceid": light.name,
+              "color lightColor": rib(light.color)}
+    if light.type not in ['HEMI']:
         params['int areaNormalize'] = 1
-    if lamp.type == 'SUN':
+    if light.type == 'SUN':
         params["float exposure"] = 0
-    ri.Light(names[lamp.type], lamp.name, params)
+    ri.Light(names[light.type], light.name, params)
 
 
-def export_light_filters(ri, lamp, do_coordsys=False):
-    rm = lamp.renderman
+def export_light_filters(ri, light, do_coordsys=False):
+    rm = light.renderman
     for lf in rm.light_filters:
         if lf.filter_name in bpy.data.objects:
             light_filter = bpy.data.objects[lf.filter_name]
@@ -751,16 +751,16 @@ def export_light_filters(ri, lamp, do_coordsys=False):
                 ri.TransformEnd()
             filter_plugin = light_filter.data.renderman.get_light_node()
             params = property_group_to_params(
-                filter_plugin, lamp=light_filter.data)
+                filter_plugin, light=light_filter.data)
             params['__instanceid'] = light_filter.name
             params['string coordsys'] = light_filter.name
             ri.LightFilter(light_filter.data.renderman.get_light_node_name(
             ), light_filter.data.name, params)
 
 
-def export_light_shaders(ri, lamp, group_name='', portal_parent=''):
-    handle = lamp.name
-    rm = lamp.renderman
+def export_light_shaders(ri, light, group_name='', portal_parent=''):
+    handle = light.name
+    rm = light.renderman
     # need this for rerendering
     ri.Attribute('identifier', {'string name': handle})
 
@@ -768,6 +768,7 @@ def export_light_shaders(ri, lamp, group_name='', portal_parent=''):
     light_shader = rm.get_light_node()
     if light_shader:
         # make sure the shape is set on PxrStdAreaLightShape
+        print(handle)
 
         params = property_group_to_params(light_shader)
         params['__instanceid'] = handle
@@ -775,12 +776,12 @@ def export_light_shaders(ri, lamp, group_name='', portal_parent=''):
         if hasattr(light_shader, 'iesProfile'):
             params['string iesProfile'] = bpy.path.abspath(
                 light_shader.iesProfile)
-        if lamp.type == 'SPOT':
-            params['float coneAngle'] = math.degrees(lamp.spot_size)
-            params['float coneSoftness'] = lamp.spot_blend
-        if lamp.type in ['SPOT', 'POINT']:
+        if light.type == 'SPOT':
+            params['float coneAngle'] = math.degrees(light.spot_size)
+            params['float coneSoftness'] = light.spot_blend
+        if light.type in ['SPOT', 'POINT']:
             params['int areaNormalize'] = 1
-        if rm.renderman_type == 'PORTAL' and portal_parent and portal_parent.type == 'LAMP' \
+        if rm.renderman_type == 'PORTAL' and portal_parent and portal_parent.type == 'LIGHT' \
                 and portal_parent.data.renderman.renderman_type == 'ENV':
             parent_node = portal_parent.data.renderman.get_light_node()
             parent_params = property_group_to_params(parent_node)
@@ -814,7 +815,7 @@ def export_light_shaders(ri, lamp, group_name='', portal_parent=''):
                                     'int camera': int(primary_vis)})
         ri.Light(rm.get_light_node_name(), handle, params)
     else:
-        export_light_source(ri, lamp)
+        export_light_source(ri, light)
 
 
 def export_world_rib(ri, world):
@@ -880,8 +881,8 @@ def get_light_group(light_ob):
 
 def export_light(ri, instance, instances):
     ob = instance.ob
-    lamp = ob.data
-    rm = lamp.renderman
+    light = ob.data
+    rm = light.renderman
     params = []
 
     # if this is a filter just export the coord sys
@@ -891,23 +892,23 @@ def export_light(ri, instance, instances):
         ri.TransformEnd()
     else:
         ri.AttributeBegin()
-        ri.Attribute("identifier", {"string name": lamp.name})
+        ri.Attribute("identifier", {"string name": light.name})
 
-        if rm.renderman_type == 'PORTAL' and ob.parent and ob.parent.type == 'LAMP' and \
+        if rm.renderman_type == 'PORTAL' and ob.parent and ob.parent.type == 'LIGHT' and \
                 ob.parent.data.renderman.renderman_type == 'ENV':
             export_transform(ri, instances[ob.parent.name])
 
         export_transform(ri, instance)
 
-        export_light_filters(ri, lamp)
+        export_light_filters(ri, light)
         child_portals = []
         if rm.renderman_type == 'ENV' and ob.children:
-            child_portals = [child for child in ob.children if child.type == 'LAMP' and
+            child_portals = [child for child in ob.children if child.type == 'LIGHT' and
                              child.data.renderman.renderman_type == 'PORTAL']
         # if this is an env light and there are portals just do those instead
         # of shader
         if not child_portals:
-            export_light_shaders(ri, lamp, get_light_group(ob), ob.parent)
+            export_light_shaders(ri, light, get_light_group(ob), ob.parent)
 
         ri.AttributeEnd()
 
@@ -917,11 +918,11 @@ def export_light(ri, instance, instances):
             if bpy.context.scene.renderman.solo_light:
                 # check if solo
                 do_light = do_light and rm.solo
-            ri.Illuminate(lamp.name, do_light)
+            ri.Illuminate(light.name, do_light)
             for lf in rm.light_filters:
                 if lf.filter_name in bpy.data.objects:
                     filter = bpy.data.objects[lf.filter_name].data
-                    ri.EnableLightFilter(lamp.name, filter.name,
+                    ri.EnableLightFilter(light.name, filter.name,
                                          filter.renderman.illuminates_by_default)
 
 
@@ -1174,7 +1175,7 @@ def get_texture_list(scene):
     for o in renderable_objects(scene):
         if o.type == 'CAMERA' or o.type == 'EMPTY':
             continue
-        elif o.type == 'LAMP':
+        elif o.type == 'LIGHT':
             if o.data.renderman.get_light_node():
                 textures = textures + \
                     get_textures_for_node(o.data.renderman.get_light_node())
@@ -1210,12 +1211,12 @@ def get_texture_list_preview(scene):
 def export_scene_lights(ri, instances):
     # if not rpass.light_shaders: return
     export_comment(ri, '##Light Filters')
-    for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
+    for instance in [inst for name, inst in instances.items() if inst.type == 'LIGHT']:
         if instance.ob.data.renderman.renderman_type == 'FILTER':
             export_light(ri, instance, instances)
 
     export_comment(ri, '##Lights')
-    for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
+    for instance in [inst for name, inst in instances.items() if inst.type == 'LIGHT']:
         if instance.ob.data.renderman.renderman_type not in ['FILTER']:
             export_light(ri, instance, instances)
 
@@ -2432,7 +2433,7 @@ def export_object_attributes(ri, scene, ob, visible_objects):
     for link in lls:
         strs = link.name.split('>')
 
-        scene_lights = [l.name for l in scene.objects if l.type == 'LAMP']
+        scene_lights = [l.name for l in scene.objects if l.type == 'LIGHT']
         light_names = [strs[1]] if strs[0] == "lg_light" else \
             scene.renderman.light_groups[strs[1]].members.keys()
         if strs[0] == 'lg_group' and strs[1] == 'All':
@@ -2440,9 +2441,9 @@ def export_object_attributes(ri, scene, ob, visible_objects):
         for light_name in light_names:
             if link.illuminate != "DEFAULT" and light_name in scene.objects:
                 light_ob = scene.objects[light_name]
-                lamp = light_ob.data
-                if lamp.renderman.renderman_type == 'FILTER':
-                    # for each lamp this is a part of do enable light filter
+                light = light_ob.data
+                if light.renderman.renderman_type == 'FILTER':
+                    # for each light this is a part of do enable light filter
                     filter_name = light_name
                     for light_nm in scene_lights:
                         if filter_name in scene.objects[light_nm].data.renderman.light_filters.keys():
@@ -2597,7 +2598,7 @@ def update_timestamp(rpass, obj):
 # takes a list of bpy.types.properties and converts to params for rib
 
 
-def property_group_to_params(node, lamp=None):
+def property_group_to_params(node, light=None):
     params = {}
     for prop_name, meta in node.prop_meta.items():
         prop = getattr(node, prop_name)
@@ -2621,10 +2622,10 @@ def property_group_to_params(node, lamp=None):
                                   meta['renderman_name'])] = \
                     rib(prop, type_hint=meta['renderman_type'])
 
-    if lamp and node.plugin_name in ['PxrBlockerLightFilter', 'PxrRampLightFilter',
+    if light and node.plugin_name in ['PxrBlockerLightFilter', 'PxrRampLightFilter',
                                      'PxrRodLightFilter']:
-        rm = lamp.renderman
-        nt = lamp.node_tree
+        rm = light.renderman
+        nt = light.node_tree
         if nt and rm.float_ramp_node in nt.nodes.keys():
             knot_param = 'ramp_Knots' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Knots'
             float_param = 'ramp_Floats' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Floats'
@@ -3740,18 +3741,18 @@ def edit_flush(ri, edit_num, prman):
     prman.RicFlush("%d" % edit_num, 0, ri.SUSPENDRENDERING)
 
 
-def issue_light_vis(rpass, ri, lamp, prman):
+def issue_light_vis(rpass, ri, light, prman):
     rpass.edit_num += 1
     edit_flush(ri, rpass.edit_num, prman)
 
-    ri.EditBegin('attribute', {'string scopename': lamp.name})
+    ri.EditBegin('attribute', {'string scopename': light.name})
     ri.Attribute('visibility', {'int camera': int(
-        lamp.renderman.light_primary_visibility), })
+        light.renderman.light_primary_visibility), })
     ri.EditEnd()
 
 
 def issue_light_transform_edit(ri, obj):
-    lamp = obj.data
+    light = obj.data
     ri.EditBegin('attribute', {'string scopename': obj.data.name})
     export_object_transform(ri, obj)
     ri.EditEnd()
@@ -3762,14 +3763,14 @@ def issue_light_filter_transform_edit(ri, rpass, obj):
     for light_data_name, light_name in lights_attached_to:
         ri.EditBegin('instance')
         light_obj = bpy.data.objects[light_name]
-        lamp = light_obj.data
+        light = light_obj.data
 
-        export_light_filters(ri, lamp, do_coordsys=True)
+        export_light_filters(ri, light, do_coordsys=True)
 
         # reset the transform for light
         export_object_transform(ri, light_obj)
 
-        export_light_shaders(ri, lamp, get_light_group(light_obj), obj.parent)
+        export_light_shaders(ri, light, get_light_group(light_obj), obj.parent)
         ri.EditEnd()
 
 
@@ -3786,7 +3787,7 @@ def update_crop_window(ri, rpass, prman, cw):
     ri.CropWindow(cw[0], cw[1], cw[2], cw[3])
     ri.EditEnd()
 
-# search this material/lamp for textures to re txmake and do them
+# search this material/light for textures to re txmake and do them
 
 
 def reissue_textures(ri, rpass, mat):
@@ -3818,16 +3819,16 @@ def is_emissive(object):
 def add_light(rpass, ri, active, prman):
     ri.EditBegin('attribute')
     ob = active
-    lamp = ob.data
-    rm = lamp.renderman
+    light = ob.data
+    rm = light.renderman
     ri.AttributeBegin()
     export_object_transform(ri, ob)
     ri.ShadingRate(rm.shadingrate)
 
-    export_light_shaders(ri, lamp)
+    export_light_shaders(ri, light)
 
     ri.AttributeEnd()
-    ri.Illuminate(lamp.name, rm.illuminates_by_default)
+    ri.Illuminate(light.name, rm.illuminates_by_default)
     ri.EditEnd()
 
 
@@ -3876,7 +3877,7 @@ def solo_light(rpass, ri, prman):
     ri.EditBegin('overrideilluminate')
     ri.Illuminate("*", 0)
     for light in rpass.scene.objects:
-        if light.type == "LAMP":
+        if light.type == "LIGHT":
             rm = light.data.renderman
             if rm.solo:
                 do_light = rm.illuminates_by_default and not rm.mute
@@ -3889,21 +3890,21 @@ def solo_light(rpass, ri, prman):
 
 
 def issue_transform_edits(rpass, ri, active, prman):
-    if active.type == 'LAMP' and active.name not in rpass.lights:
+    if active.type == 'LIGHT' and active.name not in rpass.lights:
         add_light(rpass, ri, active, prman)
         rpass.lights[active.name] = active.data.name
         return
 
-    if active.type not in ['LAMP', 'CAMERA'] and not is_emissive(active):
+    if active.type not in ['LIGHT', 'CAMERA'] and not is_emissive(active):
         return
 
     rpass.edit_num += 1
 
     edit_flush(ri, rpass.edit_num, prman)
-    # only update lamp if shader is update or pos, seperately
-    if active.type == 'LAMP':
-        lamp = active.data
-        if lamp.renderman.renderman_type == 'FILTER':
+    # only update light if shader is update or pos, seperately
+    if active.type == 'LIGHT':
+        light = active.data
+        if light.renderman.renderman_type == 'FILTER':
             issue_light_filter_transform_edit(ri, rpass, active)
         else:
             issue_light_transform_edit(ri, active)
@@ -3925,14 +3926,14 @@ def update_light_link(rpass, ri, prman, link, remove=False):
 
     for ob_name in ob_names:
         ri.EditBegin('attribute', {'string scopename': ob_name})
-        scene_lights = [l.name for l in scene.objects if l.type == 'LAMP']
+        scene_lights = [l.name for l in scene.objects if l.type == 'LIGHT']
         light_names = [strs[1]] if strs[0] == "lg_light" else \
             scene.renderman.light_groups[strs[1]].members.keys()
         if strs[0] == 'lg_group' and strs[1] == 'All':
-            light_names = [l.name for l in scene.objects if l.type == 'LAMP']
+            light_names = [l.name for l in scene.objects if l.type == 'LIGHT']
         for light_name in light_names:
-            lamp = scene.objects[light_name].data
-            rm = lamp.renderman
+            light = scene.objects[light_name].data
+            rm = light.renderman
             if rm.renderman_type == 'FILTER':
                 filter_name = light_name
                 for light_nm in light_names:
@@ -3946,9 +3947,9 @@ def update_light_link(rpass, ri, prman, link, remove=False):
             else:
                 if remove or link.illuminate == "DEFAULT":
                     ri.Illuminate(
-                        lamp.name, lamp.renderman.illuminates_by_default)
+                        light.name, light.renderman.illuminates_by_default)
                 else:
-                    ri.Illuminate(lamp.name, link.illuminate == 'ON')
+                    ri.Illuminate(light.name, link.illuminate == 'ON')
         ri.EditEnd()
 
 # test the active object type for edits to do then do them
@@ -3966,11 +3967,11 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
             if rpass.last_edit_mat == mat:
                 rpass.last_edit_mat = None
                 return
-        lamp = None
+        light = None
         world = bpy.context.scene.world
-        if mat is None and hasattr(bpy.context, 'lamp') and bpy.context.lamp:
-            lamp = bpy.context.object
-            mat = bpy.context.lamp
+        if mat is None and hasattr(bpy.context, 'light') and bpy.context.light:
+            light = bpy.context.object
+            mat = bpy.context.light
         elif mat is None and nt and nt.name == 'World':
             mat = world
         if mat is None:
@@ -3999,14 +4000,14 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
                         'attribute', {'string scopename': "^" + obj.name + "$"})
                     export_material(ri, mat, iterate_instance=True)
                     ri.EditEnd()
-        elif lamp:
-            lamp_ob = lamp
-            lamp = mat
-            ri.EditBegin('attribute', {'string scopename': lamp.name})
-            export_light_filters(ri, lamp, do_coordsys=True)
+        elif light:
+            light_ob = light
+            light = mat
+            ri.EditBegin('attribute', {'string scopename': light.name})
+            export_light_filters(ri, light, do_coordsys=True)
 
-            export_object_transform(ri, lamp_ob)
-            export_light_shaders(ri, lamp, get_light_group(ob))
+            export_object_transform(ri, light_ob)
+            export_light_shaders(ri, light, get_light_group(ob))
             ri.EditEnd()
 
         elif world:
@@ -4029,8 +4030,8 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
                     return
                 rpass.last_edit_mat = mat
                 mat_name = get_mat_name(mat.name)
-        # if this is a lamp use that for the mat/name
-        if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
+        # if this is a light use that for the mat/name
+        if mat is None and node and issubclass(type(node.id_data), bpy.types.Light):
             mat = node.id_data
         elif mat is None and nt and nt.name == 'World':
             mat = bpy.context.scene.world

@@ -132,8 +132,8 @@ class RendermanNodeSocketFloat(bpy.types.NodeSocketFloat, RendermanSocket):
     bl_idname = 'RendermanNodeSocketFloat'
     bl_label = 'RenderMan Float Socket'
 
-    default_value = FloatProperty(update=update_func)
-    renderman_type = StringProperty(default='float')
+    default_value: FloatProperty(update=update_func)
+    renderman_type: StringProperty(default='float')
 
     def draw_color(self, context, node):
         return (0.5, 0.5, 0.5, 1.0)
@@ -145,7 +145,7 @@ class RendermanNodeSocketInterfaceFloat(bpy.types.NodeSocketInterfaceFloat, Rend
     bl_label = 'RenderMan Float Socket'
     bl_socket_idname = 'RendermanNodeSocketFloat'
 
-    default_value = FloatProperty()
+    default_value: FloatProperty()
 
     def draw_color(self, context):
         return (0.5, 0.5, 0.5, 1.0)
@@ -156,8 +156,8 @@ class RendermanNodeSocketInt(bpy.types.NodeSocketInt, RendermanSocket):
     bl_idname = 'RendermanNodeSocketInt'
     bl_label = 'RenderMan Int Socket'
 
-    default_value = IntProperty(update=update_func)
-    renderman_type = StringProperty(default='int')
+    default_value: IntProperty(update=update_func)
+    renderman_type: StringProperty(default='int')
 
     def draw_color(self, context, node):
         return (1.0, 1.0, 1.0, 1.0)
@@ -169,7 +169,7 @@ class RendermanNodeSocketInterfaceInt(bpy.types.NodeSocketInterfaceInt, Renderma
     bl_label = 'RenderMan Int Socket'
     bl_socket_idname = 'RendermanNodeSocketInt'
 
-    default_value = IntProperty()
+    default_value: IntProperty()
 
     def draw_color(self, context):
         return (1.0, 1.0, 1.0, 1.0)
@@ -179,9 +179,9 @@ class RendermanNodeSocketString(bpy.types.NodeSocketString, RendermanSocket):
     '''RenderMan string input/output'''
     bl_idname = 'RendermanNodeSocketString'
     bl_label = 'RenderMan String Socket'
-    default_value = StringProperty(update=update_func)
-    is_texture = BoolProperty(default=False)
-    renderman_type = StringProperty(default='string')
+    default_value: StringProperty(update=update_func)
+    is_texture: BoolProperty(default=False)
+    renderman_type: StringProperty(default='string')
 
 
 class RendermanNodeSocketStruct(bpy.types.NodeSocketString, RendermanSocket):
@@ -206,9 +206,9 @@ class RendermanNodeSocketColor(bpy.types.NodeSocketColor, RendermanSocket):
     bl_idname = 'RendermanNodeSocketColor'
     bl_label = 'RenderMan Color Socket'
 
-    default_value = FloatVectorProperty(size=3,
+    default_value: FloatVectorProperty(size=3,
                                         subtype="COLOR", update=update_func)
-    renderman_type = StringProperty(default='color')
+    renderman_type: StringProperty(default='color')
 
     def draw_color(self, context, node):
         return (1.0, 1.0, .5, 1.0)
@@ -220,7 +220,7 @@ class RendermanNodeSocketInterfaceColor(bpy.types.NodeSocketInterfaceColor, Rend
     bl_label = 'RenderMan Color Socket'
     bl_socket_idname = 'RendermanNodeSocketColor'
 
-    default_value = FloatVectorProperty(size=3,
+    default_value: FloatVectorProperty(size=3,
                                         subtype="COLOR")
 
     def draw_color(self, context):
@@ -233,9 +233,9 @@ class RendermanNodeSocketVector(RendermanSocket, bpy.types.NodeSocketVector):
     bl_label = 'RenderMan Vector Socket'
     hide_value = True
 
-    default_value = FloatVectorProperty(size=3,
+    default_value: FloatVectorProperty(size=3,
                                         subtype="EULER", update=update_func)
-    renderman_type = StringProperty(default='vector')
+    renderman_type: StringProperty(default='vector')
 
     def draw_color(self, context, node):
         return (.25, .25, .75, 1.0)
@@ -248,7 +248,7 @@ class RendermanNodeSocketInterfaceVector(bpy.types.NodeSocketInterfaceVector, Re
     bl_socket_idname = 'RendermanNodeSocketVector'
     hide_value = True
 
-    default_value = FloatVectorProperty(size=3,
+    default_value: FloatVectorProperty(size=3,
                                         subtype="EULER")
 
     def draw_color(self, context):
@@ -621,7 +621,7 @@ class RmanSgShadingExporter:
 
             if is_renderman_nodetree(id):
                 portal = type(
-                    id).__name__ == 'AreaLamp' and id.renderman.renderman_type == 'PORTAL'
+                    id).__name__ == 'AreaLight' and id.renderman.renderman_type == 'PORTAL'
                 # if id.renderman.nodetree not in bpy.data.node_groups:
                 #    load_tree_from_lib(id)
 
@@ -810,19 +810,19 @@ def generate_node_type(prefs, name, args):
     ntype.free = free
 
     if name == 'PxrRamp':
-        ntype.node_group = StringProperty('color_ramp', default='')
+        ntype.node_group: StringProperty('color_ramp', default='')
 
-    ntype.plugin_name = StringProperty(name='Plugin Name',
+    ntype.plugin_name: StringProperty(name='Plugin Name',
                                        default=name, options={'HIDDEN'})
     # lights cant connect to a node tree in 20.0
     class_generate_properties(ntype, name, inputs + outputs)
     if nodeType == 'light':
-        ntype.light_shading_rate = FloatProperty(
+        ntype.light_shading_rate: FloatProperty(
             name="Light Shading Rate",
             description="Shading Rate for this light.  \
                 Leave this high unless detail is missing",
             default=100.0)
-        ntype.light_primary_visibility = BoolProperty(
+        ntype.light_primary_visibility: BoolProperty(
             name="Light Primary Visibility",
             description="Camera visibility for this light",
             default=True)
@@ -1234,7 +1234,7 @@ class NODE_OT_add_bxdf(bpy.types.Operator, Add_Node):
     bl_idname = 'node.add_bxdf'
     bl_label = 'Add Bxdf Node'
     bl_description = 'Connect a Bxdf to this socket'
-    input_type = StringProperty(default='Bxdf')
+    input_type: StringProperty(default='Bxdf')
 
 
 class NODE_OT_add_displacement(bpy.types.Operator, Add_Node):
@@ -1247,7 +1247,7 @@ class NODE_OT_add_displacement(bpy.types.Operator, Add_Node):
     bl_idname = 'node.add_displacement'
     bl_label = 'Add Displacement Node'
     bl_description = 'Connect a Displacement shader to this socket'
-    input_type = StringProperty(default='Displacement')
+    input_type: StringProperty(default='Displacement')
 
 
 class NODE_OT_add_light(bpy.types.Operator, Add_Node):
@@ -1260,7 +1260,7 @@ class NODE_OT_add_light(bpy.types.Operator, Add_Node):
     bl_idname = 'node.add_light'
     bl_label = 'Add Light Node'
     bl_description = 'Connect a Light shader to this socket'
-    input_type = StringProperty(default='Light')
+    input_type: StringProperty(default='Light')
 
 
 class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
@@ -1273,7 +1273,7 @@ class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
     bl_idname = 'node.add_pattern'
     bl_label = 'Add Pattern Node'
     bl_description = 'Connect a Pattern to this socket'
-    input_type = StringProperty(default='Pattern')
+    input_type: StringProperty(default='Pattern')
 
 
 class NODE_OT_add_layer(bpy.types.Operator, Add_Node):
@@ -1285,7 +1285,7 @@ class NODE_OT_add_layer(bpy.types.Operator, Add_Node):
     bl_idname = 'node.add_layer'
     bl_label = 'Add Layer Node'
     bl_description = 'Connect a PxrLayer'
-    input_type = StringProperty(default='Layer')
+    input_type: StringProperty(default='Layer')
 
 
 class NODE_OT_add_manifold(bpy.types.Operator, Add_Node):
@@ -1297,7 +1297,7 @@ class NODE_OT_add_manifold(bpy.types.Operator, Add_Node):
     bl_idname = 'node.add_manifold'
     bl_label = 'Add Manifold Node'
     bl_description = 'Connect a Manifold'
-    input_type = StringProperty(default='Manifold')
+    input_type: StringProperty(default='Manifold')
 
 
 class NODE_OT_add_bump(bpy.types.Operator, Add_Node):
@@ -1309,7 +1309,7 @@ class NODE_OT_add_bump(bpy.types.Operator, Add_Node):
     bl_idname = 'node.add_bump'
     bl_label = 'Add Bump Node'
     bl_description = 'Connect a bump node'
-    input_type = StringProperty(default='Bump')
+    input_type: StringProperty(default='Bump')
 
 # return if this param has a vstuct connection or linked independently
 
@@ -2430,14 +2430,14 @@ def shader_node_sg(sg_scene, rman, node, mat_name, portal=False):
 
 
         """if light_name == 'PxrPortalLight':
-            if mat_name in bpy.data.lamps:
-                lamp = bpy.context.scene.objects.active
-                if lamp and lamp.parent and lamp.parent.type == 'LAMP' \
-                    and lamp.parent.data.renderman.renderman_type == 'ENV':
+            if mat_name in bpy.data.lights:
+                light = bpy.context.scene.objects.active
+                if light and light.parent and light.parent.type == 'LIGHT' \
+                    and light.parent.data.renderman.renderman_type == 'ENV':
                     from .export import property_group_to_params
-                    parent_node = lamp.parent.data.renderman.get_light_node()
+                    parent_node = light.parent.data.renderman.get_light_node()
                     parent_params = property_group_to_params(parent_node)
-                    params['string domeSpace'] = lamp.parent.name
+                    params['string domeSpace'] = light.parent.name
                     params['string portalName'] = mat_name
                     params['string domeColorMap'] = parent_params['string lightColorMap']
                     params['float intensity'] = parent_params['float intensity'] * params['float intensityMult']

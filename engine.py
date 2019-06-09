@@ -143,7 +143,7 @@ def free(engine):
             del engine.render_pass
 
 
-def render(engine):
+def render(engine, depsgraph):
     global rman__sg__inited
     if hasattr(engine, 'render_pass') and engine.render_pass.do_render:
         if engine.is_preview:
@@ -427,7 +427,7 @@ class RPass:
     def reset_filter_names(self):
         self.light_filter_map = {}
         for obj in self.scene.objects:
-            if obj.type == 'LAMP':
+            if obj.type == 'LIGHT':
                 # add the filters to the filter ma
                 for lf in obj.data.renderman.light_filters:
                     if lf.filter_name not in self.light_filter_map:
@@ -460,7 +460,7 @@ class RPass:
         self.crop_window = [self.scene.render.border_min_x, self.scene.render.border_max_x,
                       1.0 - self.scene.render.border_min_y, 1.0 - self.scene.render.border_max_y]
         for obj in self.scene.objects:
-            if obj.type == 'LAMP' and obj.name not in self.lights:
+            if obj.type == 'LIGHT' and obj.name not in self.lights:
                 # add the filters to the filter ma
                 for lf in obj.data.renderman.light_filters:
                     if lf.filter_name not in self.light_filter_map:
@@ -498,7 +498,7 @@ class RPass:
     def blender_scene_updated_cb(self, scene):
         if __is_prman_running__():
             self.scene = scene
-            active = scene.objects.active
+            active = bpy.context.view_layer.objects.active
 
             cw = [scene.render.border_min_x, scene.render.border_max_x,
                         1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y]
@@ -513,12 +513,12 @@ class RPass:
                 psys_active = active.particle_systems.active
                 rman_sg_exporter().issue_object_edits(active, scene, psys=psys_active) 
 
-            if active and active.type != 'LAMP':
+            if active and active.type != 'LIGHT':
                 rman_sg_exporter().issue_visibility_edit(active, scene)           
 
             if (active and active.is_updated):
-                if active.type == 'LAMP':
-                    lamp = active.data
+                if active.type == 'LIGHT':
+                    light = active.data
                     if active.name not in self.lights:
                         rman_sg_exporter().issue_new_object_edits(active, scene)
                         self.lights[active.name] = active.data.name 
@@ -540,7 +540,7 @@ class RPass:
                 rman_sg_exporter().issue_transform_edits(active, scene)
 
             # check if light is deleted
-            if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LAMP']):
+            if not active and len(self.lights) > len([o for o in scene.objects if o.type == 'LIGHT']):
                 lights_deleted = []
                 for light_name, data_name in self.lights.items():
                     if light_name not in scene.objects:
@@ -551,7 +551,7 @@ class RPass:
                     self.lights.pop(light_name, None)                
 
             # check if object has been deleted
-            if not active and len(self.scene_objects) > len([o for o in scene.objects if o.type != 'LAMP']):
+            if not active and len(self.scene_objects) > len([o for o in scene.objects if o.type != 'LIGHT']):
                 objects_deleted = []
                 for obj_name, data_name in self.scene_objects.items():
                     if obj_name not in scene.objects:

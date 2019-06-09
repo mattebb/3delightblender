@@ -69,7 +69,7 @@ class PRManRender(bpy.types.RenderEngine):
 
     def render(self, depsgraph):
         if self.render_pass is not None:
-            engine.render(self)
+            engine.render(self, depsgraph)
 
 # these handlers are for marking files as dirty for ribgen
 def add_handlers(scene):

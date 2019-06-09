@@ -42,7 +42,7 @@ def get_panels():
         'DATA_PT_area',
         'DATA_PT_camera_dof',
         'DATA_PT_falloff_curve',
-        'DATA_PT_lamp',
+        'DATA_PT_light',
         'DATA_PT_preview',
         'DATA_PT_shadow',
         # 'DATA_PT_spot',
@@ -408,13 +408,13 @@ def draw_props(node, prop_names, layout):
                                 "object_groups")
             else:
                 if 'widget' in prop_meta and prop_meta['widget'] == 'floatRamp':
-                    rm = bpy.context.lamp.renderman
-                    nt = bpy.context.lamp.node_tree
+                    rm = bpy.context.light.renderman
+                    nt = bpy.context.light.node_tree
                     float_node = nt.nodes[rm.float_ramp_node]
                     layout.template_curve_mapping(float_node, 'mapping')
                 elif 'widget' in prop_meta and prop_meta['widget'] == 'colorRamp':
-                    rm = bpy.context.lamp.renderman
-                    nt = bpy.context.lamp.node_tree
+                    rm = bpy.context.light.renderman
+                    nt = bpy.context.light.node_tree
                     ramp_node = nt.nodes[rm.color_ramp_node]
                     layout.template_color_ramp(ramp_node, 'color_ramp')
                 else:
@@ -704,7 +704,7 @@ class ShaderPanel(_RManPanelHeader):
         rd = context.scene.render
 
         if cls.bl_context == 'data' and cls.shader_type == 'light':
-            return (hasattr(context, "lamp") and context.lamp is not None and rd.engine in {'PRMAN_RENDER'})
+            return (hasattr(context, "light") and context.light is not None and rd.engine in {'PRMAN_RENDER'})
         elif cls.bl_context == 'world':
             return (hasattr(context, "world") and context.world is not None and
                     rd.engine in {'PRMAN_RENDER'})
@@ -896,10 +896,11 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
         layout = self.layout
         cam = context.camera
         scene = context.scene
-        dof_options = cam.gpu_dof
+        dof_options = cam.dof
 
         row = layout.row()
         row.prop(scene.renderman, "depth_of_field")
+        #TODO use blender DOF settings that are applicable
         sub = row.row()
         sub.enabled = scene.renderman.depth_of_field
         sub.prop(cam.renderman, "fstop")
@@ -909,10 +910,10 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
         col = split.column()
 
         col.label(text="Focus:")
-        col.prop(cam, "dof_object", text="")
+        col.prop(cam.dof, "focus_object", text="")
         sub = col.column()
-        sub.active = (cam.dof_object is None)
-        sub.prop(cam, "dof_distance", text="Distance")
+        sub.active = (cam.dof.focus_object is None)
+        sub.prop(cam.dof, "focus_distance", text="Distance")
 
         col = split.column()
         sub = col.column(align=True)
@@ -947,24 +948,24 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
             if world.renderman.renderman_type == 'NONE':
                 return
             layout.prop(world.renderman, 'light_primary_visibility')
-            lamp_node = world.renderman.get_light_node()
-            if lamp_node:
-                draw_props(lamp_node, lamp_node.prop_names, layout)
+            light_node = world.renderman.get_light_node()
+            if light_node:
+                draw_props(light_node, light_node.prop_names, layout)
 
 
-class DATA_PT_renderman_lamp(ShaderPanel, Panel):
+class DATA_PT_renderman_light(ShaderPanel, Panel):
     bl_context = "data"
-    bl_label = "Lamp"
+    bl_label = "Light"
     shader_type = 'light'
 
     def draw(self, context):
         layout = self.layout
 
-        lamp = context.lamp
+        light = context.light
         ipr_running = engine.ipr != None
-        if not lamp.renderman.use_renderman_node:
-            layout.prop(lamp, "type", expand=True)
-            layout.operator('shading.add_renderman_nodetree').idtype = 'lamp'
+        if not light.renderman.use_renderman_node:
+            layout.prop(light, "type", expand=True)
+            layout.operator('shading.add_renderman_nodetree').idtype = 'light'
             #layout.operator('shading.convert_cycles_stuff')
             return
         else:
@@ -973,42 +974,42 @@ class DATA_PT_renderman_lamp(ShaderPanel, Panel):
                     text="Note: Some items cannot be edited while IPR running.")
             row = layout.row()
             row.enabled = not ipr_running
-            row.prop(lamp.renderman, "renderman_type", expand=True)
-            if lamp.renderman.renderman_type == 'FILTER':
+            row.prop(light.renderman, "renderman_type", expand=True)
+            if light.renderman.renderman_type == 'FILTER':
                 row = layout.row()
                 row.enabled = not ipr_running
-                row.prop(lamp.renderman, "filter_type", expand=True)
-            if lamp.renderman.renderman_type == "AREA":
+                row.prop(light.renderman, "filter_type", expand=True)
+            if light.renderman.renderman_type == "AREA":
                 row = layout.row()
                 row.enabled = not ipr_running
-                row.prop(lamp.renderman, "area_shape", expand=True)
+                row.prop(light.renderman, "area_shape", expand=True)
                 row = layout.row()
-                if lamp.renderman.area_shape == "rect":
-                    row.prop(lamp, 'size', text="Size X")
-                    row.prop(lamp, 'size_y')
+                if light.renderman.area_shape == "rect":
+                    row.prop(light, 'size', text="Size X")
+                    row.prop(light, 'size_y')
                 else:
-                    row.prop(lamp, 'size', text="Diameter")
-            # layout.prop(lamp.renderman, "shadingrate")
+                    row.prop(light, 'size', text="Diameter")
+            # layout.prop(light.renderman, "shadingrate")
 
-        # layout.prop_search(lamp.renderman, "nodetree", bpy.data, "node_groups")
+        # layout.prop_search(light.renderman, "nodetree", bpy.data, "node_groups")
         row = layout.row()
         row.enabled = not ipr_running
-        row.prop(lamp.renderman, 'illuminates_by_default')
+        row.prop(light.renderman, 'illuminates_by_default')
 
 
-class DATA_PT_renderman_node_shader_lamp(ShaderNodePanel, Panel):
+class DATA_PT_renderman_node_shader_light(ShaderNodePanel, Panel):
     bl_label = "Light Shader"
     bl_context = 'data'
 
     def draw(self, context):
         layout = self.layout
-        lamp = context.light
+        light = context.light
 
-        lamp_node = lamp.renderman.get_light_node()
-        if lamp_node:
-            if lamp.renderman.renderman_type != 'FILTER':
-                layout.prop(lamp.renderman, 'light_primary_visibility')
-            draw_props(lamp_node, lamp_node.prop_names, layout)
+        light_node = light.renderman.get_light_node()
+        if light_node:
+            if light.renderman.renderman_type != 'FILTER':
+                layout.prop(light.renderman, 'light_primary_visibility')
+            draw_props(light_node, light_node.prop_names, layout)
 
 
 class DATA_PT_renderman_display_filters(CollectionPanel, Panel):
@@ -1061,7 +1062,7 @@ class DATA_PT_renderman_Sample_filters(CollectionPanel, Panel):
                               "sample_filters_index")
 
 
-class DATA_PT_renderman_node_filters_lamp(CollectionPanel, Panel):
+class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
     bl_label = "Light Filters"
     bl_context = 'data'
 
@@ -1071,16 +1072,16 @@ class DATA_PT_renderman_node_filters_lamp(CollectionPanel, Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "lamp") \
-            and context.lamp is not None and hasattr(context.lamp, 'renderman') \
-            and context.lamp.renderman.renderman_type != 'FILTER'
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "light") \
+            and context.light is not None and hasattr(context.light, 'renderman') \
+            and context.light.renderman.renderman_type != 'FILTER'
 
     def draw(self, context):
         layout = self.layout
-        lamp = context.lamp
+        light = context.light
 
-        self._draw_collection(context, layout, lamp.renderman, "",
-                              "collection.add_remove", "lamp", "light_filters",
+        self._draw_collection(context, layout, light.renderman, "",
+                              "collection.add_remove", "light", "light_filters",
                               "light_filters_index")
 
 
@@ -1726,7 +1727,7 @@ class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
         light_names = [member.name for member in light_group.members]
         if light_group.name == 'All':
             light_names = [
-                lamp.name for lamp in context.scene.objects if lamp.type == 'LAMP']
+                light.name for light in context.scene.objects if light.type == 'LIGHT']
 
         if len(light_names) > 0:
             box = layout.box()
@@ -1743,16 +1744,16 @@ class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
             for light_name in light_names:
                 if light_name not in scene.objects:
                     continue
-                lamp = scene.objects[light_name].data
-                lamp_rm = lamp.renderman
-                if lamp_rm.renderman_type == 'FILTER':
+                light = scene.objects[light_name].data
+                light_rm = light.renderman
+                if light_rm.renderman_type == 'FILTER':
                     continue
                 row = box.row()
                 columns = box.column_flow(columns=8)
                 columns.label(text=light_name)
-                columns.prop(lamp_rm, 'solo', text='')
-                columns.prop(lamp_rm, 'mute', text='')
-                light_shader = lamp.renderman.get_light_node()
+                columns.prop(light_rm, 'solo', text='')
+                columns.prop(light_rm, 'mute', text='')
+                light_shader = light.renderman.get_light_node()
                 if light_shader:
 
                     columns.prop(light_shader, 'intensity', text='')
@@ -1769,8 +1770,8 @@ class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
                 else:
                     columns.label(text='')
                     columns.label(text='')
-                    columns.prop(lamp, 'energy', text='')
-                    columns.prop(lamp, 'color', text='')
+                    columns.prop(light, 'energy', text='')
+                    columns.prop(light, 'color', text='')
                     columns.label(text='')
 
 
@@ -1843,7 +1844,7 @@ class PRMAN_PT_Renderman_Light_Link_Panel(CollectionPanel, Panel):
         flow = row.column_flow(columns=3)
         if rm.ll_light_type == 'light':
             flow.template_list("RENDERMAN_UL_LIGHT_list", "Renderman_light_link_list",
-                               bpy.data, "lamps", rm, 'll_light_index')
+                               bpy.data, "lights", rm, 'll_light_index')
         else:
             flow.template_list("RENDERMAN_UL_LIGHT_list", "Renderman_light_link_list",
                                rm, "light_groups", rm, 'll_light_index')
@@ -1858,7 +1859,7 @@ class PRMAN_PT_Renderman_Light_Link_Panel(CollectionPanel, Panel):
         if rm.ll_light_index == -1 or rm.ll_object_index == -1:
             flow.label(text="Select light and object")
         else:
-            from_name = bpy.data.lamps[rm.ll_light_index] if rm.ll_light_type == 'light' \
+            from_name = bpy.data.lights[rm.ll_light_index] if rm.ll_light_type == 'light' \
                 else rm.light_groups[rm.ll_light_index]
             to_name = bpy.data.objects[rm.ll_object_index] if rm.ll_object_type == 'object' \
                 else rm.object_groups[rm.ll_object_index]
@@ -2161,7 +2162,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             if ob.type == 'CAMERA':
 
                 row = box.row(align=True)
-                row.prop(ob, "name", text="", icon='LAMP_HEMI')
+                row.prop(ob, "name", text="", icon='LIGHT_HEMI')
                 row.prop(ob, "hide", text="")
                 row.prop(ob, "hide_render",
                          icon='RESTRICT_RENDER_OFF', text="")
@@ -2211,32 +2212,32 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         row.operator("object.mr_add_hemi", text="Add EnvLight",
                      icon_value=rman_RMSEnvLight.icon_id)
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type == "LIGHT"]
 
-        lamp_hemi = False
-        lamp_area = False
-        lamp_point = False
-        lamp_spot = False
-        lamp_sun = False
+        light_hemi = False
+        light_area = False
+        light_point = False
+        light_spot = False
+        light_sun = False
 
-        if len(lamps):
-            for lamp in lamps:
-                if lamp.data.type == 'HEMI':
-                    lamp_hemi = True
+        if len(lights):
+            for light in lights:
+                if light.data.type == 'HEMI':
+                    light_hemi = True
 
-                if lamp.data.type == 'AREA':
-                    lamp_area = True
+                if light.data.type == 'AREA':
+                    light_area = True
 
-                if lamp.data.type == 'POINT':
-                    lamp_point = True
+                if light.data.type == 'POINT':
+                    light_point = True
 
-                if lamp.data.type == 'SPOT':
-                    lamp_spot = True
+                if light.data.type == 'SPOT':
+                    light_spot = True
 
-                if lamp.data.type == 'SUN':
-                    lamp_sun = True
+                if light.data.type == 'SUN':
+                    light_sun = True
 
-        if lamp_hemi:
+        if light_hemi:
 
             row.prop(context.scene, "rm_env", text="",
                      icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_env else 'DISCLOSURE_TRI_RIGHT')
@@ -2246,12 +2247,12 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 box = layout.box()
                 row = box.row(align=True)
                 row.menu("object.hemi_list_menu",
-                         text="EnvLight List", icon='LAMP_HEMI')
+                         text="EnvLight List", icon='LIGHT_HEMI')
 
-                if ob.type == 'LAMP' and ob.data.type == 'HEMI':
+                if ob.type == 'LIGHT' and ob.data.type == 'HEMI':
 
                     row = box.row(align=True)
-                    row.prop(ob, "name", text="", icon='LAMP_HEMI')
+                    row.prop(ob, "name", text="", icon='LIGHT_HEMI')
                     row.prop(ob, "hide", text="")
                     row.prop(ob, "hide_render",
                              icon='RESTRICT_RENDER_OFF', text="")
@@ -2271,32 +2272,32 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         row.operator("object.mr_add_area", text="Add AreaLight",
                      icon_value=rman_RMSAreaLight.icon_id)
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type == "LIGHT"]
 
-        lamp_hemi = False
-        lamp_area = False
-        lamp_point = False
-        lamp_spot = False
-        lamp_sun = False
+        light_hemi = False
+        light_area = False
+        light_point = False
+        light_spot = False
+        light_sun = False
 
-        if len(lamps):
-            for lamp in lamps:
-                if lamp.data.type == 'HEMI':
-                    lamp_hemi = True
+        if len(lights):
+            for light in lights:
+                if light.data.type == 'HEMI':
+                    light_hemi = True
 
-                if lamp.data.type == 'AREA':
-                    lamp_area = True
+                if light.data.type == 'AREA':
+                    light_area = True
 
-                if lamp.data.type == 'POINT':
-                    lamp_point = True
+                if light.data.type == 'POINT':
+                    light_point = True
 
-                if lamp.data.type == 'SPOT':
-                    lamp_spot = True
+                if light.data.type == 'SPOT':
+                    light_spot = True
 
-                if lamp.data.type == 'SUN':
-                    lamp_sun = True
+                if light.data.type == 'SUN':
+                    light_sun = True
 
-        if lamp_area:
+        if light_area:
 
             row.prop(context.scene, "rm_area", text="",
                      icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_area else 'DISCLOSURE_TRI_RIGHT')
@@ -2306,12 +2307,12 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 box = layout.box()
                 row = box.row(align=True)
                 row.menu("object.area_list_menu",
-                         text="AreaLight List", icon='LAMP_AREA')
+                         text="AreaLight List", icon='LIGHT_AREA')
 
-                if ob.type == 'LAMP' and ob.data.type == 'AREA':
+                if ob.type == 'LIGHT' and ob.data.type == 'AREA':
 
                     row = box.row(align=True)
-                    row.prop(ob, "name", text="", icon='LAMP_AREA')
+                    row.prop(ob, "name", text="", icon='LIGHT_AREA')
                     row.prop(ob, "hide", text="")
                     row.prop(ob, "hide_render",
                              icon='RESTRICT_RENDER_OFF', text="")
@@ -2329,32 +2330,32 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         row.operator("object.mr_add_sky", text="Add Daylight",
                      icon_value=rman_PxrStdEnvDayLight.icon_id)
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type == "LIGHT"]
 
-        lamp_hemi = False
-        lamp_area = False
-        lamp_point = False
-        lamp_spot = False
-        lamp_sun = False
+        light_hemi = False
+        light_area = False
+        light_point = False
+        light_spot = False
+        light_sun = False
 
-        if len(lamps):
-            for lamp in lamps:
-                if lamp.data.type == 'SUN':
-                    lamp_sun = True
+        if len(lights):
+            for light in lights:
+                if light.data.type == 'SUN':
+                    light_sun = True
 
-                if lamp.data.type == 'HEMI':
-                    lamp_hemi = True
+                if light.data.type == 'HEMI':
+                    light_hemi = True
 
-                if lamp.data.type == 'AREA':
-                    lamp_area = True
+                if light.data.type == 'AREA':
+                    light_area = True
 
-                if lamp.data.type == 'POINT':
-                    lamp_point = True
+                if light.data.type == 'POINT':
+                    light_point = True
 
-                if lamp.data.type == 'SPOT':
-                    lamp_spot = True
+                if light.data.type == 'SPOT':
+                    light_spot = True
 
-        if lamp_sun:
+        if light_sun:
 
             row.prop(context.scene, "rm_daylight", text="",
                      icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_daylight else 'DISCLOSURE_TRI_RIGHT')
@@ -2364,12 +2365,12 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 box = layout.box()
                 row = box.row(align=True)
                 row.menu("object.daylight_list_menu",
-                         text="DayLight List", icon='LAMP_SUN')
+                         text="DayLight List", icon='LIGHT_SUN')
 
-                if ob.type == 'LAMP' and ob.data.type == 'SUN':
+                if ob.type == 'LIGHT' and ob.data.type == 'SUN':
 
                     row = box.row(align=True)
-                    row.prop(ob, "name", text="", icon='LAMP_SUN')
+                    row.prop(ob, "name", text="", icon='LIGHT_SUN')
                     row.prop(ob, "hide", text="")
                     row.prop(ob, "hide_render",
                              icon='RESTRICT_RENDER_OFF', text="")
@@ -2391,7 +2392,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         selected_objects = []
         if context.selected_objects:
             for obj in context.selected_objects:
-                if obj.type not in ['CAMERA', 'LAMP', 'SPEAKER']:
+                if obj.type not in ['CAMERA', 'LIGHT', 'SPEAKER']:
                     selected_objects.append(obj)
 
         if selected_objects:
@@ -2470,11 +2471,11 @@ classes = [
     RENDER_PT_layer_options,
     DATA_PT_renderman_camera,
     DATA_PT_renderman_world,
-    DATA_PT_renderman_lamp,
-    DATA_PT_renderman_node_shader_lamp,
+    DATA_PT_renderman_light,
+    DATA_PT_renderman_node_shader_light,
     DATA_PT_renderman_display_filters,
     DATA_PT_renderman_Sample_filters,
-    DATA_PT_renderman_node_filters_lamp,
+    DATA_PT_renderman_node_filters_light,
     OBJECT_PT_renderman_object_geometry,
     OBJECT_PT_renderman_object_render,
     OBJECT_PT_renderman_object_raytracing,
