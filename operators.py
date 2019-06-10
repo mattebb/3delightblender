@@ -1070,7 +1070,7 @@ class PRMAN_OT_RM_Add_Hemi(bpy.types.Operator):
 
     def execute(self, context):
 
-        bpy.ops.object.light_add(type='HEMI')
+        bpy.ops.object.light_add(type='SUN')
         bpy.ops.shading.add_renderman_nodetree(
             {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
         return {"FINISHED"}
@@ -1218,8 +1218,8 @@ class PRMAN_OT_Select_Lights(bpy.types.Operator):
     def execute(self, context):
 
         bpy.ops.object.select_all(action='DESELECT')
-        bpy.data.objects[self.Light_Name].select = True
-        bpy.context.scene.objects.active = bpy.data.objects[self.Light_Name]
+        bpy.data.objects[self.Light_Name].select_set(True)
+        bpy.context.view_layer.objects.active = bpy.data.objects[self.Light_Name]
 
         return {'FINISHED'}
 
@@ -1299,8 +1299,8 @@ class PRMAN_OT_Select_Cameras(bpy.types.Operator):
     def execute(self, context):
 
         bpy.ops.object.select_all(action='DESELECT')
-        bpy.data.objects[self.Camera_Name].select = True
-        bpy.context.scene.objects.active = bpy.data.objects[self.Camera_Name]
+        bpy.data.objects[self.Camera_Name].select_set(True)
+        bpy.context.view_layer.objects.active = bpy.data.objects[self.Camera_Name]
 
         return {'FINISHED'}
 
@@ -1366,7 +1366,7 @@ class PRMAN_OT_Deletecameras(bpy.types.Operator):
 
         if len(camera):
             camera[0].select = True
-            bpy.context.scene.objects.active = camera[0]
+            bpy.context.view_layer.objects.active = camera[0]
             return {"FINISHED"}
 
         else:
@@ -1387,7 +1387,7 @@ class PRMAN_OT_AddCamera(bpy.types.Operator):
 
         bpy.ops.view3d.object_as_camera()
 
-        bpy.ops.view3d.viewnumpad(type="CAMERA")
+        bpy.ops.view3d.view_camera()
 
         bpy.ops.view3d.camera_to_view()
 

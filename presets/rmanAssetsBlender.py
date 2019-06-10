@@ -1403,7 +1403,7 @@ def createNodes(Asset):
 
         # select lightrig and make active (same behavior like adding a object via UI)
         lightrig_helper.select = True
-        bpy.context.scene.objects.active = lightrig_helper
+        bpy.context.view_layer.objects.active = lightrig_helper
 
         # apply former rotation
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
@@ -1540,7 +1540,7 @@ def importAsset(filepath):
                 # create a new dome light
                 else:
                     bpy.ops.object.mr_add_hemi()
-                    ob = scene.objects.active
+                    ob = view_layer.obejects.active
                     plugin_node = ob.data.renderman.get_light_node()
                     plugin_node.lightColorMap = env_map_path
 

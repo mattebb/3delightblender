@@ -88,6 +88,8 @@ def get_panels():
         'WORLD_PT_mist',
         'WORLD_PT_preview',
         'WORLD_PT_world',
+        'NODE_DATA_PT_light',
+        'NODE_DATA_PT_spot',
     }
 
     panels = []
@@ -112,6 +114,12 @@ from bpy.props import (PointerProperty, StringProperty, BoolProperty,
 
 # ------- Subclassed Panel Types -------
 class _RManPanelHeader():
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.engine in cls.COMPAT_ENGINES
+
     def draw_header(self, context):
         if get_addon_prefs().draw_panel_icon:
             icons = load_icons()
@@ -124,11 +132,6 @@ class _RManPanelHeader():
 class CollectionPanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER'
 
     def _draw_collection(self, context, layout, ptr, name, operator,
                          opcontext, prop_coll, collection_index, default_name=''):
@@ -166,10 +169,6 @@ class PRManButtonsPanel(_RManPanelHeader):
     bl_region_type = "WINDOW"
     bl_context = "render"
 
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER'
 
 
 class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
@@ -608,10 +607,9 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
 
     @classmethod
     def poll(cls, context):
-        rd = context.scene.render
         if not context.mesh:
             return False
-        return rd.engine == 'PRMAN_RENDER'
+        return CollectionPanel.poll(context)
 
     def draw(self, context):
         layout = self.layout
@@ -629,22 +627,60 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
         layout.prop(rm, "face_boundary")
 
 
-class MATERIAL_PT_renderman_preview(Panel, _RManPanelHeader):
+class ShaderNodePanel(_RManPanelHeader):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_label = 'Node Panel'
+
+    bl_context = ""
+
+    @classmethod
+    def poll(cls, context):
+        if not _RManPanelHeader.poll(context):
+            return False
+        if cls.bl_context == 'material':
+            if context.material and context.material.node_tree != '':
+                return True
+        if cls.bl_context == 'data':
+            if not context.light:
+                return False
+            if context.light.renderman.use_renderman_node:
+                return True
+        return False
+
+
+class ShaderPanel(_RManPanelHeader):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+
+    shader_type = 'surface'
+    param_exclude = {}
+
+    @classmethod
+    def poll(cls, context):
+        is_rman = _RManPanelHeader.poll(context)
+        if cls.bl_context == 'data' and cls.shader_type == 'light':
+            return (hasattr(context, "light") and context.light is not None and is_rman)
+        elif cls.bl_context == 'world':
+            return (hasattr(context, "world") and context.world is not None and is_rman)
+        elif cls.bl_context == 'material':
+            return (hasattr(context, "material") and context.material is not None and is_rman)
+
+
+class MATERIAL_PT_renderman_preview(Panel, ShaderPanel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_options = {'DEFAULT_CLOSED'}
     bl_context = "material"
     bl_label = "Preview"
-    COMPAT_ENGINES = {'PRMAN_RENDER'}
-
-    @classmethod
-    def poll(cls, context):
-        return (context.scene.render.engine in cls.COMPAT_ENGINES)
 
     def draw(self, context):
         layout = self.layout
         mat = context.material
         row = layout.row()
+
+        
+
         if mat:
             row.template_preview(context.material, show_buttons=1)
             # if mat.node_tree:
@@ -667,51 +703,6 @@ class MATERIAL_PT_renderman_preview(Panel, _RManPanelHeader):
         col.label(text="Viewport Specular:")
         col.prop(mat, "specular_color", text="")
         #FIXME col.prop(mat, "specular_hardness", text="Hardness")
-
-class ShaderNodePanel(_RManPanelHeader):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_label = 'Node Panel'
-
-    bl_context = ""
-    COMPAT_ENGINES = {'PRMAN_RENDER'}
-
-    @classmethod
-    def poll(cls, context):
-        if context.scene.render.engine not in cls.COMPAT_ENGINES:
-            return False
-        if cls.bl_context == 'material':
-            if context.material and context.material.node_tree != '':
-                return True
-        if cls.bl_context == 'data':
-            if not context.light:
-                return False
-            if context.light.renderman.use_renderman_node:
-                return True
-        return False
-
-
-class ShaderPanel(_RManPanelHeader):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    COMPAT_ENGINES = {'PRMAN_RENDER'}
-
-    shader_type = 'surface'
-    param_exclude = {}
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-
-        if cls.bl_context == 'data' and cls.shader_type == 'light':
-            return (hasattr(context, "light") and context.light is not None and rd.engine in {'PRMAN_RENDER'})
-        elif cls.bl_context == 'world':
-            return (hasattr(context, "world") and context.world is not None and
-                    rd.engine in {'PRMAN_RENDER'})
-        elif cls.bl_context == 'material':
-            return (hasattr(context, "material") and context.material is not None and
-                    rd.engine in {'PRMAN_RENDER'})
-
 
 class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
     bl_context = "material"
@@ -896,14 +887,12 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
         layout = self.layout
         cam = context.camera
         scene = context.scene
-        dof_options = cam.dof
 
         row = layout.row()
-        row.prop(scene.renderman, "depth_of_field")
-        #TODO use blender DOF settings that are applicable
+        row.prop(cam.dof, "use_dof")
         sub = row.row()
-        sub.enabled = scene.renderman.depth_of_field
-        sub.prop(cam.renderman, "fstop")
+        sub.enabled = cam.dof.use_dof
+        sub.prop(cam.dof, "aperture_fstop")
 
         split = layout.split()
 
@@ -918,9 +907,9 @@ class DATA_PT_renderman_camera(ShaderPanel, Panel):
         col = split.column()
         sub = col.column(align=True)
         sub.label(text="Aperture Controls:")
-        sub.prop(cam.renderman, "dof_aspect", text="Aspect")
-        sub.prop(cam.renderman, "aperture_sides", text="Sides")
-        sub.prop(cam.renderman, "aperture_angle", text="Angle")
+        sub.prop(cam.dof, "aperture_ratio", text="Ratio")
+        sub.prop(cam.dof, "aperture_blades", text="Blades")
+        sub.prop(cam.dof, "aperture_rotation", text="Rotation")
         sub.prop(cam.renderman, "aperture_roundness", text="Roundness")
         sub.prop(cam.renderman, "aperture_density", text="Density")
 
@@ -1354,11 +1343,6 @@ class OBJECT_PT_renderman_object_matteid(Panel, _RManPanelHeader):
     bl_label = "Matte ID"
     bl_options = {'DEFAULT_CLOSED'}
 
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return (context.object and rd.engine in {'PRMAN_RENDER'})
-
     def draw(self, context):
         layout = self.layout
         ob = context.object
@@ -1507,7 +1491,6 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel, _RManPanelHead
     bl_region_type = 'WINDOW'
     bl_context = "particle"
     bl_label = "Render"
-    COMPAT_ENGINES = {'PRMAN_RENDER'}
 
     def draw(self, context):
         layout = self.layout
@@ -1687,11 +1670,6 @@ class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
     bl_context = "scene"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'  # bl_category = "Renderman"
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER'
 
     def draw(self, context):
         layout = self.layout
@@ -1943,11 +1921,6 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
     bl_region_type = "UI"
     bl_category = "Renderman"
 
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER'
-
     def draw(self, context):
         icons = load_icons()
         layout = self.layout
@@ -1985,9 +1958,9 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             row = box.row(align=True)
             row.label(text="Sampling Preset:")
             row.menu("PRMAN_MT_presets", text=bpy.types.WM_MT_operator_presets.bl_label)
-            row.operator("render.renderman_preset_add", text="", icon='ZOOMIN')
+            row.operator("render.renderman_preset_add", text="", icon='ADD')
             row.operator("render.renderman_preset_add", text="",
-                         icon='ZOOMOUT').remove_active = True
+                         icon='REMOVE').remove_active = True
 
             # denoise, holdouts and selected row
             row = box.row(align=True)
@@ -2156,14 +2129,14 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             ob = bpy.context.object
             box = layout.box()
             row = box.row(align=True)
-            row.menu("object.camera_list_menu",
+            row.menu("PRMAN_MT_Camera_List_Menu",
                      text="Camera List", icon='CAMERA_DATA')
 
             if ob.type == 'CAMERA':
 
                 row = box.row(align=True)
                 row.prop(ob, "name", text="", icon='LIGHT_HEMI')
-                row.prop(ob, "hide", text="")
+                row.prop(ob, "hide_viewport", text="")
                 row.prop(ob, "hide_render",
                          icon='RESTRICT_RENDER_OFF', text="")
                 row.operator("object.delete_cameras",
@@ -2174,8 +2147,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 row.operator("view3d.object_as_camera", text="", icon='CURSOR')
 
                 row.scale_x = 2
-                row.operator("view3d.viewnumpad", text="",
-                             icon='VISIBLE_IPO_ON').type = 'CAMERA'
+                row.operator("view3d.view_camera", text="", icon='VISIBLE_IPO_ON')
 
                 if context.space_data.lock_camera == False:
                     row.scale_x = 2
@@ -2188,17 +2160,17 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
                 row.scale_x = 2
                 row.operator("view3d.camera_to_view",
-                             text="", icon='MAN_TRANS')
+                             text="", icon='VIEW3D')
 
                 row = box.row(align=True)
                 row.label(text="Depth Of Field :")
 
                 row = box.row(align=True)
-                row.prop(context.object.data, "dof_object", text="")
-                row.prop(context.object.data.cycles, "aperture_type", text="")
+                row.prop(context.object.data.dof, "focus_object", text="")
+                #row.prop(context.object.data.cycles, "aperture_type", text="")
 
                 row = box.row(align=True)
-                row.prop(context.object.data, "dof_distance", text="Distance")
+                row.prop(context.object.data.dof, "focus_distance", text="Distance")
 
             else:
                 row = layout.row(align=True)
@@ -2246,14 +2218,14 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 ob = bpy.context.object
                 box = layout.box()
                 row = box.row(align=True)
-                row.menu("object.hemi_list_menu",
+                row.menu("PRMAN_MT_Hemi_List_Menu",
                          text="EnvLight List", icon='LIGHT_HEMI')
 
                 if ob.type == 'LIGHT' and ob.data.type == 'HEMI':
 
                     row = box.row(align=True)
                     row.prop(ob, "name", text="", icon='LIGHT_HEMI')
-                    row.prop(ob, "hide", text="")
+                    row.prop(ob, "hide_viewport", text="")
                     row.prop(ob, "hide_render",
                              icon='RESTRICT_RENDER_OFF', text="")
                     row.operator("object.delete_lights",
@@ -2306,14 +2278,14 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 ob = bpy.context.object
                 box = layout.box()
                 row = box.row(align=True)
-                row.menu("object.area_list_menu",
+                row.menu("PRMAN_MT_Area_List_Menu",
                          text="AreaLight List", icon='LIGHT_AREA')
 
                 if ob.type == 'LIGHT' and ob.data.type == 'AREA':
 
                     row = box.row(align=True)
                     row.prop(ob, "name", text="", icon='LIGHT_AREA')
-                    row.prop(ob, "hide", text="")
+                    row.prop(ob, "hide_viewport", text="")
                     row.prop(ob, "hide_render",
                              icon='RESTRICT_RENDER_OFF', text="")
                     row.operator("object.delete_lights",
@@ -2364,14 +2336,14 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 ob = bpy.context.object
                 box = layout.box()
                 row = box.row(align=True)
-                row.menu("object.daylight_list_menu",
+                row.menu("PRMAN_MT_DayLight_List_Menu",
                          text="DayLight List", icon='LIGHT_SUN')
 
                 if ob.type == 'LIGHT' and ob.data.type == 'SUN':
 
                     row = box.row(align=True)
                     row.prop(ob, "name", text="", icon='LIGHT_SUN')
-                    row.prop(ob, "hide", text="")
+                    row.prop(ob, "hide_viewport", text="")
                     row.prop(ob, "hide_render",
                              icon='RESTRICT_RENDER_OFF', text="")
                     row.operator("object.delete_lights",
@@ -2455,6 +2427,71 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.separator()
         layout.menu("PRMAN_MT_examples", icon_value=rman_help.icon_id)
 
+class PRMAN_PT_context_material(_RManPanelHeader, Panel):
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_label = ""
+    bl_context = "material"
+    bl_options = {'HIDE_HEADER'}
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
+
+    @classmethod
+    def poll(cls, context):
+        if context.active_object and context.active_object.type == 'GPENCIL':
+            return False
+        else:
+            return (context.material or context.object) and _RManPanelHeader.poll(context)
+
+    def draw(self, context):
+        layout = self.layout
+
+        mat = context.material
+        ob = context.object
+        slot = context.material_slot
+        space = context.space_data
+
+        if ob:
+            is_sortable = len(ob.material_slots) > 1
+            rows = 1
+            if (is_sortable):
+                rows = 4
+
+            row = layout.row()
+
+            row.template_list("MATERIAL_UL_matslots", "", ob, "material_slots", ob, "active_material_index", rows=rows)
+
+            col = row.column(align=True)
+            col.operator("object.material_slot_add", icon='ADD', text="")
+            col.operator("object.material_slot_remove", icon='REMOVE', text="")
+
+            col.menu("MATERIAL_MT_context_menu", icon='DOWNARROW_HLT', text="")
+
+            if is_sortable:
+                col.separator()
+
+                col.operator("object.material_slot_move", icon='TRIA_UP', text="").direction = 'UP'
+                col.operator("object.material_slot_move", icon='TRIA_DOWN', text="").direction = 'DOWN'
+
+            if ob.mode == 'EDIT':
+                row = layout.row(align=True)
+                row.operator("object.material_slot_assign", text="Assign")
+                row.operator("object.material_slot_select", text="Select")
+                row.operator("object.material_slot_deselect", text="Deselect")
+
+        split = layout.split(factor=0.65)
+
+        if ob:
+            split.template_ID(ob, "active_material", new="material.new")
+            row = split.row()
+
+            if slot:
+                row.prop(slot, "link", text="")
+            else:
+                row.label()
+        elif mat:
+            split.template_ID(space, "pin_id")
+            split.separator()
+
 classes = [
     RENDER_PT_renderman_render,
     RENDER_PT_renderman_baking,
@@ -2490,6 +2527,7 @@ classes = [
     PRMAN_PT_Renderman_Light_Link_Panel,
     PRMAN_PT_Renderman_Object_Panel,
     PRMAN_PT_Renderman_UI_Panel,
+    PRMAN_PT_context_material,
     ]
 
 def register():
@@ -2516,7 +2554,7 @@ def unregister():
     bpy.types.TOPBAR_MT_render.remove(PRMan_menu_func)
 
     for panel in get_panels():
-        panel.COMPAT_ENGINES.add('PRMAN_RENDER')
+        panel.COMPAT_ENGINES.remove('PRMAN_RENDER')
     
     for cls in classes:
         bpy.utils.unregister_class(cls)

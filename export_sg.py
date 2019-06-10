@@ -171,7 +171,7 @@ class ItHandler(chatserver.ItBaseHandler):
             return
         name = rman_sg_exporter().obj_hash[obj_id]
         obj = bpy.context.scene.objects[name]
-        bpy.context.scene.objects.active = obj
+        bpy.context.view_layer.objects.active = obj
 
 
     def selectSurfaceById(self):
@@ -315,7 +315,7 @@ class RmanSgExporter:
             self.sg_scene.Render("rib /var/tmp/blender.rib")     
             print("\tFinished writing RIB. Time: %s" % format_seconds_to_hhmmss(time.time() - rib_time_start))        
         print("Finished parsing scene. Total time: %s" % format_seconds_to_hhmmss(time.time() - time_start))             
-        self.sg_scene.Render("prman -blocking") 
+        self.sg_scene.Render("prman -blocking")
 
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         self.rictl.PRManEnd()
@@ -2146,16 +2146,16 @@ class RmanSgExporter:
 
             projparams.SetFloat(rman.Tokens.Rix.k_fov, fov)
 
-            if rm.depth_of_field:
-                if cam.dof_object:
-                    dof_distance = (ob.location - cam.dof_object.location).length
+            if cam.dof.use_dof:
+                if cam.dof.focus_object:
+                    dof_distance = (ob.location - cam.dof.focus_object.location).length
                 else:
-                    dof_distance = cam.dof_distance
+                    dof_distance = cam.dof.focus_distance
                 if dof_distance > 0.0:
-                    projparams.SetFloat(rman.Tokens.Rix.k_fStop, cam.renderman.fstop)
+                    projparams.SetFloat(rman.Tokens.Rix.k_fStop, cam.dof.aperture_fstop)
                     projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
                     #projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens))
-                    projparams.SetFloat(rman.Tokens.Rix.k_focalDistance, dof_distance)   
+                    projparams.SetFloat(rman.Tokens.Rix.k_focalDistance, dof_distance)
                 
                      
             proj.EditParameterEnd(projparams)
@@ -2217,12 +2217,12 @@ class RmanSgExporter:
         prop.SetFloat(rman.Tokens.Rix.k_farClip, cam.clip_end)
 
         # aperture
-        prop.SetInteger(rman.Tokens.Rix.k_apertureNSides, cam.renderman.aperture_sides)
-        prop.SetFloat(rman.Tokens.Rix.k_apertureAngle, cam.renderman.aperture_angle)
+        prop.SetInteger(rman.Tokens.Rix.k_apertureNSides, cam.dof.aperture_blades)
+        prop.SetFloat(rman.Tokens.Rix.k_apertureAngle, math.degrees(cam.dof.aperture_rotation))
         prop.SetFloat(rman.Tokens.Rix.k_apertureRoundness, cam.renderman.aperture_roundness)
         prop.SetFloat(rman.Tokens.Rix.k_apertureDensity, cam.renderman.aperture_density)
 
-        prop.SetFloat(rman.Tokens.Rix.k_dofaspect, cam.renderman.dof_aspect)
+        prop.SetFloat(rman.Tokens.Rix.k_dofaspect, cam.dof.aperture_ratio)
 
         camera.EditPropertyEnd(prop)
 
@@ -4887,7 +4887,7 @@ def export_metadata(scene, params):
     statspath=os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current)
     
     params.SetString('exrheader_dcc', 'Blender %s\nRenderman for Blender %s' % (bpy.app.version, bl_info['version']))
-    params.SetFloat('exrheader_fstop', cam.renderman.fstop )
+    params.SetFloat('exrheader_fstop', cam.dof.aperture_fstop )
     params.SetFloat('exrheader_focaldistance', dof_distance )
     params.SetFloat('exrheader_focal', cam.lens )
     params.SetFloat('exrheader_haperture', cam.sensor_width )

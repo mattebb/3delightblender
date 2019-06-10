@@ -362,7 +362,7 @@ class RPass:
                 os.remove(render_output)  # so as not to load the old file
             except:
                 debug("error", "Unable to remove previous render",
-                      render_output)                   
+                      render_output)
 
         # convert textures
         if for_preview:
@@ -388,9 +388,9 @@ class RPass:
             visible_objects = None
 
         def progress_cb(e, d, db):
-            engine.update_progress(float(d) / 100.0)       
+            engine.update_progress(float(d) / 100.0)
 
-        progress_cb_ptr = progress_cb      
+        progress_cb_ptr = progress_cb
 
         if for_preview:
         #    progress_cb_ptr = None
@@ -414,8 +414,8 @@ class RPass:
                     lay.load_from_file(render_output)
                 except:
                     pass
-                engine.end_result(result) 
- 
+                engine.end_result(result)
+
 
     def set_scene(self, scene):
         self.scene = scene

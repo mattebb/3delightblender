@@ -71,6 +71,7 @@ class PRManRender(bpy.types.RenderEngine):
         if self.render_pass is not None:
             engine.render(self, depsgraph)
 
+
 # these handlers are for marking files as dirty for ribgen
 def add_handlers(scene):
     if engine.update_timestamp not in bpy.app.handlers.depsgraph_update_post:

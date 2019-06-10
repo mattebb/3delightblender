@@ -64,23 +64,6 @@ class RendermanCameraSettings(bpy.types.PropertyGroup):
     use_physical_camera: BoolProperty(
         name="Use Physical Camera", default=False)
 
-    fstop: FloatProperty(
-        name="F-Stop",
-        description="Aperture size for depth of field.  Decreasing this value increases the blur on out of focus areas",
-        default=4.0)
-
-    dof_aspect: FloatProperty(
-        name="DOF Aspect", default=1, max=2, min=0,
-        description="The ratio of blur in the 'x' and 'y' directions. Changing this value from the default will simulate anamorphic lens bokeh effects.  Values less than 1 elongate the blur on the 'y' axis.  Values greater than 1 elongate the blur on the 'x' axis")
-
-    aperture_sides: IntProperty(
-        name="Aperture Blades", default=0, min=0,
-        description="The number of sides of the aperture.  If this value is less than 3 the aperture will appear circular")
-
-    aperture_angle: FloatProperty(
-        name="Aperture Angle", default=0.0, max=180.0, min=-180.0,
-        description="The aperture polygon's orientation, in degrees from some arbitrary reference direction. (A value of 0 aligns a vertex horizontally with the center of the aperture.)")
-
     aperture_roundness: FloatProperty(
         name="Aperture Roundness", default=0.0, max=1.0, min=-1.0,
         description="A shape parameter, from -1 to 1.  When 0, the aperture is a regular polygon with straight sides.  Values between 0 and 1 give polygons with curved edges bowed out and values between 0 and -1 make the edges bow in")
@@ -621,11 +604,6 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Shutter close speed",
         description="Shutter close efficiency - controls the speed of the shutter closing.  1 means instantaneous, < 1 is a gradual closing",
         default=1.0)
-
-    depth_of_field: BoolProperty(
-        name="Depth of Field",
-        description="Enable depth of field blur",
-        default=False)
 
     threads: IntProperty(
         name="Rendering Threads",
@@ -1291,9 +1269,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         light = self.id_data
         light_type = light.renderman.renderman_type
 
-        if light_type in ['SKY', 'ENV']:
-            light.type = 'HEMI'
-        elif light_type == 'DIST':
+        if light_type in ['SKY', 'ENV', 'DIST']:
             light.type = 'SUN'
         elif light_type == 'PORTAL':
             light.type = 'AREA'
@@ -1365,12 +1341,12 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
     # remove any filter control geo that might be on the light
     def remove_filter_geo(self):
-        light_ob = bpy.context.scene.objects.active
+        light_ob = bpy.context.view_layer.objects.active
         for ob in light_ob.children:
             if 'rman_filter_shape' in ob.name:
                 data = ob.data
 
-                for sc in ob.users_scene:
+                for sc in ob.users_collection:
                     sc.objects.unlink(ob)
 
                 try:
@@ -1386,7 +1362,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                         pass
 
     def add_filter_geo(self, name):
-        light_ob = bpy.context.scene.objects.active
+        light_ob = bpy.context.view_layer.objects.active
         # here we add some geo
         plugin_dir = os.path.dirname(os.path.realpath(__file__))
         filter_file = os.path.join(plugin_dir, 'filters',
@@ -1397,18 +1373,18 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                           filename=obj_name,
                           directory=filter_file + directory)
         filter_geo_obj = bpy.context.selected_objects[0]
-        filter_geo_obj.select = False
+        filter_geo_obj.select_set(False)
         filter_geo_obj.name = 'rman_filter_shape_' + name
         filter_geo_obj.parent = light_ob
         filter_geo_obj.hide_select = True
         filter_geo_obj.lock_rotation = [True, True, True]
         filter_geo_obj.lock_location = [True, True, True]
         filter_geo_obj.lock_scale = [True, True, True]
-        bpy.context.scene.objects.active = light_ob
+        bpy.context.view_layer.objects.active = light_ob
         return filter_geo_obj
 
     def get_filter_geo(self, name):
-        light_ob = bpy.context.scene.objects.active
+        light_ob = bpy.context.view_layer.objects.active
         for ob in light_ob.children:
             if 'rman_filter_shape' in ob.name:
                 if name in ob.name:
@@ -1910,7 +1886,7 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
         return
         global engine
         if engine.is_ipr_running():
-            active = context.scene.objects.active
+            active = context.view_layer.objects.active
             psys = active.particle_systems.active
             engine.ipr.issue_rman_particle_prim_type_edit(active, psys)
 
@@ -2109,7 +2085,7 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
     def update_prim_type(self, context):
         global engine
         if engine.is_ipr_running():
-            engine.ipr.issue_rman_prim_type_edit(context.scene.objects.active)
+            engine.ipr.issue_rman_prim_type_edit(context.view_layer.objects.active)
 
     primitive: EnumProperty(
         name="Primitive Type",
@@ -2383,42 +2359,42 @@ class Tab_CollectionGroup(bpy.types.PropertyGroup):
     #       Tab     #
     #################
 
-    bpy.types.Scene.rm_ipr: BoolProperty(
+    bpy.types.Scene.rm_ipr = BoolProperty(
         name="IPR settings",
         description="Show some useful setting for the Interactive Rendering",
         default=False)
 
-    bpy.types.Scene.rm_render: BoolProperty(
+    bpy.types.Scene.rm_render = BoolProperty(
         name="Render settings",
         description="Show some useful setting for the Rendering",
         default=False)
 
-    bpy.types.Scene.rm_render_external: BoolProperty(
+    bpy.types.Scene.rm_render_external = BoolProperty(
         name="Render settings",
         description="Show some useful setting for external rendering",
         default=False)
 
-    bpy.types.Scene.rm_help: BoolProperty(
+    bpy.types.Scene.rm_help = BoolProperty(
         name="Help",
         description="Show some links about RenderMan and the documentation",
         default=False)
 
-    bpy.types.Scene.rm_env: BoolProperty(
+    bpy.types.Scene.rm_env = BoolProperty(
         name="Envlight",
         description="Show some settings about the selected Env light",
         default=False)
 
-    bpy.types.Scene.rm_area: BoolProperty(
+    bpy.types.Scene.rm_area = BoolProperty(
         name="AreaLight",
         description="Show some settings about the selected Area Light",
         default=False)
 
-    bpy.types.Scene.rm_daylight: BoolProperty(
+    bpy.types.Scene.rm_daylight = BoolProperty(
         name="DayLight",
         description="Show some settings about the selected Day Light",
         default=False)
 
-    bpy.types.Scene.prm_cam: BoolProperty(
+    bpy.types.Scene.prm_cam = BoolProperty(
         name="Renderman Camera",
         description="Show some settings about the camera",
         default=False)

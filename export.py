@@ -2768,14 +2768,14 @@ def export_metadata(ri, scene, params):
     rm = scene.renderman
     cam = bpy.data.cameras["Camera"]
     obj = bpy.data.objects["Camera"]
-    if cam.dof_object:
-        dof_distance = (obj.location - cam.dof_object.location).length
+    if cam.dof.focus_object:
+        dof_distance = (obj.location - cam.dof.focus_object.location).length
     else:
-        dof_distance = cam.dof_distance
+        dof_distance = cam.dof.focus_distance
     output_dir = os.path.dirname(user_path(rm.path_rib_output, scene=scene))
     statspath=os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current)
     params = {'string exrheader_dcc': 'Blender %s\nRenderman for Blender %s' % (bpy.app.version, bl_info['version']),
-    'float exrheader_fstop': cam.renderman.fstop,
+    'float exrheader_fstop': cam.dof.aperture_fstop,
     'float exrheader_focaldistance': dof_distance,
     'float exrheader_focal': cam.lens,
     'float exrheader_haperture': cam.sensor_width,
@@ -2806,12 +2806,12 @@ def export_camera(ri, scene, instances, camera_to_use=None):
 
     xaspect, yaspect, aspectratio = render_get_aspect(r, cam)
 
-    if rm.depth_of_field:
-        if cam.dof_object:
-            dof_distance = (ob.location - cam.dof_object.location).length
+    if cam.dof.use_dof:
+        if cam.dof.focus_object:
+            dof_distance = (ob.location - cam.dof.focus_object.location).length
         else:
-            dof_distance = cam.dof_distance
-        ri.DepthOfField(cam.renderman.fstop, (cam.lens * 0.001), dof_distance)
+            dof_distance = cam.dof.focus_distance
+        ri.DepthOfField(cam.dof.aperture_fstop, (cam.lens * 0.001), dof_distance)
 
     if scene.renderman.motion_blur:
         shutter_interval = rm.shutter_angle / 360.0
@@ -3434,10 +3434,10 @@ def export_hider(ri, rpass, scene, preview=False):
             hider_params['int incremental'] = 1
 
         if not preview:
-            cam = scene.camera.data.renderman
-            hider_params["float[4] aperture"] = [cam.aperture_sides,
-                                                 cam.aperture_angle, cam.aperture_roundness, cam.aperture_density]
-            hider_params["float dofaspect"] = [cam.dof_aspect]
+            cam = scene.camera.data
+            hider_params["float[4] aperture"] = [cam.dof.aperture_blades, math.degrees(cam.dof.aperture_rotation),
+                                                 cam.renderman.aperture_roundness, cam.renderman.aperture_density]
+            hider_params["float dofaspect"] = [cam.dof.aperture_ratio]
             hider_params["float darkfalloff"] = [rm.dark_falloff]
 
         if not rm.sample_motion_blur:

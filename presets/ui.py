@@ -85,7 +85,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
             if active:
                 row = layout.row(align=True)
                 row.prop(active, 'name', text='Library')
-                row.operator('renderman.add_preset_library', text='', icon='ZOOMIN')
+                row.operator('renderman.add_preset_library', text='', icon='ADD')
                 row.operator('renderman.move_preset_library', text='', icon='MAN_TRANS').lib_path = active.path
                 row.operator('renderman.remove_preset_library', text='', icon='X')
                 current_preset = RendermanPreset.get_from_path(active.current_preset)

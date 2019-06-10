@@ -2431,7 +2431,7 @@ def shader_node_sg(sg_scene, rman, node, mat_name, portal=False):
 
         """if light_name == 'PxrPortalLight':
             if mat_name in bpy.data.lights:
-                light = bpy.context.scene.objects.active
+                light = bpy.context.view_layer.objects.active
                 if light and light.parent and light.parent.type == 'LIGHT' \
                     and light.parent.data.renderman.renderman_type == 'ENV':
                     from .export import property_group_to_params
