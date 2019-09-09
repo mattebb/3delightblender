@@ -52,12 +52,12 @@ class RendermanPreset(PropertyGroup):
         group = RendermanPresetGroup.get_from_path(group_path)
         return group.presets[preset] if preset in group.presets.keys() else None
     
-    name = StringProperty(default='')
-    label= StringProperty(default='')
-    #thumbnail = EnumProperty(items=get_enum_items)
-    thumb_path = StringProperty(subtype='FILE_PATH')
-    path = StringProperty(subtype='FILE_PATH')
-    json_path = StringProperty(subtype='FILE_PATH')
+    name: StringProperty(default='')
+    label: StringProperty(default='')
+    #thumbnail: EnumProperty(items=get_enum_items)
+    thumb_path: StringProperty(subtype='FILE_PATH')
+    path: StringProperty(subtype='FILE_PATH')
+    json_path: StringProperty(subtype='FILE_PATH')
 
 
 # forward define preset group
@@ -91,8 +91,8 @@ class RendermanPresetGroup(PropertyGroup):
         else:
             return None
 
-    name = StringProperty(default='')
-    ui_open = BoolProperty(default=True)
+    name: StringProperty(default='')
+    ui_open: BoolProperty(default=True)
 
     def generate_previews(self, context):
         return icons.load_previews(self)
@@ -100,9 +100,9 @@ class RendermanPresetGroup(PropertyGroup):
     def update_path(self, context):
         util.get_addon_prefs().presets_path = self.path
 
-    path = StringProperty(default='', update=update_path, subtype="FILE_PATH")
-    presets = CollectionProperty(type=RendermanPreset)
-    current_preset = EnumProperty(items=generate_previews, name='Current Preset')
+    path: StringProperty(default='', update=update_path, subtype="FILE_PATH")
+    presets: CollectionProperty(type=RendermanPreset)
+    current_preset: EnumProperty(items=generate_previews, name='Current Preset')
 
     # gets the presets and all from children
     def get_presets(self):
@@ -116,16 +116,12 @@ class RendermanPresetGroup(PropertyGroup):
 
 
 def register():
-    try:
-        bpy.utils.register_class(RendermanPreset)
-        bpy.utils.register_class(RendermanPresetGroup)
+    bpy.utils.register_class(RendermanPreset)
+    bpy.utils.register_class(RendermanPresetGroup)
 
-        # set sub groups type we have to do this after registered
-        sub_groups = CollectionProperty(type=RendermanPresetGroup)
-        setattr(RendermanPresetGroup, 'sub_groups', sub_groups)
+    # set sub groups type we have to do this after registered
+    RendermanPresetGroup.sub_groups: CollectionProperty(type=RendermanPresetGroup)
     
-    except:
-        pass #allready registered
 
 def unregister():
     bpy.utils.unregister_class(RendermanPresetGroup)

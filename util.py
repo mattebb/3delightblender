@@ -32,7 +32,6 @@ import sys
 import fnmatch
 import subprocess
 from subprocess import Popen, PIPE
-from extensions_framework import util as efutil
 from mathutils import Matrix, Vector
 EnableDebugging = False
 
@@ -272,10 +271,18 @@ def get_path_list(rm, type):
             paths.append(bpy.path.abspath(p.name))
 
     return paths
-
+	
+def filesystem_path(p):
+	#Resolve a relative Blender path to a real filesystem path
+	if p.startswith('//'):
+		pout = bpy.path.abspath(p)
+	else:
+		pout = os.path.realpath(p)
+	
+	return pout.replace('\\', '/')
 
 def get_real_path(path):
-    return os.path.realpath(efutil.filesystem_path(path))
+    return os.path.realpath(filesystem_path(path))
 
 
 # Convert env variables to full paths.
@@ -520,7 +527,7 @@ def get_rman_version(rmantree):
 
 
 def get_addon_prefs():
-    addon = bpy.context.user_preferences.addons[__name__.split('.')[0]]
+    addon = bpy.context.preferences.addons[__name__.split('.')[0]]
     return addon.preferences
 
 

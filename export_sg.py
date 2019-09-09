@@ -81,7 +81,7 @@ SUPPORTED_DUPLI_TYPES = ['FACES', 'VERTS', 'GROUP']    # Supported dupli types.
 # These object types can have materials.
 MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT']
 # Objects without to_mesh() conversion capabilities.
-EXCLUDED_OBJECT_TYPES = ['LAMP', 'CAMERA', 'ARMATURE']
+EXCLUDED_OBJECT_TYPES = ['LIGHT', 'CAMERA', 'ARMATURE']
 # Only these light types affect volumes.
 VOLUMETRIC_LIGHT_TYPES = ['SPOT', 'AREA', 'POINT']
 MATERIAL_PREFIX = "mat_"
@@ -171,7 +171,7 @@ class ItHandler(chatserver.ItBaseHandler):
             return
         name = rman_sg_exporter().obj_hash[obj_id]
         obj = bpy.context.scene.objects[name]
-        bpy.context.scene.objects.active = obj
+        bpy.context.view_layer.objects.active = obj
 
 
     def selectSurfaceById(self):
@@ -315,7 +315,7 @@ class RmanSgExporter:
             self.sg_scene.Render("rib /var/tmp/blender.rib")     
             print("\tFinished writing RIB. Time: %s" % format_seconds_to_hhmmss(time.time() - rib_time_start))        
         print("Finished parsing scene. Total time: %s" % format_seconds_to_hhmmss(time.time() - time_start))             
-        self.sg_scene.Render("prman -blocking") 
+        self.sg_scene.Render("prman -blocking")
 
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         self.rictl.PRManEnd()
@@ -456,7 +456,7 @@ class RmanSgExporter:
         solo_light = None
         with rman.SGManager.ScopedEdit(self.sg_scene):
             for light in self.rpass.scene.objects:
-                if light.type == "LAMP":
+                if light.type == "LIGHT":
                     rm = light.data.renderman
                     sg_node = self.sg_nodes_dict[light.name]                
                     if rm.solo and not solo_light:
@@ -485,7 +485,7 @@ class RmanSgExporter:
                         self.export_camera_transform(camera_node_sg, scene.camera, [])
                     else:
                         print("CANNOT FIND CAMERA!")
-            elif active.type == 'LAMP': 
+            elif active.type == 'LIGHT': 
                 if active.name not in self.sg_nodes_dict:
                     return
                 if active.data.renderman.renderman_type == 'FILTER':
@@ -608,15 +608,15 @@ class RmanSgExporter:
 
     def issue_new_object_edits(self, active, scene):
         self.scene = scene
-        if active.type == 'LAMP':
+        if active.type == 'LIGHT':
             # this is a new light
             ob = active
-            lamp = ob.data
-            rm = lamp.renderman
-            handle = lamp.name
+            light = ob.data
+            rm = light.renderman
+            handle = light.name
 
             with rman.SGManager.ScopedEdit(self.sg_scene):
-                self.export_light(ob, lamp, handle, rm)  
+                self.export_light(ob, light, handle, rm)  
         else:
             ob = active
 
@@ -734,11 +734,11 @@ class RmanSgExporter:
                 if mat not in self.rpass.material_dict:
                     self.rpass.material_dict[mat] = [bpy.context.object]
 
-            lamp = None
+            light = None
             world = bpy.context.scene.world
-            if mat is None and hasattr(bpy.context, 'lamp') and bpy.context.lamp:
-                lamp = bpy.context.object
-                mat = bpy.context.lamp
+            if mat is None and hasattr(bpy.context, 'light') and bpy.context.light:
+                light = bpy.context.object
+                mat = bpy.context.light
             elif mat is None and nt and nt.name == 'World':
                 mat = world
             if mat is None:
@@ -804,15 +804,15 @@ class RmanSgExporter:
                                             psys_node.SetMaterial(sg_material)
 
 
-            elif lamp:
-                lamp_ob = lamp
-                lamp = mat
+            elif light:
+                light_ob = light
+                light = mat
                 print('EDITING LIGHT')
-                """ri.EditBegin('attribute', {'string scopename': lamp.name})
-                export_light_filters(ri, lamp, do_coordsys=True)
+                """ri.EditBegin('attribute', {'string scopename': light.name})
+                export_light_filters(ri, light, do_coordsys=True)
 
-                export_object_transform(ri, lamp_ob)
-                export_light_shaders(ri, lamp, get_light_group(ob))
+                export_object_transform(ri, light_ob)
+                export_light_shaders(ri, light, get_light_group(ob))
                 ri.EditEnd()"""
 
             elif world:
@@ -825,17 +825,17 @@ class RmanSgExporter:
             mat = None
             instance_num = 0
             mat_name = None  
-            is_lamp = False
+            is_light = False
 
             if bpy.context.object:
                 mat = bpy.context.object.active_material
                 if mat:
                     instance_num = mat.renderman.instance_num
                     mat_name = get_mat_name(mat.name)
-            # if this is a lamp use that for the mat/name
-            if mat is None and node and issubclass(type(node.id_data), bpy.types.Lamp):
+            # if this is a light use that for the mat/name
+            if mat is None and node and issubclass(type(node.id_data), bpy.types.Light):
                 mat = node.id_data
-                is_lamp = True
+                is_light = True
             elif mat is None and nt and nt.name == 'World':
                 mat = bpy.context.scene.world
             elif mat is None and bpy.context.object and bpy.context.object.type == 'CAMERA':
@@ -923,7 +923,7 @@ class RmanSgExporter:
                     self.rictl.InvalidateTexture(f)
 
             handle = mat_name
-            if is_lamp:
+            if is_light:
                 if node.renderman_node_type == "lightfilter":
                     if mat_name in self.sg_nodes_dict:
                         sg_lightfilter = self.sg_nodes_dict[mat_name]
@@ -970,24 +970,24 @@ class RmanSgExporter:
                 sg_node = self.sg_nodes_dict.get(ob_name)
                 if not sg_node:
                     continue
-                scene_lights = [l.name for l in self.scene.objects if l.type == 'LAMP']
+                scene_lights = [l.name for l in self.scene.objects if l.type == 'LIGHT']
                 light_names = [strs[1]] if strs[0] == "lg_light" else \
                     self.scene.renderman.light_groups[strs[1]].members.keys()
                 if strs[0] == 'lg_group' and strs[1] == 'All':
-                    light_names = [l.name for l in scene.objects if l.type == 'LAMP']
+                    light_names = [l.name for l in scene.objects if l.type == 'LIGHT']
 
                 subset = []
                 excludesubset = []
                 lightfilter_subset = []
                 subset.append("World")
                 for light_name in light_names:
-                    lamp = self.scene.objects[light_name].data
-                    rm = lamp.renderman
+                    light = self.scene.objects[light_name].data
+                    rm = light.renderman
                     if rm.renderman_type == 'FILTER':
                         filter_name = light_name
                         for light_nm in light_names:
                             if filter_name in self.scene.objects[light_nm].data.renderman.light_filters.keys():
-                                lamp_nm = self.scene.objects[light_nm].data.name
+                                #lamp_nm = self.scene.objects[light_nm].data.name
                                 if link.illuminate == 'ON':
                                     lightfilter_subset.append(filter_name)
 
@@ -998,16 +998,16 @@ class RmanSgExporter:
                                     #    lamp_nm, filter_name, link.illuminate == 'ON')
                     else:
                         if remove:
-                            excludesubset.append(lamp.name)
+                            excludesubset.append(light.name)
                         elif link.illuminate == "DEFAULT":
-                            if lamp.renderman.illuminates_by_default:
-                                subset.append(lamp.name)
+                            if light.renderman.illuminates_by_default:
+                                subset.append(light.name)
                             else:
-                                excludesubset.append(lamp.name)
+                                excludesubset.append(light.name)
                         elif link.illuminate == 'ON':
-                            subset.append(lamp.name)
+                            subset.append(light.name)
                         else:
-                            excludesubset.append(lamp.name)
+                            excludesubset.append(light.name)
 
                 attrs = sg_node.EditAttributeBegin()
                 attrs.SetString(rman.Tokens.Rix.k_lighting_subset, ",".join(subset))
@@ -1139,7 +1139,7 @@ class RmanSgExporter:
         for link in lls:
             strs = link.name.split('>')
 
-            scene_lights = [l.name for l in self.scene.objects if l.type == 'LAMP']
+            scene_lights = [l.name for l in self.scene.objects if l.type == 'LIGHT']
             light_names = [strs[1]] if strs[0] == "lg_light" else \
                 self.scene.renderman.light_groups[strs[1]].members.keys()
             if strs[0] == 'lg_group' and strs[1] == 'All':
@@ -1147,9 +1147,9 @@ class RmanSgExporter:
             for light_name in light_names:
                 if link.illuminate != "DEFAULT" and light_name in self.scene.objects:
                     light_ob = self.scene.objects[light_name]
-                    lamp = light_ob.data
-                    if lamp.renderman.renderman_type == 'FILTER':
-                        # for each lamp this is a part of do enable light filter
+                    light = light_ob.data
+                    if light.renderman.renderman_type == 'FILTER':
+                        # for each light this is a part of do enable light filter
                         filter_name = light_name
                         for light_nm in scene_lights:
                             if filter_name in self.scene.objects[light_nm].data.renderman.light_filters.keys():
@@ -1827,12 +1827,12 @@ class RmanSgExporter:
         if instance.transforming and len(instance.motion_data) > 0:
             samples = [sample[1] for sample in instance.motion_data]
         else:
-            samples = [ob.matrix_local] if ob.parent and ob.parent_type == "object" and ob.type != 'LAMP'\
+            samples = [ob.matrix_local] if ob.parent and ob.parent_type == "object" and ob.type != 'LIGHT'\
                 else [ob.matrix_world]
 
         transforms = []
         for m in samples:
-            #if instance.type == 'LAMP':
+            #if instance.type == 'LIGHT':
             #    m = modify_light_matrix(m.copy(), ob)
 
             v = convert_matrix(m)
@@ -1844,7 +1844,7 @@ class RmanSgExporter:
         else:
             sg_node.SetTransform( transforms[0] )
 
-    def export_light(self, ob, lamp, handle, rm, portal_parent=''):
+    def export_light(self, ob, light, handle, rm, portal_parent=''):
 
         group_name=get_light_group(ob)
         light_filters = []
@@ -1905,14 +1905,14 @@ class RmanSgExporter:
                 rixparams.SetString('iesProfile',  bpy.path.abspath(
                     light_shader.iesProfile) )
 
-            if lamp.type == 'SPOT':
-                rixparams.SetFloat('coneAngle', math.degrees(lamp.spot_size))
-                rixparams.SetFloat('coneSoftness',lamp.spot_blend)
-            if lamp.type in ['SPOT', 'POINT']:
+            if light.type == 'SPOT':
+                rixparams.SetFloat('coneAngle', math.degrees(light.spot_size))
+                rixparams.SetFloat('coneSoftness',light.spot_blend)
+            if light.type in ['SPOT', 'POINT']:
                 rixparams.SetInteger('areaNormalize', 1)
 
             # portal params
-            if rm.renderman_type == 'PORTAL' and portal_parent and portal_parent.type == 'LAMP' \
+            if rm.renderman_type == 'PORTAL' and portal_parent and portal_parent.type == 'LIGHT' \
                     and portal_parent.data.renderman.renderman_type == 'ENV':
                 parent_node = portal_parent.data.renderman.get_light_node()
                 parent_params = property_group_to_params(parent_node)
@@ -1981,15 +1981,15 @@ class RmanSgExporter:
         else:
             names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrEnvDayLight',
                     'SPOT': 'PxrDiskLight', 'HEMI': 'PxrDomeLight', 'AREA': 'PxrRectLight'}
-            light_shader_name = names[lamp.type]
-            exposure = lamp.energy * 5.0
-            if lamp.type == 'SUN':
+            light_shader_name = names[light.type]
+            exposure = light.energy / 200.0
+            if light.type == 'SUN':
                 exposure = 0
             node_sg = self.sg_scene.CreateNode("LightFactory", light_shader_name , "light")
             rixparams = node_sg.EditParameterBegin()
             rixparams.SetFloat("exposure", exposure)
-            rixparams.SetColor("lightColor", rib(lamp.color))
-            if lamp.type not in ['HEMI', 'SUN']:
+            rixparams.SetColor("lightColor", rib(light.color))
+            if light.type not in ['HEMI', 'SUN']:
                 rixparams.SetInteger('areaNormalize', 1)
             node_sg.EditParameterEnd(rixparams)
 
@@ -2023,20 +2023,20 @@ class RmanSgExporter:
         self.light_filters_dict[handle] = light_filters
                 
     def export_scene_lights(self, instances):
-        for instance in [inst for name, inst in instances.items() if inst.type == 'LAMP']:
+        for instance in [inst for name, inst in instances.items() if inst.type == 'LIGHT']:
             ob = instance.ob
-            lamp = ob.data
-            handle = lamp.name
-            rm = lamp.renderman
+            light = ob.data
+            handle = light.name
+            rm = light.renderman
             if instance.ob.data.renderman.renderman_type == 'FILTER':
                 pass  
             elif instance.ob.data.renderman.renderman_type not in ['FILTER']:
                 child_portals = []
                 if rm.renderman_type == 'ENV' and ob.children:
-                    child_portals = [child for child in ob.children if child.type == 'LAMP' and
+                    child_portals = [child for child in ob.children if child.type == 'LIGHT' and
                              child.data.renderman.renderman_type == 'PORTAL']
                 if not child_portals:
-                    self.export_light(ob, lamp, handle, rm, ob.parent)
+                    self.export_light(ob, light, handle, rm, ob.parent)
 
     def export_camera_transform(self, camera_sg, ob, motion):
         r = self.scene.render
@@ -2146,16 +2146,16 @@ class RmanSgExporter:
 
             projparams.SetFloat(rman.Tokens.Rix.k_fov, fov)
 
-            if rm.depth_of_field:
-                if cam.dof_object:
-                    dof_distance = (ob.location - cam.dof_object.location).length
+            if cam.dof.use_dof:
+                if cam.dof.focus_object:
+                    dof_distance = (ob.location - cam.dof.focus_object.location).length
                 else:
-                    dof_distance = cam.dof_distance
+                    dof_distance = cam.dof.focus_distance
                 if dof_distance > 0.0:
-                    projparams.SetFloat(rman.Tokens.Rix.k_fStop, cam.renderman.fstop)
+                    projparams.SetFloat(rman.Tokens.Rix.k_fStop, cam.dof.aperture_fstop)
                     projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
                     #projparams.SetFloat(rman.Tokens.Rix.k_focalLength, (cam.lens))
-                    projparams.SetFloat(rman.Tokens.Rix.k_focalDistance, dof_distance)   
+                    projparams.SetFloat(rman.Tokens.Rix.k_focalDistance, dof_distance)
                 
                      
             proj.EditParameterEnd(projparams)
@@ -2217,12 +2217,12 @@ class RmanSgExporter:
         prop.SetFloat(rman.Tokens.Rix.k_farClip, cam.clip_end)
 
         # aperture
-        prop.SetInteger(rman.Tokens.Rix.k_apertureNSides, cam.renderman.aperture_sides)
-        prop.SetFloat(rman.Tokens.Rix.k_apertureAngle, cam.renderman.aperture_angle)
+        prop.SetInteger(rman.Tokens.Rix.k_apertureNSides, cam.dof.aperture_blades)
+        prop.SetFloat(rman.Tokens.Rix.k_apertureAngle, math.degrees(cam.dof.aperture_rotation))
         prop.SetFloat(rman.Tokens.Rix.k_apertureRoundness, cam.renderman.aperture_roundness)
         prop.SetFloat(rman.Tokens.Rix.k_apertureDensity, cam.renderman.aperture_density)
 
-        prop.SetFloat(rman.Tokens.Rix.k_dofaspect, cam.renderman.dof_aspect)
+        prop.SetFloat(rman.Tokens.Rix.k_dofaspect, cam.dof.aperture_ratio)
 
         camera.EditPropertyEnd(prop)
 
@@ -2391,7 +2391,7 @@ class RmanSgExporter:
             display.channels = "id"
             sg_displays.append(display)
 
-        for layer in self.scene.render.layers:
+        for layer in self.scene.view_layers:
             break
             # custom aovs
             rm_rl = None
@@ -2562,7 +2562,7 @@ class RmanSgExporter:
                         if aov_channel_name == 'Ci,a':
                             continue
 
-                        if layer == self.scene.render.layers[0] and aov == 'rgba':
+                        if layer == self.scene.view_layers[0] and aov == 'rgba':
                             # we already output this skip
                             continue
 
@@ -3551,11 +3551,11 @@ def export_object_instance(ri, mtx=None, instance_handle=None, num=None):
 
 # ------------- Filtering -------------
 def is_visible_layer(scene, ob):
-
-    for i in range(len(scene.layers)):
-        if scene.layers[i] and ob.layers[i]:
-            return True
-    return False
+    #
+    #FIXME for i in range(len(scene.layers)):
+    #    if scene.layers[i] and ob.layers[i]:
+    #        return True
+    return True
 
 
 def is_renderable(scene, ob):
@@ -4076,8 +4076,9 @@ def create_mesh(ob, scene):
     # elif is_subd_displace_last(ob):
     #    ob.modifiers[len(ob.modifiers)-2].show_render = False
     #    ob.modifiers[len(ob.modifiers)-1].show_render = False
-    mesh = ob.to_mesh(scene, True, 'RENDER', calc_tessface=False,
-                      calc_undeformed=True)
+    #FIXME mesh = ob.to_mesh(scene, True, 'RENDER', calc_tessface=False,
+    #                  calc_undeformed=True)
+    mesh = ob.to_mesh()
     #if reset_subd_mod:
     #    ob.modifiers[len(ob.modifiers) - 1].show_render = True
     return mesh
@@ -4100,8 +4101,8 @@ def recursive_texture_set(ob):
     for child in ob.children:
         mat_set += recursive_texture_set(child)
 
-    if ob.dupli_group:
-        for child in ob.dupli_group.objects:
+    if ob.instance_collection:
+        for child in ob.instance_collection.objects:
             mat_set += recursive_texture_set(child)
 
     return mat_set
@@ -4115,7 +4116,7 @@ def get_texture_list(scene):
     for o in renderable_objects(scene):
         if o.type == 'CAMERA' or o.type == 'EMPTY':
             continue
-        elif o.type == 'LAMP':
+        elif o.type == 'LIGHT':
             if o.data.renderman.get_light_node():
                 textures = textures + \
                     get_textures_for_node(o.data.renderman.get_light_node())
@@ -4647,7 +4648,7 @@ def cache_motion(scene, rpass, objects=None, calc_mb=True):
                 get_deformation(data_blocks[name],
                                 seg, scene, actual_subframes)
 
-    scene.frame_set(origframe, 0)
+    scene.frame_set(origframe, subframe=0)
 
     return data_blocks, instances
 
@@ -4691,7 +4692,7 @@ def update_timestamp(rpass, obj):
     if obj and rpass.update_time:
         obj.renderman.update_timestamp = rpass.update_time
 
-def property_group_to_rixparams(node, sg_node, lamp=None):
+def property_group_to_rixparams(node, sg_node, light=None):
 
     params = sg_node.EditParameterBegin()
     for prop_name, meta in node.prop_meta.items():
@@ -4728,10 +4729,10 @@ def property_group_to_rixparams(node, sg_node, lamp=None):
                 elif type == 'string':
                     params.SetString(name, str(prop))
 
-    if lamp and node.plugin_name in ['PxrBlockerLightFilter', 'PxrRampLightFilter',
+    if light and node.plugin_name in ['PxrBlockerLightFilter', 'PxrRampLightFilter',
                                      'PxrRodLightFilter']:
-        rm = lamp.renderman
-        nt = lamp.node_tree
+        rm = light.renderman
+        nt = light.node_tree
         if nt and rm.float_ramp_node in nt.nodes.keys():
             knot_param = 'ramp_Knots' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Knots'
             float_param = 'ramp_Floats' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Floats'
@@ -4775,7 +4776,7 @@ def property_group_to_rixparams(node, sg_node, lamp=None):
     sg_node.EditParameterEnd(params)
 
 # takes a list of bpy.types.properties and converts to params for rib
-def property_group_to_params(node, lamp=None):
+def property_group_to_params(node, light=None):
     params = {}
     for prop_name, meta in node.prop_meta.items():
         prop = getattr(node, prop_name)
@@ -4799,10 +4800,10 @@ def property_group_to_params(node, lamp=None):
                                   meta['renderman_name'])] = \
                     rib(prop, type_hint=meta['renderman_type'])
 
-    if lamp and node.plugin_name in ['PxrBlockerLightFilter', 'PxrRampLightFilter',
+    if light and node.plugin_name in ['PxrBlockerLightFilter', 'PxrRampLightFilter',
                                      'PxrRodLightFilter']:
-        rm = lamp.renderman
-        nt = lamp.node_tree
+        rm = light.renderman
+        nt = light.node_tree
         if nt and rm.float_ramp_node in nt.nodes.keys():
             knot_param = 'ramp_Knots' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Knots'
             float_param = 'ramp_Floats' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Floats'
@@ -4878,15 +4879,15 @@ def export_metadata(scene, params):
     rm = scene.renderman
     cam = bpy.data.cameras["Camera"]
     obj = bpy.data.objects["Camera"]
-    if cam.dof_object:
-        dof_distance = (obj.location - cam.dof_object.location).length
+    if cam.dof.focus_object:
+        dof_distance = (obj.location - cam.dof.focus_object.location).length
     else:
-        dof_distance = cam.dof_distance
+        dof_distance = cam.dof.focus_distance
     output_dir = os.path.dirname(user_path(rm.path_rib_output, scene=scene))
     statspath=os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current)
     
     params.SetString('exrheader_dcc', 'Blender %s\nRenderman for Blender %s' % (bpy.app.version, bl_info['version']))
-    params.SetFloat('exrheader_fstop', cam.renderman.fstop )
+    params.SetFloat('exrheader_fstop', cam.dof.aperture_fstop )
     params.SetFloat('exrheader_focaldistance', dof_distance )
     params.SetFloat('exrheader_focal', cam.lens )
     params.SetFloat('exrheader_haperture', cam.sensor_width )
@@ -5088,14 +5089,14 @@ def update_light_link(rpass, ri, prman, link, remove=False):
     for ob_name in ob_names:
         print("OB_NAME: %s" % ob_name)
         # ri.EditBegin('attribute', {'string scopename': ob_name})
-        # scene_lights = [l.name for l in scene.objects if l.type == 'LAMP']
+        # scene_lights = [l.name for l in scene.objects if l.type == 'LIGHT']
         # light_names = [strs[1]] if strs[0] == "lg_light" else \
         #     scene.renderman.light_groups[strs[1]].members.keys()
         # if strs[0] == 'lg_group' and strs[1] == 'All':
-        #     light_names = [l.name for l in scene.objects if l.type == 'LAMP']
+        #     light_names = [l.name for l in scene.objects if l.type == 'LIGHT']
         # for light_name in light_names:
-        #     lamp = scene.objects[light_name].data
-        #     rm = lamp.renderman
+        #     light = scene.objects[light_name].data
+        #     rm = light.renderman
         #     if rm.renderman_type == 'FILTER':
         #         filter_name = light_name
         #         for light_nm in light_names:
@@ -5109,9 +5110,9 @@ def update_light_link(rpass, ri, prman, link, remove=False):
         #     else:
         #         if remove or link.illuminate == "DEFAULT":
         #             ri.Illuminate(
-        #                 lamp.name, lamp.renderman.illuminates_by_default)
+        #                 light.name, light.renderman.illuminates_by_default)
         #         else:
-        #             ri.Illuminate(lamp.name, link.illuminate == 'ON')
+        #             ri.Illuminate(light.name, link.illuminate == 'ON')
         # ri.EditEnd()
 
 # test the active object type for edits to do then do them
