@@ -26,7 +26,6 @@
 import bpy
 import os
 import subprocess
-import bgl
 import blf
 import webbrowser
 import addon_utils
@@ -63,7 +62,7 @@ from .spool import spool_render
 from bpy_extras.io_utils import ExportHelper
 
 
-class Renderman_open_stats(bpy.types.Operator):
+class PRMAN_OT_Renderman_open_stats(bpy.types.Operator):
     bl_idname = 'rman.open_stats'
     bl_label = "Open Frame Stats"
     bl_description = "Open Current Frame stats file"
@@ -78,7 +77,7 @@ class Renderman_open_stats(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class Renderman_start_it(bpy.types.Operator):
+class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
     bl_idname = 'rman.start_it'
     bl_label = "Start IT"
     bl_description = "Start RenderMan's IT"
@@ -96,7 +95,7 @@ class Renderman_start_it(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class Renderman_open_last_RIB(bpy.types.Operator):
+class PRMAN_OT_Renderman_open_last_RIB(bpy.types.Operator):
     bl_idname = 'rman.open_rib'
     bl_label = "Open Last RIB Scene file."
     bl_description = "Opens the last generated Scene.rib file in the system default text editor"
@@ -123,7 +122,7 @@ class Renderman_open_last_RIB(bpy.types.Operator):
 class RENDERMAN_OT_add_remove_output(bpy.types.Operator):
     bl_idname = "renderman.add_remove_output"
     bl_label = "Add or remove channel from output"
-    info_string = StringProperty()
+    info_string: StringProperty()
 
     def execute(self, context):
         self.report({'INFO'}, self.info_string)
@@ -157,27 +156,27 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 import traceback
                 traceback.print_exc()
 
-        for lamp in bpy.data.lamps:
-            if lamp.renderman.use_renderman_node:
+        for light in bpy.data.lights:
+            if light.renderman.use_renderman_node:
                 continue
-            light_type = lamp.type
-            lamp.renderman.light_primary_visibility = False
+            light_type = light.type
+            light.renderman.light_primary_visibility = False
             if light_type == 'SUN':
-                lamp.renderman.renderman_type = 'DIST'
+                light.renderman.renderman_type = 'DIST'
             elif light_type == 'HEMI':
-                lamp.renderman.renderman_type = 'ENV'
-                lamp.renderman.light_primary_visibility = True
+                light.renderman.renderman_type = 'ENV'
+                light.renderman.light_primary_visibility = True
             else:
-                lamp.renderman.renderman_type = light_type
+                light.renderman.renderman_type = light_type
 
             if light_type == 'AREA':
-                lamp.shape = 'RECTANGLE'
-                lamp.size = 1.0
-                lamp.size_y = 1.0
+                light.shape = 'RECTANGLE'
+                light.size = 1.0
+                light.size_y = 1.0
 
-            #lamp.renderman.primary_visibility = not lamp.use_nodes
+            #light.renderman.primary_visibility = not light.use_nodes
 
-            lamp.renderman.use_renderman_node = True
+            light.renderman.use_renderman_node = True
 
         # convert cycles vis settings
         for ob in context.scene.objects:
@@ -197,8 +196,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     bl_label = "Add RenderMan Nodetree"
     bl_description = "Add a RenderMan shader node tree linked to this material"
 
-    idtype = StringProperty(name="ID Type", default="material")
-    bxdf_name = StringProperty(name="Bxdf Name", default="PxrSurface")
+    idtype: StringProperty(name="ID Type", default="material")
+    bxdf_name: StringProperty(name="Bxdf Name", default="PxrSurface")
 
     def execute(self, context):
         idtype = self.properties.idtype
@@ -207,7 +206,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             idtype = 'material'
         else:
             context_data = {'material': context.material,
-                            'lamp': context.lamp, 'world': context.scene.world}
+                            'light': context.light, 'world': context.scene.world}
             idblock = context_data[idtype]
 
         # nt = bpy.data.node_groups.new(idblock.name,
@@ -239,20 +238,20 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
             default.location[0] -= 300
             nt.links.new(default.outputs[0], output.inputs[0])                
-        elif idtype == 'lamp':
+        elif idtype == 'light':
             light_type = idblock.type
             if light_type == 'SUN':
-                context.lamp.renderman.renderman_type = 'DIST'
+                context.light.renderman.renderman_type = 'DIST'
             elif light_type == 'HEMI':
 
-                context.lamp.renderman.renderman_type = 'ENV'
+                context.light.renderman.renderman_type = 'ENV'
             else:
-                context.lamp.renderman.renderman_type = light_type
+                context.light.renderman.renderman_type = light_type
 
             if light_type == 'AREA':
-                context.lamp.shape = 'RECTANGLE'
-                context.lamp.size = 1.0
-                context.lamp.size_y = 1.0
+                context.light.shape = 'RECTANGLE'
+                context.light.size = 1.0
+                context.light.size_y = 1.0
 
             idblock.renderman.use_renderman_node = True
 
@@ -262,14 +261,14 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             # light_type = idblock.type
             # light_shader = 'PxrStdAreaLightLightNode'
             # if light_type == 'SUN':
-            #     context.lamp.renderman.type=
+            #     context.light.renderman.type=
             #     light_shader = 'PxrStdEnvDayLightLightNode'
             # elif light_type == 'HEMI':
             #     light_shader = 'PxrStdEnvMapLightLightNode'
             # elif light_type == 'AREA' or light_type == 'POINT':
             #     idblock.type = "AREA"
-            #     context.lamp.size = 1.0
-            #     context.lamp.size_y = 1.0
+            #     context.light.size = 1.0
+            #     context.light.size_y = 1.0
 
             # else:
             #     idblock.type = "AREA"
@@ -287,7 +286,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 ######################
 
 
-class refresh_osl_shader(bpy.types.Operator):
+class PRMAN_OT_refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.refresh_osl_shader"
     bl_label = "Refresh OSL Node"
     bl_description = "Refreshes the OSL node This takes a second!!"
@@ -296,7 +295,7 @@ class refresh_osl_shader(bpy.types.Operator):
         context.node.RefreshNodes(context)
         return {'FINISHED'}
         
-class RendermanBake(bpy.types.Operator):
+class PRMAN_OT_RendermanBake(bpy.types.Operator):
     bl_idname = "renderman.bake"
     bl_label = "Baking"
     bl_description = "Bake pattern nodes to texture"
@@ -343,7 +342,7 @@ class RendermanBake(bpy.types.Operator):
         rpass = None
         return {'FINISHED'}
 
-class ExternalRender(bpy.types.Operator):
+class PRMAN_OT_ExternalRender(bpy.types.Operator):
 
     ''''''
     bl_idname = "renderman.external_render"
@@ -362,7 +361,7 @@ class ExternalRender(bpy.types.Operator):
         addon_prefs = get_addon_prefs()
         files = []
         rm = scene.renderman
-        for layer in scene.render.layers:
+        for layer in scene.view_layers:
             # custom aovs
             rm_rl = None
             for render_layer_settings in rm.render_layers:
@@ -476,7 +475,7 @@ class ExternalRender(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class StartInteractive(bpy.types.Operator):
+class PRMAN_OT_StartInteractive(bpy.types.Operator):
 
     ''''''
     bl_idname = "lighting.start_interactive"
@@ -497,7 +496,7 @@ class StartInteractive(bpy.types.Operator):
         blf.shadow(0, 5, 0.0, 0.0, 0.0, 0.8)
         blf.size(0, 32, 36)
         blf.position(0, pos_x, pos_y, 0)
-        bgl.glColor4f(1.0, 0.0, 0.0, 1.0)
+        blf.color(0, 1.0, 0.0, 0.0, 1.0)
         blf.draw(0, "%s" % ('RenderMan Interactive Mode Running'))
         blf.disable(0, blf.SHADOW)
 
@@ -513,16 +512,16 @@ class StartInteractive(bpy.types.Operator):
                 engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
                     self.draw, (context,), 'WINDOW', 'POST_PIXEL')
             if engine.rman__sg__inited:
-                bpy.app.handlers.scene_update_post.append(
+                bpy.app.handlers.depsgraph_update_post.append(
                     engine.ipr.blender_scene_updated_pre_cb)                
-                bpy.app.handlers.scene_update_post.append(
+                bpy.app.handlers.depsgraph_update_post.append(
                     engine.ipr.blender_scene_updated_cb)
             bpy.app.handlers.load_pre.append(self.invoke)
         else:
             if engine.rman__sg__inited:
-                bpy.app.handlers.scene_update_post.remove(
+                bpy.app.handlers.depsgraph_update_post.remove(
                     engine.ipr.blender_scene_updated_pre_cb)                
-                bpy.app.handlers.scene_update_post.remove(
+                bpy.app.handlers.depsgraph_update_post.remove(
                     engine.ipr.blender_scene_updated_cb)                
                     
             # The user should not turn this on and off during IPR rendering.
@@ -543,25 +542,25 @@ class StartInteractive(bpy.types.Operator):
 ######################
 
 
-class ExportRIBObject(bpy.types.Operator):
+class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
     bl_idname = "export.export_rib_archive"
     bl_label = "Export Object as RIB Archive."
     bl_description = "Export single object as a RIB archive for use in other blend files or for other uses"
 
-    export_mat = BoolProperty(
+    export_mat: BoolProperty(
         name="Export Material",
         description="Do you want to export the material?",
         default=True)
 
-    export_all_frames = BoolProperty(
+    export_all_frames: BoolProperty(
         name="Export All Frames",
         description="Export entire animation time frame",
         default=False)
 
-    filepath = bpy.props.StringProperty(
+    filepath: bpy.props.StringProperty(
         subtype="FILE_PATH")
 
-    filename = bpy.props.StringProperty(
+    filename: bpy.props.StringProperty(
         subtype="FILE_NAME",
         default="")
 
@@ -613,12 +612,12 @@ def quickAddPresets(presetList, pathFromPresetDir, name):
     file_preset.close()
 
 
-class AddPresetRendermanRender(AddPresetBase, bpy.types.Operator):
+class PRMAN_OT_AddPresetRendermanRender(AddPresetBase, bpy.types.Operator):
     '''Add or remove a RenderMan Sampling Preset'''
     bl_idname = "render.renderman_preset_add"
     bl_label = "Add RenderMan Preset"
     bl_options = {'REGISTER', 'UNDO'}
-    preset_menu = "presets"
+    preset_menu = "PRMAN_MT_presets"
     preset_defines = ["scene = bpy.context.scene", ]
 
     preset_values = [
@@ -701,9 +700,9 @@ class RendermanRenderPresets():
         "rm.external_action = \'spool\'", ]
 
 
-class PresetsMenu(bpy.types.Menu):
+class PRMAN_MT_PresetsMenu(bpy.types.Menu):
     bl_label = "RenderMan Presets"
-    bl_idname = "presets"
+    bl_idname = "PRMAN_MT_presets"
     preset_subdir = os.path.join("renderman", "render")
     preset_operator = "script.execute_preset"
     draw = bpy.types.Menu.draw_preset
@@ -723,7 +722,7 @@ for path in blenderAddonPaths:
     if exists:
         names = get_Files_in_Directory(basePath)
 for name in names:
-    class examplesRenderman(bpy.types.Operator):
+    class PRMAN_OT_examplesRenderman(bpy.types.Operator):
         bl_idname = ("rendermanexamples." + name.lower())
         bl_label = name
         bl_description = name
@@ -747,12 +746,12 @@ for name in names:
                         return True
                     else:
                         return False
-    rendermanExampleFilesList.append(examplesRenderman)
+    rendermanExampleFilesList.append(PRMAN_OT_examplesRenderman)
 
 
-class LoadSceneMenu(bpy.types.Menu):
+class PRMAN_MT_LoadSceneMenu(bpy.types.Menu):
     bl_label = "RenderMan Examples"
-    bl_idname = "examples"
+    bl_idname = "PRMAN_MT_examples"
 
     def get_operator_failsafe(self, idname):
         op = bpy.ops
@@ -772,7 +771,7 @@ def menu_draw(self, context):
         return
     icons = load_icons()
     examples_menu = icons.get("help")
-    self.layout.menu("examples", icon_value=examples_menu.icon_id)
+    self.layout.menu("PRMAN_MT_examples", icon_value=examples_menu.icon_id)
 
 # Yuck, this should be built in to blender... Yes it should
 
@@ -781,31 +780,31 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
     bl_label = "Add or Remove Paths"
     bl_idname = "collection.add_remove"
 
-    action = EnumProperty(
+    action: EnumProperty(
         name="Action",
         description="Either add or remove properties",
         items=[('ADD', 'Add', ''),
                ('REMOVE', 'Remove', '')],
         default='ADD')
-    context = StringProperty(
+    context: StringProperty(
         name="Context",
         description="Name of context member to find renderman pointer in",
         default="")
-    collection = StringProperty(
+    collection: StringProperty(
         name="Collection",
         description="The collection to manipulate",
         default="")
-    collection_index = StringProperty(
+    collection_index: StringProperty(
         name="Index Property",
         description="The property used as a collection index",
         default="")
-    defaultname = StringProperty(
+    defaultname: StringProperty(
         name="Default Name",
         description="Default name to give this collection item",
         default="")
     # BBM addition begin
-    is_shader_param = BoolProperty(name='Is shader parameter', default=False)
-    shader_type = StringProperty(
+    is_shader_param: BoolProperty(name='Is shader parameter', default=False)
+    shader_type: StringProperty(
         name="shader type",
         default='surface')
     # BBM addition end
@@ -817,8 +816,8 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
             id = getattr_recursive(context, self.properties.context)
             rm = id.renderman if hasattr(id, 'renderman') else id
         else:
-            if context.active_object.name in bpy.data.lamps.keys():
-                rm = bpy.data.lamps[context.active_object.name].renderman
+            if context.active_object.name in bpy.data.lights.keys():
+                rm = bpy.data.lights[context.active_object.name].renderman
             else:
                 rm = context.active_object.active_material.renderman
             id = getattr(rm, '%s_shaders' % self.properties.shader_type)
@@ -857,14 +856,14 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OT_add_renderman_aovs(bpy.types.Operator):
+class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
     bl_idname = 'renderman.add_renderman_aovs'
     bl_label = "Switch to RenderMan Passes"
 
     def execute(self, context):
         scene = context.scene
         scene.renderman.render_layers.add()
-        active_layer = scene.render.layers.active
+        active_layer = context.view_layer
         # this sucks.  but can't find any other way to refer to render layer
         scene.renderman.render_layers[-1].render_layer = active_layer.name
 
@@ -872,7 +871,7 @@ class OT_add_renderman_aovs(bpy.types.Operator):
         scene = context.scene
         rm = scene.renderman
         rm_rl = scene.renderman.render_layers[-1]
-        active_layer = scene.render.layers.active
+        active_layer = context.view_layer
 
         rl = active_layer
 
@@ -916,24 +915,24 @@ class OT_add_renderman_aovs(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OT_add_multilayer_list(bpy.types.Operator):
+class PRMAN_OT_add_multilayer_list(bpy.types.Operator):
     bl_idname = 'renderman.add_multilayer_list'
     bl_label = 'Add multilayer list'
 
     def execute(self, context):
         scene = context.scene
         scene.renderman.multilayer_lists.add()
-        active_layer = scene.render.layers.active
+        active_layer = context.view_layer
         scene.renderman.multilayer_lists[-1].render_layer = active_layer.name
         return {'FINISHED'}
 
 
-class OT_add_to_group(bpy.types.Operator):
+class PRMAN_OT_add_to_group(bpy.types.Operator):
     bl_idname = 'renderman.add_to_group'
     bl_label = 'Add Selected to Object Group'
 
-    group_index = IntProperty(default=0)
-    item_type = StringProperty(default='object')
+    group_index: IntProperty(default=0)
+    item_type: StringProperty(default='object')
 
     def execute(self, context):
         scene = context.scene
@@ -949,15 +948,15 @@ class OT_add_to_group(bpy.types.Operator):
 
             for ob in context.selected_objects:
                 if ob.name not in members:
-                    if item_type != 'light' or ob.type == 'LAMP':
+                    if item_type != 'light' or ob.type == 'LIGHT':
                         do_add = True
-                        if item_type == 'light' and ob.type == 'LAMP':
+                        if item_type == 'light' and ob.type == 'LIGHT':
                             # check if light is already in another group
                             # can only be in one
                             for lg in scene.renderman.light_groups:
                                 if ob.name in lg.members.keys():
                                     do_add = False
-                                    self.report({'WARNING'}, "Lamp %s cannot be added to light group %s, already a member of %s" % (
+                                    self.report({'WARNING'}, "Light %s cannot be added to light group %s, already a member of %s" % (
                                         ob.name, scene.renderman.light_groups[group_index].name, lg.name))
 
                         if do_add:
@@ -967,12 +966,12 @@ class OT_add_to_group(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OT_remove_from_group(bpy.types.Operator):
+class PRMAN_OT_remove_from_group(bpy.types.Operator):
     bl_idname = 'renderman.remove_from_group'
     bl_label = 'Remove Selected from Object Group'
 
-    group_index = IntProperty(default=0)
-    item_type = StringProperty(default='object')
+    group_index: IntProperty(default=0)
+    item_type: StringProperty(default='object')
 
     def execute(self, context):
         scene = context.scene
@@ -991,12 +990,12 @@ class OT_remove_from_group(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class OT_remove_add_rem_light_link(bpy.types.Operator):
+class PRMAN_OT_remove_add_rem_light_link(bpy.types.Operator):
     bl_idname = 'renderman.add_rem_light_link'
     bl_label = 'Add/Remove Selected from Object Group'
 
-    add_remove = StringProperty(default='add')
-    ll_name = StringProperty(default='')
+    add_remove: StringProperty(default='add')
+    ll_name: StringProperty(default='')
 
     def execute(self, context):
         scene = context.scene
@@ -1021,7 +1020,7 @@ class OT_remove_add_rem_light_link(bpy.types.Operator):
 #       Tab     #
 #################
 
-class Add_Subdiv_Sheme(bpy.types.Operator):
+class PRMAN_OT_Add_Subdiv_Sheme(bpy.types.Operator):
     bl_idname = "object.add_subdiv_sheme"
     bl_label = "Add Subdiv Sheme"
     bl_description = ""
@@ -1033,7 +1032,7 @@ class Add_Subdiv_Sheme(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class RM_Add_Area(bpy.types.Operator):
+class PRMAN_OT_RM_Add_Area(bpy.types.Operator):
     bl_idname = "object.mr_add_area"
     bl_label = "Add RenderMan Area"
     bl_description = ""
@@ -1041,13 +1040,13 @@ class RM_Add_Area(bpy.types.Operator):
 
     def execute(self, context):
 
-        bpy.ops.object.lamp_add(type='AREA')
+        bpy.ops.object.light_add(type='AREA')
         bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'lamp': bpy.context.active_object.data}, idtype='lamp')
+            {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
         return {"FINISHED"}
 
 
-class RM_Add_LightFilter(bpy.types.Operator):
+class PRMAN_OT_RM_Add_LightFilter(bpy.types.Operator):
     bl_idname = "object.mr_add_light_filter"
     bl_label = "Add RenderMan Light Filter"
     bl_description = ""
@@ -1055,15 +1054,15 @@ class RM_Add_LightFilter(bpy.types.Operator):
 
     def execute(self, context):
 
-        bpy.ops.object.lamp_add(type='POINT')
-        lamp = bpy.context.active_object.data
+        bpy.ops.object.light_add(type='POINT')
+        light = bpy.context.active_object.data
         bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'lamp': lamp}, idtype='lamp')
-        lamp.renderman.renderman_type = 'FILTER'
+            {'material': None, 'light': light}, idtype='light')
+        light.renderman.renderman_type = 'FILTER'
         return {"FINISHED"}
 
 
-class RM_Add_Hemi(bpy.types.Operator):
+class PRMAN_OT_RM_Add_Hemi(bpy.types.Operator):
     bl_idname = "object.mr_add_hemi"
     bl_label = "Add RenderMan Hemi"
     bl_description = ""
@@ -1071,28 +1070,28 @@ class RM_Add_Hemi(bpy.types.Operator):
 
     def execute(self, context):
 
-        bpy.ops.object.lamp_add(type='HEMI')
+        bpy.ops.object.light_add(type='SUN')
         bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'lamp': bpy.context.active_object.data}, idtype='lamp')
+            {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
         return {"FINISHED"}
 
 
-class RM_Add_Sky(bpy.types.Operator):
+class PRMAN_OT_RM_Add_Sky(bpy.types.Operator):
     bl_idname = "object.mr_add_sky"
     bl_label = "Add RenderMan Sky"
     bl_description = ""
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        bpy.ops.object.lamp_add(type='SUN')
+        bpy.ops.object.light_add(type='SUN')
         bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'lamp': bpy.context.active_object.data}, idtype='lamp')
+            {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
         bpy.context.object.data.renderman.renderman_type = 'SKY'
 
         return {"FINISHED"}
 
 
-class Add_bxdf(bpy.types.Operator):
+class PRMAN_OT_Add_bxdf(bpy.types.Operator):
     bl_idname = "object.add_bxdf"
     bl_label = "Add BXDF"
     bl_description = ""
@@ -1114,7 +1113,7 @@ class Add_bxdf(bpy.types.Operator):
         #        items.append((nodetype.bl_label, nodetype.bl_label,
         #                      nodetype.bl_label))
         return items
-    bxdf_name = EnumProperty(items=get_type_items, name="Bxdf Name")
+    bxdf_name: EnumProperty(items=get_type_items, name="Bxdf Name")
 
     def execute(self, context):
         selection = bpy.context.selected_objects if hasattr(
@@ -1161,7 +1160,7 @@ class Add_bxdf(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class New_bxdf(bpy.types.Operator):
+class PRMAN_OT_New_bxdf(bpy.types.Operator):
     bl_idname = "nodes.new_bxdf"
     bl_label = "New RenderMan Material"
     bl_description = ""
@@ -1184,7 +1183,7 @@ class New_bxdf(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class add_GeoLight(bpy.types.Operator):
+class PRMAN_OT_add_GeoLight(bpy.types.Operator):
     bl_idname = "object.addgeoarealight"
     bl_label = "Add GeoAreaLight"
     bl_description = ""
@@ -1210,104 +1209,104 @@ class add_GeoLight(bpy.types.Operator):
         return {"FINISHED"}
 
 
-class Select_Lights(bpy.types.Operator):
+class PRMAN_OT_Select_Lights(bpy.types.Operator):
     bl_idname = "object.selectlights"
     bl_label = "Select Lights"
 
-    Light_Name = bpy.props.StringProperty(default="")
+    Light_Name: bpy.props.StringProperty(default="")
 
     def execute(self, context):
 
         bpy.ops.object.select_all(action='DESELECT')
-        bpy.data.objects[self.Light_Name].select = True
-        bpy.context.scene.objects.active = bpy.data.objects[self.Light_Name]
+        bpy.data.objects[self.Light_Name].select_set(True)
+        bpy.context.view_layer.objects.active = bpy.data.objects[self.Light_Name]
 
         return {'FINISHED'}
 
 
-class Hemi_List_Menu(bpy.types.Menu):
-    bl_idname = "object.hemi_list_menu"
+class PRMAN_MT_Hemi_List_Menu(bpy.types.Menu):
+    #bl_idname = "object.hemi_list_menu"
     bl_label = "EnvLight list"
 
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type == "LIGHT"]
 
-        if len(lamps):
-            for lamp in lamps:
-                if lamp.data.type == 'HEMI':
-                    name = lamp.name
+        if len(lights):
+            for light in lights:
+                if light.data.type == 'HEMI':
+                    name = light.name
                     op = layout.operator(
-                        "object.selectlights", text=name, icon='LAMP_HEMI')
+                        "object.selectlights", text=name, icon='LIGHT_HEMI')
                     op.Light_Name = name
 
         else:
-            layout.label("No EnvLight in the Scene")
+            layout.label(text="No EnvLight in the Scene")
 
 
-class Area_List_Menu(bpy.types.Menu):
-    bl_idname = "object.area_list_menu"
+class PRMAN_MT_Area_List_Menu(bpy.types.Menu):
+    #bl_idname = "object.area_list_menu"
     bl_label = "AreaLight list"
 
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type == "LIGHT"]
 
-        if len(lamps):
-            for lamp in lamps:
-                if lamp.data.type == 'AREA':
-                    name = lamp.name
+        if len(lights):
+            for light in lights:
+                if light.data.type == 'AREA':
+                    name = light.name
                     op = layout.operator(
-                        "object.selectlights", text=name, icon='LAMP_AREA')
+                        "object.selectlights", text=name, icon='LIGHT_AREA')
                     op.Light_Name = name
 
         else:
-            layout.label("No AreaLight in the Scene")
+            layout.label(text="No AreaLight in the Scene")
 
 
-class DayLight_List_Menu(bpy.types.Menu):
-    bl_idname = "object.daylight_list_menu"
+class PRMAN_MT_DayLight_List_Menu(bpy.types.Menu):
+    #bl_idname = "object.daylight_list_menu"
     bl_label = "DayLight list"
 
     def draw(self, context):
         layout = self.layout
         col = layout.column(align=True)
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type == "LAMP"]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type == "LIGHT"]
 
-        if len(lamps):
-            for lamp in lamps:
-                if lamp.data.type == 'SUN':
-                    name = lamp.name
+        if len(lights):
+            for light in lights:
+                if light.data.type == 'SUN':
+                    name = light.name
                     op = layout.operator(
-                        "object.selectlights", text=name, icon='LAMP_SUN')
+                        "object.selectlights", text=name, icon='LIGHT_SUN')
                     op.Light_Name = name
 
         else:
-            layout.label("No Daylight in the Scene")
+            layout.label(text="No Daylight in the Scene")
 
 
-class Select_Cameras(bpy.types.Operator):
+class PRMAN_OT_Select_Cameras(bpy.types.Operator):
     bl_idname = "object.select_cameras"
     bl_label = "Select Cameras"
 
-    Camera_Name = bpy.props.StringProperty(default="")
+    Camera_Name: bpy.props.StringProperty(default="")
 
     def execute(self, context):
 
         bpy.ops.object.select_all(action='DESELECT')
-        bpy.data.objects[self.Camera_Name].select = True
-        bpy.context.scene.objects.active = bpy.data.objects[self.Camera_Name]
+        bpy.data.objects[self.Camera_Name].select_set(True)
+        bpy.context.view_layer.objects.active = bpy.data.objects[self.Camera_Name]
 
         return {'FINISHED'}
 
 
-class Camera_List_Menu(bpy.types.Menu):
-    bl_idname = "object.camera_list_menu"
+class PRMAN_MT_Camera_List_Menu(bpy.types.Menu):
+    #bl_idname = "object.camera_list_menu"
     bl_label = "Camera list"
 
     def draw(self, context):
@@ -1325,10 +1324,10 @@ class Camera_List_Menu(bpy.types.Menu):
                 op.Camera_Name = name
 
         else:
-            layout.label("No Camera in the Scene")
+            layout.label(text="No Camera in the Scene")
 
 
-class DeleteLights(bpy.types.Operator):
+class PRMAN_OT_DeleteLights(bpy.types.Operator):
     bl_idname = "object.delete_lights"
     bl_label = "Delete Lights"
     bl_description = ""
@@ -1339,19 +1338,19 @@ class DeleteLights(bpy.types.Operator):
         type_light = bpy.context.object.data.type
         bpy.ops.object.delete()
 
-        lamps = [obj for obj in bpy.context.scene.objects if obj.type ==
-                 "LAMP" and obj.data.type == type_light]
+        lights = [obj for obj in bpy.context.scene.objects if obj.type ==
+                 "LIGHT" and obj.data.type == type_light]
 
-        if len(lamps):
-            lamps[0].select = True
-            bpy.context.scene.objects.active = lamps[0]
+        if len(lights):
+            lights[0].select = True
+            bpy.context.view_layer.objects.active = lights[0]
             return {"FINISHED"}
 
         else:
             return {"FINISHED"}
 
 
-class Deletecameras(bpy.types.Operator):
+class PRMAN_OT_Deletecameras(bpy.types.Operator):
     bl_idname = "object.delete_cameras"
     bl_label = "Delete Cameras"
     bl_description = ""
@@ -1367,14 +1366,14 @@ class Deletecameras(bpy.types.Operator):
 
         if len(camera):
             camera[0].select = True
-            bpy.context.scene.objects.active = camera[0]
+            bpy.context.view_layer.objects.active = camera[0]
             return {"FINISHED"}
 
         else:
             return {"FINISHED"}
 
 
-class AddCamera(bpy.types.Operator):
+class PRMAN_OT_AddCamera(bpy.types.Operator):
     bl_idname = "object.add_prm_camera"
     bl_label = "Add Camera"
     bl_description = "Add a Camera in the Scene"
@@ -1388,7 +1387,7 @@ class AddCamera(bpy.types.Operator):
 
         bpy.ops.view3d.object_as_camera()
 
-        bpy.ops.view3d.viewnumpad(type="CAMERA")
+        bpy.ops.view3d.view_camera()
 
         bpy.ops.view3d.camera_to_view()
 
@@ -1402,7 +1401,7 @@ class AddCamera(bpy.types.Operator):
 #   preserve any information during script restart.
 
 
-class RM_restart_addon(bpy.types.Operator):
+class PRMAN_OT_restart_addon(bpy.types.Operator):
     bl_idname = "renderman.restartaddon"
     bl_label = "Restart Addon"
     bl_description = "Restarts the RenderMan for Blender addon"
@@ -1416,11 +1415,55 @@ class RM_restart_addon(bpy.types.Operator):
 compile_shader_menu_func = (lambda self, context: self.layout.operator(
     TEXT_OT_compile_shader.bl_idname))
 
+classes = [
+    PRMAN_OT_Renderman_open_stats,
+    PRMAN_OT_Renderman_start_it,
+    PRMAN_OT_Renderman_open_last_RIB,
+    RENDERMAN_OT_add_remove_output,
+    SHADING_OT_convert_all_renderman_nodetree,
+    SHADING_OT_add_renderman_nodetree,
+    PRMAN_OT_refresh_osl_shader,
+    PRMAN_OT_RendermanBake,
+    PRMAN_OT_ExternalRender,
+    PRMAN_OT_StartInteractive,
+    PRMAN_OT_ExportRIBObject,
+    PRMAN_OT_AddPresetRendermanRender,
+    PRMAN_MT_PresetsMenu,
+    PRMAN_OT_examplesRenderman,
+    PRMAN_MT_LoadSceneMenu,
+    COLLECTION_OT_add_remove,
+    PRMAN_OT_add_renderman_aovs,
+    PRMAN_OT_add_multilayer_list,
+    PRMAN_OT_add_to_group,
+    PRMAN_OT_remove_from_group,
+    PRMAN_OT_remove_add_rem_light_link,
+    PRMAN_OT_Add_Subdiv_Sheme,
+    PRMAN_OT_RM_Add_Area,
+    PRMAN_OT_RM_Add_LightFilter,
+    PRMAN_OT_RM_Add_Hemi,
+    PRMAN_OT_RM_Add_Sky,
+    PRMAN_OT_Add_bxdf,
+    PRMAN_OT_New_bxdf,
+    PRMAN_OT_add_GeoLight,
+    PRMAN_OT_Select_Lights,
+    PRMAN_MT_Hemi_List_Menu,
+    PRMAN_MT_Area_List_Menu,
+    PRMAN_MT_DayLight_List_Menu,
+    PRMAN_OT_Select_Cameras,
+    PRMAN_MT_Camera_List_Menu,
+    PRMAN_OT_DeleteLights,
+    PRMAN_OT_Deletecameras,
+    PRMAN_OT_AddCamera,
+    PRMAN_OT_restart_addon,
+]
 
 def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+    
     bpy.types.TEXT_MT_text.append(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.append(compile_shader_menu_func)
-    bpy.types.INFO_MT_help.append(menu_draw)
+    bpy.types.TOPBAR_MT_help.append(menu_draw)
 
     # Register any default presets here. This includes render based and
     # Material based
@@ -1441,6 +1484,9 @@ def register():
 def unregister():
     bpy.types.TEXT_MT_text.remove(compile_shader_menu_func)
     bpy.types.TEXT_MT_toolbox.remove(compile_shader_menu_func)
-    bpy.types.INFO_MT_help.remove(menu_draw)
-
+    bpy.types.TOPBAR_MT_help.remove(menu_draw)
+    
     # It should be fine to leave presets registered as they are not in memory.
+    
+    for cls in classes:
+        bpy.utils.unregister_class(cls)

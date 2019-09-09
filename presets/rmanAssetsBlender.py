@@ -1349,7 +1349,7 @@ def createNodes(Asset):
                 lightrig_helper.empty_draw_size = lightrig_size
                 lightrig_helper.empty_draw_type = lightrig_type
 
-            bpy.ops.object.lamp_add(type='AREA')
+            bpy.ops.object.light_add(type='AREA')
             light = bpy.context.active_object
 
             # add current light object from JSON to helper
@@ -1358,7 +1358,7 @@ def createNodes(Asset):
             light.name = nodeId
             light.data.name = nodeId
             bpy.ops.shading.add_renderman_nodetree(
-                {'material': None, 'lamp': bpy.context.active_object.data}, idtype='lamp')
+                {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
             light.matrix_world[0] = vals[0:4]
             light.matrix_world[1] = vals[4:8]
             light.matrix_world[2] = vals[8:12]
@@ -1403,7 +1403,7 @@ def createNodes(Asset):
 
         # select lightrig and make active (same behavior like adding a object via UI)
         lightrig_helper.select = True
-        bpy.context.scene.objects.active = lightrig_helper
+        bpy.context.view_layer.objects.active = lightrig_helper
 
         # apply former rotation
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
@@ -1525,7 +1525,7 @@ def importAsset(filepath):
 
     elif assetType == "envMap":
         scene = bpy.context.scene
-        dome_lights = [ob for ob in scene.objects if ob.type == 'LAMP' \
+        dome_lights = [ob for ob in scene.objects if ob.type == 'LIGHT' \
             and ob.data.renderman.renderman_type == 'ENV']
 
         selected_dome_lights = [ob for ob in dome_lights if ob.select]
@@ -1540,20 +1540,20 @@ def importAsset(filepath):
                 # create a new dome light
                 else:
                     bpy.ops.object.mr_add_hemi()
-                    ob = scene.objects.active
+                    ob = view_layer.obejects.active
                     plugin_node = ob.data.renderman.get_light_node()
                     plugin_node.lightColorMap = env_map_path
 
             elif len(dome_lights) == 1:
-                lamp = dome_lights[0].data
-                plugin_node = lamp.renderman.get_light_node()
+                light = dome_lights[0].data
+                plugin_node = light.renderman.get_light_node()
                 plugin_node.lightColorMap = env_map_path
             else:
                 print('More than one dome in scene.  Not sure which to use')
         else:
             for light in selected_dome_lights:
-                lamp = dome_lights[0].data
-                plugin_node = lamp.renderman.get_light_node()
+                light = dome_lights[0].data
+                plugin_node = light.renderman.get_light_node()
                 plugin_node.lightColorMap = env_map_path
 
 

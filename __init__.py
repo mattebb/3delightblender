@@ -29,7 +29,7 @@ bl_info = {
     "name": "RenderMan For Blender",
     "author": "Pixar",
     "version": (22, 5, 0),
-    "blender": (2, 78, 0),
+    "blender": (2, 80, 0),
     "location": "Info Header, render engine menu",
     "description": "RenderMan 22.5 integration",
     "warning": "",
@@ -53,37 +53,38 @@ class PRManRender(bpy.types.RenderEngine):
                 engine.free(self)
 
     # main scene render
-    def update(self, data, scene):
+    def update(self, data, depsgraph):
         if(engine.ipr):
             return
         if self.is_preview:
             if not self.render_pass:
-                engine.create(self, data, scene)
+                engine.create(self, data, depsgraph)
         else:
             if not self.render_pass:
-                engine.create(self, data, scene)
+                engine.create(self, data, depsgraph)
             else:
-                engine.reset(self, data, scene)
+                engine.reset(self, data, depsgraph)
 
-        engine.update(self, data, scene)
+        engine.update(self, data, depsgraph)
 
-    def render(self, scene):
+    def render(self, depsgraph):
         if self.render_pass is not None:
-            engine.render(self)
+            engine.render(self, depsgraph)
+
 
 # these handlers are for marking files as dirty for ribgen
 def add_handlers(scene):
-    if engine.update_timestamp not in bpy.app.handlers.scene_update_post:
-        bpy.app.handlers.scene_update_post.append(engine.update_timestamp)
-    if properties.initial_groups not in bpy.app.handlers.scene_update_post:
+    if engine.update_timestamp not in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.append(engine.update_timestamp)
+    if properties.initial_groups not in bpy.app.handlers.depsgraph_update_post:
         bpy.app.handlers.load_post.append(properties.initial_groups)
 
 
 def remove_handlers():
-    if properties.initial_groups in bpy.app.handlers.scene_update_post:
-        bpy.app.handlers.scene_update_post.remove(properties.initial_groups)
-    if engine.update_timestamp in bpy.app.handlers.scene_update_post:
-        bpy.app.handlers.scene_update_post.remove(engine.update_timestamp)
+    if properties.initial_groups in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(properties.initial_groups)
+    if engine.update_timestamp in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(engine.update_timestamp)
 
 
 def load_addon():
@@ -112,14 +113,19 @@ def load_addon():
         throw_error(
             "Error loading addon.  Correct RMANTREE setting in addon preferences.")
 
+classes = [
+    PRManRender,
+]
 
 def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+    
+    from . import presets
+    presets.register()
     from . import preferences
     preferences.register()
     load_addon()
-    from . import presets
-    presets.register()
-    bpy.utils.register_module(__name__)
 
 
 
@@ -133,4 +139,7 @@ def unregister():
     preferences.unregister()
     from . import presets
     presets.unregister()
-    bpy.utils.unregister_module(__name__)
+    
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
+
