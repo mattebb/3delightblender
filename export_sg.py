@@ -488,7 +488,7 @@ class RmanSgExporter:
                         print("CANNOT FIND CAMERA!")
             elif active.type == 'EMPTY':
                 with rman.SGManager.ScopedEdit(self.sg_scene):
-                    self.export_duplis_instance(master=None, prnt=active)           
+                    self.export_duplis_instances(master=None, prnt=active)           
             elif active.type == 'LIGHT': 
                 if active.name not in self.sg_nodes_dict:
                     return
