@@ -127,7 +127,7 @@ def shutdown_ipr():
             window = bpy.context.window_manager.windows[0]
             override['window'] = window
             override['screen'] = window.screen
-            override['selected_bases'] = list(bpy.context.scene.object_bases)
+            #override['selected_bases'] = list(bpy.context.scene.object_bases)
             bpy.ops.lighting.start_interactive(override, 'INVOKE_DEFAULT')
 
 def create(engine, data, depsgraph, region=0, space_data=0, region_data=0):
@@ -498,7 +498,7 @@ class RPass:
     def blender_scene_updated_cb(self, scene):
         if __is_prman_running__():
             self.scene = scene
-            active = bpy.context.view_layer.objects.active
+            #active = bpy.context.view_layer.objects.active
 
             cw = [scene.render.border_min_x, scene.render.border_max_x,
                         1.0 - scene.render.border_min_y, 1.0 - scene.render.border_max_y]
@@ -506,8 +506,75 @@ class RPass:
             if cw != self.crop_window:
                 self.crop_window = cw
                 rman_sg_exporter().issue_cropwindow_edits(cw)
-                return            
+                return    
 
+            dgraph = bpy.context.view_layer.depsgraph
+            depupdates = dgraph.updates
+
+            for i in range(len(depupdates)):
+                dupd = depupdates[i]
+                active = bpy.types.Object(dupd.id)
+                obj_type = None
+                if hasattr(active, "type"):
+                    obj_type = active.type
+                elif bpy.context.view_layer.objects.active:
+                    obj_type = bpy.context.view_layer.objects.active.type
+                    active = bpy.context.view_layer.objects.active
+
+                if obj_type and obj_type not in ['MESH', 
+                                    'CURVE', 
+                                    'SURFACE', 
+                                    'META', 
+                                    'FONT', 
+                                    'LATTICE', 
+                                    'LIGHT', 
+                                    'CAMERA',
+                                    'EMPTY']:
+                    continue
+
+                if obj_type:
+                    if obj_type == 'LIGHT':
+                        if active.name not in self.lights:
+                            rman_sg_exporter().issue_new_object_edits(active, scene)
+                            self.lights[active.name] = active.data.name 
+                            continue
+
+                    elif active.name not in self.scene_objects:
+                        rman_sg_exporter().issue_new_object_edits(active, scene)
+                        self.scene_objects[active.name] = active.data.name if active.data else active                               
+                        continue        
+                    
+                    if dupd.is_updated_geometry:
+                        rman_sg_exporter().issue_object_edits(active, scene)
+                        continue
+
+                    elif dupd.is_updated_transform:
+                        rman_sg_exporter().issue_transform_edits(active, scene) 
+                        continue 
+
+                else:
+                    # check if an object got deleted
+                    if len(self.lights) > len([o for o in scene.objects if o.type == 'LIGHT']):
+                        lights_deleted = []
+                        for light_name, data_name in self.lights.items():
+                            if light_name not in scene.objects:
+                                rman_sg_exporter().issue_delete_object_edits(light_name, data_name)
+                                lights_deleted.append(light_name)
+
+                        for light_name in lights_deleted:
+                            self.lights.pop(light_name, None)             
+
+                    elif len(self.scene_objects) > len([o for o in scene.objects if o.type != 'LIGHT']):
+                        objects_deleted = []
+                        for obj_name, data_name in self.scene_objects.items():
+                            if obj_name not in scene.objects:
+                                rman_sg_exporter().issue_delete_object_edits(obj_name, data_name)
+                                objects_deleted.append(obj_name)
+
+                        for obj_name in objects_deleted:
+                            self.scene_objects.pop(obj_name, None)                    
+        
+            """
             if (active and active.particle_systems.active and active.particle_systems.active.id_data.is_updated_data):
                 # particles updated
                 psys_active = active.particle_systems.active
@@ -569,6 +636,7 @@ class RPass:
                         self.material_dict[mat_slot.material].append(active)
                         if mat_slot.material and mat_slot.material.node_tree:
                             rman_sg_exporter().issue_shader_edits(nt=mat_slot.material.node_tree, ob=active)
+            """
 
     def issue_shader_edits(self, nt=None, node=None):
         if rman__sg__inited:

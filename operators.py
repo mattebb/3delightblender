@@ -516,6 +516,10 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
                     engine.ipr.blender_scene_updated_pre_cb)                
                 bpy.app.handlers.depsgraph_update_post.append(
                     engine.ipr.blender_scene_updated_cb)
+                bpy.app.handlers.frame_change_post.append(
+                    engine.ipr.blender_scene_updated_cb)
+                bpy.app.handlers.redo_post.append(
+                    engine.ipr.blender_scene_updated_cb)                                         
             bpy.app.handlers.load_pre.append(self.invoke)
         else:
             if engine.rman__sg__inited:
@@ -523,6 +527,10 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
                     engine.ipr.blender_scene_updated_pre_cb)                
                 bpy.app.handlers.depsgraph_update_post.remove(
                     engine.ipr.blender_scene_updated_cb)                
+                bpy.app.handlers.frame_change_post.remove(
+                    engine.ipr.blender_scene_updated_cb)
+                bpy.app.handlers.redo_post.remove(
+                    engine.ipr.blender_scene_updated_cb)                                              
                     
             # The user should not turn this on and off during IPR rendering.
             if addon_prefs.draw_ipr_text:

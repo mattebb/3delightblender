@@ -1529,11 +1529,11 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel, _RManPanelHead
         col = split.column()
 
         if psys.settings.type == 'HAIR':
-            row = col.row()
-            row.prop(psys.settings.cycles, "root_width", text='Root Width')
-            row.prop(psys.settings.cycles, "tip_width", text='Tip Width')
-            row = col.row()
-            row.prop(psys.settings.cycles, "radius_scale", text='Width Multiplier')
+            #row = col.row()
+            #row.prop(psys.settings.cycles, "root_width", text='Root Width')
+            #row.prop(psys.settings.cycles, "tip_width", text='Tip Width')
+            #row = col.row()
+            #row.prop(psys.settings.cycles, "radius_scale", text='Width Multiplier')
 
             col.prop(rm, 'export_scalp_st')
             col.prop(rm, 'round_hair')

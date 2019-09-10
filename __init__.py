@@ -28,10 +28,10 @@ import sys
 bl_info = {
     "name": "RenderMan For Blender",
     "author": "Pixar",
-    "version": (22, 5, 0),
+    "version": (22, 6, 0),
     "blender": (2, 80, 0),
     "location": "Info Header, render engine menu",
-    "description": "RenderMan 22.5 integration",
+    "description": "RenderMan 22.6 integration",
     "warning": "",
     "category": "Render"}
 

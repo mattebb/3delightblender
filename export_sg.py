@@ -477,7 +477,8 @@ class RmanSgExporter:
 
     def issue_transform_edits(self, active, scene):
         self.scene = scene
-        if (active and active.is_updated):
+        #if (active and active.is_updated):
+        if (active):
             if active.type == 'CAMERA':
                 with rman.SGManager.ScopedEdit(self.sg_scene):
                     camera_node_sg = self.sg_nodes_dict['camera']
@@ -485,6 +486,9 @@ class RmanSgExporter:
                         self.export_camera_transform(camera_node_sg, scene.camera, [])
                     else:
                         print("CANNOT FIND CAMERA!")
+            elif active.type == 'EMPTY':
+                with rman.SGManager.ScopedEdit(self.sg_scene):
+                    self.export_duplis_instance(master=None, prnt=active)           
             elif active.type == 'LIGHT': 
                 if active.name not in self.sg_nodes_dict:
                     return
@@ -514,7 +518,7 @@ class RmanSgExporter:
                     with rman.SGManager.ScopedEdit(self.sg_scene):
                         sg_light.SetTransform( convert_matrix(active.matrix_world) )
             else:
-                dupli_type = active.dupli_type                
+                dupli_type = active.instance_type #active.dupli_type                
                 if dupli_type != "NONE":
                     data_blocks, instances = cache_motion(self.scene, self.rpass, objects=[active], calc_mb=False)
                     for name, db in data_blocks.items():
@@ -581,23 +585,10 @@ class RmanSgExporter:
                     
                     # check if this object is part of a group/dupli
                     # update accordingly.
+                    with rman.SGManager.ScopedEdit(self.sg_scene):
+                        self.export_duplis_instances(master=active)
                     
-                    for group in active.users_group:  
-                        for dupli in group.users_dupli_group:
-                            dupli.dupli_list_create(self.scene, "RENDER")
-                            for dupob in dupli.dupli_list:
-                                if active.name == dupob.object.name:
-                                    with rman.SGManager.ScopedEdit(self.sg_scene):
-                                        dupli_name = "%s.DUPLI.%s.%d" % (dupli.name, dupob.object.name,
-                                                    dupob.index)
-                                        if dupli_name in self.sg_nodes_dict:
-                                            sg_dupli = self.sg_nodes_dict[dupli_name]
-                                            sg_dupli.SetTransform( convert_matrix(dupob.matrix))   
-
-                            dupli.dupli_list_clear() 
-                    
-                    
-
+        """
         if active and scene.camera.name != active.name and scene.camera.is_updated:
             with rman.SGManager.ScopedEdit(self.sg_scene):
                 camera_node_sg = self.sg_nodes_dict['camera']
@@ -605,6 +596,7 @@ class RmanSgExporter:
                     self.export_camera_transform(camera_node_sg, scene.camera, [])
                 else:
                     print("CANNOT FIND CAMERA!")
+        """
 
     def issue_new_object_edits(self, active, scene):
         self.scene = scene
@@ -718,13 +710,57 @@ class RmanSgExporter:
                     with rman.SGManager.ScopedEdit(self.sg_scene):
                         if prim in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
                             self.export_mesh(active, mesh_sg, active.data, prim)                        
-                            self.export_object_primvars(active, mesh_sg) 
+                            self.export_object_primvars(active, mesh_sg)                
+                """
                 elif active.renderman.id_data.is_updated_data:
                     with rman.SGManager.ScopedEdit(self.sg_scene):
                         new_mesh_sg = self.export_geometry_data(active, db_name, data=None)
                         for p in [ mesh_sg.GetParent(i) for i in range(0, mesh_sg.GetNumParents())]:
                             p.RemoveChild(mesh_sg)
                             p.AddChild(new_mesh_sg)                        
+                """
+            for psys in active.particle_systems:
+                if psys:
+                    db_name_emitter = '%s.%s-EMITTER' % (active.name, psys.name)
+                    db_name_hair = '%s.%s-HAIR' % (active.name, psys.name)
+                    rm = psys.settings.renderman
+                    new_sg_node = None
+                    with rman.SGManager.ScopedEdit(self.sg_scene): 
+                        if psys.settings.type == 'EMITTER':    
+                            db_name = psys_name(active, psys)
+                            new_sg_node = self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None) 
+
+                            sg_node = self.sg_nodes_dict.get(db_name_hair)
+                            if sg_node:
+                                for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
+                                    p.RemoveChild(sg_node)
+                                    p.AddChild(new_sg_node)
+                        else: 
+                            db_name = psys_name(active, psys)         
+                            new_sg_node = self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None)
+                            sg_node = self.sg_nodes_dict.get(db_name_emitter)
+                            if sg_node:
+                                for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
+                                    p.RemoveChild(sg_node)
+                                    p.AddChild(new_sg_node)
+
+                        if psys.settings.material and not rm.use_object_material:
+                            psys_mat = active.material_slots[psys.settings.material -
+                                            1].material if psys.settings.material and psys.settings.material <= len(active.material_slots) else None
+                            if psys_mat:
+                                mat_handle = "material.%s" % psys_mat.name
+                                sg_material = self.sg_nodes_dict.get(mat_handle)
+                                if sg_material:
+                                    new_sg_node.SetMaterial(sg_material)
+
+                        if new_sg_node and new_sg_node.GetNumParents() == 0:
+                            # new_sg_node is an orphan
+                            # probably because it's a new particle system
+                            # add it to the active mesh
+                            mesh_db_name = data_name(active, self.scene)
+                            mesh_sg = self.sg_nodes_dict.get(mesh_db_name)
+                            if mesh_sg:
+                                mesh_sg.AddChild(new_sg_node)                
 
     def issue_shader_edits(self, nt=None, node=None, ob=None):
         if node is None:
@@ -1480,8 +1516,8 @@ class RmanSgExporter:
 
             ro = prot.to_matrix().to_4x4()
 
-            m2 = m * sc * ro
-            tform = tform + rib(parent.matrix_world * m2)
+            m2 = m @ sc @ ro
+            tform = tform + rib(parent.matrix_world @ m2)
 
         op.append(0)  # blob operation:add
         op.append(count)
@@ -3060,7 +3096,7 @@ class RmanSgExporter:
 
         valid_frames = (self.scene.frame_current,
                         self.scene.frame_current) if valid_frames is None else valid_frames
-        psys.set_resolution(self.scene, ob, 'RENDER')
+       #psys.set_resolution(self.scene, ob, 'RENDER')
         for pa in [p for p in psys.particles if valid_particle(p, valid_frames)]:
             P.extend(pa.location)
             rot.extend(pa.rotation)
@@ -3069,7 +3105,7 @@ class RmanSgExporter:
                 width.append(0.0)
             else:
                 width.append(pa.size)
-        psys.set_resolution(self.scene, ob, 'PREVIEW')
+        #psys.set_resolution(self.scene, ob, 'PREVIEW')
         return (P, rot, width)    
 
     def export_blobby_particles(self, sg_node, psys, ob, motion_data):
@@ -3103,8 +3139,8 @@ class RmanSgExporter:
                 rotation = Quaternion((rot[i * 4 + 0], rot[i * 4 + 1],
                                     rot[i * 4 + 2], rot[i * 4 + 3]))
                 scale = rm.width if rm.constant_width else widths[i]
-                mtx = Matrix.Translation(loc) * rotation.to_matrix().to_4x4() \
-                    * Matrix.Scale(scale, 4)
+                mtx = Matrix.Translation(loc) @ rotation.to_matrix().to_4x4() \
+                    @ Matrix.Scale(scale, 4)
                 tform.extend(convert_matrix(mtx))
 
             op.append(0)  # blob operation:add
@@ -3181,8 +3217,8 @@ class RmanSgExporter:
                 rotation = Quaternion((rot[i * 4 + 0], rot[i * 4 + 1],
                                     rot[i * 4 + 2], rot[i * 4 + 3]))
                 scale = width if rm.constant_width else point_width[i]
-                mtx = Matrix.Translation(loc) * rotation.to_matrix().to_4x4() \
-                    * Matrix.Scale(scale, 4)
+                mtx = Matrix.Translation(loc) @ rotation.to_matrix().to_4x4() \
+                    @ Matrix.Scale(scale, 4)
 
                 inst_sg.SetTransformSample(samp, convert_matrix(mtx), seg)
                 samp +=1
@@ -3392,6 +3428,37 @@ class RmanSgExporter:
             self.sg_nodes_dict[dupli_name] = sg_node
         ob.dupli_list_clear()            
 
+    def export_duplis_instances(self, master=None, prnt=None):
+        dg = bpy.context.evaluated_depsgraph_get()
+        for ob_inst in dg.object_instances:
+            if ob_inst.is_instance:
+                ob = ob_inst.instance_object.original
+                if master and master.name != ob.name:
+                    continue
+                parent = ob_inst.parent.original
+                if prnt and prnt.name != parent.name:
+                    continue
+                src_name = data_name(ob, self.scene)
+                if src_name in self.sg_nodes_dict:
+                    dupli_name = "%s.DUPLI.%s.%d" % (parent.name, src_name,
+                                ob_inst.random_id)
+                    sg_source = self.sg_nodes_dict[src_name]
+                    sg_node = self.sg_nodes_dict.get(dupli_name, None)
+                    if not sg_node:
+                        sg_node = self.sg_scene.CreateGroup(dupli_name)
+                        sg_node.AddChild(sg_source)
+                        self.sg_global_obj.AddChild(sg_node)                        
+                        
+                    sg_node.SetTransform( convert_matrix( ob_inst.matrix_world.copy() ) )
+                    mat = ob.active_material
+                    if mat:
+                        mat_handle = "material.%s" % mat.name
+                        if mat_handle in self.sg_nodes_dict:
+                            sg_material = self.sg_nodes_dict[mat_handle]
+                            sg_node.SetMaterial(sg_material)
+
+                    self.sg_nodes_dict[dupli_name] = sg_node
+
     def export_objects(self, data_blocks, instances, visible_objects=None, emptiesToExport=None):
 
         # loop over objects
@@ -3408,10 +3475,10 @@ class RmanSgExporter:
                 self.export_mesh_archive(db)
             elif db.type == "PSYS":
                 self.export_particle_archive(db, True)  
-            elif db.type == "DUPLI":             
-                sg_node = self.sg_scene.CreateGroup(name)   
-                self.export_dupli_archive(sg_node, db, data_blocks)
-                self.sg_nodes_dict[name] = sg_node                            
+            #elif db.type == "DUPLI":             
+            #    sg_node = self.sg_scene.CreateGroup(name)   
+            #    self.export_dupli_archive(sg_node, db, data_blocks)
+            #    self.sg_nodes_dict[name] = sg_node                            
             print("\t\t    Processed %d/%d objects (%d%%) " % (i, total, int((i/total) * 100)))
             sys.stdout.flush()
             i += 1  
@@ -3430,7 +3497,8 @@ class RmanSgExporter:
                         for db_name in child_instance.data_block_names:
                             inst_sg = self.sg_nodes_dict.get(instance.name)
                             self.write_instances(db_name, data_blocks, data_blocks[db_name], instances, child_instance, visible_objects=visible_objects, parent_sg_node=inst_sg)            
-
+        print("\t\tExporting dupli instances...")
+        self.export_duplis_instances()
 
     def write_scene(self, visible_objects=None, engine=None, do_objects=True):
 
@@ -3740,8 +3808,9 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=True):
             psys_modifier = mod
             break
 
-    tip_width = psys.settings.cycles.tip_width * psys.settings.cycles.radius_scale
-    base_width = psys.settings.cycles.root_width * psys.settings.cycles.radius_scale
+    tip_width = psys.settings.tip_radius * psys.settings.radius_scale
+    base_width = psys.settings.root_radius * psys.settings.radius_scale
+
     conwidth = (tip_width == base_width)
     steps = 2 ** psys.settings.render_step
     if conwidth:
@@ -3752,7 +3821,7 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=True):
         widthString = rman.Tokens.Rix.k_width
         hair_width = []
 
-    psys.set_resolution(scene=scene, object=ob, resolution='RENDER')
+    #psys.set_resolution(scene=scene, object=ob, resolution='RENDER')
 
     num_parents = len(psys.particles)
     num_children = len(psys.child_particles)
@@ -3774,8 +3843,8 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=True):
 
         strand_points = []
         # walk through each strand
-        for step in range(0, steps + 1):
-            pt = psys.co_hair(object=ob, particle_no=pindex, step=step)
+        for step in range(0, steps + 1):           
+            pt = psys.co_hair(ob, particle_no=pindex, step=step)
 
             if pt.length_squared == 0:
                 # this strand ends prematurely                    
@@ -3839,7 +3908,7 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=True):
         curve_sets.append((vertsArray, points, widthString,
                         hair_width, scalpS, scalpT))
 
-    psys.set_resolution(scene=scene, object=ob, resolution='PREVIEW')
+    #psys.set_resolution(scene=scene, object=ob, resolution='PREVIEW')
 
     return curve_sets           
 
@@ -3858,7 +3927,7 @@ def get_particles(scene, ob, psys, valid_frames=None):
 
     valid_frames = (scene.frame_current,
                     scene.frame_current) if valid_frames is None else valid_frames
-    psys.set_resolution(scene, ob, 'RENDER')
+    #psys.set_resolution(scene, ob, 'RENDER')
     for pa in [p for p in psys.particles if valid_particle(p, valid_frames)]:
         P.extend(pa.location)
         rot.extend(pa.rotation)
@@ -3867,7 +3936,7 @@ def get_particles(scene, ob, psys, valid_frames=None):
             width.append(0.0)
         else:
             width.append(pa.size)
-    psys.set_resolution(scene, ob, 'PREVIEW')
+    #psys.set_resolution(scene, ob, 'PREVIEW')
     return (P, rot, width)
 
 def get_mesh_points(mesh):
@@ -4009,7 +4078,7 @@ def get_primvars(ob, geo, rixparams, interpolation=""):
         vcols = get_mesh_vcol(geo)
         if vcols and len(vcols) > 0:
             #primvars["%s color Cs" % interpolation] = rib(vcols)
-            rixparams.SetColorDetail("Cs", rib(vcols), interpolation)
+            rixparams.SetColorDetail("Cs", rib(vcols, type_hint="color"), interpolation)
 
     # custom prim vars
     for p in rm.prim_vars:
@@ -4017,7 +4086,7 @@ def get_primvars(ob, geo, rixparams, interpolation=""):
             vcols = get_mesh_vcol(geo, p.data_name)
             if vcols and len(vcols) > 0:
                 #primvars["%s color %s" % (interpolation, p.name)] = rib(vcols)
-                rixparams.SetColorDetail(p.name, rib(vcols), interpolation)
+                rixparams.SetColorDetail(p.name, rib(vcols, type_hint="color"), interpolation)
 
         elif p.data_source == 'UV_TEXTURE':
             uvs = get_mesh_uv(geo, p.data_name, flipvmode=rm.export_flipv)
@@ -4490,24 +4559,28 @@ def get_data_blocks_needed(ob, rpass, do_mb):
     dupli_emitted = False
     # get any particle systems, or if a particle sys is duplis
     if len(ob.particle_systems):
-        emit_ob = False
-        for psys in ob.particle_systems:
+        eval_ob = bpy.context.evaluated_depsgraph_get().objects.get(ob.name, None)
+        #emit_ob = False
+        for psys in eval_ob.particle_systems:
+
             # if this is an objct emitter use dupli
-            if psys.settings.use_render_emitter:
-                emit_ob = True
+            #if psys.settings.use_render_emitter:
+            #    emit_ob = True
+
+
             if psys.settings.render_type not in ['OBJECT', 'GROUP']:
-                name = psys_name(ob, psys)
+                name = psys_name(eval_ob, psys)
                 type = 'PSYS'
-                data = (ob, psys)
+                data = (eval_ob, psys)
                 archive_filename = get_archive_filename(name, rpass,
-                                                        is_psys_animating(ob, psys, do_mb))
+                                                        is_psys_animating(eval_ob, psys, do_mb))
             else:
-                name = ob.name + '-DUPLI'
+                name = eval_ob.name + '-DUPLI'
                 type = 'DUPLI'
                 archive_filename = get_archive_filename(name, rpass,
-                                                        is_psys_animating(ob, psys, do_mb))
+                                                        is_psys_animating(eval_ob, psys, do_mb))
                 dupli_emitted = True
-                data = ob
+                data = eval_ob
                 if psys.settings.render_type == 'OBJECT':
                     data_blocks.extend(get_dupli_block(
                         psys.settings.dupli_object, rpass, do_mb))
@@ -4516,11 +4589,11 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                         data_blocks.extend(
                             get_dupli_block(dupli_ob, rpass, do_mb))
 
-            mat = [ob.material_slots[psys.settings.material -
-                                     1].material] if psys.settings.material and psys.settings.material <= len(ob.material_slots) else []
+            mat = [eval_ob.material_slots[psys.settings.material -
+                                     1].material] if psys.settings.material and psys.settings.material <= len(eval_ob.material_slots) else []
             data_blocks.append(DataBlock(name, type, archive_filename, data,
-                                         is_psys_animating(ob, psys, do_mb), material=mat,
-                                         do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
+                                         is_psys_animating(eval_ob, psys, do_mb), material=mat,
+                                         do_export=file_is_dirty(rpass.scene, eval_ob, archive_filename)))
 
     if hasattr(ob, 'dupli_type') and ob.dupli_type in SUPPORTED_DUPLI_TYPES and not dupli_emitted:
         name = ob.name + '-DUPLI'
