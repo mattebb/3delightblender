@@ -77,7 +77,7 @@ GLOBAL_ZERO_PADDING = 5
 # Objects that can be exported as a polymesh via Blender to_mesh() method.
 # ['MESH','CURVE','FONT']
 SUPPORTED_INSTANCE_TYPES = ['MESH', 'CURVE', 'FONT', 'SURFACE']
-SUPPORTED_DUPLI_TYPES = ['FACES', 'VERTS', 'GROUP']    # Supported dupli types.
+SUPPORTED_DUPLI_TYPES = ['FACES', 'VERTS', 'COLLECTION']    # Supported dupli types.
 # These object types can have materials.
 MATERIAL_TYPES = ['MESH', 'CURVE', 'FONT']
 # Objects without to_mesh() conversion capabilities.
@@ -3447,8 +3447,8 @@ class RmanSgExporter:
                     if not sg_node:
                         sg_node = self.sg_scene.CreateGroup(dupli_name)
                         sg_node.AddChild(sg_source)
-                        self.sg_global_obj.AddChild(sg_node)                        
-                        
+                        self.sg_global_obj.AddChild(sg_node)       
+
                     sg_node.SetTransform( convert_matrix( ob_inst.matrix_world.copy() ) )
                     mat = ob.active_material
                     if mat:
@@ -4524,13 +4524,13 @@ def get_dupli_block(ob, rpass, do_mb):
     if not ob:
         return []
 
-    if hasattr(ob, 'dupli_type') and ob.dupli_type in SUPPORTED_DUPLI_TYPES:
+    if ob.instance_type != "NONE" and ob.instance_type in SUPPORTED_DUPLI_TYPES:
         name = ob.name + '-DUPLI'
         # duplis aren't animated
         dbs = []
         deforming = False
-        if ob.dupli_type == 'GROUP' and ob.dupli_group:
-            for dupli_ob in ob.dupli_group.objects:
+        if ob.instance_type == "COLLECTION" and ob.instance_collection:
+            for dupli_ob in ob.instance_collection.objects:
                 sub_dbs = get_dupli_block(dupli_ob, rpass, do_mb)
                 if not deforming:
                     for db in sub_dbs:
@@ -4566,9 +4566,8 @@ def get_data_blocks_needed(ob, rpass, do_mb):
     dupli_emitted = False
     # get any particle systems, or if a particle sys is duplis
     if len(ob.particle_systems):
-        eval_ob = bpy.context.evaluated_depsgraph_get().objects.get(ob.name, None)
         #emit_ob = False
-        for psys in eval_ob.particle_systems:
+        for psys in ob.particle_systems:
 
             # if this is an objct emitter use dupli
             #if psys.settings.use_render_emitter:
@@ -4576,41 +4575,38 @@ def get_data_blocks_needed(ob, rpass, do_mb):
 
 
             if psys.settings.render_type not in ['OBJECT', 'COLLECTION']:
-                name = psys_name(eval_ob, psys)
+                name = psys_name(ob, psys)
                 type = 'PSYS'
-                data = (eval_ob, psys)
+                data = (ob, psys)
                 archive_filename = get_archive_filename(name, rpass,
-                                                        is_psys_animating(eval_ob, psys, do_mb))
+                                                        is_psys_animating(ob, psys, do_mb))
             else:
-                continue
-                """
-                name = eval_ob.name + '-DUPLI'
+                name = ob.name + '-DUPLI'
                 type = 'DUPLI'
                 archive_filename = get_archive_filename(name, rpass,
-                                                        is_psys_animating(eval_ob, psys, do_mb))
+                                                        is_psys_animating(ob, psys, do_mb))
                 dupli_emitted = True
-                data = eval_ob
+                data = ob
                 if psys.settings.render_type == 'OBJECT':
                     data_blocks.extend(get_dupli_block(
-                        psys.settings.dupli_object, rpass, do_mb))
-                elif psys.settings.dupli_group:
-                    for dupli_ob in psys.settings.dupli_group.objects:
+                        psys.settings.instance_object, rpass, do_mb))
+                elif psys.settings.instance_collection:
+                    for dupli_ob in psys.settings.instance_collection.objects:
                         data_blocks.extend(
-                            get_dupli_block(dupli_ob, rpass, do_mb))
-                """            
+                            get_dupli_block(dupli_ob, rpass, do_mb))     
 
-            mat = [eval_ob.material_slots[psys.settings.material -
-                                     1].material] if psys.settings.material and psys.settings.material <= len(eval_ob.material_slots) else []
+            mat = [ob.material_slots[psys.settings.material -
+                                     1].material] if psys.settings.material and psys.settings.material <= len(ob.material_slots) else []
             data_blocks.append(DataBlock(name, type, archive_filename, data,
-                                         is_psys_animating(eval_ob, psys, do_mb), material=mat,
-                                         do_export=file_is_dirty(rpass.scene, eval_ob, archive_filename)))
+                                         is_psys_animating(ob, psys, do_mb), material=mat,
+                                         do_export=file_is_dirty(rpass.scene, ob, archive_filename)))
 
-    if hasattr(ob, 'dupli_type') and ob.dupli_type in SUPPORTED_DUPLI_TYPES and not dupli_emitted:
+    if ob.instance_type != "NONE" and ob.instance_type in SUPPORTED_DUPLI_TYPES:
         name = ob.name + '-DUPLI'
         # duplis aren't animated
         dupli_deforming = False
-        if ob.dupli_type == 'GROUP' and ob.dupli_group:
-            for dupli_ob in ob.dupli_group.objects:
+        if ob.instance_type == "COLLECTION" and ob.instance_collection:
+            for dupli_ob in ob.instance_collection.objects:
                 sub_dbs = get_dupli_block(dupli_ob, rpass, do_mb)
                 if not dupli_deforming:
                     dupli_deforming = any(db.deforming for db in sub_dbs)
@@ -4698,7 +4694,7 @@ def get_deformation(data_block, subframe, scene, subframes):
 
 def cache_motion(scene, rpass, objects=None, calc_mb=True):
     if objects is None:
-        objects = scene.objects
+        objects = bpy.context.evaluated_depsgraph_get().objects #scene.objects
     origframe = scene.frame_current
     instances, data_blocks, motion_segs = \
         get_instances_and_blocks(objects, rpass)
