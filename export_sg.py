@@ -3628,7 +3628,7 @@ def is_visible_layer(scene, ob):
 
 def is_renderable(scene, ob):
     return (is_visible_layer(scene, ob) and not ob.hide_render) or \
-        (ob.type in ['ARMATURE', 'LATTICE', 'EMPTY'] and ob.dupli_type not in SUPPORTED_DUPLI_TYPES)
+        (ob.type in ['ARMATURE', 'LATTICE', 'EMPTY'] and ob.instance_type not in SUPPORTED_DUPLI_TYPES)
     # and not ob.type in ('CAMERA', 'ARMATURE', 'LATTICE'))
 
 
@@ -4716,9 +4716,9 @@ def cache_motion(scene, rpass, objects=None, calc_mb=True):
         actual_subframes = [origframe + subframe for subframe in subframes]
         for seg in subframes:
             if seg < 0.0:
-                scene.frame_set(origframe - 1, 1.0 + seg)
+                scene.frame_set(origframe - 1, subframe=1.0 + seg)
             else:
-                scene.frame_set(origframe, seg)
+                scene.frame_set(origframe, subframe=seg)
 
             for name in instance_names:
                 get_transform(instances[name], seg)
