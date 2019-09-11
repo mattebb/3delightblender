@@ -3808,6 +3808,13 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=True):
             psys_modifier = mod
             break
 
+    # !!!!!!!!!!!!!!!!!!!!!
+    # Check if the modifier has show_viewport set to True
+    # If set to False, Blender will crash when psys.co_hair is called
+    # !!!!!!!!!!!!!!!!!!!!!
+    if not psys_modifier.show_viewport:
+        return []
+
     tip_width = psys.settings.tip_radius * psys.settings.radius_scale
     base_width = psys.settings.root_radius * psys.settings.radius_scale
 
@@ -4568,13 +4575,15 @@ def get_data_blocks_needed(ob, rpass, do_mb):
             #    emit_ob = True
 
 
-            if psys.settings.render_type not in ['OBJECT', 'GROUP']:
+            if psys.settings.render_type not in ['OBJECT', 'COLLECTION']:
                 name = psys_name(eval_ob, psys)
                 type = 'PSYS'
                 data = (eval_ob, psys)
                 archive_filename = get_archive_filename(name, rpass,
                                                         is_psys_animating(eval_ob, psys, do_mb))
             else:
+                continue
+                """
                 name = eval_ob.name + '-DUPLI'
                 type = 'DUPLI'
                 archive_filename = get_archive_filename(name, rpass,
@@ -4588,6 +4597,7 @@ def get_data_blocks_needed(ob, rpass, do_mb):
                     for dupli_ob in psys.settings.dupli_group.objects:
                         data_blocks.extend(
                             get_dupli_block(dupli_ob, rpass, do_mb))
+                """            
 
             mat = [eval_ob.material_slots[psys.settings.material -
                                      1].material] if psys.settings.material and psys.settings.material <= len(eval_ob.material_slots) else []
