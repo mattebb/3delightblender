@@ -1220,12 +1220,13 @@ class RmanSgExporter:
         is_deforming = False
         mesh = None
         time_samples = []
-        if motion_data is not None and isinstance(motion_data, list) and len(motion_data):
-            time_samples = [sample[0] for sample in motion_data]            
-            is_deforming = True
-            mesh = motion_data[0][1]
-        else:
-            mesh = create_mesh(ob, self.scene)
+        #if motion_data is not None and isinstance(motion_data, list) and len(motion_data):
+        #    time_samples = [sample[0] for sample in motion_data]            
+        #    is_deforming = True
+        #    mesh = motion_data[0][1]
+        #else:
+        #    mesh = create_mesh(ob, self.scene)
+        mesh = create_mesh(ob, self.scene)
 
         get_normals = (prim_type == 'POLYGON_MESH')
         (nverts, verts, P, N) = get_mesh(mesh, get_normals=get_normals)
@@ -1246,11 +1247,14 @@ class RmanSgExporter:
         if is_deforming:
             pts = list( zip(*[iter(P)]*3 ) )
             primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex", 0)
+            origframe = self.scene.frame_current
             for sample in range(1, len(motion_data)):
-                (subframes, m) = motion_data[sample]
+                (subframe, m) = motion_data[sample]
+                self.scene.frame_set(origframe, subframe=seg)
                 P = get_mesh_points(m)
                 pts = list( zip(*[iter(P)]*3 ) )
                 primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex", sample)
+            self.scene.frame_set(origframe, subframe=0)
         else:
             pts = list( zip(*[iter(P)]*3 ) )
             primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex")
@@ -4672,7 +4676,7 @@ def get_deformation(data_block, subframe, scene, subframes):
         return
     else:
         if data_block.type == "MESH":
-            mesh = create_mesh(data_block.data, scene)
+            mesh = None #create_mesh(data_block.data, scene)
             data_block.motion_data.append((subframe, mesh))
         elif data_block.type == "PSYS":
             ob, psys = data_block.data
@@ -4698,8 +4702,7 @@ def cache_motion(scene, rpass, objects=None, calc_mb=True):
     origframe = scene.frame_current
     instances, data_blocks, motion_segs = \
         get_instances_and_blocks(objects, rpass)
-
-
+        
     if not calc_mb:
         return data_blocks, instances
 
@@ -4707,6 +4710,7 @@ def cache_motion(scene, rpass, objects=None, calc_mb=True):
     # so we process objects in batches of equal numbers of segments
     # and update the scene only once for each of those unique fractional
     # frames per segment set
+   
     for num_segs, (instance_names, data_names) in motion_segs.items():
         # prepare list of frames/sub-frames in advance,
         # ordered from future to present,
