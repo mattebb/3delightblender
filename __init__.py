@@ -68,7 +68,11 @@ class PRManRender(bpy.types.RenderEngine):
         engine.update(self, data, depsgraph)
 
     def render(self, depsgraph):
-        if self.render_pass is not None:
+        if engine.ipr:
+            engine.ipr.scene = depsgraph.scene
+            engine.ipr.depsgraph = depsgraph
+            engine.ipr.start_interactive_sg()
+        elif self.render_pass is not None:
             engine.render(self, depsgraph)
 
 

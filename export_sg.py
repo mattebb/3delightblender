@@ -583,10 +583,10 @@ class RmanSgExporter:
                                 #    self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None)                                 
 
                     
-                    # check if this object is part of a group/dupli
-                    # update accordingly.
-                    with rman.SGManager.ScopedEdit(self.sg_scene):
-                        self.export_duplis_instances(master=active)
+                                # check if this object is part of a group/dupli
+                                # update accordingly.
+                
+                                #self.export_duplis_instances(master=active)
                     
         """
         if active and scene.camera.name != active.name and scene.camera.is_updated:
@@ -711,56 +711,56 @@ class RmanSgExporter:
                         if prim in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
                             self.export_mesh(active, mesh_sg, active.data, prim)                        
                             self.export_object_primvars(active, mesh_sg)                
-                """
-                elif active.renderman.id_data.is_updated_data:
-                    with rman.SGManager.ScopedEdit(self.sg_scene):
-                        new_mesh_sg = self.export_geometry_data(active, db_name, data=None)
-                        for p in [ mesh_sg.GetParent(i) for i in range(0, mesh_sg.GetNumParents())]:
-                            p.RemoveChild(mesh_sg)
-                            p.AddChild(new_mesh_sg)                        
-                """
-            for psys in active.particle_systems:
-                if psys:
-                    db_name_emitter = '%s.%s-EMITTER' % (active.name, psys.name)
-                    db_name_hair = '%s.%s-HAIR' % (active.name, psys.name)
-                    rm = psys.settings.renderman
-                    new_sg_node = None
-                    with rman.SGManager.ScopedEdit(self.sg_scene): 
-                        if psys.settings.type == 'EMITTER':    
-                            db_name = psys_name(active, psys)
-                            new_sg_node = self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None) 
+            
+                #elif active.renderman.id_data.is_updated_data:
+                #    with rman.SGManager.ScopedEdit(self.sg_scene):
+                #        new_mesh_sg = self.export_geometry_data(active, db_name, data=None)
+                #        for p in [ mesh_sg.GetParent(i) for i in range(0, mesh_sg.GetNumParents())]:
+                #            p.RemoveChild(mesh_sg)
+                #            p.AddChild(new_mesh_sg)                        
+                
+            
+                        for psys in active.particle_systems:
+                            if psys:
+                                db_name_emitter = '%s.%s-EMITTER' % (active.name, psys.name)
+                                db_name_hair = '%s.%s-HAIR' % (active.name, psys.name)
+                                rm = psys.settings.renderman
+                                new_sg_node = None
+                                if psys.settings.type == 'EMITTER':    
+                                    db_name = psys_name(active, psys)
+                                    new_sg_node = self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None) 
 
-                            sg_node = self.sg_nodes_dict.get(db_name_hair)
-                            if sg_node:
-                                for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
-                                    p.RemoveChild(sg_node)
-                                    p.AddChild(new_sg_node)
-                        else: 
-                            db_name = psys_name(active, psys)         
-                            new_sg_node = self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None)
-                            sg_node = self.sg_nodes_dict.get(db_name_emitter)
-                            if sg_node:
-                                for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
-                                    p.RemoveChild(sg_node)
-                                    p.AddChild(new_sg_node)
+                                    sg_node = self.sg_nodes_dict.get(db_name_hair)
+                                    if sg_node:
+                                        for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
+                                            p.RemoveChild(sg_node)
+                                            p.AddChild(new_sg_node)
+                                else: 
+                                    db_name = psys_name(active, psys)         
+                                    new_sg_node = self.export_particle_system(active, psys, db_name, objectCorrectionMatrix=True, data=None)
+                                    sg_node = self.sg_nodes_dict.get(db_name_emitter)
+                                    if sg_node:
+                                        for p in [ sg_node.GetParent(i) for i in range(0, sg_node.GetNumParents())]:
+                                            p.RemoveChild(sg_node)
+                                            p.AddChild(new_sg_node)
 
-                        if psys.settings.material and not rm.use_object_material:
-                            psys_mat = active.material_slots[psys.settings.material -
-                                            1].material if psys.settings.material and psys.settings.material <= len(active.material_slots) else None
-                            if psys_mat:
-                                mat_handle = "material.%s" % psys_mat.name
-                                sg_material = self.sg_nodes_dict.get(mat_handle)
-                                if sg_material:
-                                    new_sg_node.SetMaterial(sg_material)
+                                if psys.settings.material and not rm.use_object_material:
+                                    psys_mat = active.material_slots[psys.settings.material -
+                                                    1].material if psys.settings.material and psys.settings.material <= len(active.material_slots) else None
+                                    if psys_mat:
+                                        mat_handle = "material.%s" % psys_mat.name
+                                        sg_material = self.sg_nodes_dict.get(mat_handle)
+                                        if sg_material:
+                                            new_sg_node.SetMaterial(sg_material)
 
-                        if new_sg_node and new_sg_node.GetNumParents() == 0:
-                            # new_sg_node is an orphan
-                            # probably because it's a new particle system
-                            # add it to the active mesh
-                            mesh_db_name = data_name(active, self.scene)
-                            mesh_sg = self.sg_nodes_dict.get(mesh_db_name)
-                            if mesh_sg:
-                                mesh_sg.AddChild(new_sg_node)                
+                                if new_sg_node and new_sg_node.GetNumParents() == 0:
+                                    # new_sg_node is an orphan
+                                    # probably because it's a new particle system
+                                    # add it to the active mesh
+                                    mesh_db_name = data_name(active, self.scene)
+                                    mesh_sg = self.sg_nodes_dict.get(mesh_db_name)
+                                    if mesh_sg:
+                                        mesh_sg.AddChild(new_sg_node)                         
 
     def issue_shader_edits(self, nt=None, node=None, ob=None):
         if node is None:
@@ -1251,6 +1251,7 @@ class RmanSgExporter:
             for sample in range(1, len(motion_data)):
                 (subframe, m) = motion_data[sample]
                 self.scene.frame_set(origframe, subframe=seg)
+                m = create_mesh(ob, self.scene)
                 P = get_mesh_points(m)
                 pts = list( zip(*[iter(P)]*3 ) )
                 primvar.SetPointDetail(rman.Tokens.Rix.k_P, pts, "vertex", sample)
@@ -3433,7 +3434,7 @@ class RmanSgExporter:
         ob.dupli_list_clear()            
 
     def export_duplis_instances(self, master=None, prnt=None):
-        dg = bpy.context.evaluated_depsgraph_get()
+        dg = self.rpass.depsgraph #bpy.context.evaluated_depsgraph_get()
         for ob_inst in dg.object_instances:
             if ob_inst.is_instance:
                 ob = ob_inst.instance_object.original
@@ -3816,8 +3817,8 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=True):
     # Check if the modifier has show_viewport set to True
     # If set to False, Blender will crash when psys.co_hair is called
     # !!!!!!!!!!!!!!!!!!!!!
-    if not psys_modifier.show_viewport:
-        return []
+    #if not psys_modifier.show_viewport:
+    #    return []
 
     tip_width = psys.settings.tip_radius * psys.settings.radius_scale
     base_width = psys.settings.root_radius * psys.settings.radius_scale
@@ -3848,6 +3849,8 @@ def get_strands(scene, ob, psys, objectCorrectionMatrix=True):
     scalpS = []
     scalpT = []
     nverts = 0
+    no = 0
+    
     for pindex in range(total_hair_count):
         if psys.settings.child_type != 'NONE' and pindex < num_parents:
             continue
@@ -4698,7 +4701,8 @@ def get_deformation(data_block, subframe, scene, subframes):
 
 def cache_motion(scene, rpass, objects=None, calc_mb=True):
     if objects is None:
-        objects = bpy.context.evaluated_depsgraph_get().objects #scene.objects
+        objects = rpass.depsgraph.objects #scene.objects
+        #objects = scene.objects
     origframe = scene.frame_current
     instances, data_blocks, motion_segs = \
         get_instances_and_blocks(objects, rpass)

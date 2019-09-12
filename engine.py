@@ -211,6 +211,7 @@ class RPass:
         self.is_interactive = interactive
         self.is_interactive_ready = False
         self.options = []
+        self.depsgraph = None
 
         # check if prman is imported
         if not rman__sg__inited:
@@ -511,10 +512,15 @@ class RPass:
             dgraph = bpy.context.view_layer.depsgraph
             depupdates = dgraph.updates
 
-            for i in range(len(depupdates)):
-                dupd = depupdates[i]
-                active = bpy.types.Object(dupd.id)
+            for dupd in dgraph.updates:
+                active = None
+                if isinstance(dupd.id, bpy.types.Object):
+                    if dupd.id.type == "MESH":
+                        active = bpy.types.Mesh(dupd.id)
+                    else:
+                        active = bpy.types.Object(dupd.id)
                 obj_type = None
+
                 if hasattr(active, "type"):
                     obj_type = active.type
                 elif bpy.context.view_layer.objects.active:
@@ -532,7 +538,9 @@ class RPass:
                                     'EMPTY']:
                     continue
 
-                if obj_type:
+                if obj_type:                    
+                    
+                    """
                     if obj_type == 'LIGHT':
                         if active.name not in self.lights:
                             rman_sg_exporter().issue_new_object_edits(active, scene)
@@ -540,18 +548,21 @@ class RPass:
                             continue
 
                     elif active.name not in self.scene_objects:
-                        rman_sg_exporter().issue_new_object_edits(active, scene)
-                        self.scene_objects[active.name] = active.data.name if active.data else active                               
+                        if obj_type == "MESH":
+                            rman_sg_exporter().issue_new_object_edits(active, scene)
+                            self.scene_objects[active.name] = active.data.name if active.data else active                               
                         continue        
-                    
-                    if dupd.is_updated_geometry:
+                    """
+
+                    if dupd.is_updated_transform:
+                        rman_sg_exporter().issue_transform_edits(active, scene)
+                        continue                         
+
+                    elif dupd.is_updated_geometry:
                         rman_sg_exporter().issue_object_edits(active, scene)
                         continue
 
-                    elif dupd.is_updated_transform:
-                        rman_sg_exporter().issue_transform_edits(active, scene) 
-                        continue 
-
+                """
                 else:
                     # check if an object got deleted
                     if len(self.lights) > len([o for o in scene.objects if o.type == 'LIGHT']):
@@ -572,7 +583,8 @@ class RPass:
                                 objects_deleted.append(obj_name)
 
                         for obj_name in objects_deleted:
-                            self.scene_objects.pop(obj_name, None)                    
+                            self.scene_objects.pop(obj_name, None)    
+                """                                     
         
             """
             if (active and active.particle_systems.active and active.particle_systems.active.id_data.is_updated_data):

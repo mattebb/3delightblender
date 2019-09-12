@@ -506,12 +506,13 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
             if not hasattr(context, 'scene'):
                 return {'FINISHED'}
             engine.ipr = RPass(context.scene, interactive=True)
-            if engine.rman__sg__inited:
-                engine.ipr.start_interactive_sg()
+            #if engine.rman__sg__inited:
+            #    engine.ipr.start_interactive_sg()
             if addon_prefs.draw_ipr_text:
                 engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
                     self.draw, (context,), 'WINDOW', 'POST_PIXEL')
             if engine.rman__sg__inited:
+                
                 bpy.app.handlers.depsgraph_update_post.append(
                     engine.ipr.blender_scene_updated_pre_cb)                
                 bpy.app.handlers.depsgraph_update_post.append(
@@ -521,6 +522,7 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
                 bpy.app.handlers.redo_post.append(
                     engine.ipr.blender_scene_updated_cb)                                         
             bpy.app.handlers.load_pre.append(self.invoke)
+            bpy.ops.render.render()
         else:
             if engine.rman__sg__inited:
                 bpy.app.handlers.depsgraph_update_post.remove(
