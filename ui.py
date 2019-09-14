@@ -174,6 +174,7 @@ class PRManButtonsPanel(_RManPanelHeader):
 
 class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
     bl_label = "Render"
+    bl_order = 0
 
     def draw(self, context):
         if context.scene.render.engine != "PRMAN_RENDER":
@@ -228,6 +229,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
 
 class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
     bl_label = "Baking"
+    bl_order = 3
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -241,6 +243,7 @@ class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
 
 class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
     bl_label = "External Rendering"
+    bl_order = 2
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -423,6 +426,7 @@ def draw_props(node, prop_names, layout):
 
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     bl_label = "Sampling"
+    bl_order = 1
     # bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -469,6 +473,7 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
 
 class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
     bl_label = "Motion Blur"
+    bl_order = 4
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -519,6 +524,7 @@ class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
 
 class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
     bl_label = "Advanced"
+    bl_order = 5
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
