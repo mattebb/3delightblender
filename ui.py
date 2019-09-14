@@ -229,7 +229,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
 
 class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
     bl_label = "Baking"
-    bl_order = 3
+    bl_order = 5
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -243,7 +243,7 @@ class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
 
 class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
     bl_label = "External Rendering"
-    bl_order = 2
+    bl_order = 3
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -455,20 +455,37 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
 
         col = layout.column(align=False)
         col.prop(rm, 'incremental')
+
+class RENDER_PT_renderman_integrator(PRManButtonsPanel, Panel):
+    bl_label = "Integrator"
+    bl_order = 2
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+
+        col = layout.column()
+        row = col.row(align=True)
+
         col.prop(rm, "integrator")
         # find args for integrators here!
         integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
 
+        # TODO: Remove show integrator settings button
         icon = 'DISCLOSURE_TRI_DOWN' if rm.show_integrator_settings \
             else 'DISCLOSURE_TRI_RIGHT'
         text = rm.integrator + " Settings:"
 
         row = col.row()
         row.prop(rm, "show_integrator_settings", icon=icon, text=text,
-                 emboss=False)
+                         emboss=False)
         if rm.show_integrator_settings:
-            draw_props(integrator_settings,
-                       integrator_settings.prop_names, col)
+            draw_props(integrator_settings, integrator_settings.prop_names, col)
 
 
 class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
@@ -524,7 +541,7 @@ class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
 
 class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
     bl_label = "Advanced"
-    bl_order = 5
+    bl_order = 6
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -2506,6 +2523,7 @@ classes = [
     RENDER_PT_renderman_baking,
     RENDER_PT_renderman_spooling,
     RENDER_PT_renderman_sampling,
+    RENDER_PT_renderman_integrator,
     RENDER_PT_renderman_motion_blur,
     RENDER_PT_renderman_sampling_preview,
     RENDER_PT_renderman_advanced_settings,
