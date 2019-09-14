@@ -425,6 +425,8 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
     # bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
 
         layout = self.layout
         scene = context.scene
@@ -435,19 +437,19 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         row = col.row(align=True)
         row.menu("PRMAN_MT_presets", text=bpy.types.WM_MT_operator_presets.bl_label)
         row.operator("render.renderman_preset_add", text="", icon='ADD')
-        row.operator("render.renderman_preset_add", text="",
-                     icon='REMOVE').remove_active = True
-        col.prop(rm, "pixel_variance")
-        row = col.row(align=True)
-        row.prop(rm, "min_samples", text="Min Samples")
-        row.prop(rm, "max_samples", text="Max Samples")
-        row = col.row(align=True)
-        row.prop(rm, "max_specular_depth", text="Specular Depth")
-        row.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
-        row = col.row(align=True)
-        row.prop(rm, 'incremental')
-        row = col.row(align=True)
-        layout.separator()
+        row.operator("render.renderman_preset_add", text="",icon='REMOVE').remove_active = True
+
+        col = layout.column(align=True)
+        col.prop(rm, "min_samples", text="Min Samples")
+        col.prop(rm, "max_samples", text="Max Samples")
+        col.prop(rm, "pixel_variance", text="Pixel_Variance")
+
+        col = layout.column(align=True)
+        col.prop(rm, "max_specular_depth", text="Specular Depth")
+        col.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
+
+        col = layout.column(align=False)
+        col.prop(rm, 'incremental')
         col.prop(rm, "integrator")
         # find args for integrators here!
         integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
@@ -564,7 +566,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         col = layout.column()
         col.prop(rm, "use_metadata")
         if rm.use_metadata:
-            col.prop(rm, "custom_metadata")        
+            col.prop(rm, "custom_metadata")
         layout.separator()
         col = layout.column()
         row = col.row()
@@ -679,7 +681,7 @@ class MATERIAL_PT_renderman_preview(Panel, ShaderPanel):
         mat = context.material
         row = layout.row()
 
-        
+
 
         if mat:
             row.template_preview(context.material, show_buttons=1)
@@ -1968,7 +1970,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             row.prop(rm, "do_holdout_matte", text="Render Holdouts")
             row.prop(rm, "render_selected_objects_only",
                      text="Render Selected")
-            
+
 
             # animation
             row = box.row(align=True)
@@ -2533,7 +2535,7 @@ classes = [
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    
+
     bpy.utils.register_class(RENDERMAN_GROUP_UL_List)
     bpy.utils.register_class(RENDERMAN_UL_LIGHT_list)
     bpy.utils.register_class(RENDERMAN_UL_OBJECT_list)
@@ -2555,6 +2557,6 @@ def unregister():
 
     for panel in get_panels():
         panel.COMPAT_ENGINES.remove('PRMAN_RENDER')
-    
+
     for cls in classes:
         bpy.utils.unregister_class(cls)
