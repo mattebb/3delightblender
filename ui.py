@@ -447,7 +447,7 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
         col = layout.column(align=True)
         col.prop(rm, "min_samples", text="Min Samples")
         col.prop(rm, "max_samples", text="Max Samples")
-        col.prop(rm, "pixel_variance", text="Pixel_Variance")
+        col.prop(rm, "pixel_variance", text="Pixel Variance")
 
         col = layout.column(align=True)
         col.prop(rm, "max_specular_depth", text="Specular Depth")
@@ -520,23 +520,28 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
 
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
     bl_label = "Interactive and Preview Sampling"
+    bl_parent_id = 'RENDER_PT_renderman_sampling'
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
 
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
 
         col = layout.column()
-        col.prop(rm, "preview_pixel_variance")
         row = col.row(align=True)
-        row.prop(rm, "preview_min_samples", text="Min Samples")
-        row.prop(rm, "preview_max_samples", text="Max Samples")
-        row = col.row(align=True)
-        row.prop(rm, "preview_max_specular_depth", text="Specular Depth")
-        row.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
-        row = col.row(align=True)
+
+        col = layout.column(align=True)
+        col.prop(rm, "preview_min_samples", text="Min Samples")
+        col.prop(rm, "preview_max_samples", text="Max Samples")
+        col.prop(rm, "preview_pixel_variance", text="Pixel Variance")
+
+        col = layout.column(align=True)
+        col.prop(rm, "preview_max_specular_depth", text="Specular Depth")
+        col.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
 
 
 class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
