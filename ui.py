@@ -493,28 +493,26 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
         rm = context.scene.renderman
-
         layout = self.layout
-        row = layout.row()
-        row.prop(rm, "motion_blur")
-        sub = layout.row()
-        sub.enabled = rm.motion_blur
-        sub.prop(rm, "motion_segments")
-        row = layout.row()
-        row.enabled = rm.motion_blur
-        row.prop(rm, "sample_motion_blur")
-        row = layout.row()
-        row.enabled = rm.motion_blur
-        row.prop(rm, "shutter_timing")
-        row = layout.row()
-        row.enabled = rm.motion_blur
-        row.prop(rm, "shutter_angle")
 
-        row = layout.row()
-        row.enabled = rm.motion_blur
-        row.prop(rm, "shutter_efficiency_open")
-        row.prop(rm, "shutter_efficiency_close")
+        col = layout.column()
+        col.prop(rm, "motion_blur")
+
+        col = layout.column()
+        col.enabled = rm.motion_blur
+        col.prop(rm, "motion_segments")
+        col.prop(rm, "sample_motion_blur")
+        col.prop(rm, "shutter_timing")
+
+        col = layout.column(align=True)
+        col.enabled = rm.motion_blur
+        col.prop(rm, "shutter_angle")
+        col.prop(rm, "shutter_efficiency_open")
+        col.prop(rm, "shutter_efficiency_close")
 
 
 class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
