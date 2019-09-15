@@ -177,6 +177,9 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
     bl_order = 0
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
         if context.scene.render.engine != "PRMAN_RENDER":
             return
 
@@ -208,19 +211,15 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         row.operator("render.render", text="Render Animation",
                      icon_value=rman_batch.icon_id).animation = True
 
-        layout.separator()
 
         split = layout.split(factor=0.33)
 
-        split.label(text="Display:")
-        row = split.row(align=True)
-        row.prop(rd, "display_mode", text="")
-        row.prop(rd, "use_lock_interface", icon_only=True)
+        col = layout.column()
+        col.prop(rd, "display_mode", text="Display")
         col = layout.column()
         row = col.row()
         row.prop(rm, "render_into", text="Render To")
 
-        layout.separator()
         col = layout.column()
         col.prop(context.scene.renderman, "render_selected_objects_only")
         col.prop(rm, "do_denoise")
