@@ -171,10 +171,8 @@ class PRManButtonsPanel(_RManPanelHeader):
     bl_context = "render"
 
 
-
 class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
     bl_label = "Render"
-    bl_order = 0
 
     def draw(self, context):
         self.layout.use_property_split = True
@@ -225,24 +223,98 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         col.prop(rm, "do_denoise")
         col.prop(rm, "do_holdout_matte", text="Render Holdouts")
 
+class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
+    bl_label = "Sampling"
 
-class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
-    bl_label = "Baking"
-    bl_order = 5
+    def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+
+        # layout.prop(rm, "display_driver")
+
+        ## TODO: move preset to header
+        col = layout.column()
+        row = col.row(align=True)
+        row.menu("PRMAN_MT_presets", text=bpy.types.WM_MT_operator_presets.bl_label)
+        row.operator("render.renderman_preset_add", text="", icon='ADD')
+        row.operator("render.renderman_preset_add", text="",icon='REMOVE').remove_active = True
+
+        col = layout.column(align=True)
+        col.prop(rm, "min_samples", text="Min Samples")
+        col.prop(rm, "max_samples", text="Max Samples")
+        col.prop(rm, "pixel_variance", text="Pixel Variance")
+
+        col = layout.column(align=True)
+        col.prop(rm, "max_specular_depth", text="Specular Depth")
+        col.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
+
+        col = layout.column(align=False)
+        col.prop(rm, 'incremental')
+
+
+class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
+    bl_label = "Interactive and Preview Sampling"
+    bl_parent_id = 'RENDER_PT_renderman_sampling'
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
         layout = self.layout
-        row = layout.row()
-        icons = load_icons()
-        rman_batch = icons.get("batch_render")
-        row.operator("renderman.bake",
-                     text="Bake", icon_value=rman_batch.icon_id)
+        scene = context.scene
+        rm = scene.renderman
+
+        col = layout.column()
+        row = col.row(align=True)
+
+        col = layout.column(align=True)
+        col.prop(rm, "preview_min_samples", text="Min Samples")
+        col.prop(rm, "preview_max_samples", text="Max Samples")
+        col.prop(rm, "preview_pixel_variance", text="Pixel Variance")
+
+        col = layout.column(align=True)
+        col.prop(rm, "preview_max_specular_depth", text="Specular Depth")
+        col.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
+
+
+class RENDER_PT_renderman_integrator(PRManButtonsPanel, Panel):
+    bl_label = "Integrator"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+
+        col = layout.column()
+        row = col.row(align=True)
+
+        col.prop(rm, "integrator")
+        # find args for integrators here!
+        integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
+
+        # TODO: Remove show integrator settings button
+        icon = 'DISCLOSURE_TRI_DOWN' if rm.show_integrator_settings \
+            else 'DISCLOSURE_TRI_RIGHT'
+        text = rm.integrator + " Settings:"
+
+        row = col.row()
+        row.prop(rm, "show_integrator_settings", icon=icon, text=text,
+                         emboss=False)
+        if rm.show_integrator_settings:
+            draw_props(integrator_settings, integrator_settings.prop_names, col)
 
 
 class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
     bl_label = "External Rendering"
-    bl_order = 3
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -379,120 +451,55 @@ class RENDER_PT_renderman_spooling_alf_options(PRManButtonsPanel, Panel):
         col.prop(rm, 'checkpoint_interval')
         col.prop(rm, 'render_limit')
 
+# only used by integrator panel
+def draw_props(node, prop_names, layout):
+    for prop_name in prop_names:
+        prop_meta = node.prop_meta[prop_name]
+        prop = getattr(node, prop_name)
+        row = layout.row()
 
-# def draw_props(node, prop_names, layout):
-#     for prop_name in prop_names:
-#         prop_meta = node.prop_meta[prop_name]
-#         prop = getattr(node, prop_name)
-#         row = layout.row()
-#
-#         if prop_meta['renderman_type'] == 'page':
-#             ui_prop = prop_name + "_uio"
-#             ui_open = getattr(node, ui_prop)
-#             icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
-#                 else 'DISCLOSURE_TRI_RIGHT'
-#
-#             split = layout.split(factor=NODE_LAYOUT_SPLIT)
-#             row = split.row()
-#             row.prop(node, ui_prop, icon=icon, text='',
-#                      icon_only=True, emboss=False)
-#             row.label(text=prop_name.split('.')[-1] + ':')
-#
-#             if ui_open:
-#                 draw_props(node, prop, layout)
-#
-#         else:
-#             if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
-#                     'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
-#                 continue
-#
-#             row.label(text='', icon='BLANK1')
-#             # indented_label(row, socket.name+':')
-#             if "Subset" in prop_name and prop_meta['type'] == 'string':
-#                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
-#                                 "object_groups")
-#             else:
-#                 if 'widget' in prop_meta and prop_meta['widget'] == 'floatRamp':
-#                     rm = bpy.context.light.renderman
-#                     nt = bpy.context.light.node_tree
-#                     float_node = nt.nodes[rm.float_ramp_node]
-#                     layout.template_curve_mapping(float_node, 'mapping')
-#                 elif 'widget' in prop_meta and prop_meta['widget'] == 'colorRamp':
-#                     rm = bpy.context.light.renderman
-#                     nt = bpy.context.light.node_tree
-#                     ramp_node = nt.nodes[rm.color_ramp_node]
-#                     layout.template_color_ramp(ramp_node, 'color_ramp')
-#                 else:
-#                     row.prop(node, prop_name)
+        if prop_meta['renderman_type'] == 'page':
+            ui_prop = prop_name + "_uio"
+            ui_open = getattr(node, ui_prop)
+            icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
+                else 'DISCLOSURE_TRI_RIGHT'
 
+            split = layout.split(factor=NODE_LAYOUT_SPLIT)
+            row = split.row()
+            row.prop(node, ui_prop, icon=icon, text='',
+                     icon_only=True, emboss=False)
+            row.label(text=prop_name.split('.')[-1] + ':')
 
-class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
-    bl_label = "Sampling"
-    bl_order = 1
-    # bl_options = {'DEFAULT_CLOSED'}
+            if ui_open:
+                draw_props(node, prop, layout)
 
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
+        else:
+            if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
+                    'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
+                continue
 
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        # layout.prop(rm, "display_driver")
-        col = layout.column()
-        row = col.row(align=True)
-        row.menu("PRMAN_MT_presets", text=bpy.types.WM_MT_operator_presets.bl_label)
-        row.operator("render.renderman_preset_add", text="", icon='ADD')
-        row.operator("render.renderman_preset_add", text="",icon='REMOVE').remove_active = True
-
-        col = layout.column(align=True)
-        col.prop(rm, "min_samples", text="Min Samples")
-        col.prop(rm, "max_samples", text="Max Samples")
-        col.prop(rm, "pixel_variance", text="Pixel Variance")
-
-        col = layout.column(align=True)
-        col.prop(rm, "max_specular_depth", text="Specular Depth")
-        col.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
-
-        col = layout.column(align=False)
-        col.prop(rm, 'incremental')
-
-class RENDER_PT_renderman_integrator(PRManButtonsPanel, Panel):
-    bl_label = "Integrator"
-    bl_order = 2
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        col = layout.column()
-        row = col.row(align=True)
-
-        col.prop(rm, "integrator")
-        # find args for integrators here!
-        integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
-
-        # TODO: Remove show integrator settings button
-        icon = 'DISCLOSURE_TRI_DOWN' if rm.show_integrator_settings \
-            else 'DISCLOSURE_TRI_RIGHT'
-        text = rm.integrator + " Settings:"
-
-        row = col.row()
-        row.prop(rm, "show_integrator_settings", icon=icon, text=text,
-                         emboss=False)
-        if rm.show_integrator_settings:
-            draw_props(integrator_settings, integrator_settings.prop_names, col)
+            row.label(text='', icon='BLANK1')
+            # indented_label(row, socket.name+':')
+            if "Subset" in prop_name and prop_meta['type'] == 'string':
+                row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
+                                "object_groups")
+            else:
+                if 'widget' in prop_meta and prop_meta['widget'] == 'floatRamp':
+                    rm = bpy.context.light.renderman
+                    nt = bpy.context.light.node_tree
+                    float_node = nt.nodes[rm.float_ramp_node]
+                    layout.template_curve_mapping(float_node, 'mapping')
+                elif 'widget' in prop_meta and prop_meta['widget'] == 'colorRamp':
+                    rm = bpy.context.light.renderman
+                    nt = bpy.context.light.node_tree
+                    ramp_node = nt.nodes[rm.color_ramp_node]
+                    layout.template_color_ramp(ramp_node, 'color_ramp')
+                else:
+                    row.prop(node, prop_name)
 
 
 class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
     bl_label = "Motion Blur"
-    bl_order = 4
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -518,35 +525,21 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
         col.prop(rm, "shutter_efficiency_close")
 
 
-class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
-    bl_label = "Interactive and Preview Sampling"
-    bl_parent_id = 'RENDER_PT_renderman_sampling'
+class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
+    bl_label = "Baking"
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
         layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        col = layout.column()
-        row = col.row(align=True)
-
-        col = layout.column(align=True)
-        col.prop(rm, "preview_min_samples", text="Min Samples")
-        col.prop(rm, "preview_max_samples", text="Max Samples")
-        col.prop(rm, "preview_pixel_variance", text="Pixel Variance")
-
-        col = layout.column(align=True)
-        col.prop(rm, "preview_max_specular_depth", text="Specular Depth")
-        col.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
+        row = layout.row()
+        icons = load_icons()
+        rman_batch = icons.get("batch_render")
+        row.operator("renderman.bake",
+                     text="Bake", icon_value=rman_batch.icon_id)
 
 
 class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
     bl_label = "Advanced"
-    bl_order = 6
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -2522,14 +2515,14 @@ class PRMAN_PT_context_material(_RManPanelHeader, Panel):
 
 classes = [
     RENDER_PT_renderman_render,
-    RENDER_PT_renderman_baking,
+    RENDER_PT_renderman_sampling,
+    RENDER_PT_renderman_sampling_preview,
+    RENDER_PT_renderman_integrator,
     RENDER_PT_renderman_spooling,
     RENDER_PT_renderman_spooling_export_options,
     RENDER_PT_renderman_spooling_alf_options,
-    RENDER_PT_renderman_sampling,
-    RENDER_PT_renderman_integrator,
     RENDER_PT_renderman_motion_blur,
-    RENDER_PT_renderman_sampling_preview,
+    RENDER_PT_renderman_baking,
     RENDER_PT_renderman_advanced_settings,
     MESH_PT_renderman_prim_vars,
     MATERIAL_PT_renderman_preview,
