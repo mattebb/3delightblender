@@ -246,28 +246,24 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
 
-        # note
-        row = layout.row()
-        row.label(
-            text='Note:  External Rendering will render outside of Blender, images will not show up in the Image Editor.')
-
-        row = layout.row()
-        row.prop(rm, 'enable_external_rendering')
-        if not rm.enable_external_rendering:
-            return
+        col = layout.column()
+        col.prop(rm, 'enable_external_rendering')
 
         # button
         icons = load_icons()
-        row = layout.row()
+        col = layout.column()
+        col.enabled = rm.enable_external_rendering
         rman_batch = icons.get("batch_render")
-        row.operator("renderman.external_render",
+        col.operator("renderman.external_render",
                      text="Export", icon_value=rman_batch.icon_id)
 
-        layout.separator()
 
 #        row = layout.row()
 #        split = row.split(factor=0.33)
@@ -280,7 +276,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
 #        # display driver
 #        split = split.split()
 #        col = split.column()
-        col = layout.column()
+
         col.prop(rm, "display_driver", text='Render To')
 
 #        sub_row = col.row()
@@ -290,137 +286,144 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
 #            sub_row = col.row()
 #            sub_row.prop(rm,  "exr_compression")
 
-        layout.separator()
-
-        layout.separator()
-        split = layout.split(factor=0.33)
         # do animation
-        split.prop(rm, "external_animation")
+        col.prop(rm, 'external_animation')
+        col = layout.column(align=True)
+        col.enabled = rm.external_animation and rm.enable_external_rendering
+        col.prop(scene, "frame_start", text="Start")
+        col.prop(scene, "frame_end", text="End")
 
-        sub_row = split.row()
-        sub_row.enabled = rm.external_animation
-        sub_row.prop(scene, "frame_start", text="Start")
-        sub_row.prop(scene, "frame_end", text="End")
+        col = layout.column()
+        col.enabled = rm.enable_external_rendering
+        col.prop(rm, 'external_denoise')
+        col = layout.column()
+        col.enabled = rm.external_animation and rm.enable_external_rendering
+        col.prop(rm, 'crossframe_denoise')
+
+class RENDER_PT_renderman_spooling_export_options(PRManButtonsPanel, Panel):
+    bl_label = "Export Options"
+    bl_parent_id = 'RENDER_PT_renderman_spooling'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+
+        layout.enabled = rm.enable_external_rendering
+        col = layout.column()
+
+        col.prop(rm, "generate_rib")
+        col = layout.column()
+        col.enabled = rm.generate_rib
+        col.prop(rm, "generate_object_rib")
+        col = layout.column()
+        col.prop(rm, "generate_alf")
+        col = layout.column()
+        col.enabled = rm.generate_alf and rm.generate_render
+        col.prop(rm, "do_render")
+        col = layout.column()
+        col.enabled = rm.do_render and rm.generate_alf and rm.generate_render
+        col.prop(rm, "queuing_system")
+
+class RENDER_PT_renderman_spooling_alf_options(PRManButtonsPanel, Panel):
+    bl_label = "ALF Options"
+    bl_parent_id = 'RENDER_PT_renderman_spooling'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman
+
+        layout.enabled = rm.enable_external_rendering
         col = layout.column()
         col.enabled = rm.generate_alf
-        col.prop(rm, 'external_denoise')
-        row = col.row()
-        row.enabled = rm.external_denoise and rm.external_animation
-        row.prop(rm, 'crossframe_denoise')
-
-        # render steps
-        layout.separator()
+        col.prop(rm, 'custom_alfname')
+        col.prop(rm, "convert_textures")
+        col.prop(rm, "generate_render")
         col = layout.column()
-        icon_export = 'DISCLOSURE_TRI_DOWN' if rm.export_options else 'DISCLOSURE_TRI_RIGHT'
-        col.prop(rm, "export_options", icon=icon_export,
-                 text="Export Options:", emboss=False)
-        if rm.export_options:
-            col.prop(rm, "generate_rib")
-            row = col.row()
-            row.enabled = rm.generate_rib
-            row.prop(rm, "generate_object_rib")
-            col.prop(rm, "generate_alf")
-            split = col.split(factor=0.33)
-            split.enabled = rm.generate_alf and rm.generate_render
-            split.prop(rm, "do_render")
-            sub_row = split.row()
-            sub_row.enabled = rm.do_render and rm.generate_alf and rm.generate_render
-            sub_row.prop(rm, "queuing_system")
+        col.enabled = rm.generate_render
+        col.prop(rm, 'custom_cmd')
 
-        # options
-        layout.separator()
-        if rm.generate_alf:
-            icon_alf = 'DISCLOSURE_TRI_DOWN' if rm.alf_options else 'DISCLOSURE_TRI_RIGHT'
-            col = layout.column()
-            col.prop(rm, "alf_options", icon=icon_alf, text="ALF Options:",
-                     emboss=False)
-            if rm.alf_options:
-                col.prop(rm, 'custom_alfname')
-                col.prop(rm, "convert_textures")
-                col.prop(rm, "generate_render")
-                row = col.row()
-                row.enabled = rm.generate_render
-                row.prop(rm, 'custom_cmd')
-                split = col.split(factor=0.33)
-                split.enabled = rm.generate_render
-                split.prop(rm, "override_threads")
-                sub_row = split.row()
-                sub_row.enabled = rm.override_threads
-                sub_row.prop(rm, "external_threads")
+        col = layout.column()
+        col.enabled = rm.generate_render
+        col.prop(rm, "override_threads")
+        col = layout.column()
+        col.enabled = rm.override_threads
+        col.prop(rm, "external_threads")
 
-                row = col.row()
-                row.enabled = rm.external_denoise
-                row.prop(rm, 'denoise_cmd')
-                row = col.row()
-                row.enabled = rm.external_denoise
-                row.prop(rm, 'spool_denoise_aov')
-                row = col.row()
-                row.enabled = rm.external_denoise and not rm.spool_denoise_aov
-                row.prop(rm, "denoise_gpu")
+        col = layout.column()
+        col.enabled = rm.external_denoise and rm.generate_alf
+        col.prop(rm, 'denoise_cmd')
+        col.prop(rm, 'spool_denoise_aov')
+        col = layout.column()
+        col.enabled =not rm.spool_denoise_aov and rm.external_denoise
+        col.prop(rm, "denoise_gpu")
 
-                # checkpointing
-                col = layout.column()
-                col.enabled = rm.generate_render
-                row = col.row()
-                row.prop(rm, 'recover')
-                row = col.row()
-                row.prop(rm, 'enable_checkpoint')
-                row = col.row()
-                row.enabled = rm.enable_checkpoint
-                row.prop(rm, 'asfinal')
-                row = col.row()
-                row.enabled = rm.enable_checkpoint
-                row.prop(rm, 'checkpoint_type')
-                row = col.row(align=True)
-                row.enabled = rm.enable_checkpoint
-                row.prop(rm, 'checkpoint_interval')
-                row.prop(rm, 'render_limit')
+        # checkpointing
+        col = layout.column()
+        col.enabled = rm.generate_alf and rm.generate_render
+        col.prop(rm, 'recover')
+        col.prop(rm, 'enable_checkpoint')
+        col = layout.column()
+        col.enabled = rm.enable_checkpoint
+        col.prop(rm, 'asfinal')
+        col.prop(rm, 'checkpoint_type')
+        col.prop(rm, 'checkpoint_interval')
+        col.prop(rm, 'render_limit')
 
 
-def draw_props(node, prop_names, layout):
-    for prop_name in prop_names:
-        prop_meta = node.prop_meta[prop_name]
-        prop = getattr(node, prop_name)
-        row = layout.row()
-
-        if prop_meta['renderman_type'] == 'page':
-            ui_prop = prop_name + "_uio"
-            ui_open = getattr(node, ui_prop)
-            icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
-                else 'DISCLOSURE_TRI_RIGHT'
-
-            split = layout.split(factor=NODE_LAYOUT_SPLIT)
-            row = split.row()
-            row.prop(node, ui_prop, icon=icon, text='',
-                     icon_only=True, emboss=False)
-            row.label(text=prop_name.split('.')[-1] + ':')
-
-            if ui_open:
-                draw_props(node, prop, layout)
-
-        else:
-            if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
-                    'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
-                continue
-
-            row.label(text='', icon='BLANK1')
-            # indented_label(row, socket.name+':')
-            if "Subset" in prop_name and prop_meta['type'] == 'string':
-                row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
-                                "object_groups")
-            else:
-                if 'widget' in prop_meta and prop_meta['widget'] == 'floatRamp':
-                    rm = bpy.context.light.renderman
-                    nt = bpy.context.light.node_tree
-                    float_node = nt.nodes[rm.float_ramp_node]
-                    layout.template_curve_mapping(float_node, 'mapping')
-                elif 'widget' in prop_meta and prop_meta['widget'] == 'colorRamp':
-                    rm = bpy.context.light.renderman
-                    nt = bpy.context.light.node_tree
-                    ramp_node = nt.nodes[rm.color_ramp_node]
-                    layout.template_color_ramp(ramp_node, 'color_ramp')
-                else:
-                    row.prop(node, prop_name)
+# def draw_props(node, prop_names, layout):
+#     for prop_name in prop_names:
+#         prop_meta = node.prop_meta[prop_name]
+#         prop = getattr(node, prop_name)
+#         row = layout.row()
+#
+#         if prop_meta['renderman_type'] == 'page':
+#             ui_prop = prop_name + "_uio"
+#             ui_open = getattr(node, ui_prop)
+#             icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
+#                 else 'DISCLOSURE_TRI_RIGHT'
+#
+#             split = layout.split(factor=NODE_LAYOUT_SPLIT)
+#             row = split.row()
+#             row.prop(node, ui_prop, icon=icon, text='',
+#                      icon_only=True, emboss=False)
+#             row.label(text=prop_name.split('.')[-1] + ':')
+#
+#             if ui_open:
+#                 draw_props(node, prop, layout)
+#
+#         else:
+#             if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
+#                     'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
+#                 continue
+#
+#             row.label(text='', icon='BLANK1')
+#             # indented_label(row, socket.name+':')
+#             if "Subset" in prop_name and prop_meta['type'] == 'string':
+#                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
+#                                 "object_groups")
+#             else:
+#                 if 'widget' in prop_meta and prop_meta['widget'] == 'floatRamp':
+#                     rm = bpy.context.light.renderman
+#                     nt = bpy.context.light.node_tree
+#                     float_node = nt.nodes[rm.float_ramp_node]
+#                     layout.template_curve_mapping(float_node, 'mapping')
+#                 elif 'widget' in prop_meta and prop_meta['widget'] == 'colorRamp':
+#                     rm = bpy.context.light.renderman
+#                     nt = bpy.context.light.node_tree
+#                     ramp_node = nt.nodes[rm.color_ramp_node]
+#                     layout.template_color_ramp(ramp_node, 'color_ramp')
+#                 else:
+#                     row.prop(node, prop_name)
 
 
 class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
@@ -2524,6 +2527,8 @@ classes = [
     RENDER_PT_renderman_render,
     RENDER_PT_renderman_baking,
     RENDER_PT_renderman_spooling,
+    RENDER_PT_renderman_spooling_export_options,
+    RENDER_PT_renderman_spooling_alf_options,
     RENDER_PT_renderman_sampling,
     RENDER_PT_renderman_integrator,
     RENDER_PT_renderman_motion_blur,
