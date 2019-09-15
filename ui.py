@@ -550,71 +550,68 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
 
-        layout.separator()
-
         col = layout.column()
+
         col.prop(rm, "shadingrate")
         col.prop(rm, "dicing_strategy")
-        row = col.row()
-        row.enabled = rm.dicing_strategy == "worlddistance"
-        row.prop(rm, "worlddistancelength")
+        col.prop(rm, "worlddistancelength")
 
         layout.separator()
-
         col = layout.column()
+
         col.prop(rm, "texture_cache_size")
         col.prop(rm, "geo_cache_size")
         col.prop(rm, "opacity_cache_size")
 
         layout.separator()
-        col = layout.column()
-        row = col.row()
-        row.label(text="Pixel Filter:")
-        row.prop(rm, "pixelfilter", text="")
-        row = col.row(align=True)
-        row.prop(rm, "pixelfilter_x", text="Size X")
-        row.prop(rm, "pixelfilter_y", text="Size Y")
+        col = layout.column(align = True)
 
-        layout.separator()
+        col.prop(rm, "pixelfilter", text="Pixel Filter:")
+        col.prop(rm, "pixelfilter_x", text="Size X")
+        col.prop(rm, "pixelfilter_y", text="Size Y")
+
         col = layout.column()
         col.prop(rm, "dark_falloff")
 
-        layout.separator()
-        col = layout.column()
+        col = layout.column(align = True)
         col.prop(rm, "bucket_shape")
         if rm.bucket_shape == 'SPIRAL':
-            row = col.row(align=True)
-            row.prop(rm, "bucket_sprial_x", text="X")
-            row.prop(rm, "bucket_sprial_y", text="Y")
+            col = layout.column(align = True)
+            col.prop(rm, "bucket_sprial_x", text="X")
+            col.prop(rm, "bucket_sprial_y", text="Y")
 
-        layout.separator()
         col = layout.column()
         col.prop(rm, "use_metadata")
-        if rm.use_metadata:
-            col.prop(rm, "custom_metadata")
-        layout.separator()
         col = layout.column()
-        row = col.row()
-        row.prop(rm, "use_statistics", text="Output stats")
-        row.operator('rman.open_stats')
-        row = col.row()
-        row.operator('rman.open_rib')
-        row.prop(rm, "editor_override")
-        row = layout.row()
-        row.label(text="RIB Format:")
-        row.label(text="RIB Compression")
-        row = layout.row()
-        row.prop(rm, "rib_format", text="")
-        row.prop(rm, "rib_compression", text="")
+        col.enabled = rm.use_metadata
+        col.prop(rm, "custom_metadata")
+
+        col = layout.column()
+        col.prop(rm, "use_statistics", text="Output stats")
+
+        col.operator('rman.open_stats')
+        col.operator('rman.open_rib')
 
         layout.separator()
-        layout.prop(rm, "always_generate_textures")
-        layout.prop(rm, "lazy_rib_gen")
-        layout.prop(rm, "threads")
+        col = layout.column()
+
+        col.prop(rm, "editor_override")
+
+        col = layout.column(align = True)
+        col.prop(rm, "rib_format")
+        col.prop(rm, "rib_compression")
+
+        col = layout.column()
+        col.prop(rm, "always_generate_textures")
+        col.prop(rm, "lazy_rib_gen")
+        col.prop(rm, "threads")
 
 
 class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
