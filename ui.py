@@ -1274,6 +1274,9 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
         col.prop(item, "mode")
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
         layout = self.layout
         ob = context.object
         rm = ob.renderman
@@ -1286,25 +1289,20 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
         row.prop(rm, "visibility_trace_transmission", text="Transmission")
         row.prop(rm, "matte")
         row = col.row()
-        row.prop(rm, "holdout")
+        col.prop(rm, "holdout")
 
         col.separator()
 
-        col.separator()
+        col.prop(rm, 'shading_override')
 
-        row = col.row()
-        row.prop(rm, 'shading_override')
-
-        colgroup = layout.column()
-        colgroup.enabled = rm.shading_override
-        row = colgroup.row()
-        row.prop(rm, "watertight")
-        row = colgroup.row()
-        row.prop(rm, "shadingrate")
-        row = colgroup.row()
-        row.prop(rm, "geometric_approx_motion")
-        row = colgroup.row()
-        row.prop(rm, "geometric_approx_focus")
+        col = layout.column()
+        col.enabled = rm.shading_override
+        col.prop(rm, "watertight")
+        col = layout.column(align = True)
+        col.enabled = rm.shading_override
+        col.prop(rm, "shadingrate")
+        col.prop(rm, "geometric_approx_motion")
+        col.prop(rm, "geometric_approx_focus")
 
 
 class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
