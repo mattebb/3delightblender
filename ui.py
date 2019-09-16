@@ -1362,26 +1362,22 @@ class OBJECT_PT_renderman_object_matteid(Panel, _RManPanelHeader):
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
         layout = self.layout
         ob = context.object
         rm = ob.renderman
 
-        row = layout.row()
-        row.prop(rm, 'MatteID0')
-        row = layout.row()
-        row.prop(rm, 'MatteID1')
-        row = layout.row()
-        row.prop(rm, 'MatteID2')
-        row = layout.row()
-        row.prop(rm, 'MatteID3')
-        row = layout.row()
-        row.prop(rm, 'MatteID4')
-        row = layout.row()
-        row.prop(rm, 'MatteID5')
-        row = layout.row()
-        row.prop(rm, 'MatteID6')
-        row = layout.row()
-        row.prop(rm, 'MatteID7')
+        col = layout.column()
+        col.prop(rm, 'MatteID0')
+        col.prop(rm, 'MatteID1')
+        col.prop(rm, 'MatteID2')
+        col.prop(rm, 'MatteID3')
+        col.prop(rm, 'MatteID4')
+        col.prop(rm, 'MatteID5')
+        col.prop(rm, 'MatteID6')
+        col.prop(rm, 'MatteID7')
 
 
 class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
