@@ -1100,6 +1100,7 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
     bl_region_type = 'WINDOW'
     bl_context = "object"
     bl_label = "RenderMan Geometry"
+    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(cls, context):
@@ -1112,6 +1113,9 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         col.prop(item, "type")
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
         layout = self.layout
         ob = context.object
         rm = ob.renderman
@@ -1125,10 +1129,10 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
 
             col.prop(anim, "animated_sequence")
             if anim.animated_sequence:
+                col = layout.column(align = True)
                 col.prop(anim, "blender_start")
-                row = col.row()
-                row.prop(anim, "sequence_in")
-                row.prop(anim, "sequence_out")
+                col.prop(anim, "sequence_in")
+                col.prop(anim, "sequence_out")
 
         elif rm.geometry_source == 'PROCEDURAL_RUN_PROGRAM':
             col.prop(rm, "path_runprogram")
@@ -1146,35 +1150,36 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
                                   'PROCEDURAL_RUN_PROGRAM',
                                   'DYNAMIC_LOAD_DSO',
                                   'OPENVDB'):
+            col = layout.column()
             col.prop(rm, "procedural_bounds")
 
             if rm.procedural_bounds == 'MANUAL':
-                colf = layout.column_flow()
-                colf.prop(rm, "procedural_bounds_min")
-                colf.prop(rm, "procedural_bounds_max")
+                col = layout.column()
+                col.prop(rm, "procedural_bounds_min")
+                col.prop(rm, "procedural_bounds_max")
 
         if rm.geometry_source == 'BLENDER_SCENE_DATA':
             col.prop(rm, "primitive")
 
-            colf = layout.column_flow()
+            col = layout.column(align = True)
 
             if rm.primitive in ('CONE', 'DISK'):
-                colf.prop(rm, "primitive_height")
+                col.prop(rm, "primitive_height")
             if rm.primitive in ('SPHERE', 'CYLINDER', 'CONE', 'DISK'):
-                colf.prop(rm, "primitive_radius")
+                col.prop(rm, "primitive_radius")
             if rm.primitive == 'TORUS':
-                colf.prop(rm, "primitive_majorradius")
-                colf.prop(rm, "primitive_minorradius")
-                colf.prop(rm, "primitive_phimin")
-                colf.prop(rm, "primitive_phimax")
+                col.prop(rm, "primitive_majorradius")
+                col.prop(rm, "primitive_minorradius")
+                col.prop(rm, "primitive_phimin")
+                col.prop(rm, "primitive_phimax")
             if rm.primitive in ('SPHERE', 'CYLINDER', 'CONE', 'TORUS'):
-                colf.prop(rm, "primitive_sweepangle")
+                col.prop(rm, "primitive_sweepangle")
             if rm.primitive in ('SPHERE', 'CYLINDER'):
-                colf.prop(rm, "primitive_zmin")
-                colf.prop(rm, "primitive_zmax")
+                col.prop(rm, "primitive_zmin")
+                col.prop(rm, "primitive_zmax")
             if rm.primitive == 'POINTS':
-                colf.prop(rm, "primitive_point_type")
-                colf.prop(rm, "primitive_point_width")
+                col.prop(rm, "primitive_point_type")
+                col.prop(rm, "primitive_point_width")
 
             # col.prop(rm, "export_archive")
             # if rm.export_archive:
@@ -1188,14 +1193,11 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         col = layout.column()
         # col.prop(rm, "export_coordsys")
 
-        row = col.row()
-        row.prop(rm, "displacementbound", text="Displacement Bound")
+        col.prop(rm, "displacementbound", text="Displacement Bound")
 
-        row = col.row()
-        row.prop(rm, "motion_segments_override", text="")
-        sub = row.row()
-        sub.active = rm.motion_segments_override
-        sub.prop(rm, "motion_segments")
+        col.prop(rm, "motion_segments_override")
+        col.active = rm.motion_segments_override
+        col.prop(rm, "motion_segments")
 
 """
 class RendermanRibBoxPanel(_RManPanelHeader):
