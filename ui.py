@@ -1323,38 +1323,35 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
         col.prop(item, "mode")
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
         layout = self.layout
         ob = context.object
         rm = ob.renderman
 
         col = layout.column()
-        row = col.row(align=True)
-        row.prop(
-            rm, "raytrace_intersectpriority", text="Intersection Priority")
-        row.prop(rm, "raytrace_ior")
+        col.prop(rm, "raytrace_intersectpriority", text="Intersection Priority")
+        col.prop(rm, "raytrace_ior")
+        col.prop(rm, "raytrace_override", text="Override Default Ray Tracing")
 
-        col.prop(
-            rm, "raytrace_override", text="Override Default Ray Tracing")
-
+        col = layout.column(align = True)
+        col.enabled = rm.raytrace_override
+        col.prop(rm, "raytrace_maxdiffusedepth", text="Max Diffuse Depth")
+        col.prop(rm, "raytrace_maxspeculardepth", text="Max Specular Depth")
+        col.prop(rm, "raytrace_pixel_variance")
         col = layout.column()
-        col.active = rm.raytrace_override
-        row = col.row()
-        row.prop(rm, "raytrace_pixel_variance")
-        row = col.row()
-        row.prop(rm, "raytrace_maxdiffusedepth", text="Max Diffuse Depth")
-        row = col.row()
-        row.prop(rm, "raytrace_maxspeculardepth", text="Max Specular Depth")
-        row = col.row()
-        row.prop(rm, "raytrace_tracedisplacements", text="Trace Displacements")
-        row = col.row()
-        row.prop(rm, "raytrace_autobias", text="Ray Origin Auto Bias")
-        row = col.row()
-        row.prop(rm, "raytrace_bias", text="Ray Origin Bias Amount")
-        row.active = not rm.raytrace_autobias
-        row = col.row()
-        row.prop(rm, "raytrace_samplemotion", text="Sample Motion Blur")
-        row = col.row()
-        row.prop(rm, "raytrace_decimationrate", text="Decimation Rate")
+        col.enabled = rm.raytrace_override
+        col.prop(rm, "raytrace_tracedisplacements", text="Trace Displacements")
+        col.prop(rm, "raytrace_autobias", text="Ray Origin Auto Bias")
+        col = layout.column()
+        col.active = not rm.raytrace_autobias
+        col.enabled = rm.raytrace_override
+        col.prop(rm, "raytrace_bias", text="Ray Origin Bias Amount")
+        col = layout.column()
+        col.enabled = rm.raytrace_override
+        col.prop(rm, "raytrace_samplemotion", text="Sample Motion Blur")
+        col.prop(rm, "raytrace_decimationrate", text="Decimation Rate")
 
 
 class OBJECT_PT_renderman_object_matteid(Panel, _RManPanelHeader):
