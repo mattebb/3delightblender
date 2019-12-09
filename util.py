@@ -35,6 +35,8 @@ from subprocess import Popen, PIPE
 from mathutils import Matrix, Vector
 EnableDebugging = False
 
+from .rman_utils import filepath_utils
+
 
 class BlenderVersionError(Exception):
     pass
@@ -234,26 +236,37 @@ def path_delimit_to_semicolons(winpath):
 
 
 def args_files_in_path(prefs, idblock, shader_type='', threaded=True):
-    init_env(prefs)
+    #init_env(prefs)
     args = {}
 
     path_list = get_path_list_converted(prefs, 'args')
     for path in path_list:
         for root, dirnames, filenames in os.walk(path):
-            for filename in fnmatch.filter(filenames, '*.args'):
-                args[filename.split('.')[0]] = os.path.join(root, filename)
+            for filename in filenames:                
+                if filename.endswith(('.args', '.oso')):
+                    args[filename.split('.')[0]] = os.path.join(root, filename)
     return args
 
 
 def get_path_list(rm, type):
     paths = []
     if rm.use_default_paths:
-        # here for getting args
+        # here for getting args/oso
         if type == 'args':
-            rmantree = guess_rmantree()
+            rmantree = filepath_utils.guess_rmantree()
             paths.append(os.path.join(rmantree, 'lib', 'plugins'))
+            paths.append(os.path.join(rmantree, 'lib', 'shaders'))
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                       'Args'))
+
+            if 'RMAN_RIXPLUGINPATH' in os.environ:
+                RMAN_RIXPLUGINPATH = os.environ['RMAN_RIXPLUGINPATH']
+                for p in RMAN_RIXPLUGINPATH.split(':'):
+                    paths.append(os.path.join(p))
+            if 'RMAN_SHADERPATH' in os.environ:
+                RMAN_SHADERPATH = os.environ['RMAN_SHADERPATH']
+                for p in RMAN_SHADERPATH.split(':'):
+                    paths.append(p)
         if type == 'shader':
             paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                       'shaders'))
@@ -532,47 +545,7 @@ def get_addon_prefs():
 
 
 def guess_rmantree():
-    prefs = get_addon_prefs()
-    rmantree_method = prefs.rmantree_method
-    choice = prefs.rmantree_choice
-
-    if rmantree_method == 'MANUAL':
-        rmantree = prefs.path_rmantree
-    elif rmantree_method == 'ENV' or choice == 'NEWEST':
-        rmantree = rmantree_from_env()
-    else:
-        rmantree = choice
-    version = get_rman_version(rmantree)  # major, minor, mod
-
-    if choice == 'NEWEST':
-
-        # get from detected installs (at default installation path)
-        try:
-            base = {'Windows': r'C:\Program Files\Pixar',
-                    'Darwin': '/Applications/Pixar',
-                    'Linux': '/opt/pixar'}[platform.system()]
-            for d in os.listdir(base):
-                if "RenderManProServer" in d:
-                    d_rmantree = os.path.join(base, d)
-                    d_version = get_rman_version(d_rmantree)
-                    if d_version > version:
-                        rmantree = d_rmantree
-                        version = d_version
-        except:
-            pass
-
-    # check rmantree valid
-    if version[0] == 0:
-        throw_error(
-            "Error loading addon.  RMANTREE %s is not valid.  Correct RMANTREE setting in addon preferences." % rmantree)
-        return None
-
-    # check that it's >= 21
-    if version[0] < 21:
-        throw_error("Error loading addon using RMANTREE=%s.  RMANTREE must be version 21.0 or greater.  Correct RMANTREE setting in addon preferences." % rmantree)
-        return None
-
-    return rmantree
+    return filepath_utils.guess_rmantree()
 
 
 def get_installed_rendermans():

@@ -30,8 +30,8 @@ from bpy.types import AddonPreferences
 from bpy.props import CollectionProperty, BoolProperty, StringProperty
 from bpy.props import IntProperty, PointerProperty, EnumProperty
 
-from .util import get_installed_rendermans,\
-    rmantree_from_env, guess_rmantree
+from .rman_utils import filepath_utils
+from . import rfb_logger
 
 from .presets.properties import RendermanPresetGroup
 
@@ -82,8 +82,8 @@ class RendermanPreferences(AddonPreferences):
     # find the renderman options installed
     def find_installed_rendermans(self, context):
         options = [('NEWEST', 'Newest Version Installed',
-                    'Automatically updates when new version installed.')]
-        for vers, path in get_installed_rendermans():
+                    'Automatically updates when new version installed. NB: If an RMANTREE environment variable is set, this will always take precedence.')]
+        for vers, path in filepath_utils.get_installed_rendermans():
             options.append((path, vers, path))
         return options
 
@@ -123,11 +123,15 @@ class RendermanPreferences(AddonPreferences):
 
     rmantree_method: EnumProperty(
         name='RenderMan Location',
-        description='How RenderMan should be detected.  Most users should leave to "Detect"',
-        items=[('DETECT', 'Choose From Installed', 'This will scan for installed RenderMan locations to choose from'),
-               ('ENV', 'Get From RMANTREE Environment Variable',
+        description='''How RenderMan should be detected.  Most users should leave to "Detect". 
+                    Users should restart Blender after making a change.
+                    ''',
+        items=[('ENV', 'Get From RMANTREE Environment Variable',
                 'This will use the RMANTREE set in the enviornment variables'),
-               ('MANUAL', 'Set Manually', 'Manually set the RenderMan installation (for expert users)')])
+                ('DETECT', 'Choose From Installed', 
+                '''This will scan for installed RenderMan locations to choose from.'''),
+                ('MANUAL', 'Set Manually', 'Manually set the RenderMan installation (for expert users)')],
+        default='ENV')
 
     path_rmantree: StringProperty(
         name="RMANTREE Path",
@@ -169,13 +173,19 @@ class RendermanPreferences(AddonPreferences):
         name="Main Image path",
         description="Path for the rendered main image",
         subtype='FILE_PATH',
-        default=os.path.join('$OUT', 'images', '{scene}.####.{file_type}'))
+        default=os.path.join('{OUT}', 'images', '{scene}.{layer}.{F4}.{ext}'))
 
     path_aov_image: StringProperty(
         name="AOV Image path",
         description="Path for the rendered aov images",
         subtype='FILE_PATH',
-        default=os.path.join('$OUT', 'images', '{scene}.{layer}.{pass}.####.{file_type}'))
+        default=os.path.join('{OUT}', 'images', '{scene}.{layer}.{aov}.{F4}.{ext}'))
+
+    path_fallback_textures_path: StringProperty(
+        name="Fallback Texture Path",
+        description="Fallback path for textures, when the current directory is not writable",
+        subtype='FILE_PATH',
+        default=os.path.join('{OUT}', 'textures'))        
 
     env_vars: PointerProperty(
         type=RendermanEnvVarSettings,
@@ -186,6 +196,24 @@ class RendermanPreferences(AddonPreferences):
         description = "If enabled, auto-check for updates using an interval",
         default = True,
         )
+
+    def update_rman_logging_level(self, context):
+        level = rfb_logger.__LOG_LEVELS__[self.rman_logging_level]
+        rfb_logger.set_logger_level(level)
+
+    rman_logging_level: EnumProperty(
+        name='Logging Level',
+        description='''Log level verbosity. Advanced: Setting the RFB_LOG_LEVEL environment variable will override this preference.
+                    ''',
+        items=[('CRITICAL', 'Critical', ''),
+                ('ERROR', 'Error', ''),
+                ('WARNING', 'Warning', ''),
+                ('INFO', 'Info', ''),
+                ('VERBOSE', 'Verbose', ''),
+                ('DEBUG', 'Debug', ''),
+        ],
+        default='WARNING',
+        update=update_rman_logging_level)
 
     presets_library: PointerProperty(
         type=RendermanPresetGroup,
@@ -205,21 +233,26 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(self, 'rmantree_method')
         if self.rmantree_method == 'DETECT':
             layout.prop(self, 'rmantree_choice')
+            if self.rmantree_choice == 'NEWEST':
+                layout.label(text="RMANTREE: %s " % filepath_utils.guess_rmantree())
         elif self.rmantree_method == 'ENV':
-            layout.label(text="RMANTREE: %s " % rmantree_from_env())
+            layout.label(text="RMANTREE: %s " % filepath_utils.rmantree_from_env())
         else:
             layout.prop(self, "path_rmantree")
-        if guess_rmantree() is None:
+        if filepath_utils.guess_rmantree() is None:
             row = layout.row()
             row.alert = True
             row.label(text='Error in RMANTREE. Reload addon to reset.', icon='ERROR')
 
+        layout.prop(self, 'rman_logging_level')
         env = self.env_vars
         layout.prop(env, "out")
         layout.prop(self, 'path_display_driver_image')
         layout.prop(self, 'path_aov_image')
+        layout.prop(self, 'path_fallback_textures_path')        
         layout.prop(self, 'draw_ipr_text')
         layout.prop(self, 'draw_panel_icon')
+        #layout.prop(self, 'active_presets_path')
         layout.prop(self.presets_library, 'path')
 
         #layout.prop(env, "shd")

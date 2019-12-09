@@ -28,7 +28,49 @@ from bpy.types import PropertyGroup
 import bpy.utils
 from .. import util
 from . import icons
+import json
 import os
+
+# update the tree structure from disk file
+def refresh_presets_libraries(disk_lib, preset_library):
+    dirs = os.listdir(disk_lib)
+    for dir in dirs:
+        cdir = os.path.join(disk_lib, dir)
+        # skip if not a dir
+        if not os.path.isdir(cdir):
+            continue
+        
+        is_asset = '.rma' in dir
+        path = os.path.join(disk_lib, dir)
+
+        if is_asset:
+            preset = preset_library.presets.get(dir, None)
+            if not preset:
+                preset = preset_library.presets.add()
+            
+
+            preset.name = dir
+            json_path = os.path.join(path, 'asset.json')
+            data = json.load(open(json_path))
+            preset.label = data['RenderManAsset']['label']
+            preset.path = path
+            preset.json_path = os.path.join(path, 'asset.json')
+
+        else:
+            sub_group = preset_library.sub_groups.get(dir, None)
+            if not sub_group:
+                sub_group = preset_library.sub_groups.add()
+            sub_group.name = dir
+            sub_group.path = path
+
+            refresh_presets_libraries(cdir, sub_group)
+
+    for i,sub_group in enumerate(preset_library.sub_groups):
+        if sub_group.name not in dirs:
+            preset_library.sub_groups.remove(i)
+    for i,preset in enumerate(preset_library.presets):
+        if preset.name not in dirs:
+            preset_library.presets.remove(i)
 
 # This file holds the properties for the preset browser.  
 # They will be parsed from the json file
@@ -79,7 +121,8 @@ class RendermanPresetGroup(PropertyGroup):
         active = head
         for sub_path in lib_path.split(os.sep):
             if sub_path in active.sub_groups.keys():
-                active = active.sub_groups[sub_path]
+                active = active.sub_groups[sub_path]            
+        refresh_presets_libraries(active.path, active)
         return active
 
     # get the active library from the addon pref
@@ -100,7 +143,7 @@ class RendermanPresetGroup(PropertyGroup):
     def update_path(self, context):
         util.get_addon_prefs().presets_path = self.path
 
-    path: StringProperty(default='', update=update_path, subtype="FILE_PATH")
+    path: StringProperty(default='', name='Preset Library', update=update_path, subtype="FILE_PATH")
     presets: CollectionProperty(type=RendermanPreset)
     current_preset: EnumProperty(items=generate_previews, name='Current Preset')
 
@@ -120,7 +163,7 @@ def register():
     bpy.utils.register_class(RendermanPresetGroup)
 
     # set sub groups type we have to do this after registered
-    RendermanPresetGroup.sub_groups: CollectionProperty(type=RendermanPresetGroup)
+    RendermanPresetGroup.sub_groups = CollectionProperty(type=RendermanPresetGroup)
     
 
 def unregister():

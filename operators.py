@@ -37,29 +37,21 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
     CollectionProperty
 
-from .util import init_env
-from .util import getattr_recursive
-from .util import user_path
+from bpy_extras.io_utils import ExportHelper
+
+## These should be removed
 from .util import get_addon_prefs
 from .util import get_real_path
 from .util import readOSO, find_it_path, find_local_queue, find_tractor_spool
 from .util import get_Files_in_Directory
+from .nodes import convert_cycles_nodetree, is_renderman_nodetree
 
-from .export import export_archive
-from .export import get_texture_list
-from .engine import RPass
-from .export import debug
-from .export import write_archive_RIB
-from .export import EXCLUDED_OBJECT_TYPES
-from . import engine
 
-from .nodes_sg import convert_cycles_nodetree, is_renderman_nodetree
-
-#from .nodes import RendermanPatternGraph
-
+from .rfb_logger import rfb_log
+from .rman_utils import scene_utils
+from .rman_utils import string_utils
 from .spool import spool_render
-
-from bpy_extras.io_utils import ExportHelper
+from .rman_render import RmanRender
 
 
 class PRMAN_OT_Renderman_open_stats(bpy.types.Operator):
@@ -69,9 +61,11 @@ class PRMAN_OT_Renderman_open_stats(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        rm = scene.renderman
-        output_dir = os.path.dirname(
-            user_path(rm.path_rib_output, scene=scene))
+        rm = scene.renderman        
+        output_dir = string_utils.expand_string(rm.path_rib_output, 
+                                                frame=scene.frame_current, 
+                                                asFilePath=True)  
+        output_dir = os.path.dirname(output_dir)            
         bpy.ops.wm.url_open(
             url="file://" + os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current))
         return {'FINISHED'}
@@ -88,7 +82,7 @@ class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
         it_path = find_it_path()
         if not it_path:
             self.report({"ERROR"},
-                        "Could not find 'it'. Install RenderMan Studio.")
+                        "Could not find 'it'.")
         else:
             environ = os.environ.copy()
             subprocess.Popen([it_path], env=environ, shell=True)
@@ -101,6 +95,7 @@ class PRMAN_OT_Renderman_open_last_RIB(bpy.types.Operator):
     bl_description = "Opens the last generated Scene.rib file in the system default text editor"
 
     def invoke(self, context, event=None):
+        """
         rm = context.scene.renderman
         rpass = RPass(context.scene, interactive=False)
         path = rpass.paths['rib_output']
@@ -116,6 +111,7 @@ class PRMAN_OT_Renderman_open_last_RIB(bpy.types.Operator):
             except Exception:
                 debug(
                     'error', "File or text editor not available. (Check and make sure text editor is in system path.)")
+        """
         return {'FINISHED'}
 
 
@@ -299,47 +295,17 @@ class PRMAN_OT_RendermanBake(bpy.types.Operator):
     bl_idname = "renderman.bake"
     bl_label = "Baking"
     bl_description = "Bake pattern nodes to texture"
-    rpass = None
-    is_running = False
-    
-    def gen_rib_frame(self, rpass):
-        try:
-            rpass.gen_rib(convert_textures=False)
-        except Exception as err:
-            self.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
             
     def execute(self, context):
-        if engine.ipr:
-            self.report(
-                {"ERROR"}, 'Please stop IPR before baking')
-            return {'FINISHED'}
-        scene = context.scene
-        rpass = RPass(scene, external_render=True, bake=True)
-        rm = scene.renderman
-        rpass.display_driver = scene.renderman.display_driver
-        if not os.path.exists(rpass.paths['texture_output']):
-            os.mkdir(rpass.paths['texture_output'])
-        self.report(
-                    {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
-        self.gen_rib_frame(rpass)
-        rib_names = rpass.paths['rib_output']
-        frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
-        rm_version = rm.path_rmantree.split('-')[-1]
-        rm_version = rm_version.strip('/\\')
-        frame_begin = scene.frame_current
-        frame_end = scene.frame_current
-        to_render=True
-        denoise_files = []
-        denoise_aov_files = []
-        job_tex_cmds = []
-        denoise = False
-        alf_file = spool_render(str(rm_version), to_render, [rib_names], denoise_files, denoise_aov_files, frame_begin, frame_end, denoise, context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass, bake=True)
-        exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
-        self.report(
-                    {'INFO'}, 'RenderMan Baking spooling to %s.' % rm.queuing_system)
-        subprocess.Popen([exe, alf_file])
 
-        rpass = None
+        scene = context.scene
+        rman_render = RmanRender.get_rman_render()
+        if not rman_render.rman_interactive_running:
+            scene.renderman.hider_type = 'BAKE'
+            bpy.ops.render.render()
+            scene.renderman.hider_type = 'RAYTRACE'
+        else:
+            self.report({"ERROR"}, "Viewport rendering is on.")        
         return {'FINISHED'}
 
 class PRMAN_OT_ExternalRender(bpy.types.Operator):
@@ -351,202 +317,58 @@ class PRMAN_OT_ExternalRender(bpy.types.Operator):
     rpass = None
     is_running = False
 
-    def gen_rib_frame(self, rpass, do_objects):
-        try:
-            rpass.gen_rib(do_objects, convert_textures=True)
-        except Exception as err:
-            self.report({'ERROR'}, 'Rib gen error: ' + traceback.format_exc())
-
-    def gen_denoise_aov_name(self, scene, rpass):
-        addon_prefs = get_addon_prefs()
-        files = []
-        rm = scene.renderman
-        for layer in scene.view_layers:
-            # custom aovs
-            rm_rl = None
-            for render_layer_settings in rm.render_layers:
-                if layer.name == render_layer_settings.render_layer:
-                    rm_rl = render_layer_settings
-            if rm_rl:
-                layer_name = layer.name.replace(' ', '')
-                if rm_rl.denoise_aov:
-                    if rm_rl.export_multilayer:
-                        dspy_name = user_path(
-                            addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
-                            layer_name=layer_name, pass_name='multilayer')
-                        files.append(dspy_name)
-                    else:
-                        for aov in rm_rl.custom_aovs:
-                            aov_name = aov.name.replace(' ', '')
-                            dspy_name = user_path(
-                                addon_prefs.path_aov_image, scene=scene, display_driver=rpass.display_driver,
-                                layer_name=layer_name, pass_name=aov_name)
-                            files.append(dspy_name)
-        return files
-
     def execute(self, context):
-        if engine.ipr:
-            self.report(
-                {"ERROR"}, 'Please stop IPR before rendering externally')
-            return {'FINISHED'}
         scene = context.scene
-        rpass = RPass(scene, external_render=True)
-        rm = scene.renderman
-        render_output = rpass.paths['render_output']
-        images_dir = os.path.split(render_output)[0]
-        aov_output = rpass.paths['aov_output']
-        aov_dir = os.path.split(aov_output)[0]
-        do_rib = rm.generate_rib
-        do_objects = rm.generate_object_rib
-        if not os.path.exists(images_dir):
-            os.makedirs(images_dir)
-        if not os.path.exists(aov_dir):
-            os.makedirs(aov_dir)
-        if not os.path.exists(rpass.paths['texture_output']):
-            os.mkdir(rpass.paths['texture_output'])
-
-        # rib gen each frame
-        rpass.display_driver = scene.renderman.display_driver
-        rib_names = []
-        denoise_files = []
-        denoise_aov_files = []
-        job_tex_cmds = []
-        frame_tex_cmds = {}
-        if rm.external_animation:
-            rpass.update_frame_num(scene.frame_end + 1)
-            rpass.update_frame_num(scene.frame_start)
-            if rm.convert_textures:
-                tmp_tex_cmds = get_texture_list(rpass.scene)
-                tmp2_cmds = get_texture_list(rpass.scene)
-                job_tex_cmds = [
-                    cmd for cmd in tmp_tex_cmds if cmd in tmp2_cmds]
-
-            for frame in range(scene.frame_start, scene.frame_end + 1):
-                rpass.update_frame_num(frame)
-                if do_rib:
-                    self.report(
-                        {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
-                    self.gen_rib_frame(rpass, do_objects)
-                rib_names.append(rpass.paths['rib_output'])
-                if rm.convert_textures:
-                    frame_tex_cmds[frame] = [cmd for cmd in get_texture_list(
-                        rpass.scene) if cmd not in job_tex_cmds]
-                if rm.external_denoise:
-                    denoise_files.append(rpass.get_denoise_names())
-                    if rm.spool_denoise_aov:
-                        denoise_aov_files.append(
-                            self.gen_denoise_aov_name(scene, rpass))
-
+        rman_render = RmanRender.get_rman_render()
+        if not rman_render.rman_interactive_running:        
+            scene.renderman.enable_external_rendering = True        
+            bpy.ops.render.render()
+            scene.renderman.enable_external_rendering = False
         else:
-            if do_rib:
-                self.report(
-                    {'INFO'}, 'RenderMan External Rendering generating rib for frame %d' % scene.frame_current)
-                self.gen_rib_frame(rpass, do_objects)
-            rib_names.append(rpass.paths['rib_output'])
-            if rm.convert_textures:
-                frame_tex_cmds = {scene.frame_current: get_texture_list(scene)}
-            if rm.external_denoise:
-                denoise_files.append(rpass.get_denoise_names())
-                if rm.spool_denoise_aov:
-                    denoise_aov_files.append(
-                        self.gen_denoise_aov_name(scene, rpass))
-
-        # gen spool job
-        if rm.generate_alf:
-            denoise = rm.external_denoise
-            to_render = rm.generate_render
-            rm_version = rm.path_rmantree.split('-')[-1]
-            rm_version = rm_version.strip('/\\')
-            if denoise:
-                denoise = 'crossframe' if rm.crossframe_denoise and scene.frame_start != scene.frame_end and rm.external_animation else 'frame'
-            frame_begin = scene.frame_start if rm.external_animation else scene.frame_current
-            frame_end = scene.frame_end if rm.external_animation else scene.frame_current
-            alf_file = spool_render(
-                str(rm_version), to_render, rib_names, denoise_files, denoise_aov_files, frame_begin, frame_end, denoise, context, job_texture_cmds=job_tex_cmds, frame_texture_cmds=frame_tex_cmds, rpass=rpass)
-
-            # if spooling send job to queuing
-            if rm.do_render:
-                exe = find_tractor_spool() if rm.queuing_system == 'tractor' else find_local_queue()
-                self.report(
-                    {'INFO'}, 'RenderMan External Rendering spooling to %s.' % rm.queuing_system)
-                subprocess.Popen([exe, alf_file])
-
-        rpass = None
-        return {'FINISHED'}
-
+            self.report({"ERROR"}, "Viewport rendering is on.")              
+        return {'FINISHED'}        
 
 class PRMAN_OT_StartInteractive(bpy.types.Operator):
 
     ''''''
     bl_idname = "lighting.start_interactive"
-    bl_label = "Start/Stop Interactive Rendering"
-    bl_description = "Start/Stop Interactive Rendering, must have 'it' installed"
+    bl_label = "Start Interactive Rendering"
+    bl_description = "Start Interactive Rendering"
     rpass = None
     is_running = False
 
-    def draw(self, context):
-        w = context.region.width
-        h = context.region.height
-
-        # Draw text area that RenderMan is running.
-        pos_x = w / 2 - 100
-        pos_y = 20
-        blf.enable(0, blf.SHADOW)
-        blf.shadow_offset(0, 1, -1)
-        blf.shadow(0, 5, 0.0, 0.0, 0.0, 0.8)
-        blf.size(0, 32, 36)
-        blf.position(0, pos_x, pos_y, 0)
-        blf.color(0, 1.0, 0.0, 0.0, 1.0)
-        blf.draw(0, "%s" % ('RenderMan Interactive Mode Running'))
-        blf.disable(0, blf.SHADOW)
-
     def invoke(self, context, event=None):
-        addon_prefs = get_addon_prefs()
-        if engine.ipr is None:
-            if not hasattr(context, 'scene'):
-                return {'FINISHED'}
-            engine.ipr = RPass(context.scene, interactive=True)
-            #if engine.rman__sg__inited:
-            #    engine.ipr.start_interactive_sg()
-            if addon_prefs.draw_ipr_text:
-                engine.ipr_handle = bpy.types.SpaceView3D.draw_handler_add(
-                    self.draw, (context,), 'WINDOW', 'POST_PIXEL')
-            if engine.rman__sg__inited:
-                
-                bpy.app.handlers.depsgraph_update_post.append(
-                    engine.ipr.blender_scene_updated_pre_cb)                
-                bpy.app.handlers.depsgraph_update_post.append(
-                    engine.ipr.blender_scene_updated_cb)
-                bpy.app.handlers.frame_change_post.append(
-                    engine.ipr.blender_scene_updated_cb)
-                bpy.app.handlers.redo_post.append(
-                    engine.ipr.blender_scene_updated_cb)                                         
-            bpy.app.handlers.load_pre.append(self.invoke)
-            bpy.ops.render.render()
-        else:
-            if engine.rman__sg__inited:
-                bpy.app.handlers.depsgraph_update_post.remove(
-                    engine.ipr.blender_scene_updated_pre_cb)                
-                bpy.app.handlers.depsgraph_update_post.remove(
-                    engine.ipr.blender_scene_updated_cb)                
-                bpy.app.handlers.frame_change_post.remove(
-                    engine.ipr.blender_scene_updated_cb)
-                bpy.app.handlers.redo_post.remove(
-                    engine.ipr.blender_scene_updated_cb)                                              
-                    
-            # The user should not turn this on and off during IPR rendering.
-            if addon_prefs.draw_ipr_text:
-                bpy.types.SpaceView3D.draw_handler_remove(
-                    engine.ipr_handle, 'WINDOW')
-
-            engine.ipr.end_interactive()
-            engine.ipr = None
-            if context:
-                for area in context.screen.areas:
-                    if area.type == 'VIEW_3D':
-                        area.tag_redraw()
+        for window in bpy.context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type == 'VIEW_3D':
+                    for space in area.spaces:
+                        if space.type == 'VIEW_3D':
+                            if space.shading.type != 'RENDERED':    
+                                space.shading.type = 'RENDERED'
+                                space.shading.show_xray = True
 
         return {'FINISHED'}
+
+class PRMAN_OT_StoptInteractive(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "lighting.stop_interactive"
+    bl_label = "Stop Interactive Rendering"
+    bl_description = "Stop Interactive Rendering"
+    rpass = None
+    is_running = False
+
+    def invoke(self, context, event=None):
+        for window in bpy.context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type == 'VIEW_3D':
+                    for space in area.spaces:
+                        if space.type == 'VIEW_3D':
+                            if space.shading.type == 'RENDERED':    
+                                space.shading.type = 'SOLID'
+
+        return {'FINISHED'}
+
 ######################
 # Export RIB Operators
 ######################
@@ -579,13 +401,19 @@ class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
         return context.object is not None
 
     def execute(self, context):
-        export_path = self.filepath
-        export_range = self.export_all_frames
-        export_mats = self.export_mat
-        rpass = RPass(context.scene, interactive=False)
-        object = context.active_object
+        ob = context.active_object
+        if ob:
+            export_path = self.filepath
+            export_range = self.export_all_frames
+            export_mats = self.export_mat
+            rman_render = RmanRender.get_rman_render()
+            if not rman_render.rman_interactive_running:
+                rman_render.start_export_rib_selected(context, export_path, export_materials=export_mats, export_all_frames=export_range)
+            else:
+                self.report({"ERROR"}, "Viewport rendering is on.")
 
-        rpass.gen_rib_archive(object, export_path, export_mats, export_range, convert_textures=True)
+        else:
+            rfb_log().error("Nothing selected for RIB export.")
 
         return {'FINISHED'}
 
@@ -823,7 +651,7 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
         scene = context.scene
         # BBM modification
         if not self.properties.is_shader_param:
-            id = getattr_recursive(context, self.properties.context)
+            id = string_utils.getattr_recursive(context, self.properties.context)
             rm = id.renderman if hasattr(id, 'renderman') else id
         else:
             if context.active_object.name in bpy.data.lights.keys():
@@ -894,33 +722,47 @@ class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
             ("float u", active_layer.use_pass_uv, "u"),
             ("float v", active_layer.use_pass_uv, "v"),
             ("float id", active_layer.use_pass_object_index, "id"),
-            ("color lpe:shadows;C[<.D%G><.S%G>]<L.%LG>",
+            ("color lpe:shadows;C[<.D><.S>]<L.>",
              active_layer.use_pass_shadow, "Shadows"),
-            ("color lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
-             active_layer.use_pass_reflection, "Reflections"),
-            ("color lpe:C<.D%G><L.%LG>",
+            ("color lpe:C<.D><L.>",
              active_layer.use_pass_diffuse_direct, "Diffuse"),
-            ("color lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
+            ("color lpe:(C<RD>[DS]+<L.>)|(C<RD>[DS]*O)",
              active_layer.use_pass_diffuse_indirect, "IndirectDiffuse"),
             ("color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O",
              active_layer.use_pass_diffuse_color, "Albedo"),
-            ("color lpe:C<.S%G><L.%LG>",
+            ("color lpe:C<.S><L.>",
              active_layer.use_pass_glossy_direct, "Specular"),
-            ("color lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
+            ("color lpe:(C<RS>[DS]+<L.>)|(C<RS>[DS]*O)",
              active_layer.use_pass_glossy_indirect, "IndirectSpecular"),
-            ("color lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
+            ("color lpe:(C<TD>[DS]+<L.>)|(C<TD>[DS]*O)",
              active_layer.use_pass_subsurface_indirect, "Subsurface"),
-            ("color lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
-             active_layer.use_pass_refraction, "Refraction"),
             ("color lpe:emission", active_layer.use_pass_emit, "Emission"),
         ]
 
         for aov_type, attr, name in aovs:
             if attr:
-                aov_setting = rm_rl.custom_aovs.add()
-                aov_setting.aov_name = aov_type
-                aov_setting.name = name
-                aov_setting.channel_name = name
+                if name == "rgba":
+                    aov_setting = rm_rl.custom_aovs.add()
+                    aov_setting.name = 'beauty'
+                    channel = aov_setting.dspy_channels.add()
+                    channel.name = 'Ci'
+                    channel.aov_name = 'color Ci'
+                    channel = aov_setting.dspy_channels.add()
+                    channel.name = 'a'
+                    channel.aov_name = 'float a'    
+
+                else:
+                    aov_setting = rm_rl.custom_aovs.add()
+                    aov_setting.name = name
+
+                    channel = aov_setting.dspy_channels.add()
+                    channel.name = name
+                    channel.aov_name = aov_type
+                    channel.channel_name = name                    
+
+                    #aov_setting.aov_name = aov_type
+                    #aov_setting.name = name
+                    #aov_setting.channel_name = name
 
         return {'FINISHED'}
 
@@ -1083,6 +925,7 @@ class PRMAN_OT_RM_Add_Hemi(bpy.types.Operator):
         bpy.ops.object.light_add(type='SUN')
         bpy.ops.shading.add_renderman_nodetree(
             {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
+        bpy.context.object.data.renderman.renderman_type = 'ENV'
         return {"FINISHED"}
 
 
@@ -1162,7 +1005,7 @@ class PRMAN_OT_Add_bxdf(bpy.types.Operator):
             nt.links.new(layer2.outputs[0], mixer.inputs['layer1'])
 
         for obj in selection:
-            if(obj.type not in EXCLUDED_OBJECT_TYPES):
+            if(obj.type not in scene_utils.EXCLUDED_OBJECT_TYPES):
                 bpy.ops.object.material_slot_add()
 
                 obj.material_slots[-1].material = mat
@@ -1436,6 +1279,7 @@ classes = [
     PRMAN_OT_RendermanBake,
     PRMAN_OT_ExternalRender,
     PRMAN_OT_StartInteractive,
+    PRMAN_OT_StoptInteractive,
     PRMAN_OT_ExportRIBObject,
     PRMAN_OT_AddPresetRendermanRender,
     PRMAN_MT_PresetsMenu,

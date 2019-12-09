@@ -32,6 +32,7 @@ import xml.etree.ElementTree as ET
 import tempfile
 import nodeitems_utils
 import shutil
+import subprocess
 
 from bpy.props import *
 from nodeitems_utils import NodeCategory, NodeItem
@@ -40,7 +41,7 @@ from .shader_parameters import class_generate_properties
 from .shader_parameters import node_add_inputs
 from .shader_parameters import node_add_outputs
 from .shader_parameters import socket_map
-from .shader_parameters import txmake_options, update_conditional_visops
+from .shader_parameters import update_conditional_visops
 from .util import args_files_in_path
 from .util import get_path_list
 from .util import rib
@@ -49,6 +50,10 @@ from .util import user_path
 from .util import get_real_path
 from .util import readOSO
 from .cycles_convert import *
+from .rman_utils import texture_utils
+from .rman_utils import filepath_utils
+from .rman_utils import prefs_utils
+from .rfb_logger import rfb_log
 
 from operator import attrgetter, itemgetter
 import os.path
@@ -66,10 +71,6 @@ group_nodes = ['ShaderNodeGroup', 'NodeGroupInput', 'NodeGroupOutput']
 def update_func(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
-
-    from . import engine
-    if engine.is_ipr_running():
-        engine.ipr.issue_shader_edits(node=node)
 
 # socket name corresponds to the param on the node
 
@@ -288,17 +289,17 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             #mat.diffuse_intensity = 1
 
             if hasattr(self, "baseColor"):
-                mat.diffuse_color = self.baseColor
+                mat.diffuse_color[:3] = [i for i in self.baseColor]
             elif hasattr(self, "emitColor"):
-                mat.diffuse_color = self.emitColor
+                mat.diffuse_color[:3] = [i for i in self.emitColor]
             elif hasattr(self, "diffuseColor"):
                 mat.diffuse_color = (*self.diffuseColor, 1.0)
             elif hasattr(self, "midColor"):
-                mat.diffuse_color = self.midColor
+                mat.diffuse_color[:3] = [i for i in self.midColor]
             elif hasattr(self, "transmissionColor"):
-                mat.diffuse_color = self.transmissionColor
+                mat.diffuse_color[:3] = [i for i in self.transmissionColor]
             elif hasattr(self, "frontColor"):
-                mat.diffuse_color = self.frontColor
+                mat.diffuse_color[:3] = [i for i in self.frontColor]
 
             # specular intensity
             if hasattr(self, "specular"):
@@ -310,9 +311,9 @@ class RendermanShadingNode(bpy.types.ShaderNode):
 
             # specular color
             if hasattr(self, "specularColor"):
-                mat.specular_color = self.specularColor
+                mat.specular_color[:3] = [i for i in self.specularColor]
             elif hasattr(self, "reflectionColor"):
-                mat.specular_color = self.reflectionColor
+                mat.specular_color[:3] = [i for i in self.reflectionColor]
 
             if self.bl_idname in ["PxrGlassBxdfNode", "PxrLMGlassBxdfNode"]:
                 #FIXME mat.use_transparency = True
@@ -570,10 +571,7 @@ class RendermanOutputNode(RendermanShadingNode):
     # when a connection is made or removed see if we're in IPR mode and issue
     # updates
     def update(self):
-        from . import engine
-        if engine.is_ipr_running():
-            engine.ipr.last_edit_mat = None
-            engine.ipr.issue_shader_edits(nt=self.id_data)
+        pass
 
 
 # Final output node, used as a dummy to find top level shaders
@@ -603,6 +601,36 @@ class RendermanLightNode(RendermanShadingNode):
     renderman_node_type = 'light'
 
 # Generate dynamic types
+
+def set_rix_param(params, param_type, param_name, val, is_reference=False):
+    if is_reference:
+        if param_type == "float":
+            params.ReferenceFloat(param_name, val)
+        elif param_type == "int":
+            params.ReferenceInteger(param_name, val)
+        elif param_type == "color":
+            params.ReferenceColor(param_name, val)
+        elif param_type == "point":
+            params.ReferencePoint(param_name, val)            
+        elif param_type == "vector":
+            params.ReferenceVector(param_name, val)
+        elif param_type == "normal":
+            params.ReferenceNormal(param_name, val)             
+    else:        
+        if param_type == "float":
+            params.SetFloat(param_name, val)
+        elif param_type == "int":
+            params.SetInteger(param_name, val)
+        elif param_type == "color":
+            params.SetColor(param_name, val)
+        elif param_type == "string":
+            params.SetString(param_name, val)
+        elif param_type == "point":
+            params.SetPoint(param_name, val)                            
+        elif param_type == "vector":
+            params.SetVector(param_name, val)
+        elif param_type == "normal":
+            params.SetNormal(param_name, val)
 
 
 def generate_node_type(prefs, name, args):
@@ -1314,9 +1342,8 @@ gains_to_enable = {
 
 # generate param list
 
-
-def gen_params(ri, node, mat_name=None):
-    params = {}
+# generate rixparam list
+def gen_rixparams(node, params, mat_name=None):
     # If node is OSL node get properties from dynamic location.
     if node.bl_idname == "PxrOSLPatternNode":
 
@@ -1337,13 +1364,21 @@ def gen_params(ri, node, mat_name=None):
             if input.is_linked:
                 to_socket = input
                 from_socket = input.links[0].from_socket
-                params['reference %s %s' % (prop_type, input_name)] = \
-                    [get_output_param_str(
-                        from_socket.node, mat_name, from_socket, to_socket)]
+
+                param_type = prop_type
+                param_name = input_name
+
+                val = get_output_param_str(from_socket.node, mat_name, from_socket, to_socket)
+
+                set_rix_param(params, param_type, param_name, val, is_reference=True)    
+
             elif type(input) != RendermanNodeSocketStruct:
-                params['%s %s' % (prop_type, input_name)] = \
-                    rib(input.default_value,
-                        type_hint=prop_type)
+
+                param_type = prop_type
+                param_name = input_name
+                val = rib(input.default_value, type_hint=prop_type)
+                set_rix_param(params, param_type, param_name, val, is_reference=False)                
+
 
     # Special case for SeExpr Nodes. Assume that the code will be in a file so
     # that needs to be extracted.
@@ -1356,35 +1391,39 @@ def gen_params(ri, node, mat_name=None):
             elif prop_name == "internalSearch" and fileInputType == 'INT':
                 if node.internalSearch != "":
                     script = bpy.data.texts[node.internalSearch]
-                    params['%s %s' % ("string",
-                                      "expression")] = \
-                        rib(script.as_string(),
-                            type_hint=meta['renderman_type'])
+                    params.SetString("expression", script.as_string() )
             elif prop_name == "shadercode" and fileInputType == "NODE":
-                params['%s %s' % ("string", "expression")] = node.expression
+                params.SetString("expression", node.expression)
             else:
                 prop = getattr(node, prop_name)
                 # if input socket is linked reference that
                 if prop_name in node.inputs and \
                         node.inputs[prop_name].is_linked:
+
                     to_socket = node.inputs[prop_name]
                     from_socket = to_socket.links[0].from_socket
-                    params['reference %s %s' % (meta['renderman_type'],
-                                                meta['renderman_name'])] = \
-                        [get_output_param_str(
-                            from_socket.node, mat_name, from_socket, to_socket)]
-                # else output rib
+                    from_node = to_socket.links[0].from_node
+
+                    param_type = meta['renderman_type']
+                    param_name = meta['renderman_name']
+
+                    val = get_output_param_str(
+                            from_socket.node, mat_name, from_socket, to_socket)
+
+                    set_rix_param(params, param_type, param_name, val, is_reference=True)                            
                 else:
-                    params['%s %s' % (meta['renderman_type'],
-                                      meta['renderman_name'])] = \
-                        rib(prop, type_hint=meta['renderman_type'])
+
+                    param_type = meta['renderman_type']
+                    param_name = meta['renderman_name']
+
+                    val = rib(prop, type_hint=meta['renderman_type'])
+                    set_rix_param(params, param_type, param_name, val, is_reference=False)                          
 
     else:
 
         for prop_name, meta in node.prop_meta.items():
-            if prop_name in txmake_options.index:
-                pass
-            elif node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
+
+            if node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
                 pass
 
             elif(prop_name in ['sblur', 'tblur', 'notes']):
@@ -1406,16 +1445,18 @@ def gen_params(ri, node, mat_name=None):
                     to_socket = node.inputs[prop_name]
                     from_socket = to_socket.links[0].from_socket
                     from_node = to_socket.links[0].from_node
+
+                    param_type = meta['renderman_type']
+                    param_name = meta['renderman_name']
+
                     if 'arraySize' in meta:
-                        params['reference %s[1] %s' % (meta['renderman_type'],
-                                              meta['renderman_name'])] \
-                            = [get_output_param_str(
-                                from_node, mat_name, from_socket, to_socket)]
+                        pass
                     else:
-                        params['reference %s %s' % (meta['renderman_type'],
-                                                meta['renderman_name'])] = \
-                            [get_output_param_str(
-                                from_node, mat_name, from_socket, to_socket)]
+                        val = get_output_param_str(
+                                from_node, mat_name, from_socket, to_socket)
+
+                        set_rix_param(params, param_type, param_name, val, is_reference=True)
+                       
 
                 # see if vstruct linked
                 elif is_vstruct_and_linked(node, prop_name):
@@ -1443,10 +1484,25 @@ def gen_params(ri, node, mat_name=None):
                     if vstruct_from_param in from_socket.node.output_meta:
                         actual_socket = from_socket.node.output_meta[
                             vstruct_from_param]
-                        params['reference %s %s' % (meta['renderman_type'],
-                                                    meta['renderman_name'])] = \
-                            [get_output_param_str(
-                                from_socket.node, temp_mat_name, actual_socket)]
+
+                        param_type = meta['renderman_type']
+                        param_name = meta['renderman_name']
+
+                        node_meta = getattr(
+                            node, 'shader_meta') if node.bl_idname == "PxrOSLPatternNode" else node.output_meta                        
+                        node_meta = node_meta.get(vstruct_from_param)
+                        is_reference = True
+                        val = get_output_param_str(
+                               from_socket.node, temp_mat_name, actual_socket)
+                        if node_meta:
+                            expr = node_meta.get('vstructConditionalExpr')
+                            # check if we should connect or just set a value
+                            if expr:
+                                if expr.split(' ')[0] == 'set':
+                                    val = 1
+                                    is_reference = False                        
+                        set_rix_param(params, param_type, param_name, val, is_reference=is_reference)
+
                     else:
                         print('Warning! %s not found on %s' %
                               (vstruct_from_param, from_socket.node.name))
@@ -1457,6 +1513,12 @@ def gen_params(ri, node, mat_name=None):
                     if meta['renderman_type'] in ['struct', 'enum']:
                         continue
 
+                    param_type = meta['renderman_type']
+                    param_name = meta['renderman_name']
+                    val = None
+                    isArray = False
+                    arrayLen = 0
+
                     # if this is a gain on PxrSurface and the lobe isn't
                     # enabled
                     if node.bl_idname == 'PxrSurfaceBxdfNode' and \
@@ -1464,26 +1526,32 @@ def gen_params(ri, node, mat_name=None):
                             not getattr(node, gains_to_enable[prop_name]):
                         val = [0, 0, 0] if meta[
                             'renderman_type'] == 'color' else 0
-                        params['%s %s' % (meta['renderman_type'],
-                                          meta['renderman_name'])] = val
+                        #params['%s %s' % (meta['renderman_type'],
+                        #                  meta['renderman_name'])] = val
+
+                        
 
                     elif 'options' in meta and meta['options'] == 'texture' \
                             and node.bl_idname != "PxrPtexturePatternNode" or \
                             ('widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
-                        params['%s %s' % (meta['renderman_type'],
-                                          meta['renderman_name'])] = \
-                            rib(get_tex_file_name(prop),
-                                type_hint=meta['renderman_type'])
+
+                        val = rib(texture_utils.get_tex_file_name(prop), type_hint=meta['renderman_type'])
                     elif 'arraySize' in meta:
+                        isArray = True
                         if type(prop) == int:
                             prop = [prop]
-                        params['%s[%d] %s' % (meta['renderman_type'], len(prop),
-                                              meta['renderman_name'])] \
-                            = rib(prop)
+
+                        val = rib(prop)
+                        arrayLen = len(prop)
                     else:
-                        params['%s %s' % (meta['renderman_type'],
-                                          meta['renderman_name'])] = \
-                            rib(prop, type_hint=meta['renderman_type'])
+
+                        val = rib(prop, type_hint=meta['renderman_type'])
+
+                    if isArray:
+                        pass
+                    else:
+                        set_rix_param(params, param_type, param_name, val, is_reference=False)                       
+
     if node.plugin_name == 'PxrRamp':
         nt = bpy.data.node_groups[node.node_group]
         if nt:
@@ -1499,10 +1567,14 @@ def gen_params(ri, node, mat_name=None):
             positions.append(
                 float(dummy_ramp.color_ramp.elements[-1].position))
             colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
-            params['color[%d] colors' % len(positions)] = colors
-            params['float[%d] positions' % len(positions)] = positions
-    return params
 
+            params.SetFloatArray("colorRamp_Knots", positions, len(positions))
+            params.SetColorArray("colorRamp_Colors", colors, len(positions))
+
+            rman_interp_map = { 'LINEAR': 'linear', 'CONSTANT': 'constant'}
+            interp = rman_interp_map.get(dummy_ramp.color_ramp.interpolation,'catmull-rom')
+            params.SetString("colorRamp_Interpolation", interp )
+    return params
 
 def create_rman_surface(nt, parent_node, input_index, node_type="PxrSurfaceBxdfNode"):
     layer = nt.nodes.new(node_type)
@@ -1830,8 +1902,7 @@ def get_output_param_str(node, mat_name, socket, to_socket=None):
 # hack!!!
 current_group_node = None
 
-
-def translate_node_group(ri, group_node, mat_name):
+def translate_node_group(sg_scene, rman, group_node, mat_name):
     ng = group_node.node_tree
     out = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
                None)
@@ -1841,40 +1912,46 @@ def translate_node_group(ri, group_node, mat_name):
     nodes_to_export = gather_nodes(out)
     global current_group_node
     current_group_node = group_node
+    sg_nodes = []
     for node in nodes_to_export:
-        shader_node_rib(ri, node, mat_name=(mat_name + '.' + group_node.name))
+        sg_nodes += shader_node_sg(sg_scene, rman, node, mat_name=(mat_name + '.' + group_node.name))
     current_group_node = None
+    return sg_nodes
 
 
-def translate_cycles_node(ri, node, mat_name):
+def translate_cycles_node(sg_scene, rman, node, mat_name):
     if node.bl_idname == 'ShaderNodeGroup':
-        translate_node_group(ri, node, mat_name)
-        return
+        return translate_node_group(sg_scene, rman, node, mat_name)
 
     if node.bl_idname not in cycles_node_map.keys():
         print('No translation for node of type %s named %s' %
               (node.bl_idname, node.name))
-        return
+        return []
 
     mapping = cycles_node_map[node.bl_idname]
-    params = {}
+    #params = {}
+
+    sg_node = rman.SGManager.RixSGShader("Pattern", mapping, get_node_name(node, mat_name))
+    params = sg_node.params      
+      
     for in_name, input in node.inputs.items():
-        param_name = "%s %s" % (get_socket_type(
-            node, input), get_socket_name(node, input))
+        param_name = "%s" % get_socket_name(node, input)
+        param_type = "%s" % get_socket_type(node, input)
         if input.is_linked:
-            param_name = 'reference ' + param_name
             link = input.links[0]
-            param_val = get_output_param_str(
+            val = get_output_param_str(
                 link.from_node, mat_name, link.from_socket, input)
 
+            set_rix_param(params, param_type, param_name, val, is_reference=True)                
+
         else:
-            param_val = rib(input.default_value,
+            val = rib(input.default_value,
                             type_hint=get_socket_type(node, input))
             # skip if this is a vector set to 0 0 0
-            if input.type == 'VECTOR' and param_val == [0.0, 0.0, 0.0]:
+            if input.type == 'VECTOR' and val == [0.0, 0.0, 0.0]:
                 continue
 
-        params[param_name] = param_val
+            set_rix_param(params, param_type, param_name, val, is_reference=False)
 
     ramp_size = 256
     if node.bl_idname == 'ShaderNodeValToRGB':
@@ -1885,8 +1962,10 @@ def translate_cycles_node(ri, node, mat_name):
             c = node.color_ramp.evaluate(float(i) / (ramp_size - 1.0))
             colors.extend(c[:3])
             alphas.append(c[3])
-        params['color[%d] ramp_color' % ramp_size] = colors
-        params['float[%d] ramp_alpha' % ramp_size] = alphas
+
+        params.SetColorArray('ramp_color', colors, ramp_size)
+        params.SetFloatArray('ramp_alpha', alphas, ramp_size)
+
     elif node.bl_idname == 'ShaderNodeVectorCurve':
         colors = []
         node.mapping.initialize()
@@ -1898,7 +1977,7 @@ def translate_cycles_node(ri, node, mat_name):
             v = float(i) / (ramp_size - 1.0)
             colors.extend([r.evaluate(v), g.evaluate(v), b.evaluate(v)])
 
-        params['color[%d] ramp' % ramp_size] = colors
+        params.SetColorArray('ramp', colors, ramp_size)
 
     elif node.bl_idname == 'ShaderNodeRGBCurve':
         colors = []
@@ -1914,16 +1993,19 @@ def translate_cycles_node(ri, node, mat_name):
             colors.extend([r.evaluate(v) * c_val, g.evaluate(v)
                            * c_val, b.evaluate(v) * c_val])
 
-        params['color[%d] ramp' % ramp_size] = colors
+
+        params.SetColorArray('ramp', colors, ramp_size)
 
     #print('doing %s %s' % (node.bl_idname, node.name))
     # print(params)
-    ri.Pattern(mapping, get_node_name(node, mat_name), params)
+ 
+    return [sg_node]
 
-
-# Export to rib
-def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
+# convert shader node to RixSceneGraph node
+def shader_node_sg(sg_scene, rman, node, mat_name, portal=False):
     # this is tuple telling us to convert
+    sg_node = None
+
     if type(node) == type(()):
         shader, from_node, from_socket = node
         input_type = 'float' if shader == 'PxrToFloat3' else 'color'
@@ -1932,30 +2014,33 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
         if from_node.bl_idname == 'ShaderNodeGroup':
             node_name = 'convert_' + get_output_param_str(
                 from_node, mat_name, from_socket).replace(':', '.')
-        params = {"reference %s input" % input_type: get_output_param_str(
-            from_node, mat_name, from_socket)}
-        params['__instanceid'] = node_name
-
-        ri.Pattern(shader, node_name, params)
-        return
+                
+        val = get_output_param_str(from_node, mat_name, from_socket)
+        sg_node = rman.SGManager.RixSGShader("Pattern", shader, node_name)
+        rix_params = sg_node.params       
+        if input_type == 'color':
+            rix_params.ReferenceColor('input', val)
+        else:
+            rix_params.ReferenceFloat('input', val)            
+                
+        return [sg_node]
     elif not hasattr(node, 'renderman_node_type'):
-        return translate_cycles_node(ri, node, mat_name)
+   
+        return translate_cycles_node(sg_scene, rman, node, mat_name)
 
-    params = gen_params(ri, node, mat_name)
     instance = mat_name + '.' + node.name
 
-    params['__instanceid'] = instance
-
-    if 'string filename' in params:
-        params['string filename'] = bpy.path.abspath(params['string filename'])
+    if not hasattr(node, 'renderman_node_type'):
+        return
 
     if node.renderman_node_type == "pattern":
         if node.bl_label == 'PxrOSL':
-            shader = node.plugin_name
+            shader = node.shadercode #node.plugin_name
             if shader:
-                ri.Pattern(shader, instance, params)
+                sg_node = rman.SGManager.RixSGShader("Pattern", shader, instance)
+                
         else:
-            ri.Pattern(node.bl_label, instance, params)
+            sg_node = rman.SGManager.RixSGShader("Pattern", node.bl_label, instance)
     elif node.renderman_node_type == "light":
         light_group_name = ''
         scene = bpy.context.scene
@@ -1963,42 +2048,24 @@ def shader_node_rib(ri, node, mat_name, disp_bound=0.0, portal=False):
             if mat_name in lg.members.keys():
                 light_group_name = lg.name
                 break
-        params['string lightGroup'] = light_group_name
-        params['__instanceid'] = mat_name
 
         light_name = node.bl_label
-        if light_name == 'PxrPortalLight':
-            if mat_name in bpy.data.lights:
-                light = bpy.context.view_layer.objects.active
-                if light and light.parent and light.parent.type == 'LIGHT' \
-                    and light.parent.data.renderman.renderman_type == 'ENV':
-                    from .export import property_group_to_params
-                    parent_node = light.parent.data.renderman.get_light_node()
-                    parent_params = property_group_to_params(parent_node)
-                    params['string domeSpace'] = light.parent.name
-                    params['string portalName'] = mat_name
-                    params['string domeColorMap'] = parent_params['string lightColorMap']
-                    params['float intensity'] = parent_params['float intensity'] * params['float intensityMult']
-                    del params['float intensityMult']
-                    params['float exposure'] = parent_params['float exposure']
-                    params['color lightColor'] = [i*j for i,j in zip(parent_params['color lightColor'],params['color tint'])]
-                    del params['color tint']
-                    if not params['int enableTemperature']:
-                        params['int enableTemperature'] = parent_params['int enableTemperature']
-                        params['float temperature'] = parent_params['float temperature']
-                    params['float specular'] *= parent_params['float specular']
-                    params['float diffuse'] *= parent_params['float diffuse']
-        ri.Light(light_name, mat_name, params)
+        sg_node = rman.SGManager.RixSGShader("Light", node.bl_label, mat_name)
+
     elif node.renderman_node_type == "lightfilter":
-        params['__instanceid'] = mat_name
+        #params['__instanceid'] = mat_name
 
         light_name = node.bl_label
-        ri.LightFilter(light_name, mat_name, params)
     elif node.renderman_node_type == "displacement":
-        ri.Attribute('displacementbound', {'sphere': disp_bound})
-        ri.Displace(node.bl_label, mat_name, params)
+        sg_node = rman.SGManager.RixSGShader("Displacement", node.bl_label, instance)
     else:
-        ri.Bxdf(node.bl_label, instance, params)
+        sg_node = rman.SGManager.RixSGShader("Bxdf", node.bl_label, instance)        
+
+    if sg_node:
+        rix_params = sg_node.params       
+        rix_params = gen_rixparams(node, rix_params, mat_name)
+
+    return [sg_node]
 
 
 def replace_frame_num(prop):
@@ -2094,138 +2161,12 @@ def gather_nodes(node):
 
     return nodes
 
-
-# for an input node output all "nodes"
-def export_shader_nodetree(ri, id, handle=None, disp_bound=0.0, iterate_instance=False):
-
-    if id and id.node_tree:
-
-        if is_renderman_nodetree(id):
-            portal = type(
-                id).__name__ == 'AreaLight' and id.renderman.renderman_type == 'PORTAL'
-            # if id.renderman.nodetree not in bpy.data.node_groups:
-            #    load_tree_from_lib(id)
-
-            nt = id.node_tree
-            if not handle:
-                handle = id.name
-                if type(id) == bpy.types.Material:
-                    handle = get_mat_name(handle)
-
-            # if ipr we need to iterate instance num on nodes for edits
-            from . import engine
-            if engine.ipr and hasattr(id.renderman, 'instance_num'):
-                if iterate_instance:
-                    id.renderman.instance_num += 1
-                if id.renderman.instance_num > 0:
-                    handle += "_%d" % id.renderman.instance_num
-
-            out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and
-                        n.renderman_node_type == 'output'),
-                       None)
-            if out is None:
-                return
-
-            nodes_to_export = gather_nodes(out)
-            ri.ArchiveRecord('comment', "Shader Graph")
-            for node in nodes_to_export:
-                shader_node_rib(ri, node, mat_name=handle,
-                                disp_bound=disp_bound, portal=portal)
-        elif find_node(id, 'ShaderNodeOutputMaterial'):
-            print("Error Material %s needs a RenderMan BXDF" % id.name)
-
-
 def get_textures_for_node(node, matName=""):
     textures = []
-    if hasattr(node, 'bl_idname'):
-        if node.bl_idname == "PxrPtexturePatternNode":
-            return textures
-        elif node.bl_idname == "PxrOSLPatternNode":
-            for input_name, input in node.inputs.items():
-                if hasattr(input, 'is_texture') and input.is_texture:
-                    prop = input.default_value
-                    out_file_name = get_tex_file_name(prop)
-                    textures.append((replace_frame_num(prop), out_file_name,
-                                     ['-smode', 'periodic', '-tmode',
-                                      'periodic']))
-            return textures
-        elif node.bl_idname == 'ShaderNodeGroup':
-            nt = node.node_tree
-            for node in nt.nodes:
-                textures.extend(get_textures_for_node(node, matName=""))
-            return textures
-
-    if hasattr(node, 'prop_meta'):
-        for prop_name, meta in node.prop_meta.items():
-            if prop_name in txmake_options.index:
-                pass
-            elif hasattr(node, prop_name):
-                prop = getattr(node, prop_name)
-
-                if meta['renderman_type'] == 'page':
-                    continue
-
-                # else return a tuple of in name/outname
-                else:
-                    if ('options' in meta and meta['options'] == 'texture') or \
-                        (node.renderman_node_type == 'light' and
-                            'widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
-                        out_file_name = get_tex_file_name(prop)
-                        # if they don't match add this to the list
-                        if out_file_name != prop:
-                            if node.renderman_node_type == 'light' and \
-                                    "Dome" in node.bl_label:
-                                # no options for now
-                                textures.append(
-                                    (replace_frame_num(prop), out_file_name, ['-envlatl']))
-                            else:
-                                # Test and see if options like smode are on
-                                # this node.
-                                if hasattr(node, "smode"):
-                                    optionsList = []
-                                    for option in txmake_options.index:
-                                        partsOfOption = getattr(
-                                            txmake_options, option)
-                                        if partsOfOption["exportType"] == "name":
-                                            optionsList.append("-" + option)
-                                            # Float values need converting
-                                            # before they are passed to command
-                                            # line
-                                            if partsOfOption["type"] == "float":
-                                                optionsList.append(
-                                                    str(getattr(node, option)))
-                                            else:
-                                                optionsList.append(
-                                                    getattr(node, option))
-                                        else:
-                                            # Float values need converting
-                                            # before they are passed to command
-                                            # line
-                                            if partsOfOption["type"] == "float":
-                                                optionsList.append(
-                                                    str(getattr(node, option)))
-                                            else:
-                                                optionsList.append(
-                                                    "-" + getattr(node, option))
-                                    textures.append(
-                                        (replace_frame_num(prop), out_file_name, optionsList))
-                                else:
-                                    # no options found add the bare minimum
-                                    # options for smooth export.
-                                    textures.append((replace_frame_num(prop), out_file_name,
-                                                     ['-smode', 'periodic',
-                                                      '-tmode', 'periodic']))
     return textures
-
 
 def get_textures(id):
     textures = []
-    if id is None or not id.node_tree:
-        return textures
-
-    nt = id.node_tree
-    for node in nt.nodes:
-        textures.extend(get_textures_for_node(node, id.name))
 
     return textures
 
@@ -2238,7 +2179,8 @@ pattern_node_categories_map = {"texture": ["PxrFractal", "PxrBakeTexture", "PxrB
                                "script": ["PxrOSL", "PxrSeExpr"],
                                "utility": ["PxrAttribute", "PxrGeometricAOVs", "PxrMatteID", "PxrPrimvar", "PxrShadedSide", "PxrTee", "PxrToFloat", "PxrToFloat3", "PxrVariable"],
                                "displace": ["PxrDispScalarLayer", 'PxrDispTransform', 'PxrDispVectorLayer'],
-                               "layer": ['PxrLayer', 'PxrLayerMixer']}
+                               "layer": ['PxrLayer', 'PxrLayerMixer'],
+                               "deprecated": []}
 # Node Chatagorization List
 
 
@@ -2247,7 +2189,7 @@ def GetPatternCategory(name):
         if name in node_names:
             return cat_name
     else:
-        return 'deprecated'
+        return 'misc'
 
 # our own base class with an appropriate poll function,
 # so the categories only show up in our own tree type
@@ -2292,8 +2234,21 @@ classes = [
 nodetypes = {}
 pattern_categories = {}
 
+def _call_osltoargs(oslfile, args_file):
+    process_args = []
+    process_args.append( os.path.join(filepath_utils.guess_rmantree(), 'bin', 'osltoargs') )
+    process_args.append(oslfile)
+    process_args.append('-o')
+    process_args.append(args_file)
+    try:
+        subprocess.check_output(process_args)
+        return True
+    except:
+        return False
+
 
 def register():
+    
     for cls in classes:
         bpy.utils.register_class(cls)
 
@@ -2304,10 +2259,21 @@ def register():
 
     for name, arg_file in args_files_in_path(prefs, None).items():
         try:
-            vals = generate_node_type(prefs, name, ET.parse(arg_file).getroot())
-            if vals:
-                typename, nodetype = vals
-                nodetypes[typename] = nodetype
+            f,ext = os.path.splitext(arg_file)
+            if ext == '.args':
+                vals = generate_node_type(prefs, name, ET.parse(arg_file).getroot())
+                if vals:
+                    typename, nodetype = vals
+                    nodetypes[typename] = nodetype
+            elif ext == '.oso':
+                # this is an OSL file. Use osltoargs to convert to an args file.
+                f = os.path.basename(f) + '.args'
+                osltoargs = os.path.join( prefs_utils.get_bl_temp_dir(), f)
+                _call_osltoargs(arg_file, osltoargs)
+                vals = generate_node_type(prefs, name, ET.parse(osltoargs).getroot())
+                if vals:
+                    typename, nodetype = vals
+                    nodetypes[typename] = nodetype                
         except Exception:
             print("Error parsing " + name)
             traceback.print_exc()
@@ -2324,8 +2290,11 @@ def register():
         'patterns_script': ('RenderMan Script Patterns', []),
         'patterns_displace': ('RenderMan Displacement Patterns', []),
         'patterns_layer': ('RenderMan Layers', []),
+        'patterns_misc': ('RenderMan Misc Patterns', []),
         'displacement': ('RenderMan Displacements', [])
     }
+
+    rfb_log().debug("Registering RenderMan Shading Nodes:")
 
     for name, node_type in nodetypes.items():
         node_item = NodeItem(name, label=node_type.bl_label)
@@ -2335,7 +2304,7 @@ def register():
             pattern_cat = GetPatternCategory(node_type.bl_label)
             if pattern_cat == 'deprecated':
                 continue
-            node_cat = 'patterns_' + pattern_cat
+            node_cat = 'patterns_' + pattern_cat          
             node_cats[node_cat][1].append(node_item)
             pattern_cat = pattern_cat.capitalize()
             if pattern_cat not in pattern_categories:
@@ -2350,6 +2319,10 @@ def register():
             continue
         else:
             node_cats[node_type.renderman_node_type][1].append(node_item)
+
+        rfb_log().debug("\t%s registered." % name)
+
+    rfb_log().debug("Finished Registering RenderMan Shading Nodes.")
 
     # all categories in a list
     node_categories = [

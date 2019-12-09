@@ -86,7 +86,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
                 row = layout.row(align=True)
                 row.prop(active, 'name', text='Library')
                 row.operator('renderman.add_preset_library', text='', icon='ADD')
-                row.operator('renderman.move_preset_library', text='', icon='MAN_TRANS').lib_path = active.path
+                row.operator('renderman.move_preset_library', text='', icon='EXPORT').lib_path = active.path
                 row.operator('renderman.remove_preset_library', text='', icon='X')
                 current_preset = RendermanPreset.get_from_path(active.current_preset)
 
@@ -98,7 +98,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
                     # row of controls for preset
                     row = layout.row(align=True)
                     row.prop(current_preset, 'label', text="")
-                    row.operator('renderman.move_preset', icon='MAN_TRANS', text="").preset_path = current_preset.path
+                    row.operator('renderman.move_preset', icon='EXPORT', text="").preset_path = current_preset.path
                     row.operator('renderman.remove_preset', icon='X', text="").preset_path = current_preset.path
 
                     # add to scene

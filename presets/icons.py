@@ -56,4 +56,10 @@ def load_previews(lib):
             thumb = asset_previews[path]
         enum_items.append((asset.path, asset.label, '', thumb.icon_id, i))
 
+    # FIXME: Not sure why this is needed
+    # Without it, icons don't seem to show up?
+    for img in asset_previews.values():
+        x = img.icon_size[0]
+        y = img.icon_size[1]
+
     return enum_items if enum_items else [('', '', '')]

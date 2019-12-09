@@ -30,18 +30,22 @@ import xml.etree.ElementTree as ET
 import time
 from mathutils import Vector
 
-from .util import guess_rmantree
-
 from .util import args_files_in_path
+from .util import get_path_list_converted
 from .shader_parameters import class_generate_properties
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
     CollectionProperty, BoolVectorProperty
 
-from . import engine
 from bpy.app.handlers import persistent
 import traceback
+
+
+from .rman_utils import filepath_utils
+from .rfb_logger import rfb_log
+from . import rman_render
+
 
 integrator_names = []
 
@@ -95,8 +99,11 @@ class RendermanGroup(bpy.types.PropertyGroup):
 class LightLinking(bpy.types.PropertyGroup):
 
     def update_link(self, context):
+        pass
+        """
         if engine.is_ipr_running():
             engine.ipr.update_light_link(context, self)
+        """
 
     illuminate: EnumProperty(
         name="Illuminate",
@@ -107,34 +114,35 @@ class LightLinking(bpy.types.PropertyGroup):
                ('OFF', 'Off', '')])
 
 
-class RendermanAOV(bpy.types.PropertyGroup):
+class RendermanDspyChannel(bpy.types.PropertyGroup):
 
     def aov_list(self, context):
         items = [
             # (LPE, ID, Extra ID, no entry, sorting order)
             # Basic lpe
             ("", "Basic LPE's", "Basic LPE's", "", 0),
-            ("color rgba", "rgba", "Combined (beauty)", "", 1),
-            ("color lpe:C[<.D%G><.S%G>][DS]*[<L.%LG>O]",
+            #("color rgba", "rgba", "Combined (beauty)", "", 1),
+            ("color Ci", "Ci", "Beauty", "", 1),
+            ("color lpe:C[<.D><.S>][DS]*[<L.>O]",
              "All Lighting", "All Lighting", "", 2),
-            ("color lpe:C<.D%G><L.%LG>", "Diffuse", "Diffuse", "", 3),
-            ("color lpe:(C<RD%G>[DS]+<L.%LG>)|(C<RD%G>[DS]*O)",
+            ("color lpe:C<.D><L.>", "Diffuse", "Diffuse", "", 3),
+            ("color lpe:(C<RD>[DS]+<L.>)|(C<RD>[DS]*O)",
              "IndirectDiffuse", "IndirectDiffuse", "", 4),
-            ("color lpe:C<.S%G><L.%LG>", "Specular", "Specular", "", 5),
-            ("color lpe:(C<RS%G>[DS]+<L.%LG>)|(C<RS%G>[DS]*O)",
+            ("color lpe:C<.S><L.>", "Specular", "Specular", "", 5),
+            ("color lpe:(C<RS>[DS]+<L.>)|(C<RS>[DS]*O)",
              "IndirectSpecular", "IndirectSpecular", "", 6),
-            ("color lpe:(C<TD%G>[DS]+<L.%LG>)|(C<TD%G>[DS]*O)",
+            ("color lpe:(C<TD>[DS]+<L.>)|(C<TD>[DS]*O)",
              "Subsurface", "Subsurface", "", 7),
-            ("color lpe:C<RS%G>([DS]+<L.%LG>)|([DS]*O)",
+            ("color lpe:C<RS>([DS]+<L.>)|([DS]*O)",
              "Reflection", "Reflection", "", 8),
-            ("color lpe:(C<T[S]%G>[DS]+<L.%LG>)|(C<T[S]%G>[DS]*O)",
+            ("color lpe:(C<T[S]>[DS]+<L.>)|(C<T[S]>[DS]*O)",
              "Refraction", "Refraction", "", 9),
             ("color lpe:emission", "Emission", "Emission", "", 10),
-            ("color lpe:shadows;C[<.D%G><.S%G>]<L.%LG>",
+            ("color lpe:shadows;C[<.D><.S>]<L.>",
              "Shadows", "Shadows", "", 11),
             ("color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O",
              "Albedo", "Albedo", "", 12),
-            ("color lpe:C<.D%G>[S]+<L.%LG>", "Caustics", "Caustics", "", 13),
+            ("color lpe:C<.D>[S]+<L.>", "Caustics", "Caustics", "", 13),
             # Matte ID
             ("", "Matte ID's", "Matte ID's", "", 0),
             ("color MatteID0", "MatteID0", "MatteID0", "", 14),
@@ -147,43 +155,43 @@ class RendermanAOV(bpy.types.PropertyGroup):
             ("color MatteID7", "MatteID7", "MatteID7", "", 21),
             # PxrSurface lpe
             ("", "PxrSurface lobe LPE's", "PxrSurface lobe LPE's", "", 0),
-            ("color lpe:C<.D2%G>[<L.%LG>O]",
+            ("color lpe:C<.D2>[<L.>O]",
              "directDiffuseLobe", "", "", 22),
-            ("color lpe:C<.D2%G>[DS]+[<L.%LG>O]",
+            ("color lpe:C<.D2>[DS]+[<L.>O]",
              "indirectDiffuseLobe", "", "", 23),
-            ("color lpe:C<.D3%G>[DS]*[<L.%LG>O]",
+            ("color lpe:C<.D3>[DS]*[<L.>O]",
              "subsurfaceLobe", "", "", 24),
-            ("color lpe:C<.S2%G>[<L.%LG>O]",
+            ("color lpe:C<.S2>[<L.>O]",
              "directSpecularPrimaryLobe", "", "", 25),
-            ("color lpe:C<.S2%G>[DS]+[<L.%LG>O]",
+            ("color lpe:C<.S2>[DS]+[<L.>O]",
              "indirectSpecularPrimaryLobe", "", "", 26),
-            ("color lpe:C<.S3%G>[<L.%LG>O]",
+            ("color lpe:C<.S3>[<L.>O]",
              "directSpecularRoughLobe", "", "", 27),
-            ("color lpe:C<.S3%G>[DS]+[<L.%LG>O]",
+            ("color lpe:C<.S3>[DS]+[<L.>O]",
              "indirectSpecularRoughLobe", "", "", 28),
-            ("color lpe:C<.S4%G>[<L.%LG>O]",
+            ("color lpe:C<.S4>[<L.>O]",
              "directSpecularClearcoatLobe", "", "", 29),
-            ("color lpe:C<.S4%G>[DS]+[<L.%LG>O]",
+            ("color lpe:C<.S4>[DS]+[<L.>O]",
              "indirectSpecularClearcoatLobe", "", "", 30),
-            ("color lpe:C<.S5%G>[<L.%LG>O]",
+            ("color lpe:C<.S5>[<L.>O]",
              "directSpecularIridescenceLobe", "", "", 31),
-            ("color lpe:C<.S5%G>[DS]+[<L.%LG>O]",
+            ("color lpe:C<.S5>[DS]+[<L.>O]",
              "indirectSpecularIridescenceLobe", "", "", 32),
-            ("color lpe:C<.S6%G>[<L.%LG>O]",
+            ("color lpe:C<.S6>[<L.>O]",
              "directSpecularFuzzLobe", "", "", 33),
-            ("color lpe:C<.S6%G>[DS]+[<L.%LG>O]",
+            ("color lpe:C<.S6>[DS]+[<L.>O]",
              "indirectSpecularFuzzLobe", "", "", 34),
-            ("color lpe:C<.S7%G>[DS]*[<L.%LG>O]",
+            ("color lpe:C<.S7>[DS]*[<L.>O]",
              "transmissiveSingleScatterLobe", "", "", 35),
-            ("color lpe:C<RS8%G>[<L.%LG>O]",
+            ("color lpe:C<RS8>[<L.>O]",
              "directSpecularGlassLobe", "", "", 36),
-            ("color lpe:C<RS8%G>[DS]+[<L.%LG>O]",
+            ("color lpe:C<RS8>[DS]+[<L.>O]",
              "indirectSpecularGlassLobe", "", "", 37),
-            ("color lpe:C<TS8%G>[DS]*[<L.%LG>O]",
+            ("color lpe:C<TS8>[DS]*[<L.>O]",
              "transmissiveGlassLobe", "", "", 38),
             # Data AOV's
             ("", "Data AOV's", "Data AOV's", "", 0),
-            ("float a", "alpha", "", "", 39),
+            ("float a", "a", "Alpha", "", 39),
             ("float id", "id", "Returns the integer assigned via the 'identifier' attribute as the pixel value", "", 40),
             ("float z", "z_depth", "Depth from the camera in world space", "", 41),
             ("float zback", "z_back",
@@ -328,7 +336,7 @@ class RendermanAOV(bpy.types.PropertyGroup):
         description="Max value for quantization",
         default=0)
 
-    aov_pixelfilter: EnumProperty(
+    chan_pixelfilter: EnumProperty(
         name="Pixel Filter",
         description="Filter to use to combine pixel samples.  If 'default' is selected the aov will use the filter set in the render panel",
         items=[('default', 'Default', ''),
@@ -338,22 +346,59 @@ class RendermanAOV(bpy.types.PropertyGroup):
                ('triangle', 'Triangle', ''),
                ('catmull-rom', 'Catmull-Rom', '')],
         default='default')
-    aov_pixelfilter_x: IntProperty(
+    chan_pixelfilter_x: IntProperty(
         name="Filter Size X",
         description="Size of the pixel filter in X dimension",
         min=0, max=16, default=2)
-    aov_pixelfilter_y: IntProperty(
+    chan_pixelfilter_y: IntProperty(
         name="Filter Size Y",
         description="Size of the pixel filter in Y dimension",
         min=0, max=16, default=2)
 
+    object_group: StringProperty(name='Object Group')
+    light_group: StringProperty(name='Light Group')        
+
+class RendermanAOV(bpy.types.PropertyGroup):
+
+    name: StringProperty(name='Display Name')
+    aov_display_driver: EnumProperty(
+        name="Display Driver",
+        description="File Type for output pixels",
+        items=[
+            ('openexr', 'OpenEXR',
+             'Render to an OpenEXR file.'),
+            ('deepexr', 'Deep OpenEXR',
+             'Render to a deep OpenEXR file.'),             
+            ('tiff', 'Tiff',
+             'Render to a TIFF file.'),
+            ('png', 'PNG',
+            'Render to a PNG file.')
+        ], default='openexr')    
+    dspy_channels: CollectionProperty(type=RendermanDspyChannel,
+                                     name='Display Channels')
+    dspy_channels_index: IntProperty(min=-1, default=-1)    
+    camera: PointerProperty(name="Camera", 
+                        description="Camera to use to render this AOV. If not specified the main scene camera is used.",
+                        type=bpy.types.Camera)
+    denoise: BoolProperty(name='Denoise', default=False)
+    denoise_mode: EnumProperty(
+        name="Denoise Mode",
+        description="Denoise mode",
+        items=[
+            ('singleframe', 'Single Frame',
+             'Single frame mode'),
+            ('crossframe', 'Cross Frame',
+            'Denoise in crossframe mode.')
+        ], default='singleframe')     
+
+   
 
 class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
     render_layer: StringProperty()
     custom_aovs: CollectionProperty(type=RendermanAOV,
                                      name='Custom AOVs')
     custom_aov_index: IntProperty(min=-1, default=-1)
-    camera: StringProperty()
+    #camera: StringProperty()
     object_group: StringProperty(name='Object Group')
     light_group: StringProperty(name='Light Group')
 
@@ -472,7 +517,16 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     render_layers: CollectionProperty(type=RendermanRenderLayerSettings,
                                        name='Custom AOVs')
 
-    solo_light: BoolProperty(name="Solo Light", default=False)
+
+    def update_scene_solo_light(self, context):
+        rr = rman_render.RmanRender.get_rman_render()        
+        if rr.rman_interactive_running:
+            if self.solo_light:
+                rr.rman_scene.update_solo_light(context)
+            else:
+                rr.rman_scene.update_un_solo_light(context)
+
+    solo_light: BoolProperty(name="Solo Light", update=update_scene_solo_light, default=False)
 
     pixelsamples_x: IntProperty(
         name="Pixel Samples X",
@@ -659,7 +713,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="RIB Output Path",
         description="Path to generated .rib files",
         subtype='FILE_PATH',
-        default=os.path.join('$OUT', '{scene}.####.rib'))
+        default=os.path.join('{OUT}', '{blend}', '{scene}.{layer}.{F4}.rib'))
 
     path_object_archive_static: StringProperty(
         name="Object archive RIB Output Path",
@@ -677,7 +731,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Teture Output Path",
         description="Path to generated .tex files",
         subtype='FILE_PATH',
-        default=os.path.join('$OUT', 'textures'))
+        default=os.path.join('{OUT}', 'textures'))
 
     out_dir: StringProperty(
         name="Shader Output Path",
@@ -733,6 +787,19 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="Always Recompile Textures",
         description="Recompile used textures at export time to the current rib folder. Leave this unchecked to speed up re-render times",
         default=False)
+
+    hider_decidither: IntProperty(
+        name="Interactive Refinement",
+        description="This value is only applied during IPR. The value determines how much refinement (in a dither pattern) will be applied to the image during interactive rendering. 0 means full refinement up to a value of 6 which is the least refinement per iteration.",
+        min=0, max=6, default=0)
+
+    hider_type: EnumProperty(
+        name="Hider Type",
+        description="Hider Type",
+        items=[('BAKE', 'BAKE', 'Bake Hider'),
+               ('RAYTRACE', 'RAYTRACE', 'Raytrace Hider')],
+        default='RAYTRACE')
+
     # preview settings
     preview_pixel_variance: FloatProperty(
         name="Preview Pixel Variance",
@@ -784,11 +851,11 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="File Type for output pixels, 'it' will send to an external framebuffer",
         items=[
             ('openexr', 'OpenEXR',
-             'Render to a OpenEXR file, to be read back into Blender\'s Render Result'),
+             'Render to an OpenEXR file.'),
             ('tiff', 'Tiff',
-             'Render to a TIFF file, to be read back into Blender\'s Render Result'),
-            ('it', 'it', 'External framebuffer display (must have RMS installed)')
-        ], default='it')
+             'Render to a TIFF file.'),
+            ('it', 'it', 'External framebuffer display.')
+        ], default='openexr')
 
     exr_format_options: EnumProperty(
         name="Bit Depth",
@@ -815,9 +882,9 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
 
     render_into: EnumProperty(
         name="Render to",
-        description="Render to blender or external framebuffer",
+        description="Render to Blender or Image Tool framebuffer. This also controls where viewport renders will render to.",
         items=[('blender', 'Blender', 'Render to the Image Editor'),
-               ('it', 'it', 'External framebuffer display (must have RMS installed)')],
+               ('it', 'it', 'Image Tool framebuffer display')],
         default='blender')
 
     export_options: BoolProperty(
@@ -866,8 +933,8 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
     queuing_system: EnumProperty(
         name="Spool to",
         description="System to spool to",
-        items=[('lq', 'LocalQueue', 'LocalQueue, must have RMS installed'),
-               ('tractor', 'tractor', 'Tractor, must have tractor setup')],
+        items=[('lq', 'LocalQueue', 'Spool to LocalQueue and render on your local machine.'),
+               ('tractor', 'Tractor', 'Tractor, must have tractor setup')],
         default='lq')
 
     recover: BoolProperty(
@@ -971,10 +1038,16 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         description="Enables progressive rendering (the entire image is refined at once).\nThis is only visible with some display drivers (such as it)",
         default=False)
 
+    def update_integrator(self, context):
+        rr = rman_render.RmanRender.get_rman_render()
+        if rr.rman_interactive_running:
+            rr.rman_scene.update_integrator(context)
+
     integrator: EnumProperty(
         name="Integrator",
         description="Integrator for rendering",
         items=integrator_names,
+        update=update_integrator,
         default='PxrPathTracer')
 
     show_integrator_settings: BoolProperty(
@@ -1007,7 +1080,7 @@ class RendermanSceneSettings(bpy.types.PropertyGroup):
         name="RMANTREE Path",
         description="Path to RenderManProServer installation folder",
         subtype='DIR_PATH',
-        default=guess_rmantree())
+        default=filepath_utils.guess_rmantree())
     path_renderer: StringProperty(
         name="Renderer Path",
         description="Path to renderer executable",
@@ -1230,10 +1303,12 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
 
     def update_name(self, context):
         self.name = self.filter_name
+        """
         from . import engine
         if engine.is_ipr_running():
             engine.ipr.reset_filter_names()
             engine.ipr.issue_shader_edits()
+        """
 
     name: StringProperty(default='SET FILTER')
     filter_name: EnumProperty(
@@ -1328,16 +1403,20 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
         self.light_node = light_shader + "_settings"
 
+        """
         from . import engine
         if engine.is_ipr_running():
             engine.ipr.issue_shader_edits()
+        """
 
     def update_vis(self, context):
         light = self.id_data
 
+        """
         from . import engine
         if engine.is_ipr_running():
             engine.ipr.update_light_visibility(light)
+        """
 
     # remove any filter control geo that might be on the light
     def remove_filter_geo(self):
@@ -1722,13 +1801,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         update=update_vis,
         default=True)
 
-    def update_mute(self, context):
-        if engine.is_ipr_running():
-            engine.ipr.mute_light()
-
     mute: BoolProperty(
         name="Mute",
-        update=update_mute,
         description="Turn off this light",
         default=False)
 
@@ -1737,19 +1811,13 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         scene = context.scene
 
         # if the scene solo is on already find the old one and turn off
+        scene.renderman.solo_light = self.solo
         if self.solo:
             if scene.renderman.solo_light:
                 for ob in scene.objects:
                     if ob.type == 'LIGHT' and ob.data.renderman != self and ob.data.renderman.solo:
                         ob.data.renderman.solo = False
                         break
-
-            if engine.is_ipr_running():
-                engine.ipr.solo_light()
-        elif engine.is_ipr_running():
-            engine.ipr.un_solo_light()
-
-        scene.renderman.solo_light = self.solo
 
     solo: BoolProperty(
         name="Solo",
@@ -1782,9 +1850,11 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
     def update_vis(self, context):
         light = context.scene.world
 
+        """
         from . import engine
         if engine.is_ipr_running():
             engine.ipr.update_light_visibility(light)
+        """
 
     renderman_type: EnumProperty(
         name="World Type",
@@ -1884,11 +1954,13 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
 
     def update_point_type(self, context):
         return
+        """
         global engine
         if engine.is_ipr_running():
             active = context.view_layer.objects.active
             psys = active.particle_systems.active
             engine.ipr.issue_rman_particle_prim_type_edit(active, psys)
+        """
 
     particle_type: EnumProperty(
         name="Point Type",
@@ -1997,6 +2069,13 @@ class OpenVDBChannel(bpy.types.PropertyGroup):
 
 class RendermanObjectSettings(bpy.types.PropertyGroup):
 
+    def update_object_prim_attrs(self, context):
+        active = context.active_object
+        rr = rman_render.RmanRender.get_rman_render()
+        if rr.rman_interactive_running:
+            rr.rman_scene.update_object_prim_attrs(active)
+
+    """
     # for some odd reason blender truncates this as a float
     update_timestamp: IntProperty(
         name="Update Timestamp", default=int(time.time()),
@@ -2029,6 +2108,7 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                 'Generates procedural geometry at render time from a dynamic shared object library')
                ],
         default='BLENDER_SCENE_DATA')
+    """
 
     openvdb_channels: CollectionProperty(
         type=OpenVDBChannel, name="OpenVDB Channels")
@@ -2082,14 +2162,9 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         size=3,
         default=[1.0, 1.0, 1.0])
 
-    def update_prim_type(self, context):
-        global engine
-        if engine.is_ipr_running():
-            engine.ipr.issue_rman_prim_type_edit(context.view_layer.objects.active)
-
-    primitive: EnumProperty(
-        name="Primitive Type",
-        description="Representation of this object's geometry in the renderer",
+    def primitive_items(scene, context):
+        items = []
+    
         items=[('AUTO', 'Automatic', 'Automatically determine the object type from context and modifiers used'),
                ('POLYGON_MESH', 'Polygon Mesh', 'Mesh object'),
                ('SUBDIVISION_MESH', 'Subdivision Mesh',
@@ -2102,9 +2177,24 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
                ('CONE', 'Cone', 'Parametric cone primitive'),
                ('DISK', 'Disk', 'Parametric 2D disk primitive'),
                ('TORUS', 'Torus', 'Parametric torus primitive')
-               ],
-        default='AUTO',
-        update=update_prim_type)
+               ]
+        
+        items.append(('OPENVDB', 'OpenVDB File',
+        'Renders a prevously exported OpenVDB file'))
+        items.append(('DELAYED_LOAD_ARCHIVE', 'Delayed Load Archive',
+        'Loads and renders geometry from an archive only when its bounding box is visible'))
+        items.append(('PROCEDURAL_RUN_PROGRAM', 'Procedural Run Program',
+        'Generates procedural geometry at render time from an external program'))
+        items.append(('DYNAMIC_LOAD_DSO', 'Dynamic Load DSO',
+        'Generates procedural geometry at render time from a dynamic shared object library')) 
+
+        return items
+
+    primitive: EnumProperty(
+        name="Primitive Type",
+        description="Representation of this object's geometry in the renderer",
+        items=primitive_items)
+        #default='AUTO')
 
     export_archive: BoolProperty(
         name="Export as Archive",
@@ -2118,38 +2208,47 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
 
     primitive_radius: FloatProperty(
         name="Radius",
-        default=1.0)
+        update=update_object_prim_attrs,
+        default=1.0,)
     primitive_zmin: FloatProperty(
         name="Z min",
         description="Minimum height clipping of the primitive",
+        update=update_object_prim_attrs,
         default=-1.0)
     primitive_zmax: FloatProperty(
         name="Z max",
         description="Maximum height clipping of the primitive",
+        update=update_object_prim_attrs,
         default=1.0)
     primitive_sweepangle: FloatProperty(
         name="Sweep Angle",
         description="Angle of clipping around the Z axis",
+        update=update_object_prim_attrs,
         default=360.0)
     primitive_height: FloatProperty(
         name="Height",
         description="Height offset above XY plane",
+        update=update_object_prim_attrs,
         default=0.0)
     primitive_majorradius: FloatProperty(
         name="Major Radius",
         description="Radius of Torus ring",
+        update=update_object_prim_attrs,
         default=2.0)
     primitive_minorradius: FloatProperty(
         name="Minor Radius",
         description="Radius of Torus cross-section circle",
+        update=update_object_prim_attrs,
         default=0.5)
     primitive_phimin: FloatProperty(
         name="Minimum Cross-section",
         description="Minimum angle of cross-section circle",
+        update=update_object_prim_attrs,
         default=0.0)
     primitive_phimax: FloatProperty(
         name="Maximum Cross-section",
         description="Maximum angle of cross-section circle",
+        update=update_object_prim_attrs,
         default=360.0)
         
     primitive_point_type: EnumProperty(
@@ -2469,7 +2568,7 @@ def prune_perspective_camera(args_xml, name):
 
 # get the names of args files in rmantree/lib/ris/integrator/args
 def get_integrator_names(args_xml, name):
-    integrator_names.append((name, name[3:], ''))
+    integrator_names.append((name, name, ''))
     return args_xml
 
 
@@ -2477,7 +2576,7 @@ def get_samplefilter_names(args_xml, name):
     if 'Combiner' in name:
         return None
     else:
-        samplefilter_names.append((name, name[3:], ''))
+        samplefilter_names.append((name, name, ''))
         return args_xml
 
 
@@ -2485,7 +2584,7 @@ def get_displayfilter_names(args_xml, name):
     if 'Combiner' in name:
         return None
     else:
-        displayfilter_names.append((name, name[3:], ''))
+        displayfilter_names.append((name, name, ''))
         return args_xml
 
 
@@ -2522,16 +2621,22 @@ def register_plugin_to_parent(ntype, name, args_xml, plugin_type, parent):
 
 
 def register_plugin_types():
-    rmantree = guess_rmantree()
-    args_path = os.path.join(rmantree, 'lib', 'plugins', 'Args')
+
+    user_preferences = bpy.context.preferences
+    prefs = user_preferences.addons[__package__].preferences
+
     items = []
-    for f in os.listdir(args_path):
-        args_xml = ET.parse(os.path.join(args_path, f)).getroot()
+
+    rfb_log().debug("Registering RenderMan Plugin Nodes:")
+    for name, f in args_files_in_path(prefs, None).items():
+        if not f.endswith('.args'):
+            continue
+        args_xml = ET.parse(f).getroot()
         plugin_type = args_xml.find("shaderType/tag").attrib['value']
         if plugin_type not in plugin_mapping:
             continue
         prune_method, parent = plugin_mapping[plugin_type]
-        name = f.split('.')[0]
+
         typename = name + plugin_type.capitalize() + 'Settings'
         ntype = type(typename, (RendermanPluginSettings,), {})
         ntype.bl_label = name
@@ -2546,9 +2651,12 @@ def register_plugin_types():
 
         try:
             register_plugin_to_parent(ntype, name, args_xml, plugin_type, parent)
+            rfb_log().debug("\t%s Registered." % name)
         except Exception as e:
-            print("Error registering plugin ", name)
+            rfb_log().error("Error registering plugin ", name)
             traceback.print_exc()
+
+    rfb_log().debug("Finished Registering RenderMan Plugin Nodes.")
 
 @persistent
 def initial_groups(scene):
@@ -2577,6 +2685,7 @@ classes = [RendermanPath,
            RendermanParticleSettings,
            RendermanPluginSettings,
            RendermanWorldSettings,
+           RendermanDspyChannel,
            RendermanAOV,
            RendermanRenderLayerSettings,
            RendermanCameraSettings,
@@ -2590,6 +2699,24 @@ classes = [RendermanPath,
            Tab_CollectionGroup
            ]
 
+def test_dynamic_settings():
+    groupName = "RmanObjectSettings"
+    attributes = {}
+    #attributes['trace_displacements'] = FloatProperty(name='TRACE DISPS', default=0.5)
+    #propertyGroupClass = type(groupName, (bpy.types.PropertyGroup,), attributes)
+
+    def test_update_method(self, context):
+        print("THIS IS AN UPDATE!")
+
+    annotations = {'trace_displacements': FloatProperty(name='TRACE DISPS', default=0.5, update=test_update_method)  }
+    attributes['__annotations__'] = annotations
+    propertyGroupClass = type(groupName, (bpy.types.PropertyGroup,), attributes)
+    setattr(propertyGroupClass, 'test_update_method', test_update_method)
+
+    bpy.utils.register_class(propertyGroupClass)
+    bpy.types.Object.rman = PointerProperty(
+        type=propertyGroupClass, name="Rman Object Settings")
+
 
 def register():
 
@@ -2601,6 +2728,8 @@ def register():
 
     for cls in classes:
         bpy.utils.register_class(cls)
+
+    #test_dynamic_settings()
 
     bpy.types.Scene.renderman = PointerProperty(
         type=RendermanSceneSettings, name="Renderman Scene Settings")
@@ -2625,8 +2754,9 @@ def register():
     bpy.types.Camera.renderman = PointerProperty(
         type=RendermanCameraSettings, name="Renderman Camera Settings")
 
-
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
+
+    #bpy.utils.unregister_class(RmanObjectSettings)
     #FIXME bpy.utils.unregister_module(__name__)

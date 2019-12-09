@@ -56,11 +56,7 @@ from random import randint
 import sys
 from bpy.app.handlers import persistent
 
-# global dictionaries
-from .export import issue_shader_edits, issue_transform_edits,\
-    update_light_link
-
-from .nodes import get_tex_file_name
+#from .nodes import get_tex_file_name
 
 addon_version = bl_info['version']
 
@@ -212,6 +208,7 @@ class RPass:
         self.is_interactive_ready = False
         self.options = []
         self.depsgraph = None
+        self.context = None
 
         # check if prman is imported
         if not rman__sg__inited:
@@ -436,8 +433,13 @@ class RPass:
                     self.light_filter_map[lf.filter_name].append(
                         (obj.data.name, obj.name))
 
+    def get_python_framebuffer(self):       
+        if __is_prman_running__():        
+            return rman_sg_exporter().get_python_framebuffer()                 
+        return None
+
     # start the interactive session, using RixSceneGraph
-    def start_interactive_sg(self):
+    def start_interactive_sg(self, viewport=False):
         print("Starting interactive")
         rm = self.scene.renderman
         if find_it_path() is None:
@@ -488,13 +490,37 @@ class RPass:
         else:
             visible_objects = None
        
-        rman_sg_exporter().start_ipr(visible_objects, self, self.scene)    
+        if viewport:
+            rman_sg_exporter().start_viewport(visible_objects, self, self.scene)
+        else:    
+            rman_sg_exporter().start_ipr(visible_objects, self, self.scene)    
 
         self.is_interactive_ready = True        
         return           
 
     def blender_scene_updated_pre_cb(self, scene):
-        return     
+        return    
+
+    def update_scene(self, context, depsgraph):
+        for obj in depsgraph.updates:
+            ob = obj.id
+            if isinstance(obj.id, bpy.types.Camera):
+                cam = obj.object
+                print("CAMERA UPDATED")            
+            elif isinstance(obj.id, bpy.types.Material):
+                print("MATERIAL UPDATED")
+            elif isinstance(obj.id, bpy.types.Object):
+                obj_key = obj.id.name_full
+                if obj.id.type == 'MESH':
+                    print("MESH UPDATED")
+                elif obj.id.type == 'LIGHT':
+                    print("LIGHT UPDATED!")
+
+
+
+    def update_view(self, context, depsgraph):
+        rman_sg_exporter().issue_camera_transform_edit(context, depsgraph)
+
 
     def blender_scene_updated_cb(self, scene):
         if __is_prman_running__():
@@ -758,6 +784,8 @@ class RPass:
                           format_seconds_to_hhmmss(time.time() - time_start))        
 
     def convert_textures(self, temp_texture_list):
+        pass
+        """
         if not os.path.exists(self.paths['texture_output']):
             os.mkdir(self.paths['texture_output'])
 
@@ -806,3 +834,4 @@ class RPass:
                 files_converted.append(out_file_path)
 
         return files_converted
+        """

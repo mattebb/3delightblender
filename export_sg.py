@@ -219,6 +219,8 @@ class RmanSgExporter:
         self.port = -1
         self.main_camera = None
         self.ipr_mode = False
+        self.use_python_dspy = False
+        self.cam_matrix = None
 
     def export_ready(self):
         self.sg_nodes_dict = dict()
@@ -229,6 +231,8 @@ class RmanSgExporter:
         self.samplefilters_list = list()
         self.obj_hash = dict()
         self.obj_id = 1
+        self.ipr_mode = False
+        self.use_python_dspy = False
 
         if self.sg_scene:
             self.sgmngr.DeleteScene(self.sg_scene.sceneId)
@@ -236,9 +240,9 @@ class RmanSgExporter:
         self.sg_scene = self.sgmngr.CreateScene()
         self.sg_root = self.sg_scene.Root()
         self.sg_global_obj = None
-        self.shader_exporter = nodes_sg.RmanSgShadingExporter( rpass=self.rpass, 
-                                scene=self.scene, sgmngr=self.sgmngr, 
-                                sg_scene=self.sg_scene, sg_root = self.sg_root, 
+        self.shader_exporter = nodes_sg.RmanSgShadingExporter(
+                                scene=self.scene,
+                                sg_scene=self.sg_scene,
                                 rman=rman) 
         
     def start_cmd_server(self):
@@ -378,7 +382,70 @@ class RmanSgExporter:
 
         self.sgmngr.DeleteScene(self.sg_scene.sceneId)
         is_running = False
-        print("Wrote RIB Archive to: %s" % ribfile)                
+        print("Wrote RIB Archive to: %s" % ribfile)     
+
+    def start_viewport(self, visible_objects, rpass, scene, progress_cb=None):
+
+        global is_running    
+
+        self.rpass = rpass
+        self.scene = scene
+        self.rm = self.scene.renderman
+        self.export_ready()  
+        self.ipr_mode = True
+        self.use_python_dspy = True
+
+        argv = []
+        argv.append("prman") 
+        argv.append("-t:%d" % self.rm.threads)
+
+        print("Parsing scene...")
+        time_start = time.time()
+        self.write_scene(visible_objects)
+        #if self.write_preview_scene() is False:
+        #    pass
+
+        #ec = rman.EventCallbacks.Get()
+        #ec.RegisterCallback("Render", progress_cb, self)            
+
+        is_running = True
+        self.rictl.PRManBegin(argv)  
+        rman.Dspy.Get() 
+
+        def callback(e, d, ed):
+            ed["done"] = (d == 0)
+        eventData = { "done": False, "name": 'foobar', "frame": 0 }
+        ec = rman.EventCallbacks.Get()
+        ec.RegisterCallback("Render", callback, eventData)
+
+        
+        if 'RFB_DUMP_RIB' in os.environ:
+            print("\tWriting to RIB...")
+            rib_time_start = time.time()            
+            self.sg_scene.Render("rib /var/tmp/blender.rib")
+            print("\tFinished writing RIB. Time: %s" % format_seconds_to_hhmmss(time.time() - rib_time_start))                    
+        
+        print("Finished parsing scene. Total time: %s" % format_seconds_to_hhmmss(time.time() - time_start))
+
+
+        print("START RENDER!")
+        self.sg_scene.Render("prman -live")  
+        #self.EditTestFrame(eventData)
+
+
+        #self.sgmngr.DeleteScene(self.sg_scene.sceneId)
+        #self.rictl.PRManEnd()
+        #print("PRManEnd called.")
+
+
+        #is_running = False
+
+        #ec.UnregisterCallback("Progress", progress_cb, self)   
+
+    def get_python_framebuffer(self):
+        if self.use_python_dspy:
+            return rman.Dspy.GetFloatFramebuffer()
+
 
     def start_ipr(self, visible_objects, rpass, scene, progress_cb=None):
 
@@ -386,10 +453,9 @@ class RmanSgExporter:
 
         self.rpass = rpass
         self.scene = scene
-        self.rm = self.scene.renderman
-        self.ipr_mode = True
-
+        self.rm = self.scene.renderman        
         self.export_ready()  
+        self.ipr_mode = True
 
         argv = []
         argv.append("prman") 
@@ -473,7 +539,21 @@ class RmanSgExporter:
             with rman.SGManager.ScopedEdit(self.sg_scene): 
                 options = self.sg_scene.EditOptionBegin()
                 options.SetFloatArray(rman.Tokens.Rix.k_Ri_CropWindow, crop_window, 4)
-                self.sg_scene.EditOptionEnd(options)                     
+                self.sg_scene.EditOptionEnd(options)    
+
+    def issue_camera_transform_edit(self, context, depsgraph):
+        camera_node_sg = self.sg_nodes_dict['camera']
+        cam = context.scene.camera
+        v = convert_matrix(cam.matrix_world)
+        if v == self.cam_matrix:
+            return
+
+        transforms = []
+        with rman.SGManager.ScopedEdit(self.sg_scene):        
+            self.cam_matrix = v
+            transforms.append(v)
+            
+            camera_node_sg.SetTransform( transforms[0] )                                 
 
     def issue_transform_edits(self, active, scene):
         self.scene = scene
@@ -2098,6 +2178,8 @@ class RmanSgExporter:
             v = convert_matrix(mat)
 
             transforms.append(v)
+
+        self.cam_matrix = transforms[0]
         
         if len(motion) > 1:
             camera_sg.SetTransform( len(motion), transforms, times )
@@ -2234,8 +2316,12 @@ class RmanSgExporter:
                 options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (-1, 1, -1, 1), 4)
             else:
                 options.SetFloatArray(rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)
-
-            options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
+            if self.rpass.context:
+                region = self.rpass.context.region
+                print("X: %d Y: %d" % (region.width, region.height))
+                options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (int(region.width), int(region.height)), 2)
+            else:
+                options.SetIntegerArray(rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
             options.SetFloat(rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)
 
         self.sg_scene.EditOptionEnd(options)
@@ -2394,10 +2480,16 @@ class RmanSgExporter:
         else:
             display_driver = self.rpass.display_driver
 
-        self.rpass.output_files = []
-        addon_prefs = get_addon_prefs()
-        main_display = user_path(
-            addon_prefs.path_display_driver_image, scene=self.scene, display_driver=self.rpass.display_driver)
+        if self.use_python_dspy:
+            display_driver = 'python'
+            main_display = ""
+
+        else:
+            self.rpass.output_files = []
+            addon_prefs = get_addon_prefs()
+            main_display = user_path(
+            addon_prefs.path_display_driver_image, scene=self.scene, display_driver=self.rpass.display_driver)         
+
         debug("info", "Main_display: " + main_display)
 
         displaychannel = self.sg_scene.CreateDisplayChannel(rman.Tokens.Rix.k_color, "Ci")
@@ -2423,6 +2515,12 @@ class RmanSgExporter:
         sg_displays.append(display)
 
         self.rpass.output_files.append(main_display) 
+
+        if self.use_python_dspy:
+            # early out
+            self.main_camera.SetDisplay(sg_displays)
+            self.sg_scene.SetDisplayChannel(displaychannels)            
+            return
 
         if self.ipr_mode:
             # add ID display
@@ -2936,8 +3034,12 @@ class RmanSgExporter:
         group.AddChild(camera)
         camera.SetRenderable(True)
 
-        display = self.sg_scene.CreateDisplay("tiff", self.rpass.paths['render_output'])
-        display.channels = "Ci"
+        if self.use_python_dspy:
+            display = self.sg_scene.CreateDisplay("python", self.rpass.paths['render_output'])
+            display.channels = "Ci,a"
+        else:
+            display = self.sg_scene.CreateDisplay("tiff", self.rpass.paths['render_output'])
+            display.channels = "Ci"
         
         camera.SetDisplay(display)
 
@@ -2996,7 +3098,9 @@ class RmanSgExporter:
             self.sg_root.AddChild(sg_node)
 
         #self.scene = org_scene
-        return (mat != None)
+
+        #return (mat != None)
+        return True
 
     def get_primvars_particle(self, primvar, psys, subframes, sample):
         rm = psys.settings.renderman
@@ -3511,7 +3615,10 @@ class RmanSgExporter:
         print("\tPrecalculate phase...")
         sys.stdout.flush()
         time_start = time.time()        
-        data_blocks, instances = cache_motion(self.scene, self.rpass)
+        do_mb = False
+        #if self.use_python_dspy:
+        #    do_mb = False
+        data_blocks, instances = cache_motion(self.scene, self.rpass, calc_mb=do_mb)
         print("\tFinished precalculation. Time: %s" % format_seconds_to_hhmmss(time.time() - time_start))          
 
         # get a list of empties to check if they contain a RIB archive.
@@ -3524,7 +3631,8 @@ class RmanSgExporter:
         if not self.rpass.bake:
             self.export_integrator()
 
-        self.scene.frame_set(self.scene.frame_current)
+        #if not self.use_python_dspy:
+        #    self.scene.frame_set(self.scene.frame_current)
 
         if not self.rpass.bake:
             self.export_global_options()
@@ -4964,6 +5072,10 @@ def render_get_aspect(r, camera=None):
 
 def export_metadata(scene, params):
     rm = scene.renderman
+    if "Camera" not in bpy.data.cameras:
+        return
+    if "Camera" not in bpy.data.objects:
+        return
     cam = bpy.data.cameras["Camera"]
     obj = bpy.data.objects["Camera"]
     if cam.dof.focus_object:

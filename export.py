@@ -46,8 +46,8 @@ from .util import locate_openVDB_cache
 from .util import debug, get_addon_prefs
 
 from .util import find_it_path
-from .nodes import export_shader_nodetree, get_textures, get_textures_for_node, get_tex_file_name
-from .nodes import shader_node_rib, get_mat_name
+from .nodes import get_textures, get_textures_for_node, get_tex_file_name
+from .nodes import get_mat_name
 from .nodes import replace_frame_num
 
 addon_version = bl_info['version']
@@ -4075,5 +4075,5 @@ def issue_shader_edits(rpass, ri, prman, nt=None, node=None, ob=None):
         handle = mat_name
         if instance_num > 0:
             handle += "_%d" % instance_num
-        shader_node_rib(ri, node, handle)
+        #shader_node_rib(ri, node, handle)
         ri.EditEnd()

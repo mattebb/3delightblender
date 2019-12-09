@@ -28,51 +28,9 @@ import os
 import shutil
 import bpy
 from bpy.props import StringProperty, EnumProperty, BoolProperty
-from .properties import RendermanPresetGroup, RendermanPreset
+from .properties import RendermanPresetGroup, RendermanPreset, refresh_presets_libraries
 from . import icons
-import json
 from bpy.types import NodeTree
-
-# update the tree structure from disk file
-def refresh_presets_libraries(disk_lib, preset_library):
-    dirs = os.listdir(disk_lib)
-    for dir in dirs:
-        cdir = os.path.join(disk_lib, dir)
-        # skip if not a dir
-        if not os.path.isdir(cdir):
-            continue
-        
-        is_asset = '.rma' in dir
-        path = os.path.join(disk_lib, dir)
-
-        if is_asset:
-            preset = preset_library.presets.get(dir, None)
-            if not preset:
-                preset = preset_library.presets.add()
-            
-
-            preset.name = dir
-            json_path = os.path.join(path, 'asset.json')
-            data = json.load(open(json_path))
-            preset.label = data['RenderManAsset']['label']
-            preset.path = path
-            preset.json_path = os.path.join(path, 'asset.json')
-
-        else:
-            sub_group = preset_library.sub_groups.get(dir, None)
-            if not sub_group:
-                sub_group = preset_library.sub_groups.add()
-            sub_group.name = dir
-            sub_group.path = path
-
-            refresh_presets_libraries(cdir, sub_group)
-
-    for i,sub_group in enumerate(preset_library.sub_groups):
-        if sub_group.name not in dirs:
-            preset_library.sub_groups.remove(i)
-    for i,preset in enumerate(preset_library.presets):
-        if preset.name not in dirs:
-            preset_library.presets.remove(i)
 
 def get_library_name(jsonfile):
     if not os.path.exists(jsonfile):
@@ -192,6 +150,7 @@ class PRMAN_OT_set_active_preset_library(bpy.types.Operator):
         lib_path = self.properties.lib_path
         if lib_path:
             util.get_addon_prefs().active_presets_path = lib_path
+            bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
 # if the library isn't present copy it from rmantree to the path in addon prefs

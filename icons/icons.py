@@ -129,6 +129,12 @@ def load_icons():
     custom_icons.load("rfb_panel", os.path.join(
         icons_dir, "rman_blender.png"), 'IMAGE')
 
+    # FIXME: Not sure why this is needed
+    # Without it, icons don't seem to show up?
+    for img in custom_icons.values():
+        x = img.icon_size[0]
+        y = img.icon_size[1]
+
     renderman_icon_collections["main"] = custom_icons
     renderman_icons_loaded = True
 
