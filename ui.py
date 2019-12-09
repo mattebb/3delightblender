@@ -170,7 +170,6 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
 
         col = layout.column()
         col.enabled = not is_rman_interactive_running
-        col.prop(rd, "display_mode", text="Display")
         col = layout.column()
         col.enabled = not is_rman_interactive_running
         row = col.row()

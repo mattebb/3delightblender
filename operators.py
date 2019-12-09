@@ -1316,7 +1316,7 @@ def register():
         bpy.utils.register_class(cls)
     
     bpy.types.TEXT_MT_text.append(compile_shader_menu_func)
-    bpy.types.TEXT_MT_toolbox.append(compile_shader_menu_func)
+    #bpy.types.TEXT_MT_toolbox.append(compile_shader_menu_func)
     bpy.types.TOPBAR_MT_help.append(menu_draw)
 
     # Register any default presets here. This includes render based and
@@ -1337,7 +1337,7 @@ def register():
 
 def unregister():
     bpy.types.TEXT_MT_text.remove(compile_shader_menu_func)
-    bpy.types.TEXT_MT_toolbox.remove(compile_shader_menu_func)
+    #bpy.types.TEXT_MT_toolbox.remove(compile_shader_menu_func)
     bpy.types.TOPBAR_MT_help.remove(menu_draw)
     
     # It should be fine to leave presets registered as they are not in memory.
