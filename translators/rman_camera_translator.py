@@ -98,9 +98,6 @@ class RmanCameraTranslator(RmanTranslator):
         height = region.height
         proj = None
 
-        if not region:
-            return
-
         if (width == rman_sg_camera.res_width) and (height == rman_sg_camera.res_height):
             return
         

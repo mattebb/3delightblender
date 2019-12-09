@@ -904,7 +904,7 @@ class RmanScene(object):
                     continue
 
                 if obj_key not in self.rman_objects:
-                    if ob.type == 'CAMERA':
+                    if ob.type == 'CAMERA' and not self.is_viewport_render:
                         new_cams.append(obj.id)
                     else:
                         new_objs.append(obj.id)
@@ -996,7 +996,7 @@ class RmanScene(object):
                 self.export_instances()
 
         # new cameras
-        if new_cams:
+        if new_cams and not self.is_viewport_render:
             with self.rman.SGManager.ScopedEdit(self.sg_scene): 
                 rfb_log().debug("Adding new cameras:")
                 self.export_cameras(new_cams)         
