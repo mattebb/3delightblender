@@ -47,8 +47,8 @@ def init_log_level():
         level = os.environ['RFB_LOG_LEVEL']
         set_logger_level(__LOG_LEVELS__[level])
     else:
-        rman_logging_level = get_addon_prefs().rman_logging_level
-        if rman_logging_level in __LOG_LEVELS__:
+        rman_prefs = prefs_utils.get_addon_prefs()
+        if rman_prefs and rman_prefs.rman_logging_level in __LOG_LEVELS__:
             level = __LOG_LEVELS__[rman_logging_level]
             set_logger_level(level)
         else:
