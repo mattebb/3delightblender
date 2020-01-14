@@ -1,4 +1,5 @@
 import bpy
+import numpy as np
 
 def get_db_name(ob, rman_type=''):
     db_name = ''    
@@ -141,14 +142,17 @@ def _get_used_materials_(ob):
     else:
         return [ob.active_material]     
 
+def _get_mesh_points_(mesh):
+    P = np.zeros(len(mesh.vertices)*3, dtype=np.float32)
+    mesh.vertices.foreach_get('co', P)
+    return P.tolist()
+
 def _get_mesh_(mesh, get_normals=False):
+
+    P = _get_mesh_points_(mesh)
     nverts = []
     verts = []
-    P = []
-    N = []
-
-    for v in mesh.vertices:
-        P.extend(v.co)
+    N = []    
 
     for p in mesh.polygons:
         nverts.append(p.loop_total)
@@ -160,7 +164,4 @@ def _get_mesh_(mesh, get_normals=False):
             else:
                 N.extend(list(p.normal) * p.loop_total)
 
-    if len(verts) > 0:
-        P = P[:int(max(verts) + 1) * 3]
-    # return the P's minus any unconnected
-    return (nverts, verts, P, N)      
+    return (nverts, verts, P, N)

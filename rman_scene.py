@@ -225,8 +225,9 @@ class RmanScene(object):
 
         rfb_log().debug("Calling export_instances()")
         self.export_instances()
-        rfb_log().debug("Calling export_motion_blur()")
-        self.export_motion_blur()
+        if self.do_motion_blur:
+            rfb_log().debug("Calling export_motion_blur()")
+            self.export_motion_blur()
         self.check_solo_light()
 
         self.export_viewport_stats()
@@ -268,6 +269,8 @@ class RmanScene(object):
                 if db_name in self.rman_objects:
                     continue
                 rman_sg_node = translator.export(ob, db_name)
+                if not rman_sg_node:
+                    continue
                 translator.export_object_primvars(ob, rman_sg_node.sg_node)
                 self.rman_objects[db_name] = rman_sg_node 
 
@@ -397,79 +400,78 @@ class RmanScene(object):
         actual_subframes = []
         origframe = self.bl_scene.frame_current
 
-        if self.do_motion_blur:
-            mb_segs = self.bl_scene.renderman.motion_segments
-            origframe = self.bl_scene.frame_current
-            subframes = scene_utils._get_subframes_(mb_segs, self.bl_scene)
-            self.motion_steps.update(subframes)
-            #actual_subframes = [origframe + subframe for subframe in subframes]        
+        mb_segs = self.bl_scene.renderman.motion_segments
+        origframe = self.bl_scene.frame_current
+        subframes = scene_utils._get_subframes_(mb_segs, self.bl_scene)
+        self.motion_steps.update(subframes)
+        #actual_subframes = [origframe + subframe for subframe in subframes]        
 
-            motion_steps = sorted(list(self.motion_steps))
+        motion_steps = sorted(list(self.motion_steps))
 
-            samp = 0
-            for seg in motion_steps:
-                if seg < 0.0:
-                    self.rman_render.bl_engine.frame_set(origframe - 1, subframe=1.0 + seg)
+        samp = 0
+        for seg in motion_steps:
+            if seg < 0.0:
+                self.rman_render.bl_engine.frame_set(origframe - 1, subframe=1.0 + seg)
+            else:
+                self.rman_render.bl_engine.frame_set(origframe, subframe=seg)  
+
+            self.depsgraph.update()
+            for ob_inst in self.depsgraph.object_instances:            
+                if ob_inst.is_instance:
+                    ob = ob_inst.instance_object.original  
+                    parent = ob_inst.parent
+                    group_db_name = "%s|%s|%d" % (parent.name_full, ob.name_full, ob_inst.persistent_id[0])
                 else:
-                    self.rman_render.bl_engine.frame_set(origframe, subframe=seg)  
+                    ob = ob_inst.object
+                    group_db_name = "%s" % (ob.name_full)
 
-                self.depsgraph.update()
-                for ob_inst in self.depsgraph.object_instances:            
-                    if ob_inst.is_instance:
-                        ob = ob_inst.instance_object.original  
-                        parent = ob_inst.parent
-                        group_db_name = "%s|%s|%d" % (parent.name_full, ob.name_full, ob_inst.persistent_id[0])
-                    else:
-                        ob = ob_inst.object
-                        group_db_name = "%s" % (ob.name_full)
+                if ob.type not in ['MESH']:
+                    continue
+                rman_type = object_utils._detect_primitive_(ob)
+                db_name = object_utils.get_db_name(ob, rman_type=rman_type)              
+                if db_name == '':
+                    continue
 
-                    if ob.type not in ['MESH']:
-                        continue
-                    rman_type = object_utils._detect_primitive_(ob)
-                    db_name = object_utils.get_db_name(ob, rman_type=rman_type)              
-                    if db_name == '':
-                        continue
-
-                    # deal with particles first
-                    for psys in ob.particle_systems:
-                        if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
-                            hair_db_name = '%s|%s-HAIR' % (ob.name_full, psys.name)
-                            rman_sg_hair_node = self.rman_particles.get(hair_db_name, None)
-                            pass
-                        elif psys.settings.type == 'EMITTER' and psys.settings.render_type != 'OBJECT':
-                            psys_db_name = '%s|%s-EMITTER' % (ob.name_full, psys.name)
-                            rman_sg_particles_node = self.rman_particles.get(psys_db_name, None)
-                            if rman_sg_particles_node:
-                                if not seg in rman_sg_particles_node.motion_steps:
-                                    continue
-                                else:
-                                    samp = rman_sg_particles_node.motion_steps.index(seg)
-                                self.rman_translators['PARTICLES'].export_deform_sample(rman_sg_particles_node, ob, psys, subframes, samp)                     
+                # deal with particles first
+                for psys in ob.particle_systems:
+                    if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
+                        hair_db_name = '%s|%s-HAIR' % (ob.name_full, psys.name)
+                        rman_sg_hair_node = self.rman_particles.get(hair_db_name, None)
+                        pass
+                    elif psys.settings.type == 'EMITTER' and psys.settings.render_type != 'OBJECT':
+                        psys_db_name = '%s|%s-EMITTER' % (ob.name_full, psys.name)
+                        rman_sg_particles_node = self.rman_particles.get(psys_db_name, None)
+                        if rman_sg_particles_node:
+                            if not seg in rman_sg_particles_node.motion_steps:
+                                continue
+                            else:
+                                samp = rman_sg_particles_node.motion_steps.index(seg)
+                            self.rman_translators['PARTICLES'].export_deform_sample(rman_sg_particles_node, ob, psys, subframes, samp)                     
 
 
-                    rman_sg_node = self.rman_objects.get(db_name, None)
-                    if not rman_sg_node:
-                        continue
-                    
-                    if not seg in rman_sg_node.motion_steps:
-                        continue
-                    else:
-                        samp = rman_sg_node.motion_steps.index(seg)
+                rman_sg_node = self.rman_objects.get(db_name, None)
+                if not rman_sg_node:
+                    continue
+                
+                if not seg in rman_sg_node.motion_steps:
+                    continue
+                else:
+                    samp = rman_sg_node.motion_steps.index(seg)
 
-                    if object_utils.is_transforming(ob):
-                        group = rman_sg_node.instances.get(group_db_name, None)
-                        if group:
-                            group.SetTransformNumSamples(len(rman_sg_node.motion_steps))
-                            group.SetTransformSample( samp, transform_utils.convert_matrix(ob_inst.matrix_world), seg)
+                if object_utils.is_transforming(ob):
+                    group = rman_sg_node.instances.get(group_db_name, None)
+                    if group:
+                        group.SetTransformNumSamples(len(rman_sg_node.motion_steps))
+                        group.SetTransformSample( samp, transform_utils.convert_matrix(ob_inst.matrix_world), seg)
 
-                    if object_utils._is_deforming_(ob):
-                        translator = self.rman_translators.get(rman_type, None)
-                        if translator:
-                            translator.export_deform_sample(rman_sg_node, ob, subframes, samp)
+                if object_utils._is_deforming_(ob):
+                    translator = self.rman_translators.get(rman_type, None)
+                    if translator:
+                        translator.export_deform_sample(rman_sg_node, ob, subframes, samp)
 
-                #samp += 1
+            #samp += 1
 
-            self.rman_render.bl_engine.frame_set(origframe, subframe=0)    
+        self.rman_render.bl_engine.frame_set(origframe, subframe=0)    
 
     def check_solo_light(self):
         if self.bl_scene.renderman.solo_light:

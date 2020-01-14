@@ -111,22 +111,25 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
             flipvmode = rm.export_flipv
         uvs = _get_mesh_uv_(geo, flipvmode=flipvmode)
         if uvs and len(uvs) > 0:
-            #primvars["%s float[2] st" % interpolation] = uvs
             rixparams.SetFloatArrayDetail("st", uvs, 2, interpolation)
 
+    '''
+    # FIXME: SetColorDetail seems to be failing. Might be a bug in RtParamList.
     if rm.export_default_vcol:
         vcols = _get_mesh_vcol_(geo)
         if vcols and len(vcols) > 0:
             rixparams.SetColorDetail("Cs", string_utils.convert_val(vcols, type_hint="color"), interpolation)
-
+    '''
     # custom prim vars
 
     for p in rm.prim_vars:
         if p.data_source == 'VERTEX_COLOR':
             vcols = _get_mesh_vcol_(geo, p.data_name)
+            '''
+            # FIXME: SetColorDetail seems to be failing. Might be a bug in RtParamList.
             if vcols and len(vcols) > 0:
                 rixparams.SetColorDetail(p.name, string_utils.convert_val(vcols, type_hint="color"), interpolation)
-
+            '''
         elif p.data_source == 'UV_TEXTURE':
             flipvmode = 'NONE'
             if hasattr(rm, 'export_flipv'):
@@ -155,7 +158,8 @@ class RmanMeshTranslator(RmanTranslator):
         sg_node = self.rman_scene.sg_scene.CreateMesh(db_name)
         rman_sg_mesh = RmanSgMesh(self.rman_scene, sg_node, db_name)
 
-        self.update(ob, rman_sg_mesh)
+        if not self.update(ob, rman_sg_mesh):
+            return None
 
         return rman_sg_mesh
 
@@ -163,15 +167,7 @@ class RmanMeshTranslator(RmanTranslator):
         mesh = None
         mesh = ob.to_mesh()
 
-        (nverts, verts, P, N) = object_utils._get_mesh_(mesh, get_normals=False)
-        
-        # if this is empty continue:
-        if nverts == []:
-            ob.to_mesh_clear() 
-            return None
-
-        nm_pts = int(len(P)/3)
-        rman_sg_mesh.sg_node.Define( len(nverts), nm_pts, len(verts) )
+        P = object_utils._get_mesh_points_(mesh)
         primvar = rman_sg_mesh.sg_node.GetPrimVars()
         
         if time_samples:        
@@ -179,8 +175,14 @@ class RmanMeshTranslator(RmanTranslator):
 
         pts = list( zip(*[iter(P)]*3 ) )
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, pts, "vertex", time_sample)
-
         rman_sg_mesh.sg_node.SetPrimVars(primvar)
+
+        if rman_sg_mesh.is_multi_material:
+            for c in rman_sg_mesh.multi_material_children:
+                pvar = c.GetPrimVars()
+                pvar.SetTimeSamples( time_samples )
+                pvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, pts, "vertex", time_sample)
+                c.SetPrimVars(pvar)
 
         ob.to_mesh_clear()         
 
@@ -198,7 +200,8 @@ class RmanMeshTranslator(RmanTranslator):
         
         # if this is empty continue:
         if nverts == []:
-            ob.to_mesh_clear()
+            if not input_mesh:
+                ob.to_mesh_clear()
             return None
 
         npolys = len(nverts) 
@@ -245,9 +248,11 @@ class RmanMeshTranslator(RmanTranslator):
         elif prim_type == "POLYGON_MESH":
             rman_sg_mesh.is_subdiv = False
             rman_sg_mesh.sg_node.SetScheme(None)
-            primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "facevarying")            
+            primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "facevarying")       
 
-        if _is_multi_material_(ob, mesh):
+        rman_sg_mesh.is_multi_material = _is_multi_material_(ob, mesh)  
+
+        if rman_sg_mesh.is_multi_material:
             material_ids = _get_material_ids(ob, mesh)
             for mat_id, faces in \
                 _get_mats_faces_(nverts, material_ids).items():
@@ -263,19 +268,24 @@ class RmanMeshTranslator(RmanTranslator):
                     rman_sg_mesh.sg_node.SetMaterial(sg_material)
                 else: 
                     sg_sub_mesh =  self.rman_scene.sg_scene.CreateMesh("")
-                    pvars = sg_sub_mesh.GetPrimVars()
-                    sg_sub_mesh.Define( npolys, npoints, numnverts )
+                    sg_sub_mesh.Define( npolys, npoints, numnverts )                   
                     if prim_type == "SUBDIVISION_MESH":
                         sg_sub_mesh.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark)
+                    pvars = sg_sub_mesh.GetPrimVars()                        
                     pvars.Inherit(primvar)
                     pvars.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))
                     sg_sub_mesh.SetPrimVars(pvars)
                     sg_sub_mesh.SetMaterial(sg_material)
-                    rman_sg_mesh.sg_node.AddChild(sg_sub_mesh)                  
+                    rman_sg_mesh.sg_node.AddChild(sg_sub_mesh)
+                    rman_sg_mesh.multi_material_children.append(sg_sub_mesh)
+        else:
+            rman_sg_mesh.multi_material_children = []                  
 
            
         #primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)
         rman_sg_mesh.sg_node.SetPrimVars(primvar)
 
         if not input_mesh:
-            ob.to_mesh_clear()      
+            ob.to_mesh_clear()  
+
+        return True    

@@ -48,7 +48,7 @@ class ItHandler(chatserver.ItBaseHandler):
         global __RMAN_RENDER__
         rfb_log().debug("Stop Render Requested.")
         __turn_off_viewport__()
-        __RMAN_RENDER__.stop_render()          
+        __RMAN_RENDER__.stop_render()      
 
     def selectObjectById(self):
         global __RMAN_RENDER__
@@ -105,7 +105,7 @@ def start_cmd_server():
 
     return __RMAN_IT_PORT__   
 
-def iteration_cb(e, iteration, db):
+def iteration_viewport_cb(e, iteration, db):
     db.bl_engine.tag_redraw()
 
 def progress_cb(e, d, db):
@@ -183,30 +183,42 @@ class RmanRender(object):
                 self.sg_scene.Render("rib /var/tmp/blender.rib")     
             rfb_log().debug("Finished writing RIB. Time: %s" % string_utils._format_time_(time.time() - rib_time_start))            
 
-    def _load_image_into_blender(self, render_output, bl_scene):
-        render = bl_scene.render
-        image_scale = 100.0 / render.resolution_percentage
-        result = self.bl_engine.begin_result(0, 0,
-                                    render.resolution_x * image_scale,
-                                    render.resolution_y * image_scale)
-        lay = result.layers[0]
-        # possible the image wont load early on.
-        try:
-            lay.load_from_file(render_output)
-        except:
-             pass
-        self.bl_engine.end_result(result)           
+    def _load_image_into_blender(self):
+        rm = self.bl_scene.renderman
+        # try to load image into Blender
+        if rm.render_into == 'blender': 
+            dspy_dict = display_utils.get_dspy_dict(self.rman_scene)
+            render_output = dspy_dict['displays']['beauty']['filePath']
+
+            if not os.path.exists(render_output):
+                return
+
+            render = self.bl_scene.render
+            image_scale = 100.0 / render.resolution_percentage
+            result = self.bl_engine.begin_result(0, 0,
+                                        render.resolution_x * image_scale,
+                                        render.resolution_y * image_scale)
+            lay = result.layers[0]
+            # possible the image wont load early on.
+            try:
+                lay.load_from_file(render_output)
+            except:
+                pass
+            self.bl_engine.end_result(result)           
 
     def start_render(self, depsgraph, for_preview=False):
 
-        bl_scene = depsgraph.scene_eval
-        rm = bl_scene.renderman
-
+        self.bl_scene = depsgraph.scene_eval
+        rm = self.bl_scene.renderman
+        self.it_port = start_cmd_server()    
         rfb_log().info("Parsing scene...")
         time_start = time.time()
                 
         ec = rman.EventCallbacks.Get()
         ec.RegisterCallback("Progress", progress_cb, self)
+
+        if rm.render_into == 'it':
+            rman.Dspy.EnableDspyServer()
 
         self.sg_scene = self.sgmngr.CreateScene() 
         bl_layer = depsgraph.view_layer
@@ -214,21 +226,17 @@ class RmanRender(object):
 
         self.rman_running = True
         self._dump_rib_()
-        rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start))             
-        self.sg_scene.Render("prman -blocking")
+        rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
+        if rm.render_into == 'it':
+            self.sg_scene.Render("prman -live")
+        else:
+            self.sg_scene.Render("prman -blocking")
+            self._load_image_into_blender()
 
-        # try to load image into Blender
-        if rm.render_into == 'blender':
-            dspy_dict = display_utils.get_dspy_dict(self.rman_scene)
-            render_output = dspy_dict['displays']['beauty']['filePath']
-
-            if os.path.exists(render_output):
-                self._load_image_into_blender(render_output, bl_scene)
-
-        self.sgmngr.DeleteScene(self.sg_scene)
-        self.sg_scene = None
-        ec.UnregisterCallback("Progress", progress_cb, self)  
-        self.rman_running = False
+            self.sgmngr.DeleteScene(self.sg_scene)
+            self.sg_scene = None
+            ec.UnregisterCallback("Progress", progress_cb, self)  
+            self.rman_running = False
 
         return True  
 
@@ -291,7 +299,7 @@ class RmanRender(object):
         try:
             if rm.render_into == 'blender':
                 ec = rman.EventCallbacks.Get()
-                ec.RegisterCallback("Iteration", iteration_cb, self)    
+                ec.RegisterCallback("Iteration", iteration_viewport_cb, self)    
                 ec.RegisterCallback("Progress", progress_viewport_cb, self)   
                 # turn off dspyserver mode if we're not rendering to "it"           
                 rman.Dspy.DisableDspyServer()
@@ -342,10 +350,12 @@ class RmanRender(object):
         # Remove callbacks
         ec = rman.EventCallbacks.Get()
         if self.rman_interactive_running and self.rman_scene.is_viewport_render:
-            ec.UnregisterCallback("Iteration", iteration_cb, self)  
+            ec.UnregisterCallback("Iteration", iteration_viewport_cb, self)  
             ec.UnregisterCallback("Progress", progress_viewport_cb, self)        
         if self.rman_running:
-            ec.UnregisterCallback("Progress", progress_cb, self) 
+            ec.UnregisterCallback("Progress", progress_cb, self)
+            ec.UnregisterCallback("Render", render_cb, self)  
+            self._load_image_into_blender()
 
         self.rman_interactive_running = False
         self.rman_running = False     

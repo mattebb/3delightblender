@@ -9,6 +9,8 @@ class RmanSgMesh(RmanSgNode):
         self.npoints = -1
         self.nverts = -1
         self.is_subdiv = False
+        self.is_multi_material = False
+        self.multi_material_children = []
 
     @property
     def matrix_world(self):
