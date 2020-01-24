@@ -16,11 +16,9 @@ class RmanOpenVDBTranslator(RmanTranslator):
         sg_node.Define(0,0,0)
         rman_sg_openvdb = RmanSgOpenVDB(self.rman_scene, sg_node, db_name)
 
-        self.update(ob, rman_sg_openvdb)
-
         return rman_sg_openvdb
 
-    def export_deform_sample(self, rman_sg_openvdb, ob, time_samples, time_sample):
+    def export_deform_sample(self, rman_sg_openvdb, ob, time_sample):
         pass
 
 

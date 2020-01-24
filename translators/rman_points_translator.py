@@ -17,32 +17,25 @@ class RmanPointsTranslator(RmanTranslator):
         sg_node = self.rman_scene.sg_scene.CreatePoints(db_name)
         rman_sg_points = RmanSgPoints(self.rman_scene, sg_node, db_name)
 
-        self.update(ob, rman_sg_points)
-
         return rman_sg_points
 
-    def export_deform_sample(self, rman_sg_points, ob, time_samples, time_sample):
+    def export_deform_sample(self, rman_sg_points, ob, time_sample):
         mesh = None
         mesh = ob.to_mesh()
 
-        (nverts, verts, P, N) = object_utils._get_mesh_(mesh, get_normals=False)
-        
-        # if this is empty continue:
-        if nverts == []:
-            ob.to_mesh_clear() 
-            return None
-
-        npoints = int(len(P)/3)
-        rman_sg_points.sg_node.Define( npoints )
-        rman_sg_points.npoints = npoints
+        P = object_utils._get_mesh_points_(mesh)
 
         primvar = rman_sg_points.sg_node.GetPrimVars()
-        
-        if time_samples:        
-            primvar.SetTimeSamples( time_samples )
+        npoints = len(P)
 
-        pts = list( zip(*[iter(P)]*3 ) )
-        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, pts, "vertex", time_sample)
+        if rman_sg_points.npoints != npoints:
+            primvar.SetTimeSamples([])
+            rman_sg_points.sg_node.SetPrimVars(primvar)
+            rman_sg_points.is_transforming = False
+            rman_sg_points.is_deforming = False        
+            return         
+        
+        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex", time_sample)
 
         rman_sg_points.sg_node.SetPrimVars(primvar) 
 
@@ -56,20 +49,29 @@ class RmanPointsTranslator(RmanTranslator):
 
         (nverts, verts, P, N) = object_utils._get_mesh_(mesh, get_normals=False)
 
-        npoints = int(len(P)/3)
+        # if this is empty continue:
+        if nverts == []:
+            if not input_mesh:
+                ob.to_mesh_clear()
+            rman_sg_points.sg_node = None
+            rman_sg_points.is_transforming = False
+            rman_sg_points.is_deforming = False
+            return None        
+
+        npoints = len(P)
         rman_sg_points.sg_node.Define(npoints)
         rman_sg_points.npoints = npoints
 
         primvar = rman_sg_points.sg_node.GetPrimVars()
-        primvar.Clear()      
+        #primvar.Clear()      
 
-        pts = list( zip(*[iter(P)]*3 ) )
-        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, pts, "vertex")
+        primvar.SetTimeSamples(rman_sg_points.motion_steps)
+
+        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")
 
         primvar.SetStringDetail("type", rm.primitive_point_type, "uniform")
         primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_constantwidth, rm.primitive_point_width, "constant")
             
-        #primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_displacementbound_sphere, rm.displacementbound)
         rman_sg_points.sg_node.SetPrimVars(primvar)         
 
         if not input_mesh:

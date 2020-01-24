@@ -4,6 +4,7 @@ from ..rman_sg_nodes.rman_sg_light import RmanSgLight
 from ..rman_utils import string_utils
 from ..rman_utils import property_utils
 from ..rman_utils import transform_utils
+from ..rman_utils import object_utils
 from mathutils import Matrix
 import math
 import bpy
@@ -75,7 +76,8 @@ class RmanLightTranslator(RmanTranslator):
 
         sg_node = self.rman_scene.sg_scene.CreateAnalyticLight(db_name)                
         rman_sg_light = RmanSgLight(self.rman_scene, sg_node, db_name)
-        self.update(ob, rman_sg_light)
+        if self.rman_scene.do_motion_blur:
+            rman_sg_light.is_transforming = object_utils.is_transforming(ob)
         return rman_sg_light
 
     def update(self, ob, rman_sg_light):
@@ -83,7 +85,9 @@ class RmanLightTranslator(RmanTranslator):
         light = ob.data
         rm = light.renderman  
 
-        group_name=get_light_group(ob, self.rman_scene.bl_scene)
+        group_name=''
+        if self.rman_scene.bl_scene:
+            group_name = get_light_group(ob, self.rman_scene.bl_scene)
         light_filters = []
 
         lightfilter_translator = RmanLightFilterTranslator(rman_scene=self.rman_scene)
@@ -118,7 +122,8 @@ class RmanLightTranslator(RmanTranslator):
             property_utils.property_group_to_rixparams(light_shader, rman_sg_light, sg_node, light=light)
             
             rixparams = sg_node.params
-            rixparams.SetString('lightGroup',group_name)
+            if group_name:
+                rixparams.SetString('lightGroup',group_name)
             if hasattr(light_shader, 'iesProfile'):
                 rixparams.SetString('iesProfile',  bpy.path.abspath(
                     light_shader.iesProfile) )
@@ -179,7 +184,7 @@ class RmanLightTranslator(RmanTranslator):
             rman_sg_light.sg_node.SetAttributes(attrs)
 
         else:
-            names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrEnvDayLight',
+            names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrDistantLight',
                     'SPOT': 'PxrDiskLight', 'HEMI': 'PxrDomeLight', 'AREA': 'PxrRectLight'}
             light_shader_name = names[light.type]
             exposure = light.energy / 200.0
@@ -212,8 +217,8 @@ class RmanLightTranslator(RmanTranslator):
                                 "PxrPortalLight",
                                 "PxrCylinderLight"):
 
-            rman_sg_light.sg_node.SetOrientTransform(s_orientPxrLight)    
-            
+            rman_sg_light.sg_node.SetOrientTransform(s_orientPxrLight)  
+
         """    
         elif light_shader_name == 'PxrDomeLight':
             rman_sg_light.sg_node.SetOrientTransform(s_orientPxrDomeLight)

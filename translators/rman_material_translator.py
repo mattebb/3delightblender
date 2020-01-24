@@ -19,7 +19,7 @@ class RmanMaterialTranslator(RmanTranslator):
         self.update(mat, rman_sg_material)
         return rman_sg_material
 
-    def update(self, mat, rman_sg_material):
+    def update(self, mat, rman_sg_material, time_sample=0):
 
         rm = mat.renderman
         succeed = False

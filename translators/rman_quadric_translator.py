@@ -12,11 +12,9 @@ class RmanQuadricTranslator(RmanTranslator):
         sg_node = self.rman_scene.sg_scene.CreateQuadric(db_name)
         rman_sg_quadric = RmanSgQuadric(self.rman_scene, sg_node, db_name)
 
-        self.update(ob, rman_sg_quadric)
-
         return rman_sg_quadric
 
-    def export_deform_sample(self, rman_sg_quadric, ob, time_samples, time_sample):
+    def export_deform_sample(self, rman_sg_quadric, ob, time_sample):
         pass
 
 
@@ -58,5 +56,4 @@ class RmanQuadricTranslator(RmanTranslator):
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_phimax, rm.primitive_phimax)            
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
 
-        #primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_displacementbound_sphere, rm.displacementbound)
         rman_sg_quadric.sg_node.SetPrimVars(primvar)        

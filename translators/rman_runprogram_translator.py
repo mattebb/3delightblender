@@ -14,11 +14,9 @@ class RmanRunProgramTranslator(RmanTranslator):
         sg_node.Define(self.rman_scene.rman.Tokens.Rix.k_RunProgram, None)
         rman_sg_runprogram = RmanSgRunProgram(self.rman_scene, sg_node, db_name)
 
-        self.update(ob, rman_sg_runprogram)
-
         return rman_sg_runprogram
 
-    def export_deform_sample(self, rman_sg_runprogram, ob, time_samples, time_sample):
+    def export_deform_sample(self, rman_sg_runprogram, ob, time_sample):
         pass
 
 

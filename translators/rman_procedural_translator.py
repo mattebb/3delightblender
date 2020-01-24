@@ -14,11 +14,9 @@ class RmanProceduralTranslator(RmanTranslator):
         sg_node.Define("DynamicLoad", None)
         rman_sg_procedural = RmanSgProcedural(self.rman_scene, sg_node, db_name)
 
-        self.update(ob, rman_sg_procedural)
-
         return rman_sg_procedural
 
-    def export_deform_sample(self, rman_sg_procedural, ob, time_samples, time_sample):
+    def export_deform_sample(self, rman_sg_procedural, ob, time_sample):
         pass
 
 

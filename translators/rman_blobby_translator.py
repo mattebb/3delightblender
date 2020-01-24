@@ -23,11 +23,10 @@ class RmanBlobbyTranslator(RmanTranslator):
         sg_node = self.rman_scene.sg_scene.CreateBlobby(db_name)
         rman_sg_blobby = RmanSgBlobby(self.rman_scene, sg_node, db_name)
 
-        self.update(ob, rman_sg_blobby)
 
         return rman_sg_blobby
 
-    def export_deform_sample(self, rman_sg_blobby, ob, time_samples, time_sample):
+    def export_deform_sample(self, rman_sg_blobby, ob, time_sample):
         pass
 
     # many thanks to @rendermouse for this code

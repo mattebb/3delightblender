@@ -47,7 +47,8 @@ class ItHandler(chatserver.ItBaseHandler):
     def stopRender(self):
         global __RMAN_RENDER__
         rfb_log().debug("Stop Render Requested.")
-        __turn_off_viewport__()
+        if __RMAN_RENDER__.rman_interactive_running:
+            __turn_off_viewport__()
         __RMAN_RENDER__.stop_render()      
 
     def selectObjectById(self):
@@ -110,6 +111,8 @@ def iteration_viewport_cb(e, iteration, db):
 
 def progress_cb(e, d, db):
     db.bl_engine.update_progress(float(d) / 100.0)
+    if db.rman_is_live_rendering and int(d) == 100:
+        db.rman_is_live_rendering = False
 
 def progress_viewport_cb(e, d, db):
     db.bl_engine.tag_redraw()
@@ -140,6 +143,8 @@ class RmanRender(object):
         self.bl_engine = None
         self.rman_running = False
         self.rman_interactive_running = False
+        self.rman_is_live_rendering = False
+        self.rman_render_into = 'blender'
         self.it_port = -1 
 
         self._start_prman_begin()
@@ -184,9 +189,8 @@ class RmanRender(object):
             rfb_log().debug("Finished writing RIB. Time: %s" % string_utils._format_time_(time.time() - rib_time_start))            
 
     def _load_image_into_blender(self):
-        rm = self.bl_scene.renderman
         # try to load image into Blender
-        if rm.render_into == 'blender': 
+        if self.rman_render_into == 'blender': 
             dspy_dict = display_utils.get_dspy_dict(self.rman_scene)
             render_output = dspy_dict['displays']['beauty']['filePath']
 
@@ -213,11 +217,12 @@ class RmanRender(object):
         self.it_port = start_cmd_server()    
         rfb_log().info("Parsing scene...")
         time_start = time.time()
+        self.rman_render_into = rm.render_into
                 
         ec = rman.EventCallbacks.Get()
         ec.RegisterCallback("Progress", progress_cb, self)
 
-        if rm.render_into == 'it':
+        if self.rman_render_into == 'it':
             rman.Dspy.EnableDspyServer()
 
         self.sg_scene = self.sgmngr.CreateScene() 
@@ -227,16 +232,13 @@ class RmanRender(object):
         self.rman_running = True
         self._dump_rib_()
         rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
-        if rm.render_into == 'it':
-            self.sg_scene.Render("prman -live")
-        else:
-            self.sg_scene.Render("prman -blocking")
+        self.rman_is_live_rendering = True
+        self.sg_scene.Render("prman -live")
+        while not self.bl_engine.test_break() and self.rman_is_live_rendering:
+            time.sleep(0.1)
+        self.stop_render()        
+        if self.rman_render_into == 'blender': 
             self._load_image_into_blender()
-
-            self.sgmngr.DeleteScene(self.sg_scene)
-            self.sg_scene = None
-            ec.UnregisterCallback("Progress", progress_cb, self)  
-            self.rman_running = False
 
         return True  
 
@@ -294,10 +296,11 @@ class RmanRender(object):
         rm = depsgraph.scene_eval.renderman
         self.it_port = start_cmd_server()    
         render_into_org = '' 
+        self.rman_render_into = rm.render_into
         
         # register the blender display driver
         try:
-            if rm.render_into == 'blender':
+            if self.rman_render_into == 'blender':
                 ec = rman.EventCallbacks.Get()
                 ec.RegisterCallback("Iteration", iteration_viewport_cb, self)    
                 ec.RegisterCallback("Progress", progress_viewport_cb, self)   
@@ -311,6 +314,7 @@ class RmanRender(object):
             rfb_log().error('Could not register Blender display driver. Rendering to "it".')
             render_into_org = rm.render_into
             rm.render_into = 'it'
+            self.rman_render_into = 'it'
 
         time_start = time.time()      
 
@@ -319,7 +323,8 @@ class RmanRender(object):
         self.rman_scene.export_for_interactive_render(context, depsgraph, self.sg_scene)
 
         self._dump_rib_()      
-        rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start))             
+        rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start))     
+        self.rman_is_live_rendering = True        
         self.sg_scene.Render("prman -live")
 
         rfb_log().info("RenderMan Viewport Render Started.")  
@@ -342,11 +347,6 @@ class RmanRender(object):
         if not self.rman_interactive_running and not self.rman_running:
             return
 
-        rfb_log().debug("Telling SceneGraph to stop.")        
-        self.sg_scene.Stop()
-        rfb_log().debug("Delete Scenegraph scene")
-        self.sgmngr.DeleteScene(self.sg_scene)
-
         # Remove callbacks
         ec = rman.EventCallbacks.Get()
         if self.rman_interactive_running and self.rman_scene.is_viewport_render:
@@ -355,10 +355,16 @@ class RmanRender(object):
         if self.rman_running:
             ec.UnregisterCallback("Progress", progress_cb, self)
             ec.UnregisterCallback("Render", render_cb, self)  
-            self._load_image_into_blender()
+            self._load_image_into_blender()            
+
+        rfb_log().debug("Telling SceneGraph to stop.")        
+        self.sg_scene.Stop()
+        rfb_log().debug("Delete Scenegraph scene")
+        self.sgmngr.DeleteScene(self.sg_scene)
 
         self.rman_interactive_running = False
         self.rman_running = False     
+        self.rman_is_live_rendering = False
         self.sg_scene = None
         rfb_log().debug("RenderMan has Stopped.")
                 

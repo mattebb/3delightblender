@@ -7,11 +7,13 @@ class RmanTranslator(object):
     class corresponding to their type. The flow should be something like:
 
         db_name = 'FOOBAR' # unique datablock name
-        rman_sg_node = translator.export(ob, db_name) # convert object and return an RmanSgNode node
+        rman_sg_node = translator.export(ob, db_name) # create an RmanSgNode node
+        # set primvars on geo
+        translator.update(ob, rman_sg_node)        
         .
         .
         # ob is a deforming object, export object at time_sample
-        translator.export_deform_sample(rman_sg_node, ob, time_samples, time_sample)
+        translator.export_deform_sample(rman_sg_node, ob, time_sample)
         .
         .
         # ob has changed
@@ -35,7 +37,7 @@ class RmanTranslator(object):
     def export(self, ob, db_name):
         pass
 
-    def export_deform_sample(self, rman_sg_node, ob, time_samples, time_sample):
+    def export_deform_sample(self, rman_sg_node, ob, time_sample):
         pass
 
     def update(self, ob, rman_sg_node):
@@ -98,10 +100,6 @@ class RmanTranslator(object):
         attrs.SetInteger("visibility:camera", int(ob.renderman.visibility_camera))
 
         attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_Ri_Matte, ob.renderman.matte)
-
-        # ray tracing attributes
-        #attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_trace_intersectpriority, ob.renderman.raytrace_intersectpriority)
-        #attrs.SetFloat(self.rman_scene.rman.Tokens.Rix.k_shade_indexofrefraction, ob.renderman.raytrace_ior)
 
         attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_trace_holdout, ob.renderman.holdout)
 

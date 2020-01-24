@@ -5,6 +5,7 @@ from ..rman_sg_nodes.rman_sg_hair import RmanSgHair
 from mathutils import Vector
 import math
 import bpy    
+import numpy as np
    
 
 class RmanHairTranslator(RmanTranslator):
@@ -18,7 +19,6 @@ class RmanHairTranslator(RmanTranslator):
         sg_node = self.rman_scene.sg_scene.CreateGroup(db_name)
         rman_sg_hair = RmanSgHair(self.rman_scene, sg_node, db_name)
 
-        self.update(ob, psys, rman_sg_hair)
         return rman_sg_hair
 
 
@@ -32,11 +32,10 @@ class RmanHairTranslator(RmanTranslator):
         for vertsArray, points, widthString, widths, scalpS, scalpT in curves:
             curves_sg = self.rman_scene.sg_scene.CreateCurves("%s-%d" % (psys.name, i))
             i += 1                
-            curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", len(vertsArray), int(len(points)/3))
+            curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", len(vertsArray), len(points))
             primvar = curves_sg.GetPrimVars()
 
-            pts = list( zip(*[iter(points)]*3 ) )
-            primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, pts, "vertex")                
+            primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, points, "vertex")                
             primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, vertsArray, "uniform")
             primvar.SetIntegerDetail("index", range(len(vertsArray)), "uniform")
 
@@ -96,7 +95,8 @@ class RmanHairTranslator(RmanTranslator):
         scalpS = []
         scalpT = []
         nverts = 0
-        no = 0
+
+        ob_inv_mtx = ob.matrix_world.inverted_safe()
         
         for pindex in range(total_hair_count):
             if psys.settings.child_type != 'NONE' and pindex < num_parents:
@@ -109,20 +109,18 @@ class RmanHairTranslator(RmanTranslator):
 
                 if pt.length_squared == 0:
                     # this strand ends prematurely                    
-                    break
-                
+                    break                
 
                 # put points in object space
-                m = ob.matrix_world.inverted_safe()
-                pt = Vector(transform_utils.transform_points( m, pt))
+                pt = Vector(transform_utils.transform_points( ob_inv_mtx, pt))
 
-                strand_points.extend(pt)
+                strand_points.append(pt)
 
             if len(strand_points) > 1:
                 # double the first and last
-                strand_points = strand_points[:3] + \
-                    strand_points + strand_points[-3:]
-                vertsInStrand = len(strand_points) // 3
+                strand_points = strand_points[:1] + \
+                    strand_points + strand_points[-1:]
+                vertsInStrand = len(strand_points)
 
                 # catmull-rom requires at least 4 vertices
                 if vertsInStrand < 4:

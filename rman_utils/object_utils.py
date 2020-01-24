@@ -1,10 +1,13 @@
 import bpy
 import numpy as np
 
-def get_db_name(ob, rman_type=''):
+def get_db_name(ob, rman_type='', psys=None):
     db_name = ''    
 
-    if rman_type != '' and rman_type != 'NONE':
+    if psys:
+        '%s|%s-%s' % (ob.name_full, psys.name, psys.settings.type)
+
+    elif rman_type != '' and rman_type != 'NONE':
         if rman_type == 'META':
             db_name = '%s-META' % (ob.name.split('.')[0])
         try:
@@ -36,6 +39,17 @@ def get_db_name(ob, rman_type=''):
 
 
     return db_name
+
+def get_group_db_name(ob_inst):
+    if ob_inst.is_instance:
+        ob = ob_inst.instance_object.original  
+        parent = ob_inst.parent
+        group_db_name = "%s|%s|%d" % (parent.name_full, ob.name_full, ob_inst.persistent_id[0])
+    else:
+        ob = ob_inst.object
+        group_db_name = "%s" % (ob.name_full)
+
+    return group_db_name
 
 def get_meta_family(ob):
     return ob.name.split('.')[0]
@@ -121,6 +135,8 @@ def _detect_primitive_(ob):
             return "META"
         elif ob.type == 'CAMERA':
             return 'CAMERA'
+        elif ob.type == 'EMPTY':
+            return 'EMPTY'
         else:
             return 'NONE'
     else:
@@ -143,8 +159,10 @@ def _get_used_materials_(ob):
         return [ob.active_material]     
 
 def _get_mesh_points_(mesh):
-    P = np.zeros(len(mesh.vertices)*3, dtype=np.float32)
+    nvertices = len(mesh.vertices)
+    P = np.zeros(nvertices*3, dtype=np.float32)
     mesh.vertices.foreach_get('co', P)
+    P = np.reshape(P, (nvertices, 3))
     return P.tolist()
 
 def _get_mesh_(mesh, get_normals=False):

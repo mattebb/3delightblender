@@ -17,6 +17,8 @@ class RmanSgNode(object):
         self.db_name = db_name
         self.instances = dict()
         self.motion_steps = []
+        self.is_transforming = False
+        self.is_deforming = False
 
         # indicates that this node needs updating
         # when the frame changes. This is mostly for
@@ -62,7 +64,23 @@ class RmanSgNode(object):
 
     @motion_steps.setter
     def motion_steps(self, motion_steps):
-        self.__motion_steps = motion_steps        
+        self.__motion_steps = motion_steps      
+
+    @property
+    def is_transforming(self):
+        return self.__is_transforming
+
+    @is_transforming.setter
+    def is_transforming(self, is_transforming):
+        self.__is_transforming = is_transforming 
+
+    @property
+    def is_deforming(self):
+        return self.__is_deforming
+
+    @is_deforming.setter
+    def is_deforming(self, is_deforming):
+        self.__is_deforming = is_deforming                         
 
     @property
     def is_frame_sensitive(self):

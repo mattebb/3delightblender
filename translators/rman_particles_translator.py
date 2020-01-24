@@ -85,11 +85,9 @@ class RmanParticlesTranslator(RmanTranslator):
         sg_node = self.rman_scene.sg_scene.CreatePoints(db_name)
         rman_sg_particles = RmanSgParticles(self.rman_scene, sg_node, db_name)
 
-        self.update(ob, psys, rman_sg_particles)
-
         return rman_sg_particles
 
-    def export_deform_sample(self, rman_sg_particles, ob, psys, time_samples, time_sample):
+    def export_deform_sample(self, rman_sg_particles, ob, psys, time_sample):
         rm = psys.settings.renderman
         P, rot, width = self.get_particles(ob, psys)
 
@@ -99,10 +97,6 @@ class RmanParticlesTranslator(RmanTranslator):
             return
 
         primvar = rman_sg_particles.sg_node.GetPrimVars()
-        
-        if time_samples:        
-            primvar.SetTimeSamples( time_samples )
-
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex", time_sample)
 
         rman_sg_particles.sg_node.SetPrimVars(primvar)     
@@ -122,21 +116,19 @@ class RmanParticlesTranslator(RmanTranslator):
         rman_sg_particles.sg_node.Define(nm_pts)          
 
         primvar = rman_sg_particles.sg_node.GetPrimVars()
-        primvar.Clear()
-        primvar.SetTimeSamples([])
+        if rman_sg_particles.motion_steps:
+            primvar.SetTimeSamples(rman_sg_particles.motion_steps)
 
         nm_pts = -1
 
         self.get_primvars_particle(primvar,  psys, [self.rman_scene.bl_scene.frame_current], 0)      
         
-
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")                   
         if rm.constant_width:
             primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_constantwidth, width, "constant")
         else:
             primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, width, "vertex")                     
 
-        #primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)
         rman_sg_particles.sg_node.SetPrimVars(primvar)
 
         # Attach material

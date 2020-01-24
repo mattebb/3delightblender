@@ -14,11 +14,9 @@ class RmanDraTranslator(RmanTranslator):
         sg_node.Define("DelayedReadArchive", None)
         rman_sg_dra = RmanSgDra(self.rman_scene, sg_node, db_name)
 
-        self.update(ob, rman_sg_dra)
-
         return rman_sg_dra
 
-    def export_deform_sample(self, rman_sg_dra, ob, time_samples, time_sample):
+    def export_deform_sample(self, rman_sg_dra, ob, time_sample):
         pass
 
 

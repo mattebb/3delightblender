@@ -26,19 +26,6 @@ def _is_multi_material_(ob, mesh):
             return True
     return False
 
-def _get_subd_creases_(mesh):
-    creases = []
-
-    # only do creases 1 edge at a time for now,
-    # detecting chains might be tricky..
-    for e in mesh.edges:
-        if e.crease > 0.0:
-            creases.append((e.vertices[0], e.vertices[1],
-                            e.crease * e.crease * 10))
-            # squared, to match blender appareance better
-            #: range 0 - 10 (infinitely sharp)
-    return creases
-
 # requires facevertex interpolation
 def _get_mesh_uv_(mesh, name="", flipvmode='NONE'):
     uvs = []
@@ -149,6 +136,38 @@ class RmanMeshTranslator(RmanTranslator):
         super().__init__(rman_scene)
         self.bl_type = 'MESH' 
 
+    def _get_subd_creases_(self, ob, mesh, primvar):
+        creases = []
+
+        # only do creases 1 edge at a time for now,
+        # detecting chains might be tricky..
+        for e in mesh.edges:
+            if e.crease > 0.0:
+                creases.append((e.vertices[0], e.vertices[1],
+                                e.crease * e.crease * 10))
+                # squared, to match blender appareance better
+                #: range 0 - 10 (infinitely sharp)
+
+        tags = ['interpolateboundary', 'facevaryinginterpolateboundary']
+        nargs = [1, 0, 0, 1, 0, 0]
+        intargs = [ob.data.renderman.interp_boundary,
+                ob.data.renderman.face_boundary]
+        floatargs = []
+        stringargs = []     
+
+        if len(creases) > 0:
+            for c in creases:
+                tags.append('crease')
+                nargs.extend([2, 1, 0])
+                intargs.extend([c[0], c[1]])
+                floatargs.append(c[2])           
+            
+        primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtags, tags, len(tags))
+        primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagnargs, nargs, len(nargs))
+        primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagintargs, intargs, len(intargs))
+        primvar.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagfloatargs, floatargs, len(floatargs))
+        primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagstringtags, stringargs, len(stringargs))        
+
     def export(self, ob, db_name):
         prim_type = object_utils._detect_primitive_(ob)
 
@@ -158,34 +177,46 @@ class RmanMeshTranslator(RmanTranslator):
         sg_node = self.rman_scene.sg_scene.CreateMesh(db_name)
         rman_sg_mesh = RmanSgMesh(self.rman_scene, sg_node, db_name)
 
-        if not self.update(ob, rman_sg_mesh):
-            return None
+        if prim_type == 'SUBDIVISION_MESH':
+            rman_sg_mesh.is_subdiv = True
+
+        if self.rman_scene.do_motion_blur:
+            rman_sg_mesh.is_transforming = object_utils.is_transforming(ob)
+            rman_sg_mesh.is_deforming = object_utils._is_deforming_(ob)
 
         return rman_sg_mesh
 
-    def export_deform_sample(self, rman_sg_mesh, ob, time_samples, time_sample):
+    def export_deform_sample(self, rman_sg_mesh, ob, time_sample):
+
         mesh = None
         mesh = ob.to_mesh()
-
-        P = object_utils._get_mesh_points_(mesh)
         primvar = rman_sg_mesh.sg_node.GetPrimVars()
-        
-        if time_samples:        
-            primvar.SetTimeSamples( time_samples )
+        P = object_utils._get_mesh_points_(mesh)
+        npoints = len(P)
 
-        pts = list( zip(*[iter(P)]*3 ) )
-        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, pts, "vertex", time_sample)
+        if rman_sg_mesh.npoints != npoints:
+            primvar.SetTimeSamples([])
+            rman_sg_mesh.sg_node.SetPrimVars(primvar)
+            rman_sg_mesh.is_transforming = False
+            rman_sg_mesh.is_deforming = False
+            if rman_sg_mesh.is_multi_material:
+                for c in rman_sg_mesh.multi_material_children:
+                    pvar = c.GetPrimVars()
+                    pvar.SetTimeSamples( [] )                               
+                    c.SetPrimVars(pvar)            
+            return       
+
+        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex", time_sample)                            
+
         rman_sg_mesh.sg_node.SetPrimVars(primvar)
 
         if rman_sg_mesh.is_multi_material:
             for c in rman_sg_mesh.multi_material_children:
                 pvar = c.GetPrimVars()
-                pvar.SetTimeSamples( time_samples )
-                pvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, pts, "vertex", time_sample)
+                pvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex", time_sample)                                  
                 c.SetPrimVars(pvar)
 
         ob.to_mesh_clear()         
-
 
     def update(self, ob, rman_sg_mesh, input_mesh=None):
 
@@ -193,64 +224,49 @@ class RmanMeshTranslator(RmanTranslator):
         if not mesh:
             mesh = ob.to_mesh()
 
-        prim_type = object_utils._detect_primitive_(ob)
-
-        get_normals = (prim_type == 'POLYGON_MESH')
+        get_normals = (rman_sg_mesh.is_subdiv == 0)
         (nverts, verts, P, N) = object_utils._get_mesh_(mesh, get_normals=get_normals)
         
         # if this is empty continue:
         if nverts == []:
             if not input_mesh:
                 ob.to_mesh_clear()
+            rman_sg_mesh.sg_node = None
+            rman_sg_mesh.is_transforming = False
+            rman_sg_mesh.is_deforming = False
             return None
 
         npolys = len(nverts) 
-        npoints = int(len(P)/3)
+        npoints = len(P)
         numnverts = len(verts)
 
-        rman_sg_mesh.sg_node.Define( npolys, npoints, numnverts )
-        primvar = rman_sg_mesh.sg_node.GetPrimVars()
-        primvar.Clear()
+        rman_sg_mesh.npoints = npoints
+        rman_sg_mesh.npolys = npolys
+        rman_sg_mesh.nverts = numnverts
 
-        pts = list( zip(*[iter(P)]*3 ) )
-        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, pts, "vertex")
+        rman_sg_mesh.sg_node.Define( npolys, npoints, numnverts )
+        rman_sg_mesh.is_multi_material = _is_multi_material_(ob, mesh)
+            
+        primvar = rman_sg_mesh.sg_node.GetPrimVars()
+
+        if rman_sg_mesh.is_deforming:
+            primvar.SetTimeSamples(rman_sg_mesh.motion_steps)
+        
+        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")
         _get_primvars_(ob, mesh, primvar, "facevarying")   
 
         primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
         primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")            
 
-        if prim_type == "SUBDIVISION_MESH":
-            rman_sg_mesh.is_subdiv = True
-            creases = _get_subd_creases_(mesh)
-            tags = ['interpolateboundary', 'facevaryinginterpolateboundary']
-            nargs = [1, 0, 0, 1, 0, 0]
-            intargs = [ob.data.renderman.interp_boundary,
-                    ob.data.renderman.face_boundary]
-            floatargs = []
-            stringargs = []     
-
-            if len(creases) > 0:
-                for c in creases:
-                    tags.append('crease')
-                    nargs.extend([2, 1, 0])
-                    intargs.extend([c[0], c[1]])
-                    floatargs.append(c[2])           
-                
-            primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtags, tags, len(tags))
-            primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagnargs, nargs, len(nargs))
-            primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagintargs, intargs, len(intargs))
-            primvar.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagfloatargs, floatargs, len(floatargs))
-            primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagstringtags, stringargs, len(stringargs))
+        if rman_sg_mesh.is_subdiv:
+            creases = self._get_subd_creases_(ob, mesh, primvar)
 
             # TODO make this selectable
             rman_sg_mesh.sg_node.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark) 
 
-        elif prim_type == "POLYGON_MESH":
-            rman_sg_mesh.is_subdiv = False
+        else:
             rman_sg_mesh.sg_node.SetScheme(None)
-            primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "facevarying")       
-
-        rman_sg_mesh.is_multi_material = _is_multi_material_(ob, mesh)  
+            primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "facevarying")         
 
         if rman_sg_mesh.is_multi_material:
             material_ids = _get_material_ids(ob, mesh)
@@ -258,31 +274,31 @@ class RmanMeshTranslator(RmanTranslator):
                 _get_mats_faces_(nverts, material_ids).items():
 
                 mat = ob.data.materials[mat_id]
-                mat_handle = "material.%s" % mat.name
+                mat_handle = object_utils.get_db_name(mat) 
                 sg_material = None
                 if mat_handle in self.rman_scene.rman_materials:
                     sg_material = self.rman_scene.rman_materials[mat_handle]
 
                 if mat_id == 0:
                     primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))
-                    rman_sg_mesh.sg_node.SetMaterial(sg_material)
-                else: 
+                    rman_sg_mesh.sg_node.SetMaterial(sg_material.sg_node)
+                else:                
                     sg_sub_mesh =  self.rman_scene.sg_scene.CreateMesh("")
                     sg_sub_mesh.Define( npolys, npoints, numnverts )                   
-                    if prim_type == "SUBDIVISION_MESH":
+                    if rman_sg_mesh.is_subdiv:
                         sg_sub_mesh.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark)
-                    pvars = sg_sub_mesh.GetPrimVars()                        
+                    pvars = sg_sub_mesh.GetPrimVars()  
+                    if rman_sg_mesh.is_deforming:
+                        pvars.SetTimeSamples(rman_sg_mesh.motion_steps)                      
                     pvars.Inherit(primvar)
                     pvars.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))
                     sg_sub_mesh.SetPrimVars(pvars)
-                    sg_sub_mesh.SetMaterial(sg_material)
+                    sg_sub_mesh.SetMaterial(sg_material.sg_node)
                     rman_sg_mesh.sg_node.AddChild(sg_sub_mesh)
                     rman_sg_mesh.multi_material_children.append(sg_sub_mesh)
         else:
-            rman_sg_mesh.multi_material_children = []                  
+            rman_sg_mesh.multi_material_children = []
 
-           
-        #primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_displacementbound_sphere, ob.renderman.displacementbound)
         rman_sg_mesh.sg_node.SetPrimVars(primvar)
 
         if not input_mesh:
