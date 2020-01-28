@@ -53,6 +53,8 @@ class RfBTxManager(object):
                 break
         node_name,param = nodeID.split('.')
         for mat in bpy.data.materials:
+            if not mat.node_tree:
+                continue
             if node_name in mat.node_tree.nodes:
                 if self.rman_scene:
                     self.rman_scene.update_material(mat)
