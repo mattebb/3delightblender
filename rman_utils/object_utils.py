@@ -29,25 +29,31 @@ def get_db_name(ob, rman_type='', psys=None):
         db_name = '%s-MATERIAL' % ob.name_full
     elif isinstance(ob, bpy.types.Object):
         if ob.type == 'MESH':
-            db_name = '%s-MESH' % ob.data.name_full
+            db_name = '%s-MESH' % ob.name_full
         elif ob.type == 'LIGHT':
             db_name = '%s-LIGHT' % ob.data.name_full
         elif ob.type == 'CAMERA':
             db_name = '%s-CAMERA' % ob.name_full
         elif ob.type == 'EMPTY':
-            db_name = ob.name_full  
+            db_name = '%s-EMPTY' % ob.name_full  
 
 
     return db_name
 
 def get_group_db_name(ob_inst):
-    if ob_inst.is_instance:
-        ob = ob_inst.instance_object.original  
-        parent = ob_inst.parent
-        group_db_name = "%s|%s|%d" % (parent.name_full, ob.name_full, ob_inst.persistent_id[0])
+    if isinstance(ob_inst, bpy.types.DepsgraphObjectInstance):
+        if ob_inst.is_instance:
+            ob = ob_inst.instance_object
+            parent = ob_inst.parent
+            #if ob.parent:
+            #    group_db_name = "%s|%s|%s|%d|%d" % (parent.name_full, ob.parent.name_full, ob.name_full, ob_inst.persistent_id[0], ob_inst.persistent_id[1])
+            #else:
+            group_db_name = "%s|%s|%d|%d" % (parent.name_full, ob.name_full, ob_inst.persistent_id[0], ob_inst.persistent_id[1])
+        else:
+            ob = ob_inst.object
+            group_db_name = "%s" % (ob.name_full)
     else:
-        ob = ob_inst.object
-        group_db_name = "%s" % (ob.name_full)
+        group_db_name = "%s" % (ob_inst.name_full)
 
     return group_db_name
 

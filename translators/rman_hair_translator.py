@@ -28,6 +28,9 @@ class RmanHairTranslator(RmanTranslator):
             self.rman_scene.sg_scene.DeleteDagNode(c)
 
         curves = self._get_strands_(ob, psys)
+        if not curves:
+            rman_sg_hair.sg_node = None
+            return
         i = 0
         for vertsArray, points, widthString, widths, scalpS, scalpT in curves:
             curves_sg = self.rman_scene.sg_scene.CreateCurves("%s-%d" % (psys.name, i))
@@ -68,6 +71,13 @@ class RmanHairTranslator(RmanTranslator):
             if hasattr(mod, 'particle_system') and mod.particle_system == psys:
                 psys_modifier = mod
                 break
+
+        if self.rman_scene.is_interactive:
+            if psys_modifier and not psys_modifier.show_viewport:
+                return None
+        else:
+            if psys_modifier and not psys_modifier.show_render:
+                return None             
 
         tip_width = psys.settings.tip_radius * psys.settings.radius_scale
         base_width = psys.settings.root_radius * psys.settings.radius_scale
