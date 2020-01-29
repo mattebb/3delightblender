@@ -332,8 +332,17 @@ class RmanScene(object):
    
         group_db_name = object_utils.get_group_db_name(ob_inst) 
         rman_group_translator = self.rman_translators['GROUP']
+        parent_sg_node = None
         if ob_inst.is_instance:
             ob = ob_inst.instance_object
+            parent = ob_inst.parent
+            if parent.type == "EMPTY" and parent.is_instancer:
+                parent_db_name = object_utils.get_db_name(parent)
+                parent_sg_node = self.rman_objects.get(parent_db_name, None)
+                if not parent_sg_node:
+                    parent_sg_node = rman_group_translator.export(parent, parent_db_name)
+                    self.rman_objects[parent_db_name] = parent_sg_node    
+
         else:
             ob = ob_inst.object 
          
@@ -343,11 +352,10 @@ class RmanScene(object):
         rman_type = object_utils._detect_primitive_(ob)
 
         if ob.type == "EMPTY" and ob.is_instancer:
-            rman_sg_node = self.rman_objects.get(ob.name_full, None)
+            empty_db_name = object_utils.get_db_name(ob)
+            rman_sg_node = self.rman_objects.get(empty_db_name, None)
             if not rman_sg_node:
-                empty_db_name = object_utils.get_db_name(ob)
                 rman_sg_node = rman_group_translator.export(ob, empty_db_name)
-                self.sg_scene.Root().AddChild(rman_sg_node.sg_node)
                 self.rman_objects[empty_db_name] = rman_sg_node    
         else:
             db_name = object_utils.get_db_name(ob, rman_type=rman_type)          
@@ -397,7 +405,10 @@ class RmanScene(object):
             self.attach_material(ob, rman_sg_group.sg_node)
 
             # add instance to the RmanSgNode
-            rman_sg_node.instances[group_db_name] = rman_sg_group           
+            if parent_sg_node:
+                parent_sg_node.instances[group_db_name] = rman_sg_group 
+            else:
+                rman_sg_node.instances[group_db_name] = rman_sg_group         
 
     def export_instances(self, obj_selected=None):
         objFound = False
@@ -1041,7 +1052,7 @@ class RmanScene(object):
                 else:
                     if self.current_ob:
                         for i,cur_ob in enumerate(self.current_ob):
-                            if not bpy.data.objects.get(cur_ob):
+                            if not self.depsgraph.objects.get(cur_ob):
                                 delete_obs.append(self.current_ob_db_name[i])
                                 do_delete = True
                     if not do_delete:
@@ -1084,8 +1095,7 @@ class RmanScene(object):
             with self.rman.SGManager.ScopedEdit(self.sg_scene): 
                 rfb_log().debug("Adding new objects:")
                 self.export_data_blocks(new_objs)
-                for ob in new_objs:
-                    self.export_instances(obj_selected=ob)
+                self.export_instances()
 
         # new cameras
         if new_cams and not self.is_viewport_render:
@@ -1095,7 +1105,7 @@ class RmanScene(object):
 
         # delete any objects, if necessary    
         if do_delete:
-            obj_key = self.current_ob_db_name
+            rfb_log().debug("Deleting objects")
             with self.rman.SGManager.ScopedEdit(self.sg_scene):
                 for obj_key in delete_obs:
                     rman_sg_node = self.rman_objects.get(obj_key, None)
@@ -1105,7 +1115,8 @@ class RmanScene(object):
                         if v.sg_node:
                             self.sg_scene.DeleteDagNode(v.sg_node)
                         self.rman_objects.pop(k)
-                    self.sg_scene.DeleteDagNode(rman_sg_node.sg_node)
+                    # For now, don't delete the geometry itself
+                    # self.sg_scene.DeleteDagNode(rman_sg_node.sg_node)
                     self.rman_objects.pop(obj_key)     
             self.current_ob = []
             self.current_ob_db_name = []           
