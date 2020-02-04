@@ -2292,8 +2292,8 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         default=False)
     motion_segments: IntProperty(
         name="Motion Samples",
-        description="Number of motion samples to take for multi-segment motion blur.  This should be raised if you notice segment artifacts in blurs",
-        min=2, max=16, default=2)
+        description="Number of motion samples to take for multi-segment motion blur.  This should be raised if you notice segment artifacts in blurs. Set to 1 to disable for this object.",
+        min=1, max=16, default=2)
 
     displacementbound: FloatProperty(
         name="Displacement Bound",

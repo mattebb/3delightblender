@@ -8,10 +8,12 @@ class RmanGroupTranslator(RmanTranslator):
         super().__init__(rman_scene)
 
     def update_transform(self, ob, rman_sg_group):
-        rman_sg_group.sg_node.SetTransform( transform_utils.convert_matrix(ob.matrix_world.copy()))
+        mtx = transform_utils.convert_matrix(ob.matrix_world.copy())
+        rman_sg_group.sg_node.SetTransform( mtx )
 
     def update_transform_sample(self, ob, rman_sg_group, index, seg):
-        rman_sg_group.sg_node.SetTransformSample( index, transform_utils.convert_matrix(ob.matrix_world.copy()), seg)
+        mtx = transform_utils.convert_matrix(ob.matrix_world.copy())
+        rman_sg_group.sg_node.SetTransformSample( index, mtx, seg)
 
     def update_transform_num_samples(self, rman_sg_group, motion_steps):
         rman_sg_group.sg_node.SetTransformNumSamples(len(motion_steps))

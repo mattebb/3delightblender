@@ -1073,7 +1073,7 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        if context.object.type in ['CAMERA', 'LIGHT']:
+        if context.object.type in ['LIGHT']:
             return False
         return (context.object and rd.engine in {'PRMAN_RENDER'})
 
@@ -1082,11 +1082,7 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         col.prop(item, "name")
         col.prop(item, "type")
 
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
+    def draw_props(self, layout, context):
         ob = context.object
         rm = ob.renderman
         anim = rm.archive_anim_settings
@@ -1151,78 +1147,11 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
             col.prop(rm, "primitive_point_type")
             col.prop(rm, "primitive_point_width")                    
 
-
-        """
-        col = layout.column()
-        col.prop(rm, "geometry_source")
-
-        if rm.geometry_source in ('ARCHIVE', 'DELAYED_LOAD_ARCHIVE'):
-            col.prop(rm, "path_archive")
-
-            col.prop(anim, "animated_sequence")
-            if anim.animated_sequence:
-                col = layout.column(align = True)
-                col.prop(anim, "blender_start")
-                col.prop(anim, "sequence_in")
-                col.prop(anim, "sequence_out")
-
-        elif rm.geometry_source == 'PROCEDURAL_RUN_PROGRAM':
-            col.prop(rm, "path_runprogram")
-            col.prop(rm, "path_runprogram_args")
-        elif rm.geometry_source == 'DYNAMIC_LOAD_DSO':
-            col.prop(rm, "path_dso")
-            col.prop(rm, "path_dso_initial_data")
-        elif rm.geometry_source == 'OPENVDB':
-            col.prop(rm, 'path_archive', text='OpenVDB file')
-            self._draw_collection(context, layout, rm, "",
-                                  "collection.add_remove", "object.renderman",
-                                  "openvdb_channels", "openvdb_channel_index")
-
-        if rm.geometry_source in ('DELAYED_LOAD_ARCHIVE',
-                                  'PROCEDURAL_RUN_PROGRAM',
-                                  'DYNAMIC_LOAD_DSO',
-                                  'OPENVDB'):
-            col = layout.column()
-            col.prop(rm, "procedural_bounds")
-
-            if rm.procedural_bounds == 'MANUAL':
-                col = layout.column()
-                col.prop(rm, "procedural_bounds_min")
-                col.prop(rm, "procedural_bounds_max")
-
-        if rm.geometry_source == 'BLENDER_SCENE_DATA':
-            col.prop(rm, "primitive")
-
-            col = layout.column(align = True)
-
-            if rm.primitive in ('CONE', 'DISK'):
-                col.prop(rm, "primitive_height")
-            if rm.primitive in ('SPHERE', 'CYLINDER', 'CONE', 'DISK'):
-                col.prop(rm, "primitive_radius")
-            if rm.primitive == 'TORUS':
-                col.prop(rm, "primitive_majorradius")
-                col.prop(rm, "primitive_minorradius")
-                col.prop(rm, "primitive_phimin")
-                col.prop(rm, "primitive_phimax")
-            if rm.primitive in ('SPHERE', 'CYLINDER', 'CONE', 'TORUS'):
-                col.prop(rm, "primitive_sweepangle")
-            if rm.primitive in ('SPHERE', 'CYLINDER'):
-                col.prop(rm, "primitive_zmin")
-                col.prop(rm, "primitive_zmax")
-            if rm.primitive == 'POINTS':
-                col.prop(rm, "primitive_point_type")
-                col.prop(rm, "primitive_point_width")
-
-            # col.prop(rm, "export_archive")
-            # if rm.export_archive:
-            #    col.prop(rm, "export_archive_path")
-
-        """
         rman_archive = load_icons().get("archive_RIB")
         col = layout.column()
         col.enabled = not rman_interactive_running
         col.operator("export.export_rib_archive",
-                     text="Export Object as RIB Archive.", icon_value=rman_archive.icon_id)
+                    text="Export Object as RIB Archive.", icon_value=rman_archive.icon_id)
         
 
         col = layout.column()
@@ -1233,7 +1162,27 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         col.prop(rm, "motion_segments_override")
         col.active = rm.motion_segments_override
         col.prop(rm, "motion_segments")
-        #col.prop(ob.rman, 'trace_displacements')
+        #col.prop(ob.rman, 'trace_displacements')        
+
+    def draw_camera_props(self, layout, context):
+        ob = context.object
+        rm = ob.renderman        
+        col = layout.column()
+        col.prop(rm, "motion_segments_override")
+        col.active = rm.motion_segments_override
+        col.prop(rm, "motion_segments")         
+
+    def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        layout = self.layout
+ 
+        if context.object.type == 'CAMERA':
+            self.draw_camera_props(layout, context)
+        else:
+            self.draw_props(layout, context)
+           
 
 """
 class RendermanRibBoxPanel(_RManPanelHeader):

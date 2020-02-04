@@ -3,6 +3,8 @@ from ..rman_sg_nodes.rman_sg_camera import RmanSgCamera
 from ..rman_sg_nodes.rman_sg_node import RmanSgNode
 from ..rman_utils import transform_utils
 from ..rman_utils import property_utils
+from ..rman_utils import object_utils
+from ..rman_utils import scene_utils
 import math
 
 def _render_get_resolution_(r):
@@ -47,20 +49,23 @@ class RmanCameraTranslator(RmanTranslator):
                                                                0.0,0.0,-1.0,0.0,
                                                                0.0,0.0,0.0,1.0) 
 
+    def _set_orientation(self, rman_sg_camera):
+        camtransform = self.rman_scene.rman.Types.RtMatrix4x4()
+        camtransform.Identity()
+        rman_sg_camera.sg_node.SetOrientTransform(self.s_rightHanded)        
+
+    def update_transform_num_samples(self, rman_sg_camera, motion_steps ):
+        rman_sg_camera.sg_node.SetTransformNumSamples(len(motion_steps))
+
     def update_viewport_transform(self, rman_sg_camera):
         mtx = self.rman_scene.context.region_data.view_matrix.inverted()
         v = transform_utils.convert_matrix(mtx)
         if rman_sg_camera.cam_matrix == v:
             return        
         rman_sg_camera.cam_matrix = v
-        rman_sg_camera.sg_node.SetTransform( v )            
+        rman_sg_camera.sg_node.SetTransform( v )                 
 
-        camtransform = self.rman_scene.rman.Types.RtMatrix4x4()
-        camtransform.Identity()
-        rman_sg_camera.sg_node.SetOrientTransform(self.s_rightHanded)          
-
-
-    def update_transform(self, ob, rman_sg_camera):
+    def update_transform(self, ob, rman_sg_camera, index=0):
 
         cam = ob.data
         mtx = ob.matrix_world
@@ -70,16 +75,16 @@ class RmanCameraTranslator(RmanTranslator):
             return
 
         rman_sg_camera.cam_matrix = v
-        rman_sg_camera.sg_node.SetTransform( v )              
-
-        camtransform = self.rman_scene.rman.Types.RtMatrix4x4()
-        camtransform.Identity()
-        rman_sg_camera.sg_node.SetOrientTransform(self.s_rightHanded)
+        if rman_sg_camera.is_transforming:
+            rman_sg_camera.sg_node.SetTransformSample(index, v, rman_sg_camera.motion_steps[index] )              
+        else:
+            rman_sg_camera.sg_node.SetTransform( v )              
 
     def export_viewport_cam(self, db_name=""):  
         sg_camera = self.rman_scene.sg_scene.CreateCamera(db_name)
         rman_sg_camera = RmanSgCamera(self.rman_scene, sg_camera, db_name)
         self.update_viewport_cam(rman_sg_camera)
+        self._set_orientation(rman_sg_camera)
         self.update_viewport_transform(rman_sg_camera)  
         return rman_sg_camera            
 
@@ -87,7 +92,19 @@ class RmanCameraTranslator(RmanTranslator):
     def export(self, ob, db_name=""):
         sg_camera = self.rman_scene.sg_scene.CreateCamera(db_name)
         rman_sg_camera = RmanSgCamera(self.rman_scene, sg_camera, db_name)
+        if self.rman_scene.do_motion_blur:
+            rman_sg_camera.is_transforming = object_utils.is_transforming(ob)
+            mb_segs = self.rman_scene.bl_scene.renderman.motion_segments
+            if ob.renderman.motion_segments_override:
+                mb_segs = ob.renderman.motion_segments
+            if mb_segs > 1:
+                subframes = scene_utils._get_subframes_(mb_segs, self.rman_scene.bl_scene)
+                rman_sg_camera.motion_steps = subframes  
+                self.update_transform_num_samples(rman_sg_camera, subframes )                
+            else:
+                rman_sg_camera.is_transforming = False
         self.update(ob, rman_sg_camera)
+        self._set_orientation(rman_sg_camera)
         self.update_transform(ob, rman_sg_camera)
         return rman_sg_camera        
 
@@ -107,49 +124,26 @@ class RmanCameraTranslator(RmanTranslator):
         options = self.rman_scene.sg_scene.GetOptions()
 
         if region_data.view_perspective == 'CAMERA':
+            r = self.rman_scene.bl_scene.render
 
-            ob = self.rman_scene.context.space_data.camera
+            space_data = self.rman_scene.context.space_data
+            ob = space_data.camera
             cam = ob.data
             
-            #xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
+            xaspect, yaspect, aspectratio = _render_get_aspect_(None, cam, x=width, y=height)
             aspect_ratio = width / height
-            lens = cam.lens
+            lens =  cam.lens
 
             sensor = cam.sensor_height \
                 if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
 
-            fov = math.degrees(cam.angle) #+14.0
-           
+            fov =  math.degrees(cam.angle) 
             proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
 
-            projparams = proj.params          
-
-            """
-            offset = tuple(region_data.view_camera_offset)
-            x_aspect_comp = 1 if aspect_ratio > 1 else 1 / aspect_ratio
-            y_aspect_comp = aspect_ratio if aspect_ratio > 1 else 1
-            zoom = 4 / ((math.sqrt(2) + region_data.view_camera_zoom / 50) ** 2)
-            horizontal_fit = cam.sensor_fit == 'HORIZONTAL' or \
-                     (cam.sensor_fit == 'AUTO' and aspect_ratio > 1)
-
-            if cam.sensor_fit == 'VERTICAL':
-                film_height = cam.sensor_height / 1000 * zoom
-                film_width = film_height * aspect_ratio
-            elif horizontal_fit:
-                film_width = cam.sensor_width / 1000 * zoom
-                film_height = film_width / aspect_ratio
-            else:
-                film_height = cam.sensor_width / 1000 * zoom
-                film_width = film_height * aspect_ratio
-
-            shift_x = ((offset[0] * 2 + (cam.shift_x * x_aspect_comp)) / zoom) * film_width
-            shift_y = ((offset[1] * 2 + (cam.shift_y * y_aspect_comp)) / zoom) * film_height
-
-            projparams.SetFloat("shiftX", cam.shift_x)
-            projparams.SetFloat("shiftY", cam.shift_y)
-            """
+            projparams = proj.params
 
             projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)
+
 
             """
 
@@ -163,7 +157,8 @@ class RmanCameraTranslator(RmanTranslator):
                     projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
                     projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalDistance, dof_distance)
             """
-            #options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)
+            #options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)         
+            
         elif region_data.view_perspective == 'PERSP':
 
             ob = self.rman_scene.context.space_data.camera
@@ -176,36 +171,11 @@ class RmanCameraTranslator(RmanTranslator):
             sensor = cam.sensor_height \
                 if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
 
-            fov = math.degrees(cam.angle) #+14.0
+            fov = math.degrees(cam.angle)
            
             proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
 
             projparams = proj.params          
-
-            """            
-            offset = tuple(region_data.view_camera_offset)
-            x_aspect_comp = 1 if aspect_ratio > 1 else 1 / aspect_ratio
-            y_aspect_comp = aspect_ratio if aspect_ratio > 1 else 1
-            zoom = 4 / ((math.sqrt(2) + region_data.view_camera_zoom / 50) ** 2)
-            horizontal_fit = cam.sensor_fit == 'HORIZONTAL' or \
-                     (cam.sensor_fit == 'AUTO' and aspect_ratio > 1)
-
-            if cam.sensor_fit == 'VERTICAL':
-                film_height = cam.sensor_height / 1000 * zoom
-                film_width = film_height * aspect_ratio
-            elif horizontal_fit:
-                film_width = cam.sensor_width / 1000 * zoom
-                film_height = film_width / aspect_ratio
-            else:
-                film_height = cam.sensor_width / 1000 * zoom
-                film_width = film_height * aspect_ratio
-
-            shift_x = ((offset[0] * 2 + (cam.shift_x * x_aspect_comp)) / zoom) * film_width
-            shift_y = ((offset[1] * 2 + (cam.shift_y * y_aspect_comp)) / zoom) * film_height
-
-            projparams.SetFloat("shiftX", cam.shift_x)
-            projparams.SetFloat("shiftY", cam.shift_y)
-            """
 
             projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)
 

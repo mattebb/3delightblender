@@ -323,10 +323,14 @@ class RmanScene(object):
                 mb_segs = self.bl_scene.renderman.motion_segments
                 if ob.renderman.motion_segments_override:
                     mb_segs = ob.renderman.motion_segments
-                subframes = scene_utils._get_subframes_(mb_segs, self.bl_scene)
-                rman_sg_node.motion_steps = subframes
-                self.motion_steps.update(subframes)
-                self.moving_objects[ob.name_full] = ob
+                if mb_segs > 1:
+                    subframes = scene_utils._get_subframes_(mb_segs, self.bl_scene)
+                    rman_sg_node.motion_steps = subframes
+                    self.motion_steps.update(subframes)
+                    self.moving_objects[ob.name_full] = ob
+                else:
+                    rman_sg_node.is_transforming = False
+                    rman_sg_node.is_deforming = False
 
     def _export_instance(self, ob_inst, seg=None):
    
@@ -459,6 +463,12 @@ class RmanScene(object):
 
             total = len(self.depsgraph.object_instances)
             objFound = False
+            
+            # update camera
+            if not first_sample and self.main_camera.is_transforming and seg in self.main_camera.motion_steps:
+                cam_translator =  self.rman_translators['CAMERA']
+                cam_translator.update_transform(self.depsgraph.scene_eval.camera, self.main_camera, samp)
+
             for i, ob_inst in enumerate(self.depsgraph.object_instances):  
                 if obj_selected:
                     if objFound:
@@ -699,7 +709,9 @@ class RmanScene(object):
                 db_name = object_utils.get_db_name(cam)
                 rman_sg_camera = cam_translator.export(cam, db_name)
                 if cam == main_cam:
-                    self.main_camera = rman_sg_camera                    
+                    self.main_camera = rman_sg_camera 
+                    if self.main_camera.is_transforming:
+                        self.motion_steps.update(self.main_camera.motion_steps)             
                 self.rman_cameras[db_name] = rman_sg_camera
                 self.rman_objects[db_name] = rman_sg_camera
                 self.sg_scene.Root().AddChild(rman_sg_camera.sg_node)
