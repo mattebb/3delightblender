@@ -346,7 +346,30 @@ def copy_cycles_node(nt, cycles_node, rman_node):
 
 #########  BSDF conversion methods  ############
 
+def convert_principled_bsdf(nt, node, rman_node):
+    inputs = node.inputs
 
+    # INPUTS: ['Base Color', 'Subsurface', 'Subsurface Radius', 
+    # 'Subsurface Color', 'Metallic', 'Specular', 'Specular Tint', 
+    # 'Roughness', 'Anisotropic', 'Anisotropic Rotation', 'Sheen', 
+    # 'Sheen Tint', 'Clearcoat', 'Clearcoat Roughness', 'IOR', 
+    # 'Transmission', 'Transmission Roughness', 'Emission', 'Alpha', 
+    # 'Normal', 'Clearcoat Normal', 'Tangent']
+
+    convert_cycles_input(nt, inputs['Base Color'], rman_node, "baseColor")
+    convert_cycles_input(nt, inputs['Subsurface'], rman_node, "subsurface")
+    convert_cycles_input(nt, inputs['Subsurface Color'], rman_node, "subsurfaceColor")
+    convert_cycles_input(nt, inputs['Metallic'], rman_node, "metallic")
+    convert_cycles_input(nt, inputs['Specular'], rman_node, "specular")
+    convert_cycles_input(nt, inputs['Specular Tint'], rman_node, "specularTint")
+    convert_cycles_input(nt, inputs['Roughness'], rman_node, "roughness")
+    convert_cycles_input(nt, inputs['Anisotropic'], rman_node, "anisotropic")
+    convert_cycles_input(nt, inputs['Sheen'], rman_node, "sheen")
+    convert_cycles_input(nt, inputs['Sheen Tint'], rman_node, "sheenTint")
+    convert_cycles_input(nt, inputs['Clearcoat'], rman_node, "clearcoat")
+    convert_cycles_input(nt, inputs['Clearcoat Roughness'], rman_node, "clearcoatGloss")
+    convert_cycles_input(nt, inputs['Normal'], rman_node, "bumpNormal")
+    
 def convert_diffuse_bsdf(nt, node, rman_node):
     inputs = node.inputs
     setattr(rman_node, 'enableDiffuse', True)

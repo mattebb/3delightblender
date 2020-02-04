@@ -553,9 +553,13 @@ class RmanScene(object):
         # RMAN_ARCHIVEPATH,
         # RMAN_DISPLAYPATH, RMAN_PROCEDURALPATH, and RMAN_DSOPATH (combines procedurals and displays)
         
+        # get cycles shader directory
+        cur_dir = os.path.dirname(os.path.realpath(__file__))
+        cycles_shader_dir = os.path.join(cur_dir, '..', 'cycles', 'shader' )
+
         options = self.sg_scene.GetOptions()
         RMAN_SHADERPATH = os.environ.get('RMAN_SHADERPATH', '')
-        options.SetString(self.rman.Tokens.Rix.k_searchpath_shader, '.:%s:@' % RMAN_SHADERPATH)
+        options.SetString(self.rman.Tokens.Rix.k_searchpath_shader, '.:%s:%s:@' % (cycles_shader_dir, RMAN_SHADERPATH))
         RMAN_TEXTUREPATH = os.environ.get('RMAN_TEXTUREPATH', '')
         options.SetString(self.rman.Tokens.Rix.k_searchpath_texture, '.:%s:@' % RMAN_TEXTUREPATH)
         RMAN_RIXPLUGINPATH = os.environ.get('RMAN_RIXPLUGINPATH', '')

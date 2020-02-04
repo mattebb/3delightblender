@@ -51,7 +51,7 @@ class RfBTxManager(object):
                         if area.type == 'PROPERTIES':
                             area.tag_redraw()
                 break
-        node_name,param = nodeID.split('.')
+        node_name,param, param_val = nodeID.split('|')
         for mat in bpy.data.materials:
             if not mat.node_tree:
                 continue
@@ -97,7 +97,7 @@ def update_texture(node, light=None):
             for input_name, input in node.inputs.items():
                 if hasattr(input, 'is_texture') and input.is_texture:
                     prop = input.default_value
-                    nodeID = '%s.%s' % (node.name, input_name)
+                    nodeID = generate_node_id(node, input_name)
                     real_file = filepath_utils.get_real_path(prop)
                     get_txmanager().txmanager.add_texture(nodeID, real_file)    
                     bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=real_file)                                                      
@@ -129,13 +129,20 @@ def update_texture(node, light=None):
                             node_type = node.bl_label
 
                         if node_name != '':       
-                            nodeID = '%s.%s' %  (node_name, prop_name)
+                            nodeID = generate_node_id(node, prop_name)
                             real_file = filepath_utils.get_real_path(prop)
                             txfile = get_txmanager().txmanager.add_texture(nodeID, real_file, nodetype=node_type)    
                             bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=real_file, nodeID=nodeID)
                             txmake_all(blocking=False)
-                            get_txmanager().done_callback(nodeID, txfile)
+                            if txfile:
+                                get_txmanager().done_callback(nodeID, txfile)
 
+def generate_node_id(node, prop_name):
+    prop = ''
+    if hasattr(node, prop_name):
+        prop = getattr(node, prop_name)
+    nodeID = '%s|%s|%s' % (node.name, prop_name, prop)
+    return nodeID
 
 def get_txfile_from_id(nodeid):
     txfile = get_txmanager().get_txfile_from_id(nodeid)

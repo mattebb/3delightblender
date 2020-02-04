@@ -44,12 +44,13 @@ from .util import get_addon_prefs
 from .util import get_real_path
 from .util import readOSO, find_it_path, find_local_queue, find_tractor_spool
 from .util import get_Files_in_Directory
-from .nodes import convert_cycles_nodetree, is_renderman_nodetree
 
 
+from . import rman_cycles_convert
 from .rfb_logger import rfb_log
 from .rman_utils import scene_utils
 from .rman_utils import string_utils
+from .rman_utils import shadergraph_utils
 from .spool import spool_render
 from .rman_render import RmanRender
 
@@ -136,11 +137,11 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
         for mat in bpy.data.materials:
             mat.use_nodes = True
             nt = mat.node_tree
-            if is_renderman_nodetree(mat):
+            if shadergraph_utils.is_renderman_nodetree(mat):
                 continue
             output = nt.nodes.new('RendermanOutputNode')
             try:
-                if not convert_cycles_nodetree(mat, output, self.report):
+                if not rman_cycles_convert.convert_cycles_nodetree(mat, output):
                     default = nt.nodes.new('PxrSurfaceBxdfNode')
                     default.location = output.location
                     default.location[0] -= 300
@@ -214,12 +215,12 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
             
-            # if not convert_cycles_nodetree(idblock, output, self.report):
-            #     default = nt.nodes.new('%sBxdfNode' %
-            #                            self.properties.bxdf_name)
-            #     default.location = output.location
-            #     default.location[0] -= 300
-            #     nt.links.new(default.outputs[0], output.inputs[0])
+            if not rman_cycles_convert.convert_cycles_nodetree(idblock, output):
+                default = nt.nodes.new('%sBxdfNode' %
+                                       self.properties.bxdf_name)
+                default.location = output.location
+                default.location[0] -= 300
+                nt.links.new(default.outputs[0], output.inputs[0])
             
             default = nt.nodes.new('%sBxdfNode' %
                                     self.properties.bxdf_name)

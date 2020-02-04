@@ -1,5 +1,6 @@
 from . import texture_utils
 from . import string_utils
+from . import shadergraph_utils
 from ..rfb_logger import rfb_log
 
 def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1):
@@ -41,51 +42,13 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
         elif param_type == "normal":
             params.SetNormal(param_name, val)   
 
-
-def get_node_name(node, mat_name):
-    return "%s.%s" % (mat_name, node.name.replace(' ', ''))
-
-
-def get_socket_name(node, socket):
-    if type(socket) == dict:
-        return socket['name'].replace(' ', '')
-    # if this is a renderman node we can just use the socket name,
-    else:
-        if not hasattr('node', 'plugin_name'):
-            if socket.name in node.inputs and socket.name in node.outputs:
-                suffix = 'Out' if socket.is_output else 'In'
-                return socket.name.replace(' ', '') + suffix
-        return socket.identifier.replace(' ', '')
-
-
-def get_socket_type(node, socket):
-    sock_type = socket.type.lower()
-    if sock_type == 'rgba':
-        return 'color'
-    elif sock_type == 'value':
-        return 'float'
-    elif sock_type == 'vector':
-        return 'point'
-    else:
-        return sock_type
-
-# do we need to convert this socket?
-
-
-def do_convert_socket(from_socket, to_socket):
-    if not to_socket:
-        return False
-    return (is_float_type(from_socket) and is_float3_type(to_socket)) or \
-        (is_float3_type(from_socket) and is_float_type(to_socket))
-
-
 def build_output_param_str(mat_name, from_node, from_socket, convert_socket=False):
-    from_node_name = get_node_name(from_node, mat_name)
-    from_sock_name = get_socket_name(from_node, from_socket)
+    from_node_name = shadergraph_utils.get_node_name(from_node, mat_name)
+    from_sock_name = shadergraph_utils.get_socket_name(from_node, from_socket)
 
     # replace with the convert node's output
     if convert_socket:
-        if is_float_type(from_socket):
+        if shadergraph_utils.is_float_type(from_socket):
             return "convert_%s.%s:resultRGB" % (from_node_name, from_sock_name)
         else:
             return "convert_%s.%s:resultF" % (from_node_name, from_sock_name)
@@ -106,7 +69,7 @@ def get_output_param_str(node, mat_name, socket, to_socket=None):
         in_sock = group_output.inputs[socket.name]
         if len(in_sock.links):
             link = in_sock.links[0]
-            return build_output_param_str(mat_name + '.' + node.name, link.from_node, link.from_socket, do_convert_socket(link.from_socket, to_socket))
+            return build_output_param_str(mat_name + '.' + node.name, link.from_node, link.from_socket, shadergraph_utils.do_convert_socket(link.from_socket, to_socket))
         else:
             return "error:error"
     if node.bl_idname == 'NodeGroupInput':
@@ -118,11 +81,11 @@ def get_output_param_str(node, mat_name, socket, to_socket=None):
         in_sock = current_group_node.inputs[socket.name]
         if len(in_sock.links):
             link = in_sock.links[0]
-            return build_output_param_str(mat_name, link.from_node, link.from_socket, do_convert_socket(link.from_socket, to_socket))
+            return build_output_param_str(mat_name, link.from_node, link.from_socket, shadergraph_utils.do_convert_socket(link.from_socket, to_socket))
         else:
             return "error:error"
 
-    return build_output_param_str(mat_name, node, socket, do_convert_socket(socket, to_socket))    
+    return build_output_param_str(mat_name, node, socket, shadergraph_utils.do_convert_socket(socket, to_socket))    
 
 
 gains_to_enable = {
@@ -261,95 +224,6 @@ def vstruct_conditional(node, param):
     if 'if' in new_tokens and 'else' not in new_tokens:
         new_tokens.extend(['else', 'False'])
     return eval(" ".join(new_tokens))
-
-def is_float_type(socket):
-    # this is a renderman node
-    if type(socket) == type({}):
-        return socket['renderman_type'] in ['int', 'float']
-    elif hasattr(socket.node, 'plugin_name'):
-        prop_meta = getattr(socket.node, 'output_meta', [
-        ]) if socket.is_output else getattr(socket.node, 'prop_meta', [])
-        if socket.name in prop_meta:
-            return prop_meta[socket.name]['renderman_type'] in ['int', 'float']
-
-    else:
-        return socket.type in ['INT', 'VALUE']
-
-
-def is_float3_type(socket):
-    # this is a renderman node
-    if type(socket) == type({}):
-        return socket['renderman_type'] in ['int', 'float']
-    elif hasattr(socket.node, 'plugin_name'):
-        prop_meta = getattr(socket.node, 'output_meta', [
-        ]) if socket.is_output else getattr(socket.node, 'prop_meta', [])
-        if socket.name in prop_meta:
-            return prop_meta[socket.name]['renderman_type'] in ['color', 'vector', 'normal']
-    else:
-        return socket.type in ['RGBA', 'VECTOR']
-
-# walk the tree for nodes to export
-
-
-def gather_nodes(node):
-    nodes = []
-    for socket in node.inputs:
-        if socket.is_linked:
-            link = socket.links[0]
-            for sub_node in gather_nodes(socket.links[0].from_node):
-                if sub_node not in nodes:
-                    nodes.append(sub_node)
-
-            # if this is a float -> color inset a tofloat3
-            if is_float_type(link.from_socket) and is_float3_type(socket):
-                convert_node = ('PxrToFloat3', link.from_node,
-                                link.from_socket)
-                if convert_node not in nodes:
-                    nodes.append(convert_node)
-            elif is_float3_type(link.from_socket) and is_float_type(socket):
-                convert_node = ('PxrToFloat', link.from_node, link.from_socket)
-                if convert_node not in nodes:
-                    nodes.append(convert_node)
-
-    if hasattr(node, 'renderman_node_type') and node.renderman_node_type != 'output':
-        nodes.append(node)
-    elif not hasattr(node, 'renderman_node_type') and node.bl_idname not in ['ShaderNodeOutputMaterial', 'NodeGroupInput', 'NodeGroupOutput']:
-        nodes.append(node)
-
-    return nodes
-
-def find_node_input(node, name):
-    for input in node.inputs:
-        if input.name == name:
-            return input
-
-    return None
-
-
-def find_node(material, nodetype):
-    if material and material.node_tree:
-        ntree = material.node_tree
-
-        active_output_node = None
-        for node in ntree.nodes:
-            if getattr(node, "bl_idname", None) == nodetype:
-                if getattr(node, "is_active_output", True):
-                    return node
-                if not active_output_node:
-                    active_output_node = node
-        return active_output_node
-
-    return None    
-
-def find_node_input(node, name):
-    for input in node.inputs:
-        if input.name == name:
-            return input
-
-    return None
-
-def is_renderman_nodetree(material):
-    return find_node(material, 'RendermanOutputNode')
 
 def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
     # If node is OSL node get properties from dynamic location.
@@ -544,7 +418,8 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                             and node.bl_idname != "PxrPtexturePatternNode" or \
                             ('widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
 
-                        val = string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id('%s.%s' % (node.name, param_name)), type_hint=meta['renderman_type'])
+                        tx_node_id = texture_utils.generate_node_id(node, param_name)
+                        val = string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id), type_hint=meta['renderman_type'])
                         
                         # FIXME: Need a better way to check for a frame variable
                         if '{F' in prop:
@@ -608,9 +483,10 @@ def set_rixparams(node, rman_sg_node, params, light):
 
             elif ('widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
                 if light:
-                    params.SetString(name, texture_utils.get_txmanager().get_txfile_from_id('%s.%s' % (light.name, prop_name)))
+                    tx_node_id = texture_utils.generate_node_id(light, prop_name)
                 else:
-                    params.SetString(name, texture_utils.get_txmanager().get_txfile_from_id('%s.%s' % (node.name, prop_name)))
+                    tx_node_id = texture_utils.generate_node_id(node, prop_name)
+                params.SetString(name, texture_utils.get_txmanager().get_txfile_from_id(tx_node_id))
                 
                 # FIXME: Need a better way to check for a frame variable
                 if '{F' in prop:
@@ -677,7 +553,8 @@ def property_group_to_rixparams(node, rman_sg_node, sg_node, light=None, mat_nam
 
 def portal_inherit_dome_params(portal_node, dome, dome_node, rixparams):
 
-    rixparams.SetString('domeColorMap', string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id('%s.lightColorMap' % (dome.name))))
+    tx_node_id = texture_utils.generate_node_id(dome, 'lightColorMap')
+    rixparams.SetString('domeColorMap', string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)))
 
     prop = getattr(portal_node, 'colorMapGamma')
     if string_utils.convert_val(prop) == (1.0, 1.0, 1.0):
