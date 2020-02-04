@@ -51,7 +51,7 @@ class RfBTxManager(object):
                         if area.type == 'PROPERTIES':
                             area.tag_redraw()
                 break
-        node_name,param, param_val = nodeID.split('|')
+        node_name,param,param_val = nodeID.split('|')
         for mat in bpy.data.materials:
             if not mat.node_tree:
                 continue
@@ -124,12 +124,13 @@ def update_texture(node, light=None):
                         if node.renderman_node_type == 'light':
                             node_name = light.name
                             node_type = light.renderman.get_light_node_name()
+                            nodeID = generate_node_id(light, prop_name)
                         elif hasattr(node, 'name'):
                             node_name = node.name
                             node_type = node.bl_label
+                            nodeID = generate_node_id(node, prop_name)
 
                         if node_name != '':       
-                            nodeID = generate_node_id(node, prop_name)
                             real_file = filepath_utils.get_real_path(prop)
                             txfile = get_txmanager().txmanager.add_texture(nodeID, real_file, nodetype=node_type)    
                             bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=real_file, nodeID=nodeID)

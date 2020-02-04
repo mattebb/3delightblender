@@ -486,6 +486,7 @@ def set_rixparams(node, rman_sg_node, params, light):
                     tx_node_id = texture_utils.generate_node_id(light, prop_name)
                 else:
                     tx_node_id = texture_utils.generate_node_id(node, prop_name)
+
                 params.SetString(name, texture_utils.get_txmanager().get_txfile_from_id(tx_node_id))
                 
                 # FIXME: Need a better way to check for a frame variable
