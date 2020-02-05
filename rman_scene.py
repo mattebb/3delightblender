@@ -933,7 +933,7 @@ class RmanScene(object):
                         if rman_sg_node.is_frame_sensitive:
                             light_translator.update(o, rman_sg_node)        
 
-    def _material_udpated(self):
+    def _material_updated(self, obj):
         mat = obj.id
         db_name = object_utils.get_db_name(mat)
         rman_sg_material = self.rman_materials.get(db_name, None)
@@ -1020,7 +1020,7 @@ class RmanScene(object):
                     mat_db_name = object_utils.get_db_name(mat)
                     rman_sg_material = self.rman_materials.get(mat_db_name, None)
                     if rman_sg_material:
-                        rman_sg_node.instances[group_db_name].SetMaterial(rman_sg_material.sg_node)
+                        rman_sg_node.instances[group_db_name].sg_node.SetMaterial(rman_sg_material.sg_node)
 
                 if rman_type in ['POLYGON_MESH', 'SUBDIVISION_MESH', 'POINTS']:
                     for psys in ob.particle_systems:
@@ -1082,7 +1082,7 @@ class RmanScene(object):
                 continue
 
             elif isinstance(obj.id, bpy.types.Material):
-                self._material_updated()
+                self._material_updated(obj)
 
             elif isinstance(obj.id, bpy.types.Object):
 

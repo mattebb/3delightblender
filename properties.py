@@ -1125,7 +1125,8 @@ class RendermanMaterialSettings(bpy.types.PropertyGroup):
     copy_color_params: BoolProperty(
         name="Copy Color Parameters",
         description="""Copy Blender material color parameters when adding a new RenderMan node tree. Copies
-                    diffuse_color, diffuse_intensity, and specular_color.""",
+                    diffuse_color, diffuse_intensity, and specular_color. Only used if we are unable
+                    to convert a Cycles shading network.""",
         default=False)
 
 class RendermanAnimSequenceSettings(bpy.types.PropertyGroup):

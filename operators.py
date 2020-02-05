@@ -49,6 +49,7 @@ from .util import get_Files_in_Directory
 from . import rman_cycles_convert
 from .rfb_logger import rfb_log
 from .rman_utils import scene_utils
+from .rman_utils.scene_utils import EXCLUDED_OBJECT_TYPES
 from .rman_utils import string_utils
 from .rman_utils import shadergraph_utils
 from .spool import spool_render
@@ -221,20 +222,13 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 default.location = output.location
                 default.location[0] -= 300
                 nt.links.new(default.outputs[0], output.inputs[0])
-            
-            default = nt.nodes.new('%sBxdfNode' %
-                                    self.properties.bxdf_name)
-            default.location = output.location
 
-            if idblock.renderman.copy_color_params:
-                default.diffuseColor = idblock.diffuse_color
-                default.diffuseGain = idblock.diffuse_intensity
-                default.enablePrimarySpecular = True
-                default.specularFaceColor = idblock.specular_color
-
-
-            default.location[0] -= 300
-            nt.links.new(default.outputs[0], output.inputs[0])                
+                if idblock.renderman.copy_color_params:
+                    default.diffuseColor = idblock.diffuse_color
+                    default.diffuseGain = idblock.diffuse_intensity
+                    default.enablePrimarySpecular = True
+                    default.specularFaceColor = idblock.specular_color
+                      
         elif idtype == 'light':
             light_type = idblock.type
             if light_type == 'SUN':
@@ -346,7 +340,6 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
                         if space.type == 'VIEW_3D':
                             if space.shading.type != 'RENDERED':    
                                 space.shading.type = 'RENDERED'
-                                space.shading.show_xray = True
 
         return {'FINISHED'}
 
@@ -1006,7 +999,7 @@ class PRMAN_OT_Add_bxdf(bpy.types.Operator):
             nt.links.new(layer2.outputs[0], mixer.inputs['layer1'])
 
         for obj in selection:
-            if(obj.type not in scene_utils.EXCLUDED_OBJECT_TYPES):
+            if(obj.type not in EXCLUDED_OBJECT_TYPES):
                 bpy.ops.object.material_slot_add()
 
                 obj.material_slots[-1].material = mat
@@ -1056,6 +1049,14 @@ class PRMAN_OT_add_GeoLight(bpy.types.Operator):
         geoLight.location[1] -= 420
         if(output is not None):
             nt.links.new(geoLight.outputs[0], output.inputs[1])
+
+        # add PxrBlack Bxdf
+        default = nt.nodes.new('PxrBlackBxdfNode')
+        default.location = output.location
+        default.location[0] -= 300
+        if (default is not None):
+            nt.links.new(default.outputs[0], output.inputs[0])
+
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
                 bpy.ops.object.material_slot_add()

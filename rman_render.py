@@ -146,6 +146,7 @@ class RmanRender(object):
         self.rman_is_live_rendering = False
         self.rman_render_into = 'blender'
         self.it_port = -1 
+        self.rman_callbacks = dict()
 
         self._start_prman_begin()
 
@@ -219,11 +220,15 @@ class RmanRender(object):
         time_start = time.time()
         self.rman_render_into = rm.render_into
                 
+        self.rman_callbacks.clear()
         ec = rman.EventCallbacks.Get()
         ec.RegisterCallback("Progress", progress_cb, self)
-
+        self.rman_callbacks["Progress"] = progress_cb
+        
         if self.rman_render_into == 'it':
             rman.Dspy.EnableDspyServer()
+        else:
+            rman.Dspy.DisableDspyServer()
 
         self.sg_scene = self.sgmngr.CreateScene() 
         bl_layer = depsgraph.view_layer
@@ -235,7 +240,7 @@ class RmanRender(object):
         self.rman_is_live_rendering = True
         self.sg_scene.Render("prman -live")
         while not self.bl_engine.test_break() and self.rman_is_live_rendering:
-            time.sleep(0.1)
+            time.sleep(0.01)
         self.stop_render()        
         if self.rman_render_into == 'blender': 
             self._load_image_into_blender()
@@ -298,12 +303,16 @@ class RmanRender(object):
         render_into_org = '' 
         self.rman_render_into = rm.render_into
         
+        self.rman_callbacks.clear()
         # register the blender display driver
         try:
             if self.rman_render_into == 'blender':
                 ec = rman.EventCallbacks.Get()
                 ec.RegisterCallback("Iteration", iteration_viewport_cb, self)    
                 ec.RegisterCallback("Progress", progress_viewport_cb, self)   
+                self.rman_callbacks["Iteration"] = iteration_viewport_cb
+                self.rman_callbacks["Progress"] = progress_viewport_cb
+
                 # turn off dspyserver mode if we're not rendering to "it"           
                 rman.Dspy.DisableDspyServer()
                 rman.Dspy.GetBlenderDspy()                         
@@ -349,13 +358,10 @@ class RmanRender(object):
 
         # Remove callbacks
         ec = rman.EventCallbacks.Get()
-        if self.rman_interactive_running and self.rman_scene.is_viewport_render:
-            ec.UnregisterCallback("Iteration", iteration_viewport_cb, self)  
-            ec.UnregisterCallback("Progress", progress_viewport_cb, self)        
-        if self.rman_running:
-            ec.UnregisterCallback("Progress", progress_cb, self)
-            ec.UnregisterCallback("Render", render_cb, self)  
-            self._load_image_into_blender()            
+        rfb_log().debug("Unregister any callbacks")
+        for k,v in self.rman_callbacks.items():
+            ec.UnregisterCallback(k, v, self)
+        self.rman_callbacks.clear()          
 
         rfb_log().debug("Telling SceneGraph to stop.")        
         self.sg_scene.Stop()
