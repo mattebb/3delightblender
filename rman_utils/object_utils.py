@@ -143,6 +143,8 @@ def _detect_primitive_(ob):
             return 'CAMERA'
         elif ob.type == 'EMPTY':
             return 'EMPTY'
+        elif ob.type == 'GPENCIL':
+            return 'GPENCIL'
         else:
             return 'NONE'
     else:

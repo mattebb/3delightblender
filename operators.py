@@ -215,8 +215,10 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
-            
-            if not rman_cycles_convert.convert_cycles_nodetree(idblock, output):
+            if context.material.grease_pencil:
+                shadergraph_utils.convert_grease_pencil_mat(context.material, nt, output)
+
+            elif not rman_cycles_convert.convert_cycles_nodetree(idblock, output):
                 default = nt.nodes.new('%sBxdfNode' %
                                        self.properties.bxdf_name)
                 default.location = output.location

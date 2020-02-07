@@ -1,3 +1,5 @@
+from . import color_utils
+
 def is_renderman_nodetree(material):
     return find_node(material, 'RendermanOutputNode')
 
@@ -177,3 +179,31 @@ def gather_nodes(node):
         nodes.append(node)
 
     return nodes    
+
+def convert_grease_pencil_mat(mat, nt, output):
+    if mat.grease_pencil.show_stroke:
+        col =  mat.grease_pencil.color[:3]
+        col = color_utils.linearizeSRGB(col)
+        alpha = mat.grease_pencil.color[3]
+
+        bxdf = nt.nodes.new('PxrConstantBxdfNode')
+        bxdf.location = output.location
+        bxdf.location[0] -= 300
+        bxdf.emitColor = col
+        bxdf.presence = alpha
+        nt.links.new(bxdf.outputs[0], output.inputs[0])    
+    elif mat.grease_pencil.show_fill:
+        gp_mat = mat.grease_pencil
+        fill_style = gp_mat.fill_style
+        col = gp_mat.fill_color[:3]
+        col = color_utils.linearizeSRGB(col)
+        alpha = gp_mat.fill_color[3]
+        mix_color = gp_mat.mix_color[:3]
+        mix_alpha = gp_mat.mix_color[3]    
+  
+        bxdf = nt.nodes.new('PxrConstantBxdfNode')
+        bxdf.location = output.location
+        bxdf.location[0] -= 300
+        bxdf.emitColor = col
+        bxdf.presence = alpha
+        nt.links.new(bxdf.outputs[0], output.inputs[0])    

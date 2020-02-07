@@ -3,8 +3,12 @@ from ..rman_sg_nodes.rman_sg_material import RmanSgMaterial
 from ..rman_utils import string_utils
 from ..rman_utils import property_utils
 from ..rman_utils import shadergraph_utils
+from ..rman_utils import color_utils
+from ..rman_utils import gpmaterial_utils
+
 from ..rfb_logger import rfb_log
 from ..rman_cycles_convert import _CYCLES_NODE_MAP_
+import math
 
 import bpy
 
@@ -28,13 +32,39 @@ class RmanMaterialTranslator(RmanTranslator):
 
         rm = mat.renderman
         succeed = False
-        
-        if mat.node_tree:
-            succeed = self.export_shader_nodetree(mat, rman_sg_material, handle=rman_sg_material.db_name)
 
-        if not succeed:
-            succeed = self.export_simple_shader(mat, rman_sg_material, mat_handle=rman_sg_material.db_name)                
-        
+        if mat.grease_pencil and not mat.node_tree:
+            self.export_shader_grease_pencil(mat, rman_sg_material, handle=rman_sg_material.db_name )
+        else:
+            if mat.node_tree:
+                succeed = self.export_shader_nodetree(mat, rman_sg_material, handle=rman_sg_material.db_name)
+
+            if not succeed:
+                succeed = self.export_simple_shader(mat, rman_sg_material, mat_handle=rman_sg_material.db_name)     
+
+    def export_shader_grease_pencil(self, mat, rman_sg_material, handle):
+        gp_mat = mat.grease_pencil
+
+        if gp_mat.show_stroke:
+            stroke_style = gp_mat.stroke_style
+
+            if stroke_style == 'SOLID':
+                gpmaterial_utils.gp_material_stroke_solid(mat, self.rman_scene.rman, rman_sg_material, handle)
+            elif stroke_style == 'TEXTURE':
+                gpmaterial_utils.gp_material_stroke_texture(mat, self.rman_scene.rman, rman_sg_material, handle)
+            
+        elif gp_mat.show_fill:
+            fill_style = gp_mat.fill_style
+
+            if fill_style == 'TEXTURE':                                 
+                gpmaterial_utils.gp_material_fill_texture(mat, self.rman_scene.rman, rman_sg_material, handle)
+            elif fill_style == 'CHECKER':
+                gpmaterial_utils.gp_material_fill_checker(mat, self.rman_scene.rman, rman_sg_material, handle)
+
+            elif fill_style == 'GRADIENT':
+                gpmaterial_utils.gp_material_fill_gradient(mat, self.rman_scene.rman, rman_sg_material, handle)
+            else:
+                gpmaterial_utils.gp_material_fill_solid(mat, self.rman_scene.rman, rman_sg_material, handle)
              
     def export_shader_nodetree(self, id, rman_sg_material, handle):
 

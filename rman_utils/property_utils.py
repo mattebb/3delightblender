@@ -5,13 +5,13 @@ from ..rfb_logger import rfb_log
 
 def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1):
     if is_array:
-        if type == 'float':
+        if param_type == 'float':
             params.SetFloatArray(name, val, array_len)
-        elif type == 'int':
+        elif param_type == 'int':
             params.SetIntegerArray(name, val, array_len)
-        elif type == 'color':
+        elif param_type == 'color':
             params.SetColorArray(name, val, array_len/3)
-        elif type == 'string':
+        elif param_type == 'string':
             params.SetStringArray(name, val, array_len)
     elif is_reference:
         if param_type == "float":
@@ -25,7 +25,9 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
         elif param_type == "vector":
             params.ReferenceVector(param_name, val)
         elif param_type == "normal":
-            params.ReferenceNormal(param_name, val)             
+            params.ReferenceNormal(param_name, val) 
+        elif param_type == "struct":
+            params.ReferenceStruct(param_name, val)                        
     else:        
         if param_type == "float":
             params.SetFloat(param_name, val)

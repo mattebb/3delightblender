@@ -13,6 +13,7 @@ from .translators.rman_procedural_translator import RmanProceduralTranslator
 from .translators.rman_dra_translator import RmanDraTranslator
 from .translators.rman_runprogram_translator import RmanRunProgramTranslator
 from .translators.rman_openvdb_translator import RmanOpenVDBTranslator
+from .translators.rman_gpencil_translator import RmanGPencilTranslator
 
 # utils
 from .rman_utils import object_utils
@@ -115,6 +116,7 @@ class RmanScene(object):
         self.rman_translators['DELAYED_LOAD_ARCHIVE'] = RmanDraTranslator(rman_scene=self)
         self.rman_translators['PROCEDURAL_RUN_PROGRAM'] = RmanRunProgramTranslator(rman_scene=self)
         self.rman_translators['OPENVDB'] = RmanOpenVDBTranslator(rman_scene=self)
+        self.rman_translators['GPENCIL'] = RmanGPencilTranslator(rman_scene=self)
 
         mesh_translator = RmanMeshTranslator(rman_scene=self)
         self.rman_translators['POLYGON_MESH'] = mesh_translator
@@ -204,13 +206,14 @@ class RmanScene(object):
         string_utils.set_var('layer', self.bl_view_layer.name)
 
         self.bl_frame_current = self.bl_scene.frame_current
-        rfb_log().debug("Calling txmake_all()")
-        texture_utils.get_txmanager().rman_scene = self  
-        texture_utils.get_txmanager().txmake_all(blocking=True)
 
         rfb_log().debug("Calling export_materials()")
         #self.export_materials(bpy.data.materials)
         self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])
+                
+        rfb_log().debug("Calling txmake_all()")
+        texture_utils.get_txmanager().rman_scene = self  
+        texture_utils.get_txmanager().txmake_all(blocking=True)
         
         rfb_log().debug("Calling export_data_blocks()")
         self.export_data_blocks(bpy.data.objects)
