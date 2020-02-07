@@ -120,6 +120,8 @@ def progress_viewport_cb(e, d, db):
 def render_cb(e, d, db):
     if d == 0:
         rfb_log().debug("RenderMan has exited.")
+        if db.rman_is_live_rendering:
+            db.rman_is_live_rendering = False
 
 def scene_cb(e, d, db):
     if d == 0:
@@ -224,6 +226,8 @@ class RmanRender(object):
         ec = rman.EventCallbacks.Get()
         ec.RegisterCallback("Progress", progress_cb, self)
         self.rman_callbacks["Progress"] = progress_cb
+        ec.RegisterCallback("Render", render_cb, self)
+        self.rman_callbacks["Render"] = render_cb        
         
         if self.rman_render_into == 'it':
             rman.Dspy.EnableDspyServer()
