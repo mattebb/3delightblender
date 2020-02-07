@@ -303,8 +303,10 @@ class RmanScene(object):
 
             if rman_type in ['POLYGON_MESH', 'SUBDIVISION_MESH', 'POINTS']:
                 # Deal with any particles now. Particles are children to mesh nodes.
-                subframes = scene_utils._get_subframes_(2, self.bl_scene)
-                self.motion_steps.update(subframes)
+                subframes = []
+                if self.do_motion_blur:
+                    subframes = scene_utils._get_subframes_(2, self.bl_scene)
+                    self.motion_steps.update(subframes)
                 for psys in ob.particle_systems:
                     psys_translator = self.rman_translators[psys.settings.type]
                     if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
