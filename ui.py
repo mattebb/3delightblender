@@ -150,9 +150,9 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
                         icon_value=rman_render_icon.icon_id)
 
             # IPR
-            rman_rerender_controls = icons.get("start_ipr")
-            row.operator('lighting.start_interactive', text="Start IPR",
-                            icon_value=rman_rerender_controls.icon_id)      
+            #rman_rerender_controls = icons.get("start_ipr")
+            #row.operator('lighting.start_interactive', text="Start IPR",
+            #                icon_value=rman_rerender_controls.icon_id)      
 
             # Batch Render
             rman_batch = icons.get("batch_render")
@@ -1609,6 +1609,7 @@ class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
         rman_render = RmanRender.get_rman_render()
         is_rman_interactive_running = rman_render.rman_interactive_running
 
+        
         if not is_rman_interactive_running:
 
             # Render
@@ -1618,9 +1619,9 @@ class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
                         icon_value=rman_render_icon.icon_id)
 
             # IPR
-            rman_rerender_controls = icons.get("start_ipr")
-            row.operator('lighting.start_interactive', text="Start IPR",
-                            icon_value=rman_rerender_controls.icon_id)      
+            #rman_rerender_controls = icons.get("start_ipr")
+            #row.operator('lighting.start_interactive', text="Start IPR",
+            #                icon_value=rman_rerender_controls.icon_id)      
 
             # Batch Render
             rman_batch = icons.get("batch_render")
@@ -1673,9 +1674,9 @@ class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
                         icon_value=rman_render_icon.icon_id)
 
             # IPR
-            rman_rerender_controls = icons.get("start_ipr")
-            row.operator('lighting.start_interactive', text="Start IPR",
-                            icon_value=rman_rerender_controls.icon_id)      
+            #rman_rerender_controls = icons.get("start_ipr")
+            #row.operator('lighting.start_interactive', text="Start IPR",
+            #                icon_value=rman_rerender_controls.icon_id)      
 
         else:
             row = layout.row(align=True)
@@ -2050,13 +2051,13 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
             # Start IPR
             
-            row = layout.row(align=True)
-            rman_rerender_controls = icons.get("start_ipr")
-            row.operator('lighting.start_interactive', text="Start IPR",
-                            icon_value=rman_rerender_controls.icon_id)
+            #row = layout.row(align=True)
+            #rman_rerender_controls = icons.get("start_ipr")
+            #row.operator('lighting.start_interactive', text="Start IPR",
+            #                icon_value=rman_rerender_controls.icon_id)
 
-            row.prop(context.scene, "rm_ipr", text="",
-                        icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_ipr else 'DISCLOSURE_TRI_RIGHT')
+            #row.prop(context.scene, "rm_ipr", text="",
+            #            icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_ipr else 'DISCLOSURE_TRI_RIGHT')
             
 
             if context.scene.rm_ipr:

@@ -85,6 +85,7 @@ class RmanScene(object):
         self.external_render = False
         self.is_viewport_render = False
         self.scene_solo_light = False
+        self.scene_any_lights = False
         self.current_ob = []
         self.current_ob_db_name = []
 
@@ -99,6 +100,7 @@ class RmanScene(object):
 
         self.motion_steps = set()
         self.main_camera = None
+        self.world_df_node = None
 
         self.create_translators()     
 
@@ -206,6 +208,7 @@ class RmanScene(object):
         string_utils.set_var('layer', self.bl_view_layer.name)
 
         self.bl_frame_current = self.bl_scene.frame_current
+        self.scene_any_lights = self._scene_has_lights()
 
         rfb_log().debug("Calling export_materials()")
         #self.export_materials(bpy.data.materials)
@@ -334,6 +337,9 @@ class RmanScene(object):
                 else:
                     rman_sg_node.is_transforming = False
                     rman_sg_node.is_deforming = False
+
+    def _scene_has_lights(self):
+        return (len([x for x in self.bl_scene.objects if x.type == 'LIGHT']) > 0)        
 
     def _export_instance(self, ob_inst, seg=None):
    
@@ -728,6 +734,17 @@ class RmanScene(object):
         
 
     def export_displayfilters(self):
+        if not self.scene_any_lights:
+            # if there are no lights, use the world color for the background
+            if not self.world_df_node:
+                self.world_df_node = self.rman.SGManager.RixSGShader("DisplayFilter", "PxrBackgroundDisplayFilter", "__rman_world_df")
+            params = self.world_df_node.params
+            params.SetColor("backgroundColor", self.bl_scene.world.color[:3])
+            self.sg_scene.SetDisplayFilter([self.world_df_node])
+            return
+        elif self.world_df_node:
+            self.world_df_node = None
+
         rm = self.bl_scene.renderman
         display_filter_names = []
         displayfilters_list = []
@@ -1080,6 +1097,11 @@ class RmanScene(object):
 
                 continue
 
+            elif isinstance(obj.id, bpy.types.World):
+                if self.world_df_node:
+                    with self.rman.SGManager.ScopedEdit(self.sg_scene): 
+                        self.export_displayfilters()
+
             elif isinstance(obj.id, bpy.types.Camera):
                 #cam = obj.object
                 continue
@@ -1116,6 +1138,10 @@ class RmanScene(object):
                 self.export_data_blocks(new_objs)
                 self.export_instances()
 
+                self.scene_any_lights = self._scene_has_lights()
+                if self.world_df_node and self.scene_any_lights:
+                    self.export_displayfilters()
+
         # new cameras
         if new_cams and not self.is_viewport_render:
             with self.rman.SGManager.ScopedEdit(self.sg_scene): 
@@ -1136,9 +1162,14 @@ class RmanScene(object):
                         self.rman_objects.pop(k)
                     # For now, don't delete the geometry itself
                     # self.sg_scene.DeleteDagNode(rman_sg_node.sg_node)
-                    self.rman_objects.pop(obj_key)     
+                    self.rman_objects.pop(obj_key)    
+
+                self.scene_any_lights = self._scene_has_lights()     
+                if not self.scene_any_lights:
+                    self.export_displayfilters()
+
             self.current_ob = []
-            self.current_ob_db_name = []           
+            self.current_ob_db_name = []       
         
     def update_cropwindow(self, cropwindow=None):
         if cropwindow:

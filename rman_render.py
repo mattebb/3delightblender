@@ -229,10 +229,13 @@ class RmanRender(object):
         ec.RegisterCallback("Render", render_cb, self)
         self.rman_callbacks["Render"] = render_cb        
         
-        if self.rman_render_into == 'it':
-            rman.Dspy.EnableDspyServer()
-        else:
-            rman.Dspy.DisableDspyServer()
+        try:
+            if self.rman_render_into == 'it':
+                rman.Dspy.EnableDspyServer()
+            else:
+                rman.Dspy.DisableDspyServer()
+        except:
+            pass
 
         self.sg_scene = self.sgmngr.CreateScene() 
         bl_layer = depsgraph.view_layer

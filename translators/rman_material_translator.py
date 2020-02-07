@@ -33,14 +33,16 @@ class RmanMaterialTranslator(RmanTranslator):
         rm = mat.renderman
         succeed = False
 
-        if mat.grease_pencil and not mat.node_tree:
-            self.export_shader_grease_pencil(mat, rman_sg_material, handle=rman_sg_material.db_name )
-        else:
-            if mat.node_tree:
-                succeed = self.export_shader_nodetree(mat, rman_sg_material, handle=rman_sg_material.db_name)
+        if mat.grease_pencil:
+            if not mat.node_tree or not shadergraph_utils.is_renderman_nodetree(mat):
+                self.export_shader_grease_pencil(mat, rman_sg_material, handle=rman_sg_material.db_name )
+                return
 
-            if not succeed:
-                succeed = self.export_simple_shader(mat, rman_sg_material, mat_handle=rman_sg_material.db_name)     
+        if mat.node_tree:
+            succeed = self.export_shader_nodetree(mat, rman_sg_material, handle=rman_sg_material.db_name)
+
+        if not succeed:
+            succeed = self.export_simple_shader(mat, rman_sg_material, mat_handle=rman_sg_material.db_name)     
 
     def export_shader_grease_pencil(self, mat, rman_sg_material, handle):
         gp_mat = mat.grease_pencil

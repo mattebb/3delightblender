@@ -36,57 +36,9 @@ class RmanGPencilTranslator(RmanTranslator):
 
         return True    
 
-    def _triangles(self, ob, lyr, stroke, rman_sg_gpencil):
-        # This code path makes one mesh for each triangle
+    def _create_mesh(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material):
 
-        gp_ob = ob.data
-        mat =  gp_ob.materials[stroke.material_index]
-        if mat.grease_pencil.hide:
-            return
-        mat_db_name = object_utils.get_db_name(mat)
-        rman_sg_material = self.rman_scene.rman_materials.get(mat_db_name, None)            
-
-        i = 0
-        pts = stroke.points
-        for t in stroke.triangles:
-            mesh_sg = self.rman_scene.sg_scene.CreateMesh('%s-TRIANGLE-%d' % (lyr.info, i))
-            P = []
-            mesh_sg.Define( 1, 3, 3 )
-                            
-            primvar = mesh_sg.GetPrimVars()
-                        
-            P.append( pts[t.v1].co )
-            P.append( pts[t.v2].co )
-            P.append( pts[t.v3].co )
-            st = []
-            st.extend(t.uv1)
-            st.extend(t.uv2)
-            st.extend(t.uv3)
-
-            primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")
-
-            primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, [3], "uniform")
-            primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_vertices, [0,1,2], "facevarying") 
-            primvar.SetFloatArrayDetail("st", st, 2, "vertex")
-
-            mesh_sg.SetPrimVars(primvar)
-
-            # Attach material
-            if rman_sg_material:
-                mesh_sg.SetMaterial(rman_sg_material.sg_node)  
-
-
-            rman_sg_gpencil.sg_node.AddChild(mesh_sg)  
-            i += 1     
-
-    def _create_mesh(self, ob, i, lyr, stroke, rman_sg_gpencil):
-
-        gp_ob = ob.data
-        mat =  gp_ob.materials[stroke.material_index]
-        if mat.grease_pencil.hide:
-            return
-        mat_db_name = object_utils.get_db_name(mat)
-        rman_sg_material = self.rman_scene.rman_materials.get(mat_db_name, None)            
+        gp_ob = ob.data     
 
         pts = stroke.points
         nverts = []
@@ -122,38 +74,67 @@ class RmanGPencilTranslator(RmanTranslator):
         if rman_sg_material:
             mesh_sg.SetMaterial(rman_sg_material.sg_node)         
         rman_sg_gpencil.sg_node.AddChild(mesh_sg)     
+
+    def _create_points(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material):
+        gp_ob = ob.data 
+
+        num_pts = len(stroke.points)
+        points = np.zeros(num_pts*3, dtype=np.float32)
+        widths = np.zeros(num_pts, dtype=np.float32)
+        stroke.points.foreach_get('co', points)
+        stroke.points.foreach_get('pressure', widths)
+
+        points = np.reshape(points, (num_pts, 3))
+        points = points.tolist()        
         
-    def _create_curve(self, ob, i, lyr, stroke, rman_sg_gpencil):
-        gp_ob = ob.data        
+        width_factor = 0.0012 * stroke.line_width
+        widths = widths * width_factor #0.03
+        widths = widths.tolist()
 
-        mat =  gp_ob.materials[stroke.material_index]
-        if mat.grease_pencil.hide:
-            return
-        mat_db_name = object_utils.get_db_name(mat)
-        rman_sg_material = self.rman_scene.rman_materials.get(mat_db_name, None) 
+        points_sg = self.rman_scene.sg_scene.CreatePoints("%s-DOTS-%d" % (lyr.info, i))
+        i += 1                
+        points_sg.Define(num_pts)
+        primvar = points_sg.GetPrimVars()
 
-        points = []
-        vertsArray = []
-        widths = []
+        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, points, "vertex")  
+        primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, widths, "vertex")              
                     
-        for pt in stroke.points:
-            points.append(pt.co)
-            widths.append(float(1/stroke.line_width) * 3 * pt.pressure)
+        points_sg.SetPrimVars(primvar)
 
-        if len(points) < 1:
-            return
+        # Attach material
+        if rman_sg_material:
+            points_sg.SetMaterial(rman_sg_material.sg_node)          
+
+        rman_sg_gpencil.sg_node.AddChild(points_sg)                  
+        
+    def _create_curve(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material):
+        gp_ob = ob.data       
+
+        vertsArray = []
+        num_pts = len(stroke.points)
+        points = np.zeros(num_pts*3, dtype=np.float32)
+        widths = np.zeros(num_pts, dtype=np.float32)
+        stroke.points.foreach_get('co', points)
+        stroke.points.foreach_get('pressure', widths)
+
+        points = np.reshape(points, (num_pts, 3))
+        points = points.tolist()        
+        
+        width_factor = 0.00083 * stroke.line_width
+        widths = widths * width_factor #0.05
+        widths = widths.tolist()
 
         # double the first and last
         points = points[:1] + \
             points + points[-1:]
-        widths = widths[:1] + widths + widths[-1:]
-        vertsInCurve = len(points)
 
-        # catmull-rom requires at least 4 vertices
-        if vertsInCurve < 4:
+        if len(points) < 4:
+            # not enough points to be a curve. export as points
+            self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
             return
 
-        vertsArray.append(vertsInCurve)
+        widths = widths[:1] + widths + widths[-1:]
+        vertsArray.append(len(points))
 
         curves_sg = self.rman_scene.sg_scene.CreateCurves("%s-STROKE-%d" % (lyr.info, i))
         i += 1                
@@ -183,7 +164,16 @@ class RmanGPencilTranslator(RmanTranslator):
                 continue
             for frame in lyr.frames:
                 for i, stroke in enumerate(frame.strokes):
+                    mat =  gp_ob.materials[stroke.material_index]
+                    if mat.grease_pencil.hide:
+                        continue   
+
+                    mat_db_name = object_utils.get_db_name(mat)
+                    rman_sg_material = self.rman_scene.rman_materials.get(mat_db_name, None)                              
                     if len(stroke.triangles) > 0:
-                        self._create_mesh(ob, i, lyr, stroke, rman_sg_gpencil)
+                        self._create_mesh(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
                     else:
-                        self._create_curve(ob, i, lyr, stroke, rman_sg_gpencil)
+                        if mat.grease_pencil.mode in ['DOTS', 'BOX']:
+                            self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+                        else:
+                            self._create_curve(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
