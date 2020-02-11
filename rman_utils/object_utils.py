@@ -45,10 +45,14 @@ def get_group_db_name(ob_inst):
         if ob_inst.is_instance:
             ob = ob_inst.instance_object
             parent = ob_inst.parent
+            psys = ob_inst.particle_system
             #if ob.parent:
             #    group_db_name = "%s|%s|%s|%d|%d" % (parent.name_full, ob.parent.name_full, ob.name_full, ob_inst.persistent_id[0], ob_inst.persistent_id[1])
             #else:
-            group_db_name = "%s|%s|%d|%d" % (parent.name_full, ob.name_full, ob_inst.persistent_id[0], ob_inst.persistent_id[1])
+            if psys:
+                group_db_name = "%s|%s|%s|%d|%d" % (parent.name_full, ob.name_full, psys.name, ob_inst.persistent_id[0], ob_inst.persistent_id[1])
+            else:
+                group_db_name = "%s|%s|%d|%d" % (parent.name_full, ob.name_full, ob_inst.persistent_id[0], ob_inst.persistent_id[1])
         else:
             ob = ob_inst.object
             group_db_name = "%s" % (ob.name_full)
@@ -79,7 +83,19 @@ def is_smoke(ob):
     return False            
 
 def is_subdmesh(ob):
-    return (is_subd_last(ob) or is_subd_displace_last(ob))
+    rm = ob.renderman
+    if not rm:
+        return False
+
+    if rm.primitive == 'AUTO' and rm.rman_subdiv_scheme == 'none':
+        return (is_subd_last(ob) or is_subd_displace_last(ob))
+    else:
+        return (rm.rman_subdiv_scheme != 'none')       
+
+    #if rm.primitive == 'AUTO':
+    #    return (is_subd_last(ob) or is_subd_displace_last(ob))
+    #else:
+    #    return (rm.rman_subdiv_scheme != 'none')
 
 # handle special case of fluid sim a bit differently
 def is_deforming_fluid(ob):
@@ -125,18 +141,24 @@ def _detect_primitive_(ob):
 
     if rm.primitive == 'AUTO':
         if ob.type == 'MESH':
+            if is_smoke(ob):
+                return 'SMOKE'            
+            return 'MESH'
+            '''
             if is_subdmesh(ob):
                 return 'SUBDIVISION_MESH'
             elif is_smoke(ob):
                 return 'SMOKE'
             else:
                 return 'POLYGON_MESH'
+            '''
         elif ob.type == 'LIGHT':
             return ob.type                       
         elif ob.type == 'CURVE':
             return 'CURVE'
         elif ob.type in ('SURFACE', 'FONT'):
-            return 'POLYGON_MESH'
+            #return 'POLYGON_MESH'
+            return 'MESH'
         elif ob.type == "META":
             return "META"
         elif ob.type == 'CAMERA':

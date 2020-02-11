@@ -19,6 +19,7 @@ class RmanSgNode(object):
         self.motion_steps = []
         self.is_transforming = False
         self.is_deforming = False
+        self.rman_type = ''
 
         # indicates that this node needs updating
         # when the frame changes. This is mostly for
@@ -80,7 +81,15 @@ class RmanSgNode(object):
 
     @is_deforming.setter
     def is_deforming(self, is_deforming):
-        self.__is_deforming = is_deforming                         
+        self.__is_deforming = is_deforming        
+
+    @property
+    def rman_type(self):
+        return self.__rman_type
+
+    @rman_type.setter
+    def rman_type(self, rman_type):
+        self.__rman_type = rman_type                           
 
     @property
     def is_frame_sensitive(self):

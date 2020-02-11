@@ -38,6 +38,7 @@ from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
 from .rman_ui.rman_ui_base import _RManPanelHeader
 from .rman_ui.rman_ui_base import CollectionPanel
 from .rman_render import RmanRender
+from .rman_utils import object_utils
 
 def get_panels():
     exclude_panels = {
@@ -1087,15 +1088,40 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         rm = ob.renderman
         anim = rm.archive_anim_settings
         active = context.active_object
+        rman_type = object_utils._detect_primitive_(active)
 
         rman_render = RmanRender.get_rman_render()
         rman_interactive_running = rman_render.rman_interactive_running  
 
         col = layout.column()
         col.prop(rm, "primitive")
+        col.enabled = not rman_interactive_running        
         col = layout.column(align = True)
 
-        if rm.primitive in ('ARCHIVE', 'DELAYED_LOAD_ARCHIVE'):
+        if rm.primitive == 'MESH' or rman_type == 'MESH':
+            col.prop(rm, 'rman_subdiv_scheme')
+
+        elif rm.primitive == 'QUADRIC':
+            col.prop(rm, 'rman_quadric_type')
+            if rm.rman_quadric_type in ('CONE', 'DISK'):
+                col.prop(rm, "primitive_height")
+            if rm.rman_quadric_type in ('SPHERE', 'CYLINDER', 'CONE', 'DISK'):
+                col.prop(rm, "primitive_radius")
+            if rm.rman_quadric_type == 'TORUS':
+                col.prop(rm, "primitive_majorradius")
+                col.prop(rm, "primitive_minorradius")
+                col.prop(rm, "primitive_phimin")
+                col.prop(rm, "primitive_phimax")
+            if rm.rman_quadric_type in ('SPHERE', 'CYLINDER', 'CONE', 'TORUS'):
+                col.prop(rm, "primitive_sweepangle")
+            if rm.rman_quadric_type in ('SPHERE', 'CYLINDER'):
+                col.prop(rm, "primitive_zmin")
+                col.prop(rm, "primitive_zmax")
+            if rm.rman_quadric_type == 'POINTS':
+                col.prop(rm, "primitive_point_type")
+                col.prop(rm, "primitive_point_width")               
+
+        elif rm.primitive in ('ARCHIVE', 'DELAYED_LOAD_ARCHIVE'):
             col.prop(rm, "path_archive")
 
             col.prop(anim, "animated_sequence")
@@ -1127,25 +1153,7 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
             if rm.procedural_bounds == 'MANUAL':
                 col = layout.column()
                 col.prop(rm, "procedural_bounds_min")
-                col.prop(rm, "procedural_bounds_max")
-
-        if rm.primitive in ('CONE', 'DISK'):
-            col.prop(rm, "primitive_height")
-        if rm.primitive in ('SPHERE', 'CYLINDER', 'CONE', 'DISK'):
-            col.prop(rm, "primitive_radius")
-        if rm.primitive == 'TORUS':
-            col.prop(rm, "primitive_majorradius")
-            col.prop(rm, "primitive_minorradius")
-            col.prop(rm, "primitive_phimin")
-            col.prop(rm, "primitive_phimax")
-        if rm.primitive in ('SPHERE', 'CYLINDER', 'CONE', 'TORUS'):
-            col.prop(rm, "primitive_sweepangle")
-        if rm.primitive in ('SPHERE', 'CYLINDER'):
-            col.prop(rm, "primitive_zmin")
-            col.prop(rm, "primitive_zmax")
-        if rm.primitive == 'POINTS':
-            col.prop(rm, "primitive_point_type")
-            col.prop(rm, "primitive_point_width")                    
+                col.prop(rm, "procedural_bounds_max")                 
 
         rman_archive = load_icons().get("archive_RIB")
         col = layout.column()
@@ -1525,9 +1533,24 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel, _RManPanelHead
 
         psys = context.particle_system
         rm = psys.settings.renderman
+        rman_render = RmanRender.get_rman_render()
+        is_rman_interactive_running = rman_render.rman_interactive_running        
 
         col = layout.column()
 
+        #col.enabled = not is_rman_interactive_running
+        if psys.settings.type == 'EMITTER':
+            if psys.settings.render_type != 'OBJECT':
+                col.row().prop(rm, "constant_width", text="Override Width")
+                col.row().prop(rm, "width")
+        if psys.settings.render_type == 'OBJECT':
+            col.prop(rm, 'use_object_material')
+            if not rm.use_object_material:
+                col.prop(psys.settings, "material_slot")
+        else:
+            col.prop(psys.settings, "material_slot")            
+
+        '''
         if psys.settings.type == 'EMITTER':
             col.row().prop(rm, "particle_type", expand=True)
             if rm.particle_type == 'OBJECT':
@@ -1547,6 +1570,7 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel, _RManPanelHead
 
         else:
             col.prop(psys.settings, "material_slot")
+        '''
 
         # XXX: if rm.type in ('sphere', 'disc', 'patch'):
         # implement patchaspectratio and patchrotation

@@ -119,15 +119,17 @@ class RmanScene(object):
         self.rman_translators['PROCEDURAL_RUN_PROGRAM'] = RmanRunProgramTranslator(rman_scene=self)
         self.rman_translators['OPENVDB'] = RmanOpenVDBTranslator(rman_scene=self)
         self.rman_translators['GPENCIL'] = RmanGPencilTranslator(rman_scene=self)
+        self.rman_translators['MESH'] = RmanMeshTranslator(rman_scene=self)
+        self.rman_translators['QUADRIC'] = RmanQuadricTranslator(rman_scene=self)
 
-        mesh_translator = RmanMeshTranslator(rman_scene=self)
-        self.rman_translators['POLYGON_MESH'] = mesh_translator
-        self.rman_translators['SUBDIVISION_MESH'] = mesh_translator
-        self.rman_translators['MESH'] = mesh_translator
+        #mesh_translator = RmanMeshTranslator(rman_scene=self)
+        #self.rman_translators['POLYGON_MESH'] = mesh_translator
+        #self.rman_translators['SUBDIVISION_MESH'] = mesh_translator
+        #self.rman_translators['MESH'] = mesh_translator
 
-        quadric_translator = RmanQuadricTranslator(rman_scene=self)
-        for prim in ['SPHERE', 'CYLINDER', 'CONE', 'DISK', 'TORUS']:
-            self.rman_translators[prim] = quadric_translator
+        #quadric_translator = RmanQuadricTranslator(rman_scene=self)
+        #for prim in ['SPHERE', 'CYLINDER', 'CONE', 'DISK', 'TORUS']:
+        #    self.rman_translators[prim] = quadric_translator
 
     def _find_renderman_layer(self):
         self.rm_rl = None
@@ -298,10 +300,11 @@ class RmanScene(object):
             rman_sg_node = translator.export(ob, db_name)
             if not rman_sg_node:
                 return
+            rman_sg_node.rman_type = rman_type
             translator.export_object_primvars(ob, rman_sg_node.sg_node)
             self.rman_objects[db_name] = rman_sg_node 
 
-            if rman_type in ['POLYGON_MESH', 'SUBDIVISION_MESH', 'POINTS']:
+            if rman_type in ['MESH', 'POINTS']:
                 # Deal with any particles now. Particles are children to mesh nodes.
                 subframes = []
                 if self.do_motion_blur:
@@ -317,13 +320,18 @@ class RmanScene(object):
                         if rman_sg_hair_node.sg_node:
                             rman_sg_node.sg_node.AddChild(rman_sg_hair_node.sg_node)                               
                         self.rman_particles[hair_db_name] = rman_sg_hair_node
-                    elif psys.settings.type == 'EMITTER' and psys.settings.render_type != 'OBJECT':
+                    elif psys.settings.type == 'EMITTER':
                         psys_db_name = object_utils.get_db_name(ob, psys=psys)
-                        rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)
-                        rman_sg_particles_node.motion_steps = subframes
-                        psys_translator.update(ob, psys, rman_sg_particles_node)
-                        if rman_sg_particles_node.sg_node:
-                            rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
+                        rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)                        
+                        if psys.settings.render_type != 'OBJECT':
+                            rman_sg_particles_node.motion_steps = subframes
+                            psys_translator.update(ob, psys, rman_sg_particles_node)
+                            if rman_sg_particles_node.sg_node:
+                                rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
+                        else:
+                            rman_sg_particles_node.is_deforming = False
+                            rman_sg_particles_node.is_transforming = False
+                            self.sg_scene.Root().AddChild(rman_sg_particles_node.sg_node)                                
                         self.rman_particles[psys_db_name] = rman_sg_particles_node                         
 
             # motion blur
@@ -348,15 +356,21 @@ class RmanScene(object):
         group_db_name = object_utils.get_group_db_name(ob_inst) 
         rman_group_translator = self.rman_translators['GROUP']
         parent_sg_node = None
+        rman_sg_particles = None
         if ob_inst.is_instance:
-            ob = ob_inst.instance_object
             parent = ob_inst.parent
-            if parent.type == "EMPTY" and parent.is_instancer:
-                parent_db_name = object_utils.get_db_name(parent)
-                parent_sg_node = self.rman_objects.get(parent_db_name, None)
-                if not parent_sg_node:
-                    parent_sg_node = rman_group_translator.export(parent, parent_db_name)
-                    self.rman_objects[parent_db_name] = parent_sg_node    
+            ob = ob_inst.instance_object
+            psys = ob_inst.particle_system
+            if psys:
+                particles_db_name = object_utils.get_db_name(parent, psys=psys)
+                rman_sg_particles = self.rman_particles[particles_db_name]
+            else:                
+                if parent.type == "EMPTY" and parent.is_instancer:
+                    parent_db_name = object_utils.get_db_name(parent)
+                    parent_sg_node = self.rman_objects.get(parent_db_name, None)
+                    if not parent_sg_node:
+                        parent_sg_node = rman_group_translator.export(parent, parent_db_name)
+                        self.rman_objects[parent_db_name] = parent_sg_node    
 
         else:
             ob = ob_inst.object 
@@ -365,8 +379,30 @@ class RmanScene(object):
             return                          
 
         rman_type = object_utils._detect_primitive_(ob)
+        if rman_sg_particles:
+            db_name = object_utils.get_db_name(ob, rman_type=rman_type)          
+            if db_name == '':
+                return
 
-        if ob.type == "EMPTY" and ob.is_instancer:
+            rman_sg_node = self.rman_objects.get(db_name, None)           
+            if not rman_sg_node:
+                return
+
+            rman_sg_group = rman_group_translator.export(ob, group_db_name)
+            rman_sg_group.sg_node.AddChild(rman_sg_node.sg_node)
+            rman_group_translator.update_transform(ob_inst, rman_sg_group)
+
+            psys_translator = self.rman_translators[psys.settings.type] 
+            self.attach_particle_material(psys, parent, ob, rman_sg_group.sg_node)       
+            psys_translator.add_object_instance(rman_sg_particles, rman_sg_group.sg_node)  
+
+            # object attrs             
+            psys_translator.export_object_attributes(ob, rman_sg_group.sg_node)                         
+      
+            self.rman_objects[group_db_name] = rman_sg_group
+            rman_sg_node.instances[group_db_name] = rman_sg_group
+
+        elif ob.type == "EMPTY" and ob.is_instancer:
             empty_db_name = object_utils.get_db_name(ob)
             rman_sg_node = self.rman_objects.get(empty_db_name, None)
             if not rman_sg_node:
@@ -452,6 +488,24 @@ class RmanScene(object):
             if rman_sg_material and rman_sg_material.sg_node:
                 group.SetMaterial(rman_sg_material.sg_node)        
 
+    def attach_particle_material(self, psys, ob, inst_ob, group):
+        if psys.settings.renderman.use_object_material:
+            for mat in object_utils._get_used_materials_(inst_ob): 
+                if not mat:
+                    continue
+                mat_db_name = object_utils.get_db_name(mat)
+                rman_sg_material = self.rman_materials.get(mat_db_name, None)
+                if rman_sg_material and rman_sg_material.sg_node:
+                    group.SetMaterial(rman_sg_material.sg_node) 
+        else:
+            mat_idx = psys.settings.material - 1
+            if mat_idx < len(ob.material_slots):
+                mat = ob.material_slots[mat_idx].material
+                mat_db_name = object_utils.get_db_name(mat)
+                rman_sg_material = self.rman_materials.get(mat_db_name, None)
+                if rman_sg_material:
+                    group.SetMaterial(rman_sg_material.sg_node)                    
+
     def export_instances_motion(self, obj_selected=None):
         actual_subframes = []
         origframe = self.bl_scene.frame_current
@@ -499,15 +553,16 @@ class RmanScene(object):
                     self._export_instance(ob_inst, seg=seg)  
                     continue  
 
+                rman_group_translator = self.rman_translators['GROUP']
                 if ob_inst.is_instance:
                     ob = ob_inst.instance_object.original  
                 else:
                     ob = ob_inst.object
 
+                group_db_name = object_utils.get_group_db_name(ob_inst)          
+
                 if ob.type not in ['MESH']:
                     continue
-
-                group_db_name = object_utils.get_group_db_name(ob_inst)
 
                 rman_type = object_utils._detect_primitive_(ob)
                 db_name = object_utils.get_db_name(ob, rman_type=rman_type)              
@@ -542,7 +597,6 @@ class RmanScene(object):
                 if rman_sg_node.is_transforming:
                     rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
                     if rman_sg_group:
-                        rman_group_translator = self.rman_translators['GROUP']
                         rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps ) # should have been set in _export_instances()                       
                         rman_group_translator.update_transform_sample( ob_inst, rman_sg_group, samp, seg)
 
@@ -969,29 +1023,66 @@ class RmanScene(object):
                 # There doesn't seem to be an API call to know what objects in the scene
                 # have this specific material, so we loop thru all objs
                 for ob_inst in self.depsgraph.object_instances:
+                    psys = None
                     if ob_inst.is_instance:
                         ob = ob_inst.instance_object
-                        group_db_name =  object_utils.get_group_db_name(ob_inst) 
+                        group_db_name =  object_utils.get_group_db_name(ob_inst)
+                        psys = ob_inst.particle_system 
                     else:
                         ob = ob_inst.object
                         group_db_name =  object_utils.get_group_db_name(ob_inst) 
                     rman_type = object_utils._detect_primitive_(ob)
                     obj_db_name = object_utils.get_db_name(ob, rman_type=rman_type)
                     rman_sg_node = self.rman_objects.get(obj_db_name, None)
+
                     if rman_sg_node:
                         for m in object_utils._get_used_materials_(ob):
                             if m == mat:
-                                rman_sg_node.instances[group_db_name].SetMaterial(rman_sg_material.sg_node)
+                                if group_db_name in rman_sg_node.instances:
+                                    rman_sg_node.instances[group_db_name].sg_node.SetMaterial(rman_sg_material.sg_node)
 
             else:
                 translator.update(mat, rman_sg_material)   
+
+    def _rman_properties_updated(self, ob, rman_type, rman_sg_node):
+        rm = ob.renderman
+
+        # Check if type has changed. For some reason, Blender
+        # triggers this as a transform change
+        if rman_type == 'MESH':
+            is_subdiv = object_utils.is_subdmesh(ob)
+            if rman_sg_node.is_subdiv != is_subdiv :
+                with self.rman.SGManager.ScopedEdit(self.sg_scene):
+                    rman_sg_node.is_subdiv = is_subdiv
+                    self.rman_translators['MESH'].update(ob, rman_sg_node)
+                    return True
+            elif is_subdiv:
+                if rman_sg_node.subdiv_scheme != rm.rman_subdiv_scheme:
+                    with self.rman.SGManager.ScopedEdit(self.sg_scene):
+                        self.rman_translators['MESH'].update(ob, rman_sg_node)
+                        return True
+        elif rman_type == 'QUADRIC':
+            if rman_sg_node.quadric_type != rm.rman_quadric_type:
+                with self.rman.SGManager.ScopedEdit(self.sg_scene):
+                    self.rman_translators['QUADRIC'].update(ob, rman_sg_node)
+                    return True
+        return False  
 
     def _object_transform_updated(self, obj):
         ob = obj.id         
         rman_type = object_utils._detect_primitive_(ob)
         obj_key = object_utils.get_db_name(ob, rman_type=rman_type) 
-        rman_group_translator = self.rman_translators['GROUP']
-        with self.rman.SGManager.ScopedEdit(self.sg_scene): 
+        rman_group_translator = self.rman_translators['GROUP']  
+        rman_sg_node = self.rman_objects.get(obj_key, None)
+        rm = ob.renderman
+
+        # Check if type has changed. For some reason, Blender
+        # triggers this as a transform change
+        if self._rman_properties_updated(ob, rman_type, rman_sg_node):
+            return                              
+      
+        with self.rman.SGManager.ScopedEdit(self.sg_scene):                
+
             if obj.id.is_instancer:
                 for ob_inst in self.depsgraph.object_instances:                                
                     if ob_inst.is_instance and ob_inst.parent == ob:     
@@ -1001,13 +1092,10 @@ class RmanScene(object):
                             rman_group_translator.update_transform(ob_inst, rman_sg_group)
             else:
                 if rman_type == "META":
-                    rman_sg_node = self.rman_objects.get(obj_key, None)
                     self.rman_translators['META'].update(ob, rman_sg_node)
-                elif rman_type == "CAMERA":
-                    rman_sg_node = self.rman_objects.get(obj_key, None)
+                elif rman_type == "CAMERA":                    
                     self.rman_translators['CAMERA'].update_transform(ob, rman_sg_node) 
                 else:                       
-                    rman_sg_node = self.rman_objects.get(obj_key, None) 
                     for k,rman_sg_group in rman_sg_node.instances.items():     
                         for ob_inst in self.depsgraph.object_instances: 
                             group_db_name = object_utils.get_group_db_name(ob_inst)
@@ -1044,7 +1132,7 @@ class RmanScene(object):
                     if rman_sg_material:
                         rman_sg_node.instances[group_db_name].sg_node.SetMaterial(rman_sg_material.sg_node)
 
-                if rman_type in ['POLYGON_MESH', 'SUBDIVISION_MESH', 'POINTS']:
+                if rman_type in ['MESH', 'POINTS']:
                     for psys in ob.particle_systems:
                         psys_translator = self.rman_translators[psys.settings.type]
                         if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
@@ -1056,15 +1144,52 @@ class RmanScene(object):
                                 rman_sg_hair_node = psys_translator.export(ob, psys, hair_db_name)
                                 rman_sg_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
                                 self.rman_particles[hair_db_name] = rman_sg_hair_node
-                        elif psys.settings.type == 'EMITTER' and psys.settings.render_type != 'OBJECT':
+                        elif psys.settings.type == 'EMITTER':
                             psys_db_name = object_utils.get_db_name(ob, psys=psys)
                             rman_sg_particles_node = self.rman_particles.get(psys_db_name, None)
-                            if rman_sg_particles_node:
+                            if psys.settings.render_type != 'OBJECT':
+                                if rman_sg_particles_node:
+                                    psys_translator.update(ob, psys, rman_sg_particles_node)
+                                else:
+                                    rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)
+                                    rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
+                                    self.rman_particles[psys_db_name] = rman_sg_particles_node 
+                            elif psys.settings.render_type == 'OBJECT':
+                                if rman_sg_particles_node:
+                                    psys_translator.update(ob, psys, rman_sg_particles_node)          
+                                else:
+                                    rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)
+                                    self.sg_scene.Root().AddChild(rman_sg_particles_node.sg_node)                                     
+                                    self.rman_particles[psys_db_name] = rman_sg_particles_node     
+
+                                inst_ob = psys.settings.instance_object 
+                                rman_group_translator = self.rman_translators['GROUP']
                                 psys_translator.update(ob, psys, rman_sg_particles_node)
-                            else:
-                                rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)
-                                rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
-                                self.rman_particles[psys_db_name] = rman_sg_particles_node           
+
+                                # For object instances, we need to loop through the depsgraph instances
+                                for ob_inst in self.depsgraph.object_instances:                                
+                                    if ob_inst.is_instance and ob_inst.instance_object == inst_ob and ob_inst.particle_system == psys:   
+                                        db_name = object_utils.get_db_name(inst_ob, rman_type=rman_type)          
+                                        if db_name == '':
+                                            continue
+
+                                        rman_sg_node = self.rman_objects.get(db_name, None)           
+                                        if not rman_sg_node:
+                                            continue
+                                        group_db_name = object_utils.get_group_db_name(ob_inst)
+
+                                        rman_sg_group = rman_group_translator.export(ob, group_db_name)
+                                        rman_sg_group.sg_node.AddChild(rman_sg_node.sg_node)
+                                        rman_group_translator.update_transform(ob_inst, rman_sg_group)
+
+                                        psys_translator.add_object_instance(rman_sg_particles_node, rman_sg_group.sg_node) 
+            
+                                        # object attrs             
+                                        psys_translator.export_object_attributes(ob, rman_sg_group.sg_node) 
+
+                                        self.rman_objects[group_db_name] = rman_sg_group
+                                        rman_sg_node.instances[group_db_name] = rman_sg_group
+                                        self.attach_particle_material(psys, ob, inst_ob, rman_sg_group.sg_node)             
 
     def update_scene(self, context, depsgraph):
         new_objs = []
@@ -1109,6 +1234,7 @@ class RmanScene(object):
                 continue
 
             elif isinstance(obj.id, bpy.types.Material):
+                rfb_log().debug("Material updated: %s" % obj.id.name)
                 self._material_updated(obj)
 
             elif isinstance(obj.id, bpy.types.Object):
@@ -1120,6 +1246,7 @@ class RmanScene(object):
                     continue
 
                 if obj_key not in self.rman_objects:
+                    rfb_log().debug("New object added: %s" % obj.id.name)
                     if ob.type == 'CAMERA' and not self.is_viewport_render:
                         new_cams.append(obj.id)
                     else:
@@ -1127,9 +1254,11 @@ class RmanScene(object):
                     continue
                                           
                 if obj.is_updated_transform:
+                    rfb_log().debug("Transform updated: %s" % obj.id.name)
                     self._object_transform_updated(obj)
 
                 elif obj.is_updated_geometry:
+                    rfb_log().debug("Object updated: %s" % obj.id.name)
                     self._obj_geometry_updated(obj)
 
 
@@ -1138,7 +1267,12 @@ class RmanScene(object):
             with self.rman.SGManager.ScopedEdit(self.sg_scene): 
                 rfb_log().debug("Adding new objects:")
                 self.export_data_blocks(new_objs)
-                self.export_instances()
+                for new_obj in new_objs:
+                    for ob_inst in self.depsgraph.object_instances:
+                        if ob_inst and ob_inst.instance_object == new_obj:
+                            self._export_instance(ob_inst)
+                        elif ob_inst.object == new_obj:
+                            self._export_instance(ob_inst)
 
                 self.scene_any_lights = self._scene_has_lights()
                 if self.world_df_node and self.scene_any_lights:

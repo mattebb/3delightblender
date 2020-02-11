@@ -82,12 +82,17 @@ class RmanParticlesTranslator(RmanTranslator):
 
     def export(self, ob, psys, db_name):
 
-        sg_node = self.rman_scene.sg_scene.CreatePoints(db_name)
+        sg_node = self.rman_scene.sg_scene.CreateGroup(db_name)
         rman_sg_particles = RmanSgParticles(self.rman_scene, sg_node, db_name)
 
         return rman_sg_particles
 
     def export_deform_sample(self, rman_sg_particles, ob, psys, time_sample):
+        if rman_sg_particles.render_type == 'OBJECT':
+            return
+
+        sg_particles_node = rman_sg_particles.GetChild(0)
+
         rm = psys.settings.renderman
         P, rot, width = self.get_particles(ob, psys)
 
@@ -96,13 +101,28 @@ class RmanParticlesTranslator(RmanTranslator):
         if (len(P) < 3):
             return
 
-        primvar = rman_sg_particles.sg_node.GetPrimVars()
+        primvar = sg_particles_node.GetPrimVars()
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex", time_sample)
 
-        rman_sg_particles.sg_node.SetPrimVars(primvar)     
+        sg_particles_node.SetPrimVars(primvar)     
 
 
     def update(self, ob, psys, rman_sg_particles):
+        rman_sg_particles.render_type = psys.settings.render_type
+
+        for c in [ rman_sg_particles.sg_node.GetChild(i) for i in range(0, rman_sg_particles.sg_node.GetNumChildren())]:
+            rman_sg_particles.sg_node.RemoveChild(c)
+            self.rman_scene.sg_scene.DeleteDagNode(c)
+
+        if rman_sg_particles.render_type != 'OBJECT':
+            self.update_points(ob, psys, rman_sg_particles)
+
+    def add_object_instance(self, rman_sg_particles, sg_node):
+        rman_sg_particles.sg_node.AddChild(sg_node)
+
+    def update_points(self, ob, psys, rman_sg_particles):
+
+        sg_particles_node = self.rman_scene.sg_scene.CreatePoints('%s-POINTS' % rman_sg_particles.db_name)
 
         rm = psys.settings.renderman
         P, rot, width = self.get_particles(ob, psys)
@@ -113,9 +133,10 @@ class RmanParticlesTranslator(RmanTranslator):
             return
 
         nm_pts = int(len(P)/3)
-        rman_sg_particles.sg_node.Define(nm_pts)          
+        sg_particles_node.Define(nm_pts)          
 
-        primvar = rman_sg_particles.sg_node.GetPrimVars()
+        primvar = sg_particles_node.GetPrimVars()
+        primvar.Clear()
         if rman_sg_particles.motion_steps:
             primvar.SetTimeSamples(rman_sg_particles.motion_steps)
 
@@ -129,7 +150,7 @@ class RmanParticlesTranslator(RmanTranslator):
         else:
             primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, width, "vertex")                     
 
-        rman_sg_particles.sg_node.SetPrimVars(primvar)
+        sg_particles_node.SetPrimVars(primvar)
 
         # Attach material
         mat_idx = psys.settings.material - 1
@@ -138,4 +159,6 @@ class RmanParticlesTranslator(RmanTranslator):
             mat_db_name = object_utils.get_db_name(mat)
             rman_sg_material = self.rman_scene.rman_materials.get(mat_db_name, None)
             if rman_sg_material:
-                rman_sg_particles.sg_node.SetMaterial(rman_sg_material.sg_node)          
+                sg_particles_node.SetMaterial(rman_sg_material.sg_node)          
+
+        rman_sg_particles.sg_node.AddChild(sg_particles_node)

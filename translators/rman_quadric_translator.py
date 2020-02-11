@@ -20,35 +20,36 @@ class RmanQuadricTranslator(RmanTranslator):
 
     def update(self, ob, rman_sg_quadric):
         rm = ob.renderman
-        prim = rm.primitive
+        quadric_type = rm.rman_quadric_type
+        rman_sg_quadric.quadric_type = quadric_type
         primvar = rman_sg_quadric.sg_node.GetPrimVars()     
-        if prim == 'SPHERE':
+        if quadric_type == 'SPHERE':
             rman_sg_quadric.sg_node.SetGeometry(self.rman_scene.rman.Tokens.Rix.k_Ri_Sphere)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_zmin, rm.primitive_zmin)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_zmax, rm.primitive_zmax)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
     
-        elif prim == 'CYLINDER':
+        elif quadric_type == 'CYLINDER':
             rman_sg_quadric.sg_node.SetGeometry(self.rman_scene.rman.Tokens.Rix.k_Ri_Cylinder)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_zmin, rm.primitive_zmin)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_zmax, rm.primitive_zmax)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
 
-        elif prim == 'CONE':
+        elif quadric_type == 'CONE':
             rman_sg_quadric.sg_node.SetGeometry(self.rman_scene.rman.Tokens.Rix.k_Ri_Cone)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_height, rm.primitive_height)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
 
-        elif prim == 'DISK':
+        elif quadric_type == 'DISK':
             rman_sg_quadric.sg_node.SetGeometry(self.rman_scene.rman.Tokens.Rix.k_Ri_Disk)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_radius, rm.primitive_radius)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_height, rm.primitive_height)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_thetamax, rm.primitive_sweepangle)
 
-        elif prim == 'TORUS':
+        elif quadric_type == 'TORUS':
             rman_sg_quadric.sg_node.SetGeometry(self.rman_scene.rman.Tokens.Rix.k_Ri_Torus)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_majorradius, rm.primitive_majorradius)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_minorradius, rm.primitive_minorradius)

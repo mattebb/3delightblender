@@ -6,6 +6,7 @@ class RmanSgParticles(RmanSgNode):
         super().__init__(rman_scene, sg_node, db_name)
         self.matrix_world = None
         self.npoints = -1
+        self.render_type = ''
 
     @property
     def matrix_world(self):
@@ -22,4 +23,12 @@ class RmanSgParticles(RmanSgNode):
     @npoints.setter
     def npoints(self, npoints):
         self.__npoints = npoints
+
+    @property
+    def render_type(self):
+        return self.__render_type
+
+    @render_type.setter
+    def render_type(self, render_type):
+        self.__render_type = render_type        
 

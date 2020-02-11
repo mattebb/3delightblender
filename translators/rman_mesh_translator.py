@@ -169,16 +169,18 @@ class RmanMeshTranslator(RmanTranslator):
         primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagstringtags, stringargs, len(stringargs))        
 
     def export(self, ob, db_name):
-        prim_type = object_utils._detect_primitive_(ob)
+        #prim_type = object_utils._detect_primitive_(ob)
 
-        if prim_type not in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
-            return None
+        #if prim_type not in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
+        #    return None
         
         sg_node = self.rman_scene.sg_scene.CreateMesh(db_name)
         rman_sg_mesh = RmanSgMesh(self.rman_scene, sg_node, db_name)
 
-        if prim_type == 'SUBDIVISION_MESH':
-            rman_sg_mesh.is_subdiv = True
+        rman_sg_mesh.is_subdiv = object_utils.is_subdmesh(ob)
+
+        #if prim_type == 'SUBDIVISION_MESH':
+        #    rman_sg_mesh.is_subdiv = True
 
         if self.rman_scene.do_motion_blur:
             rman_sg_mesh.is_transforming = object_utils.is_transforming(ob)
@@ -216,10 +218,11 @@ class RmanMeshTranslator(RmanTranslator):
                 pvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex", time_sample)                                  
                 c.SetPrimVars(pvar)
 
-        ob.to_mesh_clear()         
+        ob.to_mesh_clear()    
 
     def update(self, ob, rman_sg_mesh, input_mesh=None):
 
+        rm = ob.renderman
         mesh = input_mesh
         if not mesh:
             mesh = ob.to_mesh()
@@ -248,6 +251,7 @@ class RmanMeshTranslator(RmanTranslator):
         rman_sg_mesh.is_multi_material = _is_multi_material_(ob, mesh)
             
         primvar = rman_sg_mesh.sg_node.GetPrimVars()
+        primvar.Clear()
 
         if rman_sg_mesh.is_deforming:
             primvar.SetTimeSamples(rman_sg_mesh.motion_steps)
@@ -260,13 +264,16 @@ class RmanMeshTranslator(RmanTranslator):
 
         if rman_sg_mesh.is_subdiv:
             creases = self._get_subd_creases_(ob, mesh, primvar)
-
-            # TODO make this selectable
-            rman_sg_mesh.sg_node.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark) 
+            if rm.rman_subdiv_scheme == 'none':
+                # we were tagged as a subdiv by a modifier
+                rman_sg_mesh.sg_node.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark) 
+            else:
+                rman_sg_mesh.sg_node.SetScheme(rm.rman_subdiv_scheme) 
 
         else:
             rman_sg_mesh.sg_node.SetScheme(None)
             primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "facevarying")         
+        rman_sg_mesh.subdiv_scheme = rm.rman_subdiv_scheme
 
         if rman_sg_mesh.is_multi_material:
             material_ids = _get_material_ids(ob, mesh)

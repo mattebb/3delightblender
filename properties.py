@@ -1947,10 +1947,15 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                             'Instanced objects at each point')
                            ]
 
+    def update_psys(self, context):
+        active = context.view_layer.objects.active
+        active.update_tag(refresh={'DATA'})
+
     use_object_material: BoolProperty(
         name="Use Master Object's Material",
         description="Use the master object's material for instancing",
-        default=False
+        default=True,
+        update=update_psys
     )
 
     def update_point_type(self, context):
@@ -1983,11 +1988,13 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
     constant_width: BoolProperty(
         name="Constant Width",
         description="Override particle sizes with constant width value",
+        update=update_psys,
         default=False)
 
     width: FloatProperty(
         name="Width",
         description="With used for constant width across all particles",
+        update=update_psys,
         precision=4,
         default=0.01)
 
@@ -2076,41 +2083,6 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         if rr.rman_interactive_running:
             rr.rman_scene.update_object_prim_attrs(active)
 
-    """
-    # for some odd reason blender truncates this as a float
-    update_timestamp: IntProperty(
-        name="Update Timestamp", default=int(time.time()),
-        description="Used for telling if an objects rib archive is dirty", subtype='UNSIGNED'
-    )
-
-    pre_object_rib_box: StringProperty(
-        name="Pre Object RIB text",
-        description="Injects an RIB before this object's geometry",
-        default="")
-
-    post_object_rib_box: StringProperty(
-        name="Post Object RIB text",
-        description="Injects an RIB after this object's geometry",
-        default="")
-
-    geometry_source: EnumProperty(
-        name="Geometry Source",
-        description="Where to get the geometry data for this object",
-        items=[('BLENDER_SCENE_DATA', 'Blender Scene Data', 'Exports and renders blender scene data directly from memory'),
-               ('ARCHIVE', 'Archive',
-                'Renders a prevously exported RIB archive'),
-               ('OPENVDB', 'OpenVDB File',
-                'Renders a prevously exported OpenVDB file'),
-               ('DELAYED_LOAD_ARCHIVE', 'Delayed Load Archive',
-                'Loads and renders geometry from an archive only when its bounding box is visible'),
-               ('PROCEDURAL_RUN_PROGRAM', 'Procedural Run Program',
-                'Generates procedural geometry at render time from an external program'),
-               ('DYNAMIC_LOAD_DSO', 'Dynamic Load DSO',
-                'Generates procedural geometry at render time from a dynamic shared object library')
-               ],
-        default='BLENDER_SCENE_DATA')
-    """
-
     openvdb_channels: CollectionProperty(
         type=OpenVDBChannel, name="OpenVDB Channels")
     openvdb_channel_index: IntProperty(min=-1, default=-1)
@@ -2167,17 +2139,11 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         items = []
     
         items=[('AUTO', 'Automatic', 'Automatically determine the object type from context and modifiers used'),
-               ('POLYGON_MESH', 'Polygon Mesh', 'Mesh object'),
-               ('SUBDIVISION_MESH', 'Subdivision Mesh',
-                'Smooth subdivision surface formed by mesh cage'),
+               ('MESH', 'Mesh', 'Mesh object'),
                ('RI_VOLUME', 'Volume', 'Volume primitive'),
                ('POINTS', 'Points',
                 'Renders object vertices as single points'),
-               ('SPHERE', 'Sphere', 'Parametric sphere primitive'),
-               ('CYLINDER', 'Cylinder', 'Parametric cylinder primitive'),
-               ('CONE', 'Cone', 'Parametric cone primitive'),
-               ('DISK', 'Disk', 'Parametric 2D disk primitive'),
-               ('TORUS', 'Torus', 'Parametric torus primitive')
+               ('QUADRIC', 'Quadric', 'Parametric primitive') 
                ]
         
         items.append(('OPENVDB', 'OpenVDB File',
@@ -2196,6 +2162,27 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
         description="Representation of this object's geometry in the renderer",
         items=primitive_items)
         #default='AUTO')
+
+    rman_quadric_type: EnumProperty(
+        name='Quadric Type',
+        description='Quadric type to render',
+        items=[('SPHERE', 'Sphere', 'Parametric sphere primitive'),
+               ('CYLINDER', 'Cylinder', 'Parametric cylinder primitive'),
+               ('CONE', 'Cone', 'Parametric cone primitive'),
+               ('DISK', 'Disk', 'Parametric 2D disk primitive'),
+               ('TORUS', 'Torus', 'Parametric torus primitive')
+        ]
+    )
+
+    rman_subdiv_scheme: EnumProperty(
+        name='Subdivision Scheme',
+        description='Which subdivision scheme to use. Select None for regular polygon mesh. Note, if not set to None, this will take precedence over any modifiers attached.',
+        items=[('none', 'None', ''),
+               ('catmull-clark', 'Catmull-Clark', ''),
+               ('loop', 'Loop', ''),
+               ('bilinear', 'Bilinear', '')
+        ]        
+    )
 
     export_archive: BoolProperty(
         name="Export as Archive",

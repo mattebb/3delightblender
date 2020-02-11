@@ -9,6 +9,7 @@ class RmanSgMesh(RmanSgNode):
         self.npoints = -1
         self.nverts = -1
         self.is_subdiv = False
+        self.subdiv_scheme = 'none'
         self.is_multi_material = False
         self.multi_material_children = []
 
@@ -50,4 +51,12 @@ class RmanSgMesh(RmanSgNode):
 
     @is_subdiv.setter
     def is_subdiv(self, is_subdiv):
-        self.__is_subdiv = is_subdiv                                 
+        self.__is_subdiv = is_subdiv    
+
+    @property
+    def subdiv_scheme(self):
+        return self.__subdiv_scheme
+
+    @subdiv_scheme.setter
+    def subdiv_scheme(self, subdiv_scheme):
+        self.__subdiv_scheme = subdiv_scheme                                       
