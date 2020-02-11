@@ -2077,12 +2077,6 @@ class OpenVDBChannel(bpy.types.PropertyGroup):
 
 class RendermanObjectSettings(bpy.types.PropertyGroup):
 
-    def update_object_prim_attrs(self, context):
-        active = context.active_object
-        rr = rman_render.RmanRender.get_rman_render()
-        if rr.rman_interactive_running:
-            rr.rman_scene.update_object_prim_attrs(active)
-
     openvdb_channels: CollectionProperty(
         type=OpenVDBChannel, name="OpenVDB Channels")
     openvdb_channel_index: IntProperty(min=-1, default=-1)
@@ -2196,47 +2190,38 @@ class RendermanObjectSettings(bpy.types.PropertyGroup):
 
     primitive_radius: FloatProperty(
         name="Radius",
-        update=update_object_prim_attrs,
         default=1.0,)
     primitive_zmin: FloatProperty(
         name="Z min",
         description="Minimum height clipping of the primitive",
-        update=update_object_prim_attrs,
         default=-1.0)
     primitive_zmax: FloatProperty(
         name="Z max",
         description="Maximum height clipping of the primitive",
-        update=update_object_prim_attrs,
         default=1.0)
     primitive_sweepangle: FloatProperty(
         name="Sweep Angle",
         description="Angle of clipping around the Z axis",
-        update=update_object_prim_attrs,
         default=360.0)
     primitive_height: FloatProperty(
         name="Height",
         description="Height offset above XY plane",
-        update=update_object_prim_attrs,
         default=0.0)
     primitive_majorradius: FloatProperty(
         name="Major Radius",
         description="Radius of Torus ring",
-        update=update_object_prim_attrs,
         default=2.0)
     primitive_minorradius: FloatProperty(
         name="Minor Radius",
         description="Radius of Torus cross-section circle",
-        update=update_object_prim_attrs,
         default=0.5)
     primitive_phimin: FloatProperty(
         name="Minimum Cross-section",
         description="Minimum angle of cross-section circle",
-        update=update_object_prim_attrs,
         default=0.0)
     primitive_phimax: FloatProperty(
         name="Maximum Cross-section",
         description="Maximum angle of cross-section circle",
-        update=update_object_prim_attrs,
         default=360.0)
         
     primitive_point_type: EnumProperty(

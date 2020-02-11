@@ -1044,30 +1044,6 @@ class RmanScene(object):
             else:
                 translator.update(mat, rman_sg_material)   
 
-    def _rman_properties_updated(self, ob, rman_type, rman_sg_node):
-        rm = ob.renderman
-
-        # Check if type has changed. For some reason, Blender
-        # triggers this as a transform change
-        if rman_type == 'MESH':
-            is_subdiv = object_utils.is_subdmesh(ob)
-            if rman_sg_node.is_subdiv != is_subdiv :
-                with self.rman.SGManager.ScopedEdit(self.sg_scene):
-                    rman_sg_node.is_subdiv = is_subdiv
-                    self.rman_translators['MESH'].update(ob, rman_sg_node)
-                    return True
-            elif is_subdiv:
-                if rman_sg_node.subdiv_scheme != rm.rman_subdiv_scheme:
-                    with self.rman.SGManager.ScopedEdit(self.sg_scene):
-                        self.rman_translators['MESH'].update(ob, rman_sg_node)
-                        return True
-        elif rman_type == 'QUADRIC':
-            if rman_sg_node.quadric_type != rm.rman_quadric_type:
-                with self.rman.SGManager.ScopedEdit(self.sg_scene):
-                    self.rman_translators['QUADRIC'].update(ob, rman_sg_node)
-                    return True
-        return False  
-
     def _object_transform_updated(self, obj):
         ob = obj.id         
         rman_type = object_utils._detect_primitive_(ob)
@@ -1076,11 +1052,6 @@ class RmanScene(object):
         rman_sg_node = self.rman_objects.get(obj_key, None)
         rm = ob.renderman
 
-        # Check if type has changed. For some reason, Blender
-        # triggers this as a transform change
-        if self._rman_properties_updated(ob, rman_type, rman_sg_node):
-            return                              
-      
         with self.rman.SGManager.ScopedEdit(self.sg_scene):                
 
             if obj.id.is_instancer:
@@ -1252,15 +1223,14 @@ class RmanScene(object):
                     else:
                         new_objs.append(obj.id)
                     continue
+
+                if obj.is_updated_geometry:
+                    rfb_log().debug("Object updated: %s" % obj.id.name)
+                    self._obj_geometry_updated(obj)                    
                                           
                 if obj.is_updated_transform:
                     rfb_log().debug("Transform updated: %s" % obj.id.name)
                     self._object_transform_updated(obj)
-
-                elif obj.is_updated_geometry:
-                    rfb_log().debug("Object updated: %s" % obj.id.name)
-                    self._obj_geometry_updated(obj)
-
 
         # there are new objects
         if new_objs:
@@ -1355,15 +1325,6 @@ class RmanScene(object):
         translator = self.rman_translators["LIGHT"]        
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
             translator.update(ob, rman_sg_light)            
-
-    def update_object_prim_attrs(self, ob):
-        rman_type = object_utils._detect_primitive_(ob)
-        db_name = object_utils.get_db_name(ob, rman_type=rman_type)
-        translator = self.rman_translators.get(rman_type, None)
-        rman_sg_node = self.rman_objects.get(db_name, None)
-        if translator and rman_sg_node:
-            with self.rman.SGManager.ScopedEdit(self.sg_scene):
-                translator.update(ob, rman_sg_node)
 
     def update_solo_light(self, context):
         # solo light has changed

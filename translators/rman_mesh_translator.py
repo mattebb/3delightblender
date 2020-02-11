@@ -169,18 +169,9 @@ class RmanMeshTranslator(RmanTranslator):
         primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagstringtags, stringargs, len(stringargs))        
 
     def export(self, ob, db_name):
-        #prim_type = object_utils._detect_primitive_(ob)
-
-        #if prim_type not in ['POLYGON_MESH', 'SUBDIVISION_MESH']:
-        #    return None
         
         sg_node = self.rman_scene.sg_scene.CreateMesh(db_name)
         rman_sg_mesh = RmanSgMesh(self.rman_scene, sg_node, db_name)
-
-        rman_sg_mesh.is_subdiv = object_utils.is_subdmesh(ob)
-
-        #if prim_type == 'SUBDIVISION_MESH':
-        #    rman_sg_mesh.is_subdiv = True
 
         if self.rman_scene.do_motion_blur:
             rman_sg_mesh.is_transforming = object_utils.is_transforming(ob)
@@ -227,6 +218,7 @@ class RmanMeshTranslator(RmanTranslator):
         if not mesh:
             mesh = ob.to_mesh()
 
+        rman_sg_mesh.is_subdiv = object_utils.is_subdmesh(ob)
         get_normals = (rman_sg_mesh.is_subdiv == 0)
         (nverts, verts, P, N) = object_utils._get_mesh_(mesh, get_normals=get_normals)
         
