@@ -221,6 +221,7 @@ def gp_material_fill_gradient(mat, rman, rman_sg_material, handle):
     bxdf_handle = '%s-PxrConstant' % handle
     bxdf = rman.SGManager.RixSGShader("Bxdf", "PxrConstant", bxdf_handle)
 
+
     manifold_handle = '%s-PxrManifold2D' % handle
     manifold = rman.SGManager.RixSGShader("Pattern", "PxrManifold2D", manifold_handle) 
     params = manifold.params 
@@ -233,23 +234,26 @@ def gp_material_fill_gradient(mat, rman, rman_sg_material, handle):
     mat_sg_nodes.append(manifold)
 
     ramp_handle = '%s-PxrRamp' % handle
-    ramp = rman.SGManager.RixSGShader("Pattern", "PxrManifold2D", ramp_handle) 
+    ramp = rman.SGManager.RixSGShader("Pattern", "PxrRamp", ramp_handle) 
     params = ramp.params 
     params.SetInteger('rampType', 0) 
     
-    #colors = []    
-    #colors.append(rman.Types.ColorRGB(col[0], col[1], col[2]))
-    #colors.append(rman.Types.ColorRGB(col[0], col[1], col[2]))
-    #colors.append(rman.Types.ColorRGB(col[0], col[1], col[2]))
-    #colors.append(rman.Types.ColorRGB(col[0], col[1], col[2]))
+    colors = []    
+    colors.append(col[:3])
+    colors.append(col[:3])
+    colors.append(mix_color[:3])
+    colors.append(mix_color[:3])
 
-    #params.SetFloatArray('positions', [0.0, 0.0, 1.0, 1.0], 4)
-    #params.SetColorArray('colors', colors, 4)
+    params.SetFloatArray('colorRamp_Knots', [0.0, 0.0, 1.0, 1.0], 4)
+    params.SetColorArray('colorRamp_Colors', colors, 4)
+    params.SetString('colorRamp_Interpolation', 'linear')
     params.ReferenceStruct("manifold", '%s:result' % manifold_handle)  
     mat_sg_nodes.append(ramp)
-    
+
     params = bxdf.params
+       
     params.ReferenceColor("emitColor", '%s:resultRGB' % ramp_handle)    
+    
     #params.SetFloat('presence', alpha)
     mat_sg_nodes.append(bxdf)
     rman_sg_material.sg_node.SetBxdf(mat_sg_nodes)   

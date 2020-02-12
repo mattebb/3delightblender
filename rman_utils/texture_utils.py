@@ -74,7 +74,10 @@ class RfBTxManager(object):
             output_tex = txfile.get_output_texture()
         else:
             output_tex = self.txmanager.get_placeholder_tex()
-        output_tex = string_utils.expand_string(output_tex, frame=self.rman_scene.bl_frame_current, asFilePath=True)
+        if self.rman_scene:
+            output_tex = string_utils.expand_string(output_tex, frame=self.rman_scene.bl_frame_current, asFilePath=True)
+        else:
+            output_tex = string_utils.expand_string(output_tex, asFilePath=True)            
         return output_tex
             
     def get_txfile_from_path(self, filepath):

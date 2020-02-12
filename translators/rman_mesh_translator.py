@@ -100,23 +100,23 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
         if uvs and len(uvs) > 0:
             rixparams.SetFloatArrayDetail("st", uvs, 2, interpolation)
 
-    '''
+    
     # FIXME: SetColorDetail seems to be failing. Might be a bug in RtParamList.
     if rm.export_default_vcol:
         vcols = _get_mesh_vcol_(geo)
         if vcols and len(vcols) > 0:
             rixparams.SetColorDetail("Cs", string_utils.convert_val(vcols, type_hint="color"), interpolation)
-    '''
+    
     # custom prim vars
 
     for p in rm.prim_vars:
         if p.data_source == 'VERTEX_COLOR':
             vcols = _get_mesh_vcol_(geo, p.data_name)
-            '''
+            
             # FIXME: SetColorDetail seems to be failing. Might be a bug in RtParamList.
             if vcols and len(vcols) > 0:
                 rixparams.SetColorDetail(p.name, string_utils.convert_val(vcols, type_hint="color"), interpolation)
-            '''
+            
         elif p.data_source == 'UV_TEXTURE':
             flipvmode = 'NONE'
             if hasattr(rm, 'export_flipv'):
