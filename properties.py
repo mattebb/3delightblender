@@ -1345,7 +1345,10 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         light = self.id_data
         light_type = light.renderman.renderman_type
 
-        if light_type in ['SKY', 'ENV', 'DIST']:
+        
+        if light_type in ['SKY', 'ENV']:
+            light.type = 'POINT'
+        elif light_type == 'DIST':
             light.type = 'SUN'
         elif light_type == 'PORTAL':
             light.type = 'AREA'
@@ -1353,6 +1356,8 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             light.type = 'AREA'
         else:
             light.type = light_type
+        
+
 
         # use pxr area light for everything but env, sky
         light_shader = 'PxrRectLight'
@@ -1391,10 +1396,10 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         light_shader = 'PxrRectLight'
 
         if area_shape == 'disk':
-            light.shape = 'SQUARE'
+            light.shape = 'DISK'
             light_shader = 'PxrDiskLight'
         elif area_shape == 'sphere':
-            light.shape = 'SQUARE'
+            light.shape = 'ELLIPSE'
             light_shader = 'PxrSphereLight'
         elif area_shape == 'cylinder':
             light.shape = 'RECTANGLE'
@@ -1404,78 +1409,10 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
         self.light_node = light_shader + "_settings"
 
-        """
-        from . import engine
-        if engine.is_ipr_running():
-            engine.ipr.issue_shader_edits()
-        """
-
     def update_vis(self, context):
         light = self.id_data
 
-        """
-        from . import engine
-        if engine.is_ipr_running():
-            engine.ipr.update_light_visibility(light)
-        """
-
-    # remove any filter control geo that might be on the light
-    def remove_filter_geo(self):
-        light_ob = bpy.context.view_layer.objects.active
-        for ob in light_ob.children:
-            if 'rman_filter_shape' in ob.name:
-                data = ob.data
-
-                for sc in ob.users_collection:
-                    sc.objects.unlink(ob)
-
-                try:
-                    bpy.data.objects.remove(ob)
-                except:
-                    pass
-
-                if data.users == 0:
-                    try:
-                        data.user_clear()
-                        bpy.data.meshes.remove(data)
-                    except:
-                        pass
-
-    def add_filter_geo(self, name):
-        light_ob = bpy.context.view_layer.objects.active
-        # here we add some geo
-        plugin_dir = os.path.dirname(os.path.realpath(__file__))
-        filter_file = os.path.join(plugin_dir, 'filters',
-                                   name + ".blend")
-        directory = '/Object/'
-        obj_name = name
-        bpy.ops.wm.append(filepath=filter_file + directory + obj_name,
-                          filename=obj_name,
-                          directory=filter_file + directory)
-        filter_geo_obj = bpy.context.selected_objects[0]
-        filter_geo_obj.select_set(False)
-        filter_geo_obj.name = 'rman_filter_shape_' + name
-        filter_geo_obj.parent = light_ob
-        filter_geo_obj.hide_select = True
-        filter_geo_obj.lock_rotation = [True, True, True]
-        filter_geo_obj.lock_location = [True, True, True]
-        filter_geo_obj.lock_scale = [True, True, True]
-        bpy.context.view_layer.objects.active = light_ob
-        return filter_geo_obj
-
-    def get_filter_geo(self, name):
-        light_ob = bpy.context.view_layer.objects.active
-        for ob in light_ob.children:
-            if 'rman_filter_shape' in ob.name:
-                if name in ob.name:
-                    return ob
-                else:
-                    self.remove_filter_geo()
-                    return self.add_filter_geo(name)
-        return self.add_filter_geo(name)
-
     def update_filter_type(self, context):
-        self.remove_filter_geo()
 
         filter_name = 'IntMult' if self.filter_type == 'intmult' else self.filter_type.capitalize()
         # set the light type
@@ -1486,8 +1423,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             self.id_data.shape = 'RECTANGLE'
         else:
             self.id_data.id_data.type = 'POINT'
-            if self.filter_type != 'intmult':
-                self.update_filter_shape()
+
         if self.filter_type in ['blocker', 'ramp', 'rod']:
             light = context.light
             if not light.use_nodes:
@@ -1499,242 +1435,6 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
             if self.float_ramp_node not in nt.nodes.keys():
                 self.float_ramp_node = nt.nodes.new(
                     'ShaderNodeVectorCurve').name
-
-    # updates the filter shape when a node params change
-    def update_filter_shape(self):
-        node = self.get_light_node()
-
-        if self.filter_type in ['gobo', 'cookie']:
-            self.id_data.size = node.width
-            self.id_data.size_y = node.height
-        else:
-            shape = 'rect'
-            if self.filter_type in ['blocker', 'rod']:
-                shape = 'cube'
-            if self.filter_type == 'ramp':
-                if node.rampType in ['0', '2']:
-                    shape = 'sphere'
-                elif node.rampType == '1':
-                    shape = 'rect'
-                else:
-                    shape = 'circle'
-
-            ob = self.get_filter_geo(shape)
-            if not ob:
-                return
-            else:
-                if self.filter_type == 'barn':
-                    width = node.width * node.scaleWidth
-                    height = node.height * node.scaleHeight
-                    mesh = ob.data
-                    mesh.vertices[0].co = Vector((0 - width - node.left,
-                                                  0 - height - node.bottom, 0.0))
-                    mesh.vertices[1].co = Vector((width + node.right,
-                                                  0 - height - node.bottom, 0.0))
-                    mesh.vertices[2].co = Vector((-width - node.left,
-                                                  height + node.top, 0.0))
-                    mesh.vertices[3].co = Vector((width + node.right,
-                                                  height + node.top, 0.0))
-                    left_edge = node.edge * node.leftEdge
-                    right_edge = node.edge * node.rightEdge
-                    top_edge = node.edge * node.topEdge
-                    bottom_edge = node.edge * node.bottomEdge
-
-                    mesh.vertices[4].co = Vector((0 - width - node.left - left_edge,
-                                                  0 - height - node.bottom - bottom_edge, 0.0))
-                    mesh.vertices[5].co = Vector((width + node.right + right_edge,
-                                                  0 - height - node.bottom - bottom_edge, 0.0))
-                    mesh.vertices[6].co = Vector((-width - node.left - left_edge,
-                                                  height + node.top + top_edge, 0.0))
-                    mesh.vertices[7].co = Vector((width + node.right + right_edge,
-                                                  height + node.top + top_edge, 0.0))
-                    ob.modifiers['bevel'].width = node.radius
-
-                if self.filter_type == 'blocker':
-                    width = node.width
-                    height = node.height
-                    depth = node.depth
-
-                    mesh = ob.data
-                    edge = node.edge
-                    # xy inner
-                    mesh.vertices[0].co = Vector((-width, -height, 0.0))
-                    mesh.vertices[1].co = Vector((width, -height, 0.0))
-                    mesh.vertices[2].co = Vector((-width, height, 0.0))
-                    mesh.vertices[3].co = Vector((width, height, 0.0))
-
-                    # xy outer
-                    mesh.vertices[4].co = Vector((-width - edge,
-                                                  -height - edge, 0.0))
-                    mesh.vertices[5].co = Vector((width + edge,
-                                                  -height - edge, 0.0))
-                    mesh.vertices[6].co = Vector((-width - edge,
-                                                  height + edge, 0.0))
-                    mesh.vertices[7].co = Vector((width + edge,
-                                                  height + edge, 0.0))
-
-                    # yz inner
-                    mesh.vertices[8].co = Vector((0.0, -height, depth))
-                    mesh.vertices[9].co = Vector((0.0, -height, -depth))
-                    mesh.vertices[10].co = Vector((0.0, height, depth))
-                    mesh.vertices[11].co = Vector((0.0, height, -depth))
-
-                    # yz outer
-                    mesh.vertices[12].co = Vector(
-                        (0.0, -height - edge, depth + edge))
-                    mesh.vertices[13].co = Vector(
-                        (0.0, -height - edge, -depth - edge))
-                    mesh.vertices[14].co = Vector(
-                        (0.0, height + edge, depth + edge))
-                    mesh.vertices[15].co = Vector(
-                        (0.0, height + edge, -depth - edge))
-
-                    # xz inner
-                    mesh.vertices[16].co = Vector((width, 0.0, depth))
-                    mesh.vertices[17].co = Vector((width, 0.0, -depth))
-                    mesh.vertices[18].co = Vector((-width, 0.0, depth))
-                    mesh.vertices[19].co = Vector((-width, 0.0, -depth))
-
-                    # xz outer
-                    mesh.vertices[20].co = Vector(
-                        (width + edge, 0.0, depth + edge))
-                    mesh.vertices[21].co = Vector(
-                        (width + edge, 0.0, -depth - edge))
-                    mesh.vertices[22].co = Vector(
-                        (-width - edge, 0.0, depth + edge))
-                    mesh.vertices[23].co = Vector(
-                        (-width - edge, 0.0, -depth - edge))
-                    ob.modifiers['bevel'].width = node.radius
-
-                if self.filter_type == 'rod':
-                    width = node.width * node.scaleWidth
-                    height = node.height * node.scaleHeight
-                    depth = node.depth * node.scaleDepth
-                    left_edge = node.edge * node.leftEdge
-                    right_edge = node.edge * node.rightEdge
-                    top_edge = node.edge * node.topEdge
-                    bottom_edge = node.edge * node.bottomEdge
-                    front_edge = node.edge * node.frontEdge
-                    back_edge = node.edge * node.backEdge
-
-                    mesh = ob.data
-
-                    # xy inner
-                    mesh.vertices[0].co = Vector((-width - node.left,
-                                                  -height - node.bottom, 0.0))
-                    mesh.vertices[1].co = Vector((width + node.right,
-                                                  -height - node.bottom, 0.0))
-                    mesh.vertices[2].co = Vector((-width - node.left,
-                                                  height + node.top, 0.0))
-                    mesh.vertices[3].co = Vector((width + node.right,
-                                                  height + node.top, 0.0))
-
-                    # xy outer
-                    mesh.vertices[4].co = Vector((-width - node.left - left_edge,
-                                                  -height - node.bottom - bottom_edge, 0.0))
-                    mesh.vertices[5].co = Vector((width + node.right + right_edge,
-                                                  -height - node.bottom - bottom_edge, 0.0))
-                    mesh.vertices[6].co = Vector((-width - node.left - left_edge,
-                                                  height + node.top + top_edge, 0.0))
-                    mesh.vertices[7].co = Vector((width + node.right + right_edge,
-                                                  height + node.top + top_edge, 0.0))
-
-                    # yz inner
-                    mesh.vertices[8].co = Vector((0.0, -height - node.bottom,
-                                                  depth + node.front))
-                    mesh.vertices[9].co = Vector((0.0, -height - node.bottom,
-                                                  -depth - node.back))
-                    mesh.vertices[10].co = Vector((0.0, height + node.top,
-                                                   depth + node.front))
-                    mesh.vertices[11].co = Vector((0.0, height + node.top,
-                                                   -depth - node.back))
-
-                    # yz outer
-                    mesh.vertices[12].co = Vector((0.0,
-                                                   -height - node.bottom - bottom_edge,
-                                                   depth + node.front + front_edge))
-                    mesh.vertices[13].co = Vector((0.0,
-                                                   -height - node.bottom - bottom_edge,
-                                                   -depth - node.back - back_edge))
-                    mesh.vertices[14].co = Vector((0.0,
-                                                   height + node.top + top_edge,
-                                                   depth + node.front + front_edge))
-                    mesh.vertices[15].co = Vector((0.0,
-                                                   height + node.top + top_edge,
-                                                   -depth - node.back - back_edge))
-
-                    # xz inner
-                    mesh.vertices[16].co = Vector((width + node.right, 0.0,
-                                                   depth + node.front))
-                    mesh.vertices[17].co = Vector((width + node.right, 0.0,
-                                                   -depth - node.back))
-                    mesh.vertices[18].co = Vector((-width - node.left, 0.0,
-                                                   depth + node.front))
-                    mesh.vertices[19].co = Vector((-width - node.left, 0.0,
-                                                   -depth - node.back))
-
-                    # xz outer
-                    mesh.vertices[20].co = Vector((width + node.right + right_edge,
-                                                   0.0, depth + node.front + front_edge))
-                    mesh.vertices[21].co = Vector((width + node.right + right_edge,
-                                                   0.0, -depth - node.back - back_edge))
-                    mesh.vertices[22].co = Vector((-width - node.left - left_edge,
-                                                   0.0, depth + node.front + front_edge))
-                    mesh.vertices[23].co = Vector((-width - node.left - left_edge,
-                                                   0.0, -depth - node.back - back_edge))
-
-                    ob.modifiers['bevel'].width = node.radius
-
-                if self.filter_type == 'ramp':
-                    if node.rampType in ['0', '2']:
-                        # set sphere radii
-                        mesh = ob.data
-                        len_outer = mesh.vertices[0].co.length
-                        len_inner = mesh.vertices[58].co.length
-                        # if len is 0 we can't scale stuff
-                        if len_inner == 0.0 or len_outer == 0.0:
-                            self.remove_filter_geo()
-                            mesh = self.add_filter_geo(shape).data
-                            len_outer = mesh.vertices[0].co.length
-                            len_inner = mesh.vertices[58].co.length
-
-                        for v in mesh.vertices[0:58]:
-                            v.co = v.co * node.endDist * (1.0 / len_outer)
-
-                        for v in mesh.vertices[58:]:
-                            v.co = v.co * node.beginDist * (1.0 / len_inner)
-
-                    elif node.rampType == '1':
-                        # one rect close, other far
-                        nearz = node.beginDist
-                        farz = node.endDist
-                        mesh = ob.data
-                        mesh.vertices[0].co = Vector((-.5, -.5, nearz))
-                        mesh.vertices[1].co = Vector((.5, -.5, nearz))
-                        mesh.vertices[2].co = Vector((-.5, .5, nearz))
-                        mesh.vertices[3].co = Vector((.5, .5, nearz))
-
-                        mesh.vertices[4].co = Vector((-.5, -.5, farz))
-                        mesh.vertices[5].co = Vector((.5, -.5, farz))
-                        mesh.vertices[6].co = Vector((-.5, .5, farz))
-                        mesh.vertices[7].co = Vector((.5, .5, farz))
-                    else:
-                        # set circle radii
-                        mesh = ob.data
-                        len_outer = mesh.vertices[0].co.length
-                        len_inner = mesh.vertices[58].co.length
-                        # if len is 0 we can't scale stuff
-                        if len_inner == 0.0 or len_outer == 0.0:
-                            self.remove_filter_geo()
-                            mesh = self.add_filter_geo(shape).data
-                            len_outer = mesh.vertices[0].co.length
-                            len_inner = mesh.vertices[58].co.length
-
-                        for v in mesh.vertices[0:32]:
-                            v.co = v.co * node.endDist * (1.0 / len_outer)
-
-                        for v in mesh.vertices[32:]:
-                            v.co = v.co * node.beginDist * (1.0 / len_inner)
 
     use_renderman_node: BoolProperty(
         name="Use RenderMans Light Node",

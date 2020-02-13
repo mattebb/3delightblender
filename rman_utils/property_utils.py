@@ -6,13 +6,13 @@ from ..rfb_logger import rfb_log
 def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1):
     if is_array:
         if param_type == 'float':
-            params.SetFloatArray(name, val, array_len)
+            params.SetFloatArray(param_name, val, array_len)
         elif param_type == 'int':
-            params.SetIntegerArray(name, val, array_len)
+            params.SetIntegerArray(param_name, val, array_len)
         elif param_type == 'color':
-            params.SetColorArray(name, val, array_len/3)
+            params.SetColorArray(param_name, val, array_len/3)
         elif param_type == 'string':
-            params.SetStringArray(name, val, array_len)
+            params.SetStringArray(param_name, val, array_len)
     elif is_reference:
         if param_type == "float":
             params.ReferenceFloat(param_name, val)

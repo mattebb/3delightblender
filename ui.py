@@ -964,11 +964,16 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
                 row.enabled = not ipr_running
                 row.prop(light.renderman, "area_shape", expand=True)
                 row = layout.row()
+                '''
                 if light.renderman.area_shape == "rect":
                     row.prop(light, 'size', text="Size X")
                     row.prop(light, 'size_y')
                 else:
                     row.prop(light, 'size', text="Diameter")
+                '''
+
+
+                    
             # layout.prop(light.renderman, "shadingrate")
 
         # layout.prop_search(light.renderman, "nodetree", bpy.data, "node_groups")
