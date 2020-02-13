@@ -206,9 +206,6 @@ def update_func_with_inputs(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
 
-    if node.renderman_node_type == 'lightfilter' and context and hasattr(context, 'light'):
-        context.light.renderman.update_filter_shape()
-
     if context and hasattr(context, 'material'):
         mat = context.material
         if mat:
@@ -238,9 +235,6 @@ def update_func_with_inputs(self, context):
 def update_func(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
-
-    if node.renderman_node_type == 'lightfilter' and context and hasattr(context, 'light'):
-        context.light.renderman.update_filter_shape()
 
     if context and hasattr(context, 'material'):
         mat = context.material
