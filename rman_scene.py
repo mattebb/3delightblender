@@ -1,6 +1,7 @@
 # Translators
 from .translators.rman_camera_translator import RmanCameraTranslator
 from .translators.rman_light_translator import RmanLightTranslator
+from .translators.rman_lightfilter_translator import RmanLightFilterTranslator
 from .translators.rman_mesh_translator import RmanMeshTranslator
 from .translators.rman_material_translator import RmanMaterialTranslator
 from .translators.rman_hair_translator import RmanHairTranslator
@@ -108,6 +109,7 @@ class RmanScene(object):
 
         self.rman_translators['CAMERA'] = RmanCameraTranslator(rman_scene=self)
         self.rman_translators['LIGHT'] = RmanLightTranslator(rman_scene=self)
+        self.rman_translators['LIGHTFILTER'] = RmanLightFilterTranslator(rman_scene=self)
         self.rman_translators['MATERIAL'] = RmanMaterialTranslator(rman_scene=self)       
         self.rman_translators['HAIR'] = RmanHairTranslator(rman_scene=self) 
         self.rman_translators['GROUP'] = RmanGroupTranslator(rman_scene=self)
@@ -121,15 +123,6 @@ class RmanScene(object):
         self.rman_translators['GPENCIL'] = RmanGPencilTranslator(rman_scene=self)
         self.rman_translators['MESH'] = RmanMeshTranslator(rman_scene=self)
         self.rman_translators['QUADRIC'] = RmanQuadricTranslator(rman_scene=self)
-
-        #mesh_translator = RmanMeshTranslator(rman_scene=self)
-        #self.rman_translators['POLYGON_MESH'] = mesh_translator
-        #self.rman_translators['SUBDIVISION_MESH'] = mesh_translator
-        #self.rman_translators['MESH'] = mesh_translator
-
-        #quadric_translator = RmanQuadricTranslator(rman_scene=self)
-        #for prim in ['SPHERE', 'CYLINDER', 'CONE', 'DISK', 'TORUS']:
-        #    self.rman_translators[prim] = quadric_translator
 
     def _find_renderman_layer(self):
         self.rm_rl = None
@@ -349,7 +342,7 @@ class RmanScene(object):
                     rman_sg_node.is_deforming = False
 
     def _scene_has_lights(self):
-        return (len([x for x in self.bl_scene.objects if x.type == 'LIGHT']) > 0)        
+        return (len([x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']) > 0)        
 
     def _export_instance(self, ob_inst, seg=None):
    
@@ -379,7 +372,9 @@ class RmanScene(object):
             return                          
 
         rman_type = object_utils._detect_primitive_(ob)
-        if rman_sg_particles:
+        if rman_type == 'LIGHTFILTER':
+            return
+        elif rman_sg_particles:
             db_name = object_utils.get_db_name(ob, rman_type=rman_type)          
             if db_name == '':
                 return
@@ -1053,8 +1048,12 @@ class RmanScene(object):
         rm = ob.renderman
 
         with self.rman.SGManager.ScopedEdit(self.sg_scene):                
+            if rman_type == 'LIGHTFILTER':
+                group_db_name = object_utils.get_group_db_name(ob)
+                rman_sg_group = self.rman_objects.get(group_db_name, None)                
+                rman_group_translator.update_transform(ob, rman_sg_group)
 
-            if obj.id.is_instancer:
+            elif obj.id.is_instancer:
                 for ob_inst in self.depsgraph.object_instances:                                
                     if ob_inst.is_instance and ob_inst.parent == ob:     
                         group_db_name = object_utils.get_group_db_name(ob_inst)
@@ -1081,8 +1080,15 @@ class RmanScene(object):
         rman_sg_node = self.rman_objects[obj_key]
             
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
+            if rman_type == 'LIGHTFILTER':
+                self.rman_translators['LIGHTFILTER'].update(ob, rman_sg_node)
+                for light_ob in [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
+                    light_key = object_utils.get_db_name(light_ob, rman_type='LIGHT')
+                    rman_sg_light = self.rman_objects[light_key]
+                    if rman_sg_light:
+                        self.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)
 
-            if rman_type == 'LIGHT':
+            elif rman_type == 'LIGHT':
                 self.rman_translators['LIGHT'].update(ob, rman_sg_node)
                                                     
                 if not self.scene_solo_light:
@@ -1333,7 +1339,7 @@ class RmanScene(object):
                     
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
             
-            for light_ob in [x for x in self.bl_scene.objects if x.type == 'LIGHT']:
+            for light_ob in [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
                 db_name = object_utils.get_db_name(light_ob, rman_type='LIGHT')
                 rman_sg_node = self.rman_objects.get(db_name, None)
                 if not rman_sg_node:
@@ -1350,7 +1356,7 @@ class RmanScene(object):
         self.scene_solo_light = self.bl_scene.renderman.solo_light
                     
         with self.rman.SGManager.ScopedEdit(self.sg_scene):                                         
-            for light_ob in [x for x in self.bl_scene.objects if x.type == 'LIGHT']:
+            for light_ob in [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
                 db_name = object_utils.get_db_name(light_ob, rman_type='LIGHT')
                 rman_sg_node = self.rman_objects.get(db_name, None)
                 if not rman_sg_node:

@@ -933,8 +933,8 @@ def draw_arc(a, b, numSteps, quadrant, xOffset, yOffset, pts):
         x = a * math.cos(angle)
         y = b * math.sin(angle)
         
-        #pts.append(Vector([x+xOffset, y+yOffset, 0.0]))
-        pts.append(Vector([x+xOffset, 0.0, y+yOffset]))
+        pts.append(Vector([x+xOffset, y+yOffset, 0.0]))
+        #pts.append(Vector([x+xOffset, 0.0, y+yOffset]))
 
 def draw_rounded_rectangles( left, right,
                             top,  bottom,
@@ -942,7 +942,7 @@ def draw_rounded_rectangles( left, right,
                             leftEdge,  rightEdge,
                             topEdge,  bottomEdge,
                             zOffset1,  zOffset2, 
-                            filterScale, m):
+                            m):
 
     pts = []
     a = radius+rightEdge
@@ -959,10 +959,9 @@ def draw_rounded_rectangles( left, right,
     b = radius+bottomEdge
     draw_arc(a, b, 10, 3, right, -bottom, pts)
 
-    translate = Matrix.Translation( Vector([0,0, zOffset1])) @ m
+    translate = m #Matrix.Translation( Vector([0,0, zOffset1])) @ m
     shape_pts = []
     for pt in pts:
-        pt *= filterScale
         shape_pts.append( Vector(transform_utils.transform_points( translate, pt)))
     shape_pts_indices = _get_indices(shape_pts)
 
@@ -970,9 +969,8 @@ def draw_rounded_rectangles( left, right,
     batch.draw(_SHADER_)  
 
     shape_pts = []
-    translate = Matrix.Translation( Vector([0,0, zOffset2])) @ m
+    translate = m #Matrix.Translation( Vector([0,0, zOffset2])) @ m
     for pt in pts:
-        pt *= filterScale
         shape_pts.append( Vector(transform_utils.transform_points( translate, pt)))
     shape_pts_indices = _get_indices(shape_pts)
 
@@ -981,7 +979,7 @@ def draw_rounded_rectangles( left, right,
 
 def draw_rod(leftEdge, rightEdge, topEdge,  bottomEdge,
             frontEdge,  backEdge,  scale, width,  radius, 
-            left,  right,  top,  bottom,  front, back, filterScale, world_mat):
+            left,  right,  top,  bottom,  front, back, world_mat):
 
     leftEdge *= scale
     rightEdge *= scale
@@ -995,25 +993,25 @@ def draw_rod(leftEdge, rightEdge, topEdge,  bottomEdge,
     # front and back
     draw_rounded_rectangles(left, right, top, bottom, radius,
                           leftEdge, rightEdge,
-                          topEdge, bottomEdge, front, -back, filterScale, m)
+                          topEdge, bottomEdge, front, -back, m)
 
  
     m = world_mat @ Matrix.Rotation(math.radians(-90.0), 4, 'X')
  
+    
     # top and bottom
     
     draw_rounded_rectangles(left, right, back, front, radius,
                           leftEdge, rightEdge,
-                          backEdge, frontEdge, top, -bottom, filterScale, m)
+                          backEdge, frontEdge, top, -bottom, m)
  
-    m = world_mat  @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
+    m = world_mat  @ Matrix.Rotation(math.radians(90.0), 4, 'Y')
     
     
     # left and right
     draw_rounded_rectangles(front, back, top, bottom, radius,
                           frontEdge, backEdge,
-                          topEdge, bottomEdge, -left, right, filterScale, m)
-
+                          topEdge, bottomEdge, -left, right, m)
 
 def draw_rod_light_filter(ob):
     _SHADER_.bind()
@@ -1022,8 +1020,11 @@ def draw_rod_light_filter(ob):
         _SHADER_.uniform_float("color", (1,1,1,1))
 
     m = Matrix(ob.matrix_world)     
-    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
-    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
+    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'X')
+    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Y')
+    
+    #m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
+    #m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
 
     light = ob.data
     rm = light.renderman.get_light_node()
@@ -1078,13 +1079,12 @@ def draw_rod_light_filter(ob):
     front += scale_depth * depth
     back += scale_depth * depth
 
-    scale = 1.0
     draw_rod(left_edge, right_edge,
             top_edge, bottom_edge,
             front_edge, back_edge, rod_scale,
             width, radius,
             left, right, top, bottom, front,
-            back, scale, m)
+            back, m)
         
     if edge > 0.0:
             
@@ -1095,7 +1095,7 @@ def draw_rod_light_filter(ob):
             front_edge, back_edge, rod_scale,
             width, radius,
             left, right, top, bottom, front,
-            back, scale, m)           
+            back, m)           
 
 def draw():
 

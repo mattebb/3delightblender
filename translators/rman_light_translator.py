@@ -80,6 +80,36 @@ class RmanLightTranslator(RmanTranslator):
             rman_sg_light.is_transforming = object_utils.is_transforming(ob)
         return rman_sg_light
 
+    def update_light_filters(self, ob, rman_sg_light):
+        light = ob.data
+        rm = light.renderman      
+
+        light_filters = []
+        lightfilter_translator = self.rman_scene.rman_translators['LIGHTFILTER']
+        
+        for lf in rm.light_filters:
+            if lf.filter_name in bpy.data.objects:
+                light_filter = bpy.data.objects[lf.filter_name]
+                light_filter_sg = None
+
+                light_filter_db_name = object_utils.get_db_name(light_filter)
+                rman_sg_lightfilter = self.rman_scene.rman_objects.get(light_filter_db_name, None)
+                if not rman_sg_lightfilter:
+                    rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
+                lightfilter_translator.update(light_filter, rman_sg_lightfilter)
+
+
+                light_filters.append(rman_sg_lightfilter.sg_node)
+
+                '''
+                coordsys = self.rman_scene.rman_objects.get(rman_sg_lightfilter.coord_sys, None)
+                if coordsys:
+                    rman_sg_light.sg_node.AddCoordinateSystem(coordsys.sg_node)
+                '''
+
+        if len(light_filters) > 0:
+            rman_sg_light.sg_node.SetLightFilter(light_filters)          
+
     def update(self, ob, rman_sg_light):
 
         light = ob.data
@@ -88,28 +118,9 @@ class RmanLightTranslator(RmanTranslator):
         group_name=''
         if self.rman_scene.bl_scene:
             group_name = get_light_group(ob, self.rman_scene.bl_scene)
-        light_filters = []
 
-        lightfilter_translator = RmanLightFilterTranslator(rman_scene=self.rman_scene)
-        
-        for lf in rm.light_filters:
-            if lf.filter_name in bpy.data.objects:
-                light_filter = bpy.data.objects[lf.filter_name]
-                light_filter_sg = None
-
-                light_filter_sg = lightfilter_translator.export(light_filter, "")
-
-                if light_filter_sg:
-                    light_filters.append(light_filter_sg)
-
-                    coordsys_name = "%s_coordsys" % light_filter.name
-                    coordsys = self.rman_scene.rman_objects.get(coordsys_name, None)
-                    if coordsys:
-                        rman_sg_light.sg_node.AddCoordinateSystem(coordsys)
-
-        if len(light_filters) > 0:
-            rman_sg_light.sg_node.SetLightFilter(light_filters)
-        
+        # light filters
+        self.update_light_filters(ob, rman_sg_light)
         
         light_shader = rm.get_light_node()
 

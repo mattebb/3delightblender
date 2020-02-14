@@ -1,46 +1,57 @@
 from .rman_translator import RmanTranslator
 from ..rman_utils import property_utils
 from ..rman_utils import transform_utils
-from ..rman_sg_nodes.rman_sg_node import RmanSgNode
-import math
+from ..rman_utils import object_utils
+from ..rman_sg_nodes.rman_sg_lightfilter import RmanSgLightFilter
 import bpy                    
 
 class RmanLightFilterTranslator(RmanTranslator):
 
     def __init__(self, rman_scene):
         super().__init__(rman_scene)
-        self.bl_type = 'FILTER'  
+        self.bl_type = 'LIGHTFILTER'  
+
+    def export_object_primvars(self, ob, sg_node):
+        pass
+
+    def export_object_attributes(self, ob, sg_node):
+
+        # Adds external RIB to object_attributes
+        name = ob.name_full
+        rm = ob.renderman
+        attrs = sg_node.GetAttributes()
+
+        # Add ID
+        if name != "":            
+            obj_id = len(self.rman_scene.obj_hash.keys())
+            self.rman_scene.obj_hash[obj_id] = name
+            attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_identifier_id, obj_id)
+
+        sg_node.SetAttributes(attrs)           
 
     def export(self, ob, db_name):
 
-        light_filter = ob
+        lightfilter_shader = ob.data.renderman.get_light_node_name()
+        sg_node = self.rman_scene.rman.SGManager.RixSGShader("LightFilter", lightfilter_shader, '%s-%s' % (db_name, lightfilter_shader))
+        rman_sg_lightfilter = RmanSgLightFilter(self.rman_scene, sg_node, db_name)
+        group_db_name = object_utils.get_group_db_name(ob)
+        rman_sg_lightfilter.coord_sys = group_db_name
 
-        light_filter_sg = None
+        rman_group_translator = self.rman_scene.rman_translators['GROUP']
+        rman_sg_group = rman_group_translator.export(ob, group_db_name)
 
-        if light_filter.data.name in self.rman_scene.rman_objects:
-            lightf_filter_sg = self.rman_scene.rman_objects[light_filter.name]
-        else:
+        rman_group_translator.update_transform(ob, rman_sg_group)
+        self.rman_scene.sg_scene.Root().AddChild(rman_sg_group.sg_node)
 
-            filter_plugin = light_filter.data.renderman.get_light_node()  
+        self.rman_scene.rman_objects[group_db_name] = rman_sg_group        
+        self.rman_scene.rman_objects[db_name] = rman_sg_lightfilter      
+        self.rman_scene.sg_scene.Root().AddCoordinateSystem(rman_sg_group.sg_node)
 
-            lightfilter_name = light_filter.data.renderman.get_light_node_name()
-            light_filter_sg = self.rman_scene.rman.SGManager.RixSGShader("LightFilter", lightfilter_name, light_filter.name)
-            rman_sg_node = RmanSgNode(self.rman_scene, light_filter_sg, "")
-            property_utils.property_group_to_rixparams(filter_plugin, rman_sg_node, light_filter_sg, light=ob.data)
+        return rman_sg_lightfilter 
 
-            coordsys_name = "%s_coordsys" % light_filter.name
-            rixparams = light_filter_sg.params
-            rixparams.SetString("coordsys", coordsys_name)
-
-            self.rman_scene.rman_objects[light_filter.name] = light_filter_sg
-                        
-            coordsys = self.rman_scene.sg_scene.CreateGroup(coordsys_name)
-            m = transform_utils.convert_matrix( light_filter.matrix_world )
-            coordsys.SetTransform(m)
-            self.rman_scene.sg_scene.Root().AddChild(coordsys)
-            #light_sg.AddCoordinateSystem(coordsys)
-
-            self.rman_scene.rman_objects[coordsys_name] = coordsys
-
-        return light_filter_sg
+    def update(self, ob, rman_sg_lightfilter):
+        lightfilter_node = ob.data.renderman.get_light_node()
+        property_utils.property_group_to_rixparams(lightfilter_node, rman_sg_lightfilter, rman_sg_lightfilter.sg_node, light=ob.data)
+        rixparams = rman_sg_lightfilter.sg_node.params
+        rixparams.SetString("coordsys", rman_sg_lightfilter.coord_sys)
             
