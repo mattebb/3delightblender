@@ -601,7 +601,14 @@ def draw_envday_light(ob):
     if ob in bpy.context.selected_objects:
         _SHADER_.uniform_float("color", (1,1,1,1))
 
-    m = Matrix.Identity(4)     
+    loc, rot, sca = Matrix(ob.matrix_world).decompose()
+    axis,angle = rot.to_axis_angle()
+    scale = max(sca) # take the max axis
+    m = Matrix.Rotation(angle, 4, axis)
+    m = m @ Matrix.Scale(scale, 4)
+    ob_matrix = m
+    
+    m = Matrix(ob_matrix)
     m = m @ Matrix.Rotation(math.radians(90.0), 4, 'X')
 
     west_rr_shape = []
@@ -704,12 +711,17 @@ def draw_envday_light(ob):
     batch.draw(_SHADER_)     
 
     sunDirection = _get_sun_direction(ob)
-    sunDirection_pts = [ (0,0,0), sunDirection]
+    sunDirection = Matrix(ob_matrix) @ Vector(sunDirection)
+    origin = Matrix(ob_matrix) @ Vector([0,0,0])
+    sunDirection_pts = [ origin, sunDirection]
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": sunDirection_pts}, indices=[(0,1)])    
     batch.draw(_SHADER_) 
 
-    m = Matrix.Identity(4)
-    sphere = make_sphere(m)
+    # draw a sphere to represent the sun
+    v = sunDirection - origin
+    translate = Matrix.Translation(v)
+    translate = translate @ Matrix.Scale(0.25, 4)
+    sphere = make_sphere(ob_matrix)
     sphere_indices = []
     for i in range(0, len(sphere)):
         if i == len(sphere)-1:
@@ -717,12 +729,9 @@ def draw_envday_light(ob):
         else:
             sphere_indices.append((i, i+1))    
 
-    m = m @ Matrix.Translation(sunDirection)
-    m = m @ Matrix.Scale(0.25, 4)
-
     sphere_shape = []
     for pt in sphere:
-        sphere_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        sphere_shape.append(Vector(transform_utils.transform_points( translate, pt)))
  
 
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": sphere_shape}, indices=sphere_indices)    
@@ -878,7 +887,9 @@ def draw_dome_light(ob):
     if ob in bpy.context.selected_objects:
         _SHADER_.uniform_float("color", (1,1,1,1))
 
-    m = Matrix.Identity(4)
+    loc, rot, sca = Matrix(ob.matrix_world).decompose()
+    axis,angle = rot.to_axis_angle()
+    m = Matrix.Rotation(angle, 4, axis)
     m = m @ Matrix.Scale(100, 4)
 
     R_outside = []
