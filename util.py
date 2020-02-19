@@ -262,7 +262,7 @@ def get_path_list(rm, type):
             if 'RMAN_RIXPLUGINPATH' in os.environ:
                 RMAN_RIXPLUGINPATH = os.environ['RMAN_RIXPLUGINPATH']
                 for p in RMAN_RIXPLUGINPATH.split(':'):
-                    paths.append(os.path.join(p))
+                    paths.append(os.path.join(p, 'Args'))
             if 'RMAN_SHADERPATH' in os.environ:
                 RMAN_SHADERPATH = os.environ['RMAN_SHADERPATH']
                 for p in RMAN_SHADERPATH.split(':'):

@@ -54,551 +54,15 @@ from .rman_utils import texture_utils
 from .rman_utils import filepath_utils
 from .rman_utils import prefs_utils
 from .rfb_logger import rfb_log
+from .rman_bl_nodes import rman_bl_nodes_shaders
 
 from operator import attrgetter, itemgetter
 import os.path
 from time import sleep
 import traceback
 
+
 NODE_LAYOUT_SPLIT = 0.5
-
-group_nodes = ['ShaderNodeGroup', 'NodeGroupInput', 'NodeGroupOutput']
-# Default Types
-
-# update node during ipr for a socket default_value
-
-
-def update_func(self, context):
-    # check if this prop is set on an input
-    node = self.node if hasattr(self, 'node') else self
-
-# socket name corresponds to the param on the node
-
-
-class RendermanSocket:
-    ui_open: BoolProperty(name='UI Open', default=True)
-
-    def get_pretty_name(self, node):
-        if node.bl_idname in group_nodes:
-            return self.name
-        else:
-            return self.identifier
-
-    def get_value(self, node):
-        if node.bl_idname in group_nodes or not hasattr(node, self.name):
-            return self.default_value
-        else:
-            return getattr(node, self.name)
-
-    def draw_color(self, context, node):
-        return (0.25, 1.0, 0.25, 1.0)
-
-    def draw_value(self, context, layout, node):
-        layout.prop(node, self.identifier)
-
-    def draw(self, context, layout, node, text):
-        if self.is_linked or self.is_output or self.hide_value or not hasattr(self, 'default_value'):
-            layout.label(text=self.get_pretty_name(node))
-        elif node.bl_idname in group_nodes or node.bl_idname == "PxrOSLPatternNode":
-            layout.prop(self, 'default_value',
-                        text=self.get_pretty_name(node), slider=True)
-        else:
-            layout.prop(node, self.name,
-                        text=self.get_pretty_name(node), slider=True)
-
-
-class RendermanSocketInterface:
-
-    def draw_color(self, context):
-        return (0.25, 1.0, 0.25, 1.0)
-
-    def draw(self, context, layout):
-        layout.label(text=self.name)
-
-    def from_socket(self, node, socket):
-        if hasattr(self, 'default_value'):
-            self.default_value = socket.get_value(node)
-        self.name = socket.name
-
-    def init_socket(self, node, socket, data_path):
-        sleep(.01)
-        socket.name = self.name
-        if hasattr(self, 'default_value'):
-            socket.default_value = self.default_value
-
-
-# socket types (need this just for the ui_open)
-class RendermanNodeSocketFloat(bpy.types.NodeSocketFloat, RendermanSocket):
-    '''RenderMan float input/output'''
-    bl_idname = 'RendermanNodeSocketFloat'
-    bl_label = 'RenderMan Float Socket'
-
-    default_value: FloatProperty(update=update_func)
-    renderman_type: StringProperty(default='float')
-
-    def draw_color(self, context, node):
-        return (0.5, 0.5, 0.5, 1.0)
-
-
-class RendermanNodeSocketInterfaceFloat(bpy.types.NodeSocketInterfaceFloat, RendermanSocketInterface):
-    '''RenderMan float input/output'''
-    bl_idname = 'RendermanNodeSocketInterfaceFloat'
-    bl_label = 'RenderMan Float Socket'
-    bl_socket_idname = 'RendermanNodeSocketFloat'
-
-    default_value: FloatProperty()
-
-    def draw_color(self, context):
-        return (0.5, 0.5, 0.5, 1.0)
-
-
-class RendermanNodeSocketInt(bpy.types.NodeSocketInt, RendermanSocket):
-    '''RenderMan int input/output'''
-    bl_idname = 'RendermanNodeSocketInt'
-    bl_label = 'RenderMan Int Socket'
-
-    default_value: IntProperty(update=update_func)
-    renderman_type: StringProperty(default='int')
-
-    def draw_color(self, context, node):
-        return (1.0, 1.0, 1.0, 1.0)
-
-
-class RendermanNodeSocketInterfaceInt(bpy.types.NodeSocketInterfaceInt, RendermanSocketInterface):
-    '''RenderMan float input/output'''
-    bl_idname = 'RendermanNodeSocketInterfaceInt'
-    bl_label = 'RenderMan Int Socket'
-    bl_socket_idname = 'RendermanNodeSocketInt'
-
-    default_value: IntProperty()
-
-    def draw_color(self, context):
-        return (1.0, 1.0, 1.0, 1.0)
-
-
-class RendermanNodeSocketString(bpy.types.NodeSocketString, RendermanSocket):
-    '''RenderMan string input/output'''
-    bl_idname = 'RendermanNodeSocketString'
-    bl_label = 'RenderMan String Socket'
-    default_value: StringProperty(update=update_func)
-    is_texture: BoolProperty(default=False)
-    renderman_type: StringProperty(default='string')
-
-
-class RendermanNodeSocketStruct(bpy.types.NodeSocketString, RendermanSocket):
-    '''RenderMan struct input/output'''
-    bl_idname = 'RendermanNodeSocketStruct'
-    bl_label = 'RenderMan Struct Socket'
-    hide_value = True
-    renderman_type = 'string'
-    default_value = ''
-
-
-class RendermanNodeSocketInterfaceStruct(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):
-    '''RenderMan struct input/output'''
-    bl_idname = 'RendermanNodeSocketInterfaceStruct'
-    bl_label = 'RenderMan Struct Socket'
-    bl_socket_idname = 'RendermanNodeSocketStruct'
-    hide_value = True
-
-
-class RendermanNodeSocketColor(bpy.types.NodeSocketColor, RendermanSocket):
-    '''RenderMan color input/output'''
-    bl_idname = 'RendermanNodeSocketColor'
-    bl_label = 'RenderMan Color Socket'
-
-    default_value: FloatVectorProperty(size=3,
-                                        subtype="COLOR", update=update_func)
-    renderman_type: StringProperty(default='color')
-
-    def draw_color(self, context, node):
-        return (1.0, 1.0, .5, 1.0)
-
-
-class RendermanNodeSocketInterfaceColor(bpy.types.NodeSocketInterfaceColor, RendermanSocketInterface):
-    '''RenderMan color input/output'''
-    bl_idname = 'RendermanNodeSocketInterfaceColor'
-    bl_label = 'RenderMan Color Socket'
-    bl_socket_idname = 'RendermanNodeSocketColor'
-
-    default_value: FloatVectorProperty(size=3,
-                                        subtype="COLOR")
-
-    def draw_color(self, context):
-        return (1.0, 1.0, .5, 1.0)
-
-
-class RendermanNodeSocketVector(RendermanSocket, bpy.types.NodeSocketVector):
-    '''RenderMan vector input/output'''
-    bl_idname = 'RendermanNodeSocketVector'
-    bl_label = 'RenderMan Vector Socket'
-    hide_value = True
-
-    default_value: FloatVectorProperty(size=3,
-                                        subtype="EULER", update=update_func)
-    renderman_type: StringProperty(default='vector')
-
-    def draw_color(self, context, node):
-        return (.25, .25, .75, 1.0)
-
-
-class RendermanNodeSocketInterfaceVector(bpy.types.NodeSocketInterfaceVector, RendermanSocketInterface):
-    '''RenderMan color input/output'''
-    bl_idname = 'RendermanNodeSocketInterfaceVector'
-    bl_label = 'RenderMan Vector Socket'
-    bl_socket_idname = 'RendermanNodeSocketVector'
-    hide_value = True
-
-    default_value: FloatVectorProperty(size=3,
-                                        subtype="EULER")
-
-    def draw_color(self, context):
-        return (.25, .25, .75, 1.0)
-
-# Custom socket type for connecting shaders
-
-
-class RendermanShaderSocket(bpy.types.NodeSocketShader, RendermanSocket):
-    '''RenderMan shader input/output'''
-    bl_idname = 'RendermanShaderSocket'
-    bl_label = 'RenderMan Shader Socket'
-    hide_value = True
-
-# Custom socket type for connecting shaders
-
-
-class RendermanShaderSocketInterface(bpy.types.NodeSocketInterfaceShader, RendermanSocketInterface):
-    '''RenderMan shader input/output'''
-    bl_idname = 'RendermanShaderInterfaceSocket'
-    bl_label = 'RenderMan Shader Socket'
-    bl_socket_idname = 'RendermanShaderSocket'
-    hide_value = True
-
-
-# Base class for all custom nodes in this tree type.
-# Defines a poll function to enable instantiation.
-class RendermanShadingNode(bpy.types.ShaderNode):
-    bl_label = 'Output'
-
-    def update_mat(self, mat):
-        if self.renderman_node_type == 'bxdf' and self.outputs['Bxdf'].is_linked:
-            mat.specular_color = [1, 1, 1]
-            mat.diffuse_color = [1, 1, 1, 1]
-            #FIXME mat.use_transparency = False
-            mat.specular_intensity = 0
-            #mat.diffuse_intensity = 1
-
-            if hasattr(self, "baseColor"):
-                mat.diffuse_color[:3] = [i for i in self.baseColor]
-            elif hasattr(self, "emitColor"):
-                mat.diffuse_color[:3] = [i for i in self.emitColor]
-            elif hasattr(self, "diffuseColor"):
-                mat.diffuse_color = (*self.diffuseColor, 1.0)
-            elif hasattr(self, "midColor"):
-                mat.diffuse_color[:3] = [i for i in self.midColor]
-            elif hasattr(self, "transmissionColor"):
-                mat.diffuse_color[:3] = [i for i in self.transmissionColor]
-            elif hasattr(self, "frontColor"):
-                mat.diffuse_color[:3] = [i for i in self.frontColor]
-
-            # specular intensity
-            if hasattr(self, "specular"):
-                mat.specular_intensity = self.specular
-            elif hasattr(self, "SpecularGainR"):
-                mat.specular_intensity = self.specularGainR
-            elif hasattr(self, "reflectionGain"):
-                mat.specular_intensity = self.reflectionGain
-
-            # specular color
-            if hasattr(self, "specularColor"):
-                mat.specular_color[:3] = [i for i in self.specularColor]
-            elif hasattr(self, "reflectionColor"):
-                mat.specular_color[:3] = [i for i in self.reflectionColor]
-
-            if self.bl_idname in ["PxrGlassBxdfNode", "PxrLMGlassBxdfNode"]:
-                #FIXME mat.use_transparency = True
-                mat.diffuse_color[3] = .5#alpha
-
-            if self.bl_idname == "PxrLMMetalBxdfNode":
-                mat.diffuse_color = [0, 0, 0, 1]
-                mat.specular_intensity = 1
-                mat.specular_color = self.specularColor
-                mat.mirror_color = [1, 1, 1]
-
-            elif self.bl_idname == "PxrLMPlasticBxdfNode":
-                mat.specular_intensity = 1
-
-    # all the properties of a shader will go here, also inputs/outputs
-    # on connectable props will have the same name
-    # node_props = None
-    def draw_buttons(self, context, layout):
-        self.draw_nonconnectable_props(context, layout, self.prop_names)
-        if self.bl_idname == "PxrOSLPatternNode":
-            layout.operator("node.refresh_osl_shader")
-
-    def draw_buttons_ext(self, context, layout):
-        self.draw_nonconnectable_props(context, layout, self.prop_names)
-
-    def draw_nonconnectable_props(self, context, layout, prop_names):
-        if self.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
-            col = layout.column(align=True)
-            for prop_name in prop_names:
-                if prop_name not in self.inputs:
-                    prop_meta = self.prop_meta[prop_name]
-                    if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
-                        'hidden' in prop_meta and prop_meta['hidden']:
-                        continue
-                    for name in getattr(self, prop_name):
-                        if name.startswith('enable'):
-                            col.prop(self, name, text=prop_name.split('.')[-1])
-                            break
-            return
-
-        if self.bl_idname == "PxrOSLPatternNode" or self.bl_idname == "PxrSeExprPatternNode":
-            prop = getattr(self, "codetypeswitch")
-            layout.prop(self, "codetypeswitch")
-            if getattr(self, "codetypeswitch") == 'INT':
-                prop = getattr(self, "internalSearch")
-                layout.prop_search(
-                    self, "internalSearch", bpy.data, "texts", text="")
-            elif getattr(self, "codetypeswitch") == 'EXT':
-                prop = getattr(self, "shadercode")
-                layout.prop(self, "shadercode")
-            elif getattr(self, "codetypeswitch") == 'NODE':
-                layout.prop(self, "expression")
-        else:
-            # temp until we can create ramps natively
-            if self.plugin_name == 'PxrRamp':
-                nt = bpy.data.node_groups[self.node_group]
-                if nt:
-                    layout.template_color_ramp(
-                        nt.nodes["ColorRamp"], 'color_ramp')
-
-            for prop_name in prop_names:
-                prop_meta = self.prop_meta[prop_name]
-                if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
-                        'hidden' in prop_meta and prop_meta['hidden']:
-                    continue
-                if prop_name not in self.inputs:
-                    if prop_meta['renderman_type'] == 'page':
-                        ui_prop = prop_name + "_uio"
-                        ui_open = getattr(self, ui_prop)
-                        icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
-                            else 'DISCLOSURE_TRI_RIGHT'
-
-                        split = layout.split(factor=NODE_LAYOUT_SPLIT)
-                        row = split.row()
-                        row.prop(self, ui_prop, icon=icon, text='',
-                                 icon_only=True, emboss=False, slider=True)
-                        row.label(text=prop_name.split('.')[-1] + ':')
-
-                        if ui_open:
-                            prop = getattr(self, prop_name)
-                            self.draw_nonconnectable_props(
-                                context, layout, prop)
-                    elif "Subset" in prop_name and prop_meta['type'] == 'string':
-                        layout.prop_search(self, prop_name, bpy.data.scenes[0].renderman,
-                                           "object_groups")
-                    else:
-                        layout.prop(self, prop_name, slider=True)
-
-    def copy(self, node):
-        pass
-    #    self.inputs.clear()
-    #    self.outputs.clear()
-
-    def RefreshNodes(self, context, nodeOR=None, materialOverride=None):
-
-        # Compile shader.        If the call was from socket draw get the node
-        # information anther way.
-        if hasattr(context, "node"):
-            node = context.node
-        else:
-            node = nodeOR
-        prefs = bpy.context.preferences.addons[__package__].preferences
-
-        out_path = user_path(prefs.env_vars.out)
-        compile_path = os.path.join(user_path(prefs.env_vars.out), "shaders")
-        if os.path.exists(out_path):
-            pass
-        else:
-            os.mkdir(out_path)
-        if os.path.exists(os.path.join(out_path, "shaders")):
-            pass
-        else:
-            os.mkdir(os.path.join(out_path, "shaders"))
-        if getattr(node, "codetypeswitch") == "EXT":
-            osl_path = user_path(getattr(node, 'shadercode'))
-            FileName = os.path.basename(osl_path)
-            FileNameNoEXT = os.path.splitext(FileName)[0]
-            FileNameOSO = FileNameNoEXT
-            FileNameOSO += ".oso"
-            export_path = os.path.join(
-                user_path(prefs.env_vars.out), "shaders", FileNameOSO)
-            if os.path.splitext(FileName)[1] == ".oso":
-                out_file = os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO)
-                if not os.path.exists(out_file) or not os.path.samefile(osl_path, out_file):
-                    shutil.copy(osl_path, out_file)
-                # Assume that the user knows what they were doing when they
-                # compiled the osl file.
-                ok = True
-            else:
-                ok = node.compile_osl(osl_path, compile_path)
-        elif getattr(node, "codetypeswitch") == "INT" and node.internalSearch:
-            script = bpy.data.texts[node.internalSearch]
-            osl_path = bpy.path.abspath(
-                script.filepath, library=script.library)
-            if script.is_in_memory or script.is_dirty or \
-                    script.is_modified or not os.path.exists(osl_path):
-                osl_file = tempfile.NamedTemporaryFile(
-                    mode='w', suffix=".osl", delete=False)
-                osl_file.write(script.as_string())
-                osl_file.close()
-                FileNameNoEXT = os.path.splitext(script.name)[0]
-                FileNameOSO = FileNameNoEXT
-                FileNameOSO += ".oso"
-                node.plugin_name = FileNameNoEXT
-                ok = node.compile_osl(osl_file.name, compile_path, script.name)
-                export_path = os.path.join(
-                    user_path(prefs.env_vars.out), "shaders", FileNameOSO)
-                os.remove(osl_file.name)
-            else:
-                ok = node.compile_osl(osl_path, compile_path)
-                FileName = os.path.basename(osl_path)
-                FileNameNoEXT = os.path.splitext(FileName)[0]
-                node.plugin_name = FileNameNoEXT
-                FileNameOSO = FileNameNoEXT
-                FileNameOSO += ".oso"
-                export_path = os.path.join(
-                    user_path(prefs.env_vars.out), "shaders", FileNameOSO)
-        else:
-            ok = False
-            debug("osl", "Shader cannot be compiled. Shader name not specified")
-        # If Shader compiled successfully then update node.
-        if ok:
-            debug('osl', "Shader Compiled Successfully!")
-            # Reset the inputs and outputs
-            node.outputs.clear()
-            node.inputs.clear()
-            # Read in new properties
-            prop_names, shader_meta = readOSO(export_path)
-            debug('osl', prop_names, "MetaInfo: ", shader_meta)
-            # Set node name to shader name
-            node.label = shader_meta["shader"]
-            node.plugin_name = shader_meta["shader"]
-            # Generate new inputs and outputs
-            setattr(node, 'shader_meta', shader_meta)
-            node.setOslProps(prop_names, shader_meta)
-        else:
-            debug("osl", "NODE COMPILATION FAILED")
-
-    def compile_osl(self, inFile, outPath, nameOverride=""):
-        if not nameOverride:
-            FileName = os.path.basename(inFile)
-            FileNameNoEXT = os.path.splitext(FileName)[0]
-            out_file = os.path.join(outPath, FileNameNoEXT)
-            out_file += ".oso"
-        else:
-            FileNameNoEXT = os.path.splitext(nameOverride)[0]
-            out_file = os.path.join(outPath, FileNameNoEXT)
-            out_file += ".oso"
-        ok = _cycles.osl_compile(inFile, out_file)
-
-        return ok
-
-    def update(self):
-        debug("info", "UPDATING: ", self.name)
-
-    @classmethod
-    def poll(cls, ntree):
-        if hasattr(ntree, 'bl_idname'):
-            return ntree.bl_idname == 'ShaderNodeTree'
-        else:
-            return True
-
-    def setOslProps(self, prop_names, shader_meta):
-        for prop_name in prop_names:
-            prop_type = shader_meta[prop_name]["type"]
-            if shader_meta[prop_name]["IO"] == "out":
-                self.outputs.new(
-                    socket_map[prop_type], prop_name)
-            else:
-                prop_default = shader_meta[prop_name]["default"]
-                if prop_type == "float":
-                    prop_default = float(prop_default)
-                elif prop_type == "int":
-                    prop_default = int(float(prop_default))
-
-                if prop_type == "matrix":
-                    self.inputs.new(socket_map["struct"], prop_name, prop_name)
-                elif prop_type == "void":
-                    pass
-                elif 'lockgeom' in shader_meta[prop_name] and shader_meta[prop_name]['lockgeom'] == 0:
-                    pass
-                else:
-                    input = self.inputs.new(socket_map[shader_meta[prop_name]["type"]],
-                                            prop_name, prop_name)
-                    input.default_value = prop_default
-                    if prop_type == 'struct' or prop_type == 'point':
-                        input.hide_value = True
-                    input.renderman_type = prop_type
-        debug('osl', "Shader: ", shader_meta["shader"], "Properties: ",
-              prop_names, "Shader meta data: ", shader_meta)
-        compileLocation = self.name + "Compile"
-
-
-class RendermanOutputNode(RendermanShadingNode):
-    bl_label = 'RenderMan Material'
-    renderman_node_type = 'output'
-    bl_icon = 'MATERIAL'
-    node_tree = None
-
-    def init(self, context):
-        input = self.inputs.new('RendermanShaderSocket', 'Bxdf')
-        input.type = 'SHADER'
-        input.hide_value = True
-        input = self.inputs.new('RendermanShaderSocket', 'Light')
-        input.hide_value = True
-        input = self.inputs.new('RendermanShaderSocket', 'Displacement')
-        input.hide_value = True
-
-    def draw_buttons(self, context, layout):
-        return
-
-    def draw_buttons_ext(self, context, layout):
-        return
-
-    # when a connection is made or removed see if we're in IPR mode and issue
-    # updates
-    def update(self):
-        pass
-
-
-# Final output node, used as a dummy to find top level shaders
-class RendermanBxdfNode(RendermanShadingNode):
-    bl_label = 'Bxdf'
-    renderman_node_type = 'bxdf'
-
-    shading_compatibility = {'NEW_SHADING'}
-
-
-class RendermanDisplacementNode(RendermanShadingNode):
-    bl_label = 'Displacement'
-    renderman_node_type = 'displacement'
-
-# Final output node, used as a dummy to find top level shaders
-
-
-class RendermanPatternNode(RendermanShadingNode):
-    bl_label = 'Texture'
-    renderman_node_type = 'pattern'
-    bl_type = 'TEX_IMAGE'
-    bl_static_type = 'TEX_IMAGE'
-
-
-class RendermanLightNode(RendermanShadingNode):
-    bl_label = 'Output'
-    renderman_node_type = 'light'
 
 # Generate dynamic types
 
@@ -638,10 +102,10 @@ def generate_node_type(prefs, name, args):
 
     nodeType = args.find("shaderType/tag").attrib['value']
     typename = '%s%sNode' % (name, nodeType.capitalize())
-    nodeDict = {'bxdf': RendermanBxdfNode,
-                'pattern': RendermanPatternNode,
-                'displacement': RendermanDisplacementNode,
-                'light': RendermanLightNode}
+    nodeDict = {'bxdf': rman_bl_nodes_shaders.RendermanBxdfNode,
+                'pattern': rman_bl_nodes_shaders.RendermanPatternNode,
+                'displacement': rman_bl_nodes_shaders.RendermanDisplacementNode,
+                'light': rman_bl_nodes_shaders.RendermanLightNode}
     if nodeType not in nodeDict.keys():
         return
     ntype = type(typename, (nodeDict[nodeType],), {})
@@ -1004,199 +468,7 @@ def link_node(nt, from_node, in_socket):
     if out_socket:
         nt.links.new(out_socket, in_socket)
 
-# bass class for operator to add a node
 
-
-class Add_Node:
-
-    '''
-    For generating cycles-style ui menus to add new nodes,
-    connected to a given input socket.
-    '''
-
-    def get_type_items(self, context):
-        items = []
-        # if this is a pattern input do columns!
-        if self.input_type.lower() == 'pattern':
-            i = 0
-            for pattern_cat, patterns in pattern_categories.items():
-                if pattern_cat.lower() in ['layer', 'script', 'manifold', 'bump', 'displace']:
-                    continue
-                items.append(('', pattern_cat, pattern_cat, '', 0))
-                for nodename in sorted(patterns):
-                    nodetype = patterns[nodename]
-                    items.append((nodetype.typename, nodetype.bl_label,
-                                  nodetype.bl_label, '', i))
-                    i += 1
-                items.append(('', '', '', '', 0))
-            items.append(('REMOVE', 'Remove',
-                          'Remove the node connected to this socket', '', i + 1))
-            items.append(('DISCONNECT', 'Disconnect',
-                          'Disconnect the node connected to this socket', '', i + 2))
-
-        elif self.input_type.lower() in ['layer', 'manifold', 'bump']:
-            patterns = pattern_categories[self.input_type]
-            for nodename in sorted(patterns):
-                nodetype = patterns[nodename]
-                items.append((nodetype.typename, nodetype.bl_label,
-                              nodetype.bl_label))
-
-            items.append(('REMOVE', 'Remove',
-                          'Remove the node connected to this socket'))
-            items.append(('DISCONNECT', 'Disconnect',
-                          'Disconnect the node connected to this socket'))
-        else:
-            for nodetype in nodetypes.values():
-                if self.input_type.lower() == 'light' and nodetype.renderman_node_type == 'light':
-                    if nodetype.__name__ == 'PxrMeshLightLightNode':
-                        items.append((nodetype.typename, nodetype.bl_label,
-                                      nodetype.bl_label))
-                elif nodetype.renderman_node_type == self.input_type.lower():
-                    items.append((nodetype.typename, nodetype.bl_label,
-                                  nodetype.bl_label))
-            items = sorted(items, key=itemgetter(1))
-            items.append(('REMOVE', 'Remove',
-                          'Remove the node connected to this socket'))
-            items.append(('DISCONNECT', 'Disconnect',
-                          'Disconnect the node connected to this socket'))
-        return items
-
-    node_type: EnumProperty(name="Node Type",
-                             description='Node type to add to this socket',
-                             items=get_type_items)
-
-    def execute(self, context):
-        new_type = self.properties.node_type
-        if new_type == 'DEFAULT':
-            return {'CANCELLED'}
-
-        nt = context.nodetree
-        node = context.node
-        socket = context.socket
-        input_node = socket_node_input(nt, socket)
-
-        if new_type == 'REMOVE':
-            nt.nodes.remove(input_node)
-            return {'FINISHED'}
-
-        if new_type == 'DISCONNECT':
-            link = next((l for l in nt.links if l.to_socket == socket), None)
-            nt.links.remove(link)
-            return {'FINISHED'}
-
-        # add a new node to existing socket
-        if input_node is None:
-            newnode = nt.nodes.new(new_type)
-            newnode.location = node.location
-            newnode.location[0] -= 300
-            newnode.selected = False
-            if self.input_type in ['Pattern', 'Layer', 'Manifold', 'Bump']:
-                link_node(nt, newnode, socket)
-            else:
-                nt.links.new(newnode.outputs[self.input_type], socket)
-
-        # replace input node with a new one
-        else:
-            newnode = nt.nodes.new(new_type)
-            input = socket
-            old_node = input.links[0].from_node
-            if self.input_type == 'Pattern':
-                link_node(nt, newnode, socket)
-            else:
-                nt.links.new(newnode.outputs[self.input_type], socket)
-            newnode.location = old_node.location
-            active_material = context.active_object.active_material
-            newnode.update_mat(active_material)
-            nt.nodes.remove(old_node)
-        return {'FINISHED'}
-
-
-class NODE_OT_add_bxdf(bpy.types.Operator, Add_Node):
-
-    '''
-    For generating cycles-style ui menus to add new bxdfs,
-    connected to a given input socket.
-    '''
-
-    bl_idname = 'node.add_bxdf'
-    bl_label = 'Add Bxdf Node'
-    bl_description = 'Connect a Bxdf to this socket'
-    input_type: StringProperty(default='Bxdf')
-
-
-class NODE_OT_add_displacement(bpy.types.Operator, Add_Node):
-
-    '''
-    For generating cycles-style ui menus to add new nodes,
-    connected to a given input socket.
-    '''
-
-    bl_idname = 'node.add_displacement'
-    bl_label = 'Add Displacement Node'
-    bl_description = 'Connect a Displacement shader to this socket'
-    input_type: StringProperty(default='Displacement')
-
-
-class NODE_OT_add_light(bpy.types.Operator, Add_Node):
-
-    '''
-    For generating cycles-style ui menus to add new nodes,
-    connected to a given input socket.
-    '''
-
-    bl_idname = 'node.add_light'
-    bl_label = 'Add Light Node'
-    bl_description = 'Connect a Light shader to this socket'
-    input_type: StringProperty(default='Light')
-
-
-class NODE_OT_add_pattern(bpy.types.Operator, Add_Node):
-
-    '''
-    For generating cycles-style ui menus to add new nodes,
-    connected to a given input socket.
-    '''
-
-    bl_idname = 'node.add_pattern'
-    bl_label = 'Add Pattern Node'
-    bl_description = 'Connect a Pattern to this socket'
-    input_type: StringProperty(default='Pattern')
-
-
-class NODE_OT_add_layer(bpy.types.Operator, Add_Node):
-    '''
-    For generating cycles-style ui menus to add new nodes,
-    connected to a given input socket.
-    '''
-
-    bl_idname = 'node.add_layer'
-    bl_label = 'Add Layer Node'
-    bl_description = 'Connect a PxrLayer'
-    input_type: StringProperty(default='Layer')
-
-
-class NODE_OT_add_manifold(bpy.types.Operator, Add_Node):
-    '''
-    For generating cycles-style ui menus to add new nodes,
-    connected to a given input socket.
-    '''
-
-    bl_idname = 'node.add_manifold'
-    bl_label = 'Add Manifold Node'
-    bl_description = 'Connect a Manifold'
-    input_type: StringProperty(default='Manifold')
-
-
-class NODE_OT_add_bump(bpy.types.Operator, Add_Node):
-    '''
-    For generating cycles-style ui menus to add new nodes,
-    connected to a given input socket.
-    '''
-
-    bl_idname = 'node.add_bump'
-    bl_label = 'Add Bump Node'
-    bl_description = 'Connect a bump node'
-    input_type: StringProperty(default='Bump')
 
 # return if this param has a vstuct connection or linked independently
 
@@ -2202,33 +1474,34 @@ class RendermanPatternNodeCategory(NodeCategory):
         return context.space_data.tree_type == 'ShaderNodeTree'
 
 classes = [
-    RendermanShaderSocket,
-    RendermanNodeSocketColor,
-    RendermanNodeSocketFloat,
-    RendermanNodeSocketInt,
-    RendermanNodeSocketString,
-    RendermanNodeSocketVector,
-    RendermanNodeSocketStruct,
+    
+    #RendermanShaderSocket,
+    #RendermanNodeSocketColor,
+    #RendermanNodeSocketFloat,
+    #RendermanNodeSocketInt,
+    #RendermanNodeSocketString,
+    #RendermanNodeSocketVector,
+    #RendermanNodeSocketStruct,
 
-    RendermanNodeSocketInterfaceFloat,
-    RendermanNodeSocketInterfaceInt,
-    RendermanNodeSocketInterfaceStruct,
-    RendermanNodeSocketInterfaceColor,
-    RendermanNodeSocketInterfaceVector,
-    RendermanShaderSocketInterface,
-    RendermanShadingNode,
-    RendermanOutputNode,
-    RendermanBxdfNode,
-    RendermanDisplacementNode,
-    RendermanPatternNode,
-    RendermanLightNode,
-    NODE_OT_add_bxdf,
-    NODE_OT_add_displacement,
-    NODE_OT_add_light,
-    NODE_OT_add_pattern,
-    NODE_OT_add_layer,
-    NODE_OT_add_manifold,
-    NODE_OT_add_bump,
+    #RendermanNodeSocketInterfaceFloat,
+    #RendermanNodeSocketInterfaceInt,
+    #RendermanNodeSocketInterfaceStruct,
+    #RendermanNodeSocketInterfaceColor,
+    #RendermanNodeSocketInterfaceVector,
+    #RendermanShaderSocketInterface,
+    #RendermanShadingNode,
+    #RendermanOutputNode,
+    #RendermanBxdfNode,
+    #RendermanDisplacementNode,
+    #RendermanPatternNode,
+    #RendermanLightNode,
+    #NODE_OT_add_bxdf,
+    #NODE_OT_add_displacement,
+    #NODE_OT_add_light,
+    #NODE_OT_add_pattern,
+    #NODE_OT_add_layer,
+    #NODE_OT_add_manifold,
+    #NODE_OT_add_bump,
 ]
 
 nodetypes = {}
@@ -2257,6 +1530,7 @@ def register():
 
     categories = {}
 
+    '''
     for name, arg_file in args_files_in_path(prefs, None).items():
         try:
             f,ext = os.path.splitext(arg_file)
@@ -2328,7 +1602,7 @@ def register():
     node_categories = [
         # identifier, label, items list
         RendermanPatternNodeCategory("PRMan_output_nodes", "RenderMan Outputs",
-                                     items=[NodeItem('RendermanOutputNode', label=RendermanOutputNode.bl_label)]),
+                                     items=[NodeItem('RendermanOutputNode', label=rman_bl_nodes_shaders.RendermanOutputNode.bl_label)]),
     ]
 
     for name, (desc, items) in node_cats.items():
@@ -2338,7 +1612,7 @@ def register():
 
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES",
                                              node_categories)
-
+    '''
 
 def unregister():
     nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")

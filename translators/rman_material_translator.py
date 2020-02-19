@@ -297,7 +297,7 @@ class RmanMaterialTranslator(RmanTranslator):
         elif node.renderman_node_type == "lightfilter":
 
             light_name = node.bl_label
-        elif node.renderman_node_type == "displacement":
+        elif node.renderman_node_type == "displace":
             sg_node = self.rman_scene.rman.SGManager.RixSGShader("Displacement", node.bl_label, instance)
         else:
             sg_node = self.rman_scene.rman.SGManager.RixSGShader("Bxdf", node.bl_label, instance)        

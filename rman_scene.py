@@ -1301,18 +1301,6 @@ class RmanScene(object):
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
             self.export_hider()
             self.export_viewport_stats()
-
-    def update_viewport_integrator(self, context):
-        self.bl_scene = context.scene
-        with self.rman.SGManager.ScopedEdit(self.sg_scene):
-            rm = self.bl_scene.renderman_viewport
-            integrator = rm.viewport_integrator
-            integrator_sg = self.rman.SGManager.RixSGShader("Integrator", integrator, "integrator")
-            rman_sg_node = RmanSgNode(self, integrator_sg, "")      
-            self.sg_scene.SetIntegrator(integrator_sg) 
-
-            rm = self.bl_scene.renderman
-            self.export_viewport_stats(integrator=integrator)
  
     def update_material(self, mat):
         db_name = object_utils.get_db_name(mat)

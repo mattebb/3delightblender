@@ -188,17 +188,19 @@ def load_addon():
         from . import ui
         from . import properties
         from . import operators
-        from . import nodes
+        #from . import nodes
+        from . import rman_bl_nodes
 
         # need this now rather than at beginning to make
         # sure preferences are loaded
 
+        rman_bl_nodes.register()
         properties.register()
         operators.register()
         rman_ui.register()        
         ui.register()
-        add_handlers(None)
-        nodes.register()
+        add_handlers(None)     
+        #nodes.register()
 
     else:
         rfb_log().error(
@@ -221,11 +223,12 @@ def register():
 def unregister():
     from . import preferences
     remove_handlers()
+    rman_bl_nodes.unregister()    
     properties.unregister()
     operators.unregister()
     rman_ui.unregister()
-    ui.unregister()
-    nodes.unregister()
+    ui.unregister()    
+    #nodes.unregister()
     preferences.unregister()
     from . import presets
     presets.unregister()

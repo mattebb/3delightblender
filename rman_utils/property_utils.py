@@ -3,6 +3,26 @@ from . import string_utils
 from . import shadergraph_utils
 from ..rfb_logger import rfb_log
 
+
+__GAINS_TO_ENABLE__ = {
+    'diffuseGain': 'enableDiffuse',
+    'specularFaceColor': 'enablePrimarySpecular',
+    'specularEdgeColor': 'enablePrimarySpecular',
+    'roughSpecularFaceColor': 'enableRoughSpecular',
+    'roughSpecularEdgeColor': 'enableRoughSpecular',
+    'clearcoatFaceColor': 'enableClearCoat',
+    'clearcoatEdgeColor': 'enableClearCoat',
+    'iridescenceFaceGain': 'enableIridescence',
+    'iridescenceEdgeGain': 'enableIridescence',
+    'fuzzGain': 'enableFuzz',
+    'subsurfaceGain': 'enableSubsurface',
+    'singlescatterGain': 'enableSingleScatter',
+    'singlescatterDirectGain': 'enableSingleScatter',
+    'refractionGain': 'enableGlass',
+    'reflectionGain': 'enableGlass',
+    'glowGain': 'enableGlow',
+}
+
 def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1):
     if is_array:
         if param_type == 'float':
@@ -89,25 +109,6 @@ def get_output_param_str(node, mat_name, socket, to_socket=None):
 
     return build_output_param_str(mat_name, node, socket, shadergraph_utils.do_convert_socket(socket, to_socket))    
 
-
-gains_to_enable = {
-    'diffuseGain': 'enableDiffuse',
-    'specularFaceColor': 'enablePrimarySpecular',
-    'specularEdgeColor': 'enablePrimarySpecular',
-    'roughSpecularFaceColor': 'enableRoughSpecular',
-    'roughSpecularEdgeColor': 'enableRoughSpecular',
-    'clearcoatFaceColor': 'enableClearCoat',
-    'clearcoatEdgeColor': 'enableClearCoat',
-    'iridescenceFaceGain': 'enableIridescence',
-    'iridescenceEdgeGain': 'enableIridescence',
-    'fuzzGain': 'enableFuzz',
-    'subsurfaceGain': 'enableSubsurface',
-    'singlescatterGain': 'enableSingleScatter',
-    'singlescatterDirectGain': 'enableSingleScatter',
-    'refractionGain': 'enableGlass',
-    'reflectionGain': 'enableGlass',
-    'glowGain': 'enableGlow',
-}
 
 def is_vstruct_or_linked(node, param):
     meta = node.prop_meta[param]
@@ -391,7 +392,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                         set_rix_param(params, param_type, param_name, val, is_reference=is_reference)
 
                     else:
-                        rfb().warning('Warning! %s not found on %s' %
+                        rfb_log().warning('Warning! %s not found on %s' %
                               (vstruct_from_param, from_socket.node.name))
 
                 # else output rib
@@ -408,12 +409,12 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
 
                     # if this is a gain on PxrSurface and the lobe isn't
                     # enabled
+                    
                     if node.bl_idname == 'PxrSurfaceBxdfNode' and \
-                            prop_name in gains_to_enable and \
-                            not getattr(node, gains_to_enable[prop_name]):
+                            prop_name in __GAINS_TO_ENABLE__ and \
+                            not getattr(node, __GAINS_TO_ENABLE__[prop_name]):
                         val = [0, 0, 0] if meta[
                             'renderman_type'] == 'color' else 0
-
                         
 
                     elif 'options' in meta and meta['options'] == 'texture' \

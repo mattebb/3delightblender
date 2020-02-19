@@ -1,31 +1,16 @@
 import bpy
-from bpy.props import PointerProperty, StringProperty, BoolProperty, \
-    EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
-    CollectionProperty, BoolVectorProperty
+from bpy.props import EnumProperty, PointerProperty
 from ..rman_render import RmanRender
-
-# FIXME
-# find a better way to get a list of the integrators
-from ..properties import integrator_names
+from .. import rman_bl_nodes
 
 class RendermanViewportProperties(bpy.types.PropertyGroup):
-
-    def update_viewport_integrator(self, context):
-        rman_render = RmanRender.get_rman_render()
-        if rman_render.rman_interactive_running:
-            rman_render.rman_scene.update_viewport_integrator(context)
 
     def update_hider_decidither(self, context):
         rman_render = RmanRender.get_rman_render()
         if rman_render.rman_interactive_running:
             rm = context.scene.renderman
             rm.hider_decidither = int(self.viewport_hider_decidither)
-            rman_render.rman_scene.update_hider_options(context)           
-
-    viewport_integrator: EnumProperty(name="Viewport Integrator",
-                                      description="",
-                                      items=integrator_names, update=update_viewport_integrator,
-                                      default='PxrPathTracer')
+            rman_render.rman_scene.update_hider_options(context)    
 
     viewport_hider_decidither: EnumProperty(name="Interactive Refinement",
                                       description="",
@@ -52,7 +37,8 @@ def draw_rman_viewport_props(self, context):
         rm_viewport = scene.renderman_viewport
         if view.shading.type == 'RENDERED':
             # integrators menu
-            layout.prop(rm_viewport, 'viewport_integrator', text='')
+            layout.prop(context.scene.renderman, 'integrator', text='')
+            # decidither
             layout.prop(rm_viewport, 'viewport_hider_decidither', text='')
             
         else:
