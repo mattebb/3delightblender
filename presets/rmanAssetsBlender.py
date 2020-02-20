@@ -1139,7 +1139,8 @@ def setParams(node, paramsList):
             else:
                 # array parameters are multi attributes in maya.
                 if '[' in ptype:
-                    setattr(node, pname, pval)
+                    pass
+                    #setattr(node, pname, pval)
                 else:
                     try:
                         if type(getattr(node,pname)) == type(""):
@@ -1267,9 +1268,9 @@ def createNodes(Asset):
         nodeId = node.name()
         nodeType = node.type()
         nodeClass = node.nodeClass()
-        print('%s %s: %s' % (nodeId, nodeType, nodeClass))
+        # print('%s %s: %s' % (nodeId, nodeType, nodeClass))
         fmt, vals, ttype = node.transforms()
-        print('+ %s %s: %s' % (fmt, vals, ttype))
+        # print('+ %s %s: %s' % (fmt, vals, ttype))
 
     #     nodeName = None
     #     transformName = None
@@ -1293,7 +1294,10 @@ def createNodes(Asset):
     #         transformName = mc.shadingNode(nodeType, name=nodeId, asLight=True)
     #         nodeName = mc.listRelatives(transformName, shapes=True)[0]
         if nodeClass == 'bxdf':
-            created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
+            if nodeType in g_PxrToBlenderNodes:
+                created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
+            else:
+                created_node = nt.nodes.new('%sBxdfNode' % nodeType)
             created_node.location[0] = -curr_x
             curr_x = curr_x + 250
             created_node.name = nodeId
@@ -1331,9 +1335,16 @@ def createNodes(Asset):
                     created_node.name = nodeId
                     created_node.label = nodeId
                 else:
-                    err = ('createNodes: Unknown nodetype "%s"'
-                           % nodeType)
-                    raise RmanAssetBlenderError(err)
+                    try:
+                        created_node = nt.nodes.new('%sPatternNode' % nodeType)
+                        created_node.location[0] = -curr_x
+                        curr_x = curr_x + 250
+                        created_node.name = nodeId
+                        created_node.label = nodeId                        
+                    except:
+                        err = ('createNodes: Unknown nodetype "%s"'
+                            % nodeType)
+                        raise RmanAssetBlenderError(err)
 
         elif nodeClass == 'root':
             created_node = nt.nodes.new('RendermanOutputNode')
@@ -1435,9 +1446,9 @@ def connectNodes(Asset, nt, nodeDict):
         dstSocket = con.dstParam()
         if srcSocket in srcNode.outputs and dstSocket in dstNode.inputs:
             nt.links.new(srcNode.outputs[srcSocket], dstNode.inputs[dstSocket])
-        elif dstSocket == 'surfaceShader':
+        elif dstSocket == 'surfaceShader' or dstSocket == 'rman__surface':
             nt.links.new(srcNode.outputs['Bxdf'], dstNode.inputs['Bxdf'])
-        elif dstSocket == 'displacementShader':
+        elif dstSocket == 'displacementShader' or dstSocket == 'rman__displacement':
             nt.links.new(srcNode.outputs['Displacement'], dstNode.inputs['Displacement'])
         else:
             print('error connecting %s.%s to %s.%s' % (srcNode,srcSocket, dstNode, dstSocket))
@@ -1540,7 +1551,7 @@ def importAsset(filepath):
                 # create a new dome light
                 else:
                     bpy.ops.object.mr_add_hemi()
-                    ob = view_layer.obejects.active
+                    ob = bpy.context.view_layer.objects.active
                     plugin_node = ob.data.renderman.get_light_node()
                     plugin_node.lightColorMap = env_map_path
 

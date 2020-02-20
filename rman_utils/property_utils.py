@@ -2,6 +2,7 @@ from . import texture_utils
 from . import string_utils
 from . import shadergraph_utils
 from ..rfb_logger import rfb_log
+import bpy
 
 
 __GAINS_TO_ENABLE__ = {

@@ -32,8 +32,12 @@ asset_previews = bpy.utils.previews.new()
 
 def get_presets_for_lib(lib):
     items = list(lib.presets)
+    # For now, only look at the top level. Don't show presets
+    # in subdirectories. 
+    '''
     for sub_group in lib.sub_groups:
         items.extend(get_presets_for_lib(sub_group))
+    '''
     return items
 
 def load_previews(lib):

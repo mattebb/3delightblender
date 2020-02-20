@@ -1359,7 +1359,7 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
                            ]
 
     def update_psys(self, context):
-        active = context.view_layer.objects.active
+        active = context.active_object
         active.update_tag(refresh={'DATA'})
 
     use_object_material: BoolProperty(

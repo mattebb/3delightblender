@@ -25,11 +25,13 @@
 
 from .. import util
 import os
+from distutils.dir_util import copy_tree
 import shutil
 import bpy
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from .properties import RendermanPresetGroup, RendermanPreset, refresh_presets_libraries
 from . import icons
+import json
 from bpy.types import NodeTree
 
 def get_library_name(jsonfile):
@@ -62,7 +64,7 @@ class PRMAN_OT_init_preset_library(bpy.types.Operator):
         
         elif os.access(self.directory, os.W_OK):
             rmantree_lib_path = os.path.join(util.guess_rmantree(), 'lib', 'RenderManAssetLibrary')
-            shutil.copytree(rmantree_lib_path, self.directory)
+            copy_tree(rmantree_lib_path, self.directory)
             presets_library.name = 'Library'
             presets_library.path = self.directory
         else:

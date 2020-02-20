@@ -84,7 +84,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
 
             if active:
                 row = layout.row(align=True)
-                row.prop(active, 'name', text='Library')
+                row.prop(active, 'name', text='Category')
                 row.operator('renderman.add_preset_library', text='', icon='ADD')
                 row.operator('renderman.move_preset_library', text='', icon='EXPORT').lib_path = active.path
                 row.operator('renderman.remove_preset_library', text='', icon='X')
@@ -94,7 +94,10 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
                     row = layout.row()
                     row.label(text="Current Preset:")
                     row.prop(active, 'current_preset', text='')
-                    layout.template_icon_view(active, "current_preset")
+
+                    # This doesn't seem to work? Comment out for now
+                    #layout.template_icon_view(active, "current_preset")
+
                     # row of controls for preset
                     row = layout.row(align=True)
                     row.prop(current_preset, 'label', text="")

@@ -122,7 +122,7 @@ class RendermanPresetGroup(PropertyGroup):
         for sub_path in lib_path.split(os.sep):
             if sub_path in active.sub_groups.keys():
                 active = active.sub_groups[sub_path]            
-        refresh_presets_libraries(active.path, active)
+        #refresh_presets_libraries(active.path, active)
         return active
 
     # get the active library from the addon pref
