@@ -1,0 +1,666 @@
+{
+    "name": "rman_properties_scene",
+    "params": [
+        {
+            "panel": "",
+            "page": "",
+            "name": "hider_decidither",
+            "riopt": "hider:decidither",
+            "label": "Interactive Refinement",
+            "type": "int",
+            "default": 0,
+            "min": 0,
+            "max": 6,
+            "widget": false,
+            "help": "This value is only applied during IPR. The value determines how much refinement (in a dither pattern) will be applied to the image during interactive rendering. 0 means full refinement up to a value of 6 which is the least refinement per iteration."
+        },
+        {
+            "panel": "",
+            "page": "",
+            "name": "hider_type",
+            "riopt": "hider:type",
+            "label": "Hider Type",
+            "type": "string",
+            "default": "RAYTRACE",
+            "widget": "mapper",
+            "options": "BAKE:BAKE|RAYTRACE:RAYTRACE",            
+            "help": "(hidden) Choose hider type."
+        },  
+        {
+            "panel": "",
+            "page": "",
+            "name": "enable_external_rendering",
+            "label": "Enable External Rendering",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "(hidden) Enable external RIB rendering"
+        },        
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
+            "name": "render_into",
+            "label": "Render to",
+            "type": "string",
+            "default": "blender",
+            "widget": "mapper",
+            "options": "Blender:blender|it:it",    
+            "help": "Controls where preview and IPR renders will go to."
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
+            "name": "render_selected_objects_only",
+            "label": "Only Render Selected",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Render only the selected object(s)"
+        },                                         
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
+            "name": "do_holdout_matte",
+            "label": "Render Holdouts",
+            "type": "string",
+            "default": "OFF",
+            "widget": "mapper",
+            "options": "Off:OFF|In Alpha:ALPHA|Separate AOV:AOV",    
+            "help": "Render a holdout matte."
+
+        },                
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "Threads Control",
+            "name": "threads",
+            "riopt": "threads",
+            "label": "Render Threads",
+            "type": "int",
+            "default": -2,
+            "min": -32,
+            "max": 32,
+            "help": "The number of preview or IPR rendering threads. A negative number means to use all but n processors."
+
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "Threads Control",
+            "name": "batch_threads",
+            "riopt": "threads",
+            "label": "Batch Threads",
+            "type": "int",
+            "default": 0,
+            "min": -32,
+            "max": 32,
+            "help": "The number of threads for batch renders.  A negative number means to use all but n processors, and zero means all processors."
+
+        },                  
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "",
+            "name": "hider_minSamples",
+            "riopt": "hider:minsamples",
+            "label": "Min Samples",
+            "type": "int",
+            "default": 0,
+            "min": 0,
+            "max": 65536,
+            "widget": false,
+            "slidermin": 0,
+            "slidermax": 4096,
+            "help": "When set to zero this value is automatically computed as the square root of the max samples."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "hider_maxSamples",
+            "riopt": "hider:maxsamples",
+            "label": "Max Samples",
+            "type": "int",
+            "default": 128,
+            "min": 0,
+            "max": 65535,
+            "widget": false,
+            "slidermin": 0,
+            "slidermax": 4096,
+            "presets": {
+                "Fast": 256,
+                "Production": 1024,
+                "High Quality": 2048
+            },
+            "help": "The maximum number of camera rays to be traced for each pixel.  When adaptive sampling is enabled (ie. Pixel Variance is greater than zero), fewer rays may be traced in smoother regions of the image."
+        },                
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "ri_pixelVariance",
+            "riopt": "Ri:PixelVariance",
+            "label": "Pixel Variance",
+            "type": "float",
+            "default": 0.015,
+            "min": 0.0,
+            "max": 0.5,
+            "digits": 5,
+            "connectable": false,
+            "presets": {
+                "Test": 0.15,
+                "Denoising": 0.05,
+                "High Quality": 0.01
+            },
+            "help": "Adaptive sampling is done when Pixel Variance is greater than zero. Reducing this value increases the likelihood that more rays will be traced while increasing its value allows undersampling."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "hider_incremental",
+            "riopt": "hider:incremental",
+            "label": "Incremental",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "help": "Incremental mode means the renderer visits every pixel in the image, computing a single sample for each, then does the same for a second sample, etc.  In non-incremental mode, the renderer visits each pixel once and computes all the samples in one go."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Default Ray Depth",
+            "name": "ri_maxSpecularDepth",
+            "riattr": "trace:maxspeculardepth",
+            "label": "Max Specular Depth",
+            "type": "int",
+            "default": 4,
+            "min": 0,
+            "slidermax": 15
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Default Ray Depth",
+            "name": "ri_maxDiffuseDepth",
+            "riattr": "trace:maxdiffusedepth",
+            "label": "Max Diffuse Depth",
+            "type": "int",
+            "default": 1,
+            "min": 0,
+            "slidermax": 15
+        },        
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "motion_blur",
+            "label": "Motion Blur",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Enable motion blur"
+        },
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "sample_motion_blur",
+            "label": "Sample Motion Blur",
+            "riopt": "hider:sample_motion",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },
+            "help": "Determines if motion blur is rendered in the final image.  If this is disabled the motion vectors are still calculated and can be exported with the dPdTime AOV.  This allows motion blur to be added as a post process effect"
+        },        
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "motion_segments",
+            "label": "Motion Samples",
+            "type": "int",
+            "default": 2,
+            "min": 2,
+            "max":16,
+            "widget": false,
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },            
+            "help": "Enable motion blur"
+        },
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "shutter_angle",
+            "label": "Shutter Angle",
+            "type": "float",
+            "default": 180.0,
+            "min": 0.0,
+            "max":360.0,
+            "widget": false,
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },          
+            "help": "Fraction of time that the shutter is open (360 is one full second).  180 is typical for North America 24fps cameras, 172.8 is typical in Europe"
+        },
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "shutter_timing",
+            "label": "Shutter Timing",
+            "type": "string",
+            "default": "CENTER",
+            "widget": "mapper",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },           
+            "options": "Center on frame:CENTER|Pre frame:PRE|Post frame:POST",
+            "help": "Controls when the shutter opens for a given frame.\n\n    Center on frame - motion is centered on frame.\n    Pre frame - motion ends on frame\n    Post frame - motion starts on frame.\n "
+        },        
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "shutter_efficiency_open",
+            "label": "Shutter open speed",
+            "type": "float",
+            "default": 0.0,
+            "widget": false,
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },           
+            "help": "Shutter open efficiency - controls the speed of the shutter opening.  0 means instantaneous, > 0 is a gradual opening"
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_motion_blur",
+            "name": "shutter_efficiency_close",
+            "label": "Shutter close speed",
+            "type": "float",
+            "default": 1.0,
+            "widget": false,
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_blur",
+                "conditionalVisValue": "1"
+            },  
+            "help": "Shutter close efficiency - controls the speed of the shutter closing. 1 means instantaneous, < 1 is a gradual closing"
+        },               
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "learnLightSelection",
+            "riopt": "lighting:selectionlearningscheme",
+            "label": "Learn Light Results",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "help": "Experimental scheme to use earlier lighting results to drive selection of lights in later iterations."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",            
+            "page": "Filter",
+            "name": "ri_displayFilter",
+            "riopt": "Ri:PixelFilterName",
+            "label": "Filter",
+            "type": "string",
+            "default": "gaussian",
+            "widget": "popup",
+            "options": "box|triangle|catmull-rom|sinc|gaussian|mitchell|separable-catmull-rom|blackman-harris|lanczos|bessel|disk"
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",                        
+            "page": "Filter",
+            "name": "ri_displayFilterSize",
+            "riopt": "Ri:PixelFilterWidth",
+            "label": "Filter Size",
+            "type": "float2",
+            "default": [
+                2,
+                2
+            ],
+            "connectable": false
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "opt_bucket_order",
+            "riopt": "bucket:order",
+            "label": "Bucket Order",
+            "type": "string",
+            "default": "circle",
+            "widget": "popup",
+            "options": "horizontal|vertical|zigzag-x|zigzag-y|spiral|spacefill|circle"
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "opt_bucket_sprial_x",
+            "label": "X",
+            "type": "int",
+            "default": -1,
+            "min": -1,
+            "widget": false,
+            "help": "X coordinate of bucket spiral start",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "opt_bucket_order",
+                "conditionalVisValue": "spiral"
+            }              
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "opt_bucket_sprial_y",
+            "label": "Y",
+            "type": "int",
+            "default": -1,
+            "min": -1,
+            "widget": false,
+            "help": "Y coordinate of bucket spiral start",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "opt_bucket_order",
+                "conditionalVisValue": "spiral"
+            }              
+        },        
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Cache Sizes",
+            "name": "limits_texturememory",
+            "riopt": "limits:texturememory",
+            "label": "Texture",
+            "type": "int",
+            "default": 4096,
+            "widget": false
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Cache Sizes",
+            "name": "limits_geocachememory",
+            "riopt": "limits:geocachememory",
+            "label": "Geometry",
+            "type": "int",
+            "default": 4096,
+            "widget": false
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Cache Sizes",
+            "name": "limits_opacitycachememory",
+            "riopt": "limits:opacitycachememory",
+            "label": "opacity Cache",
+            "type": "int",
+            "default": 2048,
+            "widget": false
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "",
+            "name": "use_metadata",
+            "label": "Use Metadata",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "help": "The output file will contain extra image metadata that can aid with production workflows. Information includes camera (focallength, fstop, sensor size and focal distance), version (Blender and RfB), username, blender scene path, statistic xml path and integrator settings."
+        },  
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "",
+            "name": "custom_metadata",
+            "label": "Metadata Comment",
+            "type": "string",
+            "default": "",
+            "help": "Add a custom comment to the EXR Metadata.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "use_metadata",
+                "conditionalVisValue": "1"
+            }                       
+        },                        
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Statistics",
+            "name": "use_statistics",
+            "label": "Enable Statistics",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox"
+        },      
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Statistics",
+            "name": "statistics_level",
+            "riopt": "statistics:level",
+            "label": "Level",
+            "type": "int",
+            "default": 1,
+            "widget": "mapper",
+            "options": "0:0|1:1|2:2|3:3",
+            "help": "0 - None, 1 - Non-invasive, 2 - More accurate, at some cost, 3 - Most accurate, with potentially significant slowdown",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "use_statistics",
+                "conditionalVisValue": "1"
+            }  
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Statistics",
+            "name": "statistics_level",
+            "riopt": "statistics:level",
+            "label": "Level",
+            "type": "int",
+            "default": 1,
+            "widget": "mapper",
+            "options": "0:0|1:1|2:2|3:3",
+            "help": "0 - None, 1 - Non-invasive, 2 - More accurate, at some cost, 3 - Most accurate, with potentially significant slowdown",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "use_statistics",
+                "conditionalVisValue": "1"
+            }  
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "queuing_system",
+            "label": "Spool to",
+            "type": "string",
+            "default": "lq",
+            "widget": "mapper",
+            "options": "LocalQueue:lq|Tractor:tractor|None:none",
+            "help": "System to spool to. None will generate RIB files, but not spool a render."
+        },   
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "RIB Options",
+            "name": "path_rib_output",
+            "label": "RIB Output Path",
+            "type": "string",
+            "default": "{OUT}/{blend}/{scene}.{layer}.{F4}.rib",
+            "widget": "fileinput",
+            "help": "Path to generated .rib files"                   
+        },               
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "RIB Options",
+            "name": "rib_format",
+            "label": "RIB Format",
+            "type": "string",
+            "default": "binary",
+            "widget": "mapper",
+            "options": "ASCII:ascii|Binary:binary",
+            "help": ""
+        },  
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "RIB Options",
+            "name": "rib_compression",
+            "label": "RIB Compression",
+            "type": "string",
+            "default": "none",
+            "widget": "mapper",
+            "options": "None:none|GZip:gzip",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "custom_cmd",
+            "label": "Custom Render Commands",
+            "type": "string",
+            "default": "",
+            "help": "Inserts a string of custom command arguments into the render process"                   
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "denoise_cmd",
+            "label": "Custom Denoise Commands",
+            "type": "string",
+            "default": "",
+            "help": "Inserts a string of custom command arguments into the render process"                   
+        },       
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "custom_cmd",
+            "label": "Custom Render Commands",
+            "type": "string",
+            "default": "",
+            "help": "Inserts a string of custom commands arguments into the denoising process, if selected"                   
+        },                          
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "denoise_gpu",
+            "label": "Use GPU for denoising",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "The denoiser will attempt to use the GPU (if available)"
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Checkpointing/Recover",
+            "name": "recover",
+            "label": "Enable Recovery",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Attempt to resume render from a previous checkpoint (if possible)."
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Checkpointing/Recover",
+            "name": "enable_checkpoint",
+            "label": "Enable Checkpointing",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Allows partial images to be output at specific intervals while the renderer continued to run.  The user may also set a point at which the render will terminate"
+        },
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Checkpointing/Recover",
+            "name": "checkpoint_asfinal",
+            "label": "Final Image as Checkpoint",
+            "type": "string",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Saves the final image as a checkpoint.  This allows you to resume it after raising the sample count",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "enable_checkpoint",
+                "conditionalVisValue": "1"
+            }              
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Checkpointing/Recover",
+            "name": "checkpoint_type",
+            "label": "Checkpoint Method",
+            "type": "string",
+            "default": "s",
+            "widget": "mapper",
+            "options": "Iterations:i|Seconds:s|Minutes:m|Hours:h|Days:d",            
+            "help": "Sets the method that the checkpointing will use",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "enable_checkpoint",
+                "conditionalVisValue": "1"
+            }              
+        },        
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Checkpointing/Recover",
+            "name": "checkpoint_interval",
+            "label": "Interval",
+            "type": "int",
+            "default": 60,
+            "widget": false,           
+            "help": "The interval between checkpoint images",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "enable_checkpoint",
+                "conditionalVisValue": "1"
+            }              
+        },             
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "Checkpointing/Recover",
+            "name": "checkpoint_exitat",
+            "label": "Exit At",
+            "type": "int",
+            "default": 0,
+            "widget": false,           
+            "help": "The maximum interval that will be reached before the render terminates.  0 will disable this option.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "enable_checkpoint",
+                "conditionalVisValue": "1"
+            }              
+        },                  
+        {
+            "panel": "RENDER_PT_renderman_sampling_ipr",
+            "page": "",
+            "name": "ipr_hider_minSamples",
+            "riopt": "hider:minsamples",
+            "label": "Min Samples",
+            "type": "int",
+            "default": 0,
+            "min": 0,
+            "max": 65536,
+            "widget": false,
+            "slidermin": 0,
+            "slidermax": 4096,
+            "help": "When set to zero this value is automatically computed as the square root of the max samples."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling_ipr",
+            "name": "ipr_hider_maxSamples",
+            "riopt": "hider:maxsamples",
+            "label": "Max Samples",
+            "type": "int",
+            "default": 64,
+            "min": 0,
+            "max": 65535,
+            "widget": false,
+            "slidermin": 0,
+            "slidermax": 4096,
+            "presets": {
+                "Fast": 256,
+                "Production": 1024,
+                "High Quality": 2048
+            },
+            "help": "The maximum number of camera rays to be traced for each pixel.  When adaptive sampling is enabled (ie. Pixel Variance is greater than zero), fewer rays may be traced in smoother regions of the image."
+        },                
+        {
+            "panel": "RENDER_PT_renderman_sampling_ipr",
+            "name": "ipr_ri_pixelVariance",
+            "riopt": "Ri:PixelVariance",
+            "label": "Pixel Variance",
+            "type": "float",
+            "default": 0.015,
+            "min": 0.0,
+            "max": 0.5,
+            "digits": 5,
+            "connectable": false,
+            "presets": {
+                "Test": 0.15,
+                "Denoising": 0.05,
+                "High Quality": 0.01
+            },
+            "help": "This value is applied during IPR.  Adaptive sampling is done when Pixel Variance is greater than zero. Reducing this value increases the likelihood that more rays will be traced while increasing its value allows undersampling."
+        }
+    ]
+}

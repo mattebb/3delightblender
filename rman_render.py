@@ -260,6 +260,13 @@ class RmanRender(object):
         rm = bl_scene.renderman
 
         self.rman_running = True
+        rib_options = ""
+        if rm.rib_compression == "gzip":
+            rib_options += " -compression gzip"
+        rib_options += " -format %s" % rm.rib_format
+        if rm.rib_format == "ascii":
+            rib_options += " -indent"
+
         if rm.external_animation:
             original_frame = bl_scene.frame_current
             rfb_log().debug("Writing to RIB...")             
@@ -271,7 +278,7 @@ class RmanRender(object):
                 rib_output = string_utils.expand_string(rm.path_rib_output, 
                                                         frame=frame, 
                                                         asFilePath=True)                                                                            
-                self.sg_scene.Render("rib %s" % rib_output)   
+                self.sg_scene.Render("rib %s %s" % (rib_output, rib_options))
                 self.sgmngr.DeleteScene(self.sg_scene)     
 
             self.bl_engine.frame_set(original_frame, subframe=0.0)
@@ -291,13 +298,14 @@ class RmanRender(object):
 
             rfb_log().debug("Writing to RIB: %s..." % rib_output)
             rib_time_start = time.time()
-            self.sg_scene.Render("rib %s" % rib_output)     
+            self.sg_scene.Render("rib %s %s" % (rib_output, rib_options))     
             rfb_log().debug("Finished writing RIB. Time: %s" % string_utils._format_time_(time.time() - rib_time_start)) 
             rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start))
             self.sgmngr.DeleteScene(self.sg_scene)
 
-        spooler = rman_spool.RmanSpool(self, self.rman_scene, depsgraph)
-        spooler.batch_render()
+        if rm.queuing_system != 'none':
+            spooler = rman_spool.RmanSpool(self, self.rman_scene, depsgraph)
+            spooler.batch_render()
         self.rman_running = False
         self.sg_scene = None
         return True          

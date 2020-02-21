@@ -4,6 +4,7 @@ from bpy.types import PropertyGroup, UIList, Operator, Panel
 from ..rfb_logger import rfb_log
 from .rman_ui_base import _RManPanelHeader
 from .rman_ui_base import CollectionPanel
+from .rman_ui_base import _draw_props
 from ..rman_utils import string_utils
 from ..rman_utils import scene_utils
 
@@ -135,8 +136,24 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             # don't allow renaming beauty display
             row.enabled = False
         row.prop(item, "name")
+        
+        # row = col.row()
+        # row.prop(item, "aov_display_driver")
+
         row = col.row()
-        row.prop(item, "aov_display_driver")
+        row.prop(item, "displaydriver")
+        displaydriver_settings = getattr(item, "%s_settings" % item.displaydriver)
+
+        icon = 'DISCLOSURE_TRI_DOWN' if item.show_displaydriver_settings \
+            else 'DISCLOSURE_TRI_RIGHT'
+        text = item.displaydriver + " Settings:"
+
+        row = col.row()
+        row.prop(item, "show_displaydriver_settings", icon=icon, text=text,
+                         emboss=False)
+        if item.show_displaydriver_settings:
+            _draw_props(displaydriver_settings, displaydriver_settings.prop_names, col)   
+
         row = col.row()
         row.prop(item, 'camera')
 

@@ -98,7 +98,7 @@ class RmanSpool(object):
 
             # render frame
             cdir = string_utils.expand_string(out_dir, asFilePath=True) 
-            threads = rm.threads if not rm.override_threads else rm.external_threads
+            threads = rm.batch_threads 
             rib_file = string_utils.expand_string(rm.path_rib_output, 
                                                 frame=frame_num,
                                                 asFilePath=True)
@@ -177,7 +177,6 @@ class RmanSpool(object):
             tractor_port = '80'
             owner = getpass.getuser()        
 
-            # env var trumps rfm.config
             if 'TRACTOR_ENGINE' in os.environ:
                 tractor_env = os.environ['TRACTOR_ENGINE'].split(':')
                 tractor_engine = tractor_env[0]
@@ -298,7 +297,7 @@ class RmanSpool(object):
         # if we're checkpointing, temporarily turn off asrgba for all openexr displays
 
 
-        threads = self.bl_scene.renderman.external_threads
+        threads = self.bl_scene.renderman.batch_threads
         by = 1
         start = self.bl_scene.frame_start
         end = self.bl_scene.frame_end

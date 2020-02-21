@@ -28,6 +28,7 @@ from .rman_utils import filepath_utils
 from .rman_utils import scene_utils
 from .rman_utils import prefs_utils
 
+from . import rman_config
 from .rfb_logger import rfb_log
 from .rman_sg_nodes.rman_sg_node import RmanSgNode
 
@@ -632,23 +633,23 @@ class RmanScene(object):
             options.SetString(self.rman.Tokens.Rix.k_hider_type, self.rman.Tokens.Rix.k_bake)
         else:
             rm = self.bl_scene.renderman
-            pv = rm.pixel_variance
+            pv = rm.ri_pixelVariance
 
-            options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, rm.max_samples)
-            options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, rm.min_samples)
-            options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, rm.incremental)
+            options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, rm.hider_minSamples)
+            options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, rm.hider_maxSamples)
+            options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, rm.hider_incremental)
 
             if self.is_interactive:
                 options.SetInteger(self.rman.Tokens.Rix.k_hider_decidither, rm.hider_decidither)
-                options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, rm.preview_max_samples)
-                options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, rm.preview_min_samples)
+                options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, rm.ipr_hider_minSamples)
+                options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, rm.ipr_hider_maxSamples)
                 options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, 1)
-                pv = rm.preview_pixel_variance
+                pv = rm.ipr_ri_pixelVariance
 
             if (not self.external_render and rm.render_into == 'blender') or rm.enable_checkpoint:
                 options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, 1)
 
-            options.SetFloat(self.rman.Tokens.Rix.k_hider_darkfalloff, rm.dark_falloff)
+            #options.SetFloat(self.rman.Tokens.Rix.k_hider_darkfalloff, rm.dark_falloff)
 
             if not rm.sample_motion_blur:
                 options.SetInteger(self.rman.Tokens.Rix.k_hider_samplemotion, 0)
@@ -669,15 +670,40 @@ class RmanScene(object):
         rm = self.bl_scene.renderman
         options = self.sg_scene.GetOptions()
 
+        # set any options marked RiOpt in the config file
+        rfb_cfg = rman_config.__RMAN_CONFIG__[rm.rman_config_name]
+        for param_name,ndp in rfb_cfg.params.items():
+            if not hasattr(ndp, 'riopt'):
+                continue
+            val = getattr(rm, param_name)
+            param_type = ndp.type
+            is_array = ndp.is_array()
+            array_len = ndp.size
+            if param_type in ['int2', 'float2']:
+                if param_type == 'int2':
+                    param_type = 'int'
+                else:
+                    param_type = 'float'
+                is_array = True
+                array_len = 2
+            ri_name = ndp.riopt
+            property_utils.set_rix_param(options, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)
+
+
         # threads
-        options.SetInteger(self.rman.Tokens.Rix.k_threads, rm.threads)
+        if not self.external_render:
+            options.SetInteger(self.rman.Tokens.Rix.k_threads, rm.threads)
 
         # cache sizes
-        options.SetInteger(self.rman.Tokens.Rix.k_limits_geocachememory, rm.geo_cache_size * 100)
-        options.SetInteger(self.rman.Tokens.Rix.k_limits_opacitycachememory, rm.opacity_cache_size * 100)
-        options.SetInteger(self.rman.Tokens.Rix.k_limits_texturememory, rm.texture_cache_size * 100)
+        options.SetInteger(self.rman.Tokens.Rix.k_limits_geocachememory, rm.limits_geocachememory * 100)
+        options.SetInteger(self.rman.Tokens.Rix.k_limits_opacitycachememory, rm.limits_opacitycachememory * 100)
+        options.SetInteger(self.rman.Tokens.Rix.k_limits_texturememory, rm.limits_texturememory * 100)
 
-        options.SetInteger(self.rman.Tokens.Rix.k_checkpoint_asfinal, int(rm.asfinal))
+        # pixelfilter
+        options.SetString(self.rman.Tokens.Rix.k_Ri_PixelFilterName, rm.ri_displayFilter)
+        options.SetFloatArray(self.rman.Tokens.Rix.k_Ri_PixelFilterWidth, (rm.ri_displayFilterSize[0], rm.ri_displayFilterSize[1]), 2)
+
+        options.SetInteger(self.rman.Tokens.Rix.k_checkpoint_asfinal, int(rm.checkpoint_asfinal))
 
         options.SetInteger("user:osl:lazy_builtins", 1)
         options.SetInteger("user:osl:lazy_inputs", 1)
@@ -687,7 +713,7 @@ class RmanScene(object):
 
         # Stats
         if not self.is_interactive and rm.use_statistics:
-            options.SetInteger(self.rman.Tokens.Rix.k_statistics_endofframe, 1)
+            options.SetInteger(self.rman.Tokens.Rix.k_statistics_endofframe, int(rm.statistics_level))
             options.SetString(self.rman.Tokens.Rix.k_statistics_xmlfilename, 'stats.%04d.xml' % self.bl_scene.frame_current)
 
         # LPE Tokens for PxrSurface
@@ -703,26 +729,25 @@ class RmanScene(object):
         options.SetString("lpe:user2", "Albedo,DiffuseAlbedo,SubsurfaceAlbedo,HairAlbedo")
 
         # Set bucket shape
-        bucket_order = rm.bucket_shape.lower()
+        bucket_order = rm.opt_bucket_order.lower()
         bucket_orderorigin = []
         if rm.enable_checkpoint and not self.is_interactive:
             bucket_order = 'horizontal'
-            ri.Option("bucket", {"string order": ['horizontal']})
-
-        elif rm.bucket_shape == 'SPIRAL':
+        
+        elif rm.opt_bucket_order == 'spiral':
             settings = self.bl_scene.render
 
-            if rm.bucket_sprial_x <= settings.resolution_x and rm.bucket_sprial_y <= settings.resolution_y:
-                if rm.bucket_sprial_x == -1:
+            if rm.opt_bucket_sprial_x <= settings.resolution_x and rm.opt_bucket_sprial_y <= settings.resolution_y:
+                if rm.opt_bucket_sprial_x == -1:
                     halfX = settings.resolution_x / 2                    
-                    bucket_orderorigin = [int(halfX), rm.bucket_sprial_y]
+                    bucket_orderorigin = [int(halfX), rm.opt_bucket_sprial_y]
 
-                elif rm.bucket_sprial_y == -1:
+                elif rm.opt_bucket_sprial_y == -1:
                     halfY = settings.resolution_y / 2
-                    bucket_orderorigin = [rm.bucket_sprial_y, int(halfY)]
+                    bucket_orderorigin = [rm.opt_bucket_sprial_y, int(halfY)]
                 else:
-                    bucket_orderorigin = [rm.bucket_sprial_x, rm.bucket_sprial_y]
-
+                    bucket_orderorigin = [rm.opt_bucket_sprial_x, rm.opt_bucket_sprial_y]
+        
         options.SetString(self.rman.Tokens.Rix.k_bucket_order, bucket_order)
         if bucket_orderorigin:
             options.SetFloatArray(self.rman.Tokens.Rix.k_bucket_orderorigin, bucket_orderorigin, 2)
@@ -918,6 +943,9 @@ class RmanScene(object):
             dspy_file_name = dspy_params['filePath']
             display = self.rman.SGManager.RixSGShader("Display", display_driver, dspy_file_name)
             channels = ','.join(dspy_params['params']['displayChannels'])
+            dspydriver_params = dspy_params['dspyDriverParams']
+            if dspydriver_params:
+                display.params.Inherit(dspydriver_params)
             display.params.SetString("mode", channels)
             if display_driver == "it":
                 dspy_info = display_utils.make_dspy_info(self.bl_scene)
@@ -966,7 +994,7 @@ class RmanScene(object):
             integrator = rm.integrator
 
         self.rman_render.bl_engine.update_stats('RenderMan (Stats)', 
-                                                '\nIntegrator: %s\nMin Samples: %d\nMax Samples: %d\nInteractive Refinement: %d' % (integrator, rm.min_samples, rm.max_samples, rm.hider_decidither))
+                                                '\nIntegrator: %s\nMin Samples: %d\nMax Samples: %d\nInteractive Refinement: %d' % (integrator, rm.hider_minSamples, rm.hider_maxSamples, rm.hider_decidither))
 
 ### UPDATE METHODS
 #------------------------

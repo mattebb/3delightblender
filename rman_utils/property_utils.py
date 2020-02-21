@@ -2,7 +2,9 @@ from . import texture_utils
 from . import string_utils
 from . import shadergraph_utils
 from ..rfb_logger import rfb_log
+from bpy.props import *
 import bpy
+import sys
 
 
 __GAINS_TO_ENABLE__ = {
@@ -51,9 +53,9 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
             params.ReferenceStruct(param_name, val)                        
     else:        
         if param_type == "float":
-            params.SetFloat(param_name, val)
+            params.SetFloat(param_name, float(val))
         elif param_type == "int":
-            params.SetInteger(param_name, val)
+            params.SetInteger(param_name, int(val))
         elif param_type == "color":
             params.SetColor(param_name, val)
         elif param_type == "string":
@@ -228,6 +230,240 @@ def vstruct_conditional(node, param):
     if 'if' in new_tokens and 'else' not in new_tokens:
         new_tokens.extend(['else', 'False'])
     return eval(" ".join(new_tokens))
+
+
+def generate_property(sp, update_function=None):
+    options = {'ANIMATABLE'}
+    param_name = sp._name #sp.attrib['name']
+    renderman_name = param_name
+    # blender doesn't like names with __ but we save the
+    # "renderman_name with the real one"
+    if param_name[0] == '_':
+        param_name = param_name[1:]
+    if param_name[0] == '_':
+        param_name = param_name[1:]
+
+    param_label = sp.label if hasattr(sp,'label') else param_name
+
+    param_widget = sp.widget.lower() if hasattr(sp,'widget') and sp.widget else 'default'
+
+    param_type = sp.type 
+
+    prop_meta = dict()
+    param_default = sp.default
+    if hasattr(sp, 'vstruct') and sp.vstruct:
+        param_type = 'struct'
+        prop_meta['vstruct'] = True
+    else:
+        param_type = sp.type
+    renderman_type = param_type
+
+    if hasattr(sp, 'vstructmember'):
+        prop_meta['vstructmember'] = sp.vstructmember
+
+    if hasattr(sp, 'vstructConditionalExpr'):
+        prop_meta['vstructConditionalExpr'] = sp.vstructConditionalExpr        
+     
+    prop = None
+
+    # set this prop as non connectable
+    if param_widget in ['null', 'checkbox', 'switch']:
+        prop_meta['__noconnection'] = True
+
+    prop_meta['widget'] = param_widget
+
+    if hasattr(sp, 'connectable') and not sp.connectable:
+        prop_meta['__noconnection'] = True
+
+
+    if hasattr(sp, 'conditionalVisOps'):
+        prop_meta['conditionalVisOp'] = sp.conditionalVisOps
+
+    param_help = ''
+    if hasattr(sp, 'help'):
+        param_help = sp.help
+
+    if 'float' == param_type:
+        if sp.is_array():
+            prop = FloatVectorProperty(name=param_label,
+                                       default=param_default, precision=3,
+                                       size=len(param_default),
+                                       description=param_help,
+                                       update=update_function)
+            prop_meta['arraySize'] = sp.size
+        else:
+            if param_widget == 'checkbox' or param_widget == 'switch':
+                
+                prop = BoolProperty(name=param_label,
+                                    default=bool(param_default),
+                                    description=param_help, update=update_function)
+            elif param_widget == 'mapper':
+                items = []
+                for k,v in sp.options.items():
+                    items.append((str(v), k, ''))
+                
+                bl_default = ''
+                for item in items:
+                    if item[0] == str(param_default):
+                        bl_default = item[0]
+                        break                
+
+                prop = EnumProperty(name=param_label,
+                                    items=items,
+                                    default=bl_default,
+                                    description=param_help, update=update_function)
+            else:
+                param_min = sp.min if hasattr(sp, 'min') else (-1.0 * sys.float_info.max)
+                param_max = sp.max if hasattr(sp, 'max') else sys.float_info.max
+                param_min = sp.slidermin if hasattr(sp, 'slidermin') else param_min
+                param_max = sp.slidermax if hasattr(sp, 'slidermax') else param_max   
+
+                prop = FloatProperty(name=param_label,
+                                     default=param_default, precision=3,
+                                     soft_min=param_min, soft_max=param_max,
+                                     description=param_help, update=update_function)
+
+
+        renderman_type = 'float'
+
+    elif param_type == 'int' or param_type == 'integer':
+        if sp.is_array(): 
+            prop = IntVectorProperty(name=param_label,
+                                     default=param_default,
+                                     size=len(param_default),
+                                     description=param_help,
+                                     update=update_function)
+            prop_meta['arraySize'] = sp.size                                     
+        else:
+            param_default = int(param_default) if param_default else 0
+            # make invertT default 0
+            if param_name == 'invertT':
+                param_default = 0
+
+            if param_widget == 'checkbox' or param_widget == 'switch':
+                prop = BoolProperty(name=param_label,
+                                    default=bool(param_default),
+                                    description=param_help, update=update_function)
+
+            elif param_widget == 'mapper':
+                items = []
+                for k,v in sp.options.items():
+                    items.append((str(v), k, ''))
+                
+                bl_default = ''
+                for item in items:
+                    if item[0] == str(param_default):
+                        bl_default = item[0]
+                        break
+
+                prop = EnumProperty(name=param_label,
+                                    items=items,
+                                    default=bl_default,
+                                    description=param_help, update=update_function)
+            else:
+                pass
+                param_min = int(sp.min) if hasattr(sp, 'min') else 0
+                param_max = int(sp.max) if hasattr(sp, 'max') else 2 ** 31 - 1
+
+                prop = IntProperty(name=param_label,
+                                   default=param_default,
+                                   soft_min=param_min,
+                                   soft_max=param_max,
+                                   description=param_help, update=update_function)
+        renderman_type = 'int'
+
+    elif param_type == 'color':
+        if sp.is_array():
+            prop_meta['arraySize'] = sp.size
+            return (None, None, None)
+        if param_default == 'null' or param_default is None:
+            param_default = '0 0 0'
+        prop = FloatVectorProperty(name=param_label,
+                                   default=param_default, size=3,
+                                   subtype="COLOR",
+                                   soft_min=0.0, soft_max=1.0,
+                                   description=param_help, update=update_function)
+        renderman_type = 'color'
+    elif param_type == 'shader':
+        param_default = ''
+        prop = StringProperty(name=param_label,
+                              default=param_default,
+                              description=param_help, update=update_function)
+        renderman_type = 'string'
+    elif param_type == 'string' or param_type == 'struct':
+        if param_default is None:
+            param_default = ''
+        else:
+            param_default = str(param_default)
+        # if '__' in param_name:
+        #    param_name = param_name[2:]
+        if param_widget == 'fileinput' or param_widget == 'assetidinput' or (param_widget == 'default' and param_name == 'filename'):
+            prop = StringProperty(name=param_label,
+                                  default=param_default, subtype="FILE_PATH",
+                                  description=param_help, update=update_function)
+        elif param_widget == 'mapper':
+            items = []
+            for k,v in sp.options.items():
+                items.append((str(v), k, ''))
+            
+            prop = EnumProperty(name=param_label,
+                                default=param_default, description=param_help,
+                                items=items,
+                                update=update_function)
+
+        elif param_widget == 'popup':
+            items = []
+            for k,v in sp.options.items():
+                items.append((str(v), k, ''))
+            prop = EnumProperty(name=param_label,
+                                default=param_default, description=param_help,
+                                items=items, update=update_function)
+
+        else:
+            prop = StringProperty(name=param_label,
+                                  default=param_default,
+                                  description=param_help, update=update_function)
+        renderman_type = param_type
+
+    elif param_type == 'vector' or param_type == 'normal':
+        if param_default is None:
+            param_default = '0 0 0'
+        prop = FloatVectorProperty(name=param_label,
+                                   default=param_default, size=3,
+                                   subtype="NONE",
+                                   description=param_help, update=update_function)
+    elif param_type == 'point':
+        if param_default is None:
+            param_default = '0 0 0'
+        prop = FloatVectorProperty(name=param_label,
+                                   default=param_default, size=3,
+                                   subtype="XYZ",
+                                   description=param_help, update=update_function)
+        renderman_type = param_type
+    elif param_type == 'int2':
+        param_type = 'int'
+        is_array = 2
+        prop = IntVectorProperty(name=param_label,
+                                 default=param_default, size=2,
+                                 description=param_help, update=update_function)
+        renderman_type = 'int'
+        prop_meta['arraySize'] = 2   
+
+    elif param_type == 'float2':
+        param_type = 'float'
+        is_array = 2
+        prop = FloatVectorProperty(name=param_label,
+                                 default=param_default, size=2,
+                                 description=param_help, update=update_function)
+        renderman_type = 'float'
+        prop_meta['arraySize'] = 2        
+
+    prop_meta['renderman_type'] = renderman_type
+    prop_meta['renderman_name'] = renderman_name
+    prop_meta['label'] = param_label
+    prop_meta['type'] = param_type
+
+    return (param_name, prop_meta, prop)
 
 def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
     # If node is OSL node get properties from dynamic location.

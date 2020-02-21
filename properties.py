@@ -42,6 +42,7 @@ from .rfb_logger import rfb_log
 from . import rman_render
 from . import rman_bl_nodes
 from .rman_bl_nodes import rman_bl_nodes_props
+from . import rman_bl_nodes
 
 # Blender data
 # --------------------------
@@ -340,6 +341,25 @@ class RendermanAOV(bpy.types.PropertyGroup):
             ('png', 'PNG',
             'Render to a PNG file.')
         ], default='openexr')    
+
+    def displaydriver_items(self, context):
+        items = []        
+        for n in rman_bl_nodes.__RMAN_DISPLAY_NODES__:
+            dspy = n.name.split('d_')[1]
+            items.append((dspy, dspy, ''))
+        return items
+
+    displaydriver: EnumProperty(
+        name="Display Driver",
+        description="Display driver for rendering",
+        items=displaydriver_items)
+
+    show_displaydriver_settings: BoolProperty(
+        name="Display Driver Settings",
+        description="Show Display Driver Settings",
+        default=False
+    )
+
     dspy_channels: CollectionProperty(type=RendermanDspyChannel,
                                      name='Display Channels')
     dspy_channels_index: IntProperty(min=-1, default=-1)    
@@ -1961,7 +1981,7 @@ classes = [RendermanPath,
            RendermanDspyChannel,
            RendermanAOV,
            RendermanRenderLayerSettings,           
-           RendermanSceneSettings,
+           #RendermanSceneSettings,
            RendermanMeshGeometrySettings,
            RendermanCurveGeometrySettings,
            OpenVDBChannel,
@@ -2000,8 +2020,9 @@ def register():
 
     #test_dynamic_settings()
 
-    bpy.types.Scene.renderman = PointerProperty(
-        type=RendermanSceneSettings, name="Renderman Scene Settings")
+    #bpy.types.Scene.renderman = PointerProperty(
+    #    type=RendermanSceneSettings, name="Renderman Scene Settings")
+    
     bpy.types.World.renderman = PointerProperty(
         type=RendermanWorldSettings, name="Renderman World Settings")
     bpy.types.Material.renderman = PointerProperty(

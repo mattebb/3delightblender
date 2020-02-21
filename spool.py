@@ -135,12 +135,12 @@ def spool_render(rman_version_short, to_render, rib_files, denoise_files, denois
             cmd_str = ['prman', '-Progress', '-cwd', quote(cdir), '-t:%d' %
                        threads, quote(rib_files[frame_num - frame_begin])]
             if rm.enable_checkpoint:
-                if rm.render_limit == 0:
+                if rm.checkpoint_exitat == 0:
                     cmd_str.insert(5, '-checkpoint %d%s' %
                                    (rm.checkpoint_interval, rm.checkpoint_type))
                 else:
                     cmd_str.insert(5, '-checkpoint %d%s,%d%s' % (
-                        rm.checkpoint_interval, rm.checkpoint_type, rm.render_limit, rm.checkpoint_type))
+                        rm.checkpoint_interval, rm.checkpoint_type, rm.checkpoint_exitat, rm.checkpoint_type))
             if rm.recover:
                 cmd_str.insert(5, '-recover 1')
             if rm.custom_cmd != '':

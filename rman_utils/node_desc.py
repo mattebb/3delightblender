@@ -86,13 +86,6 @@ COND_VIS_OP = {'equalTo': '==',
                'lessThanOrEqualTo': '<=',
                'regex': '~=',
                'in': 'in'}
-# houdini stores when to hide rather when to show
-HOU_COND_VIS_OP = {'equalTo': '!=',
-               'notEqualTo': '==',
-               'greaterThan': '<=',
-               'greaterThanOrEqualTo': '<',
-               'lessThan': '>=',
-               'lessThanOrEqualTo': '>'}
 
 DEFAULT_VALUE = {'float': 0.0, 'float2': (0.0, 0.0), 'float3': (0.0, 0.0, 0.0),
                  'int': 0, 'int2': (0, 0),
@@ -247,9 +240,15 @@ def vis_ops_func(ops, trigger_params):
                 # left expr
                 lop = ops[lpfx + 'Op']
                 lattr = ops[lpfx + 'Path'].split('/')[-1]
-                lexpr = ('float(getattr(node, "%s")) %s float(%s)' %
-                         (lattr, COND_VIS_OP[lop],
-                          repr(ops[lpfx + 'Value'])))
+                value = repr(ops[lpfx + 'Value']).replace("'", "")
+                if value.isalpha() or value == '':
+                    lexpr = ('getattr(node, "%s") %s "%s"' %
+                            (lattr, COND_VIS_OP[lop],
+                            value))
+                else:
+                    lexpr = ('float(getattr(node, "%s")) %s float(%s)' %
+                            (lattr, COND_VIS_OP[lop],
+                            value))                    
                 trigger_params.append(lattr)
                 # right expr
                 rop = ops[rpfx + 'Op']
@@ -257,18 +256,30 @@ def vis_ops_func(ops, trigger_params):
                     expr += '(%s) %s ' % (lexpr, rop)
                 else:
                     rattr = ops[rpfx + 'Path'].split('/')[-1]
-                    rexpr = ('float(getattr(node, "%s")) %s float(%s)' %
-                             (rattr, COND_VIS_OP[rop],
-                              repr(ops[rpfx + 'Value'])))
+                    value = repr(ops[rpfx + 'Value']).replace("'", "")
+                    if value.isalpha() or value == '':
+                        rexpr = ('getattr(node, "%s") %s "%s"' %
+                                (rattr, COND_VIS_OP[rop],
+                                value))                        
+                    else:
+                        rexpr = ('float(getattr(node, "%s")) %s float(%s)' %
+                                (rattr, COND_VIS_OP[rop],
+                                value))
                     trigger_params.append(rattr)
                     # final expr
                     expr += '%s %s %s' % (lexpr, op, rexpr)
         else:
             # simple value check on a single param
             sattr = ops[pfx + 'Path'].split('/')[-1]
-            expr = ('float(getattr(node, "%s")) %s float(%s)' %
-                    (sattr, COND_VIS_OP[op],
-                        repr(ops[pfx + 'Value'])))
+            value = repr(ops[pfx + 'Value']).replace("'", "")
+            if value.isalpha()  or value == '':
+                expr = ('getattr(node, "%s") %s "%s"' %
+                        (sattr, COND_VIS_OP[op],
+                            value))                
+            else:
+                expr = ('float(getattr(node, "%s")) %s float(%s)' %
+                        (sattr, COND_VIS_OP[op],
+                            value))
             trigger_params.append(sattr)
 
         return expr
@@ -1028,7 +1039,7 @@ class NodeDescParamJSON(NodeDescParam):
                     'min', 'name', 'options', 'page', 'page_open', 'presets',
                     'primvar', 'riattr', 'riopt', 'scriptText', 'shortname',
                     'size', 'slidermax', 'slidermin', 'syntax', 'type', 'units',
-                    'widget', '_name', 'uiStruct']
+                    'widget', '_name', 'uiStruct', 'panel']
         return (kw in keywords)
 
     def __init__(self, pdata):
@@ -1053,7 +1064,7 @@ class NodeDescParamJSON(NodeDescParam):
         self._add_ramp_attributes()
 
         # format help message
-        self._format_help()
+        #self._format_help()
 
     def _postprocess_page(self):
         """The JSON syntax uses '/' to describe the page hierarchy but

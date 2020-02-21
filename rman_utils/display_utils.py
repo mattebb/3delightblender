@@ -1,5 +1,6 @@
 from . import string_utils
 from . import prefs_utils
+from . import property_utils
 from .. import rman_constants
 from collections import OrderedDict
 import bpy
@@ -112,7 +113,8 @@ def _get_dspy_dict_viewport(rm_rl, rman_scene, expandTokens=True):
         'denoise': False,
         'denoise_mode': 'singleframe',
         'camera': None,
-        'params': dspy_params}
+        'params': dspy_params,
+        'dspyDriverParams': None}
 
     return dspys_dict   
 
@@ -217,9 +219,12 @@ def get_dspy_dict(rman_scene, expandTokens=True):
                     d[u'filterwidth'] = { 'type': u'float2', 'value': [chan.chan_pixelfilter_x, chan.chan_pixelfilter_y]}
                     d[u'statistics'] = { 'type': u'string', 'value': chan.stats_type}
                     dspys_dict['channels'][ch_name] = d
+  
+            display_driver = aov.displaydriver
 
-            if not display_driver:
-                display_driver = aov.aov_display_driver      
+            param_list = rman_scene.rman.Types.ParamList()
+            dspy_driver_settings = getattr(aov, '%s_settings' % display_driver)
+            property_utils.set_rixparams(dspy_driver_settings, None, param_list, None)             
 
             
             if aov.name == 'beauty':
@@ -245,7 +250,8 @@ def get_dspy_dict(rman_scene, expandTokens=True):
                 'denoise': aov.denoise,
                 'denoise_mode': aov.denoise_mode,
                 'camera': aov.camera,
-                'params': dspy_params}
+                'params': dspy_params,
+                'dspyDriverParams': param_list }
 
             if aov.denoise and not rman_scene.is_interactive:
                 _add_denoiser_channels(dspys_dict, dspy_params)
@@ -271,7 +277,8 @@ def get_dspy_dict(rman_scene, expandTokens=True):
                     'denoise': False,
                     'denoise_mode': 'singleframe',
                     'camera': aov.camera,
-                    'params': dspy_params}                 
+                    'params': dspy_params,
+                    'dspyDriverParams': None}                 
 
     else:
         if not display_driver:
@@ -303,7 +310,8 @@ def get_dspy_dict(rman_scene, expandTokens=True):
             'denoise': False,
             'denoise_mode': 'singleframe',
             'camera': None,
-            'params': dspy_params}
+            'params': dspy_params,
+            'dspyDriverParams': None}
 
         if rman_scene.is_viewport_render:
             # early out
@@ -326,7 +334,8 @@ def get_dspy_dict(rman_scene, expandTokens=True):
                 'denoise': False,
                 'denoise_mode': 'singleframe',  
                 'camera': None,              
-                'params': dspy_params}           
+                'params': dspy_params,
+                'dspyDriverParams': None}           
 
         # so use built in aovs
         blender_aovs = [
@@ -382,7 +391,8 @@ def get_dspy_dict(rman_scene, expandTokens=True):
                 'denoise': False,
                 'denoise_mode': 'singleframe',  
                 'camera': None,                 
-                'params': dspy_params}
+                'params': dspy_params,
+                'dspyDriverParams': None}
 
     if rm.do_holdout_matte != "OFF":
 
@@ -401,7 +411,8 @@ def get_dspy_dict(rman_scene, expandTokens=True):
             'denoise': False,
             'denoise_mode': 'singleframe',   
             'camera': None,         
-            'params': dspy_params}        
+            'params': dspy_params,
+            'dspyDriverParams': None}        
 
         dspy_params = {}                        
         dspy_params['displayChannels'] = []
@@ -431,7 +442,8 @@ def get_dspy_dict(rman_scene, expandTokens=True):
                 'denoise': False,
                 'denoise_mode': 'singleframe',
                 'camera': None,
-                'params': dspy_params}
+                'params': dspy_params,
+                'dspyDriverParams': None}
         else:
             dspys_dict['displays']['holdoutMatte'] = {
                 'driverNode': 'null',
@@ -439,7 +451,8 @@ def get_dspy_dict(rman_scene, expandTokens=True):
                 'denoise': False,
                 'denoise_mode': 'singleframe',
                 'camera': None,
-                'params': dspy_params}
+                'params': dspy_params,
+                'dspyDriverParams': None}
 
     return dspys_dict
 
@@ -516,6 +529,6 @@ def export_metadata(scene, params):
     params.SetString('exrheader_user', os.getenv('USERNAME'))
     params.SetString('exrheader_statistics', statspath)
     params.SetString('exrheader_integrator', rm.integrator)
-    params.SetFloatArray('exrheader_samples', [rm.min_samples, rm.max_samples], 2)
-    params.SetFloat('exrheader_pixelvariance', rm.pixel_variance)
+    params.SetFloatArray('exrheader_samples', [rm.hider_minSamples, rm.hider_maxSamples], 2)
+    params.SetFloat('exrheader_pixelvariance', rm.ri_pixelVariance)
     params.SetString('exrheader_comment', rm.custom_metadata)

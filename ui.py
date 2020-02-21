@@ -27,7 +27,9 @@ import bpy
 import math
 import blf
 from bpy.types import Panel
-from .nodes import NODE_LAYOUT_SPLIT, is_renderman_nodetree, panel_node_draw
+from .nodes import is_renderman_nodetree, panel_node_draw
+from .rman_constants import NODE_LAYOUT_SPLIT
+
 
 # global dictionaries
 from bl_ui.properties_particle import ParticleButtonsPanel
@@ -37,6 +39,8 @@ from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
 
 from .rman_ui.rman_ui_base import _RManPanelHeader
 from .rman_ui.rman_ui_base import CollectionPanel
+from .rman_ui.rman_ui_base import PRManButtonsPanel
+from .rman_ui.rman_ui_base import _draw_ui_from_rman_config
 from .rman_render import RmanRender
 from .rman_utils import object_utils
 
@@ -75,7 +79,7 @@ def get_panels():
         'RENDERLAYER_PT_views',
         'RENDER_PT_antialiasing',
         'RENDER_PT_bake',
-        'RENDER_PT_motion_blur',
+        #'RENDER_PT_motion_blur',
         'RENDER_PT_performance',
         'RENDER_PT_freestyle',
         # 'RENDER_PT_post_processing',
@@ -117,460 +121,6 @@ from bpy.props import (PointerProperty, StringProperty, BoolProperty,
 
 # ------- UI panel definitions -------
 narrowui = 180
-
-
-class PRManButtonsPanel(_RManPanelHeader):
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "render"
-
-
-class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
-    bl_label = "Render"
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        if context.scene.render.engine != "PRMAN_RENDER":
-            return
-
-        icons = load_icons()
-        layout = self.layout
-        rd = context.scene.render
-        rm = context.scene.renderman
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
-
-        if not is_rman_interactive_running:
-
-            # Render
-            row = layout.row(align=True)
-            rman_render_icon = icons.get("render")            
-            row.operator("render.render", text="Render",
-                        icon_value=rman_render_icon.icon_id)
-
-            # IPR
-            #rman_rerender_controls = icons.get("start_ipr")
-            #row.operator('lighting.start_interactive', text="Start IPR",
-            #                icon_value=rman_rerender_controls.icon_id)      
-
-            # Batch Render
-            rman_batch = icons.get("batch_render")
-            row.operator("render.render", text="Render Animation",
-                        icon_value=rman_batch.icon_id).animation = True
-
-        else:
-            row = layout.row(align=True)
-            rman_rerender_controls = icons.get("stop_ipr")
-            row.operator('lighting.stop_interactive', text="Stop IPR",
-                            icon_value=rman_rerender_controls.icon_id)                                          
-
-
-        split = layout.split(factor=0.33)
-
-        col = layout.column()
-        col.enabled = not is_rman_interactive_running
-        col = layout.column()
-        col.enabled = not is_rman_interactive_running
-        row = col.row()
-        row.prop(rm, "render_into", text="Render To")
-
-        col = layout.column()
-        col.enabled = not is_rman_interactive_running
-        #col.prop(context.scene.renderman, "render_selected_objects_only")
-        #col.prop(rm, "do_denoise")
-        col.prop(rm, "do_holdout_matte", text="Render Holdouts")
-
-class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
-    bl_label = "Sampling"
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        # layout.prop(rm, "display_driver")
-
-        ## TODO: move preset to header
-        col = layout.column()
-        row = col.row(align=True)
-        row.menu("PRMAN_MT_presets", text=bpy.types.WM_MT_operator_presets.bl_label)
-        row.operator("render.renderman_preset_add", text="", icon='ADD')
-        row.operator("render.renderman_preset_add", text="",icon='REMOVE').remove_active = True
-
-        col = layout.column(align=True)
-        col.prop(rm, "min_samples", text="Min Samples")
-        col.prop(rm, "max_samples", text="Max Samples")
-        col.prop(rm, "pixel_variance", text="Pixel Variance")
-
-        col = layout.column(align=True)
-        col.prop(rm, "max_specular_depth", text="Specular Depth")
-        col.prop(rm, "max_diffuse_depth", text="Diffuse Depth")
-
-        col = layout.column(align=False)
-        col.prop(rm, 'incremental')
-
-
-class RENDER_PT_renderman_sampling_preview(PRManButtonsPanel, Panel):
-    bl_label = "Interactive and Preview Sampling"
-    bl_parent_id = 'RENDER_PT_renderman_sampling'
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        col = layout.column()
-        row = col.row(align=True)
-
-        col = layout.column(align=True)
-        col.prop(rm, "preview_min_samples", text="Min Samples")
-        col.prop(rm, "preview_max_samples", text="Max Samples")
-        col.prop(rm, "preview_pixel_variance", text="Pixel Variance")
-
-        col = layout.column(align=True)
-        col.prop(rm, "preview_max_specular_depth", text="Specular Depth")
-        col.prop(rm, "preview_max_diffuse_depth", text="Diffuse Depth")
-
-
-class RENDER_PT_renderman_integrator(PRManButtonsPanel, Panel):
-    bl_label = "Integrator"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        col = layout.column()
-        row = col.row(align=True)
-
-        col.prop(rm, "integrator")
-        # find args for integrators here!
-        integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
-
-        # TODO: Remove show integrator settings button
-        icon = 'DISCLOSURE_TRI_DOWN' if rm.show_integrator_settings \
-            else 'DISCLOSURE_TRI_RIGHT'
-        text = rm.integrator + " Settings:"
-
-        row = col.row()
-        row.prop(rm, "show_integrator_settings", icon=icon, text=text,
-                         emboss=False)
-        if rm.show_integrator_settings:
-            draw_props(integrator_settings, integrator_settings.prop_names, col)
-
-
-class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
-    bl_label = "External Rendering"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
-        layout.enabled = not is_rman_interactive_running        
-
-        # button
-        icons = load_icons()
-        col = layout.column()
-        #col.enabled = rm.enable_external_rendering
-        rman_batch = icons.get("batch_render")
-        col.operator("renderman.external_render",
-                     text="External Render", icon_value=rman_batch.icon_id)
-
-
-#        row = layout.row()
-#        split = row.split(factor=0.33)
-#        col = split.column()
-#        col.prop(rm, "external_denoise")
-#        sub_row = col.row()
-#        sub_row.enabled = rm.external_denoise
-#        sub_row.prop(rm, "crossframe_denoise")
-#
-#        # display driver
-#        split = split.split()
-#        col = split.column()
-
-        col.prop(rm, "display_driver", text='Render To')
-
-#        sub_row = col.row()
-#        if rm.display_driver == 'openexr':
-#            sub_row = col.row()
-#            sub_row.prop(rm,  "exr_format_options")
-#            sub_row = col.row()
-#            sub_row.prop(rm,  "exr_compression")
-
-        # do animation
-        col.prop(rm, 'external_animation')
-        col = layout.column(align=True)
-        col.enabled = rm.external_animation
-        col.prop(scene, "frame_start", text="Start")
-        col.prop(scene, "frame_end", text="End")
-
-        #col = layout.column()
-        #col.enabled = rm.enable_external_rendering
-        #col.prop(rm, 'external_denoise')
-        #col = layout.column()
-        #col.enabled = rm.external_denoise and rm.external_animation
-        #col.prop(rm, 'crossframe_denoise')
-
-class RENDER_PT_renderman_spooling_export_options(PRManButtonsPanel, Panel):
-    bl_label = "Spool Options"
-    bl_parent_id = 'RENDER_PT_renderman_spooling'
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
-        layout.enabled = not is_rman_interactive_running           
-
-        #layout.enabled = rm.enable_external_rendering
-        col = layout.column()
-        col.prop(rm, "queuing_system")
-
-        #col = layout.column()
-        #col.prop(rm, "generate_rib")
-        
-        #col = layout.column()
-        #col.enabled = rm.generate_rib
-        #col.prop(rm, "generate_object_rib")
-        
-        #col = layout.column()
-        #col.prop(rm, "generate_alf")
-        #col = layout.column()
-        
-        #col.enabled = rm.generate_alf and rm.generate_render
-        #col.prop(rm, "do_render")
-        #col = layout.column()
-       # col.enabled = rm.do_render and rm.generate_alf and rm.generate_render
-
-        col = layout.column(align = True)
-        col.prop(rm, "rib_format")
-        col.prop(rm, "rib_compression")       
-
-        col = layout.column()
-        #col.enabled = rm.generate_alf
-        #col.prop(rm, 'custom_alfname')
-        #col.prop(rm, "convert_textures")
-        #col.prop(rm, "generate_render")
-        #col = layout.column()
-        #col.enabled = rm.generate_render
-        col.prop(rm, 'custom_cmd')
-
-        col = layout.column()
-        #col.enabled = rm.generate_render
-        col.prop(rm, "override_threads")
-        col = layout.column()
-        col.enabled = rm.override_threads
-        col.prop(rm, "external_threads")
-
-        col = layout.column()
-        #col.enabled = rm.external_denoise and rm.generate_alf
-        col.prop(rm, 'denoise_cmd')
-        #col.prop(rm, 'spool_denoise_aov')
-        col = layout.column()
-        #col.enabled =not rm.spool_denoise_aov and rm.external_denoise
-        col.prop(rm, "denoise_gpu")
-
-        # checkpointing
-        col = layout.column()
-        #col.enabled = rm.generate_alf and rm.generate_render
-        col.prop(rm, 'recover')
-        col.prop(rm, 'enable_checkpoint')
-        col = layout.column()
-        col.enabled = rm.enable_checkpoint
-        col.prop(rm, 'asfinal')
-        col.prop(rm, 'checkpoint_type')
-        col.prop(rm, 'checkpoint_interval')
-        col.prop(rm, 'render_limit')       
-
-# only used by integrator panel
-def draw_props(node, prop_names, layout):
-    for prop_name in prop_names:
-        prop_meta = node.prop_meta[prop_name]
-        prop = getattr(node, prop_name)
-        row = layout.row()
-
-        if prop_meta['renderman_type'] == 'page':
-            ui_prop = prop_name + "_uio"
-            ui_open = getattr(node, ui_prop)
-            icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
-                else 'DISCLOSURE_TRI_RIGHT'
-
-            split = layout.split(factor=NODE_LAYOUT_SPLIT)
-            row = split.row()
-            row.prop(node, ui_prop, icon=icon, text='',
-                     icon_only=True, emboss=False)
-            row.label(text=prop_name.split('.')[-1] + ':')
-
-            if ui_open:
-                draw_props(node, prop, layout)
-
-        else:
-            if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
-                    'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
-                continue
-
-            row.label(text='', icon='BLANK1')
-            # indented_label(row, socket.name+':')
-            if "Subset" in prop_name and prop_meta['type'] == 'string':
-                row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
-                                "object_groups")
-            else:
-                if 'widget' in prop_meta and prop_meta['widget'] == 'floatRamp':
-                    rm = bpy.context.light.renderman
-                    nt = bpy.context.light.node_tree
-                    float_node = nt.nodes[rm.float_ramp_node]
-                    layout.template_curve_mapping(float_node, 'mapping')
-                elif 'widget' in prop_meta and prop_meta['widget'] == 'colorRamp':
-                    rm = bpy.context.light.renderman
-                    nt = bpy.context.light.node_tree
-                    ramp_node = nt.nodes[rm.color_ramp_node]
-                    layout.template_color_ramp(ramp_node, 'color_ramp')
-                else:
-                    row.prop(node, prop_name)
-
-
-class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
-    bl_label = "Motion Blur"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        rm = context.scene.renderman
-        layout = self.layout
-
-        col = layout.column()
-        col.prop(rm, "motion_blur")
-
-        col = layout.column()
-        col.enabled = rm.motion_blur
-        col.prop(rm, "motion_segments")
-        col.prop(rm, "sample_motion_blur")
-        col.prop(rm, "shutter_timing")
-
-        col = layout.column(align=True)
-        col.enabled = rm.motion_blur
-        col.prop(rm, "shutter_angle")
-        col.prop(rm, "shutter_efficiency_open")
-        col.prop(rm, "shutter_efficiency_close")
-
-
-class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
-    bl_label = "Baking"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        layout = self.layout
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
-        layout.enabled = not is_rman_interactive_running           
-        row = layout.row()
-        icons = load_icons()
-        rman_batch = icons.get("batch_render")
-        row.operator("renderman.bake",
-                     text="Bake", icon_value=rman_batch.icon_id)
-
-
-class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
-    bl_label = "Advanced"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        col = layout.column()
-
-        col.prop(rm, "threads")
-        #col.prop(rm, 'hider_decidither')
-
-
-        #col.prop(rm, "shadingrate")
-        #col.prop(rm, "dicing_strategy")
-        #col.prop(rm, "worlddistancelength")
-
-        layout.separator()
-        col = layout.column()
-
-        col.prop(rm, "texture_cache_size")
-        col.prop(rm, "geo_cache_size")
-        col.prop(rm, "opacity_cache_size")
-
-        layout.separator()
-        col = layout.column(align = True)
-
-        col.prop(rm, "pixelfilter", text="Pixel Filter:")
-        col.prop(rm, "pixelfilter_x", text="Size X")
-        col.prop(rm, "pixelfilter_y", text="Size Y")
-
-        #col = layout.column()
-        #col.prop(rm, "dark_falloff")
-
-        col = layout.column(align = True)
-        col.prop(rm, "bucket_shape")
-        if rm.bucket_shape == 'SPIRAL':
-            col = layout.column(align = True)
-            col.prop(rm, "bucket_sprial_x", text="X")
-            col.prop(rm, "bucket_sprial_y", text="Y")
-
-        col = layout.column()
-        col.prop(rm, "use_metadata")
-        col = layout.column()
-        col.enabled = rm.use_metadata
-        col.prop(rm, "custom_metadata")
-
-        col = layout.column()
-        col.prop(rm, "use_statistics", text="Output stats")
-
-        #col.operator('rman.open_stats')
-        #col.operator('rman.open_rib')
-
-        layout.separator()
-        col = layout.column()
-
-        #col.prop(rm, "editor_override")
-
-        #col = layout.column(align = True)
-        #col.prop(rm, "rib_format")
-        #col.prop(rm, "rib_compression")
-
-        col = layout.column()
-        #col.prop(rm, "always_generate_textures")
-        #col.prop(rm, "lazy_rib_gen")
- 
-
 
 class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
     bl_context = "data"
@@ -803,61 +353,6 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
                 col.prop(rm_rl, "exr_format_options")
                 col.prop(rm_rl, "exr_compression")
                 col.prop(rm_rl, "exr_storage")
-
-
-# class RENDER_PT_layer_passes(PRManButtonsPanel, Panel):
-#     bl_label = "Passes"
-#     bl_context = "render_layer"
-#     # bl_options = {'DEFAULT_CLOSED'}
-
-#     def draw(self, context):
-#         layout = self.layout
-
-#         scene = context.scene
-#         rd = scene.render
-#         rl = rd.layers.active
-#         rm = rl.renderman
-
-#         layout.prop(rm, "combine_outputs")
-#         split = layout.split()
-
-        # col = split.column()
-        # col.prop(rl, "use_pass_combined")
-        # col.prop(rl, "use_pass_z")
-        # col.prop(rl, "use_pass_normal")
-        # col.prop(rl, "use_pass_vector")
-        # col.prop(rl, "use_pass_uv")
-        # col.prop(rl, "use_pass_object_index")
-        # #col.prop(rl, "use_pass_shadow")
-        # #col.prop(rl, "use_pass_reflection")
-
-        # col = split.column()
-        # col.label(text="Diffuse:")
-        # row = col.row(align=True)
-        # row.prop(rl, "use_pass_diffuse_direct", text="Direct", toggle=True)
-        # row.prop(rl, "use_pass_diffuse_indirect", text="Indirect", toggle=True)
-        # row.prop(rl, "use_pass_diffuse_color", text="Albedo", toggle=True)
-        # col.label(text="Specular:")
-        # row = col.row(align=True)
-        # row.prop(rl, "use_pass_glossy_direct", text="Direct", toggle=True)
-        # row.prop(rl, "use_pass_glossy_indirect", text="Indirect", toggle=True)
-
-        # col.prop(rl, "use_pass_subsurface_indirect", text="Subsurface")
-        # col.prop(rl, "use_pass_refraction", text="Refraction")
-        # col.prop(rl, "use_pass_emit", text="Emission")
-
-        # layout.separator()
-        # row = layout.row()
-        # row.label('Holdouts')
-        # rm = scene.renderman.holdout_settings
-        # layout.prop(rm, 'do_collector_shadow')
-        # layout.prop(rm, 'do_collector_reflection')
-        # layout.prop(rm, 'do_collector_refraction')
-        # layout.prop(rm, 'do_collector_indirectdiffuse')
-        # layout.prop(rm, 'do_collector_subsurface')
-
-        # col.prop(rl, "use_pass_ambient_occlusion")
-
 
 class DATA_PT_renderman_camera(ShaderPanel, Panel):
     bl_context = "data"
@@ -1412,6 +907,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col.label(text=item.name)
         row = col.row()
         row.prop(item, "aov_display_driver")
+
         row = col.row()
         row.label(text="Channels")
         row = col.row()
@@ -2131,7 +1627,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 row = box.row(align=True)
 
                 # Display Driver
-                row.prop(rm, "display_driver", text='Render into')
+                # row.prop(rm, "display_driver", text='Render into')
 
                 # animation
                 row = box.row(align=True)
@@ -2540,15 +2036,6 @@ class PRMAN_PT_context_material(_RManPanelHeader, Panel):
             split.separator()
 
 classes = [
-    RENDER_PT_renderman_render,
-    RENDER_PT_renderman_sampling,
-    RENDER_PT_renderman_sampling_preview,
-    RENDER_PT_renderman_integrator,
-    RENDER_PT_renderman_spooling,
-    RENDER_PT_renderman_spooling_export_options,
-    RENDER_PT_renderman_motion_blur,
-    RENDER_PT_renderman_baking,
-    RENDER_PT_renderman_advanced_settings,
     MESH_PT_renderman_prim_vars,
     MATERIAL_PT_renderman_preview,
     MATERIAL_PT_renderman_shader_surface,
