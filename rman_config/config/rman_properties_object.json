@@ -1,0 +1,667 @@
+{
+    "name": "rman_properties_object",
+    "params": [
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry",
+            "name": "primitive",
+            "label": "Primitive Type",
+            "type": "string",
+            "widget": "mapper",
+            "options": "Automatic:AUTO|Mesh:MESH|Volume:RI_VOLUME|Points:POINTS|Quadric:QUADRIC|OpenVDB File:OPENVDB|RIB Archive:DELAYED_LOAD_ARCHIVE|RunProgram:PROCEDURAL_RUN_PROGRAM|Dynamic Load DSO:DYNAMIC_LOAD_DSO",
+            "default": "AUTO",            
+            "page": "",
+            "help": "Representation of this object's geometry in the renderer. "
+        },        
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry",
+            "name": "motion_segments_override",
+            "label": "Override Motion Samples",
+            "type": "int",
+            "default": 0,
+            "page": "",
+            "widget": "checkbox"
+        },  
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry",
+            "name": "motion_segments",
+            "label": "Motion Samples",
+            "type": "int",
+            "default": 2,
+            "min": 1,
+            "max": 16,
+            "page": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "motion_segments_override",
+                "conditionalVisValue": "1"
+            }            
+        },          
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "rman_quadric_type",
+            "label": "Quadric Type",
+            "type": "string",
+            "default": "SPHERE",
+            "page": "",
+            "widget": "mapper",
+            "options": "Sphere:SPHERE|Cylinder:CYLINDER|Cone:CONE|Disk:DISK|Torus:TORUS",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "primitive",
+                "conditionalVisValue": "QUADRIC"
+            }
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_height",
+            "label": "Height",
+            "type": "float",
+            "default": 0.0,
+            "page": "",
+            "help": "Height offset above XY plane",
+            "conditionalVisOps": {
+                "conditionalVisOp": "in",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "CONE,DISK"
+            }
+        },   
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_radius",
+            "label": "Radius",
+            "type": "float",
+            "default": 1.0,
+            "page": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "in",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "SPHERE,CYLINDER,CONE,DISK"
+            }
+        },     
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_majorradius",
+            "label": "Major Radius",
+            "type": "float",
+            "default": 2.0,
+            "page": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "TORUS"
+            }
+        }, 
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_majorradius",
+            "label": "Major Radius",
+            "type": "float",
+            "default": 2.0,
+            "page": "",
+            "help": "Radius of Torus ring",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "TORUS"
+            }
+        }, 
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_minorradius",
+            "label": "Minor Radius",
+            "type": "float",
+            "default": 0.5,
+            "page": "",
+            "help": "Radius of Torus cross-section circle",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "TORUS"
+            }
+        },         
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_phimin",
+            "label": "Minimum Cross-section",
+            "type": "float",
+            "default": 0.0,
+            "page": "",
+            "help": "Minimum angle of cross-section circle",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "TORUS"
+            }
+        }, 
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_phimax",
+            "label": "Maximum Cross-section",
+            "type": "float",
+            "default": 360.0,
+            "page": "",
+            "help": "Maximum angle of cross-section circle",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "TORUS"
+            }
+        },           
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_zmin",
+            "label": "Z min",
+            "type": "float",
+            "default": -1.0,
+            "page": "",
+            "help": "Minimum height clipping of the primitive",
+            "conditionalVisOps": {
+                "conditionalVisOp": "in",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "SPHERE,CYLINDER"
+            }
+        },        
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_zmax",
+            "label": "Z max",
+            "type": "float",
+            "default": 1.0,
+            "page": "",
+            "help": "Maximum height clipping of the primitive",
+            "conditionalVisOps": {
+                "conditionalVisOp": "in",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "SPHERE,CYLINDER"
+            }
+        },     
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_sweepangle",
+            "label": "Sweep Angle",
+            "type": "float",
+            "default": 360.0,
+            "page": "",
+            "help": "Angle of clipping around the Z axis",
+            "conditionalVisOps": {
+                "conditionalVisOp": "in",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "SPHERE,CYLINDER,CONE,TORUS"
+            }
+        },
+
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_runprogram",
+            "name": "runprogram_path",
+            "label": "RunProgram Path",
+            "type": "string",
+            "default": "",
+            "page": "",
+            "widget": "fileinput",
+            "help": "Path to RunProgram binary"
+        }, 
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_runprogram",
+            "name": "runprogram_args",
+            "label": "RunProgram Arguments",
+            "type": "string",
+            "default": "",
+            "page": "",
+            "help": "Command line arguments to RunProgram"
+        },       
+        
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_dynamic_load_dso",
+            "name": "path_dso",
+            "label": "DSO Path",
+            "type": "string",
+            "default": "",
+            "page": "",
+            "widget": "fileinput",
+            "help": "Path to DSO library file"
+        }, 
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_dynamic_load_dso",
+            "name": "path_dso_initial_data",
+            "label": "DSO Initial Data",
+            "type": "string",
+            "default": "",
+            "page": "",
+            "help": "Parameters to send the DSO"
+        },          
+
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_rib_archive",
+            "name": "path_archive",
+            "label": "Archive Path",
+            "type": "string",
+            "default": "",
+            "page": "",
+            "widget": "fileinput",
+            "help": "Path to archive file"
+        }, 
+
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_openvdb",
+            "name": "openvdb_path",
+            "label": "OpenVDB Path",
+            "type": "string",
+            "default": "",
+            "page": "",
+            "widget": "fileinput",
+            "help": "Path to OpenVDB file"
+        }, 
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_openvdb",
+            "name": "openvdb_bounds",
+            "label": "OpenVDB Bounds",
+            "type": "string",
+            "default": "BLENDER_OBJECT",
+            "page": "",
+            "widget": "mapper",
+            "options": "Blender Object:BLENDER_OBJECT|Manual:MANUAL",
+            "help": "The bounding box of the renderable geometry.\nBlender Object: Use the blender object's bounding box for the archive's bounds.\nManual: Manually enter coordinates."
+        }, 
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_openvdb",
+            "name": "openvdb_bounds_min",
+            "label": "Min Bounds",
+            "type": "float",
+            "size": 3,
+            "default":[
+                0.0,
+                0.0,
+                0.0
+            ],
+            "page": "",            
+            "help": "Minimum corner of bounding box",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "openvdb_bounds",
+                "conditionalVisValue": "MANUAL"
+            }            
+        },  
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_openvdb",
+            "name": "openvdb_bounds_max",
+            "label": "Max Bounds",
+            "type": "float",
+            "size": 3,
+            "default":[
+                1.0,
+                1.0,
+                1.0
+            ],
+            "page": "",            
+            "help": "Maximum corner of bounding box",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "openvdb_bounds",
+                "conditionalVisValue": "MANUAL"
+            }             
+        },   
+        
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_points",
+            "name": "primitive_point_width",
+            "label": "Point Width",
+            "type": "float",
+            "default": 0.1,
+            "page": "",            
+            "help": "Point Width"                         
+        },              
+
+        {
+            "panel": "OBJECT_PT_renderman_object_render",
+            "name": "rman_matteObject",
+            "riattr": "Ri:Matte",
+            "label": "Matte Object",
+            "type": "int",
+            "widget": "mapper",
+            "options": "Inherit:-1|Yes:1|No:0",
+            "default": -1,
+            "inheritable": true,
+            "inherit_true_value": -1,
+            "page": "Shading",
+            "help": "This object is rendered as a black hole"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_render",
+            "name": "rman_holdout",
+            "riattr": "trace:holdout",
+            "label": "Hold-Out",
+            "type": "int",
+            "widget": "mapper",
+            "options": "Inherit:-1|Yes:1|No:0",
+            "default": -1,
+            "inheritable": true,
+            "inherit_true_value": -1,
+            "page": "Shading",
+            "help": "Useful in holdout workflow. These objects collect reflections, shadows, and transmission."
+        },        
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_maxDiffuseDepth",
+            "riattr": "trace:maxdiffusedepth",
+            "label": "Max Diffuse Depth",
+            "type": "int",
+            "default": -1,
+            "inheritable": true,
+            "inherit_true_value": -1,
+            "page": "Trace",
+            "help": "Maximum diffuse light bounces."
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_maxSpecularDepth",
+            "riattr": "trace:maxspeculardepth",
+            "label": "Max Specular Depth",
+            "type": "int",
+            "default": -1,
+            "inheritable": true,
+            "inherit_true_value": -1,
+            "page": "Trace",
+            "help": "Maximum specular light bounces"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_intersectPriority",
+            "riattr": "trace:intersectpriority",
+            "label": "Intersection Priority",
+            "type": "int",
+            "default": 0,
+            "page": "Nested Dielectrics",
+            "help": "Raytrace intersection priority for nested dielectrics"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_traceDisplacements",
+            "primvar": "trace:displacements",
+            "label": "Trace Displacement",
+            "type": "int",
+            "default": 1,
+            "widget": "checkBox",
+            "page": ""
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_autoBias",
+            "primvar": "trace:autobias",
+            "label": "Auto Bias",
+            "type": "int",
+            "default": -1,
+            "widget": "mapper",
+            "inheritable": true,
+            "inherit_true_value": -1,            
+            "options": "Inherit:-1|Yes:1|No:0",
+            "page": "Bias"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_traceBias",
+            "primvar": "trace:bias",
+            "label": "Trace Bias",
+            "type": "float",
+            "default": -1,
+            "inheritable": true,
+            "inherit_true_value": -1,
+            "page": "Bias",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_autoBias",
+                "conditionalVisValue": 1
+            }
+        },
+        {   
+            "panel": "OBJECT_PT_renderman_object_geometry_attributes",
+            "name": "rman_displacementBound",
+            "primvar": "displacementbound:sphere",
+            "label": "Displacement Bound",
+            "type": "float",
+            "default": 0.1,
+            "page": "Displacement"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_attributes",
+            "name": "rman_displacementCoordSys",
+            "primvar": "displacementbound:CoordinateSystem",
+            "label": "Coordinate System",
+            "type": "string",
+            "default": "object",
+            "widget": "popup",
+            "options": "world|object",
+            "page": "Displacement",
+            "help": "Coordinate system of the displacement bound.  For example, a scaled up ground plane may want the displacement bound in world space, while a character would typically specify the value in object space."
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_attributes",
+            "name": "rman_micropolygonlength",
+            "primvar": "dice:micropolygonlength",
+            "label": "MicroPolygon Length",
+            "type": "float",
+            "default": -1.0,
+            "inheritable": true,
+            "inherit_true_value": -1.0,
+            "page": "Dicing",
+            "help": "Micropolygon distance in raster space for 'instanceprojection' dicing. Values are expressed in pixel size."
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_attributes",
+            "page": "Dicing",
+            "name": "rman_diceStrategy",
+            "primvar": "dice:strategy",
+            "type": "string",
+            "label": "Dicing Strategy",
+            "default": "instanceprojection",
+            "widget": "popup",
+            "options": "instanceprojection|worlddistance|objectdistance",
+            "help": "Dicing method of objects within the viewing frustum.<br>instanceprojection: Use object size in screen space.<br>worlddistance: Use object size in world space<br>objectdistance: Use object size in object space."
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_attributes",
+            "name": "rman_rasterorient",
+            "primvar": "dice:rasterorient",
+            "label": "Raster-Oriented Dicing",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "page": "Dicing",
+            "help": "Changes micropolygon size based on the viewing angle of an object.<br>When rasterorient is on, surfaces are diced more coarsely at a glancing angle.<br>It may be useful to turn off for instances as their geometry is seen from different angles<br>or for objects where displacement details are lost.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_diceStrategy",
+                "conditionalVisValue": "instanceprojection"
+            }
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_attributes",
+            "page": "Dicing",
+            "name": "rman_diceDistanceLength",
+            "primvar": "dice:worlddistancelength",
+            "type": "float",
+            "label": "Dicing Distance Length",
+            "default": -1.0,
+            "min": -1,
+            "slidermax": 2,
+            "help": "Micropolygon distance in world space for 'worlddistance' dicing or object space for 'objectdistance' dicing.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_diceStrategy",
+                "conditionalVisValue": "instanceprojection"
+            }
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_attributes",
+            "page": "Dicing",
+            "name": "dice_referenceCameraType",
+            "label": "Dice Camera",
+            "type": "int",
+            "default": 0,
+            "widget": "mapper",
+            "options": "Inherit from Globals:0|Reference Camera:1",
+            "help": "Specify the camera used for dicing. If no reference camera is specified, RenderMan will use the primary camera."
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_attributes",
+            "page": "Dicing",
+            "name": "dice_referenceCamera",
+            "label": "Reference Camera",
+            "primvar": "dice:referencecamera",
+            "type": "string",
+            "widget": "scenegraphLocation",
+            "options": "nodeType:bpy.types.Camera",
+            "default": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "dice_referenceCameraType",
+                "conditionalVisValue": 1
+            }
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_render",
+            "name": "rman_visibilityCamera",
+            "riattr": "visibility:camera",
+            "label": "Camera Visibility",
+            "type": "int",
+            "default": -1,
+            "widget": "mapper",
+            "options": "Inherit:-1|Yes:1|No:0",
+            "inheritable": true,
+            "inherit_true_value": -1,            
+            "page": "Visibility",
+            "help": "Indicates if object is visible to camera rays"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_render",
+            "name": "rman_visibilityIndirect",
+            "riattr": "visibility:indirect",
+            "label": "Indirect Visibility",
+            "type": "int",
+            "default": -1,
+            "widget": "mapper",
+            "options": "Inherit:-1|Yes:1|No:0",
+            "inheritable": true,
+            "inherit_true_value": -1,            
+            "page": "Visibility",
+            "help": "Indicates if object is visible to indirect (reflection and specular refraction) rays"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_render",
+            "name": "rman_visibilityTransmission",
+            "riattr": "visibility:transmission",
+            "label": "Transmission Visibility",
+            "type": "int",
+            "default": -1,
+            "widget": "mapper",
+            "options": "Inherit:-1|Yes:1|No:0",
+            "inheritable": true,
+            "inherit_true_value": -1,            
+            "page": "Visibility",
+            "help": "Indicates if object is visible to shadow rays"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_matteid",
+            "name": "user_MatteID0",
+            "label": "Matte ID 0",
+            "riattr": "user:MatteID0",
+            "type": "color",
+            "default": [
+                0,
+                0,
+                0
+            ],
+            "help": "Matte ID 0 Color, you also need to add the PxrMatteID node to your bxdf"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_matteid",
+            "name": "user_MatteID1",
+            "label": "Matte ID 1",
+            "riattr": "user:MatteID1",
+            "type": "color",
+            "default": [
+                0,
+                0,
+                0
+            ],
+            "help": "Matte ID 1 Color, you also need to add the PxrMatteID node to your bxdf"
+        },        
+        {
+            "panel": "OBJECT_PT_renderman_object_matteid",
+            "name": "user_MatteID2",
+            "label": "Matte ID 2",
+            "riattr": "user:MatteID2",
+            "type": "color",
+            "default": [
+                0,
+                0,
+                0
+            ],
+            "help": "Matte ID 2 Color, you also need to add the PxrMatteID node to your bxdf"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_matteid",
+            "name": "user_MatteID3",
+            "label": "Matte ID 3",
+            "riattr": "user:MatteID3",
+            "type": "color",
+            "default": [
+                0,
+                0,
+                0
+            ],
+            "help": "Matte ID 2 Color, you also need to add the PxrMatteID node to your bxdf"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_matteid",
+            "name": "user_MatteID4",
+            "label": "Matte ID 4",
+            "riattr": "user:MatteID4",
+            "type": "color",
+            "default": [
+                0,
+                0,
+                0
+            ],
+            "help": "Matte ID 4 Color, you also need to add the PxrMatteID node to your bxdf"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_matteid",
+            "name": "user_MatteID5",
+            "label": "Matte ID 5",
+            "riattr": "user:MatteID5",
+            "type": "color",
+            "default": [
+                0,
+                0,
+                0
+            ],
+            "help": "Matte ID 5 Color, you also need to add the PxrMatteID node to your bxdf"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_matteid",
+            "name": "user_MatteID6",
+            "label": "Matte ID 6",
+            "riattr": "user:MatteID6",
+            "type": "color",
+            "default": [
+                0,
+                0,
+                0
+            ],
+            "help": "Matte ID 6 Color, you also need to add the PxrMatteID node to your bxdf"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_matteid",
+            "name": "user_MatteID7",
+            "label": "Matte ID 7",
+            "riattr": "user:MatteID7",
+            "type": "color",
+            "default": [
+                0,
+                0,
+                0
+            ],
+            "help": "Matte ID 7 Color, you also need to add the PxrMatteID node to your bxdf"
+        }                                                             
+    ]
+}

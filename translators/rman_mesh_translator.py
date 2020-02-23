@@ -2,6 +2,7 @@ from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_mesh import RmanSgMesh
 from ..rman_utils import object_utils
 from ..rman_utils import string_utils
+from ..rman_utils import property_utils
 
 import bpy
 import math
@@ -130,13 +131,35 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
             if weights and len(weights) > 0:
                 rixparams.SetFloatDetail(p.name, weights, "vertex")
 
+    for prop_name, meta in rm.prop_meta.items():
+        if 'primvar' not in meta:
+            continue
+
+        val = getattr(rm, prop_name)
+        if not val:
+            continue
+
+        if 'inheritable' in meta:
+            if float(val) == meta['inherit_true_value']:
+                if hasattr(rm_scene, prop_name):
+                    val = getattr(rm_scene, prop_name)
+
+        ri_name = meta['primvar']
+        is_array = False
+        array_len = -1
+        if 'arraySize' in meta:
+            is_array = True
+            array_len = meta['arraySize']
+        param_type = meta['renderman_type']
+        property_utils.set_rix_param(rixparams, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)                 
+
 class RmanMeshTranslator(RmanTranslator):
 
     def __init__(self, rman_scene):
         super().__init__(rman_scene)
         self.bl_type = 'MESH' 
 
-    def _get_subd_creases_(self, ob, mesh, primvar):
+    def _get_subd_tags_(self, ob, mesh, primvar):
         creases = []
 
         # only do creases 1 edge at a time for now,
@@ -150,8 +173,8 @@ class RmanMeshTranslator(RmanTranslator):
 
         tags = ['interpolateboundary', 'facevaryinginterpolateboundary']
         nargs = [1, 0, 0, 1, 0, 0]
-        intargs = [ob.data.renderman.interp_boundary,
-                ob.data.renderman.face_boundary]
+        intargs = [ob.data.renderman.rman_subdivInterp,
+                ob.data.renderman.rman_subdivFacevaryingInterp]
         floatargs = []
         stringargs = []     
 
@@ -211,6 +234,9 @@ class RmanMeshTranslator(RmanTranslator):
 
         ob.to_mesh_clear()    
 
+    def export_mesh_primvars(self, ob, primvar, mesh):
+        rm = ob.data.renderman         
+
     def update(self, ob, rman_sg_mesh, input_mesh=None):
 
         rm = ob.renderman
@@ -255,17 +281,17 @@ class RmanMeshTranslator(RmanTranslator):
         primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")            
 
         if rman_sg_mesh.is_subdiv:
-            creases = self._get_subd_creases_(ob, mesh, primvar)
-            if rm.rman_subdiv_scheme == 'none':
+            creases = self._get_subd_tags_(ob, mesh, primvar)
+            if ob.data.renderman.rman_subdiv_scheme == 'none':
                 # we were tagged as a subdiv by a modifier
                 rman_sg_mesh.sg_node.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark) 
             else:
-                rman_sg_mesh.sg_node.SetScheme(rm.rman_subdiv_scheme) 
+                rman_sg_mesh.sg_node.SetScheme(ob.data.renderman.rman_subdiv_scheme) 
 
         else:
             rman_sg_mesh.sg_node.SetScheme(None)
             primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "facevarying")         
-        rman_sg_mesh.subdiv_scheme = rm.rman_subdiv_scheme
+        rman_sg_mesh.subdiv_scheme = ob.data.renderman.rman_subdiv_scheme
 
         if rman_sg_mesh.is_multi_material:
             material_ids = _get_material_ids(ob, mesh)

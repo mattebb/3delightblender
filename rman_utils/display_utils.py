@@ -220,11 +220,17 @@ def get_dspy_dict(rman_scene, expandTokens=True):
                     d[u'statistics'] = { 'type': u'string', 'value': chan.stats_type}
                     dspys_dict['channels'][ch_name] = d
   
-            display_driver = aov.displaydriver
+            param_list = None
+            if rman_scene.external_render:
+                display_driver = aov.displaydriver
 
-            param_list = rman_scene.rman.Types.ParamList()
-            dspy_driver_settings = getattr(aov, '%s_settings' % display_driver)
-            property_utils.set_rixparams(dspy_driver_settings, None, param_list, None)             
+                param_list = rman_scene.rman.Types.ParamList()
+                dspy_driver_settings = getattr(aov, '%s_settings' % display_driver)
+                property_utils.set_rixparams(dspy_driver_settings, None, param_list, None)             
+            elif rm.render_into == 'blender':
+                display_driver = 'openexr'
+            else:
+                display_driver = 'it'
 
             
             if aov.name == 'beauty':
@@ -473,8 +479,8 @@ def make_dspy_info(scene):
 
     dspy_notes = "Render start:\t%s\r\r" % ts
     dspy_notes += "Integrator:\t%s\r\r" % rm.integrator
-    dspy_notes += "Samples:\t%d - %d\r" % (rm.min_samples, rm.max_samples)
-    dspy_notes += "Pixel Variance:\t%f\r\r" % rm.pixel_variance
+    dspy_notes += "Samples:\t%d - %d\r" % (rm.hider_minSamples, rm.hider_maxSamples)
+    dspy_notes += "Pixel Variance:\t%f\r\r" % rm.ri_pixelVariance
 
     # moved this in front of integrator check. Was called redundant in
     # both cases

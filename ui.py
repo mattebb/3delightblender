@@ -40,7 +40,6 @@ from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
 from .rman_ui.rman_ui_base import _RManPanelHeader
 from .rman_ui.rman_ui_base import CollectionPanel
 from .rman_ui.rman_ui_base import PRManButtonsPanel
-from .rman_ui.rman_ui_base import _draw_ui_from_rman_config
 from .rman_render import RmanRender
 from .rman_utils import object_utils
 
@@ -121,47 +120,6 @@ from bpy.props import (PointerProperty, StringProperty, BoolProperty,
 
 # ------- UI panel definitions -------
 narrowui = 180
-
-class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
-    bl_context = "data"
-    bl_label = "Primitive Variables"
-
-    def draw_item(self, layout, context, item):
-        ob = context.object
-        if context.mesh:
-            geo = context.mesh
-        layout.prop(item, "name")
-
-        row = layout.row()
-        row.prop(item, "data_source", text="Source")
-        if item.data_source == 'VERTEX_COLOR':
-            row.prop_search(item, "data_name", geo, "vertex_colors", text="")
-        elif item.data_source == 'UV_TEXTURE':
-            row.prop_search(item, "data_name", geo, "uv_textures", text="")
-        elif item.data_source == 'VERTEX_GROUP':
-            row.prop_search(item, "data_name", ob, "vertex_groups", text="")
-
-    @classmethod
-    def poll(cls, context):
-        if not context.mesh:
-            return False
-        return CollectionPanel.poll(context)
-
-    def draw(self, context):
-        layout = self.layout
-        mesh = context.mesh
-        rm = mesh.renderman
-
-        self._draw_collection(context, layout, rm, "Primitive Variables:",
-                              "collection.add_remove", "mesh", "prim_vars",
-                              "prim_vars_index")
-
-        layout.prop(rm, "export_default_uv")
-        layout.prop(rm, "export_default_vcol")
-        layout.prop(rm, "export_flipv")
-        layout.prop(rm, "interp_boundary")
-        layout.prop(rm, "face_boundary")
-
 
 class ShaderNodePanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
@@ -565,326 +523,7 @@ class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
                               "light_filters_index")
 
 
-class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "object"
-    bl_label = "RenderMan Geometry"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        if context.object.type in ['LIGHT']:
-            return False
-        return (context.object and rd.engine in {'PRMAN_RENDER'})
-
-    def draw_item(self, layout, context, item):
-        col = layout.column()
-        col.prop(item, "name")
-        col.prop(item, "type")
-
-    def draw_props(self, layout, context):
-        ob = context.object
-        rm = ob.renderman
-        anim = rm.archive_anim_settings
-        active = context.active_object
-        rman_type = object_utils._detect_primitive_(active)
-
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
-
-        col = layout.column()
-        col.prop(rm, "primitive")
-        col.enabled = not rman_interactive_running        
-        col = layout.column(align = True)
-
-        if rm.primitive == 'MESH' or rman_type == 'MESH':
-            col.prop(rm, 'rman_subdiv_scheme')
-
-        elif rm.primitive == 'QUADRIC':
-            col.prop(rm, 'rman_quadric_type')
-            if rm.rman_quadric_type in ('CONE', 'DISK'):
-                col.prop(rm, "primitive_height")
-            if rm.rman_quadric_type in ('SPHERE', 'CYLINDER', 'CONE', 'DISK'):
-                col.prop(rm, "primitive_radius")
-            if rm.rman_quadric_type == 'TORUS':
-                col.prop(rm, "primitive_majorradius")
-                col.prop(rm, "primitive_minorradius")
-                col.prop(rm, "primitive_phimin")
-                col.prop(rm, "primitive_phimax")
-            if rm.rman_quadric_type in ('SPHERE', 'CYLINDER', 'CONE', 'TORUS'):
-                col.prop(rm, "primitive_sweepangle")
-            if rm.rman_quadric_type in ('SPHERE', 'CYLINDER'):
-                col.prop(rm, "primitive_zmin")
-                col.prop(rm, "primitive_zmax")
-            if rm.rman_quadric_type == 'POINTS':
-                col.prop(rm, "primitive_point_type")
-                col.prop(rm, "primitive_point_width")               
-
-        elif rm.primitive in ('ARCHIVE', 'DELAYED_LOAD_ARCHIVE'):
-            col.prop(rm, "path_archive")
-
-            col.prop(anim, "animated_sequence")
-            if anim.animated_sequence:
-                col = layout.column(align = True)
-                col.prop(anim, "blender_start")
-                col.prop(anim, "sequence_in")
-                col.prop(anim, "sequence_out")
-
-        elif rm.primitive == 'PROCEDURAL_RUN_PROGRAM':
-            col.prop(rm, "path_runprogram")
-            col.prop(rm, "path_runprogram_args")
-        elif rm.primitive == 'DYNAMIC_LOAD_DSO':
-            col.prop(rm, "path_dso")
-            col.prop(rm, "path_dso_initial_data")
-        elif rm.primitive == 'OPENVDB':
-            col.prop(rm, 'path_archive', text='OpenVDB file')
-            self._draw_collection(context, layout, rm, "",
-                                "collection.add_remove", "object.renderman",
-                                "openvdb_channels", "openvdb_channel_index")
-
-        if rm.primitive in ('DELAYED_LOAD_ARCHIVE',
-                                'PROCEDURAL_RUN_PROGRAM',
-                                'DYNAMIC_LOAD_DSO',
-                                'OPENVDB'):
-            col = layout.column()
-            col.prop(rm, "procedural_bounds")
-
-            if rm.procedural_bounds == 'MANUAL':
-                col = layout.column()
-                col.prop(rm, "procedural_bounds_min")
-                col.prop(rm, "procedural_bounds_max")                 
-
-        rman_archive = load_icons().get("archive_RIB")
-        col = layout.column()
-        col.enabled = not rman_interactive_running
-        col.operator("export.export_rib_archive",
-                    text="Export Object as RIB Archive.", icon_value=rman_archive.icon_id)
-        
-
-        col = layout.column()
-        # col.prop(rm, "export_coordsys")
-
-        col.prop(rm, "displacementbound", text="Displacement Bound")
-
-        col.prop(rm, "motion_segments_override")
-        col.active = rm.motion_segments_override
-        col.prop(rm, "motion_segments")
-        #col.prop(ob.rman, 'trace_displacements')        
-
-    def draw_camera_props(self, layout, context):
-        ob = context.object
-        rm = ob.renderman        
-        col = layout.column()
-        col.prop(rm, "motion_segments_override")
-        col.active = rm.motion_segments_override
-        col.prop(rm, "motion_segments")         
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
- 
-        if context.object.type == 'CAMERA':
-            self.draw_camera_props(layout, context)
-        else:
-            self.draw_props(layout, context)
            
-
-"""
-class RendermanRibBoxPanel(_RManPanelHeader):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_label = "RIB Box"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return (rd.engine in {'PRMAN_RENDER'})
-
-    def draw_rib_boxes(self, layout, rib_box_names, item):
-        rm = item.renderman
-        for rib_box in rib_box_names:
-            row = layout.row()
-            row.prop_search(rm, rib_box, bpy.data, "texts")
-            if getattr(item.renderman, rib_box) != '':
-                text_name = getattr(item.renderman, rib_box)
-                rib_box_string = bpy.data.texts.get(text_name)
-                for line in rib_box_string.lines:
-                    row = layout.row()
-                    row.label(text=line.body)
-
-
-class OBJECT_PT_renderman_rib_box(RendermanRibBoxPanel, Panel):
-    bl_context = "object"
-    bl_label = "Object RIB boxes"
-
-    def draw(self, context):
-        self.draw_rib_boxes(self.layout, ['pre_object_rib_box', 'post_object_rib_box'],
-                            context.object)
-
-
-class WORLD_PT_renderman_rib_box(RendermanRibBoxPanel, Panel):
-    bl_context = "world"
-    bl_label = "World RIB box"
-
-    def draw(self, context):
-        self.draw_rib_boxes(self.layout, ['world_rib_box'],
-                            context.world)
-
-
-class SCENE_PT_renderman_rib_box(RendermanRibBoxPanel, Panel):
-    bl_context = "scene"
-    bl_label = "Scene RIB box"
-
-    def draw(self, context):
-        self.draw_rib_boxes(self.layout, ['frame_rib_box'],
-                            context.scene)
-"""
-
-class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "object"
-    bl_label = "Shading and Visibility"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        if context.object.type == 'CAMERA':
-            return False        
-        return (context.object and rd.engine in {'PRMAN_RENDER'})
-
-    def draw_item(self, layout, context, item):
-        ob = context.object
-        rm = bpy.data.objects[ob.name].renderman
-        ll = rm.light_linking
-        index = rm.light_linking_index
-
-        col = layout.column()
-        col.prop(item, "group")
-        col.prop(item, "mode")
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        ob = context.object
-        rm = ob.renderman
-
-        col = layout.column()
-        row = col.row()
-        row.prop(rm, "visibility_camera", text="Camera")
-        row.prop(rm, "visibility_trace_indirect", text="Indirect")
-        row = col.row()
-        row.prop(rm, "visibility_trace_transmission", text="Transmission")
-        row.prop(rm, "matte")
-        row = col.row()
-        col.prop(rm, "holdout")
-
-        col.separator()
-
-        col.prop(rm, 'shading_override')
-
-        col = layout.column()
-        col.enabled = rm.shading_override
-        col.prop(rm, "watertight")
-        col = layout.column(align = True)
-        col.enabled = rm.shading_override
-        col.prop(rm, "shadingrate")
-        col.prop(rm, "geometric_approx_motion")
-        col.prop(rm, "geometric_approx_focus")
-
-
-class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "object"
-    bl_label = "Ray Tracing"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        if context.object.type == 'CAMERA':
-            return False        
-        return (context.object and rd.engine in {'PRMAN_RENDER'})
-
-    def draw_item(self, layout, context, item):
-        col = layout.column()
-        col.prop(item, "group")
-        col.prop(item, "mode")
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        ob = context.object
-        rm = ob.renderman
-
-        col = layout.column()
-        col.prop(rm, "raytrace_intersectpriority", text="Intersection Priority")
-        col.prop(rm, "raytrace_ior")
-        col.prop(rm, "raytrace_override", text="Override Default Ray Tracing")
-
-        col = layout.column(align = True)
-        col.enabled = rm.raytrace_override
-        col.prop(rm, "raytrace_maxdiffusedepth", text="Max Diffuse Depth")
-        col.prop(rm, "raytrace_maxspeculardepth", text="Max Specular Depth")
-        col.prop(rm, "raytrace_pixel_variance")
-        col = layout.column()
-        col.enabled = rm.raytrace_override
-        col.prop(rm, "raytrace_tracedisplacements", text="Trace Displacements")
-        col.prop(rm, "raytrace_autobias", text="Ray Origin Auto Bias")
-        col = layout.column()
-        col.active = not rm.raytrace_autobias
-        col.enabled = rm.raytrace_override
-        col.prop(rm, "raytrace_bias", text="Ray Origin Bias Amount")
-        col = layout.column()
-        col.enabled = rm.raytrace_override
-        col.prop(rm, "raytrace_samplemotion", text="Sample Motion Blur")
-        col.prop(rm, "raytrace_decimationrate", text="Decimation Rate")
-
-
-class OBJECT_PT_renderman_object_matteid(Panel, _RManPanelHeader):
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "object"
-    bl_label = "Matte ID"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        if context.object.type == 'CAMERA':
-            return False        
-        return (context.object and rd.engine in {'PRMAN_RENDER'})    
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        ob = context.object
-        rm = ob.renderman
-
-        col = layout.column()
-        col.prop(rm, 'MatteID0')
-        col.prop(rm, 'MatteID1')
-        col.prop(rm, 'MatteID2')
-        col.prop(rm, 'MatteID3')
-        col.prop(rm, 'MatteID4')
-        col.prop(rm, 'MatteID5')
-        col.prop(rm, 'MatteID6')
-        col.prop(rm, 'MatteID7')
-
-
 class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
     bl_label = "Passes"
     bl_context = "view_layer"
@@ -2036,7 +1675,7 @@ class PRMAN_PT_context_material(_RManPanelHeader, Panel):
             split.separator()
 
 classes = [
-    MESH_PT_renderman_prim_vars,
+    #MESH_PT_renderman_prim_vars,
     MATERIAL_PT_renderman_preview,
     MATERIAL_PT_renderman_shader_surface,
     MATERIAL_PT_renderman_shader_light,
@@ -2049,10 +1688,10 @@ classes = [
     DATA_PT_renderman_display_filters,
     DATA_PT_renderman_Sample_filters,
     DATA_PT_renderman_node_filters_light,
-    OBJECT_PT_renderman_object_geometry,
-    OBJECT_PT_renderman_object_render,
-    OBJECT_PT_renderman_object_raytracing,
-    OBJECT_PT_renderman_object_matteid,
+    #OBJECT_PT_renderman_object_geometry,
+    #OBJECT_PT_renderman_object_render,
+    #OBJECT_PT_renderman_object_raytracing,
+    #OBJECT_PT_renderman_object_matteid,
     #RENDER_PT_layer_custom_aovs,
     PARTICLE_PT_renderman_particle,
     PARTICLE_PT_renderman_prim_vars,

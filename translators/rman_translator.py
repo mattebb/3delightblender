@@ -1,4 +1,5 @@
 from ..rman_utils import transform_utils
+from ..rman_utils import property_utils
 
 class RmanTranslator(object):
     '''
@@ -53,19 +54,32 @@ class RmanTranslator(object):
 
     def export_object_primvars(self, ob, sg_node):
         rm = ob.renderman
+        rm_scene = self.rman_scene.bl_scene.renderman
         primvars = sg_node.GetPrimVars()
 
-        if rm.shading_override:
-            primvars.SetFloat(self.rman_scene.rman.Tokens.Rix.k_dice_micropolygonlength, rm.shadingrate)
-            primvars.SetFloat(self.rman_scene.rman.Tokens.Rix.k_dice_watertight, rm.watertight)
+        # set any properties marked primvar in the config file
+        for prop_name, meta in rm.prop_meta.items():
+            if 'primvar' not in meta:
+                continue
 
-        if rm.raytrace_override:                
-            primvars.SetInteger(self.rman_scene.rman.Tokens.Rix.k_trace_displacements, rm.raytrace_tracedisplacements)
-            primvars.SetFloat(self.rman_scene.rman.Tokens.Rix.k_trace_autobias, rm.raytrace_autobias)
-            primvars.SetFloat(self.rman_scene.rman.Tokens.Rix.k_trace_bias, rm.raytrace_bias)
-            primvars.SetInteger(self.rman_scene.rman.Tokens.Rix.k_trace_samplemotion, rm.raytrace_samplemotion)
+            val = getattr(rm, prop_name)
+            if not val:
+                continue
 
-        primvars.SetFloat(self.rman_scene.rman.Tokens.Rix.k_displacementbound_sphere, rm.displacementbound)
+            if 'inheritable' in meta:
+                if float(val) == meta['inherit_true_value']:
+                    if hasattr(rm_scene, prop_name):
+                        val = getattr(rm_scene, prop_name)
+
+            ri_name = meta['primvar']
+            is_array = False
+            array_len = -1
+            if 'arraySize' in meta:
+                is_array = True
+                array_len = meta['arraySize']
+            param_type = meta['renderman_type']
+            property_utils.set_rix_param(primvars, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)                
+
         sg_node.SetPrimVars(primvars)
 
     def export_object_attributes(self, ob, sg_node):
@@ -73,6 +87,30 @@ class RmanTranslator(object):
         name = ob.name_full
         rm = ob.renderman
         attrs = sg_node.GetAttributes()
+
+        # set any properties marked riattr in the config file
+        for prop_name, meta in rm.prop_meta.items():
+            if 'riattr' not in meta:
+                continue
+            
+            val = getattr(rm, prop_name)
+            if 'inheritable' in meta:
+                cond = meta['inherit_true_value']
+                if isinstance(cond, str):
+                    node = rm
+                    if exec(cond):
+                        continue
+                elif float(val) == cond:
+                    continue
+
+            ri_name = meta['riattr']
+            is_array = False
+            array_len = -1
+            if 'arraySize' in meta:
+                is_array = True
+                array_len = meta['arraySize']
+            param_type = meta['renderman_type']
+            property_utils.set_rix_param(attrs, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)             
 
         # Add ID
         if name != "":            
@@ -93,22 +131,7 @@ class RmanTranslator(object):
         # add to trace sets
         if lpe_groups_str != '*':                       
             attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_identifier_lpegroup, lpe_groups_str)
-
-        # visibility attributes
-        attrs.SetInteger("visibility:transmission", int(ob.renderman.visibility_trace_transmission))
-        attrs.SetInteger("visibility:indirect", int(ob.renderman.visibility_trace_indirect))
-        attrs.SetInteger("visibility:camera", int(ob.renderman.visibility_camera))
-
-        attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_Ri_Matte, ob.renderman.matte)
-
-        attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_trace_holdout, ob.renderman.holdout)
-
-        if ob.renderman.raytrace_override:
-            attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_trace_maxdiffusedepth, ob.renderman.raytrace_maxdiffusedepth)
-            attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_trace_maxspeculardepth, ob.renderman.raytrace_maxspeculardepth)
-            attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_trace_intersectpriority, ob.renderman.raytrace_intersectpriority)
-
-        
+      
         # light linking
         # get links this is a part of
         ll_str = "obj_object>%s" % ob.name
@@ -151,12 +174,12 @@ class RmanTranslator(object):
         if lightfilter_subset:
             attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_lightfilter_subset, ' ' . join(lightfilter_subset))
 
-        user_attr = {}
+        '''
         for i in range(8):
             name = 'MatteID%d' % i
             if getattr(rm, name) != [0.0, 0.0, 0.0]:
                 attrs.SetColor('user:%s' % name, getattr(rm, name))
-
+        '''
         if hasattr(ob, 'color'):
             attrs.SetColor('user:Cs', ob.color[:3])   
 

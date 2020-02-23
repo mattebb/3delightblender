@@ -28,7 +28,6 @@ from .rman_utils import filepath_utils
 from .rman_utils import scene_utils
 from .rman_utils import prefs_utils
 
-from . import rman_config
 from .rfb_logger import rfb_log
 from .rman_sg_nodes.rman_sg_node import RmanSgNode
 
@@ -103,6 +102,7 @@ class RmanScene(object):
         self.motion_steps = set()
         self.main_camera = None
         self.world_df_node = None
+        self.rman_root_sg_node = None
 
         self.create_translators()     
 
@@ -213,6 +213,9 @@ class RmanScene(object):
         rfb_log().debug("Calling txmake_all()")
         texture_utils.get_txmanager().rman_scene = self  
         texture_utils.get_txmanager().txmake_all(blocking=True)
+
+        rfb_log().debug("Creating root scene graph node")
+        self.export_root_sg_node()
         
         rfb_log().debug("Calling export_data_blocks()")
         self.export_data_blocks(bpy.data.objects)
@@ -247,6 +250,34 @@ class RmanScene(object):
 
             if self.is_viewport_render:
                 self.export_viewport_stats()
+
+    def export_root_sg_node(self):
+        
+        group_db_name = '__RMAN_ROOT_SG_NODE'
+        self.rman_root_sg_node = self.rman_translators['GROUP'].export(None, group_db_name)
+        rm = self.bl_scene.renderman
+
+        attrs = self.rman_root_sg_node.sg_node.GetAttributes()
+        # set any properties marked riattr in the config file
+        for prop_name, meta in rm.prop_meta.items():
+            if 'riattr' not in meta:
+                continue
+            
+            val = getattr(rm, prop_name)
+            ri_name = meta['riattr']
+            is_array = False
+            array_len = -1
+            if 'arraySize' in meta:
+                is_array = True
+                array_len = meta['arraySize']
+            param_type = meta['renderman_type']
+            property_utils.set_rix_param(attrs, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)  
+
+        self.rman_root_sg_node.sg_node.SetAttributes(attrs)
+        self.sg_scene.Root().AddChild(self.rman_root_sg_node.sg_node)                                
+        
+    def get_root_sg_node(self):
+        return self.rman_root_sg_node.sg_node
 
     def export_materials(self, materials):
         for mat in materials:   
@@ -295,7 +326,6 @@ class RmanScene(object):
             if not rman_sg_node:
                 return
             rman_sg_node.rman_type = rman_type
-            translator.export_object_primvars(ob, rman_sg_node.sg_node)
             self.rman_objects[db_name] = rman_sg_node 
 
             if rman_type in ['MESH', 'POINTS']:
@@ -425,6 +455,7 @@ class RmanScene(object):
             if translator:
                 if db_name not in self.processed_obs:
                     translator.update(ob, rman_sg_node)
+                    translator.export_object_primvars(ob, rman_sg_node.sg_node)
                     self.processed_obs[db_name] = ob
 
             if rman_sg_node.sg_node is None:
@@ -442,7 +473,8 @@ class RmanScene(object):
                 else:
                     rman_group_translator.update_transform(ob_inst, rman_sg_group)
 
-            self.sg_scene.Root().AddChild(rman_sg_group.sg_node)
+            #self.sg_scene.Root().AddChild(rman_sg_group.sg_node)
+            self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
             self.rman_objects[group_db_name] = rman_sg_group
 
             # object attrs             
@@ -670,25 +702,20 @@ class RmanScene(object):
         rm = self.bl_scene.renderman
         options = self.sg_scene.GetOptions()
 
-        # set any options marked RiOpt in the config file
-        rfb_cfg = rman_config.__RMAN_CONFIG__[rm.rman_config_name]
-        for param_name,ndp in rfb_cfg.params.items():
-            if not hasattr(ndp, 'riopt'):
+        # set any properties marked riopt in the config file
+        for prop_name, meta in rm.prop_meta.items():
+            if 'riopt' not in meta:
                 continue
-            val = getattr(rm, param_name)
-            param_type = ndp.type
-            is_array = ndp.is_array()
-            array_len = ndp.size
-            if param_type in ['int2', 'float2']:
-                if param_type == 'int2':
-                    param_type = 'int'
-                else:
-                    param_type = 'float'
+            
+            val = getattr(rm, prop_name)
+            ri_name = meta['riopt']
+            is_array = False
+            array_len = -1
+            if 'arraySize' in meta:
                 is_array = True
-                array_len = 2
-            ri_name = ndp.riopt
-            property_utils.set_rix_param(options, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)
-
+                array_len = meta['arraySize']
+            param_type = meta['renderman_type']
+            property_utils.set_rix_param(options, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)                
 
         # threads
         if not self.external_render:

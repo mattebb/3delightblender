@@ -41,7 +41,8 @@ class RmanLightFilterTranslator(RmanTranslator):
         rman_sg_group = rman_group_translator.export(ob, group_db_name)
 
         rman_group_translator.update_transform(ob, rman_sg_group)
-        self.rman_scene.sg_scene.Root().AddChild(rman_sg_group.sg_node)
+        #self.rman_scene.sg_scene.Root().AddChild(rman_sg_group.sg_node)
+        self.rman_scene.get_root_sg_node().AddChild(rman_sg_group.sg_node)
 
         self.rman_scene.rman_objects[group_db_name] = rman_sg_group        
         self.rman_scene.rman_objects[db_name] = rman_sg_lightfilter      

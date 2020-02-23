@@ -87,15 +87,10 @@ def is_subdmesh(ob):
     if not rm:
         return False
 
-    if rm.primitive == 'AUTO' and rm.rman_subdiv_scheme == 'none':
+    if rm.primitive == 'AUTO' and ob.data.renderman.rman_subdiv_scheme == 'none':
         return (is_subd_last(ob) or is_subd_displace_last(ob))
     else:
-        return (rm.rman_subdiv_scheme != 'none')       
-
-    #if rm.primitive == 'AUTO':
-    #    return (is_subd_last(ob) or is_subd_displace_last(ob))
-    #else:
-    #    return (rm.rman_subdiv_scheme != 'none')
+        return (ob.data.renderman.rman_subdiv_scheme != 'none')       
 
 # handle special case of fluid sim a bit differently
 def is_deforming_fluid(ob):

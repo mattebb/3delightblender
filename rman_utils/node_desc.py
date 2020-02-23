@@ -241,13 +241,19 @@ def vis_ops_func(ops, trigger_params):
                 lop = ops[lpfx + 'Op']
                 lattr = ops[lpfx + 'Path'].split('/')[-1]
                 value = repr(ops[lpfx + 'Value']).replace("'", "")
+                cond_op = COND_VIS_OP[lop]
                 if value.isalpha() or value == '':
                     lexpr = ('getattr(node, "%s") %s "%s"' %
-                            (lattr, COND_VIS_OP[lop],
+                            (lattr, cond_op,
                             value))
+                elif cond_op == 'in':
+                    value = value.split(",")
+                    lexpr = ('str(getattr(node, "%s")) %s %s' %
+                            (lattr, cond_op,
+                            str(value)))                      
                 else:
                     lexpr = ('float(getattr(node, "%s")) %s float(%s)' %
-                            (lattr, COND_VIS_OP[lop],
+                            (lattr, cond_op,
                             value))                    
                 trigger_params.append(lattr)
                 # right expr
@@ -257,13 +263,19 @@ def vis_ops_func(ops, trigger_params):
                 else:
                     rattr = ops[rpfx + 'Path'].split('/')[-1]
                     value = repr(ops[rpfx + 'Value']).replace("'", "")
+                    cond_op = COND_VIS_OP[rop]
                     if value.isalpha() or value == '':
                         rexpr = ('getattr(node, "%s") %s "%s"' %
-                                (rattr, COND_VIS_OP[rop],
-                                value))                        
+                                (rattr, cond_op,
+                                value))         
+                    elif cond_op == 'in':
+                        value = value.split(",")
+                        lexpr = ('str(getattr(node, "%s")) %s %s' %
+                                (rattr, cond_op,
+                            str(value)))                               
                     else:
                         rexpr = ('float(getattr(node, "%s")) %s float(%s)' %
-                                (rattr, COND_VIS_OP[rop],
+                                (rattr, cond_op,
                                 value))
                     trigger_params.append(rattr)
                     # final expr
@@ -272,13 +284,19 @@ def vis_ops_func(ops, trigger_params):
             # simple value check on a single param
             sattr = ops[pfx + 'Path'].split('/')[-1]
             value = repr(ops[pfx + 'Value']).replace("'", "")
+            cond_op = COND_VIS_OP[op]
             if value.isalpha()  or value == '':
                 expr = ('getattr(node, "%s") %s "%s"' %
-                        (sattr, COND_VIS_OP[op],
-                            value))                
+                        (sattr, cond_op,
+                            value))
+            elif cond_op == 'in':
+                value = value.split(",")
+                expr = ('str(getattr(node, "%s")) %s %s' %
+                        (sattr, cond_op,
+                        str(value)))                                              
             else:
                 expr = ('float(getattr(node, "%s")) %s float(%s)' %
-                        (sattr, COND_VIS_OP[op],
+                        (sattr, cond_op,
                             value))
             trigger_params.append(sattr)
 
@@ -1039,7 +1057,8 @@ class NodeDescParamJSON(NodeDescParam):
                     'min', 'name', 'options', 'page', 'page_open', 'presets',
                     'primvar', 'riattr', 'riopt', 'scriptText', 'shortname',
                     'size', 'slidermax', 'slidermin', 'syntax', 'type', 'units',
-                    'widget', '_name', 'uiStruct', 'panel']
+                    'widget', '_name', 'uiStruct', 'panel', 'inheritable', 
+                    'inherit_true_value']
         return (kw in keywords)
 
     def __init__(self, pdata):

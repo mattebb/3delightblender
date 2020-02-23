@@ -283,6 +283,21 @@ def generate_property(sp, update_function=None):
     if hasattr(sp, 'help'):
         param_help = sp.help
 
+    if hasattr(sp, 'riopt'):
+        prop_meta['riopt'] = sp.riopt
+
+    if hasattr(sp, 'riattr'):
+        prop_meta['riattr'] = sp.riattr
+
+    if hasattr(sp, 'primvar'):
+        prop_meta['primvar'] = sp.primvar
+
+    if hasattr(sp, 'inheritable'):
+        prop_meta['inheritable'] = sp.inheritable
+    
+    if hasattr(sp, 'inherit_true_value'):
+        prop_meta['inherit_true_value'] = sp.inherit_true_value
+
     if 'float' == param_type:
         if sp.is_array():
             prop = FloatVectorProperty(name=param_label,
@@ -418,6 +433,12 @@ def generate_property(sp, update_function=None):
             prop = EnumProperty(name=param_label,
                                 default=param_default, description=param_help,
                                 items=items, update=update_function)
+
+        elif param_widget == 'scenegraphlocation':
+            reference_type = eval(sp.options['nodeType'])
+            prop = PointerProperty(name=param_label, 
+                        description=param_help,
+                        type=reference_type)            
 
         else:
             prop = StringProperty(name=param_label,

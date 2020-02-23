@@ -38,10 +38,16 @@ class RmanBasePropertyGroup:
 
         config = __RMAN_CONFIG__[rman_config_name]
 
+        prop_names = []
+        prop_meta = {}
         for param_name, ndp in config.params.items():
             name, meta, prop = property_utils.generate_property(ndp, update_function=None)
             if prop:
-                cls.__annotations__[ndp._name] = prop    
+                cls.__annotations__[ndp._name] = prop
+                prop_names.append(ndp.name)
+                prop_meta[ndp.name] = meta
+        setattr(cls, 'prop_names', prop_names)
+        setattr(cls, 'prop_meta', prop_meta)
 
 class RmanConfig:
     """A class to reprsent a json config file.

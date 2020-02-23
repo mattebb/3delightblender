@@ -18,7 +18,6 @@
             "panel": "",
             "page": "",
             "name": "hider_type",
-            "riopt": "hider:type",
             "label": "Hider Type",
             "type": "string",
             "default": "RAYTRACE",
@@ -159,7 +158,7 @@
         },
         {
             "panel": "RENDER_PT_renderman_sampling",
-            "page": "Default Ray Depth",
+            "page": "Global Trace Settings",
             "name": "ri_maxSpecularDepth",
             "riattr": "trace:maxspeculardepth",
             "label": "Max Specular Depth",
@@ -170,7 +169,7 @@
         },
         {
             "panel": "RENDER_PT_renderman_sampling",
-            "page": "Default Ray Depth",
+            "page": "Global Trace Settings",
             "name": "ri_maxDiffuseDepth",
             "riattr": "trace:maxdiffusedepth",
             "label": "Max Diffuse Depth",
@@ -178,7 +177,43 @@
             "default": 1,
             "min": 0,
             "slidermax": 15
-        },        
+        },     
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Global Trace Settings",
+            "name": "rman_micropolygonlength",
+            "primvar": "dice:micropolygonlength",
+            "label": "MicroPolygon Length",
+            "type": "float",
+            "default": 1.0,
+            "help": "Micropolygon distance in raster space for 'instanceprojection' dicing. Values are expressed in pixel size."
+        },
+
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_autoBias",
+            "primvar": "trace:autobias",
+            "label": "Auto Bias",
+            "type": "int",
+            "default": 1,
+            "widget": "mapper",
+            "options": "Yes:1|No:0",
+            "page": "Global Trace Settings"
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_traceBias",
+            "primvar": "trace:bias",
+            "label": "Trace Bias",
+            "type": "float",
+            "default": 0.01,
+            "page": "Global Trace Settings",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_autoBias",
+                "conditionalVisValue": 1
+            }
+        },                
         {
             "panel": "RENDER_PT_renderman_motion_blur",
             "name": "motion_blur",

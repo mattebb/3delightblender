@@ -25,9 +25,9 @@ class RmanOpenVDBTranslator(RmanTranslator):
     def update(self, ob, rman_sg_openvdb):
         rm = ob.renderman
         openvdb_file = filepath_utils.get_real_path(rm.path_archive)
-        if rm.procedural_bounds == 'MANUAL':
-            min = rm.procedural_bounds_min
-            max = rm.procedural_bounds_max
+        if rm.openvdb_bounds == 'MANUAL':
+            min = rm.openvdb_bounds_min
+            max = rm.openvdb_bounds_max
             bounds = [min[0], max[0], min[1], max[1], min[2], max[2]]
         else:
             bounds = transform_utils.convert_ob_bounds(ob.bound_box)

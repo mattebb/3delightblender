@@ -26,8 +26,8 @@ class RmanRunProgramTranslator(RmanTranslator):
         bounds = (-100000, 100000, -100000, 100000, -100000, 100000 )
 
         primvar = rman_sg_runprogram.sg_node.GetPrimVars()
-        primvar.SetString(self.rman_scene.rman.Tokens.Rix.k_filename, path_runprogram)
-        primvar.SetString(self.rman_scene.rman.Tokens.Rix.k_data, rm.path_runprogram_args)
+        primvar.SetString(self.rman_scene.rman.Tokens.Rix.k_filename, runprogram_path)
+        primvar.SetString(self.rman_scene.rman.Tokens.Rix.k_data, rm.runprogram_args)
         primvar.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_bound, bounds, 6)
 
         rman_sg_runprogram.sg_node.SetPrimVars(primvar)        
