@@ -242,7 +242,10 @@ def vis_ops_func(ops, trigger_params):
                 lattr = ops[lpfx + 'Path'].split('/')[-1]
                 value = repr(ops[lpfx + 'Value']).replace("'", "")
                 cond_op = COND_VIS_OP[lop]
-                if value.isalpha() or value == '':
+                if value == 'NoneType':
+                    lexpr = ('getattr(node, "%s") %s None' %
+                            (lattr, cond_op))                    
+                elif value.isalpha() or value == '':
                     lexpr = ('getattr(node, "%s") %s "%s"' %
                             (lattr, cond_op,
                             value))
@@ -264,7 +267,10 @@ def vis_ops_func(ops, trigger_params):
                     rattr = ops[rpfx + 'Path'].split('/')[-1]
                     value = repr(ops[rpfx + 'Value']).replace("'", "")
                     cond_op = COND_VIS_OP[rop]
-                    if value.isalpha() or value == '':
+                    if value == 'NoneType':
+                        rexpr = ('getattr(node, "%s") %s None' %
+                                (rattr, cond_op))       
+                    elif value.isalpha() or value == '':
                         rexpr = ('getattr(node, "%s") %s "%s"' %
                                 (rattr, cond_op,
                                 value))         
@@ -285,7 +291,10 @@ def vis_ops_func(ops, trigger_params):
             sattr = ops[pfx + 'Path'].split('/')[-1]
             value = repr(ops[pfx + 'Value']).replace("'", "")
             cond_op = COND_VIS_OP[op]
-            if value.isalpha()  or value == '':
+            if value == 'NoneType':
+                expr = ('getattr(node, "%s") %s None' %
+                        (sattr, cond_op))                
+            elif value.isalpha()  or value == '':
                 expr = ('getattr(node, "%s") %s "%s"' %
                         (sattr, cond_op,
                             value))

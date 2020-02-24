@@ -49,9 +49,9 @@
             "options": "No interpolation:0|Sharp creases and corners:1|Sharp creases:2",
             "page": "Subdivision Mesh",
             "conditionalVisOps": {
-                "conditionalVisOp": "greaterThan",
+                "conditionalVisOp": "notEqualTo",
                 "conditionalVisPath": "rman_subdiv_scheme",
-                "conditionalVisValue": 0
+                "conditionalVisValue": "none"
             }
         },
         {
@@ -64,9 +64,9 @@
             "options": "Old Style:0|New Style:1|New Style, no corners:2|New Style, internal only:3",
             "page": "Subdivision Mesh",
             "conditionalVisOps": {
-                "conditionalVisOp": "greaterThan",
+                "conditionalVisOp": "notEqualTo",
                 "conditionalVisPath": "rman_subdiv_scheme",
-                "conditionalVisValue": 0
+                "conditionalVisValue": "none"
             }
         },
         {

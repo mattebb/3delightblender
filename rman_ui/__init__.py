@@ -5,6 +5,9 @@ from . import rman_ui_light_handlers
 from . import rman_ui_render_panels
 from . import rman_ui_object_panels
 from . import rman_ui_mesh_panels
+from . import rman_ui_material_panels
+from . import rman_ui_world_panels
+from . import rman_ui_camera_panels
 
 def register():
     rman_ui_txmanager.register()
@@ -14,6 +17,9 @@ def register():
     rman_ui_render_panels.register()
     rman_ui_object_panels.register()
     rman_ui_mesh_panels.register()
+    rman_ui_material_panels.register()
+    rman_ui_world_panels.register()
+    rman_ui_camera_panels.register()
 
 def unregister():
     rman_ui_txmanager.unregister()
@@ -23,3 +29,6 @@ def unregister():
     rman_ui_render_panels.unregister()
     rman_ui_object_panels.unregister()
     rman_ui_mesh_panels.unregister()
+    rman_ui_material_panels.unregister()
+    rman_ui_world_panels.unregister()
+    rman_ui_camera_panels.unregister()

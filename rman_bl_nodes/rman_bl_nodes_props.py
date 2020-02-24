@@ -7,37 +7,6 @@ from .. import rman_bl_nodes
 class RendermanPluginSettings(bpy.types.PropertyGroup):
     pass
 
-class RendermanCameraSettings(bpy.types.PropertyGroup):
-    bl_label = "RenderMan Camera Settings"
-    bl_idname = 'RendermanCameraSettings'
-
-    def get_projection_name(self):
-        return self.projection_type.replace('_settings', '')
-
-    def get_projection_node(self):
-        return getattr(self, self.projection_type + '_settings')
-
-    def projection_items(self, context):
-        items = []
-        items.append(('none', 'None', 'None'))
-        for n in rman_bl_nodes.__RMAN_PROJECTION_NODES__ :
-            items.append((n.name, n.name, ''))
-        return items
-
-    projection_type: EnumProperty(
-        items=projection_items, name='Projection Plugin')
-
-    use_physical_camera: BoolProperty(
-        name="Use Physical Camera", default=False)
-
-    aperture_roundness: FloatProperty(
-        name="Aperture Roundness", default=0.0, max=1.0, min=-1.0,
-        description="A shape parameter, from -1 to 1.  When 0, the aperture is a regular polygon with straight sides.  Values between 0 and 1 give polygons with curved edges bowed out and values between 0 and -1 make the edges bow in")
-
-    aperture_density: FloatProperty(
-        name="Aperture Density", default=0.0, max=1.0, min=-1.0,
-        description="The slope, between -1 and 1, of the (linearly varying) aperture density.  A value of zero gives uniform density.  Negative values make the aperture brighter near the center.  Positive values make it brighter near the rim")
-
 class RendermanLightFilter(bpy.types.PropertyGroup):
 
     def get_filters(self, context):
@@ -302,7 +271,6 @@ class RendermanSampleFilterSettings(bpy.types.PropertyGroup):
 classes = [RendermanLightFilter,
            RendermanLightSettings,
            RendermanPluginSettings,
-           RendermanCameraSettings,
            RendermanDisplayFilterSettings,
            RendermanSampleFilterSettings
 ]
@@ -313,8 +281,6 @@ def register():
 
     bpy.types.Light.renderman = PointerProperty(
         type=RendermanLightSettings, name="Renderman Light Settings")
-    bpy.types.Camera.renderman = PointerProperty(
-        type=RendermanCameraSettings, name="Renderman Camera Settings")        
 
 def unregister():
     for cls in classes:

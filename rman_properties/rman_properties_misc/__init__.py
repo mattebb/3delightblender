@@ -5,10 +5,32 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 from ...rman_utils import filepath_utils
 from ...rman_utils import property_utils
 from ...rfb_logger import rfb_log 
-from ...properties import RendermanGroup,RendermanRenderLayerSettings,LightLinking
 from ... import rman_config
 
 import bpy
+
+class LightLinking(bpy.types.PropertyGroup):
+
+    def update_link(self, context):
+        pass
+        """
+        if engine.is_ipr_running():
+            engine.ipr.update_light_link(context, self)
+        """
+
+    illuminate: EnumProperty(
+        name="Illuminate",
+        update=update_link,
+        items=[
+              ('DEFAULT', 'Default', ''),
+               ('ON', 'On', ''),
+               ('OFF', 'Off', '')])
+
+class RendermanGroup(bpy.types.PropertyGroup):
+    name: StringProperty(name="Group Name")
+    members: CollectionProperty(type=bpy.types.PropertyGroup,
+                                 name='Group Members')
+    members_index: IntProperty(min=-1, default=-1)
 
 class RendermanMeshPrimVar(bpy.types.PropertyGroup):
     name: StringProperty(
@@ -54,6 +76,8 @@ class RendermanAnimSequenceSettings(bpy.types.PropertyGroup):
         default=1)
 
 classes = [      
+    LightLinking,
+    RendermanGroup,
     RendermanMeshPrimVar,   
     RendermanOpenVDBChannel,
     RendermanAnimSequenceSettings

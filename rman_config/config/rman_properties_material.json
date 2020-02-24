@@ -1,0 +1,27 @@
+{
+    "name": "rman_properties_material",
+    "params": [
+        {
+            "panel": "MATERIAL_PT_renderman_shader_surface",            
+            "name": "preview_render_type",
+            "label": "Preview Render Type",
+            "type": "string",
+            "default": "SPHERE",
+            "widget": "mapper",
+            "options": "Sphere:SPHERE|Cube:CUBE",
+            "page": "",
+            "help": "Object to display in material preview"
+        },        
+        {
+            "panel": "MATERIAL_PT_renderman_shader_surface",            
+            "name": "copy_color_params",
+            "label": "Copy Color Parameters",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "page": "",
+            "help": "Copy Blender material color parameters when adding a new RenderMan node tree. Copies diffuse_color, diffuse_intensity, and specular_color. Only used if we are unable to convert a Cycles shading network."
+        }
+
+    ]
+}

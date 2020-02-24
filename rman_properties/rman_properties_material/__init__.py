@@ -1,4 +1,4 @@
-from bpy.props import BoolProperty, EnumProperty, IntProperty, PointerProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty, IntProperty, PointerProperty
 
 from ...rman_utils import filepath_utils
 from ...rman_utils import property_utils
@@ -7,9 +7,11 @@ from ...rman_config import RmanBasePropertyGroup
 
 import bpy
 
-class RendermanMaterialSettings(bpy.types.PropertyGroup):
-    instance_num: IntProperty(name='Instance number for IPR', default=0)
+class RendermanMaterialSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
+    rman_config_name: StringProperty(name='rman_config_name',
+                                    default='rman_properties_material') 
 
+    '''
     preview_render_type: EnumProperty(
         name="Preview Render Type",
         description="Object to display in material preview",
@@ -23,6 +25,7 @@ class RendermanMaterialSettings(bpy.types.PropertyGroup):
                     diffuse_color, diffuse_intensity, and specular_color. Only used if we are unable
                     to convert a Cycles shading network.""",
         default=False)
+    '''
 
 classes = [         
     RendermanMaterialSettings
@@ -31,6 +34,7 @@ classes = [
 def register():
 
     for cls in classes:
+        cls._add_properties(cls, 'rman_properties_material')
         bpy.utils.register_class(cls)  
 
     bpy.types.Material.renderman = PointerProperty(

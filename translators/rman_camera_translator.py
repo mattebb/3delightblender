@@ -5,6 +5,7 @@ from ..rman_utils import transform_utils
 from ..rman_utils import property_utils
 from ..rman_utils import object_utils
 from ..rman_utils import scene_utils
+from mathutils import Matrix, Vector
 import math
 
 def _render_get_resolution_(r):
@@ -209,6 +210,7 @@ class RmanCameraTranslator(RmanTranslator):
         r = self.rman_scene.bl_scene.render
         cam = ob.data
         rm = self.rman_scene.bl_scene.renderman
+        cam_rm = cam.renderman
 
         xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam)
 
@@ -230,9 +232,9 @@ class RmanCameraTranslator(RmanTranslator):
 
         proj = None
 
-        if cam.renderman.projection_type != 'none':
+        if cam_rm.projection_type != 'none':
             # use pxr Camera
-            if cam.renderman.get_projection_name() == 'PxrCamera':
+            if cam_rm.get_projection_name() == 'PxrCamera':
                 lens = cam.lens
                 sensor = cam.sensor_height \
                     if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
@@ -242,7 +244,7 @@ class RmanCameraTranslator(RmanTranslator):
             projparams = proj.params
             projparams.SetFloat("fov", fov )     
             rman_sg_node = RmanSgNode(self.rman_scene, proj, "")                           
-            property_utils.property_group_to_rixparams(cam.renderman.get_projection_node(), rman_sg_node, proj)
+            property_utils.property_group_to_rixparams(cam_rm.get_projection_node(), rman_sg_node, proj)
         elif cam.type == 'PERSP':
 
             lens = cam.lens
@@ -263,16 +265,16 @@ class RmanCameraTranslator(RmanTranslator):
 
             projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)
 
-            if cam.dof.use_dof:
-                if cam.dof.focus_object:
-                    dof_distance = (ob.location - cam.dof.focus_object.location).length
+            if cam_rm.rman_use_dof:
+                if cam_rm.rman_focus_object:
+                    dof_focal_distance = (ob.location - cam_rm.rman_focus_object.location).length
                 else:
-                    dof_distance = cam.dof.focus_distance
-                if dof_distance > 0.0:
-                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fStop, cam.dof.aperture_fstop)
-                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
-                    #projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalLength, (cam.lens))
-                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalDistance, dof_distance)
+                    dof_focal_distance = cam_rm.rman_focus_distance
+                if dof_focal_distance > 0.0:
+                    dof_focal_length = (cam.lens * 0.001)
+                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fStop, cam_rm.rman_aperture_fstop)
+                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalLength, dof_focal_length)
+                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalDistance, dof_focal_distance)
                 
                      
         elif cam.type == 'PANO':
@@ -322,12 +324,12 @@ class RmanCameraTranslator(RmanTranslator):
         prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_farClip, cam.clip_end)
 
         # aperture
-        prop.SetInteger(self.rman_scene.rman.Tokens.Rix.k_apertureNSides, cam.dof.aperture_blades)
-        prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_apertureAngle, math.degrees(cam.dof.aperture_rotation))
-        prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_apertureRoundness, cam.renderman.aperture_roundness)
-        prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_apertureDensity, cam.renderman.aperture_density)
+        prop.SetInteger(self.rman_scene.rman.Tokens.Rix.k_apertureNSides, cam_rm.rman_aperture_blades)
+        prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_apertureAngle, cam_rm.rman_aperture_rotation) #math.degrees(cam.dof.aperture_rotation))
+        prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_apertureRoundness, cam_rm.rman_aperture_roundness)
+        prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_apertureDensity, cam_rm.rman_aperture_density)
 
-        prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_dofaspect, cam.dof.aperture_ratio)    
+        prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_dofaspect, cam_rm.rman_aperture_ratio)    
 
         rman_sg_camera.sg_node.SetProperties(prop)
         #rman_sg_camera.sg_node.SetRenderable(True)

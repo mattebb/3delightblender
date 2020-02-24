@@ -1,6 +1,6 @@
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
-    EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
-    CollectionProperty, BoolVectorProperty
+    EnumProperty, IntProperty, FloatProperty, \
+    CollectionProperty
 
 from ...rman_utils import filepath_utils
 from ...rman_utils import property_utils
@@ -8,7 +8,8 @@ from ...rfb_logger import rfb_log
 from ... import rman_render
 from ... import rman_bl_nodes
 from ...rman_bl_nodes import rman_bl_nodes_props    
-from ...properties import RendermanGroup,RendermanRenderLayerSettings,LightLinking
+from ..rman_properties_misc import RendermanGroup, LightLinking
+from ..rman_properties_renderlayers import RendermanRenderLayerSettings
 from ... import rman_config
 from ...rman_config import RmanBasePropertyGroup
 

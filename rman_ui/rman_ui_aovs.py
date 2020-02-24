@@ -4,7 +4,8 @@ from bpy.types import PropertyGroup, UIList, Operator, Panel
 from ..rfb_logger import rfb_log
 from .rman_ui_base import _RManPanelHeader
 from .rman_ui_base import CollectionPanel
-from .rman_ui_base import _draw_props
+from .rman_ui_base import PRManButtonsPanel
+from ..rman_utils.draw_utils import _draw_props
 from ..rman_utils import string_utils
 from ..rman_utils import scene_utils
 
@@ -124,9 +125,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
     def draw_item(self, layout, context, item):
         scene = context.scene
         rm = scene.renderman
-        # ll = rm.light_linking
-        # row = layout.row()
-        # row.prop(item, "layers")
 
         col = layout.column()
         col.label(text='Display Options (%s)' % item.name)
@@ -137,9 +135,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             row.enabled = False
         row.prop(item, "name")
         
-        # row = col.row()
-        # row.prop(item, "aov_display_driver")
-
         row = col.row()
         row.prop(item, "displaydriver")
         displaydriver_settings = getattr(item, "%s_settings" % item.displaydriver)
@@ -171,7 +166,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row = col.row()
         row.operator("rman_dspy_channel_list.add_channel", text="Add Channel")
         row.operator("rman_dspy_channel_list.delete_channel", text="Delete Channel")
-        #row.prop(item, aov_name)
         row = col.row()
         row.template_list("UI_UL_list", "PRMAN", item, "dspy_channels", item,
                           "dspy_channels_index", rows=1)
@@ -210,17 +204,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             row.prop(channel, "remap_c", text="C")
             layout.separator()
             
-            # Quantize settings
-            """
-            row = col.row()
-            row.label(text="Quantize Settings:")
-            row = col.row(align=True)
-            row.prop(channel, "quantize_zero")
-            row.prop(channel, "quantize_one")
-            row.prop(channel, "quantize_min")
-            row.prop(channel, "quantize_max")
-            """
-
             row = col.row()
             row.prop(channel, "chan_pixelfilter")
             row = col.row()
@@ -231,6 +214,9 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             row = col.row()
             row.prop(channel, "stats_type")
             layout.separator()
+
+            col.prop(channel, "light_group")
+            col.prop(channel, "object_group")
 
     def draw(self, context):
         layout = self.layout
@@ -279,13 +265,42 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
                                   "custom_aovs", "custom_aov_index", default_name='dspy',
                                   ui_list_class='PRMAN_UL_Renderman_aov_list')
 
+class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
+    bl_label = "Layer"
+    bl_context = "render_layer"
+
+    def draw(self, context):
+        layout = self.layout
+
+        scene = context.scene
+        rd = scene.render
+        rl = rd.layers.active
+
+        split = layout.split()
+
+        col = split.column()
+        col.prop(scene, "layers", text="Scene")
+
+        rm = scene.renderman
+        rm_rl = None
+        active_layer = context.view_layer
+        for l in rm.render_layers:
+            if l.render_layer == active_layer.name:
+                rm_rl = l
+                break
+        if rm_rl is None:
+            return
+        else:
+            split = layout.split()
+            col = split.column()
 
 classes = [
     Renderman_Dspys_COLLECTION_OT_add_remove,
     PRMAN_OT_Renderman_layer_add_channel,
     PRMAN_OT_Renderman_layer_delete_channel,
     PRMAN_UL_Renderman_aov_list,
-    RENDER_PT_layer_custom_aovs
+    RENDER_PT_layer_custom_aovs,
+    RENDER_PT_layer_options
 ]
 
 def register():

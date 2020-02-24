@@ -9,6 +9,9 @@ from .rman_socket_utils import node_add_outputs
 from .. import rman_render
 from .. import properties
 from ..rman_properties import rman_properties_scene
+from ..rman_properties import rman_properties_renderlayers
+from ..rman_properties import rman_properties_world
+from ..rman_properties import rman_properties_camera
 from nodeitems_utils import NodeCategory, NodeItem
 from collections import OrderedDict
 from operator import attrgetter
@@ -60,8 +63,8 @@ __RMAN_NODES__ = {
 
 __RMAN_PLUGIN_MAPPING__ = {
     'integrator': rman_properties_scene.RendermanSceneSettings,
-    'displaydriver': properties.RendermanAOV,
-    'projection': rman_bl_nodes_props.RendermanCameraSettings,
+    'displaydriver': rman_properties_renderlayers.RendermanAOV,
+    'projection': rman_properties_camera.RendermanCameraSettings,
     'light': rman_bl_nodes_props.RendermanLightSettings,
     'lightfilter': rman_bl_nodes_props.RendermanLightSettings,
     'displayfilter': rman_bl_nodes_props.RendermanDisplayFilterSettings,
@@ -401,12 +404,12 @@ def register_plugin_to_parent(ntype, name, node_desc, plugin_type, parent):
     settings_name = "%s_settings" % name
     parent.__annotations__["%s_settings" % name] = PointerProperty(type=ntype, name="%s Settings" % name)
     
-    if "__annotations__" not in properties.RendermanWorldSettings.__dict__:
-            setattr(properties.RendermanWorldSettings, "__annotations__", {})
+    if "__annotations__" not in rman_properties_world.RendermanWorldSettings.__dict__:
+            setattr(rman_properties_world.RendermanWorldSettings, "__annotations__", {})
 
     # special case for world lights
     if plugin_type == 'light' and name in ['PxrDomeLight', 'PxrEnvDayLight']:
-        properties.RendermanWorldSettings.__annotations__["%s_settings" % name] = PointerProperty(type=ntype, name="%s Settings" % name)
+        rman_properties_world.RendermanWorldSettings.__annotations__["%s_settings" % name] = PointerProperty(type=ntype, name="%s Settings" % name)
 
 
 def register_plugin_types(node_desc):

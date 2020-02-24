@@ -1,0 +1,103 @@
+{
+    "name": "rman_properties_camera",
+    "params": [
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_use_dof",
+            "label": "Depth of Field",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "page": "",
+            "help": ""
+        },
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_aperture_fstop",
+            "label": "F Stop",
+            "type": "float",
+            "default": 16.0,
+            "page": "Aperture Controls",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_use_dof",
+                "conditionalVisValue": 1
+            }            
+        },
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_aperture_ratio",
+            "label": "Ratio",
+            "type": "float",
+            "default": 1.0,
+            "page": "Aperture Controls",
+            "help": ""
+        },
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_aperture_blades",
+            "label": "Blades",
+            "type": "int",
+            "default": 0,
+            "page": "Aperture Controls",
+            "help": ""
+        },
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_aperture_rotation",
+            "label": "Rotation",
+            "type": "float",
+            "default": 0.0,
+            "min": -180.0,
+            "max": 180.0,
+            "page": "Aperture Controls",
+            "help": ""
+        },
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_aperture_roundness",
+            "label": "Roundness",
+            "type": "float",
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "page": "Aperture Controls",
+            "help": ""
+        },
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_aperture_density",
+            "label": "Density",
+            "type": "float",
+            "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
+            "page": "Aperture Controls",
+            "help": ""
+        },
+        {
+            "panel": "DATA_PT_renderman_camera",
+            "page": "Focus",
+            "name": "rman_focus_object",
+            "label": "Focus Object",
+            "type": "string",
+            "widget": "scenegraphLocation",
+            "options": "nodeType:bpy.types.Object",
+            "default": ""
+        },
+        {
+            "panel": "DATA_PT_renderman_camera",
+            "page": "Focus",
+            "name": "rman_focus_distance",
+            "label": "Distance",
+            "type": "float",
+            "default": 1.0,
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_focus_object",
+                "conditionalVisValue": "NoneType"
+            }            
+        }
+    ]
+}

@@ -28,12 +28,6 @@ class RendermanWorldSettings(bpy.types.PropertyGroup):
     def update_vis(self, context):
         light = context.scene.world
 
-        """
-        from . import engine
-        if engine.is_ipr_running():
-            engine.ipr.update_light_visibility(light)
-        """
-
     renderman_type: EnumProperty(
         name="World Type",
         update=update_light_type,
