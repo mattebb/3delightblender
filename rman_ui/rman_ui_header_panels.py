@@ -1,5 +1,6 @@
 from ..rman_render import RmanRender
 from ..icons.icons import load_icons
+from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 import bpy
 
 class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
