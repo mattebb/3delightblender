@@ -5,6 +5,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 from ...rman_utils import filepath_utils
 from ...rman_utils import property_utils
 from ...rfb_logger import rfb_log
+from bpy.app.handlers import persistent
 from ... import rman_render
 from ... import rman_bl_nodes
 from ...rman_bl_nodes import rman_bl_nodes_props    
@@ -118,6 +119,29 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         type=RendermanGroup, name="Trace Sets")
     object_groups_index: IntProperty(min=-1, default=-1)
 
+@persistent
+def _scene_initial_groups_handler(scene):
+    '''A post load handler to make sure that object_groups
+    and light_groups have an initial group that contains all
+    lights and objects
+    '''
+    scene = bpy.context.scene
+    if 'collector' not in scene.renderman.object_groups.keys():
+        default_group = scene.renderman.object_groups.add()
+        default_group.name = 'collector'
+    if 'All' not in scene.renderman.light_groups.keys():
+        default_group = scene.renderman.light_groups.add()
+        default_group.name = 'All'
+
+def _add_handlers():
+    if _scene_initial_groups_handler not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(_scene_initial_groups_handler)
+
+def _remove_handlers():
+    if _scene_initial_groups_handler in bpy.app.handlers.load_post:
+        bpy.app.handlers.scene_update_post.remove(properties.initial_groups)
+
+
 classes = [         
     RendermanSceneSettings
 ]           
@@ -129,9 +153,13 @@ def register():
         bpy.utils.register_class(cls)  
 
     bpy.types.Scene.renderman = PointerProperty(
-        type=RendermanSceneSettings, name="Renderman Scene Settings")    
+        type=RendermanSceneSettings, name="Renderman Scene Settings")   
+
+    _add_handlers() 
 
 def unregister():
 
     for cls in classes:
         bpy.utils.unregister_class(cls)
+
+    _remove_handlers()

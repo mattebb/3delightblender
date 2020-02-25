@@ -142,6 +142,8 @@ class PRManRender(bpy.types.RenderEngine):
             blf.draw(0, "%s" % ('RenderMan Interactive Mode Running'))
             blf.disable(0, blf.SHADOW)        
 
+# FIXME: these handler registrations should be moved to individual
+# register functions
 def add_handlers(scene):
     # parse for textures to convert on scene load
     if texture_utils.parse_for_textures_load_cb not in bpy.app.handlers.load_post:

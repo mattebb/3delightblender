@@ -32,7 +32,6 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
     CollectionProperty, BoolVectorProperty
 
-from bpy.app.handlers import persistent
 import traceback
 
 from .rman_utils import filepath_utils
@@ -246,17 +245,6 @@ initial_aov_channels = [("a", "alpha", ""),
                         ("__WPref", "WPref",
                          "Reference World Position primvar (if available)"),
                         ("__WNref", "WNref", "Reference World Normal primvar (if available)")]
-
-@persistent
-def initial_groups(scene):
-    scene = bpy.context.scene
-    if 'collector' not in scene.renderman.object_groups.keys():
-        default_group = scene.renderman.object_groups.add()
-        default_group.name = 'collector'
-    if 'All' not in scene.renderman.light_groups.keys():
-        default_group = scene.renderman.light_groups.add()
-        default_group.name = 'All'
-
 
 # collection of property group classes that need to be registered on
 # module startup
