@@ -1,125 +1,11 @@
-# ##### BEGIN MIT LICENSE BLOCK #####
-#
-# Copyright (c) 2015 - 2017 Pixar
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
-#
-#
-# ##### END MIT LICENSE BLOCK #####
-
-import bpy
-import math
-import blf
-from bpy.types import Panel
-from .nodes import is_renderman_nodetree, panel_node_draw
-from .rman_constants import NODE_LAYOUT_SPLIT
-
-
-# global dictionaries
-from bl_ui.properties_particle import ParticleButtonsPanel
-
-# helper functions for parameters
-from .nodes import draw_nodes_properties_ui, draw_node_properties_recursive
-
-from .rman_ui.rman_ui_base import _RManPanelHeader
-from .rman_ui.rman_ui_base import CollectionPanel
-from .rman_ui.rman_ui_base import PRManButtonsPanel
-from .rman_render import RmanRender
-from .rman_utils import object_utils
-
-def get_panels():
-    exclude_panels = {
-        'DATA_PT_area',
-        'DATA_PT_camera_dof',
-        'DATA_PT_falloff_curve',
-        'DATA_PT_light',
-        'DATA_PT_preview',
-        'DATA_PT_shadow',
-        # 'DATA_PT_spot',
-        'DATA_PT_sunsky',
-        # 'MATERIAL_PT_context_material',
-        'MATERIAL_PT_diffuse',
-        'MATERIAL_PT_flare',
-        'MATERIAL_PT_halo',
-        'MATERIAL_PT_mirror',
-        'MATERIAL_PT_options',
-        'MATERIAL_PT_pipeline',
-        'MATERIAL_PT_preview',
-        'MATERIAL_PT_shading',
-        'MATERIAL_PT_shadow',
-        'MATERIAL_PT_specular',
-        'MATERIAL_PT_sss',
-        'MATERIAL_PT_strand',
-        'MATERIAL_PT_transp',
-        'MATERIAL_PT_volume_density',
-        'MATERIAL_PT_volume_integration',
-        'MATERIAL_PT_volume_lighting',
-        'MATERIAL_PT_volume_options',
-        'MATERIAL_PT_volume_shading',
-        'MATERIAL_PT_volume_transp',
-        'RENDERLAYER_PT_layer_options',
-        'RENDERLAYER_PT_layer_passes',
-        'RENDERLAYER_PT_views',
-        'RENDER_PT_antialiasing',
-        'RENDER_PT_bake',
-        #'RENDER_PT_motion_blur',
-        'RENDER_PT_performance',
-        'RENDER_PT_freestyle',
-        # 'RENDER_PT_post_processing',
-        'RENDER_PT_shading',
-        'RENDER_PT_render',
-        'RENDER_PT_stamp',
-        'RENDER_PT_simplify',
-        'RENDER_PT_color_management',
-        'TEXTURE_PT_context_texture',
-        'WORLD_PT_ambient_occlusion',
-        'WORLD_PT_environment_lighting',
-        'WORLD_PT_gather',
-        'WORLD_PT_indirect_lighting',
-        'WORLD_PT_mist',
-        'WORLD_PT_preview',
-        'WORLD_PT_world',
-        'NODE_DATA_PT_light',
-        'NODE_DATA_PT_spot',
-    }
-
-    panels = []
-    for t in bpy.types.Panel.__subclasses__():
-        if hasattr(t, 'COMPAT_ENGINES') and 'BLENDER_RENDER' in t.COMPAT_ENGINES:
-            if t.__name__ not in exclude_panels:
-                panels.append(t)
-
-    return panels
-
-
-# icons
-import os
-from . icons.icons import load_icons
-from . util import get_addon_prefs
-
-
 from bpy.props import (PointerProperty, StringProperty, BoolProperty,
                        EnumProperty, IntProperty, FloatProperty, FloatVectorProperty,
                        CollectionProperty)
 
-# ------- UI panel definitions -------
-narrowui = 180
+from .rman_ui_base import CollectionPanel    
+from ..rman_utils.draw_utils import _draw_props                   
+from bpy.types import Panel
+import bpy
 
 class DATA_PT_renderman_display_filters(CollectionPanel, Panel):
     bl_label = "Display Filters"
@@ -129,7 +15,7 @@ class DATA_PT_renderman_display_filters(CollectionPanel, Panel):
         layout.prop(item, 'filter_type')
         layout.separator()
         filter_node = item.get_filter_node()
-        draw_props(filter_node, filter_node.prop_names, layout)
+        _draw_props(filter_node, filter_node.prop_names, layout)
 
     @classmethod
     def poll(cls, context):
@@ -154,7 +40,7 @@ class DATA_PT_renderman_Sample_filters(CollectionPanel, Panel):
         layout.prop(item, 'filter_type')
         layout.separator()
         filter_node = item.get_filter_node()
-        draw_props(filter_node, filter_node.prop_names, layout)
+        _draw_props(filter_node, filter_node.prop_names, layout)
 
     @classmethod
     def poll(cls, context):
@@ -193,24 +79,6 @@ class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
                               "collection.add_remove", "light", "light_filters",
                               "light_filters_index")
 
-def PRMan_menu_func(self, context):
-    if context.scene.render.engine != "PRMAN_RENDER":
-        return
-    self.layout.separator()
-
-    rman_render = RmanRender.get_rman_render()
-    is_rman_interactive_running = rman_render.rman_interactive_running
-
-    if not is_rman_interactive_running:
-        self.layout.operator('lighting.start_interactive',
-                            text="RenderMan Start Interactive Rendering")
-    else:
-        self.layout.operator('lighting.stop_interactive',
-                            text="RenderMan Stop Interactive Rendering")                                           
-
-#################
-#       Tab     #
-#################
 class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
     # bl_idname = "renderman_light_panel"
     bl_label = "RenderMan Light Groups"
@@ -458,19 +326,22 @@ class PRMAN_PT_Renderman_Object_Panel(CollectionPanel, Panel):
         row.template_list("RENDERMAN_GROUP_UL_List", "Renderman_group_list",
                           group, "members", group, 'members_index',
                           item_dyntip_propname='name',
-                          type='GRID', columns=3)
-
+                          type='GRID', columns=3)                              
 
 classes = [
-    #DATA_PT_renderman_display_filters,
-    #DATA_PT_renderman_Sample_filters,
-    #DATA_PT_renderman_node_filters_light,
+    DATA_PT_renderman_display_filters,
+    DATA_PT_renderman_Sample_filters,
+    DATA_PT_renderman_node_filters_light,
 
-    #PRMAN_PT_Renderman_Light_Panel,
-    #PRMAN_PT_Renderman_Light_Link_Panel,
-    #PRMAN_PT_Renderman_Object_Panel,
+    PRMAN_PT_Renderman_Light_Panel,
+    PRMAN_PT_Renderman_Light_Link_Panel,
+    PRMAN_PT_Renderman_Object_Panel,
 
-    ]
+    RENDERMAN_GROUP_UL_List,
+    RENDERMAN_UL_LIGHT_list,
+    RENDERMAN_UL_OBJECT_list
+
+]
 
 def register():
     for cls in classes:
@@ -479,24 +350,11 @@ def register():
     #bpy.utils.register_class(RENDERMAN_GROUP_UL_List)
     #bpy.utils.register_class(RENDERMAN_UL_LIGHT_list)
     #bpy.utils.register_class(RENDERMAN_UL_OBJECT_list)
-    # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
-    # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
-    #bpy.types.TOPBAR_MT_render.append(PRMan_menu_func)
-
-    for panel in get_panels():
-        panel.COMPAT_ENGINES.add('PRMAN_RENDER')
-
 
 def unregister():
     #bpy.utils.unregister_class(RENDERMAN_GROUP_UL_List)
     #bpy.utils.unregister_class(RENDERMAN_UL_LIGHT_list)
     #bpy.utils.unregister_class(RENDERMAN_UL_OBJECT_list)
-    # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
-    # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
-    #bpy.types.TOPBAR_MT_render.remove(PRMan_menu_func)
-
-    for panel in get_panels():
-        panel.COMPAT_ENGINES.remove('PRMAN_RENDER')
 
     for cls in classes:
         bpy.utils.unregister_class(cls)

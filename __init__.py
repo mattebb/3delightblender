@@ -187,10 +187,7 @@ def load_addon():
         # and don't load anything else
         set_up_paths()
         from . import rman_ui
-        from . import ui
-        from . import properties
         from . import operators
-        #from . import nodes
         from . import rman_bl_nodes
         from . import rman_properties
         from . import rman_config
@@ -200,13 +197,10 @@ def load_addon():
 
         rman_config.register()
         rman_bl_nodes.register()
-        properties.register()
         operators.register()
         rman_ui.register()  
         rman_properties.register()      
-        ui.register()
         add_handlers(None)     
-        #nodes.register()
 
     else:
         rfb_log().error(
@@ -230,12 +224,9 @@ def unregister():
     from . import preferences
     remove_handlers()
     rman_bl_nodes.unregister()    
-    properties.unregister()
     operators.unregister()
     rman_ui.unregister()
     rman_properties.unregister()
-    ui.unregister()    
-    #nodes.unregister()
     preferences.unregister()
     from . import presets
     presets.unregister()

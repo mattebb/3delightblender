@@ -6,8 +6,12 @@ from . import rman_ui_render_panels
 from . import rman_ui_object_panels
 from . import rman_ui_mesh_panels
 from . import rman_ui_material_panels
+from . import rman_ui_scene_panels
 from . import rman_ui_world_panels
 from . import rman_ui_camera_panels
+from . import rman_ui_particles_panels
+from . import rman_ui_header_panels
+from . import rman_ui_view3d_panels
 
 def register():
     rman_ui_txmanager.register()
@@ -18,8 +22,12 @@ def register():
     rman_ui_object_panels.register()
     rman_ui_mesh_panels.register()
     rman_ui_material_panels.register()
+    rman_ui_scene_panels.register()
     rman_ui_world_panels.register()
     rman_ui_camera_panels.register()
+    rman_ui_particles_panels.register()
+    rman_ui_header_panels.register()
+    rman_ui_view3d_panels.register()
 
 def unregister():
     rman_ui_txmanager.unregister()
@@ -30,5 +38,9 @@ def unregister():
     rman_ui_object_panels.unregister()
     rman_ui_mesh_panels.unregister()
     rman_ui_material_panels.unregister()
+    rman_ui_scene_panels.unregister()
     rman_ui_world_panels.unregister()
     rman_ui_camera_panels.unregister()
+    rman_ui_particles_panels.unregister()
+    rman_ui_header_panels.unregister()
+    rman_ui_view3d_panels.unregister()

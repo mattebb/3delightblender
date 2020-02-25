@@ -1,4 +1,4 @@
-from .rman_ui_base import ShaderPanel,ShaderNodePanel
+from .rman_ui_base import _RManPanelHeader,ShaderPanel,ShaderNodePanel
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 from ..rman_utils.draw_utils import _draw_props, panel_node_draw,draw_nodes_properties_ui
 import bpy
@@ -16,13 +16,8 @@ class MATERIAL_PT_renderman_preview(Panel, ShaderPanel):
         mat = context.material
         row = layout.row()
 
-
-
         if mat:
             row.template_preview(context.material, show_buttons=1)
-            # if mat.node_tree:
-            #    layout.prop_search(
-            #        mat, "node_tree", bpy.data, "node_groups")
 
         layout.separator()
         split = layout.split()
@@ -30,11 +25,6 @@ class MATERIAL_PT_renderman_preview(Panel, ShaderPanel):
         col = split.column(align=True)
         col.label(text="Viewport Color:")
         col.prop(mat, "diffuse_color", text="")
-        #col.prop(mat, "alpha")
-
-        #col.separator()
-        #col.label("Viewport Alpha:")
-        #col.prop(mat.game_settings, "alpha_blend", text="")
 
         col = split.column(align=True)
         col.label(text="Viewport Specular:")
@@ -55,8 +45,6 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             if is_renderman_nodetree(mat):
                 panel_node_draw(layout, context, mat,
                                 'RendermanOutputNode', 'Bxdf')
-                # draw_nodes_properties_ui(
-                #    self.layout, context, nt, input_name=self.shader_type)
             else:
                 if not panel_node_draw(layout, context, mat, 'ShaderNodeOutputMaterial', 'Surface'):
                     layout.prop(mat, "diffuse_color")
@@ -79,8 +67,6 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
                 'shading.add_renderman_nodetree').idtype = "material"
             if not mat.grease_pencil:
                 layout.operator('shading.convert_cycles_stuff')
-
-        # self._draw_shader_menu_params(layout, context, rm)
 
 
 class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
@@ -105,10 +91,6 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
             nt = context.material.node_tree
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name=self.shader_type)
-            # BBM addition begin
-
-        # BBM addition end
-        # self._draw_shader_menu_params(layout, context, rm)
 
 class DATA_PT_renderman_light(ShaderPanel, Panel):
     bl_context = "data"
@@ -123,7 +105,6 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
         if not light.renderman.use_renderman_node:
             layout.prop(light, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype = 'light'
-            #layout.operator('shading.convert_cycles_stuff')
             return
         else:
             if ipr_running:
@@ -141,22 +122,75 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
                 row.enabled = not ipr_running
                 row.prop(light.renderman, "area_shape", expand=True)
                 row = layout.row()
-                '''
-                if light.renderman.area_shape == "rect":
-                    row.prop(light, 'size', text="Size X")
-                    row.prop(light, 'size_y')
-                else:
-                    row.prop(light, 'size', text="Diameter")
-                '''
 
-
-                    
-            # layout.prop(light.renderman, "shadingrate")
-
-        # layout.prop_search(light.renderman, "nodetree", bpy.data, "node_groups")
         row = layout.row()
         row.enabled = not ipr_running
         row.prop(light.renderman, 'illuminates_by_default')
+
+class PRMAN_PT_context_material(_RManPanelHeader, Panel):
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_label = ""
+    bl_context = "material"
+    bl_options = {'HIDE_HEADER'}
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
+
+    @classmethod
+    def poll(cls, context):
+        if context.active_object and context.active_object.type == 'GPENCIL':
+            return False
+        else:
+            return (context.material or context.object) and _RManPanelHeader.poll(context)
+
+    def draw(self, context):
+        layout = self.layout
+
+        mat = context.material
+        ob = context.object
+        slot = context.material_slot
+        space = context.space_data
+
+        if ob:
+            is_sortable = len(ob.material_slots) > 1
+            rows = 1
+            if (is_sortable):
+                rows = 4
+
+            row = layout.row()
+
+            row.template_list("MATERIAL_UL_matslots", "", ob, "material_slots", ob, "active_material_index", rows=rows)
+
+            col = row.column(align=True)
+            col.operator("object.material_slot_add", icon='ADD', text="")
+            col.operator("object.material_slot_remove", icon='REMOVE', text="")
+
+            col.menu("MATERIAL_MT_context_menu", icon='DOWNARROW_HLT', text="")
+
+            if is_sortable:
+                col.separator()
+
+                col.operator("object.material_slot_move", icon='TRIA_UP', text="").direction = 'UP'
+                col.operator("object.material_slot_move", icon='TRIA_DOWN', text="").direction = 'DOWN'
+
+            if ob.mode == 'EDIT':
+                row = layout.row(align=True)
+                row.operator("object.material_slot_assign", text="Assign")
+                row.operator("object.material_slot_select", text="Select")
+                row.operator("object.material_slot_deselect", text="Deselect")
+
+        split = layout.split(factor=0.65)
+
+        if ob:
+            split.template_ID(ob, "active_material", new="material.new")
+            row = split.row()
+
+            if slot:
+                row.prop(slot, "link", text="")
+            else:
+                row.label()
+        elif mat:
+            split.template_ID(space, "pin_id")
+            split.separator()
 
 
 class DATA_PT_renderman_node_shader_light(ShaderNodePanel, Panel):
@@ -181,8 +215,8 @@ classes = [
     MATERIAL_PT_renderman_shader_light,
     MATERIAL_PT_renderman_shader_displacement,
     DATA_PT_renderman_light,
-    DATA_PT_renderman_node_shader_light
-
+    DATA_PT_renderman_node_shader_light,
+    PRMAN_PT_context_material
 ]
 
 def register():
