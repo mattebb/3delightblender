@@ -657,6 +657,8 @@ class RmanScene(object):
         options.SetString(self.rman.Tokens.Rix.k_searchpath_texture, '.:%s:@' % RMAN_TEXTUREPATH)
         RMAN_RIXPLUGINPATH = os.environ.get('RMAN_RIXPLUGINPATH', '')
         options.SetString(self.rman.Tokens.Rix.k_searchpath_rixplugin, '.:%s:@' % RMAN_RIXPLUGINPATH)
+        options.SetString(self.rman.Tokens.Rix.k_searchpath_display, '.:@')
+
         self.sg_scene.SetOptions(options)
 
     def export_hider(self):
@@ -667,8 +669,8 @@ class RmanScene(object):
             rm = self.bl_scene.renderman
             pv = rm.ri_pixelVariance
 
-            options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, rm.hider_minSamples)
-            options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, rm.hider_maxSamples)
+            options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, rm.hider_minSamples)
+            options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, rm.hider_maxSamples)
             options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, rm.hider_incremental)
 
             if self.is_interactive:

@@ -9,7 +9,7 @@ from. import chatserver
 from .rfb_logger import rfb_log
 import socketserver
 import threading
-import bgl
+import ctypes
 
 # utils
 from .rman_utils import filepath_utils
@@ -18,6 +18,8 @@ from .rman_utils import display_utils
 
 __RMAN_RENDER__ = None
 __RMAN_IT_PORT__ = -1
+__BLENDER_DSPY_PLUGIN__ = None
+__DRAW_THREAD__ = None
 
 def __turn_off_viewport__():
     rfb_log().debug("Attempting to turn off viewport render")
@@ -106,16 +108,16 @@ def start_cmd_server():
 
     return __RMAN_IT_PORT__   
 
-def iteration_viewport_cb(e, iteration, db):
-    db.bl_engine.tag_redraw()
+def draw_threading_func(db):
+    while db.rman_is_live_rendering:
+        db.bl_engine.tag_redraw()
+        time.sleep(0.01)
+
 
 def progress_cb(e, d, db):
     db.bl_engine.update_progress(float(d) / 100.0)
     if db.rman_is_live_rendering and int(d) == 100:
         db.rman_is_live_rendering = False
-
-def progress_viewport_cb(e, d, db):
-    db.bl_engine.tag_redraw()
 
 def render_cb(e, d, db):
     if d == 0:
@@ -312,6 +314,8 @@ class RmanRender(object):
 
     def start_interactive_render(self, context, depsgraph):
 
+        global __DRAW_THREAD__
+
         self.rman_interactive_running = True
         rm = depsgraph.scene_eval.renderman
         self.it_port = start_cmd_server()    
@@ -322,15 +326,8 @@ class RmanRender(object):
         # register the blender display driver
         try:
             if self.rman_render_into == 'blender':
-                ec = rman.EventCallbacks.Get()
-                ec.RegisterCallback("Iteration", iteration_viewport_cb, self)    
-                ec.RegisterCallback("Progress", progress_viewport_cb, self)   
-                self.rman_callbacks["Iteration"] = iteration_viewport_cb
-                self.rman_callbacks["Progress"] = progress_viewport_cb
-
                 # turn off dspyserver mode if we're not rendering to "it"           
-                rman.Dspy.DisableDspyServer()
-                rman.Dspy.GetBlenderDspy()                         
+                rman.Dspy.DisableDspyServer()                  
             else:
                 rman.Dspy.EnableDspyServer()
         except:
@@ -339,6 +336,7 @@ class RmanRender(object):
             render_into_org = rm.render_into
             rm.render_into = 'it'
             self.rman_render_into = 'it'
+            rman.Dspy.EnableDspyServer()
 
         time_start = time.time()      
 
@@ -355,6 +353,11 @@ class RmanRender(object):
 
         if render_into_org != '':
             rm.render_into = render_into_org    
+        
+        # start a thread to periodically call engine.tag_redraw()
+        if self.rman_render_into == 'blender':
+            __DRAW_THREAD__ = threading.Thread(target=draw_threading_func, args=(self, ))
+            __DRAW_THREAD__.start()
 
     def start_export_rib_selected(self, context, rib_path, export_materials=True, export_all_frames=False):
 
@@ -367,7 +370,9 @@ class RmanRender(object):
         self.rman_running = False        
         return True                 
 
-    def stop_render(self):   
+    def stop_render(self):
+        global __DRAW_THREAD__
+
         if not self.rman_interactive_running and not self.rman_running:
             return
 
@@ -378,6 +383,13 @@ class RmanRender(object):
             ec.UnregisterCallback(k, v, self)
         self.rman_callbacks.clear()          
 
+        self.rman_is_live_rendering = False
+
+        # wait for the drawing thread to finish
+        if __DRAW_THREAD__:
+            __DRAW_THREAD__.join()
+            __DRAW_THREAD__ = None
+
         rfb_log().debug("Telling SceneGraph to stop.")        
         self.sg_scene.Stop()
         rfb_log().debug("Delete Scenegraph scene")
@@ -385,14 +397,23 @@ class RmanRender(object):
 
         self.rman_interactive_running = False
         self.rman_running = False     
-        self.rman_is_live_rendering = False
         self.sg_scene = None
         rfb_log().debug("RenderMan has Stopped.")
                 
     def draw_pixels(self):
         if self.rman_interactive_running:
+            global __BLENDER_DSPY_PLUGIN__
             try:
-                rman.Dspy.DrawBufferToBlender()                   
+                if __BLENDER_DSPY_PLUGIN__ == None:
+                    # grab a pointer to the Blender display driver
+                    ext = '.so'
+                    if sys.platform == ("win32"):
+                         ext = '.dll'
+                    __BLENDER_DSPY_PLUGIN__ = ctypes.CDLL(os.path.join(filepath_utils.guess_rmantree(), 'lib', 'plugins', 'd_blender%s' % ext))
+
+                # call the DrawBufferToBlender function in the display driver
+                __BLENDER_DSPY_PLUGIN__.DrawBufferToBlender()
+                   
             except:
                 pass
 

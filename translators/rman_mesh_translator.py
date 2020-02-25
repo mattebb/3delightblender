@@ -151,7 +151,7 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
             is_array = True
             array_len = meta['arraySize']
         param_type = meta['renderman_type']
-        property_utils.set_rix_param(rixparams, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)                 
+        property_utils.set_rix_param(rixparams, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)             
 
 class RmanMeshTranslator(RmanTranslator):
 
@@ -173,10 +173,10 @@ class RmanMeshTranslator(RmanTranslator):
 
         tags = ['interpolateboundary', 'facevaryinginterpolateboundary']
         nargs = [1, 0, 0, 1, 0, 0]
-        intargs = [ob.data.renderman.rman_subdivInterp,
-                ob.data.renderman.rman_subdivFacevaryingInterp]
+        intargs = [ int(ob.data.renderman.rman_subdivInterp),
+                int(ob.data.renderman.rman_subdivFacevaryingInterp)]
         floatargs = []
-        stringargs = []     
+        stringargs = []   
 
         if len(creases) > 0:
             for c in creases:
@@ -184,7 +184,7 @@ class RmanMeshTranslator(RmanTranslator):
                 nargs.extend([2, 1, 0])
                 intargs.extend([c[0], c[1]])
                 floatargs.append(c[2])           
-            
+
         primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtags, tags, len(tags))
         primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagnargs, nargs, len(nargs))
         primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_subdivtagintargs, intargs, len(intargs))
