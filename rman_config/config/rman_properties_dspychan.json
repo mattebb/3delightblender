@@ -1,0 +1,149 @@
+{
+    "name": "rman_properties_dspychan",
+    "params": [
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "show_advanced",
+            "label": "Advanced Options",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "page": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "exposure_gain",
+            "label": "Gain",
+            "type": "float",
+            "default": 1.0,
+            "page": "Exposure Settings",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "show_advanced",
+                "conditionalVisValue": 1
+            }            
+        },   
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "exposure_gamma",
+            "label": "Gamma",
+            "type": "float",
+            "default": 1.0,
+            "page": "Exposure Settings",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "show_advanced",
+                "conditionalVisValue": 1
+            }            
+        },     
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "remap_a",
+            "label": "a",
+            "type": "float",
+            "default": 0.0,
+            "page": "Remap Settings",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "show_advanced",
+                "conditionalVisValue": 1
+            }            
+        },  
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "remap_b",
+            "label": "b",
+            "type": "float",
+            "default": 0.0,
+            "page": "Remap Settings",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "show_advanced",
+                "conditionalVisValue": 1
+            }            
+        }, 
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "remap_c",
+            "label": "c",
+            "type": "float",
+            "default": 0.0,
+            "page": "Remap Settings",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "show_advanced",
+                "conditionalVisValue": 1
+            }            
+        },
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "chan_pixelfilter",
+            "label": "Pixel Filter",
+            "type": "string",
+            "default": "box",
+            "page": "Pixel Filter",
+            "widget": "mapper",
+            "options": "Default:default|Box:box|Sinc:sinc|Gaussian:gaussian|Triangle:triangle|Catmull-Rom:catmull-rom",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "show_advanced",
+                "conditionalVisValue": 1
+            }            
+        },  
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "chan_pixelfilter_x",
+            "label": "Filter Size X",
+            "type": "int",
+            "default": 2,
+            "page": "Pixel Filter",
+            "min": 0,
+            "max": 16,
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "chan_pixelfilter",
+                "conditionalVisValue": "default"
+            }            
+        },      
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "chan_pixelfilter_y",
+            "label": "Filter Size Y",
+            "type": "int",
+            "default": 2,
+            "page": "Pixel Filter",
+            "min": 0,
+            "max": 16,
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "chan_pixelfilter",
+                "conditionalVisValue": "default"
+            }            
+        },                   
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "stats_type",
+            "label": "Type",
+            "type": "string",
+            "default": "none",
+            "page": "Statistics",
+            "widget": "mapper",
+            "options": "None:none|Variance:variance|MSE:mse|Even:even|Odd:odd",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "show_advanced",
+                "conditionalVisValue": 1
+            }            
+        }
+    ]
+}

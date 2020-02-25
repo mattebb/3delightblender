@@ -152,7 +152,11 @@ def get_dspy_dict(rman_scene, expandTokens=True):
                                     u'remap_a': { 'type': u'float', 'value': 0.0},
                                     u'remap_b': { 'type': u'float', 'value': 0.0},
                                     u'remap_c': { 'type': u'float', 'value': 0.0}
-                                  }
+                                  },
+                        'camera': u'camera_name',
+                        'denoise': [True|False],
+                        'denoise_mode': [u'singleframe'|u'crossframe']
+                        'dspyDriverParams': RtParamList
                       }
                   }
         }
@@ -196,14 +200,14 @@ def get_dspy_dict(rman_scene, expandTokens=True):
                 # add the channel if not already in list
                 if ch_name not in dspys_dict['channels']:
                     d = _default_dspy_params()
-                    lgt_grp = None
-                    source_type, source = chan.aov_name.split()
+                    lgt_grp = chan.light_group
+                    source_type, source = chan.channel_def.split()
 
                     if 'custom_lpe' in source:
                         source = chan.custom_lpe_string
 
-                    if lgt_grp:
-                        if "<L.>" in src:
+                    if lgt_grp or lgt_grp != ' ':
+                        if "<L.>" in source:
                             source = source.replace("<L.>", "<L.'%s'>" % lgt_grp)
                         else:
                             source = source.replace("L", "<L.'%s'>" % lgt_grp)

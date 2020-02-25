@@ -8,6 +8,7 @@ from .rman_ui_base import PRManButtonsPanel
 from ..rman_utils.draw_utils import _draw_props
 from ..rman_utils import string_utils
 from ..rman_utils import scene_utils
+from ..rman_utils.draw_utils import _draw_ui_from_rman_config
 
 class Renderman_Dspys_COLLECTION_OT_add_remove(bpy.types.Operator):
     bl_label = "Add or Remove Paths"
@@ -79,7 +80,9 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
         if rm_rl:
             aov = rm_rl.custom_aovs[rm_rl.custom_aov_index]
             chan = aov.dspy_channels.add()
-            chan.aov_name = 'color Ci'
+            chan.channel_def = 'color Ci'
+            chan.name = 'Ci'
+            chan.channel_name = 'Ci'
 
         return{'FINISHED'}       
 
@@ -179,10 +182,12 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         channel = item.dspy_channels[item.dspy_channels_index]
 
         col = layout.column()
-        col.prop(channel, "aov_name")
-        if channel.aov_name == "color custom_lpe":
+        col.prop(channel, "channel_selector")
+        if channel.channel_def == "color custom_lpe":
             col.prop(channel, "name")
             col.prop(channel, "custom_lpe_string")
+        else:
+            col.prop(channel, "name")            
 
         col = layout.column()
         icon = 'DISCLOSURE_TRI_DOWN' if channel.show_advanced \
@@ -214,9 +219,10 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             row = col.row()
             row.prop(channel, "stats_type")
             layout.separator()
-
             col.prop(channel, "light_group")
-            col.prop(channel, "object_group")
+            
+            # FIXME: don't show for now
+            # col.prop(channel, "object_group")
 
     def draw(self, context):
         layout = self.layout
@@ -233,8 +239,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             split = layout.split()
             col = split.column()
             rl = active_layer
-            #col.prop(rl, "use_metadata")
-            #col.prop(rl, "use_pass_combined")
             col.prop(rl, "use_pass_z")
             col.prop(rl, "use_pass_normal")
             col.prop(rl, "use_pass_vector")

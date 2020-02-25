@@ -712,7 +712,7 @@ class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
         aovs = [
             # (name, do?, declare type/name, source)
             ("color rgba", active_layer.use_pass_combined, "rgba"),
-            ("float z", active_layer.use_pass_z, "z"),
+            ("float z", active_layer.use_pass_z, "z_depth"),
             ("normal Nn", active_layer.use_pass_normal, "Normal"),
             ("vector dPdtime", active_layer.use_pass_vector, "Vectors"),
             ("float u", active_layer.use_pass_uv, "u"),
@@ -742,10 +742,12 @@ class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
                     aov_setting.name = 'beauty'
                     channel = aov_setting.dspy_channels.add()
                     channel.name = 'Ci'
-                    channel.aov_name = 'color Ci'
+                    channel.channel_name = 'Ci'
+                    channel.channel_def = 'color Ci'
                     channel = aov_setting.dspy_channels.add()
                     channel.name = 'a'
-                    channel.aov_name = 'float a'    
+                    channel.channel_name = 'a'
+                    channel.channel_def = 'float a'    
 
                 else:
                     aov_setting = rm_rl.custom_aovs.add()
@@ -753,12 +755,8 @@ class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
 
                     channel = aov_setting.dspy_channels.add()
                     channel.name = name
-                    channel.aov_name = aov_type
+                    channel.channel_def = aov_type
                     channel.channel_name = name                    
-
-                    #aov_setting.aov_name = aov_type
-                    #aov_setting.name = name
-                    #aov_setting.channel_name = name
 
         return {'FINISHED'}
 

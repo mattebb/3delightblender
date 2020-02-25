@@ -1,0 +1,46 @@
+{
+    "name": "rman_properties_aov",
+    "params": [
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "show_displaydriver_settings",
+            "label": "show_displaydriver_settings",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "page": "",
+            "help": "Show Display Driver Settings"
+        },
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "denoise",
+            "label": "Denoise",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "page": "",
+            "help": ""
+        },  
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "denoise_mode",
+            "label": "Denoise Mode",
+            "type": "string",
+            "default": "singleframe",
+            "widget": "mapper",
+            "options": "Single Frame:singleframe|Cross Frame:crossframe",
+            "page": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",
+            "page": "",
+            "name": "camera",
+            "label": "Camera",
+            "type": "string",
+            "widget": "scenegraphLocation",
+            "options": "nodeType:bpy.types.Camera",
+            "default": ""
+        }         
+    ]
+}

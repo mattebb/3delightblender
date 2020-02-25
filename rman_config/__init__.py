@@ -6,6 +6,8 @@ import json
 import os
 
 __RMAN_CONFIG__ = dict()
+__RMAN_CHANNELS_DEF_FILE__ = 'rman_dspychan_definitions.json'
+__RMAN_DISPLAY_CHANNELS__ = dict()
 
 class RmanBasePropertyGroup:
     """Base class that can be inhreited for custom PropertyGroups
@@ -59,7 +61,6 @@ class RmanConfig:
     def __init__(self, jsonfile):
         self.jsonfile = jsonfile
         self.params = dict()
-
         self._parse_json_file()
 
     def _parse_json_file(self):
@@ -77,6 +78,17 @@ class RmanConfig:
                     rfb_log().error('FAILED to parse param: %s' % pdata)
                     raise
                 self.params[param.name] = param
+        else:
+            rfb_log().error("Could not find 'params' list in JSON file: %s" % jsonfile)
+
+def configure_channels(jsonfile):
+    jdata = json.load(open(jsonfile))
+
+    if 'channels' in jdata:
+        __RMAN_DISPLAY_CHANNELS__.update(jdata['channels'])  
+    else:
+        rfb_log().error("Could not find 'channels' list in JSON file: %s" % jsonfile)
+
 
 def get_factory_config_path():
     """Get the factory config path.
@@ -150,8 +162,13 @@ def register():
         if not f.endswith('.json'):
             continue
         jsonfile = os.path.join(config_path, f)
-        rman_config = RmanConfig(jsonfile)
-        __RMAN_CONFIG__[rman_config.name] = rman_config
+        if f == __RMAN_CHANNELS_DEF_FILE__:
+            # this is our channels config file
+            configure_channels(jsonfile)
+        else:
+            # this is a regular properties config file
+            rman_config = RmanConfig(jsonfile)
+            __RMAN_CONFIG__[rman_config.name] = rman_config
 
     # Look for overrides
     override_paths = get_override_paths()
@@ -160,8 +177,11 @@ def register():
             if not f.endswith('.json'):
                 continue
             jsonfile = os.path.join(path, f)
-            rman_config_override = RmanConfig(jsonfile)
-            if rman_config_override.name in __RMAN_CONFIG__:
-                rman_config_original = __RMAN_CONFIG__[rman_config_override.name]
-                apply_overrides(rman_config_original, rman_config_override)
-                __RMAN_CONFIG__[rman_config_override.name] = rman_config_original
+            if f == __RMAN_CHANNELS_DEF_FILE__:
+                configure_channels(jsonfile)
+            else:
+                rman_config_override = RmanConfig(jsonfile)
+                if rman_config_override.name in __RMAN_CONFIG__:
+                    rman_config_original = __RMAN_CONFIG__[rman_config_override.name]
+                    apply_overrides(rman_config_original, rman_config_override)
+                    __RMAN_CONFIG__[rman_config_override.name] = rman_config_original
