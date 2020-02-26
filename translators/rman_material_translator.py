@@ -124,7 +124,7 @@ class RmanMaterialTranslator(RmanTranslator):
                 return True                        
                     
             elif shadergraph_utils.find_node(id, 'ShaderNodeOutputMaterial'):
-                rfb_log().error("Error Material %s needs a RenderMan BXDF" % id.name)
+                rfb_log().debug("Error Material %s needs a RenderMan BXDF" % id.name)
                 return False
 
         return False

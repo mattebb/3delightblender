@@ -85,6 +85,7 @@ class RmanScene(object):
         self.is_interactive = False
         self.external_render = False
         self.is_viewport_render = False
+        self.is_swatch_render = False
         self.scene_solo_light = False
         self.scene_any_lights = False
         self.current_ob = []
@@ -195,6 +196,21 @@ class RmanScene(object):
         self.export_data_blocks([ob])
         self.export_instances(obj_selected=ob)
 
+    def export_for_swatch_render(self, depsgraph, sg_scene, render_output):
+        self.sg_scene = sg_scene
+        self.context = bpy.context #None
+        self.bl_scene = depsgraph.scene_eval
+        self.depsgraph = depsgraph
+        self.external_render = False
+        self.is_interactive = False
+        self.is_viewport_render = False
+        self.do_motion_blur = False
+        self.rman_bake = False
+        self.is_swatch_render = True
+        self.export_swatch_render_scene(render_output)
+
+
+
     def export(self):
 
         self.reset()
@@ -251,6 +267,53 @@ class RmanScene(object):
             if self.is_viewport_render:
                 self.export_viewport_stats()
 
+    def export_swatch_render_scene(self, render_output):
+        self.reset()
+
+        group_db_name = '__RMAN_ROOT_SG_NODE'
+        self.rman_root_sg_node = self.rman_translators['GROUP'].export(None, group_db_name)
+        self.sg_scene.Root().AddChild(self.rman_root_sg_node.sg_node) 
+
+        # options
+        options = self.sg_scene.GetOptions()
+        options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, 0)
+        options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, 64)
+        options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, 0)
+        options.SetString("adaptivemetric", "variance")
+        scale = 100.0 / self.bl_scene.render.resolution_percentage
+        w = int(self.bl_scene.render.resolution_x * scale)
+        h = int(self.bl_scene.render.resolution_y * scale)
+        options.SetIntegerArray(self.rman.Tokens.Rix.k_Ri_FormatResolution, (w, h), 2)
+        options.SetFloat(self.rman.Tokens.Rix.k_Ri_PixelVariance, 0.015)
+        options.SetInteger(self.rman.Tokens.Rix.k_threads, -2)
+        options.SetString(self.rman.Tokens.Rix.k_bucket_order, 'horizontal')
+        self.sg_scene.SetOptions(options)          
+
+        # integrator        
+        integrator_sg = self.rman.SGManager.RixSGShader("Integrator", "PxrDirectLighting", "integrator")         
+        self.sg_scene.SetIntegrator(integrator_sg) 
+
+        # camera
+        self.export_cameras([c for c in self.depsgraph.objects if isinstance(c.data, bpy.types.Camera)])
+
+        # Display
+        display_driver = 'openexr'
+        dspy_chan_Ci = self.rman.SGManager.RixSGDisplayChannel('color', 'Ci')
+        dspy_chan_a = self.rman.SGManager.RixSGDisplayChannel('float', 'a')
+
+        self.sg_scene.SetDisplayChannel([dspy_chan_Ci, dspy_chan_a])
+        display = self.rman.SGManager.RixSGShader("Display", display_driver, render_output)
+        display.params.SetString("mode", 'Ci,a')
+        display.params.SetInteger("asrgba", 1)
+        self.main_camera.sg_node.SetDisplay(display)          
+
+        rfb_log().debug("Calling materials()")
+        self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])
+        rfb_log().debug("Calling export_data_blocks()")
+        
+        self.export_data_blocks([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Object)])
+        self.export_instances()
+
     def export_root_sg_node(self):
         
         group_db_name = '__RMAN_ROOT_SG_NODE'
@@ -294,6 +357,8 @@ class RmanScene(object):
 
     def export_data_block(self, db_ob):
         obj = bpy.data.objects.get(db_ob.name, None)
+        if not obj and self.is_swatch_render:
+            obj = db_ob
 
         if obj and obj.type not in ('ARMATURE', 'CURVE', 'CAMERA'):
             ob = obj.evaluated_get(self.depsgraph)            

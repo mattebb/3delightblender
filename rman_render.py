@@ -147,6 +147,7 @@ class RmanRender(object):
         self.bl_engine = None
         self.rman_running = False
         self.rman_interactive_running = False
+        self.rman_swatch_render_running = False
         self.rman_is_live_rendering = False
         self.rman_render_into = 'blender'
         self.it_port = -1 
@@ -213,7 +214,24 @@ class RmanRender(object):
                 lay.load_from_file(render_output)
             except:
                 pass
-            self.bl_engine.end_result(result)           
+            self.bl_engine.end_result(result)   
+
+    def _load_swatch_image_into_blender(self, render_output):
+        # try to load image into Blender
+
+        render = self.bl_scene.render
+        image_scale = 100.0 / render.resolution_percentage
+        result = self.bl_engine.begin_result(0, 0,
+                                    render.resolution_x * image_scale,
+                                    render.resolution_y * image_scale)
+        lay = result.layers[0]
+        # possible the image wont load early on.
+        try:
+            lay.load_from_file(render_output)
+        except:
+            pass
+        self.bl_engine.end_result(result)           
+
 
     def start_render(self, depsgraph, for_preview=False):
 
@@ -359,6 +377,37 @@ class RmanRender(object):
             __DRAW_THREAD__ = threading.Thread(target=draw_threading_func, args=(self, ))
             __DRAW_THREAD__.start()
 
+    def start_swatch_render(self, depsgraph):
+        self.bl_scene = depsgraph.scene_eval
+        rfb_log().info("Parsing scene...")
+        time_start = time.time()                
+        self.rman_callbacks.clear()
+        ec = rman.EventCallbacks.Get()
+        ec.RegisterCallback("Progress", progress_cb, self)
+        self.rman_callbacks["Progress"] = progress_cb
+        ec.RegisterCallback("Render", render_cb, self)
+        self.rman_callbacks["Render"] = render_cb        
+
+        render_output = '/var/tmp/blender_preview.exr'
+        if sys.platform == ("win32"):
+            render_output = 'C:/tmp/blender_preview.exr'
+        
+        self.sg_scene = self.sgmngr.CreateScene() 
+        self.rman_scene.export_for_swatch_render(depsgraph, self.sg_scene, render_output)
+
+        self.rman_running = True
+        self.rman_swatch_render_running = True
+        self._dump_rib_()
+        rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
+        self.rman_is_live_rendering = True
+        self.sg_scene.Render("prman -live")
+        while not self.bl_engine.test_break() and self.rman_is_live_rendering:
+            time.sleep(0.01)
+        self.stop_render()        
+        self._load_swatch_image_into_blender(render_output)
+
+        return True  
+
     def start_export_rib_selected(self, context, rib_path, export_materials=True, export_all_frames=False):
 
         self.rman_running = True  
@@ -397,6 +446,7 @@ class RmanRender(object):
 
         self.rman_interactive_running = False
         self.rman_running = False     
+        self.rman_swatch_render_running = False
         self.sg_scene = None
         rfb_log().debug("RenderMan has Stopped.")
                 

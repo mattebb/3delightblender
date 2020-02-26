@@ -46,7 +46,7 @@ bl_info = {
 class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
     bl_label = "RenderMan Render"
-    bl_use_preview = False # Turn off preview renders
+    bl_use_preview = True # Turn off preview renders
     bl_use_save_buffers = True
     bl_use_shading_nodes = True # We support shading nodes
     bl_use_shading_nodes_custom = False
@@ -56,6 +56,8 @@ class PRManRender(bpy.types.RenderEngine):
         from . import rman_render
         self.rman_render = rman_render.RmanRender.get_rman_render()
         if self.rman_render.rman_interactive_running:
+            if self.is_preview:
+                return
             self.rman_render.stop_render()
         self.rman_render.bl_engine = self
 
@@ -102,10 +104,12 @@ class PRManRender(bpy.types.RenderEngine):
         bl_scene = depsgraph.scene_eval
 
         if self.is_preview:
-            # we currently don't support preview renders
-            return
-
-        if bl_scene.renderman.enable_external_rendering:
+            if self.rman_render.rman_interactive_running:
+                rfb_log().error("Cannot preview render while viewport rendering.")
+                return
+            self.rman_render.start_swatch_render(depsgraph)
+          
+        elif bl_scene.renderman.enable_external_rendering:
             self.rman_render.start_external_render(depsgraph)               
 
         else:
