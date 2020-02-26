@@ -127,7 +127,7 @@ def rfb_log():
     if not __RFB_LOG_FILE__:
         check_logfile_preferences()
     if not __RFB_LOG_LEVEL:        
-    check_log_level_preferences()
+        check_log_level_preferences()
 
     return __log__
 
