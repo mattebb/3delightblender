@@ -209,7 +209,6 @@ class RmanRender(object):
                                         render.resolution_x * image_scale,
                                         render.resolution_y * image_scale)
             lay = result.layers[0]
-            # possible the image wont load early on.
             try:
                 lay.load_from_file(render_output)
             except:
@@ -225,7 +224,6 @@ class RmanRender(object):
                                     render.resolution_x * image_scale,
                                     render.resolution_y * image_scale)
         lay = result.layers[0]
-        # possible the image wont load early on.
         try:
             lay.load_from_file(render_output)
         except:

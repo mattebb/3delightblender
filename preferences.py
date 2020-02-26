@@ -203,7 +203,7 @@ class RendermanPreferences(AddonPreferences):
 
     rman_logging_level: EnumProperty(
         name='Logging Level',
-        description='''Log level verbosity. Advanced: Setting the RFB_LOG_LEVEL environment variable will override this preference.
+        description='''Log level verbosity. Advanced: Setting the RFB_LOG_LEVEL environment variable will override this preference. Requires a restart.
                     ''',
         items=[('CRITICAL', 'Critical', ''),
                 ('ERROR', 'Error', ''),
@@ -214,6 +214,13 @@ class RendermanPreferences(AddonPreferences):
         ],
         default='WARNING',
         update=update_rman_logging_level)
+
+    rman_logging_file: StringProperty(
+        name='Logging File',
+        description='''A file to write logging to. This will always write at DEBUG level. Setting the RFB_LOG_FILE environment variable will override this preference. Requires a restart.''',
+        default = '',
+        subtype='FILE_PATH'
+    )
 
     presets_library: PointerProperty(
         type=RendermanPresetGroup,
@@ -245,6 +252,7 @@ class RendermanPreferences(AddonPreferences):
             row.label(text='Error in RMANTREE. Reload addon to reset.', icon='ERROR')
 
         layout.prop(self, 'rman_logging_level')
+        layout.prop(self, 'rman_logging_file')
         env = self.env_vars
         layout.prop(env, "out")
         layout.prop(self, 'path_display_driver_image')

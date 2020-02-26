@@ -1088,7 +1088,7 @@ class RmanScene(object):
             integrator = rm.integrator
 
         self.rman_render.bl_engine.update_stats('RenderMan (Stats)', 
-                                                '\nIntegrator: %s\nMin Samples: %d\nMax Samples: %d\nInteractive Refinement: %d' % (integrator, rm.hider_minSamples, rm.hider_maxSamples, rm.hider_decidither))
+                                                '\nIntegrator: %s\nMin Samples: %d\nMax Samples: %d\nInteractive Refinement: %d' % (integrator, rm.ipr_hider_minSamples, rm.ipr_hider_maxSamples, rm.hider_decidither))
 
 ### UPDATE METHODS
 #------------------------

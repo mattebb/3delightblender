@@ -190,6 +190,7 @@ def load_addon():
         # else display an error, tell user to correct
         # and don't load anything else
         set_up_paths()
+        from . import rman_operators
         from . import rman_ui
         from . import operators
         from . import rman_bl_nodes
@@ -199,6 +200,7 @@ def load_addon():
         # need this now rather than at beginning to make
         # sure preferences are loaded
 
+        rman_operators.register()
         rman_config.register()
         rman_bl_nodes.register()
         operators.register()
@@ -234,6 +236,7 @@ def unregister():
     preferences.unregister()
     from . import presets
     presets.unregister()
+    rman_operators.unregister()
     
     for cls in classes:
         bpy.utils.unregister_class(cls)
