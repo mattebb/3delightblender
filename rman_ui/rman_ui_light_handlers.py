@@ -3,6 +3,7 @@ import gpu
 from gpu_extras.batch import batch_for_shader
 from ..rman_utils import transform_utils
 from mathutils import Vector, Matrix
+import mathutils
 import math
 
 _DRAW_HANDLER_ = None
@@ -1108,7 +1109,160 @@ def draw_rod_light_filter(ob):
             left, right, top, bottom, front,
             back, m)           
 
+def draw_ramp_light_filter(ob):
+    _SHADER_.bind()
+
+    if ob in bpy.context.selected_objects:
+        _SHADER_.uniform_float("color", (1,1,1,1))
+
+    light = ob.data
+    rm = light.renderman.get_light_node()
+    rampType = int(rm.rampType)
+
+    begin = float(rm.beginDist)
+    end = float(rm.endDist)    
+
+    # distToLight
+    if rampType in (0,2):
+        _SHADER_.bind()
+
+        if ob in bpy.context.selected_objects:
+            _SHADER_.uniform_float("color", (1,1,1,1))
+
+        m = Matrix(ob.matrix_world)        
+        m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
+        m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
+
+        # begin
+        begin_m = m @ Matrix.Scale(begin, 4)      
+
+        disk = []
+        for pt in s_diskLight:
+            disk.append( Vector(transform_utils.transform_points( begin_m, pt)))
+
+        disk_indices = _get_indices(s_diskLight)
+        batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+        batch.draw(_SHADER_)
+
+        m2 = begin_m @ Matrix.Rotation(math.radians(90.0), 4, 'Y')
+        disk = []
+        for pt in s_diskLight:
+            disk.append( Vector(transform_utils.transform_points( m2, pt)))
+
+        disk_indices = _get_indices(s_diskLight)
+        batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+        batch.draw(_SHADER_)
+
+        m3 = begin_m @ Matrix.Rotation(math.radians(90.0), 4, 'X')
+        disk = []
+        for pt in s_diskLight:
+            disk.append( Vector(transform_utils.transform_points( m3, pt)))
+
+        disk_indices = _get_indices(s_diskLight)
+        batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+        batch.draw(_SHADER_)   
+
+        # end
+        end_m = m @ Matrix.Scale(end, 4)      
+
+        disk = []
+        for pt in s_diskLight:
+            disk.append( Vector(transform_utils.transform_points( end_m, pt)))
+
+        disk_indices = _get_indices(s_diskLight)
+        batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+        batch.draw(_SHADER_)
+
+        m2 = end_m @ Matrix.Rotation(math.radians(90.0), 4, 'Y')
+        disk = []
+        for pt in s_diskLight:
+            disk.append( Vector(transform_utils.transform_points( m2, pt)))
+
+        disk_indices = _get_indices(s_diskLight)
+        batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+        batch.draw(_SHADER_)
+
+        m3 = end_m @ Matrix.Rotation(math.radians(90.0), 4, 'X')
+        disk = []
+        for pt in s_diskLight:
+            disk.append( Vector(transform_utils.transform_points( m3, pt)))
+
+        disk_indices = _get_indices(s_diskLight)
+        batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+        batch.draw(_SHADER_)        
+
+
+    # linear
+    elif rampType == 1:        
+
+        m = Matrix(ob.matrix_world)        
+        m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
+        m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
+
+        box = []
+        for pt in s_rmanLightLogo['box']:
+            box.append( Vector(transform_utils.transform_points( m, pt)))        
+        n = mathutils.geometry.normal(box)
+        n.normalize()
+        box1 = []
+        for i,pt in enumerate(box):
+            if begin > 0.0:
+                box1.append(pt + (begin * n))
+            else:
+                box1.append(pt)
+
+        box_indices = _get_indices(s_rmanLightLogo['box'])
+        batch = batch_for_shader(_SHADER_, 'LINES', {"pos": box1}, indices=box_indices)    
+        batch.draw(_SHADER_)
+
+        box2 = []
+        for pt in box:
+            box2.append( pt + (end * n) )
+
+        batch = batch_for_shader(_SHADER_, 'LINES', {"pos": box2}, indices=box_indices)    
+        batch.draw(_SHADER_)        
+
+    # radial
+    elif rampType == 3:
+        _SHADER_.bind()
+
+        if ob in bpy.context.selected_objects:
+            _SHADER_.uniform_float("color", (1,1,1,1))
+
+        m = Matrix(ob.matrix_world)        
+        m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
+        m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
+
+        if begin > 0.0:
+            m1 = m @ Matrix.Scale(begin, 4)      
+
+            disk = []
+            for pt in s_diskLight:
+                disk.append( Vector(transform_utils.transform_points( m1, pt)))
+
+            disk_indices = _get_indices(s_diskLight)
+            batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+            batch.draw(_SHADER_)
+
+
+        m2 = m @ Matrix.Scale(end, 4)      
+
+        disk = []
+        for pt in s_diskLight:
+            disk.append( Vector(transform_utils.transform_points( m2, pt)))
+
+        disk_indices = _get_indices(s_diskLight)
+        batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+        batch.draw(_SHADER_)
+
+    else:
+        pass
+
+
 def draw():
+
+    if bpy.context.engine != 'PRMAN_RENDER':
+        return
 
     for ob in [x for x in bpy.data.objects if x.type == 'LIGHT']:
         if not ob.data.renderman:
@@ -1137,6 +1291,8 @@ def draw():
              draw_rect_light(ob)             
         elif light_shader_name in ['PxrRodLightFilter', 'PxrBlockerLightFilter']:
             draw_rod_light_filter(ob)
+        elif light_shader_name == 'PxrRampLightFilter':
+            draw_ramp_light_filter(ob)
         else: 
             draw_rect_light(ob) 
 

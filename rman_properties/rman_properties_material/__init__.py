@@ -11,22 +11,6 @@ class RendermanMaterialSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     rman_config_name: StringProperty(name='rman_config_name',
                                     default='rman_properties_material') 
 
-    '''
-    preview_render_type: EnumProperty(
-        name="Preview Render Type",
-        description="Object to display in material preview",
-        items=[('SPHERE', 'Sphere', ''),
-               ('CUBE', 'Cube', '')],
-        default='SPHERE')
-
-    copy_color_params: BoolProperty(
-        name="Copy Color Parameters",
-        description="""Copy Blender material color parameters when adding a new RenderMan node tree. Copies
-                    diffuse_color, diffuse_intensity, and specular_color. Only used if we are unable
-                    to convert a Cycles shading network.""",
-        default=False)
-    '''
-
 classes = [         
     RendermanMaterialSettings
 ]           
