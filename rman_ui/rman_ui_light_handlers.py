@@ -1258,6 +1258,51 @@ def draw_ramp_light_filter(ob):
     else:
         pass
 
+def get_parented_lights(light_filter):
+    parents = []
+
+    for ob in [x for x in bpy.data.objects if x.type == 'LIGHT']:
+        if not ob.data.renderman:
+            continue
+        rm = ob.data.renderman
+        if rm.renderman_type == 'FILTER':
+            continue
+        for lf in rm.light_filters:
+            if lf.filter_name == light_filter.name:
+                parents.append(ob)
+                break
+    return parents
+
+def draw_barn_light_filter(ob, parents):
+    _SHADER_.bind()
+
+    if ob in bpy.context.selected_objects:
+        _SHADER_.uniform_float("color", (1,1,1,1))
+
+    m = Matrix(ob.matrix_world)        
+    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
+    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
+
+    box = []
+    for pt in s_rmanLightLogo['box']:
+        box.append( Vector(transform_utils.transform_points( m, pt)))
+
+    box_indices = _get_indices(s_rmanLightLogo['box'])
+    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": box}, indices=box_indices)    
+    batch.draw(_SHADER_)  
+
+    n = mathutils.geometry.normal(box)
+    n.normalize()
+
+    box2 = []
+    v = n + Vector([1,1,1])
+    v *=4
+    for pt in box:
+        box2.append( pt + (4 * n) + v)
+
+    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": box2}, indices=box_indices)    
+    batch.draw(_SHADER_)         
+
 
 def draw():
 
@@ -1293,6 +1338,10 @@ def draw():
             draw_rod_light_filter(ob)
         elif light_shader_name == 'PxrRampLightFilter':
             draw_ramp_light_filter(ob)
+        elif light_shader_name == 'PxrBarnLightFilter':
+            # get all lights that the barn is attached to
+            parents = get_parented_lights(ob)
+            draw_barn_light_filter(ob, parents)
         else: 
             draw_rect_light(ob) 
 
