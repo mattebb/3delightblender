@@ -46,7 +46,7 @@ bl_info = {
 class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
     bl_label = "RenderMan Render"
-    bl_use_preview = True # Turn off preview renders
+    bl_use_preview = False # Turn off preview renders
     bl_use_save_buffers = True
     bl_use_shading_nodes = True # We support shading nodes
     bl_use_shading_nodes_custom = False

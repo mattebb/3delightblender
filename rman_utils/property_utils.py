@@ -26,6 +26,11 @@ __GAINS_TO_ENABLE__ = {
     'glowGain': 'enableGlow',
 }
 
+# special string to indicate an empty string
+# necessary for EnumProperty because it cannot
+# take an empty string as an item value
+__RMAN_EMPTY_STRING = '__empty__'
+
 def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1):
     if is_array:
         if param_type == 'float':
@@ -59,6 +64,8 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
         elif param_type == "color":
             params.SetColor(param_name, val)
         elif param_type == "string":
+            if val == __RMAN_EMPTY_STRING:
+                val = ""
             params.SetString(param_name, val)
         elif param_type == "point":
             params.SetPoint(param_name, val)                            
@@ -231,7 +238,6 @@ def vstruct_conditional(node, param):
         new_tokens.extend(['else', 'False'])
     return eval(" ".join(new_tokens))
 
-
 def generate_property(sp, update_function=None):
     options = {'ANIMATABLE'}
     param_name = sp._name #sp.attrib['name']
@@ -363,6 +369,11 @@ def generate_property(sp, update_function=None):
             elif param_widget == 'mapper':
                 items = []
                 for k,v in sp.options.items():
+                    v = str(v)
+                    if len(v.split(':')) > 1:
+                        tokens = v.split(':')
+                        v = tokens[1]
+                        k = '%s:%s' % (k, tokens[0])
                     items.append((str(v), k, ''))
                 
                 bl_default = ''
@@ -408,10 +419,11 @@ def generate_property(sp, update_function=None):
     elif param_type == 'string' or param_type == 'struct':
         if param_default is None:
             param_default = ''
-        else:
-            param_default = str(param_default)
-        # if '__' in param_name:
-        #    param_name = param_name[2:]
+        #else:
+        #    param_default = str(param_default)
+
+        if '__' in param_name:
+            param_name = param_name[2:]
         if param_widget == 'fileinput' or param_widget == 'assetidinput' or (param_widget == 'default' and param_name == 'filename'):
             prop = StringProperty(name=param_label,
                                   default=param_default, subtype="FILE_PATH",
@@ -419,8 +431,13 @@ def generate_property(sp, update_function=None):
         elif param_widget == 'mapper':
             items = []
             for k,v in sp.options.items():
-                items.append((str(v), k, ''))
+                if v == '' or v == "''":
+                    v = __RMAN_EMPTY_STRING
+                items.append((str(v), str(k), ''))
             
+            if param_default == '' or param_default == "''":
+                param_default = __RMAN_EMPTY_STRING
+
             prop = EnumProperty(name=param_label,
                                 default=param_default, description=param_help,
                                 items=items,
@@ -429,7 +446,12 @@ def generate_property(sp, update_function=None):
         elif param_widget == 'popup':
             items = []
             for k,v in sp.options.items():
-                items.append((str(v), k, ''))
+                if v == '' or v == "''":
+                    v = __RMAN_EMPTY_STRING
+                items.append((v, k, ''))                
+            if param_default == '' or param_default == "''":
+                param_default = __RMAN_EMPTY_STRING
+
             prop = EnumProperty(name=param_label,
                                 default=param_default, description=param_help,
                                 items=items, update=update_function)
@@ -442,8 +464,8 @@ def generate_property(sp, update_function=None):
 
         else:
             prop = StringProperty(name=param_label,
-                                  default=param_default,
-                                  description=param_help, update=update_function)
+                                default=str(param_default),
+                                description=param_help, update=update_function)            
         renderman_type = param_type
 
     elif param_type == 'vector' or param_type == 'normal':
@@ -677,7 +699,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
 
                     elif 'options' in meta and meta['options'] == 'texture' \
                             and node.bl_idname != "PxrPtexturePatternNode" or \
-                            ('widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
+                            ('widget' in meta and meta['widget'] == 'assetidinput' and prop_name != 'iesProfile'):
 
                         tx_node_id = texture_utils.generate_node_id(node, param_name)
                         val = string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id), type_hint=meta['renderman_type'])
@@ -742,9 +764,9 @@ def set_rixparams(node, rman_sg_node, params, light):
             if 'arraySize' in meta:
                 set_rix_param(params, type, name, string_utils.convert_val(prop), is_reference=False, is_array=True, array_len=len(prop))
 
-            elif ('widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
+            elif ('widget' in meta and meta['widget'] == 'assetidinput' and prop_name != 'iesProfile'):
                 if light:
-                    tx_node_id = texture_utils.generate_node_id(light, prop_name)
+                    tx_node_id = texture_utils.generate_node_id(node, prop_name)
                 else:
                     tx_node_id = texture_utils.generate_node_id(node, prop_name)
 

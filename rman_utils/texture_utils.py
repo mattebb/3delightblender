@@ -121,13 +121,13 @@ def update_texture(node, light=None):
                 else:
                     if ('options' in meta and meta['options'] == 'texture') or \
                         (node.renderman_node_type == 'light' and
-                            'widget' in meta and meta['widget'] == 'assetIdInput' and prop_name != 'iesProfile'):
+                            'widget' in meta and meta['widget'] == 'assetidinput' and prop_name != 'iesProfile'):
                         node_name = ''
                         node_type = ''
                         if node.renderman_node_type == 'light':
                             node_name = light.name
                             node_type = light.renderman.get_light_node_name()
-                            nodeID = generate_node_id(light, prop_name)
+                            nodeID = generate_node_id(node, prop_name)
                         elif hasattr(node, 'name'):
                             node_name = node.name
                             node_type = node.bl_label
@@ -143,9 +143,11 @@ def update_texture(node, light=None):
 
 def generate_node_id(node, prop_name):
     prop = ''
+    real_file = ''
     if hasattr(node, prop_name):
         prop = getattr(node, prop_name)
-    nodeID = '%s|%s|%s' % (node.name, prop_name, prop)
+        real_file = filepath_utils.get_real_path(prop)
+    nodeID = '%s|%s|%s' % (node.name, prop_name, real_file)
     return nodeID
 
 def get_txfile_from_id(nodeid):

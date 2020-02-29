@@ -225,11 +225,14 @@ def class_generate_properties(node, parent_name, node_desc):
         if node_desc.node_type == 'integrator':
             update_function = update_integrator_func
         else:
-            param_widget = node_desc.widget.lower() if hasattr(node_desc,'widget') else 'default'
+            param_widget = node_desc_param.widget.lower() if hasattr(node_desc_param,'widget') else 'default'
             if param_widget == 'fileinput' or param_widget == 'assetidinput' or (param_widget == 'default' and node_desc_param.name == 'filename'):
-                update_fuction = assetid_update_func
+                update_function = assetid_update_func
             else:
                 update_function = update_func_with_inputs if 'enable' in node_desc_param.name else update_func         
+
+        if not update_function:
+            update_function = update_func
 
         name, meta, prop = property_utils.generate_property(node_desc_param, update_function=update_function)
         if name is None:
@@ -501,6 +504,7 @@ def register_rman_nodes():
                             try:
                                 tokens = node_desc.classification.split('/')
                                 category = tokens[-1].lower()
+                                print("CLASS: %s CAT: %s" %s (node_desc.classification, category))
                                 lst = __RMAN_NODE_CATEGORIES__.get('patterns_%s' % category, None)
                                 if not lst:
                                     lst = ('RenderMan %s Patterns' % category.capitalize(), [])

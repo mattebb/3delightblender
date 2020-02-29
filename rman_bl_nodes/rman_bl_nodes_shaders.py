@@ -238,7 +238,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         return ok
 
     def update(self):
-        rfb_log().debug("info", "UPDATING: ", self.name)
+        rfb_log().debug("UPDATING: %s" % self.name)
 
     @classmethod
     def poll(cls, ntree):
