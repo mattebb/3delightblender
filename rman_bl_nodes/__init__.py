@@ -502,15 +502,22 @@ def register_rman_nodes():
                     if node_desc.node_type == 'pattern':
                         if hasattr(node_desc, 'classification'):
                             try:
-                                tokens = node_desc.classification.split('/')
+                                tokens = node_desc.classification.split('/')                                
                                 category = tokens[-1].lower()
-                                print("CLASS: %s CAT: %s" %s (node_desc.classification, category))
+                                # category seems empty. Put in misc
+                                if category == '':
+                                    category = 'misc'
+                                if node_desc.name not in ['PxrLayer', 'PxrLayerMixer']:
+                                    # append OSL to the category if these are osl shaders, except
+                                    # for PxrLayer and PxrLayerMixer
+                                    if filename.endswith('.oso'):
+                                        category = 'OSL_%s' % category
                                 lst = __RMAN_NODE_CATEGORIES__.get('patterns_%s' % category, None)
                                 if not lst:
                                     lst = ('RenderMan %s Patterns' % category.capitalize(), [])
                                 lst[1].append(node_item)
                                 __RMAN_NODE_CATEGORIES__['patterns_%s' % category] = lst                                         
-                            except:
+                            except Exception as e:
                                 pass
                         else:
                             __RMAN_NODE_CATEGORIES__['patterns_misc'][1].append(node_item)
