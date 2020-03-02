@@ -255,7 +255,9 @@ class RmanRender(object):
         except:
             pass
 
-        self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
+        config = rman.Types.RtParamList()
+        config.SetString("rendervariant", rm.renderVariant)
+        self.sg_scene = self.sgmngr.CreateScene(config) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_layer, is_external=False)
 
@@ -357,6 +359,7 @@ class RmanRender(object):
         time_start = time.time()      
 
         config = rman.Types.RtParamList()
+        config.SetString("rendervariant", rm.renderVariant)      
         self.sg_scene = self.sgmngr.CreateScene(config) 
         rfb_log().info("Parsing scene...")        
         self.rman_scene.export_for_interactive_render(context, depsgraph, self.sg_scene)

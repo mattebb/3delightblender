@@ -49,6 +49,17 @@
         {
             "panel": "RENDER_PT_renderman_render",
             "page": "",
+            "name": "renderVariant",
+            "label": "Renderer",
+            "type": "string",
+            "default": "prman",
+            "widget": "popup",
+            "options": "prman|xpu|xpucpu|xpugpu",
+            "help": ""
+        },         
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
             "name": "render_selected_objects_only",
             "label": "Only Render Selected",
             "type": "int",
