@@ -1295,10 +1295,9 @@ def draw_barn_light_filter(ob, parents):
     n.normalize()
 
     box2 = []
-    v = n + Vector([1,1,1])
-    v *=4
     for pt in box:
-        box2.append( pt + (4 * n) + v)
+        new_pt = pt + (4 * n)
+        box2.append(new_pt)
 
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": box2}, indices=box_indices)    
     batch.draw(_SHADER_)         

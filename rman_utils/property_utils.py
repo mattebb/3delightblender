@@ -43,19 +43,19 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
             params.SetStringArray(param_name, val, array_len)
     elif is_reference:
         if param_type == "float":
-            params.ReferenceFloat(param_name, val)
+            params.SetFloatReference(param_name, val)
         elif param_type == "int":
-            params.ReferenceInteger(param_name, val)
+            params.SetIntegerReference(param_name, val)
         elif param_type == "color":
-            params.ReferenceColor(param_name, val)
+            params.SetColorReference(param_name, val)
         elif param_type == "point":
-            params.ReferencePoint(param_name, val)            
+            params.SetPointReference(param_name, val)            
         elif param_type == "vector":
-            params.ReferenceVector(param_name, val)
+            params.SetVectorReference(param_name, val)
         elif param_type == "normal":
-            params.ReferenceNormal(param_name, val) 
+            params.SetNormalReference(param_name, val) 
         elif param_type == "struct":
-            params.ReferenceStruct(param_name, val)                        
+            params.SetStructReference(param_name, val)                        
     else:        
         if param_type == "float":
             params.SetFloat(param_name, float(val))
