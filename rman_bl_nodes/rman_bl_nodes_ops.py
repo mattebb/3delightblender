@@ -52,11 +52,17 @@ class NODE_OT_add_node:
         # if this is a pattern input do columns!
         if self.input_type.lower() == 'pattern':
             i = 0
+            items.append(('REMOVE', 'Remove',
+                          'Remove the node connected to this socket'))
+            items.append(('DISCONNECT', 'Disconnect',
+                          'Disconnect the node connected to this socket'))            
+            
             for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__.items():
                 if not pattern_cat.startswith('patterns_'):
                     continue
-                pattern_cat = pattern_cat.split('_')[1]
-                if pattern_cat.lower() in ['pxrsurface', 'script', 'manifold', 'bump', 'displace']:
+                tokens = pattern_cat.split('_')
+                pattern_cat = ' '.join(tokens[1:])
+                if pattern_cat.lower() in ['pxrsurface', 'script', 'manifold', 'bump', 'displace', 'osl script', 'osl manifold', 'osl bump', 'osl displace']:
                     continue
                 if len(patterns[1]) < 1:
                     continue
@@ -65,14 +71,11 @@ class NODE_OT_add_node:
                 for node_item in patterns[1]:
                     nodetype = rman_bl_nodes.__RMAN_NODE_TYPES__[node_item.nodetype]
                     items.append((nodetype.typename, nodetype.bl_label,
-                                nodetype.bl_label))                
+                                nodetype.bl_label, '', i))   
+                    i += 1             
                 items.append(('', '', '', '', 0))
-            items.append(('REMOVE', 'Remove',
-                          'Remove the node connected to this socket', '', i + 1))
-            items.append(('DISCONNECT', 'Disconnect',
-                          'Disconnect the node connected to this socket', '', i + 2))
 
-        elif self.input_type.lower() in ['pxrsurface', 'manifold', 'bump']:
+        elif self.input_type.lower() in ['pxrsurface', 'manifold', 'bump', 'osl manifold', 'osl bump']:
             pattern_key = 'patterns_%s' % self.input_type.lower()
 
             patterns = rman_bl_nodes.__RMAN_NODE_CATEGORIES__[pattern_key][1]

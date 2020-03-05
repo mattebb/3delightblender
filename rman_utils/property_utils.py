@@ -240,8 +240,14 @@ def vstruct_conditional(node, param):
 
 def generate_property(sp, update_function=None):
     options = {'ANIMATABLE'}
-    param_name = sp._name #sp.attrib['name']
+    param_name = sp._name
     renderman_name = param_name
+
+    # FIXME: figure out a better to skip
+    # manifold struct members coming in from OSL shaders
+    if 'manifold.' in renderman_name:
+        return (None, None, None)
+
     # blender doesn't like names with __ but we save the
     # "renderman_name with the real one"
     if param_name[0] == '_':

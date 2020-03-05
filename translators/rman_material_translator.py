@@ -263,9 +263,9 @@ class RmanMaterialTranslator(RmanTranslator):
             sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", shader, node_name)
             rix_params = sg_node.params       
             if input_type == 'color':
-                rix_params.ReferenceColor('input', val)
+                rix_params.SetColorReference('input', val)
             else:
-                rix_params.ReferenceFloat('input', val)            
+                rix_params.SetFloatReference('input', val)            
                     
             return [sg_node]
         elif not hasattr(node, 'renderman_node_type'):

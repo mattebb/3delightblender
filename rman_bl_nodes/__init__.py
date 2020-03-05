@@ -310,12 +310,15 @@ def class_generate_properties(node, parent_name, node_desc):
     setattr(node, 'prop_meta', prop_meta)
     setattr(node, 'output_meta', output_meta)
 
-def generate_node_type(node_desc):
+def generate_node_type(node_desc, is_oso=False):
     ''' Dynamically generate a node type from pattern '''
 
     name = node_desc.name
     nodeType = node_desc.node_type #args.find("shaderType/tag").attrib['value']
     typename = '%s%sNode' % (name, nodeType.capitalize())
+    if is_oso:
+        typename = '%s%sOSLNode' % (name, nodeType.capitalize())
+
     nodeDict = {'bxdf': rman_bl_nodes_shaders.RendermanBxdfNode,
                 'pattern': rman_bl_nodes_shaders.RendermanPatternNode,
                 'displace': rman_bl_nodes_shaders.RendermanDisplacementNode,
@@ -324,7 +327,10 @@ def generate_node_type(node_desc):
     if nodeType not in nodeDict.keys():
         return (None, None)
     ntype = type(typename, (nodeDict[nodeType],), {})
-    ntype.bl_label = name
+    if is_oso:
+        ntype.bl_label = '%s.oso' % name
+    else:
+        ntype.bl_label = name
     ntype.typename = typename
 
     def init(self, context):
@@ -473,6 +479,7 @@ def register_rman_nodes():
         for root, dirnames, filenames in os.walk(path):
             for filename in filenames:                
                 if filename.endswith(('.args', '.oso')):
+                    is_oso = filename.endswith('.oso')
                     node_desc = NodeDesc(FilePath(root).join(FilePath(filename)))
                     __RMAN_NODES__[node_desc.node_type].append(node_desc)
                     rfb_log().debug("\t%s" % node_desc.name)
@@ -490,7 +497,7 @@ def register_rman_nodes():
                             # for mesh light, we need to create a shader graph node
                             continue
                     
-                    typename, nodetype = generate_node_type(node_desc)
+                    typename, nodetype = generate_node_type(node_desc, is_oso=is_oso)
                     if not typename and not nodetype:
                         continue
 
@@ -510,7 +517,7 @@ def register_rman_nodes():
                                 if node_desc.name not in ['PxrLayer', 'PxrLayerMixer']:
                                     # append OSL to the category if these are osl shaders, except
                                     # for PxrLayer and PxrLayerMixer
-                                    if filename.endswith('.oso'):
+                                    if is_oso:
                                         category = 'OSL_%s' % category
                                 lst = __RMAN_NODE_CATEGORIES__.get('patterns_%s' % category, None)
                                 if not lst:
