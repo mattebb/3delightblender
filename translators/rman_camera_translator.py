@@ -125,62 +125,16 @@ class RmanCameraTranslator(RmanTranslator):
         options = self.rman_scene.sg_scene.GetOptions()
 
         if region_data.view_perspective == 'CAMERA':
-            r = self.rman_scene.bl_scene.render
-
-            space_data = self.rman_scene.context.space_data
-            ob = space_data.camera
-            cam = ob.data
-            
-            xaspect, yaspect, aspectratio = _render_get_aspect_(None, cam, x=width, y=height)
-            aspect_ratio = width / height
-            lens =  cam.lens
-
-            sensor = cam.sensor_height \
-                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
-
-            fov =  math.degrees(cam.angle) 
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
-
-            projparams = proj.params
-
-            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)
-
-
-            """
-
-            if cam.dof.use_dof:
-                if cam.dof.focus_object:
-                    dof_distance = (ob.location - cam.dof.focus_object.location).length
-                else:
-                    dof_distance = cam.dof.focus_distance
-                if dof_distance > 0.0:
-                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fStop, cam.dof.aperture_fstop)
-                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
-                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalDistance, dof_distance)
-            """
-            #options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)         
-            
-        elif region_data.view_perspective == 'PERSP':
-
             ob = self.rman_scene.context.space_data.camera
             cam = ob.data
             
-            #xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
-            aspect_ratio = width / height
-            lens = cam.lens
-
-            sensor = cam.sensor_height \
-                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
-
-            fov = math.degrees(cam.angle)
-           
+            r = self.rman_scene.bl_scene.render
+            fov = math.degrees(cam.angle) 
             proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
 
-            projparams = proj.params          
-
+            projparams = proj.params
             projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)
-
-            """
+            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))            
 
             if cam.dof.use_dof:
                 if cam.dof.focus_object:
@@ -189,10 +143,36 @@ class RmanCameraTranslator(RmanTranslator):
                     dof_distance = cam.dof.focus_distance
                 if dof_distance > 0.0:
                     projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fStop, cam.dof.aperture_fstop)
-                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001))
-                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalDistance, dof_distance)
-            """
-            #options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)            
+                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalDistance, dof_distance)                
+
+            else:
+                projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fStop, 256.0)     
+            
+        elif region_data.view_perspective == 'PERSP':
+            ob = self.rman_scene.context.space_data.camera
+            cam = ob.data
+            
+            r = self.rman_scene.bl_scene.render
+            fov = math.degrees(cam.angle)           
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+
+            projparams = proj.params          
+            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)
+            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalLength, (cam.lens * 0.001)) 
+
+            if cam.dof.use_dof:
+                if cam.dof.focus_object:
+                    dof_distance = (ob.location - cam.dof.focus_object.location).length
+                else:
+                    dof_distance = cam.dof.focus_distance
+                if dof_distance > 0.0:
+                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fStop, cam.dof.aperture_fstop)
+                    projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalDistance, dof_distance)                
+
+            else:
+                projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fStop, 256.0)     
+
+
         options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (width, height), 2)
         options.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)                     
 
@@ -253,8 +233,7 @@ class RmanCameraTranslator(RmanTranslator):
                 if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
 
             fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
-
-            #proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrPerspective", "proj")            
+         
             proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
 
             projparams = proj.params
