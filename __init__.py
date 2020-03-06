@@ -113,7 +113,7 @@ class PRManRender(bpy.types.RenderEngine):
             self.rman_render.start_external_render(depsgraph)               
 
         else:
-            if not self.rman_render.start_render(depsgraph):
+            if not self.rman_render.start_render(depsgraph, for_background=bpy.app.background):
                 return    
 
     def _draw_pixels(self, context, depsgraph):     

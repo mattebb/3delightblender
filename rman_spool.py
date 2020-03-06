@@ -7,6 +7,7 @@ import bpy
 from .rman_utils import string_utils
 from .rman_utils import filepath_utils
 from .rman_utils import display_utils
+from .rman_utils import prefs_utils
 from .rfb_logger import rfb_log
 
 #import tractor.api.author as author
@@ -16,8 +17,9 @@ class RmanSpool(object):
     def __init__(self, rman_render, rman_scene, depsgraph):
         self.rman_render = rman_render
         self.rman_scene = rman_scene
-        self.bl_scene = depsgraph.scene_eval
-        self.depsgraph = depsgraph
+        if depsgraph:
+            self.bl_scene = depsgraph.scene_eval
+            self.depsgraph = depsgraph
 
     def end_block(self, f, indent_level):
         f.write("%s}\n" % ('\t' * indent_level))
@@ -51,10 +53,14 @@ class RmanSpool(object):
         job_title += " frames %d-%d" % (frame_begin, frame_end) if frame_end \
             else " frame %d" % frame_begin
 
+        vers_major, vers_minor, vers_modifier = filepath_utils.get_rman_version(filepath_utils.guess_rmantree())
+        rman_vers = '%d.%d%s' % (vers_major, vers_minor, vers_modifier)
+
         job_params = {
             'title': job_title,
             'serialsubtasks': 1,
-            'comment': 'Created by RenderMan for Blender'
+            'comment': 'Created by RenderMan for Blender',
+            'envkey': '{prman-%s}' % rman_vers
         }
         job_str = 'Job'
         for key, val in job_params.items():
@@ -64,9 +70,89 @@ class RmanSpool(object):
                 job_str += " -%s {%s}" % (key, str(val))
         f.write(job_str + ' -subtasks {' + '\n')
 
+    def blender_batch_render(self, bl_filename):
+
+        prefs = prefs_utils.get_addon_prefs()
+
+        out_dir = prefs.env_vars.out       
+        scene = self.bl_scene 
+        rm = scene.renderman
+        bl_view_layer = self.depsgraph.view_layer
+
+
+        frame_begin = self.bl_scene.frame_start
+        frame_end = self.bl_scene.frame_end
+        if not rm.external_animation:
+            frame_end = frame_begin
+        
+        alf_file = os.path.splitext(bpy.data.filepath)[0] + '.%s.alf' % bl_view_layer.name.replace(' ', '_')
+
+        # open file
+        f = open(alf_file, 'w')
+
+        self.write_job_attrs(f, frame_begin, frame_end)
+
+
+        self.write_parent_task_line(f, 'Frame Renders', False, 1)
+        # for frame
+        if frame_end is None:
+            frame_end = frame_begin
+
+        #bl_filename = bpy.data.filepath
+        bl_blender_path = bpy.app.binary_path
+
+        for frame_num in range(frame_begin, frame_end + 1):
+
+            cmd_str = [bl_blender_path, '-b', bl_filename, '-f', str(frame_num)]
+
+            self.write_cmd_task_line(f, 'Render frame %d' % frame_num, [('PixarRender',
+                                                                    cmd_str)], 3)
+        self.end_block(f, 1)
+
+        # add cleanup
+        f.write("} -cleanup {\n")
+        f.write("    Cmd {TractorBuiltIn File delete %s}\n" % bl_filename)
+        f.write("}\n")
+
+        # end job
+        f.close()      
+
+        is_localqueue = (self.bl_scene.renderman.queuing_system == 'lq')
+
+        if is_localqueue:
+            lq = filepath_utils.find_local_queue()
+            args = []
+            args.append(lq)
+            args.append(alf_file)
+            rfb_log().info('Spooling job to LocalQueue: %s.', alf_file)
+            subprocess.Popen(args)
+        else:
+            # spool to tractor
+            tractor_engine ='tractor-engine'
+            tractor_port = '80'
+            owner = getpass.getuser()        
+
+            if 'TRACTOR_ENGINE' in os.environ:
+                tractor_env = os.environ['TRACTOR_ENGINE'].split(':')
+                tractor_engine = tractor_env[0]
+                if len(tractor_env) > 1:
+                    tractor_port = tractor_env[1]
+
+            if 'TRACTOR_USER' in os.environ:
+                owner = os.environ['TRACTOR_USER']
+
+            tractor_spool = filepath_utils.find_tractor_spool()
+            args = []
+            args.append(tractor_spool)
+            args.append('--user=%s' % owner)
+            args.append('--engine=%s:%s' % (tractor_engine, tractor_port))
+            args.append(alf_file)
+            rfb_log().info('Spooling job to Tractor: %s.', alf_file)
+            subprocess.Popen(args)
+
     def batch_render(self):
 
-        prefs = bpy.context.preferences.addons[__package__].preferences
+        prefs = prefs_utils.get_addon_prefs()
 
         out_dir = prefs.env_vars.out       
         scene = self.bl_scene 

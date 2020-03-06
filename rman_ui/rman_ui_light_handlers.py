@@ -411,7 +411,9 @@ s_cylinderLight['indices'] = [
 ]
 
 
-_SHADER_ = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
+_SHADER_ = None
+if not bpy.app.background:
+    _SHADER_ = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
 
 def _get_indices(l):
     indices = []

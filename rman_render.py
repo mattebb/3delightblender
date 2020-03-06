@@ -231,35 +231,46 @@ class RmanRender(object):
         self.bl_engine.end_result(result)           
 
 
-    def start_render(self, depsgraph, for_preview=False):
+    def start_render(self, depsgraph, for_background=False):
 
         self.bl_scene = depsgraph.scene_eval
         rm = self.bl_scene.renderman
         self.it_port = start_cmd_server()    
         rfb_log().info("Parsing scene...")
         time_start = time.time()
-        self.rman_render_into = rm.render_into
-                
-        self.rman_callbacks.clear()
-        ec = rman.EventCallbacks.Get()
-        ec.RegisterCallback("Progress", progress_cb, self)
-        self.rman_callbacks["Progress"] = progress_cb
-        ec.RegisterCallback("Render", render_cb, self)
-        self.rman_callbacks["Render"] = render_cb        
-        
-        try:
-            if self.rman_render_into == 'it':
-                rman.Dspy.EnableDspyServer()
-            else:
-                rman.Dspy.DisableDspyServer()
-        except:
-            pass
+
+        if for_background:
+            self.rman_render_into = ''
+            is_external = True
+            self.rman_callbacks.clear()
+            ec = rman.EventCallbacks.Get()
+            ec.RegisterCallback("Render", render_cb, self)
+            self.rman_callbacks["Render"] = render_cb       
+            rman.Dspy.DisableDspyServer()          
+        else:
+
+            self.rman_render_into = rm.render_into
+            is_external = False                    
+            self.rman_callbacks.clear()
+            ec = rman.EventCallbacks.Get()
+            ec.RegisterCallback("Progress", progress_cb, self)
+            self.rman_callbacks["Progress"] = progress_cb
+            ec.RegisterCallback("Render", render_cb, self)
+            self.rman_callbacks["Render"] = render_cb        
+            
+            try:
+                if self.rman_render_into == 'it':
+                    rman.Dspy.EnableDspyServer()
+                else:
+                    rman.Dspy.DisableDspyServer()
+            except:
+                pass
 
         config = rman.Types.RtParamList()
         config.SetString("rendervariant", rm.renderVariant)
         self.sg_scene = self.sgmngr.CreateScene(config) 
         bl_layer = depsgraph.view_layer
-        self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_layer, is_external=False)
+        self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
 
         self.rman_running = True
         self._dump_rib_()
@@ -280,6 +291,7 @@ class RmanRender(object):
         rm = bl_scene.renderman
 
         self.rman_running = True
+        self.rman_render_into = ''
         rib_options = ""
         if rm.rib_compression == "gzip":
             rib_options += " -compression gzip"

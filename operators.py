@@ -25,6 +25,7 @@
 
 import bpy
 import os
+import time
 import subprocess
 import blf
 import webbrowser
@@ -311,16 +312,46 @@ class PRMAN_OT_ExternalRender(bpy.types.Operator):
     bl_idname = "renderman.external_render"
     bl_label = "External Render"
     bl_description = "Launch and external render outside Blender"
-    rpass = None
-    is_running = False
 
-    def execute(self, context):
+    def external_blender_batch(self, context):
+        rm = context.scene.renderman
+        if rm.queuing_system != 'none':
+            from. import rman_spool
+            depsgraph = context.evaluated_depsgraph_get()
+            spooler = rman_spool.RmanSpool(None, None, depsgraph)
+            
+            # create a temporary .blend file
+            bl_scene_file = bpy.data.filepath
+            pid = os.getpid()
+            timestamp = int(time.time())
+            _id = 'pid%s_%d' % (str(pid), timestamp)
+            bl_filepath = os.path.dirname(bl_scene_file)
+            bl_filename = os.path.splitext(os.path.basename(bl_scene_file))[0]
+            bl_stash_scene_file = os.path.join(bl_filepath, '_%s%s_.blend' % (bl_filename, _id))
+            bpy.ops.wm.save_as_mainfile(filepath=bl_stash_scene_file, copy=True)
+
+            spooler.blender_batch_render(bl_stash_scene_file)
+        else:
+            self.report({'ERROR'}, 'Queuing system set to none')       
+
+    def external_rib_render(self, context):
         scene = context.scene
         rman_render = RmanRender.get_rman_render()
         if not rman_render.rman_interactive_running:        
             scene.renderman.enable_external_rendering = True        
             bpy.ops.render.render()
             scene.renderman.enable_external_rendering = False
+        else:
+            self.report({"ERROR"}, "Viewport rendering is on.")           
+
+    def execute(self, context):
+        scene = context.scene
+        rman_render = RmanRender.get_rman_render()
+        if not rman_render.rman_interactive_running: 
+            if scene.renderman.spool_style == 'rib':
+                self.external_rib_render(context)       
+            else:
+                self.external_blender_batch(context)
         else:
             self.report({"ERROR"}, "Viewport rendering is on.")              
         return {'FINISHED'}        

@@ -498,6 +498,17 @@
         {
             "panel": "RENDER_PT_renderman_spooling_export_options",
             "page": "",
+            "name": "spool_style",
+            "label": "Spool Style",
+            "type": "string",
+            "default": "batch",
+            "widget": "mapper",
+            "options": "Blender Batch:batch|RIB:rib",
+            "help": "Batch render style. Blender Batch will use blender in the background to render frames. RIB style will write out RIB files for each frame and then render."
+        },          
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
             "name": "queuing_system",
             "label": "Spool to",
             "type": "string",
