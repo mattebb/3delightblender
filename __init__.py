@@ -35,10 +35,10 @@ from .rfb_logger import rfb_log
 bl_info = {
     "name": "RenderMan For Blender",
     "author": "Pixar",
-    "version": (23, 0, 0),
+    "version": (24, 0, 0),
     "blender": (2, 80, 0),
     "location": "Info Header, render engine menu",
-    "description": "RenderMan 23.0 integration",
+    "description": "RenderMan 24.0 integration",
     "warning": "",
     "category": "Render"}
 
