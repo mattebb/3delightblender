@@ -400,6 +400,62 @@
         },        
         {
             "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Open Shading Language",
+            "name": "opt_useOSLPatterns",
+            "label": "Convert C++ patterns to OSL",
+            "type": "int",
+            "default": 0,
+            "widget": "checkBox",
+            "help": "Render with OSL patterns instead of C++ patterns. An error will be emitted if a C++ pattern doesn't have an OSL equivalent."
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Open Shading Language",
+            "name": "opt_oslmatchcpp",
+            "label": "match C++ patterns",
+            "riopt": "user:osl:matchcpp",
+            "type": "int",
+            "default": 0,
+            "widget": "checkBox",
+            "help": "Use noise and hash functions matching RIS C++ patterns. This is slower and should only be enabled when necessary."
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Open Shading Language",
+            "name": "opt_oslSIMDEnable",
+            "label": "Enable Batched OSL",
+            "riopt": "user:osl:batched",
+            "type": "int",
+            "default": 1,
+            "widget": "checkBox",
+            "help": "Enable OSL optimizations that allow execution of multiple shading points via vectorized instructions on supported processors (AVX, AVX2, AVX512)."
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Open Shading Language",
+            "name": "opt_oslVerbosity",
+            "label": "OSL Verbosity",
+            "riopt": "user:osl:verbose",
+            "type": "int",
+            "default": 0,
+            "widget": "mapper",
+            "options": "0 - Silent:0|1 - Severe:1|2 - Error:2|3 - Message:3|4 - Warning:4|5 - Info:5",
+            "help": "Enable OSL diagnostic output of increasing verbosity."
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "Open Shading Language",
+            "name": "opt_oslStatistics",
+            "label": "OSL Statistics Level",
+            "riopt": "user:osl:statisticslevel",
+            "type": "int",
+            "default": 0,
+            "min": 0,
+            "max": 5,
+            "help": "Enable OSL statistics output at a given level."
+        },        
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
             "page": "Cache Sizes",
             "name": "limits_texturememory",
             "riopt": "limits:texturememory",
@@ -495,6 +551,206 @@
                 "conditionalVisValue": "1"
             }  
         },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_diffuse2",
+            "riopt": "lpe:diffuse2",
+            "label": "Diffuse 2 Lobe ID",
+            "type": "string",
+            "default": "Diffuse,HairDiffuse",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_diffuse3",
+            "riopt": "lpe:diffuse3",
+            "label": "Diffuse 3 Lobe ID",
+            "type": "string",
+            "default": "Subsurface",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular2",
+            "riopt": "lpe:specular2",
+            "label": "Specular 2 Lobe ID",
+            "type": "string",
+            "default": "Specular,HairSpecularR",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular3",
+            "riopt": "lpe:specular3",
+            "label": "Specular 3 Lobe ID",
+            "type": "string",
+            "default": "RoughSpecular,HairSpecularTRT",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular4",
+            "riopt": "lpe:specular4",
+            "label": "Specular 4 Lobe ID",
+            "type": "string",
+            "default": "Clearcoat",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular5",
+            "riopt": "lpe:specular5",
+            "label": "Specular 5 Lobe ID",
+            "type": "string",
+            "default": "Iridescence",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular6",
+            "riopt": "lpe:specular6",
+            "label": "Specular 6 Lobe ID",
+            "type": "string",
+            "default": "Fuzz,HairSpecularGLINTS",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular7",
+            "riopt": "lpe:specular7",
+            "label": "Specular 7 Lobe ID",
+            "type": "string",
+            "default": "SingleScatter,HairSpecularTT",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_specular8",
+            "riopt": "lpe:specular8",
+            "label": "Specular 8 Lobe ID",
+            "type": "string",
+            "default": "Glass",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user2",
+            "riopt": "lpe:user2",
+            "label": "User 2 Lobe ID",
+            "type": "string",
+            "default": "Albedo,DiffuseAlbedo,SubsurfaceAlbedo,HairAlbedo",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user3",
+            "riopt": "lpe:user3",
+            "label": "User 3 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user4",
+            "riopt": "lpe:user4",
+            "label": "User 4 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",          
+            "name": "lpe_user5",
+            "riopt": "lpe:user5",
+            "label": "User 5 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user6",
+            "riopt": "lpe:user6",
+            "label": "User 6 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user7",
+            "riopt": "lpe:user7",
+            "label": "User 7 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user8",
+            "riopt": "lpe:user8",
+            "label": "User 8 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user9",
+            "riopt": "lpe:user9",
+            "label": "User 9 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user10",
+            "riopt": "lpe:user10",
+            "label": "User 10 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user11",
+            "riopt": "lpe:user11",
+            "label": "User 11 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "page": "LPE Lobe Mappings",
+            "name": "lpe_user12",
+            "riopt": "lpe:user12",
+            "label": "User 12 Lobe ID",
+            "type": "string",
+            "default": "",
+            "help": ""
+        },        
         {
             "panel": "RENDER_PT_renderman_spooling_export_options",
             "page": "",

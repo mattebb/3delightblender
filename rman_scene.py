@@ -810,18 +810,6 @@ class RmanScene(object):
             options.SetInteger(self.rman.Tokens.Rix.k_statistics_endofframe, int(rm.statistics_level))
             options.SetString(self.rman.Tokens.Rix.k_statistics_xmlfilename, 'stats.%04d.xml' % self.bl_scene.frame_current)
 
-        # LPE Tokens for PxrSurface
-        options.SetString("lpe:diffuse2", "Diffuse,HairDiffuse")
-        options.SetString("lpe:diffuse3", "Subsurface")
-        options.SetString("lpe:specular2", "Specular,HairSpecularR")
-        options.SetString("lpe:specular3", "RoughSpecular,HairSpecularTRT")
-        options.SetString("lpe:specular4", "Clearcoat")
-        options.SetString("lpe:specular5", "Iridescence")
-        options.SetString("lpe:specular6", "Fuzz,HairSpecularGLINTS")
-        options.SetString("lpe:specular7", "SingltScatter,HairSpecularTT")
-        options.SetString("lpe:specular8", "Glass")
-        options.SetString("lpe:user2", "Albedo,DiffuseAlbedo,SubsurfaceAlbedo,HairAlbedo")
-
         # Set bucket shape
         bucket_order = rm.opt_bucket_order.lower()
         bucket_orderorigin = []
