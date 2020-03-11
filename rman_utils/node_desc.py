@@ -393,7 +393,12 @@ class NodeDescParam(object):
         # else:
         if hasattr(self, 'connectable'):
             # make it a boolean value
-            self.connectable = bool(self.connectable)
+            if str(self.connectable) == 'false':
+                self.connectable = False
+            elif str(self.connectable) == 'true':
+                self.connectable = True
+            else:
+                self.connectable = bool(self.connectable)
 
         if hasattr(self, 'help'):
             self.help = self.help.replace('"', "'")

@@ -26,7 +26,8 @@ def get_db_name(ob, rman_type='', psys=None):
     elif isinstance(ob, bpy.types.Camera):
         db_name = '%s-CAMERA' % ob.name_full
     elif isinstance(ob, bpy.types.Material):
-        db_name = '%s-MATERIAL' % ob.name_full
+        mat_name = ob.name_full.replace('.', '_')
+        db_name = '%s-MATERIAL' % mat_name
     elif isinstance(ob, bpy.types.Object):
         if ob.type == 'MESH':
             db_name = '%s-MESH' % ob.name_full

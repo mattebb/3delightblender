@@ -67,7 +67,7 @@ def get_socket_type(node, socket):
         return sock_type
 
 def get_node_name(node, mat_name):
-    return "%s.%s" % (mat_name, node.name.replace(' ', ''))
+    return "%s_%s" % (mat_name, node.name.replace(' ', ''))
 
 def linked_sockets(sockets):
     if sockets is None:

@@ -164,7 +164,7 @@ class RmanMaterialTranslator(RmanTranslator):
         current_group_node = group_node
         sg_nodes = []
         for node in nodes_to_export:
-            sg_nodes += self.shader_node_sg(node, rman_sg_material, mat_name=(mat_name + '.' + group_node.name))
+            sg_nodes += self.shader_node_sg(node, rman_sg_material, mat_name=(mat_name + '_' + group_node.name))
         current_group_node = None
         return sg_nodes        
 
@@ -271,7 +271,7 @@ class RmanMaterialTranslator(RmanTranslator):
         elif not hasattr(node, 'renderman_node_type'):
             return self.translate_cycles_node(rman_sg_material, node, mat_name)
 
-        instance = mat_name + '.' + node.name
+        instance = mat_name + '_' + node.name
 
         if not hasattr(node, 'renderman_node_type'):
             return

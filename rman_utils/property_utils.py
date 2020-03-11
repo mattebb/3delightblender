@@ -55,7 +55,9 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
         elif param_type == "normal":
             params.SetNormalReference(param_name, val) 
         elif param_type == "struct":
-            params.SetStructReference(param_name, val)                        
+            params.SetStructReference(param_name, val)        
+        elif param_type == "bxdf":
+            params.SetBxdfReference(param_name, val)                              
     else:        
         if param_type == "float":
             params.SetFloat(param_name, float(val))
@@ -74,7 +76,7 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
         elif param_type == "normal":
             params.SetNormal(param_name, val)   
 
-def build_output_param_str(mat_name, from_node, from_socket, convert_socket=False):
+def build_output_param_str(mat_name, from_node, from_socket, convert_socket=False, param_type=''):
     from_node_name = shadergraph_utils.get_node_name(from_node, mat_name)
     from_sock_name = shadergraph_utils.get_socket_name(from_node, from_socket)
 
@@ -84,12 +86,13 @@ def build_output_param_str(mat_name, from_node, from_socket, convert_socket=Fals
             return "convert_%s.%s:resultRGB" % (from_node_name, from_sock_name)
         else:
             return "convert_%s.%s:resultF" % (from_node_name, from_sock_name)
-
+    elif param_type == 'bxdf':
+       return "%s" % (from_node_name) 
     else:
         return "%s:%s" % (from_node_name, from_sock_name)
 
 
-def get_output_param_str(node, mat_name, socket, to_socket=None):
+def get_output_param_str(node, mat_name, socket, to_socket=None, param_type=''):
     # if this is a node group, hook it up to the input node inside!
     if node.bl_idname == 'ShaderNodeGroup':
         ng = node.node_tree
@@ -101,7 +104,7 @@ def get_output_param_str(node, mat_name, socket, to_socket=None):
         in_sock = group_output.inputs[socket.name]
         if len(in_sock.links):
             link = in_sock.links[0]
-            return build_output_param_str(mat_name + '.' + node.name, link.from_node, link.from_socket, shadergraph_utils.do_convert_socket(link.from_socket, to_socket))
+            return build_output_param_str(mat_name + '_' + node.name, link.from_node, link.from_socket, shadergraph_utils.do_convert_socket(link.from_socket, to_socket), param_type)
         else:
             return "error:error"
     if node.bl_idname == 'NodeGroupInput':
@@ -113,11 +116,11 @@ def get_output_param_str(node, mat_name, socket, to_socket=None):
         in_sock = current_group_node.inputs[socket.name]
         if len(in_sock.links):
             link = in_sock.links[0]
-            return build_output_param_str(mat_name, link.from_node, link.from_socket, shadergraph_utils.do_convert_socket(link.from_socket, to_socket))
+            return build_output_param_str(mat_name, link.from_node, link.from_socket, shadergraph_utils.do_convert_socket(link.from_socket, to_socket), param_type)
         else:
             return "error:error"
 
-    return build_output_param_str(mat_name, node, socket, shadergraph_utils.do_convert_socket(socket, to_socket))    
+    return build_output_param_str(mat_name, node, socket, shadergraph_utils.do_convert_socket(socket, to_socket), param_type)    
 
 
 def is_vstruct_or_linked(node, param):
@@ -422,7 +425,7 @@ def generate_property(sp, update_function=None):
                               default=param_default,
                               description=param_help, update=update_function)
         renderman_type = 'string'
-    elif param_type == 'string' or param_type == 'struct':
+    elif param_type == 'string' or param_type == 'struct' or param_type == 'bxdf':
         if param_default is None:
             param_default = ''
         #else:
@@ -505,7 +508,7 @@ def generate_property(sp, update_function=None):
                                  default=param_default, size=2,
                                  description=param_help, update=update_function)
         renderman_type = 'float'
-        prop_meta['arraySize'] = 2        
+        prop_meta['arraySize'] = 2      
 
     prop_meta['renderman_type'] = renderman_type
     prop_meta['renderman_name'] = renderman_name
@@ -539,7 +542,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                 param_type = prop_type
                 param_name = input_name
 
-                val = get_output_param_str(from_socket.node, mat_name, from_socket, to_socket)
+                val = get_output_param_str(from_socket.node, mat_name, from_socket, to_socket, param_type)
 
                 set_rix_param(params, param_type, param_name, val, is_reference=True)    
 
@@ -580,7 +583,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                     param_name = meta['renderman_name']
 
                     val = get_output_param_str(
-                            from_socket.node, mat_name, from_socket, to_socket)
+                            from_socket.node, mat_name, from_socket, to_socket, param_type)
 
                     set_rix_param(params, param_type, param_name, val, is_reference=True)                            
                 # else output rib
@@ -629,7 +632,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                         pass
                     else:
                         val = get_output_param_str(
-                                from_node, mat_name, from_socket, to_socket)
+                                from_node, mat_name, from_socket, to_socket, param_type)
 
                         set_rix_param(params, param_type, param_name, val, is_reference=True)                  
 
@@ -668,7 +671,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                         node_meta = node_meta.get(vstruct_from_param)
                         is_reference = True
                         val = get_output_param_str(
-                               from_socket.node, temp_mat_name, actual_socket)
+                               from_socket.node, temp_mat_name, actual_socket, param_type)
                         if node_meta:
                             expr = node_meta.get('vstructConditionalExpr')
                             # check if we should connect or just set a value

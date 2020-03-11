@@ -11,6 +11,7 @@ __RMAN_SOCKET_MAP__ = {
     'point': 'RendermanNodeSocketVector',
     'void': 'RendermanNodeSocketStruct',
     'vstruct': 'RendermanNodeSocketStruct',
+    'bxdf': 'RendermanNodeSocketBxdf'
 }
 
 def update_inputs(node):

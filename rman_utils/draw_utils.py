@@ -182,6 +182,9 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
                         split.operator_menu_enum("node.add_layer", "node_type",
                                                  text=input_node.bl_label, icon="LAYER_USED")
+                    elif prop_meta['renderman_type'] == 'bxdf':
+                        split.operator_menu_enum("node.add_bxdf", "node_type",
+                                                 text=input_node.bl_label, icon="LAYER_USED")                                                 
                     elif prop_meta['renderman_type'] == 'struct':
                         split.operator_menu_enum("node.add_manifold", "node_type",
                                                  text=input_node.bl_label, icon="LAYER_USED")
@@ -227,12 +230,13 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     else:
                         indented_label(row, None, level)
                         # indented_label(row, socket.name+':')
+                        
                         # don't draw prop for struct type
                         if "Subset" in prop_name and prop_meta['type'] == 'string':
                             row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
                                             "object_groups")
                         else:
-                            if prop_meta['renderman_type'] != 'struct':
+                            if prop_meta['renderman_type'] not in ['struct', 'bxdf']:
                                 row.prop(node, prop_name, slider=True)
                             else:
                                 row.label(text=prop_meta['label'])
@@ -240,6 +244,9 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
                                 row.operator_menu_enum("node.add_layer", "node_type",
                                                        text='', icon="LAYER_USED")
+                            elif prop_meta['renderman_type'] == 'bxdf':
+                                row.operator_menu_enum("node.add_bxdf", "node_type",
+                                                       text='', icon="LAYER_USED")                                                       
                             elif prop_meta['renderman_type'] == 'struct':
                                 row.operator_menu_enum("node.add_manifold", "node_type",
                                                        text='', icon="LAYER_USED")
