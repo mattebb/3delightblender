@@ -1067,7 +1067,7 @@ class NodeDescParamJSON(NodeDescParam):
                     'primvar', 'riattr', 'riopt', 'scriptText', 'shortname',
                     'size', 'slidermax', 'slidermin', 'syntax', 'type', 'units',
                     'widget', '_name', 'uiStruct', 'panel', 'inheritable', 
-                    'inherit_true_value']
+                    'inherit_true_value', 'update_function_name', 'update_function']
         return (kw in keywords)
 
     def __init__(self, pdata):

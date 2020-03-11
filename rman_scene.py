@@ -748,8 +748,6 @@ class RmanScene(object):
             if (not self.external_render and rm.render_into == 'blender') or rm.enable_checkpoint:
                 options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, 1)
 
-            #options.SetFloat(self.rman.Tokens.Rix.k_hider_darkfalloff, rm.dark_falloff)
-
             if not rm.sample_motion_blur:
                 options.SetInteger(self.rman.Tokens.Rix.k_hider_samplemotion, 0)
 

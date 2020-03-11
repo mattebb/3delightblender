@@ -138,7 +138,21 @@
                 "High Quality": 2048
             },
             "help": "The maximum number of camera rays to be traced for each pixel.  When adaptive sampling is enabled (ie. Pixel Variance is greater than zero), fewer rays may be traced in smoother regions of the image."
-        },                
+        },  
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "",
+            "name": "adaptiveMetric",
+            "riopt": "hider:adaptivemetric",
+            "label": "Adaptive Metric",
+            "type": "string",
+            "default": "variance",
+            "widget": "popup",
+            "options": "contrast|variance|halfbuffer",
+            "help": "Selects the metric used by the adaptive sampler. contrast: New version of the original metric used before RenderMan 24. variance: New perceptual variance metric (default). halfbuffer: Half-buffer metric introduced in RenderMan 22. When changing from variance to contrast, it is recommended that the PixelVariance be lowered.  eg. The default production level PixelVariance for the variance metric is 0.015, but for contrast it should be 0.005",
+            "update_function_name": "update_adaptiveMetric",
+            "update_function": "def update_adaptiveMetric(self, context):\n    if self.adaptiveMetric=='contrast':\n        self.ri_pixelVariance=0.005\n    elif self.adaptiveMetric=='variance':\n        self.ri_pixelVariance=0.015\n    elif self.adaptiveMetric=='halfbuffer':\n        self.ri_pixelVariance=0.02"
+        },              
         {
             "panel": "RENDER_PT_renderman_sampling",
             "name": "ri_pixelVariance",

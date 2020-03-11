@@ -4,6 +4,7 @@ from ..rfb_logger import rfb_log
 from bpy.props import StringProperty
 import json
 import os
+import types
 
 __RMAN_CONFIG__ = dict()
 __RMAN_CHANNELS_DEF_FILE__ = 'rman_dspychan_definitions.json'
@@ -43,7 +44,16 @@ class RmanBasePropertyGroup:
         prop_names = []
         prop_meta = {}
         for param_name, ndp in config.params.items():
-            name, meta, prop = property_utils.generate_property(ndp, update_function=None)
+            update_func = None
+            if hasattr(ndp, 'update_function'):
+                # this code tries to dynamically add a function to cls
+                # don't ask me why this works.
+                lcls = locals()
+                exec(ndp.update_function, globals(), lcls)
+                exec('update_func = %s' % ndp.update_function_name, globals(), lcls)
+                update_func = lcls['update_func']
+                setattr(cls, ndp.update_function_name, update_func)
+            name, meta, prop = property_utils.generate_property(ndp, update_function=update_func)
             if prop:
                 cls.__annotations__[ndp._name] = prop
                 prop_names.append(ndp.name)
