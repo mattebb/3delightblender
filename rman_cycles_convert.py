@@ -108,7 +108,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
                 or node2.bl_idname in _COMBINE_NODES_ or \
                 node1.bl_idname == 'ShaderNodeGroup' or node2.bl_idname == 'ShaderNodeGroup' \
                 or (_BSDF_MAP_[node1.bl_idname][0] == _BSDF_MAP_[node2.bl_idname][0]):
-            mixer = nt.nodes.new('PxrLayerMixerPatternNode')
+            mixer = nt.nodes.new('PxrLayerMixerPatternOSLNode')
             # if parent is output make a pxr surface first
             nt.links.new(mixer.outputs["pxrMaterialOut"],
                          rman_parent.inputs[input_index])
@@ -130,7 +130,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
             if rman_parent.plugin_name == 'PxrLayerMixer':
                 old_parent = rman_parent
                 rman_parent = create_rman_surface(nt, rman_parent, input_index,
-                                                  'PxrLayerPatternNode')
+                                                  'PxrLayerPatternOSLNode')
                 offset_node_location(old_parent, rman_parent, node)
             convert_cycles_bsdf(nt, rman_parent, node1, 0)
             convert_cycles_bsdf(nt, rman_parent, node2, 1)
@@ -140,7 +140,7 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         if rman_parent.plugin_name == 'PxrLayerMixer':
             old_parent = rman_parent
             rman_parent = create_rman_surface(nt, rman_parent, input_index,
-                                              'PxrLayerPatternNode')
+                                              'PxrLayerPatternOSLNode')
             offset_node_location(old_parent, rman_parent, node)
 
         node_type = node.bl_idname

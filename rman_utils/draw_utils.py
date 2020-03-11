@@ -212,7 +212,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         row.prop(node, ui_prop, icon=icon, text='',
                                  icon_only=True, emboss=False)
                         sub_prop_names = list(prop)
-                        if node.bl_idname in {"PxrSurfaceBxdfNode", "PxrLayerPatternNode"}:
+                        if node.bl_idname in {"PxrSurfaceBxdfNode", "PxrLayerPatternOSLNode"}:
                             for pn in sub_prop_names:
                                 if pn.startswith('enable'):
                                     row.prop(node, pn, text='')

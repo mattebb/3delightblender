@@ -610,6 +610,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                 if meta['renderman_type'] == 'page':
                     continue
                 elif prop_name == 'inputMaterial' or \
+                        ('vstruct' in meta and meta['vstruct'] is True) or \
                         ('type' in meta and meta['type'] == 'vstruct'):
                     continue
 

@@ -1010,9 +1010,9 @@ class PRMAN_OT_Add_bxdf(bpy.types.Operator):
         nt.links.new(default.outputs[0], output.inputs[0])
 
         if bxdf_name == 'PxrLayerSurface':
-            mixer = nt.nodes.new("PxrLayerMixerPatternNode")
-            layer1 = nt.nodes.new("PxrLayerPatternNode")
-            layer2 = nt.nodes.new("PxrLayerPatternNode")
+            mixer = nt.nodes.new("PxrLayerMixerPatternOSLNode")
+            layer1 = nt.nodes.new("PxrLayerPatternOSLNode")
+            layer2 = nt.nodes.new("PxrLayerPatternOSLNode")
 
             mixer.location = default.location
             mixer.location[0] -= 300
