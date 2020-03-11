@@ -15,6 +15,7 @@ import ctypes
 from .rman_utils import filepath_utils
 from .rman_utils import string_utils
 from .rman_utils import display_utils
+from .rman_utils import prefs_utils
 
 __RMAN_RENDER__ = None
 __RMAN_IT_PORT__ = -1
@@ -228,8 +229,10 @@ class RmanRender(object):
             lay.load_from_file(render_output)
         except:
             pass
-        self.bl_engine.end_result(result)           
+        self.bl_engine.end_result(result)      
 
+    def _load_placeholder_image(self):   
+        self._load_swatch_image_into_blender(os.path.join(filepath_utils.guess_rmantree(), 'lib', 'textures', 'placeholder.png'))          
 
     def start_render(self, depsgraph, for_background=False):
 
@@ -393,12 +396,12 @@ class RmanRender(object):
 
     def start_swatch_render(self, depsgraph):
         self.bl_scene = depsgraph.scene_eval
+        self._load_placeholder_image()
+
         rfb_log().info("Parsing scene...")
         time_start = time.time()                
         self.rman_callbacks.clear()
         ec = rman.EventCallbacks.Get()
-        ec.RegisterCallback("Progress", progress_cb, self)
-        self.rman_callbacks["Progress"] = progress_cb
         ec.RegisterCallback("Render", render_cb, self)
         self.rman_callbacks["Render"] = render_cb        
 
@@ -417,7 +420,8 @@ class RmanRender(object):
         self.sg_scene.Render("prman -live")
         while not self.bl_engine.test_break() and self.rman_is_live_rendering:
             time.sleep(0.01)
-        self.stop_render()        
+        self.stop_render()  
+        rfb_log().debug("Load swatch image.")      
         self._load_swatch_image_into_blender(render_output)
 
         return True  

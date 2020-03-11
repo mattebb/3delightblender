@@ -25,6 +25,7 @@
 import bpy
 import bgl
 import blf
+import time
 from . import rman_constants
 from .rman_utils import filepath_utils
 from .rman_utils import texture_utils
@@ -46,7 +47,7 @@ bl_info = {
 class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
     bl_label = "RenderMan Render"
-    bl_use_preview = False # Turn off preview renders
+    bl_use_preview = True # Turn off preview renders
     bl_use_save_buffers = True
     bl_use_shading_nodes = True # We support shading nodes
     bl_use_shading_nodes_custom = False
@@ -104,9 +105,19 @@ class PRManRender(bpy.types.RenderEngine):
         bl_scene = depsgraph.scene_eval
 
         if self.is_preview:
+            if not prefs_utils.get_addon_prefs().rman_do_preview_renders:
+                # user has turned off preview renders, just load the placeholder image
+                self.rman_render.bl_scene = depsgraph.scene_eval
+                self.rman_render._load_placeholder_image()
+                return         
             if self.rman_render.rman_interactive_running:
                 rfb_log().error("Cannot preview render while viewport rendering.")
                 return
+            # hopefully, swatch renders are fast enough where this sleep will
+            # have minimal impact, but we need to make sure we don't start a new
+            # swatch render while one is still rendering
+            while self.rman_render.rman_swatch_render_running:
+                time.sleep(0.001)
             self.rman_render.start_swatch_render(depsgraph)
           
         elif bl_scene.renderman.enable_external_rendering:

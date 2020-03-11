@@ -277,7 +277,7 @@ class RmanScene(object):
         # options
         options = self.sg_scene.GetOptions()
         options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, 0)
-        options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, 64)
+        options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, 4)
         options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, 0)
         options.SetString("adaptivemetric", "variance")
         scale = 100.0 / self.bl_scene.render.resolution_percentage
@@ -287,7 +287,10 @@ class RmanScene(object):
         options.SetFloat(self.rman.Tokens.Rix.k_Ri_PixelVariance, 0.015)
         options.SetInteger(self.rman.Tokens.Rix.k_threads, -2)
         options.SetString(self.rman.Tokens.Rix.k_bucket_order, 'horizontal')
-        self.sg_scene.SetOptions(options)          
+        self.sg_scene.SetOptions(options)
+
+        # searchpaths
+        self.export_searchpaths()      
 
         # integrator        
         integrator_sg = self.rman.SGManager.RixSGShader("Integrator", "PxrDirectLighting", "integrator")         

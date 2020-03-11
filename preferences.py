@@ -222,6 +222,11 @@ class RendermanPreferences(AddonPreferences):
         subtype='FILE_PATH'
     )
 
+    rman_do_preview_renders: BoolProperty(
+        name="Render Previews",
+        description="Enable rendering of material previews. This is considered a WIP.",
+        default=False)
+
     presets_library: PointerProperty(
         type=RendermanPresetGroup,
     )
@@ -257,7 +262,8 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(env, "out")
         layout.prop(self, 'path_display_driver_image')
         layout.prop(self, 'path_aov_image')
-        layout.prop(self, 'path_fallback_textures_path')        
+        layout.prop(self, 'path_fallback_textures_path')
+        layout.prop(self, 'rman_do_preview_renders')        
         layout.prop(self, 'draw_ipr_text')
         layout.prop(self, 'draw_panel_icon')
         #layout.prop(self, 'active_presets_path')
