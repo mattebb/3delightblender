@@ -105,14 +105,17 @@ class PRManRender(bpy.types.RenderEngine):
         bl_scene = depsgraph.scene_eval
 
         if self.is_preview:
-            if not prefs_utils.get_addon_prefs().rman_do_preview_renders:
+            prefs = prefs_utils.get_addon_prefs()
+            # double check we're not already viewport rendering
+            if self.rman_render.rman_interactive_running:
+                if prefs.rman_do_preview_renders:
+                    rfb_log().error("Cannot preview render while viewport rendering.")
+                return            
+            if not prefs.rman_do_preview_renders:
                 # user has turned off preview renders, just load the placeholder image
                 self.rman_render.bl_scene = depsgraph.scene_eval
                 self.rman_render._load_placeholder_image()
                 return         
-            if self.rman_render.rman_interactive_running:
-                rfb_log().error("Cannot preview render while viewport rendering.")
-                return
             # hopefully, swatch renders are fast enough where this sleep will
             # have minimal impact, but we need to make sure we don't start a new
             # swatch render while one is still rendering

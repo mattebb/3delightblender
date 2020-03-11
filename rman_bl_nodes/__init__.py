@@ -39,14 +39,19 @@ __RMAN_PATTERN_NODES__ = []
 __RMAN_LIGHT_NODES__ = []
 __RMAN_LIGHTFILTER_NODES__ = []
 __RMAN_NODE_TYPES__ = dict()
+
 __RMAN_NODE_CATEGORIES__ = dict()
+__RMAN_NODE_CATEGORIES__['bxdf'] = dict()
+__RMAN_NODE_CATEGORIES__['light'] = dict()
+__RMAN_NODE_CATEGORIES__['pattern'] = dict()
+__RMAN_NODE_CATEGORIES__['displace'] = dict()
 
 
-__RMAN_NODE_CATEGORIES__['bxdf'] = ('RenderMan Bxdfs', [])
-__RMAN_NODE_CATEGORIES__['light'] = ('RenderMan Lights', [])
-__RMAN_NODE_CATEGORIES__['patterns_misc'] = ('RenderMan Misc Patterns', [])
-__RMAN_NODE_CATEGORIES__['displace'] = ('RenderMan Displacements', [])
-    
+__RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'] = ('RenderMan Misc Bxdfs', [])
+__RMAN_NODE_CATEGORIES__['light']['light'] = ('RenderMan Lights', [])
+__RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'] = ('RenderMan Misc Patterns', [])
+__RMAN_NODE_CATEGORIES__['displace']['displace'] = ('RenderMan Displacements', [])
+  
 
 __RMAN_NODES__ = { 
     'displaydriver': __RMAN_DISPLAY_NODES__,
@@ -511,6 +516,7 @@ def register_rman_nodes():
                             try:
                                 tokens = node_desc.classification.split('/')                                
                                 category = tokens[-1].lower()
+                                category_nice_name = category.capitalize()
                                 # category seems empty. Put in misc
                                 if category == '':
                                     category = 'misc'
@@ -518,22 +524,60 @@ def register_rman_nodes():
                                     # append OSL to the category if these are osl shaders, except
                                     # for PxrLayer and PxrLayerMixer
                                     if is_oso:
-                                        category = 'OSL_%s' % category
-                                lst = __RMAN_NODE_CATEGORIES__.get('patterns_%s' % category, None)
+                                        category_nice_name = 'OSL %s' % category.capitalize()
+                                        category = 'OSL_%s' % category                                        
+                                lst = __RMAN_NODE_CATEGORIES__['pattern'].get('patterns_%s' % category, None)
                                 if not lst:
-                                    lst = ('RenderMan %s Patterns' % category.capitalize(), [])
+                                    lst = ('RenderMan %s Patterns' % category_nice_name, [])
                                 lst[1].append(node_item)
-                                __RMAN_NODE_CATEGORIES__['patterns_%s' % category] = lst                                         
+                                __RMAN_NODE_CATEGORIES__['pattern']['patterns_%s' % category] = lst                                         
                             except Exception as e:
                                 pass
                         else:
-                            __RMAN_NODE_CATEGORIES__['patterns_misc'][1].append(node_item)
+                            __RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'][1].append(node_item)
                     elif node_desc.node_type == 'bxdf':
-                        __RMAN_NODE_CATEGORIES__['bxdf'][1].append(node_item)
+                        if hasattr(node_desc, 'classification'):
+                            classification = node_desc.classification
+                            tokens = classification.split(':')
+                            category = ''
+                            
+                            # first, find rendernode
+                            for token in tokens:
+                                if token.startswith('rendernode'):
+                                    category = token
+                                    continue
+                            # if we didn't find anything, put this into the misc. cateogry   
+                            if category == '' or ('main' not in category):
+                                __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'][1].append(node_item)
+                                continue
+                           
+                            # now, split on /, and look for main
+                            tokens = category.split('/')
+                            i = 0
+                            for i,token in enumerate(tokens):
+                                if token == 'main':
+                                    break
+
+                            # if there are more tokens after "main", let's
+                            # not include main in the category name
+                            if i+1 < len(tokens):
+                                i += 1
+
+                            category = '_'.join(tokens[i:])
+                            category_nice_name = ''
+                            for token in tokens[i:]:
+                                category_nice_name += token.capitalize() + ' '
+                            lst = __RMAN_NODE_CATEGORIES__['bxdf'].get('bxdf_%s' % category, None)
+                            if not lst:
+                                lst = ('RenderMan %s Bxdf' % category_nice_name, [])
+                            lst[1].append(node_item)
+                            __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_%s' % category] = lst    
+                        else:
+                            __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'][1].append(node_item)
                     elif node_desc.node_type == 'displace':
-                        __RMAN_NODE_CATEGORIES__['displace'][1].append(node_item)
+                        __RMAN_NODE_CATEGORIES__['displace']['displace'][1].append(node_item)
                     elif node_desc.node_type == 'light':
-                        __RMAN_NODE_CATEGORIES__['light'][1].append(node_item)                        
+                        __RMAN_NODE_CATEGORIES__['light']['light'][1].append(node_item)                        
 
 
     rfb_log().debug("Finished Registering RenderMan Plugin Nodes.")
@@ -545,11 +589,20 @@ def register_rman_nodes():
                                      items=[NodeItem('RendermanOutputNode', label=rman_bl_nodes_shaders.RendermanOutputNode.bl_label)]),
     ]
 
-    for name, (desc, items) in __RMAN_NODE_CATEGORIES__.items():
-        node_categories.append(RendermanPatternNodeCategory(name, desc,
-                                                            items=sorted(items,
-                                                                         key=attrgetter('_label'))))
+    for k,v in __RMAN_NODE_CATEGORIES__.items():
+        for name, (desc, items) in v.items():
+            if items:
+                node_categories.append(RendermanPatternNodeCategory(name, desc,
+                                                                    items=sorted(items,
+                                                                                key=attrgetter('_label'))))    
 
+    '''
+    for name, (desc, items) in __RMAN_NODE_CATEGORIES__.items():
+        if items:
+            node_categories.append(RendermanPatternNodeCategory(name, desc,
+                                                                items=sorted(items,
+                                                                            key=attrgetter('_label'))))
+    '''
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES",
                                              node_categories)    
 

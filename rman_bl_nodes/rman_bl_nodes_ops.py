@@ -57,7 +57,7 @@ class NODE_OT_add_node:
             items.append(('DISCONNECT', 'Disconnect',
                           'Disconnect the node connected to this socket'))            
             
-            for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__.items():
+            for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'].items():
                 if not pattern_cat.startswith('patterns_'):
                     continue
                 tokens = pattern_cat.split('_')
@@ -78,7 +78,7 @@ class NODE_OT_add_node:
         elif self.input_type.lower() in ['pxrsurface', 'manifold', 'bump', 'osl manifold', 'osl bump']:
             pattern_key = 'patterns_%s' % self.input_type.lower()
 
-            patterns = rman_bl_nodes.__RMAN_NODE_CATEGORIES__[pattern_key][1]
+            patterns = rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'][pattern_key][1]
             for node_item in patterns:
                 nodetype = rman_bl_nodes.__RMAN_NODE_TYPES__[node_item.nodetype]
                 items.append((nodetype.typename, nodetype.bl_label,
