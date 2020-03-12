@@ -29,6 +29,7 @@ import time
 import subprocess
 import blf
 import webbrowser
+import math
 import addon_utils
 from .icons.icons import load_icons
 from operator import attrgetter, itemgetter
@@ -160,6 +161,7 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 continue
             light_type = light.type
             light.renderman.light_primary_visibility = False
+            '''
             if light_type == 'SUN':
                 light.renderman.renderman_type = 'DIST'
             elif light_type == 'HEMI':
@@ -172,9 +174,28 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 light.shape = 'RECTANGLE'
                 light.size = 1.0
                 light.size_y = 1.0
+            '''
+            light.renderman.renderman_light_role = 'RMAN_LIGHT'
+            if light_type == 'SUN':
+                light.renderman.renderman_light_shader = 'PxrDistantLight'  
+            elif light_type == 'HEMI':
+                light.renderman.renderman_light_shader = 'PxrDomeLight'
+            elif light_type == 'AREA':
+                if light.shape == 'DISK':
+                    light.renderman.renderman_light_shader = 'PxrDiskLight'
+                elif light.shape == 'ELLIPSE':
+                    light.renderman.renderman_light_shader = 'PxrSphereLight'
+                else:
+                    context.light.renderman.renderman_light_shader = 'PxrRectLight'
+            elif light_type == 'SPOT':
+                light.renderman.renderman_light_shader = 'PxrDiskLight'
+                node = context.light.renderman.get_light_node()
+                node.coneAngle(math.degrees(light.spot_size))
+                node.coneSoftness(light.spot_blend)
+            elif light_type == 'POINT':
+                context.light.renderman.renderman_light_shader = 'PxrSphereLight'
 
-            #light.renderman.primary_visibility = not light.use_nodes
-
+            light.type = 'AREA'
             light.renderman.use_renderman_node = True
 
         # convert cycles vis settings
@@ -234,6 +255,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                       
         elif idtype == 'light':
             light_type = idblock.type
+            light = idblock
+            '''
             if light_type == 'SUN':
                 context.light.renderman.renderman_type = 'DIST'
             elif light_type == 'HEMI':
@@ -246,8 +269,30 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 context.light.shape = 'RECTANGLE'
                 context.light.size = 1.0
                 context.light.size_y = 1.0
+            '''
 
-            idblock.renderman.use_renderman_node = True
+            light.renderman.renderman_light_role = 'RMAN_LIGHT'
+            if light_type == 'SUN':
+                light.renderman.renderman_light_shader = 'PxrDistantLight'  
+            elif light_type == 'HEMI':
+                light.renderman.renderman_light_shader = 'PxrDomeLight'
+            elif light_type == 'AREA':
+                if light.shape == 'DISK':
+                    light.renderman.renderman_light_shader = 'PxrDiskLight'
+                elif light.shape == 'ELLIPSE':
+                    light.renderman.renderman_light_shader = 'PxrSphereLight'
+                else:
+                    context.light.renderman.renderman_light_shader = 'PxrRectLight'
+            elif light_type == 'SPOT':
+                light.renderman.renderman_light_shader = 'PxrDiskLight'
+                node = context.light.renderman.get_light_node()
+                node.coneAngle = math.degrees(light.spot_size)
+                node.coneSoftness = light.spot_blend
+            elif light_type == 'POINT':
+                context.light.renderman.renderman_light_shader = 'PxrSphereLight'            
+
+            light.type = 'AREA'
+            light.renderman.use_renderman_node = True
 
         else:
             idblock.renderman.renderman_type = "ENV"
@@ -897,18 +942,6 @@ class PRMAN_OT_remove_add_rem_light_link(bpy.types.Operator):
 #       Tab     #
 #################
 
-class PRMAN_OT_Add_Subdiv_Sheme(bpy.types.Operator):
-    bl_idname = "object.add_subdiv_sheme"
-    bl_label = "Add Subdiv Sheme"
-    bl_description = ""
-    bl_options = {"REGISTER"}
-
-    def execute(self, context):
-        bpy.context.object.renderman.primitive = 'SUBDIVISION_MESH'
-
-        return {"FINISHED"}
-
-
 class PRMAN_OT_RM_Add_Area(bpy.types.Operator):
     bl_idname = "object.mr_add_area"
     bl_label = "Add RenderMan Area"
@@ -967,76 +1000,6 @@ class PRMAN_OT_RM_Add_Sky(bpy.types.Operator):
         bpy.context.object.data.renderman.renderman_type = 'SKY'
 
         return {"FINISHED"}
-
-
-class PRMAN_OT_Add_bxdf(bpy.types.Operator):
-    bl_idname = "object.add_bxdf"
-    bl_label = "Add BXDF"
-    bl_description = ""
-    bl_options = {"REGISTER", "UNDO"}
-
-    def get_type_items(self, context):
-        items = [
-            ("PxrSurface", "PxrSurface",
-             'PxrSurface Uber shader. For most hard surfaces'),
-            ("PxrLayerSurface", "PxrLayerSurface",
-             "PxrLayerSurface, creates a surface with two Layers"),
-            ("PxrMarschnerHair", "PxrMarschnerHair", "Hair Shader"),
-            ("PxrDisney", "PxrDisney",
-             "Disney Bxdf, a simple uber shader with no layering"),
-            ("PxrVolume", "PxrVolume", "Volume Shader")
-        ]
-        # for nodetype in RendermanPatternGraph.nodetypes.values():
-        #    if nodetype.renderman_node_type == 'bxdf':
-        #        items.append((nodetype.bl_label, nodetype.bl_label,
-        #                      nodetype.bl_label))
-        return items
-    bxdf_name: EnumProperty(items=get_type_items, name="Bxdf Name")
-
-    def execute(self, context):
-        selection = bpy.context.selected_objects if hasattr(
-            bpy.context, 'selected_objects') else []
-        #selection = bpy.context.selected_objects
-        bxdf_name = self.properties.bxdf_name
-        mat = bpy.data.materials.new(bxdf_name)
-
-        mat.use_nodes = True
-        nt = mat.node_tree
-
-        output = nt.nodes.new('RendermanOutputNode')
-        default = nt.nodes.new('%sBxdfNode' % bxdf_name)
-        default.location = output.location
-        default.location[0] -= 300
-        nt.links.new(default.outputs[0], output.inputs[0])
-
-        if bxdf_name == 'PxrLayerSurface':
-            mixer = nt.nodes.new("PxrLayerMixerPatternOSLNode")
-            layer1 = nt.nodes.new("PxrLayerPatternOSLNode")
-            layer2 = nt.nodes.new("PxrLayerPatternOSLNode")
-
-            mixer.location = default.location
-            mixer.location[0] -= 300
-
-            layer1.location = mixer.location
-            layer1.location[0] -= 300
-            layer1.location[1] += 300
-
-            layer2.location = mixer.location
-            layer2.location[0] -= 300
-            layer2.location[1] -= 300
-
-            nt.links.new(mixer.outputs[0], default.inputs[0])
-            nt.links.new(layer1.outputs[0], mixer.inputs['baselayer'])
-            nt.links.new(layer2.outputs[0], mixer.inputs['layer1'])
-
-        for obj in selection:
-            if(obj.type not in EXCLUDED_OBJECT_TYPES):
-                bpy.ops.object.material_slot_add()
-
-                obj.material_slots[-1].material = mat
-
-        return {"FINISHED"}
-
 
 class PRMAN_OT_New_bxdf(bpy.types.Operator):
     bl_idname = "nodes.new_bxdf"
@@ -1324,12 +1287,10 @@ classes = [
     PRMAN_OT_add_to_group,
     PRMAN_OT_remove_from_group,
     PRMAN_OT_remove_add_rem_light_link,
-    PRMAN_OT_Add_Subdiv_Sheme,
     PRMAN_OT_RM_Add_Area,
     PRMAN_OT_RM_Add_LightFilter,
     PRMAN_OT_RM_Add_Hemi,
     PRMAN_OT_RM_Add_Sky,
-    PRMAN_OT_Add_bxdf,
     PRMAN_OT_New_bxdf,
     PRMAN_OT_add_GeoLight,
     PRMAN_OT_Select_Lights,

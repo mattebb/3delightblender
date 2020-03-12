@@ -5,6 +5,7 @@ from ..rman_utils import string_utils
 from ..rman_utils import property_utils
 from ..rman_utils import transform_utils
 from ..rman_utils import object_utils
+from ..rfb_logger import rfb_log
 from mathutils import Matrix
 import math
 import bpy
@@ -36,7 +37,19 @@ def get_light_group(light_ob, scene):
     for lg in scene_rm.light_groups:
         if lg.name != 'All' and light_ob.name in lg.members:
             return lg.name
-    return ''                            
+    return ''     
+
+def find_portal_dome_parent(portal):  
+    dome = None
+    parent = portal.parent
+    while parent:
+        if parent.type == 'LIGHT' and hasattr(parent.data, 'renderman'): 
+            rm = parent.data.renderman
+            if rm.renderman_light_role == 'RMAN_LIGHT' and rm.get_light_node_name() == 'PxrDomeLight':
+                dome = parent
+                break
+        parent = parent.parent
+    return dome                   
 
 class RmanLightTranslator(RmanTranslator):
 
@@ -49,7 +62,6 @@ class RmanLightTranslator(RmanTranslator):
 
     def export_object_attributes(self, ob, sg_node):
 
-        # Adds external RIB to object_attributes
         name = ob.name_full
         rm = ob.renderman
         attrs = sg_node.GetAttributes()
@@ -67,11 +79,11 @@ class RmanLightTranslator(RmanTranslator):
         light = ob.data
         rm = light.renderman        
 
-        if rm.renderman_type == 'PORTAL':
+        if rm.get_light_node_name() == 'PxrPortalLight':
             if not ob.parent:
                 return None
             if ob.parent.type != 'LIGHT'\
-                and portal_parent.data.renderman.renderman_type != 'ENV':
+                and portal_parent.data.renderman.get_light_node_name() != 'PxrDomeLight':
                 return None
 
         sg_node = self.rman_scene.sg_scene.CreateAnalyticLight(db_name)                
@@ -97,15 +109,7 @@ class RmanLightTranslator(RmanTranslator):
                 if not rman_sg_lightfilter:
                     rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
                 lightfilter_translator.update(light_filter, rman_sg_lightfilter)
-
-
                 light_filters.append(rman_sg_lightfilter.sg_node)
-
-                '''
-                coordsys = self.rman_scene.rman_objects.get(rman_sg_lightfilter.coord_sys, None)
-                if coordsys:
-                    rman_sg_light.sg_node.AddCoordinateSystem(coordsys.sg_node)
-                '''
 
         if len(light_filters) > 0:
             rman_sg_light.sg_node.SetLightFilter(light_filters)          
@@ -139,47 +143,44 @@ class RmanLightTranslator(RmanTranslator):
                 rixparams.SetString('iesProfile',  bpy.path.abspath(
                     light_shader.iesProfile) )
 
-            if light.type == 'SPOT':
-                rixparams.SetFloat('coneAngle', math.degrees(light.spot_size))
-                rixparams.SetFloat('coneSoftness',light.spot_blend)
-            if light.type in ['SPOT', 'POINT']:
-                rixparams.SetInteger('areaNormalize', 1)
-
             # portal params
-            if rm.renderman_type == 'PORTAL':
-                portal_parent = ob.parent
-                parent_node = portal_parent.data.renderman.get_light_node()
+            if rm.get_light_node_name() == 'PxrPortalLight':
+                portal_parent = find_portal_dome_parent(ob) #ob.parent
+                if portal_parent:
+                    parent_node = portal_parent.data.renderman.get_light_node()
 
-                rixparams.SetString('portalName', rman_sg_light.db_name)
-                property_utils.portal_inherit_dome_params(light_shader, portal_parent, parent_node, rixparams)
+                    rixparams.SetString('portalName', rman_sg_light.db_name)
+                    property_utils.portal_inherit_dome_params(light_shader, portal_parent, parent_node, rixparams)
 
-                orient_mtx = Matrix()
-                orient_mtx[0][0] = s_orientPxrLight[0]
-                orient_mtx[1][0] = s_orientPxrLight[1]
-                orient_mtx[2][0] = s_orientPxrLight[2]
-                orient_mtx[3][0] = s_orientPxrLight[3]
+                    orient_mtx = Matrix()
+                    orient_mtx[0][0] = s_orientPxrLight[0]
+                    orient_mtx[1][0] = s_orientPxrLight[1]
+                    orient_mtx[2][0] = s_orientPxrLight[2]
+                    orient_mtx[3][0] = s_orientPxrLight[3]
 
-                orient_mtx[0][1] = s_orientPxrLight[4]
-                orient_mtx[1][1] = s_orientPxrLight[5]
-                orient_mtx[2][1] = s_orientPxrLight[6]
-                orient_mtx[3][1] = s_orientPxrLight[7]
+                    orient_mtx[0][1] = s_orientPxrLight[4]
+                    orient_mtx[1][1] = s_orientPxrLight[5]
+                    orient_mtx[2][1] = s_orientPxrLight[6]
+                    orient_mtx[3][1] = s_orientPxrLight[7]
 
-                orient_mtx[0][2] = s_orientPxrLight[8]
-                orient_mtx[1][2] = s_orientPxrLight[9]
-                orient_mtx[2][2] = s_orientPxrLight[10]
-                orient_mtx[3][2] = s_orientPxrLight[11]
+                    orient_mtx[0][2] = s_orientPxrLight[8]
+                    orient_mtx[1][2] = s_orientPxrLight[9]
+                    orient_mtx[2][2] = s_orientPxrLight[10]
+                    orient_mtx[3][2] = s_orientPxrLight[11]
 
-                orient_mtx[0][3] = s_orientPxrLight[12]
-                orient_mtx[1][3] = s_orientPxrLight[13]
-                orient_mtx[2][3] = s_orientPxrLight[14]
-                orient_mtx[3][3] = s_orientPxrLight[15]
-                
-                portal_mtx = orient_mtx @ Matrix(ob.matrix_world)                   
-                dome_mtx = Matrix(portal_parent.matrix_world)
-                dome_mtx.invert()
-                mtx = portal_mtx @ dome_mtx  
-                 
-                rixparams.SetMatrix('portalToDome', transform_utils.convert_matrix4x4(mtx) )
+                    orient_mtx[0][3] = s_orientPxrLight[12]
+                    orient_mtx[1][3] = s_orientPxrLight[13]
+                    orient_mtx[2][3] = s_orientPxrLight[14]
+                    orient_mtx[3][3] = s_orientPxrLight[15]
+                    
+                    portal_mtx = orient_mtx @ Matrix(ob.matrix_world)                   
+                    dome_mtx = Matrix(portal_parent.matrix_world)
+                    dome_mtx.invert()
+                    mtx = portal_mtx @ dome_mtx  
+                    
+                    rixparams.SetMatrix('portalToDome', transform_utils.convert_matrix4x4(mtx) )
+                else:
+                    rfb_log().error('Could not find a dome light parent for: %s' % ob.name)
             
 
             rman_sg_light.sg_node.SetLight(sg_node)

@@ -56,29 +56,6 @@ class DATA_PT_renderman_Sample_filters(CollectionPanel, Panel):
                               "collection.add_remove", "scene", "sample_filters",
                               "sample_filters_index")
 
-
-class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
-    bl_label = "Light Filters"
-    bl_context = 'data'
-
-    def draw_item(self, layout, context, item):
-        layout.prop(item, 'filter_name')
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "light") \
-            and context.light is not None and hasattr(context.light, 'renderman') \
-            and context.light.renderman.renderman_type != 'FILTER'
-
-    def draw(self, context):
-        layout = self.layout
-        light = context.light
-
-        self._draw_collection(context, layout, light.renderman, "",
-                              "collection.add_remove", "light", "light_filters",
-                              "light_filters_index")
-
 class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
     # bl_idname = "renderman_light_panel"
     bl_label = "RenderMan Light Groups"
@@ -139,7 +116,7 @@ class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
                     continue
                 light = scene.objects[light_name].data
                 light_rm = light.renderman
-                if light_rm.renderman_type == 'FILTER':
+                if light_rm.renderman_light_role == 'RMAN_LIGHTFILTER':
                     continue
                 row = box.row()
                 columns = box.column_flow(columns=8)
@@ -331,7 +308,6 @@ class PRMAN_PT_Renderman_Object_Panel(CollectionPanel, Panel):
 classes = [
     DATA_PT_renderman_display_filters,
     DATA_PT_renderman_Sample_filters,
-    DATA_PT_renderman_node_filters_light,
 
     PRMAN_PT_Renderman_Light_Panel,
     PRMAN_PT_Renderman_Light_Link_Panel,

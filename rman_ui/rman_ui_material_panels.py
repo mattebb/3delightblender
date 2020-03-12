@@ -1,6 +1,7 @@
-from .rman_ui_base import _RManPanelHeader,ShaderPanel,ShaderNodePanel
+from .rman_ui_base import _RManPanelHeader,ShaderPanel,ShaderNodePanel, CollectionPanel 
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 from ..rman_utils.draw_utils import _draw_props, panel_node_draw,draw_nodes_properties_ui
+from ..icons.icons import load_icons
 import bpy
 from bpy.types import Panel
 
@@ -101,31 +102,33 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
         layout = self.layout
 
         light = context.light
-        ipr_running = False 
         if not light.renderman.use_renderman_node:
             layout.prop(light, "type", expand=True)
             layout.operator('shading.add_renderman_nodetree').idtype = 'light'
             return
-        else:
-            if ipr_running:
-                layout.label(
-                    text="Note: Some items cannot be edited while IPR running.")
+        else:       
             row = layout.row()
-            row.enabled = not ipr_running
-            row.prop(light.renderman, "renderman_type", expand=True)
-            if light.renderman.renderman_type == 'FILTER':
+            row.prop(light.renderman, "renderman_lock_light_type")                          
+            if not light.renderman.renderman_lock_light_type:
                 row = layout.row()
-                row.enabled = not ipr_running
-                row.prop(light.renderman, "filter_type", expand=True)
-            if light.renderman.renderman_type == "AREA":
-                row = layout.row()
-                row.enabled = not ipr_running
-                row.prop(light.renderman, "area_shape", expand=True)
-                row = layout.row()
+                row.prop(light.renderman, "renderman_light_role", expand=True)
+                if light.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+                    row = layout.row()
+                    row.prop(light.renderman, "renderman_light_filter_shader")
 
-        row = layout.row()
-        row.enabled = not ipr_running
-        row.prop(light.renderman, 'illuminates_by_default')
+                elif light.renderman.renderman_light_role == 'RMAN_LIGHT':
+                    row = layout.row()
+                    row.prop(light.renderman, 'renderman_light_shader')                
+            else:
+                row = layout.row()
+                col = row.column()
+                icons = load_icons()
+                rman_light_icon = icons.get("arealight")
+                if light.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+                    col.label(text="%s" % light.renderman.renderman_light_filter_shader, icon_value=rman_light_icon.icon_id)
+                else:
+                    col.label(text="%s" % light.renderman.renderman_light_shader, icon_value=rman_light_icon.icon_id)
+
 
 class PRMAN_PT_context_material(_RManPanelHeader, Panel):
     bl_space_type = "PROPERTIES"
@@ -203,11 +206,31 @@ class DATA_PT_renderman_node_shader_light(ShaderNodePanel, Panel):
 
         light_node = light.renderman.get_light_node()
         if light_node:
-            if light.renderman.renderman_type != 'FILTER':
+            if light.renderman.renderman_light_role != 'RMAN_LIGHTFILTER':
                 layout.prop(light.renderman, 'light_primary_visibility')
             _draw_props(light_node, light_node.prop_names, layout)
 
+class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
+    bl_label = "Light Filters"
+    bl_context = 'data'
 
+    def draw_item(self, layout, context, item):
+        layout.prop(item, 'filter_name')
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "light") \
+            and context.light is not None and hasattr(context.light, 'renderman') \
+            and context.light.renderman.renderman_light_role != 'RMAN_LIGHTFILTER'
+
+    def draw(self, context):
+        layout = self.layout
+        light = context.light
+
+        self._draw_collection(context, layout, light.renderman, "",
+                              "collection.add_remove", "light", "light_filters",
+                              "light_filters_index")
 
 classes = [
     MATERIAL_PT_renderman_preview,
@@ -216,6 +239,7 @@ classes = [
     MATERIAL_PT_renderman_shader_displacement,
     DATA_PT_renderman_light,
     DATA_PT_renderman_node_shader_light,
+    DATA_PT_renderman_node_filters_light,
     PRMAN_PT_context_material
 ]
 

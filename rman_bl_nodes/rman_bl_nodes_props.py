@@ -3,6 +3,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
     CollectionProperty, BoolVectorProperty
 from .. import rman_bl_nodes
+from ..icons.icons import load_icons
 
 class RendermanPluginSettings(bpy.types.PropertyGroup):
     pass
@@ -13,7 +14,7 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
         obs = context.scene.objects
         items = [('None', 'Not Set', 'Not Set')]
         for o in obs:
-            if o.type == 'LIGHT' and o.data.renderman.renderman_type == 'FILTER':
+            if o.type == 'LIGHT' and o.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
                 items.append((o.name, o.name, o.name))
         return items
 
@@ -24,23 +25,19 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
     filter_name: EnumProperty(
         name="Linked Filter:", items=get_filters, update=update_name)
 
-
 class RendermanLightSettings(bpy.types.PropertyGroup):
 
     def get_light_node(self):
-        if self.renderman_type == 'SPOT':
-            light_shader = 'PxrRectLight' if self.id_data.use_square else 'PxrDiskLight'
-            return getattr(self, light_shader + "_settings", None)
+        '''
+        Get the light shader node
+        '''
         return getattr(self, self.light_node, None)
 
     def get_light_node_name(self):
-        if self.renderman_type == 'SPOT':
-            return 'PxrRectLight' if self.id_data.use_square else 'PxrDiskLight'
-        if self.renderman_type == 'PORTAL':
-            return 'PxrPortalLight'
-        else:
-            return self.light_node.replace('_settings', '')
-
+        '''
+        Get light shader name
+        '''
+        return self.light_node.replace('_settings', '')
     light_node: StringProperty(
         name="Light Node",
         default='')
@@ -49,161 +46,101 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
     color_ramp_node: StringProperty(default='')
     float_ramp_node: StringProperty(default='')
 
-    # do this to keep the nice viewport update
-    def update_light_type(self, context):
-        light = self.id_data
-        light_type = light.renderman.renderman_type
-
-        
-        if light_type in ['SKY', 'ENV']:
-            light.type = 'POINT'
-        elif light_type == 'DIST':
-            light.type = 'SUN'
-        elif light_type == 'PORTAL':
-            light.type = 'AREA'
-        elif light_type == 'FILTER':
-            light.type = 'AREA'
-        else:
-            light.type = light_type
-        
-
-
-        # use pxr area light for everything but env, sky
-        light_shader = 'PxrRectLight'
-        if light_type == 'ENV':
-            light_shader = 'PxrDomeLight'
-        elif light_type == 'SKY':
-            light_shader = 'PxrEnvDayLight'
-        elif light_type == 'PORTAL':
-            light_shader = 'PxrPortalLight'
-        elif light_type == 'POINT':
-            light_shader = 'PxrSphereLight'
-        elif light_type == 'DIST':
-            light_shader = 'PxrDistantLight'
-        elif light_type == 'FILTER':
-            light_shader = 'PxrBlockerLightFilter'
-        elif light_type == 'SPOT':
-            light_shader = 'PxrRectLight' if light.use_square else 'PxrDiskLight'
-        elif light_type == 'AREA':
-            try:
-                light.shape = 'RECTANGLE'
-                light.size = 1.0
-                light.size_y = 1.0
-            except:
-                pass
-
-        self.light_node = light_shader + "_settings"
-        if light_type == 'FILTER':
-            self.update_filter_type(context)
-
-        # setattr(node, 'renderman_portal', light_type == 'PORTAL')
-
-    def update_area_shape(self, context):
-        light = self.id_data
-        area_shape = self.area_shape
-        # use pxr area light for everything but env, sky
-        light_shader = 'PxrRectLight'
-
-        if area_shape == 'disk':
-            light.shape = 'DISK'
-            light_shader = 'PxrDiskLight'
-        elif area_shape == 'sphere':
-            light.shape = 'ELLIPSE'
-            light_shader = 'PxrSphereLight'
-        elif area_shape == 'cylinder':
-            light.shape = 'RECTANGLE'
-            light_shader = 'PxrCylinderLight'
-        else:
-            light.shape = 'RECTANGLE'
-
-        self.light_node = light_shader + "_settings"
-
     def update_vis(self, context):
         light = self.id_data
-
-    def update_filter_type(self, context):
-
-        filter_name = 'IntMult' if self.filter_type == 'intmult' else self.filter_type.capitalize()
-        # set the light type
-
-        self.light_node = 'Pxr%sLightFilter_settings' % filter_name
-        if self.filter_type in ['gobo', 'cookie']:
-            self.id_data.id_data.type = 'AREA'
-            self.id_data.shape = 'RECTANGLE'
-        else:
-            self.id_data.id_data.type = 'POINT'
-
-        if self.filter_type in ['blocker', 'ramp', 'rod']:
-            light = context.light
-            if not light.use_nodes:
-                light.use_nodes = True
-            nt = light.node_tree
-            if self.color_ramp_node not in nt.nodes.keys():
-                # make a new color ramp node to use
-                self.color_ramp_node = nt.nodes.new('ShaderNodeValToRGB').name
-            if self.float_ramp_node not in nt.nodes.keys():
-                self.float_ramp_node = nt.nodes.new(
-                    'ShaderNodeVectorCurve').name
 
     use_renderman_node: BoolProperty(
         name="Use RenderMans Light Node",
         description="Will enable RenderMan light Nodes, opening more options",
-        default=False, update=update_light_type)
+        default=False
+    )
 
-    renderman_type: EnumProperty(
+    def renderman_light_role_update(self, context):
+        if self.renderman_light_role == 'RMAN_LIGHT':
+            self.renderman_light_shader_update(context)
+        else:
+            self.renderman_light_filter_shader_update(context)
+
+    renderman_light_role: EnumProperty(
         name="Light Type",
-        update=update_light_type,
-        items=[('AREA', 'Area', 'Area Light'),
-               ('ENV', 'Environment', 'Environment Light'),
-               ('SKY', 'Sky', 'Simulated Sky'),
-               ('DIST', 'Distant', 'Distant Light'),
-               ('SPOT', 'Spot', 'Spot Light'),
-               ('POINT', 'Point', 'Point Light'),
-               ('PORTAL', 'Portal', 'Portal Light'),
-               ('FILTER', 'Filter', 'Light Filter')],
-        default='AREA'
+        items=[('RMAN_LIGHT', 'Light', 'RenderMan Light'),
+               ('RMAN_LIGHTFILTER', 'Filter', 'RenderMan Light Filter')],
+        update=renderman_light_role_update,
+        default='RMAN_LIGHT'        
+    )    
+
+    def renderman_light_shader_update(self, context):
+        light = self.id_data        
+        light_shader = self.renderman_light_shader
+        self.light_node = light_shader + "_settings"
+
+        # update the Blender native light type
+        if light_shader in ['PxrDomeLight', 'PxrEnvDayLight']:
+            light.type = 'POINT'
+        elif light_shader == 'PxrDistantLight':
+            light.type = 'SUN'
+        elif light_shader == 'PxrSphereLight':
+            light.type = 'AREA'
+            light.shape = 'ELLIPSE'
+            light.size = 1.0
+            light.size_y = 1.0
+        elif light_shader == 'PxrDiskLight':
+            light.type = 'AREA'
+            light.shape = 'DISK'
+            light.size = 1.0
+            light.size_y = 1.0      
+        else:
+            light.type = 'AREA'
+            light.shape = 'RECTANGLE'
+            light.size = 1.0
+            light.size_y = 1.0              
+
+    def get_rman_light_shaders(self, context):
+        icons = load_icons()
+        rman_light_icon = icons.get("arealight")
+        items = []
+        i = 0
+        items.append(('PxrRectLight', 'PxrRectLight', '', rman_light_icon.icon_id, i))
+        for n in rman_bl_nodes.__RMAN_LIGHT_NODES__:
+            if n.name != 'PxrRectLight':
+                i += 1
+                items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
+        return items
+
+    renderman_light_shader: EnumProperty(
+        name="RenderMan Light",
+        items=get_rman_light_shaders,
+        update=renderman_light_shader_update
     )
 
-    area_shape: EnumProperty(
-        name="Area Shape",
-        update=update_area_shape,
-        items=[('rect', 'Rectangle', 'Rectangle'),
-               ('disk', 'Disk', 'Disk'),
-               ('sphere', 'Sphere', 'Sphere'), 
-               ('cylinder', 'Cylinder', 'Cylinder')],
-        default='rect'
-    )
+    def renderman_light_filter_shader_update(self, context):
+        light = self.id_data
+        light_shader = self.renderman_light_filter_shader
+        self.light_node = light_shader + "_settings"
 
-    filter_type: EnumProperty(
-        name="Area Shape",
-        update=update_filter_type,
-        items=[('barn', 'Barn', 'Barn'),
-               ('blocker', 'Blocker', 'Blocker'),
-               #('combiner', 'Combiner', 'Combiner'),
-               ('cookie', 'Cookie', 'Cookie'),
-               ('gobo', 'Gobo', 'Gobo'),
-               ('intmult', 'Multiply', 'Multiply'),
-               ('ramp', 'Ramp', 'Ramp'),
-               ('rod', 'Rod', 'Rod')
-               ],
-        default='blocker'
-    )
+        light.type = 'AREA'
+        light.shape = 'RECTANGLE'
+        light.size = 1.0
+        light.size_y = 1.0      
+          
+    def get_rman_light_filter_shaders(self, context):
+        items = []
+        items.append(('PxrBlockerLightFilter', 'PxrBlockerLightFilter', ''))
+        for n in rman_bl_nodes.__RMAN_LIGHTFILTER_NODES__:
+            if n.name != 'PxrBlockerLightFilter':
+                items.append( (n.name, n.name, ''))
+        return items
+
+    renderman_light_filter_shader: EnumProperty(
+        name="RenderMan Light Filter",
+        items=get_rman_light_filter_shaders,
+        update=renderman_light_filter_shader_update
+    )    
 
     light_filters: CollectionProperty(
         type=RendermanLightFilter
     )
     light_filters_index: IntProperty(min=-1, default=-1)
-
-    shadingrate: FloatProperty(
-        name="Light Shading Rate",
-        description="Shading Rate for lights.  Keep this high unless banding or pixellation occurs on detailed light maps",
-        default=100.0)
-
-    # illuminate
-    illuminates_by_default: BoolProperty(
-        name="Illuminates by default",
-        description="The light illuminates objects by default",
-        default=True)
 
     light_primary_visibility: BoolProperty(
         name="Light Primary Visibility",
@@ -234,6 +171,63 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         update=update_solo,
         description="Turn on only this light",
         default=False)
+
+    renderman_lock_light_type: BoolProperty(
+        name="Lock Type",
+        default=False,
+        description="Lock from changing light shader and light role."
+    )
+
+    # OLD PROPERTIES
+
+    shadingrate: FloatProperty(
+        name="Light Shading Rate",
+        description="Shading Rate for lights.  Keep this high unless banding or pixellation occurs on detailed light maps",
+        default=100.0)
+
+    # illuminate
+    illuminates_by_default: BoolProperty(
+        name="Illuminates by default",
+        description="The light illuminates objects by default",
+        default=True)    
+
+    renderman_type: EnumProperty(
+        name="Light Type",
+        items=[
+               ('AREA', 'Light', 'Area Light'),
+               ('ENV', 'Dome', 'Dome Light'),
+               ('SKY', 'Env Daylight', 'Simulated Sky'),
+               ('DIST', 'Distant', 'Distant Light'),
+               ('SPOT', 'Spot', 'Spot Light'),
+               ('POINT', 'Point', 'Point Light'),
+               ('PORTAL', 'Portal', 'Portal Light'),
+               ('FILTER', 'Filter', 'RenderMan Light Filter'),
+               ('UPDATED', 'UPDATED', '')],
+        default='UPDATED'
+    )
+
+    area_shape: EnumProperty(
+        name="Area Shape",
+        items=[('rect', 'Rectangle', 'Rectangle'),
+               ('disk', 'Disk', 'Disk'),
+               ('sphere', 'Sphere', 'Sphere'), 
+               ('cylinder', 'Cylinder', 'Cylinder')],
+        default='rect'
+    )
+
+    filter_type: EnumProperty(
+        name="Area Shape",
+        items=[('barn', 'Barn', 'Barn'),
+               ('blocker', 'Blocker', 'Blocker'),
+               #('combiner', 'Combiner', 'Combiner'),
+               ('cookie', 'Cookie', 'Cookie'),
+               ('gobo', 'Gobo', 'Gobo'),
+               ('intmult', 'Multiply', 'Multiply'),
+               ('ramp', 'Ramp', 'Ramp'),
+               ('rod', 'Rod', 'Rod')
+               ],
+        default='blocker'
+    )        
 
 class RendermanDisplayFilterSettings(bpy.types.PropertyGroup):
 

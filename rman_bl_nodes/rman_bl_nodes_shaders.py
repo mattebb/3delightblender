@@ -304,9 +304,9 @@ class RendermanOutputNode(RendermanShadingNode):
     def update(self):
         # This sucks. There doesn't seem to be a way to tag the material
         # it needs updating, so we manually issue an edit
-        mat = bpy.context.material
         rr = rman_render.RmanRender.get_rman_render()        
         if rr.rman_interactive_running:
+            mat = bpy.context.material
             rr.rman_scene.update_material(mat)
 
 # Final output node, used as a dummy to find top level shaders

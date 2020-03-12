@@ -671,7 +671,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                         node_meta = node_meta.get(vstruct_from_param)
                         is_reference = True
                         val = get_output_param_str(
-                               from_socket.node, temp_mat_name, actual_socket, param_type)
+                               from_socket.node, temp_mat_name, actual_socket, to_socket=None, param_type=param_type)
                         if node_meta:
                             expr = node_meta.get('vstructConditionalExpr')
                             # check if we should connect or just set a value
@@ -847,7 +847,8 @@ def property_group_to_rixparams(node, rman_sg_node, sg_node, light=None, mat_nam
 
 def portal_inherit_dome_params(portal_node, dome, dome_node, rixparams):
 
-    tx_node_id = texture_utils.generate_node_id(dome, 'lightColorMap')
+    tx_node_id = texture_utils.generate_node_id(dome_node, 'lightColorMap')
+    tex = string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id))
     rixparams.SetString('domeColorMap', string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)))
 
     prop = getattr(portal_node, 'colorMapGamma')

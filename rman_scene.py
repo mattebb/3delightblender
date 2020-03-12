@@ -191,6 +191,7 @@ class RmanScene(object):
         self._find_renderman_layer()        
         
         self.depsgraph = context.evaluated_depsgraph_get()
+        self.export_root_sg_node()
         ob = context.active_object
         self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])
         self.export_data_blocks([ob])
@@ -368,16 +369,16 @@ class RmanScene(object):
             rman_type = object_utils._detect_primitive_(ob)  
             db_name = object_utils.get_db_name(ob, rman_type=rman_type)
             if rman_type == 'LIGHT':
-                if ob.data.renderman.renderman_type == 'FILTER':
+                if ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
                     # skip if this is a light filter
                     # these will be exported when we do regular lights
                     return
-                elif ob.data.renderman.renderman_type == 'ENV':
+                elif ob.data.renderman.get_light_node_name() == 'PxrDomeLight':
                     # check if there are portals attached to this light
                     # if there are, skip
                     any_portals = False
                     for c in obj.children:
-                        if c.type == 'LIGHT' and c.data.renderman.renderman_type == 'PORTAL':
+                        if c.type == 'LIGHT' and c.data.renderman.get_light_node_name() == 'PxrPortalLight':
                             any_portals = True
                             break
                     if any_portals:

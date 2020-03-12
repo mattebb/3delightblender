@@ -158,32 +158,7 @@ class PRManRender(bpy.types.RenderEngine):
             blf.position(0, pos_x, pos_y, 0)
             blf.color(0, 1.0, 0.0, 0.0, 1.0)
             blf.draw(0, "%s" % ('RenderMan Interactive Mode Running'))
-            blf.disable(0, blf.SHADOW)        
-
-# FIXME: these handler registrations should be moved to individual
-# register functions
-def add_handlers(scene):
-    # parse for textures to convert on scene load
-    if texture_utils.parse_for_textures_load_cb not in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.append(texture_utils.parse_for_textures_load_cb)
-
-    # token updater on scene load
-    if string_utils.update_blender_tokens_cb not in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.append(string_utils.update_blender_tokens_cb)
-
-    # token updater on scene save
-    if string_utils.update_blender_tokens_cb not in bpy.app.handlers.save_post:
-        bpy.app.handlers.save_post.append(string_utils.update_blender_tokens_cb)              
-
-def remove_handlers():
-    if texture_utils.parse_for_textures_load_cb in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.remove(texture_utils.parse_for_textures_load_cb)
-
-    if string_utils.update_blender_tokens_cb in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.remove(string_utils.update_blender_tokens_cb)
-
-    if string_utils.update_blender_tokens_cb in bpy.app.handlers.save_post:
-        bpy.app.handlers.save_post.remove(string_utils.update_blender_tokens_cb)          
+            blf.disable(0, blf.SHADOW)           
 
 def set_up_paths():
     import os
@@ -210,6 +185,7 @@ def load_addon():
         from . import rman_bl_nodes
         from . import rman_properties
         from . import rman_config
+        from . import rman_handlers
 
         # need this now rather than at beginning to make
         # sure preferences are loaded
@@ -220,7 +196,8 @@ def load_addon():
         operators.register()
         rman_ui.register()  
         rman_properties.register()      
-        add_handlers(None)     
+        #add_handlers(None)
+        rman_handlers.register()
 
     else:
         rfb_log().error(
@@ -242,7 +219,8 @@ def register():
 
 def unregister():
     from . import preferences
-    remove_handlers()
+    #remove_handlers()
+    rman_handlers.unregister()
     rman_bl_nodes.unregister()    
     operators.unregister()
     rman_ui.unregister()

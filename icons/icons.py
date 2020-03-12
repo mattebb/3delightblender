@@ -103,7 +103,7 @@ def load_icons():
 
     # Add Subdiv Sheme
 
-    custom_icons.load("add_subdiv_sheme", os.path.join(
+    custom_icons.load("add_subdiv_scheme", os.path.join(
         icons_dir, "rman_subdiv.png"), 'IMAGE')
     # Add/Atach Coordsys
 

@@ -149,7 +149,7 @@ def _detect_primitive_(ob):
                 return 'POLYGON_MESH'
             '''
         elif ob.type == 'LIGHT':
-            if ob.data.renderman.renderman_type == 'FILTER':
+            if ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
                 return 'LIGHTFILTER'
             return ob.type                       
         elif ob.type == 'CURVE':
