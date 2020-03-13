@@ -6,6 +6,7 @@ from ..rman_utils import property_utils
 from ..rfb_logger import rfb_log
 from .rman_socket_utils import node_add_inputs
 from .rman_socket_utils import node_add_outputs
+from .rman_socket_utils import update_inputs
 from .. import rman_render
 from .. import properties
 from ..rman_properties import rman_properties_scene

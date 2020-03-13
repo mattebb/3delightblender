@@ -526,6 +526,8 @@ class BlenderGraph:
             print('%s invalid' % node.name)
             return False
 
+        # FIXME: I have no idea what this conditional is trying to do
+        '''
         if node.__class__.__name__ not in g_validNodeTypes:
             self._invalids.append(node)
             # we must warn the user, as this is not really supposed to happen.
@@ -533,7 +535,7 @@ class BlenderGraph:
                        (node.name, node.__class__.__name__))
             # print '    not a valid node type -> %s' % nodetype
             return False
-
+        '''
 
         if node not in self._nodes:
             #print('adding %s ' % node.name)
@@ -984,7 +986,7 @@ def parseNodeGraph(nt, Asset):
 
     graph = BlenderGraph()
     graph.AddNode(out)
-    from ..nodes import gather_nodes
+    from ..rman_utils.shadergraph_utils import gather_nodes
     nodes_to_convert = gather_nodes(out)
 
     for node in nodes_to_convert:
@@ -1356,9 +1358,9 @@ def createNodes(Asset):
             if not lightrig_helper:
                 lightrig_name = Asset.label()
                 lightrig_helper = bpy.data.objects.new(lightrig_name, None)
-                bpy.context.scene.objects.link(lightrig_helper)
-                lightrig_helper.empty_draw_size = lightrig_size
-                lightrig_helper.empty_draw_type = lightrig_type
+                bpy.context.scene.collection.objects.link(lightrig_helper)
+                lightrig_helper.empty_display_size = lightrig_size
+                lightrig_helper.empty_display_type = lightrig_type
 
             bpy.ops.object.light_add(type='AREA')
             light = bpy.context.active_object
@@ -1375,13 +1377,8 @@ def createNodes(Asset):
             light.matrix_world[2] = vals[8:12]
             light.matrix_world[3] = vals[12:]
             light.matrix_world.transpose()
-            if nodeType in {'PxrDiskLight', 'PxrRectLight', 'PxrSphereLight'}:
-                light.data.renderman.area_shape = nodeType[3:-5].lower()
-            else:
-                mapping = {'PxrDistantLight': 'DIST',
-                            'PxrDomeLight': 'ENV',
-                            'PxrEnvDayLight': 'SKY'}
-                light.data.renderman.renderman_type = mapping[nodeType]
+
+            light.data.renderman.renderman_light_shader = nodeType
 
             created_node = light.data.renderman.get_light_node()
             mat = light
@@ -1410,10 +1407,11 @@ def createNodes(Asset):
 
         # deselect all selected obejects
         for ob in bpy.context.selected_objects:
-            ob.select = False
+            #ob.select = False
+            ob.select_set(state=False)
 
         # select lightrig and make active (same behavior like adding a object via UI)
-        lightrig_helper.select = True
+        lightrig_helper.select_set(state=True)
         bpy.context.view_layer.objects.active = lightrig_helper
 
         # apply former rotation
@@ -1537,20 +1535,21 @@ def importAsset(filepath):
     elif assetType == "envMap":
         scene = bpy.context.scene
         dome_lights = [ob for ob in scene.objects if ob.type == 'LIGHT' \
-            and ob.data.renderman.renderman_type == 'ENV']
+            and ob.data.renderman.get_light_node_name() == 'PxrDomeLight']
 
-        selected_dome_lights = [ob for ob in dome_lights if ob.select]
+        selected_dome_lights = [ob for ob in dome_lights if ob.select_get()]
         env_map_path = Asset.envMapPath()
 
         if not selected_dome_lights:
             if not dome_lights:
                 # check the world node
-                if scene.world.renderman.renderman_type == 'ENV':
+                if scene.world.renderman.get_light_node_name() == 'PxrDomeLight':
                     plugin_node = scene.world.renderman.get_light_node()
                     plugin_node.lightColorMap = env_map_path
                 # create a new dome light
-                else:
-                    bpy.ops.object.mr_add_hemi()
+                else:                    
+                    #bpy.ops.object.mr_add_hemi()
+                    bpy.ops.object.rman_add_light(rman_light_name='PxrDomeLight')
                     ob = bpy.context.view_layer.objects.active
                     plugin_node = ob.data.renderman.get_light_node()
                     plugin_node.lightColorMap = env_map_path
@@ -1567,36 +1566,6 @@ def importAsset(filepath):
                 plugin_node = light.renderman.get_light_node()
                 plugin_node.lightColorMap = env_map_path
 
-
-    #     selectedLights = mc.ls(sl=True, dag=True, shapes=True)
-    #     # nothing selected ?
-    #     if not len(selectedLights):
-    #         domeLights = mc.ls(type='PxrDomeLight')
-    #         numDomeLights = len(domeLights)
-    #         # create a dome light if there isn't already one in the scene !
-    #         if numDomeLights == 0:
-    #             selectedLights.append(
-    #                 mel.eval('rmanCreateNode -asLight "" PxrDomeLight'))
-    #         # if there is only one, use that.
-    #         elif numDomeLights == 1:
-    #             selectedLights.append(domeLights[0])
-    #     if len(selectedLights):
-    #         envMapPath = Asset.envMapPath()
-    #         for light in selectedLights:
-    #             nt = mc.nodeType(light)
-    #             if nt == 'PxrDomeLight':
-    #                 try:
-    #                     mc.setAttr('%s.lightColorMap' % light, envMapPath,
-    #                                type='string')
-    #                 except:
-    #                     msg = 'Failed to set %s.lightColorMap\n' % light
-    #                     msg += sysErr()
-    #                     raise RmanAssetBlenderError(msg)
-    #             else:
-    #                 raise RmanAssetBlenderError("We only support PxrDomeLight !")
-    #     else:
-    #         raise RmanAssetBlenderError('Select a PxrDomeLight first !')
-    #     # print ("not implemented yet")
     else:
         raise RmanAssetBlenderError("Unknown asset type : %s" % assetType)
 

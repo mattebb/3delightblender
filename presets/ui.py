@@ -113,7 +113,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
 
                 # get from scene
                 layout.separator()
-                layout.operator("renderman.save_asset_to_library", text="Save Material to Library").lib_path = active.path
+                layout.operator("renderman.save_asset_to_library", text="Save Material to Library", icon='MATERIAL').lib_path = active.path
 
 class PRMAN_MT_Renderman_Presets_Menu(bpy.types.Menu):
     bl_idname = "PRMAN_MT_renderman_presets_menu"

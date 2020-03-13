@@ -23,7 +23,8 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 
-from .. import util
+from ..rman_utils import prefs_utils
+from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 import os
 from distutils.dir_util import copy_tree
 import shutil
@@ -33,6 +34,7 @@ from .properties import RendermanPresetGroup, RendermanPreset, refresh_presets_l
 from . import icons
 import json
 from bpy.types import NodeTree
+import getpass
 
 def get_library_name(jsonfile):
     if not os.path.exists(jsonfile):
@@ -55,7 +57,7 @@ class PRMAN_OT_init_preset_library(bpy.types.Operator):
     def execute(self, context):
 
         json_file = os.path.join(self.directory, 'library.json')
-        presets_library = util.get_addon_prefs().presets_library
+        presets_library = prefs_utils.get_addon_prefs().presets_library
         #presets_path = util.get_addon_prefs().presets_path
         if os.path.exists(json_file):
             presets_library.name = get_library_name(json_file)
@@ -87,7 +89,7 @@ class PRMAN_OT_refresh_libraries(bpy.types.Operator):
     assign: BoolProperty(default=False)
 
     def invoke(self, context, event):
-        presets_library = util.get_addon_prefs().presets_library
+        presets_library = prefs_utils.get_addon_prefs().presets_library
         refresh_presets_libraries(presets_library.path, presets_library)
         return {'FINISHED'}
 
@@ -118,26 +120,75 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
     bl_description = "Save Asset to Library"
 
     lib_path: StringProperty(default='')
+    material_label: StringProperty(name='Asset Name', default='')
+    material_author: StringProperty(name='Author', default='')
+    material_category: StringProperty(name='Category', default='')
+    material_version: StringProperty(name='Version', default='1.0')
 
-    def invoke(self, context, event):
-        presets_path = util.get_addon_prefs().presets_library.path
+    @classmethod
+    def poll(cls, context):
+        prefs = prefs_utils.get_addon_prefs()
+        presets_path = prefs.presets_library.path
+        active_presets_path = prefs.active_presets_path
+        path = os.path.relpath(active_presets_path, presets_path)
+        if not path.startswith('Materials'):
+            return False
+
+        ob = context.active_object
+        if ob is None:
+            return False
+        if not hasattr(ob, 'active_material'):
+            return False
+        mat = ob.active_material
+        return is_renderman_nodetree(mat)
+
+    def get_current_material(self, context):
+        ob = context.active_object
+        return ob.active_material
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column()
+        col.prop(self, 'material_label')
+        col.prop(self, 'material_author')
+        col.prop(self, 'material_category')
+        col.prop(self, 'material_version')
+
+    def execute(self, context):
+        presets_path = prefs_utils.get_addon_prefs().presets_library.path
         path = os.path.relpath(self.properties.lib_path, presets_path)
         library = RendermanPresetGroup.get_from_path(self.properties.lib_path)
         ob = context.active_object
         mat = ob.active_material
         nt = mat.node_tree
         if nt:
+            if not path.endswith(self.material_category):
+                path = os.path.join(path, self.material_category)
             from . import rmanAssetsBlender
             os.environ['RMAN_ASSET_LIBRARY'] = presets_path
             rmanAssetsBlender.exportAsset(nt, 'nodeGraph', 
-                                          {'label':mat.name,
-                                           'author': '',
-                                           'version': ''},
+                                          {'label': self.material_label,
+                                           'author': self.material_author,
+                                           'version': self.material_version},
                                            path
                                            )
         refresh_presets_libraries(library.path, library)
         bpy.ops.wm.save_userpref()
         return {'FINISHED'}
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        mat = self.get_current_material(context)        
+        self.material_label = mat.name
+        self.material_author = getpass.getuser()
+        self.material_version = '1.0'
+        prefs = prefs_utils.get_addon_prefs()
+        presets_path = prefs.presets_library.path
+        active_presets_path = prefs.active_presets_path
+        path = os.path.relpath(active_presets_path, presets_path)        
+        self.material_category = path.split('/')[-1]     
+
+        return wm.invoke_props_dialog(self) 
 
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
@@ -151,7 +202,7 @@ class PRMAN_OT_set_active_preset_library(bpy.types.Operator):
     def execute(self, context):
         lib_path = self.properties.lib_path
         if lib_path:
-            util.get_addon_prefs().active_presets_path = lib_path
+            prefs_utils.get_addon_prefs().active_presets_path = lib_path
             bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
@@ -174,7 +225,7 @@ class PRMAN_OT_add_preset_library(bpy.types.Operator):
             sub_group.name = new_folder
             sub_group.path = path
 
-            util.get_addon_prefs().active_presets_path = path
+            prefs_utils.get_addon_prefs().active_presets_path = path
         bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
@@ -196,7 +247,7 @@ class PRMAN_OT_remove_preset_library(bpy.types.Operator):
         if lib_path:
             parent_path = os.path.split(active.path)[0]
             parent = RendermanPresetGroup.get_from_path(parent_path)
-            util.get_addon_prefs().active_presets_path = parent_path
+            prefs_utils.get_addon_prefs().active_presets_path = parent_path
             
             shutil.rmtree(active.path)
 
@@ -221,7 +272,10 @@ class PRMAN_OT_remove_preset(bpy.types.Operator):
             parent_path = os.path.split(preset_path)[0]
             parent = RendermanPresetGroup.get_from_path(parent_path)
             
-            shutil.rmtree(active.path)
+            try:
+                shutil.rmtree(active.path)
+            except:
+                pass
 
             refresh_presets_libraries(parent.path, parent)
         bpy.ops.wm.save_userpref()   
@@ -241,7 +295,7 @@ class PRMAN_OT_move_preset(bpy.types.Operator):
             for lib in parent_lib.sub_groups:
                 enum.extend(get_libs(lib))
             return enum
-        return get_libs(util.get_addon_prefs().presets_library)
+        return get_libs(prefs_utils.get_addon_prefs().presets_library)
 
     preset_path: StringProperty(default='')
     new_library: EnumProperty(items=get_libraries, description='New Library', name="New Library")
@@ -280,7 +334,7 @@ class PRMAN_OT_move_preset_library(bpy.types.Operator):
                 enum.extend(get_libs(lib))
             return enum
 
-        return get_libs(util.get_addon_prefs().presets_library)
+        return get_libs(prefs_utils.get_addon_prefs().presets_library)
 
     lib_path: StringProperty(default='')
     new_library: EnumProperty(items=get_libraries, description='New Library', name="New Library")

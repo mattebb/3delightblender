@@ -1,7 +1,6 @@
 # lightRig_Winter
 AttributeBegin 
     Attribute "identifier" "string name" ["PxrDomeLightShape1"]
-    Attribute "grouping" "string membership" ["+rman__imageplane"]
     Transform [ -230.251 -0 -0 0  0 230.251 0 0  0 0 230.251 0  0 0 0 1 ]
     Rotate -90 0 1 0
     Rotate -90 1 0 0
@@ -14,4 +13,3 @@ AttributeBegin
                 "float exposure" [0] 
                 "__instanceid" ["PxrDomeLightShape1_0"]
 AttributeEnd 
-Illuminate "PxrDomeLightShape1" 1
