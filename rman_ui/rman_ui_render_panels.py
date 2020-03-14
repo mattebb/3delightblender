@@ -197,15 +197,21 @@ class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False        
         layout = self.layout
         rman_render = RmanRender.get_rman_render()
         is_rman_interactive_running = rman_render.rman_interactive_running
-        layout.enabled = not is_rman_interactive_running           
+        layout.enabled = not is_rman_interactive_running  
+        scene = context.scene
+        rm = scene.renderman         
         row = layout.row()
         icons = load_icons()
         rman_batch = icons.get("batch_render")
         row.operator("renderman.bake",
                      text="Bake", icon_value=rman_batch.icon_id)  
+
+        _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_baking', context, layout, rm)      
 
 class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
     bl_label = "Advanced"

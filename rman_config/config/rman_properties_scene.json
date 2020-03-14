@@ -90,7 +90,6 @@
             "min": -32,
             "max": 32,
             "help": "The number of preview or IPR rendering threads. A negative number means to use all but n processors."
-
         }, 
         {
             "panel": "RENDER_PT_renderman_render",
@@ -104,7 +103,125 @@
             "max": 32,
             "help": "The number of threads for batch renders.  A negative number means to use all but n processors, and zero means all processors."
 
-        },                  
+        },   
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "",
+            "name": "rman_bake_mode",
+            "label": "Bake Mode",
+            "type": "string",
+            "widget": "mapper",
+            "options": "Pattern:pattern|Illumination:integrator|All:ALL",            
+            "default": "pattern",            
+            "help": "Baking mode. For Patterns, this requires a PxrBakeTexture or PxrBakePointCloud somewhere in your shading network."
+        },      
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illum_mode",
+            "label": "Baking Illumination Mode",
+            "type": "string",
+            "default": "3D",
+            "widget": "mapper",
+            "options": "3D:3D|2D:2D",
+            "help": "Choose between 3D or 2D baking.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            }            
+        },                
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illlum_density",
+            "label": "Density",
+            "type": "float",
+            "default": 0.02,
+            "min": 0.0001,
+            "max": 100.0,
+            "help": "The dicing rate for 3D baking. Lower numbers will create denser pointcloud files.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            }            
+        },    
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illlum_res",
+            "label": "Resolution",
+            "type": "int",
+            "default": 512,
+            "widget": "mapper",
+            "options": "128:128|256:256|512:512|1024:1024|2048:2048",
+            "help": "Resolution for 2D baking. Should be in powers of 2",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode", 
+                "conditionalVisValue": "pattern"
+            }            
+        },                 
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illum_filename",
+            "label": "Filename Pattern",
+            "type": "string",
+            "widget": "mapper",
+            "options": "Global:GLOBAL|Identifier:IDENTIFIER|Filename Attribute:BAKEFILEATTR",
+            "default": "GLOBAL",  
+            "help": "Filename pattern. Global will use one file for all objects. Identifier will bake each object into their own file. Filename Attribute will bake to the file specified in the Bake Filename Attribute on the object.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            } 
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illum_primvarS",
+            "label": "Primvar S",
+            "type": "string",
+            "default": "s",  
+            "help": "Texture coordinate primvar to use for the s direction",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            } 
+        },
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illum_primvarT",
+            "label": "Primvar T",
+            "type": "string",
+            "default": "t",  
+            "help": "Texture coordinate primvar to use for the t direction",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            } 
+        },   
+        {
+            "panel": "RENDER_PT_renderman_baking",
+            "page": "Illumination",
+            "name": "rman_bake_illum_invertT",
+            "label": "Invert T",
+            "type": "int",
+            "widget": "checkbox",
+            "default": 1,  
+            "help": "Invert the t direction texture coordinate",
+            "conditionalVisOps": {
+                "conditionalVisOp": "notEqualTo",
+                "conditionalVisPath": "rman_bake_mode",
+                "conditionalVisValue": "pattern"
+            } 
+        },                                                  
         {
             "panel": "RENDER_PT_renderman_sampling",
             "page": "",
@@ -252,7 +369,7 @@
             "panel": "RENDER_PT_renderman_motion_blur",
             "name": "sample_motion_blur",
             "label": "Sample Motion Blur",
-            "riopt": "hider:sample_motion",
+            "riopt": "hider:samplemotion",
             "type": "int",
             "default": 1,
             "widget": "checkbox",
@@ -427,7 +544,7 @@
             "page": "Open Shading Language",
             "name": "opt_oslmatchcpp",
             "label": "match C++ patterns",
-            "riopt": "user:osl:matchcpp",
+            "riopt": "osl:matchcpp",
             "type": "int",
             "default": 0,
             "widget": "checkBox",
@@ -438,7 +555,7 @@
             "page": "Open Shading Language",
             "name": "opt_oslSIMDEnable",
             "label": "Enable Batched OSL",
-            "riopt": "user:osl:batched",
+            "riopt": "osl:batched",
             "type": "int",
             "default": 1,
             "widget": "checkBox",
@@ -449,7 +566,7 @@
             "page": "Open Shading Language",
             "name": "opt_oslVerbosity",
             "label": "OSL Verbosity",
-            "riopt": "user:osl:verbose",
+            "riopt": "osl:verbose",
             "type": "int",
             "default": 0,
             "widget": "mapper",
@@ -461,7 +578,7 @@
             "page": "Open Shading Language",
             "name": "opt_oslStatistics",
             "label": "OSL Statistics Level",
-            "riopt": "user:osl:statisticslevel",
+            "riopt": "osl:statisticslevel",
             "type": "int",
             "default": 0,
             "min": 0,
@@ -793,7 +910,7 @@
             "name": "path_rib_output",
             "label": "RIB Output Path",
             "type": "string",
-            "default": "{OUT}/{blend}/{scene}.{layer}.{F4}.rib",
+            "default": "{OUT}/{scene}.{layer}.{F4}.rib",
             "widget": "fileinput",
             "help": "Path to generated .rib files"                   
         },               

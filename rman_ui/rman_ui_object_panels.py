@@ -474,6 +474,33 @@ class OBJECT_PT_renderman_object_geometry_attributes(Panel, CollectionPanel):
         col = layout.column(align = True)   
         _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry_attributes', context, layout, rm)               
 
+class OBJECT_PT_renderman_object_baking(Panel, _RManPanelHeader):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+    bl_label = "Baking"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        if context.object.type == 'CAMERA':
+            return False        
+        return (context.object and rd.engine in {'PRMAN_RENDER'})    
+
+    def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        layout = self.layout
+        ob = context.object
+        rm = ob.renderman
+
+        col = layout.column()
+        _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_baking', context, layout, rm)             
+
+
+
 class OBJECT_PT_renderman_object_custom_primvars(CollectionPanel, Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -564,6 +591,7 @@ classes = [
     OBJECT_PT_renderman_object_geometry_attributes,
     OBJECT_PT_renderman_object_render,
     OBJECT_PT_renderman_object_raytracing,
+    OBJECT_PT_renderman_object_baking,
     OBJECT_PT_renderman_object_custom_primvars,
     OBJECT_PT_renderman_object_custom_attributes,
     OBJECT_PT_renderman_object_matteid    

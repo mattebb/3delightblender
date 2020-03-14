@@ -161,7 +161,10 @@ class RmanScene(object):
         self.do_motion_blur = self.bl_scene.renderman.motion_blur
         self.rman_bake = (self.bl_scene.renderman.hider_type == 'BAKE')
 
-        self.export()
+        if self.rman_bake:
+            self.export_bake_render_scene()
+        else:
+            self.export()
 
     def export_for_interactive_render(self, context, depsgraph, sg_scene):
         self.sg_scene = sg_scene
@@ -173,6 +176,7 @@ class RmanScene(object):
         self.external_render = False
         self.is_interactive = True
         self.is_viewport_render = False
+        self.rman_bake = False
         
         if self.bl_scene.renderman.render_into == 'blender':
             self.is_viewport_render = True
@@ -188,7 +192,8 @@ class RmanScene(object):
         self.sg_scene = sg_scene
         self.context = context
         self.bl_view_layer = context.view_layer
-        self._find_renderman_layer()        
+        self._find_renderman_layer()
+        self.rman_bake = False        
         
         self.depsgraph = context.evaluated_depsgraph_get()
         self.export_root_sg_node()
@@ -267,6 +272,57 @@ class RmanScene(object):
 
             if self.is_viewport_render:
                 self.export_viewport_stats()
+
+    def export_bake_render_scene(self):
+        self.reset()
+
+        # update variables
+        string_utils.set_var('scene', self.bl_scene.name)
+        string_utils.set_var('layer', self.bl_view_layer.name)
+
+        self.bl_frame_current = self.bl_scene.frame_current
+        self.scene_any_lights = self._scene_has_lights()
+
+        rfb_log().debug("Calling export_materials()")
+        self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])
+                
+        rfb_log().debug("Calling txmake_all()")
+        texture_utils.get_txmanager().rman_scene = self  
+        texture_utils.get_txmanager().txmake_all(blocking=True)
+
+        rfb_log().debug("Creating root scene graph node")
+        self.export_root_sg_node()
+        
+        rm = self.bl_scene.renderman
+        attrs = self.rman_root_sg_node.sg_node.GetAttributes()
+        attrs.SetFloat("dice:worlddistancelength", rm.rman_bake_illlum_density)
+        self.rman_root_sg_node.sg_node.SetAttributes(attrs)
+        self.sg_scene.Root().AddChild(self.rman_root_sg_node.sg_node)                                
+
+        rfb_log().debug("Calling export_data_blocks()")
+        self.export_data_blocks(bpy.data.objects)
+
+        self.export_searchpaths() 
+        self.export_global_options()     
+        self.export_hider()
+        self.export_integrator()
+        self.export_cameras([c for c in self.depsgraph.objects if isinstance(c.data, bpy.types.Camera)])
+
+        self.export_bake_displays()
+        self.export_samplefilters()
+        self.export_displayfilters()
+
+        if self.do_motion_blur:
+            rfb_log().debug("Calling export_instances_motion()")
+            self.export_instances_motion()
+        else:
+            rfb_log().debug("Calling export_instances()")
+            self.export_instances()  
+
+        options = self.sg_scene.GetOptions()
+        bake_resolution = int(rm.rman_bake_illlum_res)
+        options.SetIntegerArray(self.rman.Tokens.Rix.k_Ri_FormatResolution, (bake_resolution, bake_resolution), 2) 
+        self.sg_scene.SetOptions(options)
 
     def export_swatch_render_scene(self, render_output):
         self.reset()
@@ -732,10 +788,21 @@ class RmanScene(object):
 
     def export_hider(self):
         options = self.sg_scene.GetOptions()
+        rm = self.bl_scene.renderman
         if self.rman_bake:
             options.SetString(self.rman.Tokens.Rix.k_hider_type, self.rman.Tokens.Rix.k_bake)
+            bakemode = rm.rman_bake_mode.lower()
+            primvar_s = rm.rman_bake_illum_primvarS
+            if primvar_s == '':
+                primvar_s = 's'
+            primvar_t = rm.rman_bake_illum_primvarT
+            if primvar_t == '':
+                primvar_t = 't'
+            invert_t = rm.rman_bake_illum_invertT
+            options.SetString(self.rman.Tokens.Rix.k_hider_bakemode, bakemode)
+            options.SetStringArray(self.rman.Tokens.Rix.k_hider_primvar, (primvar_s, primvar_t), 2) 
+            options.SetInteger(self.rman.Tokens.Rix.k_hider_invert, invert_t)
         else:
-            rm = self.bl_scene.renderman
             pv = rm.ri_pixelVariance
 
             options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, rm.hider_minSamples)
@@ -762,6 +829,7 @@ class RmanScene(object):
             for dspy,params in dspys_dict['displays'].items():
                 if params['denoise']:
                     anyDenoise = True
+                    break
             if anyDenoise:
                 options.SetString(self.rman.Tokens.Rix.k_hider_pixelfiltermode, 'importance')
 
@@ -800,9 +868,6 @@ class RmanScene(object):
         options.SetFloatArray(self.rman.Tokens.Rix.k_Ri_PixelFilterWidth, (rm.ri_displayFilterSize[0], rm.ri_displayFilterSize[1]), 2)
 
         options.SetInteger(self.rman.Tokens.Rix.k_checkpoint_asfinal, int(rm.checkpoint_asfinal))
-
-        options.SetInteger("user:osl:lazy_builtins", 1)
-        options.SetInteger("user:osl:lazy_inputs", 1)
         
         # Set frame number 
         options.SetInteger(self.rman.Tokens.Rix.k_Ri_Frame, self.bl_scene.frame_current)
@@ -985,6 +1050,117 @@ class RmanScene(object):
         display = self.rman.SGManager.RixSGShader("Display", display_driver, 'blender_viewport')
         display.params.SetString("mode", 'Ci,a')
         self.main_camera.sg_node.SetDisplay(display)
+
+    def export_bake_displays(self):
+        rm = self.bl_scene.renderman
+        sg_displays = []
+        displaychannels = []
+        display_driver = None
+        cams_to_dspys = dict()
+
+        dspys_dict = display_utils.get_dspy_dict(self)
+        
+        for chan_name, chan_params in dspys_dict['channels'].items():
+            chan_type = chan_params['channelType']['value']
+            chan_source = chan_params['channelSource']['value']
+            chan_remap_a = chan_params['remap_a']['value']
+            chan_remap_b = chan_params['remap_b']['value']
+            chan_remap_c = chan_params['remap_c']['value']
+            chan_exposure = chan_params['exposure']['value']
+            chan_filter = chan_params['filter']['value']
+            chan_filterwidth = chan_params['filterwidth']['value']
+            chan_statistics = chan_params['statistics']['value']
+            displaychannel = self.rman.SGManager.RixSGDisplayChannel(chan_type, chan_name)
+            if chan_source:
+                if "lpe" in chan_source:
+                    displaychannel.params.SetString(self.rman.Tokens.Rix.k_source, '%s %s' % (chan_type, chan_source))                                
+                else:
+                    displaychannel.params.SetString(self.rman.Tokens.Rix.k_source, chan_source)
+
+            displaychannel.params.SetFloatArray("exposure", chan_exposure, 2)
+            displaychannel.params.SetFloatArray("remap", [chan_remap_a, chan_remap_b, chan_remap_c], 3)
+
+            if chan_filter != 'default':
+                displaychannel.params.SetString("filter", chan_filter)
+                displaychannel.params.SetFloatArray("filterwidth", chan_filterwidth, 2 )
+
+            if chan_statistics and chan_statistics != 'none':
+                displaychannel.params.SetString("statistics", chan_statistics)                               
+            displaychannels.append(displaychannel)
+
+        # baking requires we only do one channel per display. So, we create a new display
+        # for each channel
+        for dspy,dspy_params in dspys_dict['displays'].items():
+            if not dspy_params['bake_mode']:
+                continue
+            display_driver = dspy_params['driverNode']
+            channels = (dspy_params['params']['displayChannels'])
+
+            if not dspy_params['bake_mode']:
+                # if bake is off for this aov, just render to the null display driver
+                dspy_file_name = dspy_params['filePath']
+                display = self.rman.SGManager.RixSGShader("Display", "null", dspy_file_name)                
+                channels = ','.join(channels)
+                display.params.SetString("mode", channels)
+                cam_dspys = cams_to_dspys.get(self.main_camera.db_name, list())
+                cam_dspys.append(display)
+                cams_to_dspys[self.main_camera.db_name] = cam_dspys                
+
+            else:
+                for chan in channels:
+                    chan_type = dspys_dict['channels'][chan]['channelType']['value']
+                    if chan_type != 'color':
+                        # we can only bake color channels
+                        continue
+
+                    dspy_file_name = dspy_params['filePath']
+                    if rm.rman_bake_illum_filename == 'BAKEFILEATTR':
+                        tokens = os.path.splitext(dspy_file_name)
+                        if tokens[1] == '':
+                            token_dict = {'aov': dspy}
+                            dspy_file_name = string_utils.expand_string('%s.{EXT}' % dspy_file_name, 
+                                                                        display=display_driver,
+                                                                        token_dict=token_dict
+                                                                        )
+                    else:
+                        tokens = os.path.splitext(dspy_file_name)
+                        dspy_file_name = '%s.%s%s' % (tokens[0], chan, tokens[1])
+                    display = self.rman.SGManager.RixSGShader("Display", display_driver, dspy_file_name)
+
+                    dspydriver_params = dspy_params['dspyDriverParams']
+                    if dspydriver_params:
+                        display.params.Inherit(dspydriver_params)
+                    display.params.SetString("mode", chan)
+
+                    if display_driver == 'openexr':
+                        if rm.use_metadata:
+                            display_utils.export_metadata(self.bl_scene, display.params)
+                        
+                    camera = dspy_params['camera']
+                    if camera is None:
+                        cam_dspys = cams_to_dspys.get(self.main_camera.db_name, list())
+                        cam_dspys.append(display)
+                        cams_to_dspys[self.main_camera.db_name] = cam_dspys
+                    else:
+                        db_name = object_utils.get_db_name(camera)
+                        if db_name not in self.rman_cameras:
+                            cam_dspys = cams_to_dspys.get(self.main_camera.db_name, list())
+                            cam_dspys.append(display)
+                            cams_to_dspys[self.main_camera.db_name] = cam_dspys
+                        else:
+                            cam_dspys = cams_to_dspys.get(db_name, list())
+                            cam_dspys.append(display)
+                            cams_to_dspys[db_name] = cam_dspys
+
+        for db_name,cam_dspys in cams_to_dspys.items():
+            cam = self.rman_cameras.get(db_name, None)
+            if not cam:
+                continue
+            if cam != self.main_camera:
+                cam.sg_node.SetRenderable(2)
+            cam.sg_node.SetDisplay(cam_dspys)
+
+        self.sg_scene.SetDisplayChannel(displaychannels)          
 
     def export_displays(self):
         rm = self.bl_scene.renderman

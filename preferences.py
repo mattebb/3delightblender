@@ -32,6 +32,7 @@ from bpy.props import IntProperty, PointerProperty, EnumProperty
 
 from .rman_utils import filepath_utils
 from . import rfb_logger
+from .icons.icons import load_icons
 
 from .presets.properties import RendermanPresetGroup
 
@@ -57,25 +58,6 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
             subtype='DIR_PATH',
             default='/tmp/renderman_for_blender/{blend}')
 
-    shd: StringProperty(
-        name="SHD (Shadow Maps)",
-        description="SHD environment variable",
-        subtype='DIR_PATH',
-        default=os.path.join('$OUT', 'shadowmaps'))
-
-    ptc: StringProperty(
-        name="PTC (Point Clouds)",
-        description="PTC environment variable",
-        subtype='DIR_PATH',
-        default=os.path.join('$OUT', 'pointclouds'))
-
-    arc: StringProperty(
-        name="ARC (Archives)",
-        description="ARC environment variable",
-        subtype='DIR_PATH',
-        default=os.path.join('$OUT', 'archives'))
-
-
 class RendermanPreferences(AddonPreferences):
     bl_idname = __package__
 
@@ -86,33 +68,6 @@ class RendermanPreferences(AddonPreferences):
         for vers, path in filepath_utils.get_installed_rendermans():
             options.append((path, vers, path))
         return options
-
-    shader_paths: CollectionProperty(type=RendermanPreferencePath,
-                                      name="Shader Paths")
-    shader_paths_index: IntProperty(min=-1, default=-1)
-
-    texture_paths: CollectionProperty(type=RendermanPreferencePath,
-                                       name="Texture Paths")
-    texture_paths_index: IntProperty(min=-1, default=-1)
-
-    procedural_paths: CollectionProperty(type=RendermanPreferencePath,
-                                          name="Procedural Paths")
-    procedural_paths_index: IntProperty(min=-1, default=-1)
-
-    archive_paths: CollectionProperty(type=RendermanPreferencePath,
-                                       name="Archive Paths")
-    archive_paths_index: IntProperty(min=-1, default=-1)
-
-    use_default_paths: BoolProperty(
-        name="Use RenderMan default paths",
-        description="Includes paths for default shaders etc. from RenderMan Pro\
-            Server install",
-        default=True)
-    use_builtin_paths: BoolProperty(
-        name="Use built in paths",
-        description="Includes paths for default shaders etc. from RenderMan\
-            exporter",
-        default=False)
 
     rmantree_choice: EnumProperty(
         name='RenderMan Version to use',
@@ -138,26 +93,6 @@ class RendermanPreferences(AddonPreferences):
         description="Path to RenderMan Pro Server installation folder",
         subtype='DIR_PATH',
         default='')
-    path_renderer: StringProperty(
-        name="Renderer Path",
-        description="Path to renderer executable",
-        subtype='FILE_PATH',
-        default="prman")
-    path_shader_compiler: StringProperty(
-        name="Shader Compiler Path",
-        description="Path to shader compiler executable",
-        subtype='FILE_PATH',
-        default="shader")
-    path_shader_info: StringProperty(
-        name="Shader Info Path",
-        description="Path to shaderinfo executable",
-        subtype='FILE_PATH',
-        default="sloinfo")
-    path_texture_optimiser: StringProperty(
-        name="Texture Optimiser Path",
-        description="Path to tdlmake executable",
-        subtype='FILE_PATH',
-        default="txmake")
 
     draw_ipr_text: BoolProperty(
         name="Draw IPR Text",
@@ -170,16 +105,28 @@ class RendermanPreferences(AddonPreferences):
         default=True)
 
     path_display_driver_image: StringProperty(
-        name="Main Image path",
-        description="Path for the rendered main image",
+        name="Beauty Image Path",
+        description="Path for the beauty image",
         subtype='FILE_PATH',
         default=os.path.join('{OUT}', 'images', '{scene}.{layer}.{F4}.{ext}'))
 
     path_aov_image: StringProperty(
-        name="AOV Image path",
-        description="Path for the rendered aov images",
+        name="AOV Image Path",
+        description="Path for the rendered AOV images",
         subtype='FILE_PATH',
         default=os.path.join('{OUT}', 'images', '{scene}.{layer}.{aov}.{F4}.{ext}'))
+
+    path_bake_illum_ptc: StringProperty(
+        name="Bake 3D Illumination Path",
+        description="Path for bake illumation point cloud files",
+        subtype='FILE_PATH',
+        default=os.path.join('{OUT}', 'bake', '{scene}.{layer}.{aov}.{F4}.{ext}'))
+
+    path_bake_illum_img: StringProperty(
+        name="Bake 2D Illumination Path",
+        description="Path for bake illumation point cloud files",
+        subtype='FILE_PATH',
+        default=os.path.join('{OUT}', 'bake', '{scene}.{layer}.{aov}.{F4}.{ext}'))        
 
     path_fallback_textures_path: StringProperty(
         name="Fallback Texture Path",
@@ -241,37 +188,67 @@ class RendermanPreferences(AddonPreferences):
 
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False        
         layout = self.layout
-        layout.prop(self, 'rmantree_method')
+
+        icons = load_icons()
+        rman_r_icon = icons.get("rfb_panel")
+
+        row = layout.row()
+        row.use_property_split = False
+        col = row.column()
+        col.prop(self, 'rmantree_method')
         if self.rmantree_method == 'DETECT':
-            layout.prop(self, 'rmantree_choice')
+            col.prop(self, 'rmantree_choice')
             if self.rmantree_choice == 'NEWEST':
-                layout.label(text="RMANTREE: %s " % filepath_utils.guess_rmantree())
+                col.label(text="RMANTREE: %s " % filepath_utils.guess_rmantree())
         elif self.rmantree_method == 'ENV':
-            layout.label(text="RMANTREE: %s " % filepath_utils.rmantree_from_env())
+            col.label(text="RMANTREE: %s" % filepath_utils.rmantree_from_env())
         else:
-            layout.prop(self, "path_rmantree")
+            col.prop(self, "path_rmantree")
         if filepath_utils.guess_rmantree() is None:
             row = layout.row()
             row.alert = True
             row.label(text='Error in RMANTREE. Reload addon to reset.', icon='ERROR')
 
-        layout.prop(self, 'rman_logging_level')
-        layout.prop(self, 'rman_logging_file')
+        # Workspace
         env = self.env_vars
-        layout.prop(env, "out")
-        layout.prop(self, 'path_display_driver_image')
-        layout.prop(self, 'path_aov_image')
-        layout.prop(self, 'path_fallback_textures_path')
-        layout.prop(self, 'rman_do_preview_renders')        
+        row = layout.row()
+        row.label(text='Workspace', icon_value=rman_r_icon.icon_id)
+        row = layout.row()
+        col = row.column()
+        col.prop(env, "out")
+        col.prop(self, 'path_display_driver_image')
+        col.prop(self, 'path_aov_image')
+        col.prop(self, 'path_bake_illum_ptc')
+        col.prop(self, 'path_bake_illum_img')
+        col.prop(self, 'path_fallback_textures_path')
+
+        # UI Prefs
+        row = layout.row()
+        row.label(text='UI', icon_value=rman_r_icon.icon_id)
+        row = layout.row()
+        col = row.column()
+        layout.prop(self, 'rman_do_preview_renders')     
         layout.prop(self, 'draw_ipr_text')
         layout.prop(self, 'draw_panel_icon')
-        #layout.prop(self, 'active_presets_path')
+
+        # Preset Browser
+        row = layout.row()
+        row.label(text='Preset Browser', icon_value=rman_r_icon.icon_id)
+        row = layout.row()
+        col = row.column()
         layout.prop(self.presets_library, 'path')
 
-        #layout.prop(env, "shd")
-        #layout.prop(env, "ptc")
-        #layout.prop(env, "arc")
+        # Logging
+        row = layout.row()
+        row.label(text='Logging', icon_value=rman_r_icon.icon_id)
+        row = layout.row()
+        col = row.column()
+        col.prop(self, 'rman_logging_level')
+        col.prop(self, 'rman_logging_file')
+
 
 
 def register():

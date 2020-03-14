@@ -155,6 +155,10 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row = col.row()
         row.prop(item, 'camera')
 
+        if rm.rman_bake_mode != 'pattern':
+            row = col.row()
+            row.prop(item, 'aov_bake')        
+
         # denoise options
         row = col.row()
         row.prop(item, 'denoise')

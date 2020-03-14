@@ -1,6 +1,7 @@
 import mathutils
 from mathutils import Matrix, Vector
 from .string_expr import StringExpression
+from . import filepath_utils
 from bpy.app.handlers import persistent
 import bpy
 import os
@@ -8,7 +9,7 @@ import re
 
 PAD_FMT = ['%d', '%01d', '%02d', '%03d', '%04d']
 __SCENE_STRING_CONVERTER__ = None
-EXT_MAP = {'it': 'it', 'openexr': 'exr', 'tiff': 'tif', 'blender': 'blender'}
+EXT_MAP = {'it': 'it', 'openexr': 'exr', 'tiff': 'tif', 'blender': 'blender', 'pointcloud': 'ptc'}
 
 class SceneStringConverter(object):
     """Class maintaining an up-to-date StringExpression object.
@@ -112,6 +113,10 @@ def expand_string(string, display=None, glob_sequence=False, frame=None, token_d
             __SCENE_STRING_CONVERTER__.expr = None
         except:
             pass
+    
+    # get the real path
+    if asFilePath:
+        string = filepath_utils.get_real_path(string)
 
     if not string or (not '{' in string and not '$' in string):
         return string

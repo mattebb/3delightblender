@@ -662,6 +662,15 @@
                 0
             ],
             "help": "Matte ID 7 Color, you also need to add the PxrMatteID node to your bxdf"
-        }                                                             
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_baking",
+            "name": "bake_filename_attr",
+            "label": "Bake Filename Attribute",
+            "widget": "fileinput",
+            "type": "string",
+            "default": "",
+            "help": "Destination filename to bake illumination. Only applies when baking is set to Illumination or All, and filename pattern is set to Filename Attribute"
+        }                                                                     
     ]
 }

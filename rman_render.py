@@ -241,6 +241,7 @@ class RmanRender(object):
         self.it_port = start_cmd_server()    
         rfb_log().info("Parsing scene...")
         time_start = time.time()
+        baking = (rm.hider_type == 'BAKE')
 
         if for_background:
             self.rman_render_into = ''
@@ -278,13 +279,17 @@ class RmanRender(object):
         self.rman_running = True
         self._dump_rib_()
         rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
-        self.rman_is_live_rendering = True
-        self.sg_scene.Render("prman -live")
-        while not self.bl_engine.test_break() and self.rman_is_live_rendering:
-            time.sleep(0.01)
-        self.stop_render()        
-        if self.rman_render_into == 'blender': 
-            self._load_image_into_blender()
+        if baking:
+            self.sg_scene.Render("prman -block")
+            self.stop_render()
+        else:
+            self.rman_is_live_rendering = True
+            self.sg_scene.Render("prman -live")
+            while not self.bl_engine.test_break() and self.rman_is_live_rendering:
+                time.sleep(0.01)
+            self.stop_render()        
+            if self.rman_render_into == 'blender': 
+                self._load_image_into_blender()
 
         return True  
 

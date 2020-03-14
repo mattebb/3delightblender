@@ -41,6 +41,16 @@
             "widget": "scenegraphLocation",
             "options": "nodeType:bpy.types.Camera",
             "default": ""
-        }         
+        },
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",
+            "page": "",
+            "name": "aov_bake",
+            "label": "Bake",
+            "type": "int",
+            "widget": "checkbox",
+            "default": 0,
+            "help": "Bake illumination for this AOV. Note, we can only bake color channels. All other channel types will be ignored."
+        }                      
     ]
 }

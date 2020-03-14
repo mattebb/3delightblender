@@ -1,5 +1,7 @@
 from ..rman_utils import transform_utils
 from ..rman_utils import property_utils
+from ..rman_utils import string_utils
+import os
 
 class RmanTranslator(object):
     '''
@@ -174,14 +176,23 @@ class RmanTranslator(object):
         if lightfilter_subset:
             attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_lightfilter_subset, ' ' . join(lightfilter_subset))
 
-        '''
-        for i in range(8):
-            name = 'MatteID%d' % i
-            if getattr(rm, name) != [0.0, 0.0, 0.0]:
-                attrs.SetColor('user:%s' % name, getattr(rm, name))
-        '''
         if hasattr(ob, 'color'):
             attrs.SetColor('user:Cs', ob.color[:3])   
+
+        if self.rman_scene.rman_bake and self.rman_scene.bl_scene.renderman.rman_bake_illum_filename == 'BAKEFILEATTR':
+            filePath = ob.renderman.bake_filename_attr
+            if filePath != '':
+                # check for {EXT} token, we'll add that later when we're doing displays
+                if filePath.endswith('.{EXT}'):
+                    filePath.replace('.{EXT}', '')
+                else:
+                    tokens = os.path.splitext(filePath)
+                    if tokens[1] != '':
+                        filePath = tokens[0]
+                filePath = string_utils.expand_string(filePath,
+                                                frame=self.rman_scene.bl_frame_current,
+                                                asFilePath=True)                
+                attrs.SetString('user:bake_filename_attr', filePath)
 
         sg_node.SetAttributes(attrs) 
     
