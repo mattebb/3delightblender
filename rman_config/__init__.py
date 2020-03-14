@@ -1,7 +1,7 @@
 from ..rman_utils.node_desc import NodeDescParamJSON
 from ..rman_utils import property_utils
 from ..rfb_logger import rfb_log
-from bpy.props import StringProperty
+from bpy.props import StringProperty, BoolProperty
 import json
 import os
 import types
@@ -27,6 +27,8 @@ class RmanBasePropertyGroup:
 
     """
 
+
+
     @staticmethod
     def _add_properties(cls, rman_config_name):
         """Dynamically add properties to a PropertyGroup class
@@ -43,6 +45,7 @@ class RmanBasePropertyGroup:
 
         prop_names = []
         prop_meta = {}
+        page_names = []
         for param_name, ndp in config.params.items():
             update_func = None
             if hasattr(ndp, 'update_function'):
@@ -58,6 +61,17 @@ class RmanBasePropertyGroup:
                 cls.__annotations__[ndp._name] = prop
                 prop_names.append(ndp.name)
                 prop_meta[ndp.name] = meta
+
+            if hasattr(ndp, 'page') and ndp.page != '':
+                page_name = ndp.page
+                if page_name not in page_names:
+                    page_open = False
+                    if hasattr(ndp, 'page_open'):
+                        page_open = ndp.page_open
+                    ui_prop = '%s_uio' % page_name
+                    cls.__annotations__[ui_prop] = BoolProperty(name=ui_prop, default=page_open)
+                    page_names.append(page_name)
+
         setattr(cls, 'prop_names', prop_names)
         setattr(cls, 'prop_meta', prop_meta)
 
@@ -143,7 +157,7 @@ def get_override_paths():
     return paths
 
 # only allow these attrs to be overriden
-__ALLOWABLE_ATTR_OVERRIDES__ = ['default', 'label', 'help', 'min', 'max', 'options']
+__ALLOWABLE_ATTR_OVERRIDES__ = ['default', 'label', 'help', 'min', 'max', 'options', 'page_open']
 
 def apply_overrides(rman_config_org, rman_config_override):
     """Given two RmanConfig objects, apply the overrides from the second

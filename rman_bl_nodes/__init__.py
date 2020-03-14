@@ -250,12 +250,16 @@ def class_generate_properties(node, parent_name, node_desc):
             page_name = tokens[0]
                  
             if page_name not in prop_meta:
+                # For pages, add a BoolProperty called '[page_name].uio'
+                # This determines whether the page is opened or closed
                 sub_prop_names.append(page_name)
                 prop_meta[page_name] = {'renderman_type': 'page'}
                 ui_label = "%s_uio" % page_name
                 node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=False)
                 setattr(node, page_name, [])   
 
+                # If this a PxrSurface node, add an extra BoolProperty to control
+                # enabling/disabling each lobe
                 if parent_name == 'PxrSurface' and 'Globals' not in page_name:
                     enable_param_name = 'enable' + page_name.replace(' ', '')
                     if enable_param_name not in prop_meta:

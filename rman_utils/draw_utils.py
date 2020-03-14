@@ -18,18 +18,37 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
                 continue
 
             if hasattr(ndp, 'page') and ndp.page != '':
+                ui_prop = '%s_uio' % ndp.page
+                # check if we've already drawn page with arrow
                 if ndp.page not in row_dict:
+
+                    ui_open = getattr(parent, ui_prop)
+                    icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
+                        else 'DISCLOSURE_TRI_RIGHT'
+
                     row = layout.row(align=True)
-                    row.label(text=ndp.page)
+                    row.prop(parent, ui_prop, icon=icon, text='',
+                        icon_only=True, emboss=False)
+                    row.label(text=ndp.page + ':')
+                    
+                    row = layout.row(align=True)
                     col = row.column()
-                    row = col.row()
-                    row.label(text='')
+
                     row_dict[ndp.page] = col
-                curr_col = row_dict[ndp.page]
+                    if not ui_open:
+                        continue
+                    curr_col = col
+
+                # now, check if this property should be drawn
+                elif getattr(parent, ui_prop):
+                    curr_col = row_dict[ndp.page]
+                else:
+                    continue
             else:
                 curr_col = row_dict['default']
 
             if hasattr(ndp, 'conditionalVisOps'):
+                # check if the conditionalVisOp to see if we're disabled
                 expr = ndp.conditionalVisOps['expr']
                 node = parent
                 if not eval(expr):
