@@ -156,13 +156,11 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 row.label(text="No Camera Selected")
 
         layout.separator()
-
-        row = layout.row(align=True)
-        row.operator_menu_enum(
+        layout.label(text="Lights:")
+        box = layout.box()
+        box.operator_menu_enum(
                 "object.rman_add_light", 'rman_light_name', text="Add RenderMan Light", icon='LIGHT')  
-
-        row = layout.row(align=True)
-        row.operator_menu_enum(
+        box.operator_menu_enum(
                 "object.rman_add_light_filter", 'rman_lightfilter_name', text="Add RenderMan Light Filter", icon='LIGHT')
 
         selected_objects = []
@@ -178,23 +176,33 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
             # Add Bxdf             
             box.operator_menu_enum(
-                "object.add_bxdf", 'bxdf_name', text="Add New Material", icon='MATERIAL')         
+                "object.rman_add_bxdf", 'bxdf_name', text="Add New Material", icon='MATERIAL')         
 
             # Make Selected Geo Emissive
             rman_RMSGeoAreaLight = icons.get("geoarealight")
-            box.operator("object.addgeoarealight", text="Make Emissive",
+            box.operator("object.rman_create_meshlight", text="Convert to Mesh Light",
                          icon_value=rman_RMSGeoAreaLight.icon_id)
 
             # Add Subdiv Sheme
             rman_subdiv = icons.get("add_subdiv_scheme")
-            box.operator("object.add_subdiv_scheme",
-                         text="Make Subdiv", icon_value=rman_subdiv.icon_id)
+            box.operator("object.rman_add_subdiv_scheme",
+                         text="Convert to Subdiv", icon_value=rman_subdiv.icon_id)
 
             # Add/Create RIB Box /
             # Create Archive node
             rman_archive = icons.get("archive_RIB")
             box.operator("export.export_rib_archive",
                          icon_value=rman_archive.icon_id)
+
+        # Diagnose
+        layout.separator()
+        layout.label(text='Diagnose')
+        box = layout.box()
+        box.operator("rman.open_scene_rib", text='View RIB', icon='VIEWZOOM')
+        if selected_objects:
+            box.operator("rman.open_selected_rib", text='View Selected RIB', icon='VIEWZOOM')
+
+
 
         layout.separator()
         # RenderMan Doc

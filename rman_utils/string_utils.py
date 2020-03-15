@@ -114,11 +114,10 @@ def expand_string(string, display=None, glob_sequence=False, frame=None, token_d
         except:
             pass
     
-    # get the real path
-    if asFilePath:
-        string = filepath_utils.get_real_path(string)
-
     if not string or (not '{' in string and not '$' in string):
+        # get the real path
+        if asFilePath:
+            string = filepath_utils.get_real_path(string)        
         return string
 
     if __SCENE_STRING_CONVERTER__ is None:

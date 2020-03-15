@@ -174,6 +174,12 @@ class RendermanPreferences(AddonPreferences):
         description="Enable rendering of material previews. This is considered a WIP.",
         default=False)
 
+    rman_editor: StringProperty(
+        name="Editor",
+        description="Text editor excutable you want to use to view RIB.",
+        default=""
+    )
+
     presets_library: PointerProperty(
         type=RendermanPresetGroup,
     )
@@ -233,6 +239,7 @@ class RendermanPreferences(AddonPreferences):
         layout.prop(self, 'rman_do_preview_renders')     
         layout.prop(self, 'draw_ipr_text')
         layout.prop(self, 'draw_panel_icon')
+        layout.prop(self, 'rman_editor')
 
         # Preset Browser
         row = layout.row()

@@ -5,6 +5,7 @@ import os
 import datetime
 from collections import OrderedDict
 from ..rfb_logger import rfb_log
+from ..rman_utils import filepath_utils
 from . import prefs_utils
 import bpy
 
@@ -241,6 +242,9 @@ class StringExpression(object):
             # for a leading space before the drive letter
             result = re.sub(r'((?<!^[A-Z])(?<!^[ ][A-Z]))\:', '_', result)
             result = result.replace(' ', '_')
+          
+            # get the real path
+            result = filepath_utils.get_real_path(result)
 
             dirname = os.path.dirname(result)
             if not os.path.exists(dirname):

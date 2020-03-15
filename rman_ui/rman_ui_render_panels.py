@@ -34,11 +34,6 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
             row.operator("render.render", text="Render",
                         icon_value=rman_render_icon.icon_id)
 
-            # IPR
-            #rman_rerender_controls = icons.get("start_ipr")
-            #row.operator('lighting.start_interactive', text="Start IPR",
-            #                icon_value=rman_rerender_controls.icon_id)      
-
             # Batch Render
             rman_batch = icons.get("batch_render")
             row.operator("render.render", text="Render Animation",
@@ -54,7 +49,6 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         split = layout.split(factor=0.33)
         col = layout.column()
         col.enabled = not is_rman_interactive_running
-        #col.prop(context.scene.renderman, "render_selected_objects_only")
 
         _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_render', context, layout, rm)        
 
@@ -77,9 +71,12 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         # button
         icons = load_icons()
         col = layout.column()
+        row = col.row(align=True)
         rman_batch = icons.get("batch_render")
-        col.operator("renderman.external_render",
+        row.operator("renderman.external_render",
                      text="External Render", icon_value=rman_batch.icon_id)
+        row.operator("renderman.external_bake",
+                     text="External Bake Render", icon_value=rman_batch.icon_id)
 
         # do animation
         col.prop(rm, 'external_animation')

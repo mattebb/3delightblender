@@ -54,6 +54,7 @@ from .rman_utils import scene_utils
 from .rman_utils.scene_utils import EXCLUDED_OBJECT_TYPES
 from .rman_utils import string_utils
 from .rman_utils import shadergraph_utils
+from .rman_utils import prefs_utils
 from .spool import spool_render
 from .rman_render import RmanRender
 
@@ -90,32 +91,6 @@ class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
         else:
             environ = os.environ.copy()
             subprocess.Popen([it_path], env=environ, shell=True)
-        return {'FINISHED'}
-
-
-class PRMAN_OT_Renderman_open_last_RIB(bpy.types.Operator):
-    bl_idname = 'rman.open_rib'
-    bl_label = "Open Last RIB Scene file."
-    bl_description = "Opens the last generated Scene.rib file in the system default text editor"
-
-    def invoke(self, context, event=None):
-        """
-        rm = context.scene.renderman
-        rpass = RPass(context.scene, interactive=False)
-        path = rpass.paths['rib_output']
-        if not rm.editor_override:
-            try:
-                webbrowser.open(path)
-            except Exception:
-                debug('error', "File not available!")
-        else:
-            command = rm.editor_override + " " + path
-            try:
-                os.system(command)
-            except Exception:
-                debug(
-                    'error', "File or text editor not available. (Check and make sure text editor is in system path.)")
-        """
         return {'FINISHED'}
 
 
@@ -334,167 +309,6 @@ class PRMAN_OT_refresh_osl_shader(bpy.types.Operator):
         context.node.RefreshNodes(context)
         return {'FINISHED'}
         
-class PRMAN_OT_RendermanBake(bpy.types.Operator):
-    bl_idname = "renderman.bake"
-    bl_label = "Baking"
-    bl_description = "Bake pattern nodes to texture"
-            
-    def execute(self, context):
-
-        scene = context.scene
-        rman_render = RmanRender.get_rman_render()
-        if not rman_render.rman_interactive_running:
-            scene.renderman.hider_type = 'BAKE'
-            bpy.ops.render.render()
-            scene.renderman.hider_type = 'RAYTRACE'
-        else:
-            self.report({"ERROR"}, "Viewport rendering is on.")        
-        return {'FINISHED'}
-
-class PRMAN_OT_ExternalRender(bpy.types.Operator):
-
-    ''''''
-    bl_idname = "renderman.external_render"
-    bl_label = "External Render"
-    bl_description = "Launch and external render outside Blender"
-
-    def external_blender_batch(self, context):
-        rm = context.scene.renderman
-        if rm.queuing_system != 'none':
-            from. import rman_spool
-            depsgraph = context.evaluated_depsgraph_get()
-            spooler = rman_spool.RmanSpool(None, None, depsgraph)
-            
-            # create a temporary .blend file
-            bl_scene_file = bpy.data.filepath
-            pid = os.getpid()
-            timestamp = int(time.time())
-            _id = 'pid%s_%d' % (str(pid), timestamp)
-            bl_filepath = os.path.dirname(bl_scene_file)
-            bl_filename = os.path.splitext(os.path.basename(bl_scene_file))[0]
-            bl_stash_scene_file = os.path.join(bl_filepath, '_%s%s_.blend' % (bl_filename, _id))
-            bpy.ops.wm.save_as_mainfile(filepath=bl_stash_scene_file, copy=True)
-
-            spooler.blender_batch_render(bl_stash_scene_file)
-        else:
-            self.report({'ERROR'}, 'Queuing system set to none')       
-
-    def external_rib_render(self, context):
-        scene = context.scene
-        rman_render = RmanRender.get_rman_render()
-        if not rman_render.rman_interactive_running:        
-            scene.renderman.enable_external_rendering = True        
-            bpy.ops.render.render()
-            scene.renderman.enable_external_rendering = False
-        else:
-            self.report({"ERROR"}, "Viewport rendering is on.")           
-
-    def execute(self, context):
-        scene = context.scene
-        rman_render = RmanRender.get_rman_render()
-        if not rman_render.rman_interactive_running: 
-            if scene.renderman.spool_style == 'rib':
-                self.external_rib_render(context)       
-            else:
-                self.external_blender_batch(context)
-        else:
-            self.report({"ERROR"}, "Viewport rendering is on.")              
-        return {'FINISHED'}        
-
-class PRMAN_OT_StartInteractive(bpy.types.Operator):
-
-    ''''''
-    bl_idname = "lighting.start_interactive"
-    bl_label = "Start Interactive Rendering"
-    bl_description = "Start Interactive Rendering"
-    rpass = None
-    is_running = False
-
-    def invoke(self, context, event=None):
-        for window in bpy.context.window_manager.windows:
-            for area in window.screen.areas:
-                if area.type == 'VIEW_3D':
-                    for space in area.spaces:
-                        if space.type == 'VIEW_3D':
-                            if space.shading.type != 'RENDERED':    
-                                space.shading.type = 'RENDERED'
-
-        return {'FINISHED'}
-
-class PRMAN_OT_StoptInteractive(bpy.types.Operator):
-
-    ''''''
-    bl_idname = "lighting.stop_interactive"
-    bl_label = "Stop Interactive Rendering"
-    bl_description = "Stop Interactive Rendering"
-    rpass = None
-    is_running = False
-
-    def invoke(self, context, event=None):
-        for window in bpy.context.window_manager.windows:
-            for area in window.screen.areas:
-                if area.type == 'VIEW_3D':
-                    for space in area.spaces:
-                        if space.type == 'VIEW_3D':
-                            if space.shading.type == 'RENDERED':    
-                                space.shading.type = 'SOLID'
-
-        return {'FINISHED'}
-
-######################
-# Export RIB Operators
-######################
-
-
-class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
-    bl_idname = "export.export_rib_archive"
-    bl_label = "Export Object as RIB Archive."
-    bl_description = "Export single object as a RIB archive for use in other blend files or for other uses"
-
-    export_mat: BoolProperty(
-        name="Export Material",
-        description="Do you want to export the material?",
-        default=True)
-
-    export_all_frames: BoolProperty(
-        name="Export All Frames",
-        description="Export entire animation time frame",
-        default=False)
-
-    filepath: bpy.props.StringProperty(
-        subtype="FILE_PATH")
-
-    filename: bpy.props.StringProperty(
-        subtype="FILE_NAME",
-        default="")
-
-    @classmethod
-    def poll(cls, context):
-        return context.object is not None
-
-    def execute(self, context):
-        ob = context.active_object
-        if ob:
-            export_path = self.filepath
-            export_range = self.export_all_frames
-            export_mats = self.export_mat
-            rman_render = RmanRender.get_rman_render()
-            if not rman_render.rman_interactive_running:
-                rman_render.start_export_rib_selected(context, export_path, export_materials=export_mats, export_all_frames=export_range)
-            else:
-                self.report({"ERROR"}, "Viewport rendering is on.")
-
-        else:
-            rfb_log().error("Nothing selected for RIB export.")
-
-        return {'FINISHED'}
-
-    def invoke(self, context, event=None):
-
-        context.window_manager.fileselect_add(self)
-        return{'RUNNING_MODAL'}
-
-
 ###########################
 # Presets for integrators.
 ###########################
@@ -942,65 +756,6 @@ class PRMAN_OT_remove_add_rem_light_link(bpy.types.Operator):
 #       Tab     #
 #################
 
-class PRMAN_OT_RM_Add_Area(bpy.types.Operator):
-    bl_idname = "object.mr_add_area"
-    bl_label = "Add RenderMan Area"
-    bl_description = ""
-    bl_options = {"REGISTER", "UNDO"}
-
-    def execute(self, context):
-
-        bpy.ops.object.light_add(type='AREA')
-        bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
-        return {"FINISHED"}
-
-
-class PRMAN_OT_RM_Add_LightFilter(bpy.types.Operator):
-    bl_idname = "object.mr_add_light_filter"
-    bl_label = "Add RenderMan Light Filter"
-    bl_description = ""
-    bl_options = {"REGISTER", "UNDO"}
-
-    def execute(self, context):
-
-        bpy.ops.object.light_add(type='POINT')
-        light = bpy.context.active_object.data
-        bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'light': light}, idtype='light')
-        light.renderman.renderman_type = 'FILTER'
-        return {"FINISHED"}
-
-
-class PRMAN_OT_RM_Add_Hemi(bpy.types.Operator):
-    bl_idname = "object.mr_add_hemi"
-    bl_label = "Add RenderMan Hemi"
-    bl_description = ""
-    bl_options = {"REGISTER", "UNDO"}
-
-    def execute(self, context):
-
-        bpy.ops.object.light_add(type='SUN')
-        bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
-        bpy.context.object.data.renderman.renderman_type = 'ENV'
-        return {"FINISHED"}
-
-
-class PRMAN_OT_RM_Add_Sky(bpy.types.Operator):
-    bl_idname = "object.mr_add_sky"
-    bl_label = "Add RenderMan Sky"
-    bl_description = ""
-    bl_options = {"REGISTER", "UNDO"}
-
-    def execute(self, context):
-        bpy.ops.object.light_add(type='SUN')
-        bpy.ops.shading.add_renderman_nodetree(
-            {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
-        bpy.context.object.data.renderman.renderman_type = 'SKY'
-
-        return {"FINISHED"}
-
 class PRMAN_OT_New_bxdf(bpy.types.Operator):
     bl_idname = "nodes.new_bxdf"
     bl_label = "New RenderMan Material"
@@ -1022,41 +777,6 @@ class PRMAN_OT_New_bxdf(bpy.types.Operator):
         nt.links.new(default.outputs[0], output.inputs[0])
 
         return {"FINISHED"}
-
-
-class PRMAN_OT_add_GeoLight(bpy.types.Operator):
-    bl_idname = "object.addgeoarealight"
-    bl_label = "Add GeoAreaLight"
-    bl_description = ""
-    bl_options = {"REGISTER", "UNDO"}
-
-    def execute(self, context):
-        selection = bpy.context.selected_objects
-        mat = bpy.data.materials.new("PxrMeshLight")
-
-        mat.use_nodes = True
-        nt = mat.node_tree
-
-        output = nt.nodes.new('RendermanOutputNode')
-        geoLight = nt.nodes.new('PxrMeshLightLightNode')
-        geoLight.location[0] -= 300
-        geoLight.location[1] -= 420
-        if(output is not None):
-            nt.links.new(geoLight.outputs[0], output.inputs[1])
-
-        # add PxrBlack Bxdf
-        default = nt.nodes.new('PxrBlackBxdfNode')
-        default.location = output.location
-        default.location[0] -= 300
-        if (default is not None):
-            nt.links.new(default.outputs[0], output.inputs[0])
-
-        for obj in selection:
-            if(obj.type not in EXCLUDED_OBJECT_TYPES):
-                bpy.ops.object.material_slot_add()
-                obj.material_slots[-1].material = mat
-        return {"FINISHED"}
-
 
 class PRMAN_OT_Select_Lights(bpy.types.Operator):
     bl_idname = "object.selectlights"
@@ -1267,16 +987,10 @@ compile_shader_menu_func = (lambda self, context: self.layout.operator(
 classes = [
     PRMAN_OT_Renderman_open_stats,
     PRMAN_OT_Renderman_start_it,
-    PRMAN_OT_Renderman_open_last_RIB,
     RENDERMAN_OT_add_remove_output,
     SHADING_OT_convert_all_renderman_nodetree,
     SHADING_OT_add_renderman_nodetree,
     PRMAN_OT_refresh_osl_shader,
-    PRMAN_OT_RendermanBake,
-    PRMAN_OT_ExternalRender,
-    PRMAN_OT_StartInteractive,
-    PRMAN_OT_StoptInteractive,
-    PRMAN_OT_ExportRIBObject,
     PRMAN_OT_AddPresetRendermanRender,
     PRMAN_MT_PresetsMenu,
     PRMAN_OT_examplesRenderman,
@@ -1287,12 +1001,7 @@ classes = [
     PRMAN_OT_add_to_group,
     PRMAN_OT_remove_from_group,
     PRMAN_OT_remove_add_rem_light_link,
-    PRMAN_OT_RM_Add_Area,
-    PRMAN_OT_RM_Add_LightFilter,
-    PRMAN_OT_RM_Add_Hemi,
-    PRMAN_OT_RM_Add_Sky,
     PRMAN_OT_New_bxdf,
-    PRMAN_OT_add_GeoLight,
     PRMAN_OT_Select_Lights,
     PRMAN_MT_Hemi_List_Menu,
     PRMAN_MT_Area_List_Menu,

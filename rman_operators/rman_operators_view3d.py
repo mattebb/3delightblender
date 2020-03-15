@@ -4,10 +4,10 @@ from ..icons.icons import load_icons
 from ..rman_utils.scene_utils import EXCLUDED_OBJECT_TYPES
 from bpy.props import EnumProperty
 
-class PRMAN_OT_Add_Subdiv_Scheme(bpy.types.Operator):
-    bl_idname = "object.add_subdiv_scheme"
-    bl_label = "Add Subdiv Scheme"
-    bl_description = ""
+class PRMAN_OT_RM_Add_Subdiv_Scheme(bpy.types.Operator):
+    bl_idname = "object.rman_add_subdiv_scheme"
+    bl_label = "Convert to Subdiv"
+    bl_description = "Convert selected object to a subdivision surface"
     bl_options = {"REGISTER"}
 
     def execute(self, context):
@@ -80,8 +80,8 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
 
         return {"FINISHED"}        
 
-class PRMAN_OT_Add_bxdf(bpy.types.Operator):
-    bl_idname = "object.add_bxdf"
+class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
+    bl_idname = "object.rman_add_bxdf"
     bl_label = "Add BXDF"
     bl_description = "Add a new Bxdf to selected object"
     bl_options = {"REGISTER", "UNDO"}
@@ -138,13 +138,48 @@ class PRMAN_OT_Add_bxdf(bpy.types.Operator):
 
                 obj.material_slots[-1].material = mat
 
-        return {"FINISHED"}        
+        return {"FINISHED"}  
+
+class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
+    bl_idname = "object.rman_create_meshlight"
+    bl_label = "Create Mesh Light"
+    bl_description = "Convert selected object to a mesh light"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        selection = bpy.context.selected_objects
+        mat = bpy.data.materials.new("PxrMeshLight")
+
+        mat.use_nodes = True
+        nt = mat.node_tree
+
+        output = nt.nodes.new('RendermanOutputNode')
+        geoLight = nt.nodes.new('PxrMeshLightLightNode')
+        geoLight.location[0] -= 300
+        geoLight.location[1] -= 420
+        if(output is not None):
+            nt.links.new(geoLight.outputs[0], output.inputs[1])
+
+        # add PxrBlack Bxdf
+        default = nt.nodes.new('PxrBlackBxdfNode')
+        default.location = output.location
+        default.location[0] -= 300
+        if (default is not None):
+            nt.links.new(default.outputs[0], output.inputs[0])
+
+        for obj in selection:
+            if(obj.type not in EXCLUDED_OBJECT_TYPES):
+                bpy.ops.object.material_slot_add()
+                obj.material_slots[-1].material = mat
+        return {"FINISHED"}
+
 
 classes = [
-    PRMAN_OT_Add_Subdiv_Scheme,
+    PRMAN_OT_RM_Add_Subdiv_Scheme,
     PRMAN_OT_RM_Add_Light,
     PRMAN_OT_RM_Add_Light_Filter,
-    PRMAN_OT_Add_bxdf    
+    PRMAN_OT_RM_Add_bxdf,
+    PRMAN_OT_RM_Create_MeshLight    
 ]
 
 def register():
