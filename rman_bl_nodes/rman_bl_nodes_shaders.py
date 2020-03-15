@@ -98,20 +98,26 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             elif getattr(self, "codetypeswitch") == 'NODE':
                 layout.prop(self, "expression")
         else:
-            # temp until we can create ramps natively
-            if self.plugin_name == 'PxrRamp':
-                nt = bpy.data.node_groups[self.node_group]
-                if nt:
-                    layout.template_color_ramp(
-                        nt.nodes["ColorRamp"], 'color_ramp')
-
+            is_pxrramp = (self.plugin_name == 'PxrRamp')
             for prop_name in prop_names:
                 prop_meta = self.prop_meta[prop_name]
-                if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
+                if 'widget' in prop_meta:
+                    if prop_meta['widget'] == 'null' or \
                         'hidden' in prop_meta and prop_meta['hidden']:
-                    continue
+                        continue
+                    elif prop_meta['widget'] == 'colorramp' and is_pxrramp:
+                        nt = bpy.data.node_groups[self.node_group]
+                        if nt:
+                            layout.template_color_ramp(
+                                nt.nodes["ColorRamp"], 'color_ramp')                                                     
+
                 if prop_name not in self.inputs:
                     if prop_meta['renderman_type'] == 'page':
+                        if is_pxrramp:
+                            # don't' show the old color ramp
+                            if prop_name == 'Color Ramp (Manual)':
+                                continue
+
                         ui_prop = prop_name + "_uio"
                         ui_open = getattr(self, ui_prop)
                         icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
@@ -131,6 +137,9 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         layout.prop_search(self, prop_name, bpy.data.scenes[0].renderman,
                                            "object_groups")
                     else:
+                        if is_pxrramp and prop_name == 'useNewRamp':
+                            # don't show useNewRamp param
+                            continue
                         layout.prop(self, prop_name, slider=True)
 
     def copy(self, node):

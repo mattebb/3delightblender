@@ -367,7 +367,9 @@ def generate_node_type(node_desc, is_oso=False):
         else:
             node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self)
-
+        
+        # FIXME: we shouldn't assume only PxrRamp wants ramps. We should make this
+        # more general. Should we just add dummy node groups to every node?
         if name == "PxrRamp":
             node_group = bpy.data.node_groups.new(
                 'PxrRamp_nodegroup', 'ShaderNodeTree')
@@ -601,13 +603,6 @@ def register_rman_nodes():
                                                                     items=sorted(items,
                                                                                 key=attrgetter('_label'))))    
 
-    '''
-    for name, (desc, items) in __RMAN_NODE_CATEGORIES__.items():
-        if items:
-            node_categories.append(RendermanPatternNodeCategory(name, desc,
-                                                                items=sorted(items,
-                                                                            key=attrgetter('_label'))))
-    '''
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES",
                                              node_categories)    
 

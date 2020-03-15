@@ -5,37 +5,6 @@ import math
 def is_renderman_nodetree(material):
     return find_node(material, 'RendermanOutputNode')
 
-
-def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
-                             output_node_type="output"):
-    output_node = next((n for n in nt.nodes
-                        if hasattr(n, 'renderman_node_type') and n.renderman_node_type == output_node_type), None)
-    if output_node is None:
-        return
-
-    socket = output_node.inputs[input_name]
-    node = socket_node_input(nt, socket)
-
-    layout.context_pointer_set("nodetree", nt)
-    layout.context_pointer_set("node", output_node)
-    layout.context_pointer_set("socket", socket)
-
-    split = layout.split(factor=0.35)
-    split.label(text=socket.name + ':')
-
-    if socket.is_linked:
-        # for lights draw the shading rate ui.
-
-        split.operator_menu_enum("node.add_%s" % input_name.lower(),
-                                 "node_type", text=node.bl_label)
-    else:
-        split.operator_menu_enum("node.add_%s" % input_name.lower(),
-                                 "node_type", text='None')
-
-    if node is not None:
-        draw_node_properties_recursive(layout, context, nt, node)
-
-
 def socket_node_input(nt, socket):
     return next((l.from_node for l in nt.links if l.to_socket == socket), None)
 
@@ -111,20 +80,6 @@ def find_node_input(node, name):
             return input
 
     return None
-
-
-def panel_node_draw(layout, context, id_data, output_type, input_name):
-    ntree = id_data.node_tree
-
-    node = find_node(id_data, output_type)
-    if not node:
-        layout.label(text="No output node")
-    else:
-        input = find_node_input(node, input_name)
-        #layout.template_node_view(ntree, node, input)
-        draw_nodes_properties_ui(layout, context, ntree)
-
-    return True
 
 def is_float_type(socket):
     # this is a renderman node

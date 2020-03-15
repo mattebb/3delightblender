@@ -90,12 +90,12 @@ def _draw_props(node, prop_names, layout):
                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
                                 "object_groups")
             else:
-                if 'widget' in prop_meta and prop_meta['widget'] == 'floatRamp':
+                if 'widget' in prop_meta and prop_meta['widget'] == 'floatramp':
                     rm = bpy.context.light.renderman
                     nt = bpy.context.light.node_tree
                     float_node = nt.nodes[rm.float_ramp_node]
                     layout.template_curve_mapping(float_node, 'mapping')
-                elif 'widget' in prop_meta and prop_meta['widget'] == 'colorRamp':
+                elif 'widget' in prop_meta and prop_meta['widget'] == 'colorramp':
                     rm = bpy.context.light.renderman
                     nt = bpy.context.light.node_tree
                     ramp_node = nt.nodes[rm.color_ramp_node]
@@ -164,6 +164,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
             if prop_name in ["lightGroup", "rman__Shape", "coneAngle", "penumbraAngle"]:
                 continue
 
+            is_pxrramp = node.plugin_name == 'PxrRamp'
             if prop_name == "codetypeswitch":
                 row = layout.row()
                 if node.codetypeswitch == 'INT':
@@ -177,9 +178,16 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 prop_meta = node.prop_meta[prop_name]
                 prop = getattr(node, prop_name)
 
-                if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
+                if 'widget' in prop_meta:
+                    if prop_meta['widget'] == 'null' or \
                         'hidden' in prop_meta and prop_meta['hidden']:
-                    continue
+                        continue
+                    elif prop_meta['widget'] == 'colorramp' and is_pxrramp:
+                        dummy_nt = bpy.data.node_groups[node.node_group]
+                        if dummy_nt:
+                            layout.template_color_ramp(
+                                dummy_nt.nodes["ColorRamp"], 'color_ramp')  
+                            continue  
 
                 # else check if the socket with this name is connected
                 socket = node.inputs[prop_name] if prop_name in node.inputs \
@@ -218,9 +226,13 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         draw_node_properties_recursive(layout, context, nt,
                                                        input_node, level=level + 1)
 
-                else:
+                else:                    
                     row = layout.row(align=True)
                     if prop_meta['renderman_type'] == 'page':
+                        if is_pxrramp:
+                            # don't' show the old color ramp
+                            if prop_name == 'Color Ramp (Manual)':
+                                continue
                         ui_prop = prop_name + "_uio"
                         ui_open = getattr(node, ui_prop)
                         icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
@@ -247,6 +259,9 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             draw_props(sub_prop_names, layout, level + 1)
 
                     else:
+                        if is_pxrramp and prop_name == 'useNewRamp':
+                            # don't show useNewRamp param
+                            continue                        
                         indented_label(row, None, level)
                         # indented_label(row, socket.name+':')
                         
@@ -311,10 +326,5 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 row.operator_menu_enum("node.add_pattern", "node_type",
                                        text='', icon="LAYER_USED")
     else:
-        if node.plugin_name == 'PxrRamp':
-            dummy_nt = bpy.data.node_groups[node.node_group]
-            if dummy_nt:
-                layout.template_color_ramp(
-                    dummy_nt.nodes['ColorRamp'], 'color_ramp')
         draw_props(node.prop_names, layout, level)
     layout.separator()

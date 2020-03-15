@@ -121,7 +121,21 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         light.type = 'AREA'
         light.shape = 'RECTANGLE'
         light.size = 1.0
-        light.size_y = 1.0      
+        light.size_y = 1.0  
+
+        # Make sure to create the dummy ramps for
+        # PxrBlockerLightFilter, PxrRampLightFilter, and
+        # PxrRodLightFilter
+        if light_shader in ['PxrBlockerLightFilter', 'PxrRampLightFilter', 'PxrRodLightFilter']:
+            if not light.use_nodes:
+                light.use_nodes = True
+            nt = light.node_tree
+            if self.color_ramp_node not in nt.nodes.keys():
+                # make a new color ramp node to use
+                self.color_ramp_node = nt.nodes.new('ShaderNodeValToRGB').name
+            if self.float_ramp_node not in nt.nodes.keys():
+                self.float_ramp_node = nt.nodes.new(
+                    'ShaderNodeVectorCurve').name      
           
     def get_rman_light_filter_shaders(self, context):
         items = []

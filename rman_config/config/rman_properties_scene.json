@@ -118,6 +118,7 @@
         {
             "panel": "RENDER_PT_renderman_baking",
             "page": "Illumination",
+            "page_open": true,
             "name": "rman_bake_illum_mode",
             "label": "Baking Illumination Mode",
             "type": "string",
@@ -922,7 +923,7 @@
             "type": "string",
             "default": "binary",
             "widget": "mapper",
-            "options": "ASCII:ascii|Binary:binary",
+            "options": "ASCII:ASCII|Binary:binary",
             "help": ""
         },  
         {

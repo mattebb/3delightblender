@@ -303,8 +303,11 @@ class RmanRender(object):
         rib_options = ""
         if rm.rib_compression == "gzip":
             rib_options += " -compression gzip"
-        rib_options += " -format %s" % rm.rib_format
-        if rm.rib_format == "ascii":
+        rib_format = 'ascii'
+        if rm.rib_format == 'binary':
+            rib_format = 'binary' 
+        rib_options += " -format %s" % rib_format
+        if rib_format == "ascii":
             rib_options += " -indent"
 
         if rm.external_animation:

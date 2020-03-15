@@ -2,6 +2,7 @@ from . import texture_utils
 from . import string_utils
 from . import shadergraph_utils
 from ..rfb_logger import rfb_log
+from collections import OrderedDict
 from bpy.props import *
 import bpy
 import sys
@@ -29,7 +30,7 @@ __GAINS_TO_ENABLE__ = {
 # special string to indicate an empty string
 # necessary for EnumProperty because it cannot
 # take an empty string as an item value
-__RMAN_EMPTY_STRING = '__empty__'
+__RMAN_EMPTY_STRING__ = '__empty__'
 
 def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1):
     if is_array:
@@ -66,7 +67,7 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
         elif param_type == "color":
             params.SetColor(param_name, val)
         elif param_type == "string":
-            if val == __RMAN_EMPTY_STRING:
+            if val == __RMAN_EMPTY_STRING__:
                 val = ""
             params.SetString(param_name, val)
         elif param_type == "point":
@@ -281,14 +282,14 @@ def generate_property(sp, update_function=None):
      
     prop = None
 
-    # set this prop as non connectable
-    if param_widget in ['null', 'checkbox', 'switch']:
-        prop_meta['__noconnection'] = True
-
     prop_meta['widget'] = param_widget
 
     if hasattr(sp, 'connectable') and not sp.connectable:
         prop_meta['__noconnection'] = True
+
+    # set this prop as non connectable
+    if param_widget in ['null', 'checkbox', 'switch', 'colorramp']:
+        prop_meta['__noconnection'] = True        
 
 
     if hasattr(sp, 'conditionalVisOps'):
@@ -370,7 +371,7 @@ def generate_property(sp, update_function=None):
             if param_name == 'invertT':
                 param_default = 0
 
-            if param_widget == 'checkbox' or param_widget == 'switch':
+            if param_widget in ['checkbox', 'switch']:
                 prop = BoolProperty(name=param_label,
                                     default=bool(param_default),
                                     description=param_help, update=update_function)
@@ -433,7 +434,7 @@ def generate_property(sp, update_function=None):
 
         if '__' in param_name:
             param_name = param_name[2:]
-        if param_widget == 'fileinput' or param_widget == 'assetidinput' or (param_widget == 'default' and param_name == 'filename'):
+        if (param_widget in ['fileinput','assetidinput']) or (param_name == 'filename' and param_widget == 'default'):
             prop = StringProperty(name=param_label,
                                   default=param_default, subtype="FILE_PATH",
                                   description=param_help, update=update_function)
@@ -441,11 +442,11 @@ def generate_property(sp, update_function=None):
             items = []
             for k,v in sp.options.items():
                 if v == '' or v == "''":
-                    v = __RMAN_EMPTY_STRING
+                    v = __RMAN_EMPTY_STRING__
                 items.append((str(v), str(k), ''))
             
             if param_default == '' or param_default == "''":
-                param_default = __RMAN_EMPTY_STRING
+                param_default = __RMAN_EMPTY_STRING__
 
             prop = EnumProperty(name=param_label,
                                 default=param_default, description=param_help,
@@ -456,10 +457,10 @@ def generate_property(sp, update_function=None):
             items = []
             for k,v in sp.options.items():
                 if v == '' or v == "''":
-                    v = __RMAN_EMPTY_STRING
+                    v = __RMAN_EMPTY_STRING__
                 items.append((v, k, ''))                
             if param_default == '' or param_default == "''":
-                param_default = __RMAN_EMPTY_STRING
+                param_default = __RMAN_EMPTY_STRING__
 
             prop = EnumProperty(name=param_label,
                                 default=param_default, description=param_help,
@@ -597,14 +598,10 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
     else:
 
         for prop_name, meta in node.prop_meta.items():
-            #if prop_name in texture_utils.txmake_options().index:
-            #    pass
-            #elif node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
-            #    pass
             if node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
                 pass
 
-            elif(prop_name in ['sblur', 'tblur', 'notes']):
+            if(prop_name in ['sblur', 'tblur', 'notes']):
                 pass
 
             else:
