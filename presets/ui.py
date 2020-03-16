@@ -23,18 +23,19 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 
-from .. import util
+from ..rman_utils import prefs_utils
 
 # for panel icon
 from .. icons import icons as ui_icons
 
 import bpy
-from .properties import RendermanPresetGroup, RendermanPreset
+from .properties import RendermanPreset, RendermanPresetCategory, refresh_presets_libraries
 
 # for previews of assets
 from . import icons
 
-from bpy.props import StringProperty
+from bpy.props import StringProperty, IntProperty
+import os
 
 
 # panel for the toolbar of node editor
@@ -51,7 +52,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
         return rd.engine == 'PRMAN_RENDER'
 
     def draw_header(self, context):
-        if util.get_addon_prefs().draw_panel_icon:
+        if prefs_utils.get_addon_prefs().draw_panel_icon:
             rfb_icons = ui_icons.load_icons()
             rfb_icon = rfb_icons.get("rfb_panel")
             self.layout.label(text="", icon_value=rfb_icon.icon_id)
@@ -67,80 +68,140 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
 
-        presets_library = util.get_addon_prefs().presets_library
+        current_presets_category = prefs_utils.get_addon_prefs().presets_current_category
 
-        if presets_library.name == '':
-            layout.operator("renderman.init_preset_library", text="Choose Library")
-        else:
+        rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
+        if current_presets_category.name == '':
+            row = layout.row(align=True)          
+            crow.operator("renderman.init_preset_library", text="Choose Library")
+            row.operator("renderman.load_preset_library_from_env_var", text="Load from RMAN_ASSET_LIBRARY")
+        else:                
             layout = self.layout
 
             row = layout.row(align=True)
             row.operator("renderman.init_preset_library", text="Select Another Library")
+            row.operator("renderman.reload_preset_library", text="Reload Presets Library")
             row = layout.row(align=True)
-            row.context_pointer_set('renderman_preset', util.get_addon_prefs().presets_library)
-            row.menu('PRMAN_MT_renderman_presets_menu', text="Select Category")
-            row.operator("renderman.refresh_libraries", text="", icon="FILE_REFRESH")
-            active = RendermanPresetGroup.get_active_library()
+            row.menu('PRMAN_MT_renderman_presets_categories_menu', text="Select Category")
+            row.operator("renderman.refresh_preset_category", text="", icon="FILE_REFRESH")
+            current = RendermanPresetCategory.get_current_category()
 
-            if active:
+            if current:
                 row = layout.row(align=True)
-                row.prop(active, 'name', text='Category')
-                row.operator('renderman.add_preset_library', text='', icon='ADD')
-                row.operator('renderman.move_preset_library', text='', icon='EXPORT').lib_path = active.path
-                row.operator('renderman.remove_preset_library', text='', icon='X')
-                current_preset = RendermanPreset.get_from_path(active.current_preset)
+                row.prop(current, 'name', text='Category')
+                row.operator('renderman.add_new_preset_category', text='', icon='ADD')
+                row.operator('renderman.move_preset_category', text='', icon='EXPORT').category_path = current.path
+                row.operator('renderman.remove_preset_category', text='', icon='X')
+                selected_preset = RendermanPreset.get_from_path(current.selected_preset)      
 
-                if current_preset:
+                if selected_preset:
                     row = layout.row()
-                    row.label(text="Current Preset:")
-                    row.prop(active, 'current_preset', text='')
+                    row.label(text="Selected Preset:")
+                    row.prop(current, 'selected_preset', text='')
 
-                    # This doesn't seem to work? Comment out for now
-                    #layout.template_icon_view(active, "current_preset")
+                    # This doesn't seem to always work?
+                    if prefs_utils.get_addon_prefs().presets_show_large_icons:
+                        layout.template_icon_view(current, "selected_preset", show_labels=True)
 
                     # row of controls for preset
                     row = layout.row(align=True)
-                    row.prop(current_preset, 'label', text="")
-                    row.operator('renderman.move_preset', icon='EXPORT', text="").preset_path = current_preset.path
-                    row.operator('renderman.remove_preset', icon='X', text="").preset_path = current_preset.path
+                    row.prop(selected_preset, 'label', text="")
+                    row.operator('renderman.move_preset', icon='EXPORT', text="").preset_path = selected_preset.path
+                    row.operator('renderman.remove_preset', icon='X', text="").preset_path = selected_preset.path
+
+                    row = layout.row()
+                    box = row.box()
+                    box.label(text='Name: %s' % selected_preset.label)
+                    box.label(text='Author: %s' % selected_preset.author)
+                    box.label(text='Version: %s' % selected_preset.version)
+                    box.label(text='Created: %s' % selected_preset.created)
+                    if selected_preset.resolution != '':
+                        box.label(text='Resolution: %s' % selected_preset.resolution)
 
                     # add to scene
                     row = layout.row(align=True)
-                    row.operator("renderman.load_asset_to_scene", text="Load to Scene", ).preset_path = current_preset.path
+                    row.operator("renderman.load_asset_to_scene", text="Load to Scene", ).preset_path = selected_preset.path
                     assign = row.operator("renderman.load_asset_to_scene", text="Assign to selected", )
-                    assign.preset_path = current_preset.path
+                    assign.preset_path = selected_preset.path
                     assign.assign = True
+                else:
+                    row = layout.row()
+                    row.label(text="NO PRESETS", icon='ERROR')                
 
                 # get from scene
                 layout.separator()
-                layout.operator("renderman.save_asset_to_library", text="Save Material to Library", icon='MATERIAL').lib_path = active.path
+                layout.operator("renderman.save_asset_to_library", text="Save Material to Library", icon='MATERIAL').category_path = current.path
 
-class PRMAN_MT_Renderman_Presets_Menu(bpy.types.Menu):
-    bl_idname = "PRMAN_MT_renderman_presets_menu"
-    bl_label = "RenderMan Presets Menu"
+
+class PRMAN_MT_Renderman_Presets_Categories_SubMenu(bpy.types.Menu):
+    bl_idname = "PRMAN_MT_renderman_presets_categories_submenu"
+    bl_label = "RenderMan Presets Categories SubMenu"
 
     path: StringProperty(default="")
 
     def draw(self, context):
-        lib = context.renderman_preset
-        prefix = "* " if lib.is_active() else ''
-        self.layout.operator('renderman.set_active_preset_library',text=prefix + lib.name).lib_path = lib.path
-        if len(lib.sub_groups) > 0:
-            for key in sorted(lib.sub_groups.keys(), key=lambda k: k.lower()):
-                sub = lib.sub_groups[key]
-                self.layout.context_pointer_set('renderman_preset', sub)
-                prefix = "* " if sub.is_active() else ''
-                if len(sub.sub_groups):
-                    self.layout.menu('PRMAN_MT_renderman_presets_menu', text=prefix + sub.name)
+
+        category = context.presets_current_category
+        prefix = "*" if category.is_current_category() else ''
+        self.layout.operator('renderman.set_current_preset_category',text=prefix + category.name).preset_current_path = category.path
+        if len(category.sub_categories) > 0:
+            for key in sorted(category.sub_categories.keys(), key=lambda k: k.lower()):
+                sub = category.sub_categories[key]
+                self.layout.context_pointer_set('presets_current_category', sub)
+                prefix = "* " if sub.is_current_category() else ''
+                if len(sub.sub_categories):
+                    self.layout.menu('PRMAN_MT_renderman_presets_categories_submenu', text=prefix + sub.name)
                 else:
-                    prefix = "* " if sub.is_active() else ''
-                    self.layout.operator('renderman.set_active_preset_library',text=prefix + sub.name).lib_path = sub.path
+                    prefix = "* " if sub.is_current_category() else ''
+                    self.layout.operator('renderman.set_current_preset_category',text=prefix + sub.name).preset_current_path = sub.path
+
+class PRMAN_MT_Renderman_Presets_Categories_Menu(bpy.types.Menu):
+    bl_idname = "PRMAN_MT_renderman_presets_categories_menu"
+    bl_label = "RenderMan Presets Categories Menu"
+
+    path: StringProperty(default="")
+
+    def draw(self, context):
+        presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
+        presets_envmaps_category = presets_root_category.sub_categories['EnvironmentMaps']
+        presets_lightrigs_category = presets_root_category.sub_categories['LightRigs']
+        presets_materials_category = presets_root_category.sub_categories['Materials']
+        self.layout.label(text=presets_root_category.name)
+
+        prefix = "*" if presets_envmaps_category.is_current_category() else ''
+        if len(presets_envmaps_category.sub_categories) > 0:
+            self.layout.context_pointer_set('presets_current_category', presets_envmaps_category)
+            self.layout.menu('PRMAN_MT_renderman_presets_categories_submenu', text=prefix + presets_envmaps_category.name)
+        else:
+            self.layout.operator('renderman.set_current_preset_category',text=prefix + presets_envmaps_category.name).preset_current_path = presets_envmaps_category.path
+
+        prefix = "*" if presets_lightrigs_category.is_current_category() else ''
+        if len(presets_lightrigs_category.sub_categories) > 0:
+            self.layout.context_pointer_set('presets_current_category', presets_lightrigs_category)
+            self.layout.menu('PRMAN_MT_renderman_presets_categories_submenu', text=prefix + presets_lightrigs_category.name)
+        else:
+            self.layout.operator('renderman.set_current_preset_category',text=prefix + presets_lightrigs_category.name).preset_current_path = presets_lightrigs_category.path
+
+        prefix = "*" if presets_materials_category.is_current_category() else ''
+        if len(presets_materials_category.sub_categories) > 0:
+            self.layout.context_pointer_set('presets_current_category', presets_materials_category)
+            self.layout.menu('PRMAN_MT_renderman_presets_categories_submenu', text=prefix + presets_materials_category.name)
+        else:
+            self.layout.operator('renderman.set_current_preset_category',text=prefix + presets_materials_category.name).preset_current_path = presets_materials_category.path
+
+classes = [
+    PRMAN_MT_Renderman_Presets_Categories_Menu,
+    PRMAN_MT_Renderman_Presets_Categories_SubMenu,
+    PRMAN_PT_Renderman_Presets_UI_Panel
+]
 
 
 def register():
-    bpy.utils.register_class(PRMAN_MT_Renderman_Presets_Menu)
-    bpy.utils.register_class(PRMAN_PT_Renderman_Presets_UI_Panel)
+
+    for cls in classes:
+        bpy.utils.register_class(cls)
 
 def unregister():
-    bpy.utils.unregister_class(PRMAN_MT_Renderman_Presets_Menu)
-    bpy.utils.unregister_class(PRMAN_PT_Renderman_Presets_UI_Panel)
+
+    for cls in classes:
+        bpy.utils.unregister_class(cls)

@@ -34,7 +34,7 @@ from .rman_utils import filepath_utils
 from . import rfb_logger
 from .icons.icons import load_icons
 
-from .presets.properties import RendermanPresetGroup
+from .presets.properties import RendermanPresetCategory
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
     name: StringProperty(name="", subtype='DIR_PATH')
@@ -180,18 +180,23 @@ class RendermanPreferences(AddonPreferences):
         default=""
     )
 
-    presets_library: PointerProperty(
-        type=RendermanPresetGroup,
+    presets_current_category: PointerProperty(
+        type=RendermanPresetCategory,
     )
-
-    # both these paths are absolute
-    active_presets_path: StringProperty(default = '')
-    presets_path:StringProperty(
-        name="Path for preset Library",
-        description="Path for preset files, if not present these will be copied from RMANTREE.\n  Set this if you want to pull in an external library.",
-        subtype='FILE_PATH',
-        default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'presets', 'RenderManAssetLibrary'))
-
+    presets_root_category: PointerProperty(
+        type=RendermanPresetCategory,
+    )     
+    presets_current_category_path: StringProperty(default='')
+    presets_show_large_icons: BoolProperty(
+        name="Show Large Icons",
+        description="Turns this off if you do not want to see the large version of the preset's icon",
+        default=True
+    )    
+    presets_show_subcategories: BoolProperty(
+        name="Show Subcategories",
+        description="By default, we only show presets in the current category. Turn this on if you want to subcategories (can be slow if there are large number of presets).",
+        default=False
+    )
 
     def draw(self, context):
         self.layout.use_property_split = True
@@ -236,17 +241,19 @@ class RendermanPreferences(AddonPreferences):
         row.label(text='UI', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
-        layout.prop(self, 'rman_do_preview_renders')     
-        layout.prop(self, 'draw_ipr_text')
-        layout.prop(self, 'draw_panel_icon')
-        layout.prop(self, 'rman_editor')
+        col.prop(self, 'rman_do_preview_renders')     
+        col.prop(self, 'draw_ipr_text')
+        col.prop(self, 'draw_panel_icon')
+        col.prop(self, 'rman_editor')
 
         # Preset Browser
         row = layout.row()
         row.label(text='Preset Browser', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
-        layout.prop(self.presets_library, 'path')
+        col.prop(self.presets_root_category, 'path')
+        col.prop(self, 'presets_show_large_icons')
+        col.prop(self, 'presets_show_subcategories')
 
         # Logging
         row = layout.row()

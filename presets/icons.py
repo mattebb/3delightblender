@@ -26,27 +26,40 @@
 import os
 import bpy
 import bpy.utils.previews
-from .. import util
+from ..rman_utils import prefs_utils
+from ..rman_utils import filepath_utils
 
 asset_previews = bpy.utils.previews.new()
+__RMAN_MAT_FLAT_PATH__ = 'lib/rmanAssetResources/icons'
+__RMAN_MAT_FLAT_FILENAME__ = 'rman_Mat_default_big_100.png'
 
-def get_presets_for_lib(lib):
-    items = list(lib.presets)
-    # For now, only look at the top level. Don't show presets
-    # in subdirectories. 
-    '''
-    for sub_group in lib.sub_groups:
-        items.extend(get_presets_for_lib(sub_group))
-    '''
+def get_presets_for_category(preset_category):
+    items = list(preset_category.presets)
+    
+    if prefs_utils.get_addon_prefs().presets_show_subcategories:
+        for sub_category in preset_category.sub_categories:
+            items.extend(get_presets_for_category(sub_category))
+
     return items
 
-def load_previews(lib):
+def load_previews(preset_category):
+    '''Load icons for this preset category
+
+        Returns:
+            (list) - a list of tuples containing preset path, preset label, and icon ID
+    '''
     global asset_previews
+    flat_icon_path = os.path.join( filepath_utils.guess_rmantree(), __RMAN_MAT_FLAT_PATH__)
+    flat_icon_thumb = asset_previews.get(flat_icon_path, None)
+    if not flat_icon_thumb:
+        flat_icon_thumb_path = os.path.join(flat_icon_path, __RMAN_MAT_FLAT_FILENAME__)
+        flat_icon_thumb = asset_previews.load(flat_icon_path, flat_icon_thumb_path, 'IMAGE', force_reload=True)
+
     enum_items = []
 
-    lib_dir = presets_library = util.get_addon_prefs().presets_library.path
+    category_dir = prefs_utils.get_addon_prefs().presets_current_category.path
 
-    items = get_presets_for_lib(lib)
+    items = get_presets_for_category(preset_category)
     items = sorted(items, key=lambda item: item.label)
 
     for i, asset in enumerate(items):
@@ -54,8 +67,10 @@ def load_previews(lib):
         
         if path not in asset_previews:
             thumb_path = os.path.join(asset.path, 'asset_100.png')
-            
-            thumb = asset_previews.load(path, thumb_path, 'IMAGE', force_reload=True)
+            if os.path.exists(thumb_path):
+                thumb = asset_previews.load(path, thumb_path, 'IMAGE', force_reload=True)
+            else:
+                thumb = flat_icon_thumb
         else:
             thumb = asset_previews[path]
         enum_items.append((asset.path, asset.label, '', thumb.icon_id, i))
@@ -66,4 +81,7 @@ def load_previews(lib):
         x = img.icon_size[0]
         y = img.icon_size[1]
 
-    return enum_items if enum_items else [('', '', '')]
+    if not enum_items:
+        return [('none', 'none', '', '', 0)]
+
+    return enum_items
