@@ -73,7 +73,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
         rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
         if current_presets_category.name == '':
             row = layout.row(align=True)          
-            crow.operator("renderman.init_preset_library", text="Choose Library")
+            row.operator("renderman.init_preset_library", text="Choose Library")
             if rman_asset_lib:
                 row.operator("renderman.load_preset_library_from_env_var", text="Load from RMAN_ASSET_LIBRARY")
         else:                
