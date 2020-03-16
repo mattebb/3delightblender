@@ -48,6 +48,16 @@ class PRMAN_OT_reload_preset_library(bpy.types.Operator):
     bl_description = "Reload Presets Library."
 
     def execute(self, context):
+        presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
+        rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
+        if rman_asset_lib:
+            # check if RMAN_ASSET_LIBRARY is diffrent from our current library
+            if rman_asset_lib != presets_root_category.path:
+                json_file = os.path.join(rman_asset_lib, 'library.json')
+                if os.path.exists(json_file):
+                    presets_library_name = get_library_name(json_file)
+                    presets_root_category.name = presets_library_name
+                    presets_root_category.path = rman_asset_lib
 
         refresh_presets_libraries(presets_root_category.path, presets_root_category)
         presets_current_category = presets_root_category.sub_categories['LightRigs']
@@ -74,7 +84,6 @@ class PRMAN_OT_init_preset_library(bpy.types.Operator):
         presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
         if os.path.exists(json_file):
             presets_library_name = get_library_name(json_file)
-            prefs_utils.get_addon_prefs().presets_library_name = presets_library_name
             presets_root_category.name = presets_library_name
             presets_root_category.path = self.directory
         
@@ -106,8 +115,6 @@ class PRMAN_OT_load_preset_library_from_env_var(bpy.types.Operator):
         presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
         if os.path.exists(json_file):
             presets_library_name = get_library_name(json_file)
-            
-            prefs_utils.get_addon_prefs().presets_library_name = presets_library_name
             presets_root_category.name = presets_library_name
             presets_root_category.path = rman_asset_lib
 
