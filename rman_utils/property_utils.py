@@ -260,9 +260,7 @@ def generate_property(sp, update_function=None):
         param_name = param_name[1:]
 
     param_label = sp.label if hasattr(sp,'label') else param_name
-
     param_widget = sp.widget.lower() if hasattr(sp,'widget') and sp.widget else 'default'
-
     param_type = sp.type 
 
     prop_meta = dict()
@@ -283,6 +281,7 @@ def generate_property(sp, update_function=None):
     prop = None
 
     prop_meta['widget'] = param_widget
+    prop_meta['options'] = getattr(sp, 'options', OrderedDict())
 
     if hasattr(sp, 'connectable') and not sp.connectable:
         prop_meta['__noconnection'] = True
@@ -434,7 +433,8 @@ def generate_property(sp, update_function=None):
 
         if '__' in param_name:
             param_name = param_name[2:]
-        if (param_widget in ['fileinput','assetidinput']) or (param_name == 'filename' and param_widget == 'default'):
+
+        if (param_widget in ['fileinput','assetidinput','assetidoutput']):
             prop = StringProperty(name=param_label,
                                   default=param_default, subtype="FILE_PATH",
                                   description=param_help, update=update_function)
@@ -702,20 +702,33 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                             not getattr(node, __GAINS_TO_ENABLE__[prop_name]):
                         val = [0, 0, 0] if meta[
                             'renderman_type'] == 'color' else 0
-                        
 
-                    elif 'options' in meta and meta['options'] == 'texture' \
-                            and node.bl_idname != "PxrPtexturePatternNode" or \
-                            ('widget' in meta and meta['widget'] == 'assetidinput' and prop_name != 'iesProfile'):
-
-                        tx_node_id = texture_utils.generate_node_id(node, param_name)
-                        val = string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id), type_hint=meta['renderman_type'])
-                        
+                    elif meta['renderman_type'] == 'string':
                         # FIXME: Need a better way to check for a frame variable
                         if '{F' in prop:
                             rman_sg_node.is_frame_sensitive = True
                         else:
-                            rman_sg_node.is_frame_sensitive = False                            
+                            rman_sg_node.is_frame_sensitive = False  
+
+                        val = val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
+                        if meta['widget'] in ['fileinput', 'assetidinput']:
+                            options = meta['options']
+                            # txmanager doesn't currently deal with ptex
+                            if node.bl_idname == "PxrPtexturePatternNode":
+                                val = string_utils.expand_string(val, display='ptex', asFilePath=True)        
+                            # ies profiles don't need txmanager for converting                       
+                            elif 'ies' in options:
+                                val = string_utils.expand_string(val, display='ies', asFilePath=True)
+                            # this is a texture
+                            elif ('texture' in options) or ('env' in options):
+                                tx_node_id = texture_utils.generate_node_id(node, param_name)
+                                val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+                        elif meta['widget'] == 'assetidoutput':
+                            display = 'openexr'
+                            if 'texture' in meta['options']:
+                                display = 'texture'
+                            val = string_utils.expand_string(val, display='texture', asFilePath=True)
+
                     elif 'arraySize' in meta:
                         isArray = True
                         if type(prop) == int:
@@ -771,19 +784,34 @@ def set_rixparams(node, rman_sg_node, params, light):
             if 'arraySize' in meta:
                 set_rix_param(params, type, name, string_utils.convert_val(prop), is_reference=False, is_array=True, array_len=len(prop))
 
-            elif ('widget' in meta and meta['widget'] == 'assetidinput' and prop_name != 'iesProfile'):
-                if light:
-                    tx_node_id = texture_utils.generate_node_id(node, prop_name)
-                else:
-                    tx_node_id = texture_utils.generate_node_id(node, prop_name)
 
-                params.SetString(name, texture_utils.get_txmanager().get_txfile_from_id(tx_node_id))
-                
+            elif meta['renderman_type'] == 'string':
                 # FIXME: Need a better way to check for a frame variable
                 if '{F' in prop:
                     rman_sg_node.is_frame_sensitive = True
                 else:
-                    rman_sg_node.is_frame_sensitive = False
+                    rman_sg_node.is_frame_sensitive = False  
+                                            
+                val = val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
+                if meta['widget'] in ['fileinput', 'assetidinput']:
+                    options = meta['options']
+                    # txmanager doesn't currently deal with ptex
+                    if node.bl_idname == "PxrPtexturePatternNode":
+                        val = string_utils.expand_string(val, display='ptex', asFilePath=True)        
+                    # ies profiles don't need txmanager for converting                       
+                    elif 'ies' in options:
+                        val = string_utils.expand_string(val, display='ies', asFilePath=True)
+                    # this is a texture
+                    elif ('texture' in options) or ('env' in options):
+                        tx_node_id = texture_utils.generate_node_id(node, prop_name)
+                        val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+                elif meta['widget'] == 'assetidoutput':
+                    display = 'openexr'
+                    if 'texture' in meta['options']:
+                        display = 'texture'
+                    val = string_utils.expand_string(val, display='texture', asFilePath=True)      
+
+                set_rix_param(params, type, name, val)      
 
             else:
                 val = string_utils.convert_val(prop, type_hint=type)
