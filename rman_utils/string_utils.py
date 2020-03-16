@@ -9,7 +9,8 @@ import re
 
 PAD_FMT = ['%d', '%01d', '%02d', '%03d', '%04d']
 __SCENE_STRING_CONVERTER__ = None
-EXT_MAP = {'it': 'it', 'openexr': 'exr', 'tiff': 'tif', 'blender': 'blender', 'pointcloud': 'ptc'}
+# FIXME: we should get the extensions from the display driver args files
+EXT_MAP = {'it': 'it', 'openexr': 'exr', 'tiff': 'tif', 'blender': 'blender', 'pointcloud': 'ptc', 'png': 'png', 'targa': 'tga'}
 
 class SceneStringConverter(object):
     """Class maintaining an up-to-date StringExpression object.

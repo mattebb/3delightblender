@@ -240,6 +240,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
                 break
         if rm_rl is None:
             layout.operator('renderman.add_renderman_aovs')
+            layout.prop(scene.render.image_settings, "file_format")
             split = layout.split()
             col = split.column()
             rl = active_layer

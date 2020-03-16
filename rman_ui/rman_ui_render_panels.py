@@ -50,7 +50,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         col = layout.column()
         col.enabled = not is_rman_interactive_running
 
-        _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_render', context, layout, rm)        
+        _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_render', context, layout, rm)  
 
 class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
     bl_label = "External Rendering"

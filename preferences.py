@@ -104,30 +104,6 @@ class RendermanPreferences(AddonPreferences):
         description="Draw an icon on RenderMan Panels",
         default=True)
 
-    path_display_driver_image: StringProperty(
-        name="Beauty Image Path",
-        description="Path for the beauty image",
-        subtype='FILE_PATH',
-        default=os.path.join('{OUT}', 'images', '{scene}.{layer}.{F4}.{ext}'))
-
-    path_aov_image: StringProperty(
-        name="AOV Image Path",
-        description="Path for the rendered AOV images",
-        subtype='FILE_PATH',
-        default=os.path.join('{OUT}', 'images', '{scene}.{layer}.{aov}.{F4}.{ext}'))
-
-    path_bake_illum_ptc: StringProperty(
-        name="Bake 3D Illumination Path",
-        description="Path for bake illumation point cloud files",
-        subtype='FILE_PATH',
-        default=os.path.join('{OUT}', 'bake', '{scene}.{layer}.{aov}.{F4}.{ext}'))
-
-    path_bake_illum_img: StringProperty(
-        name="Bake 2D Illumination Path",
-        description="Path for bake illumation point cloud files",
-        subtype='FILE_PATH',
-        default=os.path.join('{OUT}', 'bake', '{scene}.{layer}.{aov}.{F4}.{ext}'))        
-
     path_fallback_textures_path: StringProperty(
         name="Fallback Texture Path",
         description="Fallback path for textures, when the current directory is not writable",
@@ -230,10 +206,6 @@ class RendermanPreferences(AddonPreferences):
         row = layout.row()
         col = row.column()
         col.prop(env, "out")
-        col.prop(self, 'path_display_driver_image')
-        col.prop(self, 'path_aov_image')
-        col.prop(self, 'path_bake_illum_ptc')
-        col.prop(self, 'path_bake_illum_img')
         col.prop(self, 'path_fallback_textures_path')
 
         # UI Prefs
@@ -266,8 +238,6 @@ class RendermanPreferences(AddonPreferences):
 
 
 def register():
-    #from .presets import properties
-    #properties.register()
     bpy.utils.register_class(RendermanPreferencePath)
     bpy.utils.register_class(RendermanEnvVarSettings)
     bpy.utils.register_class(RendermanPreferences)

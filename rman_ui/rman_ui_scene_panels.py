@@ -2,14 +2,42 @@ from bpy.props import (PointerProperty, StringProperty, BoolProperty,
                        EnumProperty, IntProperty, FloatProperty, FloatVectorProperty,
                        CollectionProperty)
 
-from .rman_ui_base import CollectionPanel    
-from ..rman_utils.draw_utils import _draw_props                   
+from .rman_ui_base import CollectionPanel   
+from .rman_ui_base import PRManButtonsPanel 
+from ..rman_utils.draw_utils import _draw_props
+from ..rman_utils.draw_utils import _draw_ui_from_rman_config  
+from ..rman_render import RmanRender                 
 from bpy.types import Panel
 import bpy
+
+class RENDER_PT_renderman_workspace(PRManButtonsPanel, Panel):
+    bl_label = "Workspace"
+    bl_context = "scene"
+
+    def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        if context.scene.render.engine != "PRMAN_RENDER":
+            return
+
+        layout = self.layout
+        rd = context.scene.render
+        rm = context.scene.renderman
+        rman_render = RmanRender.get_rman_render()
+        is_rman_interactive_running = rman_render.rman_interactive_running
+
+        split = layout.split(factor=0.33)
+        col = layout.column()
+        col.enabled = not is_rman_interactive_running
+
+        _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_workspace', context, layout, rm)                 
+
 
 class DATA_PT_renderman_display_filters(CollectionPanel, Panel):
     bl_label = "Display Filters"
     bl_context = 'scene'
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw_item(self, layout, context, item):
         layout.prop(item, 'filter_type')
@@ -31,10 +59,11 @@ class DATA_PT_renderman_display_filters(CollectionPanel, Panel):
                               "collection.add_remove", "scene", "display_filters",
                               "display_filters_index")
 
-
 class DATA_PT_renderman_Sample_filters(CollectionPanel, Panel):
     bl_label = "Sample Filters"
     bl_context = 'scene'
+    bl_options = {'DEFAULT_CLOSED'}
+
 
     def draw_item(self, layout, context, item):
         layout.prop(item, 'filter_type')
@@ -62,6 +91,8 @@ class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
     bl_context = "scene"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'  # bl_category = "Renderman"
+    bl_options = {'DEFAULT_CLOSED'}
+
 
     def draw(self, context):
         layout = self.layout
@@ -191,6 +222,8 @@ class PRMAN_PT_Renderman_Light_Link_Panel(CollectionPanel, Panel):
     bl_context = "scene"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'  # bl_category = "Renderman"
+    bl_options = {'DEFAULT_CLOSED'}
+
 
     @classmethod
     def poll(cls, context):
@@ -267,6 +300,8 @@ class PRMAN_PT_Renderman_Object_Panel(CollectionPanel, Panel):
     bl_context = "scene"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'  # bl_category = "Renderman"
+    bl_options = {'DEFAULT_CLOSED'}
+
 
     @classmethod
     def poll(cls, context):
@@ -306,13 +341,12 @@ class PRMAN_PT_Renderman_Object_Panel(CollectionPanel, Panel):
                           type='GRID', columns=3)                              
 
 classes = [
+    RENDER_PT_renderman_workspace,
     DATA_PT_renderman_display_filters,
     DATA_PT_renderman_Sample_filters,
-
     PRMAN_PT_Renderman_Light_Panel,
     PRMAN_PT_Renderman_Light_Link_Panel,
     PRMAN_PT_Renderman_Object_Panel,
-
     RENDERMAN_GROUP_UL_List,
     RENDERMAN_UL_LIGHT_list,
     RENDERMAN_UL_OBJECT_list

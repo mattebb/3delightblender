@@ -1,7 +1,7 @@
 from ..rman_render import RmanRender
 import bpy
 import os
-
+import time
 
 class PRMAN_OT_RendermanBake(bpy.types.Operator):
     bl_idname = "renderman.bake"
@@ -50,7 +50,7 @@ class PRMAN_OT_ExternalRender(bpy.types.Operator):
     def external_blender_batch(self, context):
         rm = context.scene.renderman
         if rm.queuing_system != 'none':
-            from. import rman_spool
+            from .. import rman_spool
             depsgraph = context.evaluated_depsgraph_get()
             spooler = rman_spool.RmanSpool(None, None, depsgraph)
             

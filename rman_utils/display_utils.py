@@ -5,6 +5,7 @@ from .. import rman_constants
 from collections import OrderedDict
 import bpy
 import os
+import getpass
 
 __RMAN_DENOISE_CHANNELS_ = [
     # (name, declare type/name, source, statistics, filter)
@@ -27,6 +28,8 @@ __RMAN_DENOISE_CHANNELS_ = [
     ("forward", 'vector', 'vector motionFore', None, None),
     ("backward", 'vector', 'vector motionBack', None, None)
 ]
+
+__BLENDER_TO_RMAN_DSPY__ = { 'TIFF': 'tiff', 'TARGA': 'targa', 'TARGA_RAW': 'targa', 'OPEN_EXR': 'openexr', 'PNG': 'png'}
 
 def get_channel_name(aov, layer_name):
     aov_name = aov.name.replace(' ', '')
@@ -127,6 +130,12 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
     rm = rman_scene.bl_scene.renderman
     display_driver = dspy_drv
     addon_prefs = prefs_utils.get_addon_prefs()
+    param_list = None
+
+    if not display_driver:
+        display_driver = __BLENDER_TO_RMAN_DSPY__.get(rman_scene.bl_scene.render.image_settings.file_format, 'openexr')
+        param_list = rman_scene.rman.Types.ParamList()
+        param_list.SetInteger('asrgba', 1)
 
     # add beauty (Ci,a)
     dspy_params = {}                        
@@ -142,9 +151,9 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
     dspys_dict['channels']['a'] = d     
     dspy_params['displayChannels'].append('Ci')
     dspy_params['displayChannels'].append('a')
-    filePath = addon_prefs.path_display_driver_image
+    filePath = rm.path_beauty_image_output
     if expandTokens:
-        filePath = string_utils.expand_string(addon_prefs.path_display_driver_image,
+        filePath = string_utils.expand_string(filePath,
                                             display=display_driver, 
                                             frame=rman_scene.bl_frame_current,
                                             asFilePath=True)
@@ -212,7 +221,7 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
 
     # declare display channels
     for aov, doit, declare_type, source in blender_aovs:
-        filePath = addon_prefs.path_aov_image
+        filePath = rm.path_aov_image_output
         if expandTokens:
             token_dict = {'aov': aov}
             filePath = string_utils.expand_string(filePath, 
@@ -304,13 +313,15 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             property_utils.set_rixparams(dspy_driver_settings, None, param_list, None)             
         elif rm.render_into == 'blender':
             display_driver = 'openexr'
+            #param_list = rman_scene.rman.Types.ParamList()
+            #param_list.SetInteger('asrgba', 1)
         else:
             display_driver = 'it'
 
         if rman_scene.rman_bake:            
-            filePath = addon_prefs.path_bake_illum_ptc
+            filePath = rm.path_bake_illum_ptc
             if rm.rman_bake_illum_mode == '2D':
-                filePath = addon_prefs.path_bake_illum_img                
+                filePath = rm.path_bake_illum_img                
             if expandTokens:                 
                 token_dict = {'aov': aov.name}
                 filePath = string_utils.expand_string(filePath, 
@@ -328,14 +339,14 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
                    
         else:       
             if aov.name == 'beauty':
-                filePath = addon_prefs.path_display_driver_image
+                filePath = rm.path_beauty_image_output
                 if expandTokens:
                     filePath = string_utils.expand_string(filePath,
                                                     display=display_driver, 
                                                     frame=rman_scene.bl_frame_current,
                                                     asFilePath=True)
             else:
-                filePath = addon_prefs.path_aov_image
+                filePath = rm.path_aov_image_output
                 if expandTokens:                 
                     token_dict = {'aov': aov.name}
                     filePath = string_utils.expand_string(filePath, 
@@ -418,7 +429,7 @@ def _set_rman_holdouts_dspy_dict(dspys_dict, dspy_drv, rman_scene, expandTokens)
 
     # user wants separate AOV for matte
     if rm.do_holdout_matte == "AOV":
-        filePath = addon_prefs.path_display_driver_image
+        filePath = rm.path_beauty_image_output
         f, ext = os.path.splitext(filePath)
         filePath = f + '_holdoutMatte' + ext      
         if expandTokens:      
@@ -516,9 +527,6 @@ def get_dspy_dict(rman_scene, expandTokens=True):
 
     else:
         # We're using blender's layering system
-        if not display_driver:
-            display_driver = 'openexr'
-
         _set_blender_dspy_dict(layer, dspys_dict, display_driver, rman_scene, expandTokens)       
 
     if rm.do_holdout_matte != "OFF":
@@ -597,7 +605,7 @@ def export_metadata(scene, params):
     params.SetFloat('exrheader_vaperture', cam.sensor_height )
 
     params.SetString('exrheader_renderscene', bpy.data.filepath)
-    params.SetString('exrheader_user', os.getenv('USERNAME'))
+    params.SetString('exrheader_user', getpass.getuser())
     params.SetString('exrheader_statistics', statspath)
     params.SetString('exrheader_integrator', rm.integrator)
     params.SetFloatArray('exrheader_samples', [rm.hider_minSamples, rm.hider_maxSamples], 2)
