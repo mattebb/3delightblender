@@ -280,7 +280,7 @@ class RmanRender(object):
         self._dump_rib_()
         rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
         if baking:
-            self.sg_scene.Render("prman -block")
+            self.sg_scene.Render("prman -blocking")
             self.stop_render()
         else:
             self.rman_is_live_rendering = True
