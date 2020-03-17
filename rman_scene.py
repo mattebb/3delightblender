@@ -1584,6 +1584,12 @@ class RmanScene(object):
             self.export_integrator() 
             self.export_viewport_stats()
 
+    def update_viewport_integrator(self, context, integrator):
+        self.bl_scene = context.scene
+        with self.rman.SGManager.ScopedEdit(self.sg_scene):
+            integrator_sg = self.rman.SGManager.RixSGShader("Integrator", integrator, "integrator")       
+            self.sg_scene.SetIntegrator(integrator_sg)             
+
     def update_hider_options(self, context):
         self.bl_scene = context.scene
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
