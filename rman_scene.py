@@ -933,7 +933,7 @@ class RmanScene(object):
        
         if self.is_viewport_render:
             db_name = 'main_camera'
-            self.main_camera = cam_translator.export_viewport_cam(db_name)
+            self.main_camera = cam_translator.export(None, db_name)
             self.main_camera.sg_node.SetRenderable(1)
             self.sg_scene.Root().AddChild(self.main_camera.sg_node)
 
@@ -1265,8 +1265,8 @@ class RmanScene(object):
         translator = self.rman_translators['CAMERA']
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
             if self.is_viewport_render:
-                translator.update_viewport_cam(rman_sg_camera)
-                translator.update_viewport_transform(rman_sg_camera)
+                translator.update(None, rman_sg_camera)
+                translator.update_transform(None, rman_sg_camera)
             else:
                 translator.update_transform(camera, rman_sg_camera)  
 
@@ -1351,7 +1351,7 @@ class RmanScene(object):
             else:
                 if rman_type == "META":
                     self.rman_translators['META'].update(ob, rman_sg_node)
-                elif rman_type == "CAMERA":                    
+                elif rman_type == "CAMERA" and not self.is_viewport_render:                    
                     self.rman_translators['CAMERA'].update_transform(ob, rman_sg_node) 
                 else:                       
                     for k,rman_sg_group in rman_sg_node.instances.items():     
@@ -1382,6 +1382,10 @@ class RmanScene(object):
                 if not self.scene_solo_light:
                     # only set if a solo light hasn't been set
                     rman_sg_node.sg_node.SetHidden(ob.data.renderman.mute)
+            elif rman_type == 'CAMERA':
+                rman_camera_translator = self.rman_translators['CAMERA']
+                if not self.is_viewport_render:
+                    rman_camera_translator.update(ob, rman_sg_node)
             else:
                 translator = self.rman_translators.get(rman_type, None)
                 if not translator:

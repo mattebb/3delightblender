@@ -7,6 +7,8 @@ class RmanSgCamera(RmanSgNode):
         self.cam_matrix = None
         self.res_width = -1
         self.res_height = -1
+        self.rman_fov = -1
+        self.is_perspective = True
 
     @property
     def cam_matrix(self):
@@ -30,4 +32,20 @@ class RmanSgCamera(RmanSgNode):
 
     @res_height.setter
     def res_height(self, res_height):
-        self.__res_height = res_height                
+        self.__res_height = res_height  
+
+    @property
+    def rman_fov(self):
+        return self.__rman_fov
+
+    @rman_fov.setter
+    def rman_fov(self, rman_fov):
+        self.__rman_fov = rman_fov   
+
+    @property
+    def is_perspective(self):
+        return self.__is_perspective
+
+    @is_perspective.setter
+    def is_perspective(self, is_perspective):
+        self.__is_perspective = is_perspective                             
