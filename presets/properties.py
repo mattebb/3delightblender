@@ -198,9 +198,9 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    # set sub groups type we have to do this after registered
-    RendermanPresetCategory.sub_categories = CollectionProperty(type=RendermanPresetCategory)
-    
+    # set sub groups after registering the class
+    RendermanPresetCategory.__annotations__['sub_categories'] = CollectionProperty(type=RendermanPresetCategory)
+   
 
 def unregister():
     for cls in classes:
