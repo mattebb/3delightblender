@@ -619,7 +619,4 @@ def unregister():
     rman_bl_nodes_props.unregister()
     rman_bl_nodes_sockets.unregister()    
     rman_bl_nodes_shaders.unregister()
-    rman_bl_nodes_ops.unregister()
-
-    for cls in classes:
-        bpy.utils.unregister_class(cls)    
+    rman_bl_nodes_ops.unregister()  

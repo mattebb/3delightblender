@@ -1353,4 +1353,4 @@ def register():
 def unregister():
     global _DRAW_HANDLER_
     if _DRAW_HANDLER_:
-        bpy.types.SpaceView3D.draw_handler_remove(_DRAW_HANDLER_)
+        bpy.types.SpaceView3D.draw_handler_remove(_DRAW_HANDLER_, 'WINDOW')

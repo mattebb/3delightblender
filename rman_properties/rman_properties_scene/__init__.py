@@ -139,7 +139,7 @@ def _add_handlers():
 
 def _remove_handlers():
     if _scene_initial_groups_handler in bpy.app.handlers.load_post:
-        bpy.app.handlers.scene_update_post.remove(properties.initial_groups)
+        bpy.app.handlers.load_post.remove(_scene_initial_groups_handler)
 
 
 classes = [         

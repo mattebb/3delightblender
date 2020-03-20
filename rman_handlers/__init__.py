@@ -83,7 +83,7 @@ def register():
     if _update_renderman_lights_ not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(_update_renderman_lights_)    
 
-def remove_handlers():
+def unregister():
     if texture_utils.parse_for_textures_load_cb in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(texture_utils.parse_for_textures_load_cb)
 
