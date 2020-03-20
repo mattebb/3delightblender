@@ -139,5 +139,8 @@ def register():
         
 
 def unregister():
+    for cls,cfg_name in props_classes:        
+        bpy.utils.unregister_class(cls)  
+
     for cls in classes:
         bpy.utils.unregister_class(cls)
