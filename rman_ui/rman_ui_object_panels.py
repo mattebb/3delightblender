@@ -109,11 +109,11 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
 
         _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry', context, layout, rm)                       
 
-        rman_archive = load_icons().get("archive_RIB")
+        rman_archive = load_icons().get("rman_CreateArchive.png")
         col = layout.column()
         col.enabled = not rman_interactive_running
         col.operator("export.export_rib_archive",
-                    text="Export Object as RIB Archive.", icon_value=rman_archive.icon_id)     
+                    text="Export Object as RIB Archive", icon_value=rman_archive.icon_id)     
 
         col = layout.column()
 

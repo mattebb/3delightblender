@@ -30,18 +30,18 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
 
             # Render
             row = layout.row(align=True)
-            rman_render_icon = icons.get("render")            
+            rman_render_icon = icons.get("rman_render.png") 
             row.operator("render.render", text="Render",
                         icon_value=rman_render_icon.icon_id)
 
             # Batch Render
-            rman_batch = icons.get("batch_render")
+            rman_batch = icons.get("rman_batch.png")
             row.operator("render.render", text="Render Animation",
                         icon_value=rman_batch.icon_id).animation = True
 
         else:
             row = layout.row(align=True)
-            rman_rerender_controls = icons.get("stop_ipr")
+            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
             row.operator('lighting.stop_interactive', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)                                          
 
@@ -72,11 +72,12 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         icons = load_icons()
         col = layout.column()
         row = col.row(align=True)
-        rman_batch = icons.get("batch_render")
+        rman_batch = icons.get("rman_batch.png")
         row.operator("renderman.external_render",
                      text="External Render", icon_value=rman_batch.icon_id)
+        rman_bake = icons.get("rman_bake.png")                     
         row.operator("renderman.external_bake",
-                     text="External Bake Render", icon_value=rman_batch.icon_id)
+                     text="External Bake Render", icon_value=rman_bake.icon_id)
 
         # do animation
         col.prop(rm, 'external_animation')
@@ -204,7 +205,7 @@ class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
         rm = scene.renderman         
         row = layout.row()
         icons = load_icons()
-        rman_batch = icons.get("batch_render")
+        rman_batch = icons.get("rman_bake.png")
         row.operator("renderman.bake",
                      text="Bake", icon_value=rman_batch.icon_id)  
 

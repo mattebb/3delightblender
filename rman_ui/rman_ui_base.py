@@ -12,7 +12,7 @@ class _RManPanelHeader():
     def draw_header(self, context):
         if prefs_utils.get_addon_prefs().draw_panel_icon:
             icons = load_icons()
-            rfb_icon = icons.get("rfb_panel")
+            rfb_icon = icons.get("rman_blender.png")
             self.layout.label(text="", icon_value=rfb_icon.icon_id)
         else:
             pass

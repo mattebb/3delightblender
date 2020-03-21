@@ -174,7 +174,7 @@ class RendermanPresetCategory(PropertyGroup):
     def generate_previews(self, context):
         return icons.load_previews(self)
     
-    path: StringProperty(default='', name='Category Path', subtype="FILE_PATH")
+    path: StringProperty(default='', name='Path', subtype="FILE_PATH")
     presets: CollectionProperty(type=RendermanPreset)
     selected_preset: EnumProperty(items=generate_previews, name='Selected Preset')
 
@@ -199,7 +199,7 @@ def register():
         bpy.utils.register_class(cls)
 
     # set sub groups after registering the class
-    RendermanPresetCategory.__annotations__['sub_categories'] = CollectionProperty(type=RendermanPresetCategory)
+    RendermanPresetCategory.sub_categories = CollectionProperty(type=RendermanPresetCategory)
    
 
 def unregister():

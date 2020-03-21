@@ -180,7 +180,7 @@ class RendermanPreferences(AddonPreferences):
         layout = self.layout
 
         icons = load_icons()
-        rman_r_icon = icons.get("rfb_panel")
+        rman_r_icon = icons.get("rman_blender.png")
 
         row = layout.row()
         row.use_property_split = False

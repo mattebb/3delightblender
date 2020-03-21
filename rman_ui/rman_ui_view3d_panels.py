@@ -33,7 +33,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         if not is_rman_interactive_running:
 
             row = layout.row(align=True)
-            rman_render_icon = icons.get("render")
+            rman_render_icon = icons.get("rman_render.png")
             row.operator("render.render", text="Render",
                         icon_value=rman_render_icon.icon_id)
 
@@ -55,12 +55,12 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 
                 # animation
                 row = box.row(align=True)
-                rman_batch = icons.get("batch_render")
+                rman_batch = icons.get("rman_batch.png")
                 row.operator("render.render", text="Render Animation",
                             icon_value=rman_batch.icon_id).animation = True
 
             row = layout.row(align=True)
-            rman_batch = icons.get("batch_render")
+            rman_batch = icons.get("rman_batch.png")
 
             row.operator("renderman.external_render",
                         text="External Render", icon_value=rman_batch.icon_id)
@@ -90,7 +90,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
         else:
             row = layout.row(align=True)
-            rman_rerender_controls = icons.get("stop_ipr")
+            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
             row.operator('lighting.stop_interactive', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)            
 
@@ -158,11 +158,20 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.separator()
         layout.label(text="Lights:")
         box = layout.box()
+        rman_light = icons.get("rman_arealight.png")
         box.operator_menu_enum(
                 "object.rman_add_light", 'rman_light_name', text="Add RenderMan Light", icon='LIGHT')  
         box.operator_menu_enum(
                 "object.rman_add_light_filter", 'rman_lightfilter_name', text="Add RenderMan Light Filter", icon='LIGHT')
 
+        layout.separator()
+        layout.label(text="Apps:")
+        box = layout.box()
+        rman_it = icons.get("rman_it.png")
+        box.operator("rman.start_it", icon_value=rman_it.icon_id)  
+        rman_lq = icons.get("rman_localqueue.png")
+        box.operator("rman.start_localqueue", icon_value=rman_lq.icon_id)          
+        
         selected_objects = []
         if context.selected_objects:
             for obj in context.selected_objects:
@@ -179,18 +188,18 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 "object.rman_add_bxdf", 'bxdf_name', text="Add New Material", icon='MATERIAL')         
 
             # Make Selected Geo Emissive
-            rman_RMSGeoAreaLight = icons.get("geoarealight")
+            rman_RMSGeoAreaLight = icons.get("out_PxrMeshLight.png")
             box.operator("object.rman_create_meshlight", text="Convert to Mesh Light",
                          icon_value=rman_RMSGeoAreaLight.icon_id)
 
             # Add Subdiv Sheme
-            rman_subdiv = icons.get("add_subdiv_scheme")
+            rman_subdiv = icons.get("rman_subdiv.png")
             box.operator("object.rman_add_subdiv_scheme",
                          text="Convert to Subdiv", icon_value=rman_subdiv.icon_id)
 
             # Add/Create RIB Box /
             # Create Archive node
-            rman_archive = icons.get("archive_RIB")
+            rman_archive = icons.get("rman_CreateArchive.png")
             box.operator("export.export_rib_archive",
                          icon_value=rman_archive.icon_id)
 
@@ -206,10 +215,10 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
         layout.separator()
         # RenderMan Doc
-        rman_help = icons.get("help")
+        rman_help = icons.get("rman_help.png")
         layout.operator("wm.url_open", text="RenderMan Docs",
                         icon_value=rman_help.icon_id).url = "https://github.com/prman-pixar/RenderManForBlender/wiki/Documentation-Home"
-        rman_info = icons.get("info")
+        rman_info = icons.get("rman_info.png")
         layout.operator("wm.url_open", text="About RenderMan",
                         icon_value=rman_info.icon_id).url = "https://renderman.pixar.com/store/intro"
 

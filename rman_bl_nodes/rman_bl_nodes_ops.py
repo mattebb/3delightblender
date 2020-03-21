@@ -1,7 +1,9 @@
 from bpy.props import EnumProperty, StringProperty
 from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
+from ..icons.icons import load_icons
 import bpy
+import os
 
 def socket_node_input(nt, socket):
     return next((l.from_node for l in nt.links if l.to_socket == socket), None)
@@ -50,6 +52,7 @@ class NODE_OT_add_node:
     def get_type_items(self, context):
         items = []
         # if this is a pattern input do columns!
+        icons = load_icons()        
         if self.input_type.lower() == 'pattern':
             i = 0
             items.append(('REMOVE', 'Remove',
@@ -67,36 +70,59 @@ class NODE_OT_add_node:
                 if len(patterns[1]) < 1:
                     continue
                 items.append(('', pattern_cat, pattern_cat, '', 0))
-
                 for node_item in patterns[1]:
                     nodetype = rman_bl_nodes.__RMAN_NODE_TYPES__[node_item.nodetype]
-                    items.append((nodetype.typename, nodetype.bl_label,
-                                nodetype.bl_label, '', i))   
+                    node_name = nodetype.bl_label
+                    if node_name.endswith('.oso'):
+                        node_name = os.path.splitext(node_name)[0]
+                    rman_icon = icons.get('out_%s.png' % node_name, None)
+                    if not rman_icon:
+                        items.append((nodetype.typename, nodetype.bl_label,
+                                    nodetype.bl_label, '', i))   
+                    else:
+                        items.append((nodetype.typename, nodetype.bl_label,
+                                    nodetype.bl_label, rman_icon.icon_id, i))   
                     i += 1             
                 items.append(('', '', '', '', 0))
 
         elif self.input_type.lower() in ['pxrsurface', 'manifold', 'bump', 'osl manifold', 'osl bump']:
-            pattern_key = 'patterns_%s' % self.input_type.lower()
-
-            patterns = rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'][pattern_key][1]
-            for node_item in patterns:
-                nodetype = rman_bl_nodes.__RMAN_NODE_TYPES__[node_item.nodetype]
-                items.append((nodetype.typename, nodetype.bl_label,
-                              nodetype.bl_label))
-
+            i = 0
             items.append(('REMOVE', 'Remove',
                           'Remove the node connected to this socket'))
             items.append(('DISCONNECT', 'Disconnect',
                           'Disconnect the node connected to this socket'))
+
+            pattern_key = 'patterns_%s' % self.input_type.lower()
+
+            patterns = rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'][pattern_key][1]
+
+            for node_item in patterns:
+                nodetype = rman_bl_nodes.__RMAN_NODE_TYPES__[node_item.nodetype]
+                node_name = nodetype.bl_label
+                if node_name.endswith('.oso'):
+                    node_name = os.path.splitext(node_name)[0]
+                rman_icon = icons.get('out_%s.png' % node_name, None)  
+                if not rman_icon:
+                    items.append((nodetype.typename, nodetype.bl_label,
+                                nodetype.bl_label, '', i))
+                else:
+                    items.append((nodetype.typename, nodetype.bl_label,
+                                nodetype.bl_label, rman_icon.icon_id, i))                    
+
         else:
+            i = 0
             for nodetype in rman_bl_nodes.__RMAN_NODE_TYPES__.values():
+                rman_icon = icons.get('out_%s.png' % nodetype.bl_label, None)
+                if not rman_icon:
+                    rman_icon = icons.get('out_PxrSurface.png')
                 if self.input_type.lower() == 'light' and nodetype.renderman_node_type == 'light':
                     if nodetype.__name__ == 'PxrMeshLightLightNode':
                         items.append((nodetype.typename, nodetype.bl_label,
-                                      nodetype.bl_label))
+                                      nodetype.bl_label, rman_icon.icon_id, i))
                 elif nodetype.renderman_node_type == self.input_type.lower():
                     items.append((nodetype.typename, nodetype.bl_label,
-                                  nodetype.bl_label))
+                                  nodetype.bl_label, rman_icon.icon_id, i))
+                i += 1
             items = sorted(items, key=itemgetter(1))
             items.append(('REMOVE', 'Remove',
                           'Remove the node connected to this socket'))
@@ -177,7 +203,7 @@ class NODE_OT_add_displacement(bpy.types.Operator, NODE_OT_add_node):
     bl_idname = 'node.add_displacement'
     bl_label = 'Add Displacement Node'
     bl_description = 'Connect a Displacement shader to this socket'
-    input_type: StringProperty(default='Displacement')
+    input_type: StringProperty(default='Displace')
 
 
 class NODE_OT_add_light(bpy.types.Operator, NODE_OT_add_node):

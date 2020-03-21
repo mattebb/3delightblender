@@ -54,7 +54,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
     def draw_header(self, context):
         if prefs_utils.get_addon_prefs().draw_panel_icon:
             rfb_icons = ui_icons.load_icons()
-            rfb_icon = rfb_icons.get("rfb_panel")
+            rfb_icon = rfb_icons.get("rman_blender.png")
             self.layout.label(text="", icon_value=rfb_icon.icon_id)
         else:
             pass
@@ -69,9 +69,10 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
             return
 
         current_presets_category = prefs_utils.get_addon_prefs().presets_current_category
+        presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
 
         rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
-        if current_presets_category.name == '':
+        if presets_root_category.name == '':
             row = layout.row(align=True)          
             row.operator("renderman.init_preset_library", text="Choose Library")
             if rman_asset_lib:

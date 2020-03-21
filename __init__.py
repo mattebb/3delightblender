@@ -196,7 +196,6 @@ def load_addon():
         operators.register()
         rman_ui.register()  
         rman_properties.register()      
-        #add_handlers(None)
         rman_handlers.register()
 
     else:
@@ -219,7 +218,6 @@ def register():
 
 def unregister():
     from . import preferences
-    #remove_handlers()
     rman_handlers.unregister()
     rman_bl_nodes.unregister()    
     operators.unregister()

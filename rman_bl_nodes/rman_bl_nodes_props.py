@@ -97,14 +97,18 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
     def get_rman_light_shaders(self, context):
         icons = load_icons()
-        rman_light_icon = icons.get("arealight")
         items = []
         i = 0
+        rman_light_icon = icons.get("out_PxrRectLight.png")
         items.append(('PxrRectLight', 'PxrRectLight', '', rman_light_icon.icon_id, i))
         for n in rman_bl_nodes.__RMAN_LIGHT_NODES__:
             if n.name != 'PxrRectLight':
                 i += 1
-                items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
+                light_icon = icons.get("out_%s.png" % n.name, None)
+                if not light_icon:                
+                    items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
+                else:
+                    items.append( (n.name, n.name, '', light_icon.icon_id, i))
         return items
 
     renderman_light_shader: EnumProperty(
@@ -138,12 +142,20 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
                     'ShaderNodeVectorCurve').name      
           
     def get_rman_light_filter_shaders(self, context):
+        icons = load_icons()        
         items = []
-        items.append(('PxrBlockerLightFilter', 'PxrBlockerLightFilter', ''))
+        i = 0
+        rman_light_icon = icons.get("out_PxrBlockerLightFilter.png")
+        items.append(('PxrBlockerLightFilter', 'PxrBlockerLightFilter', '', rman_light_icon.icon_id, i))
         for n in rman_bl_nodes.__RMAN_LIGHTFILTER_NODES__:
             if n.name != 'PxrBlockerLightFilter':
-                items.append( (n.name, n.name, ''))
-        return items
+                i += 1
+                light_icon = icons.get("out_%s.png" % n.name, None)
+                if not light_icon:                
+                    items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
+                else:
+                    items.append( (n.name, n.name, '', light_icon.icon_id, i))
+        return items        
 
     renderman_light_filter_shader: EnumProperty(
         name="RenderMan Light Filter",

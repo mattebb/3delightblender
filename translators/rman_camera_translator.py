@@ -60,6 +60,17 @@ class RmanCameraTranslator(RmanTranslator):
 
     def _update_viewport_transform(self, rman_sg_camera):
         mtx = self.rman_scene.context.region_data.view_matrix.inverted()
+
+        # WIDTH: 2220 HEIGHT: 1220 FOV 49.134532
+        #mtx = Matrix(mtx) @ ( Matrix.Translation((0.0, 0.0, 1.0)))
+        
+        # WIDTH: 2220 HEIGHT: 807 FOV: 49.134532
+        #mtx = Matrix(mtx) @ ( Matrix.Translation((0.0, 0.0, -2.0)))
+        
+        # WIDTH: 2121 HEIGHT: 1347 FOV: 24.085243
+        mtx = Matrix(mtx) @ ( Matrix.Translation((-0.01, -0.03, -4.3)))
+
+
         v = transform_utils.convert_matrix(mtx)
         if rman_sg_camera.cam_matrix == v:
             return        

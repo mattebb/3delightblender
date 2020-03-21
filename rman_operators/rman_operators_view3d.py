@@ -2,6 +2,7 @@ import bpy
 from .. import rman_bl_nodes
 from ..icons.icons import load_icons
 from ..rman_utils.scene_utils import EXCLUDED_OBJECT_TYPES
+from ..rman_utils.filepath_utils import find_it_path, find_local_queue
 from bpy.props import EnumProperty
 
 class PRMAN_OT_RM_Add_Subdiv_Scheme(bpy.types.Operator):
@@ -25,14 +26,18 @@ class PRMAN_OT_RM_Add_Light(bpy.types.Operator):
 
     def get_type_items(self, context):
         icons = load_icons()
-        rman_light_icon = icons.get("arealight")     
+        rman_light_icon = icons.get("out_PxrRectLight.png")
         items = []
         i = 0
         items.append(('PxrRectLight', 'PxrRectLight', '', rman_light_icon.icon_id, i))
         for n in rman_bl_nodes.__RMAN_LIGHT_NODES__:
             if n.name != 'PxrRectLight':
                 i += 1
-                items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
+                light_icon = icons.get("out_%s.png" % n.name, None)
+                if not light_icon:
+                    items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
+                else:
+                    items.append( (n.name, n.name, '', light_icon.icon_id, i))
         return items
 
     rman_light_name: EnumProperty(items=get_type_items, name="Light Name")
@@ -57,11 +62,19 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def get_type_items(self, context):
+        icons = load_icons()
         items = []
-        items.append(('PxrBlockerLightFilter', 'PxrBlockerLightFilter', ''))
+        i = 0
+        rman_light_icon = icons.get("out_PxrBlockerLightFilter.png")
+        items.append(('PxrBlockerLightFilter', 'PxrBlockerLightFilter', '', rman_light_icon.icon_id, i))
         for n in rman_bl_nodes.__RMAN_LIGHTFILTER_NODES__:
             if n.name != 'PxrBlockerLightFilter':
-                items.append( (n.name, n.name, ''))
+                i += 1
+                light_icon = icons.get("out_%s.png" % n.name, None)
+                if not light_icon:                
+                    items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
+                else:
+                    items.append( (n.name, n.name, '', light_icon.icon_id, i))
         return items
 
     rman_lightfilter_name: EnumProperty(items=get_type_items, name="Light Filter Name")
@@ -88,11 +101,15 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
 
     def get_type_items(self, context):
         icons = load_icons()
-        rman_bxdf_icon = icons.get("pxrdisney")     
+        rman_disney_icon = icons.get("out_PxrSurface.png")    
         items = []
         i = 0
         for i,n in enumerate(rman_bl_nodes.__RMAN_BXDF_NODES__):
-            items.append( (n.name, n.name, '', rman_bxdf_icon.icon_id, i))
+            rman_bxdf_icon = icons.get("out_%s.png" % n.name, None)
+            if not rman_bxdf_icon:
+                items.append( (n.name, n.name, '', rman_disney_icon.icon_id, i))
+            else:
+                items.append( (n.name, n.name, '', rman_bxdf_icon.icon_id, i))                
         return items        
     bxdf_name: EnumProperty(items=get_type_items, name="Bxdf Name")
 
@@ -173,13 +190,46 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
                 obj.material_slots[-1].material = mat
         return {"FINISHED"}
 
+class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
+    bl_idname = 'rman.start_it'
+    bl_label = "Start 'it'"
+    bl_description = "Start RenderMan's it"
+
+    def execute(self, context):
+        it_path = find_it_path()
+        if not it_path:
+            self.report({"ERROR"},
+                        "Could not find 'it'.")
+        else:
+            environ = os.environ.copy()
+            subprocess.Popen([it_path], env=environ, shell=True)
+        return {'FINISHED'}        
+
+class PRMAN_OT_Renderman_start_localqueue(bpy.types.Operator):
+    bl_idname = 'rman.start_localqueue'
+    bl_label = "Start Local Queue"
+    bl_description = "Start LocalQueue"
+
+    def execute(self, context):
+        lq_path = find_local_queue()
+        if not lq_path:
+            self.report({"ERROR"},
+                        "Could not find LocalQueue.")
+        else:
+            environ = os.environ.copy()
+            subprocess.Popen([lq_path], env=environ, shell=True)
+        return {'FINISHED'}        
+
+
 
 classes = [
     PRMAN_OT_RM_Add_Subdiv_Scheme,
     PRMAN_OT_RM_Add_Light,
     PRMAN_OT_RM_Add_Light_Filter,
     PRMAN_OT_RM_Add_bxdf,
-    PRMAN_OT_RM_Create_MeshLight    
+    PRMAN_OT_RM_Create_MeshLight,
+    PRMAN_OT_Renderman_start_it,
+    PRMAN_OT_Renderman_start_localqueue         
 ]
 
 def register():

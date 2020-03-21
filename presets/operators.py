@@ -24,6 +24,7 @@
 # ##### END MIT LICENSE BLOCK #####
 
 from ..rman_utils import prefs_utils
+from ..rman_utils import filepath_utils
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 import os
 from distutils.dir_util import copy_tree
@@ -49,6 +50,7 @@ class PRMAN_OT_reload_preset_library(bpy.types.Operator):
 
     def execute(self, context):
         presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
+        presets_current_category = prefs_utils.get_addon_prefs().presets_current_category
         rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
         if rman_asset_lib:
             # check if RMAN_ASSET_LIBRARY is diffrent from our current library
@@ -61,7 +63,7 @@ class PRMAN_OT_reload_preset_library(bpy.types.Operator):
 
         refresh_presets_libraries(presets_root_category.path, presets_root_category)
         presets_current_category = presets_root_category.sub_categories['LightRigs']
-        prefs_utils.get_addon_prefs().presets_current_category_path = presets_current_category.path        
+        prefs_utils.get_addon_prefs().presets_current_category_path = presets_current_category.path     
         bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
@@ -88,7 +90,7 @@ class PRMAN_OT_init_preset_library(bpy.types.Operator):
             presets_root_category.path = self.directory
         
         elif os.access(self.directory, os.W_OK):
-            rmantree_lib_path = os.path.join(util.guess_rmantree(), 'lib', 'RenderManAssetLibrary')
+            rmantree_lib_path = os.path.join(filepath_utils.guess_rmantree(), 'lib', 'RenderManAssetLibrary')
             copy_tree(rmantree_lib_path, self.directory)
             presets_root_category.name = 'Library'
             presets_root_category.path = self.directory

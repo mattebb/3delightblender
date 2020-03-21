@@ -42,92 +42,11 @@ def load_icons():
 
     icons_dir = os.path.join(os.path.dirname(__file__))
 
-    # Render Current Frame
-    custom_icons.load("render", os.path.join(
-        icons_dir, "rman_render.png"), 'IMAGE')
-    # Start IPR
-    custom_icons.load("start_ipr", os.path.join(
-        icons_dir, "rman_rerender_controls.png"), 'IMAGE')
-    # Stop IPR
-    custom_icons.load("stop_ipr", os.path.join(
-        icons_dir, "rman_batch_cancel.png"), 'IMAGE')
-    # STart IT
-    custom_icons.load("start_it", os.path.join(
-        icons_dir, "rman_it.png"), 'IMAGE')
-    # Batch Render
-    custom_icons.load("batch_render", os.path.join(
-        icons_dir, "rman_batch.png"), 'IMAGE')
-    # Dynamic Binding Editor
-
-    # Create PxrLM Material
-
-    # Create Disney Material
-    custom_icons.load("pxrdisney", os.path.join(
-        icons_dir, "render_PxrDisney.png"), 'IMAGE')
-    # Create Holdout
-
-    # Open Linking Panel
-
-    # Create Env Light
-    custom_icons.load("envlight", os.path.join(
-        icons_dir, "rman_RMSEnvLight.png"), 'IMAGE')
-    # Daylight
-    custom_icons.load("daylight", os.path.join(
-        icons_dir, "rman_PxrStdEnvDayLight.png"), 'IMAGE')
-    # Create GEO Area Light
-    custom_icons.load("geoarealight", os.path.join(
-        icons_dir, "rman_RMSGeoAreaLight.png"), 'IMAGE')
-    # Create Area Light
-    custom_icons.load("arealight", os.path.join(
-        icons_dir, "rman_RMSAreaLight.png"), 'IMAGE')
-    # Create Point Light
-    custom_icons.load("pointlight", os.path.join(
-        icons_dir, "rman_RMSPointLight.png"), 'IMAGE')
-    # Create Spot Light
-    #custom_icons.load("spotlight", os.path.join(icons_dir, "rman_RMSPointLight.png"), 'IMAGE')
-
-    # Create Geo LightBlocker
-
-    # Make Selected Geo Emissive
-
-    # Create Archive node
-
-    # Update Archive
-
-    # Open Last RIB
-    custom_icons.load("open_last_rib", os.path.join(
-        icons_dir, "rman_open_last_rib.png"), 'IMAGE')
-    # Inspect RIB Selection
-
-    # Shared Geometry Attribute
-
-    # Add Subdiv Sheme
-
-    custom_icons.load("add_subdiv_scheme", os.path.join(
-        icons_dir, "rman_subdiv.png"), 'IMAGE')
-    # Add/Atach Coordsys
-
-    # Add/Create RIB Box
-    custom_icons.load("archive_RIB", os.path.join(
-        icons_dir, "rman_CreateArchive.png"), 'IMAGE')
-    # Open Tmake Window
-
-    # Create OpenVDB Visualizer
-
-    # RenderMan Doc
-    custom_icons.load("help", os.path.join(
-        icons_dir, "rman_help.png"), 'IMAGE')
-    # About RenderMan
-    custom_icons.load("info", os.path.join(
-        icons_dir, "rman_info.png"), 'IMAGE')
-
-    # Reload plugin
-    custom_icons.load("reload_plugin", os.path.join(
-        icons_dir, "rman_loadplugin.png"), 'IMAGE')
-
-    # RenderMan for Blender UI-Panels Icon - "R"
-    custom_icons.load("rfb_panel", os.path.join(
-        icons_dir, "rman_blender.png"), 'IMAGE')
+    for f in os.listdir(icons_dir):
+        if not f.endswith('.png'):
+            continue
+        custom_icons.load(f, os.path.join(icons_dir, f), 'IMAGE')
+        
 
     # FIXME: Not sure why this is needed
     # Without it, icons don't seem to show up?

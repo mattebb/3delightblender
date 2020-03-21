@@ -75,25 +75,6 @@ class PRMAN_OT_Renderman_open_stats(bpy.types.Operator):
             url="file://" + os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current))
         return {'FINISHED'}
 
-
-class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
-    bl_idname = 'rman.start_it'
-    bl_label = "Start IT"
-    bl_description = "Start RenderMan's IT"
-
-    def execute(self, context):
-        scene = context.scene
-        rm = scene.renderman
-        it_path = find_it_path()
-        if not it_path:
-            self.report({"ERROR"},
-                        "Could not find 'it'.")
-        else:
-            environ = os.environ.copy()
-            subprocess.Popen([it_path], env=environ, shell=True)
-        return {'FINISHED'}
-
-
 class RENDERMAN_OT_add_remove_output(bpy.types.Operator):
     bl_idname = "renderman.add_remove_output"
     bl_label = "Add or remove channel from output"
@@ -494,7 +475,7 @@ def menu_draw(self, context):
     if context.scene.render.engine != "PRMAN_RENDER":
         return
     icons = load_icons()
-    examples_menu = icons.get("help")
+    examples_menu = icons.get("rman_help.png")
     self.layout.menu("PRMAN_MT_examples", icon_value=examples_menu.icon_id)
 
 # Yuck, this should be built in to blender... Yes it should
@@ -986,7 +967,6 @@ compile_shader_menu_func = (lambda self, context: self.layout.operator(
 
 classes = [
     PRMAN_OT_Renderman_open_stats,
-    PRMAN_OT_Renderman_start_it,
     RENDERMAN_OT_add_remove_output,
     SHADING_OT_convert_all_renderman_nodetree,
     SHADING_OT_add_renderman_nodetree,

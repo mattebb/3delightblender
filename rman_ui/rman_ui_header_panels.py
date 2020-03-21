@@ -23,24 +23,12 @@ class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
 
             # Render
             row = layout.row(align=True)
-            rman_render_icon = icons.get("render")            
+            rman_render_icon = icons.get("rman_render.png")            
             row.operator("render.render", text="Render",
                         icon_value=rman_render_icon.icon_id)
-
-            # IPR
-            #rman_rerender_controls = icons.get("start_ipr")
-            #row.operator('lighting.start_interactive', text="Start IPR",
-            #                icon_value=rman_rerender_controls.icon_id)      
-
-            # Batch Render
-
-            #rman_batch = icons.get("batch_render")
-            #row.operator("renderman.external_render",
-            #             text="External Render", icon_value=rman_batch.icon_id)
-
         else:
             row = layout.row(align=True)
-            rman_rerender_controls = icons.get("stop_ipr")
+            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
             row.operator('lighting.stop_interactive', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)      
 
@@ -89,13 +77,13 @@ class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
 
             # Render
             row = layout.row(align=True)
-            rman_render_icon = icons.get("render")            
+            rman_render_icon = icons.get("rman_render.png")       
             row.operator("render.render", text="Render",
                         icon_value=rman_render_icon.icon_id)    
 
         else:
             row = layout.row(align=True)
-            rman_rerender_controls = icons.get("stop_ipr")
+            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
             row.operator('lighting.stop_interactive', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)  
 
