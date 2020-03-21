@@ -13,6 +13,7 @@ from ..rman_properties import rman_properties_scene
 from ..rman_properties import rman_properties_renderlayers
 from ..rman_properties import rman_properties_world
 from ..rman_properties import rman_properties_camera
+from ..rman_constants import RFB_ADDON_PATH
 from nodeitems_utils import NodeCategory, NodeItem
 from collections import OrderedDict
 from operator import attrgetter
@@ -462,8 +463,7 @@ def get_path_list():
     rmantree = filepath_utils.guess_rmantree()
     paths.append(os.path.join(rmantree, 'lib', 'plugins'))
     paths.append(os.path.join(rmantree, 'lib', 'shaders'))
-    paths.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                'Args'))
+    paths.append(os.path.join(RFB_ADDON_PATH, 'Args'))
 
     if 'RMAN_RIXPLUGINPATH' in os.environ:
         RMAN_RIXPLUGINPATH = os.environ['RMAN_RIXPLUGINPATH']

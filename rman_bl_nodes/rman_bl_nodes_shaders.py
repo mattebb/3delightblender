@@ -1,6 +1,7 @@
 from ..rfb_logger import rfb_log
 from . import rman_socket_utils
 from .. import rman_render
+from ..icons.icons import load_icons
 import _cycles
 import bpy
 
@@ -71,6 +72,11 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 
     def draw_nonconnectable_props(self, context, layout, prop_names):
+        icons = load_icons()
+        rman_icon = icons.get('out_%s.png' % self.bl_label, None )
+        if not rman_icon:
+            rman_icon = icons.get('out_unknown.png')
+        layout.label(text='', icon_value=rman_icon.icon_id)        
         if self.bl_idname in ['PxrLayerPatternOSLNode', 'PxrSurfaceBxdfNode']:
             col = layout.column(align=True)
             for prop_name in prop_names:

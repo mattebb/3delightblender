@@ -1,6 +1,7 @@
 from . import shadergraph_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from .. import rman_config
+from ..icons.icons import load_icons
 import bpy
 
 def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
@@ -149,6 +150,8 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
 
 def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
+    icons = load_icons()
+
     def indented_label(layout, label, level):
         for i in range(level):
             layout.label(text='', icon='BLANK1')
@@ -205,7 +208,10 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     row.prop(socket, "ui_open", icon=icon, text='',
                              icon_only=True, emboss=False)
                     label = prop_meta.get('label', prop_name)
-                    row.label(text=label + ':')
+                    rman_icon = icons.get('out_%s.png' % input_node.bl_label, None )
+                    if not rman_icon:
+                        rman_icon = icons.get('out_unknown.png')                  
+                    row.label(text=label + ':', icon_value=rman_icon.icon_id)
                     if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
                         split.operator_menu_enum("node.add_layer", "node_type",
                                                  text=input_node.bl_label, icon="LAYER_USED")
@@ -220,8 +226,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                                  text=input_node.bl_label, icon="LAYER_USED")
                     else:
                         split.operator_menu_enum("node.add_pattern", "node_type",
-                                                 text=input_node.bl_label, icon="LAYER_USED")
-
+                                                 text=input_node.bl_label, icon="LAYER_USED") 
                     if socket.ui_open:
                         draw_node_properties_recursive(layout, context, nt,
                                                        input_node, level=level + 1)

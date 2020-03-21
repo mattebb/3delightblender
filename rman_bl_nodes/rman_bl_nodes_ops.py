@@ -114,7 +114,7 @@ class NODE_OT_add_node:
             for nodetype in rman_bl_nodes.__RMAN_NODE_TYPES__.values():
                 rman_icon = icons.get('out_%s.png' % nodetype.bl_label, None)
                 if not rman_icon:
-                    rman_icon = icons.get('out_PxrSurface.png')
+                    rman_icon = icons.get('out_unknown.png')
                 if self.input_type.lower() == 'light' and nodetype.renderman_node_type == 'light':
                     if nodetype.__name__ == 'PxrMeshLightLightNode':
                         items.append((nodetype.typename, nodetype.bl_label,
