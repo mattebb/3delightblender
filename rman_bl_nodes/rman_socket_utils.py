@@ -1,3 +1,6 @@
+from ..rman_constants import RFB_ARRAYS_MAX_LEN
+
+
 # map types in args files to socket types
 __RMAN_SOCKET_MAP__ = {
     'float': 'RendermanNodeSocketFloat',
@@ -17,14 +20,14 @@ __RMAN_SOCKET_MAP__ = {
 def update_inputs(node):
     if node.bl_idname == 'PxrMeshLightLightNode':
         return
-    for page_name in node.prop_names:
+    for prop_name in node.prop_names:
+        page_name = prop_name
         if node.prop_meta[page_name]['renderman_type'] == 'page':
             for prop_name in getattr(node, page_name):
                 if prop_name.startswith('enable'):
                     recursive_enable_inputs(node, getattr(
                         node, page_name), getattr(node, prop_name))
                     break
-
 
 def recursive_enable_inputs(node, prop_names, enable=True):
     for prop_name in prop_names:
@@ -40,11 +43,15 @@ def find_enable_param(params):
         if prop_name.startswith('enable'):
             return prop_name
 
-# add input sockets
+
 def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix='', remove=False):
+    ''' Add new input sockets to this ShadingNode
+    '''
+
     for name in prop_names:
         meta = node.prop_meta[name]
         param_type = meta['renderman_type']
+        param_type = getattr(meta, 'renderman_array_type', param_type)
 
         if name in node.inputs.keys() and remove:
             node.inputs.remove(node.inputs[name])
@@ -72,6 +79,14 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
                                 first_level=first_level,
                                 label_prefix=label_prefix, remove=remove)
                 continue
+        elif 'renderman_type' in meta and meta['renderman_type'] == 'array':
+            arraylen = getattr(node, '%s_arraylen' % name)
+            sub_prop_names = getattr(node, name)
+            sub_prop_names = sub_prop_names[:arraylen]
+            node_add_inputs(node, node_name, sub_prop_names,
+                label_prefix='',
+                first_level=False, remove=False)
+            continue
 
         if remove:
             continue
@@ -84,7 +99,6 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
         param_name = name
 
         param_label = label_prefix + meta.get('label', param_name)
-
         socket = node.inputs.new(
             __RMAN_SOCKET_MAP__[param_type], param_name, identifier=param_label)
         socket.link_limit = 1

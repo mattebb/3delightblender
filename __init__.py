@@ -26,7 +26,6 @@ import bpy
 import bgl
 import blf
 import time
-from . import rman_constants
 from .rman_utils import filepath_utils
 from .rman_utils import texture_utils
 from .rman_utils import prefs_utils

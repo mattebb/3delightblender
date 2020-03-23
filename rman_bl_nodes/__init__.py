@@ -14,10 +14,12 @@ from ..rman_properties import rman_properties_renderlayers
 from ..rman_properties import rman_properties_world
 from ..rman_properties import rman_properties_camera
 from ..rman_constants import RFB_ADDON_PATH
+from ..rman_constants import RFB_ARRAYS_MAX_LEN
 from nodeitems_utils import NodeCategory, NodeItem
 from collections import OrderedDict
 from operator import attrgetter
 from bpy.props import *
+from copy import deepcopy
 import bpy
 import os
 import sys
@@ -78,6 +80,8 @@ __RMAN_PLUGIN_MAPPING__ = {
     'samplefilter': rman_bl_nodes_props.RendermanSampleFilterSettings,
 }
 
+__RMAN_NODES_NO_REGISTER__ = ['PxrCombinerLightFilter', 'PxrSampleFilterCombiner', 'PxrDisplayFilterCombiner']
+
 
 def update_conditional_visops(node):
     for param_name, prop_meta in getattr(node, 'prop_meta').items():
@@ -135,6 +139,42 @@ def update_func_with_inputs(self, context):
         for input_name, socket in node.inputs.items():
             if 'hidden' in prop_meta[input_name]:
                 socket.hide = prop_meta[input_name]['hidden']
+
+def update_array_size_func(self, context):
+    '''
+    Callback function for changes to array size/length property
+
+    If there's a change in the size, we first remove all of the input/sockets
+    from the ShadingNode related to arrays. We then re-add the input/socktes
+    with the new size via the rman_socket_utils.node_add_inputs function. 
+    We need to do this because Blender seems to draw all inputs in the node
+    properties panel. This is a problem if the array size gets smaller.
+    '''
+
+    # check if this prop is set on an input
+    node = self.node if hasattr(self, 'node') else self
+
+    if context and hasattr(context, 'material'):
+        mat = context.material
+        if mat:
+            node.update_mat(mat)
+    elif context and hasattr(context, 'node'):
+        mat = context.space_data.id
+        if mat:
+            node.update_mat(mat)
+    
+    # first remove all sockets/inputs from the node related to arrays
+    for prop_name,meta in node.prop_meta.items():
+        renderman_type = meta.get('renderman_type', '')
+        if renderman_type == 'array':
+            sub_prop_names = getattr(node, prop_name)
+            for nm in sub_prop_names:
+                if nm in node.inputs.keys():
+                    node.inputs.remove(node.inputs[nm])
+
+    # now re-add all sockets/inputs
+    node_add_inputs(node, node.name, node.prop_names)
+           
 
 def update_func(self, context):
     # check if this prop is set on an input
@@ -240,6 +280,11 @@ def class_generate_properties(node, parent_name, node_desc):
 
         if not update_function:
             update_function = update_func
+
+        if node_desc_param.is_array():
+            # this is an array 
+            if property_utils.generate_array_property(node, prop_names, prop_meta, node_desc_param, update_array_size_func=update_array_size_func, update_array_elem_func=update_function):
+                continue
 
         name, meta, prop = property_utils.generate_property(node_desc_param, update_function=update_function)
         if name is None:
@@ -493,6 +538,10 @@ def register_rman_nodes():
                 if filename.endswith(('.args', '.oso')):
                     is_oso = filename.endswith('.oso')
                     node_desc = NodeDesc(FilePath(root).join(FilePath(filename)))
+                    # skip registering these nodes
+                    if node_desc.name in __RMAN_NODES_NO_REGISTER__:
+                        continue
+
                     __RMAN_NODES__[node_desc.node_type].append(node_desc)
                     rfb_log().debug("\t%s" % node_desc.name)
 

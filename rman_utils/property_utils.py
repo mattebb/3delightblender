@@ -1,9 +1,12 @@
 from . import texture_utils
 from . import string_utils
 from . import shadergraph_utils
+from . import node_desc
+from ..rman_constants import RFB_ARRAYS_MAX_LEN
 from ..rfb_logger import rfb_log
 from collections import OrderedDict
 from bpy.props import *
+from copy import deepcopy
 import bpy
 import sys
 
@@ -34,14 +37,23 @@ __RMAN_EMPTY_STRING__ = '__empty__'
 
 def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1):
     if is_array:
-        if param_type == 'float':
-            params.SetFloatArray(param_name, val, array_len)
-        elif param_type == 'int':
-            params.SetIntegerArray(param_name, val, array_len)
-        elif param_type == 'color':
-            params.SetColorArray(param_name, val, array_len/3)
-        elif param_type == 'string':
-            params.SetStringArray(param_name, val, array_len)
+        if is_reference:
+            if param_type == 'float':
+                params.SetFloatReferenceArray(param_name, val, array_len)
+            elif param_type == 'int':
+                params.SetIntegerReferenceArray(param_name, val, array_len)
+            elif param_type == 'color':
+                params.SetColorReferenceArray(param_name, val, array_len)
+        else:
+            if param_type == 'float':
+                params.SetFloatArray(param_name, val, array_len)
+            elif param_type == 'int':
+                params.SetIntegerArray(param_name, val, array_len)
+            elif param_type == 'color':
+                params.SetColorArray(param_name, val, int(array_len/3))
+            elif param_type == 'string':
+                params.SetStringArray(param_name, val, array_len)
+
     elif is_reference:
         if param_type == "float":
             params.SetFloatReference(param_name, val)
@@ -242,6 +254,78 @@ def vstruct_conditional(node, param):
         new_tokens.extend(['else', 'False'])
     return eval(" ".join(new_tokens))
 
+def generate_array_property(node, prop_names, prop_meta, node_desc_param, update_array_size_func=None, update_array_elem_func=None):
+    '''Generate the necessary properties for an array parameter and
+    add it to the node
+
+    Arguments:
+        node (ShadingNode) - shading node
+        prop_names (list) - the current list of property names for the shading node
+        prop_meta (dict) - dictionary of the meta data for the properties for the node
+        node_desc_param (NodeDescParam) - NodeDescParam object
+        update_array_size_func (FunctionType) - callback function for when array size changes
+        update_array_elem_func (FunctionType) - callback function for when an array element changes
+
+    Returns:
+        bool - True if succeeded. False if not.
+    
+    ''' 
+
+    def is_array(ndp):          
+        ''' A simple function to check if we indeed need to handle this parameter or should just ignore
+        it. Ex: color ramps
+        '''
+        haswidget = hasattr(ndp, 'widget')
+        if haswidget:
+            if ndp.widget.lower() in ['null', 'colorramp', 'floatramp']:
+                return False
+
+        if hasattr(ndp, 'options'):
+            for k,v in ndp.options.items():
+                if k in ['colorramp', 'floatramp']:
+                    return False
+
+        return True
+
+    if not is_array(node_desc_param):
+        return False
+
+    param_name = node_desc_param._name
+    param_label = getattr(node_desc_param, 'label', param_name)
+    prop_meta[param_name] = {'renderman_type': 'array', 
+                            'renderman_array_type': node_desc_param.type,
+                            'renderman_name':  param_name,
+                            'label': param_label,
+                            'type': node_desc_param.type
+                            }
+    prop_names.append(param_name)
+    ui_label = "%s_uio" % param_name
+    node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=False)
+    sub_prop_names = []
+    arraylen_nm = '%s_arraylen' % param_name
+    prop = IntProperty(name=arraylen_nm, 
+                        default=0, soft_min=0, soft_max=RFB_ARRAYS_MAX_LEN,
+                        description="Size of array",
+                        update=update_array_size_func)
+    node.__annotations__[arraylen_nm] = prop  
+
+    for i in range(0, RFB_ARRAYS_MAX_LEN+1):
+        ndp = deepcopy(node_desc_param)
+        ndp._name = '%s[%d]' % (param_name, i)
+        if hasattr(ndp, 'label'):
+            ndp.label = '%s[%d]' % (ndp.label, i)
+        #ndp.size = None
+        ndp.connectable = True
+        ndp.widget = ''
+        name, meta, prop = generate_property(ndp, update_function=update_array_elem_func)
+        meta['renderman_array_name'] = param_name
+        sub_prop_names.append(ndp._name)
+        prop_meta[ndp._name] = meta
+        node.__annotations__[ndp._name] = prop  
+            
+    setattr(node, param_name, sub_prop_names)   
+    return True  
+
 def generate_property(sp, update_function=None):
     options = {'ANIMATABLE'}
     param_name = sp._name
@@ -280,11 +364,19 @@ def generate_property(sp, update_function=None):
      
     prop = None
 
+    prop_meta['label'] = param_label
     prop_meta['widget'] = param_widget
     prop_meta['options'] = getattr(sp, 'options', OrderedDict())
 
     if hasattr(sp, 'connectable') and not sp.connectable:
         prop_meta['__noconnection'] = True
+
+    if param_widget == 'null':
+        return (None, None, None)
+
+    for k,v in prop_meta['options'].items():
+        if k in ['colorramp', 'floatramp']:
+            return (None, None, None)
 
     # set this prop as non connectable
     if param_widget in ['null', 'checkbox', 'switch', 'colorramp']:
@@ -315,12 +407,10 @@ def generate_property(sp, update_function=None):
 
     if 'float' == param_type:
         if sp.is_array():
-            prop = FloatVectorProperty(name=param_label,
-                                       default=param_default, precision=3,
-                                       size=len(param_default),
+            prop = FloatProperty(name=param_label,
+                                       default=0.0, precision=3,
                                        description=param_help,
-                                       update=update_function)
-            prop_meta['arraySize'] = sp.size
+                                       update=update_function)       
         else:
             if param_widget == 'checkbox' or param_widget == 'switch':
                 
@@ -358,12 +448,9 @@ def generate_property(sp, update_function=None):
 
     elif param_type == 'int' or param_type == 'integer':
         if sp.is_array(): 
-            prop = IntVectorProperty(name=param_label,
-                                     default=param_default,
-                                     size=len(param_default),
-                                     description=param_help,
-                                     update=update_function)
-            prop_meta['arraySize'] = sp.size                                     
+            prop = IntProperty(name=param_label,
+                                default=0,
+                                description=param_help, update=update_function)            
         else:
             param_default = int(param_default) if param_default else 0
             # make invertT default 0
@@ -409,15 +496,19 @@ def generate_property(sp, update_function=None):
 
     elif param_type == 'color':
         if sp.is_array():
-            prop_meta['arraySize'] = sp.size
-            return (None, None, None)
-        if param_default == 'null' or param_default is None:
-            param_default = '0 0 0'
-        prop = FloatVectorProperty(name=param_label,
-                                   default=param_default, size=3,
-                                   subtype="COLOR",
-                                   soft_min=0.0, soft_max=1.0,
-                                   description=param_help, update=update_function)
+            prop = FloatVectorProperty(name=param_label,
+                                    default=(1.0, 1.0, 1.0), size=3,
+                                    subtype="COLOR",
+                                    soft_min=0.0, soft_max=1.0,
+                                    description=param_help, update=update_function)
+        else:
+            if param_default == 'null' or param_default is None:
+                param_default = (0.0,0.0,0.0)
+            prop = FloatVectorProperty(name=param_label,
+                                    default=param_default, size=3,
+                                    subtype="COLOR",
+                                    soft_min=0.0, soft_max=1.0,
+                                    description=param_help, update=update_function)
         renderman_type = 'color'
     elif param_type == 'shader':
         param_default = ''
@@ -729,12 +820,39 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                                 display = 'texture'
                             val = string_utils.expand_string(val, display='texture', asFilePath=True)
 
-                    elif 'arraySize' in meta:
-                        isArray = True
-                        if type(prop) == int:
-                            prop = [prop]
-                        val = string_utils.convert_val(prop)
-                        arrayLen = len(prop)
+                    elif 'renderman_array_name' in meta:
+                        continue
+                    elif meta['renderman_type'] == 'array':
+                        array_len = getattr(node, '%s_arraylen' % prop_name)
+                        sub_prop_names = getattr(node, prop_name)
+                        sub_prop_names = sub_prop_names[:array_len]
+                        val_array = []
+                        val_ref_array = []
+                        param_type = meta['renderman_array_type']
+                        
+                        for nm in sub_prop_names:
+                            if hasattr(node, 'inputs')  and nm in node.inputs and \
+                                node.inputs[nm].is_linked:
+
+                                to_socket = node.inputs[nm]
+                                from_socket = to_socket.links[0].from_socket
+                                from_node = to_socket.links[0].from_node
+
+                                val = get_output_param_str(
+                                    from_node, mat_name, from_socket, to_socket, param_type)
+                                val_ref_array.append(val)
+                            else:
+                                prop = getattr(node, nm)
+                                val = string_utils.convert_val(prop, type_hint=param_type)
+                                if param_type in node_desc.FLOAT3:
+                                    val_array.extend(val)
+                                else:
+                                    val_array.append(val)
+                        if val_ref_array:
+                            set_rix_param(params, param_type, param_name, val_ref_array, is_reference=True, is_array=True, array_len=len(val_ref_array))
+                        else:
+                            set_rix_param(params, param_type, param_name, val_array, is_reference=False, is_array=True, array_len=len(val_array))
+                        continue
                     else:
 
                         val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
@@ -780,10 +898,25 @@ def set_rixparams(node, rman_sg_node, params, light):
         else:
             type = meta['renderman_type']
             name = meta['renderman_name']
-            # if struct is not linked continue
-            if 'arraySize' in meta:
-                set_rix_param(params, type, name, string_utils.convert_val(prop), is_reference=False, is_array=True, array_len=len(prop))
 
+            if 'renderman_array_name' in meta:
+                continue
+            elif meta['renderman_type'] == 'array':
+                array_len = getattr(node, '%s_arraylen' % prop_name)
+                sub_prop_names = getattr(node, prop_name)
+                sub_prop_names = sub_prop_names[:array_len]
+                val_array = []
+                param_type = meta['renderman_array_type']
+                
+                for nm in sub_prop_names:
+                    prop = getattr(node, nm)
+                    val = string_utils.convert_val(prop, type_hint=param_type)
+                    if param_type in node_desc.FLOAT3:
+                        val_array.extend(val)
+                    else:
+                        val_array.append(val)
+                set_rix_param(params, param_type, param_name, val_array, is_reference=False, is_array=True, array_len=len(val_array))
+                continue
 
             elif meta['renderman_type'] == 'string':
                 # FIXME: Need a better way to check for a frame variable

@@ -152,6 +152,7 @@ class RendermanPreferences(AddonPreferences):
 
     rman_editor: StringProperty(
         name="Editor",
+        subtype='FILE_PATH',
         description="Text editor excutable you want to use to view RIB.",
         default=""
     )

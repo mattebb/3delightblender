@@ -139,6 +139,16 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                             prop = getattr(self, prop_name)
                             self.draw_nonconnectable_props(
                                 context, layout, prop)
+
+                    
+                    elif prop_meta['renderman_type'] == 'array':
+                        row = layout.row(align=True)
+                        col = row.column()
+                        row = col.row()
+                        arraylen = getattr(self, '%s_arraylen' % prop_name)             
+                        row.label(text='%s Size' % prop_name)               
+                        row.prop(self, '%s_arraylen' % prop_name, text='')
+
                     elif "Subset" in prop_name and prop_meta['type'] == 'string':
                         layout.prop_search(self, prop_name, bpy.data.scenes[0].renderman,
                                            "object_groups")

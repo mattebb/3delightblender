@@ -80,6 +80,33 @@ def _draw_props(node, prop_names, layout):
             if ui_open:
                 _draw_props(node, prop, layout)
 
+        elif prop_meta['renderman_type'] == 'array':
+            ui_prop = prop_name + "_uio"
+            ui_open = getattr(node, ui_prop)
+            icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
+                else 'DISCLOSURE_TRI_RIGHT'
+
+            split = layout.split(factor=NODE_LAYOUT_SPLIT)
+            row = split.row()
+            for i in range(level):
+                row.label(text='', icon='BLANK1')
+
+            row.prop(node, ui_prop, icon=icon, text='',
+                        icon_only=True, emboss=False)
+            sub_prop_names = list(prop)
+            row.label(text=prop_name + ' (array):')
+
+            if ui_open:
+                row = layout.row(align=True)
+                col = row.column()
+                row = col.row()
+                arraylen = getattr(node, '%s_arraylen' % prop_name)                         
+                row.prop(node, '%s_arraylen' % prop_name, text='Size')
+                for i in range(0, arraylen):
+                    row = col.row()
+                    row.label(text='%s[%d]' % (prop_name, i))
+                    row.prop(node, '%s[%d]' % (prop_name, i), text='')
+            continue
         else:
             if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
                     'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
@@ -262,7 +289,50 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
                         if ui_open:
                             draw_props(sub_prop_names, layout, level + 1)
+                    elif prop_meta['renderman_type'] == 'array':
+                        ui_prop = prop_name + "_uio"
+                        ui_open = getattr(node, ui_prop)
+                        icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
+                            else 'DISCLOSURE_TRI_RIGHT'
 
+                        split = layout.split(factor=NODE_LAYOUT_SPLIT)
+                        row = split.row()
+                        for i in range(level):
+                            row.label(text='', icon='BLANK1')
+
+                        row.prop(node, ui_prop, icon=icon, text='',
+                                 icon_only=True, emboss=False)
+                        sub_prop_names = list(prop)
+                        prop_label = prop_meta.get('label', prop_name)
+                        row.label(text=prop_label + ' (array):')
+
+                        if ui_open:
+                            row = layout.row(align=True)
+                            col = row.column()
+                            row = col.row()
+                            arraylen = getattr(node, '%s_arraylen' % prop_name)  
+                            indented_label(row, None, level)                     
+                            row.prop(node, '%s_arraylen' % prop_name, text='Size')
+                            for i in range(0, arraylen):
+                                row = col.row()
+                                array_elem_nm = '%s[%d]' % (prop_name, i)
+                                indented_label(row, None, level)
+                                row.label(text='%s[%d]' % (prop_label, i))
+                                row.prop(node, array_elem_nm, text='')
+                                if array_elem_nm in node.inputs:
+                                    if prop_meta['renderman_array_type'] == 'bxdf':
+                                        row.operator_menu_enum("node.add_bxdf", "node_type",
+                                                            text='', icon="LAYER_USED")                                                       
+                                    elif prop_meta['renderman_array_type'] == 'struct':
+                                        row.operator_menu_enum("node.add_manifold", "node_type",
+                                                            text='', icon="LAYER_USED")
+                                    elif prop_meta['renderman_array_type'] == 'normal':
+                                        row.operator_menu_enum("node.add_bump", "node_type",
+                                                            text='', icon="LAYER_USED")
+                                    else:
+                                        row.operator_menu_enum("node.add_pattern", "node_type",
+                                                            text='', icon="LAYER_USED")
+                        continue
                     else:
                         if is_pxrramp and prop_name == 'useNewRamp':
                             # don't show useNewRamp param
