@@ -5,42 +5,49 @@ import sys
 from ..rfb_logger import rfb_log
 from ..rman_utils import prefs_utils
 from ..rman_utils import string_utils
+from ..rman_utils import filepath_utils
 from ..rman_render import RmanRender
 from bpy.props import StringProperty, BoolProperty
+
 
 def _view_rib(rib_output):
     
     prefs = prefs_utils.get_addon_prefs()
 
-    if not prefs.rman_editor:
-        if sys.platform == ("win32"):
-            try:
-                os.startfile(rib_output)
-                return
-            except:
-                pass
-        else:
-            if sys.platform == ("darwin"):
-                opener = 'open -t'
-            else:
-                opener = os.getenv('EDITOR', 'xdg-open')
-                opener = os.getenv('VIEW', opener)
-            try:
-                os.system(command)
-            except Exception:
-                pass
-            
-        # last resort, try webbrowser
-        try:
-            webbrowser.open(rib_output)
-        except Exception:
-            rfb_logger.error('error', "File not available!")
-    else:
-        command = prefs.rman_editor + " " + rib_output
+    if prefs.rman_editor:
+        rman_editor = filepath_utils.get_real_path(prefs.rman_editor)
+        command = rman_editor + " " + rib_output
         try:
             os.system(command)
+            return
         except Exception:
-            rfb_logger.error("File or text editor not available. (Check and make sure text editor is in system path.)")
+            rfb_log().error("File or text editor not available. (Check and make sure text editor is in system path.)")        
+
+
+    if sys.platform == ("win32"):
+        try:
+            os.startfile(rib_output)
+            return
+        except:
+            pass
+    else:
+        if sys.platform == ("darwin"):
+            opener = 'open -t'
+        else:
+            opener = os.getenv('EDITOR', 'xdg-open')
+            opener = os.getenv('VIEW', opener)
+        try:
+            command = opener + " " + rib_output
+            os.system(command)
+        except Exception as e:
+            rfb_log().error("Open RIB file command failed: %s" % command)
+            pass
+        
+    # last resort, try webbrowser
+    try:
+        webbrowser.open(rib_output)
+    except Exception as e:
+        rfb_log().error("Open RIB file with web browser failed: %s" % str(e))
 
 class PRMAN_OT_Renderman_open_scene_RIB(bpy.types.Operator):
     bl_idname = 'rman.open_scene_rib'
