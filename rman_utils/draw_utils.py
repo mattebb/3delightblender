@@ -94,14 +94,15 @@ def _draw_props(node, prop_names, layout):
             row.prop(node, ui_prop, icon=icon, text='',
                         icon_only=True, emboss=False)
             sub_prop_names = list(prop)
-            row.label(text=prop_name + ' (array):')
+            arraylen_nm = '%s_arraylen' % prop_name
+            arraylen = getattr(node, arraylen_nm) 
+            row.label(text=prop_name + ' [%d]:' % arraylen)
 
             if ui_open:
                 row = layout.row(align=True)
                 col = row.column()
-                row = col.row()
-                arraylen = getattr(node, '%s_arraylen' % prop_name)                         
-                row.prop(node, '%s_arraylen' % prop_name, text='Size')
+                row = col.row()                        
+                row.prop(node, arraylen_nm, text='Size')
                 for i in range(0, arraylen):
                     row = col.row()
                     row.label(text='%s[%d]' % (prop_name, i))
@@ -303,14 +304,14 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         row.prop(node, ui_prop, icon=icon, text='',
                                  icon_only=True, emboss=False)
                         sub_prop_names = list(prop)
+                        arraylen = getattr(node, '%s_arraylen' % prop_name)
                         prop_label = prop_meta.get('label', prop_name)
-                        row.label(text=prop_label + ' (array):')
+                        row.label(text=prop_label + ' [%d]:' % arraylen)
 
                         if ui_open:
                             row = layout.row(align=True)
                             col = row.column()
                             row = col.row()
-                            arraylen = getattr(node, '%s_arraylen' % prop_name)  
                             indented_label(row, None, level)                     
                             row.prop(node, '%s_arraylen' % prop_name, text='Size')
                             for i in range(0, arraylen):
