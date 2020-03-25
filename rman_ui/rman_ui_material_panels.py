@@ -124,8 +124,8 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
                 col = row.column()
                 icons = load_icons()
                 if light.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
-                    rman_light_icon = icons.get("rman_%s.png" % light.renderman.renderman_light_filter_shader )
-                    col.label(text="%s" % light.renderman.renderman_light_filter_shader, icon_value=rman_light_icon.icon_id)
+                    rman_lightfilter_icon = icons.get("out_%s.png" % light.renderman.renderman_light_filter_shader )
+                    col.label(text="%s" % light.renderman.renderman_light_filter_shader, icon_value=rman_lightfilter_icon.icon_id)
                 else:
                     rman_light_icon = icons.get("out_%s.png" % light.renderman.renderman_light_shader)                    
                     col.label(text="%s" % light.renderman.renderman_light_shader, icon_value=rman_light_icon.icon_id)
