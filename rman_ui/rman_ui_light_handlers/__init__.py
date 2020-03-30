@@ -1,12 +1,14 @@
 import bpy
 import gpu
 from gpu_extras.batch import batch_for_shader
-from ..rman_utils import transform_utils
+from ...rman_utils import transform_utils
+from .barn_light_filter_draw_helper import BarnLightFilterDrawHelper
 from mathutils import Vector, Matrix
 import mathutils
 import math
 
 _DRAW_HANDLER_ = None
+_BARN_LIGHT_DRAW_HELPER_ = None
 _PI0_5_ = 1.570796327
 
 s_rmanLightLogo = dict()
@@ -1260,50 +1262,33 @@ def draw_ramp_light_filter(ob):
     else:
         pass
 
-def get_parented_lights(light_filter):
-    parents = []
+def draw_barn_light_filter(ob):
+    global _BARN_LIGHT_DRAW_HELPER_
 
-    for ob in [x for x in bpy.data.objects if x.type == 'LIGHT']:
-        if not ob.data.renderman:
-            continue
-        rm = ob.data.renderman
-        if rm.renderman_type == 'FILTER':
-            continue
-        for lf in rm.light_filters:
-            if lf.filter_name == light_filter.name:
-                parents.append(ob)
-                break
-    return parents
-
-def draw_barn_light_filter(ob, parents):
     _SHADER_.bind()
+
+    m = Matrix(ob.matrix_world) 
+    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
+    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
 
     if ob in bpy.context.selected_objects:
         _SHADER_.uniform_float("color", (1,1,1,1))
 
-    m = Matrix(ob.matrix_world)        
-    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
-    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
+    if not _BARN_LIGHT_DRAW_HELPER_:
+        _BARN_LIGHT_DRAW_HELPER_ = BarnLightFilterDrawHelper()
+    _BARN_LIGHT_DRAW_HELPER_.update_input_params(ob)
+    vtx_buffer = _BARN_LIGHT_DRAW_HELPER_.vtx_buffer()
 
-    box = []
-    for pt in s_rmanLightLogo['box']:
-        box.append( Vector(transform_utils.transform_points( m, pt)))
+    pts = []
+    for pt in vtx_buffer:
+        pts.append( Vector(transform_utils.transform_points( m, pt)))
 
-    box_indices = _get_indices(s_rmanLightLogo['box'])
-    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": box}, indices=box_indices)    
-    batch.draw(_SHADER_)  
+    indices = _BARN_LIGHT_DRAW_HELPER_.idx_buffer(len(pt), 0, 0)
+    # blender wants a list of lists
+    indices = [indices[i:i+2] for i in range(0, len(indices), 2)]
 
-    n = mathutils.geometry.normal(box)
-    n.normalize()
-
-    box2 = []
-    for pt in box:
-        new_pt = pt + (4 * n)
-        box2.append(new_pt)
-
-    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": box2}, indices=box_indices)    
-    batch.draw(_SHADER_)         
-
+    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": pts}, indices=indices)    
+    batch.draw(_SHADER_)     
 
 def draw():
 
@@ -1341,8 +1326,7 @@ def draw():
             draw_ramp_light_filter(ob)
         elif light_shader_name == 'PxrBarnLightFilter':
             # get all lights that the barn is attached to
-            parents = get_parented_lights(ob)
-            draw_barn_light_filter(ob, parents)
+            draw_barn_light_filter(ob)
         else: 
             draw_rect_light(ob) 
 
