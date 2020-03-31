@@ -1,4 +1,6 @@
 import bpy
+import os
+import subprocess
 from .. import rman_bl_nodes
 from ..icons.icons import load_icons
 from ..rman_utils.scene_utils import EXCLUDED_OBJECT_TYPES
