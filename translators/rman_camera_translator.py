@@ -68,7 +68,7 @@ class RmanCameraTranslator(RmanTranslator):
         #mtx = Matrix(mtx) @ ( Matrix.Translation((0.0, 0.0, -2.0)))
         
         # WIDTH: 2121 HEIGHT: 1347 FOV: 24.085243
-        mtx = Matrix(mtx) @ ( Matrix.Translation((-0.01, -0.03, -4.3)))
+        # mtx = Matrix(mtx) @ ( Matrix.Translation((-0.01, -0.03, -4.3)))
 
 
         v = transform_utils.convert_matrix(mtx)
