@@ -93,7 +93,7 @@ class BarnLightFilterDrawHelper(object):
         self.bottomEdge = 0.0
         self.topEdge = 0.0
         self.invert = 0
-        self.depth = 0.01
+        self.depth = 10.0
 
     def update_input_params(self, obj):   
 
@@ -308,14 +308,21 @@ class BarnLightFilterDrawHelper(object):
             them for later use.
 
         Args:
-        - this_obj (om.MObject): The maya object
+        - this_obj (bpy.type.Light): The light filter object
         """
 
         self.light_corners = []
         self.light_positions = []
         self.light_names = []
-        world_to_filter_matrix = this_obj.matrix_world
 
+        # z-up to y-up
+        m = Matrix.Identity(4)
+        m[1][1] = 0.0
+        m[1][2] = -1.0
+        m[2][1] = 1.0
+        m[2][2] = 0.0 
+
+        world_to_filter_matrix = this_obj.matrix_world @ m
         for light_obj in self.parents:
             corners = []
             # print('      |__ %s' % light_obj.name)
@@ -323,8 +330,8 @@ class BarnLightFilterDrawHelper(object):
             # get the light ws matrix
             lgt_to_world_matrix = light_obj.matrix_world
             # print('      |__ matrix = %s' % lgt_to_world_matrix)
-            lgt_to_fltr_matrix = lgt_to_world_matrix.inverted_safe() @ world_to_filter_matrix 
-
+            lgt_to_fltr_matrix = lgt_to_world_matrix.inverted_safe() @ world_to_filter_matrix @ m         
+ 
             # get the light position in filter space
             trans, rotation, scale = lgt_to_world_matrix.decompose()
             lgt_pos = trans
@@ -406,8 +413,8 @@ class BarnLightFilterDrawHelper(object):
                 p_lgt = self.light_corners[light_idx][pl]
                 v = p_lgt - p_fltr
                 v.normalize()
-            # print ('    |__ %s - %s = %s  len = %s (%s, %s)' %
-            #        (p_lgt, p_fltr, v, v.length(), pf, pl))
+            # print ('    |__ %s - %s = %s  len = %f (%s, %s)' %
+            #        (str(p_lgt), str(p_fltr), str(v), v.length, pf, pl))
             yield p_fltr, v        
 
     def vtx_buffer(self):
@@ -448,7 +455,7 @@ class BarnLightFilterDrawHelper(object):
             # compute the corners of the projection at a given depth.
             npos = []
             for vtx, vec in self.ordered_proj_vectors(i):
-                p = vtx + vec * (-max(0.0, self.depth) / max(vec.z, 0.001))
+                p = vtx + vec * (-max(0.0, self.depth) / max(abs(vec.z), 0.001))
                 npos.append(p)
 
             # far shape

@@ -1269,7 +1269,7 @@ def draw_barn_light_filter(ob):
 
     m = Matrix(ob.matrix_world) 
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
-    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
+    #m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
 
     if ob in bpy.context.selected_objects:
         _SHADER_.uniform_float("color", (1,1,1,1))
