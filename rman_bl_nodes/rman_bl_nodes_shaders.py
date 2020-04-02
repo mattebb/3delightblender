@@ -64,19 +64,24 @@ class RendermanShadingNode(bpy.types.ShaderNode):
     # on connectable props will have the same name
     # node_props = None
     def draw_buttons(self, context, layout):
+        icons = load_icons()
+        rman_icon = icons.get('out_%s.png' % self.bl_label, None )
+        if not rman_icon:
+            rman_icon = icons.get('out_unknown.png')
+        layout.label(text='', icon_value=rman_icon.icon_id)             
         self.draw_nonconnectable_props(context, layout, self.prop_names)
         if self.bl_idname == "PxrOSLPatternNode":
             layout.operator("node.refresh_osl_shader")
 
     def draw_buttons_ext(self, context, layout):
-        self.draw_nonconnectable_props(context, layout, self.prop_names)
-
-    def draw_nonconnectable_props(self, context, layout, prop_names):
         icons = load_icons()
         rman_icon = icons.get('out_%s.png' % self.bl_label, None )
         if not rman_icon:
             rman_icon = icons.get('out_unknown.png')
-        layout.label(text='', icon_value=rman_icon.icon_id)        
+        layout.label(text='', icon_value=rman_icon.icon_id)             
+        self.draw_nonconnectable_props(context, layout, self.prop_names)
+
+    def draw_nonconnectable_props(self, context, layout, prop_names):   
         if self.bl_idname in ['PxrLayerPatternOSLNode', 'PxrSurfaceBxdfNode']:
             col = layout.column(align=True)
             for prop_name in prop_names:
@@ -308,15 +313,21 @@ class RendermanOutputNode(RendermanShadingNode):
     renderman_node_type = 'output'
     bl_icon = 'MATERIAL'
     node_tree = None
+    new_links = []
 
     def init(self, context):
-        input = self.inputs.new('RendermanShaderSocket', 'Bxdf')
+        self._init_inputs()   
+
+    def _init_inputs(self):
+        input = self.inputs.new('RendermanNodeSocketBxdf', 'Bxdf')
         input.type = 'SHADER'
         input.hide_value = True
-        input = self.inputs.new('RendermanShaderSocket', 'Light')
+        input = self.inputs.new('RendermanNodeSocketLight', 'Light')
         input.hide_value = True
-        input = self.inputs.new('RendermanShaderSocket', 'Displacement')
+        input = self.inputs.new('RendermanNodeSocketDisplacement', 'Displacement')
         input.hide_value = True
+        input = self.inputs.new('RendermanNodeSocketLightFilter', 'LightFilter')
+        input.hide_value = True    
 
     def draw_buttons(self, context, layout):
         return
@@ -324,9 +335,26 @@ class RendermanOutputNode(RendermanShadingNode):
     def draw_buttons_ext(self, context, layout):
         return
 
+    def insert_link(self, link):
+        if link in self.new_links:
+            pass
+        else:
+            self.new_links.append(link)
+
     # when a connection is made or removed see if we're in IPR mode and issue
     # updates
     def update(self):
+        for link in self.new_links:
+            if link.from_node.renderman_node_type != link.to_socket.renderman_type:
+                # FIXME: this should removed eventually
+                if link.to_socket.bl_idname == 'RendermanShaderSocket':
+                    continue
+                node_tree = self.id_data
+                node_tree.links.remove(link)
+        
+        # We have checked all new links, clear and wait for the next update
+        self.new_links.clear()
+
         # This sucks. There doesn't seem to be a way to tag the material
         # it needs updating, so we manually issue an edit
         rr = rman_render.RmanRender.get_rman_render()        
@@ -357,9 +385,12 @@ class RendermanPatternNode(RendermanShadingNode):
 
 
 class RendermanLightNode(RendermanShadingNode):
-    bl_label = 'Output'
+    bl_label = 'Light'
     renderman_node_type = 'light'
 
+class RendermanLightfilterNode(RendermanShadingNode):
+    bl_label = 'LightFilter'
+    renderman_node_type = 'lightfilter'
 
 classes = [
     RendermanShadingNode,
@@ -367,7 +398,8 @@ classes = [
     RendermanBxdfNode,
     RendermanDisplacementNode,
     RendermanPatternNode,
-    RendermanLightNode
+    RendermanLightNode,
+    RendermanLightfilterNode
 ]
 
 def register():

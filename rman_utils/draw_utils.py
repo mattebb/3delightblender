@@ -119,18 +119,7 @@ def _draw_props(node, prop_names, layout):
                 row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
                                 "object_groups")
             else:
-                if 'widget' in prop_meta and prop_meta['widget'] == 'floatramp':
-                    rm = bpy.context.light.renderman
-                    nt = bpy.context.light.node_tree
-                    float_node = nt.nodes[rm.float_ramp_node]
-                    layout.template_curve_mapping(float_node, 'mapping')
-                elif 'widget' in prop_meta and prop_meta['widget'] == 'colorramp':
-                    rm = bpy.context.light.renderman
-                    nt = bpy.context.light.node_tree
-                    ramp_node = nt.nodes[rm.color_ramp_node]
-                    layout.template_color_ramp(ramp_node, 'color_ramp')
-                else:
-                    row.prop(node, prop_name)   
+                row.prop(node, prop_name)   
 
 
 def panel_node_draw(layout, context, id_data, output_type, input_name):
@@ -160,17 +149,16 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
     layout.context_pointer_set("node", output_node)
     layout.context_pointer_set("socket", socket)
 
-    split = layout.split(factor=0.35)
-    split.label(text=socket.name + ':')
+    if input_name not in ['Light', 'LightFilter']:
+        split = layout.split(factor=0.35)
+        split.label(text=socket.name + ':')
 
-    if socket.is_linked:
-        # for lights draw the shading rate ui.
-
-        split.operator_menu_enum("node.add_%s" % input_name.lower(),
-                                 "node_type", text=node.bl_label)
-    else:
-        split.operator_menu_enum("node.add_%s" % input_name.lower(),
-                                 "node_type", text='None')
+        if socket.is_linked:
+            split.operator_menu_enum("node.add_%s" % input_name.lower(),
+                                    "node_type", text=node.bl_label)
+        else:
+            split.operator_menu_enum("node.add_%s" % input_name.lower(),
+                                    "node_type", text='None')
 
     if node is not None:
         draw_node_properties_recursive(layout, context, nt, node)
@@ -191,10 +179,6 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
     def draw_props(prop_names, layout, level):
         for prop_name in prop_names:
-            # skip showing the shape for PxrStdAreaLight
-            if prop_name in ["lightGroup", "rman__Shape", "coneAngle", "penumbraAngle"]:
-                continue
-
             is_pxrramp = node.plugin_name == 'PxrRamp'
             if prop_name == "codetypeswitch":
                 row = layout.row()
@@ -213,12 +197,26 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     if prop_meta['widget'] == 'null' or \
                         'hidden' in prop_meta and prop_meta['hidden']:
                         continue
-                    elif prop_meta['widget'] == 'colorramp' and is_pxrramp:
-                        dummy_nt = bpy.data.node_groups[node.node_group]
-                        if dummy_nt:
-                            layout.template_color_ramp(
-                                dummy_nt.nodes["ColorRamp"], 'color_ramp')  
-                            continue  
+                    elif prop_meta['widget'] == 'colorramp':
+                        if is_pxrramp:
+                            dummy_nt = bpy.data.node_groups[node.node_group]
+                            if dummy_nt:
+                                layout.template_color_ramp(
+                                    dummy_nt.nodes["ColorRamp"], 'color_ramp')  
+                                continue  
+                        else:
+                            rm = bpy.context.light.renderman
+                            node_tree = bpy.context.light.node_tree
+                            ramp_node = node_tree.nodes[rm.color_ramp_node]
+                            layout.template_color_ramp(ramp_node, 'color_ramp')     
+                            continue
+
+                    elif prop_meta['widget'] == 'floatramp':
+                        rm = bpy.context.light.renderman
+                        node_tree = bpy.context.light.node_tree
+                        float_node = node_tree.nodes[rm.float_ramp_node]
+                        layout.template_curve_mapping(float_node, 'mapping')                  
+                        continue
 
                 # else check if the socket with this name is connected
                 socket = node.inputs[prop_name] if prop_name in node.inputs \

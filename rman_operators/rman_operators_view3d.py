@@ -53,7 +53,30 @@ class PRMAN_OT_RM_Add_Light(bpy.types.Operator):
 
         for ob in context.selected_objects:
             ob.name = self.rman_light_name
-            ob.data.name = self.rman_light_name          
+            ob.data.name = self.rman_light_name    
+
+        nt = bpy.context.object.data.node_tree
+
+        for node in nt.nodes:
+            if node.bl_idname == 'RendermanOutputNode':
+                output = node
+                break
+
+        if not output:
+            output = nt.nodes.new('RendermanOutputNode')       
+
+        if output.inputs[1].is_linked:
+            old_node = output.inputs[1].links[0].from_node
+            nt.nodes.remove(old_node)                  
+
+        default = nt.nodes.new('%sLightNode' %
+                                bpy.context.object.data.renderman.renderman_light_shader)
+        default.location = output.location
+        default.location[0] -= 300
+        nt.links.new(default.outputs[0], output.inputs[1])           
+        output.inputs[0].hide = True
+        output.inputs[2].hide = True
+        output.inputs[3].hide = True              
 
         return {"FINISHED"}
 
@@ -91,7 +114,30 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
 
         for ob in context.selected_objects:
             ob.name = self.rman_lightfilter_name
-            ob.data.name = self.rman_lightfilter_name          
+            ob.data.name = self.rman_lightfilter_name               
+
+        nt = bpy.context.object.data.node_tree
+
+        for node in nt.nodes:
+            if node.bl_idname == 'RendermanOutputNode':
+                output = node
+                break
+
+        if not output:
+            output = nt.nodes.new('RendermanOutputNode')
+
+        if output.inputs[1].is_linked:
+            old_node = output.inputs[1].links[0].from_node
+            nt.nodes.remove(old_node)                  
+
+        default = nt.nodes.new('%sLightfilterNode' %
+                                bpy.context.object.data.renderman.renderman_light_filter_shader)
+        default.location = output.location
+        default.location[0] -= 300
+        nt.links.new(default.outputs[0], output.inputs[3])   
+        output.inputs[0].hide = True
+        output.inputs[1].hide = True
+        output.inputs[2].hide = True   
 
         return {"FINISHED"}        
 
@@ -130,6 +176,7 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
         default.location = output.location
         default.location[0] -= 300
         nt.links.new(default.outputs[0], output.inputs[0])
+        output.inputs[3].hide = True  
 
         if bxdf_name == 'PxrLayerSurface':
             mixer = nt.nodes.new("PxrLayerMixerPatternOSLNode")

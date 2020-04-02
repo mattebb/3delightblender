@@ -1,5 +1,6 @@
 from ..rman_utils import texture_utils
 from ..rman_utils import string_utils
+from ..rman_utils import shadergraph_utils
 from bpy.app.handlers import persistent
 import bpy
 
@@ -15,6 +16,35 @@ def _update_renderman_lights_(bl_scene):
             continue
         light = ob.data
         rm = light.renderman
+
+        light.use_nodes = True
+        nt = light.node_tree
+
+        if nt and not shadergraph_utils.find_node(light, 'RendermanOutputNode'):
+            output = nt.nodes.new('RendermanOutputNode')
+
+            if rm.renderman_light_role == 'RMAN_LIGHT':
+                default = nt.nodes.new('%sLightNode' %
+                                        rm.renderman_light_shader)
+                default.location = output.location
+                default.location[0] -= 300
+                nt.links.new(default.outputs[0], output.inputs[1])     
+                light.renderman.renderman_lock_light_type = True     
+                output.inputs[0].hide = True
+                output.inputs[2].hide = True  
+                output.inputs[3].hide = True                  
+            else:
+                default = nt.nodes.new('%sLightfilterNode' %
+                                        rm.renderman_light_filter_shader)
+                default.location = output.location
+                default.location[0] -= 300
+                nt.links.new(default.outputs[0], output.inputs[3])     
+                light.renderman.renderman_lock_light_type = True     
+                output.inputs[0].hide = True
+                output.inputs[1].hide = True  
+                output.inputs[2].hide = True            
+
+
         if rm.renderman_type == 'UPDATED':
             continue
 

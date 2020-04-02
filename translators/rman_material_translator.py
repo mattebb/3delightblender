@@ -100,13 +100,13 @@ class RmanMaterialTranslator(RmanTranslator):
                 if len(out.inputs) > 1:
                     socket = out.inputs[1]
                     if socket.is_linked:
+                        lightNodesList = []
                         for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
                             shader_sg_nodes = self.shader_node_sg(sub_node, rman_sg_material, mat_name=handle, portal=portal)
-
-                            shader_sg_node = shader_sg_nodes[0]
-                            if shader_sg_node.name.CStr() == "PxrMeshLight":
-                                rman_sg_material.sg_node.SetLight(shader_sg_node)
-                                break                                   
+                            for s in shader_sg_nodes:
+                                lightNodesList.append(s) 
+                        if lightNodesList:
+                            rman_sg_material.sg_node.SetLight(lightNodesList)                                   
 
                 # displacement
                 if len(out.inputs) > 2:

@@ -208,25 +208,12 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                     default.diffuseGain = idblock.diffuse_intensity
                     default.enablePrimarySpecular = True
                     default.specularFaceColor = idblock.specular_color
+
+            output.inputs[3].hide = True
                       
         elif idtype == 'light':
             light_type = idblock.type
             light = idblock
-            '''
-            if light_type == 'SUN':
-                context.light.renderman.renderman_type = 'DIST'
-            elif light_type == 'HEMI':
-
-                context.light.renderman.renderman_type = 'ENV'
-            else:
-                context.light.renderman.renderman_type = light_type
-
-            if light_type == 'AREA':
-                context.light.shape = 'RECTANGLE'
-                context.light.size = 1.0
-                context.light.size_y = 1.0
-            '''
-
             light.renderman.renderman_light_role = 'RMAN_LIGHT'
             if light_type == 'SUN':
                 light.renderman.renderman_light_shader = 'PxrDistantLight'  
@@ -250,29 +237,16 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             light.type = 'AREA'
             light.renderman.use_renderman_node = True
 
-        else:
-            idblock.renderman.renderman_type = "ENV"
-            idblock.renderman.use_renderman_node = True
-            # light_type = idblock.type
-            # light_shader = 'PxrStdAreaLightLightNode'
-            # if light_type == 'SUN':
-            #     context.light.renderman.type=
-            #     light_shader = 'PxrStdEnvDayLightLightNode'
-            # elif light_type == 'HEMI':
-            #     light_shader = 'PxrStdEnvMapLightLightNode'
-            # elif light_type == 'AREA' or light_type == 'POINT':
-            #     idblock.type = "AREA"
-            #     context.light.size = 1.0
-            #     context.light.size_y = 1.0
+            output = nt.nodes.new('RendermanOutputNode')
+            default = nt.nodes.new('%sLightNode' %
+                                    context.light.renderman.renderman_light_shader)
+            default.location = output.location
+            default.location[0] -= 300
+            nt.links.new(default.outputs[0], output.inputs[1])    
 
-            # else:
-            #     idblock.type = "AREA"
-
-            # output = nt.nodes.new('RendermanOutputNode')
-            # default = nt.nodes.new(light_shader)
-            # default.location = output.location
-            # default.location[0] -= 300
-            # nt.links.new(default.outputs[0], output.inputs[1])
+            output.inputs[0].hide = True
+            output.inputs[2].hide = True
+            output.inputs[3].hide = True
 
         return {'FINISHED'}
 

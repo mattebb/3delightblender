@@ -116,6 +116,10 @@ def update_func_with_inputs(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
 
+    if context and hasattr(context, 'active_object'):
+        if context.active_object.type == 'LIGHT':
+            context.active_object.update_tag(refresh={'DATA'})
+
     if context and hasattr(context, 'material'):
         mat = context.material
         if mat:
@@ -154,6 +158,10 @@ def update_array_size_func(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
 
+    if context and hasattr(context, 'active_object'):
+        if context.active_object.type == 'LIGHT':
+            context.active_object.update_tag(refresh={'DATA'})    
+
     if context and hasattr(context, 'material'):
         mat = context.material
         if mat:
@@ -180,15 +188,19 @@ def update_func(self, context):
     # check if this prop is set on an input
     node = self.node if hasattr(self, 'node') else self
 
+    if context and hasattr(context, 'active_object'):
+        if context.active_object.type == 'LIGHT':
+            context.active_object.update_tag(refresh={'DATA'})
+
     if context and hasattr(context, 'material'):
         mat = context.material
         if mat:
             node.update_mat(mat)
+
     elif context and hasattr(context, 'node'):
         mat = context.space_data.id
         if mat:
             node.update_mat(mat)
-
     # update the conditional_vis_ops
     update_conditional_visops(node)
 
@@ -378,7 +390,8 @@ def generate_node_type(node_desc, is_oso=False):
     nodeDict = {'bxdf': rman_bl_nodes_shaders.RendermanBxdfNode,
                 'pattern': rman_bl_nodes_shaders.RendermanPatternNode,
                 'displace': rman_bl_nodes_shaders.RendermanDisplacementNode,
-                'light': rman_bl_nodes_shaders.RendermanLightNode}
+                'light': rman_bl_nodes_shaders.RendermanLightNode,
+                'lightfilter': rman_bl_nodes_shaders.RendermanLightfilterNode}
 
     if nodeType not in nodeDict.keys():
         return (None, None)
@@ -391,7 +404,7 @@ def generate_node_type(node_desc, is_oso=False):
 
     def init(self, context):
         if self.renderman_node_type == 'bxdf':
-            self.outputs.new('RendermanShaderSocket', "Bxdf").type = 'SHADER'
+            self.outputs.new('RendermanNodeSocketBxdf', "Bxdf").type = 'SHADER'
             #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
             node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self)
@@ -402,10 +415,14 @@ def generate_node_type(node_desc, is_oso=False):
         elif self.renderman_node_type == 'light':
             # only make a few sockets connectable
             node_add_inputs(self, name, self.prop_names)
-            self.outputs.new('RendermanShaderSocket', "Light")
+            self.outputs.new('RendermanNodeSocketLight', "Light")
+        elif self.renderman_node_type == 'lightfilter':
+            # only make a few sockets connectable
+            node_add_inputs(self, name, self.prop_names)
+            self.outputs.new('RendermanNodeSocketLightFilter', "LightFilter")            
         elif self.renderman_node_type == 'displace':
             # only make the color connectable
-            self.outputs.new('RendermanShaderSocket', "Displacement")
+            self.outputs.new('RendermanNodeSocketDisplacement', "Displacement")
             node_add_inputs(self, name, self.prop_names)
         # else pattern
         elif name == "PxrOSL":
@@ -550,13 +567,9 @@ def register_rman_nodes():
                     # we still create PropertyGroups for them so they can be inserted
                     # into the correct UI panel.
                     if node_desc.node_type in ['integrator', 'projection', 'displaydriver',
-                                                'displayfilter', 'samplefilter',
-                                                'light',
-                                                'lightfilter']:
+                                                'displayfilter', 'samplefilter']:
                         register_plugin_types(node_desc)
-                        if node_desc.name != 'PxrMeshLight':
-                            # for mesh light, we need to create a shader graph node
-                            continue
+                        continue
                     
                     typename, nodetype = generate_node_type(node_desc, is_oso=is_oso)
                     if not typename and not nodetype:

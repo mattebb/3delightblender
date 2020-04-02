@@ -74,6 +74,23 @@ class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
     bl_context = "material"
     bl_label = "Light Emission"
     shader_type = 'Light'
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
+
+    @classmethod
+    def poll(cls, context):
+        mat = getattr(context, 'material', None)
+        if not mat:
+            return False
+        if not mat.node_tree: 
+            return False    
+        output = is_renderman_nodetree(mat)
+        if not output:
+            return False
+        if not output.inputs[1].is_linked:
+            return False
+
+        from_node = output.inputs[1].links[0].from_node
+        return from_node.bl_label == 'PxrMeshLight'
 
     def draw(self, context):
         if context.material.node_tree:
@@ -86,6 +103,7 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
     bl_context = "material"
     bl_label = "Displacement"
     shader_type = 'Displacement'
+    COMPAT_ENGINES = {'PRMAN_RENDER'}
 
     def draw(self, context):
         if context.material.node_tree:
@@ -108,28 +126,14 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
             return
         else:       
             row = layout.row()
-            row.prop(light.renderman, "renderman_lock_light_type")                          
-            if not light.renderman.renderman_lock_light_type:
-                row = layout.row()
-                row.prop(light.renderman, "renderman_light_role", expand=True)
-                if light.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
-                    row = layout.row()
-                    row.prop(light.renderman, "renderman_light_filter_shader")
-
-                elif light.renderman.renderman_light_role == 'RMAN_LIGHT':
-                    row = layout.row()
-                    row.prop(light.renderman, 'renderman_light_shader')                
+            col = row.column()
+            icons = load_icons()
+            if light.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+                rman_lightfilter_icon = icons.get("out_%s.png" % light.renderman.renderman_light_filter_shader )
+                col.label(text="%s" % light.renderman.renderman_light_filter_shader, icon_value=rman_lightfilter_icon.icon_id)
             else:
-                row = layout.row()
-                col = row.column()
-                icons = load_icons()
-                if light.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
-                    rman_lightfilter_icon = icons.get("out_%s.png" % light.renderman.renderman_light_filter_shader )
-                    col.label(text="%s" % light.renderman.renderman_light_filter_shader, icon_value=rman_lightfilter_icon.icon_id)
-                else:
-                    rman_light_icon = icons.get("out_%s.png" % light.renderman.renderman_light_shader)                    
-                    col.label(text="%s" % light.renderman.renderman_light_shader, icon_value=rman_light_icon.icon_id)
-
+                rman_light_icon = icons.get("out_%s.png" % light.renderman.renderman_light_shader)                    
+                col.label(text="%s" % light.renderman.renderman_light_shader, icon_value=rman_light_icon.icon_id)
 
 class PRMAN_PT_context_material(_RManPanelHeader, Panel):
     bl_space_type = "PROPERTIES"
@@ -198,18 +202,45 @@ class PRMAN_PT_context_material(_RManPanelHeader, Panel):
 
 
 class DATA_PT_renderman_node_shader_light(ShaderNodePanel, Panel):
-    bl_label = "Light Shader"
+    bl_label = "Light Parameters"
     bl_context = 'data'
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "light") \
+            and context.light is not None and hasattr(context.light, 'renderman') \
+            and context.light.renderman.renderman_light_role != 'RMAN_LIGHTFILTER'    
+
 
     def draw(self, context):
         layout = self.layout
         light = context.light
 
-        light_node = light.renderman.get_light_node()
-        if light_node:
-            if light.renderman.renderman_light_role != 'RMAN_LIGHTFILTER':
-                layout.prop(light.renderman, 'light_primary_visibility')
-            _draw_props(light_node, light_node.prop_names, layout)
+        if light.node_tree:
+            nt = light.node_tree
+            draw_nodes_properties_ui(
+                self.layout, context, nt, input_name='Light')          
+
+class DATA_PT_renderman_node_shader_lightfilter(ShaderNodePanel, Panel):
+    bl_label = "Light Filter Parameters"
+    bl_context = 'data'
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "light") \
+            and context.light is not None and hasattr(context.light, 'renderman') \
+            and context.light.renderman.renderman_light_role == 'RMAN_LIGHTFILTER'    
+
+    def draw(self, context):
+        layout = self.layout
+        light = context.light
+
+        if light.node_tree:
+            nt = light.node_tree
+            draw_nodes_properties_ui(
+                self.layout, context, nt, input_name='LightFilter')     
 
 class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
     bl_label = "Light Filters"
@@ -240,6 +271,7 @@ classes = [
     MATERIAL_PT_renderman_shader_displacement,
     DATA_PT_renderman_light,
     DATA_PT_renderman_node_shader_light,
+    DATA_PT_renderman_node_shader_lightfilter,
     DATA_PT_renderman_node_filters_light,
     PRMAN_PT_context_material
 ]

@@ -209,14 +209,59 @@ class RendermanNodeSocketInterfaceVector(bpy.types.NodeSocketInterfaceVector, Re
     def draw_color(self, context):
         return (.25, .25, .75, 1.0)
 
-# Custom socket type for connecting shaders
+class RendermanNodeSocketLight(bpy.types.NodeSocketString, RendermanSocket):
+    '''RenderMan light input/output'''
+    bl_idname = 'RendermanNodeSocketLight'
+    bl_label = 'RenderMan Light Socket'
+    hide_value = True
+    renderman_type = 'light'
+    default_value = ''
 
+class RendermanNodeSocketInterfaceLight(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):
+    '''RenderMan Light input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceLight'
+    bl_label = 'RenderMan Light Socket'
+    bl_socket_idname = 'RendermanNodeSocketLight'
+    hide_value = True        
+
+class RendermanNodeSocketDisplacement(bpy.types.NodeSocketString, RendermanSocket):
+    '''RenderMan displacement input/output'''
+    bl_idname = 'RendermanNodeSocketDisplacement'
+    bl_label = 'RenderMan Displacement Socket'
+    hide_value = True
+    renderman_type = 'displacement'
+    default_value = ''
+
+class RendermanNodeSocketInterfaceDisplacement(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):
+    '''RenderMan Displacement input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceDisplacement'
+    bl_label = 'RenderMan Displacement Socket'
+    bl_socket_idname = 'RendermanNodeSocketDisplacement'
+    hide_value = True        
+
+class RendermanNodeSocketLightFilter(bpy.types.NodeSocketString, RendermanSocket):
+    '''RenderMan light filter input/output'''
+    bl_idname = 'RendermanNodeSocketLightFilter'
+    bl_label = 'RenderMan Light Filter Socket'
+    hide_value = True
+    renderman_type = 'lightfilter'
+    default_value = ''
+
+class RendermanNodeSocketInterfaceLightFilter(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):
+    '''RenderMan Light Filter input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceLightFilter'
+    bl_label = 'RenderMan Light Filter Socket'
+    bl_socket_idname = 'RendermanNodeSocketLightFilter'
+    hide_value = True        
+
+# Custom socket type for connecting shaders
 
 class RendermanShaderSocket(bpy.types.NodeSocketShader, RendermanSocket):
     '''RenderMan shader input/output'''
     bl_idname = 'RendermanShaderSocket'
     bl_label = 'RenderMan Shader Socket'
     hide_value = True
+    renderman_type = 'shader'
 
 # Custom socket type for connecting shaders
 
@@ -237,11 +282,17 @@ classes = [
     RendermanNodeSocketVector,
     RendermanNodeSocketStruct,
     RendermanNodeSocketBxdf,
+    RendermanNodeSocketLight,
+    RendermanNodeSocketDisplacement,
+    RendermanNodeSocketLightFilter,
 
     RendermanNodeSocketInterfaceFloat,
     RendermanNodeSocketInterfaceInt,
     RendermanNodeSocketInterfaceStruct,
-    RendermanNodeSocketInterfaceBxdf,    
+    RendermanNodeSocketInterfaceBxdf,
+    RendermanNodeSocketInterfaceLight,
+    RendermanNodeSocketInterfaceDisplacement,
+    RendermanNodeSocketInterfaceLightFilter,    
     RendermanNodeSocketInterfaceColor,
     RendermanNodeSocketInterfaceVector,
     RendermanShaderSocketInterface

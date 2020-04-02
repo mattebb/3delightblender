@@ -4,6 +4,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     CollectionProperty, BoolVectorProperty
 from .. import rman_bl_nodes
 from ..icons.icons import load_icons
+from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 
 class RendermanPluginSettings(bpy.types.PropertyGroup):
     pass
@@ -31,13 +32,33 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         '''
         Get the light shader node
         '''
-        return getattr(self, self.light_node, None)
+        light = self.id_data
+        output = None
+        nt = light.node_tree
+        if not nt:
+            return None
+        output = is_renderman_nodetree(light)
+
+        if not output:
+            return None
+
+        if self.renderman_light_role == 'RMAN_LIGHT':
+            socket = output.inputs[1]
+            if socket.is_linked:
+                return socket.links[0].from_node
+        else:
+            socket = output.inputs[3]
+            if socket.is_linked:
+                return socket.links[0].from_node            
 
     def get_light_node_name(self):
         '''
         Get light shader name
         '''
-        return self.light_node.replace('_settings', '')
+        node = self.get_light_node()
+        if node:
+            return node.bl_label
+
     light_node: StringProperty(
         name="Light Node",
         default='')

@@ -116,9 +116,11 @@ class NODE_OT_add_node:
                 if not rman_icon:
                     rman_icon = icons.get('out_unknown.png')
                 if self.input_type.lower() == 'light' and nodetype.renderman_node_type == 'light':
-                    if nodetype.__name__ == 'PxrMeshLightLightNode':
-                        items.append((nodetype.typename, nodetype.bl_label,
-                                      nodetype.bl_label, rman_icon.icon_id, i))
+                    items.append((nodetype.typename, nodetype.bl_label,
+                                    nodetype.bl_label, rman_icon.icon_id, i))                    
+                elif self.input_type.lower() == 'lightfilter' and nodetype.renderman_node_type == 'lightfilter':
+                    items.append((nodetype.typename, nodetype.bl_label,
+                                    nodetype.bl_label, rman_icon.icon_id, i))                           
                 elif nodetype.renderman_node_type == self.input_type.lower():
                     items.append((nodetype.typename, nodetype.bl_label,
                                   nodetype.bl_label, rman_icon.icon_id, i))
@@ -218,6 +220,18 @@ class NODE_OT_add_light(bpy.types.Operator, NODE_OT_add_node):
     bl_description = 'Connect a Light shader to this socket'
     input_type: StringProperty(default='Light')
 
+class NODE_OT_add_lightfilter(bpy.types.Operator, NODE_OT_add_node):
+
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
+    bl_idname = 'node.add_lightfilter'
+    bl_label = 'Add LightFilter Node'
+    bl_description = 'Connect a Light Filter shader to this socket'
+    input_type: StringProperty(default='LightFilter')    
+
 
 class NODE_OT_add_pattern(bpy.types.Operator, NODE_OT_add_node):
 
@@ -271,6 +285,7 @@ classes = [
     NODE_OT_add_bxdf,
     NODE_OT_add_displacement,
     NODE_OT_add_light,
+    NODE_OT_add_lightfilter,
     NODE_OT_add_pattern,
     NODE_OT_add_layer,
     NODE_OT_add_manifold,
