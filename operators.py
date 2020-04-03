@@ -114,8 +114,10 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
         for light in bpy.data.lights:
             if light.renderman.use_renderman_node:
                 continue
+            light.use_nodes = True
             light_type = light.type
             light.renderman.light_primary_visibility = False
+            nt = light.node_tree
 
             light_shader = ''
             if light_type == 'SUN':
