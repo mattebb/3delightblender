@@ -27,6 +27,7 @@ from .rman_utils import texture_utils
 from .rman_utils import filepath_utils
 from .rman_utils import scene_utils
 from .rman_utils import prefs_utils
+from .rman_utils import shadergraph_utils
 
 from .rfb_logger import rfb_log
 from .rman_sg_nodes.rman_sg_node import RmanSgNode
@@ -598,7 +599,6 @@ class RmanScene(object):
                 else:
                     rman_group_translator.update_transform(ob_inst, rman_sg_group)
 
-            #self.sg_scene.Root().AddChild(rman_sg_group.sg_node)
             self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
             self.rman_objects[group_db_name] = rman_sg_group
 
@@ -917,14 +917,19 @@ class RmanScene(object):
         self.sg_scene.SetOptions(options)        
 
     def export_integrator(self):
-        rm = self.bl_scene.renderman
-        integrator = rm.integrator
+        world = self.bl_scene.world
+        rm = world.renderman
 
-        integrator_settings = getattr(rm, "%s_settings" % integrator)
-        integrator_sg = self.rman.SGManager.RixSGShader("Integrator", integrator, "integrator")
-        rman_sg_node = RmanSgNode(self, integrator_sg, "")
-        property_utils.property_group_to_rixparams(integrator_settings, rman_sg_node, integrator_sg)         
+        bl_integrator_node = shadergraph_utils.find_integrator_node(world)
+        if bl_integrator_node:
+            integrator_sg = self.rman.SGManager.RixSGShader("Integrator", bl_integrator_node.bl_label, "integrator")
+            rman_sg_node = RmanSgNode(self, integrator_sg, "")
+            property_utils.property_group_to_rixparams(bl_integrator_node, rman_sg_node, integrator_sg)
+        else:
+            integrator_sg = self.rman.SGManager.RixSGShader("Integrator", "PxrPathTracer", "integrator")
+
         self.sg_scene.SetIntegrator(integrator_sg) 
+
 
     def export_cameras(self, bl_cameras):
 
@@ -974,16 +979,23 @@ class RmanScene(object):
         display_filter_names = []
         displayfilters_list = []
 
-        for i, df in enumerate(rm.display_filters):
-            df_name = df.name
-            if df.name == "":
+        world = self.bl_scene.world
+        if not world.renderman.use_renderman_node:
+            return
+
+        for bl_df_node in shadergraph_utils.find_displayfilter_nodes(world):
+            df_name = bl_df_node.name
+            if df_name == "":
                 df_name = "rman_displayfilter_filter%d" % i
 
-            df_node = self.rman.SGManager.RixSGShader("DisplayFilter", df.get_filter_name(), df_name)
-            rman_sg_node = RmanSgNode(self, df_node, "")
-            property_utils.property_group_to_rixparams(df.get_filter_node(), rman_sg_node, df_node)
+            rman_df_node = self.rman.SGManager.RixSGShader("DisplayFilter", bl_df_node.bl_label, df_name)
+            rman_sg_node = RmanSgNode(self, rman_df_node, "")
+            property_utils.property_group_to_rixparams(bl_df_node, rman_sg_node, rman_df_node)
             display_filter_names.append(df_name)
-            displayfilters_list.append(df_node)
+            displayfilters_list.append(rman_df_node)    
+
+        if not display_filter_names:
+            return
 
         if len(display_filter_names) > 1:
             df_name = "rman_displayfilter_combiner"
@@ -1003,17 +1015,6 @@ class RmanScene(object):
         sample_filter_names = []        
         samplefilters_list = list()
 
-        for i, sf in enumerate(rm.sample_filters):
-            sf_name = sf.name
-            if sf.name == "":
-                sf_name = "rman_samplefilter_filter%d" % i
-
-            sf_node = self.rman.SGManager.RixSGShader("SampleFilter", sf.get_filter_name(), sf_name)
-            rman_sg_node = RmanSgNode(self, sf_node, "")
-            property_utils.property_group_to_rixparams(sf.get_filter_node(), rman_sg_node, sf_node)
-            sample_filter_names.append(sf_name)
-            samplefilters_list.append(sf_node)
-
         if rm.do_holdout_matte != "OFF" and not self.is_viewport_render:
             sf_node = self.rman.SGManager.RixSGShader("SampleFilter", "PxrShadowFilter", "rm_PxrShadowFilter_shadows")
             params = sf_node.params
@@ -1025,7 +1026,23 @@ class RmanScene(object):
                 params.SetString("shadowAov", "holdoutMatte")
 
             sample_filter_names.append("rm_PxrShadowFilter_shadows")
-            samplefilters_list.append(sf_node)     
+            samplefilters_list.append(sf_node)          
+
+        world = self.bl_scene.world
+
+        for bl_sf_node in shadergraph_utils.find_samplefilter_nodes(world):
+            sf_name = bl_sf_node.name
+            if sf_name == "":
+                sf_name = "rman_samplefilter_filter%d" % i
+
+            rman_sf_node = self.rman.SGManager.RixSGShader("SampleFilter", bl_sf_node.bl_label, sf_name)
+            rman_sg_node = RmanSgNode(self, rman_sf_node, "")
+            property_utils.property_group_to_rixparams(bl_sf_node, rman_sg_node, rman_sf_node)
+            sample_filter_names.append(sf_name)
+            samplefilters_list.append(rman_sf_node)                    
+
+        if not sample_filter_names:
+            return            
 
         if len(sample_filter_names) > 1:
             sf_name = "rman_samplefilter_combiner"
@@ -1249,10 +1266,17 @@ class RmanScene(object):
         self.sg_scene.SetDisplayChannel(displaychannels)  
 
     def export_viewport_stats(self, integrator=''):
+        if not self.is_viewport_render:
+            return
         rm = self.bl_scene.renderman
         if integrator == '':
-            integrator = rm.integrator
+            integrator = 'PxrPathTracer'
+            world = self.bl_scene.world
 
+            bl_integrator_node = shadergraph_utils.find_integrator_node(world)
+            if bl_integrator_node:
+                integrator = bl_integrator_node.bl_label
+   
         self.rman_render.bl_engine.update_stats('RenderMan (Stats)', 
                                                 '\nIntegrator: %s\nMin Samples: %d\nMax Samples: %d\nInteractive Refinement: %d' % (integrator, rm.ipr_hider_minSamples, rm.ipr_hider_maxSamples, rm.hider_decidither))
 
@@ -1494,9 +1518,11 @@ class RmanScene(object):
                 continue
 
             elif isinstance(obj.id, bpy.types.World):
-                if self.world_df_node:
-                    with self.rman.SGManager.ScopedEdit(self.sg_scene): 
-                        self.export_displayfilters()
+                with self.rman.SGManager.ScopedEdit(self.sg_scene): 
+                    self.export_integrator()
+                    self.export_samplefilters()
+                    self.export_displayfilters()
+                    self.export_viewport_stats()
 
             elif isinstance(obj.id, bpy.types.Camera):
                 #cam = obj.object
@@ -1583,7 +1609,8 @@ class RmanScene(object):
                 self.sg_scene.SetOptions(options)           
 
     def update_integrator(self, context):
-        self.bl_scene = context.scene
+        if context:
+            self.bl_scene = context.scene
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
             self.export_integrator() 
             self.export_viewport_stats()
@@ -1592,7 +1619,8 @@ class RmanScene(object):
         self.bl_scene = context.scene
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
             integrator_sg = self.rman.SGManager.RixSGShader("Integrator", integrator, "integrator")       
-            self.sg_scene.SetIntegrator(integrator_sg)             
+            self.sg_scene.SetIntegrator(integrator_sg)     
+            self.export_viewport_stats(integrator=integrator)        
 
     def update_hider_options(self, context):
         self.bl_scene = context.scene

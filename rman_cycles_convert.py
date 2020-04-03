@@ -54,6 +54,7 @@ _CYCLES_NODE_MAP_ = {
     'ShaderNodeTexWave': 'node_wave_texture',
     'ShaderNodeWavelength': 'node_wavelength',
     'ShaderNodeWireframe': 'node_wireframe',
+    'ShaderNodeDisplacement': 'node_displacement'
 }
 
 _COMBINE_NODES_ = ['ShaderNodeAddShader', 'ShaderNodeMixShader']
@@ -169,8 +170,9 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         nt.links.new(rman_node.outputs[0], rman_parent.inputs[input_index])
 
 
-def convert_cycles_displacement(nt, surface_node, displace_socket):
+def convert_cycles_displacement(nt, surface_node, displace_socket, output_node):
     # for now just do bump
+    '''
     if displace_socket.is_linked:
         bump = nt.nodes.new("PxrBumpPatternNode")
         nt.links.new(bump.outputs[0], surface_node.inputs['bumpNormal'])
@@ -183,15 +185,15 @@ def convert_cycles_displacement(nt, surface_node, displace_socket):
     # return
     '''
     if displace_socket.is_linked:
-       displace = nt.nodes.new("PxrDisplaceDisplacementNode")
+       displace = nt.nodes.new("PxrDisplaceDisplaceNode")
        nt.links.new(displace.outputs[0], output_node.inputs['Displacement'])
        displace.location = output_node.location
        displace.location[0] -= 200
        displace.location[1] -= 100
 
        setattr(displace, 'dispAmount', .01)
-       convert_cycles_input(nt, displace_socket, displace, "dispScalar")
-    '''
+       convert_cycles_input(nt, displace_socket, displace, "dispVector")
+    
 
 def convert_cycles_input(nt, socket, rman_node, param_name):
     if socket.is_linked:
@@ -280,5 +282,5 @@ def convert_cycles_nodetree(id, output_node):
         offset_node_location(output_node, base_surface, begin_cycles_node)
         convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
         convert_cycles_displacement(
-            nt, base_surface, cycles_output_node.inputs[2])
+            nt, base_surface, cycles_output_node.inputs[2], output_node)
     return True

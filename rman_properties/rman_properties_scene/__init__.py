@@ -23,16 +23,6 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     rman_config_name: StringProperty(name='rman_config_name',
                                     default='rman_properties_scene')
     
-    display_filters: CollectionProperty(
-                        type=rman_bl_nodes_props.RendermanDisplayFilterSettings, 
-                        name='Display Filters')
-    display_filters_index: IntProperty(min=-1, default=-1)
-
-    sample_filters: CollectionProperty(
-                        type=rman_bl_nodes_props.RendermanSampleFilterSettings, 
-                        name='Sample Filters')
-    sample_filters_index: IntProperty(min=-1, default=-1)
-
     light_groups: CollectionProperty(type=RendermanGroup,
                                       name='Light Groups')
     light_groups_index: IntProperty(min=-1, default=-1)
@@ -86,33 +76,6 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         name="Render Animation",
         description="Spool Animation",
         default=False)
-
-    def update_integrator(self, context):
-        rr = rman_render.RmanRender.get_rman_render()
-        if rr.rman_interactive_running:
-            rr.rman_scene.update_integrator(context)
-
-    def integrator_items(self, context):
-        items = []
-        # Make PxrPathTracer be the first item, so
-        # it's the default
-        items.append(('PxrPathTracer', 'PxrPathTracer', ''))
-        for n in rman_bl_nodes.__RMAN_INTEGRATOR_NODES__:
-            if n.name != 'PxrPathTracer':
-                items.append((n.name, n.name, ''))
-        return items
-
-    integrator: EnumProperty(
-        name="Integrator",
-        description="Integrator for rendering",
-        items=integrator_items,
-        update=update_integrator)
-
-    show_integrator_settings: BoolProperty(
-        name="Integration Settings",
-        description="Show Integrator Settings",
-        default=False
-    )
 
     # Trace Sets (grouping membership)
     object_groups: CollectionProperty(

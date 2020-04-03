@@ -1,6 +1,7 @@
 from bpy.props import EnumProperty, StringProperty
 from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
+from ..rman_utils.shadergraph_utils import find_node
 from ..icons.icons import load_icons
 import bpy
 import os
@@ -120,7 +121,13 @@ class NODE_OT_add_node:
                                     nodetype.bl_label, rman_icon.icon_id, i))                    
                 elif self.input_type.lower() == 'lightfilter' and nodetype.renderman_node_type == 'lightfilter':
                     items.append((nodetype.typename, nodetype.bl_label,
-                                    nodetype.bl_label, rman_icon.icon_id, i))                           
+                                    nodetype.bl_label, rman_icon.icon_id, i))       
+                elif self.input_type.lower() == 'displayfilter' and nodetype.renderman_node_type == 'displayfilter':
+                    items.append((nodetype.typename, nodetype.bl_label,
+                                    nodetype.bl_label, rman_icon.icon_id, i)) 
+                elif self.input_type.lower() == 'samplefilter' and nodetype.renderman_node_type == 'samplefilter':
+                    items.append((nodetype.typename, nodetype.bl_label,
+                                    nodetype.bl_label, rman_icon.icon_id, i))                                                                                             
                 elif nodetype.renderman_node_type == self.input_type.lower():
                     items.append((nodetype.typename, nodetype.bl_label,
                                   nodetype.bl_label, rman_icon.icon_id, i))
@@ -205,7 +212,7 @@ class NODE_OT_add_displacement(bpy.types.Operator, NODE_OT_add_node):
     bl_idname = 'node.add_displacement'
     bl_label = 'Add Displacement Node'
     bl_description = 'Connect a Displacement shader to this socket'
-    input_type: StringProperty(default='Displace')
+    input_type: StringProperty(default='Displacement')
 
 
 class NODE_OT_add_light(bpy.types.Operator, NODE_OT_add_node):
@@ -281,6 +288,127 @@ class NODE_OT_add_bump(bpy.types.Operator, NODE_OT_add_node):
     bl_description = 'Connect a bump node'
     input_type: StringProperty(default='Bump')
 
+class NODE_OT_add_displayfilter(bpy.types.Operator, NODE_OT_add_node):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
+    bl_idname = 'node.add_displayfilter'
+    bl_label = 'Add Dsiplay Filter Node'
+    bl_description = 'Connect a display filter node'
+    input_type: StringProperty(default='DisplayFilter')
+
+class NODE_OT_add_samplefilter(bpy.types.Operator, NODE_OT_add_node):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
+    bl_idname = 'node.add_samplefilter'
+    bl_label = 'Add Sample Filter Node'
+    bl_description = 'Connect a sample filter node'
+    input_type: StringProperty(default='SampleFilter')       
+
+class NODE_OT_add_integrator(bpy.types.Operator, NODE_OT_add_node):
+    '''
+    For generating cycles-style ui menus to add new nodes,
+    connected to a given input socket.
+    '''
+
+    bl_idname = 'node.add_integrator'
+    bl_label = 'Add Integrator Node'
+    bl_description = 'Connect a integrator node'
+    input_type: StringProperty(default='Integrator')        
+
+
+class NODE_OT_add_displayfilter_node_socket(bpy.types.Operator):
+
+    bl_idname = 'node.add_displayfilter_node_socket'
+    bl_label = 'Add DisplayFilter Socket'
+    bl_description = 'Add a new socket to the displayfilter output node'
+
+    def execute(self, context):
+        if hasattr(context, 'node'):
+            node = context.node
+        else:
+            world = context.scene.world
+            rm = world.renderman
+            nt = world.node_tree
+
+            node = find_node(world, 'RendermanDisplayfiltersOutputNode')
+            if not node:
+                return {'FINISHED'}
+
+        node.add_input()
+        return {'FINISHED'}   
+
+        return {'FINISHED'}    
+
+class NODE_OT_remove_displayfilter_node_socket(bpy.types.Operator):
+
+    bl_idname = 'node.remove_displayfilter_node_socket'
+    bl_label = 'Remove DisplayFilter Socket'
+    bl_description = 'Remove a new socket to the displayfilter output node'
+
+    def execute(self, context):
+        if hasattr(context, 'node'):
+            node = context.node
+        else:
+            world = context.scene.world
+            rm = world.renderman
+            nt = world.node_tree
+
+            node = find_node(world, 'RendermanDisplayfiltersOutputNode')
+            if not node:
+                return {'FINISHED'}
+
+        node.remove_input()
+        return {'FINISHED'}                
+
+class NODE_OT_add_samplefilter_node_socket(bpy.types.Operator):
+
+    bl_idname = 'node.add_samplefilter_node_socket'
+    bl_label = 'Add SampleFilter Socket'
+    bl_description = 'Add a new socket to the samplefilter output node'
+
+    def execute(self, context):
+        if hasattr(context, 'node'):
+            node = context.node
+        else:
+            world = context.scene.world
+            rm = world.renderman
+            nt = world.node_tree
+
+            node = find_node(world, 'RendermanSamplefiltersOutputNode')
+            if not node:
+                return {'FINISHED'}
+
+        node.add_input()
+        return {'FINISHED'}   
+
+class NODE_OT_remove_samplefilter_node_socket(bpy.types.Operator):
+
+    bl_idname = 'node.remove_samplefilter_node_socket'
+    bl_label = 'Remove SampleFilter Socket'
+    bl_description = 'Remove a new socket to the samplefilter output node'
+
+    def execute(self, context):
+        if hasattr(context, 'node'):
+            node = context.node
+        else:
+            world = context.scene.world
+            rm = world.renderman
+            nt = world.node_tree
+
+            node = find_node(world, 'RendermanSamplefiltersOutputNode')
+            if not node:
+                return {'FINISHED'}
+
+        node.remove_input()
+        return {'FINISHED'}             
+
+
 classes = [
     NODE_OT_add_bxdf,
     NODE_OT_add_displacement,
@@ -290,6 +418,13 @@ classes = [
     NODE_OT_add_layer,
     NODE_OT_add_manifold,
     NODE_OT_add_bump,
+    NODE_OT_add_displayfilter,
+    NODE_OT_add_samplefilter,
+    NODE_OT_add_integrator,
+    NODE_OT_add_displayfilter_node_socket,
+    NODE_OT_remove_displayfilter_node_socket,
+    NODE_OT_add_samplefilter_node_socket,
+    NODE_OT_remove_samplefilter_node_socket
 ]
 
 def register():

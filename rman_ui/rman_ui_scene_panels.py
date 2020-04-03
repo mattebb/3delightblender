@@ -33,58 +33,6 @@ class RENDER_PT_renderman_workspace(PRManButtonsPanel, Panel):
 
         _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_workspace', context, layout, rm)                 
 
-
-class DATA_PT_renderman_display_filters(CollectionPanel, Panel):
-    bl_label = "Display Filters"
-    bl_context = 'scene'
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw_item(self, layout, context, item):
-        layout.prop(item, 'filter_type')
-        layout.separator()
-        filter_node = item.get_filter_node()
-        _draw_props(filter_node, filter_node.prop_names, layout)
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER'
-
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        self._draw_collection(context, layout, rm, "Display Filters:",
-                              "collection.add_remove", "scene", "display_filters",
-                              "display_filters_index")
-
-class DATA_PT_renderman_Sample_filters(CollectionPanel, Panel):
-    bl_label = "Sample Filters"
-    bl_context = 'scene'
-    bl_options = {'DEFAULT_CLOSED'}
-
-
-    def draw_item(self, layout, context, item):
-        layout.prop(item, 'filter_type')
-        layout.separator()
-        filter_node = item.get_filter_node()
-        _draw_props(filter_node, filter_node.prop_names, layout)
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER'
-
-    def draw(self, context):
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        self._draw_collection(context, layout, rm, "Sample Filters:",
-                              "collection.add_remove", "scene", "sample_filters",
-                              "sample_filters_index")
-
 class PRMAN_PT_Renderman_Light_Panel(CollectionPanel, Panel):
     # bl_idname = "renderman_light_panel"
     bl_label = "RenderMan Light Groups"
@@ -342,8 +290,6 @@ class PRMAN_PT_Renderman_Object_Panel(CollectionPanel, Panel):
 
 classes = [
     RENDER_PT_renderman_workspace,
-    DATA_PT_renderman_display_filters,
-    DATA_PT_renderman_Sample_filters,
     PRMAN_PT_Renderman_Light_Panel,
     PRMAN_PT_Renderman_Light_Link_Panel,
     PRMAN_PT_Renderman_Object_Panel,

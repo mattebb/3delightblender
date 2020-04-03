@@ -1304,6 +1304,9 @@ def draw():
             continue
 
         light_shader_name = rm.get_light_node_name()
+        if light_shader_name == '':
+            return
+
         if light_shader_name == 'PxrSphereLight': 
             draw_sphere_light(ob)
         elif light_shader_name == 'PxrEnvDayLight': 

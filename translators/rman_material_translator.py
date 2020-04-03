@@ -253,11 +253,11 @@ class RmanMaterialTranslator(RmanTranslator):
         if type(node) == type(()):
             shader, from_node, from_socket = node
             input_type = 'float' if shader == 'PxrToFloat3' else 'color'
-            node_name = 'convert_%s.%s' % (shadergraph_utils.get_node_name(
+            node_name = 'convert_%s_%s' % (shadergraph_utils.get_node_name(
                 from_node, mat_name), shadergraph_utils.get_socket_name(from_node, from_socket))
             if from_node.bl_idname == 'ShaderNodeGroup':
                 node_name = 'convert_' + property_utils.get_output_param_str(
-                    from_node, mat_name, from_socket).replace(':', '.')
+                    from_node, mat_name, from_socket).replace(':', '_')
                     
             val = property_utils.get_output_param_str(from_node, mat_name, from_socket)
             sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", shader, node_name)

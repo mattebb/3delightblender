@@ -192,8 +192,6 @@ def parse_scene_for_textures(bl_scene):
                 update_texture(o.data.renderman.get_light_node(), light=o.data)
         else:
             mats_to_scan += recursive_texture_set(o)
-    if bl_scene.world and bl_scene.world.renderman.renderman_type != 'NONE':
-        update_texture(bl_scene.world.renderman.get_light_node())
 
     # cull duplicates by only doing mats once
     for mat in set(mats_to_scan):

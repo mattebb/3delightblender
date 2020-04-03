@@ -1,6 +1,7 @@
 from . import string_utils
 from . import prefs_utils
 from . import property_utils
+from . import shadergraph_utils
 from .. import rman_constants
 from collections import OrderedDict
 import bpy
@@ -543,43 +544,63 @@ def make_dspy_info(scene):
     If current scene renders to "it", collect some useful infos from scene
     and send them alongside the render job to RenderMan's image tool. Applies to
     renderpass result only, does not affect postprocessing like denoise.
+
+    Arguments:
+        scene (bpy.types.Scene) - Blender scene object
+
+    Returns:
+        (str) - a string with the display notes to give to "it"
+
     """
     params = {}
     rm = scene.renderman
+    world = scene.world
     from time import localtime, strftime
     ts = strftime("%a %x, %X", localtime())
     ts = bytes(ts, 'ascii', 'ignore').decode('utf-8', 'ignore')
+    integrator = shadergraph_utils.find_integrator_node(world)
+    integrator_nm = 'PxrPathTracer'
+    if integrator:
+        integrator_nm = integrator.bl_label
 
     dspy_notes = "Render start:\t%s\r\r" % ts
-    dspy_notes += "Integrator:\t%s\r\r" % rm.integrator
+    dspy_notes += "Integrator:\t%s\r\r" % integrator
     dspy_notes += "Samples:\t%d - %d\r" % (rm.hider_minSamples, rm.hider_maxSamples)
     dspy_notes += "Pixel Variance:\t%f\r\r" % rm.ri_pixelVariance
 
     # moved this in front of integrator check. Was called redundant in
     # both cases
-    integrator = getattr(rm, "%s_settings" % rm.integrator)
+    if integrator:    
+        if integrator.bl_label == 'PxrPathTracer':
+            dspy_notes += "Mode:\t%s\r" % integrator.sampleMode
+            dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
+            dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
 
-    if rm.integrator == 'PxrPathTracer':
-        dspy_notes += "Mode:\t%s\r" % integrator.sampleMode
-        dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
-        dspy_notes += "Bxdf:\t%d\r" % integrator.numBxdfSamples
+            if integrator.sampleMode == 'bxdf':
+                dspy_notes += "Indirect:\t%d\r\r" % integrator.numIndirectSamples
+            else:
+                dspy_notes += "Diffuse:\t%d\r" % integrator.numDiffuseSamples
+                dspy_notes += "Specular:\t%d\r" % integrator.numSpecularSamples
+                dspy_notes += "Subsurface:\t%d\r" % integrator.numSubsurfaceSamples
+                dspy_notes += "Refraction:\t%d\r" % integrator.numRefractionSamples
 
-        if integrator.sampleMode == 'bxdf':
-            dspy_notes += "Indirect:\t%d\r\r" % integrator.numIndirectSamples
-        else:
-            dspy_notes += "Diffuse:\t%d\r" % integrator.numDiffuseSamples
-            dspy_notes += "Specular:\t%d\r" % integrator.numSpecularSamples
-            dspy_notes += "Subsurface:\t%d\r" % integrator.numSubsurfaceSamples
-            dspy_notes += "Refraction:\t%d\r" % integrator.numRefractionSamples
-
-    elif rm.integrator == "PxrVCM":
-        dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
-        dspy_notes += "Bxdf:\t%d\r\r" % integrator.numBxdfSamples
+        elif integrator.bl_label == "PxrVCM":
+            dspy_notes += "Light:\t%d\r" % integrator.numLightSamples
+            dspy_notes += "Bxdf:\t%d\r\r" % integrator.numBxdfSamples
 
     return dspy_notes
 
 def export_metadata(scene, params):
+    """
+    Create metadata for the OpenEXR display driver
+
+    Arguments:
+        scene (bpy.types.Scene) - Blender scene object
+        params (RtParamList) - param list to fill with meta data
+    """
+
     rm = scene.renderman
+    world = scene.world
     if "Camera" not in bpy.data.cameras:
         return
     if "Camera" not in bpy.data.objects:
@@ -607,7 +628,13 @@ def export_metadata(scene, params):
     params.SetString('exrheader_renderscene', bpy.data.filepath)
     params.SetString('exrheader_user', getpass.getuser())
     params.SetString('exrheader_statistics', statspath)
-    params.SetString('exrheader_integrator', rm.integrator)
+
+    integrator = shadergraph_utils.find_integrator_node(world)
+    integrator_nm = 'PxrPathTracer'
+    if integrator:
+        integrator_nm = integrator.bl_label
+    params.SetString('exrheader_integrator', integrator_nm)    
+    
     params.SetFloatArray('exrheader_samples', [rm.hider_minSamples, rm.hider_maxSamples], 2)
     params.SetFloat('exrheader_pixelvariance', rm.ri_pixelVariance)
     params.SetString('exrheader_comment', rm.custom_metadata)

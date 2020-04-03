@@ -1,4 +1,5 @@
 from ..rfb_logger import rfb_log
+from ..rman_utils.osl_utils import readOSO
 from . import rman_socket_utils
 from .. import rman_render
 from ..icons.icons import load_icons
@@ -352,7 +353,6 @@ class RendermanOutputNode(RendermanShadingNode):
                 node_tree = self.id_data
                 node_tree.links.remove(link)
         
-        # We have checked all new links, clear and wait for the next update
         self.new_links.clear()
 
         # This sucks. There doesn't seem to be a way to tag the material
@@ -361,6 +361,163 @@ class RendermanOutputNode(RendermanShadingNode):
         if rr.rman_interactive_running:
             mat = bpy.context.material
             rr.rman_scene.update_material(mat)
+
+class RendermanIntegratorsOutputNode(RendermanShadingNode):
+    bl_label = 'RenderMan Integrators'
+    renderman_node_type = 'integrators_output'
+    bl_icon = 'MATERIAL'
+    node_tree = None
+    new_links = []
+
+    def init(self, context):
+        input = self.inputs.new('RendermanNodeSocketIntegrator', 'Integrator')
+        input.type = 'SHADER'
+
+    def draw_buttons(self, context, layout):
+        return
+
+    def draw_buttons_ext(self, context, layout):   
+        return
+
+    def insert_link(self, link):
+        if link in self.new_links:
+            pass
+        else:
+            self.new_links.append(link)
+
+    # when a connection is made or removed see if we're in IPR mode and issue
+    # updates
+    def update(self):
+        for link in self.new_links:
+            from_node_type = getattr(link.from_socket, 'renderman_type', None)
+            if not from_node_type:
+                continue            
+            if from_node_type != 'integrator':
+                node_tree = self.id_data
+                node_tree.links.remove(link)
+
+        self.new_links.clear()              
+
+class RendermanSamplefiltersOutputNode(RendermanShadingNode):
+    bl_label = 'RenderMan Sample Filters'
+    renderman_node_type = 'samplefilters_output'
+    bl_icon = 'MATERIAL'
+    node_tree = None
+    new_links = []
+
+    def init(self, context):
+        input = self.inputs.new('RendermanNodeSocketSampleFilter', 'samplefilter[0]')
+        input.type = 'SHADER'
+
+    def add_input(self):
+        input = self.inputs.new('RendermanNodeSocketSampleFilter', 'samplefilter[%d]' % (len(self.inputs)-1))
+        input.type = 'SHADER'
+
+    def remove_input(self):
+        socket = self.inputs[len(self.inputs)-1]
+        if socket.is_linked:
+            old_node = socket.links[0].from_node
+            node_tree = self.id_data
+            nodetree.remove(old_node)
+        self.inputs.remove( socket )
+
+    def draw_buttons(self, context, layout):
+        row = layout.row(align=True)
+        col = row.column()
+        col.operator('node.add_samplefilter_node_socket', text='Add')
+        col = row.column()
+        col.enabled = len(self.inputs) > 1
+        col.operator('node.remove_samplefilter_node_socket', text='Remove')
+        return
+
+    def draw_buttons_ext(self, context, layout):
+        row = layout.row(align=True)
+        col = row.column()
+        col.operator('node.add_samplefilter_node_socket', text='Add')
+        col = row.column()
+        col.enabled = len(self.inputs) > 1
+        col.operator('node.remove_samplefilter_node_socket', text='Remove')      
+        return
+
+    def insert_link(self, link):
+        if link in self.new_links:
+            pass
+        else:
+            self.new_links.append(link)
+
+    # when a connection is made or removed see if we're in IPR mode and issue
+    # updates
+    def update(self):
+        for link in self.new_links:
+            from_node_type = getattr(link.from_socket, 'renderman_type', None)
+            if not from_node_type:
+                continue            
+            if from_node_type != 'samplefilter':
+                node_tree = self.id_data
+                node_tree.links.remove(link)
+
+        self.new_links.clear()     
+
+class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
+    bl_label = 'RenderMan Display Filters'
+    renderman_node_type = 'displayfilters_output'
+    bl_icon = 'MATERIAL'
+    node_tree = None
+    new_links = []
+
+    def init(self, context):
+        input = self.inputs.new('RendermanNodeSocketDisplayFilter', 'displayfilter[0]')
+        input.type = 'SHADER'
+
+    def add_input(self):
+        input = self.inputs.new('RendermanNodeSocketDisplayFilter', 'displayfilter[%d]' % (len(self.inputs)-1))
+        input.type = 'SHADER'
+
+    def remove_input(self):
+        socket = self.inputs[len(self.inputs)-1]
+        if socket.is_linked:
+            old_node = socket.links[0].from_node
+            node_tree = self.id_data
+            nodetree.remove(old_node)
+        self.inputs.remove( socket )        
+
+    def draw_buttons(self, context, layout):
+        row = layout.row(align=True)
+        col = row.column()
+        col.operator('node.add_displayfilter_node_socket', text='Add')
+        col = row.column()
+        col.enabled = len(self.inputs) > 1
+        col.operator('node.remove_displayfilter_node_socket', text='Remove')        
+        return
+
+    def draw_buttons_ext(self, context, layout):
+        row = layout.row(align=True)
+        col = row.column()
+        col.operator('node.add_displayfilter_node_socket', text='Add')
+        col = row.column()
+        col.enabled = len(self.inputs) > 1
+        col.operator('node.remove_displayfilter_node_socket', text='Remove')      
+        return
+
+    def insert_link(self, link):
+        if link in self.new_links:
+            pass
+        else:
+            self.new_links.append(link)
+
+    # when a connection is made or removed see if we're in IPR mode and issue
+    # updates
+    def update(self):
+        for link in self.new_links:
+            from_node_type = getattr(link.from_socket, 'renderman_type', None)
+            if not from_node_type:
+                continue
+            if from_node_type != 'displayfilter':
+                node_tree = self.id_data
+                node_tree.links.remove(link)
+
+        self.new_links.clear()     
+
 
 # Final output node, used as a dummy to find top level shaders
 class RendermanBxdfNode(RendermanShadingNode):
@@ -392,6 +549,18 @@ class RendermanLightfilterNode(RendermanShadingNode):
     bl_label = 'LightFilter'
     renderman_node_type = 'lightfilter'
 
+class RendermanDisplayfilterNode(RendermanShadingNode):
+    bl_label = 'DisplayFilter'
+    renderman_node_type = 'displayfilter'
+
+class RendermanSamplefilterNode(RendermanShadingNode):
+    bl_label = 'SampleFilter'
+    renderman_node_type = 'samplefilter'    
+
+class RendermanIntegratorNode(RendermanShadingNode):
+    bl_label = 'Integrator'
+    renderman_node_type = 'integrator'      
+
 classes = [
     RendermanShadingNode,
     RendermanOutputNode,
@@ -399,7 +568,13 @@ classes = [
     RendermanDisplacementNode,
     RendermanPatternNode,
     RendermanLightNode,
-    RendermanLightfilterNode
+    RendermanLightfilterNode,
+    RendermanDisplayfilterNode,
+    RendermanSamplefilterNode,
+    RendermanSamplefiltersOutputNode,
+    RendermanDisplayfiltersOutputNode,
+    RendermanIntegratorsOutputNode,
+    RendermanIntegratorNode
 ]
 
 def register():

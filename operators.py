@@ -44,7 +44,6 @@ from bpy_extras.io_utils import ExportHelper
 ## These should be removed
 from .util import get_addon_prefs
 from .util import get_real_path
-from .util import readOSO, find_it_path, find_local_queue, find_tractor_spool
 from .util import get_Files_in_Directory
 
 
@@ -117,42 +116,45 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 continue
             light_type = light.type
             light.renderman.light_primary_visibility = False
-            '''
-            if light_type == 'SUN':
-                light.renderman.renderman_type = 'DIST'
-            elif light_type == 'HEMI':
-                light.renderman.renderman_type = 'ENV'
-                light.renderman.light_primary_visibility = True
-            else:
-                light.renderman.renderman_type = light_type
 
-            if light_type == 'AREA':
-                light.shape = 'RECTANGLE'
-                light.size = 1.0
-                light.size_y = 1.0
-            '''
-            light.renderman.renderman_light_role = 'RMAN_LIGHT'
+            light_shader = ''
             if light_type == 'SUN':
-                light.renderman.renderman_light_shader = 'PxrDistantLight'  
+                light_shader = 'PxrDistantLight'  
             elif light_type == 'HEMI':
-                light.renderman.renderman_light_shader = 'PxrDomeLight'
+                light_shader = 'PxrDomeLight'
             elif light_type == 'AREA':
                 if light.shape == 'DISK':
-                    light.renderman.renderman_light_shader = 'PxrDiskLight'
+                    light_shader = 'PxrDiskLight'
                 elif light.shape == 'ELLIPSE':
-                    light.renderman.renderman_light_shader = 'PxrSphereLight'
+                    light_shader = 'PxrSphereLight'
                 else:
-                    context.light.renderman.renderman_light_shader = 'PxrRectLight'
+                    light_shader = 'PxrRectLight'
             elif light_type == 'SPOT':
-                light.renderman.renderman_light_shader = 'PxrDiskLight'
-                node = context.light.renderman.get_light_node()
-                node.coneAngle(math.degrees(light.spot_size))
-                node.coneSoftness(light.spot_blend)
+                light_shader = 'PxrDiskLight'
             elif light_type == 'POINT':
-                context.light.renderman.renderman_light_shader = 'PxrSphereLight'
+                light_shader = 'PxrSphereLight' 
+            else:
+                light_shader = 'PxrRectLight'            
 
             light.type = 'AREA'
             light.renderman.use_renderman_node = True
+
+            output = nt.nodes.new('RendermanOutputNode')
+            default = nt.nodes.new('%sLightNode' % light_shader)
+
+            default.location = output.location
+            default.location[0] -= 300
+            nt.links.new(default.outputs[0], output.inputs[1])    
+
+            output.inputs[0].hide = True
+            output.inputs[2].hide = True
+            output.inputs[3].hide = True      
+            light.renderman.renderman_light_role = 'RMAN_LIGHT' 
+
+            if light_type == 'SPOT':
+                node = context.light.renderman.get_light_node()
+                node.coneAngle = math.degrees(light.spot_size)
+                node.coneSoftness = light.spot_blend                    
 
         # convert cycles vis settings
         for ob in context.scene.objects:
@@ -170,7 +172,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     ''''''
     bl_idname = "shading.add_renderman_nodetree"
     bl_label = "Add RenderMan Nodetree"
-    bl_description = "Add a RenderMan shader node tree linked to this material"
+    bl_description = "Add a RenderMan shader node tree"
 
     idtype: StringProperty(name="ID Type", default="material")
     bxdf_name: StringProperty(name="Bxdf Name", default="PxrSurface")
@@ -214,32 +216,32 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         elif idtype == 'light':
             light_type = idblock.type
             light = idblock
-            light.renderman.renderman_light_role = 'RMAN_LIGHT'
+
+            light_shader = ''
             if light_type == 'SUN':
-                light.renderman.renderman_light_shader = 'PxrDistantLight'  
+                light_shader = 'PxrDistantLight'  
             elif light_type == 'HEMI':
-                light.renderman.renderman_light_shader = 'PxrDomeLight'
+                light_shader = 'PxrDomeLight'
             elif light_type == 'AREA':
                 if light.shape == 'DISK':
-                    light.renderman.renderman_light_shader = 'PxrDiskLight'
+                    light_shader = 'PxrDiskLight'
                 elif light.shape == 'ELLIPSE':
-                    light.renderman.renderman_light_shader = 'PxrSphereLight'
+                    light_shader = 'PxrSphereLight'
                 else:
-                    context.light.renderman.renderman_light_shader = 'PxrRectLight'
+                    light_shader = 'PxrRectLight'
             elif light_type == 'SPOT':
-                light.renderman.renderman_light_shader = 'PxrDiskLight'
-                node = context.light.renderman.get_light_node()
-                node.coneAngle = math.degrees(light.spot_size)
-                node.coneSoftness = light.spot_blend
+                light_shader = 'PxrDiskLight'
             elif light_type == 'POINT':
-                context.light.renderman.renderman_light_shader = 'PxrSphereLight'            
+                light_shader = 'PxrSphereLight' 
+            else:
+                light_shader = 'PxrRectLight'
 
             light.type = 'AREA'
             light.renderman.use_renderman_node = True
 
             output = nt.nodes.new('RendermanOutputNode')
             default = nt.nodes.new('%sLightNode' %
-                                    context.light.renderman.renderman_light_shader)
+                                    light_shader)
             default.location = output.location
             default.location[0] -= 300
             nt.links.new(default.outputs[0], output.inputs[1])    
@@ -248,7 +250,32 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             output.inputs[2].hide = True
             output.inputs[3].hide = True
 
+            light.renderman.renderman_light_role = 'RMAN_LIGHT'
+            if light_type == 'SPOT':
+                node = context.light.renderman.get_light_node()
+                node.coneAngle = math.degrees(light.spot_size)
+                node.coneSoftness = light.spot_blend            
+
+        elif idtype == 'world':
+            # world
+            idblock.renderman.use_renderman_node = True
+            if shadergraph_utils.find_node(idblock, 'RendermanIntegratorsOutputNode'):
+                return {'FINISHED'}
+            output = nt.nodes.new('RendermanIntegratorsOutputNode')
+            default = nt.nodes.new('PxrPathTracerIntegratorNode')
+            default.location = output.location
+            default.location[0] -= 200
+            nt.links.new(default.outputs[0], output.inputs[0]) 
+
+            sf_output = nt.nodes.new('RendermanSamplefiltersOutputNode')
+            sf_output.location = default.location
+            sf_output.location[0] -= 300
+            df_output = nt.nodes.new('RendermanDisplayfiltersOutputNode')
+            df_output.location = sf_output.location
+            df_output.location[0] -= 300
+
         return {'FINISHED'}
+        
 
 ######################
 # OSL Operators

@@ -49,12 +49,18 @@ __RMAN_NODE_CATEGORIES__['bxdf'] = dict()
 __RMAN_NODE_CATEGORIES__['light'] = dict()
 __RMAN_NODE_CATEGORIES__['pattern'] = dict()
 __RMAN_NODE_CATEGORIES__['displace'] = dict()
+__RMAN_NODE_CATEGORIES__['samplefilter'] = dict()
+__RMAN_NODE_CATEGORIES__['displayfilter'] = dict()
+__RMAN_NODE_CATEGORIES__['integrator'] = dict()
 
 
 __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'] = ('RenderMan Misc Bxdfs', [])
 __RMAN_NODE_CATEGORIES__['light']['light'] = ('RenderMan Lights', [])
 __RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'] = ('RenderMan Misc Patterns', [])
 __RMAN_NODE_CATEGORIES__['displace']['displace'] = ('RenderMan Displacements', [])
+__RMAN_NODE_CATEGORIES__['samplefilter']['samplefilter'] = ('RenderMan SampleFilters', [])
+__RMAN_NODE_CATEGORIES__['displayfilter']['displayfilter'] = ('RenderMan DisplayFilters', [])
+__RMAN_NODE_CATEGORIES__['integrator']['integrator'] = ('RenderMan Integrators', [])
   
 
 __RMAN_NODES__ = { 
@@ -71,13 +77,8 @@ __RMAN_NODES__ = {
 }
 
 __RMAN_PLUGIN_MAPPING__ = {
-    'integrator': rman_properties_scene.RendermanSceneSettings,
     'displaydriver': rman_properties_renderlayers.RendermanAOV,
-    'projection': rman_properties_camera.RendermanCameraSettings,
-    'light': rman_bl_nodes_props.RendermanLightSettings,
-    'lightfilter': rman_bl_nodes_props.RendermanLightSettings,
-    'displayfilter': rman_bl_nodes_props.RendermanDisplayFilterSettings,
-    'samplefilter': rman_bl_nodes_props.RendermanSampleFilterSettings,
+    'projection': rman_properties_camera.RendermanCameraSettings
 }
 
 __RMAN_NODES_NO_REGISTER__ = ['PxrCombinerLightFilter', 'PxrSampleFilterCombiner', 'PxrDisplayFilterCombiner']
@@ -382,7 +383,7 @@ def generate_node_type(node_desc, is_oso=False):
     ''' Dynamically generate a node type from pattern '''
 
     name = node_desc.name
-    nodeType = node_desc.node_type #args.find("shaderType/tag").attrib['value']
+    nodeType = node_desc.node_type
     typename = '%s%sNode' % (name, nodeType.capitalize())
     if is_oso:
         typename = '%s%sOSLNode' % (name, nodeType.capitalize())
@@ -391,7 +392,10 @@ def generate_node_type(node_desc, is_oso=False):
                 'pattern': rman_bl_nodes_shaders.RendermanPatternNode,
                 'displace': rman_bl_nodes_shaders.RendermanDisplacementNode,
                 'light': rman_bl_nodes_shaders.RendermanLightNode,
-                'lightfilter': rman_bl_nodes_shaders.RendermanLightfilterNode}
+                'lightfilter': rman_bl_nodes_shaders.RendermanLightfilterNode,
+                'samplefilter': rman_bl_nodes_shaders.RendermanSamplefilterNode,
+                'displayfilter': rman_bl_nodes_shaders.RendermanDisplayfilterNode,
+                'integrator': rman_bl_nodes_shaders.RendermanIntegratorNode}
 
     if nodeType not in nodeDict.keys():
         return (None, None)
@@ -403,6 +407,7 @@ def generate_node_type(node_desc, is_oso=False):
     ntype.typename = typename
 
     def init(self, context):
+        # add input/output sockets to nodes, based on type
         if self.renderman_node_type == 'bxdf':
             self.outputs.new('RendermanNodeSocketBxdf', "Bxdf").type = 'SHADER'
             #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
@@ -413,17 +418,23 @@ def generate_node_type(node_desc, is_oso=False):
             if self.plugin_name == 'PxrLayerSurface':
                 self.diffuseGain = 0
         elif self.renderman_node_type == 'light':
-            # only make a few sockets connectable
             node_add_inputs(self, name, self.prop_names)
             self.outputs.new('RendermanNodeSocketLight', "Light")
         elif self.renderman_node_type == 'lightfilter':
-            # only make a few sockets connectable
             node_add_inputs(self, name, self.prop_names)
             self.outputs.new('RendermanNodeSocketLightFilter', "LightFilter")            
         elif self.renderman_node_type == 'displace':
-            # only make the color connectable
             self.outputs.new('RendermanNodeSocketDisplacement', "Displacement")
             node_add_inputs(self, name, self.prop_names)
+        elif self.renderman_node_type == 'displayfilter':
+            self.outputs.new('RendermanNodeSocketDisplayFilter', "DisplayFilter")
+            node_add_inputs(self, name, self.prop_names)            
+        elif self.renderman_node_type == 'samplefilter':
+            self.outputs.new('RendermanNodeSocketSampleFilter', "SampleFilter")
+            node_add_inputs(self, name, self.prop_names)    
+        elif self.renderman_node_type == 'integrator':
+            self.outputs.new('RendermanNodeSocketIntegrator', "Integrator")
+            node_add_inputs(self, name, self.prop_names)                           
         # else pattern
         elif name == "PxrOSL":
             self.outputs.clear()
@@ -566,8 +577,7 @@ def register_rman_nodes():
                     # nodes that can be used in Blender's shading editor, but 
                     # we still create PropertyGroups for them so they can be inserted
                     # into the correct UI panel.
-                    if node_desc.node_type in ['integrator', 'projection', 'displaydriver',
-                                                'displayfilter', 'samplefilter']:
+                    if node_desc.node_type in ['projection', 'displaydriver']: 
                         register_plugin_types(node_desc)
                         continue
                     
@@ -646,17 +656,29 @@ def register_rman_nodes():
                     elif node_desc.node_type == 'displace':
                         __RMAN_NODE_CATEGORIES__['displace']['displace'][1].append(node_item)
                     elif node_desc.node_type == 'light':
-                        __RMAN_NODE_CATEGORIES__['light']['light'][1].append(node_item)                        
-
+                        __RMAN_NODE_CATEGORIES__['light']['light'][1].append(node_item)     
+                    elif node_desc.node_type == 'samplefilter':
+                        __RMAN_NODE_CATEGORIES__['samplefilter']['samplefilter'][1].append(node_item)      
+                    elif node_desc.node_type == 'displayfilter':
+                        __RMAN_NODE_CATEGORIES__['displayfilter']['displayfilter'][1].append(node_item)                                                                
+                    elif node_desc.node_type == 'integrator':
+                        __RMAN_NODE_CATEGORIES__['integrator']['integrator'][1].append(node_item)        
 
     rfb_log().debug("Finished Registering RenderMan Plugin Nodes.")
 
     # all categories in a list
-    node_categories = [
+    node_categories = []
+    '''
+    node_categories.append(
         # identifier, label, items list
         RendermanPatternNodeCategory("PRMan_output_nodes", "RenderMan Outputs",
-                                     items=[NodeItem('RendermanOutputNode', label=rman_bl_nodes_shaders.RendermanOutputNode.bl_label)]),
-    ]
+                                     items=[NodeItem('RendermanOutputNode', label=rman_bl_nodes_shaders.RendermanOutputNode.bl_label),
+                                     NodeItem('RendermanSamplefiltersOutputNode', label=rman_bl_nodes_shaders.RendermanSamplefiltersOutputNode.bl_label),
+                                     NodeItem('RendermanDisplayfiltersOutputNode', label=rman_bl_nodes_shaders.RendermanDisplayfiltersOutputNode.bl_label),
+                                     NodeItem('RendermanIntegratorsOutputNode', label=rman_bl_nodes_shaders.RendermanIntegratorsOutputNode.bl_label)
+                                     ]),
+    }
+    '''
 
     for k,v in __RMAN_NODE_CATEGORIES__.items():
         for name, (desc, items) in v.items():

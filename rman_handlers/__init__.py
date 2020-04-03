@@ -8,6 +8,9 @@ import bpy
 def _update_renderman_lights_(bl_scene):
     '''Update older scenes to use new RenderMan light properties
     '''
+    
+    if bpy.context.engine != 'PRMAN_RENDER':
+        return
 
     for ob in bpy.context.scene.objects:
         if ob.type != 'LIGHT':

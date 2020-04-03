@@ -96,9 +96,9 @@ def build_output_param_str(mat_name, from_node, from_socket, convert_socket=Fals
     # replace with the convert node's output
     if convert_socket:
         if shadergraph_utils.is_float_type(from_socket):
-            return "convert_%s.%s:resultRGB" % (from_node_name, from_sock_name)
+            return "convert_%s_%s:resultRGB" % (from_node_name, from_sock_name)
         else:
-            return "convert_%s.%s:resultF" % (from_node_name, from_sock_name)
+            return "convert_%s_%s:resultF" % (from_node_name, from_sock_name)
     elif param_type == 'bxdf':
        return "%s" % (from_node_name) 
     else:
@@ -178,7 +178,7 @@ def is_vstruct_and_linked(node, param):
                 if len(in_sock.links):
                     from_socket = in_sock.links[0].from_socket
             vstruct_from_param = "%s_%s" % (
-                from_socket.identifier, vstruct_member)
+                from_socket.identifier, vstruct_member)             
             return vstruct_conditional(from_socket.node, vstruct_from_param)
         else:
             return False
@@ -371,12 +371,10 @@ def generate_property(sp, update_function=None):
     if hasattr(sp, 'connectable') and not sp.connectable:
         prop_meta['__noconnection'] = True
 
-    if param_widget == 'null':
-        return (None, None, None)
-
-    for k,v in prop_meta['options'].items():
-        if k in ['colorramp', 'floatramp']:
-            return (None, None, None)
+    if isinstance(prop_meta['options'], OrderedDict):
+        for k,v in prop_meta['options'].items():
+            if k in ['colorramp', 'floatramp']:
+                return (None, None, None)
 
     # set this prop as non connectable
     if param_widget in ['null', 'checkbox', 'switch', 'colorramp']:

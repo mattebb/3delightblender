@@ -48,14 +48,19 @@ class PRMAN_HT_DrawRenderHeaderNode(bpy.types.Header):
 
         row = layout.row(align=True)
 
-        if hasattr(context.space_data, 'id') and \
-                type(context.space_data.id) == bpy.types.Material and \
-                not is_renderman_nodetree(context.space_data.id):
-            row.operator(
-                'shading.add_renderman_nodetree', text="Convert to RenderMan").idtype = "node_editor"
+        if not hasattr(context.space_data, 'id'):
+            return
 
-        row.operator('nodes.new_bxdf')
+        if type(context.space_data.id) == bpy.types.Material:
+            if not is_renderman_nodetree(context.space_data.id):
+                row.operator(
+                    'shading.add_renderman_nodetree', text="Convert to RenderMan").idtype = "node_editor"
+                row.operator('nodes.new_bxdf')
 
+        elif type(context.space_data.id) == bpy.types.World:
+            if not context.space_data.id.renderman.use_renderman_node:
+                row.operator(
+                    'shading.add_renderman_nodetree', text="Add RenderMan Nodes").idtype = "world"                
 
 class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
     '''Adds a render button or stop IPR button to the image editor

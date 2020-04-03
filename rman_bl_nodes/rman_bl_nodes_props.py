@@ -49,7 +49,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         else:
             socket = output.inputs[3]
             if socket.is_linked:
-                return socket.links[0].from_node            
+                return socket.links[0].from_node    
+
+        return None        
 
     def get_light_node_name(self):
         '''
@@ -58,6 +60,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         node = self.get_light_node()
         if node:
             return node.bl_label
+        return ''
 
     light_node: StringProperty(
         name="Light Node",
@@ -92,8 +95,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
     def renderman_light_shader_update(self, context):
         light = self.id_data        
-        light_shader = self.renderman_light_shader
-        self.light_node = light_shader + "_settings"
+        light_shader = self.get_light_node_name()
 
         # update the Blender native light type
         if light_shader in ['PxrDomeLight', 'PxrEnvDayLight']:
@@ -140,8 +142,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
     def renderman_light_filter_shader_update(self, context):
         light = self.id_data
-        light_shader = self.renderman_light_filter_shader
-        self.light_node = light_shader + "_settings"
+        light_shader = self.get_light_node_name()
 
         light.type = 'AREA'
         light.shape = 'RECTANGLE'

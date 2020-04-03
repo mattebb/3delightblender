@@ -1,4 +1,12 @@
 from .rman_ui_base import ShaderPanel
+from bpy.props import (PointerProperty, StringProperty, BoolProperty,
+                       EnumProperty, IntProperty, FloatProperty, FloatVectorProperty,
+                       CollectionProperty)
+
+from .rman_ui_base import CollectionPanel   
+from .rman_ui_base import PRManButtonsPanel 
+from ..rman_utils.draw_utils import draw_node_properties_recursive, draw_nodes_properties_ui
+from ..rman_utils.shadergraph_utils import find_node
 from bpy.types import Panel
 import bpy
 
@@ -11,26 +19,121 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         layout = self.layout
         world = context.scene.world
 
-        """
-        DISABLE FOR NOW
-
         if not world.renderman.use_renderman_node:
-            #FIXME layout.prop(world, "horizon_color")
             layout.prop(world, 'color')
             layout.operator('shading.add_renderman_nodetree').idtype = 'world'
-            return
         else:
-            layout.prop(world.renderman, "renderman_type", expand=True)
-            if world.renderman.renderman_type == 'NONE':
-                return
-            layout.prop(world.renderman, 'light_primary_visibility')
-            light_node = world.renderman.get_light_node()
-            if light_node:
-                draw_props(light_node, light_node.prop_names, layout)
-        """
+            layout.prop(world, 'color')
 
+class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):
+    bl_label = "Integrator"
+    bl_context = 'world'
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        world = context.scene.world
+        return rd.engine == 'PRMAN_RENDER' and world.renderman.use_renderman_node
+
+    def draw(self, context):
+        layout = self.layout
+        world = context.scene.world
+        rm = world.renderman
+        nt = world.node_tree
+
+        draw_nodes_properties_ui(layout, context, nt, input_name='Integrator', output_node_type='integrators_output')
+
+class DATA_PT_renderman_world_display_filters(ShaderPanel, Panel):
+    bl_label = "Display Filters"
+    bl_context = 'world'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        world = context.scene.world
+        return rd.engine == 'PRMAN_RENDER' and world.renderman.use_renderman_node
+
+    def draw(self, context):
+        layout = self.layout
+        world = context.scene.world
+        rm = world.renderman
+        nt = world.node_tree
+
+        output = find_node(world, 'RendermanDisplayfiltersOutputNode')
+        if not output:
+            return
+
+        row = layout.row(align=True)
+        col = row.column()
+        col.operator('node.add_displayfilter_node_socket', text='Add')
+        col = row.column()
+        col.enabled = len(output.inputs) > 1
+        col.operator('node.remove_displayfilter_node_socket', text='Remove')
+        for i, socket in enumerate(output.inputs):
+            layout.label(text='displayfilter[%d]' % i)
+            if socket.is_linked:
+                link = socket.links[0]
+                node = link.from_node 
+                layout.context_pointer_set("nodetree", nt)
+                layout.context_pointer_set("node", output)
+                layout.context_pointer_set("socket", socket)                               
+                layout.operator_menu_enum("node.add_displayfilter", "node_type", text=node.bl_label)         
+                draw_node_properties_recursive(layout, context, nt, node, level=1)
+            else:
+                layout.context_pointer_set("nodetree", nt)
+                layout.context_pointer_set("node", output)
+                layout.context_pointer_set("socket", socket)                     
+                layout.operator_menu_enum("node.add_displayfilter", "node_type", text='None')
+
+class DATA_PT_renderman_world_sample_filters(ShaderPanel, Panel):
+    bl_label = "Sample Filters"
+    bl_context = 'world'
+    bl_options = {'DEFAULT_CLOSED'}
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        world = context.scene.world
+        return rd.engine == 'PRMAN_RENDER' and world.renderman.use_renderman_node
+
+    def draw(self, context):
+        layout = self.layout
+        world = context.scene.world
+        rm = world.renderman
+        nt = world.node_tree
+
+        output = find_node(world, 'RendermanSamplefiltersOutputNode')
+        if not output:
+            return   
+
+        row = layout.row(align=True)
+        col = row.column()
+        col.operator('node.add_samplefilter_node_socket', text='Add')
+        col = row.column()
+        col.enabled = len(output.inputs) > 1
+        col.operator('node.remove_samplefilter_node_socket', text='Remove')
+        for i, socket in enumerate(output.inputs):
+            layout.label(text='samplefilter[%d]' % i)
+            if socket.is_linked:
+                link = socket.links[0]
+                node = link.from_node 
+                layout.context_pointer_set("nodetree", nt)
+                layout.context_pointer_set("node", output)
+                layout.context_pointer_set("socket", socket)                               
+                layout.operator_menu_enum("node.add_samplefilter", "node_type", text=node.bl_label)         
+                draw_node_properties_recursive(layout, context, nt, node, level=1)
+            else:
+                layout.context_pointer_set("nodetree", nt)
+                layout.context_pointer_set("node", output)
+                layout.context_pointer_set("socket", socket)                     
+                layout.operator_menu_enum("node.add_samplefilter", "node_type", text='None')
+    
 classes = [
-    DATA_PT_renderman_world
+    DATA_PT_renderman_world,
+    DATA_PT_renderman_world_integrators,
+    DATA_PT_renderman_world_display_filters,
+    DATA_PT_renderman_world_sample_filters
 ]
 
 

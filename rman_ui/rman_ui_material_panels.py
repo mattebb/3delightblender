@@ -128,12 +128,9 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
             row = layout.row()
             col = row.column()
             icons = load_icons()
-            if light.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
-                rman_lightfilter_icon = icons.get("out_%s.png" % light.renderman.renderman_light_filter_shader )
-                col.label(text="%s" % light.renderman.renderman_light_filter_shader, icon_value=rman_lightfilter_icon.icon_id)
-            else:
-                rman_light_icon = icons.get("out_%s.png" % light.renderman.renderman_light_shader)                    
-                col.label(text="%s" % light.renderman.renderman_light_shader, icon_value=rman_light_icon.icon_id)
+            light_shader = light.renderman.get_light_node_name()
+            rman_light_icon = icons.get("out_%s.png" % light_shader)                    
+            col.label(text="%s" % light_shader, icon_value=rman_light_icon.icon_id)
 
 class PRMAN_PT_context_material(_RManPanelHeader, Panel):
     bl_space_type = "PROPERTIES"
@@ -219,6 +216,7 @@ class DATA_PT_renderman_node_shader_light(ShaderNodePanel, Panel):
 
         if light.node_tree:
             nt = light.node_tree
+            layout.prop(light.renderman, 'light_primary_visibility')
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name='Light')          
 

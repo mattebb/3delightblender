@@ -254,6 +254,51 @@ class RendermanNodeSocketInterfaceLightFilter(bpy.types.NodeSocketInterfaceStrin
     bl_socket_idname = 'RendermanNodeSocketLightFilter'
     hide_value = True        
 
+class RendermanNodeSocketSampleFilter(bpy.types.NodeSocketString, RendermanSocket):
+    '''RenderMan sample filter input/output'''
+    bl_idname = 'RendermanNodeSocketSampleFilter'
+    bl_label = 'RenderMan Sample Filter Socket'
+    hide_value = True
+    renderman_type: StringProperty(default='samplefilter')
+    default_value = ''
+
+class RendermanNodeSocketInterfaceSampleFilter(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):
+    '''RenderMan Sample Filter input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceSampleFilter'
+    bl_label = 'RenderMan Sample Filter Socket'
+    bl_socket_idname = 'RendermanNodeSocketSampleFilter'
+    hide_value = True      
+
+class RendermanNodeSocketDisplayFilter(bpy.types.NodeSocketString, RendermanSocket):
+    '''RenderMan Display filter input/output'''
+    bl_idname = 'RendermanNodeSocketDisplayFilter'
+    bl_label = 'RenderMan Display Filter Socket'
+    hide_value = True
+    renderman_type: StringProperty(default='displayfilter')
+    default_value = ''
+
+class RendermanNodeSocketInterfaceDisplayFilter(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):
+    '''RenderMan Display Filter input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceDisplayFilter'
+    bl_label = 'RenderMan Display Filter Socket'
+    bl_socket_idname = 'RendermanNodeSocketDisplayFilter'
+    hide_value = True      
+
+class RendermanNodeSocketIntegrator(bpy.types.NodeSocketString, RendermanSocket):
+    '''RenderMan Integrator input/output'''
+    bl_idname = 'RendermanNodeSocketIntegrator'
+    bl_label = 'RenderMan Integrator Socket'
+    hide_value = True
+    renderman_type: StringProperty(default='Integrator')
+    default_value = ''
+
+class RendermanNodeSocketInterfaceIntegrator(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):
+    '''RenderMan Integrator input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceIntegrator'
+    bl_label = 'RenderMan Integrator Socket'
+    bl_socket_idname = 'RendermanNodeSocketIntegrator'
+    hide_value = True     
+
 # Custom socket type for connecting shaders
 
 class RendermanShaderSocket(bpy.types.NodeSocketShader, RendermanSocket):
@@ -285,6 +330,9 @@ classes = [
     RendermanNodeSocketLight,
     RendermanNodeSocketDisplacement,
     RendermanNodeSocketLightFilter,
+    RendermanNodeSocketSampleFilter,    
+    RendermanNodeSocketDisplayFilter,
+    RendermanNodeSocketIntegrator,
 
     RendermanNodeSocketInterfaceFloat,
     RendermanNodeSocketInterfaceInt,
@@ -292,7 +340,10 @@ classes = [
     RendermanNodeSocketInterfaceBxdf,
     RendermanNodeSocketInterfaceLight,
     RendermanNodeSocketInterfaceDisplacement,
-    RendermanNodeSocketInterfaceLightFilter,    
+    RendermanNodeSocketInterfaceLightFilter,
+    RendermanNodeSocketInterfaceSampleFilter,   
+    RendermanNodeSocketInterfaceDisplayFilter,    
+    RendermanNodeSocketInterfaceIntegrator,
     RendermanNodeSocketInterfaceColor,
     RendermanNodeSocketInterfaceVector,
     RendermanShaderSocketInterface

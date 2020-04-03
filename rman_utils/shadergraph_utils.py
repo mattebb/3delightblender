@@ -108,8 +108,6 @@ def is_float3_type(socket):
         return socket.type in ['RGBA', 'VECTOR']
 
 # walk the tree for nodes to export
-
-
 def gather_nodes(node):
     nodes = []
     for socket in node.inputs:
@@ -136,6 +134,71 @@ def gather_nodes(node):
         nodes.append(node)
 
     return nodes    
+
+def find_integrator_node(world):
+    '''Find and return the integrator node from the world nodetree
+
+    Arguments:
+        world (bpy.types.World) - Blender world object
+
+    Returns:
+        (RendermanIntegratorNode) - the integrator ShadingNode
+    '''
+    rm = world.renderman
+    if not world.renderman.use_renderman_node:
+        return None
+    
+    output = find_node(world, 'RendermanIntegratorsOutputNode')
+    if output:
+        socket = output.inputs[0]
+        if socket.is_linked:
+            return socket.links[0].from_node
+
+    return None
+
+def find_displayfilter_nodes(world):
+    '''Find and return all display filter nodes from the world nodetree
+
+    Arguments:
+        world (bpy.types.World) - Blender world object
+
+    Returns:
+        (list) - list of display filter nodes
+    '''  
+    df_nodes = []      
+    if not world.renderman.use_renderman_node:
+        return df_nodes 
+
+    output = find_node(world, 'RendermanDisplayfiltersOutputNode')
+    if output:
+        for i, socket in enumerate(output.inputs):
+            if socket.is_linked:
+                bl_df_node = socket.links[0].from_node
+                df_nodes.append(bl_df_node)   
+
+    return df_nodes      
+
+def find_samplefilter_nodes(world):
+    '''Find and return all sample filter nodes from the world nodetree
+
+    Arguments:
+        world (bpy.types.World) - Blender world object
+
+    Returns:
+        (list) - list of sample filter nodes
+    '''    
+    sf_nodes = []
+    if not world.renderman.use_renderman_node:
+        return sf_nodes 
+
+    output = find_node(world, 'RendermanSamplefiltersOutputNode')
+    if output:
+        for i, socket in enumerate(output.inputs):
+            if socket.is_linked:
+                bl_sf_node = socket.links[0].from_node
+                sf_nodes.append(bl_sf_node)   
+
+    return sf_nodes
 
 def _convert_grease_pencil_stroke_texture(mat, nt, output):
     gp_mat = mat.grease_pencil

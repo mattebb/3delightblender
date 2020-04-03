@@ -144,37 +144,7 @@ class RENDER_PT_renderman_sampling_ipr(PRManButtonsPanel, Panel):
         col = layout.column()
         row = col.row(align=True)
 
-        _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_sampling_ipr', context, layout, rm)
-
-class RENDER_PT_renderman_integrator(PRManButtonsPanel, Panel):
-    bl_label = "Integrator"
-    bl_parent_id = 'RENDER_PT_renderman_sampling'
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        col = layout.column()
-        row = col.row(align=True)
-
-        col.prop(rm, "integrator")
-        # find args for integrators here!
-        integrator_settings = getattr(rm, "%s_settings" % rm.integrator)
-
-        # TODO: Remove show integrator settings button
-        icon = 'DISCLOSURE_TRI_DOWN' if rm.show_integrator_settings \
-            else 'DISCLOSURE_TRI_RIGHT'
-        text = rm.integrator + " Settings:"
-
-        row = col.row()
-        row.prop(rm, "show_integrator_settings", icon=icon, text=text,
-                         emboss=False)
-        if rm.show_integrator_settings:
-            _draw_props(integrator_settings, integrator_settings.prop_names, col)        
+        _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_sampling_ipr', context, layout, rm)  
 
 class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
     bl_label = "Motion Blur"
@@ -244,7 +214,6 @@ classes = [
     RENDER_PT_renderman_baking,
     RENDER_PT_renderman_sampling,
     RENDER_PT_renderman_sampling_ipr,
-    RENDER_PT_renderman_integrator,
     RENDER_PT_renderman_spooling,
     RENDER_PT_renderman_spooling_export_options,
     RENDER_PT_renderman_motion_blur,    
