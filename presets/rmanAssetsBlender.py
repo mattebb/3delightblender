@@ -1068,18 +1068,6 @@ def exportAsset(nt, atype, infodict, category, renderPreview=True,
     #   Check if we are overwriting an existing asset
     #
     jsonfile = os.path.join(dirPath, "asset.json")
-    # if os.path.exists(jsonfile):
-    #     if mc.about(batch=True) or alwaysOverwrite:
-    #         mc.warning('Replacing existing file : %s' % jsonfile)
-    #     else:
-    #         replace = mc.confirmDialog(title='This file already exists !',
-    #                                    message='Do you want to overwrite it ?',
-    #                                    button=['Overwrite', 'Cancel'],
-    #                                    defaultButton='Replace',
-    #                                    cancelButton='Cancel',
-    #                                    dismissString='Cancel')
-    #         if replace == 'Cancel':
-    #             return
 
     #  Save our json file
     #
@@ -1092,8 +1080,6 @@ def exportAsset(nt, atype, infodict, category, renderPreview=True,
         return
     json = Asset.jsonFilePath()
     Asset.load(json, localizeFilePaths=True)
-    #prog = MayaProgress()
-    #resizer = MayaResizer()
     if category.startswith('Materials'):
         ral.renderAssetPreview(Asset, progress=None, resize=None)
     elif category.startswith('LightRigs'):
@@ -1274,27 +1260,6 @@ def createNodes(Asset):
         fmt, vals, ttype = node.transforms()
         # print('+ %s %s: %s' % (fmt, vals, ttype))
 
-    #     nodeName = None
-    #     transformName = None
-
-    #     # if nodeType == 'coordinateSystem':
-    #     #     # transformed node : custom transform
-    #     #     nodeName = mc.createNode('coordinateSystem',
-    #     #                              name=nodeId, skipSelect=True)
-    #     #     transformName = nodeName
-    #     # el
-    #     if nodeClass == 'light':
-    #         # transformed node : shape under transform
-    #         # make sure we return the shape, not the transform name to the
-    #         # created node dict.
-    #         transformName = mc.shadingNode(nodeType, name=nodeId, asLight=True)
-    #         nodeName = mc.listRelatives(transformName, shapes=True)[0]
-    #     elif nodeClass == 'lightfilter':
-    #         # transformed node : shape under transform
-    #         # make sure we return the shape, not the transform name to the
-    #         # created node dict.
-    #         transformName = mc.shadingNode(nodeType, name=nodeId, asLight=True)
-    #         nodeName = mc.listRelatives(transformName, shapes=True)[0]
         if nodeClass == 'bxdf':
             if nodeType in g_PxrToBlenderNodes:
                 created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
@@ -1361,8 +1326,10 @@ def createNodes(Asset):
                 bpy.context.scene.collection.objects.link(lightrig_helper)
                 lightrig_helper.empty_display_size = lightrig_size
                 lightrig_helper.empty_display_type = lightrig_type
+                lightrig_helper.hide_viewport = True
 
-            bpy.ops.object.light_add(type='AREA')
+
+            bpy.ops.object.rman_add_light(rman_light_name=nodeType)
             light = bpy.context.active_object
 
             # add current light object from JSON to helper
@@ -1370,32 +1337,20 @@ def createNodes(Asset):
 
             light.name = nodeId
             light.data.name = nodeId
-            bpy.ops.shading.add_renderman_nodetree(
-                {'material': None, 'light': bpy.context.active_object.data}, idtype='light')
+           
             light.matrix_world[0] = vals[0:4]
             light.matrix_world[1] = vals[4:8]
             light.matrix_world[2] = vals[8:12]
             light.matrix_world[3] = vals[12:]
             light.matrix_world.transpose()
 
-            light.data.renderman.renderman_light_shader = nodeType
-
             created_node = light.data.renderman.get_light_node()
             mat = light
-            nt = light.data.renderman
-    #         nodeName = mc.sets(name=nodeId, renderable=True,
-    #                            noSurfaceShader=True, empty=True)
-    #     else:
-    #         nodeName = mc.shadingNode(nodeType, name=nodeId, asUtility=True)
+            nt = light.data.node_tree 
+
         if created_node:
             nodeDict[nodeId] = created_node.name
             setParams(created_node, node.paramsDict())
-    #     # print '+ transformName: %s' % (transformName)
-
-    #     if transformName is not None:
-    #         setTransform(transformName, fmt, vals)
-
-
 
     # if we have a light rig after iterating over the JSON, then correct
     # Maya to Blender world by rotation around x-axis with a value of +90°.
@@ -1407,7 +1362,6 @@ def createNodes(Asset):
 
         # deselect all selected obejects
         for ob in bpy.context.selected_objects:
-            #ob.select = False
             ob.select_set(state=False)
 
         # select lightrig and make active (same behavior like adding a object via UI)
