@@ -40,6 +40,14 @@ def link_node(nt, from_node, in_socket):
                                            next((s for s in from_node.outputs
                                                  if type(s).__name__ == 'RendermanNodeSocketFloat'), None))
 
+    if not out_socket:
+        # try matching the first one we can find
+        in_socket_type = type(in_socket).__name__
+        for s in from_node.outputs:
+            if type(s).__name__ == in_socket_type:
+                out_socket = s
+                break
+
     if out_socket:
         nt.links.new(out_socket, in_socket)    
 

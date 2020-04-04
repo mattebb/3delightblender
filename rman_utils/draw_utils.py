@@ -317,20 +317,28 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                 array_elem_nm = '%s[%d]' % (prop_name, i)
                                 indented_label(row, None, level)
                                 row.label(text='%s[%d]' % (prop_label, i))
-                                row.prop(node, array_elem_nm, text='')
                                 if array_elem_nm in node.inputs:
+                                    op_text = ''
+                                    socket = node.inputs[array_elem_nm]
+                                    row.context_pointer_set("socket", socket)
+                                    if socket.is_linked:
+                                        input_node = shadergraph_utils.socket_node_input(nt, socket)
+                                        op_text = input_node.bl_label
+                                    else:
+                                        row.prop(node, array_elem_nm, text='')
+
                                     if prop_meta['renderman_array_type'] == 'bxdf':
                                         row.operator_menu_enum("node.add_bxdf", "node_type",
-                                                            text='', icon="LAYER_USED")                                                       
+                                                            text=op_text, icon="LAYER_USED")                                                       
                                     elif prop_meta['renderman_array_type'] == 'struct':
                                         row.operator_menu_enum("node.add_manifold", "node_type",
-                                                            text='', icon="LAYER_USED")
+                                                            text=op_text, icon="LAYER_USED")
                                     elif prop_meta['renderman_array_type'] == 'normal':
                                         row.operator_menu_enum("node.add_bump", "node_type",
-                                                            text='', icon="LAYER_USED")
+                                                            text=op_text, icon="LAYER_USED")
                                     else:
                                         row.operator_menu_enum("node.add_pattern", "node_type",
-                                                            text='', icon="LAYER_USED")
+                                                            text=op_text, icon="LAYER_USED")
                         continue
                     else:
                         if is_pxrramp and prop_name == 'useNewRamp':
