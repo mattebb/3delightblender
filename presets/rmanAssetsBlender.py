@@ -35,7 +35,8 @@ import bpy as mc  # just a test
 import bpy
 import mathutils
 from math import radians
-from .. import util
+from ..rman_utils import filepath_utils
+from ..rman_utils.property_utils import __GAINS_TO_ENABLE__
 
 ##
 # @brief      Exception class to tell the world about our miserable failings.
@@ -56,7 +57,7 @@ class RmanAssetBlenderError(Exception):
 #
 class BlenderEnv:
     def getenv(self, key):
-        util.init_env(None)
+        filepath_utils.init_env(None)
         val = os.environ[key] if key in os.environ else None
         return val
 
@@ -72,8 +73,7 @@ class BlenderEnv:
         val = self.getenv(key)
         if val is None:
             print(key,val)
-            raise ra.RmanAssetError('%s is not an registered environment ' +
-                                 'variable !' % key)
+            raise ra.RmanAssetError('%s is not an registered environment variable !' % key)
         # print 'MayaEnv.GetValue( %s ) = %s' % (key, repr(val))
         return os.path.expandvars(val)
 
@@ -88,9 +88,6 @@ rmantree = ra.internalPath(blenderEnv.GetValue('RMANTREE'))
 rmanpath = os.path.join(rmantree, "bin")
 if ra.externalPath(rmanpath) not in sys.path:
     sys.path.append(ra.externalPath(rmanpath))
-
-# NOTE: could not make prman module work : needs investigating...
-# import prman
 
 ##############################
 #                            #
@@ -109,12 +106,12 @@ __defaultCategories = {'Materials', 'LightRigs', 'EnvironmentMaps'}
 # store the list of maya nodes we translate to patterns
 # without telling anyone...
 #
-from .. import nodes
-tmp = nodes.nodetypes
+
+from ..rman_bl_nodes import __RMAN_NODE_TYPES__
 g_BlenderToPxrNodes = {}
 g_PxrToBlenderNodes = {}
 
-for name, node_class in tmp.items():
+for name, node_class in __RMAN_NODE_TYPES__.items():
     g_BlenderToPxrNodes[name] = node_class.bl_label
     g_PxrToBlenderNodes[node_class.bl_label] = name
 
@@ -195,7 +192,7 @@ class BlenderProgress:
         self._pbar.progress_update(val)
 
     def End(self):
-        self._pbar.progress_end(val)
+        self._pbar.progress_end()
 
 
 def fix_blender_name(name):
@@ -432,8 +429,39 @@ class BlenderNode:
                 link = node.inputs[p_name].links[0]
                 # connected parameter
                 self.SetConnected(p_name, ptype)
+            
+            # arrays
+            elif '[' in ptype:
+                array_len = getattr(self.node, '%s_arraylen' % p_name, -1)
+                if array_len < 1:
+                    continue
+
+                rman_type = ptype.split('[')[0]
+                ptype = '%s[%d]' % (rman_type, array_len)
+                is_any_connected = False
+                # check if there's any connections:
+                for i in range(0, array_len):
+                    nodeattr = '%s[%d]' % (p_name, i)
+                    if nodeattr in node.inputs and node.inputs[nodeattr].is_linked:
+                        is_any_connected = True
+                        break
+                
+                if is_any_connected:
+                    self.SetConnected(p_name, ptype)
+                else:
+                    pvalues = []
+                    for i in range(0, array_len):
+                        nodeattr = '%s[%d]' % (p_name, i)
+                        pvalue = self.BlenderGetAttr(nodeattr)
+                        pvalues.append(pvalue)
+                    self.AddParam(p_name, {'type': ptype, 'value': pvalue})
 
             else:
+                # skip vstruct and structs
+                # these should be connections
+                if ptype in ['vstruct', 'struct']:
+                    continue
+
                 # get actual parameter value
                 pvalue = self.BlenderGetAttr(p_name)
 
@@ -525,9 +553,7 @@ class BlenderGraph:
             # print '    already in invalids'
             print('%s invalid' % node.name)
             return False
-
-        # FIXME: I have no idea what this conditional is trying to do
-        '''
+       
         if node.__class__.__name__ not in g_validNodeTypes:
             self._invalids.append(node)
             # we must warn the user, as this is not really supposed to happen.
@@ -535,7 +561,6 @@ class BlenderGraph:
                        (node.name, node.__class__.__name__))
             # print '    not a valid node type -> %s' % nodetype
             return False
-        '''
 
         if node not in self._nodes:
             #print('adding %s ' % node.name)
@@ -573,41 +598,12 @@ class BlenderGraph:
             for l in cnx:
                 # don't store connections to un-related nodes.
                 #
+                
                 ignoreDst = type(l.to_node).__name__ not in g_validNodeTypes
                 ignoreSrc = type(l.to_node).__name__ not in g_validNodeTypes
                 if ignoreDst or ignoreSrc:
                     print("Ignoring connection %s -> %s" % (l.from_node.name, l.to_node.name))
                     continue
-
-                # # detect special cases
-                # #
-                # srcIsChildPlug = self._isChildPlug(srcPlug)
-                # dstIsChildPlug = self._isChildPlug(dstPlug)
-                # # 1: if the connection involves a child plug, we need to insert
-                # #    one or more conversion node(s).
-                # #
-                # if srcIsChildPlug and not dstIsChildPlug:
-                #     self._f3_to_f1_connection(srcPlug, dstPlug)
-                #     continue
-
-                # elif not srcIsChildPlug and dstIsChildPlug:
-                #     self._f1_to_f3_connection(srcPlug, dstPlug)
-                #     continue
-
-                # elif srcIsChildPlug and dstIsChildPlug:
-                #     self._f3_to_f3_connection(srcPlug, dstPlug)
-                #     continue
-
-                # 2: if a PxrMayaPlacement2d or PxrMayaPlacement3d ...
-                #
-                # srcNodeType = mc.nodeType(srcPlug)
-                # if srcNodeType in ['place2dTexture', 'place3dTexture']:
-                #     # store a connection srf.result -> dst.manifold
-                #     resPlug = '%s.result' % srcPlug.split(".")[0]
-                #     manPlug = '%s.manifold' % dstPlug.split(".")[0]
-                #     self._connections.append((resPlug, manPlug))
-                #     # tag the manifold param as connected
-                #     self._nodes[node].SetConnected('manifold')
 
                 self._connections.append(("%s.%s" % (fix_blender_name(l.from_node.name), l.from_socket.name),
                                           "%s.%s" % (fix_blender_name(l.to_node.name), l.to_socket.name)))
@@ -1019,13 +1015,14 @@ def parseTexture(nodes, Asset):
 # @param      atype            Asset type : 'nodeGraph' or 'envMap'
 # @param      infodict         dict with 'label', 'author' & 'version'
 # @param      category         Category as a path, i.e.: "/Lights/LookDev"
+# @param      assetPath        Full path to where to save the asset
 # @param      renderPreview    Render an asset preview or not. On by default.
 # @param      alwaysOverwrite  default to False. Will ask the user if not in
 #                              batch mode.
 #
 # @return     none
 #
-def exportAsset(nt, atype, infodict, category, renderPreview=True,
+def exportAsset(nt, atype, infodict, category, assetPath, renderPreview=True,
                 alwaysOverwrite=False):
     label = infodict['label']
     Asset = RmanAsset(atype, label)
@@ -1040,7 +1037,7 @@ def exportAsset(nt, atype, infodict, category, renderPreview=True,
     # Compatibility data
     # This will help other application decide if they can use this asset.
     #
-    prmanversion = "%d.%d.%s" % util.get_rman_version(rmantree)
+    prmanversion = "%d.%d.%s" % filepath_utils.get_rman_version(rmantree)
     Asset.setCompatibility(hostName='Blender',
                            hostVersion=bpy.app.version,
                            rendererVersion=prmanversion)
@@ -1056,12 +1053,13 @@ def exportAsset(nt, atype, infodict, category, renderPreview=True,
 
     #  Get path to our library
     #
-    assetPath = ral.getAbsCategoryPath(category)
+    # assetPath = ral.getAbsCategoryPath(category)
 
     #  Create our directory
     #
     assetDir = assetNameFromLabel(label)
     dirPath = os.path.join(assetPath, assetDir)
+
     if not os.path.exists(dirPath):
         os.mkdir(dirPath)
 
@@ -1102,13 +1100,55 @@ def setParams(node, paramsList):
     float3 = ['color', 'point', 'vector', 'normal']
     for param in paramsList:
         pname = param.name()
-        if pname in node.bl_rna.properties.keys():
-            ptype = param.type()
-            if ptype is None or ptype == 'vstruct':
-                # skip vstruct params : they are only useful when connected.
+        ptype = param.type()
+
+        # arrays
+        if '[' in ptype:
+            # always set the array length
+
+            # try to get array length
+            rman_type = ptype.split('[')[0]
+            array_len = ptype.split('[')[1].split(']')[0]
+            if array_len == '':
+                continue
+            array_len = int(array_len)
+            setattr(node, '%s_arraylen' % pname, array_len)    
+
+            pval = param.value()
+
+            if pval is None or pval == []:
+                # connected param
+                continue    
+
+            plen = len(pval)
+            if rman_type in ['integer', 'float', 'string']:
+                for i in range(0, plen):
+                    val = pval[i]
+                    parm_nm = '%s[%d]' % (pname, (i))
+                    setattr(node, parm_nm, val)
+            # float3 types
+            elif rman_type in float3:
+                j = 1
+                if isinstance(pval[0], list):
+                    for i in range(0, plen):
+                        parm_nm = '%s[%d]' % (pname, (j))
+                        val = (pval[i][0], pval[i][0], pval[i][0])
+                        setattr(node, parm_nm, val)
+                        j +=1
+                else:        
+                    for i in range(0, plen, 3):
+                        parm_nm = '%s[%d]' % (pname, (j))
+                        val = (pval[i], pval[i+1], pval[i+2])
+                        setattr(node, parm_nm, val)                                
+                        j = j+1            
+
+        elif pname in node.bl_rna.properties.keys():
+            if ptype is None or ptype in ['vstruct', 'struct']:
+                # skip vstruct and struct params : they are only useful when connected.
                 continue
 
             pval = param.value()
+
             if pval is None or pval == []:
                 # connected param
                 continue
@@ -1125,23 +1165,18 @@ def setParams(node, paramsList):
                     print('setParams float3 FAILED: %s  ptype: %s  pval: %s' %
                           (nattr, ptype, repr(pval)))
             else:
-                # array parameters are multi attributes in maya.
-                if '[' in ptype:
-                    pass
-                    #setattr(node, pname, pval)
-                else:
-                    try:
-                        if type(getattr(node,pname)) == type(""):
-                            setattr(node, pname, str(pval))
-                        else:
-                            setattr(node, pname, pval)
-                    except:
-                        if type(getattr(node, pname)) == bpy.types.EnumProperty:
-                            setattr(node, pname, str(pval))
+                try:
+                    if type(getattr(node,pname)) == type(""):
+                        setattr(node, pname, str(pval))
+                    else:
+                        setattr(node, pname, pval)
+                except:
+                    if type(getattr(node, pname)) == bpy.types.EnumProperty:
+                        setattr(node, pname, str(pval))
 
     # if this is a PxrSurface and default != val, then turn on the enable.
     if hasattr(node, 'plugin_name') and node.plugin_name == 'PxrSurface':
-        gains_to_check = {
+        __GAINS_TO_ENABLE__ = {
             'diffuseGain': 'enableDiffuse',
             'specularFaceColor': 'enablePrimarySpecular',
             'specularEdgeColor': 'enablePrimarySpecular',
@@ -1160,7 +1195,7 @@ def setParams(node, paramsList):
             'glowGain': 'enableGlow',
         }
         setattr(node, 'enableDiffuse', (getattr(node, 'diffuseGain') != 0))
-        for gain,enable in gains_to_check.items():
+        for gain,enable in __GAINS_TO_ENABLE__.items():
             val = getattr(node, gain)
             param = next((x for x in paramsList if x.name() == gain), None)
             if param and "reference" in param.type():
@@ -1450,7 +1485,7 @@ def compatibilityCheck(Asset):
     global g_validNodeTypes
     # the version numbers should always contain at least 1 dot.
     # I'm going to skip the maya stuff
-    prmanversion = "%d.%d.%s" % util.get_rman_version(rmantree)
+    prmanversion = "%d.%d.%s" % filepath_utils.get_rman_version(rmantree)
     compatible = Asset.IsCompatible(rendererVersion=prmanversion,
                                     validNodeTypes=g_validNodeTypes)
     if not compatible:

@@ -963,6 +963,18 @@ class RmanAssetNodeParam:
             if 'vstruct' in self.type():
                 # this is a vstruct connection : do not output to RIB
                 return None
+            # arrays
+            elif '[' in self.type():
+                ptype = self.type()
+                array_len = ptype.split('[')[1].split(']')[0]
+                if array_len == '':
+                    rib = ''
+                    return rib
+                array_len = int(array_len)
+                for i in range(0, array_len):
+                    param_nm = '%s[%d]' % (self.name(), i)
+                    if param_nm in connectObjDict:
+                        rib += '''"%s" ''' % (connectObjDict[param_nm])
             if self.name() in connectObjDict:
                 rib += '''"%s" ''' % (connectObjDict[self.name()])
         elif isinstance(val, list):

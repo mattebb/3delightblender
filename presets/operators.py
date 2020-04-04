@@ -207,12 +207,14 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
         if nt:
             if not path.endswith(self.material_category):
                 path = os.path.join(path, self.material_category)
+            assetPath = os.path.join(presets_path, path)
             from . import rmanAssetsBlender
             rmanAssetsBlender.exportAsset(nt, 'nodeGraph', 
                                           {'label': self.material_label,
                                            'author': self.material_author,
                                            'version': self.material_version},
-                                           path
+                                           path,
+                                           assetPath
                                            )
         refresh_presets_libraries(category.path, category)
         bpy.ops.wm.save_userpref()

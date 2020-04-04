@@ -239,3 +239,15 @@ def filesystem_path(p):
 
 def get_real_path(path):
     return os.path.realpath(filesystem_path(path))
+
+def init_env(rm):
+    RMANTREE = guess_rmantree()
+    os.environ['RMANTREE'] = RMANTREE
+    RMANTREE_BIN = os.path.join(RMANTREE, 'bin')
+    if RMANTREE_BIN not in sys.path:
+        sys.path.append(RMANTREE_BIN)
+    pathsep = os.pathsep
+    if 'PATH' in os.environ.keys():
+        os.environ['PATH'] += pathsep + os.path.join(RMANTREE, "bin")
+    else:
+        os.environ['PATH'] = os.path.join(RMANTREE, "bin")    

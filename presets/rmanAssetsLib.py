@@ -428,7 +428,6 @@ class DefaultResizer:
 #
 def renderAssetPreview(Asset, progress=None, resize=None):
 
-    rmstree = internalPath(ra.envGet('RMAN_ASSET_LIBRARY'))
     rmantree = internalPath(ra.envGet('RMANTREE'))
 
     progressReporter = progress
@@ -527,13 +526,10 @@ def renderAssetPreview(Asset, progress=None, resize=None):
     conf = '''IfBegin "!defined(RMSPROJ_FROM_ENV)"
   Option "user" "string RMSPROJ" ["."]
 IfEnd
-IfBegin "!defined(RMSTREE)"
-  Option "user" "string RMSTREE" ["%s"]
-IfEnd
 IfBegin "!defined(MATDIR)"
   Option "user" "string MATDIR" ["%s"]
 IfEnd
-  Option "user" "string lightrig" ["%s"]''' % (rmstree, matdir, lightrig)
+  Option "user" "string lightrig" ["%s"]''' % (matdir, lightrig)
     fh = open(externalPath(configfile), 'w')
     fh.write(conf)
     fh.close()

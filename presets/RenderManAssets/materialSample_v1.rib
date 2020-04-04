@@ -70,7 +70,7 @@ FrameBegin 1
                 0 0 0 1 1 100 100 0 0 0 0 0]
             Attribute "visibility" "int transmission" [1] "int indirect" [1]
             Bxdf "PxrDiffuse" "default"
-            Attribute "trace" "int maxdiffusedepth" [10] "int maxspeculardepth" [10] "int samplemotion" [1] "float autobias" [1] "float bias" [0.001] "int displacements" [1]
+            Attribute "trace" "int maxdiffusedepth" [10] "int maxspeculardepth" [10] "float autobias" [1] "float bias" [0.001] "int displacements" [1]
             Attribute "dice" "int watertight" [1]
             Attribute "procedural" "int reentrant" [1]
             ShadingRate 1
