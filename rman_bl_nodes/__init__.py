@@ -565,6 +565,14 @@ def register_rman_nodes():
             for filename in filenames:                
                 if filename.endswith(('.args', '.oso')):
                     is_oso = filename.endswith('.oso')
+
+                    if is_oso:
+                        # for now, skip registering an OSL shader, if there's
+                        # already an equivalent c++ shader
+                        osl_filename = os.path.splitext(filename)[0]
+                        if osl_filename in [node_desc.name for node_desc_list in [nodes for cat,nodes in __RMAN_NODES__.items()] for node_desc in node_desc_list]:
+                            continue
+
                     node_desc = NodeDesc(FilePath(root).join(FilePath(filename)))
                     # skip registering these nodes
                     if node_desc.name in __RMAN_NODES_NO_REGISTER__:
