@@ -7,6 +7,7 @@ from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel 
 from ..rman_utils.draw_utils import draw_node_properties_recursive, draw_nodes_properties_ui
 from ..rman_utils.shadergraph_utils import find_node
+from ..icons.icons import load_icons
 from bpy.types import Panel
 import bpy
 
@@ -63,28 +64,30 @@ class DATA_PT_renderman_world_display_filters(ShaderPanel, Panel):
         output = find_node(world, 'RendermanDisplayfiltersOutputNode')
         if not output:
             return
-
+      
         row = layout.row(align=True)
         col = row.column()
         col.operator('node.add_displayfilter_node_socket', text='Add')
         col = row.column()
         col.enabled = len(output.inputs) > 1
         col.operator('node.remove_displayfilter_node_socket', text='Remove')
-        for i, socket in enumerate(output.inputs):
-            layout.label(text='displayfilter[%d]' % i)
+        icons = load_icons()
+        for socket in output.inputs:
+            layout.label(text=socket.name)
+            layout.context_pointer_set("node", output)
+            layout.context_pointer_set("nodetree", nt)
+            layout.context_pointer_set("socket", socket)      
             if socket.is_linked:
                 link = socket.links[0]
-                node = link.from_node 
-                layout.context_pointer_set("nodetree", nt)
-                layout.context_pointer_set("node", output)
-                layout.context_pointer_set("socket", socket)                               
-                layout.operator_menu_enum("node.add_displayfilter", "node_type", text=node.bl_label)         
-                draw_node_properties_recursive(layout, context, nt, node, level=1)
+                node = link.from_node                 
+                rman_icon = icons.get('out_%s.png' % node.bl_label, None )
+                if rman_icon:
+                    layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
+                else:
+                    layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon='NODE_MATERIAL')
+                draw_node_properties_recursive(layout, context, nt, node, level=1)                    
             else:
-                layout.context_pointer_set("nodetree", nt)
-                layout.context_pointer_set("node", output)
-                layout.context_pointer_set("socket", socket)                     
-                layout.operator_menu_enum("node.add_displayfilter", "node_type", text='None')
+                layout.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')         
 
 class DATA_PT_renderman_world_sample_filters(ShaderPanel, Panel):
     bl_label = "Sample Filters"
@@ -113,21 +116,24 @@ class DATA_PT_renderman_world_sample_filters(ShaderPanel, Panel):
         col = row.column()
         col.enabled = len(output.inputs) > 1
         col.operator('node.remove_samplefilter_node_socket', text='Remove')
-        for i, socket in enumerate(output.inputs):
-            layout.label(text='samplefilter[%d]' % i)
+        icons = load_icons()
+        for socket in (output.inputs):
+            layout.label(text=socket.name)
+
+            layout.context_pointer_set("socket", socket)
+            layout.context_pointer_set("node", output)
+            layout.context_pointer_set("nodetree", nt)            
             if socket.is_linked:
                 link = socket.links[0]
-                node = link.from_node 
-                layout.context_pointer_set("nodetree", nt)
-                layout.context_pointer_set("node", output)
-                layout.context_pointer_set("socket", socket)                               
-                layout.operator_menu_enum("node.add_samplefilter", "node_type", text=node.bl_label)         
-                draw_node_properties_recursive(layout, context, nt, node, level=1)
+                node = link.from_node                 
+                rman_icon = icons.get('out_%s.png' % node.bl_label, None )
+                if rman_icon:
+                    layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
+                else:
+                    layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon='NODE_MATERIAL')
+                draw_node_properties_recursive(layout, context, nt, node, level=1)                    
             else:
-                layout.context_pointer_set("nodetree", nt)
-                layout.context_pointer_set("node", output)
-                layout.context_pointer_set("socket", socket)                     
-                layout.operator_menu_enum("node.add_samplefilter", "node_type", text='None')
+                layout.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')   
     
 classes = [
     DATA_PT_renderman_world,

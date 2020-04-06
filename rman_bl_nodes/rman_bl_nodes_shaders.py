@@ -3,6 +3,8 @@ from ..rman_utils.osl_utils import readOSO
 from . import rman_socket_utils
 from .. import rman_render
 from ..icons.icons import load_icons
+from bpy.types import Menu
+from bpy.props import EnumProperty, StringProperty, CollectionProperty
 import _cycles
 import bpy
 
@@ -321,7 +323,6 @@ class RendermanOutputNode(RendermanShadingNode):
 
     def _init_inputs(self):
         input = self.inputs.new('RendermanNodeSocketBxdf', 'Bxdf')
-        input.type = 'SHADER'
         input.hide_value = True
         input = self.inputs.new('RendermanNodeSocketLight', 'Light')
         input.hide_value = True
@@ -371,7 +372,6 @@ class RendermanIntegratorsOutputNode(RendermanShadingNode):
 
     def init(self, context):
         input = self.inputs.new('RendermanNodeSocketIntegrator', 'Integrator')
-        input.type = 'SHADER'
 
     def draw_buttons(self, context, layout):
         return
@@ -407,11 +407,11 @@ class RendermanSamplefiltersOutputNode(RendermanShadingNode):
 
     def init(self, context):
         input = self.inputs.new('RendermanNodeSocketSampleFilter', 'samplefilter[0]')
-        input.type = 'SHADER'
+        input.hide_value = True
 
     def add_input(self):
-        input = self.inputs.new('RendermanNodeSocketSampleFilter', 'samplefilter[%d]' % (len(self.inputs)-1))
-        input.type = 'SHADER'
+        input = self.inputs.new('RendermanNodeSocketSampleFilter', 'samplefilter[%d]' % (len(self.inputs)))
+        input.hide_value = True
 
     def remove_input(self):
         socket = self.inputs[len(self.inputs)-1]
@@ -467,11 +467,11 @@ class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
 
     def init(self, context):
         input = self.inputs.new('RendermanNodeSocketDisplayFilter', 'displayfilter[0]')
-        input.type = 'SHADER'
+        input.hide_value = True
 
     def add_input(self):
-        input = self.inputs.new('RendermanNodeSocketDisplayFilter', 'displayfilter[%d]' % (len(self.inputs)-1))
-        input.type = 'SHADER'
+        input = self.inputs.new('RendermanNodeSocketDisplayFilter', 'displayfilter[%d]' % (len(self.inputs)))
+        input.hide_value = True
 
     def remove_input(self):
         socket = self.inputs[len(self.inputs)-1]
@@ -559,7 +559,7 @@ class RendermanSamplefilterNode(RendermanShadingNode):
 
 class RendermanIntegratorNode(RendermanShadingNode):
     bl_label = 'Integrator'
-    renderman_node_type = 'integrator'      
+    renderman_node_type = 'integrator'
 
 classes = [
     RendermanShadingNode,
@@ -574,12 +574,12 @@ classes = [
     RendermanSamplefiltersOutputNode,
     RendermanDisplayfiltersOutputNode,
     RendermanIntegratorsOutputNode,
-    RendermanIntegratorNode
+    RendermanIntegratorNode,
 ]
 
 def register():
     for cls in classes:
-        bpy.utils.register_class(cls)
+        bpy.utils.register_class(cls)       
 
 def unregister():
     for cls in classes:

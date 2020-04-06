@@ -289,7 +289,7 @@ class RendermanNodeSocketIntegrator(bpy.types.NodeSocketString, RendermanSocket)
     bl_idname = 'RendermanNodeSocketIntegrator'
     bl_label = 'RenderMan Integrator Socket'
     hide_value = True
-    renderman_type: StringProperty(default='Integrator')
+    renderman_type: StringProperty(default='integrator')
     default_value = ''
 
 class RendermanNodeSocketInterfaceIntegrator(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):

@@ -148,17 +148,23 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
     layout.context_pointer_set("nodetree", nt)
     layout.context_pointer_set("node", output_node)
     layout.context_pointer_set("socket", socket)
+    icons = load_icons()
 
     if input_name not in ['Light', 'LightFilter']:
         split = layout.split(factor=0.35)
         split.label(text=socket.name + ':')
 
+        split.context_pointer_set("socket", socket)
+        split.context_pointer_set("node", output_node)
+        split.context_pointer_set("nodetree", nt)            
         if socket.is_linked:
-            split.operator_menu_enum("node.add_%s" % input_name.lower(),
-                                    "node_type", text=node.bl_label)
+            rman_icon = icons.get('out_%s.png' % node.bl_label, None )
+            if rman_icon:
+                split.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
+            else:
+                split.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon='NODE_MATERIAL')
         else:
-            split.operator_menu_enum("node.add_%s" % input_name.lower(),
-                                    "node_type", text='None')
+            split.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')            
 
     if node is not None:
         draw_node_properties_recursive(layout, context, nt, node)
@@ -228,31 +234,22 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     icon = 'DISCLOSURE_TRI_DOWN' if socket.ui_open \
                         else 'DISCLOSURE_TRI_RIGHT'
 
-                    split = layout.split(factor=NODE_LAYOUT_SPLIT)
+                    split = layout.split()
                     row = split.row()
                     indented_label(row, None, level)
                     row.prop(socket, "ui_open", icon=icon, text='',
                              icon_only=True, emboss=False)
                     label = prop_meta.get('label', prop_name)
+                    
                     rman_icon = icons.get('out_%s.png' % input_node.bl_label, None )
                     if not rman_icon:
                         rman_icon = icons.get('out_unknown.png')                  
-                    row.label(text=label + ':', icon_value=rman_icon.icon_id)
-                    if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
-                        split.operator_menu_enum("node.add_layer", "node_type",
-                                                 text=input_node.bl_label, icon="LAYER_USED")
-                    elif prop_meta['renderman_type'] == 'bxdf':
-                        split.operator_menu_enum("node.add_bxdf", "node_type",
-                                                 text=input_node.bl_label, icon="LAYER_USED")                                                 
-                    elif prop_meta['renderman_type'] == 'struct':
-                        split.operator_menu_enum("node.add_manifold", "node_type",
-                                                 text=input_node.bl_label, icon="LAYER_USED")
-                    elif prop_meta['renderman_type'] == 'normal':
-                        split.operator_menu_enum("node.add_bump", "node_type",
-                                                 text=input_node.bl_label, icon="LAYER_USED")
-                    else:
-                        split.operator_menu_enum("node.add_pattern", "node_type",
-                                                 text=input_node.bl_label, icon="LAYER_USED") 
+                    row.label(text=label + ' (%s):' % input_node.name)
+                    row.context_pointer_set("socket", socket)
+                    row.context_pointer_set("node", node)
+                    row.context_pointer_set("nodetree", nt)
+                    row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
+                                         
                     if socket.ui_open:
                         draw_node_properties_recursive(layout, context, nt,
                                                        input_node, level=level + 1)
@@ -316,29 +313,24 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                 row = col.row()
                                 array_elem_nm = '%s[%d]' % (prop_name, i)
                                 indented_label(row, None, level)
-                                row.label(text='%s[%d]' % (prop_label, i))
                                 if array_elem_nm in node.inputs:
                                     op_text = ''
                                     socket = node.inputs[array_elem_nm]
                                     row.context_pointer_set("socket", socket)
+                                    row.context_pointer_set("node", node)
+                                    row.context_pointer_set("nodetree", nt)
+
                                     if socket.is_linked:
                                         input_node = shadergraph_utils.socket_node_input(nt, socket)
-                                        op_text = input_node.bl_label
+                                        rman_icon = icons.get('out_%s.png' % input_node.bl_label, None )
+                                        if not rman_icon:
+                                            rman_icon = icons.get('out_unknown.png')
+                                        row.label(text='%s[%d] (%s):' % (prop_label, i, input_node.name))    
+                                        row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
+                                        draw_node_properties_recursive(layout, context, nt, input_node, level=level + 1)
                                     else:
-                                        row.prop(node, array_elem_nm, text='')
-
-                                    if prop_meta['renderman_array_type'] == 'bxdf':
-                                        row.operator_menu_enum("node.add_bxdf", "node_type",
-                                                            text=op_text, icon="LAYER_USED")                                                       
-                                    elif prop_meta['renderman_array_type'] == 'struct':
-                                        row.operator_menu_enum("node.add_manifold", "node_type",
-                                                            text=op_text, icon="LAYER_USED")
-                                    elif prop_meta['renderman_array_type'] == 'normal':
-                                        row.operator_menu_enum("node.add_bump", "node_type",
-                                                            text=op_text, icon="LAYER_USED")
-                                    else:
-                                        row.operator_menu_enum("node.add_pattern", "node_type",
-                                                            text=op_text, icon="LAYER_USED")
+                                        row.label(text='%s[%d]: ' % (prop_label, i))
+                                        row.menu('NODE_MT_renderman_connection_menu', text='', icon='NODE_MATERIAL')
                         continue
                     else:
                         if is_pxrramp and prop_name == 'useNewRamp':
@@ -357,21 +349,11 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             else:
                                 row.label(text=prop_meta['label'])
                         if prop_name in node.inputs:
-                            if ('type' in prop_meta and prop_meta['type'] == 'vstruct') or prop_name == 'inputMaterial':
-                                row.operator_menu_enum("node.add_layer", "node_type",
-                                                       text='', icon="LAYER_USED")
-                            elif prop_meta['renderman_type'] == 'bxdf':
-                                row.operator_menu_enum("node.add_bxdf", "node_type",
-                                                       text='', icon="LAYER_USED")                                                       
-                            elif prop_meta['renderman_type'] == 'struct':
-                                row.operator_menu_enum("node.add_manifold", "node_type",
-                                                       text='', icon="LAYER_USED")
-                            elif prop_meta['renderman_type'] == 'normal':
-                                row.operator_menu_enum("node.add_bump", "node_type",
-                                                       text='', icon="LAYER_USED")
-                            else:
-                                row.operator_menu_enum("node.add_pattern", "node_type",
-                                                       text='', icon="LAYER_USED")
+                            row.context_pointer_set("socket", socket)
+                            row.context_pointer_set("node", node)
+                            row.context_pointer_set("nodetree", nt)
+                            row.menu('NODE_MT_renderman_connection_menu', text='', icon='NODE_MATERIAL')
+
 
     # if this is a cycles node do something different
     if not hasattr(node, 'plugin_name') or node.bl_idname == 'PxrOSLPatternNode':

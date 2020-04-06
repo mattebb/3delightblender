@@ -31,6 +31,7 @@ from . import rman_bl_nodes_sockets
 from . import rman_bl_nodes_shaders
 from . import rman_bl_nodes_ops
 from . import rman_bl_nodes_props
+from . import rman_bl_nodes_menus
 
 __RMAN_DISPLAY_NODES__ = []
 __RMAN_BXDF_NODES__ = []
@@ -54,13 +55,13 @@ __RMAN_NODE_CATEGORIES__['displayfilter'] = dict()
 __RMAN_NODE_CATEGORIES__['integrator'] = dict()
 
 
-__RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'] = ('RenderMan Misc Bxdfs', [])
-__RMAN_NODE_CATEGORIES__['light']['light'] = ('RenderMan Lights', [])
-__RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'] = ('RenderMan Misc Patterns', [])
-__RMAN_NODE_CATEGORIES__['displace']['displace'] = ('RenderMan Displacements', [])
-__RMAN_NODE_CATEGORIES__['samplefilter']['samplefilter'] = ('RenderMan SampleFilters', [])
-__RMAN_NODE_CATEGORIES__['displayfilter']['displayfilter'] = ('RenderMan DisplayFilters', [])
-__RMAN_NODE_CATEGORIES__['integrator']['integrator'] = ('RenderMan Integrators', [])
+__RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'] = (('RenderMan Misc Bxdfs', []), [])
+__RMAN_NODE_CATEGORIES__['light']['light'] = (('RenderMan Lights', []), [])
+__RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'] = (('RenderMan Misc Patterns', []), [])
+__RMAN_NODE_CATEGORIES__['displace']['displace'] = (('RenderMan Displacements', []), [])
+__RMAN_NODE_CATEGORIES__['samplefilter']['samplefilter'] = (('RenderMan SampleFilters', []), [])
+__RMAN_NODE_CATEGORIES__['displayfilter']['displayfilter'] = (('RenderMan DisplayFilters', []), [])
+__RMAN_NODE_CATEGORIES__['integrator']['integrator'] = (('RenderMan Integrators', []), [])
   
 
 __RMAN_NODES__ = { 
@@ -615,13 +616,15 @@ def register_rman_nodes():
                                         category = 'OSL_%s' % category                                        
                                 lst = __RMAN_NODE_CATEGORIES__['pattern'].get('patterns_%s' % category, None)
                                 if not lst:
-                                    lst = ('RenderMan %s Patterns' % category_nice_name, [])
-                                lst[1].append(node_item)
+                                    lst = (('RenderMan %s Patterns' % category_nice_name, []), [])
+                                lst[0][1].append(node_item)
+                                lst[1].append(node_desc)
                                 __RMAN_NODE_CATEGORIES__['pattern']['patterns_%s' % category] = lst                                         
                             except Exception as e:
                                 pass
                         else:
-                            __RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'][1].append(node_item)
+                            __RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'][0][1].append(node_item)
+                            __RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'][1].append(node_desc)
                     elif node_desc.node_type == 'bxdf':
                         if hasattr(node_desc, 'classification'):
                             classification = node_desc.classification
@@ -635,7 +638,8 @@ def register_rman_nodes():
                                     continue
                             # if we didn't find anything, put this into the misc. cateogry   
                             if category == '' or ('main' not in category):
-                                __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'][1].append(node_item)
+                                __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'][0][1].append(node_item)
+                                __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'][1].append(node_desc)
                                 continue
                            
                             # now, split on /, and look for main
@@ -656,21 +660,28 @@ def register_rman_nodes():
                                 category_nice_name += token.capitalize() + ' '
                             lst = __RMAN_NODE_CATEGORIES__['bxdf'].get('bxdf_%s' % category, None)
                             if not lst:
-                                lst = ('RenderMan %s Bxdf' % category_nice_name, [])
-                            lst[1].append(node_item)
+                                lst = (('RenderMan %s Bxdf' % category_nice_name, []), [])
+                            lst[0][1].append(node_item)
+                            lst[1].append(node_desc)
                             __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_%s' % category] = lst    
                         else:
-                            __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'][1].append(node_item)
+                            __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'][0][1].append(node_item)
+                            __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'][1].append(node_desc)
                     elif node_desc.node_type == 'displace':
-                        __RMAN_NODE_CATEGORIES__['displace']['displace'][1].append(node_item)
+                        __RMAN_NODE_CATEGORIES__['displace']['displace'][0][1].append(node_item)
+                        __RMAN_NODE_CATEGORIES__['displace']['displace'][1].append(node_desc)
                     elif node_desc.node_type == 'light':
-                        __RMAN_NODE_CATEGORIES__['light']['light'][1].append(node_item)     
+                        __RMAN_NODE_CATEGORIES__['light']['light'][0][1].append(node_item)
+                        __RMAN_NODE_CATEGORIES__['light']['light'][1].append(node_desc)     
                     elif node_desc.node_type == 'samplefilter':
-                        __RMAN_NODE_CATEGORIES__['samplefilter']['samplefilter'][1].append(node_item)      
+                        __RMAN_NODE_CATEGORIES__['samplefilter']['samplefilter'][0][1].append(node_item)      
+                        __RMAN_NODE_CATEGORIES__['samplefilter']['samplefilter'][1].append(node_desc)      
                     elif node_desc.node_type == 'displayfilter':
-                        __RMAN_NODE_CATEGORIES__['displayfilter']['displayfilter'][1].append(node_item)                                                                
+                        __RMAN_NODE_CATEGORIES__['displayfilter']['displayfilter'][0][1].append(node_item)
+                        __RMAN_NODE_CATEGORIES__['displayfilter']['displayfilter'][1].append(node_desc)                                                                
                     elif node_desc.node_type == 'integrator':
-                        __RMAN_NODE_CATEGORIES__['integrator']['integrator'][1].append(node_item)        
+                        __RMAN_NODE_CATEGORIES__['integrator']['integrator'][0][1].append(node_item)  
+                        __RMAN_NODE_CATEGORIES__['integrator']['integrator'][1].append(node_desc)        
 
     rfb_log().debug("Finished Registering RenderMan Plugin Nodes.")
 
@@ -689,7 +700,7 @@ def register_rman_nodes():
     '''
 
     for k,v in __RMAN_NODE_CATEGORIES__.items():
-        for name, (desc, items) in v.items():
+        for name, ((desc, items), lst) in v.items():
             if items:
                 node_categories.append(RendermanPatternNodeCategory(name, desc,
                                                                     items=sorted(items,
@@ -704,6 +715,7 @@ def register():
     rman_bl_nodes_sockets.register()
     rman_bl_nodes_shaders.register()
     rman_bl_nodes_ops.register()
+    rman_bl_nodes_menus.register()
 
 def unregister():
     nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
@@ -712,3 +724,4 @@ def unregister():
     rman_bl_nodes_sockets.unregister()    
     rman_bl_nodes_shaders.unregister()
     rman_bl_nodes_ops.unregister()  
+    rman_bl_nodes_menus.unregister()
