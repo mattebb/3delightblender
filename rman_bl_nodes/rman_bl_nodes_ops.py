@@ -140,6 +140,7 @@ class NODE_OT_remove_samplefilter_node_socket(bpy.types.Operator):
 class NODE_OT_rman_node_remove(bpy.types.Operator):
     bl_idname = "node.rman_shading_remove"
     bl_label = "Remove Node"
+    bl_description = "Remove the current connected node."
 
     def execute(self, context):
 
@@ -154,6 +155,7 @@ class NODE_OT_rman_node_remove(bpy.types.Operator):
 class NODE_OT_rman_node_disconnect(bpy.types.Operator):
     bl_idname = "node.rman_shading_disconnect"
     bl_label = "Disconnect Node"
+    bl_description = "Disconnect the current connected node."
 
     def execute(self, context):
 
@@ -169,6 +171,7 @@ class NODE_OT_rman_node_disconnect(bpy.types.Operator):
 class NODE_OT_rman_node_create(bpy.types.Operator):
     bl_idname = "node.rman_shading_create_node"
     bl_label = "Create Node"
+    bl_description = "Create and connect selected node."
 
     node_name: StringProperty(default="")
 
@@ -200,6 +203,7 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
 class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
     bl_idname = "node.rman_shading_connect_existing_node"
     bl_label = "Connect Existing Node"
+    bl_description = "Connect to an existing shading node"
 
     node_name: StringProperty(default="")
 
