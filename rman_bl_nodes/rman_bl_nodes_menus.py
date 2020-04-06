@@ -162,6 +162,7 @@ class NODE_MT_renderman_connection_menu(Menu):
                 if output.renderman_type == renderman_type:
                     op = layout.operator('node.rman_shading_connect_existing_node', text='_%s_' % n.name)
                     op.node_name = n.name
+                    break
 
     def draw(self, context):
         layout = self.layout
@@ -260,10 +261,13 @@ def register_renderman_pattern_node_submenus():
                         break
                     if node_desc_param.type == renderman_type:
                         rman_icon = icons.get('out_%s.png' % n.name, None)
+                        label = n.name
+                        if n.path.endswith('.oso'):
+                            label = '%s.oso' % label
                         if rman_icon:
-                            op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
+                            op = layout.operator('node.rman_shading_create_node', text=label, icon_value=rman_icon.icon_id)
                         else:
-                            op = layout.operator('node.rman_shading_create_node', text=n.name)
+                            op = layout.operator('node.rman_shading_create_node', text=label)
                         op.node_name = '%sPatternNode' % n.name
                         if n.path.endswith('.oso'):
                             op.node_name = '%sOSLPatternNode' % n.name
