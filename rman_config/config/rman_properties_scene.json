@@ -291,6 +291,32 @@
         },
         {
             "panel": "RENDER_PT_renderman_sampling",
+            "name": "hider_darkfalloff",
+            "riopt": "hider:darkfalloff",
+            "label": "Dark Falloff",
+            "type": "float",
+            "default": 0.025,
+            "min": 0.0,
+            "max": 1.0,
+            "digits": 5,
+            "connectable": false,
+            "help": "De-prioritize low luminance samples in the adaptive sampler. Use this parameter to avoid oversampling dark areas while maintaining overall image quality. Higher values cull more samples, speeding up render time while increasing noise in darker areas."
+        },       
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "opt_exposurebracket",
+            "riopt": "hider:exposurebracket",
+            "label": "Exposure Bracket",
+            "type": "float2",
+            "default": [
+                -1.0,
+                1.0
+            ],
+            "widget": false,
+            "help": "Intended exposure Bracket [min max] in post-production to help inform the adaptive sampling."
+        },                  
+        {
+            "panel": "RENDER_PT_renderman_sampling",
             "name": "hider_incremental",
             "riopt": "hider:incremental",
             "label": "Incremental",
