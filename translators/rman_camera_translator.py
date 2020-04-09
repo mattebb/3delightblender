@@ -15,8 +15,8 @@ def _render_get_resolution_(r):
 
 def _render_get_aspect_(r, camera=None, x=-1, y=-1):
     if x != -1 and y != -1:
-        xratio = x * 1.0 / 200.0
-        yratio = y * 1.0 / 200.0        
+        xratio = x * r.pixel_aspect_x / 200.0
+        yratio = y * r.pixel_aspect_y / 200.0        
     else:
         xres, yres = _render_get_resolution_(r)
         xratio = xres * r.pixel_aspect_x / 200.0
@@ -60,20 +60,9 @@ class RmanCameraTranslator(RmanTranslator):
 
     def _update_viewport_transform(self, rman_sg_camera):
         mtx = self.rman_scene.context.region_data.view_matrix.inverted()
-
-        # WIDTH: 2220 HEIGHT: 1220 FOV 49.134532
-        #mtx = Matrix(mtx) @ ( Matrix.Translation((0.0, 0.0, 1.0)))
-        
-        # WIDTH: 2220 HEIGHT: 807 FOV: 49.134532
-        #mtx = Matrix(mtx) @ ( Matrix.Translation((0.0, 0.0, -2.0)))
-        
-        # WIDTH: 2121 HEIGHT: 1347 FOV: 24.085243
-        # mtx = Matrix(mtx) @ ( Matrix.Translation((-0.01, -0.03, -4.3)))
-
-
         v = transform_utils.convert_matrix(mtx)
         if rman_sg_camera.cam_matrix == v:
-            return        
+            return 
         rman_sg_camera.cam_matrix = v
         rman_sg_camera.sg_node.SetTransform( v )    
 
@@ -145,38 +134,109 @@ class RmanCameraTranslator(RmanTranslator):
         proj = None
         fov = -1
 
-        if region_data.view_perspective in ['CAMERA', 'PERSP']:
+        options = self.rman_scene.sg_scene.GetOptions()
+
+        if region_data.view_perspective == 'CAMERA':
+            rman_sg_camera.is_perspective = True
+            ob = self.rman_scene.bl_scene.camera
+            if self.rman_scene.context.space_data.use_local_camera:
+                ob = self.rman_scene.context.space_data.camera
+            cam = ob.data
+            
+            r = self.rman_scene.bl_scene.render
+
+            xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
+
+            # magic zoom formula copied from blenderseed, which got it from cycles
+            zoom = 4 / ((math.sqrt(2) + self.rman_scene.context.region_data.view_camera_zoom / 50) ** 2)           
+
+            lens = cam.lens
+            sensor = cam.sensor_height \
+                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+                     
+            fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
+
+            if rman_sg_camera.rman_fov != -1:
+                rman_sg_camera.rman_fov = fov                
+
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+            projparams = proj.params         
+            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov) 
+
+            # shift and offset            
+            offset = tuple(self.rman_scene.context.region_data.view_camera_offset)
+            dx = 2.0 * (aspectratio * cam.shift_x + offset[0] * xaspect * 2.0)
+            dy = 2.0 * (aspectratio * cam.shift_y + offset[1] * yaspect * 2.0)       
+            
+            xaspect *= zoom
+            yaspect *= zoom
+            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect+dx, xaspect+dx, -yaspect+dy, yaspect+dy), 4)        
+
+        elif region_data.view_perspective ==  'PERSP': 
             rman_sg_camera.is_perspective = True
             ob = self.rman_scene.context.space_data.camera
             cam = ob.data
             
             r = self.rman_scene.bl_scene.render
 
-            lens = cam.lens
+            xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
+
+            # 2.25 zoom value copied from blenderseed
+            zoom = 2.25        
+
+            lens = self.rman_scene.context.space_data.lens
+            sensor = cam.sensor_height \
+                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+                     
+            fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
+
+            if rman_sg_camera.rman_fov != -1:
+                rman_sg_camera.rman_fov = fov                
+
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+            projparams = proj.params         
+            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)   
+
+            xaspect *= zoom
+            yaspect *= zoom
+            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)           
+
+        else:
+            # orthographic
+            rman_sg_camera.is_perspective = True
+            ob = self.rman_scene.context.space_data.camera
+            cam = ob.data
+            
+            r = self.rman_scene.bl_scene.render
+
+            xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
+
+            # 2.25 zoom value copied from blenderseed
+            zoom = 2.25        
+            lens = self.rman_scene.context.space_data.lens
             sensor = cam.sensor_height \
                 if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
 
-            fov = 2.0 * math.atan((sensor * 0.5) / lens ) * 57.296
-            #fov = math.degrees( 2 * math.atan( math.tan(cam.angle/2) ) )            
+            ortho_scale = region_data.view_distance * sensor / lens
+            xaspect = xaspect * ortho_scale / (aspectratio * 2.0)
+            yaspect = yaspect * ortho_scale / (aspectratio * 2.0)
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")
 
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrPerspective", "proj")
-            projparams = proj.params         
-            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov) 
+            xaspect *= zoom
+            yaspect *= zoom
+            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)    
 
-        if (rman_sg_camera.rman_fov == fov) and (width == rman_sg_camera.res_width) and (height == rman_sg_camera.res_height):
+        if (width == rman_sg_camera.res_width) and (height == rman_sg_camera.res_height):
             return            
 
         if (rman_sg_camera.res_width != width):
             rman_sg_camera.cam_matrix = -1
 
         rman_sg_camera.res_width = width
-        rman_sg_camera.res_height = height
-        if fov != -1:
-            rman_sg_camera.rman_fov = fov          
+        rman_sg_camera.res_height = height    
 
-        options = self.rman_scene.sg_scene.GetOptions()
         options.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)   
-        options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (width, height), 2)               
+        options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (width, height), 2)
 
         self.rman_scene.sg_scene.SetOptions(options)
 
@@ -213,6 +273,8 @@ class RmanCameraTranslator(RmanTranslator):
 
         proj = None
 
+        dx = 0
+        dy = 0
         if cam_rm.projection_type != 'none':
             # use pxr Camera
             if cam_rm.get_projection_name() == 'PxrCamera':
@@ -241,9 +303,8 @@ class RmanCameraTranslator(RmanTranslator):
 
             projparams = proj.params
             
-            # 3.6 chosen arbitrarily via trial-and-error
-            projparams.SetFloat("shiftX", cam.shift_x * 3.6)
-            projparams.SetFloat("shiftY", cam.shift_y * 3.6)               
+            dx = 2.0 * (aspectratio * cam.shift_x) 
+            dy = 2.0 * (aspectratio * cam.shift_y)   
 
             projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)
 
@@ -291,7 +352,7 @@ class RmanCameraTranslator(RmanTranslator):
             if cam.type == 'PANO':
                 options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-1, 1, -1, 1), 4)
             else:
-                options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)
+                options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect+dx, xaspect+dx, -yaspect+dy, yaspect+dy), 4)
             options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
             options.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)
 
