@@ -360,8 +360,9 @@ class RendermanOutputNode(RendermanShadingNode):
         # it needs updating, so we manually issue an edit
         rr = rman_render.RmanRender.get_rman_render()        
         if rr.rman_interactive_running:
-            mat = bpy.context.material
-            rr.rman_scene.update_material(mat)
+            mat = getattr(bpy.context, 'material', None)
+            if mat:
+                rr.rman_scene.update_material(mat)
 
 class RendermanIntegratorsOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Integrators'
