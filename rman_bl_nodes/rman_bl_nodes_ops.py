@@ -236,7 +236,14 @@ class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
             newnode.update_mat(active_material)
         return {'FINISHED'}
 
+class NODE_OT_rman_refresh_osl_shader(bpy.types.Operator):
+    bl_idname = "node.refresh_osl_shader"
+    bl_label = "Refresh OSL Node"
+    bl_description = "Refreshes the OSL node This takes a second!!"
 
+    def invoke(self, context, event):
+        context.node.RefreshNodes(context)
+        return {'FINISHED'}
 
 classes = [
     NODE_OT_add_displayfilter_node_socket,
@@ -246,7 +253,8 @@ classes = [
     NODE_OT_rman_node_disconnect,
     NODE_OT_rman_node_remove,
     NODE_OT_rman_node_create,
-    NODE_OT_rman_node_connect_existing
+    NODE_OT_rman_node_connect_existing,
+    NODE_OT_rman_refresh_osl_shader
 ]
 
 def register():

@@ -222,10 +222,6 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.operator("wm.url_open", text="About RenderMan",
                         icon_value=rman_info.icon_id).url = "https://renderman.pixar.com/store/intro"
 
-        # Reload the addon
-        # rman_reload = icons.get("reload_plugin")
-        # layout.operator("renderman.restartaddon", icon_value=rman_reload.icon_id)
-
         # Enable the menu item to display the examples menu in the RenderMan
         # Panel.
         layout.separator()

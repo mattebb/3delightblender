@@ -303,13 +303,86 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
             split = layout.split()
             col = split.column()
 
+
+class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
+    bl_idname = 'renderman.add_renderman_aovs'
+    bl_label = "Switch to RenderMan Passes"
+
+    def execute(self, context):
+        scene = context.scene
+        scene.renderman.render_layers.add()
+        active_layer = context.view_layer
+        # this sucks.  but can't find any other way to refer to render layer
+        scene.renderman.render_layers[-1].render_layer = active_layer.name
+
+        # add the already existing passes
+        scene = context.scene
+        rm = scene.renderman
+        rm_rl = scene.renderman.render_layers[-1]
+        active_layer = context.view_layer
+
+        rl = active_layer
+
+        aovs = [
+            # (name, do?, declare type/name, source)
+            ("color rgba", active_layer.use_pass_combined, "rgba"),
+            ("float z", active_layer.use_pass_z, "z_depth"),
+            ("normal Nn", active_layer.use_pass_normal, "Normal"),
+            ("vector dPdtime", active_layer.use_pass_vector, "Vectors"),
+            ("float u", active_layer.use_pass_uv, "u"),
+            ("float v", active_layer.use_pass_uv, "v"),
+            ("float id", active_layer.use_pass_object_index, "id"),
+            ("color lpe:shadows;C[<.D><.S>]<L.>",
+             active_layer.use_pass_shadow, "Shadows"),
+            ("color lpe:C<.D><L.>",
+             active_layer.use_pass_diffuse_direct, "Diffuse"),
+            ("color lpe:(C<RD>[DS]+<L.>)|(C<RD>[DS]*O)",
+             active_layer.use_pass_diffuse_indirect, "IndirectDiffuse"),
+            ("color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O",
+             active_layer.use_pass_diffuse_color, "Albedo"),
+            ("color lpe:C<.S><L.>",
+             active_layer.use_pass_glossy_direct, "Specular"),
+            ("color lpe:(C<RS>[DS]+<L.>)|(C<RS>[DS]*O)",
+             active_layer.use_pass_glossy_indirect, "IndirectSpecular"),
+            ("color lpe:(C<TD>[DS]+<L.>)|(C<TD>[DS]*O)",
+             active_layer.use_pass_subsurface_indirect, "Subsurface"),
+            ("color lpe:emission", active_layer.use_pass_emit, "Emission"),
+        ]
+
+        for aov_type, attr, name in aovs:
+            if attr:
+                if name == "rgba":
+                    aov_setting = rm_rl.custom_aovs.add()
+                    aov_setting.name = 'beauty'
+                    channel = aov_setting.dspy_channels.add()
+                    channel.name = 'Ci'
+                    channel.channel_name = 'Ci'
+                    channel.channel_def = 'color Ci'
+                    channel = aov_setting.dspy_channels.add()
+                    channel.name = 'a'
+                    channel.channel_name = 'a'
+                    channel.channel_def = 'float a'    
+
+                else:
+                    aov_setting = rm_rl.custom_aovs.add()
+                    aov_setting.name = name
+
+                    channel = aov_setting.dspy_channels.add()
+                    channel.name = name
+                    channel.channel_def = aov_type
+                    channel.channel_name = name                    
+
+        return {'FINISHED'}
+
+
 classes = [
     Renderman_Dspys_COLLECTION_OT_add_remove,
     PRMAN_OT_Renderman_layer_add_channel,
     PRMAN_OT_Renderman_layer_delete_channel,
     PRMAN_UL_Renderman_aov_list,
     RENDER_PT_layer_custom_aovs,
-    RENDER_PT_layer_options
+    RENDER_PT_layer_options,
+    PRMAN_OT_add_renderman_aovs
 ]
 
 def register():

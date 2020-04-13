@@ -241,7 +241,103 @@ class PRMAN_OT_Renderman_start_localqueue(bpy.types.Operator):
             subprocess.Popen([lq_path], env=environ, shell=True)
         return {'FINISHED'}        
 
+class PRMAN_OT_Select_Cameras(bpy.types.Operator):
+    bl_idname = "object.select_cameras"
+    bl_label = "Select Cameras"
 
+    Camera_Name: bpy.props.StringProperty(default="")
+
+    def execute(self, context):
+
+        bpy.ops.object.select_all(action='DESELECT')
+        bpy.data.objects[self.Camera_Name].select_set(True)
+        bpy.context.view_layer.objects.active = bpy.data.objects[self.Camera_Name]
+
+        return {'FINISHED'}
+
+
+class PRMAN_MT_Camera_List_Menu(bpy.types.Menu):
+    #bl_idname = "object.camera_list_menu"
+    bl_label = "Camera list"
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column(align=True)
+
+        cameras = [
+            obj for obj in bpy.context.scene.objects if obj.type == "CAMERA"]
+
+        if len(cameras):
+            for cam in cameras:
+                name = cam.name
+                op = layout.operator(
+                    "object.select_cameras", text=name, icon='CAMERA_DATA')
+                op.Camera_Name = name
+
+        else:
+            layout.label(text="No Camera in the Scene")
+
+class PRMAN_OT_Deletecameras(bpy.types.Operator):
+    bl_idname = "object.delete_cameras"
+    bl_label = "Delete Cameras"
+    bl_description = ""
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+
+        type_camera = bpy.context.object.data.type
+        bpy.ops.object.delete()
+
+        camera = [obj for obj in bpy.context.scene.objects if obj.type ==
+                  "CAMERA" and obj.data.type == type_camera]
+
+        if len(camera):
+            camera[0].select = True
+            bpy.context.view_layer.objects.active = camera[0]
+            return {"FINISHED"}
+
+        else:
+            return {"FINISHED"}
+
+
+class PRMAN_OT_AddCamera(bpy.types.Operator):
+    bl_idname = "object.add_prm_camera"
+    bl_label = "Add Camera"
+    bl_description = "Add a Camera in the Scene"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+
+        bpy.context.space_data.lock_camera = False
+
+        bpy.ops.object.camera_add()
+
+        bpy.ops.view3d.object_as_camera()
+
+        bpy.ops.view3d.view_camera()
+
+        bpy.ops.view3d.camera_to_view()
+
+        bpy.context.object.data.clip_end = 10000
+        bpy.context.object.data.lens = 85
+
+        return {"FINISHED"}
+
+class PRMAN_OT_Renderman_open_stats(bpy.types.Operator):
+    bl_idname = 'rman.open_stats'
+    bl_label = "Open Frame Stats"
+    bl_description = "Open Current Frame stats file"
+
+    def execute(self, context):
+        scene = context.scene
+        rm = scene.renderman        
+        output_dir = string_utils.expand_string(rm.path_rib_output, 
+                                                frame=scene.frame_current, 
+                                                asFilePath=True)  
+        output_dir = os.path.dirname(output_dir)            
+        bpy.ops.wm.url_open(
+            url="file://" + os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current))
+        return {'FINISHED'}
 
 classes = [
     PRMAN_OT_RM_Add_Subdiv_Scheme,
@@ -250,7 +346,12 @@ classes = [
     PRMAN_OT_RM_Add_bxdf,
     PRMAN_OT_RM_Create_MeshLight,
     PRMAN_OT_Renderman_start_it,
-    PRMAN_OT_Renderman_start_localqueue         
+    PRMAN_OT_Renderman_start_localqueue,
+    PRMAN_OT_Select_Cameras,
+    PRMAN_MT_Camera_List_Menu,
+    PRMAN_OT_Deletecameras,
+    PRMAN_OT_AddCamera,    
+    PRMAN_OT_Renderman_open_stats  
 ]
 
 def register():

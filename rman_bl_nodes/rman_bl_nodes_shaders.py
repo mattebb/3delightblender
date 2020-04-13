@@ -2,11 +2,15 @@ from ..rfb_logger import rfb_log
 from ..rman_utils.osl_utils import readOSO
 from . import rman_socket_utils
 from .. import rman_render
+from ..rman_utils import string_utils
 from ..icons.icons import load_icons
 from bpy.types import Menu
 from bpy.props import EnumProperty, StringProperty, CollectionProperty
 import _cycles
 import bpy
+import os
+import shutil
+import tempfile
 
 NODE_LAYOUT_SPLIT = 0.5
 
@@ -179,28 +183,24 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             node = context.node
         else:
             node = nodeOR
-        prefs = bpy.context.preferences.addons[__package__].preferences
 
-        out_path = user_path(prefs.env_vars.out)
-        compile_path = os.path.join(user_path(prefs.env_vars.out), "shaders")
-        if os.path.exists(out_path):
+        out_path = string_utils.expand_string('{OUT}', asFilePath=True)
+        compile_path = os.path.join(out_path, "shaders")
+
+        if os.path.exists(compile_path):
             pass
         else:
-            os.mkdir(out_path)
-        if os.path.exists(os.path.join(out_path, "shaders")):
-            pass
-        else:
-            os.mkdir(os.path.join(out_path, "shaders"))
+            os.mkdir(compile_path)
+
         if getattr(node, "codetypeswitch") == "EXT":
             osl_path = user_path(getattr(node, 'shadercode'))
             FileName = os.path.basename(osl_path)
             FileNameNoEXT = os.path.splitext(FileName)[0]
             FileNameOSO = FileNameNoEXT
             FileNameOSO += ".oso"
-            export_path = os.path.join(
-                user_path(prefs.env_vars.out), "shaders", FileNameOSO)
+            export_path = os.path.join(compile_path, FileNameOSO)
             if os.path.splitext(FileName)[1] == ".oso":
-                out_file = os.path.join(user_path(prefs.env_vars.out), "shaders", FileNameOSO)
+                out_file = os.path.join(compile_path, FileNameOSO)
                 if not os.path.exists(out_file) or not os.path.samefile(osl_path, out_file):
                     shutil.copy(osl_path, out_file)
                 # Assume that the user knows what they were doing when they
@@ -223,8 +223,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 FileNameOSO += ".oso"
                 node.plugin_name = FileNameNoEXT
                 ok = node.compile_osl(osl_file.name, compile_path, script.name)
-                export_path = os.path.join(
-                    user_path(prefs.env_vars.out), "shaders", FileNameOSO)
+                export_path = os.path.join(compile_path, FileNameOSO)
                 os.remove(osl_file.name)
             else:
                 ok = node.compile_osl(osl_path, compile_path)
@@ -233,20 +232,19 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 node.plugin_name = FileNameNoEXT
                 FileNameOSO = FileNameNoEXT
                 FileNameOSO += ".oso"
-                export_path = os.path.join(
-                    user_path(prefs.env_vars.out), "shaders", FileNameOSO)
+                export_path = os.path.join(compile_path, FileNameOSO)
         else:
             ok = False
-            rfb_log().debug("osl", "Shader cannot be compiled. Shader name not specified")
+            rfb_log().error("OSL: Shader cannot be compiled. Shader name not specified")
         # If Shader compiled successfully then update node.
         if ok:
-            rfb_log().debug('osl', "Shader Compiled Successfully!")
+            rfb_log().info("OSL: Shader Compiled Successfully!")
             # Reset the inputs and outputs
             node.outputs.clear()
             node.inputs.clear()
             # Read in new properties
             prop_names, shader_meta = readOSO(export_path)
-            rfb_log().debug('osl', prop_names, "MetaInfo: ", shader_meta)
+            rfb_log().debug('OSL: %s MetaInfo: %s' % (str(prop_names), str(shader_meta)))
             # Set node name to shader name
             node.label = shader_meta["shader"]
             node.plugin_name = shader_meta["shader"]
@@ -254,7 +252,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             setattr(node, 'shader_meta', shader_meta)
             node.setOslProps(prop_names, shader_meta)
         else:
-            rfb_log().debug("osl", "NODE COMPILATION FAILED")
+            rfb_log().error("OSL: NODE COMPILATION FAILED")
 
     def compile_osl(self, inFile, outPath, nameOverride=""):
         if not nameOverride:
