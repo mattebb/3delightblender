@@ -224,7 +224,8 @@ class RendermanPreferences(AddonPreferences):
         row.label(text='Preset Browser', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
-        col.prop(self.presets_root_category, 'path')
+        if self.presets_root_category:
+            col.label(text='Path: %s' % self.presets_root_category.path)
         col.prop(self, 'presets_show_large_icons')
         col.prop(self, 'presets_show_subcategories')
 
