@@ -12,4 +12,4 @@ class RmanSgGroup(RmanSgNode):
 
     @matrix_world.setter
     def matrix_world(self, mtx):
-        self.__matrix_world = mtx  
+        self.__matrix_world = mtx   

@@ -515,7 +515,8 @@ class RmanScene(object):
                 particles_db_name = object_utils.get_db_name(parent, psys=psys)
                 rman_sg_particles = self.rman_particles[particles_db_name]
             else:                
-                if parent.type == "EMPTY" and parent.is_instancer:
+                #if parent.type == "EMPTY" and parent.is_instancer:
+                if parent.is_instancer:
                     parent_db_name = object_utils.get_db_name(parent)
                     parent_sg_node = self.rman_objects.get(parent_db_name, None)
                     if not parent_sg_node:
@@ -584,11 +585,17 @@ class RmanScene(object):
                     translator.export_object_primvars(ob, rman_sg_node.sg_node)
                     self.processed_obs[db_name] = ob
 
+            rman_sg_group = rman_group_translator.export(ob, group_db_name)
+            rman_sg_group.is_instancer = ob.is_instancer
             if rman_sg_node.sg_node is None:
+                # add the group to the root anyways
+                rman_sg_group.db_name = db_name
+                self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
+                self.rman_objects[db_name] = rman_sg_group
                 return
 
-            rman_sg_group = rman_group_translator.export(ob, group_db_name)
             rman_sg_group.sg_node.AddChild(rman_sg_node.sg_node)
+            rman_sg_group.rman_sg_node_instance = rman_sg_node
             
             if rman_type != "META":
                 # meta/blobbies are already in world space. Their instances don't need to
@@ -611,8 +618,9 @@ class RmanScene(object):
             # add instance to the RmanSgNode
             if parent_sg_node:
                 parent_sg_node.instances[group_db_name] = rman_sg_group 
-            else:
-                rman_sg_node.instances[group_db_name] = rman_sg_group         
+                rman_sg_group.rman_sg_group_parent = parent_sg_node
+
+            rman_sg_node.instances[group_db_name] = rman_sg_group         
 
     def export_instances(self, obj_selected=None):
         objFound = False
@@ -1366,12 +1374,14 @@ class RmanScene(object):
                 rman_group_translator.update_transform(ob, rman_sg_group)
 
             elif obj.id.is_instancer:
-                for ob_inst in self.depsgraph.object_instances:                                
+                for ob_inst in self.depsgraph.object_instances:           
                     if ob_inst.is_instance and ob_inst.parent == ob:     
                         group_db_name = object_utils.get_group_db_name(ob_inst)
                         rman_sg_group = self.rman_objects.get(group_db_name, None)
                         if rman_sg_group:
                             rman_group_translator.update_transform(ob_inst, rman_sg_group)
+                        else:
+                            self._export_instance(ob_inst)
             else:
                 if rman_type == "META":
                     self.rman_translators['META'].update(ob, rman_sg_node)
@@ -1385,6 +1395,42 @@ class RmanScene(object):
                                 rman_group_translator.update_transform(ob_inst, rman_sg_group)
                                 break
 
+    def _instancer_updated(self, ob):
+        existing_instances = []
+        parent_sg_node = None
+        rman_group_translator = self.rman_translators['GROUP']
+        rman_type = object_utils._detect_primitive_(ob)
+        obj_key = object_utils.get_db_name(ob, rman_type=rman_type) 
+        instancer_sg_node = self.rman_objects[obj_key]        
+        if ob.is_instancer:
+            for ob_inst in self.depsgraph.object_instances:                                
+                if not ob_inst.is_instance and ob_inst.parent != ob:
+                    continue
+
+                group_db_name = object_utils.get_group_db_name(ob_inst)
+                rman_sg_group = instancer_sg_node.instances.get(group_db_name, None)
+                if not rman_sg_group:
+                    self._export_instance(ob_inst)
+                else:
+                    rman_group_translator.update_transform(ob_inst, rman_sg_group) 
+                
+                existing_instances.append(group_db_name)
+                
+            for k in [key for key in instancer_sg_node.instances.keys() if key not in existing_instances]:
+                rman_sg_group = instancer_sg_node.instances.pop(k, None)
+                if rman_sg_group:
+                    self.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
+                    self.rman_objects.pop(k, None)
+                    if rman_sg_group.rman_sg_node_instance:
+                        rman_sg_group.rman_sg_node_instance.instances.pop(k, None)
+        else:
+            for k in [key for key in instancer_sg_node.instances.keys()]:
+                v = instancer_sg_node.instances[k]
+                self.get_root_sg_node().RemoveChild(v.sg_node)
+                if v.rman_sg_node_instance:
+                    v.rman_sg_node_instance.instances.pop(k, None)
+            instancer_sg_node.instances.clear()
+
     def _obj_geometry_updated(self, obj):
         ob = obj.id
         rman_type = object_utils._detect_primitive_(ob)
@@ -1392,6 +1438,10 @@ class RmanScene(object):
         rman_sg_node = self.rman_objects[obj_key]
             
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
+            if obj.id.is_instancer or (rman_sg_node.is_instancer and not obj.id.is_instancer):
+                rman_sg_node.is_instancer = obj.id.is_instancer
+                self._instancer_updated(obj.id)
+
             if rman_type == 'LIGHTFILTER':
                 self.rman_translators['LIGHTFILTER'].update(ob, rman_sg_node)
                 for light_ob in [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
@@ -1588,9 +1638,10 @@ class RmanScene(object):
                         return
                     for k,v in rman_sg_node.instances.items():
                         if v.sg_node:
-                            self.sg_scene.DeleteDagNode(v.sg_node)
+                            self.sg_scene.DeleteDagNode(v.sg_node)                 
                         self.rman_objects.pop(k)
                     # For now, don't delete the geometry itself
+                    # there may be a collection instance still referencing the geo
                     # self.sg_scene.DeleteDagNode(rman_sg_node.sg_node)
                     self.rman_objects.pop(obj_key)    
 

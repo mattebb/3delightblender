@@ -20,6 +20,13 @@ class RmanSgNode(object):
         self.is_transforming = False
         self.is_deforming = False
         self.rman_type = ''
+        self.is_instancer = False
+        
+        # the rman_sg_node this is instance of, if any
+        self.rman_sg_node_instance = None
+
+        # pointer to a parent group, if any
+        self.rman_sg_group_parent = None        
 
         # indicates that this node needs updating
         # when the frame changes. This is mostly for
@@ -97,4 +104,28 @@ class RmanSgNode(object):
 
     @is_frame_sensitive.setter
     def is_frame_sensitive(self, is_frame_sensitive):
-        self.__is_frame_sensitive = is_frame_sensitive             
+        self.__is_frame_sensitive = is_frame_sensitive           
+
+    @property
+    def is_instancer(self):
+        return self.__is_instancer
+
+    @is_instancer.setter
+    def is_instancer(self, is_instancer):
+        self.__is_instancer = is_instancer           
+
+    @property
+    def rman_sg_node_instance(self):
+        return self.__rman_sg_node_instance
+
+    @rman_sg_node_instance.setter
+    def rman_sg_node_instance(self, rman_sg_node_instance):
+        self.__rman_sg_node_instance = rman_sg_node_instance        
+
+    @property
+    def rman_sg_group_parent(self):
+        return self.__rman_sg_group_parent
+
+    @rman_sg_group_parent.setter
+    def rman_sg_group_parent(self, rman_sg_group_parent):
+        self.__rman_sg_group_parent = rman_sg_group_parent                           

@@ -55,6 +55,8 @@ class RmanTranslator(object):
         sg_node.SetTransform( v )        
 
     def export_object_primvars(self, ob, sg_node):
+        if not sg_node:
+            return
         rm = ob.renderman
         rm_scene = self.rman_scene.bl_scene.renderman
         primvars = sg_node.GetPrimVars()
