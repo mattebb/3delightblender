@@ -1491,12 +1491,12 @@ class RmanScene(object):
                             psys_db_name = object_utils.get_db_name(ob, psys=psys)
                             rman_sg_particles_node = self.rman_particles.get(psys_db_name, None)
                             if psys.settings.render_type != 'OBJECT':
-                                if rman_sg_particles_node:
-                                    psys_translator.update(ob, psys, rman_sg_particles_node)
-                                else:
+                                if not rman_sg_particles_node:
                                     rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)
                                     rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
                                     self.rman_particles[psys_db_name] = rman_sg_particles_node 
+                                psys_translator.update(ob, psys, rman_sg_particles_node)
+
                             elif psys.settings.render_type == 'OBJECT':
                                 if rman_sg_particles_node:
                                     psys_translator.update(ob, psys, rman_sg_particles_node)          

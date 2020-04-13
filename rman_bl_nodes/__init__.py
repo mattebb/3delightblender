@@ -410,7 +410,7 @@ def generate_node_type(node_desc, is_oso=False):
     def init(self, context):
         # add input/output sockets to nodes, based on type
         if self.renderman_node_type == 'bxdf':
-            self.outputs.new('RendermanNodeSocketBxdf', "Bxdf").type = 'SHADER'
+            self.outputs.new('RendermanNodeSocketBxdf', "Bxdf") #.type = 'SHADER'
             #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
             node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self)
