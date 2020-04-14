@@ -1531,17 +1531,11 @@ def importAsset(filepath):
 
         if not selected_dome_lights:
             if not dome_lights:
-                # check the world node
-                if scene.world.renderman.get_light_node_name() == 'PxrDomeLight':
-                    plugin_node = scene.world.renderman.get_light_node()
-                    plugin_node.lightColorMap = env_map_path
-                # create a new dome light
-                else:                    
-                    #bpy.ops.object.mr_add_hemi()
-                    bpy.ops.object.rman_add_light(rman_light_name='PxrDomeLight')
-                    ob = bpy.context.view_layer.objects.active
-                    plugin_node = ob.data.renderman.get_light_node()
-                    plugin_node.lightColorMap = env_map_path
+                # create a new dome light              
+                bpy.ops.object.rman_add_light(rman_light_name='PxrDomeLight')
+                ob = bpy.context.view_layer.objects.active
+                plugin_node = ob.data.renderman.get_light_node()
+                plugin_node.lightColorMap = env_map_path                    
 
             elif len(dome_lights) == 1:
                 light = dome_lights[0].data
