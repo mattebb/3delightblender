@@ -1466,6 +1466,9 @@ class RmanScene(object):
                     return
                 translator.update(ob, rman_sg_node)
                 group_db_name = object_utils.get_group_db_name(ob)
+                # update attributes
+                for k,rman_sg_group in rman_sg_node.instances.items():
+                    translator.export_object_attributes(ob, rman_sg_group.sg_node)
 
                 for mat in object_utils._get_used_materials_(ob): 
                     if not mat:
