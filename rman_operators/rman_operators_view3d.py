@@ -18,6 +18,9 @@ class PRMAN_OT_RM_Add_Subdiv_Scheme(bpy.types.Operator):
             if ob.type == 'MESH':
                 rm = ob.data.renderman
                 rm.rman_subdiv_scheme = 'catmull-clark'
+                ob.update_tag(refresh={'DATA'})
+            else:
+                self.report({'ERROR'}, "A mesh not selected")
         return {"FINISHED"}    
 
 class PRMAN_OT_RM_Add_Light(bpy.types.Operator):
