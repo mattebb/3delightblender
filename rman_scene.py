@@ -1562,8 +1562,9 @@ class RmanScene(object):
                     if self.current_ob:
                         for i,cur_ob in enumerate(self.current_ob):
                             if not self.depsgraph.objects.get(cur_ob):
-                                delete_obs.append(self.current_ob_db_name[i])
-                                do_delete = True
+                                if not bpy.data.objects.get(cur_ob):
+                                    delete_obs.append(self.current_ob_db_name[i])
+                                    do_delete = True
                     if not do_delete:
                         self.current_ob = []
                         self.current_ob_db_name = []
@@ -1609,6 +1610,15 @@ class RmanScene(object):
                     rfb_log().debug("Transform updated: %s" % obj.id.name)
                     self._object_transform_updated(obj)
 
+                rman_sg_node = self.rman_objects.get(obj_key, None)
+                if rman_sg_node:
+                    # double check hidden value
+                    # grab the object from bpy.data, because the depsgraph doesn't seem
+                    # to get the updated value
+                    ob_data = bpy.data.objects.get(ob.name, ob)
+                    with self.rman.SGManager.ScopedEdit(self.sg_scene): 
+                        rman_sg_node.sg_node.SetHidden(ob_data.hide_get())
+
         # there are new objects
         if new_objs:
             with self.rman.SGManager.ScopedEdit(self.sg_scene): 
@@ -1647,6 +1657,7 @@ class RmanScene(object):
                     # there may be a collection instance still referencing the geo
                     # self.sg_scene.DeleteDagNode(rman_sg_node.sg_node)
                     self.rman_objects.pop(obj_key)    
+                    self.processed_obs.pop(obj_key)
 
                 self.scene_any_lights = self._scene_has_lights()     
                 if not self.scene_any_lights:
