@@ -192,9 +192,17 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             sf_output = nt.nodes.new('RendermanSamplefiltersOutputNode')
             sf_output.location = default.location
             sf_output.location[0] -= 300
+
             df_output = nt.nodes.new('RendermanDisplayfiltersOutputNode')
             df_output.location = sf_output.location
             df_output.location[0] -= 300
+            
+            # create a default background display filter set to world color
+            bg = nt.nodes.new('PxrBackgroundDisplayFilterDisplayfilterNode')
+            bg.backgroundColor = idblock.color
+            bg.location = df_output
+            bg.locations[0] -= 300
+            nt.links.new(bg.outputs[0], df_output.inputs[0])
 
         return {'FINISHED'}
         

@@ -23,8 +23,8 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         if not world.renderman.use_renderman_node:
             layout.prop(world, 'color')
             layout.operator('shading.add_renderman_nodetree').idtype = 'world'
-        else:
-            layout.prop(world, 'color')
+        #else:
+        #    layout.prop(world, 'color')
 
 class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):
     bl_label = "Integrator"

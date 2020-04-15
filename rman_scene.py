@@ -103,8 +103,11 @@ class RmanScene(object):
 
         self.motion_steps = set()
         self.main_camera = None
-        self.world_df_node = None
         self.rman_root_sg_node = None
+
+        self.render_default_light = False
+        self.world_df_node = None
+        self.default_light = None
 
         self.create_translators()     
 
@@ -147,7 +150,10 @@ class RmanScene(object):
         self.moving_objects = dict()
         self.processed_obs = dict()
         self.current_ob = []
-        self.current_ob_db_name = []        
+        self.current_ob_db_name = []    
+        self.render_default_light = False
+        self.world_df_node = None
+        self.default_light = None            
 
     def export_for_final_render(self, depsgraph, sg_scene, bl_view_layer, is_external=False):
         self.sg_scene = sg_scene
@@ -216,11 +222,11 @@ class RmanScene(object):
         self.is_swatch_render = True
         self.export_swatch_render_scene(render_output)
 
-
-
     def export(self):
 
         self.reset()
+
+        self.render_default_light = self.bl_scene.renderman.render_default_light
 
         # update variables
         string_utils.set_var('scene', self.bl_scene.name)
@@ -248,7 +254,12 @@ class RmanScene(object):
         self.export_global_options()     
         self.export_hider()
         self.export_integrator()
+
         self.export_cameras([c for c in self.depsgraph.objects if isinstance(c.data, bpy.types.Camera)])
+
+        # export default light
+        self.export_defaultlight()
+        self.main_camera.sg_node.AddChild(self.default_light)
         
         if self.is_viewport_render:
             # For now, when rendering into Blender's viewport, create 
@@ -497,6 +508,22 @@ class RmanScene(object):
                 else:
                     rman_sg_node.is_transforming = False
                     rman_sg_node.is_deforming = False
+
+    def export_defaultlight(self):
+        if not self.default_light:
+            self.default_light = self.sg_scene.CreateAnalyticLight('__defaultlight')
+            sg_node = self.rman.SGManager.RixSGShader("Light", 'PxrDistantLight' , "light")
+            self.default_light.SetLight(sg_node)
+            s_orientPxrLight = [-1.0, 0.0, -0.0, 0.0,
+                    -0.0, -1.0, -0.0, 0.0,
+                    0.0, 0.0, -1.0, 0.0,
+                    0.0, 0.0, 0.0, 1.0]
+            self.default_light.SetOrientTransform(s_orientPxrLight)  
+
+        if self.render_default_light and not self.scene_any_lights:
+            self.default_light.SetHidden(0)
+        else:
+            self.default_light.SetHidden(1)
 
     def _scene_has_lights(self):
         return (len([x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']) > 0)        
@@ -972,23 +999,19 @@ class RmanScene(object):
         
 
     def export_displayfilters(self):
-        if not self.scene_any_lights:
-            # if there are no lights, use the world color for the background
-            if not self.world_df_node:
-                self.world_df_node = self.rman.SGManager.RixSGShader("DisplayFilter", "PxrBackgroundDisplayFilter", "__rman_world_df")
-            params = self.world_df_node.params
-            params.SetColor("backgroundColor", self.bl_scene.world.color[:3])
-            self.sg_scene.SetDisplayFilter([self.world_df_node])
-            return
-        elif self.world_df_node:
-            self.world_df_node = None
-
         rm = self.bl_scene.renderman
         display_filter_names = []
         displayfilters_list = []
 
         world = self.bl_scene.world
+
         if not world.renderman.use_renderman_node:
+            # put in a default background color, using world color, then bail
+            if not self.world_df_node:
+                self.world_df_node = self.rman.SGManager.RixSGShader("DisplayFilter", "PxrBackgroundDisplayFilter", "__rman_world_df")
+            params = self.world_df_node.params
+            params.SetColor("backgroundColor", self.bl_scene.world.color[:3])
+            self.sg_scene.SetDisplayFilter([self.world_df_node])            
             return
 
         for bl_df_node in shadergraph_utils.find_displayfilter_nodes(world):
@@ -1569,6 +1592,15 @@ class RmanScene(object):
                         self.current_ob = []
                         self.current_ob_db_name = []
 
+                if self.render_default_light != self.bl_scene.renderman.render_default_light:
+                    self.render_default_light = self.bl_scene.renderman.render_default_light                    
+                    with self.rman.SGManager.ScopedEdit(self.sg_scene): 
+                        if self.render_default_light:   
+                            if not self.scene_any_lights and self.default_light.GetHidden():
+                                self.default_light.SetHidden(0)
+                                continue
+                        
+                        self.default_light.SetHidden(1)          
                 continue
 
             elif isinstance(obj.id, bpy.types.World):
@@ -1632,8 +1664,8 @@ class RmanScene(object):
                             self._export_instance(ob_inst)
 
                 self.scene_any_lights = self._scene_has_lights()
-                if self.world_df_node and self.scene_any_lights:
-                    self.export_displayfilters()
+                if self.scene_any_lights:
+                    self.default_light.SetHidden(1)
 
         # new cameras
         if new_cams and not self.is_viewport_render:
@@ -1659,9 +1691,10 @@ class RmanScene(object):
                     self.rman_objects.pop(obj_key)    
                     self.processed_obs.pop(obj_key)
 
-                self.scene_any_lights = self._scene_has_lights()     
-                if not self.scene_any_lights:
-                    self.export_displayfilters()
+                if self.render_default_light:
+                    self.scene_any_lights = self._scene_has_lights()     
+                    if not self.scene_any_lights:
+                        self.default_light.SetHidden(0)
 
             self.current_ob = []
             self.current_ob_db_name = []       

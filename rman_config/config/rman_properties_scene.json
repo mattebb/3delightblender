@@ -66,7 +66,17 @@
             "default": 0,
             "widget": "checkbox",
             "help": "Render only the selected object(s)"
-        },                                         
+        }, 
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
+            "name": "render_default_light",
+            "label": "Default Light",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "help": "Render with a default head light, if there are no lights in the scene."
+        },                                                  
         {
             "panel": "RENDER_PT_renderman_render",
             "page": "",

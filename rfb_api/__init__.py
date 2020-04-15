@@ -1,4 +1,5 @@
 from .. import rman_config
+from .. import rman_bl_nodes
 import bpy
 import json
 
