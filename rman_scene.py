@@ -674,7 +674,8 @@ class RmanScene(object):
             mat_db_name = object_utils.get_db_name(mat)
             rman_sg_material = self.rman_materials.get(mat_db_name, None)
             if rman_sg_material and rman_sg_material.sg_node:
-                group.SetMaterial(rman_sg_material.sg_node)        
+                group.SetMaterial(rman_sg_material.sg_node) 
+                group.is_meshlight = rman_sg_material.has_meshlight       
 
     def attach_particle_material(self, psys, ob, inst_ob, group):
         if psys.settings.renderman.use_object_material:
@@ -1345,7 +1346,39 @@ class RmanScene(object):
                         obj_key = object_utils.get_db_name(o, rman_type='LIGHT') 
                         rman_sg_node = self.rman_objects[obj_key]
                         if rman_sg_node.is_frame_sensitive:
-                            light_translator.update(o, rman_sg_node)        
+                            light_translator.update(o, rman_sg_node)   
+
+    def _mesh_light_update(self, mat):
+        with self.rman.SGManager.ScopedEdit(self.sg_scene):
+            for ob_inst in self.depsgraph.object_instances:
+                psys = None
+                if ob_inst.is_instance:
+                    ob = ob_inst.instance_object
+                    group_db_name =  object_utils.get_group_db_name(ob_inst)
+                    psys = ob_inst.particle_system 
+                else:
+                    ob = ob_inst.object
+                    group_db_name =  object_utils.get_group_db_name(ob_inst)
+                rman_type = object_utils._detect_primitive_(ob)
+                obj_db_name = object_utils.get_db_name(ob, rman_type=rman_type)
+                rman_sg_node = self.rman_objects.get(obj_db_name, None)
+                if ob.type in ('ARMATURE', 'CURVE', 'CAMERA'):
+                    continue
+                if not hasattr(ob.data, 'materials'):
+                    continue
+                if rman_sg_node:
+                    found = False
+                    for name, material in ob.data.materials.items():
+                        if name == mat.name:
+                            found = True
+
+                    if found:
+                        rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
+                        if rman_sg_group:
+                            rman_sg_node.instances.pop(group_db_name)
+                            self.rman_objects.pop(group_db_name)
+                            self.sg_scene.DeleteDagNode(rman_sg_group.sg_node)
+                            self._export_instance(ob_inst)                     
 
     def _material_updated(self, obj):
         mat = obj.id
@@ -1376,12 +1409,19 @@ class RmanScene(object):
                     if rman_sg_node:
                         for m in object_utils._get_used_materials_(ob):
                             if m == mat:
-                                if group_db_name in rman_sg_node.instances:
-                                    rman_sg_node.instances[group_db_name].sg_node.SetMaterial(rman_sg_material.sg_node)
+                                rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
+                                if rman_sg_group:
+                                    if rman_sg_material.has_meshlight != rman_sg_group.is_meshlight:
+                                        rman_sg_node.instances.pop(group_db_name)
+                                        self.rman_objects.pop(group_db_name)
+                                        self.sg_scene.DeleteDagNode(rman_sg_group.sg_node)
+                                        self._export_instance(ob_inst)
+                                    else:
+                                        rman_sg_group.sg_node.SetMaterial(rman_sg_material.sg_node)
 
             else:
                 translator.update(mat, rman_sg_material)   
-
+    
     def _object_transform_updated(self, obj):
         ob = obj.id         
         rman_type = object_utils._detect_primitive_(ob)
@@ -1498,8 +1538,12 @@ class RmanScene(object):
                         continue
                     mat_db_name = object_utils.get_db_name(mat)
                     rman_sg_material = self.rman_materials.get(mat_db_name, None)
-                    if rman_sg_material:
-                        rman_sg_node.instances[group_db_name].sg_node.SetMaterial(rman_sg_material.sg_node)
+                    rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
+                    if rman_sg_material and rman_sg_group:
+                        if rman_sg_group.is_meshlight != rman_sg_material.has_meshlight:
+                            self._mesh_light_update(mat)
+                        else:
+                            rman_sg_node.SetMaterial(rman_sg_material.sg_node)
 
                 if rman_type in ['MESH', 'POINTS']:
                     for psys in ob.particle_systems:
@@ -1731,9 +1775,15 @@ class RmanScene(object):
         rman_sg_material = self.rman_materials.get(db_name, None)
         if not rman_sg_material:
             return
-        translator = self.rman_translators["MATERIAL"]        
-        with self.rman.SGManager.ScopedEdit(self.sg_scene):
+        translator = self.rman_translators["MATERIAL"]     
+        has_meshlight = rman_sg_material.has_meshlight   
+        with self.rman.SGManager.ScopedEdit(self.sg_scene):                  
             translator.update(mat, rman_sg_material)
+
+        if has_meshlight != rman_sg_material.has_meshlight:
+            # we're dealing with a mesh light
+            self.depsgraph = bpy.context.evaluated_depsgraph_get()
+            self._mesh_light_update(mat)    
 
     def update_light(self, ob):
         db_name = object_utils.get_db_name(ob)

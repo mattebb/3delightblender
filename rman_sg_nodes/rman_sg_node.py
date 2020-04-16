@@ -21,6 +21,7 @@ class RmanSgNode(object):
         self.is_deforming = False
         self.rman_type = ''
         self.is_instancer = False
+        self.is_meshlight = False
         
         # the rman_sg_node this is instance of, if any
         self.rman_sg_node_instance = None
@@ -128,4 +129,12 @@ class RmanSgNode(object):
 
     @rman_sg_group_parent.setter
     def rman_sg_group_parent(self, rman_sg_group_parent):
-        self.__rman_sg_group_parent = rman_sg_group_parent                           
+        self.__rman_sg_group_parent = rman_sg_group_parent       
+
+    @property
+    def is_meshlight(self):
+        return self.__is_meshlight
+
+    @is_meshlight.setter
+    def is_meshlight(self, is_meshlight):
+        self.__is_meshlight = is_meshlight                                

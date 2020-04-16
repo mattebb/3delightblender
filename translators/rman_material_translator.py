@@ -84,6 +84,12 @@ class RmanMaterialTranslator(RmanTranslator):
                 if out is None:
                     return False
 
+
+                rman_sg_material.has_meshlight = False
+                rman_sg_material.sg_node.SetBxdf([])
+                rman_sg_material.sg_node.SetLight([])
+                rman_sg_material.sg_node.SetDisplace([])
+
                 # bxdf
                 socket = out.inputs[0]
                 if socket.is_linked:
@@ -294,8 +300,11 @@ class RmanMaterialTranslator(RmanTranslator):
                     light_group_name = lg.name
                     break
 
-            light_name = node.bl_label
             sg_node = self.rman_scene.rman.SGManager.RixSGShader("Light", node.bl_label, mat_name)
+
+            if node.bl_label == 'PxrMeshLight':
+                # flag this material as having a mesh light
+                rman_sg_material.has_meshlight = True
 
         elif node.renderman_node_type == "lightfilter":
 

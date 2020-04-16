@@ -214,6 +214,7 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
                 bpy.ops.object.material_slot_add()
                 obj.material_slots[-1].material = mat
+                obj.active_material = mat
         return {"FINISHED"}
 
 class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
