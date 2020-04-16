@@ -88,17 +88,6 @@
             "widget": "checkbox",
             "help": "Export the active Vertex Color set as the default 'Cs' primitive variable",
             "page": ""
-        },                
-        {
-            "panel": "MESH_PT_renderman_prim_vars",
-            "name": "export_flipv",
-            "label": "Flip V",
-            "type": "string",
-            "default": "NONE",
-            "widget": "mapper",
-            "options": "No Flip:NONE|Flip Tile Space:TILE|Flip UV Space:UV",
-            "page": "",
-            "help": "Use this to flip the V texture coordinate on the exported geometry when rendering. The origin on Renderman texture coordinates are top-left (ie. Photoshop) of image, UV texture coordinates (ie. Maya) generally use the bottom-left of the image as the origin. It's generally better to do this flip using a pattern like PxrTexture or PxrManifold2d"
-        }        
+        }      
     ]
 }

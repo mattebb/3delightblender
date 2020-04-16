@@ -196,18 +196,23 @@ def _get_mesh_points_(mesh):
 def _get_mesh_(mesh, get_normals=False):
 
     P = _get_mesh_points_(mesh)
-    nverts = []
-    verts = []
     N = []    
 
-    for p in mesh.polygons:
-        nverts.append(p.loop_total)
-        verts.extend(p.vertices)
-        if get_normals:
-            if p.use_smooth:
-                for vi in p.vertices:
-                    N.extend(mesh.vertices[vi].normal)
-            else:
-                N.extend(list(p.normal) * p.loop_total)
+    npolygons = len(mesh.polygons)
+    fastnvertices = np.zeros(npolygons, dtype=np.int)
+    mesh.polygons.foreach_get('loop_total', fastnvertices)
+    nverts = fastnvertices.tolist()
+
+    loops = len(mesh.loops)
+    fastvertices = np.zeros(loops, dtype=np.int)
+    mesh.loops.foreach_get('vertex_index', fastvertices)
+    verts = fastvertices.tolist()
+
+    if get_normals:
+        nvertices = len(mesh.vertices)
+        fastnormals = np.zeros(nvertices*3, dtype=np.float32)
+        mesh.vertices.foreach_get('normal', fastnormals)
+        fastnormals = np.reshape(fastnormals, (nvertices, 3))
+        N = fastnormals.tolist()
 
     return (nverts, verts, P, N)

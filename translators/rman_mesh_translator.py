@@ -6,6 +6,7 @@ from ..rman_utils import property_utils
 
 import bpy
 import math
+import numpy as np
 
 def _get_mats_faces_(nverts, material_ids):
 
@@ -28,7 +29,7 @@ def _is_multi_material_(ob, mesh):
     return False
 
 # requires facevertex interpolation
-def _get_mesh_uv_(mesh, name="", flipvmode='NONE'):
+def _get_mesh_uv_(mesh, name=""):
     uvs = []
     if not name:
         uv_loop_layer = mesh.uv_layers.active
@@ -40,16 +41,11 @@ def _get_mesh_uv_(mesh, name="", flipvmode='NONE'):
     if uv_loop_layer is None:
         return None
 
-    for uvloop in uv_loop_layer.data:
-        uvs.append(uvloop.uv.x)
-        # renderman expects UVs flipped vertically from blender
-        # best to do this in pattern, provided here as additional option
-        if flipvmode == 'UV':
-            uvs.append(1.0-uvloop.uv.y)
-        elif flipvmode == 'TILE':
-            uvs.append(math.ceil(uvloop.uv.y) - uvloop.uv.y + math.floor(uvloop.uv.y))
-        elif flipvmode == 'NONE':
-            uvs.append(uvloop.uv.y)
+    uv_count = len(uv_loop_layer.data)
+    fastuvs = np.zeros(uv_count * 2)
+    uv_loop_layer.data.foreach_get("uv", fastuvs)
+    fastuvs.reshape(uv_count, 2)    
+    uvs = fastuvs.tolist()
 
     return uvs
 
@@ -61,8 +57,11 @@ def _get_mesh_vcol_(mesh, name=""):
     if vcol_layer is None:
         return None
 
-    for vcloop in vcol_layer.data:
-        cols.extend(vcloop.color)
+    vcol_count = len(vcol_layer.data)
+    fastvcols = np.zeros(vcol_count * 4)
+    vcol_layer.data.foreach_get("color", fastvcols)
+    fastvcols.reshape(vcol_count, 4)    
+    cols = fastvcols.tolist()        
 
     return cols    
 
@@ -94,10 +93,7 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
     interpolation = 'facevarying' if not interpolation else interpolation
 
     if rm.export_default_uv:
-        flipvmode = 'NONE'
-        if hasattr(rm, 'export_flipv'):
-            flipvmode = rm.export_flipv
-        uvs = _get_mesh_uv_(geo, flipvmode=flipvmode)
+        uvs = _get_mesh_uv_(geo)
         if uvs and len(uvs) > 0:
             rixparams.SetFloatArrayDetail("st", uvs, 2, interpolation)
 
@@ -116,10 +112,7 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
                 rixparams.SetColorDetail(p.name, string_utils.convert_val(vcols, type_hint="color"), interpolation)
             
         elif p.data_source == 'UV_TEXTURE':
-            flipvmode = 'NONE'
-            if hasattr(rm, 'export_flipv'):
-                flipvmode = rm.export_flipv
-            uvs = _get_mesh_uv_(geo, p.data_name, flipvmode=flipvmode)
+            uvs = _get_mesh_uv_(geo, p.data_name)
             if uvs and len(uvs) > 0:
                 rixparams.SetFloatArrayDetail(p.name, uvs, 2, interpolation)
 
@@ -231,9 +224,6 @@ class RmanMeshTranslator(RmanTranslator):
 
         ob.to_mesh_clear()    
 
-    def export_mesh_primvars(self, ob, primvar, mesh):
-        rm = ob.data.renderman         
-
     def update(self, ob, rman_sg_mesh, input_mesh=None):
 
         rm = ob.renderman
@@ -287,7 +277,8 @@ class RmanMeshTranslator(RmanTranslator):
 
         else:
             rman_sg_mesh.sg_node.SetScheme(None)
-            primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "facevarying")         
+            if N:
+                primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "vertex")         
         rman_sg_mesh.subdiv_scheme = ob.data.renderman.rman_subdiv_scheme
 
         if rman_sg_mesh.is_multi_material:
