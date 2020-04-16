@@ -156,8 +156,6 @@ class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
 
         rm = context.scene.renderman
         layout = self.layout
-
-
         _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_motion_blur', context, layout, rm)   
 
 class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
@@ -211,11 +209,11 @@ class RENDER_PT_renderman_custom_options(PRManButtonsPanel, Panel):
 
 classes = [
     RENDER_PT_renderman_render,
+    RENDER_PT_renderman_spooling,
+    RENDER_PT_renderman_spooling_export_options,    
     RENDER_PT_renderman_baking,
     RENDER_PT_renderman_sampling,
     RENDER_PT_renderman_sampling_ipr,
-    RENDER_PT_renderman_spooling,
-    RENDER_PT_renderman_spooling_export_options,
     RENDER_PT_renderman_motion_blur,    
     RENDER_PT_renderman_advanced_settings,
     RENDER_PT_renderman_custom_options

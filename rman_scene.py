@@ -1543,7 +1543,7 @@ class RmanScene(object):
                         if rman_sg_group.is_meshlight != rman_sg_material.has_meshlight:
                             self._mesh_light_update(mat)
                         else:
-                            rman_sg_node.SetMaterial(rman_sg_material.sg_node)
+                            rman_sg_group.sg_node.SetMaterial(rman_sg_material.sg_node)
 
                 if rman_type in ['MESH', 'POINTS']:
                     for psys in ob.particle_systems:
