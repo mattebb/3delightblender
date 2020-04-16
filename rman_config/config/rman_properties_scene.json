@@ -60,16 +60,6 @@
         {
             "panel": "RENDER_PT_renderman_render",
             "page": "",
-            "name": "render_selected_objects_only",
-            "label": "Only Render Selected",
-            "type": "int",
-            "default": 0,
-            "widget": "checkbox",
-            "help": "Render only the selected object(s)"
-        }, 
-        {
-            "panel": "RENDER_PT_renderman_render",
-            "page": "",
             "name": "render_default_light",
             "label": "Default Light",
             "type": "int",
