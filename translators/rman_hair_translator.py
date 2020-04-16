@@ -64,6 +64,9 @@ class RmanHairTranslator(RmanTranslator):
             if rman_sg_material:
                 rman_sg_hair.sg_node.SetMaterial(rman_sg_material.sg_node)  
 
+    def add_object_instance(self, rman_sg_hair, sg_node):
+        rman_sg_hair.sg_node.AddChild(sg_node)                
+
     def _get_strands_(self, ob, psys):
 
         psys_modifier = None
