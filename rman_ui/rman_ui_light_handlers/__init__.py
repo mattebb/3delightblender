@@ -611,6 +611,7 @@ def draw_envday_light(ob):
     scale = max(sca) # take the max axis
     m = Matrix.Rotation(angle, 4, axis)
     m = m @ Matrix.Scale(scale, 4)
+    m = m @ Matrix.Translation(loc)
     ob_matrix = m
     
     m = Matrix(ob_matrix)
@@ -725,8 +726,7 @@ def draw_envday_light(ob):
     # draw a sphere to represent the sun
     v = sunDirection - origin
     translate = Matrix.Translation(v)
-    translate = translate @ Matrix.Scale(0.25, 4)
-    sphere = make_sphere(ob_matrix)
+    sphere = make_sphere(ob_matrix @ Matrix.Scale(0.25, 4))
     sphere_indices = []
     for i in range(0, len(sphere)):
         if i == len(sphere)-1:
