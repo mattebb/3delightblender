@@ -1,8 +1,9 @@
 import bpy
 from ..icons.icons import load_icons
-from bpy.props import StringProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty
 from .. import rman_cycles_convert
 from ..rman_utils import shadergraph_utils
+from .. import rman_bl_nodes
 
 class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
 
@@ -88,6 +89,50 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 ob.renderman.visibility_trace_transmission = False
         return {'FINISHED'}
 
+class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "shading.convert_cycles_shader"
+    bl_label = "Convert Cycles Shader"
+    bl_description = "Try to convert the current Cycles Shader to RenderMan"
+
+    idtype: StringProperty(name="ID Type", default="material")
+    bxdf_name: StringProperty(name="Bxdf Name", default="PxrDisneyBsdf")
+
+    def execute(self, context):
+        idtype = self.properties.idtype
+        if idtype == 'node_editor':
+            idblock = context.space_data.id
+            idtype = 'material'
+        else:
+            context_data = {'material': context.material,
+                            'light': context.light, 'world': context.scene.world}
+            idblock = context_data[idtype]
+
+        idblock.use_nodes = True
+        nt = idblock.node_tree
+
+        if idtype == 'material':
+            output = nt.nodes.new('RendermanOutputNode')
+            if context.material.grease_pencil:
+                shadergraph_utils.convert_grease_pencil_mat(context.material, nt, output)
+
+            elif not rman_cycles_convert.convert_cycles_nodetree(idblock, output):
+                default = nt.nodes.new('%sBxdfNode' %
+                                       self.properties.bxdf_name)
+                default.location = output.location
+                default.location[0] -= 300
+                nt.links.new(default.outputs[0], output.inputs[0])
+
+                if idblock.renderman.copy_color_params:
+                    default.diffuseColor = idblock.diffuse_color
+                    default.diffuseGain = idblock.diffuse_intensity
+                    default.enablePrimarySpecular = True
+                    default.specularFaceColor = idblock.specular_color
+
+            output.inputs[3].hide = True
+                      
+        return {'FINISHED'}
 
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
@@ -97,7 +142,20 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     bl_description = "Add a RenderMan shader node tree"
 
     idtype: StringProperty(name="ID Type", default="material")
-    bxdf_name: StringProperty(name="Bxdf Name", default="PxrSurface")
+
+    def get_type_items(self, context):
+        icons = load_icons()
+        rman_unknown_icon = icons.get("out_unknown.png")    
+        items = []
+        i = 0
+        for i,n in enumerate(rman_bl_nodes.__RMAN_BXDF_NODES__):
+            rman_bxdf_icon = icons.get("out_%s.png" % n.name, None)
+            if not rman_bxdf_icon:
+                items.append( (n.name, n.name, '', rman_unknown_icon.icon_id, i))
+            else:
+                items.append( (n.name, n.name, '', rman_bxdf_icon.icon_id, i))                
+        return items        
+    bxdf_name: EnumProperty(items=get_type_items, name="Material")    
 
     def execute(self, context):
         idtype = self.properties.idtype
@@ -120,18 +178,20 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             if context.material.grease_pencil:
                 shadergraph_utils.convert_grease_pencil_mat(context.material, nt, output)
 
-            elif not rman_cycles_convert.convert_cycles_nodetree(idblock, output):
+            else:
                 default = nt.nodes.new('%sBxdfNode' %
                                        self.properties.bxdf_name)
                 default.location = output.location
                 default.location[0] -= 300
                 nt.links.new(default.outputs[0], output.inputs[0])
 
+                '''
                 if idblock.renderman.copy_color_params:
                     default.diffuseColor = idblock.diffuse_color
                     default.diffuseGain = idblock.diffuse_intensity
                     default.enablePrimarySpecular = True
                     default.specularFaceColor = idblock.specular_color
+                '''
 
             output.inputs[3].hide = True
                       
@@ -200,14 +260,43 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             # create a default background display filter set to world color
             bg = nt.nodes.new('PxrBackgroundDisplayFilterDisplayfilterNode')
             bg.backgroundColor = idblock.color
-            bg.location = df_output
-            bg.locations[0] -= 300
+            bg.location = df_output.location
+            bg.location[0] -= 300
             nt.links.new(bg.outputs[0], df_output.inputs[0])
 
         return {'FINISHED'}
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column()
+        col.label(text="Select a Material")
+        col.prop(self, 'bxdf_name')      
+
+    def invoke(self, context, event):
+
+        idtype = self.properties.idtype
+        if idtype == 'node_editor':
+            idblock = context.space_data.id
+            idtype = 'material'
+        else:
+            context_data = {'material': context.material,
+                            'light': context.light, 'world': context.scene.world}
+            idblock = context_data[idtype]
+
+        # nt = bpy.data.node_groups.new(idblock.name,
+        #                              type='RendermanPatternGraph')
+        #nt.use_fake_user = True
+        idblock.use_nodes = True
+        nt = idblock.node_tree
+
+        if idtype == 'material':        
+            wm = context.window_manager
+            return wm.invoke_props_dialog(self)  
+        return self.execute(context)
         
 classes = [
     SHADING_OT_convert_all_renderman_nodetree,
+    SHADING_OT_convert_cycles_to_renderman_nodetree,
     SHADING_OT_add_renderman_nodetree,
 ]
 
