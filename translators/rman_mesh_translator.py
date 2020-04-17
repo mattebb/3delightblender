@@ -201,14 +201,14 @@ class RmanMeshTranslator(RmanTranslator):
         npoints = len(P)
 
         if rman_sg_mesh.npoints != npoints:
-            primvar.SetTimeSamples([])
+            primvar.SetTimes([])
             rman_sg_mesh.sg_node.SetPrimVars(primvar)
             rman_sg_mesh.is_transforming = False
             rman_sg_mesh.is_deforming = False
             if rman_sg_mesh.is_multi_material:
                 for c in rman_sg_mesh.multi_material_children:
                     pvar = c.GetPrimVars()
-                    pvar.SetTimeSamples( [] )                               
+                    pvar.SetTimes( [] )                               
                     c.SetPrimVars(pvar)            
             return       
 
@@ -259,7 +259,7 @@ class RmanMeshTranslator(RmanTranslator):
         primvar.Clear()
 
         if rman_sg_mesh.is_deforming:
-            primvar.SetTimeSamples(rman_sg_mesh.motion_steps)
+            primvar.SetTimes(rman_sg_mesh.motion_steps)
         
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")
         _get_primvars_(ob, mesh, primvar, "facevarying")   
@@ -305,7 +305,7 @@ class RmanMeshTranslator(RmanTranslator):
                         sg_sub_mesh.SetScheme(self.rman_scene.rman.Tokens.Rix.k_catmullclark)
                     pvars = sg_sub_mesh.GetPrimVars()  
                     if rman_sg_mesh.is_deforming:
-                        pvars.SetTimeSamples(rman_sg_mesh.motion_steps)                      
+                        pvars.SetTimes(rman_sg_mesh.motion_steps)                      
                     pvars.Inherit(primvar)
                     pvars.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))
                     sg_sub_mesh.SetPrimVars(pvars)

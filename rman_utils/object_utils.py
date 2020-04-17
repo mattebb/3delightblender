@@ -5,7 +5,7 @@ def get_db_name(ob, rman_type='', psys=None):
     db_name = ''    
 
     if psys:
-        '%s|%s-%s' % (ob.name_full, psys.name, psys.settings.type)
+        db_name = '%s|%s-%s' % (ob.name_full, psys.name, psys.settings.type)
 
     elif rman_type != '' and rman_type != 'NONE':
         if rman_type == 'META':

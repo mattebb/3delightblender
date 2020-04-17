@@ -91,7 +91,7 @@ class RmanParticlesTranslator(RmanTranslator):
         if rman_sg_particles.render_type == 'OBJECT':
             return
 
-        sg_particles_node = rman_sg_particles.GetChild(0)
+        sg_particles_node = rman_sg_particles.sg_node.GetChild(0)
 
         rm = psys.settings.renderman
         P, rot, width = self.get_particles(ob, psys)
@@ -142,7 +142,7 @@ class RmanParticlesTranslator(RmanTranslator):
         primvar = sg_particles_node.GetPrimVars()
         primvar.Clear()
         if rman_sg_particles.motion_steps:
-            primvar.SetTimeSamples(rman_sg_particles.motion_steps)
+            primvar.SetTimes(rman_sg_particles.motion_steps)
 
         nm_pts = -1
 

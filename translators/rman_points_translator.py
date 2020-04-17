@@ -29,7 +29,7 @@ class RmanPointsTranslator(RmanTranslator):
         npoints = len(P)
 
         if rman_sg_points.npoints != npoints:
-            primvar.SetTimeSamples([])
+            primvar.SetTimes([])
             rman_sg_points.sg_node.SetPrimVars(primvar)
             rman_sg_points.is_transforming = False
             rman_sg_points.is_deforming = False        
@@ -65,7 +65,7 @@ class RmanPointsTranslator(RmanTranslator):
         primvar = rman_sg_points.sg_node.GetPrimVars()
         #primvar.Clear()      
 
-        primvar.SetTimeSamples(rman_sg_points.motion_steps)
+        primvar.SetTimes(rman_sg_points.motion_steps)
 
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")
 
