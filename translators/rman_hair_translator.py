@@ -64,8 +64,10 @@ class RmanHairTranslator(RmanTranslator):
             if rman_sg_material:
                 rman_sg_hair.sg_node.SetMaterial(rman_sg_material.sg_node)  
 
-    def add_object_instance(self, rman_sg_hair, sg_node):
-        rman_sg_hair.sg_node.AddChild(sg_node)                
+    def add_object_instance(self, rman_sg_hair, rman_sg_group):
+        rman_sg_hair.sg_node.AddChild(rman_sg_group.sg_node)                
+        rman_sg_hair.instances[rman_sg_group.db_name] = rman_sg_group
+        rman_sg_group.rman_sg_group_parent = rman_sg_particles
 
     def _get_strands_(self, ob, psys):
 
