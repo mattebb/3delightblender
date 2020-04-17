@@ -209,10 +209,9 @@ def _get_mesh_(mesh, get_normals=False):
     verts = fastvertices.tolist()
 
     if get_normals:
-        nvertices = len(mesh.vertices)
-        fastnormals = np.zeros(nvertices*3, dtype=np.float32)
-        mesh.vertices.foreach_get('normal', fastnormals)
-        fastnormals = np.reshape(fastnormals, (nvertices, 3))
+        fastnormals = np.zeros(npolygons*3, dtype=np.float32)
+        mesh.polygons.foreach_get('normal', fastnormals)
+        fastnormals = np.reshape(fastnormals, (npolygons, 3))
         N = fastnormals.tolist()
 
     return (nverts, verts, P, N)

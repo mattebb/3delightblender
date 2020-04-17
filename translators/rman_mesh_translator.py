@@ -232,7 +232,7 @@ class RmanMeshTranslator(RmanTranslator):
             mesh = ob.to_mesh()
 
         rman_sg_mesh.is_subdiv = object_utils.is_subdmesh(ob)
-        get_normals = (rman_sg_mesh.is_subdiv == 0)
+        get_normals = (rman_sg_mesh.is_subdiv == 0 and not ob.data.renderman.rman_smoothnormals)
         (nverts, verts, P, N) = object_utils._get_mesh_(mesh, get_normals=get_normals)
         
         # if this is empty continue:
@@ -278,7 +278,10 @@ class RmanMeshTranslator(RmanTranslator):
         else:
             rman_sg_mesh.sg_node.SetScheme(None)
             if N:
-                primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "vertex")         
+                if len(N) == numnverts:
+                    primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "vertex")         
+                else:
+                    primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "uniform")         
         rman_sg_mesh.subdiv_scheme = ob.data.renderman.rman_subdiv_scheme
 
         if rman_sg_mesh.is_multi_material:

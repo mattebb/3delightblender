@@ -22,6 +22,8 @@ class MESH_PT_renderman_mesh_attrs(CollectionPanel, Panel):
 
     def draw(self, context):
         layout = self.layout
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False        
         mesh = context.mesh
         rm = mesh.renderman
 
@@ -54,6 +56,8 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
 
     def draw(self, context):
         layout = self.layout
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False           
         mesh = context.mesh
         rm = mesh.renderman
 

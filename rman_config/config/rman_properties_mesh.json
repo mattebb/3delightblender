@@ -3,13 +3,24 @@
     "params": [
         {
             "panel": "MESH_PT_renderman_mesh_attrs",            
+            "name": "rman_smoothnormals",
+            "primvar": "polygon:smoothnormals",
+            "label": "Smooth Normals",
+            "type": "int",
+            "default": 0,
+            "widget": "checkBox",
+            "page": "Polygons",
+            "help": "Render polygons with smooth normals."
+        },           
+        {
+            "panel": "MESH_PT_renderman_mesh_attrs",            
             "name": "rman_preventPolyCracks",
             "primvar": "polygon:smoothdisplacement",
             "label": "Prevent polygon cracking",
             "type": "int",
             "default": 0,
             "widget": "checkBox",
-            "page": "Displacement",
+            "page": "Polygons",
             "help": "Prevent polygon cracks on sharp edges, as long as both sides of the edge have similar displacement values, at the cost of slightly warping your displacement."
         },        
         {
