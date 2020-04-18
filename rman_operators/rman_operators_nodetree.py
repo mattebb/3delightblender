@@ -10,7 +10,7 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
     ''''''
     bl_idname = "shading.convert_cycles_stuff"
     bl_label = "Convert All Cycles to RenderMan"
-    bl_description = "Convert all nodetrees to RenderMan"
+    bl_description = "Convert all Cycles nodetrees to RenderMan. This is not guaranteed to work. It is still recommended to use RenderMan only nodes."
 
     def execute(self, context):
         for mat in bpy.data.materials:
@@ -94,7 +94,7 @@ class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
     ''''''
     bl_idname = "shading.convert_cycles_shader"
     bl_label = "Convert Cycles Shader"
-    bl_description = "Try to convert the current Cycles Shader to RenderMan"
+    bl_description = "Try to convert the current Cycles Shader to RenderMan. This is not guaranteed to work. It is still recommended to use RenderMan only nodes."
 
     idtype: StringProperty(name="ID Type", default="material")
     bxdf_name: StringProperty(name="Bxdf Name", default="PxrDisneyBsdf")
