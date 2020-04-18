@@ -1,5 +1,4 @@
 from .rman_translator import RmanTranslator
-from ..rman_utils import transform_utils
 from ..rman_utils import object_utils
 from ..rman_sg_nodes.rman_sg_hair import RmanSgHair
 from mathutils import Vector
@@ -127,7 +126,7 @@ class RmanHairTranslator(RmanTranslator):
                     break                
 
                 # put points in object space
-                pt = Vector(transform_utils.transform_points( ob_inv_mtx, pt))
+                pt = ob_inv_mtx @ pt
 
                 strand_points.append(pt)
 

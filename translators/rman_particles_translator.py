@@ -15,7 +15,7 @@ class RmanParticlesTranslator(RmanTranslator):
         super().__init__(rman_scene)
         self.bl_type = 'EMITTER' 
 
-    def get_particles(self, ob, psys, valid_frames=None):
+    def get_particles(self, ob, psys, inv_mtx, valid_frames=None):
         P = []
         rot = []
         width = []
@@ -24,7 +24,8 @@ class RmanParticlesTranslator(RmanTranslator):
                         self.rman_scene.bl_scene.frame_current) if valid_frames is None else valid_frames
         
         for pa in [p for p in psys.particles if valid_particle(p, valid_frames)]:
-            P.extend(pa.location)
+            pt = inv_mtx @ pa.location
+            P.extend(pt)
             rot.extend(pa.rotation)
 
             if pa.alive_state != 'ALIVE':
@@ -91,13 +92,14 @@ class RmanParticlesTranslator(RmanTranslator):
         if rman_sg_particles.render_type == 'OBJECT':
             return
 
+        return
+
         sg_particles_node = rman_sg_particles.sg_node.GetChild(0)
 
         rm = psys.settings.renderman
-        P, rot, width = self.get_particles(ob, psys)
+        inv_mtx = ob.matrix_world.inverted_safe()
+        P, rot, width = self.get_particles(ob, psys, inv_mtx)
 
-        m = ob.matrix_world.inverted_safe()
-        P = transform_utils.transform_points(m, P)
         if (len(P) < 3):
             return
 
@@ -105,7 +107,6 @@ class RmanParticlesTranslator(RmanTranslator):
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex", time_sample)
 
         sg_particles_node.SetPrimVars(primvar)     
-
 
     def update(self, ob, psys, rman_sg_particles):
         rman_sg_particles.render_type = psys.settings.render_type
@@ -128,10 +129,9 @@ class RmanParticlesTranslator(RmanTranslator):
         sg_particles_node = self.rman_scene.sg_scene.CreatePoints('%s-POINTS' % rman_sg_particles.db_name)
 
         rm = psys.settings.renderman
-        P, rot, width = self.get_particles(ob, psys)
+        inv_mtx = ob.matrix_world.inverted_safe()
+        P, rot, width = self.get_particles(ob, psys, inv_mtx)
 
-        m = ob.matrix_world.inverted_safe()
-        P = transform_utils.transform_points(m, P)
         if (len(P) < 3):
             return
 
@@ -140,11 +140,14 @@ class RmanParticlesTranslator(RmanTranslator):
 
         primvar = sg_particles_node.GetPrimVars()
         primvar.Clear()
+        
+        # FIXME: currently GetPrimVars in export_deform above will fail
+        # uncomment this when it is fixed in prman
+        '''
         if rman_sg_particles.motion_steps:
             primvar.SetTimes(rman_sg_particles.motion_steps)
-
-        nm_pts = -1
-
+        '''
+        
         self.get_primvars_particle(primvar,  psys, [self.rman_scene.bl_scene.frame_current], 0)      
         
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")                   
