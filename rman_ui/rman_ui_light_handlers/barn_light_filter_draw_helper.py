@@ -335,14 +335,14 @@ class BarnLightFilterDrawHelper(object):
             # get the light position in filter space
             trans, rotation, scale = lgt_to_world_matrix.decompose()
             lgt_pos = trans
-            lgt_pos = Vector(transform_utils.transform_points(world_to_filter_matrix, lgt_pos))
+            lgt_pos = world_to_filter_matrix @ lgt_pos
 
             # print('      |__ Clgt: %s' % lgt_pos)
 
             # get the light corners in filter space
             for corner in CORNERS:
                 pl = Vector((corner[0], corner[1], corner[2]))
-                pl = Vector(transform_utils.transform_points(lgt_to_fltr_matrix, pl))
+                pl = lgt_to_fltr_matrix @ pl
                 corners.append(pl)
                 # print('      |__ Plgt: %s' % pl)
 

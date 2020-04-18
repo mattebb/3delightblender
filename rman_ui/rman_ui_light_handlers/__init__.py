@@ -476,7 +476,7 @@ def _get_sun_direction(ob):
     sunDirection[1] = max(math.sin(elevation), 0)
     sunDirection[2] = math.cos(elevation) * math.cos(azimuth)
     
-    return Vector(transform_utils.transform_points( m, sunDirection))
+    return m @ sunDirection
 
 def make_sphere(m):
     lats = 12
@@ -496,14 +496,14 @@ def make_sphere(m):
             z0  = math.sin(lat0) * radius
             zr0 = math.cos(lat0) * radius
         
-            v.append(Vector(transform_utils.transform_points( m, [x*zr0, y*zr0, z0])))
+            v.append( m @ Vector((x*zr0, y*zr0, z0)))
 
         for i in range(0, lats+1):
             lat0 = math.pi * (-0.5 + float(i / lats))
             z0  = math.sin(lat0) * radius
             zr0 =  math.cos(lat0) * radius
          
-            v.append(Vector(transform_utils.transform_points( m, [-x*zr0, -y*zr0, z0])))   
+            v.append( m @ Vector((-x*zr0, -y*zr0, z0)))
 
     for i in range(0, lats+1):
         lat0 = math.pi * (-0.5 + float(i / lats))
@@ -515,7 +515,7 @@ def make_sphere(m):
             x = math.cos(lng)
             y = math.sin(lng)
             
-            v.append(Vector(transform_utils.transform_points( m, [x*zr0, y*zr0, z0])))
+            v.append( m @ Vector((x*zr0, y*zr0, z0)))
 
     return v
 
@@ -531,7 +531,7 @@ def draw_rect_light(ob):
 
     box = []
     for pt in s_rmanLightLogo['box']:
-        box.append( Vector(transform_utils.transform_points( m, pt)))
+        box.append( m @ Vector(pt))
 
     box_indices = _get_indices(s_rmanLightLogo['box'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": box}, indices=box_indices)    
@@ -539,7 +539,7 @@ def draw_rect_light(ob):
 
     arrow = []
     for pt in s_rmanLightLogo['arrow']:
-        arrow.append( Vector(transform_utils.transform_points( m, pt)))   
+        arrow.append( m @ Vector(pt))  
 
     arrow_indices = _get_indices(s_rmanLightLogo['arrow'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": arrow}, indices=arrow_indices)    
@@ -547,7 +547,7 @@ def draw_rect_light(ob):
 
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
-        R_outside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_outside.append( m @ Vector(pt))
 
     R_outside_indices = _get_indices(s_rmanLightLogo['R_outside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_outside}, indices=R_outside_indices)    
@@ -555,7 +555,7 @@ def draw_rect_light(ob):
   
     R_inside = []
     for pt in s_rmanLightLogo['R_inside']:
-        R_inside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_inside.append( m @ Vector(pt))
 
     R_inside_indices = _get_indices(s_rmanLightLogo['R_inside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_inside}, indices=R_inside_indices)    
@@ -574,7 +574,7 @@ def draw_sphere_light(ob):
 
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
-        R_outside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_outside.append( m @ Vector(pt))
 
     R_outside_indices = _get_indices(s_rmanLightLogo['R_outside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_outside}, indices=R_outside_indices)    
@@ -582,7 +582,7 @@ def draw_sphere_light(ob):
   
     R_inside = []
     for pt in s_rmanLightLogo['R_inside']:
-        R_inside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_inside.append( m @ Vector(pt))
 
     R_inside_indices = _get_indices(s_rmanLightLogo['R_inside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_inside}, indices=R_inside_indices)    
@@ -619,7 +619,7 @@ def draw_envday_light(ob):
 
     west_rr_shape = []
     for pt in s_envday['west_rr_shape']:
-        west_rr_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        west_rr_shape.append( m @ Vector(pt))
 
     west_rr_indices = _get_indices(s_envday['west_rr_shape'])
 
@@ -628,7 +628,7 @@ def draw_envday_light(ob):
 
     east_rr_shape = []
     for pt in s_envday['east_rr_shape']:
-        east_rr_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        east_rr_shape.append( m @ Vector(pt)) 
 
     east_rr_indices = _get_indices(s_envday['east_rr_shape'])
 
@@ -637,7 +637,7 @@ def draw_envday_light(ob):
 
     south_rr_shape = []
     for pt in s_envday['south_rr_shape']:
-        south_rr_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        south_rr_shape.append( m @ Vector(pt))
 
     south_rr_indices = _get_indices(s_envday['south_rr_shape'])
 
@@ -646,7 +646,7 @@ def draw_envday_light(ob):
 
     north_rr_shape = []
     for pt in s_envday['north_rr_shape']:
-        north_rr_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        north_rr_shape.append( m @ Vector(pt) )
 
     north_rr_indices = _get_indices(s_envday['north_rr_shape'])
 
@@ -655,7 +655,7 @@ def draw_envday_light(ob):
 
     inner_circle_rr_shape = []
     for pt in s_envday['inner_circle_rr_shape']:
-        inner_circle_rr_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        inner_circle_rr_shape.append( m @ Vector(pt) )
 
     inner_circle_rr_shape_indices = _get_indices(s_envday['inner_circle_rr_shape'])
 
@@ -664,7 +664,7 @@ def draw_envday_light(ob):
 
     outer_circle_rr_shape = []
     for pt in s_envday['outer_circle_rr_shape']:
-        outer_circle_rr_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        outer_circle_rr_shape.append( m @ Vector(pt) )
 
     outer_circle_rr_shape_indices = _get_indices(s_envday['outer_circle_rr_shape'])
 
@@ -673,7 +673,7 @@ def draw_envday_light(ob):
 
     compass_shape = []
     for pt in s_envday['compass_shape']:
-        compass_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        compass_shape.append( m @ Vector(pt))
 
     compass_shape_indices = _get_indices(s_envday['compass_shape'])
 
@@ -682,7 +682,7 @@ def draw_envday_light(ob):
 
     east_arrow_shape = []
     for pt in s_envday['east_arrow_shape']:
-        east_arrow_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        east_arrow_shape.append( m @ Vector(pt))
 
     east_arrow_shape_indices = _get_indices(s_envday['east_arrow_shape'])
 
@@ -691,7 +691,7 @@ def draw_envday_light(ob):
 
     west_arrow_shape = []
     for pt in s_envday['west_arrow_shape']:
-        west_arrow_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        west_arrow_shape.append( m @ Vector(pt) )
 
     west_arrow_shape_indices = _get_indices(s_envday['west_arrow_shape'])
 
@@ -700,7 +700,7 @@ def draw_envday_light(ob):
 
     north_arrow_shape = []
     for pt in s_envday['north_arrow_shape']:
-        north_arrow_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        north_arrow_shape.append( m @ Vector(pt))
 
     north_arrow_shape_indices = _get_indices(s_envday['north_arrow_shape'])
 
@@ -709,7 +709,7 @@ def draw_envday_light(ob):
 
     south_arrow_shape = []
     for pt in s_envday['south_arrow_shape']:
-        south_arrow_shape.append( Vector(transform_utils.transform_points( m, pt)))
+        south_arrow_shape.append( m @ Vector(pt))
 
     south_arrow_shape_indices = _get_indices(s_envday['south_arrow_shape'])
 
@@ -736,7 +736,7 @@ def draw_envday_light(ob):
 
     sphere_shape = []
     for pt in sphere:
-        sphere_shape.append(Vector(transform_utils.transform_points( translate, pt)))
+        sphere_shape.append( translate @ Vector(pt) )
  
 
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": sphere_shape}, indices=sphere_indices)    
@@ -757,7 +757,7 @@ def draw_disk_light(ob):
 
     disk = []
     for pt in s_diskLight:
-        disk.append( Vector(transform_utils.transform_points( m, pt)))
+        disk.append( m @ Vector(pt))
 
     disk_indices = _get_indices(s_diskLight)
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
@@ -765,7 +765,7 @@ def draw_disk_light(ob):
 
     arrow = []
     for pt in s_rmanLightLogo['arrow']:
-        arrow.append( Vector(transform_utils.transform_points( m, pt)))   
+        arrow.append( m @ Vector(pt)) 
 
     arrow_indices = _get_indices(s_rmanLightLogo['arrow'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": arrow}, indices=arrow_indices)    
@@ -773,7 +773,7 @@ def draw_disk_light(ob):
 
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
-        R_outside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_outside.append( m @ Vector(pt)) 
 
     R_outside_indices = _get_indices(s_rmanLightLogo['R_outside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_outside}, indices=R_outside_indices)    
@@ -781,7 +781,7 @@ def draw_disk_light(ob):
   
     R_inside = []
     for pt in s_rmanLightLogo['R_inside']:
-        R_inside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_inside.append( m @ Vector(pt))
 
     R_inside_indices = _get_indices(s_rmanLightLogo['R_inside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_inside}, indices=R_inside_indices)    
@@ -801,7 +801,7 @@ def draw_dist_light(ob):
 
     disk = []
     for pt in s_diskLight:
-        disk.append( Vector(transform_utils.transform_points( m, pt)))
+        disk.append( m @ Vector(pt) )
 
     disk_indices = _get_indices(s_diskLight)
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
@@ -809,7 +809,7 @@ def draw_dist_light(ob):
 
     arrow1 = []
     for pt in s_distantLight['arrow1']:
-        arrow1.append( Vector(transform_utils.transform_points( m, pt)))   
+        arrow1.append( m @ Vector(pt) )
 
     arrow1_indices = _get_indices(s_distantLight['arrow1'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": arrow1}, indices=arrow1_indices)    
@@ -817,7 +817,7 @@ def draw_dist_light(ob):
 
     arrow2 = []
     for pt in s_distantLight['arrow2']:
-        arrow2.append( Vector(transform_utils.transform_points( m, pt)))   
+        arrow2.append( m @ Vector(pt)) 
 
     arrow2_indices = _get_indices(s_distantLight['arrow2'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": arrow2}, indices=arrow2_indices)    
@@ -825,7 +825,7 @@ def draw_dist_light(ob):
 
     arrow3 = []
     for pt in s_distantLight['arrow3']:
-        arrow3.append( Vector(transform_utils.transform_points( m, pt)))   
+        arrow3.append( m @ Vector(pt) )
 
     arrow3_indices = _get_indices(s_distantLight['arrow3'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": arrow3}, indices=arrow3_indices)    
@@ -833,7 +833,7 @@ def draw_dist_light(ob):
 
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
-        R_outside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_outside.append( m @ Vector(pt) )
 
     R_outside_indices = _get_indices(s_rmanLightLogo['R_outside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_outside}, indices=R_outside_indices)    
@@ -841,7 +841,7 @@ def draw_dist_light(ob):
   
     R_inside = []
     for pt in s_rmanLightLogo['R_inside']:
-        R_inside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_inside.append( m @ Vector(pt) ) 
 
     R_inside_indices = _get_indices(s_rmanLightLogo['R_inside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_inside}, indices=R_inside_indices)    
@@ -859,7 +859,7 @@ def draw_portal_light(ob):
 
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
-        R_outside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_outside.append( m @ Vector(pt) )
 
     R_outside_indices = _get_indices(s_rmanLightLogo['R_outside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_outside}, indices=R_outside_indices)    
@@ -867,7 +867,7 @@ def draw_portal_light(ob):
   
     R_inside = []
     for pt in s_rmanLightLogo['R_inside']:
-        R_inside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_inside.append( m @ Vector(pt))
 
     R_inside_indices = _get_indices(s_rmanLightLogo['R_inside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_inside}, indices=R_inside_indices)    
@@ -878,7 +878,7 @@ def draw_portal_light(ob):
     m = m @ Matrix.Scale(0.5, 4)
     rays = []
     for pt in s_portalRays:
-        rays.append( Vector(transform_utils.transform_points( m, pt)))   
+        rays.append( m @ Vector(pt) )
 
     rays_indices = _get_indices(s_portalRays)
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": rays}, indices=rays_indices)    
@@ -899,7 +899,7 @@ def draw_dome_light(ob):
 
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
-        R_outside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_outside.append( m @ Vector(pt))
 
     R_outside_indices = _get_indices(s_rmanLightLogo['R_outside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_outside}, indices=R_outside_indices)    
@@ -907,7 +907,7 @@ def draw_dome_light(ob):
   
     R_inside = []
     for pt in s_rmanLightLogo['R_inside']:
-        R_inside.append( Vector(transform_utils.transform_points( m, pt)))
+        R_inside.append( m @ Vector(pt) )
 
     R_inside_indices = _get_indices(s_rmanLightLogo['R_inside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_inside}, indices=R_inside_indices)    
@@ -935,7 +935,7 @@ def draw_cylinder_light(ob):
 
     cylinder = []
     for pt in s_cylinderLight['vtx']:
-        cylinder.append( Vector(transform_utils.transform_points( m, pt)))
+        cylinder.append( m @ Vector(pt)) 
 
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": cylinder}, indices=s_cylinderLight['indices'])    
     batch.draw(_SHADER_)  
@@ -978,7 +978,7 @@ def draw_rounded_rectangles( left, right,
     translate = m #Matrix.Translation( Vector([0,0, zOffset1])) @ m
     shape_pts = []
     for pt in pts:
-        shape_pts.append( Vector(transform_utils.transform_points( translate, pt)))
+        shape_pts.append( translate @ Vector(pt)) 
     shape_pts_indices = _get_indices(shape_pts)
 
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": shape_pts}, indices=shape_pts_indices)    
@@ -987,7 +987,7 @@ def draw_rounded_rectangles( left, right,
     shape_pts = []
     translate = m #Matrix.Translation( Vector([0,0, zOffset2])) @ m
     for pt in pts:
-        shape_pts.append( Vector(transform_utils.transform_points( translate, pt)))
+        shape_pts.append( translate @ Vector(pt) )
     shape_pts_indices = _get_indices(shape_pts)
 
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": shape_pts}, indices=shape_pts_indices)    
@@ -1142,7 +1142,7 @@ def draw_ramp_light_filter(ob):
 
         disk = []
         for pt in s_diskLight:
-            disk.append( Vector(transform_utils.transform_points( begin_m, pt)))
+            disk.append( begin_m @ Vector(pt) ) 
 
         disk_indices = _get_indices(s_diskLight)
         batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
@@ -1151,7 +1151,7 @@ def draw_ramp_light_filter(ob):
         m2 = begin_m @ Matrix.Rotation(math.radians(90.0), 4, 'Y')
         disk = []
         for pt in s_diskLight:
-            disk.append( Vector(transform_utils.transform_points( m2, pt)))
+            disk.append( m2 @ Vector(pt)) 
 
         disk_indices = _get_indices(s_diskLight)
         batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
@@ -1160,7 +1160,7 @@ def draw_ramp_light_filter(ob):
         m3 = begin_m @ Matrix.Rotation(math.radians(90.0), 4, 'X')
         disk = []
         for pt in s_diskLight:
-            disk.append( Vector(transform_utils.transform_points( m3, pt)))
+            disk.append( m3 @ Vector(pt))
 
         disk_indices = _get_indices(s_diskLight)
         batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
@@ -1171,7 +1171,7 @@ def draw_ramp_light_filter(ob):
 
         disk = []
         for pt in s_diskLight:
-            disk.append( Vector(transform_utils.transform_points( end_m, pt)))
+            disk.append( end_m @ Vector(pt)) 
 
         disk_indices = _get_indices(s_diskLight)
         batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
@@ -1180,7 +1180,7 @@ def draw_ramp_light_filter(ob):
         m2 = end_m @ Matrix.Rotation(math.radians(90.0), 4, 'Y')
         disk = []
         for pt in s_diskLight:
-            disk.append( Vector(transform_utils.transform_points( m2, pt)))
+            disk.append( m2 @ Vector(pt))
 
         disk_indices = _get_indices(s_diskLight)
         batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
@@ -1189,7 +1189,7 @@ def draw_ramp_light_filter(ob):
         m3 = end_m @ Matrix.Rotation(math.radians(90.0), 4, 'X')
         disk = []
         for pt in s_diskLight:
-            disk.append( Vector(transform_utils.transform_points( m3, pt)))
+            disk.append( m3 @ Vector(pt))
 
         disk_indices = _get_indices(s_diskLight)
         batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
@@ -1205,7 +1205,7 @@ def draw_ramp_light_filter(ob):
 
         box = []
         for pt in s_rmanLightLogo['box']:
-            box.append( Vector(transform_utils.transform_points( m, pt)))        
+            box.append( m @ Vector(pt)) 
         n = mathutils.geometry.normal(box)
         n.normalize()
         box1 = []
@@ -1242,7 +1242,7 @@ def draw_ramp_light_filter(ob):
 
             disk = []
             for pt in s_diskLight:
-                disk.append( Vector(transform_utils.transform_points( m1, pt)))
+                disk.append( m1 @ Vector(pt) )
 
             disk_indices = _get_indices(s_diskLight)
             batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
@@ -1253,7 +1253,7 @@ def draw_ramp_light_filter(ob):
 
         disk = []
         for pt in s_diskLight:
-            disk.append( Vector(transform_utils.transform_points( m2, pt)))
+            disk.append( m2 @ Vector(pt)) 
 
         disk_indices = _get_indices(s_diskLight)
         batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
@@ -1281,7 +1281,7 @@ def draw_barn_light_filter(ob):
 
     pts = []
     for pt in vtx_buffer:
-        pts.append( Vector(transform_utils.transform_points( m, pt)))
+        pts.append( m @ Vector(pt))
 
     indices = _BARN_LIGHT_DRAW_HELPER_.idx_buffer(len(pt), 0, 0)
     # blender wants a list of lists
