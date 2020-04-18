@@ -164,6 +164,34 @@ class NODE_MT_renderman_connection_menu(Menu):
                     op.node_name = n.name
                     break
 
+    def draw_patterns_all_menu(self, context):
+        layout = self.layout
+        nt = context.nodetree
+        node = context.node
+        socket = context.socket
+        prop_name = socket.name
+        icons = load_icons()
+  
+        for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'].items():
+            tokens = pattern_cat.split('_')
+            pattern_category = ' '.join(tokens[1:])
+
+            layout.context_pointer_set("node", node)
+            layout.context_pointer_set("nodetree", nt)
+            layout.context_pointer_set('socket', socket)
+            layout.menu('NODE_MT_renderman_connection_submenu_%s' % pattern_cat, text=pattern_category.capitalize())       
+
+        layout.separator()
+        layout.label(text='__EXISTING__')
+        for n in nt.nodes:
+            if socket.is_linked and socket.links[0].from_node == n:
+                continue
+            if n == node:
+                continue
+            op = layout.operator('node.rman_shading_connect_existing_node', text='_%s_' % n.name)
+
+
+
     def draw(self, context):
         layout = self.layout
         icons = load_icons()
@@ -193,7 +221,10 @@ class NODE_MT_renderman_connection_menu(Menu):
                                 'RendermanIntegratorsOutputNode']:
             self.draw_output_node_menu(context)
         else:
-            self.draw_patterns_menu(context)
+            if hasattr(node, 'prop_meta'):
+                self.draw_patterns_menu(context)
+            else:
+                self.draw_patterns_all_menu(context)
 
 classes = [
     NODE_MT_renderman_connection_menu
@@ -236,16 +267,19 @@ def register_renderman_pattern_node_submenus():
 
     global classes
 
-    def draw(self, context):
+    def draw_rman(self, context):
         layout = self.layout  
         nt = context.nodetree
         node = context.node
         socket = context.socket
         prop_name = socket.name
         prop = getattr(node, prop_name, None)
-        prop_meta = node.prop_meta[prop_name]
-        renderman_type = prop_meta.get('renderman_type', 'pattern')
-        renderman_type = prop_meta.get('renderman_array_type', renderman_type)
+        if hasattr(node, 'prop_meta'):
+            prop_meta = node.prop_meta[prop_name]
+            renderman_type = prop_meta.get('renderman_type', 'pattern')
+            renderman_type = prop_meta.get('renderman_array_type', renderman_type)
+        else:
+            renderman_type = 'pattern'
         icons = load_icons()
       
         for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'].items():
@@ -259,7 +293,7 @@ def register_renderman_pattern_node_submenus():
                     vstruct = getattr(node_desc_param, 'vstruct', None)
                     if vstruct:               
                         break
-                    if node_desc_param.type == renderman_type:
+                    if renderman_type == 'pattern' or node_desc_param.type == renderman_type:
                         rman_icon = icons.get('out_%s.png' % n.name, None)
                         label = n.name
                         if n.path.endswith('.oso'):
@@ -281,7 +315,7 @@ def register_renderman_pattern_node_submenus():
         ntype.bl_idname = typename
         if "__annotations__" not in ntype.__dict__:
             setattr(ntype, "__annotations__", {})        
-        ntype.draw = draw
+        ntype.draw = draw_rman
         classes.append(ntype)
 
 def register_submenus():

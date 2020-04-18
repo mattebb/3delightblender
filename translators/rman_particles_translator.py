@@ -110,11 +110,10 @@ class RmanParticlesTranslator(RmanTranslator):
     def update(self, ob, psys, rman_sg_particles):
         rman_sg_particles.render_type = psys.settings.render_type
 
-        
-        for c in [ rman_sg_particles.sg_node.GetChild(i) for i in range(0, rman_sg_particles.sg_node.GetNumChildren())]:
-            rman_sg_particles.sg_node.RemoveChild(c)
-            self.rman_scene.sg_scene.DeleteDagNode(c)
-        
+        if rman_sg_particles.sg_node:        
+            for c in [ rman_sg_particles.sg_node.GetChild(i) for i in range(0, rman_sg_particles.sg_node.GetNumChildren())]:
+                rman_sg_particles.sg_node.RemoveChild(c)
+                self.rman_scene.sg_scene.DeleteDagNode(c)        
 
         if rman_sg_particles.render_type != 'OBJECT':
             self.update_points(ob, psys, rman_sg_particles)

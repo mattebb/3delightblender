@@ -537,6 +537,7 @@ class RmanScene(object):
         rman_group_translator = self.rman_translators['GROUP']
         parent_sg_node = None
         rman_sg_particles = None
+        psys = None
         if ob_inst.is_instance:
             parent = ob_inst.parent
             ob = ob_inst.instance_object
@@ -623,7 +624,10 @@ class RmanScene(object):
                 translator.export_object_attributes(ob, rman_sg_group.sg_node)  
 
             # attach material
-            self.attach_material(ob, rman_sg_group.sg_node)
+            if psys:
+                self.attach_particle_material(psys, ob, rman_sg_group.sg_node)
+            else:
+                self.attach_material(ob, rman_sg_group.sg_node)
 
             # add this instance to rman_sg_node
             rman_sg_node.instances[group_db_name] = rman_sg_group         
@@ -656,23 +660,14 @@ class RmanScene(object):
                 group.SetMaterial(rman_sg_material.sg_node) 
                 group.is_meshlight = rman_sg_material.has_meshlight       
 
-    def attach_particle_material(self, psys, ob, inst_ob, group):
-        if psys.settings.renderman.use_object_material:
-            for mat in object_utils._get_used_materials_(inst_ob): 
-                if not mat:
-                    continue
-                mat_db_name = object_utils.get_db_name(mat)
-                rman_sg_material = self.rman_materials.get(mat.original, None)
-                if rman_sg_material and rman_sg_material.sg_node:
-                    group.SetMaterial(rman_sg_material.sg_node) 
-        else:
-            mat_idx = psys.settings.material - 1
-            if mat_idx < len(ob.material_slots):
-                mat = ob.material_slots[mat_idx].material
-                mat_db_name = object_utils.get_db_name(mat)
-                rman_sg_material = self.rman_materials.get(mat.original, None)
-                if rman_sg_material:
-                    group.SetMaterial(rman_sg_material.sg_node)                    
+    def attach_particle_material(self, psys, ob, group):
+        mat_idx = psys.settings.material - 1
+        if mat_idx < len(ob.material_slots):
+            mat = ob.material_slots[mat_idx].material
+            mat_db_name = object_utils.get_db_name(mat)
+            rman_sg_material = self.rman_materials.get(mat.original, None)
+            if rman_sg_material:
+                group.SetMaterial(rman_sg_material.sg_node)                    
 
     def export_instances_motion(self, obj_selected=None):
         actual_subframes = []

@@ -367,18 +367,25 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 split = layout.split(factor=NODE_LAYOUT_SPLIT)
                 row = split.row()
                 indented_label(row, None, level)
+
+                label = input.name                
+                rman_icon = icons.get('out_%s.png' % input_node.bl_label, None )
+                if not rman_icon:
+                    rman_icon = icons.get('out_unknown.png')   
                 row.prop(input, "show_expanded", icon=icon, text='',
-                         icon_only=True, emboss=False)
-                row.label(text=input.name + ':')
-                split.operator_menu_enum("node.add_pattern", "node_type",
-                                         text=input_node.bl_label, icon="LAYER_USED")
+                         icon_only=True, emboss=False)                                   
+                row.label(text=label + ' (%s):' % input_node.name)
+                row.context_pointer_set("socket", input)
+                row.context_pointer_set("node", node)
+                row.context_pointer_set("nodetree", nt)
+                row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)           
 
                 if input.show_expanded:
                     draw_node_properties_recursive(layout, context, nt,
                                                    input_node, level=level + 1)
 
             else:
-                row = layout.row(align=True)
+                row = layout.row(align=True)              
                 indented_label(row, None, level)
                 # indented_label(row, socket.name+':')
                 # don't draw prop for struct type
@@ -387,8 +394,12 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 else:
                     row.prop(input, 'default_value',
                              slider=True, text=input.name)
-                row.operator_menu_enum("node.add_pattern", "node_type",
-                                       text='', icon="LAYER_USED")
+
+                row.context_pointer_set("socket", input)
+                row.context_pointer_set("node", node)
+                row.context_pointer_set("nodetree", nt)
+                row.menu('NODE_MT_renderman_connection_menu', text='', icon='NODE_MATERIAL')
+
     else:
         draw_props(node.prop_names, layout, level)
     layout.separator()
