@@ -230,6 +230,8 @@ class RmanMeshTranslator(RmanTranslator):
         mesh = input_mesh
         if not mesh:
             mesh = ob.to_mesh()
+            if not mesh:
+                return True
 
         rman_sg_mesh.is_subdiv = object_utils.is_subdmesh(ob)
         get_normals = (rman_sg_mesh.is_subdiv == 0 and not ob.data.renderman.rman_smoothnormals)
@@ -291,9 +293,10 @@ class RmanMeshTranslator(RmanTranslator):
 
                 mat = ob.data.materials[mat_id]
                 mat_handle = object_utils.get_db_name(mat) 
-                sg_material = None
-                if mat_handle in self.rman_scene.rman_materials:
-                    sg_material = self.rman_scene.rman_materials[mat_handle]
+                #sg_material = None
+                #if mat_handle in self.rman_scene.rman_materials:
+                #   sg_material = self.rman_scene.rman_materials[mat_handle]
+                sg_material = self.rman_scene.rman_materials.get(mat.original, None)
 
                 if mat_id == 0:
                     primvar.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_shade_faceset, faces, len(faces))

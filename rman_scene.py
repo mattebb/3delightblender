@@ -65,9 +65,7 @@ class RmanScene(object):
         motion_steps (set) - the full set of motion steps for the scene, including 
                             overrides from individual objects
         main_camera (RmanSgCamera) - pointer to the main scene camera
-        current_ob (list) - current selected objects
-        current_ob_db_name (list) - unique datablock names for current selected
-                                    objects
+
     '''
 
     def __init__(self, rman_render=None):
@@ -89,8 +87,6 @@ class RmanScene(object):
         self.is_swatch_render = False
         self.scene_solo_light = False
         self.scene_any_lights = False
-        self.current_ob = []
-        self.current_ob_db_name = []
 
         self.rman_materials = dict()
         self.rman_objects = dict()
@@ -99,7 +95,8 @@ class RmanScene(object):
         self.rman_cameras = dict()
         self.obj_hash = dict() 
         self.moving_objects = dict()
-        self.processed_obs = dict()
+        #self.processed_obs = dict()
+        self.processed_obs = []
 
         self.motion_steps = set()
         self.main_camera = None
@@ -148,7 +145,10 @@ class RmanScene(object):
         self.obj_hash = dict() 
         self.motion_steps = set()       
         self.moving_objects = dict()
-        self.processed_obs = dict()
+        
+        #self.processed_obs = dict()
+        self.processed_obs = []
+
         self.current_ob = []
         self.current_ob_db_name = []    
         self.render_default_light = False
@@ -418,8 +418,8 @@ class RmanScene(object):
         for mat in materials:   
             db_name = object_utils.get_db_name(mat)        
             rman_sg_material = self.rman_translators['MATERIAL'].export(mat, db_name)
-            if rman_sg_material:                
-                self.rman_materials[db_name] = rman_sg_material         
+            if rman_sg_material:                       
+                self.rman_materials[mat.original] = rman_sg_material
             
     def export_data_blocks(self, data_blocks):
         for obj in data_blocks:
@@ -457,13 +457,16 @@ class RmanScene(object):
                 return
 
             rman_sg_node = None
-            if db_name in self.rman_objects:
+            #if db_name in self.rman_objects:
+            #    return
+            if ob.original in self.rman_objects:
                 return
+
             rman_sg_node = translator.export(ob, db_name)
             if not rman_sg_node:
                 return
             rman_sg_node.rman_type = rman_type
-            self.rman_objects[db_name] = rman_sg_node 
+            self.rman_objects[ob.original] = rman_sg_node
 
             if rman_type in ['MESH', 'POINTS']:
                 # Deal with any particles now. Particles are children to mesh nodes.
@@ -540,86 +543,65 @@ class RmanScene(object):
             psys = ob_inst.particle_system
             if psys:
                 particles_db_name = object_utils.get_db_name(parent, psys=psys)
-                rman_sg_particles = self.rman_particles[particles_db_name]
+                rman_sg_particles = self.rman_particles.get(particles_db_name, None)
             else:                
                 #if parent.type == "EMPTY" and parent.is_instancer:
                 if parent.is_instancer:
                     parent_db_name = object_utils.get_db_name(parent)
-                    parent_sg_node = self.rman_objects.get(parent_db_name, None)
+                    parent_sg_node = self.rman_objects.get(parent.original, None)
                     if not parent_sg_node:
                         parent_sg_node = rman_group_translator.export(parent, parent_db_name)
-                        self.rman_objects[parent_db_name] = parent_sg_node    
+                        self.rman_objects[parent.original] = parent_sg_node
 
         else:
             ob = ob_inst.object 
          
         if ob.type in ('ARMATURE', 'CURVE', 'CAMERA'):
-            return                          
+            return                         
 
         rman_type = object_utils._detect_primitive_(ob)
         if rman_type == 'LIGHTFILTER':
+            # light filters are part of lights, so when light instances
+            # are exported, light filterrs should go along with them
             return
-        elif rman_sg_particles:
-            db_name = object_utils.get_db_name(ob, rman_type=rman_type)          
-            if db_name == '':
-                return
 
-            rman_sg_node = self.rman_objects.get(db_name, None)           
+        elif ob.type == "EMPTY" and ob.is_instancer:    
+            rman_sg_node = self.rman_objects.get(ob.original, None)
             if not rman_sg_node:
-                return
-
-            rman_sg_group = rman_group_translator.export(ob, group_db_name)
-            rman_sg_group.sg_node.AddChild(rman_sg_node.sg_node)
-            rman_group_translator.update_transform(ob_inst, rman_sg_group)
-
-            psys_translator = self.rman_translators[psys.settings.type] 
-            self.attach_particle_material(psys, parent, ob, rman_sg_group.sg_node)       
-            psys_translator.add_object_instance(rman_sg_particles, rman_sg_group.sg_node)  
-
-            # object attrs             
-            psys_translator.export_object_attributes(ob, rman_sg_group.sg_node)                         
-      
-            self.rman_objects[group_db_name] = rman_sg_group
-            rman_sg_node.instances[group_db_name] = rman_sg_group
-
-        elif ob.type == "EMPTY" and ob.is_instancer:
-            empty_db_name = object_utils.get_db_name(ob)
-            rman_sg_node = self.rman_objects.get(empty_db_name, None)
-            if not rman_sg_node:
+                empty_db_name = object_utils.get_db_name(ob)
                 rman_sg_node = rman_group_translator.export(ob, empty_db_name)
-                self.rman_objects[empty_db_name] = rman_sg_node    
+                self.rman_objects[ob.original] = rman_sg_node
         else:
-            db_name = object_utils.get_db_name(ob, rman_type=rman_type)          
-            if db_name == '':
-                return
 
             if rman_type == "META":
                 # only add the meta instance that matches the family name
                 if ob.name_full != object_utils.get_meta_family(ob):
                     return
-
-            rman_sg_node = self.rman_objects.get(db_name, None)           
+        
+            rman_sg_node = self.rman_objects.get(ob.original, None)           
             if not rman_sg_node:
                 return
+
             if group_db_name in rman_sg_node.instances:
                 # we've already added this instance
                 return
 
             translator = self.rman_translators.get(rman_type, None)
             if translator:
-                if db_name not in self.processed_obs:
+                if not ob.original in self.processed_obs:
                     translator.update(ob, rman_sg_node)
                     translator.export_object_primvars(ob, rman_sg_node.sg_node)
-                    self.processed_obs[db_name] = ob
+                    self.processed_obs.append(ob.original)
 
             rman_sg_group = rman_group_translator.export(ob, group_db_name)
             if ob.is_instancer and ob.instance_type != 'NONE':
                 rman_sg_group.is_instancer = ob.is_instancer
             if rman_sg_node.sg_node is None:
                 # add the group to the root anyways
+                db_name = object_utils.get_db_name(ob, rman_type=rman_type)
                 rman_sg_group.db_name = db_name
                 self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
-                self.rman_objects[db_name] = rman_sg_group
+                self.rman_objects[ob.original] = rman_sg_group
                 return
 
             rman_sg_group.sg_node.AddChild(rman_sg_node.sg_node)
@@ -635,19 +617,15 @@ class RmanScene(object):
                     rman_group_translator.update_transform(ob_inst, rman_sg_group)
 
             self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
-            self.rman_objects[group_db_name] = rman_sg_group
 
             # object attrs             
             if translator:
                 translator.export_object_attributes(ob, rman_sg_group.sg_node)  
 
+            # attach material
             self.attach_material(ob, rman_sg_group.sg_node)
 
-            # add instance to the RmanSgNode
-            if parent_sg_node:
-                parent_sg_node.instances[group_db_name] = rman_sg_group 
-                rman_sg_group.rman_sg_group_parent = parent_sg_node
-
+            # add this instance to rman_sg_node
             rman_sg_node.instances[group_db_name] = rman_sg_group         
 
     def export_instances(self, obj_selected=None):
@@ -673,7 +651,7 @@ class RmanScene(object):
             if not mat:
                 continue
             mat_db_name = object_utils.get_db_name(mat)
-            rman_sg_material = self.rman_materials.get(mat_db_name, None)
+            rman_sg_material = self.rman_materials.get(mat.original, None)
             if rman_sg_material and rman_sg_material.sg_node:
                 group.SetMaterial(rman_sg_material.sg_node) 
                 group.is_meshlight = rman_sg_material.has_meshlight       
@@ -684,7 +662,7 @@ class RmanScene(object):
                 if not mat:
                     continue
                 mat_db_name = object_utils.get_db_name(mat)
-                rman_sg_material = self.rman_materials.get(mat_db_name, None)
+                rman_sg_material = self.rman_materials.get(mat.original, None)
                 if rman_sg_material and rman_sg_material.sg_node:
                     group.SetMaterial(rman_sg_material.sg_node) 
         else:
@@ -692,7 +670,7 @@ class RmanScene(object):
             if mat_idx < len(ob.material_slots):
                 mat = ob.material_slots[mat_idx].material
                 mat_db_name = object_utils.get_db_name(mat)
-                rman_sg_material = self.rman_materials.get(mat_db_name, None)
+                rman_sg_material = self.rman_materials.get(mat.original, None)
                 if rman_sg_material:
                     group.SetMaterial(rman_sg_material.sg_node)                    
 
@@ -777,7 +755,8 @@ class RmanScene(object):
                 if ob.name_full not in self.moving_objects:
                     continue
 
-                rman_sg_node = self.rman_objects.get(db_name, None)
+                #rman_sg_node = self.rman_objects.get(db_name, None)
+                rman_sg_node = self.rman_objects.get(ob.original, None)
                 if not rman_sg_node:
                     continue
                 
@@ -980,10 +959,11 @@ class RmanScene(object):
             self.sg_scene.Root().AddChild(self.main_camera.sg_node)
 
             # add camera so we don't mistake it for a new obj
-            db_name = object_utils.get_db_name(main_cam)
-            self.rman_cameras[db_name] = self.main_camera
-            self.rman_objects[db_name] = self.main_camera  
-            self.processed_obs[db_name] = self.main_camera          
+            self.rman_cameras[main_cam.original] = self.main_camera
+            
+            self.rman_objects[main_cam.original] = self.main_camera
+      
+            self.processed_obs.append(main_cam.original)
         else:
             for cam in bl_cameras:
                 db_name = object_utils.get_db_name(cam)
@@ -992,8 +972,11 @@ class RmanScene(object):
                     self.main_camera = rman_sg_camera 
                     if self.main_camera.is_transforming:
                         self.motion_steps.update(self.main_camera.motion_steps)             
-                self.rman_cameras[db_name] = rman_sg_camera
-                self.rman_objects[db_name] = rman_sg_camera
+
+                self.rman_cameras[cam.original] = rman_sg_camera
+                
+                self.rman_objects[cam.original] = rman_sg_camera
+                
                 self.sg_scene.Root().AddChild(rman_sg_camera.sg_node)
 
         # For now, make the main camera the 'primary' dicing camera
@@ -1152,9 +1135,9 @@ class RmanScene(object):
                 display = self.rman.SGManager.RixSGShader("Display", "null", dspy_file_name)                
                 channels = ','.join(channels)
                 display.params.SetString("mode", channels)
-                cam_dspys = cams_to_dspys.get(self.main_camera.db_name, list())
+                cam_dspys = cams_to_dspys.get(self.main_camera, list())
                 cam_dspys.append(display)
-                cams_to_dspys[self.main_camera.db_name] = cam_dspys                
+                cams_to_dspys[self.main_camera] = cam_dspys                
 
             else:
                 for chan in channels:
@@ -1188,27 +1171,28 @@ class RmanScene(object):
                         
                     camera = dspy_params['camera']
                     if camera is None:
-                        cam_dspys = cams_to_dspys.get(self.main_camera.db_name, list())
+                        cam_dspys = cams_to_dspys.get(self.main_camera, list())
                         cam_dspys.append(display)
-                        cams_to_dspys[self.main_camera.db_name] = cam_dspys
+                        cams_to_dspys[self.main_camera] = cam_dspys
                     else:
-                        db_name = object_utils.get_db_name(camera)
-                        if db_name not in self.rman_cameras:
-                            cam_dspys = cams_to_dspys.get(self.main_camera.db_name, list())
+                        #db_name = object_utils.get_db_name(camera)
+                        if camera not in self.rman_cameras:
+                            cam_dspys = cams_to_dspys.get(self.main_camera, list())
                             cam_dspys.append(display)
-                            cams_to_dspys[self.main_camera.db_name] = cam_dspys
+                            cams_to_dspys[self.main_camera] = cam_dspys
                         else:
-                            cam_dspys = cams_to_dspys.get(db_name, list())
+                            cam_sg_node = self.rman_cameras.get(camera)
+                            cam_dspys = cams_to_dspys.get(cam_sg_node, list())
                             cam_dspys.append(display)
-                            cams_to_dspys[db_name] = cam_dspys
+                            cams_to_dspys[cam_sg_node] = cam_dspys
 
-        for db_name,cam_dspys in cams_to_dspys.items():
-            cam = self.rman_cameras.get(db_name, None)
-            if not cam:
+        for cam_sg_node,cam_dspys in cams_to_dspys.items():
+            #cam = self.rman_cameras.get(db_name, None)
+            if not cam_sg_node:
                 continue
-            if cam != self.main_camera:
-                cam.sg_node.SetRenderable(2)
-            cam.sg_node.SetDisplay(cam_dspys)
+            if cam_sg_node != self.main_camera:
+                cam_sg_node.sg_node.SetRenderable(2)
+            cam_sg_node.sg_node.SetDisplay(cam_dspys)
 
         self.sg_scene.SetDisplayChannel(displaychannels)          
 
@@ -1274,27 +1258,28 @@ class RmanScene(object):
                 
             camera = dspy_params['camera']
             if camera is None:
-                cam_dspys = cams_to_dspys.get(self.main_camera.db_name, list())
+                cam_dspys = cams_to_dspys.get(self.main_camera, list())
                 cam_dspys.append(display)
-                cams_to_dspys[self.main_camera.db_name] = cam_dspys
+                cams_to_dspys[self.main_camera] = cam_dspys
             else:
-                db_name = object_utils.get_db_name(camera)
-                if db_name not in self.rman_cameras:
-                    cam_dspys = cams_to_dspys.get(self.main_camera.db_name, list())
+                #db_name = object_utils.get_db_name(camera)
+                if camera not in self.rman_cameras:
+                    cam_dspys = cams_to_dspys.get(self.main_camera, list())
                     cam_dspys.append(display)
-                    cams_to_dspys[self.main_camera.db_name] = cam_dspys
+                    cams_to_dspys[self.main_camera] = cam_dspys
                 else:
-                    cam_dspys = cams_to_dspys.get(db_name, list())
+                    cam_sg_node = self.rman_cameras.get(camera)
+                    cam_dspys = cams_to_dspys.get(cam_sg_node, list())
                     cam_dspys.append(display)
-                    cams_to_dspys[db_name] = cam_dspys
+                    cams_to_dspys[cam_sg_node] = cam_dspys
 
-        for db_name,cam_dspys in cams_to_dspys.items():
-            cam = self.rman_cameras.get(db_name, None)
-            if not cam:
+        for cam_sg_node,cam_dspys in cams_to_dspys.items():
+            #cam = self.rman_cameras.get(db_name, None)
+            if not cam_sg_node:
                 continue
-            if cam != self.main_camera:
-                cam.sg_node.SetRenderable(2)
-            cam.sg_node.SetDisplay(cam_dspys)
+            if cam_sg_node != self.main_camera:
+                cam_sg_node.sg_node.SetRenderable(2)
+            cam_sg_node.sg_node.SetDisplay(cam_dspys)
 
         self.sg_scene.SetDisplayChannel(displaychannels)  
 
@@ -1338,14 +1323,14 @@ class RmanScene(object):
             with self.rman.SGManager.ScopedEdit(self.sg_scene):  
                 for mat in bpy.data.materials:   
                     db_name = object_utils.get_db_name(mat)  
-                    rman_sg_material = self.rman_materials.get(db_name, None)
+                    rman_sg_material = self.rman_materials.get(mat.original, None)
                     if rman_sg_material and rman_sg_material.is_frame_sensitive:
                         material_translator.update(mat, rman_sg_material)
 
                 for o in bpy.data.objects:
                     if o.type == 'LIGHT':                                
                         obj_key = object_utils.get_db_name(o, rman_type='LIGHT') 
-                        rman_sg_node = self.rman_objects[obj_key]
+                        rman_sg_node = self.rman_objects[o.original]
                         if rman_sg_node.is_frame_sensitive:
                             light_translator.update(o, rman_sg_node)   
 
@@ -1356,17 +1341,14 @@ class RmanScene(object):
                 if ob_inst.is_instance:
                     ob = ob_inst.instance_object
                     group_db_name =  object_utils.get_group_db_name(ob_inst)
-                    psys = ob_inst.particle_system 
                 else:
                     ob = ob_inst.object
                     group_db_name =  object_utils.get_group_db_name(ob_inst)
-                rman_type = object_utils._detect_primitive_(ob)
-                obj_db_name = object_utils.get_db_name(ob, rman_type=rman_type)
-                rman_sg_node = self.rman_objects.get(obj_db_name, None)
-                if ob.type in ('ARMATURE', 'CURVE', 'CAMERA'):
-                    continue
                 if not hasattr(ob.data, 'materials'):
-                    continue
+                    continue   
+                if ob.type in ('ARMATURE', 'CURVE', 'CAMERA'):
+                    continue                                 
+                rman_sg_node = self.rman_objects.get(ob.original, None)
                 if rman_sg_node:
                     found = False
                     for name, material in ob.data.materials.items():
@@ -1377,241 +1359,87 @@ class RmanScene(object):
                         rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
                         if rman_sg_group:
                             rman_sg_node.instances.pop(group_db_name)
-                            self.rman_objects.pop(group_db_name)
                             self.sg_scene.DeleteDagNode(rman_sg_group.sg_node)
                             self._export_instance(ob_inst)                     
 
     def _material_updated(self, obj):
         mat = obj.id
         db_name = object_utils.get_db_name(mat)
-        rman_sg_material = self.rman_materials.get(db_name, None)
+        rman_sg_material = self.rman_materials.get(mat.original, None)
         translator = self.rman_translators["MATERIAL"]
         with self.rman.SGManager.ScopedEdit(self.sg_scene):   
             mat = obj.id              
             if not rman_sg_material:
                 rman_sg_material = translator.export(mat, db_name)
-                self.rman_materials[db_name] = rman_sg_material
+                self.rman_materials[mat.original] = rman_sg_material
+                
                 # Not sure of a better method to do this.
                 # There doesn't seem to be an API call to know what objects in the scene
                 # have this specific material, so we loop thru all objs
-                for ob_inst in self.depsgraph.object_instances:
-                    psys = None
-                    if ob_inst.is_instance:
-                        ob = ob_inst.instance_object
-                        group_db_name =  object_utils.get_group_db_name(ob_inst)
-                        psys = ob_inst.particle_system 
-                    else:
-                        ob = ob_inst.object
-                        group_db_name =  object_utils.get_group_db_name(ob_inst) 
-                    rman_type = object_utils._detect_primitive_(ob)
-                    obj_db_name = object_utils.get_db_name(ob, rman_type=rman_type)
-                    rman_sg_node = self.rman_objects.get(obj_db_name, None)
+                #
+                # we're assuming all instances of the object have the same material
+                # if they don't, we would have to loop over depsgraph.object_instances
 
+                for ob in bpy.data.objects:
+                    rman_sg_node = self.rman_objects.get(ob.original, None)
                     if rman_sg_node:
                         for m in object_utils._get_used_materials_(ob):
                             if m == mat:
-                                rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
-                                if rman_sg_group:
+                                for k,rman_sg_group in rman_sg_node.instannces.items():
+                                    # we're dealing with a mesh light.
                                     if rman_sg_material.has_meshlight != rman_sg_group.is_meshlight:
                                         rman_sg_node.instances.pop(group_db_name)
-                                        self.rman_objects.pop(group_db_name)
                                         self.sg_scene.DeleteDagNode(rman_sg_group.sg_node)
                                         self._export_instance(ob_inst)
                                     else:
-                                        rman_sg_group.sg_node.SetMaterial(rman_sg_material.sg_node)
-
+                                        rman_sg_group.sg_node.SetMaterial(rman_sg_material.sg_node)  
             else:
                 translator.update(mat, rman_sg_material)   
+
+    def _light_filter_transform_updated(self, obj):
+        ob = obj.id
+        rman_sg_lightfilter = self.rman_objects.get(ob.original, None)
+        if rman_sg_lightfilter:
+            rman_group_translator = self.rman_translators['GROUP']  
+            with self.rman.SGManager.ScopedEdit(self.sg_scene):              
+                rman_group_translator.update_transform(ob, rman_sg_lightfilter)
+
     
-    def _object_transform_updated(self, obj):
-        ob = obj.id         
-        rman_type = object_utils._detect_primitive_(ob)
-        db_name = object_utils.get_db_name(ob, rman_type=rman_type) 
-        rman_group_translator = self.rman_translators['GROUP']  
-        rman_sg_node = self.rman_objects.get(db_name, None)
-        rm = ob.renderman
-
-        with self.rman.SGManager.ScopedEdit(self.sg_scene):                
-            if rman_type == 'LIGHTFILTER':
-                group_db_name = object_utils.get_group_db_name(ob)
-                rman_sg_group = self.rman_objects.get(group_db_name, None)                
-                rman_group_translator.update_transform(ob, rman_sg_group)
-
-            elif obj.id.is_instancer:
-                for ob_inst in self.depsgraph.object_instances:           
-                    if ob_inst.is_instance and ob_inst.parent == ob:     
-                        group_db_name = object_utils.get_group_db_name(ob_inst)
-                        rman_sg_group = self.rman_objects.get(group_db_name, None)
-                        if rman_sg_group:
-                            rman_group_translator.update_transform(ob_inst, rman_sg_group)
-                        else:
-                            self._export_instance(ob_inst)
-            else:
-                if rman_type == "META":
-                    self.rman_translators['META'].update(ob, rman_sg_node)
-                elif rman_type == "CAMERA" and not self.is_viewport_render:                    
-                    self.rman_translators['CAMERA'].update_transform(ob, rman_sg_node) 
-                else:                       
-                    for k,rman_sg_group in rman_sg_node.instances.items():     
-                        for ob_inst in self.depsgraph.object_instances: 
-                            group_db_name = object_utils.get_group_db_name(ob_inst)
-                            if group_db_name == k:
-                                rman_group_translator.update_transform(ob_inst, rman_sg_group)
-                                break
-
-    def _instancer_updated(self, ob):
-        existing_instances = []
-        parent_sg_node = None
-        rman_group_translator = self.rman_translators['GROUP']
-        rman_type = object_utils._detect_primitive_(ob)
-        db_name = object_utils.get_db_name(ob, rman_type=rman_type) 
-        instancer_sg_node = self.rman_objects[db_name]        
-        if ob.is_instancer:
-            for ob_inst in self.depsgraph.object_instances:                                
-                if not ob_inst.is_instance and ob_inst.parent != ob:
-                    continue
-
-                group_db_name = object_utils.get_group_db_name(ob_inst)
-                rman_sg_group = instancer_sg_node.instances.get(group_db_name, None)
-                if not rman_sg_group:
-                    self._export_instance(ob_inst)
-                else:
-                    rman_group_translator.update_transform(ob_inst, rman_sg_group) 
-                
-                existing_instances.append(group_db_name)
-                
-            for k in [key for key in instancer_sg_node.instances.keys() if key not in existing_instances]:
-                rman_sg_group = instancer_sg_node.instances.pop(k, None)
-                if rman_sg_group:
-                    self.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
-                    self.rman_objects.pop(k, None)
-                    if rman_sg_group.rman_sg_node_instance:
-                        rman_sg_group.rman_sg_node_instance.instances.pop(k, None)
-        else:
-            for k in [key for key in instancer_sg_node.instances.keys()]:
-                v = instancer_sg_node.instances[k]
-                self.get_root_sg_node().RemoveChild(v.sg_node)
-                if v.rman_sg_node_instance:
-                    v.rman_sg_node_instance.instances.pop(k, None)
-            instancer_sg_node.instances.clear()
-
     def _obj_geometry_updated(self, obj):
         ob = obj.id
         rman_type = object_utils._detect_primitive_(ob)
         db_name = object_utils.get_db_name(ob, rman_type=rman_type) 
-        rman_sg_node = self.rman_objects[db_name]
-            
-        with self.rman.SGManager.ScopedEdit(self.sg_scene):
-            if obj.id.is_instancer or (rman_sg_node.is_instancer and not obj.id.is_instancer):
-                if obj.id.is_instancer and obj.id.instance_type != 'NONE':
-                    rman_sg_node.is_instancer = obj.id.is_instancer
-                    self._instancer_updated(obj.id)
-                else:
-                    if rman_sg_node.is_instancer:
-                        rman_sg_node.is_instancer = obj.id.is_instancer
-                        self._instancer_updated(obj.id)
+        rman_sg_node = self.rman_objects.get(ob.original, None)
 
-            if rman_type == 'LIGHTFILTER':
-                self.rman_translators['LIGHTFILTER'].update(ob, rman_sg_node)
-                for light_ob in [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
-                    light_key = object_utils.get_db_name(light_ob, rman_type='LIGHT')
-                    rman_sg_light = self.rman_objects[light_key]
-                    if rman_sg_light:
-                        self.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)
+        if rman_type in ['LIGHT', 'LIGHTFILTER', 'CAMERA']:
+            with self.rman.SGManager.ScopedEdit(self.sg_scene):
+                if rman_type == 'LIGHTFILTER':
+                    self.rman_translators['LIGHTFILTER'].update(ob, rman_sg_node)
+                    for light_ob in [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
+                        light_key = object_utils.get_db_name(light_ob, rman_type='LIGHT')
+                        rman_sg_light = self.rman_objects[light_ob.original]
+                        if rman_sg_light:
+                            self.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)
 
-            elif rman_type == 'LIGHT':
-                self.rman_translators['LIGHT'].update(ob, rman_sg_node)
-                                                    
-                if not self.scene_solo_light:
-                    # only set if a solo light hasn't been set
-                    rman_sg_node.sg_node.SetHidden(ob.data.renderman.mute)
-            elif rman_type == 'CAMERA':
-                rman_camera_translator = self.rman_translators['CAMERA']
-                if not self.is_viewport_render:
-                    rman_camera_translator.update(ob, rman_sg_node)
-            else:
+                elif rman_type == 'LIGHT':
+                    self.rman_translators['LIGHT'].update(ob, rman_sg_node)
+                                                        
+                    if not self.scene_solo_light:
+                        # only set if a solo light hasn't been set
+                        rman_sg_node.sg_node.SetHidden(ob.data.renderman.mute)
+                elif rman_type == 'CAMERA':
+                    rman_camera_translator = self.rman_translators['CAMERA']
+                    if not self.is_viewport_render:
+                        rman_camera_translator.update(ob, rman_sg_node)         
+
+        elif rman_type in ['MESH', 'POINTS']:
+            recreate_instances = []
+            with self.rman.SGManager.ScopedEdit(self.sg_scene):   
+                recreate_instances.append(ob)         
                 translator = self.rman_translators.get(rman_type, None)
                 if not translator:
                     return
                 translator.update(ob, rman_sg_node)
-                group_db_name = object_utils.get_group_db_name(ob)
-                # update attributes
-                for k,rman_sg_group in rman_sg_node.instances.items():
-                    translator.export_object_attributes(ob, rman_sg_group.sg_node)
-
-                for mat in object_utils._get_used_materials_(ob): 
-                    if not mat:
-                        continue
-                    mat_db_name = object_utils.get_db_name(mat)
-                    rman_sg_material = self.rman_materials.get(mat_db_name, None)
-                    rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
-                    if rman_sg_material and rman_sg_group:
-                        if rman_sg_group.is_meshlight != rman_sg_material.has_meshlight:
-                            self._mesh_light_update(mat)
-                        else:
-                            rman_sg_group.sg_node.SetMaterial(rman_sg_material.sg_node)
-
-                if rman_type in ['MESH', 'POINTS']:
-                    for psys in ob.particle_systems:
-                        psys_translator = self.rman_translators[psys.settings.type]
-                        if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
-                            hair_db_name = object_utils.get_db_name(ob, psys=psys)                                        
-                            rman_sg_hair_node = self.rman_particles.get(hair_db_name, None)
-                            if rman_sg_hair_node:
-                                psys_translator.update(ob, psys, rman_sg_hair_node) 
-                            else:
-                                rman_sg_hair_node = psys_translator.export(ob, psys, hair_db_name)
-                                rman_sg_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
-                                self.rman_particles[hair_db_name] = rman_sg_hair_node
-                        elif psys.settings.type == 'EMITTER':
-                            psys_db_name = object_utils.get_db_name(ob, psys=psys)
-                            rman_sg_particles_node = self.rman_particles.get(psys_db_name, None)
-                            if psys.settings.render_type != 'OBJECT':
-                                if not rman_sg_particles_node:
-                                    rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)
-                                    rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
-                                    self.rman_particles[psys_db_name] = rman_sg_particles_node 
-                                psys_translator.update(ob, psys, rman_sg_particles_node)
-
-                            elif psys.settings.render_type == 'OBJECT':
-                                
-                                if rman_sg_particles_node:
-                                    psys_translator.update(ob, psys, rman_sg_particles_node)          
-                                else:
-                                    rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)
-                                    self.sg_scene.Root().AddChild(rman_sg_particles_node.sg_node)                                     
-                                    self.rman_particles[psys_db_name] = rman_sg_particles_node                           
-
-                                inst_ob = psys.settings.instance_object 
-                                rman_group_translator = self.rman_translators['GROUP']
-
-                                # For object instances, we need to loop through the depsgraph instances
-                                
-                                for ob_inst in self.depsgraph.object_instances:                                
-                                    if ob_inst.is_instance and ob_inst.instance_object == inst_ob and ob_inst.particle_system == psys:   
-                                        db_name = object_utils.get_db_name(inst_ob, rman_type=rman_type)          
-                                        if db_name == '':
-                                            continue
-
-                                        
-                                        rman_sg_node = self.rman_objects.get(db_name, None)           
-                                        if not rman_sg_node:
-                                            continue
-                                        group_db_name = object_utils.get_group_db_name(ob_inst)
-
-                                        rman_sg_group = rman_group_translator.export(ob, group_db_name)
-                                        rman_sg_group.sg_node.AddChild(rman_sg_node.sg_node)
-                                        rman_group_translator.update_transform(ob_inst, rman_sg_group)
-                                        
-                                        psys_translator.add_object_instance(rman_sg_particles_node, rman_sg_group) 
-
-                                        self.rman_objects[group_db_name] = rman_sg_group
-                                        rman_sg_node.instances[group_db_name] = rman_sg_group
-
-                                psys_translator.export_object_attributes(ob, rman_sg_particles_node.sg_node)                                        
-                                self.attach_particle_material(psys, ob, inst_ob, rman_sg_particles_node.sg_node)             
-                                        
-                                
 
     def update_scene(self, context, depsgraph):
         new_objs = []
@@ -1619,42 +1447,25 @@ class RmanScene(object):
         self.depsgraph = depsgraph
         self.bl_scene = depsgraph.scene_eval
         do_delete = False
-        delete_obs = []
+        update_instances = []
+        updated_geo = []
+
+        def _check_empty(ob):
+            # check the objects in the collection
+            # if they need updating
+
+            collection = ob.instance_collection
+            if collection:
+                for col_obj in collection.all_objects:
+                    if col_obj.original not in self.rman_objects:
+                        new_objs.append(col_obj.original)
+                    update_instances.append(col_obj.original)            
+
         for obj in depsgraph.updates:
             ob = obj.id
 
             if isinstance(obj.id, bpy.types.Scene):
                 self._scene_updated()
-                # here, we check if an object got deleted
-                # by looking at the selected objects
-                selected_obs = context.selected_objects
-                if selected_obs:
-                    for o in selected_obs:
-                        rman_type = object_utils._detect_primitive_(o)
-                        db_name = object_utils.get_db_name(o, rman_type=rman_type)  
-                        self.current_ob.append(o.name_full)
-                        self.current_ob_db_name.append(db_name)
-                else:
-                    if self.current_ob:
-                        for i,cur_ob in enumerate(self.current_ob):
-                            if not self.depsgraph.objects.get(cur_ob):
-                                if not bpy.data.objects.get(cur_ob):
-                                    delete_obs.append(self.current_ob_db_name[i])
-                                    do_delete = True
-                    if not do_delete:
-                        self.current_ob = []
-                        self.current_ob_db_name = []
-
-                if self.render_default_light != self.bl_scene.renderman.render_default_light:
-                    self.render_default_light = self.bl_scene.renderman.render_default_light                    
-                    with self.rman.SGManager.ScopedEdit(self.sg_scene): 
-                        if self.render_default_light:   
-                            if not self.scene_any_lights and self.default_light.GetHidden():
-                                self.default_light.SetHidden(0)
-                                continue
-                        
-                        self.default_light.SetHidden(1)          
-                continue
 
             elif isinstance(obj.id, bpy.types.World):
                 with self.rman.SGManager.ScopedEdit(self.sg_scene): 
@@ -1674,28 +1485,38 @@ class RmanScene(object):
             elif isinstance(obj.id, bpy.types.Object):
 
                 rman_type = object_utils._detect_primitive_(ob)
-                db_name = object_utils.get_db_name(ob, rman_type=rman_type)                                
 
-                if db_name == "":
-                    continue
-
-                if db_name not in self.rman_objects:
+                if obj.id.original not in self.rman_objects:
                     rfb_log().debug("New object added: %s" % obj.id.name)
                     if ob.type == 'CAMERA' and not self.is_viewport_render:
-                        new_cams.append(obj.id)
+                        new_cams.append(obj.id.original)
                     else:
-                        new_objs.append(obj.id)
+                        if ob.type == 'EMPTY' and ob.is_instancer:
+                            _check_empty(ob)
+                        else:
+                            new_objs.append(obj.id.original)
+                            update_instances.append(obj.id.original)
                     continue
 
                 if obj.is_updated_geometry:
                     rfb_log().debug("Object updated: %s" % obj.id.name)
                     self._obj_geometry_updated(obj)                    
+                    updated_geo.append(obj.id.original)
                                           
                 if obj.is_updated_transform:
+                    if ob.type in ['CAMERA']:
+                        # we deal with camera transforms in view_draw
+                        continue
                     rfb_log().debug("Transform updated: %s" % obj.id.name)
-                    self._object_transform_updated(obj)
+                    if rman_type == 'LIGHTFILTER':
+                        self._light_filter_transform_updated(obj)
+                    else:
+                        if ob.type == 'EMPTY' and ob.is_instancer:
+                            _check_empty(ob)
+                        else:
+                            update_instances.append(obj.id.original)
 
-                rman_sg_node = self.rman_objects.get(db_name, None)
+                rman_sg_node = self.rman_objects.get(obj.id.original, None)
                 if rman_sg_node and rman_sg_node.sg_node:
                     # double check hidden value
                     # grab the object from bpy.data, because the depsgraph doesn't seem
@@ -1704,54 +1525,114 @@ class RmanScene(object):
                     with self.rman.SGManager.ScopedEdit(self.sg_scene): 
                         rman_sg_node.sg_node.SetHidden(ob_data.hide_get())
 
-        # there are new objects
+            elif isinstance(obj.id, bpy.types.Collection):
+                rfb_log().debug("Collection updated")
+                do_delete = True
+
+        # if object was marked as updated geometry, updated any attached particle systems
+        # if the particle system is an instancer, we mark the instanced object as needing
+        # its instances updated
+        for ob in updated_geo:
+            rman_type = object_utils._detect_primitive_(ob)
+            if rman_type not in ['MESH', 'POINTS']:
+                continue
+            with self.rman.SGManager.ScopedEdit(self.sg_scene):
+                for psys in ob.particle_systems:
+                    psys_translator = self.rman_translators[psys.settings.type]
+                    if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
+                        hair_db_name = object_utils.get_db_name(ob, psys=psys)                                        
+                        rman_sg_hair_node = self.rman_particles.get(hair_db_name, None)
+                        if rman_sg_hair_node:
+                            psys_translator.update(ob, psys, rman_sg_hair_node) 
+                        else:
+                            rman_sg_hair_node = psys_translator.export(ob, psys, hair_db_name)
+                            rman_sg_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
+                            self.rman_particles[hair_db_name] = rman_sg_hair_node
+                    elif psys.settings.type == 'EMITTER':
+                        psys_db_name = object_utils.get_db_name(ob, psys=psys)
+                        rman_sg_particles_node = self.rman_particles.get(psys_db_name, None)
+                        if psys.settings.render_type != 'OBJECT':
+                            if not rman_sg_particles_node:
+                                rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)
+                                rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
+                                self.rman_particles[psys_db_name] = rman_sg_particles_node 
+                            psys_translator.update(ob, psys, rman_sg_particles_node)
+                        elif psys.settings.render_type == 'OBJECT':
+                            inst_ob = psys.settings.instance_object 
+                            update_instances.append(inst_ob.original)
+
+        # add new objs:
         if new_objs:
             with self.rman.SGManager.ScopedEdit(self.sg_scene): 
                 rfb_log().debug("Adding new objects:")
                 self.export_data_blocks(new_objs)
-                for new_obj in new_objs:
-                    for ob_inst in self.depsgraph.object_instances:
-                        if ob_inst and ob_inst.instance_object == new_obj:
-                            self._export_instance(ob_inst)
-                        elif ob_inst.object == new_obj:
-                            self._export_instance(ob_inst)
 
                 self.scene_any_lights = self._scene_has_lights()
                 if self.scene_any_lights:
-                    self.default_light.SetHidden(1)
+                    self.default_light.SetHidden(1)        
 
-        # new cameras
-        if new_cams and not self.is_viewport_render:
-            with self.rman.SGManager.ScopedEdit(self.sg_scene): 
-                rfb_log().debug("Adding new cameras:")
-                self.export_cameras(new_cams)         
+        # update instances
+        with self.rman.SGManager.ScopedEdit(self.sg_scene):
+            # delete all instances for each object in the
+            # update_instances list
+            # even if it's a simple a transform, we still have to delete all
+            # the instances as this could be coming from a particle system where
+            # some instances aren't there any more
+            for ob in update_instances:
+                rfb_log().debug("Deleting instances of: %s" % ob.name)
+                rman_sg_node = self.rman_objects.get(ob, None) 
+                if rman_sg_node:
+                    for k,rman_sg_group in rman_sg_node.instances.items():
+                        self.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
+                    rman_sg_node.instances.clear()         
+            parent = None
+            for ob_inst in self.depsgraph.object_instances: 
+                if ob_inst.is_instance:
+                    ob = ob_inst.instance_object
+                    parent = ob_inst.parent
+                else:
+                    ob = ob_inst.object
+
+                if ob.original not in update_instances:
+                    continue
+
+                rfb_log().export("Re-emit instance: %s" % ob.name)
+                self._export_instance(ob_inst)
 
         # delete any objects, if necessary    
         if do_delete:
             rfb_log().debug("Deleting objects")
             with self.rman.SGManager.ScopedEdit(self.sg_scene):
-                for db_name in delete_obs:
-                    rman_sg_node = self.rman_objects.get(db_name, None)
-                    if not rman_sg_node:
-                        return
-                    for k,v in rman_sg_node.instances.items():
-                        if v.sg_node:
-                            self.sg_scene.DeleteDagNode(v.sg_node)                 
-                        self.rman_objects.pop(k)
-                    # For now, don't delete the geometry itself
-                    # there may be a collection instance still referencing the geo
-                    # self.sg_scene.DeleteDagNode(rman_sg_node.sg_node)
-                    self.rman_objects.pop(db_name)    
-                    self.processed_obs.pop(db_name)
+                keys = [k for k in self.rman_objects.keys()]
+                for obj in keys:
+                    try:
+                        ob = bpy.data.objects.get(obj.name_full, None)
+                        ob = bpy.data.lights.get(obj.name_full, ob)
+                        if ob:
+                            continue
+                    except:
+                        pass
+     
+                    rman_sg_node = self.rman_objects.get(obj, None)
+                    if rman_sg_node:                        
+                        for k,v in rman_sg_node.instances.items():
+                            if v.sg_node:
+                                self.sg_scene.DeleteDagNode(v.sg_node)    
+                        rman_sg_node.instances.clear()             
 
-                if self.render_default_light:
-                    self.scene_any_lights = self._scene_has_lights()     
-                    if not self.scene_any_lights:
-                        self.default_light.SetHidden(0)
+                        # For now, don't delete the geometry itself
+                        # there may be a collection instance still referencing the geo
 
-            self.current_ob = []
-            self.current_ob_db_name = []       
-        
+                        # self.sg_scene.DeleteDagNode(rman_sg_node.sg_node)                     
+                        del self.rman_objects[obj]
+                        self.processed_obs.remove(obj)
+
+
+                    if self.render_default_light:
+                        self.scene_any_lights = self._scene_has_lights()     
+                        if not self.scene_any_lights:
+                            self.default_light.SetHidden(0)
+
     def update_cropwindow(self, cropwindow=None):
         if cropwindow:
             with self.rman.SGManager.ScopedEdit(self.sg_scene): 
@@ -1780,8 +1661,7 @@ class RmanScene(object):
             self.export_viewport_stats()
  
     def update_material(self, mat):
-        db_name = object_utils.get_db_name(mat)
-        rman_sg_material = self.rman_materials.get(db_name, None)
+        rman_sg_material = self.rman_materials.get(mat.original, None)
         if not rman_sg_material:
             return
         translator = self.rman_translators["MATERIAL"]     
@@ -1795,8 +1675,7 @@ class RmanScene(object):
             self._mesh_light_update(mat)    
 
     def update_light(self, ob):
-        db_name = object_utils.get_db_name(ob)
-        rman_sg_light = self.rman_objects.get(db_name, None)
+        rman_sg_light = self.rman_objects.get(ob.original, None)
         if not rman_sg_light:
             return
         translator = self.rman_translators["LIGHT"]        
@@ -1811,8 +1690,7 @@ class RmanScene(object):
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
             
             for light_ob in [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
-                db_name = object_utils.get_db_name(light_ob, rman_type='LIGHT')
-                rman_sg_node = self.rman_objects.get(db_name, None)
+                rman_sg_node = self.rman_objects.get(light_ob.original, None)
                 if not rman_sg_node:
                     continue
                 if light_ob.data.renderman.solo:
@@ -1828,8 +1706,7 @@ class RmanScene(object):
                     
         with self.rman.SGManager.ScopedEdit(self.sg_scene):                                         
             for light_ob in [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
-                db_name = object_utils.get_db_name(light_ob, rman_type='LIGHT')
-                rman_sg_node = self.rman_objects.get(db_name, None)
+                rman_sg_node = self.rman_objects.get(light_ob.original, None)
                 if not rman_sg_node:
                     continue
                 rman_sg_node.sg_node.SetHidden(light_ob.data.renderman.mute)

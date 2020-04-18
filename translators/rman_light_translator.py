@@ -105,11 +105,12 @@ class RmanLightTranslator(RmanTranslator):
                 light_filter_sg = None
 
                 light_filter_db_name = object_utils.get_db_name(light_filter)
-                rman_sg_lightfilter = self.rman_scene.rman_objects.get(light_filter_db_name, None)
+                #rman_sg_lightfilter = self.rman_scene.rman_objects.get(light_filter_db_name, None)
+                rman_sg_lightfilter = self.rman_scene.rman_objects.get(light_filter.original)
                 if not rman_sg_lightfilter:
                     rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
                 lightfilter_translator.update(light_filter, rman_sg_lightfilter)
-                light_filters.append(rman_sg_lightfilter.sg_node)
+                light_filters.append(rman_sg_lightfilter.sg_filter_node)
 
         if len(light_filters) > 0:
             rman_sg_light.sg_node.SetLightFilter(light_filters)          

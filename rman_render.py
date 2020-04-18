@@ -465,10 +465,11 @@ class RmanRender(object):
             __DRAW_THREAD__.join()
             __DRAW_THREAD__ = None
 
-        rfb_log().debug("Telling SceneGraph to stop.")        
-        self.sg_scene.Stop()
-        rfb_log().debug("Delete Scenegraph scene")
-        self.sgmngr.DeleteScene(self.sg_scene)
+        rfb_log().debug("Telling SceneGraph to stop.")    
+        if self.sg_scene:    
+            self.sg_scene.Stop()
+            rfb_log().debug("Delete Scenegraph scene")
+            self.sgmngr.DeleteScene(self.sg_scene)
 
         self.rman_interactive_running = False
         self.rman_running = False     
