@@ -315,7 +315,8 @@ def class_generate_properties(node, parent_name, node_desc):
                 sub_prop_names.append(page_name)
                 prop_meta[page_name] = {'renderman_type': 'page'}
                 ui_label = "%s_uio" % page_name
-                node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=False)
+                dflt = node_desc_param.get('page_open', False)                
+                node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=dflt)
                 setattr(node, page_name, [])   
 
                 # If this a PxrSurface node, add an extra BoolProperty to control
@@ -343,7 +344,8 @@ def class_generate_properties(node, parent_name, node_desc):
                     if page_name not in prop_meta:
                         prop_meta[page_name] = {'renderman_type': 'page'}
                         ui_label = "%s_uio" % page_name
-                        node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=False)
+                        dflt = node_desc_param.get('page_open', False) 
+                        node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=dflt)
                         setattr(node, page_name, [])
                     
                     sub_prop_names = getattr(node, parent_page)
