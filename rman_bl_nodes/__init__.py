@@ -315,7 +315,7 @@ def class_generate_properties(node, parent_name, node_desc):
                 sub_prop_names.append(page_name)
                 prop_meta[page_name] = {'renderman_type': 'page'}
                 ui_label = "%s_uio" % page_name
-                dflt = node_desc_param.get('page_open', False)                
+                dflt = getattr(node_desc_param, 'page_open', False)                
                 node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=dflt)
                 setattr(node, page_name, [])   
 
@@ -344,7 +344,7 @@ def class_generate_properties(node, parent_name, node_desc):
                     if page_name not in prop_meta:
                         prop_meta[page_name] = {'renderman_type': 'page'}
                         ui_label = "%s_uio" % page_name
-                        dflt = node_desc_param.get('page_open', False) 
+                        dflt = getattr(node_desc_param, 'page_open', False) 
                         node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=dflt)
                         setattr(node, page_name, [])
                     
