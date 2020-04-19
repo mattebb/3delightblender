@@ -20,12 +20,16 @@ class RmanHairTranslator(RmanTranslator):
 
         return rman_sg_hair
 
-
-    def update(self, ob, psys, rman_sg_hair):
+    def clear_children(self, ob, psys, rman_sg_hair):
         if rman_sg_hair.sg_node:
             for c in [ rman_sg_hair.sg_node.GetChild(i) for i in range(0, rman_sg_hair.sg_node.GetNumChildren())]:
                 rman_sg_hair.sg_node.RemoveChild(c)
-                self.rman_scene.sg_scene.DeleteDagNode(c)
+                self.rman_scene.sg_scene.DeleteDagNode(c)        
+
+    def update(self, ob, psys, rman_sg_hair):
+        if rman_sg_hair.sg_node:
+            if rman_sg_hair.sg_node.GetNumChildren() > 0:
+                self.clear_children(ob, psys, rman_sg_hair)
 
         curves = self._get_strands_(ob, psys)
         if not curves:

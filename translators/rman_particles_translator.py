@@ -92,9 +92,7 @@ class RmanParticlesTranslator(RmanTranslator):
         if rman_sg_particles.render_type == 'OBJECT':
             return
 
-        return
-
-        sg_particles_node = rman_sg_particles.sg_node.GetChild(0)
+        sg_particles_node = rman_sg_particles.sg_particles_node
 
         rm = psys.settings.renderman
         inv_mtx = ob.matrix_world.inverted_safe()
@@ -108,13 +106,18 @@ class RmanParticlesTranslator(RmanTranslator):
 
         sg_particles_node.SetPrimVars(primvar)     
 
+    def clear_children(self, ob, psys, rman_sg_particles):
+        if rman_sg_particles.sg_node:        
+            for c in [ rman_sg_particles.sg_node.GetChild(i) for i in range(0, rman_sg_particles.sg_node.GetNumChildren())]:
+                rman_sg_particles.sg_node.RemoveChild(c)
+                self.rman_scene.sg_scene.DeleteDagNode(c)                
+
     def update(self, ob, psys, rman_sg_particles):
         rman_sg_particles.render_type = psys.settings.render_type
 
         if rman_sg_particles.sg_node:        
-            for c in [ rman_sg_particles.sg_node.GetChild(i) for i in range(0, rman_sg_particles.sg_node.GetNumChildren())]:
-                rman_sg_particles.sg_node.RemoveChild(c)
-                self.rman_scene.sg_scene.DeleteDagNode(c)        
+            if rman_sg_particles.sg_node.GetNumChildren() > 0:
+                self.clear_children(ob, psys, rman_sg_particles)    
 
         if rman_sg_particles.render_type != 'OBJECT':
             self.update_points(ob, psys, rman_sg_particles)
@@ -140,18 +143,16 @@ class RmanParticlesTranslator(RmanTranslator):
 
         primvar = sg_particles_node.GetPrimVars()
         primvar.Clear()
-        
-        # FIXME: currently GetPrimVars in export_deform above will fail
-        # uncomment this when it is fixed in prman
-        '''
+            
         if rman_sg_particles.motion_steps:
             primvar.SetTimes(rman_sg_particles.motion_steps)
-        '''
+        
         
         self.get_primvars_particle(primvar,  psys, [self.rman_scene.bl_scene.frame_current], 0)      
         
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")                   
         if rm.constant_width:
+            width = rm.width
             primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_constantwidth, width, "constant")
         else:
             primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, width, "vertex")                     
@@ -167,3 +168,4 @@ class RmanParticlesTranslator(RmanTranslator):
                 sg_particles_node.SetMaterial(rman_sg_material.sg_node)          
 
         rman_sg_particles.sg_node.AddChild(sg_particles_node)
+        rman_sg_particles.sg_particles_node = sg_particles_node
