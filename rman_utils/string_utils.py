@@ -155,6 +155,8 @@ def get_var(nm):
 
 @persistent
 def update_blender_tokens_cb(bl_scene):
+    if bpy.context.engine != 'PRMAN_RENDER':
+        return    
     global __SCENE_STRING_CONVERTER__
     converter_validity_check()
     __SCENE_STRING_CONVERTER__.update()

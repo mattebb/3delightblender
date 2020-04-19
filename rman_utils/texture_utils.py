@@ -203,6 +203,8 @@ def parse_for_textures(bl_scene):
 
 @persistent
 def parse_for_textures_load_cb(bl_scene):
+    if bpy.context.engine != 'PRMAN_RENDER':
+        return    
     bpy.ops.rman_txmgr_list.parse_scene('EXEC_DEFAULT')
 
 def txmake_all(blocking=True):
