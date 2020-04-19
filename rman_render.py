@@ -470,6 +470,7 @@ class RmanRender(object):
             self.sg_scene.Stop()
             rfb_log().debug("Delete Scenegraph scene")
             self.sgmngr.DeleteScene(self.sg_scene)
+            self.bl_engine.update_progress(100.0)
 
         self.rman_interactive_running = False
         self.rman_running = False     

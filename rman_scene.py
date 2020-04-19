@@ -422,10 +422,13 @@ class RmanScene(object):
                 self.rman_materials[mat.original] = rman_sg_material
             
     def export_data_blocks(self, data_blocks):
-        for obj in data_blocks:
+        total = len(data_blocks)
+        for i, obj in enumerate(data_blocks):
             if obj.type not in ('ARMATURE', 'CURVE', 'CAMERA'):
                 ob = obj.evaluated_get(self.depsgraph)           
                 self.export_data_block(ob) 
+            rfb_log().debug("   Exported %d/%d data blocks..." % (i, total))
+            self.rman_render.bl_engine.update_progress(i/total)
 
     def export_data_block(self, db_ob):
         obj = bpy.data.objects.get(db_ob.name, None)
@@ -634,7 +637,8 @@ class RmanScene(object):
 
     def export_instances(self, obj_selected=None):
         objFound = False
-        for ob_inst in self.depsgraph.object_instances:
+        total = len(self.depsgraph.object_instances)
+        for i, ob_inst in enumerate(self.depsgraph.object_instances):
             if obj_selected:
                 if objFound:
                     break
@@ -648,7 +652,11 @@ class RmanScene(object):
                 if not objFound:
                     continue
 
+            if not ob_inst.show_self:
+                continue
+
             self._export_instance(ob_inst)  
+            self.rman_render.bl_engine.update_progress(i/total)
 
     def attach_material(self, ob, group):
         for mat in object_utils._get_used_materials_(ob): 
@@ -711,9 +719,13 @@ class RmanScene(object):
                     if not objFound:
                         continue       
 
+                if not ob_inst.show_self:
+                    continue                    
+
                 if first_sample:
                     # for the first motion sample use _export_instance()
                     self._export_instance(ob_inst, seg=seg)  
+                    self.rman_render.bl_engine.update_progress(i/total)
                     continue  
 
                 rman_group_translator = self.rman_translators['GROUP']
@@ -722,35 +734,14 @@ class RmanScene(object):
                 else:
                     ob = ob_inst.object
 
-                group_db_name = object_utils.get_group_db_name(ob_inst)          
-
-                if ob.type not in ['MESH']:
-                    continue
-
-                rman_type = object_utils._detect_primitive_(ob)
-                db_name = object_utils.get_db_name(ob, rman_type=rman_type)              
-                if db_name == '':
-                    continue
-
-                # deal with particles first
-                for psys in ob.particle_systems:
-                    psys_translator = self.rman_translators[psys.settings.type]
-                    psys_db_name = object_utils.get_db_name(ob, psys=psys)
-                    rman_psys_node = self.rman_particles.get(psys_db_name, None)
-                    if not rman_psys_node:
-                        continue
-                    if not seg in rman_psys_node.motion_steps:
-                        continue
-                    if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
-                        # for now, we won't deal with deforming hair
-                        continue
-                    elif psys.settings.type == 'EMITTER' and psys.settings.render_type != 'OBJECT':
-                        psys_translator.export_deform_sample(rman_psys_node, ob, psys, samp)                  
-
                 if ob.name_full not in self.moving_objects:
                     continue
 
-                #rman_sg_node = self.rman_objects.get(db_name, None)
+                if ob.type not in ['MESH']:
+                    continue                
+
+                group_db_name = object_utils.get_group_db_name(ob_inst)          
+
                 rman_sg_node = self.rman_objects.get(ob.original, None)
                 if not rman_sg_node:
                     continue
@@ -764,10 +755,30 @@ class RmanScene(object):
                         rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps ) # should have been set in _export_instances()                       
                         rman_group_translator.update_transform_sample( ob_inst, rman_sg_group, samp, seg)
 
+                self.rman_render.bl_engine.update_progress(i/total)
+
+            for ob_original,rman_sg_node in self.rman_objects.items():
+                ob = ob_original.evaluated_get(self.depsgraph)
+                for psys in ob.particle_systems:
+                    psys_translator = self.rman_translators[psys.settings.type]
+                    psys_db_name = object_utils.get_db_name(ob, psys=psys)
+                    rman_psys_node = self.rman_particles.get(psys_db_name, None)
+                    if not rman_psys_node:
+                        continue
+                    if not seg in rman_psys_node.motion_steps:
+                        continue
+                    if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
+                        # for now, we won't deal with deforming hair
+                        continue
+                    elif psys.settings.type == 'EMITTER' and psys.settings.render_type != 'OBJECT':
+                        psys_translator.export_deform_sample(rman_psys_node, ob, psys, samp) 
+
                 if rman_sg_node.is_deforming:
-                    translator = self.rman_translators.get(rman_type, None)
-                    if translator:
-                        translator.export_deform_sample(rman_sg_node, ob, samp)                     
+                    rman_type = rman_sg_node.rman_type
+                    if rman_type == 'MESH':
+                        translator = self.rman_translators.get(rman_type, None)
+                        if translator:
+                            translator.export_deform_sample(rman_sg_node, ob, samp)                     
 
         self.rman_render.bl_engine.frame_set(origframe, subframe=0)  
 
