@@ -16,6 +16,12 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
     bl_label = "World"
     shader_type = 'world'
 
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        world = context.scene.world
+        return rd.engine == 'PRMAN_RENDER' and not world.renderman.use_renderman_node    
+
     def draw(self, context):
         layout = self.layout
         world = context.scene.world
@@ -23,9 +29,7 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         if not world.renderman.use_renderman_node:
             layout.prop(world, 'color')
             layout.operator('shading.add_renderman_nodetree').idtype = 'world'
-        #else:
-        #    layout.prop(world, 'color')
-
+        
 class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):
     bl_label = "Integrator"
     bl_context = 'world'
@@ -47,7 +51,6 @@ class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):
 class DATA_PT_renderman_world_display_filters(ShaderPanel, Panel):
     bl_label = "Display Filters"
     bl_context = 'world'
-    bl_options = {'DEFAULT_CLOSED'}
 
     @classmethod
     def poll(cls, context):
