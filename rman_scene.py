@@ -1602,7 +1602,7 @@ class RmanScene(object):
                 if ob.original not in update_instances:
                     continue
 
-                rfb_log().export("Re-emit instance: %s" % ob.name)
+                rfb_log().debug("Re-emit instance: %s" % ob.name)
                 self._export_instance(ob_inst)
 
         # delete any objects, if necessary    
