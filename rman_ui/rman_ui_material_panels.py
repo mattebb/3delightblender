@@ -1,6 +1,7 @@
 from .rman_ui_base import _RManPanelHeader,ShaderPanel,ShaderNodePanel, CollectionPanel 
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 from ..rman_utils.draw_utils import _draw_props, panel_node_draw,draw_nodes_properties_ui
+from ..rman_utils import prefs_utils
 from ..icons.icons import load_icons
 import bpy
 from bpy.types import Panel
@@ -69,10 +70,11 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             col = row.column()
             col.operator(
                 'shading.add_renderman_nodetree').idtype = "material"
-            col = row.column()                
-            op = col.operator('shading.convert_cycles_shader').idtype = "material"
-            if not mat.grease_pencil:
-                layout.operator('shading.convert_cycles_stuff')
+            if prefs_utils.get_addon_prefs().rman_do_cycles_convert:
+                col = row.column()                
+                op = col.operator('shading.convert_cycles_shader').idtype = "material"
+                if not mat.grease_pencil:
+                    layout.operator('shading.convert_cycles_stuff')
 
 
 class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):

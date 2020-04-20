@@ -157,6 +157,13 @@ class RendermanPreferences(AddonPreferences):
         default=""
     )
 
+    rman_do_cycles_convert: BoolProperty(
+        name="Convert Cycles Nodes",
+        default=False,
+        description="Add convert Cycles Networks buttons to the material properties panel. N.B.: This isn't guaranteed to fully convert Cycles networks successfully. Also, because of differences in OSL implementations, converted networks may cause stability problems when rendering."
+
+    )
+
     presets_current_category: PointerProperty(
         type=RendermanPresetCategory,
     )
@@ -214,7 +221,8 @@ class RendermanPreferences(AddonPreferences):
         row.label(text='UI', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
-        col.prop(self, 'rman_do_preview_renders')     
+        col.prop(self, 'rman_do_preview_renders')  
+        col.prop(self, 'rman_do_cycles_convert')   
         col.prop(self, 'draw_ipr_text')
         col.prop(self, 'draw_panel_icon')
         col.prop(self, 'rman_editor')
