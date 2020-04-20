@@ -104,6 +104,8 @@ def build_output_param_str(mat_name, from_node, from_socket, convert_socket=Fals
     else:
         return "%s:%s" % (from_node_name, from_sock_name)
 
+# hack!!!
+current_group_node = None
 
 def get_output_param_str(node, mat_name, socket, to_socket=None, param_type=''):
     # if this is a node group, hook it up to the input node inside!
@@ -117,7 +119,8 @@ def get_output_param_str(node, mat_name, socket, to_socket=None, param_type=''):
         in_sock = group_output.inputs[socket.name]
         if len(in_sock.links):
             link = in_sock.links[0]
-            return build_output_param_str(mat_name + '_' + node.name, link.from_node, link.from_socket, shadergraph_utils.do_convert_socket(link.from_socket, to_socket), param_type)
+            #instance = string_utils.sanitize_node_name(mat_name + '_' + node.name)
+            return build_output_param_str(mat_name, link.from_node, link.from_socket, shadergraph_utils.do_convert_socket(link.from_socket, to_socket), param_type)
         else:
             return "error:error"
     if node.bl_idname == 'NodeGroupInput':
@@ -741,8 +744,9 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                         in_sock = group_output.inputs[from_socket.name]
                         if len(in_sock.links):
                             from_socket = in_sock.links[0].from_socket
-                            temp_mat_name = mat_name + '.' + from_socket.node.name
-
+                            #temp_mat_name = mat_name + '.' + from_socket.node.name
+                            temp_mat_name = mat_name
+                            
                     vstruct_from_param = "%s_%s" % (
                         from_socket.identifier, vstruct_member)
                     if vstruct_from_param in from_socket.node.output_meta:

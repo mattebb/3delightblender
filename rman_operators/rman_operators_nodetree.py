@@ -4,6 +4,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from .. import rman_cycles_convert
 from ..rman_utils import shadergraph_utils
 from .. import rman_bl_nodes
+import math
 
 class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
 
@@ -75,7 +76,7 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
             light.renderman.renderman_light_role = 'RMAN_LIGHT' 
 
             if light_type == 'SPOT':
-                node = context.light.renderman.get_light_node()
+                node = light.renderman.get_light_node()
                 node.coneAngle = math.degrees(light.spot_size)
                 node.coneSoftness = light.spot_blend                    
 

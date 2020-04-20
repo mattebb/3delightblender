@@ -23,6 +23,7 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 import bpy
+from .rman_utils import filepath_utils
 
 converted_nodes = {}
 report = None
@@ -65,7 +66,7 @@ def convert_cycles_node(nt, node, location=None):
         node2 = node.inputs[
             1 + i].links[0].from_node if node.inputs[1 + i].is_linked else None
 
-        mixer = nt.nodes.new('PxrLayerMixerPatternNode')
+        mixer = nt.nodes.new('PxrLayerMixerPatternOSLNode')
         if location:
             mixer.location = location
         # set the layer masks
@@ -82,7 +83,7 @@ def convert_cycles_node(nt, node, location=None):
         rman_name, convert_func = bsdf_map[node_type]
         if not convert_func:
             return None
-        node_name = 'PxrLayerPatternNode'
+        node_name = 'PxrLayerPatternOSLNode'
         rman_node = nt.nodes.new(node_name)
         rman_node.enableDiffuse = False
         rman_node.diffuseGain = 0
@@ -144,7 +145,8 @@ def convert_tex_image_node(nt, cycles_node, rman_node):
     if cycles_node.image:
         if cycles_node.image.packed_file:
             cycles_node.image.unpack()
-        setattr(rman_node, 'filename', cycles_node.image.filepath)
+        img_path = filepath_utils.get_real_path(cycles_node.image.filepath)
+        setattr(rman_node, 'filename', img_path)
 
     # can't link a vector to a manifold :(
     # if cycles_node.inputs['Vector'].is_linked:

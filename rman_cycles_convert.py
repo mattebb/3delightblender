@@ -4,7 +4,7 @@ from .rman_utils import shadergraph_utils
 
 _CYCLES_NODE_MAP_ = {
     'ShaderNodeAttribute': 'node_attribute',
-    'ShaderNodeBlackbody': 'node_checker_blackbody',
+    'ShaderNodeBlackbody': 'node_blackbody',
     'ShaderNodeTexBrick': 'node_brick_texture',
     'ShaderNodeBrightContrast': 'node_brightness',
     'ShaderNodeTexChecker': 'node_checker_texture',

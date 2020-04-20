@@ -9,7 +9,7 @@ from ..rman_utils import gpmaterial_utils
 from ..rfb_logger import rfb_log
 from ..rman_cycles_convert import _CYCLES_NODE_MAP_
 import math
-
+import re
 import bpy
 
 # hack!!!
@@ -33,16 +33,17 @@ class RmanMaterialTranslator(RmanTranslator):
         rm = mat.renderman
         succeed = False
 
+        handle = string_utils.sanitize_node_name(rman_sg_material.db_name)
         if mat.grease_pencil:
             if not mat.node_tree or not shadergraph_utils.is_renderman_nodetree(mat):
-                self.export_shader_grease_pencil(mat, rman_sg_material, handle=rman_sg_material.db_name )
+                self.export_shader_grease_pencil(mat, rman_sg_material, handle=handle)
                 return
 
         if mat.node_tree:
-            succeed = self.export_shader_nodetree(mat, rman_sg_material, handle=rman_sg_material.db_name)
+            succeed = self.export_shader_nodetree(mat, rman_sg_material, handle=handle)
 
         if not succeed:
-            succeed = self.export_simple_shader(mat, rman_sg_material, mat_handle=rman_sg_material.db_name)     
+            succeed = self.export_simple_shader(mat, rman_sg_material, mat_handle=handle)     
 
     def export_shader_grease_pencil(self, mat, rman_sg_material, handle):
         gp_mat = mat.grease_pencil
@@ -140,9 +141,9 @@ class RmanMaterialTranslator(RmanTranslator):
         # if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
         name = mat_handle
         if name == '':
-            name = 'material.%s' % mat.name_full
+            name = 'material_%s' % mat.name_full
 
-        bxdf_name = '%s.PxrDisney' % name
+        bxdf_name = '%s_PxrDisney' % name
         sg_node = self.rman_scene.rman.SGManager.RixSGShader("Bxdf", "PxrDisney", bxdf_name)
         rix_params = sg_node.params
         rix_params.SetColor('baseColor', string_utils.convert_val(mat.diffuse_color, 'color'))
@@ -170,7 +171,7 @@ class RmanMaterialTranslator(RmanTranslator):
         current_group_node = group_node
         sg_nodes = []
         for node in nodes_to_export:
-            sg_nodes += self.shader_node_sg(node, rman_sg_material, mat_name=(mat_name + '_' + group_node.name))
+            sg_nodes += self.shader_node_sg(node, rman_sg_material, mat_name=mat_name)
         current_group_node = None
         return sg_nodes        
 
@@ -229,7 +230,10 @@ class RmanMaterialTranslator(RmanTranslator):
 
             for i in range(ramp_size):
                 v = float(i) / (ramp_size - 1.0)
-                colors.extend([r.evaluate(v), g.evaluate(v), b.evaluate(v)])
+                r_val = node.mapping.evaluate(r, v) 
+                g_val = node.mapping.evaluate(r, v)
+                b_val = node.mapping.evaluate(r, v)
+                colors.extend([r_val, g_val, b_val])
 
             params.SetColorArray('ramp', colors, ramp_size)
 
@@ -243,9 +247,11 @@ class RmanMaterialTranslator(RmanTranslator):
 
             for i in range(ramp_size):
                 v = float(i) / (ramp_size - 1.0)
-                c_val = c.evaluate(v)
-                colors.extend([r.evaluate(v) * c_val, g.evaluate(v)
-                            * c_val, b.evaluate(v) * c_val])
+                c_val = node.mapping.evaluate(c, v)
+                r_val = node.mapping.evaluate(r, v) * c_val
+                g_val = node.mapping.evaluate(r, v) * c_val
+                b_val = node.mapping.evaluate(r, v) * c_val
+                colors.extend([r_val, g_val, b_val])
 
 
             params.SetColorArray('ramp', colors, ramp_size)
@@ -277,7 +283,7 @@ class RmanMaterialTranslator(RmanTranslator):
         elif not hasattr(node, 'renderman_node_type'):
             return self.translate_cycles_node(rman_sg_material, node, mat_name)
 
-        instance = mat_name + '_' + node.name
+        instance = string_utils.sanitize_node_name(mat_name + '_' + node.name)
 
         if not hasattr(node, 'renderman_node_type'):
             return

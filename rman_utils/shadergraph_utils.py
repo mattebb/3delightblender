@@ -1,5 +1,6 @@
 from . import color_utils
 from . import filepath_utils
+from . import string_utils
 import math
 
 def is_renderman_nodetree(material):
@@ -36,7 +37,8 @@ def get_socket_type(node, socket):
         return sock_type
 
 def get_node_name(node, mat_name):
-    return "%s_%s" % (mat_name, node.name.replace(' ', ''))
+    node_name = string_utils.sanitize_node_name('%s_%s' % (mat_name, node.name))
+    return node_name
 
 def linked_sockets(sockets):
     if sockets is None:

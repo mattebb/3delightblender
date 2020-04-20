@@ -17,6 +17,8 @@ EXT_MAP = {'it': 'it', 'openexr': 'exr',
             'ies': 'ies', 'ptex': 'ptex'
         }
 
+__NODE_NAME_REGEXP__ = r'\s+|\.+'        
+
 class SceneStringConverter(object):
     """Class maintaining an up-to-date StringExpression object.
     """
@@ -198,4 +200,8 @@ def getattr_recursive(ptr, attrstring):
     for attr in attrstring.split("."):
         ptr = getattr(ptr, attr)
 
-    return ptr        
+    return ptr    
+
+def sanitize_node_name(node):
+    global __NODE_NAME_REGEXP__
+    return re.sub(__NODE_NAME_REGEXP__, '_', node)
