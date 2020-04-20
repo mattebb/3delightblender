@@ -475,6 +475,7 @@ class RmanRender(object):
         self.rman_running = False     
         self.rman_swatch_render_running = False
         self.sg_scene = None
+        self.rman_scene.reset()
         rfb_log().debug("RenderMan has Stopped.")
                 
     def draw_pixels(self):

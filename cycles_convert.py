@@ -145,8 +145,9 @@ def convert_tex_image_node(nt, cycles_node, rman_node):
     if cycles_node.image:
         if cycles_node.image.packed_file:
             cycles_node.image.unpack()
-        img_path = filepath_utils.get_real_path(cycles_node.image.filepath)
-        setattr(rman_node, 'filename', img_path)
+        img_path = bpy.path.abspath(cycles_node.image.filepath, library=cycles_node.image.library)
+        if img_path != '':
+            setattr(rman_node, 'filename', img_path)
 
     # can't link a vector to a manifold :(
     # if cycles_node.inputs['Vector'].is_linked:

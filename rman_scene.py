@@ -138,19 +138,16 @@ class RmanScene(object):
 
     def reset(self):
         # clear out dictionaries etc.
-        self.rman_materials = dict()
-        self.rman_objects = dict()
-        self.rman_particles = dict()
-        self.rman_cameras = dict()        
-        self.obj_hash = dict() 
+        self.rman_materials.clear()
+        self.rman_objects.clear()
+        self.rman_particles.clear()
+        self.rman_cameras.clear()        
+        self.obj_hash.clear() 
         self.motion_steps = set()       
-        self.moving_objects = dict()
+        self.moving_objects.clear()
         
-        #self.processed_obs = dict()
-        self.processed_obs = []
-
-        self.current_ob = []
-        self.current_ob_db_name = []    
+        self.processed_obs.clear()
+  
         self.render_default_light = False
         self.world_df_node = None
         self.default_light = None            
