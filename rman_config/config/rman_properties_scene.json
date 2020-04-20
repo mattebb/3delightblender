@@ -619,8 +619,10 @@
             "riopt": "limits:texturememory",
             "label": "Texture",
             "type": "int",
-            "default": 4096,
-            "widget": false
+            "default": 2097152,
+            "min": 0,
+            "widget": false,
+            "help": "Texture cache size in kB"
         },
         {
             "panel": "RENDER_PT_renderman_advanced_settings",
@@ -628,9 +630,11 @@
             "name": "limits_geocachememory",
             "riopt": "limits:geocachememory",
             "label": "Geometry",
-            "type": "int",
-            "default": 4096,
-            "widget": false
+            "type": "int",            
+            "default": 2097152,
+            "min": 0,            
+            "widget": false,
+            "help": "Geometry cache size in kB."
         },
         {
             "panel": "RENDER_PT_renderman_advanced_settings",
@@ -639,8 +643,10 @@
             "riopt": "limits:opacitycachememory",
             "label": "opacity Cache",
             "type": "int",
-            "default": 2048,
-            "widget": false
+            "default": 1048576,
+            "min": 0,            
+            "widget": false,
+            "help": "Opacity cache in kB"
         },
         {
             "panel": "RENDER_PT_renderman_advanced_settings",

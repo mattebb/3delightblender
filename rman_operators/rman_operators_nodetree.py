@@ -186,14 +186,6 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 default.location[0] -= 300
                 nt.links.new(default.outputs[0], output.inputs[0])
 
-                '''
-                if idblock.renderman.copy_color_params:
-                    default.diffuseColor = idblock.diffuse_color
-                    default.diffuseGain = idblock.diffuse_intensity
-                    default.enablePrimarySpecular = True
-                    default.specularFaceColor = idblock.specular_color
-                '''
-
             output.inputs[3].hide = True
                       
         elif idtype == 'light':
