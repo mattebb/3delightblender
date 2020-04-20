@@ -897,22 +897,6 @@ def draw_dome_light(ob):
     m = Matrix.Rotation(angle, 4, axis)
     m = m @ Matrix.Scale(100, 4)
 
-    R_outside = []
-    for pt in s_rmanLightLogo['R_outside']:
-        R_outside.append( m @ Vector(pt))
-
-    R_outside_indices = _get_indices(s_rmanLightLogo['R_outside'])
-    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_outside}, indices=R_outside_indices)    
-    batch.draw(_SHADER_)
-  
-    R_inside = []
-    for pt in s_rmanLightLogo['R_inside']:
-        R_inside.append( m @ Vector(pt) )
-
-    R_inside_indices = _get_indices(s_rmanLightLogo['R_inside'])
-    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_inside}, indices=R_inside_indices)    
-    batch.draw(_SHADER_)    
-
     sphere = make_sphere(m)
     sphere_indices = []
     for i in range(0, len(sphere)):
