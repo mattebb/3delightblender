@@ -1437,7 +1437,7 @@ class RmanScene(object):
                     if not self.is_viewport_render:
                         rman_camera_translator.update(ob, rman_sg_node)         
 
-        elif rman_type in ['MESH', 'POINTS']:
+        else:
             recreate_instances = []
             with self.rman.SGManager.ScopedEdit(self.sg_scene):   
                 recreate_instances.append(ob)         

@@ -23,6 +23,7 @@ class RmanQuadricTranslator(RmanTranslator):
         quadric_type = rm.rman_quadric_type
         rman_sg_quadric.quadric_type = quadric_type
         primvar = rman_sg_quadric.sg_node.GetPrimVars()     
+        primvar.Clear()
         if quadric_type == 'SPHERE':
             rman_sg_quadric.sg_node.SetGeometry(self.rman_scene.rman.Tokens.Rix.k_Ri_Sphere)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_radius, rm.quadric_radius)
