@@ -55,7 +55,7 @@ class RmanFluidTranslator(RmanTranslator):
             pass
             # for now, read the grids directly from the domain settings.
             # the vdb files exported from manta don't seem to follow naming conventions. 
-            # ex: the name of the density grid seems to be different per grid?
+            # ex: the name of the density grid seems to be different per frame?
             #self.update_fluid_openvdb(ob, rman_sg_fluid, fluid_data)
         
         self.update_fluid(ob, rman_sg_fluid, fluid_data)
