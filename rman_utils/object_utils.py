@@ -77,9 +77,9 @@ def is_subd_displace_last(ob):
     return (ob.modifiers[len(ob.modifiers) - 2].type == 'SUBSURF' and
             ob.modifiers[len(ob.modifiers) - 1].type == 'DISPLACE')
 
-def is_smoke(ob):
+def is_fluid(ob):
     for mod in ob.modifiers:
-        if mod.type == "SMOKE" and mod.domain_settings:
+        if mod.type == "FLUID" and mod.domain_settings:
             return True
     return False            
 
@@ -97,7 +97,7 @@ def is_subdmesh(ob):
 def is_deforming_fluid(ob):
     if ob.modifiers:
         mod = ob.modifiers[len(ob.modifiers) - 1]
-        return mod.type == 'SMOKE' and mod.smoke_type == 'DOMAIN'
+        return mod.type == 'FLUID' and mod.smoke_type == 'DOMAIN'
 
 def _is_deforming_(ob):
     deforming_modifiers = ['ARMATURE', 'MESH_SEQUENCE_CACHE', 'CAST', 'CLOTH', 'CURVE', 'DISPLACE',
@@ -137,17 +137,9 @@ def _detect_primitive_(ob):
 
     if rm.primitive == 'AUTO':
         if ob.type == 'MESH':
-            if is_smoke(ob):
-                return 'SMOKE'            
+            if is_fluid(ob):
+                return 'FLUID'            
             return 'MESH'
-            '''
-            if is_subdmesh(ob):
-                return 'SUBDIVISION_MESH'
-            elif is_smoke(ob):
-                return 'SMOKE'
-            else:
-                return 'POLYGON_MESH'
-            '''
         elif ob.type == 'LIGHT':
             if ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
                 return 'LIGHTFILTER'

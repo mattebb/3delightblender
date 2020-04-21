@@ -15,6 +15,7 @@ from .translators.rman_dra_translator import RmanDraTranslator
 from .translators.rman_runprogram_translator import RmanRunProgramTranslator
 from .translators.rman_openvdb_translator import RmanOpenVDBTranslator
 from .translators.rman_gpencil_translator import RmanGPencilTranslator
+from .translators.rman_fluid_translator import RmanFluidTranslator
 
 # utils
 from .rman_utils import object_utils
@@ -126,6 +127,7 @@ class RmanScene(object):
         self.rman_translators['GPENCIL'] = RmanGPencilTranslator(rman_scene=self)
         self.rman_translators['MESH'] = RmanMeshTranslator(rman_scene=self)
         self.rman_translators['QUADRIC'] = RmanQuadricTranslator(rman_scene=self)
+        self.rman_translators['FLUID'] = RmanFluidTranslator(rman_scene=self)
 
     def _find_renderman_layer(self):
         self.rm_rl = None
