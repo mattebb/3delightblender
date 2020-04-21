@@ -27,8 +27,6 @@ class RmanBasePropertyGroup:
 
     """
 
-
-
     @staticmethod
     def _add_properties(cls, rman_config_name):
         """Dynamically add properties to a PropertyGroup class
@@ -155,7 +153,27 @@ def get_override_paths():
     return paths
 
 # only allow these attrs to be overriden
-__ALLOWABLE_ATTR_OVERRIDES__ = ['default', 'label', 'help', 'min', 'max', 'options', 'page_open']
+__ALLOWABLE_ATTR_OVERRIDES__ = ['default', 'label', 'help', 'min', 'max', 'options', 'page_open', 'connectable']
+
+def apply_args_overrides(name, node_desc):
+    """Apply overrides on an NodeDesc object. Only certian attributes will be overridden. See
+    __ALLOWABLE_ATTR_OVERRIDES__ above.
+
+    Args:
+        name (str): Args filename ex: PxrVolume.args
+        node_desc (NodeDesc): NodeDesc object to apply overrides to.
+    """
+
+    rman_config = __RMAN_CONFIG__.get(name, None)
+    if not rman_config:
+        return
+
+    for ndp_org in node_desc.params:
+        ndp = rman_config.params.get(ndp_org.name, None)
+        if ndp:        
+            for attr in __ALLOWABLE_ATTR_OVERRIDES__:
+                if hasattr(ndp, attr):
+                    setattr(ndp_org, attr, getattr(ndp, attr))
 
 def apply_overrides(rman_config_org, rman_config_override):
     """Given two RmanConfig objects, apply the overrides from the second

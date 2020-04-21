@@ -1,0 +1,19 @@
+{
+    "name": "PxrVolume.args",
+    "params": [
+        {
+            "name": "densityFloatPrimVar",
+            "label": "Density Float PrimVar",
+            "type": "string",
+            "default": "density",    
+            "connectable": 0    
+        },
+        {
+            "name": "densityColorPrimVar",
+            "label": "Density Color PrimVar",
+            "type": "string",
+            "default": "",    
+            "connectable": 0    
+        }        
+    ]
+}

@@ -7,6 +7,7 @@ from ..rfb_logger import rfb_log
 from .rman_socket_utils import node_add_inputs
 from .rman_socket_utils import node_add_outputs
 from .rman_socket_utils import update_inputs
+from .. import rman_config
 from .. import rman_render
 from .. import properties
 from ..rman_properties import rman_properties_scene
@@ -580,6 +581,9 @@ def register_rman_nodes():
                     # skip registering these nodes
                     if node_desc.name in __RMAN_NODES_NO_REGISTER__:
                         continue
+
+                    # apply any overrides
+                    rman_config.apply_args_overrides(filename, node_desc)
 
                     __RMAN_NODES__[node_desc.node_type].append(node_desc)
                     rfb_log().debug("\t%s" % node_desc.name)
