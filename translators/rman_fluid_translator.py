@@ -90,6 +90,6 @@ class RmanFluidTranslator(RmanTranslator):
         primvar.SetFloatDetail("flame", fluid_data.flame_grid, "varying")   
         primvar.SetFloatDetail("heat", fluid_data.heat_grid, "varying")
         primvar.SetColorDetail("color", [item for index, item in enumerate(fluid_data.color_grid) if index % 4 != 0], "varying")
-        primvar.SetVectorDetail("velocity", [item for index, item in enumerate(fluid_data.velocity_grid) if index % 4 != 0], "varying")
+        primvar.SetVectorDetail("velocity", fluid_data.velocity_grid, "varying")
 
         rman_sg_fluid.sg_node.SetPrimVars(primvar)     
