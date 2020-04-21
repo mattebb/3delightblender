@@ -1,23 +1,11 @@
 import bpy
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     IntProperty, CollectionProperty
+from ...rman_config import RmanBasePropertyGroup    
 from ..rman_properties_misc import RendermanMeshPrimVar     
 
 
-class RendermanCurveGeometrySettings(bpy.types.PropertyGroup):
-    export_default_uv: BoolProperty(
-        name="Export Default UVs",
-        description="Export the active UV set as the default 'st' primitive variable",
-        default=True)
-    export_default_vcol: BoolProperty(
-        name="Export Default Vertex Color",
-        description="Export the active Vertex Color set as the default 'Cs' primitive variable",
-        default=True)
-    export_smooth_normals: BoolProperty(
-        name="Export Smooth Normals",
-        description="Export smooth per-vertex normals for PointsPolygons Geometry",
-        default=True)
-
+class RendermanCurveGeometrySettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     prim_vars: CollectionProperty(
         type=RendermanMeshPrimVar, name="Primitive Variables")
     prim_vars_index: IntProperty(min=-1, default=-1)
@@ -29,6 +17,7 @@ classes = [
 def register():
 
     for cls in classes:
+        cls._add_properties(cls, 'rman_properties_curve')
         bpy.utils.register_class(cls)  
 
     bpy.types.Curve.renderman = PointerProperty(

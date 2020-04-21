@@ -11,15 +11,15 @@ class RmanLightFilterTranslator(RmanTranslator):
         super().__init__(rman_scene)
         self.bl_type = 'LIGHTFILTER'  
 
-    def export_object_primvars(self, ob, sg_node):
+    def export_object_primvars(self, ob, rman_sg_node):
         pass
 
-    def export_object_attributes(self, ob, sg_node):
+    def export_object_attributes(self, ob, rman_sg_node):
 
         # Adds external RIB to object_attributes
         name = ob.name_full
         rm = ob.renderman
-        attrs = sg_node.GetAttributes()
+        attrs = rman_sg_node.sg_node.GetAttributes()
 
         # Add ID
         if name != "":            
@@ -27,7 +27,7 @@ class RmanLightFilterTranslator(RmanTranslator):
             self.rman_scene.obj_hash[obj_id] = name
             attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_identifier_id, obj_id)
 
-        sg_node.SetAttributes(attrs)           
+        rman_sg_node.sg_node.SetAttributes(attrs)           
 
     def export(self, ob, db_name):
 

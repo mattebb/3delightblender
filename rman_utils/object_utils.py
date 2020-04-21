@@ -88,10 +88,12 @@ def is_subdmesh(ob):
     if not rm:
         return False
 
-    if rm.primitive == 'AUTO' and ob.data.renderman.rman_subdiv_scheme == 'none':
+    rman_subdiv_scheme = getattr(ob.data.renderman, 'rman_subdiv_scheme', 'none')
+
+    if rm.primitive == 'AUTO' and rman_subdiv_scheme == 'none':
         return (is_subd_last(ob) or is_subd_displace_last(ob))
     else:
-        return (ob.data.renderman.rman_subdiv_scheme != 'none')       
+        return (rman_subdiv_scheme != 'none')       
 
 # handle special case of fluid sim a bit differently
 def is_deforming_fluid(ob):
@@ -144,9 +146,9 @@ def _detect_primitive_(ob):
             if ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
                 return 'LIGHTFILTER'
             return ob.type                       
-        elif ob.type == 'CURVE':
+        elif ob.type in ['CURVE', 'FONT']:
             return 'CURVE'
-        elif ob.type in ('SURFACE', 'FONT'):
+        elif ob.type == 'SURFACE':
             #return 'POLYGON_MESH'
             return 'MESH'
         elif ob.type == "META":

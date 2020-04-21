@@ -15,7 +15,7 @@ class RmanGPencilTranslator(RmanTranslator):
         self.bl_type = 'GPENCIL' 
 
 
-    def export_object_primvars(self, ob, sg_node):
+    def export_object_primvars(self, ob, rman_sg_node):
         pass
 
 

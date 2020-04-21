@@ -54,12 +54,12 @@ class RmanTranslator(object):
 
         sg_node.SetTransform( v )        
 
-    def export_object_primvars(self, ob, sg_node):
-        if not sg_node:
+    def export_object_primvars(self, ob, rman_sg_node):
+        if not rman_sg_node.sg_node:
             return
         rm = ob.renderman
         rm_scene = self.rman_scene.bl_scene.renderman
-        primvars = sg_node.GetPrimVars()
+        primvars = rman_sg_node.sg_node.GetPrimVars()
 
         # set any properties marked primvar in the config file
         for prop_name, meta in rm.prop_meta.items():
@@ -84,13 +84,13 @@ class RmanTranslator(object):
             param_type = meta['renderman_type']
             property_utils.set_rix_param(primvars, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)                
 
-        sg_node.SetPrimVars(primvars)
+        rman_sg_node.sg_node.SetPrimVars(primvars)
 
-    def export_object_attributes(self, ob, sg_node):
+    def export_object_attributes(self, ob, rman_sg_node):
 
         name = ob.name_full
         rm = ob.renderman
-        attrs = sg_node.GetAttributes()
+        attrs = rman_sg_node.sg_node.GetAttributes()
 
         # set any properties marked riattr in the config file
         for prop_name, meta in rm.prop_meta.items():
@@ -196,5 +196,5 @@ class RmanTranslator(object):
                                                 asFilePath=True)                
                 attrs.SetString('user:bake_filename_attr', filePath)
 
-        sg_node.SetAttributes(attrs) 
+        rman_sg_node.sg_node.SetAttributes(attrs) 
     

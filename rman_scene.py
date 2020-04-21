@@ -16,6 +16,7 @@ from .translators.rman_runprogram_translator import RmanRunProgramTranslator
 from .translators.rman_openvdb_translator import RmanOpenVDBTranslator
 from .translators.rman_gpencil_translator import RmanGPencilTranslator
 from .translators.rman_fluid_translator import RmanFluidTranslator
+from .translators.rman_curve_translator import RmanCurveTranslator
 
 # utils
 from .rman_utils import object_utils
@@ -128,6 +129,7 @@ class RmanScene(object):
         self.rman_translators['MESH'] = RmanMeshTranslator(rman_scene=self)
         self.rman_translators['QUADRIC'] = RmanQuadricTranslator(rman_scene=self)
         self.rman_translators['FLUID'] = RmanFluidTranslator(rman_scene=self)
+        self.rman_translators['CURVE'] = RmanCurveTranslator(rman_scene=self)
 
     def _find_renderman_layer(self):
         self.rm_rl = None
@@ -423,7 +425,7 @@ class RmanScene(object):
     def export_data_blocks(self, data_blocks):
         total = len(data_blocks)
         for i, obj in enumerate(data_blocks):
-            if obj.type not in ('ARMATURE', 'CURVE', 'CAMERA'):
+            if obj.type not in ('ARMATURE', 'CAMERA'):
                 ob = obj.evaluated_get(self.depsgraph)           
                 self.export_data_block(ob) 
             rfb_log().debug("   Exported %d/%d data blocks..." % (i, total))
@@ -434,7 +436,7 @@ class RmanScene(object):
         if not obj and self.is_swatch_render:
             obj = db_ob
 
-        if obj and obj.type not in ('ARMATURE', 'CURVE', 'CAMERA'):
+        if obj and obj.type not in ('ARMATURE', 'CAMERA'):
             ob = obj.evaluated_get(self.depsgraph)            
             rman_type = object_utils._detect_primitive_(ob)  
             db_name = object_utils.get_db_name(ob, rman_type=rman_type)
@@ -559,7 +561,7 @@ class RmanScene(object):
         else:
             ob = ob_inst.object 
          
-        if ob.type in ('ARMATURE', 'CURVE', 'CAMERA'):
+        if ob.type in ('ARMATURE', 'CAMERA'):
             return                         
 
         rman_type = object_utils._detect_primitive_(ob)
@@ -593,7 +595,7 @@ class RmanScene(object):
             if translator:
                 if not ob.original in self.processed_obs:
                     translator.update(ob, rman_sg_node)
-                    translator.export_object_primvars(ob, rman_sg_node.sg_node)
+                    translator.export_object_primvars(ob, rman_sg_node)
                     self.processed_obs.append(ob.original)
 
             rman_sg_group = rman_group_translator.export(ob, group_db_name)
@@ -623,7 +625,7 @@ class RmanScene(object):
 
             # object attrs             
             if translator:
-                translator.export_object_attributes(ob, rman_sg_group.sg_node)  
+                translator.export_object_attributes(ob, rman_sg_group)  
 
             # attach material
             if psys:
