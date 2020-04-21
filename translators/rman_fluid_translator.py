@@ -13,7 +13,7 @@ def locate_openVDB_cache(cache_dir, frameNum):
     if not os.path.exists(cacheDir):
         return None
     for f in os.listdir(cacheDir):
-        if os.path.splitext(f)[1] ! = '.vdb':
+        if os.path.splitext(f)[1] != '.vdb':
             continue
         if 'density' in f and "%04d" % frameNum in f:
             return os.path.join(cacheDir, f)
