@@ -91,5 +91,6 @@ class RmanFluidTranslator(RmanTranslator):
         primvar.SetFloatDetail("heat", fluid_data.heat_grid, "varying")
         primvar.SetColorDetail("color", [item for index, item in enumerate(fluid_data.color_grid) if index % 4 != 0], "varying")
         primvar.SetVectorDetail("velocity", fluid_data.velocity_grid, "varying")
+        primvar.SetFloatDetail("temperature", fluid_data.temperature_grid, "varying")
 
         rman_sg_fluid.sg_node.SetPrimVars(primvar)     
