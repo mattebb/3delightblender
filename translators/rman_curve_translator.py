@@ -48,7 +48,12 @@ class RmanCurveTranslator(RmanMeshTranslator):
             sg_node = self.rman_scene.sg_scene.CreateMesh(db_name)
             is_mesh = True
         else:
-            sg_node = self.rman_scene.sg_scene.CreateGroup(db_name)
+            l = ob.data.extrude + ob.data.bevel_depth
+            if l > 0:
+                sg_node = self.rman_scene.sg_scene.CreateMesh(db_name)
+                is_mesh = True                            
+            else:
+                sg_node = self.rman_scene.sg_scene.CreateGroup(db_name)
 
         rman_sg_curve = RmanSgCurve(self.rman_scene, sg_node, db_name)
         rman_sg_curve.is_mesh = is_mesh
@@ -79,8 +84,11 @@ class RmanCurveTranslator(RmanMeshTranslator):
 
         curves = get_curve(ob.data)
         for P, width, npt, basis, period, name in curves:
+            num_pts = int(len(P)/3)
+            if num_pts < 1:
+                continue
             curves_sg = self.rman_scene.sg_scene.CreateCurves(name)
-            curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_cubic, period, "bezier", 1, int(len(P)/3))
+            curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_cubic, period, "bezier", 1, num_pts)
             
             primvar = curves_sg.GetPrimVars()
             primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")   
