@@ -1440,9 +1440,11 @@ class RmanScene(object):
                         rman_camera_translator.update(ob, rman_sg_node)         
 
         else:
-            recreate_instances = []
-            with self.rman.SGManager.ScopedEdit(self.sg_scene):   
-                recreate_instances.append(ob)         
+            if rman_sg_node.rman_type != rman_type:
+                # for now, we don't allow the rman_type to be changed
+                rfb_log().error("Changing primitive type is currently not supported.")
+                return
+            with self.rman.SGManager.ScopedEdit(self.sg_scene):     
                 translator = self.rman_translators.get(rman_type, None)
                 if not translator:
                     return

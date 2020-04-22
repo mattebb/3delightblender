@@ -69,7 +69,6 @@ class RmanPointsTranslator(RmanTranslator):
 
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")
 
-        primvar.SetStringDetail("type", rm.primitive_point_type, "uniform")
         primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_constantwidth, rm.primitive_point_width, "constant")
             
         rman_sg_points.sg_node.SetPrimVars(primvar)         
