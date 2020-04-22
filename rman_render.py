@@ -111,8 +111,12 @@ def start_cmd_server():
 
 def draw_threading_func(db):
     while db.rman_is_live_rendering:
-        db.bl_engine.tag_redraw()
-        time.sleep(0.01)
+        try:
+            db.bl_engine.tag_redraw()
+            time.sleep(0.01)
+        except ReferenceError as e:
+            rfb_log().error("Error calling tag_redraw (%s). Aborting..." % str(e))
+            return
 
 
 def progress_cb(e, d, db):
