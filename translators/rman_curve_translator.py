@@ -12,27 +12,25 @@ def get_curve(curve):
     for spline in curve.splines:
         P = []
         width = []
-        npt = len(spline.bezier_points) * 3
 
         for bp in spline.bezier_points:
-            P.extend(bp.handle_left)
-            P.extend(bp.co)
-            P.extend(bp.handle_right)
-            width.append(bp.radius * 0.01)
+            P.append(bp.handle_left)
+            P.append(bp.co)
+            P.append(bp.handle_right)
+            width.extend( 3 * [bp.radius * 0.01])
 
-        basis = ["BezierBasis", 3, "BezierBasis", 3]
         if spline.use_cyclic_u:
             period = 'periodic'
             # wrap the initial handle around to the end, to begin on the CV
-            P = P[3:] + P[:3]
+            P = P[1:] + P[:1]
         else:
             period = 'nonperiodic'
             # remove the two unused handles
-            npt -= 2
-            P = P[3:-3]
+            P = P[1:-1]
+            widith = width[3:-3]
 
         name = spline.id_data.name
-        splines.append((P, width, npt, basis, period, name))
+        splines.append((P, width, period, name))
 
     return splines      
 
@@ -83,8 +81,8 @@ class RmanCurveTranslator(RmanMeshTranslator):
             self.rman_scene.sg_scene.DeleteDagNode(c)             
 
         curves = get_curve(ob.data)
-        for P, width, npt, basis, period, name in curves:
-            num_pts = int(len(P)/3)
+        for P, width, period, name in curves:
+            num_pts = len(P)
             if num_pts < 1:
                 continue
             curves_sg = self.rman_scene.sg_scene.CreateCurves(name)
@@ -92,7 +90,7 @@ class RmanCurveTranslator(RmanMeshTranslator):
             
             primvar = curves_sg.GetPrimVars()
             primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")   
-            primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, [npt], "uniform")
+            primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, [num_pts], "uniform")
             if width:
                 primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, width, "vertex")
             curves_sg.SetPrimVars(primvar)
