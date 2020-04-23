@@ -27,7 +27,7 @@ def get_curve(curve):
             period = 'nonperiodic'
             # remove the two unused handles
             P = P[1:-1]
-            widith = width[3:-3]
+            widith = width[1:-1]
 
         name = spline.id_data.name
         splines.append((P, width, period, name))
