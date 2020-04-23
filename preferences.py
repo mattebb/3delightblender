@@ -164,6 +164,12 @@ class RendermanPreferences(AddonPreferences):
 
     )
 
+    rman_render_nurbs_as_mesh: BoolProperty(
+        name="NURBS as Mesh",
+        default=False,
+        description="Render all NURBS surfaces as meshes."
+    )
+
     presets_current_category: PointerProperty(
         type=RendermanPresetCategory,
     )
@@ -222,6 +228,7 @@ class RendermanPreferences(AddonPreferences):
         row = layout.row()
         col = row.column()
         col.prop(self, 'rman_do_preview_renders')  
+        col.prop(self, 'rman_render_nurbs_as_mesh')
         col.prop(self, 'rman_do_cycles_convert')   
         col.prop(self, 'draw_ipr_text')
         col.prop(self, 'draw_panel_icon')

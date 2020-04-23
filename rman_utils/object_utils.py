@@ -1,5 +1,6 @@
 import bpy
 import numpy as np
+from . import prefs_utils
 
 def get_db_name(ob, rman_type='', psys=None):
     db_name = ''    
@@ -136,8 +137,9 @@ def _detect_primitive_(ob):
         return ob.settings.type
 
     rm = ob.renderman
+    rm_primitive = getattr(rm, 'primitive', 'AUTO')
 
-    if rm.primitive == 'AUTO':
+    if rm_primitive == 'AUTO':
         if ob.type == 'MESH':
             if is_fluid(ob):
                 return 'FLUID'            
@@ -149,8 +151,10 @@ def _detect_primitive_(ob):
         elif ob.type in ['CURVE', 'FONT']:
             return 'CURVE'
         elif ob.type == 'SURFACE':
-            #return 'POLYGON_MESH'
-            return 'MESH'
+            prefs = prefs_utils.get_addon_prefs()
+            if prefs.rman_render_nurbs_as_mesh:
+                return 'MESH'
+            return 'NURBS'
         elif ob.type == "META":
             return "META"
         elif ob.type == 'CAMERA':
@@ -162,7 +166,7 @@ def _detect_primitive_(ob):
         else:
             return 'NONE'
     else:
-        return rm.primitive    
+        return rm_primitive    
 
 def _get_used_materials_(ob):
     if ob.type == 'MESH' and len(ob.data.materials) > 0:

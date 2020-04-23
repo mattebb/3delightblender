@@ -5,6 +5,7 @@ from ..rman_utils import string_utils
 from ..rman_utils import property_utils
 
 import bpy
+import math
 
 def get_curve(curve):
     splines = []
@@ -33,6 +34,15 @@ def get_curve(curve):
         splines.append((P, width, period, name))
 
     return splines      
+
+def get_is_cyclic(curve):
+    spline = curve.splines[0]
+    return (spline.use_cyclic_u or spline.use_cyclic_v)
+
+def get_curve_type(curve):
+    spline = curve.splines[0]
+    # enum in [‘POLY’, ‘BEZIER’, ‘BSPLINE’, ‘CARDINAL’, ‘NURBS’], default ‘POLY’
+    return spline.type
 
 class RmanCurveTranslator(RmanMeshTranslator):
 
@@ -75,6 +85,12 @@ class RmanCurveTranslator(RmanMeshTranslator):
         if rman_sg_curve.is_mesh:
             super().update(ob, rman_sg_curve)
             return True    
+
+        curve_type =  get_curve_type(ob.data)
+        if curve_type == 'BEZIER':
+            self.update_bezier_curve(ob, rman_sg_curve)
+
+    def update_bezier_curve(self, ob, rman_sg_curve):
 
         for c in [ rman_sg_curve.sg_node.GetChild(i) for i in range(0, rman_sg_curve.sg_node.GetNumChildren())]:
             rman_sg_curve.sg_node.RemoveChild(c)
