@@ -182,7 +182,8 @@ class RmanCameraTranslator(RmanTranslator):
             xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
 
             # 2.25 zoom value copied from blenderseed
-            zoom = 2.25        
+            #zoom = 2.25        
+            zoom = 4 / ((math.sqrt(2) + self.rman_scene.context.region_data.view_camera_zoom / 50) ** 2)           
 
             lens = self.rman_scene.context.space_data.lens
             sensor = cam.sensor_height \
