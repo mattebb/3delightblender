@@ -396,6 +396,11 @@ class RendermanIntegratorsOutputNode(RendermanShadingNode):
                 node_tree.links.remove(link)
 
         self.new_links.clear()              
+        rr = rman_render.RmanRender.get_rman_render()        
+        if rr.rman_interactive_running:
+            world = getattr(bpy.context, 'world', None)
+            if world:
+                rr.rman_scene.update_world_node(bpy.context)        
 
 class RendermanSamplefiltersOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Sample Filters'
@@ -455,7 +460,12 @@ class RendermanSamplefiltersOutputNode(RendermanShadingNode):
                 node_tree = self.id_data
                 node_tree.links.remove(link)
 
-        self.new_links.clear()     
+        self.new_links.clear()  
+        rr = rman_render.RmanRender.get_rman_render()        
+        if rr.rman_interactive_running:
+            world = getattr(bpy.context, 'world', None)
+            if world:
+                rr.rman_scene.update_world_node(bpy.context)              
 
 class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Display Filters'
@@ -516,6 +526,11 @@ class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
                 node_tree.links.remove(link)
 
         self.new_links.clear()     
+        rr = rman_render.RmanRender.get_rman_render()        
+        if rr.rman_interactive_running:
+            world = getattr(bpy.context, 'world', None)
+            if world:
+                rr.rman_scene.update_world_node(bpy.context)                   
 
 
 # Final output node, used as a dummy to find top level shaders

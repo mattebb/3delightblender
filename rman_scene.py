@@ -1021,9 +1021,6 @@ class RmanScene(object):
             display_filter_names.append(df_name)
             displayfilters_list.append(rman_df_node)    
 
-        if not display_filter_names:
-            return
-
         if len(display_filter_names) > 1:
             df_name = "rman_displayfilter_combiner"
             df_node = None
@@ -1067,9 +1064,6 @@ class RmanScene(object):
             property_utils.property_group_to_rixparams(bl_sf_node, rman_sg_node, rman_sf_node)
             sample_filter_names.append(sf_name)
             samplefilters_list.append(rman_sf_node)                    
-
-        if not sample_filter_names:
-            return            
 
         if len(sample_filter_names) > 1:
             sf_name = "rman_samplefilter_combiner"
@@ -1726,3 +1720,12 @@ class RmanScene(object):
                 if not rman_sg_node:
                     continue
                 rman_sg_node.sg_node.SetHidden(light_ob.data.renderman.mute)
+
+    def update_world_node(self, context):
+        if context:
+            self.bl_scene = context.scene
+        with self.rman.SGManager.ScopedEdit(self.sg_scene):
+            self.export_integrator()
+            self.export_samplefilters()
+            self.export_displayfilters()            
+            self.export_viewport_stats()        
