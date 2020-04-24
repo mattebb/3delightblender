@@ -8,7 +8,7 @@ import bpy
 import math
 
 '''
-Code reference from: https://blender.stackexchange.com/questions/688/getting-the-list-of-points-that-describe-a-curve-without-converting-to-mesh
+Code reference from: https://blender.stackexchange.com/questions/34145/calculate-points-on-a-nurbs-curve-without-converting-to-mesh
 '''
 
 def macro_knotsu(nu):
