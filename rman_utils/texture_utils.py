@@ -12,6 +12,7 @@ import os
 import glob
 import subprocess
 import bpy
+import uuid
 
 __RFB_TXMANAGER__ = None
 
@@ -42,16 +43,11 @@ class RfBTxManager(object):
         return outpath
 
     def done_callback(self, nodeID, txfile):
-        for item in bpy.context.scene.rman_txmgr_list:
-            if item.nodeID == nodeID:
-                item.state = txfile.state
-                # redraw panel
-                for window in bpy.context.window_manager.windows:
-                    for area in window.screen.areas:
-                        if area.type == 'PROPERTIES':
-                            area.tag_redraw()
-                break
-        node_name,param,param_val = nodeID.split('|')
+        bpy.ops.rman_txmgr_list.refresh('EXEC_DEFAULT')
+        tokens = nodeID.split('|')
+        if len(tokens) < 3:
+            return
+        node_name,param,param_val = tokens
         for mat in bpy.data.materials:
             if not mat.node_tree:
                 continue
@@ -181,7 +177,25 @@ def recursive_texture_set(ob):
 
     return mat_set    
 
+def add_images_from_image_editor():
+    
+    # convert images in the image editor
+    for img in bpy.data.images:
+        if img.type != 'IMAGE':
+            continue
+        if img.packed_file:
+            img.unpack()
+        img_path = bpy.path.abspath(img.filepath, library=img.library)
+        if img_path != '' and os.path.exists(img_path): 
+            nodeID = str(uuid.uuid1())
+            txfile = get_txmanager().txmanager.add_texture(nodeID, img_path)        
+            bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=img_path, nodeID=nodeID)       
+            if txfile:
+                get_txmanager().done_callback(nodeID, txfile)  
+
 def parse_scene_for_textures(bl_scene):
+
+    add_images_from_image_editor()
 
     mats_to_scan = []
     for o in scene_utils.renderable_objects(bl_scene):
@@ -195,8 +209,8 @@ def parse_scene_for_textures(bl_scene):
 
     # cull duplicates by only doing mats once
     for mat in set(mats_to_scan):
-        get_textures(mat)
-
+        get_textures(mat)    
+            
 def parse_for_textures(bl_scene):    
     rfb_log().debug("Parsing scene for textures.")                                   
     parse_scene_for_textures(bl_scene)

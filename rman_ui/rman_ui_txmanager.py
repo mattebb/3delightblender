@@ -271,6 +271,39 @@ class PRMAN_OT_Renderman_txmanager_add_texture(Operator):
 
         return{'FINISHED'}        
 
+class PRMAN_OT_Renderman_txmanager_refresh(Operator):
+    """Refresh Texture Manager"""
+
+    bl_idname = "rman_txmgr_list.refresh"
+    bl_label = "refresh"
+
+    filepath: StringProperty()
+    nodeID: StringProperty()
+
+    def execute(self, context):
+
+        for item in context.scene.rman_txmgr_list:
+            txfile = texture_utils.get_txmanager().txmanager.get_txfile_from_id(item.nodeID)
+            if not txfile:
+                continue
+            item.name = txfile.input_image
+            params = txfile.params
+            item.texture_type = params.texture_type
+            item.smode = params.smode
+            item.tmode = params.tmode
+            item.texture_type = params.texture_type
+            if params.data_type is not None:
+                item.data_type = params.data_type
+            item.resize = params.resize 
+            item.state = txfile.state    
+            if txfile.state == txmngr3.STATE_IS_TEX:
+                item.enable = False  
+
+            item.tooltip = '\n' + txfile.tooltip_text()    
+
+
+        return{'FINISHED'}            
+
 class PRMAN_PT_Renderman_txmanager_list(_RManPanelHeader, Panel):
     """RenderMan Texture Manager Panel."""
 
@@ -369,6 +402,7 @@ classes = [
     PRMAN_OT_Renderman_txmanager_reconvert_all,
     PRMAN_OT_Renderman_txmanager_apply_preset,
     PRMAN_OT_Renderman_txmanager_add_texture,
+    PRMAN_OT_Renderman_txmanager_refresh,
     PRMAN_PT_Renderman_txmanager_list
 ]
 
