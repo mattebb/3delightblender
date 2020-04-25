@@ -1719,13 +1719,4 @@ class RmanScene(object):
                 rman_sg_node = self.rman_objects.get(light_ob.original, None)
                 if not rman_sg_node:
                     continue
-                rman_sg_node.sg_node.SetHidden(light_ob.data.renderman.mute)
-
-    def update_world_node(self, context):
-        if context:
-            self.bl_scene = context.scene
-        with self.rman.SGManager.ScopedEdit(self.sg_scene):
-            self.export_integrator()
-            self.export_samplefilters()
-            self.export_displayfilters()            
-            self.export_viewport_stats()        
+                rman_sg_node.sg_node.SetHidden(light_ob.data.renderman.mute)   

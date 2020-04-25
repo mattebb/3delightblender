@@ -384,8 +384,6 @@ class RendermanIntegratorsOutputNode(RendermanShadingNode):
         else:
             self.new_links.append(link)
 
-    # when a connection is made or removed see if we're in IPR mode and issue
-    # updates
     def update(self):
         for link in self.new_links:
             from_node_type = getattr(link.from_socket, 'renderman_type', None)
@@ -395,12 +393,10 @@ class RendermanIntegratorsOutputNode(RendermanShadingNode):
                 node_tree = self.id_data
                 node_tree.links.remove(link)
 
-        self.new_links.clear()              
-        rr = rman_render.RmanRender.get_rman_render()        
-        if rr.rman_interactive_running:
-            world = getattr(bpy.context, 'world', None)
-            if world:
-                rr.rman_scene.update_world_node(bpy.context)        
+        self.new_links.clear()    
+        world = getattr(bpy.context, 'world', None)
+        if world:
+            world.update_tag()
 
 class RendermanSamplefiltersOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Sample Filters'
@@ -449,8 +445,6 @@ class RendermanSamplefiltersOutputNode(RendermanShadingNode):
         else:
             self.new_links.append(link)
 
-    # when a connection is made or removed see if we're in IPR mode and issue
-    # updates
     def update(self):
         for link in self.new_links:
             from_node_type = getattr(link.from_socket, 'renderman_type', None)
@@ -461,11 +455,9 @@ class RendermanSamplefiltersOutputNode(RendermanShadingNode):
                 node_tree.links.remove(link)
 
         self.new_links.clear()  
-        rr = rman_render.RmanRender.get_rman_render()        
-        if rr.rman_interactive_running:
-            world = getattr(bpy.context, 'world', None)
-            if world:
-                rr.rman_scene.update_world_node(bpy.context)              
+        world = getattr(bpy.context, 'world', None)
+        if world:
+            world.update_tag()
 
 class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Display Filters'
@@ -514,8 +506,6 @@ class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
         else:
             self.new_links.append(link)
 
-    # when a connection is made or removed see if we're in IPR mode and issue
-    # updates
     def update(self):
         for link in self.new_links:
             from_node_type = getattr(link.from_socket, 'renderman_type', None)
@@ -526,12 +516,9 @@ class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
                 node_tree.links.remove(link)
 
         self.new_links.clear()     
-        rr = rman_render.RmanRender.get_rman_render()        
-        if rr.rman_interactive_running:
-            world = getattr(bpy.context, 'world', None)
-            if world:
-                rr.rman_scene.update_world_node(bpy.context)                   
-
+        world = getattr(bpy.context, 'world', None)
+        if world:
+            world.update_tag()
 
 # Final output node, used as a dummy to find top level shaders
 class RendermanBxdfNode(RendermanShadingNode):
