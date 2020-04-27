@@ -1283,6 +1283,9 @@ def draw():
         if not ob.data.renderman:
             continue
         rm = ob.data.renderman
+        if not rm.use_renderman_node:
+            continue
+
         light_shader = rm.get_light_node()
         if not light_shader:
             continue
