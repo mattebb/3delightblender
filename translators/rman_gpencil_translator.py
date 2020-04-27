@@ -167,7 +167,7 @@ class RmanGPencilTranslator(RmanTranslator):
                     mat =  gp_ob.materials[stroke.material_index]
                     if mat.grease_pencil.hide:
                         continue                    
-                    rman_sg_material = sself.rman_scene.rman_materials.get(mat.original, None)
+                    rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
                     if len(stroke.triangles) > 0:
                         self._create_mesh(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
                     else:
