@@ -129,6 +129,9 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
         light = context.light
         if not light.renderman.use_renderman_node:
             layout.prop(light, "type", expand=True)
+            layout.prop(light, "color")
+            layout.prop(light, "energy")
+            layout.label(text='')
             layout.operator('shading.add_renderman_nodetree').idtype = 'light'
             return
         else:       
