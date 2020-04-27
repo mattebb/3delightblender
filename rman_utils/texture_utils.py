@@ -116,6 +116,8 @@ def update_texture(node, light=None):
                     continue
                 else:
                     if 'widget' in meta and meta['widget'] in ['assetidinput', 'fileinput'] and prop_name != 'iesProfile':
+                        if prop == '':
+                            continue
                         node_name = ''
                         node_type = ''
                         if node.renderman_node_type == 'light':

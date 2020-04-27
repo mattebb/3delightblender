@@ -196,7 +196,7 @@ def tx_make_process(txmanager, queue, thread_idx):
                     logger.debug(lo)
                 if le:
                     logger.debug(le)
-                    err_msg += le
+                    err_msg += str(le)
                 lo = p.stdout.readline()
                 le = p.stderr.readline()
 
