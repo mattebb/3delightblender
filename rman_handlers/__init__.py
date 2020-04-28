@@ -20,7 +20,12 @@ def _update_renderman_lights_(bl_scene):
         light = ob.data
         rm = light.renderman
 
-        light.use_nodes = True
+        if not light.use_nodes:
+            continue
+
+        if not rm.use_renderman_node:        
+            continue
+
         nt = light.node_tree
 
         if nt and not shadergraph_utils.find_node(light, 'RendermanOutputNode'):
