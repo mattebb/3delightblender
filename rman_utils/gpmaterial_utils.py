@@ -17,7 +17,7 @@ def gp_material_stroke_solid(mat, rman, rman_sg_material, handle):
     params = bxdf.params
     params.SetColor('emitColor', col)     
     params.SetFloat('presence', alpha)
-    rman_sg_material.sg_node.SetBxdf([bxdf]) 
+    rman_sg_material.sg_stroke_mat.SetBxdf([bxdf]) 
 
 def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
     gp_mat = mat.grease_pencil
@@ -79,7 +79,7 @@ def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
             params.ReferenceColor("emitColor", '%s:resultRGB' % texture_handle)
         params.ReferenceFloat("presence", '%s:resultA' % texture_handle)
         mat_sg_nodes.append(bxdf)
-        rman_sg_material.sg_node.SetBxdf(mat_sg_nodes)    
+        rman_sg_material.sg_stroke_mat.SetBxdf(mat_sg_nodes)    
     
 
 def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
@@ -150,7 +150,7 @@ def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
             params.ReferenceColor("emitColor", '%s:resultRGB' % texture_handle)
         params.ReferenceFloat("presence", '%s:resultA' % texture_handle)
         mat_sg_nodes.append(bxdf)
-        rman_sg_material.sg_node.SetBxdf(mat_sg_nodes)
+        rman_sg_material.sg_fill_mat.SetBxdf(mat_sg_nodes)
 
 def gp_material_fill_checker(mat, rman, rman_sg_material, handle):
     gp_mat = mat.grease_pencil
@@ -207,7 +207,7 @@ def gp_material_fill_checker(mat, rman, rman_sg_material, handle):
     params = bxdf.params
     params.ReferenceColor("emitColor", '%s:resultRGB' % checker_handle)
     params.ReferenceFloat("presence", '%s:resultR' % mix_handle)
-    rman_sg_material.sg_node.SetBxdf([manifold, checker, checker2, float3_1, float3_2, mix, bxdf])    
+    rman_sg_material.sg_fill_mat.SetBxdf([manifold, checker, checker2, float3_1, float3_2, mix, bxdf])    
 
 def gp_material_fill_gradient(mat, rman, rman_sg_material, handle):
     gp_mat = mat.grease_pencil
@@ -256,7 +256,7 @@ def gp_material_fill_gradient(mat, rman, rman_sg_material, handle):
     
     #params.SetFloat('presence', alpha)
     mat_sg_nodes.append(bxdf)
-    rman_sg_material.sg_node.SetBxdf(mat_sg_nodes)   
+    rman_sg_material.sg_fill_mat.SetBxdf(mat_sg_nodes)   
 
 def gp_material_fill_solid(mat, rman, rman_sg_material, handle):
     gp_mat = mat.grease_pencil
@@ -270,4 +270,4 @@ def gp_material_fill_solid(mat, rman, rman_sg_material, handle):
     params = bxdf.params
     params.SetColor('emitColor', col)     
     params.SetFloat('presence', alpha)
-    rman_sg_material.sg_node.SetBxdf([bxdf])       
+    rman_sg_material.sg_fill_mat.SetBxdf([bxdf])       

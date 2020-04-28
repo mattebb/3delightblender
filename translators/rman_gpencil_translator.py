@@ -72,7 +72,7 @@ class RmanGPencilTranslator(RmanTranslator):
         primvar.SetFloatArrayDetail("st", st, 2, "facevarying")  
         mesh_sg.SetPrimVars(primvar)
         if rman_sg_material:
-            mesh_sg.SetMaterial(rman_sg_material.sg_node)         
+            mesh_sg.SetMaterial(rman_sg_material.sg_fill_mat)         
         rman_sg_gpencil.sg_node.AddChild(mesh_sg)     
 
     def _create_points(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material):
@@ -103,9 +103,9 @@ class RmanGPencilTranslator(RmanTranslator):
 
         # Attach material
         if rman_sg_material:
-            points_sg.SetMaterial(rman_sg_material.sg_node)          
+            points_sg.SetMaterial(rman_sg_material.sg_stroke_mat)          
 
-        rman_sg_gpencil.sg_node.AddChild(points_sg)                  
+        rman_sg_gpencil.sg_node.AddChild(points_sg)                     
         
     def _create_curve(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material):
         gp_ob = ob.data       
@@ -151,9 +151,9 @@ class RmanGPencilTranslator(RmanTranslator):
 
         # Attach material
         if rman_sg_material:
-            curves_sg.SetMaterial(rman_sg_material.sg_node)          
+            curves_sg.SetMaterial(rman_sg_material.sg_stroke_mat)          
 
-        rman_sg_gpencil.sg_node.AddChild(curves_sg)                  
+        rman_sg_gpencil.sg_node.AddChild(curves_sg)    
 
     def _get_strokes_(self, ob, rman_sg_gpencil):
 
@@ -168,10 +168,17 @@ class RmanGPencilTranslator(RmanTranslator):
                     if mat.grease_pencil.hide:
                         continue                    
                     rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
-                    if len(stroke.triangles) > 0:
-                        self._create_mesh(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+
+                    if len(stroke.triangles) > 0 and rman_sg_material.sg_fill_mat:
+                        self._create_mesh(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material) 
+                        if rman_sg_material.sg_stroke_mat:
+                            if mat.grease_pencil.mode in ['DOTS', 'BOX']:
+                                self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+                            else:
+                                self._create_curve(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)                        
+
                     else:
                         if mat.grease_pencil.mode in ['DOTS', 'BOX']:
                             self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
                         else:
-                            self._create_curve(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+                            self._create_curve(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)                     

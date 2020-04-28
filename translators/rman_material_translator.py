@@ -47,27 +47,30 @@ class RmanMaterialTranslator(RmanTranslator):
 
     def export_shader_grease_pencil(self, mat, rman_sg_material, handle):
         gp_mat = mat.grease_pencil
+        rman_sg_material.is_gp_material = True
 
         if gp_mat.show_stroke:
             stroke_style = gp_mat.stroke_style
+            rman_sg_material.sg_stroke_mat = self.rman_scene.sg_scene.CreateMaterial('%s-STROKE_MAT' % rman_sg_material.db_name)
 
             if stroke_style == 'SOLID':
-                gpmaterial_utils.gp_material_stroke_solid(mat, self.rman_scene.rman, rman_sg_material, handle)
+                gpmaterial_utils.gp_material_stroke_solid(mat, self.rman_scene.rman, rman_sg_material, '%s-STROKE' % handle)
             elif stroke_style == 'TEXTURE':
-                gpmaterial_utils.gp_material_stroke_texture(mat, self.rman_scene.rman, rman_sg_material, handle)
+                gpmaterial_utils.gp_material_stroke_texture(mat, self.rman_scene.rman, rman_sg_material, '%s-STROKE' % handle)
             
-        elif gp_mat.show_fill:
+        if gp_mat.show_fill:
             fill_style = gp_mat.fill_style
+            rman_sg_material.sg_fill_mat = self.rman_scene.sg_scene.CreateMaterial('%s-FILL_MAT' % rman_sg_material.db_name)
 
             if fill_style == 'TEXTURE':                                 
-                gpmaterial_utils.gp_material_fill_texture(mat, self.rman_scene.rman, rman_sg_material, handle)
+                gpmaterial_utils.gp_material_fill_texture(mat, self.rman_scene.rman, rman_sg_material, '%s-FILL' % handle)
             elif fill_style == 'CHECKER':
-                gpmaterial_utils.gp_material_fill_checker(mat, self.rman_scene.rman, rman_sg_material, handle)
+                gpmaterial_utils.gp_material_fill_checker(mat, self.rman_scene.rman, rman_sg_material, '%s-FILL' % handle)
 
             elif fill_style == 'GRADIENT':
-                gpmaterial_utils.gp_material_fill_gradient(mat, self.rman_scene.rman, rman_sg_material, handle)
+                gpmaterial_utils.gp_material_fill_gradient(mat, self.rman_scene.rman, rman_sg_material, '%s-FILL' % handle)
             else:
-                gpmaterial_utils.gp_material_fill_solid(mat, self.rman_scene.rman, rman_sg_material, handle)
+                gpmaterial_utils.gp_material_fill_solid(mat, self.rman_scene.rman, rman_sg_material, '%s-FILL' % handle)
              
     def export_shader_nodetree(self, id, rman_sg_material, handle):
 
