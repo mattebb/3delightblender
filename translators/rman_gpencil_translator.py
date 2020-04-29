@@ -162,6 +162,7 @@ class RmanGPencilTranslator(RmanTranslator):
         for nm,lyr in gp_ob.layers.items():
             if lyr.hide:
                 continue
+            '''
             for frame in lyr.frames:
                 for i, stroke in enumerate(frame.strokes):
                     mat =  gp_ob.materials[stroke.material_index]
@@ -182,3 +183,26 @@ class RmanGPencilTranslator(RmanTranslator):
                             self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
                         else:
                             self._create_curve(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)                     
+            '''
+            frame = lyr.active_frame
+            if not frame:
+                continue
+            for i, stroke in enumerate(frame.strokes):
+                mat =  gp_ob.materials[stroke.material_index]
+                if mat.grease_pencil.hide:
+                    continue                    
+                rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
+
+                if len(stroke.triangles) > 0 and rman_sg_material.sg_fill_mat:
+                    self._create_mesh(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material) 
+                    if rman_sg_material.sg_stroke_mat:
+                        if mat.grease_pencil.mode in ['DOTS', 'BOX']:
+                            self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+                        else:
+                            self._create_curve(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)                        
+
+                else:
+                    if mat.grease_pencil.mode in ['DOTS', 'BOX']:
+                        self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+                    else:
+                        self._create_curve(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)               
