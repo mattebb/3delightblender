@@ -212,8 +212,9 @@ class RmanLightTranslator(RmanTranslator):
 
             rman_sg_light.sg_node.SetLight(sg_node)
 
+            primary_vis = rm.light_primary_visibility
             attrs = rman_sg_light.sg_node.GetAttributes()
-            attrs.SetInteger("visibility:camera", 1)
+            attrs.SetInteger("visibility:camera", int(primary_vis))
             attrs.SetInteger("visibility:transmission", 0)
             attrs.SetInteger("visibility:indirect", 0)
             obj_groups_str = "World,%s" % rman_sg_light.db_name

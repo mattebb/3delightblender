@@ -223,10 +223,9 @@ class DATA_PT_renderman_node_shader_light(ShaderNodePanel, Panel):
     def draw(self, context):
         layout = self.layout
         light = context.light
-
+        layout.prop(light.renderman, 'light_primary_visibility')
         if light.node_tree:
             nt = light.node_tree
-            layout.prop(light.renderman, 'light_primary_visibility')
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name='Light')          
 
