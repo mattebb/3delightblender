@@ -295,9 +295,6 @@ class RmanMeshTranslator(RmanTranslator):
 
                 mat = ob.data.materials[mat_id]
                 mat_handle = object_utils.get_db_name(mat) 
-                #sg_material = None
-                #if mat_handle in self.rman_scene.rman_materials:
-                #   sg_material = self.rman_scene.rman_materials[mat_handle]
                 sg_material = self.rman_scene.rman_materials.get(mat.original, None)
 
                 if mat_id == 0:

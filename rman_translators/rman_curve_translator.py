@@ -36,10 +36,14 @@ def get_curve(curve):
     return splines      
 
 def get_is_cyclic(curve):
+    if len(curve.splines) < 1:
+        return False    
     spline = curve.splines[0]
     return (spline.use_cyclic_u or spline.use_cyclic_v)
 
 def get_curve_type(curve):
+    if len(curve.splines) < 1:
+        return None
     spline = curve.splines[0]
     # enum in [‘POLY’, ‘BEZIER’, ‘BSPLINE’, ‘CARDINAL’, ‘NURBS’], default ‘POLY’
     return spline.type
@@ -52,7 +56,9 @@ class RmanCurveTranslator(RmanMeshTranslator):
 
     def export(self, ob, db_name):
         is_mesh = False
-        if len(ob.data.splines) < 1:
+        if ob.data.dimensions == '2D':
+            sg_node = self.rman_scene.sg_scene.CreateGroup(db_name)
+        elif len(ob.data.splines) < 1:
             sg_node = self.rman_scene.sg_scene.CreateMesh(db_name)
             is_mesh = True
         else:
