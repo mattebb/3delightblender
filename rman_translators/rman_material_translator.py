@@ -51,7 +51,8 @@ class RmanMaterialTranslator(RmanTranslator):
 
         if gp_mat.show_stroke:
             stroke_style = gp_mat.stroke_style
-            rman_sg_material.sg_stroke_mat = self.rman_scene.sg_scene.CreateMaterial('%s-STROKE_MAT' % rman_sg_material.db_name)
+            if not rman_sg_material.sg_stroke_mat:
+                rman_sg_material.sg_stroke_mat = self.rman_scene.sg_scene.CreateMaterial('%s-STROKE_MAT' % rman_sg_material.db_name)
 
             if stroke_style == 'SOLID':
                 gpmaterial_utils.gp_material_stroke_solid(mat, self.rman_scene.rman, rman_sg_material, '%s-STROKE' % handle)
@@ -60,7 +61,8 @@ class RmanMaterialTranslator(RmanTranslator):
             
         if gp_mat.show_fill:
             fill_style = gp_mat.fill_style
-            rman_sg_material.sg_fill_mat = self.rman_scene.sg_scene.CreateMaterial('%s-FILL_MAT' % rman_sg_material.db_name)
+            if not rman_sg_material.sg_fill_mat:
+                rman_sg_material.sg_fill_mat = self.rman_scene.sg_scene.CreateMaterial('%s-FILL_MAT' % rman_sg_material.db_name)
 
             if fill_style == 'TEXTURE':                                 
                 gpmaterial_utils.gp_material_fill_texture(mat, self.rman_scene.rman, rman_sg_material, '%s-FILL' % handle)
