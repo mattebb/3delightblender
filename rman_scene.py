@@ -1409,7 +1409,18 @@ class RmanScene(object):
             with self.rman.SGManager.ScopedEdit(self.sg_scene):              
                 rman_group_translator.update_transform(ob, rman_sg_lightfilter)
 
-    
+    def _gpencil_transform_updated(self, obj):
+        ob = obj.id
+        rman_sg_gpencil = self.rman_objects.get(ob.original, None)
+        if rman_sg_gpencil:
+            with self.rman.SGManager.ScopedEdit(self.sg_scene):       
+                rman_group_translator = self.rman_translators['GROUP']         
+                for ob_inst in self.depsgraph.object_instances: 
+                    group_db_name = object_utils.get_group_db_name(ob_inst)
+                    rman_sg_group = rman_sg_gpencil.instances.get(group_db_name, None)
+                    if rman_sg_group:
+                        rman_group_translator.update_transform(ob, rman_sg_group)                
+
     def _obj_geometry_updated(self, obj):
         ob = obj.id
         rman_type = object_utils._detect_primitive_(ob)
@@ -1517,6 +1528,11 @@ class RmanScene(object):
                     rfb_log().debug("Transform updated: %s" % obj.id.name)
                     if rman_type == 'LIGHTFILTER':
                         self._light_filter_transform_updated(obj)
+                    elif rman_type == 'GPENCIL':
+                        # FIXME: we shouldn't handle this specifically, but we seem to be
+                        # hitting a prman crash when removing and adding instances of
+                        # grease pencil curves
+                        self._gpencil_transform_updated(obj)
                     else:
                         if ob.type == 'EMPTY' and ob.is_instancer:
                             _check_empty(ob)

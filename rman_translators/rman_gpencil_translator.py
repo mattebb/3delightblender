@@ -3,6 +3,7 @@ from ..rman_sg_nodes.rman_sg_gp import RmanSgGreaseP
 from ..rman_utils import object_utils
 from ..rman_utils import string_utils
 from ..rfb_logger import rfb_log
+from mathutils import Vector
 
 import bpy
 import math
@@ -45,12 +46,15 @@ class RmanGPencilTranslator(RmanTranslator):
         verts = []
         st = []
 
+        mesh_sg = self.rman_scene.sg_scene.CreateMesh('%s-MESH-%d' % (lyr.info, i))
+
+        # get points
         num_pts = len(pts)
         P = np.zeros(num_pts*3, dtype=np.float32)
         pts.foreach_get('co', P)
+        P = np.reshape(P, (num_pts, 3))
         P = P.tolist()
 
-        mesh_sg = self.rman_scene.sg_scene.CreateMesh('%s-MESH-%d' % (lyr.info, i))
         for t in stroke.triangles:
             nverts.append(3)
             verts.append(t.v1)
@@ -59,6 +63,22 @@ class RmanGPencilTranslator(RmanTranslator):
             st.extend(t.uv1)
             st.extend(t.uv2)
             st.extend(t.uv3)            
+
+            '''
+            # move each point in the normal direction a little bit
+            # for fills
+            p1 = Vector(pts[t.v1].co)
+            p2 = Vector(pts[t.v2].co)
+            p3 = Vector(pts[t.v3].co)
+            vec1 = p1 - p2
+            vec2 = p1 - p3
+            normal = vec2.cross(vec1)
+            epsilon = normal * i * 0.0001
+
+            P[t.v1] = Vector(P[t.v1]) + epsilon
+            P[t.v2] = Vector(P[t.v2]) + epsilon
+            P[t.v3] = Vector(P[t.v3]) + epsilon
+            '''
 
         num_polygons = len(stroke.triangles)
         num_verts = len(verts)
@@ -161,6 +181,7 @@ class RmanGPencilTranslator(RmanTranslator):
         # give us all of the fills (triangles), so use ob.original.data
         gp_ob = ob.original.data #ob.data
 
+        j = 0
         for nm,lyr in gp_ob.layers.items():
             if lyr.hide:
                 continue
@@ -169,21 +190,24 @@ class RmanGPencilTranslator(RmanTranslator):
             if not frame:
                 continue
             for i, stroke in enumerate(frame.strokes):
+                j += i
                 mat =  gp_ob.materials[stroke.material_index]
                 if mat.grease_pencil.hide:
                     continue                    
                 rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
 
                 if len(stroke.triangles) > 0 and rman_sg_material.sg_fill_mat:
-                    self._create_mesh(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material) 
+                    self._create_mesh(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material) 
                     if rman_sg_material.sg_stroke_mat:
                         if mat.grease_pencil.mode in ['DOTS', 'BOX']:
-                            self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+                            self._create_points(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material)
                         else:
-                            self._create_curve(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)                        
+                            self._create_curve(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material)                        
 
                 else:
                     if mat.grease_pencil.mode in ['DOTS', 'BOX']:
-                        self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+                        self._create_points(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material)
                     else:
-                        self._create_curve(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)               
+                        self._create_curve(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material)               
+                i +=1
+            j += 1
