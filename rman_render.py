@@ -154,6 +154,7 @@ class RmanRender(object):
         self.rman_interactive_running = False
         self.rman_swatch_render_running = False
         self.rman_is_live_rendering = False
+        self.rman_is_viewport_rendering = False
         self.rman_render_into = 'blender'
         self.it_port = -1 
         self.rman_callbacks = dict()
@@ -371,7 +372,8 @@ class RmanRender(object):
         # register the blender display driver
         try:
             if self.rman_render_into == 'blender':
-                # turn off dspyserver mode if we're not rendering to "it"           
+                # turn off dspyserver mode if we're not rendering to "it"
+                self.rman_is_viewport_rendering = True    
                 rman.Dspy.DisableDspyServer()                  
             else:
                 rman.Dspy.EnableDspyServer()
@@ -402,7 +404,7 @@ class RmanRender(object):
             rm.render_into = render_into_org    
         
         # start a thread to periodically call engine.tag_redraw()
-        if self.rman_render_into == 'blender':
+        if self.rman_is_viewport_rendering:
             __DRAW_THREAD__ = threading.Thread(target=draw_threading_func, args=(self, ))
             __DRAW_THREAD__.start()
 
@@ -478,12 +480,13 @@ class RmanRender(object):
         self.rman_interactive_running = False
         self.rman_running = False     
         self.rman_swatch_render_running = False
+        self.rman_is_viewport_rendering = False
         self.sg_scene = None
         self.rman_scene.reset()
         rfb_log().debug("RenderMan has Stopped.")
                 
     def draw_pixels(self):
-        if self.rman_interactive_running:
+        if self.rman_is_viewport_rendering:
             global __BLENDER_DSPY_PLUGIN__
             try:
                 if __BLENDER_DSPY_PLUGIN__ == None:

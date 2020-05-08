@@ -133,17 +133,7 @@ class PRManRender(bpy.types.RenderEngine):
 
         scene = depsgraph.scene
         w = context.region.width
-        h = context.region.height        
-
-        # Bind shader that converts from scene linear to display space,
-        bgl.glEnable(bgl.GL_BLEND)
-        bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
-        self.bind_display_space_shader(scene)
-
-        self.rman_render.draw_pixels() 
-
-        self.unbind_display_space_shader()
-        bgl.glDisable(bgl.GL_BLEND)
+        h = context.region.height          
 
         # Draw text area that RenderMan is running.        
         if prefs_utils.get_addon_prefs().draw_ipr_text:
@@ -157,7 +147,20 @@ class PRManRender(bpy.types.RenderEngine):
             blf.position(0, pos_x, pos_y, 0)
             blf.color(0, 1.0, 0.0, 0.0, 1.0)
             blf.draw(0, "%s" % ('RenderMan Interactive Mode Running'))
-            blf.disable(0, blf.SHADOW)           
+            blf.disable(0, blf.SHADOW)   
+
+        if not self.rman_render.rman_is_viewport_rendering:
+            return             
+
+        # Bind shader that converts from scene linear to display space,
+        bgl.glEnable(bgl.GL_BLEND)
+        bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
+        self.bind_display_space_shader(scene)
+
+        self.rman_render.draw_pixels() 
+
+        self.unbind_display_space_shader()
+        bgl.glDisable(bgl.GL_BLEND)        
 
 def set_up_paths():
     import os
