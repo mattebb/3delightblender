@@ -1375,6 +1375,7 @@ class RmanScene(object):
         with self.rman.SGManager.ScopedEdit(self.sg_scene):   
             mat = obj.id              
             if not rman_sg_material:
+                rfb_log().debug("New material: %s" % mat.name)
                 rman_sg_material = translator.export(mat, db_name)
                 self.rman_materials[mat.original] = rman_sg_material
                 
@@ -1399,6 +1400,7 @@ class RmanScene(object):
                                     else:
                                         rman_sg_group.sg_node.SetMaterial(rman_sg_material.sg_node)  
             else:
+                rfb_log().debug("Material, call update")
                 translator.update(mat, rman_sg_material)   
 
     def _light_filter_transform_updated(self, obj):

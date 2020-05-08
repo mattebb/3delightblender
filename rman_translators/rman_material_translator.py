@@ -92,9 +92,9 @@ class RmanMaterialTranslator(RmanTranslator):
 
 
                 rman_sg_material.has_meshlight = False
-                rman_sg_material.sg_node.SetBxdf([])
-                rman_sg_material.sg_node.SetLight([])
-                rman_sg_material.sg_node.SetDisplace([])
+                rman_sg_material.sg_node.SetBxdf(None)
+                rman_sg_material.sg_node.SetLight(None)
+                rman_sg_material.sg_node.SetDisplace(None)
 
                 # bxdf
                 socket = out.inputs[0]
@@ -143,7 +143,6 @@ class RmanMaterialTranslator(RmanTranslator):
 
     def export_simple_shader(self, mat, rman_sg_material, mat_handle=''):
         rm = mat.renderman
-        # if rm.surface_shaders.active == '' or not rpass.surface_shaders: return
         name = mat_handle
         if name == '':
             name = 'material_%s' % mat.name_full
@@ -153,12 +152,7 @@ class RmanMaterialTranslator(RmanTranslator):
         rix_params = sg_node.params
         rix_params.SetColor('baseColor', string_utils.convert_val(mat.diffuse_color, 'color'))
         rix_params.SetFloat('specular', mat.specular_intensity )
-        #FIXME if mat.emit:
-        #    rix_params.SetColor("emitColor", string_utils.convert_val(mat.diffuse_color, 'color'))
-        #
-        #if mat.subsurface_scattering:
-        #    rix_params.SetFloat("subsurface", mat.subsurface_scattering.scale)
-        #    rix_params.SetColor("subsurfaceColor", string_utils.convert_val(mat.subsurface_scattering.color))
+        rix_params.SetFloat('metallic', mat.metallic )
        
         rman_sg_material.sg_node.SetBxdf([sg_node])        
 
