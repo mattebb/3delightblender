@@ -1386,6 +1386,7 @@ class RmanScene(object):
                 # we're assuming all instances of the object have the same material
                 # if they don't, we would have to loop over depsgraph.object_instances
 
+                '''
                 for ob in bpy.data.objects:
                     rman_sg_node = self.rman_objects.get(ob.original, None)
                     if rman_sg_node:
@@ -1399,6 +1400,7 @@ class RmanScene(object):
                                         self._export_instance(ob_inst)
                                     else:
                                         rman_sg_group.sg_node.SetMaterial(rman_sg_material.sg_node)  
+                '''
             else:
                 rfb_log().debug("Material, call update")
                 translator.update(mat, rman_sg_material)   
