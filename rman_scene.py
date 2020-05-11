@@ -1581,6 +1581,7 @@ class RmanScene(object):
                         rman_sg_particles_node = self.rman_particles.get(psys.settings.original, None)
                         if psys.settings.render_type != 'OBJECT':
                             if not rman_sg_particles_node:
+                                psys_db_name = object_utils.get_db_name(ob_eval, psys=psys)
                                 rman_sg_particles_node = psys_translator.export(ob_eval, psys, psys_db_name)
                                 rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
                                 self.rman_particles[psys.settings.original] = rman_sg_particles_node 
