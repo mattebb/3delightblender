@@ -129,13 +129,19 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
         rman_unknown_icon = icons.get("out_unknown.png")    
         items = []
         i = 0
-        for i,n in enumerate(rman_bl_nodes.__RMAN_BXDF_NODES__):
+        rman_bxdf_icon = icons.get("out_PxrSurface.png")
+        items.append(('PxrSurface', 'PxrSurface', '', rman_bxdf_icon.icon_id, i))
+        i += 1
+        for n in rman_bl_nodes.__RMAN_BXDF_NODES__:
+            if n.name == 'PxrSurface':
+                continue
             rman_bxdf_icon = icons.get("out_%s.png" % n.name, None)
             if not rman_bxdf_icon:
                 items.append( (n.name, n.name, '', rman_unknown_icon.icon_id, i))
             else:
                 items.append( (n.name, n.name, '', rman_bxdf_icon.icon_id, i))                
-        return items        
+            i += 1
+        return items      
     bxdf_name: EnumProperty(items=get_type_items, name="Bxdf Name")
 
     def execute(self, context):
