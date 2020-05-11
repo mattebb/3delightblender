@@ -92,7 +92,11 @@ class RmanMaterialTranslator(RmanTranslator):
 
 
                 rman_sg_material.has_meshlight = False
-                rman_sg_material.sg_node.SetBxdf(None)
+
+                # For some reason, calling SetBxdf(None) and then
+                # SetBxdf again will fail in certain cases
+                #rman_sg_material.sg_node.SetBxdf(None)
+                
                 rman_sg_material.sg_node.SetLight(None)
                 rman_sg_material.sg_node.SetDisplace(None)
 
