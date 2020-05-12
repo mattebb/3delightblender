@@ -135,6 +135,7 @@ class RmanCameraTranslator(RmanTranslator):
         fov = -1
 
         options = self.rman_scene.sg_scene.GetOptions()
+        prop = rman_sg_camera.sg_node.GetProperties()
 
         if region_data.view_perspective == 'CAMERA':
             rman_sg_camera.is_perspective = True
@@ -169,8 +170,8 @@ class RmanCameraTranslator(RmanTranslator):
             dy = 2.0 * (aspectratio * cam.shift_y + offset[1] * yaspect * 2.0)       
             
             xaspect *= zoom
-            yaspect *= zoom
-            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect+dx, xaspect+dx, -yaspect+dy, yaspect+dy), 4)        
+            yaspect *= zoom 
+            prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect+dx, xaspect+dx, -yaspect+dy, yaspect+dy), 4)        
 
         elif region_data.view_perspective ==  'PERSP': 
             rman_sg_camera.is_perspective = True
@@ -200,7 +201,7 @@ class RmanCameraTranslator(RmanTranslator):
 
             xaspect *= zoom
             yaspect *= zoom
-            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)           
+            prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)           
 
         else:
             # orthographic
@@ -224,8 +225,8 @@ class RmanCameraTranslator(RmanTranslator):
             proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")
 
             xaspect *= zoom
-            yaspect *= zoom
-            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)    
+            yaspect *= zoom            
+            prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)    
 
         if (width == rman_sg_camera.res_width) and (height == rman_sg_camera.res_height):
             return            
@@ -240,10 +241,7 @@ class RmanCameraTranslator(RmanTranslator):
         options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (width, height), 2)
 
         self.rman_scene.sg_scene.SetOptions(options)
-
         rman_sg_camera.sg_node.SetProjection(proj)
-
-        prop = rman_sg_camera.sg_node.GetProperties()
         rman_sg_camera.sg_node.SetProperties(prop)            
         rman_sg_camera.sg_node.SetRenderable(True)         
 
