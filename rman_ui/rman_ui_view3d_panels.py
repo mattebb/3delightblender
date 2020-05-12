@@ -207,6 +207,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.separator()
         layout.label(text='Diagnose')
         box = layout.box()
+        box.enabled = not is_rman_interactive_running
         box.operator("rman.open_scene_rib", text='View RIB', icon='VIEWZOOM')
         if selected_objects:
             box.operator("rman.open_selected_rib", text='View Selected RIB', icon='VIEWZOOM')
