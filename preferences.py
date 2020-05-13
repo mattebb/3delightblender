@@ -184,7 +184,7 @@ class RendermanPreferences(AddonPreferences):
     )    
     presets_show_subcategories: BoolProperty(
         name="Show Subcategories",
-        description="By default, we only show presets in the current category. Turn this on if you want to subcategories (can be slow if there are large number of presets).",
+        description="By default, we only show presets in the current category. Turn this on if you want to also show subcategories (can be slow if there are large number of presets).",
         default=False
     )
 
