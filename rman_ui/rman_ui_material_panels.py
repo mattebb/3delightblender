@@ -13,6 +13,10 @@ class MATERIAL_PT_renderman_preview(Panel, ShaderPanel):
     bl_context = "material"
     bl_label = "Preview"
 
+    @classmethod
+    def poll(cls, context):
+        return prefs_utils.get_addon_prefs().rman_do_preview_renders
+
     def draw(self, context):
         layout = self.layout
         mat = context.material
