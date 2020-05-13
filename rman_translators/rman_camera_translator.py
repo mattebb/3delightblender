@@ -124,7 +124,7 @@ class RmanCameraTranslator(RmanTranslator):
         if self.rman_scene.is_viewport_render:
             return self._update_viewport_cam(rman_sg_camera)
         else:
-            return self._update_render_cam(ob, db_name)        
+            return self._update_render_cam(ob, rman_sg_camera)        
 
     def _update_viewport_cam(self, rman_sg_camera):
         region = self.rman_scene.context.region
@@ -275,18 +275,7 @@ class RmanCameraTranslator(RmanTranslator):
         dx = 0
         dy = 0
         if cam_rm.projection_type != 'none':
-            # use pxr Camera
-            if cam_rm.get_projection_name() == 'PxrCamera':
-                lens = cam.lens
-                sensor = cam.sensor_height \
-                    if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
-                fov = 360.0 * \
-                    math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
-                proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
-                projparams = proj.params
-                projparams.SetFloat("fov", fov )     
-            else:
-                proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", cam_rm.get_projection_node(), "proj")
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", cam_rm.get_projection_name(), "proj")
             rman_sg_node = RmanSgNode(self.rman_scene, proj, "")                           
             property_utils.property_group_to_rixparams(cam_rm.get_projection_node(), rman_sg_node, proj)
         elif cam.type == 'PERSP':
