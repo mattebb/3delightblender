@@ -27,8 +27,10 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         world = context.scene.world
 
         if not world.renderman.use_renderman_node:
+            icons = load_icons()
             layout.prop(world, 'color')
-            layout.operator('shading.add_renderman_nodetree').idtype = 'world'
+            rman_icon = icons.get('rman_graph.png')
+            layout.operator('shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
         
 class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):
     bl_label = "Integrator"

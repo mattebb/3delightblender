@@ -330,7 +330,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                         draw_node_properties_recursive(layout, context, nt, input_node, level=level + 1)
                                     else:
                                         row.label(text='%s[%d]: ' % (prop_label, i))
-                                        row.menu('NODE_MT_renderman_connection_menu', text='', icon='NODE_MATERIAL')
+                                        rman_icon = icons.get('out_unknown.png')
+                                        row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
                         continue
                     else:
                         if is_pxrramp and prop_name == 'useNewRamp':
@@ -352,7 +353,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             row.context_pointer_set("socket", socket)
                             row.context_pointer_set("node", node)
                             row.context_pointer_set("nodetree", nt)
-                            row.menu('NODE_MT_renderman_connection_menu', text='', icon='NODE_MATERIAL')
+                            rman_icon = icons.get('out_unknown.png')
+                            row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
 
 
     # if this is a cycles node do something different

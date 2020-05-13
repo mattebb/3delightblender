@@ -62,14 +62,16 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
 
             layout.separator()
         if mat and not is_renderman_nodetree(mat):
+            icons = load_icons()
             rm = mat.renderman
             row = layout.row()
             #row.prop(rm, "copy_color_params")
             
             row = layout.row(align=True)
             col = row.column()
+            rman_icon = icons.get('rman_graph.png')
             col.operator(
-                'shading.add_renderman_nodetree').idtype = "material"
+                'shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
             if prefs_utils.get_addon_prefs().rman_do_cycles_convert:
                 col = row.column()                
                 op = col.operator('shading.convert_cycles_shader').idtype = "material"

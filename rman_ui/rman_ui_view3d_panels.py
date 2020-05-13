@@ -188,9 +188,9 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 "object.rman_add_bxdf", 'bxdf_name', text="Add New Material", icon='MATERIAL')         
 
             # Make Selected Geo Emissive
-            rman_RMSGeoAreaLight = icons.get("out_PxrMeshLight.png")
+            rman_meshlight = icons.get("out_PxrMeshLight.png")
             box.operator("object.rman_create_meshlight", text="Convert to Mesh Light",
-                         icon_value=rman_RMSGeoAreaLight.icon_id)
+                         icon_value=rman_meshlight.icon_id)
 
             # Add Subdiv Sheme
             rman_subdiv = icons.get("rman_subdiv.png")
@@ -208,9 +208,10 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.label(text='Diagnose')
         box = layout.box()
         box.enabled = not is_rman_interactive_running
-        box.operator("rman.open_scene_rib", text='View RIB', icon='VIEWZOOM')
+        rman_rib = icons.get('rman_rib_small.png')
+        box.operator("rman.open_scene_rib", text='View RIB', icon_value=rman_rib.icon_id)
         if selected_objects:
-            box.operator("rman.open_selected_rib", text='View Selected RIB', icon='VIEWZOOM')
+            box.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)
 
 
 
@@ -219,14 +220,15 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         rman_help = icons.get("rman_help.png")
         layout.operator("wm.url_open", text="RenderMan Docs",
                         icon_value=rman_help.icon_id).url = "https://github.com/prman-pixar/RenderManForBlender/wiki/Documentation-Home"
-        rman_info = icons.get("rman_info.png")
+        rman_info = icons.get("rman_blender.png")
         layout.operator("wm.url_open", text="About RenderMan",
                         icon_value=rman_info.icon_id).url = "https://renderman.pixar.com/store/intro"
 
         # Enable the menu item to display the examples menu in the RenderMan
         # Panel.
         layout.separator()
-        layout.menu("PRMAN_MT_examples", icon_value=rman_help.icon_id)    
+        rman_beaker = icons.get("rman_beaker.png")
+        layout.menu("PRMAN_MT_examples", icon_value=rman_beaker.icon_id)    
 
 classes = [
     PRMAN_PT_Renderman_UI_Panel,
