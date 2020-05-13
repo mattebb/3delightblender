@@ -1657,7 +1657,11 @@ class RmanScene(object):
 
                         # self.sg_scene.DeleteDagNode(rman_sg_node.sg_node)                     
                         del self.rman_objects[obj]
-                        self.processed_obs.remove(obj)
+                        try:
+                            self.processed_obs.remove(obj)
+                        except ValueError:
+                            rfb_log().debug("Obj not in self.processed_obs")
+                            pass
 
 
                     if self.render_default_light:
