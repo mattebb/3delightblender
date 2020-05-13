@@ -42,6 +42,19 @@ def get_presets_for_category(preset_category):
 
     return items
 
+def get_icon(path):
+    global asset_previews
+    thumb = asset_previews.get(path, None)
+    if not thumb:
+        flat_icon_path = os.path.join( filepath_utils.guess_rmantree(), __RMAN_MAT_FLAT_PATH__)
+        flat_icon_thumb = asset_previews.get(flat_icon_path, None)
+        if not flat_icon_thumb:
+            flat_icon_thumb_path = os.path.join(flat_icon_path, __RMAN_MAT_FLAT_FILENAME__)
+            flat_icon_thumb = asset_previews.load(flat_icon_path, flat_icon_thumb_path, 'IMAGE', force_reload=True)     
+
+        return flat_icon_thumb
+    return thumb   
+
 def load_previews(preset_category):
     '''Load icons for this preset category
 
