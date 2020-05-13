@@ -1556,6 +1556,10 @@ class RmanScene(object):
             elif isinstance(obj.id, bpy.types.Collection):
                 rfb_log().debug("Collection updated")
                 do_delete = True
+                # mark all objects in the collection as needing their instances updated
+                # the collection could have been updated with new objects
+                for o in obj.id.all_objects:
+                    update_instances.append(o.original)
 
         # if object was marked as updated geometry, updated any attached particle systems
         # if the particle system is an instancer, we mark the instanced object as needing
