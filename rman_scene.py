@@ -662,6 +662,7 @@ class RmanScene(object):
 
             self._export_instance(ob_inst)  
             self.rman_render.bl_engine.update_progress(i/total)
+            rfb_log().debug("   Exported %d/%d instances..." % (i, total))
 
     def attach_material(self, ob, group):
         for mat in object_utils._get_used_materials_(ob): 
