@@ -1562,6 +1562,7 @@ class RmanScene(object):
         # its instances updated
         for ob in updated_geo:
             rman_type = object_utils._detect_primitive_(ob)
+            rman_sg_node = self.rman_objects.get(ob, None)
             if rman_type not in ['MESH', 'POINTS']:
                 continue
             with self.rman.SGManager.ScopedEdit(self.sg_scene):
