@@ -202,6 +202,7 @@ def register():
         if not f.endswith('.json'):
             continue
         jsonfile = os.path.join(config_path, f)
+        rfb_log().debug("Reading factory json file: %s" % jsonfile)
         if f == __RMAN_CHANNELS_DEF_FILE__:
             # this is our channels config file
             configure_channels(jsonfile)
@@ -217,6 +218,7 @@ def register():
             if not f.endswith('.json'):
                 continue
             jsonfile = os.path.join(path, f)
+            rfb_log().debug("Reading override json file: %s" % jsonfile)
             if f == __RMAN_CHANNELS_DEF_FILE__:
                 configure_channels(jsonfile)
             else:
@@ -225,3 +227,5 @@ def register():
                     rman_config_original = __RMAN_CONFIG__[rman_config_override.name]
                     apply_overrides(rman_config_original, rman_config_override)
                     __RMAN_CONFIG__[rman_config_override.name] = rman_config_original
+                else:
+                    __RMAN_CONFIG__[rman_config_override.name] = rman_config_override
