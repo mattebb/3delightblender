@@ -10,9 +10,10 @@ def GetConfigurablePanels():
     panels = []
     for config_name,cfg in rman_config.__RMAN_CONFIG__.items():
         for param_name, ndp in cfg.params.items():
-            if ndp.panel == '':
+            panel = getattr(ndp, 'panel', '')
+            if panel == '':
                 continue
-            if ndp.panel not in panels:
+            if panel not in panels:
                 panels.append(ndp.panel)
     print(str(panels))
 
@@ -25,6 +26,8 @@ def GetConfigurablePanelProperties(panel):
     props = dict()
     for config_name,cfg in rman_config.__RMAN_CONFIG__.items():
         for param_name, ndp in cfg.params.items():
+            if not hasattr(ndp, 'panel'):
+                continue
             if ndp.panel == panel:
                 label = ndp.name
                 if hasattr(ndp, 'label'):
@@ -43,6 +46,8 @@ def GetPanelPropertyAsJson(panel, prop):
 
     for config_name,cfg in rman_config.__RMAN_CONFIG__.items():
         for param_name, ndp in cfg.params.items():
+            if not hasattr(ndp, 'panel'):
+                continue
             if ndp.panel == panel and ndp.name == prop:
                 print(json.dumps(ndp.as_dict()))
                                
