@@ -1573,16 +1573,15 @@ class RmanScene(object):
                 ob_eval = ob.evaluated_get(self.depsgraph)
                 for psys in ob_eval.particle_systems:
                     psys_translator = self.rman_translators[psys.settings.type]
-                    rman_sg_particles_node = self.rman_particles.get(psys.settings.original, None)
                     if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
                         hair_db_name = object_utils.get_db_name(ob_eval, psys=psys)                                        
                         rman_sg_hair_node = self.rman_particles.get(psys.settings.original, None)
-                        if rman_sg_particles_node:
-                            psys_translator.update(ob_eval, psys, rman_sg_particles_node) 
+                        if rman_sg_hair_node and rman_sg_hair_node.sg_node:
+                            psys_translator.update(ob_eval, psys, rman_sg_hair_node) 
                         else:
-                            rman_sg_particles_node = psys_translator.export(ob_eval, psys, hair_db_name)
-                            rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node) 
-                            self.rman_particles[psys.settings.original] = rman_sg_particles_node
+                            rman_sg_hair_node = psys_translator.export(ob_eval, psys, hair_db_name)
+                            rman_sg_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
+                            self.rman_particles[psys.settings.original] = rman_sg_hair_node
                     elif psys.settings.type == 'EMITTER':                        
                         rman_sg_particles_node = self.rman_particles.get(psys.settings.original, None)
                         if psys.settings.render_type != 'OBJECT':
