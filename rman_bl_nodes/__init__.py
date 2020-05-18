@@ -85,7 +85,6 @@ __RMAN_PLUGIN_MAPPING__ = {
 
 __RMAN_NODES_NO_REGISTER__ = ['PxrCombinerLightFilter', 'PxrSampleFilterCombiner', 'PxrDisplayFilterCombiner']
 
-
 def update_conditional_visops(node):
     for param_name, prop_meta in getattr(node, 'prop_meta').items():
         if 'conditionalVisOp' in prop_meta:
@@ -301,7 +300,7 @@ def class_generate_properties(node, parent_name, node_desc):
             if property_utils.generate_array_property(node, prop_names, prop_meta, node_desc_param, update_array_size_func=update_array_size_func, update_array_elem_func=update_function):
                 continue
 
-        name, meta, prop = property_utils.generate_property(node_desc_param, update_function=update_function)
+        name, meta, prop = property_utils.generate_property(node, node_desc_param, update_function=update_function)
         if name is None:
             continue          
         if hasattr(node_desc_param, 'page') and node_desc_param.page != '':
@@ -446,20 +445,32 @@ def generate_node_type(node_desc, is_oso=False):
             node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self)
         
-        # FIXME: we shouldn't assume only PxrRamp wants ramps. We should make this
-        # more general. Should we just add dummy node groups to every node?
-        if name == "PxrRamp":
+        # deal with any ramps necessary
+        color_rman_ramps = self.__annotations__.get('__COLOR_RAMPS__', [])
+        float_rman_ramps = self.__annotations__.get('__FLOAT_RAMPS__', [])
+
+        if color_rman_ramps or float_rman_ramps:
             node_group = bpy.data.node_groups.new(
-                'PxrRamp_nodegroup', 'ShaderNodeTree')
-            node_group.nodes.new('ShaderNodeValToRGB')
-            node_group.use_fake_user = True
-            self.node_group = node_group.name
+                '__RMAN_FAKE_NODEGROUP__', 'ShaderNodeTree') 
+            node_group.use_fake_user = True                 
+            self.rman_fake_node_group = node_group.name    
+
+            for ramp_name in color_rman_ramps:
+                n = node_group.nodes.new('ShaderNodeValToRGB')
+                setattr(self, ramp_name, n.name)
+
+            for ramp_name in float_rman_ramps:
+                n = node_group.nodes.new('ShaderNodeVectorCurve') 
+                setattr(self, ramp_name, n.name)        
+
+            self.__annotations__['__COLOR_RAMPS__'] = color_rman_ramps
+            self.__annotations__['__FLOAT_RAMPS__'] =  float_rman_ramps
+
         update_conditional_visops(self)
 
 
     def free(self):
-        if name == "PxrRamp":
-            bpy.data.node_groups.remove(bpy.data.node_groups[self.node_group])
+        bpy.data.node_groups.remove(bpy.data.node_groups[self.rman_fake_node_group])
 
     ntype.init = init
     ntype.free = free
@@ -467,8 +478,8 @@ def generate_node_type(node_desc, is_oso=False):
     if "__annotations__" not in ntype.__dict__:
             setattr(ntype, "__annotations__", {})
 
-    if name == 'PxrRamp':
-        ntype.__annotations__['node_group'] = StringProperty('color_ramp', default='')
+    # the name of our fake node group to hold all of our ramp nodes
+    ntype.__annotations__['rman_fake_node_group'] = StringProperty('__rman_ramps__', default='')
 
     ntype.__annotations__['plugin_name'] = StringProperty(name='Plugin Name',
                                        default=name, options={'HIDDEN'})
@@ -505,11 +516,6 @@ def register_plugin_to_parent(ntype, name, node_desc, plugin_type, parent):
     
     if "__annotations__" not in rman_properties_world.RendermanWorldSettings.__dict__:
             setattr(rman_properties_world.RendermanWorldSettings, "__annotations__", {})
-
-    # special case for world lights
-    if plugin_type == 'light' and name in ['PxrDomeLight', 'PxrEnvDayLight']:
-        rman_properties_world.RendermanWorldSettings.__annotations__["%s_settings" % name] = PointerProperty(type=ntype, name="%s Settings" % name)
-
 
 def register_plugin_types(node_desc):
 

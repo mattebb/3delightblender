@@ -204,25 +204,19 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         'hidden' in prop_meta and prop_meta['hidden']:
                         continue
                     elif prop_meta['widget'] == 'colorramp':
-                        if is_pxrramp:
-                            dummy_nt = bpy.data.node_groups[node.node_group]
-                            if dummy_nt:
-                                layout.template_color_ramp(
-                                    dummy_nt.nodes["ColorRamp"], 'color_ramp')  
-                                continue  
-                        else:
-                            rm = bpy.context.light.renderman
-                            node_tree = bpy.context.light.node_tree
-                            ramp_node = node_tree.nodes[rm.color_ramp_node]
-                            layout.template_color_ramp(ramp_node, 'color_ramp')     
-                            continue
-
+                        node_group = bpy.data.node_groups[node.rman_fake_node_group]
+                        ramp_name =  prop
+                        ramp_node = node_group.nodes[ramp_name]
+                        layout.template_color_ramp(
+                                ramp_node, 'color_ramp')  
+                        continue       
                     elif prop_meta['widget'] == 'floatramp':
-                        rm = bpy.context.light.renderman
-                        node_tree = bpy.context.light.node_tree
-                        float_node = node_tree.nodes[rm.float_ramp_node]
-                        layout.template_curve_mapping(float_node, 'mapping')                  
-                        continue
+                        node_group = bpy.data.node_groups[node.rman_fake_node_group]
+                        ramp_name =  prop
+                        ramp_node = node_group.nodes[ramp_name]
+                        layout.template_curve_mapping(
+                                ramp_node, 'mapping')  
+                        continue                         
 
                 # else check if the socket with this name is connected
                 socket = node.inputs[prop_name] if prop_name in node.inputs \

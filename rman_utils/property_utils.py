@@ -272,11 +272,10 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
     Returns:
         bool - True if succeeded. False if not.
     
-    ''' 
-
+    '''  
     def is_array(ndp):          
         ''' A simple function to check if we indeed need to handle this parameter or should just ignore
-        it. Ex: color ramps
+        it. Color and float ramps are handled generate_property()
         '''
         haswidget = hasattr(ndp, 'widget')
         if haswidget:
@@ -320,7 +319,7 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
         #ndp.size = None
         ndp.connectable = True
         ndp.widget = ''
-        name, meta, prop = generate_property(ndp, update_function=update_array_elem_func)
+        name, meta, prop = generate_property(node, ndp, update_function=update_array_elem_func)
         meta['renderman_array_name'] = param_name
         sub_prop_names.append(ndp._name)
         prop_meta[ndp._name] = meta
@@ -329,7 +328,7 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
     setattr(node, param_name, sub_prop_names)   
     return True  
 
-def generate_property(sp, update_function=None):
+def generate_property(node, sp, update_function=None):
     options = {'ANIMATABLE'}
     param_name = sp._name
     renderman_name = param_name
@@ -380,7 +379,7 @@ def generate_property(sp, update_function=None):
                 return (None, None, None)
 
     # set this prop as non connectable
-    if param_widget in ['null', 'checkbox', 'switch', 'colorramp']:
+    if param_widget in ['null', 'checkbox', 'switch', 'colorramp', 'floatramp']:
         prop_meta['__noconnection'] = True        
 
 
@@ -406,7 +405,21 @@ def generate_property(sp, update_function=None):
     if hasattr(sp, 'inherit_true_value'):
         prop_meta['inherit_true_value'] = sp.inherit_true_value
 
-    if 'float' == param_type:
+    if param_widget == 'colorramp':
+        renderman_type = 'colorramp'
+        prop = StringProperty(name=param_label, default='')
+        rman_ramps = node.__annotations__.get('__COLOR_RAMPS__', [])
+        rman_ramps.append(param_name)
+        node.__annotations__['__COLOR_RAMPS__'] = rman_ramps     
+
+    elif param_widget == 'floatramp':
+        renderman_type = 'floatramp'
+        prop = StringProperty(name=param_label, default='')
+        rman_ramps = node.__annotations__.get('__FLOAT_RAMPS__', [])
+        rman_ramps.append(param_name)
+        node.__annotations__['__FLOAT_RAMPS__'] = rman_ramps               
+
+    elif 'float' == param_type:
         if sp.is_array():
             prop = FloatProperty(name=param_label,
                                        default=0.0, precision=3,
@@ -696,6 +709,10 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
             if(prop_name in ['sblur', 'tblur', 'notes']):
                 pass
 
+            if 'widget' in meta and meta['widget'] == 'null':
+                # if widget is marked null, don't export parameter and rely on default
+                pass
+
             else:
                 prop = getattr(node, prop_name)
                 # if property group recurse
@@ -855,6 +872,51 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                         else:
                             set_rix_param(params, param_type, param_name, val_array, is_reference=False, is_array=True, array_len=len(val_array))
                         continue
+                    elif meta['renderman_type'] == 'colorramp':
+                        nt = bpy.data.node_groups[node.rman_fake_node_group]
+                        if nt:
+                            ramp_name =  prop
+                            color_ramp_node = nt.nodes[ramp_name]                            
+                            colors = []
+                            positions = []
+                            # double the start and end points
+                            positions.append(float(color_ramp_node.color_ramp.elements[0].position))
+                            colors.append(color_ramp_node.color_ramp.elements[0].color[:3])
+                            for e in color_ramp_node.color_ramp.elements:
+                                positions.append(float(e.position))
+                                colors.append(e.color[:3])
+                            positions.append(
+                                float(color_ramp_node.color_ramp.elements[-1].position))
+                            colors.append(color_ramp_node.color_ramp.elements[-1].color[:3])
+
+                            params.SetFloatArray("%s_Knots" % prop_name, positions, len(positions))
+                            params.SetColorArray("%s_Colors" % prop_name, colors, len(positions))
+
+                            rman_interp_map = { 'LINEAR': 'linear', 'CONSTANT': 'constant'}
+                            interp = rman_interp_map.get(color_ramp_node.color_ramp.interpolation,'catmull-rom')
+                            params.SetString("%s_Interpolation" % prop_name, interp )         
+                        continue               
+                    elif meta['renderman_type'] == 'floatramp':
+                        nt = bpy.data.node_groups[node.rman_fake_node_group]
+                        if nt:
+                            ramp_name =  prop
+                            float_ramp_node = nt.nodes[ramp_name]                            
+
+                            curve = float_ramp_node.mapping.curves[0]
+                            knots = []
+                            vals = []
+                            # double the start and end points
+                            knots.append(curve.points[0].location[0])
+                            vals.append(curve.points[0].location[1])
+                            for p in curve.points:
+                                knots.append(p.location[0])
+                                vals.append(p.location[1])
+                            knots.append(curve.points[-1].location[0])
+                            vals.append(curve.points[-1].location[1])
+
+                            params.SetFloatArray('%s_Knots' % prop_name, knots, len(knots))
+                            params.SetFloatArray('%s_Floats' % prop_name, vals, len(vals))                     
+                        continue
                     else:
 
                         val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
@@ -864,29 +926,6 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                     else:
                         set_rix_param(params, param_type, param_name, val, is_reference=False)
                         
-
-    if node.plugin_name == 'PxrRamp':
-        nt = bpy.data.node_groups[node.node_group]
-        if nt:
-            dummy_ramp = nt.nodes['ColorRamp']
-            colors = []
-            positions = []
-            # double the start and end points
-            positions.append(float(dummy_ramp.color_ramp.elements[0].position))
-            colors.extend(dummy_ramp.color_ramp.elements[0].color[:3])
-            for e in dummy_ramp.color_ramp.elements:
-                positions.append(float(e.position))
-                colors.extend(e.color[:3])
-            positions.append(
-                float(dummy_ramp.color_ramp.elements[-1].position))
-            colors.extend(dummy_ramp.color_ramp.elements[-1].color[:3])
-
-            params.SetFloatArray("colorRamp_Knots", positions, len(positions))
-            params.SetColorArray("colorRamp_Colors", colors, len(positions))
-
-            rman_interp_map = { 'LINEAR': 'linear', 'CONSTANT': 'constant'}
-            interp = rman_interp_map.get(dummy_ramp.color_ramp.interpolation,'catmull-rom')
-            params.SetString("colorRamp_Interpolation", interp )
     return params      
 
 def set_rixparams(node, rman_sg_node, params, light):
@@ -896,6 +935,9 @@ def set_rixparams(node, rman_sg_node, params, light):
         prop = getattr(node, prop_name)
         # if property group recurse
         if meta['renderman_type'] == 'page' or prop_name == 'notes' or meta['renderman_type'] == 'enum':
+            continue
+
+        elif 'widget' in meta and meta['widget'] == 'null':
             continue
         else:
             type = meta['renderman_type']
@@ -919,6 +961,52 @@ def set_rixparams(node, rman_sg_node, params, light):
                         val_array.append(val)
                 set_rix_param(params, param_type, param_name, val_array, is_reference=False, is_array=True, array_len=len(val_array))
                 continue
+
+            elif meta['renderman_type'] == 'colorramp':
+                nt = bpy.data.node_groups[node.rman_fake_node_group]
+                if nt:
+                    ramp_name =  prop
+                    color_ramp_node = nt.nodes[ramp_name]                            
+                    colors = []
+                    positions = []
+                    # double the start and end points
+                    positions.append(float(color_ramp_node.color_ramp.elements[0].position))
+                    colors.append(color_ramp_node.color_ramp.elements[0].color[:3])
+                    for e in color_ramp_node.color_ramp.elements:
+                        positions.append(float(e.position))
+                        colors.append(e.color[:3])
+                    positions.append(
+                        float(color_ramp_node.color_ramp.elements[-1].position))
+                    colors.append(color_ramp_node.color_ramp.elements[-1].color[:3])
+
+                    params.SetFloatArray("%s_Knots" % prop_name, positions, len(positions))
+                    params.SetColorArray("%s_Colors" % prop_name, colors, len(positions))
+
+                    rman_interp_map = { 'LINEAR': 'linear', 'CONSTANT': 'constant'}
+                    interp = rman_interp_map.get(color_ramp_node.color_ramp.interpolation,'catmull-rom')
+                    params.SetString("%s_Interpolation" % prop_name, interp )         
+                continue               
+            elif meta['renderman_type'] == 'floatramp':
+                nt = bpy.data.node_groups[node.rman_fake_node_group]
+                if nt:
+                    ramp_name =  prop
+                    float_ramp_node = nt.nodes[ramp_name]                            
+
+                    curve = float_ramp_node.mapping.curves[0]
+                    knots = []
+                    vals = []
+                    # double the start and end points
+                    knots.append(curve.points[0].location[0])
+                    vals.append(curve.points[0].location[1])
+                    for p in curve.points:
+                        knots.append(p.location[0])
+                        vals.append(p.location[1])
+                    knots.append(curve.points[-1].location[0])
+                    vals.append(curve.points[-1].location[1])
+
+                    params.SetFloatArray('%s_Knots' % prop_name, knots, len(knots))
+                    params.SetFloatArray('%s_Floats' % prop_name, vals, len(vals))                     
+                continue            
 
             elif meta['renderman_type'] == 'string':
                 # FIXME: Need a better way to check for a frame variable
@@ -951,50 +1039,6 @@ def set_rixparams(node, rman_sg_node, params, light):
             else:
                 val = string_utils.convert_val(prop, type_hint=type)
                 set_rix_param(params, type, name, val)
-
-        if node.plugin_name in ['PxrBlockerLightFilter', 'PxrRampLightFilter', 'PxrRodLightFilter']:
-            rm = light.renderman
-            nt = light.node_tree
-            if nt and rm.float_ramp_node in nt.nodes.keys():
-                knot_param = 'ramp_Knots' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Knots'
-                float_param = 'ramp_Floats' if node.plugin_name == 'PxrRampLightFilter' else 'falloff_Floats'
-                params.Remove('%s' % knot_param)
-                params.Remove('%s' % float_param)
-                float_node = nt.nodes[rm.float_ramp_node]
-                curve = float_node.mapping.curves[0]
-                knots = []
-                vals = []
-                # double the start and end points
-                knots.append(curve.points[0].location[0])
-                vals.append(curve.points[0].location[1])
-                for p in curve.points:
-                    knots.append(p.location[0])
-                    vals.append(p.location[1])
-                knots.append(curve.points[-1].location[0])
-                vals.append(curve.points[-1].location[1])
-
-                params.SetFloatArray(knot_param, knots, len(knots))
-                params.SetFloatArray(float_param, vals, len(vals))
-
-            if nt and rm.color_ramp_node in nt.nodes.keys():
-                params.Remove('colorRamp_Knots')
-                color_node = nt.nodes[rm.color_ramp_node]
-                color_ramp = color_node.color_ramp
-                colors = []
-                positions = []
-                # double the start and end points
-                positions.append(float(color_ramp.elements[0].position))
-                colors.extend(color_ramp.elements[0].color[:3])
-                for e in color_ramp.elements:
-                    positions.append(float(e.position))
-                    colors.extend(e.color[:3])
-                positions.append(
-                    float(color_ramp.elements[-1].position))
-                colors.extend(color_ramp.elements[-1].color[:3])
-
-                params.SetFloatArray('colorRamp_Knots', positions, len(positions))
-                params.SetColorArray('colorRamp_Colors', colors, len(positions))               
-
 
 def property_group_to_rixparams(node, rman_sg_node, sg_node, light=None, mat_name=None):
 

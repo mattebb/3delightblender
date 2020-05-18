@@ -123,11 +123,18 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     if prop_meta['widget'] == 'null' or \
                         'hidden' in prop_meta and prop_meta['hidden']:
                         continue
-                    elif prop_meta['widget'] == 'colorramp' and is_pxrramp:
-                        nt = bpy.data.node_groups[self.node_group]
-                        if nt:
-                            layout.template_color_ramp(
-                                nt.nodes["ColorRamp"], 'color_ramp')                                                     
+                    elif prop_meta['widget'] == 'colorramp':
+                        node_group = bpy.data.node_groups[self.rman_fake_node_group]
+                        ramp_name =  getattr(self, prop_name)
+                        ramp_node = node_group.nodes[ramp_name]
+                        layout.template_color_ramp(
+                                ramp_node, 'color_ramp')    
+                    elif prop_meta['widget'] == 'floatramp':
+                        node_group = bpy.data.node_groups[self.rman_fake_node_group]
+                        ramp_name =  getattr(self, prop_name)
+                        ramp_node = node_group.nodes[ramp_name]
+                        layout.template_curve_mapping(
+                                ramp_node, 'mapping')                                                 
 
                 if prop_name not in self.inputs:
                     if prop_meta['renderman_type'] == 'page':

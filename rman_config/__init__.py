@@ -54,7 +54,7 @@ class RmanBasePropertyGroup:
                 exec('update_func = %s' % ndp.update_function_name, globals(), lcls)
                 update_func = lcls['update_func']
                 setattr(cls, ndp.update_function_name, update_func)
-            name, meta, prop = property_utils.generate_property(ndp, update_function=update_func)
+            name, meta, prop = property_utils.generate_property(cls, ndp, update_function=update_func)
             if prop:
                 cls.__annotations__[ndp._name] = prop
                 prop_names.append(ndp.name)
