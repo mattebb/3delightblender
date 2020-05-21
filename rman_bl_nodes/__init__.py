@@ -470,7 +470,8 @@ def generate_node_type(node_desc, is_oso=False):
 
 
     def free(self):
-        bpy.data.node_groups.remove(bpy.data.node_groups[self.rman_fake_node_group])
+        if self.rman_fake_node_group in bpy.data.node_groups:
+            bpy.data.node_groups.remove(bpy.data.node_groups[self.rman_fake_node_group])
 
     ntype.init = init
     ntype.free = free
