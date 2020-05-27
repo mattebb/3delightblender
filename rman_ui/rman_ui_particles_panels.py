@@ -38,7 +38,7 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel, _RManPanelHead
         if psys.settings.type == 'HAIR':
 
             col.prop(rm, 'export_scalp_st')
-            col.prop(rm, 'round_hair')
+            col.prop(rm, 'hair_index_name')
 
 
 class PARTICLE_PT_renderman_prim_vars(CollectionPanel, Panel):

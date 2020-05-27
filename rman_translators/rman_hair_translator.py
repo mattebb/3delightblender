@@ -44,7 +44,10 @@ class RmanHairTranslator(RmanTranslator):
 
             primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, points, "vertex")                
             primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, vertsArray, "uniform")
-            primvar.SetIntegerDetail("index", range(len(vertsArray)), "uniform")
+            index_nm = psys.settings.renderman.hair_index_name
+            if index_nm == '':
+                index_nm = 'index'
+            primvar.SetIntegerDetail(index_nm, range(len(vertsArray)), "uniform")
 
             if widthString == self.rman_scene.rman.Tokens.Rix.k_constantwidth:
                 primvar.SetFloatDetail(widthString, widths, "constant")
@@ -163,7 +166,7 @@ class RmanHairTranslator(RmanTranslator):
                             (pindex - num_parents) % num_parents]
                     else:
                         particle = psys.particles[pindex]
-                    st = psys.uv_on_emitter(psys_modifier, particle, pindex)
+                    st = psys.uv_on_emitter(psys_modifier, particle=particle, particle_no=pindex)
                     scalpS.append(st[0])
                     scalpT.append(st[1])
 

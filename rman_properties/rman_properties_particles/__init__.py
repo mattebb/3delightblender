@@ -94,7 +94,13 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
     export_scalp_st: BoolProperty(
         name="Export Emitter UV",
         description="On hair, export the u/v from the emitter where the hair originates.  Use the variables 'scalpS' and 'scalpT' in your manifold node",
-        default=False
+        default=True
+    )
+
+    hair_index_name: StringProperty(
+        name="Hair Index Name",
+        description="The name of the index primvar used for each hair curve.",
+        default="index"
     )
 
     prim_vars: CollectionProperty(
