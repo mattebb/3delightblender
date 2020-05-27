@@ -233,14 +233,10 @@ class RmanLightTranslator(RmanTranslator):
 
             rman_sg_light.sg_node.SetOrientTransform(s_orientPxrLight)  
 
-        """    
+        elif light_shader_name == 'PxrEnvDayLight':    
+            m = Matrix.Rotation(math.radians(-90.0), 4, 'Z')
+            rman_sg_light.sg_node.SetOrientTransform(transform_utils.convert_matrix4x4(m))    
         elif light_shader_name == 'PxrDomeLight':
-            rman_sg_light.sg_node.SetOrientTransform(s_orientPxrDomeLight)
-        elif light_shader_name == 'PxrEnvDayLight':
-            rman_sg_light.sg_node.SetOrientTransform(s_orientPxrEnvDayLight)
-            rixparams = sg_node.params
-            prop = getattr(light_shader, "sunDirection")
-            m = transform_utils.convert_matrix4x4(s_orientPxrEnvDayLightInv)
-            sunDirection = m.vTransform(string_utils.convert_val(prop))
-            rixparams.SetVector("sunDirection", sunDirection)
-        """
+            m = Matrix.Identity(4)
+            #rman_sg_light.sg_node.SetOrientTransform(s_orientPxrDomeLight)
+            rman_sg_light.sg_node.SetOrientTransform(transform_utils.convert_matrix4x4(m))
