@@ -104,8 +104,7 @@ class RmanLightTranslator(RmanTranslator):
                 light_filter = bpy.data.objects[lf.filter_name]
                 light_filter_sg = None
 
-                light_filter_db_name = object_utils.get_db_name(light_filter)
-                #rman_sg_lightfilter = self.rman_scene.rman_objects.get(light_filter_db_name, None)
+                light_filter_db_name = object_utils.get_db_name(light_filter)                
                 rman_sg_lightfilter = self.rman_scene.rman_objects.get(light_filter.original)
                 if not rman_sg_lightfilter:
                     rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
@@ -237,6 +236,5 @@ class RmanLightTranslator(RmanTranslator):
             m = Matrix.Rotation(math.radians(-90.0), 4, 'Z')
             rman_sg_light.sg_node.SetOrientTransform(transform_utils.convert_matrix4x4(m))    
         elif light_shader_name == 'PxrDomeLight':
-            m = Matrix.Identity(4)
-            #rman_sg_light.sg_node.SetOrientTransform(s_orientPxrDomeLight)
+            m = Matrix.Identity(4)            
             rman_sg_light.sg_node.SetOrientTransform(transform_utils.convert_matrix4x4(m))
