@@ -736,6 +736,8 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
 
                     if 'arraySize' in meta:
                         pass
+                    elif 'renderman_array_name' in meta:
+                        continue                    
                     else:
                         val = get_output_param_str(
                                 from_node, mat_name, from_socket, to_socket, param_type)
@@ -1010,10 +1012,11 @@ def set_rixparams(node, rman_sg_node, params, light):
 
             elif meta['renderman_type'] == 'string':
                 # FIXME: Need a better way to check for a frame variable
-                if '{F' in prop:
-                    rman_sg_node.is_frame_sensitive = True
-                else:
-                    rman_sg_node.is_frame_sensitive = False  
+                if rman_sg_node:
+                    if '{F' in prop:
+                        rman_sg_node.is_frame_sensitive = True
+                    else:
+                        rman_sg_node.is_frame_sensitive = False  
                                             
                 val = val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
                 if meta['widget'] in ['fileinput', 'assetidinput']:

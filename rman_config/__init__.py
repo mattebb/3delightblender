@@ -9,6 +9,7 @@ import types
 __RMAN_CONFIG__ = dict()
 __RMAN_CHANNELS_DEF_FILE__ = 'rman_dspychan_definitions.json'
 __RMAN_DISPLAY_CHANNELS__ = dict()
+__RMAN_DISPLAY_TEMPLATES__ = dict()
 
 class RmanBasePropertyGroup:
     """Base class that can be inhreited for custom PropertyGroups
@@ -108,6 +109,9 @@ def configure_channels(jsonfile):
         __RMAN_DISPLAY_CHANNELS__.update(jdata['channels'])  
     else:
         rfb_log().error("Could not find 'channels' list in JSON file: %s" % jsonfile)
+
+    if 'displays' in jdata:
+        __RMAN_DISPLAY_TEMPLATES__.update(jdata['displays'])
 
 
 def get_factory_config_path():

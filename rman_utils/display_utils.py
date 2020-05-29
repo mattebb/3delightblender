@@ -272,7 +272,7 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             # add the channel if not already in list
             if ch_name not in dspys_dict['channels']:
                 d = _default_dspy_params()
-                lgt_grp = chan.light_group
+                lgt_grp = chan.light_group.strip()
                 source_type, source = chan.channel_def.split()
 
                 if 'custom_lpe' in source:
