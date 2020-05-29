@@ -1373,11 +1373,19 @@ def createNodes(Asset):
             light.name = nodeId
             light.data.name = nodeId
            
-            light.matrix_world[0] = vals[0:4]
-            light.matrix_world[1] = vals[4:8]
-            light.matrix_world[2] = vals[8:12]
-            light.matrix_world[3] = vals[12:]
-            light.matrix_world.transpose()
+            if fmt[2] == TrMode.k_flat:
+                if fmt[0] == TrStorage.k_matrix:                   
+                    light.matrix_world[0] = vals[0:4]
+                    light.matrix_world[1] = vals[4:8]
+                    light.matrix_world[2] = vals[8:12]
+                    light.matrix_world[3] = vals[12:]
+                    light.matrix_world.transpose()
+                elif fmt[0] == TrStorage.k_TRS:  
+                    light.location = vals[0:3]                    
+                    light.scale = vals[6:9]
+
+                    # rotation
+                    light.rotation_euler = (radians(vals[3]), radians(vals[4]), radians(vals[5]))
 
             created_node = light.data.renderman.get_light_node()
             mat = light
