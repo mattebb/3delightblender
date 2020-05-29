@@ -62,7 +62,7 @@ def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
 
         params.SetString("filename", output_tex)
         params.SetInteger("linearize", 1)
-        params.ReferenceStruct("manifold", '%s:result' % manifold_handle)       
+        params.SetStructReference("manifold", '%s:result' % manifold_handle)       
 
         params = bxdf.params
         if gp_mat.use_stroke_pattern:
@@ -70,14 +70,14 @@ def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
         elif gp_mat.use_stroke_texture_mix:
             mix_handle = '%s-PxrToMix' % handle
             mix = rman.SGManager.RixSGShader("Pattern", "PxrMix", mix_handle) 
-            mix.params.ReferenceColor("color1", '%s:resultRGB' % texture_handle)                                             
+            mix.params.SetColorReference("color1", '%s:resultRGB' % texture_handle)                                             
             mix.params.SetColor("color2", col)
             mix.params.SetFloat("mix", gp_mat.mix_stroke_factor)    
             mat_sg_nodes.append(mix)  
-            params.ReferenceColor("emitColor", '%s:resultRGB' % mix_handle)
+            params.SetColorReference("emitColor", '%s:resultRGB' % mix_handle)
         else:
-            params.ReferenceColor("emitColor", '%s:resultRGB' % texture_handle)
-        params.ReferenceFloat("presence", '%s:resultA' % texture_handle)
+            params.SetColorReference("emitColor", '%s:resultRGB' % texture_handle)
+        params.SetFloatReference("presence", '%s:resultA' % texture_handle)
         mat_sg_nodes.append(bxdf)
         rman_sg_material.sg_stroke_mat.SetBxdf(mat_sg_nodes)    
     
@@ -133,7 +133,7 @@ def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
 
         params.SetString("filename", output_tex)
         params.SetInteger("linearize", 1)
-        params.ReferenceStruct("manifold", '%s:result' % manifold_handle)       
+        params.SetStructReference("manifold", '%s:result' % manifold_handle)       
 
         params = bxdf.params
         if gp_mat.use_fill_pattern:
@@ -141,14 +141,14 @@ def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
         elif gp_mat.use_fill_texture_mix:
             mix_handle = '%s-PxrToMix' % handle
             mix = rman.SGManager.RixSGShader("Pattern", "PxrMix", mix_handle) 
-            mix.params.ReferenceColor("color1", '%s:resultRGB' % texture_handle)                                             
+            mix.params.SetColorReference("color1", '%s:resultRGB' % texture_handle)                                             
             mix.params.SetColor("color2", col)
             mix.params.SetFloat("mix", gp_mat.mix_factor)    
             mat_sg_nodes.append(mix)  
-            params.ReferenceColor("emitColor", '%s:resultRGB' % mix_handle)
+            params.SetColorReference("emitColor", '%s:resultRGB' % mix_handle)
         else:
-            params.ReferenceColor("emitColor", '%s:resultRGB' % texture_handle)
-        params.ReferenceFloat("presence", '%s:resultA' % texture_handle)
+            params.SetColorReference("emitColor", '%s:resultRGB' % texture_handle)
+        params.SetFloatReference("presence", '%s:resultA' % texture_handle)
         mat_sg_nodes.append(bxdf)
         rman_sg_material.sg_fill_mat.SetBxdf(mat_sg_nodes)
 
@@ -178,14 +178,14 @@ def gp_material_fill_checker(mat, rman, rman_sg_material, handle):
     params = checker.params
     params.SetColor("colorA", col)
     params.SetColor("colorB", mix_color)
-    params.ReferenceStruct("manifold", '%s:result' % manifold_handle)
+    params.SetStructReference("manifold", '%s:result' % manifold_handle)
 
     checker2_handle = '%s-PxrChecker2' % handle
     checker2 = rman.SGManager.RixSGShader("Pattern", "PxrChecker", checker2_handle) 
     params = checker2.params
     params.SetColor("colorA", [0.0, 0.0, 0.0])
     params.SetColor("colorB", [1.0, 1.0, 1.0])                
-    params.ReferenceStruct("manifold", '%s:result' % manifold_handle)                
+    params.SetStructReference("manifold", '%s:result' % manifold_handle)                
 
     float3_1_handle = '%s-PxrToFloat3_1' % handle
     float3_1 = rman.SGManager.RixSGShader("Pattern", "PxrToFloat3", float3_1_handle) 
@@ -200,13 +200,13 @@ def gp_material_fill_checker(mat, rman, rman_sg_material, handle):
     mix_handle = '%s-PxrToMix' % handle
     mix = rman.SGManager.RixSGShader("Pattern", "PxrMix", mix_handle) 
     params = mix.params 
-    params.ReferenceColor("color1", '%s:resultRGB' % float3_1_handle)                                             
-    params.ReferenceColor("color2", '%s:resultRGB' % float3_2_handle)
-    params.ReferenceFloat("mix", '%s:resultR' % checker2_handle )
+    params.SetColorReference("color1", '%s:resultRGB' % float3_1_handle)                                             
+    params.SetColorReference("color2", '%s:resultRGB' % float3_2_handle)
+    params.SetFloatReference("mix", '%s:resultR' % checker2_handle )
 
     params = bxdf.params
-    params.ReferenceColor("emitColor", '%s:resultRGB' % checker_handle)
-    params.ReferenceFloat("presence", '%s:resultR' % mix_handle)
+    params.SetColorReference("emitColor", '%s:resultRGB' % checker_handle)
+    params.SetFloatReference("presence", '%s:resultR' % mix_handle)
     rman_sg_material.sg_fill_mat.SetBxdf([manifold, checker, checker2, float3_1, float3_2, mix, bxdf])    
 
 def gp_material_fill_gradient(mat, rman, rman_sg_material, handle):
@@ -247,12 +247,12 @@ def gp_material_fill_gradient(mat, rman, rman_sg_material, handle):
     params.SetFloatArray('colorRamp_Knots', [0.0, 0.0, 1.0, 1.0], 4)
     params.SetColorArray('colorRamp_Colors', colors, 4)
     params.SetString('colorRamp_Interpolation', 'linear')
-    params.ReferenceStruct("manifold", '%s:result' % manifold_handle)  
+    params.SetStructReference("manifold", '%s:result' % manifold_handle)  
     mat_sg_nodes.append(ramp)
 
     params = bxdf.params
        
-    params.ReferenceColor("emitColor", '%s:resultRGB' % ramp_handle)    
+    params.SetColorReference("emitColor", '%s:resultRGB' % ramp_handle)    
     
     #params.SetFloat('presence', alpha)
     mat_sg_nodes.append(bxdf)
