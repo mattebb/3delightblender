@@ -1221,11 +1221,11 @@ class RmanScene(object):
             chan_filterwidth = chan_params['filterwidth']['value']
             chan_statistics = chan_params['statistics']['value']
             displaychannel = self.rman.SGManager.RixSGDisplayChannel(chan_type, chan_name)
-            if chan_source:
+            if chan_source and chan_source != '':
                 if "lpe" in chan_source:
                     displaychannel.params.SetString(self.rman.Tokens.Rix.k_source, '%s %s' % (chan_type, chan_source))                                
                 else:
-                    displaychannel.params.SetString(self.rman.Tokens.Rix.k_source, chan_source)
+                    displaychannel.params.SetString(self.rman.Tokens.Rix.k_source, '%s' % (chan_source))
 
             displaychannel.params.SetFloatArray("exposure", chan_exposure, 2)
             displaychannel.params.SetFloatArray("remap", [chan_remap_a, chan_remap_b, chan_remap_c], 3)

@@ -100,6 +100,11 @@ PAGE_SEP = '|'
 # if eval()-ed, will return a type object ("<type 'int'>") rather than "int"
 PYTYPES = ['int', 'float']
 
+def _is_alpha_string(s):
+    for c in s:
+        if not (c.isalpha() or c.isspace()):
+            return False
+    return True
 
 class NodeDescError(Exception):
     """Custom exception for NodeDesc-related errors."""
@@ -245,7 +250,7 @@ def vis_ops_func(ops, trigger_params):
                 if value == 'NoneType':
                     lexpr = ('getattr(node, "%s") %s None' %
                             (lattr, cond_op))                    
-                elif value.isalpha() or value == '' or value in VALID_TYPES:
+                elif _is_alpha_string(value) or value.isalpha() or value == '' or value in VALID_TYPES:
                     lexpr = ('getattr(node, "%s") %s "%s"' %
                             (lattr, cond_op,
                             value))
@@ -270,7 +275,7 @@ def vis_ops_func(ops, trigger_params):
                     if value == 'NoneType':
                         rexpr = ('getattr(node, "%s") %s None' %
                                 (rattr, cond_op))       
-                    elif value.isalpha() or value == '' or value in VALID_TYPES:
+                    elif _is_alpha_string(value) or value.isalpha() or value == '' or value in VALID_TYPES:
                         rexpr = ('getattr(node, "%s") %s "%s"' %
                                 (rattr, cond_op,
                                 value))         
@@ -294,7 +299,7 @@ def vis_ops_func(ops, trigger_params):
             if value == 'NoneType':
                 expr = ('getattr(node, "%s") %s None' %
                         (sattr, cond_op))                
-            elif value.isalpha()  or value == '' or value in VALID_TYPES:
+            elif _is_alpha_string(value) or value.isalpha() or value == '' or value in VALID_TYPES:
                 expr = ('getattr(node, "%s") %s "%s"' %
                         (sattr, cond_op,
                             value))

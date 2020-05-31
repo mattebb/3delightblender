@@ -3,32 +3,12 @@ from . import prefs_utils
 from . import property_utils
 from . import shadergraph_utils
 from .. import rman_constants
+from .. import rman_config
 from collections import OrderedDict
+from copy import deepcopy
 import bpy
 import os
 import getpass
-
-__RMAN_DENOISE_CHANNELS_ = [
-    # (name, declare type/name, source, statistics, filter)
-    ("Ci", 'color', None, None, None),
-    ("a", 'float', None, None, None),
-    ("mse", 'color', 'color Ci', 'mse', None),
-    ("albedo", 'color',
-    'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
-    None, None),
-    ("albedo_var", 'color', 'color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O',
-    "variance", None),
-    ("diffuse", 'color', 'color lpe:C(D[DS]*[LO])|O', None, None),
-    ("diffuse_mse", 'color', 'color lpe:C(D[DS]*[LO])|O', 'mse', None),
-    ("specular", 'color', 'color lpe:CS[DS]*[LO]', None, None),
-    ("specular_mse", 'color', 'color lpe:CS[DS]*[LO]', 'mse', None),
-    ("zfiltered", 'float', 'zfiltered', None, True),
-    ("zfiltered_var", 'float', 'zfiltered', "variance", True),
-    ("normal", 'normal', 'normal Nn', None, None),
-    ("normal_var", 'normal', 'normal Nn', "variance", None),
-    ("forward", 'vector', 'vector motionFore', None, None),
-    ("backward", 'vector', 'vector motionBack', None, None)
-]
 
 __BLENDER_TO_RMAN_DSPY__ = { 'TIFF': 'tiff', 'TARGA': 'targa', 'TARGA_RAW': 'targa', 'OPEN_EXR': 'openexr', 'PNG': 'png'}
 
@@ -73,23 +53,23 @@ def _add_denoiser_channels(dspys_dict, dspy_params):
     the beauty display will be used as the variance file
     """
 
-    global __RMAN_DENOISE_CHANNELS_
-
-    for aov, declare_type, source, statistics, do_filter in __RMAN_DENOISE_CHANNELS_:
+    denoise_tmplt = rman_config.__RMAN_DISPLAY_TEMPLATES__['Denoiser']
+    for chan in denoise_tmplt['channels']:
         dspy_channels = dspys_dict['displays']['beauty']['params']['displayChannels']
-        if aov in dspy_channels:
+        if chan in dspy_channels:
             continue
 
-        if aov not in dspys_dict['channels']:
+        if chan not in dspys_dict['channels']:
             d = _default_dspy_params()
+            settings = rman_config.__RMAN_DISPLAY_CHANNELS__[chan]
 
-            if source:
-                d[u'channelSource'] = {'type': u'string', 'value': source}
-            d[u'channelType'] = { 'type': u'string', 'value': declare_type}
-            d[u'statistics'] = { 'type': u'string', 'value': statistics}
-            dspys_dict['channels'][aov] =  d  
+            d[u'channelSource'] = {'type': u'string', 'value': settings['channelSource']}
+            d[u'channelType'] = { 'type': u'string', 'value': settings['channelType']}
+            if 'statistics' in settings:
+                d[u'statistics'] = { 'type': u'string', 'value': settings['statistics']}
+            dspys_dict['channels'][chan] =  d  
 
-        dspys_dict['displays']['beauty']['params']['displayChannels'].append(aov)
+        dspys_dict['displays']['beauty']['params']['displayChannels'].append(chan)            
 
     filePath = dspys_dict['displays']['beauty']['filePath']
     f,ext = os.path.splitext(filePath)
@@ -195,53 +175,46 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
 
     # so use built in aovs
     blender_aovs = [
-        # (name, do?, declare type/name, source)
-        ("z", layer.use_pass_z, rman_scene.rman.Tokens.Rix.k_float, None),
-        ("Nn", layer.use_pass_normal, rman_scene.rman.Tokens.Rix.k_normal, None),
-        ("dPdtime", layer.use_pass_vector, rman_scene.rman.Tokens.Rix.k_vector, None),
-        ("u", layer.use_pass_uv, rman_scene.rman.Tokens.Rix.k_float, None),
-        ("v", layer.use_pass_uv, rman_scene.rman.Tokens.Rix.k_float, None),
-        ("id", layer.use_pass_object_index, rman_scene.rman.Tokens.Rix.k_float, None),
-        ("shadows", layer.use_pass_shadow, rman_scene.rman.Tokens.Rix.k_color,
-        "color lpe:shadowcollector"),
-        ("diffuse", layer.use_pass_diffuse_direct, rman_scene.rman.Tokens.Rix.k_color,
-        "color lpe:diffuse"),
-        ("indirectdiffuse", layer.use_pass_diffuse_indirect,
-        rman_scene.rman.Tokens.Rix.k_color, "color lpe:indirectdiffuse"),
-        ("albedo", layer.use_pass_diffuse_color, rman_scene.rman.Tokens.Rix.k_color,
-        "color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O"),
-        ("specular", layer.use_pass_glossy_direct, rman_scene.rman.Tokens.Rix.k_color,
-        "color lpe:specular"),
-        ("indirectspecular", layer.use_pass_glossy_indirect,
-        rman_scene.rman.Tokens.Rix.k_color, "color lpe:indirectspecular"),
-        ("subsurface", layer.use_pass_subsurface_indirect,
-        rman_scene.rman.Tokens.Rix.k_color, "color lpe:subsurface"),
-        ("emission", layer.use_pass_emit, rman_scene.rman.Tokens.Rix.k_color,
-        "color lpe:emission"),
-    ]
+        ('z_depth', layer.use_pass_z, 'z'),
+        ('Nn', layer.use_pass_normal, "Normal"),
+        ("dPdtime", layer.use_pass_vector, "Vectors"),
+        ("u", layer.use_pass_uv, "u"),
+        ("v", layer.use_pass_uv, "v"),
+        ("id", layer.use_pass_object_index, "id"),
+        ("blender_shadows", layer.use_pass_shadow, "Shadows"),
+        ("blender_diffuse", layer.use_pass_diffuse_direct, "Diffuse"),
+        ("blender_indirectdiffuse", layer.use_pass_diffuse_indirect, "IndirectDiffuse"),
+        ("blender_albedo", layer.use_pass_diffuse_color, "Albedo"),
+        ("blender_specular", layer.use_pass_glossy_direct, "Specular"),
+        ("blender_indirectspecular", layer.use_pass_glossy_indirect, "IndirectSpecular"),
+        ("blender_subsurface", layer.use_pass_subsurface_indirect,"Subsurface"),
+        ("blender_emission", layer.use_pass_emit, "Emission")
+    ]     
+
 
     # declare display channels
-    for aov, doit, declare_type, source in blender_aovs:
+    for source, doit, name in blender_aovs:
         filePath = rm.path_aov_image_output
         if expandTokens:
-            token_dict = {'aov': aov}
+            token_dict = {'aov': name}
             filePath = string_utils.expand_string(filePath, 
                                                 display=display_driver, 
                                                 frame=rman_scene.bl_frame_current,
                                                 token_dict=token_dict,
                                                 asFilePath=True)
-        if doit and declare_type:
+        if doit:
             dspy_params = {}                        
             dspy_params['displayChannels'] = []
             
             d = _default_dspy_params()
+            settings = rman_config.__RMAN_DISPLAY_CHANNELS__[source]
 
-            d[u'channelSource'] = {'type': u'string', 'value': source}
-            d[u'channelType'] = { 'type': u'string', 'value': declare_type}              
+            d[u'channelSource'] = {'type': u'string', 'value': settings['channelSource']}
+            d[u'channelType'] = { 'type': u'string', 'value': settings['channelType']}              
 
-            dspys_dict['channels'][aov] = d
-            dspy_params['displayChannels'].append(aov)
-            dspys_dict['displays'][aov] = {
+            dspys_dict['channels'][name] = d
+            dspy_params['displayChannels'].append(name)
+            dspys_dict['displays'][name] = {
             'driverNode': display_driver,
             'filePath': filePath,
             'denoise': False,
@@ -273,15 +246,15 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             if ch_name not in dspys_dict['channels']:
                 d = _default_dspy_params()
                 lgt_grp = chan.light_group.strip()
-                source_type, source = chan.channel_def.split()
+                source_type = chan.channel_type
+                source = chan.channel_source
 
-                if 'custom_lpe' in source:
-                    source = chan.custom_lpe_string
-
-                if lgt_grp or lgt_grp != ' ':
+                if lgt_grp or lgt_grp != '':
+                    if 'Ci' in source:
+                        source = "lpe:C[DS]*[<L.>O]"
                     if "<L.>" in source:
                         source = source.replace("<L.>", "<L.'%s'>" % lgt_grp)
-                    else:
+                    elif "lpe:" in source:
                         source = source.replace("L", "<L.'%s'>" % lgt_grp)
 
                 d[u'channelSource'] = {'type': u'string', 'value': source}
@@ -356,17 +329,36 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
                                                     token_dict=token_dict,
                                                     asFilePath=True)
 
-        dspys_dict['displays'][aov.name] = {
-            'driverNode': display_driver,
-            'filePath': filePath,
-            'denoise': aov.denoise,
-            'denoise_mode': aov.denoise_mode,
-            'camera': aov.camera,
-            'bake_mode': aov.aov_bake,
-            'params': dspy_params,
-            'dspyDriverParams': param_list }
+        if aov.name != 'beauty' and display_driver == 'it':
+            # break up display per channel when rendering to it
+            for chan in aov.dspy_channels:
+                dspy_name = '%s_%s' % (aov.name, chan.channel_name)
+                new_dspy_params = deepcopy(dspy_params)
+                new_dspy_params['displayChannels'] = [chan.channel_name]
+                new_file_path = filePath.replace('.it', '_%s.it' % chan.channel_name)
 
-        if aov.denoise and not rman_scene.is_interactive:
+                dspys_dict['displays'][dspy_name] = {
+                    'driverNode': display_driver,
+                    'filePath': new_file_path,
+                    'denoise': aov.denoise,
+                    'denoise_mode': aov.denoise_mode,
+                    'camera': aov.camera,
+                    'bake_mode': aov.aov_bake,
+                    'params': new_dspy_params,
+                    'dspyDriverParams': param_list }
+
+        else:
+            dspys_dict['displays'][aov.name] = {
+                'driverNode': display_driver,
+                'filePath': filePath,
+                'denoise': aov.denoise,
+                'denoise_mode': aov.denoise_mode,
+                'camera': aov.camera,
+                'bake_mode': aov.aov_bake,
+                'params': dspy_params,
+                'dspyDriverParams': param_list }
+
+        if aov.denoise and display_driver == 'openexr' and not rman_scene.is_interactive:
             _add_denoiser_channels(dspys_dict, dspy_params)
 
         if aov.name == 'beauty' and rman_scene.is_interactive:
@@ -564,7 +556,7 @@ def make_dspy_info(scene):
         integrator_nm = integrator.bl_label
 
     dspy_notes = "Render start:\t%s\r\r" % ts
-    dspy_notes += "Integrator:\t%s\r\r" % integrator
+    dspy_notes += "Integrator:\t%s\r\r" % integrator_nm
     dspy_notes += "Samples:\t%d - %d\r" % (rm.hider_minSamples, rm.hider_maxSamples)
     dspy_notes += "Pixel Variance:\t%f\r\r" % rm.ri_pixelVariance
 

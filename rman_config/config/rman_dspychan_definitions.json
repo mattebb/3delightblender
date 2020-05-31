@@ -647,6 +647,24 @@
                 "a"
             ]
         },
+        "Denoiser": {
+            "description": "Everything the denoiser needs.",
+            "channels": [
+                "mse",
+                "albedo",
+                "albedo_var",
+                "diffuse",
+                "diffuse_mse",
+                "specular",
+                "specular_mse",
+                "zfiltered",
+                "zfiltered_var",
+                "normal",
+                "normal_var",
+                "forward",
+                "backward"
+            ]
+        },        
         "Mattes": {
             "description": "All MatteID channels in an OpenEXR file.",
             "display": {

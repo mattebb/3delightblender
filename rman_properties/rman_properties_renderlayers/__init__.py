@@ -23,7 +23,8 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
             if page_nm not in pages:
                 pages[page_nm] = []
             lst = pages[page_nm]
-            item = ( ('%s %s' % (settings['channelType'], settings['channelSource']), nm, settings['description'], "", i ) )
+            #item = ( ('%s %s' % (settings['channelType'], settings['channelSource']), nm, settings['description'], "", i ) )
+            item = ( nm, nm, settings['description'], "", i )
             i += 1
             lst.append(item)
 
@@ -40,22 +41,29 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
             return
         for item in types:
             if self.channel_selector == item[0]:
-                self.channel_def = item[0]
                 self.name = item[1]
                 self.channel_name = item[1]
                 self.channel_selector = "SELECT"
+                settings = rman_config.__RMAN_DISPLAY_CHANNELS__[item[0]]
+                self.channel_source = settings['channelSource']
+                self.channel_type = settings['channelType']
+
                 break
 
     name: StringProperty(name='Channel Name')
     channel_name: StringProperty()
 
-    channel_def: StringProperty(name="Channel Definition",
-            description="This contains both the type and the source for the channel"
-            )
-
     channel_selector: EnumProperty(name="Select Channel",
                             description="",
                             items=channel_list, update=update_type)
+
+    channel_source: StringProperty(name="Channel Source",
+            description="Source definition for the channel"
+            )
+
+    channel_type: StringProperty(name="Channel Type",
+            description="Channel type"
+            )            
 
     custom_lpe_string: StringProperty(
         name="lpe String",

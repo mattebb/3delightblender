@@ -81,9 +81,10 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
         if rm_rl:
             aov = rm_rl.custom_aovs[rm_rl.custom_aov_index]
             chan = aov.dspy_channels.add()
-            chan.channel_def = 'color Ci'
             chan.name = 'Ci'
             chan.channel_name = 'Ci'
+            chan.channel_source = 'Ci'
+            chan.channel_type = 'color'
 
         return{'FINISHED'}       
 
@@ -188,11 +189,9 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
 
         col = layout.column()
         col.prop(channel, "channel_selector")
-        if channel.channel_def == "color custom_lpe":
-            col.prop(channel, "name")
-            col.prop(channel, "custom_lpe_string")
-        else:
-            col.prop(channel, "name")            
+        col.prop(channel, "name")      
+        col.prop(channel, 'channel_type')
+        col.prop(channel, "channel_source")      
 
         col = layout.column()
         icon = 'DISCLOSURE_TRI_DOWN' if channel.show_advanced \
@@ -326,54 +325,51 @@ class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
 
         rl = active_layer
 
-        aovs = [
-            # (name, do?, declare type/name, source)
-            ("color rgba", active_layer.use_pass_combined, "rgba"),
-            ("float z", active_layer.use_pass_z, "z_depth"),
-            ("normal Nn", active_layer.use_pass_normal, "Normal"),
-            ("vector dPdtime", active_layer.use_pass_vector, "Vectors"),
-            ("float u", active_layer.use_pass_uv, "u"),
-            ("float v", active_layer.use_pass_uv, "v"),
-            ("float id", active_layer.use_pass_object_index, "id"),
-            ("color lpe:shadows;C[<.D><.S>]<L.>",
-             active_layer.use_pass_shadow, "Shadows"),
-            ("color lpe:C<.D><L.>",
-             active_layer.use_pass_diffuse_direct, "Diffuse"),
-            ("color lpe:(C<RD>[DS]+<L.>)|(C<RD>[DS]*O)",
-             active_layer.use_pass_diffuse_indirect, "IndirectDiffuse"),
-            ("color lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;C(U2L)|O",
-             active_layer.use_pass_diffuse_color, "Albedo"),
-            ("color lpe:C<.S><L.>",
-             active_layer.use_pass_glossy_direct, "Specular"),
-            ("color lpe:(C<RS>[DS]+<L.>)|(C<RS>[DS]*O)",
-             active_layer.use_pass_glossy_indirect, "IndirectSpecular"),
-            ("color lpe:(C<TD>[DS]+<L.>)|(C<TD>[DS]*O)",
-             active_layer.use_pass_subsurface_indirect, "Subsurface"),
-            ("color lpe:emission", active_layer.use_pass_emit, "Emission"),
-        ]
+        blender_aovs = [
+            ('rgba', active_layer.use_pass_combined, ''),
+            ('z_depth', active_layer.use_pass_z, 'z'),
+            ('Nn', active_layer.use_pass_normal, "Normal"),
+            ("dPdtime", active_layer.use_pass_vector, "Vectors"),
+            ("u", active_layer.use_pass_uv, "u"),
+            ("v", active_layer.use_pass_uv, "v"),
+            ("id", active_layer.use_pass_object_index, "id"),
+            ("blender_shadows", active_layer.use_pass_shadow, "Shadows"),
+            ("blender_diffuse", active_layer.use_pass_diffuse_direct, "Diffuse"),
+            ("blender_indirectdiffuse", active_layer.use_pass_diffuse_indirect, "IndirectDiffuse"),
+            ("blender_albedo", active_layer.use_pass_diffuse_color, "Albedo"),
+            ("blender_specular", active_layer.use_pass_glossy_direct, "Specular"),
+            ("blender_indirectspecular", active_layer.use_pass_glossy_indirect, "IndirectSpecular"),
+            ("blender_subsurface", active_layer.use_pass_subsurface_indirect,"Subsurface"),
+            ("blender_emission", active_layer.use_pass_emit, "Emission")
+        ]     
 
-        for aov_type, attr, name in aovs:
+        for source, attr, name in blender_aovs:
             if attr:
-                if name == "rgba":
+                if source == "rgba":
                     aov_setting = rm_rl.custom_aovs.add()
                     aov_setting.name = 'beauty'
                     channel = aov_setting.dspy_channels.add()
                     channel.name = 'Ci'
                     channel.channel_name = 'Ci'
-                    channel.channel_def = 'color Ci'
+                    channel.channel_source = 'Ci'
+                    channel.channel_type = 'color'
                     channel = aov_setting.dspy_channels.add()
                     channel.name = 'a'
                     channel.channel_name = 'a'
-                    channel.channel_def = 'float a'    
+                    channel.channel_source = 'a'
+                    channel.channel_type = 'float'   
 
                 else:
                     aov_setting = rm_rl.custom_aovs.add()
                     aov_setting.name = name
 
+                    settings = rman_config.__RMAN_DISPLAY_CHANNELS__[source]
+
                     channel = aov_setting.dspy_channels.add()
                     channel.name = name
-                    channel.channel_def = aov_type
-                    channel.channel_name = name                    
+                    channel.channel_name = name  
+                    channel.channel_source = settings['channelSource']
+                    channel.channel_type = settings['channelType']                  
 
         return {'FINISHED'}
 
@@ -409,7 +405,10 @@ class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
             settings = rman_dspy_channels[chan]
             channel.name = chan
             channel.channel_name = chan
-            channel.channel_def = '%s %s' % (settings['channelType'], settings['channelSource'])
+            channel.channel_source = settings['channelSource']
+            channel.channel_type = settings['channelType']
+            stats_type = settings.get('statistics', 'none')
+            channel.stats_type = stats_type
      
         return {"FINISHED"}        
 

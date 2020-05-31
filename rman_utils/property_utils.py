@@ -891,6 +891,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                                 float(color_ramp_node.color_ramp.elements[-1].position))
                             colors.append(color_ramp_node.color_ramp.elements[-1].color[:3])
 
+                            params.SetInteger('%s' % prop_name, len(positions))
                             params.SetFloatArray("%s_Knots" % prop_name, positions, len(positions))
                             params.SetColorArray("%s_Colors" % prop_name, colors, len(positions))
 
@@ -916,8 +917,13 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                             knots.append(curve.points[-1].location[0])
                             vals.append(curve.points[-1].location[1])
 
+                            params.SetInteger('%s' % prop_name, len(knots))
                             params.SetFloatArray('%s_Knots' % prop_name, knots, len(knots))
-                            params.SetFloatArray('%s_Floats' % prop_name, vals, len(vals))                     
+                            params.SetFloatArray('%s_Floats' % prop_name, vals, len(vals))    
+                            
+                            # Blender doesn't have an interpolation selection for float ramps. Default to catmull-rom
+                            interp = 'catmull-rom'
+                            params.SetString("%s_Interpolation" % prop_name, interp )                          
                         continue
                     else:
 
@@ -981,6 +987,7 @@ def set_rixparams(node, rman_sg_node, params, light):
                         float(color_ramp_node.color_ramp.elements[-1].position))
                     colors.append(color_ramp_node.color_ramp.elements[-1].color[:3])
 
+                    params.SetInteger('%s' % prop_name, len(positions))
                     params.SetFloatArray("%s_Knots" % prop_name, positions, len(positions))
                     params.SetColorArray("%s_Colors" % prop_name, colors, len(positions))
 
@@ -1006,8 +1013,13 @@ def set_rixparams(node, rman_sg_node, params, light):
                     knots.append(curve.points[-1].location[0])
                     vals.append(curve.points[-1].location[1])
 
+                    params.SetInteger('%s' % prop_name, len(knots))
                     params.SetFloatArray('%s_Knots' % prop_name, knots, len(knots))
-                    params.SetFloatArray('%s_Floats' % prop_name, vals, len(vals))                     
+                    params.SetFloatArray('%s_Floats' % prop_name, vals, len(vals))                   
+                            
+                    # Blender doesn't have an interpolation selection for float ramps. Default to catmull-rom
+                    interp = 'catmull-rom'
+                    params.SetString("%s_Interpolation" % prop_name, interp )                            
                 continue            
 
             elif meta['renderman_type'] == 'string':
