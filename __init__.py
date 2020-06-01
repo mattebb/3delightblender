@@ -231,5 +231,9 @@ def unregister():
     rman_operators.unregister()
     
     for cls in classes:
-        bpy.utils.unregister_class(cls)
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError:
+            rfb_log().debug('Could not unregister class: %s' % str(cls))
+            pass
 

@@ -120,6 +120,13 @@ def register():
     bpy.types.ParticleSettings.renderman = PointerProperty(
         type=RendermanParticleSettings, name="Renderman Particle Settings")
 
-def unregister():  
+def unregister(): 
+
+    del bpy.types.ParticleSettings.renderman
+
     for cls in classes:
-        bpy.utils.unregister_class(cls)      
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError:
+            rfb_log().debug('Could not unregister class: %s' % str(cls))
+            pass     
