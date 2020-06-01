@@ -1594,18 +1594,14 @@ class RmanScene(object):
                     if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
                         hair_db_name = object_utils.get_db_name(ob_eval, psys=psys)                                        
                         rman_sg_hair_node = self.rman_particles.get(psys.settings.original, None)
-                        if rman_sg_hair_node and rman_sg_hair_node.sg_node:
-                            psys_translator.update(ob_eval, psys, rman_sg_hair_node) 
-                        else:
-                            rman_sg_hair_node = psys_translator.export(ob_eval, psys, hair_db_name)
+                        rman_sg_hair_node = psys_translator.export(ob_eval, psys, hair_db_name)
                         rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
                         self.rman_particles[psys.settings.original] = rman_sg_hair_node
                     elif psys.settings.type == 'EMITTER':                        
                         rman_sg_particles_node = self.rman_particles.get(psys.settings.original, None)
                         if psys.settings.render_type != 'OBJECT':
-                            if not rman_sg_particles_node:
-                                psys_db_name = object_utils.get_db_name(ob_eval, psys=psys)
-                                rman_sg_particles_node = psys_translator.export(ob_eval, psys, psys_db_name)
+                            psys_db_name = object_utils.get_db_name(ob_eval, psys=psys)
+                            rman_sg_particles_node = psys_translator.export(ob_eval, psys, psys_db_name)
                             rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
                             self.rman_particles[psys.settings.original] = rman_sg_particles_node 
                             psys_translator.update(ob_eval, psys, rman_sg_particles_node)
@@ -1613,7 +1609,8 @@ class RmanScene(object):
                             if rman_sg_particles_node:
                                 psys_translator.clear_children(ob_eval, psys, rman_sg_particles_node)
                             inst_ob = psys.settings.instance_object 
-                            update_instances.append(inst_ob.original)
+                            if inst_ob:
+                                update_instances.append(inst_ob.original)
 
         # add new objs:
         if new_objs:
