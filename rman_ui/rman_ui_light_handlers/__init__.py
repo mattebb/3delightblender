@@ -608,10 +608,11 @@ def draw_envday_light(ob):
 
     loc, rot, sca = Matrix(ob.matrix_world).decompose()
     axis,angle = rot.to_axis_angle()
-    scale = max(sca) # take the max axis
-    m = Matrix.Rotation(angle, 4, axis)
+    scale = max(sca) # take the max axis   
+    m = Matrix.Translation(loc)
+    m = m @ Matrix.Rotation(angle, 4, axis)
     m = m @ Matrix.Scale(scale, 4)
-    m = m @ Matrix.Translation(loc)
+
     ob_matrix = m
     
     m = Matrix(ob_matrix)
