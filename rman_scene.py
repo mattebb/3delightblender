@@ -1593,8 +1593,8 @@ class RmanScene(object):
                     psys_translator = self.rman_translators[psys.settings.type]
                     if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
                         hair_db_name = object_utils.get_db_name(ob_eval, psys=psys)                                        
-                        rman_sg_hair_node = self.rman_particles.get(psys.settings.original, None)
                         rman_sg_hair_node = psys_translator.export(ob_eval, psys, hair_db_name)
+                        psys_translator.update(ob_eval, psys, rman_sg_hair_node)
                         rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
                         self.rman_particles[psys.settings.original] = rman_sg_hair_node
                     elif psys.settings.type == 'EMITTER':                        
