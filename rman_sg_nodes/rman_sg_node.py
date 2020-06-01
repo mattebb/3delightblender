@@ -29,6 +29,9 @@ class RmanSgNode(object):
         # pointer to a parent group, if any
         self.rman_sg_group_parent = None        
 
+        # group node to hold any particles this node may have
+        self.rman_sg_particle_group_node = None
+
         # indicates that this node needs updating
         # when the frame changes. This is mostly for
         # materials and lights using the {F} frame variable
@@ -129,7 +132,15 @@ class RmanSgNode(object):
 
     @rman_sg_group_parent.setter
     def rman_sg_group_parent(self, rman_sg_group_parent):
-        self.__rman_sg_group_parent = rman_sg_group_parent       
+        self.__rman_sg_group_parent = rman_sg_group_parent     
+
+    @property
+    def rman_sg_particle_group_node(self):
+        return self.__rman_sg_particle_group_node
+
+    @rman_sg_particle_group_node.setter
+    def rman_sg_particle_group_node(self, rman_sg_particle_group_node):
+        self.__rman_sg_particle_group_node = rman_sg_particle_group_node                
 
     @property
     def is_meshlight(self):

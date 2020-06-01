@@ -482,6 +482,12 @@ class RmanScene(object):
                 if self.do_motion_blur:
                     subframes = scene_utils._get_subframes_(2, self.bl_scene)
                     self.motion_steps.update(subframes)
+
+                if len(ob.particle_systems) > 0:
+                    particles_group_db = '%s_particles_group' % db_name
+                    rman_sg_node.rman_sg_particle_group_node = self.rman_translators['GROUP'].export(None, particles_group_db) 
+                    rman_sg_node.sg_node.AddChild(rman_sg_node.rman_sg_particle_group_node.sg_node)                   
+
                 for psys in ob.particle_systems:
                     psys_translator = self.rman_translators[psys.settings.type]
                     if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
@@ -490,7 +496,7 @@ class RmanScene(object):
                         rman_sg_hair_node.motion_steps = subframes
                         psys_translator.update(ob, psys, rman_sg_hair_node)
                         if rman_sg_hair_node.sg_node:
-                            rman_sg_node.sg_node.AddChild(rman_sg_hair_node.sg_node)                               
+                            rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_hair_node.sg_node)                               
                         self.rman_particles[psys.settings.original] = rman_sg_hair_node
                     elif psys.settings.type == 'EMITTER':
                         psys_db_name = object_utils.get_db_name(ob, psys=psys)
@@ -499,7 +505,7 @@ class RmanScene(object):
                             rman_sg_particles_node.motion_steps = subframes
                             psys_translator.update(ob, psys, rman_sg_particles_node)
                             if rman_sg_particles_node.sg_node:
-                                rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
+                                rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
                         else:
                             rman_sg_particles_node.is_deforming = False
                             rman_sg_particles_node.is_transforming = False
@@ -1560,9 +1566,9 @@ class RmanScene(object):
                 # mark all objects in the collection as needing their instances updated
                 # the collection could have been updated with new objects
                 # FIXME: like grease pencil above we seem to crash when removing and adding instances 
-                # of curves, so comment out the code below
-                # for o in obj.id.all_objects:
-                #    update_instances.append(o.original)
+                # of curves, we need to figure out what's going on
+                for o in obj.id.all_objects:
+                    update_instances.append(o.original)
 
         # if object was marked as updated geometry, updated any attached particle systems
         # if the particle system is an instancer, we mark the instanced object as needing
@@ -1574,6 +1580,15 @@ class RmanScene(object):
                 continue
             with self.rman.SGManager.ScopedEdit(self.sg_scene):
                 ob_eval = ob.evaluated_get(self.depsgraph)
+
+                if not rman_sg_node.rman_sg_particle_group_node:
+                    db_name = rman_sg_node.db_name
+                    particles_group_db = '%s_particles_group' % db_name
+                    rman_sg_node.rman_sg_particle_group_node = self.rman_translators['GROUP'].export(None, particles_group_db) 
+                    rman_sg_node.sg_node.AddChild(rman_sg_node.rman_sg_particle_group_node.sg_node) 
+
+                rman_sg_node.rman_sg_particle_group_node.sg_node.RemoveAllChildren()
+
                 for psys in ob_eval.particle_systems:
                     psys_translator = self.rman_translators[psys.settings.type]
                     if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
@@ -1583,16 +1598,16 @@ class RmanScene(object):
                             psys_translator.update(ob_eval, psys, rman_sg_hair_node) 
                         else:
                             rman_sg_hair_node = psys_translator.export(ob_eval, psys, hair_db_name)
-                            rman_sg_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
-                            self.rman_particles[psys.settings.original] = rman_sg_hair_node
+                        rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
+                        self.rman_particles[psys.settings.original] = rman_sg_hair_node
                     elif psys.settings.type == 'EMITTER':                        
                         rman_sg_particles_node = self.rman_particles.get(psys.settings.original, None)
                         if psys.settings.render_type != 'OBJECT':
                             if not rman_sg_particles_node:
                                 psys_db_name = object_utils.get_db_name(ob_eval, psys=psys)
                                 rman_sg_particles_node = psys_translator.export(ob_eval, psys, psys_db_name)
-                                rman_sg_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
-                                self.rman_particles[psys.settings.original] = rman_sg_particles_node 
+                            rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
+                            self.rman_particles[psys.settings.original] = rman_sg_particles_node 
                             psys_translator.update(ob_eval, psys, rman_sg_particles_node)
                         elif psys.settings.render_type == 'OBJECT':
                             if rman_sg_particles_node:
