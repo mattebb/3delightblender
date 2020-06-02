@@ -1598,14 +1598,16 @@ class RmanScene(object):
                         hair_db_name = object_utils.get_db_name(ob_eval, psys=psys)                                        
                         rman_sg_hair_node = psys_translator.export(ob_eval, psys, hair_db_name)
                         psys_translator.update(ob_eval, psys, rman_sg_hair_node)
-                        rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
+                        if rman_sg_hair_node.sg_node:
+                            rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
                         self.rman_particles[psys.settings.original] = rman_sg_hair_node
                     elif psys.settings.type == 'EMITTER':                        
                         rman_sg_particles_node = self.rman_particles.get(psys.settings.original, None)
                         if psys.settings.render_type != 'OBJECT':
                             psys_db_name = object_utils.get_db_name(ob_eval, psys=psys)
                             rman_sg_particles_node = psys_translator.export(ob_eval, psys, psys_db_name)
-                            rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
+                            if rman_sg_particles_node.sg_node:
+                                rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
                             self.rman_particles[psys.settings.original] = rman_sg_particles_node 
                             psys_translator.update(ob_eval, psys, rman_sg_particles_node)
                         elif psys.settings.render_type == 'OBJECT':
