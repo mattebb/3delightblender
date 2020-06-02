@@ -288,7 +288,9 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         idblock.use_nodes = True
         nt = idblock.node_tree
 
-        if idtype == 'material':        
+        if idtype == 'material':      
+            if context.material.grease_pencil:
+                return self.execute(context)  
             wm = context.window_manager
             return wm.invoke_props_dialog(self)  
         return self.execute(context)
