@@ -1378,7 +1378,7 @@ class RmanScene(object):
         mat = obj.id
         db_name = object_utils.get_db_name(mat)
         rman_sg_material = self.rman_materials.get(mat.original, None)
-        translator = self.rman_translators["MATERIAL"]
+        translator = self.rman_translators["MATERIAL"]              
         with self.rman.SGManager.ScopedEdit(self.sg_scene):   
             mat = obj.id              
             if not rman_sg_material:
@@ -1569,6 +1569,9 @@ class RmanScene(object):
                 # of curves, we need to figure out what's going on
                 for o in obj.id.all_objects:
                     update_instances.append(o.original)
+
+        # call txmake all in case of new textures
+        texture_utils.get_txmanager().txmake_all(blocking=False)                      
 
         # if object was marked as updated geometry, updated any attached particle systems
         # if the particle system is an instancer, we mark the instanced object as needing

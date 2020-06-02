@@ -54,7 +54,7 @@ def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
             if txfile.state in (txmanager3.STATE_EXISTS, txmanager3.STATE_IS_TEX):
                 output_tex = txfile.get_output_texture()
             else:
-                output_tex = get_txmanager().get_placeholder_tex() 
+                output_tex = texture_utils.get_txmanager().txmanager.get_placeholder_tex() 
 
         texture = rman.SGManager.RixSGShader("Pattern", "PxrTexture", texture_handle) 
         mat_sg_nodes.append(texture)
@@ -125,7 +125,7 @@ def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
             if txfile.state in (txmanager3.STATE_EXISTS, txmanager3.STATE_IS_TEX):
                 output_tex = txfile.get_output_texture()
             else:
-                output_tex = get_txmanager().get_placeholder_tex() 
+                output_tex = texture_utils.get_txmanager().txmanager.get_placeholder_tex() 
 
         texture = rman.SGManager.RixSGShader("Pattern", "PxrTexture", texture_handle) 
         mat_sg_nodes.append(texture)

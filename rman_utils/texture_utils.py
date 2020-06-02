@@ -49,6 +49,10 @@ class RfBTxManager(object):
             return
         node_name,param,param_val = tokens
         for mat in bpy.data.materials:
+            if mat.grease_pencil:
+                if self.rman_scene:
+                    self.rman_scene.update_material(mat)
+
             if not mat.node_tree:
                 continue
             if node_name in mat.node_tree.nodes:
