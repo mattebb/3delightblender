@@ -527,7 +527,6 @@ def draw_rect_light(ob):
 
     m = Matrix(ob.matrix_world)        
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
-    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
 
     box = []
     for pt in s_rmanLightLogo['box']:
@@ -570,7 +569,6 @@ def draw_sphere_light(ob):
 
     m = Matrix(ob.matrix_world)        
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
-    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
 
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
@@ -754,7 +752,6 @@ def draw_disk_light(ob):
 
     m = Matrix(ob.matrix_world)        
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
-    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
 
     disk = []
     for pt in s_diskLight:
@@ -797,8 +794,7 @@ def draw_dist_light(ob):
         _SHADER_.uniform_float("color", (1,1,1,1))
 
     m = Matrix(ob.matrix_world)        
-    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
-    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')     
+    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')  
 
     disk = []
     for pt in s_diskLight:
@@ -856,7 +852,6 @@ def draw_portal_light(ob):
 
     m = Matrix(ob.matrix_world)        
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
-    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
 
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
