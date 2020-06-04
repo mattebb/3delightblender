@@ -2901,9 +2901,9 @@ def export_camera_render_preview(ri, scene):
 
 def export_options(ri, scene):
     rm = scene.renderman
-    params = {'int geocachememory': rm.geo_cache_size * 100,
-              'int opacitycachememory': rm.opacity_cache_size * 100,
-              'int texturememory': rm.texture_cache_size * 100,
+    params = {'int geocachememory': rm.geo_cache_size,
+              'int opacitycachememory': rm.opacity_cache_size,
+              'int texturememory': rm.texture_cache_size,
               }
     ri.Option("limits", params)
     if rm.asfinal:
