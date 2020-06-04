@@ -893,9 +893,9 @@ class RmanScene(object):
             options.SetInteger(self.rman.Tokens.Rix.k_threads, rm.threads)
 
         # cache sizes
-        options.SetInteger(self.rman.Tokens.Rix.k_limits_geocachememory, rm.limits_geocachememory * 100)
-        options.SetInteger(self.rman.Tokens.Rix.k_limits_opacitycachememory, rm.limits_opacitycachememory * 100)
-        options.SetInteger(self.rman.Tokens.Rix.k_limits_texturememory, rm.limits_texturememory * 100)
+        options.SetInteger(self.rman.Tokens.Rix.k_limits_geocachememory, rm.limits_geocachememory)
+        options.SetInteger(self.rman.Tokens.Rix.k_limits_opacitycachememory, rm.limits_opacitycachememory)
+        options.SetInteger(self.rman.Tokens.Rix.k_limits_texturememory, rm.limits_texturememory)
 
         # pixelfilter
         options.SetString(self.rman.Tokens.Rix.k_Ri_PixelFilterName, rm.ri_displayFilter)
