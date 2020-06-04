@@ -144,6 +144,8 @@ def _detect_primitive_(ob):
             if is_fluid(ob):
                 return 'FLUID'            
             return 'MESH'
+        elif ob.type == 'VOLUME':
+            return 'OPENVDB'
         elif ob.type == 'LIGHT':
             if ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
                 return 'LIGHTFILTER'

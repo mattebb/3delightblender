@@ -7,7 +7,7 @@
             "label": "Primitive Type",
             "type": "string",
             "widget": "mapper",
-            "options": "Automatic:AUTO|Mesh:MESH|Volume:RI_VOLUME|Points:POINTS|Quadric:QUADRIC|OpenVDB File:OPENVDB|RIB Archive:DELAYED_LOAD_ARCHIVE|RunProgram:PROCEDURAL_RUN_PROGRAM|Dynamic Load DSO:DYNAMIC_LOAD_DSO",
+            "options": "Automatic:AUTO|Mesh:MESH|Volume:RI_VOLUME|Points:POINTS|Quadric:QUADRIC|RIB Archive:DELAYED_LOAD_ARCHIVE|RunProgram:PROCEDURAL_RUN_PROGRAM|Dynamic Load DSO:DYNAMIC_LOAD_DSO",
             "default": "AUTO",            
             "page": "",
             "help": "Representation of this object's geometry in the renderer. "
@@ -239,68 +239,7 @@
             "page": "",
             "widget": "fileinput",
             "help": "Path to archive file"
-        }, 
-
-        {
-            "panel": "OBJECT_PT_renderman_object_geometry_openvdb",
-            "name": "openvdb_path",
-            "label": "OpenVDB Path",
-            "type": "string",
-            "default": "",
-            "page": "",
-            "widget": "fileinput",
-            "help": "Path to OpenVDB file"
-        }, 
-        {
-            "panel": "OBJECT_PT_renderman_object_geometry_openvdb",
-            "name": "openvdb_bounds",
-            "label": "OpenVDB Bounds",
-            "type": "string",
-            "default": "BLENDER_OBJECT",
-            "page": "",
-            "widget": "mapper",
-            "options": "Blender Object:BLENDER_OBJECT|Manual:MANUAL",
-            "help": "The bounding box of the renderable geometry.\nBlender Object: Use the blender object's bounding box for the archive's bounds.\nManual: Manually enter coordinates."
-        }, 
-        {
-            "panel": "OBJECT_PT_renderman_object_geometry_openvdb",
-            "name": "openvdb_bounds_min",
-            "label": "Min Bounds",
-            "type": "float",
-            "size": 3,
-            "default":[
-                0.0,
-                0.0,
-                0.0
-            ],
-            "page": "",            
-            "help": "Minimum corner of bounding box",
-            "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "openvdb_bounds",
-                "conditionalVisValue": "MANUAL"
-            }            
-        },  
-        {
-            "panel": "OBJECT_PT_renderman_object_geometry_openvdb",
-            "name": "openvdb_bounds_max",
-            "label": "Max Bounds",
-            "type": "float",
-            "size": 3,
-            "default":[
-                1.0,
-                1.0,
-                1.0
-            ],
-            "page": "",            
-            "help": "Maximum corner of bounding box",
-            "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "openvdb_bounds",
-                "conditionalVisValue": "MANUAL"
-            }             
-        },   
-        
+        },         
         {
             "panel": "OBJECT_PT_renderman_object_geometry_points",
             "name": "primitive_point_width",
