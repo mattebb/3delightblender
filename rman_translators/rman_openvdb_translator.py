@@ -3,6 +3,7 @@ from ..rman_sg_nodes.rman_sg_openvdb import RmanSgOpenVDB
 from ..rman_utils import filepath_utils
 from ..rman_utils import transform_utils
 from ..rman_utils import string_utils
+from ..rfb_logger import rfb_log
 
 class RmanOpenVDBTranslator(RmanTranslator):
 
@@ -33,7 +34,11 @@ class RmanOpenVDBTranslator(RmanTranslator):
         primvar = rman_sg_openvdb.sg_node.GetPrimVars()
 
         grids = db.grids
-        grids.load()
+        if not grids.is_loaded:
+            if not grids.load():
+                rfb_log().error("Could not load grids and metadata for volume: %s" % ob.name)
+                return
+
         active_index = grids.active_index
         active_grid = grids[active_index]        
 
@@ -46,7 +51,9 @@ class RmanOpenVDBTranslator(RmanTranslator):
                 primvar.SetFloatDetail(grid.name, [], "varying")
             elif grid.data_type in ['VECTOR_FLOAT', 'VECTOR_DOUBLE', 'VECTOR_INT']:
                 primvar.SetVectorDetail(grid.name, [], "varying")
-            elif grid.data_type in ['INT', 'INT64']:
+            elif grid.data_type in ['INT', 'INT64', 'BOOLEAN']:
                 primvar.SetIntegerDetail(grid.name, [], "varying")
+            elif grid.data_type == 'STRING':
+                primvar.SetStringDetail(grid.name, [], "uniform")
 
         rman_sg_openvdb.sg_node.SetPrimVars(primvar)         
