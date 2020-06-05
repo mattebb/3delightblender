@@ -1,23 +1,15 @@
 import bpy
-from bpy.props import EnumProperty, PointerProperty
+from bpy.props import EnumProperty
 from ..rman_render import RmanRender
 from .. import rman_bl_nodes
 
 __HIDDEN_INTEGRATORS__ = ['PxrValidateBxdf', 'PxrDebugShadingContext']
 
-class RendermanViewportProperties(bpy.types.PropertyGroup):
-
-    def update_viewport_integrator(self, context):
-        rman_render = RmanRender.get_rman_render()
-        if rman_render.rman_interactive_running:
-            rman_render.rman_scene.update_viewport_integrator(context, self.viewport_integrator)
-
-    def update_hider_decidither(self, context):
-        rman_render = RmanRender.get_rman_render()
-        if rman_render.rman_interactive_running:
-            rm = context.scene.renderman
-            rm.hider_decidither = int(self.viewport_hider_decidither)
-            rman_render.rman_scene.update_hider_options(context) 
+class PRMAN_OT_Viewport_Integrators(bpy.types.Operator):
+    bl_idname = "renderman_viewport.change_integrator"
+    bl_label = "Select Integrator"
+    bl_description = "Quickly change integrators during viewport renders. Does not change the scene integrator."
+    bl_options = {"REGISTER", "UNDO"}    
 
     def viewport_integrator_items(self, context):
         items = []
@@ -30,14 +22,25 @@ class RendermanViewportProperties(bpy.types.PropertyGroup):
         return items
 
     viewport_integrator: EnumProperty(name="Viewport Integrator",
-                                      description="Quickly change integrators during viewport renders. Does not change the scene integrator.",
-                                      items=viewport_integrator_items,
-                                      update=update_viewport_integrator
-                                    )
+                                      description="Viewport integrator",
+                                      items=viewport_integrator_items
+                                    )    
 
+    def execute(self, context):
+        rman_render = RmanRender.get_rman_render()
+        if rman_render.rman_interactive_running:
+            rman_render.rman_scene.update_viewport_integrator(context, self.viewport_integrator)
+
+        return {"FINISHED"}    
+
+class PRMAN_OT_Viewport_Refinement(bpy.types.Operator):
+    bl_idname = "renderman_viewport.change_refinement"
+    bl_label = "Refinement"
+    bl_description = "This value determines how much refinement (in a dither pattern) will be applied to the image during interactive rendering. 0 means full refinement up to a value of 6 which is the least refinement per iteration."
+    bl_options = {"REGISTER", "UNDO"}    
 
     viewport_hider_decidither: EnumProperty(name="Interactive Refinement",
-                                      description="This value determines how much refinement (in a dither pattern) will be applied to the image during interactive rendering. 0 means full refinement up to a value of 6 which is the least refinement per iteration.",
+                                      description="",
                                       items=[
                                           ("0", "0", ""),
                                           ("1", "1", ""),
@@ -47,9 +50,17 @@ class RendermanViewportProperties(bpy.types.PropertyGroup):
                                           ("5", "5", ""),
                                           ("6", "6", ""),
                                       ],
-                                      default="0",
-                                      update=update_hider_decidither
+                                      default="0"
                                     )
+
+    def execute(self, context):
+        rman_render = RmanRender.get_rman_render()
+        if rman_render.rman_interactive_running:
+            rm = context.scene.renderman
+            rm.hider_decidither = int(self.viewport_hider_decidither)
+            rman_render.rman_scene.update_hider_options(context) 
+
+        return {"FINISHED"}                                                   
 
 def draw_rman_viewport_props(self, context):
     layout = self.layout
@@ -58,12 +69,11 @@ def draw_rman_viewport_props(self, context):
     if context.engine == "PRMAN_RENDER":
         view = context.space_data
         rman_render = RmanRender.get_rman_render()
-        rm_viewport = scene.renderman_viewport
         if view.shading.type == 'RENDERED':
             # integrators menu
-            layout.prop(rm_viewport, 'viewport_integrator', text='')
+            layout.operator_menu_enum('renderman_viewport.change_integrator', 'viewport_integrator', text='Select Integrator')
             # decidither
-            layout.prop(rm_viewport, 'viewport_hider_decidither', text='')
+            layout.operator_menu_enum('renderman_viewport.change_refinement', 'viewport_hider_decidither', text='Refinement')
             
         else:
             # stop rendering if we're not in viewport rendering
@@ -71,7 +81,8 @@ def draw_rman_viewport_props(self, context):
                 rman_render.stop_render()
 
 classes = [
-    RendermanViewportProperties
+    PRMAN_OT_Viewport_Integrators,
+    PRMAN_OT_Viewport_Refinement
 ]
 
 def register():
@@ -80,9 +91,6 @@ def register():
         bpy.utils.register_class(cls)
 
     bpy.types.VIEW3D_HT_header.append(draw_rman_viewport_props)
-    bpy.types.Scene.renderman_viewport = PointerProperty(
-        type=RendermanViewportProperties, name="Renderman Viewport Properties"
-    )
 
 def unregister():
 
