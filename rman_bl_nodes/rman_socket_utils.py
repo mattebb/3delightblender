@@ -9,9 +9,9 @@ __RMAN_SOCKET_MAP__ = {
     'int': 'RendermanNodeSocketInt',
     'integer': 'RendermanNodeSocketInt',
     'struct': 'RendermanNodeSocketStruct',
-    'normal': 'RendermanNodeSocketVector',
+    'normal': 'RendermanNodeSocketNormal',
     'vector': 'RendermanNodeSocketVector',
-    'point': 'RendermanNodeSocketVector',
+    'point': 'RendermanNodeSocketPoint',
     'void': 'RendermanNodeSocketStruct',
     'vstruct': 'RendermanNodeSocketStruct',
     'bxdf': 'RendermanNodeSocketBxdf'
@@ -115,4 +115,3 @@ def node_add_outputs(node):
         rman_type = meta['renderman_type']
         if rman_type in __RMAN_SOCKET_MAP__ and 'vstructmember' not in meta:
             socket = node.outputs.new(__RMAN_SOCKET_MAP__[rman_type], name)
-            socket.label = name

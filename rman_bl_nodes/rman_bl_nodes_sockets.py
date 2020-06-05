@@ -195,6 +195,32 @@ class RendermanNodeSocketVector(RendermanSocket, bpy.types.NodeSocketVector):
     def draw_color(self, context, node):
         return (.25, .25, .75, 1.0)
 
+class RendermanNodeSocketNormal(RendermanSocket, bpy.types.NodeSocketVector):
+    '''RenderMan normal input/output'''
+    bl_idname = 'RendermanNodeSocketNormal'
+    bl_label = 'RenderMan Normal Socket'
+    hide_value = True
+
+    default_value: FloatVectorProperty(size=3,
+                                        subtype="EULER", update=update_func)
+    renderman_type: StringProperty(default='normal')
+
+    def draw_color(self, context, node):
+        return (.25, .25, .75, 1.0)
+
+class RendermanNodeSocketPoint(RendermanSocket, bpy.types.NodeSocketVector):
+    '''RenderMan point input/output'''
+    bl_idname = 'RendermanNodeSocketPoint'
+    bl_label = 'RenderMan Point Socket'
+    hide_value = True
+
+    default_value: FloatVectorProperty(size=3,
+                                        subtype="EULER", update=update_func)
+    renderman_type: StringProperty(default='point')
+
+    def draw_color(self, context, node):
+        return (.25, .25, .75, 1.0)                
+
 
 class RendermanNodeSocketInterfaceVector(bpy.types.NodeSocketInterfaceVector, RendermanSocketInterface):
     '''RenderMan color input/output'''
@@ -208,6 +234,45 @@ class RendermanNodeSocketInterfaceVector(bpy.types.NodeSocketInterfaceVector, Re
 
     def draw_color(self, context):
         return (.25, .25, .75, 1.0)
+
+class RendermanNodeSocketInterfaceVector(bpy.types.NodeSocketInterfaceVector, RendermanSocketInterface):
+    '''RenderMan color input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceVector'
+    bl_label = 'RenderMan Vector Socket'
+    bl_socket_idname = 'RendermanNodeSocketVector'
+    hide_value = True
+
+    default_value: FloatVectorProperty(size=3,
+                                        subtype="EULER")
+
+    def draw_color(self, context):
+        return (.25, .25, .75, 1.0)
+
+class RendermanNodeSocketInterfaceNormal(bpy.types.NodeSocketInterfaceVector, RendermanSocketInterface):
+    '''RenderMan color input/output'''
+    bl_idname = 'RendermanNodeSocketInterfaceNormal'
+    bl_label = 'RenderMan Normal Socket'
+    bl_socket_idname = 'RendermanNodeSocketNormal'
+    hide_value = True
+
+    default_value: FloatVectorProperty(size=3,
+                                        subtype="EULER")
+
+    def draw_color(self, context):
+        return (.25, .25, .75, 1.0)
+
+class RendermanNodeSocketInterfacePoint(bpy.types.NodeSocketInterfaceVector, RendermanSocketInterface):
+    '''RenderMan color input/output'''
+    bl_idname = 'RendermanNodeSocketInterfacePoint'
+    bl_label = 'RenderMan Point Socket'
+    bl_socket_idname = 'RendermanNodeSocketPoint'
+    hide_value = True
+
+    default_value: FloatVectorProperty(size=3,
+                                        subtype="EULER")
+
+    def draw_color(self, context):
+        return (.25, .25, .75, 1.0)                        
 
 class RendermanNodeSocketLight(bpy.types.NodeSocketString, RendermanSocket):
     '''RenderMan light input/output'''
@@ -325,6 +390,8 @@ classes = [
     RendermanNodeSocketInt,
     RendermanNodeSocketString,
     RendermanNodeSocketVector,
+    RendermanNodeSocketNormal,
+    RendermanNodeSocketPoint,
     RendermanNodeSocketStruct,
     RendermanNodeSocketBxdf,
     RendermanNodeSocketLight,
@@ -346,6 +413,8 @@ classes = [
     RendermanNodeSocketInterfaceIntegrator,
     RendermanNodeSocketInterfaceColor,
     RendermanNodeSocketInterfaceVector,
+    RendermanNodeSocketInterfaceNormal,
+    RendermanNodeSocketInterfacePoint,
     RendermanShaderSocketInterface
 ]
 
