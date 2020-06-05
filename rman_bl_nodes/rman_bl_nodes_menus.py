@@ -117,7 +117,7 @@ class NODE_MT_renderman_connection_menu(Menu):
                             op = layout.operator('node.rman_shading_create_node', text=n.name)
                         op.node_name = '%sPatternNode' % n.name
                         if n.path.endswith('.oso'):
-                            op.node_name = '%sOSLPatternNode' % n.name
+                            op.node_name = '%sPatternOSLNode' % n.name
                         break                                   
 
         elif renderman_type == 'bxdf':
@@ -304,7 +304,7 @@ def register_renderman_pattern_node_submenus():
                             op = layout.operator('node.rman_shading_create_node', text=label)
                         op.node_name = '%sPatternNode' % n.name
                         if n.path.endswith('.oso'):
-                            op.node_name = '%sOSLPatternNode' % n.name
+                            op.node_name = '%sPatternOSLNode' % n.name
                         break   
 
 
