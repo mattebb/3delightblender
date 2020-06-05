@@ -29,20 +29,19 @@ class RmanOpenVDBTranslator(RmanTranslator):
             return
 
         openvdb_file = filepath_utils.get_real_path(db.filepath)
-        grids = db.grids
-
-        active_index = grids.active_index
-
         bounds = transform_utils.convert_ob_bounds(ob.bound_box)
         primvar = rman_sg_openvdb.sg_node.GetPrimVars()
 
+        grids = db.grids
+        grids.load()
+        active_index = grids.active_index
+        active_grid = grids[active_index]        
+
         primvar.SetString(self.rman_scene.rman.Tokens.Rix.k_Ri_type, "blobbydso:impl_openvdb")
         primvar.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_Bound, string_utils.convert_val(bounds), 6)
+        primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_blobbydso_stringargs, [openvdb_file, "%s:fogvolume" % active_grid.name], 2)
 
         for i, grid in enumerate(grids):
-            if i == active_index:
-                primvar.SetStringArray(self.rman_scene.rman.Tokens.Rix.k_blobbydso_stringargs, [openvdb_file, "%s:fogvolume" % grid.name], 2)
-
             if grid.data_type in ['FLOAT', 'DOUBLE']:
                 primvar.SetFloatDetail(grid.name, [], "varying")
             elif grid.data_type in ['VECTOR_FLOAT', 'VECTOR_DOUBLE', 'VECTOR_INT']:
