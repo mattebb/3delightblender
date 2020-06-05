@@ -901,7 +901,18 @@ class RmanScene(object):
         options.SetString(self.rman.Tokens.Rix.k_Ri_PixelFilterName, rm.ri_displayFilter)
         options.SetFloatArray(self.rman.Tokens.Rix.k_Ri_PixelFilterWidth, (rm.ri_displayFilterSize[0], rm.ri_displayFilterSize[1]), 2)
 
-        options.SetInteger(self.rman.Tokens.Rix.k_checkpoint_asfinal, int(rm.checkpoint_asfinal))
+        # checkpointing
+        if not self.is_interactive and rm.enable_checkpoint:
+            if rm.checkpoint_interval != '':
+                interval_tokens = rm.checkpoint_interval.split()
+                if len(interval_tokens) > 0:
+                    options.SetStringArray(self.rman.Tokens.Rix.k_checkpoint_interval, interval_tokens, len(interval_tokens) )
+            if rm.checkpoint_exitat != '':
+                exitat_tokens = rm.checkpoint_exitat.split()
+                if len(exitat_tokens) > 0:
+                    options.SetStringArray(self.rman.Tokens.Rix.k_checkpoint_interval, exitat_tokens, len(exitat_tokens) )
+
+            options.SetInteger(self.rman.Tokens.Rix.k_checkpoint_asfinal, int(rm.checkpoint_asfinal))
         
         # Set frame number 
         options.SetInteger(self.rman.Tokens.Rix.k_Ri_Frame, self.bl_scene.frame_current)

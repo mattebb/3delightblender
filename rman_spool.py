@@ -190,13 +190,6 @@ class RmanSpool(object):
                                                 asFilePath=True)
             cmd_str = ['prman', '-Progress', '-cwd', self.quote(cdir), '-t:%d' %
                     threads, self.quote(rib_file)]
-            if rm.enable_checkpoint:
-                if rm.render_limit == 0:
-                    cmd_str.insert(5, '-checkpoint %d%s' %
-                                (rm.checkpoint_interval, rm.checkpoint_type))
-                else:
-                    cmd_str.insert(5, '-checkpoint %d%s,%d%s' % (
-                        rm.checkpoint_interval, rm.checkpoint_type, rm.render_limit, rm.checkpoint_type))
             if rm.recover:
                 cmd_str.insert(5, '-recover 1')
             if rm.custom_cmd != '':

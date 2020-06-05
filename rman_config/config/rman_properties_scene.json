@@ -382,7 +382,7 @@
                 "conditionalVisPath": "rman_autoBias",
                 "conditionalVisValue": 1
             }
-        },                
+        },                                  
         {
             "panel": "RENDER_PT_renderman_motion_blur",
             "name": "motion_blur",
@@ -516,6 +516,61 @@
             ],
             "connectable": false
         },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Checkpointing",
+            "name": "enable_checkpoint",
+            "label": "Enable Checkpointing",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Allows partial images to be output at specific intervals while the renderer continued to run.  The user may also set a point at which the render will terminate"
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Checkpointing",
+            "name": "checkpoint_asfinal",
+            "label": "Final Image as Checkpoint",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Saves the final image as a checkpoint.  This allows you to resume it after raising the sample count",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "enable_checkpoint",
+                "conditionalVisValue": "1"
+            }              
+        },      
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Checkpointing",
+            "name": "checkpoint_interval",
+            "label": "Interval",
+            "type": "string",
+            "default": "",
+            "widget": false,           
+            "help": "Write framebuffers to disk every N progressive steps. Can be a sequence of intervals. Values can take strings to denote the unit to consider. 'i' for Iterations; 's' for Seconds; 'm' for Minutes; 'h' for Hours; 'd' for Days. Ex: 10s 10i 1d",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "enable_checkpoint",
+                "conditionalVisValue": "1"
+            }              
+        },             
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "Checkpointing",
+            "name": "checkpoint_exitat",
+            "label": "Exit At",
+            "type": "string",
+            "default": "",
+            "widget": false,           
+            "help": "The maximum interval that will be reached before the render terminates.  0 will disable this option.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "enable_checkpoint",
+                "conditionalVisValue": "1"
+            }              
+        },          
         {
             "panel": "RENDER_PT_renderman_advanced_settings",
             "name": "opt_bucket_order",
@@ -986,7 +1041,17 @@
             "widget": "mapper",
             "options": "LocalQueue:lq|Tractor:tractor|None:none",
             "help": "System to spool to. None will generate RIB files, but not spool a render."
-        },                
+        },       
+        {
+            "panel": "RENDER_PT_renderman_spooling_export_options",
+            "page": "",
+            "name": "recover",
+            "label": "Enable Recovery",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Attempt to resume render from a previous checkpoint (if possible)."
+        },                 
         {
             "panel": "RENDER_PT_renderman_spooling_export_options",
             "page": "RIB Options",
@@ -1045,88 +1110,7 @@
             "default": 0,
             "widget": "checkbox",
             "help": "The denoiser will attempt to use the GPU (if available)"
-        },
-        {
-            "panel": "RENDER_PT_renderman_spooling_export_options",
-            "page": "Checkpointing/Recover",
-            "name": "recover",
-            "label": "Enable Recovery",
-            "type": "int",
-            "default": 0,
-            "widget": "checkbox",
-            "help": "Attempt to resume render from a previous checkpoint (if possible)."
-        },
-        {
-            "panel": "RENDER_PT_renderman_spooling_export_options",
-            "page": "Checkpointing/Recover",
-            "name": "enable_checkpoint",
-            "label": "Enable Checkpointing",
-            "type": "int",
-            "default": 0,
-            "widget": "checkbox",
-            "help": "Allows partial images to be output at specific intervals while the renderer continued to run.  The user may also set a point at which the render will terminate"
-        },
-        {
-            "panel": "RENDER_PT_renderman_spooling_export_options",
-            "page": "Checkpointing/Recover",
-            "name": "checkpoint_asfinal",
-            "label": "Final Image as Checkpoint",
-            "type": "string",
-            "default": 0,
-            "widget": "checkbox",
-            "help": "Saves the final image as a checkpoint.  This allows you to resume it after raising the sample count",
-            "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "enable_checkpoint",
-                "conditionalVisValue": "1"
-            }              
-        }, 
-        {
-            "panel": "RENDER_PT_renderman_spooling_export_options",
-            "page": "Checkpointing/Recover",
-            "name": "checkpoint_type",
-            "label": "Checkpoint Method",
-            "type": "string",
-            "default": "s",
-            "widget": "mapper",
-            "options": "Iterations:i|Seconds:s|Minutes:m|Hours:h|Days:d",            
-            "help": "Sets the method that the checkpointing will use",
-            "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "enable_checkpoint",
-                "conditionalVisValue": "1"
-            }              
-        },        
-        {
-            "panel": "RENDER_PT_renderman_spooling_export_options",
-            "page": "Checkpointing/Recover",
-            "name": "checkpoint_interval",
-            "label": "Interval",
-            "type": "int",
-            "default": 60,
-            "widget": false,           
-            "help": "The interval between checkpoint images",
-            "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "enable_checkpoint",
-                "conditionalVisValue": "1"
-            }              
-        },             
-        {
-            "panel": "RENDER_PT_renderman_spooling_export_options",
-            "page": "Checkpointing/Recover",
-            "name": "checkpoint_exitat",
-            "label": "Exit At",
-            "type": "int",
-            "default": 0,
-            "widget": false,           
-            "help": "The maximum interval that will be reached before the render terminates.  0 will disable this option.",
-            "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "enable_checkpoint",
-                "conditionalVisValue": "1"
-            }              
-        },                  
+        },      
         {
             "panel": "RENDER_PT_renderman_sampling_ipr",
             "page": "",
