@@ -60,7 +60,34 @@ class PRMAN_OT_Viewport_Refinement(bpy.types.Operator):
             rm.hider_decidither = int(self.viewport_hider_decidither)
             rman_render.rman_scene.update_hider_options(context) 
 
-        return {"FINISHED"}                                                   
+        return {"FINISHED"}        
+
+class PRMAN_OT_Viewport_Resolution_Mult(bpy.types.Operator):
+    bl_idname = "renderman_viewport.change_resolution_mult"
+    bl_label = "Res Mult"
+    bl_description = "Lower the resolution of the viewport. This can help speed up renders."
+    bl_options = {"REGISTER", "UNDO"}    
+
+    viewport_res_mult: EnumProperty(name="Resolution Multiplier",
+                                      description="",
+                                      items=[
+                                          ("1.0", "100%", ""),
+                                          ("0.5", "50%", ""),
+                                          ("0.33", "33%", ""),
+                                          ("0.25", "25%", ""),
+                                          ("0.125", "12.5%", "")
+                                      ],
+                                      default="1.0"
+                                    )
+
+    def execute(self, context):
+        rman_render = RmanRender.get_rman_render()
+        if rman_render.rman_interactive_running:
+            rm = context.scene.renderman
+            rm.viewport_render_res_mult = float(self.viewport_res_mult)
+            rman_render.rman_scene.update_viewport_res_mult(context) 
+
+        return {"FINISHED"}                                                       
 
 def draw_rman_viewport_props(self, context):
     layout = self.layout
@@ -74,6 +101,8 @@ def draw_rman_viewport_props(self, context):
             layout.operator_menu_enum('renderman_viewport.change_integrator', 'viewport_integrator', text='Select Integrator')
             # decidither
             layout.operator_menu_enum('renderman_viewport.change_refinement', 'viewport_hider_decidither', text='Refinement')
+            # resolution mult
+            layout.operator_menu_enum('renderman_viewport.change_resolution_mult', 'viewport_res_mult', text='Res Mult')
             
         else:
             # stop rendering if we're not in viewport rendering
@@ -82,7 +111,8 @@ def draw_rman_viewport_props(self, context):
 
 classes = [
     PRMAN_OT_Viewport_Integrators,
-    PRMAN_OT_Viewport_Refinement
+    PRMAN_OT_Viewport_Refinement,
+    PRMAN_OT_Viewport_Resolution_Mult
 ]
 
 def register():

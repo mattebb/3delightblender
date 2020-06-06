@@ -34,7 +34,16 @@
             "default": 0,
             "widget": "checkbox",
             "help": "(hidden) Enable external RIB rendering"
-        },        
+        },  
+        {
+            "panel": "",
+            "page": "",
+            "name": "viewport_render_res_mult",
+            "label": "Viewport Render Resolution Multiplier",
+            "type": "float",
+            "default": 1.0,
+            "help": "(hidden) Viewport render resolution multiplier"
+        },                    
         {
             "panel": "RENDER_PT_renderman_render",
             "page": "",

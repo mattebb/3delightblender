@@ -1329,7 +1329,7 @@ class RmanScene(object):
                 integrator = bl_integrator_node.bl_label
    
         self.rman_render.bl_engine.update_stats('RenderMan (Stats)', 
-                                                '\nIntegrator: %s\nMin Samples: %d\nMax Samples: %d\nInteractive Refinement: %d' % (integrator, rm.ipr_hider_minSamples, rm.ipr_hider_maxSamples, rm.hider_decidither))
+                                                '\nIntegrator: %s\nMin Samples: %d\nMax Samples: %d\nInteractive Refinement: %d\nResolution Multiplier: %d%%' % (integrator, rm.ipr_hider_minSamples, rm.ipr_hider_maxSamples, rm.hider_decidither, int(rm.viewport_render_res_mult*100)))
 
 ### UPDATE METHODS
 #------------------------
@@ -1733,7 +1733,17 @@ class RmanScene(object):
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
             integrator_sg = self.rman.SGManager.RixSGShader("Integrator", integrator, "integrator")       
             self.sg_scene.SetIntegrator(integrator_sg)     
-            self.export_viewport_stats(integrator=integrator)        
+            self.export_viewport_stats(integrator=integrator)  
+
+    def update_viewport_res_mult(self, context):
+        if not self.is_viewport_render:
+            return
+        self.bl_scene = context.scene            
+        rman_sg_camera = self.main_camera
+        translator = self.rman_translators['CAMERA']
+        with self.rman.SGManager.ScopedEdit(self.sg_scene):
+            translator.update(None, rman_sg_camera) 
+            self.export_viewport_stats()                  
 
     def update_hider_options(self, context):
         self.bl_scene = context.scene

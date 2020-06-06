@@ -131,6 +131,10 @@ class RmanCameraTranslator(RmanTranslator):
         region_data = self.rman_scene.context.region_data
         width = region.width
         height = region.height
+
+        # get the current resolution multiplier
+        res_mult = self.rman_scene.bl_scene.renderman.viewport_render_res_mult
+
         proj = None
         fov = -1
 
@@ -181,9 +185,8 @@ class RmanCameraTranslator(RmanTranslator):
             r = self.rman_scene.bl_scene.render
 
             xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
-
-            # 2.25 zoom value copied from blenderseed
-            #zoom = 2.25        
+ 
+            # magic zoom formula copied from blenderseed, which got it from cycles
             zoom = 4 / ((math.sqrt(2) + self.rman_scene.context.region_data.view_camera_zoom / 50) ** 2)           
 
             lens = self.rman_scene.context.space_data.lens
