@@ -129,11 +129,12 @@ class RmanCameraTranslator(RmanTranslator):
     def _update_viewport_cam(self, rman_sg_camera):
         region = self.rman_scene.context.region
         region_data = self.rman_scene.context.region_data
-        width = region.width
-        height = region.height
 
         # get the current resolution multiplier
         res_mult = self.rman_scene.bl_scene.renderman.viewport_render_res_mult
+
+        width = int(region.width * res_mult)
+        height = int(region.height * res_mult)
 
         proj = None
         fov = -1

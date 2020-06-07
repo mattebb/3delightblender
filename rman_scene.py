@@ -1742,7 +1742,8 @@ class RmanScene(object):
         rman_sg_camera = self.main_camera
         translator = self.rman_translators['CAMERA']
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
-            translator.update(None, rman_sg_camera) 
+            translator.update(None, rman_sg_camera)
+            translator.update_transform(None, rman_sg_camera)
             self.export_viewport_stats()                  
 
     def update_hider_options(self, context):

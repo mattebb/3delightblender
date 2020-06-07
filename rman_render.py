@@ -496,9 +496,11 @@ class RmanRender(object):
                          ext = '.dll'
                     __BLENDER_DSPY_PLUGIN__ = ctypes.CDLL(os.path.join(filepath_utils.guess_rmantree(), 'lib', 'plugins', 'd_blender%s' % ext))
 
-                # call the DrawBufferToBlender function in the display driver
-                __BLENDER_DSPY_PLUGIN__.DrawBufferToBlender()
-                   
+                # (the driver will handle pixel scaling to the given viewport size)
+                region = self.rman_scene.context.region
+                __BLENDER_DSPY_PLUGIN__.DrawBufferToBlender(ctypes.c_int(region.width),
+                                                            ctypes.c_int(region.height))
+
             except:
                 pass
 
