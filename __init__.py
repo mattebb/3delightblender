@@ -157,7 +157,7 @@ class PRManRender(bpy.types.RenderEngine):
         bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
         self.bind_display_space_shader(scene)
 
-        self.rman_render.draw_pixels() 
+        self.rman_render.draw_pixels(w, h)
 
         self.unbind_display_space_shader()
         bgl.glDisable(bgl.GL_BLEND)        

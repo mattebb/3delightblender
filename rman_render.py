@@ -485,7 +485,7 @@ class RmanRender(object):
         self.rman_scene.reset()
         rfb_log().debug("RenderMan has Stopped.")
                 
-    def draw_pixels(self):
+    def draw_pixels(self, width, height):
         if self.rman_is_viewport_rendering:
             global __BLENDER_DSPY_PLUGIN__
             try:
@@ -497,9 +497,7 @@ class RmanRender(object):
                     __BLENDER_DSPY_PLUGIN__ = ctypes.CDLL(os.path.join(filepath_utils.guess_rmantree(), 'lib', 'plugins', 'd_blender%s' % ext))
 
                 # (the driver will handle pixel scaling to the given viewport size)
-                region = self.rman_scene.context.region
-                __BLENDER_DSPY_PLUGIN__.DrawBufferToBlender(ctypes.c_int(region.width),
-                                                            ctypes.c_int(region.height))
+                __BLENDER_DSPY_PLUGIN__.DrawBufferToBlender(ctypes.c_int(width), ctypes.c_int(height))
 
             except:
                 pass
