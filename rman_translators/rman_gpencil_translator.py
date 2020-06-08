@@ -60,9 +60,10 @@ class RmanGPencilTranslator(RmanTranslator):
             verts.append(t.v1)
             verts.append(t.v2)
             verts.append(t.v3)
-            st.extend(t.uv1)
-            st.extend(t.uv2)
-            st.extend(t.uv3)            
+            if hasattr(t, 'uv1'):
+                st.extend(t.uv1)
+                st.extend(t.uv2)
+                st.extend(t.uv3)            
 
             '''
             # move each point in the normal direction a little bit
@@ -89,7 +90,8 @@ class RmanGPencilTranslator(RmanTranslator):
 
         primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
         primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")  
-        primvar.SetFloatArrayDetail("st", st, 2, "facevarying")  
+        if st:
+            primvar.SetFloatArrayDetail("st", st, 2, "facevarying")  
         mesh_sg.SetPrimVars(primvar)
         if rman_sg_material:
             mesh_sg.SetMaterial(rman_sg_material.sg_fill_mat)         

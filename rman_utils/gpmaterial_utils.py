@@ -65,18 +65,15 @@ def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
         params.SetStructReference("manifold", '%s:result' % manifold_handle)       
 
         params = bxdf.params
-        if gp_mat.use_stroke_pattern:
-            params.SetColor("emitColor", col)
-        elif gp_mat.use_stroke_texture_mix:
-            mix_handle = '%s-PxrToMix' % handle
-            mix = rman.SGManager.RixSGShader("Pattern", "PxrMix", mix_handle) 
-            mix.params.SetColorReference("color1", '%s:resultRGB' % texture_handle)                                             
-            mix.params.SetColor("color2", col)
-            mix.params.SetFloat("mix", gp_mat.mix_stroke_factor)    
-            mat_sg_nodes.append(mix)  
-            params.SetColorReference("emitColor", '%s:resultRGB' % mix_handle)
-        else:
-            params.SetColorReference("emitColor", '%s:resultRGB' % texture_handle)
+
+        mix_handle = '%s-PxrToMix' % handle
+        mix = rman.SGManager.RixSGShader("Pattern", "PxrMix", mix_handle) 
+        mix.params.SetColorReference("color1", '%s:resultRGB' % texture_handle)                                             
+        mix.params.SetColor("color2", col)
+        mix.params.SetFloat("mix", gp_mat.mix_stroke_factor)    
+        mat_sg_nodes.append(mix)  
+        params.SetColorReference("emitColor", '%s:resultRGB' % mix_handle)
+
         params.SetFloatReference("presence", '%s:resultA' % texture_handle)
         mat_sg_nodes.append(bxdf)
         rman_sg_material.sg_stroke_mat.SetBxdf(mat_sg_nodes)    
@@ -136,18 +133,15 @@ def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
         params.SetStructReference("manifold", '%s:result' % manifold_handle)       
 
         params = bxdf.params
-        if gp_mat.use_fill_pattern:
-            params.SetColor("emitColor", col)
-        elif gp_mat.use_fill_texture_mix:
-            mix_handle = '%s-PxrToMix' % handle
-            mix = rman.SGManager.RixSGShader("Pattern", "PxrMix", mix_handle) 
-            mix.params.SetColorReference("color1", '%s:resultRGB' % texture_handle)                                             
-            mix.params.SetColor("color2", col)
-            mix.params.SetFloat("mix", gp_mat.mix_factor)    
-            mat_sg_nodes.append(mix)  
-            params.SetColorReference("emitColor", '%s:resultRGB' % mix_handle)
-        else:
-            params.SetColorReference("emitColor", '%s:resultRGB' % texture_handle)
+
+        mix_handle = '%s-PxrToMix' % handle
+        mix = rman.SGManager.RixSGShader("Pattern", "PxrMix", mix_handle) 
+        mix.params.SetColorReference("color1", '%s:resultRGB' % texture_handle)                                             
+        mix.params.SetColor("color2", col)
+        mix.params.SetFloat("mix", gp_mat.mix_factor)    
+        mat_sg_nodes.append(mix)  
+        params.SetColorReference("emitColor", '%s:resultRGB' % mix_handle)
+
         params.SetFloatReference("presence", '%s:resultA' % texture_handle)
         mat_sg_nodes.append(bxdf)
         rman_sg_material.sg_fill_mat.SetBxdf(mat_sg_nodes)
@@ -225,9 +219,9 @@ def gp_material_fill_gradient(mat, rman, rman_sg_material, handle):
     manifold_handle = '%s-PxrManifold2D' % handle
     manifold = rman.SGManager.RixSGShader("Pattern", "PxrManifold2D", manifold_handle) 
     params = manifold.params 
-    params.SetFloat("scaleS", gp_mat.pattern_scale[0])
-    params.SetFloat("scaleT", gp_mat.pattern_scale[1])    
-    params.SetFloat("angle", -math.degrees(gp_mat.pattern_angle))  
+    params.SetFloat("scaleS", gp_mat.texture_scale[0])
+    params.SetFloat("scaleT", gp_mat.texture_scale[1])    
+    params.SetFloat("angle", -math.degrees(gp_mat.texture_scale))  
     #params.SetFloat("offsetS", gp_mat.pattern_shift[0]) 
     #params.SetFloat("offsetT", gp_mat.pattern_shift[1])     
     params.SetInteger("invertT", 0)   
