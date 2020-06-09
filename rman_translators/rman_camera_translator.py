@@ -131,7 +131,7 @@ class RmanCameraTranslator(RmanTranslator):
         region_data = self.rman_scene.context.region_data
 
         # get the current resolution multiplier
-        res_mult = self.rman_scene.bl_scene.renderman.viewport_render_res_mult
+        res_mult = self.rman_scene.viewport_render_res_mult
 
         width = int(region.width * res_mult)
         height = int(region.height * res_mult)

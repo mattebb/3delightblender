@@ -1,9 +1,66 @@
 import bpy
-from bpy.props import EnumProperty
+from bpy.props import EnumProperty, StringProperty, IntProperty, FloatProperty
 from ..rman_render import RmanRender
 from .. import rman_bl_nodes
+from ..icons.icons import load_icons
+from bpy.types import Menu
 
 __HIDDEN_INTEGRATORS__ = ['PxrValidateBxdf', 'PxrDebugShadingContext']
+
+class PRMAN_MT_Viewport_Integrator_Menu(Menu):
+    bl_label = "Viewport Integrator Menu"
+    bl_idname = "PRMAN_MT_Viewport_Integrator_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None    
+
+    def draw(self, context):
+        layout = self.layout
+        for node in rman_bl_nodes.__RMAN_INTEGRATOR_NODES__:
+            if node.name not in __HIDDEN_INTEGRATORS__:
+                op = layout.operator('renderman_viewport.change_integrator', text=node.name)
+                op.viewport_integrator = node.name  
+
+
+class PRMAN_MT_Viewport_Refinement_Menu(Menu):
+    bl_label = "Viewport Refinement Menu"
+    bl_idname = "PRMAN_MT_Viewport_Refinement_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None    
+
+    def draw(self, context):
+        layout = self.layout
+        for i in range(0, 7):
+            op = layout.operator('renderman_viewport.change_refinement', text='%d' % i)
+            op.viewport_hider_decidither = i 
+
+class PRMAN_MT_Viewport_Res_Mult_Menu(Menu):
+    bl_label = "Viewport Res Mult Menu"
+    bl_idname = "PRMAN_MT_Viewport_Res_Mult_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None 
+
+    def get_items(self):
+        items=[
+            (1.0, "100%"),
+            (0.5, "50%"),
+            (0.33, "33%"),
+            (0.25, "25%"),
+            (0.125, "12.5%")
+        ]        
+        return items
+
+    def draw(self, context):
+        layout = self.layout
+        for val, nm in self.get_items():
+            op = layout.operator('renderman_viewport.change_resolution_mult', text=nm)
+            op.viewport_res_mult = val
+
 
 class PRMAN_OT_Viewport_Integrators(bpy.types.Operator):
     bl_idname = "renderman_viewport.change_integrator"
@@ -11,19 +68,8 @@ class PRMAN_OT_Viewport_Integrators(bpy.types.Operator):
     bl_description = "Quickly change integrators during viewport renders. Does not change the scene integrator."
     bl_options = {"REGISTER", "UNDO"}    
 
-    def viewport_integrator_items(self, context):
-        items = []
-        items.append(('Select Integrator', 'Select Integrator', '', '', 0))
-        i = 1
-        for node in rman_bl_nodes.__RMAN_INTEGRATOR_NODES__:
-            if node.name not in __HIDDEN_INTEGRATORS__:
-                items.append((node.name, node.name, '', '', i))
-                i += 1
-        return items
-
-    viewport_integrator: EnumProperty(name="Viewport Integrator",
-                                      description="Viewport integrator",
-                                      items=viewport_integrator_items
+    viewport_integrator: StringProperty(name="Viewport Integrator",
+                                      description="Viewport integrator"
                                     )    
 
     def execute(self, context):
@@ -39,18 +85,9 @@ class PRMAN_OT_Viewport_Refinement(bpy.types.Operator):
     bl_description = "This value determines how much refinement (in a dither pattern) will be applied to the image during interactive rendering. 0 means full refinement up to a value of 6 which is the least refinement per iteration."
     bl_options = {"REGISTER", "UNDO"}    
 
-    viewport_hider_decidither: EnumProperty(name="Interactive Refinement",
+    viewport_hider_decidither: IntProperty(name="Interactive Refinement",
                                       description="",
-                                      items=[
-                                          ("0", "0", ""),
-                                          ("1", "1", ""),
-                                          ("2", "2", ""),
-                                          ("3", "3", ""),
-                                          ("4", "4", ""),
-                                          ("5", "5", ""),
-                                          ("6", "6", ""),
-                                      ],
-                                      default="0"
+                                      default=0
                                     )
 
     def execute(self, context):
@@ -68,23 +105,15 @@ class PRMAN_OT_Viewport_Resolution_Mult(bpy.types.Operator):
     bl_description = "Lower the resolution of the viewport. This can help speed up renders."
     bl_options = {"REGISTER", "UNDO"}    
 
-    viewport_res_mult: EnumProperty(name="Resolution Multiplier",
+    viewport_res_mult: FloatProperty(name="Resolution Multiplier",
                                       description="",
-                                      items=[
-                                          ("1.0", "100%", ""),
-                                          ("0.5", "50%", ""),
-                                          ("0.33", "33%", ""),
-                                          ("0.25", "25%", ""),
-                                          ("0.125", "12.5%", "")
-                                      ],
-                                      default="1.0"
+                                      default=1.0
                                     )
 
     def execute(self, context):
         rman_render = RmanRender.get_rman_render()
         if rman_render.rman_interactive_running:
-            rm = context.scene.renderman
-            rm.viewport_render_res_mult = float(self.viewport_res_mult)
+            rman_render.rman_scene.viewport_render_res_mult = float(self.viewport_res_mult)
             rman_render.rman_scene.update_viewport_res_mult(context) 
 
         return {"FINISHED"}                                                       
@@ -97,12 +126,16 @@ def draw_rman_viewport_props(self, context):
         view = context.space_data
         rman_render = RmanRender.get_rman_render()
         if view.shading.type == 'RENDERED':
+            icons = load_icons()
+
             # integrators menu
-            layout.operator_menu_enum('renderman_viewport.change_integrator', 'viewport_integrator', text='Select Integrator')
+            rman_icon = icons.get('rman_vp_viz.png')
+            layout.menu('PRMAN_MT_Viewport_Integrator_Menu', text='', icon_value=rman_icon.icon_id)
             # decidither
-            layout.operator_menu_enum('renderman_viewport.change_refinement', 'viewport_hider_decidither', text='Refinement')
+            layout.menu('PRMAN_MT_Viewport_Refinement_Menu', text='', icon='IMPORT')
             # resolution mult
-            layout.operator_menu_enum('renderman_viewport.change_resolution_mult', 'viewport_res_mult', text='Res Mult')
+            rman_icon = icons.get('rman_vp_resolution.png')
+            layout.menu('PRMAN_MT_Viewport_Res_Mult_Menu', text='', icon_value=rman_icon.icon_id)
             
         else:
             # stop rendering if we're not in viewport rendering
@@ -110,6 +143,9 @@ def draw_rman_viewport_props(self, context):
                 rman_render.stop_render()
 
 classes = [
+    PRMAN_MT_Viewport_Integrator_Menu,
+    PRMAN_MT_Viewport_Refinement_Menu,
+    PRMAN_MT_Viewport_Res_Mult_Menu,
     PRMAN_OT_Viewport_Integrators,
     PRMAN_OT_Viewport_Refinement,
     PRMAN_OT_Viewport_Resolution_Mult

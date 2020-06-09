@@ -110,7 +110,10 @@ class RmanScene(object):
         self.world_df_node = None
         self.default_light = None
 
+        self.viewport_render_res_mult = 1.0
+
         self.create_translators()     
+
 
     def create_translators(self):
 
@@ -158,7 +161,8 @@ class RmanScene(object):
   
         self.render_default_light = False
         self.world_df_node = None
-        self.default_light = None            
+        self.default_light = None        
+        self.viewport_render_res_mult = 1.0    
 
     def export_for_final_render(self, depsgraph, sg_scene, bl_view_layer, is_external=False):
         self.sg_scene = sg_scene
@@ -1329,7 +1333,7 @@ class RmanScene(object):
                 integrator = bl_integrator_node.bl_label
    
         self.rman_render.bl_engine.update_stats('RenderMan (Stats)', 
-                                                '\nIntegrator: %s\nMin Samples: %d\nMax Samples: %d\nInteractive Refinement: %d\nResolution Multiplier: %d%%' % (integrator, rm.ipr_hider_minSamples, rm.ipr_hider_maxSamples, rm.hider_decidither, int(rm.viewport_render_res_mult*100)))
+                                                '\nIntegrator: %s\nMin Samples: %d\nMax Samples: %d\nInteractive Refinement: %d\nResolution Multiplier: %d%%' % (integrator, rm.ipr_hider_minSamples, rm.ipr_hider_maxSamples, rm.hider_decidither, int(self.viewport_render_res_mult*100)))
 
 ### UPDATE METHODS
 #------------------------
@@ -1737,8 +1741,7 @@ class RmanScene(object):
 
     def update_viewport_res_mult(self, context):
         if not self.is_viewport_render:
-            return
-        self.bl_scene = context.scene            
+            return         
         rman_sg_camera = self.main_camera
         translator = self.rman_translators['CAMERA']
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
