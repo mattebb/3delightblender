@@ -160,11 +160,11 @@ def gp_material_fill_checker(mat, rman, rman_sg_material, handle):
     manifold_handle = '%s-PxrManifold2D' % handle
     manifold = rman.SGManager.RixSGShader("Pattern", "PxrManifold2D", manifold_handle) 
     params = manifold.params 
-    params.SetFloat("scaleS", (1/gp_mat.pattern_gridsize) * gp_mat.pattern_scale[0])
-    params.SetFloat("scaleT", (1/gp_mat.pattern_gridsize) * gp_mat.pattern_scale[1])  
-    params.SetFloat("angle", -math.degrees(gp_mat.pattern_angle)) 
-    #params.SetFloat("offsetS", gp_mat.pattern_shift[0]) 
-    #params.SetFloat("offsetT", gp_mat.pattern_shift[1])  
+    params.SetFloat("scaleS", (1/gp_mat.pattern_gridsize) * gp_mat.texture_scale[0])
+    params.SetFloat("scaleT", (1/gp_mat.pattern_gridsize) * gp_mat.texture_scale[1])  
+    params.SetFloat("angle", -math.degrees(gp_mat.texture_angle)) 
+    #params.SetFloat("offsetS", gp_mat.texture_offset[0]) 
+    #params.SetFloat("offsetT", gp_mat.texture_offset[1])  
     params.SetInteger("invertT", 0)     
 
     checker_handle = '%s-PxrChecker' % handle
@@ -221,7 +221,7 @@ def gp_material_fill_gradient(mat, rman, rman_sg_material, handle):
     params = manifold.params 
     params.SetFloat("scaleS", gp_mat.texture_scale[0])
     params.SetFloat("scaleT", gp_mat.texture_scale[1])    
-    params.SetFloat("angle", -math.degrees(gp_mat.texture_scale))  
+    params.SetFloat("angle", -math.degrees(gp_mat.texture_angle))  
     #params.SetFloat("offsetS", gp_mat.pattern_shift[0]) 
     #params.SetFloat("offsetT", gp_mat.pattern_shift[1])     
     params.SetInteger("invertT", 0)   

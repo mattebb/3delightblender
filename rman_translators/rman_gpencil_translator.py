@@ -190,12 +190,7 @@ class RmanGPencilTranslator(RmanTranslator):
 
     def _get_strokes_(self, ob, rman_sg_gpencil):
 
-        # Bug? For some reason using ob.data doesn't always
-        # give us all of the fills (triangles), so use ob.original.data
-        if self.rman_scene.is_interactive:
-            gp_ob = ob.original.data 
-        else:
-            gp_ob = ob.data
+        gp_ob = ob.data
 
         adjust_normal = None
         '''
