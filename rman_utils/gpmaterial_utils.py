@@ -11,7 +11,7 @@ def gp_material_stroke_solid(mat, rman, rman_sg_material, handle):
     bxdf = rman.SGManager.RixSGShader("Bxdf", "PxrConstant", bxdf_handle)
     
     col =  gp_mat.color[:3]
-    col = color_utils.linearizeSRGB(col)
+    # col = color_utils.linearizeSRGB(col)
     alpha = gp_mat.color[3]
 
     params = bxdf.params
@@ -22,7 +22,7 @@ def gp_material_stroke_solid(mat, rman, rman_sg_material, handle):
 def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
     gp_mat = mat.grease_pencil
     col =  gp_mat.color[:3]
-    col = color_utils.linearizeSRGB(col)
+    # col = color_utils.linearizeSRGB(col)
     alpha = gp_mat.color[3]
 
     bl_image = gp_mat.stroke_image
@@ -82,7 +82,7 @@ def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
 def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
     gp_mat = mat.grease_pencil
     col = gp_mat.fill_color[:3]
-    col = color_utils.linearizeSRGB(col)
+    # col = color_utils.linearizeSRGB(col)
     alpha = gp_mat.fill_color[3]
     mix_color = gp_mat.mix_color[:3]
     mix_alpha = gp_mat.mix_color[3]
@@ -149,7 +149,7 @@ def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
 def gp_material_fill_checker(mat, rman, rman_sg_material, handle):
     gp_mat = mat.grease_pencil
     col = gp_mat.fill_color[:3]
-    col = color_utils.linearizeSRGB(col)
+    # col = color_utils.linearizeSRGB(col)
     alpha = gp_mat.fill_color[3]
     mix_color = gp_mat.mix_color[:3]
     mix_alpha = gp_mat.mix_color[3]
@@ -206,10 +206,10 @@ def gp_material_fill_checker(mat, rman, rman_sg_material, handle):
 def gp_material_fill_gradient(mat, rman, rman_sg_material, handle):
     gp_mat = mat.grease_pencil
     col = gp_mat.fill_color[:3]
-    col = color_utils.linearizeSRGB(col)
+    # col = color_utils.linearizeSRGB(col)
     alpha = gp_mat.fill_color[3]
     mix_color = gp_mat.mix_color[:3]
-    mix_color = color_utils.linearizeSRGB(mix_color)  
+    # mix_color = color_utils.linearizeSRGB(mix_color)  
     mat_sg_nodes = []
 
     bxdf_handle = '%s-PxrConstant' % handle
@@ -255,7 +255,7 @@ def gp_material_fill_gradient(mat, rman, rman_sg_material, handle):
 def gp_material_fill_solid(mat, rman, rman_sg_material, handle):
     gp_mat = mat.grease_pencil
     col = gp_mat.fill_color[:3]
-    col = color_utils.linearizeSRGB(col)
+    # col = color_utils.linearizeSRGB(col)
     alpha = gp_mat.fill_color[3]
 
     bxdf_handle = '%s-PxrConstant' % handle

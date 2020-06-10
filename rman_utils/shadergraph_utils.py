@@ -205,7 +205,7 @@ def find_samplefilter_nodes(world):
 def _convert_grease_pencil_stroke_texture(mat, nt, output):
     gp_mat = mat.grease_pencil
     col =  gp_mat.color[:3]
-    col = color_utils.linearizeSRGB(col)
+    # col = color_utils.linearizeSRGB(col)
     alpha = gp_mat.color[3]
 
     bl_image = gp_mat.stroke_image
@@ -245,7 +245,7 @@ def _convert_grease_pencil_fill_texture(mat, nt, output):
 
     gp_mat = mat.grease_pencil
     col = gp_mat.fill_color[:3]
-    col = color_utils.linearizeSRGB(col)
+    # col = color_utils.linearizeSRGB(col)
     alpha = gp_mat.fill_color[3]
     mix_color = gp_mat.mix_color[:3]
     mix_alpha = gp_mat.mix_color[3]
@@ -288,7 +288,7 @@ def _convert_grease_pencil_fill_checker(mat, nt, output):
 
     gp_mat = mat.grease_pencil
     col = gp_mat.fill_color[:3]
-    col = color_utils.linearizeSRGB(col)
+    # col = color_utils.linearizeSRGB(col)
     alpha = gp_mat.fill_color[3]
     mix_color = gp_mat.mix_color[:3]
     mix_alpha = gp_mat.mix_color[3]
@@ -339,7 +339,7 @@ def convert_grease_pencil_mat(mat, nt, output):
             _convert_grease_pencil_stroke_texture(mat, nt, output)
         else:
             col =  gp_mat.color[:3]
-            col = color_utils.linearizeSRGB(col)
+            # col = color_utils.linearizeSRGB(col)
             alpha = gp_mat.color[3]
 
             bxdf = nt.nodes.new('PxrConstantBxdfNode')
@@ -356,7 +356,7 @@ def convert_grease_pencil_mat(mat, nt, output):
             _convert_grease_pencil_fill_texture(mat, nt, output)
         else:    
             col = gp_mat.fill_color[:3]
-            col = color_utils.linearizeSRGB(col)
+            # col = color_utils.linearizeSRGB(col)
             alpha = gp_mat.fill_color[3]
             mix_color = gp_mat.mix_color[:3]
             mix_alpha = gp_mat.mix_color[3]    
