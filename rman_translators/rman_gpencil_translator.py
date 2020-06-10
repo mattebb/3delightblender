@@ -37,7 +37,9 @@ class RmanGPencilTranslator(RmanTranslator):
 
         return True    
 
-    def _create_mesh(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material):
+    def _create_mesh(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_normal=None):
+
+        global __ADJUST_NORMAL__
 
         gp_ob = ob.data     
 
@@ -65,21 +67,30 @@ class RmanGPencilTranslator(RmanTranslator):
                 st.extend(t.uv2)
                 st.extend(t.uv3)            
 
-            '''
+            
             # move each point in the normal direction a little bit
             # for fills
+            
+            '''
             p1 = Vector(pts[t.v1].co)
             p2 = Vector(pts[t.v2].co)
             p3 = Vector(pts[t.v3].co)
             vec1 = p1 - p2
             vec2 = p1 - p3
             normal = vec2.cross(vec1)
-            epsilon = normal * i * 0.0001
+            epsilon = normal * i * 0.00001
 
             P[t.v1] = Vector(P[t.v1]) + epsilon
             P[t.v2] = Vector(P[t.v2]) + epsilon
             P[t.v3] = Vector(P[t.v3]) + epsilon
             '''
+
+            if adjust_normal:
+                epsilon = adjust_normal * i * 0.001
+                P[t.v1] = Vector(P[t.v1]) + epsilon
+                P[t.v2] = Vector(P[t.v2]) + epsilon
+                P[t.v3] = Vector(P[t.v3]) + epsilon         
+            
 
         num_polygons = len(stroke.triangles)
         num_verts = len(verts)
@@ -181,8 +192,35 @@ class RmanGPencilTranslator(RmanTranslator):
 
         # Bug? For some reason using ob.data doesn't always
         # give us all of the fills (triangles), so use ob.original.data
-        gp_ob = ob.original.data #ob.data
+        if self.rman_scene.is_interactive:
+            gp_ob = ob.original.data 
+        else:
+            gp_ob = ob.data
 
+        adjust_normal = None
+        '''
+        for nm,lyr in gp_ob.layers.items():
+            if lyr.hide:
+                continue
+
+            frame = lyr.active_frame
+            if not frame:
+                continue
+            for stroke in frame.strokes:
+                if len(stroke.triangles) > 0:
+                    t = stroke.triangles[0]
+                    pts = stroke.points
+                    p1 = Vector(pts[t.v1].co)
+                    p2 = Vector(pts[t.v2].co)
+                    p3 = Vector(pts[t.v3].co)
+                    vec1 = p1 - p2
+                    vec2 = p1 - p3
+                    adjust_normal = vec2.cross(vec1)
+                    break
+            if adjust_normal:
+                break
+        '''
+           
         j = 0
         for nm,lyr in gp_ob.layers.items():
             if lyr.hide:
@@ -195,11 +233,11 @@ class RmanGPencilTranslator(RmanTranslator):
                 j += i
                 mat =  gp_ob.materials[stroke.material_index]
                 if mat.grease_pencil.hide:
-                    continue                    
+                    continue      
                 rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
 
                 if len(stroke.triangles) > 0 and rman_sg_material.sg_fill_mat:
-                    self._create_mesh(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material) 
+                    self._create_mesh(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_normal=adjust_normal) 
                     if rman_sg_material.sg_stroke_mat:
                         if mat.grease_pencil.mode in ['DOTS', 'BOX']:
                             self._create_points(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material)
