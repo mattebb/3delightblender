@@ -129,8 +129,11 @@ class RendermanNodeSocketStruct(bpy.types.NodeSocketString, RendermanSocket):
     bl_idname = 'RendermanNodeSocketStruct'
     bl_label = 'RenderMan Struct Socket'
     hide_value = True
-    renderman_type = 'string'
+    renderman_type = 'struct'
     default_value = ''
+
+    def draw_color(self, context, node):
+        return (1.0, 0.344, 0.0, 1.0)    
 
 class RendermanNodeSocketBxdf(bpy.types.NodeSocketString, RendermanSocket):
     '''RenderMan bxdf input/output'''
@@ -148,6 +151,9 @@ class RendermanNodeSocketInterfaceStruct(bpy.types.NodeSocketInterfaceString, Re
     bl_label = 'RenderMan Struct Socket'
     bl_socket_idname = 'RendermanNodeSocketStruct'
     hide_value = True
+
+    def draw_color(self, context):
+        return (1.0, 0.344, 0.0, 1.0)      
 
 class RendermanNodeSocketInterfaceBxdf(bpy.types.NodeSocketInterfaceString, RendermanSocketInterface):
     '''RenderMan Bxdf input/output'''
