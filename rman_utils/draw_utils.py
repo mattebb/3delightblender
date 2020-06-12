@@ -339,7 +339,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
                                             "object_groups")
                         else:
-                            if prop_meta['renderman_type'] not in ['struct', 'bxdf']:
+                            if prop_meta['renderman_type'] not in ['struct', 'bxdf', 'vstruct']:
                                 row.prop(node, prop_name, slider=True)
                             else:
                                 row.label(text=prop_meta['label'])

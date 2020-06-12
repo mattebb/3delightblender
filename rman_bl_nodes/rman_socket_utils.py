@@ -1,21 +1,5 @@
 from ..rman_constants import RFB_ARRAYS_MAX_LEN
-
-
-# map types in args files to socket types
-__RMAN_SOCKET_MAP__ = {
-    'float': 'RendermanNodeSocketFloat',
-    'color': 'RendermanNodeSocketColor',
-    'string': 'RendermanNodeSocketString',
-    'int': 'RendermanNodeSocketInt',
-    'integer': 'RendermanNodeSocketInt',
-    'struct': 'RendermanNodeSocketStruct',
-    'normal': 'RendermanNodeSocketNormal',
-    'vector': 'RendermanNodeSocketVector',
-    'point': 'RendermanNodeSocketPoint',
-    'void': 'RendermanNodeSocketStruct',
-    'vstruct': 'RendermanNodeSocketStruct',
-    'bxdf': 'RendermanNodeSocketBxdf'
-}
+from .rman_bl_nodes_sockets import __RMAN_SOCKET_MAP__
 
 def update_inputs(node):
     if node.bl_idname == 'PxrMeshLightLightNode':
@@ -113,5 +97,9 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
 def node_add_outputs(node):
     for name, meta in node.output_meta.items():
         rman_type = meta['renderman_type']
+        is_vstruct = meta.get('vstruct', False)
         if rman_type in __RMAN_SOCKET_MAP__ and 'vstructmember' not in meta:
+            if is_vstruct:
+                rman_type = 'vstruct'
             socket = node.outputs.new(__RMAN_SOCKET_MAP__[rman_type], name)
+            socket.renderman_type = rman_type

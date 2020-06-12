@@ -374,8 +374,10 @@ def class_generate_properties(node, parent_name, node_desc):
             output_prop_meta['vstructmember'] = node_desc_param.vstructmember
         if hasattr(node_desc_param, 'vstructConditionalExpr'):
             output_prop_meta['vstructConditionalExpr'] = node_desc_param.vstructConditionalExpr
+        if hasattr(node_desc_param, 'vstruct'):
+            output_prop_meta['vstruct'] = True
         output_prop_meta['name'] = node_desc_param.name
-        output_meta[prop_name] = output_prop_meta #node_desc_param
+        output_meta[prop_name] = output_prop_meta
         output_meta[prop_name]['renderman_type'] = renderman_type       
             
     setattr(node, 'prop_names', prop_names)

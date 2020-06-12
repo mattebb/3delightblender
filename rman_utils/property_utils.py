@@ -352,7 +352,7 @@ def generate_property(node, sp, update_function=None):
     prop_meta = dict()
     param_default = sp.default
     if hasattr(sp, 'vstruct') and sp.vstruct:
-        param_type = 'struct'
+        param_type = 'vstruct'
         prop_meta['vstruct'] = True
     else:
         param_type = sp.type
@@ -530,7 +530,7 @@ def generate_property(node, sp, update_function=None):
                               default=param_default,
                               description=param_help, update=update_function)
         renderman_type = 'string'
-    elif param_type == 'string' or param_type == 'struct' or param_type == 'bxdf':
+    elif param_type == 'string' or param_type == 'struct' or param_type == 'vstruct' or param_type == 'bxdf':
         if param_default is None:
             param_default = ''
         #else:
@@ -709,8 +709,9 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
             if(prop_name in ['sblur', 'tblur', 'notes']):
                 pass
 
-            if 'widget' in meta and meta['widget'] == 'null':
+            if 'widget' in meta and meta['widget'] == 'null' and 'vstructmember' not in meta:
                 # if widget is marked null, don't export parameter and rely on default
+                # unless it has a vstructmember
                 pass
 
             else:
