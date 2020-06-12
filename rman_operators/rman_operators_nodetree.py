@@ -192,6 +192,26 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 default.location[0] -= 300
                 nt.links.new(default.outputs[0], output.inputs[0])
 
+                if self.properties.bxdf_name == 'PxrLayerSurface':
+                    mixer = nt.nodes.new("PxrLayerMixerPatternOSLNode")
+                    layer1 = nt.nodes.new("PxrLayerPatternOSLNode")
+                    layer2 = nt.nodes.new("PxrLayerPatternOSLNode")
+
+                    mixer.location = default.location
+                    mixer.location[0] -= 300
+
+                    layer1.location = mixer.location
+                    layer1.location[0] -= 300
+                    layer1.location[1] += 300
+
+                    layer2.location = mixer.location
+                    layer2.location[0] -= 300
+                    layer2.location[1] -= 300
+
+                    nt.links.new(mixer.outputs[0], default.inputs[0])
+                    nt.links.new(layer1.outputs[0], mixer.inputs['baselayer'])
+                    nt.links.new(layer2.outputs[0], mixer.inputs['layer1'])                    
+
             output.inputs[3].hide = True
                       
         elif idtype == 'light':
