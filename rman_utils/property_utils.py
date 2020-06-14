@@ -405,6 +405,9 @@ def generate_property(node, sp, update_function=None):
     if hasattr(sp, 'inherit_true_value'):
         prop_meta['inherit_true_value'] = sp.inherit_true_value
 
+    if hasattr(sp, 'presets'):
+        prop_meta['presets'] = sp.presets
+
     if param_widget == 'colorramp':
         renderman_type = 'colorramp'
         prop = StringProperty(name=param_label, default='')

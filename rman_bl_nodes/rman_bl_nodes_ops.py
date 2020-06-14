@@ -236,6 +236,28 @@ class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
             newnode.update_mat(active_material)
         return {'FINISHED'}
 
+class NODE_OT_rman_preset_set_param(bpy.types.Operator):
+    bl_idname = "node.preset_set_param"
+    bl_label = "Set Param Preset"
+    bl_description = "Set parameter from preset"
+
+    prop_name: StringProperty(default="")
+    preset_name: StringProperty(default="")
+
+    def invoke(self, context, event):
+        nt = context.nodetree
+        node = context.node
+        socket = context.socket
+
+        prop_meta = node.prop_meta.get(self.prop_name, None)
+        if prop_meta:            
+            if 'presets' in prop_meta:
+                val = prop_meta['presets'].get(self.preset_name, None)
+                if val:
+                    setattr(node, self.prop_name, val)
+
+        return {'FINISHED'}
+
 class NODE_OT_rman_refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.refresh_osl_shader"
     bl_label = "Refresh OSL Node"
@@ -254,6 +276,7 @@ classes = [
     NODE_OT_rman_node_remove,
     NODE_OT_rman_node_create,
     NODE_OT_rman_node_connect_existing,
+    NODE_OT_rman_preset_set_param,
     NODE_OT_rman_refresh_osl_shader
 ]
 

@@ -9,6 +9,31 @@ from bpy.props import EnumProperty, StringProperty, CollectionProperty
 import _cycles
 import bpy
 
+class NODE_MT_renderman_param_presets_menu(Menu):
+    bl_label = "Parameter Presets"
+    bl_idname = "NODE_MT_renderman_param_presets_menu"
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None      
+
+    def draw(self, context):
+        layout = self.layout
+        nt = context.nodetree
+        node = context.node
+        socket = context.socket
+
+        prop_name = socket.name
+        prop_meta = node.prop_meta.get(prop_name, None)
+        if prop_meta:            
+            if 'presets' in prop_meta:
+                for k,v in prop_meta['presets'].items():
+                    layout.context_pointer_set("node", node)
+                    layout.context_pointer_set("nodetree", nt)
+                    layout.context_pointer_set('socket', socket)
+                    op = layout.operator('node.preset_set_param', text=k)
+                    op.prop_name = prop_name
+                    op.preset_name = k
 
 class NODE_MT_renderman_connection_menu(Menu):
     bl_label = "Connect New"
@@ -149,6 +174,17 @@ class NODE_MT_renderman_connection_menu(Menu):
                     layout.context_pointer_set('socket', socket)
                     layout.menu('NODE_MT_renderman_connection_submenu_%s' % pattern_cat, text=pattern_category.capitalize())       
 
+        prop_name = socket.name
+        prop_meta = node.prop_meta.get(prop_name, None)
+        if prop_meta:            
+            if 'presets' in prop_meta:
+                layout.separator()
+                layout.label(text='PRESETS')
+                layout.context_pointer_set("node", node)
+                layout.context_pointer_set("nodetree", nt)
+                layout.context_pointer_set('socket', socket)        
+                layout.menu('NODE_MT_renderman_param_presets_menu', text='Presets')
+
         layout.separator()
         layout.label(text='__EXISTING__')
         for n in nt.nodes:
@@ -227,6 +263,7 @@ class NODE_MT_renderman_connection_menu(Menu):
                 self.draw_patterns_all_menu(context)
 
 classes = [
+    NODE_MT_renderman_param_presets_menu,
     NODE_MT_renderman_connection_menu
 ]
 
