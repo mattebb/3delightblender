@@ -1,9 +1,9 @@
 import bpy
-from ..icons.icons import load_icons
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from .. import rman_cycles_convert
 from ..rman_utils import shadergraph_utils
 from .. import rman_bl_nodes
+from .rman_operators_utils import get_bxdf_items
 import math
 
 class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
@@ -145,23 +145,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     idtype: StringProperty(name="ID Type", default="material")
 
     def get_type_items(self, context):
-        icons = load_icons()
-        rman_unknown_icon = icons.get("out_unknown.png")    
-        items = []
-        i = 0
-        rman_bxdf_icon = icons.get("out_PxrSurface.png")
-        items.append(('PxrSurface', 'PxrSurface', '', rman_bxdf_icon.icon_id, i))
-        i += 1
-        for n in rman_bl_nodes.__RMAN_BXDF_NODES__:
-            if n.name == 'PxrSurface':
-                continue
-            rman_bxdf_icon = icons.get("out_%s.png" % n.name, None)
-            if not rman_bxdf_icon:
-                items.append( (n.name, n.name, '', rman_unknown_icon.icon_id, i))
-            else:
-                items.append( (n.name, n.name, '', rman_bxdf_icon.icon_id, i))                
-            i += 1
-        return items        
+        return get_bxdf_items()
+
     bxdf_name: EnumProperty(items=get_type_items, name="Material")    
 
     def execute(self, context):
@@ -193,24 +178,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 nt.links.new(default.outputs[0], output.inputs[0])
 
                 if self.properties.bxdf_name == 'PxrLayerSurface':
-                    mixer = nt.nodes.new("PxrLayerMixerPatternOSLNode")
-                    layer1 = nt.nodes.new("PxrLayerPatternOSLNode")
-                    layer2 = nt.nodes.new("PxrLayerPatternOSLNode")
-
-                    mixer.location = default.location
-                    mixer.location[0] -= 300
-
-                    layer1.location = mixer.location
-                    layer1.location[0] -= 300
-                    layer1.location[1] += 300
-
-                    layer2.location = mixer.location
-                    layer2.location[0] -= 300
-                    layer2.location[1] -= 300
-
-                    nt.links.new(mixer.outputs[0], default.inputs[0])
-                    nt.links.new(layer1.outputs[0], mixer.inputs['baselayer'])
-                    nt.links.new(layer2.outputs[0], mixer.inputs['layer1'])                    
+                    shadergraph_utils.create_pxrlayer_nodes(nt, default)
 
             output.inputs[3].hide = True
                       

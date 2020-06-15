@@ -202,6 +202,26 @@ def find_samplefilter_nodes(world):
 
     return sf_nodes
 
+def create_pxrlayer_nodes(nt, bxdf):
+    mixer = nt.nodes.new("PxrLayerMixerPatternOSLNode")
+    layer1 = nt.nodes.new("PxrLayerPatternOSLNode")
+    layer2 = nt.nodes.new("PxrLayerPatternOSLNode")
+
+    mixer.location = bxdf.location
+    mixer.location[0] -= 300
+
+    layer1.location = mixer.location
+    layer1.location[0] -= 300
+    layer1.location[1] += 300
+
+    layer2.location = mixer.location
+    layer2.location[0] -= 300
+    layer2.location[1] -= 300
+
+    nt.links.new(mixer.outputs[0], bxdf.inputs[0])
+    nt.links.new(layer1.outputs[0], mixer.inputs['baselayer'])
+    nt.links.new(layer2.outputs[0], mixer.inputs['layer1'])         
+
 def _convert_grease_pencil_stroke_texture(mat, nt, output):
     gp_mat = mat.grease_pencil
     col =  gp_mat.color[:3]

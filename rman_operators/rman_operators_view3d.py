@@ -2,9 +2,10 @@ import bpy
 import os
 import subprocess
 from .. import rman_bl_nodes
-from ..icons.icons import load_icons
 from ..rman_utils.scene_utils import EXCLUDED_OBJECT_TYPES
 from ..rman_utils.filepath_utils import find_it_path, find_local_queue
+from ..rman_utils import shadergraph_utils
+from .rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
 from bpy.props import EnumProperty
 
 class PRMAN_OT_RM_Add_Subdiv_Scheme(bpy.types.Operator):
@@ -29,20 +30,7 @@ class PRMAN_OT_RM_Add_Light(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def get_type_items(self, context):
-        icons = load_icons()
-        rman_light_icon = icons.get("out_PxrRectLight.png")
-        items = []
-        i = 0
-        items.append(('PxrRectLight', 'PxrRectLight', '', rman_light_icon.icon_id, i))
-        for n in rman_bl_nodes.__RMAN_LIGHT_NODES__:
-            if n.name != 'PxrRectLight':
-                i += 1
-                light_icon = icons.get("out_%s.png" % n.name, None)
-                if not light_icon:
-                    items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
-                else:
-                    items.append( (n.name, n.name, '', light_icon.icon_id, i))
-        return items
+        return get_light_items()
 
     rman_light_name: EnumProperty(items=get_type_items, name="Light Name")
 
@@ -77,20 +65,7 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def get_type_items(self, context):
-        icons = load_icons()
-        items = []
-        i = 0
-        rman_light_icon = icons.get("out_PxrBlockerLightFilter.png")
-        items.append(('PxrBlockerLightFilter', 'PxrBlockerLightFilter', '', rman_light_icon.icon_id, i))
-        for n in rman_bl_nodes.__RMAN_LIGHTFILTER_NODES__:
-            if n.name != 'PxrBlockerLightFilter':
-                i += 1
-                light_icon = icons.get("out_%s.png" % n.name, None)
-                if not light_icon:                
-                    items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
-                else:
-                    items.append( (n.name, n.name, '', light_icon.icon_id, i))
-        return items
+        return get_lightfilter_items()
 
     rman_lightfilter_name: EnumProperty(items=get_type_items, name="Light Filter Name")
 
@@ -125,23 +100,8 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def get_type_items(self, context):
-        icons = load_icons()
-        rman_unknown_icon = icons.get("out_unknown.png")    
-        items = []
-        i = 0
-        rman_bxdf_icon = icons.get("out_PxrSurface.png")
-        items.append(('PxrSurface', 'PxrSurface', '', rman_bxdf_icon.icon_id, i))
-        i += 1
-        for n in rman_bl_nodes.__RMAN_BXDF_NODES__:
-            if n.name == 'PxrSurface':
-                continue
-            rman_bxdf_icon = icons.get("out_%s.png" % n.name, None)
-            if not rman_bxdf_icon:
-                items.append( (n.name, n.name, '', rman_unknown_icon.icon_id, i))
-            else:
-                items.append( (n.name, n.name, '', rman_bxdf_icon.icon_id, i))                
-            i += 1
-        return items      
+        return get_bxdf_items()  
+
     bxdf_name: EnumProperty(items=get_type_items, name="Bxdf Name")
 
     def execute(self, context):
@@ -161,24 +121,7 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
         output.inputs[3].hide = True  
 
         if bxdf_name == 'PxrLayerSurface':
-            mixer = nt.nodes.new("PxrLayerMixerPatternOSLNode")
-            layer1 = nt.nodes.new("PxrLayerPatternOSLNode")
-            layer2 = nt.nodes.new("PxrLayerPatternOSLNode")
-
-            mixer.location = default.location
-            mixer.location[0] -= 300
-
-            layer1.location = mixer.location
-            layer1.location[0] -= 300
-            layer1.location[1] += 300
-
-            layer2.location = mixer.location
-            layer2.location[0] -= 300
-            layer2.location[1] -= 300
-
-            nt.links.new(mixer.outputs[0], default.inputs[0])
-            nt.links.new(layer1.outputs[0], mixer.inputs['baselayer'])
-            nt.links.new(layer2.outputs[0], mixer.inputs['layer1'])
+            shadergraph_utils.create_pxrlayer_nodes(nt, default)
 
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
