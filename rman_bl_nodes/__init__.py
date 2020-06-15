@@ -627,8 +627,9 @@ def register_rman_nodes():
                                     # append OSL to the category if these are osl shaders, except
                                     # for PxrLayer and PxrLayerMixer
                                     if is_oso:
-                                        category_nice_name = 'OSL %s' % category.capitalize()
-                                        category = 'OSL_%s' % category                                        
+                                        pass
+                                        #category_nice_name = 'OSL %s' % category.capitalize()
+                                        #category = 'OSL_%s' % category                                        
                                 lst = __RMAN_NODE_CATEGORIES__['pattern'].get('patterns_%s' % category, None)
                                 if not lst:
                                     lst = (('RenderMan %s Patterns' % category_nice_name, []), [])
