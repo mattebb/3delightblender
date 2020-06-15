@@ -148,6 +148,7 @@ class RmanCameraTranslator(RmanTranslator):
             if self.rman_scene.context.space_data.use_local_camera:
                 ob = self.rman_scene.context.space_data.camera
             cam = ob.data
+            rman_sg_camera.bl_camera = ob
             
             r = self.rman_scene.bl_scene.render
 
@@ -182,6 +183,7 @@ class RmanCameraTranslator(RmanTranslator):
             rman_sg_camera.is_perspective = True
             ob = self.rman_scene.context.space_data.camera
             cam = ob.data
+            rman_sg_camera.bl_camera = ob
             
             r = self.rman_scene.bl_scene.render
 
@@ -212,6 +214,7 @@ class RmanCameraTranslator(RmanTranslator):
             rman_sg_camera.is_perspective = True
             ob = self.rman_scene.context.space_data.camera
             cam = ob.data
+            rman_sg_camera.bl_camera = ob
             
             r = self.rman_scene.bl_scene.render
 
@@ -255,6 +258,7 @@ class RmanCameraTranslator(RmanTranslator):
         cam = ob.data
         rm = self.rman_scene.bl_scene.renderman
         cam_rm = cam.renderman
+        rman_sg_camera.bl_camera = ob
 
         xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam)
 

@@ -4,11 +4,20 @@ class RmanSgCamera(RmanSgNode):
 
     def __init__(self, rman_scene, sg_node, db_name):
         super().__init__(rman_scene, sg_node, db_name)
+        self.bl_camera = None
         self.cam_matrix = None
         self.res_width = -1
         self.res_height = -1
         self.rman_fov = -1
         self.is_perspective = True
+
+    @property
+    def bl_camera(self):
+        return self.__bl_camera
+
+    @bl_camera.setter
+    def bl_camera(self, bl_camera):
+        self.__bl_camera = bl_camera
 
     @property
     def cam_matrix(self):

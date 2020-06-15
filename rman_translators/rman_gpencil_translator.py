@@ -3,11 +3,15 @@ from ..rman_sg_nodes.rman_sg_gp import RmanSgGreaseP
 from ..rman_utils import object_utils
 from ..rman_utils import string_utils
 from ..rfb_logger import rfb_log
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 import bpy
 import math
 import numpy as np
+
+_BIAS_ = 0.0000001
+_ADJUST_POINT_ = False
+_ADJUST_IN_NORMAL_DIR_FOR_FILLS_ = False
 
 class RmanGPencilTranslator(RmanTranslator):
 
@@ -37,9 +41,7 @@ class RmanGPencilTranslator(RmanTranslator):
 
         return True    
 
-    def _create_mesh(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_normal=None):
-
-        global __ADJUST_NORMAL__
+    def _create_mesh(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=False):
 
         gp_ob = ob.data     
 
@@ -67,30 +69,32 @@ class RmanGPencilTranslator(RmanTranslator):
                 st.extend(t.uv2)
                 st.extend(t.uv3)            
 
-            
-            # move each point in the normal direction a little bit
-            # for fills
-            
-            '''
-            p1 = Vector(pts[t.v1].co)
-            p2 = Vector(pts[t.v2].co)
-            p3 = Vector(pts[t.v3].co)
-            vec1 = p1 - p2
-            vec2 = p1 - p3
-            normal = vec2.cross(vec1)
-            epsilon = normal * i * 0.00001
+            if adjust_point:
 
-            P[t.v1] = Vector(P[t.v1]) + epsilon
-            P[t.v2] = Vector(P[t.v2]) + epsilon
-            P[t.v3] = Vector(P[t.v3]) + epsilon
-            '''
+                if _ADJUST_IN_NORMAL_DIR_FOR_FILLS_:
+                    # move each point in the normal direction a little bit
+                    # for fills                
+                    p1 = Vector(pts[t.v1].co)
+                    p2 = Vector(pts[t.v2].co)
+                    p3 = Vector(pts[t.v3].co)
+                    vec1 = p1 - p2
+                    vec2 = p1 - p3
+                    normal = vec2.cross(vec1).normalized()
+                    epsilon = normal * i * _BIAS_
 
-            if adjust_normal:
-                epsilon = adjust_normal * i * 0.001
-                P[t.v1] = Vector(P[t.v1]) + epsilon
-                P[t.v2] = Vector(P[t.v2]) + epsilon
-                P[t.v3] = Vector(P[t.v3]) + epsilon         
-            
+                    P[t.v1] = Vector(P[t.v1]) + epsilon
+                    P[t.v2] = Vector(P[t.v2]) + epsilon
+                    P[t.v3] = Vector(P[t.v3]) + epsilon
+
+                else:
+                    # get camera position
+                    cam_pos, rot, sca = self.rman_scene.main_camera.bl_camera.matrix_world.decompose()
+
+                    epsilon = i * _BIAS_
+                    P[t.v1] = Vector(P[t.v1]) + ((cam_pos - Vector(P[t.v1])).normalized() * epsilon)
+                    P[t.v2] = Vector(P[t.v2]) + ((cam_pos - Vector(P[t.v2])).normalized() * epsilon)
+                    P[t.v3] = Vector(P[t.v3]) + ((cam_pos - Vector(P[t.v3])).normalized() * epsilon)
+
 
         num_polygons = len(stroke.triangles)
         num_verts = len(verts)
@@ -108,7 +112,7 @@ class RmanGPencilTranslator(RmanTranslator):
             mesh_sg.SetMaterial(rman_sg_material.sg_fill_mat)         
         rman_sg_gpencil.sg_node.AddChild(mesh_sg)     
 
-    def _create_points(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material):
+    def _create_points(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=False):
         gp_ob = ob.data 
 
         num_pts = len(stroke.points)
@@ -118,7 +122,13 @@ class RmanGPencilTranslator(RmanTranslator):
         stroke.points.foreach_get('pressure', widths)
 
         points = np.reshape(points, (num_pts, 3))
-        points = points.tolist()        
+        points = points.tolist()    
+
+        if adjust_point:
+            cam_pos, rot, sca = self.rman_scene.main_camera.bl_camera.matrix_world.decompose()
+            for j, pt in enumerate(points):
+                epsilon = i * _BIAS_            
+                points[j] = Vector(pt) + ((cam_pos - Vector(pt)).normalized() * epsilon)              
         
         width_factor = 0.0012 * stroke.line_width
         widths = widths * width_factor #0.03
@@ -140,7 +150,7 @@ class RmanGPencilTranslator(RmanTranslator):
 
         rman_sg_gpencil.sg_node.AddChild(points_sg)                     
         
-    def _create_curve(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material):
+    def _create_curve(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=False):
         gp_ob = ob.data       
 
         vertsArray = []
@@ -163,8 +173,14 @@ class RmanGPencilTranslator(RmanTranslator):
 
         if len(points) < 4:
             # not enough points to be a curve. export as points
-            self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+            self._create_points(ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=adjust_point)
             return
+
+        if adjust_point:
+            cam_pos, rot, sca = self.rman_scene.main_camera.bl_camera.matrix_world.decompose()            
+            for j, pt in enumerate(points):
+                epsilon = i * _BIAS_            
+                points[j] = Vector(pt) + ((cam_pos - Vector(pt)).normalized() * epsilon)            
 
         widths = widths[:1] + widths + widths[-1:]
         vertsArray.append(len(points))
@@ -192,30 +208,6 @@ class RmanGPencilTranslator(RmanTranslator):
 
         gp_ob = ob.data
 
-        adjust_normal = None
-        '''
-        for nm,lyr in gp_ob.layers.items():
-            if lyr.hide:
-                continue
-
-            frame = lyr.active_frame
-            if not frame:
-                continue
-            for stroke in frame.strokes:
-                if len(stroke.triangles) > 0:
-                    t = stroke.triangles[0]
-                    pts = stroke.points
-                    p1 = Vector(pts[t.v1].co)
-                    p2 = Vector(pts[t.v2].co)
-                    p3 = Vector(pts[t.v3].co)
-                    vec1 = p1 - p2
-                    vec2 = p1 - p3
-                    adjust_normal = vec2.cross(vec1)
-                    break
-            if adjust_normal:
-                break
-        '''
-           
         j = 0
         for nm,lyr in gp_ob.layers.items():
             if lyr.hide:
@@ -232,17 +224,17 @@ class RmanGPencilTranslator(RmanTranslator):
                 rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
 
                 if len(stroke.triangles) > 0 and rman_sg_material.sg_fill_mat:
-                    self._create_mesh(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_normal=adjust_normal) 
+                    self._create_mesh(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_) 
                     if rman_sg_material.sg_stroke_mat:
                         if mat.grease_pencil.mode in ['DOTS', 'BOX']:
-                            self._create_points(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+                            self._create_points(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)
                         else:
-                            self._create_curve(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material)                        
+                            self._create_curve(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)                        
 
                 else:
                     if mat.grease_pencil.mode in ['DOTS', 'BOX']:
-                        self._create_points(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material)
+                        self._create_points(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)
                     else:
-                        self._create_curve(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material)               
+                        self._create_curve(ob, j, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=_ADJUST_POINT_)               
                 i +=1
             j += 1
