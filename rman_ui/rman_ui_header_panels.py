@@ -93,9 +93,9 @@ class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
                             icon_value=rman_rerender_controls.icon_id)  
 
 classes = [
-    PRMAN_HT_DrawRenderHeaderInfo,
+    #PRMAN_HT_DrawRenderHeaderInfo,
     PRMAN_HT_DrawRenderHeaderNode,
-    PRMAN_HT_DrawRenderHeaderImage,
+    #PRMAN_HT_DrawRenderHeaderImage,
 ]
 
 def register():
