@@ -487,7 +487,6 @@ def generate_node_type(node_desc, is_oso=False):
     ntype.__annotations__['plugin_name'] = StringProperty(name='Plugin Name',
                                        default=name, options={'HIDDEN'})
 
-    # lights cant connect to a node tree in 20.0
     class_generate_properties(ntype, name, node_desc)
     if nodeType == 'light':
         ntype.__annotations__['light_shading_rate'] = FloatProperty(
@@ -547,7 +546,7 @@ def register_plugin_types(node_desc):
 def get_path_list():
     paths = []
     rmantree = filepath_utils.guess_rmantree()
-    paths.append(os.path.join(rmantree, 'lib', 'plugins'))
+    paths.append(os.path.join(rmantree, 'lib', 'plugins', 'Args'))
     paths.append(os.path.join(rmantree, 'lib', 'shaders'))
     paths.append(os.path.join(RFB_ADDON_PATH, 'Args'))
 
@@ -562,7 +561,7 @@ def get_path_list():
 
     return paths
                      
-class RendermanPatternNodeCategory(NodeCategory):
+class RendermanShaderNodeCategory(NodeCategory):
 
     @classmethod
     def poll(cls, context):
@@ -703,22 +702,10 @@ def register_rman_nodes():
 
     # all categories in a list
     node_categories = []
-    '''
-    node_categories.append(
-        # identifier, label, items list
-        RendermanPatternNodeCategory("PRMan_output_nodes", "RenderMan Outputs",
-                                     items=[NodeItem('RendermanOutputNode', label=rman_bl_nodes_shaders.RendermanOutputNode.bl_label),
-                                     NodeItem('RendermanSamplefiltersOutputNode', label=rman_bl_nodes_shaders.RendermanSamplefiltersOutputNode.bl_label),
-                                     NodeItem('RendermanDisplayfiltersOutputNode', label=rman_bl_nodes_shaders.RendermanDisplayfiltersOutputNode.bl_label),
-                                     NodeItem('RendermanIntegratorsOutputNode', label=rman_bl_nodes_shaders.RendermanIntegratorsOutputNode.bl_label)
-                                     ]),
-    }
-    '''
-
     for k,v in __RMAN_NODE_CATEGORIES__.items():
         for name, ((desc, items), lst) in v.items():
             if items:
-                node_categories.append(RendermanPatternNodeCategory(name, desc,
+                node_categories.append(RendermanShaderNodeCategory(name, desc,
                                                                     items=sorted(items,
                                                                                 key=attrgetter('_label'))))    
 
