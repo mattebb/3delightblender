@@ -259,8 +259,12 @@ def convert_rgb_node(nt, cycles_node, rman_node):
 
 
 def convert_node_value(nt, cycles_node, rman_node):
-    rman_node.floatInput1 = cycles_node.outputs[0].default_value
-    rman_node.expression = 'floatInput1'
+    #rman_node.floatInput1 = cycles_node.outputs[0].default_value
+    #rman_node.expression = 'floatInput1'
+
+    val = cycles_node.outputs[0].default_value
+    rman_node.input = (val, val, val)
+
     return
 
 
@@ -509,8 +513,9 @@ node_map = {
     'ShaderNodeGroup': ('PxrNodeGroup', convert_node_group),
     'ShaderNodeBump': ('PxrBump', convert_bump_node),
     'ShaderNodeValToRGB': ('PxrRamp', convert_ramp_node),
-    'ShaderNodeMath': ('PxrSeExpr', convert_math_node),
+    #'ShaderNodeMath': ('PxrSeExpr', convert_math_node),
     'ShaderNodeRGB': ('PxrHSL', convert_rgb_node),
-    'ShaderNodeValue': ('PxrSeExpr', convert_node_value),
+    #'ShaderNodeValue': ('PxrSeExpr', convert_node_value),
+    'ShaderNodeValue': ('PxrToFloat', convert_node_value),
     #'ShaderNodeRGBCurve': ('copy', copy_cycles_node),
 }
