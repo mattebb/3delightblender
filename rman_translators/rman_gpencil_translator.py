@@ -59,15 +59,17 @@ class RmanGPencilTranslator(RmanTranslator):
         P = np.reshape(P, (num_pts, 3))
         P = P.tolist()
 
+        if hasattr(pts[0], 'uv_fill'):
+            st = np.zeros(num_pts*2, dtype=np.float32)
+            pts.foreach_get('uv_fill', st)
+            st = np.reshape(st, (num_pts, 2))
+            st = st.tolist()                
+
         for t in stroke.triangles:
             nverts.append(3)
             verts.append(t.v1)
             verts.append(t.v2)
-            verts.append(t.v3)
-            if hasattr(t, 'uv1'):
-                st.extend(t.uv1)
-                st.extend(t.uv2)
-                st.extend(t.uv3)            
+            verts.append(t.v3)       
 
             if adjust_point:
 
@@ -106,7 +108,7 @@ class RmanGPencilTranslator(RmanTranslator):
         primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
         primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")  
         if st:
-            primvar.SetFloatArrayDetail("st", st, 2, "facevarying")  
+            primvar.SetFloatArrayDetail("st", st, 2, "vertex")  
         mesh_sg.SetPrimVars(primvar)
         if rman_sg_material:
             mesh_sg.SetMaterial(rman_sg_material.sg_fill_mat)         
