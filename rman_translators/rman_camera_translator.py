@@ -90,7 +90,7 @@ class RmanCameraTranslator(RmanTranslator):
     def _export_viewport_cam(self, db_name=""):  
         sg_camera = self.rman_scene.sg_scene.CreateCamera(db_name)
         rman_sg_camera = RmanSgCamera(self.rman_scene, sg_camera, db_name)
-        self._update_viewport_cam(rman_sg_camera)
+        self.update_viewport_resolution(rman_sg_camera)
         self._set_orientation(rman_sg_camera)
         self._update_viewport_transform(rman_sg_camera)  
         return rman_sg_camera        
@@ -122,11 +122,11 @@ class RmanCameraTranslator(RmanTranslator):
 
     def update(self, ob, rman_sg_camera):
         if self.rman_scene.is_viewport_render:
-            return self._update_viewport_cam(rman_sg_camera)
+            return self.update_viewport_cam(rman_sg_camera)
         else:
-            return self._update_render_cam(ob, rman_sg_camera)        
+            return self._update_render_cam(ob, rman_sg_camera)   
 
-    def _update_viewport_cam(self, rman_sg_camera):
+    def update_viewport_resolution(self, rman_sg_camera):
         region = self.rman_scene.context.region
         region_data = self.rman_scene.context.region_data
 
@@ -134,87 +134,85 @@ class RmanCameraTranslator(RmanTranslator):
         res_mult = self.rman_scene.viewport_render_res_mult
 
         width = int(region.width * res_mult)
-        height = int(region.height * res_mult)
+        height = int(region.height * res_mult)      
 
-        proj = None
-        fov = -1
+        updated = False
+        if rman_sg_camera.res_width != width:
+            rman_sg_camera.res_width = width
+            updated = True
+        
+        if rman_sg_camera.res_height != height:
+            rman_sg_camera.res_height = height                
+            updated = True      
 
-        options = self.rman_scene.sg_scene.GetOptions()
+        if rman_sg_camera.view_perspective != region_data.view_perspective:
+            rman_sg_camera.view_perspective = region_data.view_perspective
+            updated = True            
+
+        if rman_sg_camera.view_camera_zoom != self.rman_scene.context.region_data.view_camera_zoom:
+            rman_sg_camera.view_camera_zoom = self.rman_scene.context.region_data.view_camera_zoom
+            updated = True
+
+        if rman_sg_camera.view_camera_offset != self.rman_scene.context.region_data.view_camera_offset:
+            rman_sg_camera.view_camera_offset = self.rman_scene.context.region_data.view_camera_offset
+            updated = True            
+
         prop = rman_sg_camera.sg_node.GetProperties()
-
         if region_data.view_perspective == 'CAMERA':
-            rman_sg_camera.is_perspective = True
-            ob = self.rman_scene.bl_scene.camera
+            ob = self.rman_scene.bl_scene.camera    
             if self.rman_scene.context.space_data.use_local_camera:
-                ob = self.rman_scene.context.space_data.camera
+                ob = self.rman_scene.context.space_data.camera      
+
             cam = ob.data
-            rman_sg_camera.bl_camera = ob
-            
             r = self.rman_scene.bl_scene.render
 
             xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
 
             # magic zoom formula copied from blenderseed, which got it from cycles
-            zoom = 4 / ((math.sqrt(2) + self.rman_scene.context.region_data.view_camera_zoom / 50) ** 2)           
-
-            lens = cam.lens
-            sensor = cam.sensor_height \
-                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
-                     
-            fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
-
-            if rman_sg_camera.rman_fov != -1:
-                rman_sg_camera.rman_fov = fov                
-
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
-            projparams = proj.params         
-            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov) 
-
+            zoom = 4 / ((math.sqrt(2) + rman_sg_camera.view_camera_zoom / 50) ** 2)   
+                
             # shift and offset            
-            offset = tuple(self.rman_scene.context.region_data.view_camera_offset)
+            offset = tuple(rman_sg_camera.view_camera_offset)
             dx = 2.0 * (aspectratio * cam.shift_x + offset[0] * xaspect * 2.0)
             dy = 2.0 * (aspectratio * cam.shift_y + offset[1] * yaspect * 2.0)       
             
             xaspect *= zoom
             yaspect *= zoom 
-            prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect+dx, xaspect+dx, -yaspect+dy, yaspect+dy), 4)        
+            xaspect += dx
+            yaspect += dy
+            if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect: 
+                prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)      
+                rman_sg_camera.xaspect = xaspect
+                rman_sg_camera.yaspect = yaspect  
+                rman_sg_camera.aspectratio = aspectratio
+                updated = True
 
         elif region_data.view_perspective ==  'PERSP': 
-            rman_sg_camera.is_perspective = True
-            ob = self.rman_scene.context.space_data.camera
+            ob = self.rman_scene.context.space_data.camera 
             cam = ob.data
-            rman_sg_camera.bl_camera = ob
-            
             r = self.rman_scene.bl_scene.render
 
-            xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
- 
-            # magic zoom formula copied from blenderseed, which got it from cycles
-            zoom = 4 / ((math.sqrt(2) + self.rman_scene.context.region_data.view_camera_zoom / 50) ** 2)           
+            xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)          
+            zoom = 2.0  
 
-            lens = self.rman_scene.context.space_data.lens
-            sensor = cam.sensor_height \
-                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
-                     
-            fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
-
-            if rman_sg_camera.rman_fov != -1:
-                rman_sg_camera.rman_fov = fov                
-
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
-            projparams = proj.params         
-            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)   
+            # shift and offset            
+            offset = tuple(rman_sg_camera.view_camera_offset)
+            dx = 2.0 * (aspectratio * cam.shift_x + offset[0] * xaspect * 2.0)
+            dy = 2.0 * (aspectratio * cam.shift_y + offset[1] * yaspect * 2.0)               
 
             xaspect *= zoom
             yaspect *= zoom
-            prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)           
+            rman_sg_camera.lens = self.rman_scene.context.space_data.lens
+            if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect:
+                prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)   
+                rman_sg_camera.xaspect = xaspect
+                rman_sg_camera.yaspect = yaspect  
+                rman_sg_camera.aspectratio = aspectratio
+                updated = True                               
 
-        else:
-            # orthographic
-            rman_sg_camera.is_perspective = True
-            ob = self.rman_scene.context.space_data.camera
+        else: 
+            ob = self.rman_scene.context.space_data.camera       
             cam = ob.data
-            rman_sg_camera.bl_camera = ob
             
             r = self.rman_scene.bl_scene.render
 
@@ -229,28 +227,104 @@ class RmanCameraTranslator(RmanTranslator):
             ortho_scale = region_data.view_distance * sensor / lens
             xaspect = xaspect * ortho_scale / (aspectratio * 2.0)
             yaspect = yaspect * ortho_scale / (aspectratio * 2.0)
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")
 
             xaspect *= zoom
             yaspect *= zoom            
-            prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)    
+            if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect:
+                prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)   
+                rman_sg_camera.xaspect = xaspect
+                rman_sg_camera.yaspect = yaspect  
+                rman_sg_camera.aspectratio = aspectratio
+                updated = True                                          
 
-        if (width == rman_sg_camera.res_width) and (height == rman_sg_camera.res_height):
-            return            
+        if updated:
+            options = self.rman_scene.sg_scene.GetOptions()
+            options.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)   
+            options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (width, height), 2)
+            self.rman_scene.sg_scene.SetOptions(options)
+            rman_sg_camera.sg_node.SetProperties(prop)
+            self.update_viewport_cam(ob, rman_sg_camera)
 
-        if (rman_sg_camera.res_width != width):
-            rman_sg_camera.cam_matrix = -1
+    def update_viewport_cam(self, ob, rman_sg_camera):
+        region = self.rman_scene.context.region
+        region_data = self.rman_scene.context.region_data
 
-        rman_sg_camera.res_width = width
-        rman_sg_camera.res_height = height    
+        # get the current resolution multiplier
+        res_mult = self.rman_scene.viewport_render_res_mult
 
-        options.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)   
-        options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (width, height), 2)
+        width = rman_sg_camera.res_width
+        height = rman_sg_camera.res_height
+        view_camera_zoom = rman_sg_camera.view_camera_zoom
 
-        self.rman_scene.sg_scene.SetOptions(options)
-        rman_sg_camera.sg_node.SetProjection(proj)
-        rman_sg_camera.sg_node.SetProperties(prop)            
-        rman_sg_camera.sg_node.SetRenderable(True)         
+        proj = None
+        fov = -1
+
+        options = self.rman_scene.sg_scene.GetOptions()
+        prop = rman_sg_camera.sg_node.GetProperties()
+
+        updated = False
+
+        if rman_sg_camera.view_perspective == 'CAMERA':
+            cam = ob.data
+            rman_sg_camera.bl_camera = ob
+
+            aspectratio = rman_sg_camera.aspectratio
+            lens = cam.lens
+            sensor = cam.sensor_height \
+                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+                     
+            fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
+
+            if rman_sg_camera.rman_fov == -1:
+                rman_sg_camera.rman_fov = fov  
+                updated = True
+            elif rman_sg_camera.rman_fov != fov:              
+                rman_sg_camera.rman_fov = fov  
+                updated = True
+
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+            projparams = proj.params         
+            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov) 
+
+        elif rman_sg_camera.view_perspective ==  'PERSP': 
+            cam = ob.data
+            rman_sg_camera.bl_camera = ob
+            
+            aspectratio = rman_sg_camera.aspectratio
+            lens = rman_sg_camera.lens 
+            sensor = cam.sensor_height \
+                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+                     
+            fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
+
+            if rman_sg_camera.rman_fov == -1:
+                rman_sg_camera.rman_fov = fov  
+                updated = True
+            elif rman_sg_camera.rman_fov != fov:              
+                rman_sg_camera.rman_fov = fov  
+                updated = True               
+
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+            projparams = proj.params         
+            projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)   
+
+        else:
+            # orthographic
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")          
+
+        if updated:
+                        
+            # This may look redundant given that we've already set screen window on the camera, 
+            # but for some reason without this we seem to be getting
+            # the default -1 1 -1 1 screen window every time we change any of the camera's
+            # properties that affect FOV. Even setting the screen window again on the camera
+            # doesn't work
+            options = self.rman_scene.sg_scene.GetOptions()
+            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-rman_sg_camera.xaspect, rman_sg_camera.xaspect, -rman_sg_camera.yaspect, rman_sg_camera.yaspect), 4)               
+            self.rman_scene.sg_scene.SetOptions(options)
+
+            rman_sg_camera.sg_node.SetProjection(proj)          
+            rman_sg_camera.sg_node.SetRenderable(True)         
 
     def _update_render_cam(self, ob, rman_sg_camera):
 

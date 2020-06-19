@@ -1340,11 +1340,14 @@ class RmanScene(object):
 
     def update_view(self, context, depsgraph):
         camera = depsgraph.scene.camera
+        self.context = context
+        self.depsgraph = depsgraph
+        self.bl_scene = depsgraph.scene_eval
         rman_sg_camera = self.main_camera
         translator = self.rman_translators['CAMERA']
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
             if self.is_viewport_render:
-                translator.update(None, rman_sg_camera)
+                translator.update_viewport_resolution(rman_sg_camera)
                 translator.update_transform(None, rman_sg_camera)
             else:
                 translator.update_transform(camera, rman_sg_camera)  
@@ -1529,8 +1532,13 @@ class RmanScene(object):
                     self.export_viewport_stats()
 
             elif isinstance(obj.id, bpy.types.Camera):
-                #cam = obj.object
-                continue
+                if self.is_viewport_render:
+                    if self.bl_scene.camera.data != obj.id:
+                        continue
+                    rman_sg_camera = self.main_camera
+                    translator = self.rman_translators['CAMERA']
+                    with self.rman.SGManager.ScopedEdit(self.sg_scene):
+                        translator.update_viewport_cam(self.bl_scene.camera, rman_sg_camera)       
 
             elif isinstance(obj.id, bpy.types.Material):
                 rfb_log().debug("Material updated: %s" % obj.id.name)
@@ -1745,7 +1753,7 @@ class RmanScene(object):
         rman_sg_camera = self.main_camera
         translator = self.rman_translators['CAMERA']
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
-            translator.update(None, rman_sg_camera)
+            translator.update_viewport_resolution(rman_sg_camera)
             translator.update_transform(None, rman_sg_camera)
             self.export_viewport_stats()                  
 

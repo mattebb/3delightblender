@@ -9,7 +9,14 @@ class RmanSgCamera(RmanSgNode):
         self.res_width = -1
         self.res_height = -1
         self.rman_fov = -1
-        self.is_perspective = True
+        self.view_perspective = None
+        self.view_camera_zoom = -1
+        self.xaspect = -1
+        self.yaspect = -1
+        self.aspectratio = -1
+        self.lens = -1
+        self.sensor = -1
+        self.view_camera_offset = -1
 
     @property
     def bl_camera(self):
@@ -52,9 +59,50 @@ class RmanSgCamera(RmanSgNode):
         self.__rman_fov = rman_fov   
 
     @property
-    def is_perspective(self):
-        return self.__is_perspective
+    def view_perspective(self):
+        return self.__view_perspective
 
-    @is_perspective.setter
-    def is_perspective(self, is_perspective):
-        self.__is_perspective = is_perspective                             
+    @view_perspective.setter
+    def view_perspective(self, view_perspective):
+        self.__view_perspective = view_perspective      
+
+    @property
+    def view_camera_zoom(self):
+        return self.__view_camera_zoom
+
+    @view_camera_zoom.setter
+    def view_camera_zoom(self, view_camera_zoom):
+        self.__view_camera_zoom = view_camera_zoom          
+
+    @property
+    def xaspect(self):
+        return self.__xaspect
+
+    @xaspect.setter
+    def xaspect(self, xaspect):
+        self.__xaspect = xaspect  
+
+    @property
+    def yaspect(self):
+        return self.__yaspect
+
+    @yaspect.setter
+    def yaspect(self, yaspect):
+        self.__yaspect = yaspect      
+
+    @property
+    def aspectratio(self):
+        return self.__aspectratio
+
+    @aspectratio.setter
+    def aspectratio(self, aspectratio):
+        self.__aspectratio = aspectratio            
+
+    @property
+    def view_camera_offset(self):
+        return self.__view_camera_offset
+
+    @view_camera_offset.setter
+    def view_camera_offset(self, view_camera_offset):
+        self.__view_camera_offset = view_camera_offset               
+                                       
