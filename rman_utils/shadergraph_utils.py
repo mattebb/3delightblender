@@ -75,6 +75,17 @@ def find_node(material, nodetype):
 
     return None
 
+def find_node_from_nodetree(ntree, nodetype):
+    active_output_node = None
+    for node in ntree.nodes:
+        if getattr(node, "bl_idname", None) == nodetype:
+            if getattr(node, "is_active_output", True):
+                return node
+            if not active_output_node:
+                active_output_node = node
+    return active_output_node
+
+    return None
 
 def find_node_input(node, name):
     for input in node.inputs:

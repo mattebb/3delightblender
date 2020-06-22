@@ -3,6 +3,7 @@ from ..rman_utils.osl_utils import readOSO
 from . import rman_socket_utils
 from .. import rman_render
 from ..rman_utils import string_utils
+from ..rman_utils import shadergraph_utils
 from ..icons.icons import load_icons
 from bpy.types import Menu
 from bpy.props import EnumProperty, StringProperty, CollectionProperty
@@ -72,10 +73,16 @@ class RendermanShadingNode(bpy.types.ShaderNode):
     # node_props = None
     def draw_buttons(self, context, layout):
         icons = load_icons()
-        rman_icon = icons.get('out_%s.png' % self.bl_label, None )
-        if not rman_icon:
-            rman_icon = icons.get('out_unknown.png')
-        layout.label(text='', icon_value=rman_icon.icon_id)             
+        nt = self.id_data
+        out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
+        if self.name == out_node.solo_node_name:
+            rman_icon = icons.get('rman_solo_on.png')
+            layout.label(text='', icon_value=rman_icon.icon_id) 
+        else:
+            rman_icon = icons.get('out_%s.png' % self.bl_label, None )
+            if not rman_icon:
+                rman_icon = icons.get('out_unknown.png')
+            layout.label(text='', icon_value=rman_icon.icon_id)             
         self.draw_nonconnectable_props(context, layout, self.prop_names)
         if self.bl_idname == "PxrOSLPatternNode":
             layout.operator("node.refresh_osl_shader")
@@ -322,6 +329,16 @@ class RendermanOutputNode(RendermanShadingNode):
     bl_icon = 'MATERIAL'
     node_tree = None
     new_links = []
+
+    def update_solo_node_name(self, context):
+        rr = rman_render.RmanRender.get_rman_render()        
+        if rr.rman_interactive_running:
+            mat = getattr(bpy.context, 'material', None)
+            if mat:
+                rr.rman_scene.update_material(mat)       
+
+    solo_node_name: StringProperty(name='Solo Node', update=update_solo_node_name)
+    solo_node_output: StringProperty(name='Solo Node Output')
 
     def init(self, context):
         self._init_inputs()   

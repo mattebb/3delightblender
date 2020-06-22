@@ -100,6 +100,15 @@ class RmanMaterialTranslator(RmanTranslator):
                 rman_sg_material.sg_node.SetLight(None)
                 rman_sg_material.sg_node.SetDisplace(None)
 
+
+                # check if there's a solo node
+                if out.solo_node_name:
+                    solo_node = nt.nodes.get(out.solo_node_name, None)
+                    if solo_node:
+                        success = self.export_solo_shader(out, solo_node, rman_sg_material, handle)
+                        if success:
+                            return True
+
                 # bxdf
                 socket = out.inputs[0]
                 if socket.is_linked:
@@ -144,6 +153,40 @@ class RmanMaterialTranslator(RmanTranslator):
                 return False
 
         return False
+
+    def export_solo_shader(self, out, solo_node, rman_sg_material, mat_handle=''):
+        bxdfList = []
+        for sub_node in shadergraph_utils.gather_nodes(solo_node):
+            shader_sg_nodes = self.shader_node_sg(sub_node, rman_sg_material, mat_name=mat_handle,
+                        portal=False)
+            for s in shader_sg_nodes:
+                bxdfList.append(s) 
+
+        if bxdfList:
+            sg_node = self.rman_scene.rman.SGManager.RixSGShader("Bxdf", 'PxrConstant', '__RMAN_SOLO_SHADER__')
+            params = sg_node.params
+            from_socket = solo_node.outputs[0]
+            if out.solo_node_output:
+                from_socket = solo_node.outputs.get(out.solo_node_output)
+            val = property_utils.build_output_param_str(mat_handle, solo_node, from_socket, convert_socket=False, param_type='')                
+
+            # check the output type
+            if from_socket.renderman_type in ['color', 'normal', 'vector', 'point']:               
+                property_utils.set_rix_param(params, 'color', 'emitColor', val, is_reference=True)
+                bxdfList.append(sg_node)
+            elif from_socket.renderman_type in ['float']:
+                to_float3 = self.rman_scene.rman.SGManager.RixSGShader("Pattern", 'PxrToFloat3', '__RMAN_SOLO_SHADER_PXRTOFLOAT3__')
+                property_utils.set_rix_param(to_float3.params, from_socket.renderman_type, 'input', val, is_reference=True)
+                val = '__RMAN_SOLO_SHADER_PXRTOFLOAT3__:resultRGB'
+                property_utils.set_rix_param(params, 'color', 'emitColor', val, is_reference=True)
+                bxdfList.append(to_float3)
+                bxdfList.append(sg_node)
+                
+            rman_sg_material.sg_node.SetBxdf(bxdfList)   
+            return True             
+
+        return False       
+
 
     def export_simple_shader(self, mat, rman_sg_material, mat_handle=''):
         rm = mat.renderman

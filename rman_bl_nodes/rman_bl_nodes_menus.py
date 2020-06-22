@@ -1,5 +1,6 @@
 from ..rfb_logger import rfb_log
 from ..rman_utils.osl_utils import readOSO
+from ..rman_utils import shadergraph_utils
 from . import rman_socket_utils
 from .. import rman_render
 from .. import rman_bl_nodes
@@ -31,9 +32,32 @@ class NODE_MT_renderman_param_presets_menu(Menu):
                     layout.context_pointer_set("node", node)
                     layout.context_pointer_set("nodetree", nt)
                     layout.context_pointer_set('socket', socket)
-                    op = layout.operator('node.preset_set_param', text=k)
+                    op = layout.operator('node.rman_preset_set_param', text=k)
                     op.prop_name = prop_name
                     op.preset_name = k
+
+class NODE_MT_renderman_node_solo_output_menu(Menu):
+    bl_label = "Solo Node Output"
+    bl_idname = "NODE_MT_renderman_node_solo_output_menu"
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def draw(self, context):
+        layout = self.layout
+        nt = context.nodetree   
+        node = context.node 
+
+        solo_node = nt.nodes.get(node.solo_node_name)
+
+        for o in solo_node.outputs:
+            if o.renderman_type in ['float', 'color', 'normal', 'vector', 'point']:
+                layout.context_pointer_set("node", node)
+                layout.context_pointer_set("nodetree", nt)     
+                op = layout.operator('node.rman_set_node_solo_output', text=o.name)
+                op.solo_node_output = o.name      
+                op.solo_node_name = node.solo_node_name               
 
 class NODE_MT_renderman_connection_menu(Menu):
     bl_label = "Connect New"
@@ -226,8 +250,6 @@ class NODE_MT_renderman_connection_menu(Menu):
                 continue
             op = layout.operator('node.rman_shading_connect_existing_node', text='_%s_' % n.name)
 
-
-
     def draw(self, context):
         layout = self.layout
         icons = load_icons()
@@ -248,21 +270,31 @@ class NODE_MT_renderman_connection_menu(Menu):
                         
             layout.operator('node.rman_shading_disconnect', text='Disconnect')
             layout.operator('node.rman_shading_remove', text='Remove')
-            layout.separator()
 
         if node.bl_idname in [
                                 'RendermanOutputNode', 
                                 'RendermanSamplefiltersOutputNode', 
                                 'RendermanDisplayfiltersOutputNode', 
                                 'RendermanIntegratorsOutputNode']:
+            layout.separator()                                
             self.draw_output_node_menu(context)
         else:
+            if socket.is_linked:        
+                out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
+                layout.context_pointer_set("node", out_node)
+                layout.context_pointer_set("nodetree", nt)      
+                rman_icon = icons.get('rman_solo_on.png')
+                op = layout.operator('node.rman_set_node_solo', text='Solo Input Node', icon_value=rman_icon.icon_id)
+                op.refresh_solo = False
+                op.solo_node_name = socket.links[0].from_node.name            
+            layout.separator()   
             if hasattr(node, 'prop_meta'):
                 self.draw_patterns_menu(context)
             else:
                 self.draw_patterns_all_menu(context)
 
 classes = [
+    NODE_MT_renderman_node_solo_output_menu,
     NODE_MT_renderman_param_presets_menu,
     NODE_MT_renderman_connection_menu
 ]

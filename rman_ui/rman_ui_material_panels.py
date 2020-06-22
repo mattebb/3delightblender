@@ -1,8 +1,9 @@
 from .rman_ui_base import _RManPanelHeader,ShaderPanel,ShaderNodePanel, CollectionPanel 
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
-from ..rman_utils.draw_utils import _draw_props, panel_node_draw,draw_nodes_properties_ui
+from ..rman_utils.draw_utils import _draw_props, panel_node_draw,draw_nodes_properties_ui,draw_node_properties_recursive
 from ..rman_utils import prefs_utils
 from ..icons.icons import load_icons
+from ..rman_render import RmanRender
 import bpy
 from bpy.types import Panel
 
@@ -47,10 +48,31 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
         layout = self.layout
         if context.material.renderman and context.material.node_tree:
             nt = context.material.node_tree
+            rman_output_node = is_renderman_nodetree(mat)
 
-            if is_renderman_nodetree(mat):
-                panel_node_draw(layout, context, mat,
-                                'RendermanOutputNode', 'Bxdf')
+            if rman_output_node:
+                if rman_output_node.solo_node_name != '':
+                    solo_node = nt.nodes.get(rman_output_node.solo_node_name)
+                    icons = load_icons()
+
+                    split = layout.split(factor=0.25)
+                    split.context_pointer_set("nodetree", nt)  
+                    split.context_pointer_set("node", rman_output_node)  
+                    rman_icon = icons.get('rman_solo_on.png')   
+                    split.label(text=rman_output_node.solo_node_name , icon_value=rman_icon.icon_id)  
+                    
+                    split = split.split(factor=0.95)
+                    split.menu('NODE_MT_renderman_node_solo_output_menu', text='Select Output')
+                    op = split.operator('node.rman_set_node_solo', text='', icon='FILE_REFRESH')
+                    op.refresh_solo = True 
+                    layout.separator()
+                    
+                    layout.separator()
+                    draw_node_properties_recursive(layout, context, nt, solo_node, level=0)
+                else:
+                    layout.separator()
+                    panel_node_draw(layout, context, mat,
+                                    'RendermanOutputNode', 'Bxdf')       
             else:
                 if not panel_node_draw(layout, context, mat, 'ShaderNodeOutputMaterial', 'Surface'):
                     layout.prop(mat, "diffuse_color")

@@ -1,4 +1,4 @@
-from bpy.props import EnumProperty, StringProperty
+from bpy.props import EnumProperty, StringProperty, BoolProperty
 from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
 from ..rman_utils.shadergraph_utils import find_node
@@ -237,7 +237,7 @@ class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
         return {'FINISHED'}
 
 class NODE_OT_rman_preset_set_param(bpy.types.Operator):
-    bl_idname = "node.preset_set_param"
+    bl_idname = "node.rman_preset_set_param"
     bl_label = "Set Param Preset"
     bl_description = "Set parameter from preset"
 
@@ -258,6 +258,57 @@ class NODE_OT_rman_preset_set_param(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class NODE_OT_rman_node_set_solo(bpy.types.Operator):
+    bl_idname = "node.rman_set_node_solo"
+    bl_label = "Set Node Solo"
+    bl_description = "Solo a node in material shader tree"
+
+    solo_node_name: StringProperty(default="")
+    refresh_solo: BoolProperty(default=False)
+
+    def invoke(self, context, event):
+        nt = context.nodetree
+        output_node = context.node
+        selected_node = None
+
+        if self.refresh_solo:
+            output_node.solo_node_name = ''
+            return {'FINISHED'}           
+
+        if self.solo_node_name:
+            output_node.solo_node_name = self.solo_node_name
+            return {'FINISHED'}        
+
+        for n in nt.nodes:
+            node_type = getattr(n, 'renderman_node_type', '')
+            if n.select and node_type == 'pattern':
+                selected_node = n
+                break
+
+        if not selected_node:
+            self.report({'ERROR'}, "Pattern node not selected")
+            return {'FINISHED'}   
+
+        output_node.solo_node_name = selected_node.name
+
+        return {'FINISHED'}        
+
+class NODE_OT_rman_node_set_solo_output(bpy.types.Operator):
+    bl_idname = "node.rman_set_node_solo_output"
+    bl_label = "Set Node Solo Output"
+    bl_description = "Select output for solo node"
+
+    solo_node_output: StringProperty(default="")
+    solo_node_name: StringProperty(default="")
+
+    def invoke(self, context, event):
+        nt = context.nodetree
+        node = context.node
+        node.solo_node_output = self.solo_node_output
+        node.solo_node_name = self.solo_node_name
+
+        return {'FINISHED'}         
+
 class NODE_OT_rman_refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.refresh_osl_shader"
     bl_label = "Refresh OSL Node"
@@ -277,6 +328,8 @@ classes = [
     NODE_OT_rman_node_create,
     NODE_OT_rman_node_connect_existing,
     NODE_OT_rman_preset_set_param,
+    NODE_OT_rman_node_set_solo,
+    NODE_OT_rman_node_set_solo_output,
     NODE_OT_rman_refresh_osl_shader
 ]
 

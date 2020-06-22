@@ -52,10 +52,24 @@ class PRMAN_HT_DrawRenderHeaderNode(bpy.types.Header):
             return
 
         if type(context.space_data.id) == bpy.types.Material:
-            if not is_renderman_nodetree(context.space_data.id):
+            rman_output_node = is_renderman_nodetree(context.space_data.id)
+            icons = load_icons()
+
+            if not rman_output_node:           
+                rman_icon = icons.get('rman_graph.png') 
                 row.operator(
-                    'shading.add_renderman_nodetree', text="Convert to RenderMan").idtype = "node_editor"
-                row.operator('nodes.new_bxdf')
+                    'shading.add_renderman_nodetree', text="", icon_value=rman_icon.icon_id).idtype = "node_editor"
+                row.operator('nodes.new_bxdf', text='', icon='MATERIAL')
+            else:
+                nt = context.space_data.id.node_tree
+                row.context_pointer_set("nodetree", nt)  
+                row.context_pointer_set("node", rman_output_node)  
+                
+                rman_icon = icons.get('rman_solo_on.png')
+                op = row.operator('node.rman_set_node_solo', text='', icon_value=rman_icon.icon_id)
+                op.refresh_solo = False
+                op = row.operator('node.rman_set_node_solo', text='', icon='FILE_REFRESH')
+                op.refresh_solo = True                
 
         elif type(context.space_data.id) == bpy.types.World:
             if not context.space_data.id.renderman.use_renderman_node:
