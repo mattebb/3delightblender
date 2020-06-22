@@ -33,8 +33,9 @@ def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
 
     if not bl_image:
         params = bxdf.params
-        params.SetColor('emitColor', [0.0, 0.0, 0.0])     
-        rman_sg_material.sg_node.SetBxdf([bxdf]) 
+        #params.SetColor('emitColor', [0.0, 0.0, 0.0])     
+        params.SetColor('emitColor', col)     
+        rman_sg_material.sg_stroke_mat.SetBxdf([bxdf]) 
     else:
         real_file = filepath_utils.get_real_path(bl_image.filepath)
 
@@ -95,8 +96,9 @@ def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
 
     if not bl_image:
         params = bxdf.params
-        params.SetColor('emitColor', [0.0, 0.0, 0.0])     
-        rman_sg_material.sg_node.SetBxdf([bxdf]) 
+        #params.SetColor('emitColor', [0.0, 0.0, 0.0])     
+        params.SetColor('emitColor', col)
+        rman_sg_material.sg_fill_mat.SetBxdf([bxdf]) 
     else:
         real_file = filepath_utils.get_real_path(bl_image.filepath)
 
