@@ -1347,7 +1347,9 @@ class RmanScene(object):
         translator = self.rman_translators['CAMERA']
         with self.rman.SGManager.ScopedEdit(self.sg_scene):
             if self.is_viewport_render:
-                translator.update_viewport_resolution(rman_sg_camera)
+                ob = translator.update_viewport_resolution(rman_sg_camera)
+                if ob:
+                    translator.update_viewport_cam(ob, rman_sg_camera)
                 translator.update_transform(None, rman_sg_camera)
             else:
                 translator.update_transform(camera, rman_sg_camera)  

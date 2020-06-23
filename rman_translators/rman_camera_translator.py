@@ -90,7 +90,8 @@ class RmanCameraTranslator(RmanTranslator):
     def _export_viewport_cam(self, db_name=""):  
         sg_camera = self.rman_scene.sg_scene.CreateCamera(db_name)
         rman_sg_camera = RmanSgCamera(self.rman_scene, sg_camera, db_name)
-        self.update_viewport_resolution(rman_sg_camera)
+        ob = self.update_viewport_resolution(rman_sg_camera)
+        self.update_viewport_cam(ob, rman_sg_camera)
         self._set_orientation(rman_sg_camera)
         self._update_viewport_transform(rman_sg_camera)  
         return rman_sg_camera        
@@ -243,7 +244,8 @@ class RmanCameraTranslator(RmanTranslator):
             options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (width, height), 2)
             self.rman_scene.sg_scene.SetOptions(options)
             rman_sg_camera.sg_node.SetProperties(prop)
-            self.update_viewport_cam(ob, rman_sg_camera)
+            return ob
+        return None
 
     def update_viewport_cam(self, ob, rman_sg_camera):
         region = self.rman_scene.context.region
