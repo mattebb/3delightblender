@@ -1,7 +1,7 @@
 from bpy.props import EnumProperty, StringProperty, BoolProperty
 from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
-from ..rman_utils.shadergraph_utils import find_node
+from ..rman_utils.shadergraph_utils import find_node, find_selected_pattern_node
 from ..icons.icons import load_icons
 import bpy
 import os
@@ -279,11 +279,7 @@ class NODE_OT_rman_node_set_solo(bpy.types.Operator):
             output_node.solo_node_name = self.solo_node_name
             return {'FINISHED'}        
 
-        for n in nt.nodes:
-            node_type = getattr(n, 'renderman_node_type', '')
-            if n.select and node_type == 'pattern':
-                selected_node = n
-                break
+        selected_node = find_selected_pattern_node(nt)
 
         if not selected_node:
             self.report({'ERROR'}, "Pattern node not selected")

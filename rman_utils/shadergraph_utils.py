@@ -87,6 +87,15 @@ def find_node_from_nodetree(ntree, nodetype):
 
     return None
 
+def find_selected_pattern_node(ntree):
+    selected_node = None
+    for n in ntree.nodes:
+        node_type = getattr(n, 'renderman_node_type', '')
+        if n.select and node_type == 'pattern':
+            selected_node = n
+            break    
+    return selected_node
+
 def find_node_input(node, name):
     for input in node.inputs:
         if input.name == name:

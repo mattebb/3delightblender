@@ -1,6 +1,6 @@
 from ..rman_render import RmanRender
 from ..icons.icons import load_icons
-from ..rman_utils.shadergraph_utils import is_renderman_nodetree
+from ..rman_utils.shadergraph_utils import is_renderman_nodetree, find_selected_pattern_node
 import bpy
 
 class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
@@ -62,14 +62,24 @@ class PRMAN_HT_DrawRenderHeaderNode(bpy.types.Header):
                 row.operator('nodes.new_bxdf', text='', icon='MATERIAL')
             else:
                 nt = context.space_data.id.node_tree
-                row.context_pointer_set("nodetree", nt)  
-                row.context_pointer_set("node", rman_output_node)  
-                
-                rman_icon = icons.get('rman_solo_on.png')
-                op = row.operator('node.rman_set_node_solo', text='', icon_value=rman_icon.icon_id)
-                op.refresh_solo = False
-                op = row.operator('node.rman_set_node_solo', text='', icon='FILE_REFRESH')
-                op.refresh_solo = True                
+                selected_node = find_selected_pattern_node(nt)
+                if selected_node:
+                    row.context_pointer_set("nodetree", nt)  
+                    row.context_pointer_set("node", rman_output_node)  
+                    
+                    if rman_output_node.solo_node_name != '':
+                        rman_icon = icons.get('rman_solo_on.png')
+                        op = row.operator('node.rman_set_node_solo', text='', icon_value=rman_icon.icon_id)
+                        op.refresh_solo = False
+                        op.solo_node_name = selected_node.name
+
+                        op = row.operator('node.rman_set_node_solo', text='', icon='FILE_REFRESH')
+                        op.refresh_solo = True  
+                    else:      
+                        rman_icon = icons.get('rman_solo_off.png')
+                        op = row.operator('node.rman_set_node_solo', text='', icon_value=rman_icon.icon_id)
+                        op.refresh_solo = False
+                        op.solo_node_name = selected_node.name                                
 
         elif type(context.space_data.id) == bpy.types.World:
             if not context.space_data.id.renderman.use_renderman_node:
