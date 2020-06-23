@@ -52,23 +52,28 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
 
             if rman_output_node:
                 if rman_output_node.solo_node_name != '':
-                    solo_node = nt.nodes.get(rman_output_node.solo_node_name)
-                    icons = load_icons()
+                    solo_node = nt.nodes.get(rman_output_node.solo_node_name, None)
+                    if solo_node:
+                        icons = load_icons()
 
-                    split = layout.split(factor=0.25)
-                    split.context_pointer_set("nodetree", nt)  
-                    split.context_pointer_set("node", rman_output_node)  
-                    rman_icon = icons.get('rman_solo_on.png')   
-                    split.label(text=rman_output_node.solo_node_name , icon_value=rman_icon.icon_id)  
-                    
-                    split = split.split(factor=0.95)
-                    split.menu('NODE_MT_renderman_node_solo_output_menu', text='Select Output')
-                    op = split.operator('node.rman_set_node_solo', text='', icon='FILE_REFRESH')
-                    op.refresh_solo = True 
-                    layout.separator()
-                    
-                    layout.separator()
-                    draw_node_properties_recursive(layout, context, nt, solo_node, level=0)
+                        split = layout.split(factor=0.25)
+                        split.context_pointer_set("nodetree", nt)  
+                        split.context_pointer_set("node", rman_output_node)  
+                        rman_icon = icons.get('rman_solo_on.png')   
+                        split.label(text=rman_output_node.solo_node_name , icon_value=rman_icon.icon_id)  
+                        
+                        split = split.split(factor=0.95)
+                        split.menu('NODE_MT_renderman_node_solo_output_menu', text='Select Output')
+                        op = split.operator('node.rman_set_node_solo', text='', icon='FILE_REFRESH')
+                        op.refresh_solo = True 
+                        layout.separator()
+                        
+                        layout.separator()
+                        draw_node_properties_recursive(layout, context, nt, solo_node, level=0)
+                    else:
+                        layout.separator()
+                        panel_node_draw(layout, context, mat,
+                                        'RendermanOutputNode', 'Bxdf')                           
                 else:
                     layout.separator()
                     panel_node_draw(layout, context, mat,
