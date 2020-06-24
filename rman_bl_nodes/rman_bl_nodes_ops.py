@@ -273,10 +273,12 @@ class NODE_OT_rman_node_set_solo(bpy.types.Operator):
 
         if self.refresh_solo:
             output_node.solo_node_name = ''
+            output_node.solo_node_output = ''
             return {'FINISHED'}           
 
         if self.solo_node_name:
             output_node.solo_node_name = self.solo_node_name
+            output_node.solo_node_output = ''
             return {'FINISHED'}        
 
         selected_node = find_selected_pattern_node(nt)
@@ -286,6 +288,7 @@ class NODE_OT_rman_node_set_solo(bpy.types.Operator):
             return {'FINISHED'}   
 
         output_node.solo_node_name = selected_node.name
+        output_node.solo_node_output = ''
 
         return {'FINISHED'}        
 
