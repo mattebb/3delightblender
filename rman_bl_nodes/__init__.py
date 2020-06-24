@@ -572,8 +572,17 @@ def register_rman_nodes():
 
     rfb_log().debug("Registering RenderMan Plugin Nodes:")
     path_list = get_path_list()
+    visited = set()
     for path in path_list:
         for root, dirnames, filenames in os.walk(path):
+            # Prune this branch if we've already visited it (e.g., one path
+            # in the path list is actually a subdirectory of another).
+            real = os.path.realpath(root)
+            if real in visited:
+                dirnames[:] = []
+                continue
+            visited.add(real)
+
             for filename in filenames:                
                 if filename.endswith(('.args', '.oso')):
                     is_oso = filename.endswith('.oso')
