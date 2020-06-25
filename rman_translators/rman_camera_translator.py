@@ -284,7 +284,7 @@ class RmanCameraTranslator(RmanTranslator):
                 rman_sg_camera.rman_fov = fov  
                 updated = True
 
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrPerspective", "proj")
             projparams = proj.params         
             projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov) 
 
@@ -306,7 +306,7 @@ class RmanCameraTranslator(RmanTranslator):
                 rman_sg_camera.rman_fov = fov  
                 updated = True               
 
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrPerspective", "proj")
             projparams = proj.params         
             projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)   
 
@@ -321,12 +321,12 @@ class RmanCameraTranslator(RmanTranslator):
             # the default -1 1 -1 1 screen window every time we change any of the camera's
             # properties that affect FOV. Even setting the screen window again on the camera
             # doesn't work
-            #options = self.rman_scene.sg_scene.GetOptions()
-            #options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-rman_sg_camera.xaspect, rman_sg_camera.xaspect, -rman_sg_camera.yaspect, rman_sg_camera.yaspect), 4)               
-            #self.rman_scene.sg_scene.SetOptions(options)
+            options = self.rman_scene.sg_scene.GetOptions()
+            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-rman_sg_camera.xaspect, rman_sg_camera.xaspect, -rman_sg_camera.yaspect, rman_sg_camera.yaspect), 4)               
+            self.rman_scene.sg_scene.SetOptions(options)
 
             rman_sg_camera.sg_node.SetProjection(proj)          
-            rman_sg_camera.sg_node.SetRenderable(True)         
+            #rman_sg_camera.sg_node.SetRenderable(True)         
 
     def _update_render_cam(self, ob, rman_sg_camera):
 
