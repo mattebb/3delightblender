@@ -172,7 +172,8 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
             col = row.column()
             icons = load_icons()
             light_shader = light.renderman.get_light_node_name()
-            rman_light_icon = icons.get("out_%s.png" % light_shader)                    
+            rman_light_icon = icons.get("out_PxrRectLight.png")
+            rman_light_icon = icons.get("out_%s.png" % light_shader, rman_light_icon)                    
             col.label(text="%s" % light_shader, icon_value=rman_light_icon.icon_id)
 
 class PRMAN_PT_context_material(_RManPanelHeader, Panel):

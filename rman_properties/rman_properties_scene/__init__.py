@@ -61,9 +61,9 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         rr = rman_render.RmanRender.get_rman_render()        
         if rr.rman_interactive_running:
             if self.solo_light:
-                rr.rman_scene.update_solo_light(context)
+                rr.rman_scene_sync.update_solo_light(context)
             else:
-                rr.rman_scene.update_un_solo_light(context)
+                rr.rman_scene_sync.update_un_solo_light(context)
 
     solo_light: BoolProperty(name="Solo Light", update=update_scene_solo_light, default=False)
 

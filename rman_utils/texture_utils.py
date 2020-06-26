@@ -48,22 +48,22 @@ class RfBTxManager(object):
         if len(tokens) < 3:
             return
         node_name,param,param_val = tokens
-        for mat in bpy.data.materials:
-            if mat.grease_pencil:
-                if self.rman_scene:
-                    self.rman_scene.update_material(mat)
+        from .. import rman_render
+        rr = rman_render.RmanRender.get_rman_render()
+        if rr.rman_interactive_running:
+            for mat in bpy.data.materials:
+                if mat.grease_pencil:
+                    rr.rman_scene_sync.update_material(mat)
 
-            if not mat.node_tree:
-                continue
-            if node_name in mat.node_tree.nodes:
-                if self.rman_scene:
-                    self.rman_scene.update_material(mat)
-                return
+                if not mat.node_tree:
+                    continue
+                if node_name in mat.node_tree.nodes:
+                    rr.rman_scene_sync.update_material(mat)
+                    return
 
-        if node_name in bpy.data.objects:
-            ob = bpy.data.objects[node_name]
-            if self.rman_scene:
-                self.rman_scene.update_light(ob)
+            if node_name in bpy.data.objects:
+                ob = bpy.data.objects[node_name]
+                rr.rman_scene_sync.update_light(ob)
 
     def get_txfile_from_id(self, nodeID):
         txfile = self.txmanager.get_txfile_from_id(nodeID)

@@ -4,6 +4,7 @@ import rman
 import bpy
 import sys
 from .rman_scene import RmanScene
+from .rman_scene_sync import RmanSceneSync
 from. import rman_spool
 from. import chatserver
 from .rfb_logger import rfb_log
@@ -45,7 +46,7 @@ class ItHandler(chatserver.ItBaseHandler):
             for c in self.msg.getOpt('crop').split(' '):
                 crop.append(float(c))
             if len(crop) == 4:
-                __RMAN_RENDER__.rman_scene.update_cropwindow(crop)
+                __RMAN_RENDER__.rman_scene_sync.update_cropwindow(crop)
 
     def stopRender(self):
         global __RMAN_RENDER__
@@ -149,6 +150,7 @@ class RmanRender(object):
         self.rman = rman
         self.sg_scene = None
         self.rman_scene = RmanScene(rman_render=self)
+        self.rman_scene_sync = None
         self.bl_engine = None
         self.rman_running = False
         self.rman_interactive_running = False
@@ -390,6 +392,7 @@ class RmanRender(object):
         config = rman.Types.RtParamList()
         config.SetString("rendervariant", rm.renderVariant)      
         self.sg_scene = self.sgmngr.CreateScene(config) 
+        self.rman_scene_sync = RmanSceneSync(rman_render=self, rman_scene=self.rman_scene, sg_scene=self.sg_scene)
         rfb_log().info("Parsing scene...")        
         self.rman_scene.export_for_interactive_render(context, depsgraph, self.sg_scene)
 
@@ -482,6 +485,7 @@ class RmanRender(object):
         self.rman_swatch_render_running = False
         self.rman_is_viewport_rendering = False
         self.sg_scene = None
+        self.rman_scene_sync = None
         self.rman_scene.reset()
         rfb_log().debug("RenderMan has Stopped.")
                 
@@ -504,8 +508,8 @@ class RmanRender(object):
 
     def update_scene(self, context, depsgraph):
         if self.rman_interactive_running:
-            self.rman_scene.update_scene(context, depsgraph)
+            self.rman_scene_sync.update_scene(context, depsgraph)
 
     def update_view(self, context, depsgraph):
         if self.rman_interactive_running:
-            self.rman_scene.update_view(context, depsgraph)
+            self.rman_scene_sync.update_view(context, depsgraph)

@@ -335,7 +335,7 @@ class RendermanOutputNode(RendermanShadingNode):
         if rr.rman_interactive_running:
             mat = getattr(bpy.context, 'material', None)
             if mat:
-                rr.rman_scene.update_material(mat)       
+                rr.rman_scene_sync.update_material(mat)       
 
     solo_node_name: StringProperty(name='Solo Node', update=update_solo_node_name)
     solo_node_output: StringProperty(name='Solo Node Output')
@@ -384,7 +384,7 @@ class RendermanOutputNode(RendermanShadingNode):
         if rr.rman_interactive_running:
             mat = getattr(bpy.context, 'material', None)
             if mat:
-                rr.rman_scene.update_material(mat)
+                rr.rman_scene_sync.update_material(mat)
 
 class RendermanIntegratorsOutputNode(RendermanShadingNode):
     bl_label = 'RenderMan Integrators'

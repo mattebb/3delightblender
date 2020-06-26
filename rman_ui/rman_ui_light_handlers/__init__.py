@@ -1276,6 +1276,8 @@ def draw():
         return
 
     for ob in [x for x in bpy.data.objects if x.type == 'LIGHT']:
+        if ob.hide_get():
+            continue
         if not ob.data.renderman:
             continue
         rm = ob.data.renderman
