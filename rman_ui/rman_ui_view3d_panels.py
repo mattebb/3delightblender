@@ -228,7 +228,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         # Panel.
         layout.separator()
         rman_beaker = icons.get("rman_beaker.png")
-        layout.menu("PRMAN_MT_examples", icon_value=rman_beaker.icon_id)    
+        layout.menu("PRMAN_MT_LoadExampleSceneMenu", icon_value=rman_beaker.icon_id)    
 
 classes = [
     PRMAN_PT_Renderman_UI_Panel,
