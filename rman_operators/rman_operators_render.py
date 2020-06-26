@@ -98,13 +98,10 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
     bl_description = "Start Interactive Rendering"
 
     def invoke(self, context, event=None):
-        for window in bpy.context.window_manager.windows:
-            for area in window.screen.areas:
-                if area.type == 'VIEW_3D':
-                    for space in area.spaces:
-                        if space.type == 'VIEW_3D':
-                            if space.shading.type != 'RENDERED':    
-                                space.shading.type = 'RENDERED'
+        view = context.space_data
+        rman_render = RmanRender.get_rman_render()
+        if view and view.shading.type != 'RENDERED':        
+            view.shading.type = 'RENDERED'
 
         return {'FINISHED'}
 

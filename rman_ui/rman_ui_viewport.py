@@ -125,8 +125,11 @@ def draw_rman_viewport_props(self, context):
     if context.engine == "PRMAN_RENDER":
         view = context.space_data
         rman_render = RmanRender.get_rman_render()
+        icons = load_icons()
         if view.shading.type == 'RENDERED':
-            icons = load_icons()
+            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
+            layout.operator('lighting.stop_interactive', text="",
+                            icon_value=rman_rerender_controls.icon_id)  
 
             # integrators menu
             rman_icon = icons.get('rman_vp_viz.png')
@@ -137,14 +140,15 @@ def draw_rman_viewport_props(self, context):
             if rman_render.rman_is_viewport_rendering:
                 rman_icon = icons.get('rman_vp_resolution.png')
                 layout.menu('PRMAN_MT_Viewport_Res_Mult_Menu', text='', icon_value=rman_icon.icon_id)
-            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
-            layout.operator('lighting.stop_interactive', text="",
-                            icon_value=rman_rerender_controls.icon_id)   
             
         else:
             # stop rendering if we're not in viewport rendering
             if rman_render.rman_interactive_running:
                 rman_render.stop_render()
+            icons = load_icons()                
+            rman_rerender_controls = icons.get("rman_ipr_on.png")
+            layout.operator('lighting.start_interactive', text="",
+                            icon_value=rman_rerender_controls.icon_id)               
 
 classes = [
     PRMAN_MT_Viewport_Integrator_Menu,
