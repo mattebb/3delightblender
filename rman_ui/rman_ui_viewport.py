@@ -134,8 +134,12 @@ def draw_rman_viewport_props(self, context):
             # decidither
             layout.menu('PRMAN_MT_Viewport_Refinement_Menu', text='', icon='IMPORT')
             # resolution mult
-            rman_icon = icons.get('rman_vp_resolution.png')
-            layout.menu('PRMAN_MT_Viewport_Res_Mult_Menu', text='', icon_value=rman_icon.icon_id)
+            if rman_render.rman_is_viewport_rendering:
+                rman_icon = icons.get('rman_vp_resolution.png')
+                layout.menu('PRMAN_MT_Viewport_Res_Mult_Menu', text='', icon_value=rman_icon.icon_id)
+            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
+            layout.operator('lighting.stop_interactive', text="",
+                            icon_value=rman_rerender_controls.icon_id)   
             
         else:
             # stop rendering if we're not in viewport rendering
