@@ -14,6 +14,7 @@ from . import rman_ui_particles_panels
 from . import rman_ui_header_panels
 from . import rman_ui_view3d_panels
 from . import rman_ui_blender_panels
+from . import rman_ui_add_object_menu
 
 def register():
     rman_ui_txmanager.register()
@@ -32,6 +33,7 @@ def register():
     rman_ui_header_panels.register()
     rman_ui_view3d_panels.register()
     rman_ui_blender_panels.register()
+    rman_ui_add_object_menu.register()
 
 def unregister():
     rman_ui_txmanager.unregister()
@@ -50,3 +52,4 @@ def unregister():
     rman_ui_header_panels.unregister()
     rman_ui_view3d_panels.unregister()
     rman_ui_blender_panels.unregister()
+    rman_ui_add_object_menu.unregister()
