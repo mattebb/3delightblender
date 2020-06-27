@@ -99,7 +99,7 @@ class RmanLightTranslator(RmanTranslator):
 
         light_filters = []
         lightfilter_translator = self.rman_scene.rman_translators['LIGHTFILTER']
-        
+        rman_sg_light.sg_node.SetLightFilter([])
         for lf in rm.light_filters:
             if lf.filter_name in bpy.data.objects:
                 light_filter = bpy.data.objects[lf.filter_name]
@@ -109,6 +109,7 @@ class RmanLightTranslator(RmanTranslator):
                 rman_sg_lightfilter = self.rman_scene.rman_objects.get(light_filter.original)
                 if not rman_sg_lightfilter:
                     rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
+                    lightfilter_translator.update(light_filter, rman_sg_lightfilter)
                 elif not isinstance(rman_sg_lightfilter, RmanSgLightFilter):
                     # We have a type mismatch. Delete this scene graph node and re-export
                     # it as a RmanSgLightFilter
@@ -116,9 +117,9 @@ class RmanLightTranslator(RmanTranslator):
                         self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
                     rman_sg_lightfilter.instances.clear() 
                     del rman_sg_lightfilter
-                    self.rman_scene.rman_objects.pop(ob.original)
+                    self.rman_scene.rman_objects.pop(light_filter.original)
                     rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
-                lightfilter_translator.update(light_filter, rman_sg_lightfilter)
+                    lightfilter_translator.update(light_filter, rman_sg_lightfilter)
                 light_filters.append(rman_sg_lightfilter.sg_filter_node)
 
         if len(light_filters) > 0:
