@@ -365,28 +365,6 @@ class PRMAN_OT_remove_add_rem_light_link(bpy.types.Operator):
 #       Tab     #
 #################
 
-class PRMAN_OT_New_bxdf(bpy.types.Operator):
-    bl_idname = "nodes.new_bxdf"
-    bl_label = "New RenderMan Material"
-    bl_description = ""
-    bl_options = {"REGISTER", "UNDO"}
-
-    def execute(self, context):
-        ob = context.object
-        bxdf_name = 'PxrSurface'
-        mat = bpy.data.materials.new(bxdf_name)
-        ob.active_material = mat
-        mat.use_nodes = True
-        nt = mat.node_tree
-
-        output = nt.nodes.new('RendermanOutputNode')
-        default = nt.nodes.new('PxrSurfaceBxdfNode')
-        default.location = output.location
-        default.location[0] -= 300
-        nt.links.new(default.outputs[0], output.inputs[0])
-
-        return {"FINISHED"}
-
 # Menus
 compile_shader_menu_func = (lambda self, context: self.layout.operator(
     TEXT_OT_compile_shader.bl_idname))
@@ -399,7 +377,6 @@ classes = [
     PRMAN_OT_add_to_group,
     PRMAN_OT_remove_from_group,
     PRMAN_OT_remove_add_rem_light_link,
-    PRMAN_OT_New_bxdf
 ]
 
 def register():

@@ -33,7 +33,54 @@ class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
                             icon_value=rman_rerender_controls.icon_id)      
 
 
-class PRMAN_HT_DrawRenderHeaderNode(bpy.types.Header):
+class NODE_MT_renderman_node_editor_menu(bpy.types.Menu):
+    bl_label = "RenderMan"
+    bl_idname = "NODE_MT_renderman_node_editor_menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    def draw(self, context):
+        layout = self.layout
+        icons = load_icons()
+
+        if not hasattr(context.space_data, 'id'):
+            return
+
+        if type(context.space_data.id) == bpy.types.Material:
+            rman_output_node = is_renderman_nodetree(context.space_data.id)
+            icons = load_icons()
+
+            if not rman_output_node:           
+                rman_icon = icons.get('rman_graph.png') 
+                layout.operator(
+                    'shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = "node_editor"
+            else:
+                rman_icon = icons.get("out_PxrSurface.png")
+                layout.operator('nodes.rman_new_bxdf', text='New Bxdf', icon_value=rman_icon.icon_id).idtype = "node_editor"
+                nt = context.space_data.id.node_tree
+                layout.context_pointer_set("nodetree", nt)  
+                layout.context_pointer_set("node", rman_output_node)                  
+                selected_node = find_selected_pattern_node(nt)
+                if selected_node:                     
+                    rman_icon = icons.get('rman_solo_on.png')
+                    op = layout.operator('node.rman_set_node_solo', text='Solo Selected Node', icon_value=rman_icon.icon_id)
+                    op.refresh_solo = False
+                    op.solo_node_name = selected_node.name           
+
+                if rman_output_node.solo_node_name != '':   
+                    op = layout.operator('node.rman_set_node_solo', text='Reset Solo', icon='FILE_REFRESH')
+                    op.refresh_solo = True                                               
+
+        elif type(context.space_data.id) == bpy.types.World:
+            if not context.space_data.id.renderman.use_renderman_node:
+                layout.operator(
+                    'shading.add_renderman_nodetree', text="Add RenderMan Nodes").idtype = "world"        
+
+
+class NODE_HT_DrawRenderHeaderNode(bpy.types.Header):
     '''
     Adds a New RenderMan Material button or Convert to RenderMan button to 
     the node editor UI.
@@ -59,7 +106,6 @@ class PRMAN_HT_DrawRenderHeaderNode(bpy.types.Header):
                 rman_icon = icons.get('rman_graph.png') 
                 row.operator(
                     'shading.add_renderman_nodetree', text="", icon_value=rman_icon.icon_id).idtype = "node_editor"
-                row.operator('nodes.new_bxdf', text='', icon='MATERIAL')
             else:
                 nt = context.space_data.id.node_tree
                 row.context_pointer_set("nodetree", nt)  
@@ -71,7 +117,7 @@ class PRMAN_HT_DrawRenderHeaderNode(bpy.types.Header):
                         op = row.operator('node.rman_set_node_solo', text='', icon_value=rman_icon.icon_id)
                         op.refresh_solo = False
                         op.solo_node_name = selected_node.name
-
+                    
                     else:      
                         rman_icon = icons.get('rman_solo_off.png')
                         op = row.operator('node.rman_set_node_solo', text='', icon_value=rman_icon.icon_id)
@@ -117,15 +163,24 @@ class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
             row.operator('lighting.stop_interactive', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)  
 
+def rman_add_node_editor_menu(self, context):
+    layout = self.layout
+    icons = load_icons()    
+    rman_icon = icons.get("rman_blender.png")    
+    layout.menu('NODE_MT_renderman_node_editor_menu', text='RenderMan', icon_value=rman_icon.icon_id)
+
 classes = [
     #PRMAN_HT_DrawRenderHeaderInfo,
-    PRMAN_HT_DrawRenderHeaderNode,
+    NODE_HT_DrawRenderHeaderNode,
+    NODE_MT_renderman_node_editor_menu,
     #PRMAN_HT_DrawRenderHeaderImage,
 ]
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
+
+    bpy.types.NODE_MT_context_menu.prepend(rman_add_node_editor_menu)
 
 def unregister():
     for cls in classes:

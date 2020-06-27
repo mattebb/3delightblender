@@ -282,11 +282,72 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             wm = context.window_manager
             return wm.invoke_props_dialog(self)  
         return self.execute(context)
+
+class PRMAN_OT_New_bxdf(bpy.types.Operator):
+    bl_idname = "nodes.rman_new_bxdf"
+    bl_label = "New RenderMan Material"
+    bl_description = "Create a new material with a new RenderMan Bxdf"
+    bl_options = {"REGISTER", "UNDO"}
+
+    idtype: StringProperty(name="ID Type", default="material")
+    
+    def get_type_items(self, context):
+        return get_bxdf_items()  
+
+    bxdf_name: EnumProperty(items=get_type_items, name="Bxdf Name")
+
+    def execute(self, context):
+        ob = context.object
+        bxdf_name = self.bxdf_name
+        mat = bpy.data.materials.new(bxdf_name)
+        ob.active_material = mat
+        mat.use_nodes = True
+        nt = mat.node_tree
+
+        output = nt.nodes.new('RendermanOutputNode')
+        default = nt.nodes.new('%sBxdfNode' % bxdf_name)
+        default.location = output.location
+        default.location[0] -= 300
+        nt.links.new(default.outputs[0], output.inputs[0])
+        if self.bxdf_name == 'PxrLayerSurface':
+            shadergraph_utils.create_pxrlayer_nodes(nt, default)
+
+        output.inputs[3].hide = True
+
+        return {"FINISHED"}  
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column()
+        col.label(text="Select a Material")
+        col.prop(self, 'bxdf_name')      
+
+    def invoke(self, context, event):
+
+        idtype = self.properties.idtype
+        if idtype == 'node_editor':
+            idblock = context.space_data.id
+            idtype = 'material'
+        else:
+            context_data = {'material': context.material,
+                            'light': context.light, 'world': context.scene.world}
+            idblock = context_data[idtype]
+
+        idblock.use_nodes = True
+        nt = idblock.node_tree
+
+        if idtype == 'material':      
+            if context.material.grease_pencil:
+                return self.execute(context)  
+            wm = context.window_manager
+            return wm.invoke_props_dialog(self)  
+        return self.execute(context)      
         
 classes = [
     SHADING_OT_convert_all_renderman_nodetree,
     SHADING_OT_convert_cycles_to_renderman_nodetree,
     SHADING_OT_add_renderman_nodetree,
+    PRMAN_OT_New_bxdf
 ]
 
 def register():

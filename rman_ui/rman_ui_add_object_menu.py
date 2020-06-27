@@ -3,9 +3,9 @@ from ..rman_render import RmanRender
 from bpy.types import Menu
 import bpy
 
-class NODE_MT_renderman_add_object_menu(Menu):
+class VIEW3D_MT_renderman_add_object_menu(Menu):
     bl_label = "RenderMan"
-    bl_idname = "NODE_MT_renderman_add_object_menu"
+    bl_idname = "VIEW3D_MT_renderman_add_object_menu"
 
     @classmethod
     def poll(cls, context):
@@ -70,10 +70,10 @@ def rman_add_object_menu(self, context):
     layout = self.layout
     icons = load_icons()
     rman_icon = icons.get("rman_blender.png")    
-    layout.menu('NODE_MT_renderman_add_object_menu', text='RenderMan', icon_value=rman_icon.icon_id)
+    layout.menu('VIEW3D_MT_renderman_add_object_menu', text='RenderMan', icon_value=rman_icon.icon_id)
 
 classes = [
-    NODE_MT_renderman_add_object_menu
+    VIEW3D_MT_renderman_add_object_menu
 ]
 
 def register():
