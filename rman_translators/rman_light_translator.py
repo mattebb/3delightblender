@@ -101,15 +101,18 @@ class RmanLightTranslator(RmanTranslator):
         lightfilter_translator = self.rman_scene.rman_translators['LIGHTFILTER']
         rman_sg_light.sg_node.SetLightFilter([])
         for lf in rm.light_filters:
-            if lf.filter_name in bpy.data.objects:
-                light_filter = bpy.data.objects[lf.filter_name]
+            light_filter = lf.linked_filter_ob
+            if light_filter:
+                # check to make sure this light filter is still in the scene
+                if not self.rman_scene.bl_scene.objects.get(light_filter.name, None):
+                    lf.name = 'Not Set'
+                    continue
                 light_filter_sg = None
 
                 light_filter_db_name = object_utils.get_db_name(light_filter)                
                 rman_sg_lightfilter = self.rman_scene.rman_objects.get(light_filter.original)
                 if not rman_sg_lightfilter:
                     rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
-                    lightfilter_translator.update(light_filter, rman_sg_lightfilter)
                 elif not isinstance(rman_sg_lightfilter, RmanSgLightFilter):
                     # We have a type mismatch. Delete this scene graph node and re-export
                     # it as a RmanSgLightFilter
@@ -119,8 +122,10 @@ class RmanLightTranslator(RmanTranslator):
                     del rman_sg_lightfilter
                     self.rman_scene.rman_objects.pop(light_filter.original)
                     rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
-                    lightfilter_translator.update(light_filter, rman_sg_lightfilter)
+                lightfilter_translator.update(light_filter, rman_sg_lightfilter)
                 light_filters.append(rman_sg_lightfilter.sg_filter_node)
+                if ob.original not in rman_sg_lightfilter.lights_list:
+                    rman_sg_lightfilter.lights_list.append(ob.original)
 
         if len(light_filters) > 0:
             rman_sg_light.sg_node.SetLightFilter(light_filters)          

@@ -11,20 +11,25 @@ class RendermanPluginSettings(bpy.types.PropertyGroup):
 
 class RendermanLightFilter(bpy.types.PropertyGroup):
 
-    def get_filters(self, context):
-        obs = context.scene.objects
-        items = [('None', 'Not Set', 'Not Set')]
-        for o in obs:
-            if o.type == 'LIGHT' and o.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
-                items.append((o.name, o.name, o.name))
-        return items
-
-    def update_name(self, context):
-        self.name = self.filter_name
-
     name: StringProperty(default='SET FILTER')
-    filter_name: EnumProperty(
-        name="Linked Filter:", items=get_filters, update=update_name)
+
+    def update_linked_filter_ob(self, context):
+        if not self.linked_filter_ob:
+            self.name = 'Not Set'
+        else:
+            self.name = self.linked_filter_ob.name           
+
+    def validate_obj(self, ob):
+        if ob.type == 'LIGHT' and ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+            return True
+        return False
+    
+    linked_filter_ob: PointerProperty(name='Light Filter:', 
+                        description='Light Filter',
+                        type=bpy.types.Object,
+                        update=update_linked_filter_ob,
+                        poll=validate_obj
+                        )    
 
 class RendermanLightSettings(bpy.types.PropertyGroup):
 

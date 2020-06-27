@@ -287,8 +287,24 @@ class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
     bl_label = "Light Filters"
     bl_context = 'data'
 
-    def draw_item(self, layout, context, item):
-        layout.prop(item, 'filter_name')
+    def draw_item(self, layout, context, item):        
+        layout.prop(item, 'linked_filter_ob')
+
+        lightfilter = item.linked_filter_ob
+        if lightfilter:
+            if context.scene.objects.get(lightfilter.name) == None:
+                # This is pure yuck. We shouldn't be modifying the scene
+                # during a draw routine. However, we can still be referencing
+                # an object that's already been removed.
+                bpy.data.objects.remove(lightfilter)
+                return
+
+            if lightfilter.data.node_tree:
+                nt = lightfilter.data.node_tree
+                draw_nodes_properties_ui(
+                    self.layout, context, nt, input_name='LightFilter')
+        else:
+            layout.label(text='No light filter linked')          
 
     @classmethod
     def poll(cls, context):

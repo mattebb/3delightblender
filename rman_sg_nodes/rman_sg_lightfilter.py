@@ -7,6 +7,7 @@ class RmanSgLightFilter(RmanSgNode):
         self.matrix_world = None
         self.coord_sys = ''
         self.sg_filter_node = None
+        self.lights_list = list() # list of lights referencing this light filter
 
     @property
     def matrix_world(self):
@@ -30,4 +31,12 @@ class RmanSgLightFilter(RmanSgNode):
 
     @sg_filter_node.setter
     def sg_filter_node(self, sg_filter_node):
-        self.__sg_filter_node = sg_filter_node                      
+        self.__sg_filter_node = sg_filter_node    
+
+    @property
+    def lights_list(self):
+        return self.__lights_list
+
+    @lights_list.setter
+    def lights_list(self, lights_list):
+        self.__lights_list = lights_list                             

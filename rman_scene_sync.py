@@ -174,11 +174,11 @@ class RmanSceneSync(object):
                         rman_sg_node = self.rman_scene.rman_translators['LIGHTFILTER'].export(ob, db_name)            
 
                     self.rman_scene.rman_translators['LIGHTFILTER'].update(ob, rman_sg_node)
-                    for light_ob in [x for x in self.rman_scene.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
+                    for light_ob in rman_sg_node.lights_list:
                         light_key = object_utils.get_db_name(light_ob, rman_type='LIGHT')
                         rman_sg_light = self.rman_scene.rman_objects.get(light_ob.original, None)
                         if rman_sg_light:
-                            self.rman_scene.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)
+                            self.rman_scene.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)                      
 
                 elif rman_type == 'LIGHT':
                     self.rman_scene.rman_translators['LIGHT'].update(ob, rman_sg_node)
@@ -311,12 +311,14 @@ class RmanSceneSync(object):
                 rfb_log().debug("Collection updated")
                 do_delete = True
                 
-                # mark all objects in the collection as needing their instances updated
+                # mark all objects in a collection that is part of a dupli_group
+                # as needing their instances updated
                 # the collection could have been updated with new objects
                 # FIXME: like grease pencil above we seem to crash when removing and adding instances 
                 # of curves, we need to figure out what's going on
-                for o in obj.id.all_objects:
-                    update_instances.append(o.original)
+                if obj.id.users_dupli_group:
+                    for o in obj.id.all_objects:
+                        update_instances.append(o.original)
 
         # call txmake all in case of new textures
         texture_utils.get_txmanager().txmake_all(blocking=False)                      
@@ -410,8 +412,8 @@ class RmanSceneSync(object):
                 keys = [k for k in self.rman_scene.rman_objects.keys()]
                 for obj in keys:
                     try:
-                        ob = bpy.data.objects.get(obj.name_full, None)
-                        ob = bpy.data.lights.get(obj.name_full, ob)
+                        ob = self.rman_scene.bl_scene.objects.get(obj.name_full, None)
+                        #ob = bpy.data.lights.get(obj.name_full, ob)
                         if ob:
                             continue
                     except:
@@ -429,12 +431,20 @@ class RmanSceneSync(object):
 
                         # self.rman_scene.sg_scene.DeleteDagNode(rman_sg_node.sg_node)                     
                         del self.rman_scene.rman_objects[obj]
+
+                        # We just deleted a light filter. We need to tell all lights
+                        # associated with this light filter to update
+                        if isinstance(rman_sg_node, RmanSgLightFilter):
+                            for light_ob in rman_sg_node.lights_list:
+                                light_key = object_utils.get_db_name(light_ob, rman_type='LIGHT')
+                                rman_sg_light = self.rman_scene.rman_objects.get(light_ob.original, None)
+                                if rman_sg_light:
+                                    self.rman_scene.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)                                
                         try:
                             self.rman_scene.processed_obs.remove(obj)
                         except ValueError:
                             rfb_log().debug("Obj not in self.rman_scene.processed_obs")
                             pass
-
 
                     if self.rman_scene.render_default_light:
                         self.rman_scene.scene_any_lights = self.rman_scene._scene_has_lights()     

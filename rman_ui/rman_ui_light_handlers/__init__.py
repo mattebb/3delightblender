@@ -1274,8 +1274,9 @@ def draw():
 
     if bpy.context.engine != 'PRMAN_RENDER':
         return
-
-    for ob in [x for x in bpy.data.objects if x.type == 'LIGHT']:
+    
+    scene = bpy.context.scene
+    for ob in [x for x in scene.objects if x.type == 'LIGHT']:
         if ob.hide_get():
             continue
         if not ob.data.renderman:

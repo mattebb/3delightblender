@@ -105,7 +105,7 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
             rman_type = object_utils._detect_primitive_(ob)
             if rman_type == 'LIGHT':
                 light_filter_item = ob.data.renderman.light_filters.add()
-                light_filter_item.filter_name = light_filter_ob.name
+                light_filter_item.linked_filter_ob = light_filter_ob
 
         return {"FINISHED"}        
 
