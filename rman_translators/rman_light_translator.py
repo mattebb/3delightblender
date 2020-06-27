@@ -1,6 +1,7 @@
 from .rman_translator import RmanTranslator
 from .rman_lightfilter_translator import RmanLightFilterTranslator
 from ..rman_sg_nodes.rman_sg_light import RmanSgLight
+from ..rman_sg_nodes.rman_sg_lightfilter import RmanSgLightFilter
 from ..rman_utils import string_utils
 from ..rman_utils import property_utils
 from ..rman_utils import transform_utils
@@ -107,6 +108,15 @@ class RmanLightTranslator(RmanTranslator):
                 light_filter_db_name = object_utils.get_db_name(light_filter)                
                 rman_sg_lightfilter = self.rman_scene.rman_objects.get(light_filter.original)
                 if not rman_sg_lightfilter:
+                    rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
+                elif not isinstance(rman_sg_lightfilter, RmanSgLightFilter):
+                    # We have a type mismatch. Delete this scene graph node and re-export
+                    # it as a RmanSgLightFilter
+                    for k,rman_sg_group in rman_sg_lightfilter.instances.items():
+                        self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
+                    rman_sg_lightfilter.instances.clear() 
+                    del rman_sg_lightfilter
+                    self.rman_scene.rman_objects.pop(ob.original)
                     rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
                 lightfilter_translator.update(light_filter, rman_sg_lightfilter)
                 light_filters.append(rman_sg_lightfilter.sg_filter_node)

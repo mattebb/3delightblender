@@ -4,6 +4,7 @@ from .rman_utils import transform_utils
 from .rman_utils import texture_utils
 
 from .rfb_logger import rfb_log
+from .rman_sg_nodes.rman_sg_lightfilter import RmanSgLightFilter
 
 import bpy
 
@@ -159,10 +160,23 @@ class RmanSceneSync(object):
         if rman_type in ['LIGHT', 'LIGHTFILTER', 'CAMERA']:
             with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
                 if rman_type == 'LIGHTFILTER':
+                    if not isinstance(rman_sg_node, RmanSgLightFilter):
+                        # We have a type mismatch. We can get into this situation when
+                        # a new light filter is added to the scene. Blender doesn't
+                        # seem to give us a chance to set properties on an object before telling us
+                        # a new object has been added. So, we delete this node and re-export it
+                        # as a RmanSgLightFilter
+                        for k,rman_sg_group in rman_sg_node.instances.items():
+                            self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
+                        rman_sg_node.instances.clear() 
+                        del rman_sg_node
+                        self.rman_scene.rman_objects.pop(ob.original)
+                        rman_sg_node = self.rman_scene.rman_translators['LIGHTFILTER'].export(ob, db_name)            
+
                     self.rman_scene.rman_translators['LIGHTFILTER'].update(ob, rman_sg_node)
                     for light_ob in [x for x in self.rman_scene.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
                         light_key = object_utils.get_db_name(light_ob, rman_type='LIGHT')
-                        rman_sg_light = self.rman_scene.rman_objects[light_ob.original]
+                        rman_sg_light = self.rman_scene.rman_objects.get(light_ob.original, None)
                         if rman_sg_light:
                             self.rman_scene.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)
 
