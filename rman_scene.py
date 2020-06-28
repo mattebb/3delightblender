@@ -19,6 +19,7 @@ from .rman_translators.rman_fluid_translator import RmanFluidTranslator
 from .rman_translators.rman_curve_translator import RmanCurveTranslator
 from .rman_translators.rman_nurbs_translator import RmanNurbsTranslator
 from .rman_translators.rman_volume_translator import RmanVolumeTranslator
+from .rman_translators.rman_brickmap_translator import RmanBrickmapTranslator
 
 # utils
 from .rman_utils import object_utils
@@ -136,6 +137,7 @@ class RmanScene(object):
         self.rman_translators['CURVE'] = RmanCurveTranslator(rman_scene=self)
         self.rman_translators['NURBS'] = RmanNurbsTranslator(rman_scene=self)
         self.rman_translators['RI_VOLUME'] = RmanVolumeTranslator(rman_scene=self)
+        self.rman_translators['BRICKMAP'] = RmanBrickmapTranslator(rman_scene=self)
 
     def _find_renderman_layer(self):
         self.rm_rl = None

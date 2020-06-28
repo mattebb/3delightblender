@@ -452,7 +452,48 @@ class OBJECT_PT_renderman_object_geometry_volume(Panel, CollectionPanel):
         col = layout.column()
         col.enabled = not rman_interactive_running        
         col = layout.column(align = True)   
-        _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry_volume', context, layout, rm)                     
+        _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry_volume', context, layout, rm)        
+
+class OBJECT_PT_renderman_object_geometry_brickmap(Panel, CollectionPanel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+    bl_label = "Brickmap"
+    bl_parent_id = "OBJECT_PT_renderman_object_geometry"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        rm = context.object.renderman
+        if context.object.type in ['LIGHT']:
+            return False
+        if rm.primitive != 'BRICKMAP':
+            return False
+        return (context.object and rd.engine in {'PRMAN_RENDER'})
+
+    def draw_item(self, layout, context, item):
+        col = layout.column()
+        col.prop(item, "name")
+        col.prop(item, "type")
+
+    def draw(self, context):
+
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        layout = self.layout        
+        ob = context.object
+        rm = ob.renderman
+        active = context.active_object
+        rman_type = object_utils._detect_primitive_(active)
+
+        rman_render = RmanRender.get_rman_render()
+        rman_interactive_running = rman_render.rman_interactive_running  
+
+        col = layout.column()
+        col.enabled = not rman_interactive_running        
+        col = layout.column(align = True)   
+        _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry_brickmap', context, layout, rm)                            
 
 
 class OBJECT_PT_renderman_object_geometry_attributes(Panel, CollectionPanel):
@@ -610,6 +651,7 @@ classes = [
     OBJECT_PT_renderman_object_geometry_openvdb,
     OBJECT_PT_renderman_object_geometry_points,
     OBJECT_PT_renderman_object_geometry_volume,
+    OBJECT_PT_renderman_object_geometry_brickmap,
     OBJECT_PT_renderman_object_geometry_attributes,
     OBJECT_PT_renderman_object_render,
     OBJECT_PT_renderman_object_raytracing,
