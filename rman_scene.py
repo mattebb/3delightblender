@@ -148,7 +148,10 @@ class RmanScene(object):
 
     def _update_progress(self, f):
         if self.rman_render.bl_engine:
-            self.rman_render.bl_engine.update_progress(f)
+            try:
+                self.rman_render.bl_engine.update_progress(f)
+            except:
+                rfb_log().debug("Cannot update progress")
 
     def reset(self):
         # clear out dictionaries etc.

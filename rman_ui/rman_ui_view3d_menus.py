@@ -122,12 +122,20 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
 
 def rman_add_object_menu(self, context):
 
+    rd = context.scene.render
+    if rd.engine != 'PRMAN_RENDER':
+        return    
+
     layout = self.layout
     icons = load_icons()
     rman_icon = icons.get("rman_blender.png")    
     layout.menu('VIEW3D_MT_renderman_add_object_menu', text='RenderMan', icon_value=rman_icon.icon_id)
 
 def rman_object_context_menu(self, context):
+
+    rd = context.scene.render
+    if rd.engine != 'PRMAN_RENDER':
+        return    
 
     layout = self.layout
     icons = load_icons()

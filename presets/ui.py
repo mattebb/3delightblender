@@ -26,7 +26,8 @@
 from ..rman_utils import prefs_utils
 
 # for panel icon
-from .. icons import icons as ui_icons
+from ..icons.icons import load_icons
+from . import icons as rpb_icons
 
 import bpy
 from .properties import RendermanPreset, RendermanPresetCategory, refresh_presets_libraries
@@ -53,7 +54,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
 
     def draw_header(self, context):
         if prefs_utils.get_addon_prefs().draw_panel_icon:
-            rfb_icons = ui_icons.load_icons()
+            rfb_icons = load_icons()
             rfb_icon = rfb_icons.get("rman_blender.png")
             self.layout.label(text="", icon_value=rfb_icon.icon_id)
         else:
@@ -193,10 +194,75 @@ class PRMAN_MT_Renderman_Presets_Categories_Menu(bpy.types.Menu):
         else:
             self.layout.operator('renderman.set_current_preset_category',text=prefix + presets_materials_category.name).preset_current_path = presets_materials_category.path
 
+class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
+    bl_label = "Preset Browser"
+    bl_idname = "VIEW3D_MT_renderman_presets_object_context_menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    def draw(self, context):
+        layout = self.layout
+        icons = load_icons()    
+        layout.menu('PRMAN_MT_renderman_presets_categories_menu', text="Select Category")   
+
+        current_presets_category = prefs_utils.get_addon_prefs().presets_current_category
+        presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
+
+        current = RendermanPresetCategory.get_current_category()
+
+        if current:
+            presets = rpb_icons.load_previews(current)
+            selected_objects = []
+            selected_light_objects = []
+            if context.selected_objects:
+                for obj in context.selected_objects:
+                    if obj.type not in ['CAMERA', 'LIGHT', 'SPEAKER']:
+                        selected_objects.append(obj)          
+                    elif obj.type == 'LIGHT':
+                        selected_light_objects.append(obj)
+
+            presets_path = prefs_utils.get_addon_prefs().presets_root_category.path
+            rel_path = os.path.relpath(current.path, presets_path)                      
+
+            asset_type = 'Environment'
+            if rel_path.startswith('Materials'):
+                asset_type = 'Materials'
+            elif rel_path.startswith('LightRigs'):
+                asset_type = 'LightRigs'
+
+            layout.separator()
+            layout.label(text=current.name)
+            if asset_type == 'Materials':
+                for asset_path, asset_label, info, icon_id, i in presets:
+                    if selected_objects:
+                        assign = layout.operator("renderman.load_asset_to_scene", text=asset_label, icon_value=icon_id )
+                        assign.preset_path = asset_path
+                        assign.assign = True   
+                    else:             
+                        layout.operator("renderman.load_asset_to_scene", text=asset_label, icon_value=icon_id ).preset_path = asset_path
+            else:
+                for asset_path, asset_label, info, icon_id, i in presets:    
+                    layout.operator("renderman.load_asset_to_scene", text=asset_label, icon_value=icon_id ).preset_path = asset_path                
+
+def rman_presets_object_menu(self, context):
+
+    rd = context.scene.render
+    if rd.engine != 'PRMAN_RENDER':
+        return
+
+    layout = self.layout
+    icons = load_icons()   
+    rman_icon = icons.get("rman_blender.png")    
+    layout.menu('VIEW3D_MT_renderman_presets_object_context_menu', text="Preset Browser", icon_value=rman_icon.icon_id)     
+
 classes = [
     PRMAN_MT_Renderman_Presets_Categories_Menu,
     PRMAN_MT_Renderman_Presets_Categories_SubMenu,
-    PRMAN_PT_Renderman_Presets_UI_Panel
+    PRMAN_PT_Renderman_Presets_UI_Panel,
+    VIEW3D_MT_renderman_presets_object_context_menu
 ]
 
 
@@ -205,7 +271,13 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
+    bpy.types.VIEW3D_MT_add.prepend(rman_presets_object_menu) 
+    bpy.types.VIEW3D_MT_object_context_menu.prepend(rman_presets_object_menu)        
+
 def unregister():
+
+    bpy.types.VIEW3D_MT_add.remove(rman_presets_object_menu)
+    bpy.types.VIEW3D_MT_object_context_menu.remove(rman_presets_object_menu)
 
     for cls in classes:
         bpy.utils.unregister_class(cls)
