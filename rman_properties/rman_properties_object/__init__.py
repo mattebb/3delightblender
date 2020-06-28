@@ -21,6 +21,16 @@ class RendermanObjectSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         type=RendermanAnimSequenceSettings,
         name="Animation Sequence Settings")    
 
+    hide_primitive_type: BoolProperty(
+        name="Hide Primitive Type",
+        default=False
+    )
+
+    rman_material_override: PointerProperty(
+        name='Material',
+        type=bpy.types.Material
+    )    
+
     export_archive: BoolProperty(
         name="Export as Archive",
         description="At render export time, store this object as a RIB archive",

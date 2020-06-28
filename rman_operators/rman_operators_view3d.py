@@ -8,10 +8,47 @@ from ..rman_utils import shadergraph_utils
 from ..rman_utils import object_utils
 from ..rman_constants import RFB_ADDON_PATH
 from .rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
-from bpy.props import EnumProperty
+from bpy.props import EnumProperty, StringProperty
 from bpy_extras.io_utils import ImportHelper
 
 __RFB_EXAMPLE_SCENE_LIST__ = []
+
+class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
+    bl_idname = "object.rman_add_rman_geo"
+    bl_label = "Add RenderMan Geometry"
+    bl_description = "Add RenderMan specific geometry"
+    bl_options = {"REGISTER"}
+
+    rman_prim_type: StringProperty(name='rman_prim_type', default='QUADRIC')
+    rman_quadric_type: StringProperty(name='rman_quadric_type', default='SPHERE')
+    rman_default_name: StringProperty(name='rman_default_name', default='RiPrimitive')
+
+    def execute(self, context):
+        bpy.ops.object.add(type='EMPTY')
+
+        ob = None
+        for o in context.selected_objects:
+            ob = o
+            break
+        
+        ob.empty_display_type = 'PLAIN_AXES'
+        rm = ob.renderman
+        rm.hide_primitive_type = True
+        rm.primitive = self.properties.rman_prim_type
+        if rm.primitive == 'QUADRIC':
+            rm.rman_quadric_type = self.properties.rman_quadric_type 
+            ob.name = 'Ri%s' % rm.rman_quadric_type.capitalize()
+            if rm.rman_quadric_type == 'SPHERE':
+                ob.empty_display_type = 'SPHERE'
+            elif rm.rman_quadric_type == 'CONE':
+                ob.empty_display_type = 'CONE'       
+        else:
+            ob.name = self.properties.rman_default_name         
+
+        ob.update_tag(refresh={'DATA'})
+        
+        return {"FINISHED"}    
+
 
 class PRMAN_OT_RM_Add_Subdiv_Scheme(bpy.types.Operator):
     bl_idname = "object.rman_add_subdiv_scheme"
@@ -332,6 +369,7 @@ class PRMAN_MT_LoadExampleSceneMenu(bpy.types.Menu):
             op.filepath = filepath
 
 classes = [
+    PRMAN_OT_RM_Add_RenderMan_Geometry,
     PRMAN_OT_RM_Add_Subdiv_Scheme,
     PRMAN_OT_RM_Add_Light,
     PRMAN_OT_RM_Add_Light_Filter,

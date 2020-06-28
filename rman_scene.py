@@ -431,7 +431,7 @@ class RmanScene(object):
 
     def export_materials(self, materials):
         for mat in materials:   
-            db_name = object_utils.get_db_name(mat)        
+            db_name = object_utils.get_db_name(mat)
             rman_sg_material = self.rman_translators['MATERIAL'].export(mat, db_name)
             if rman_sg_material:                       
                 self.rman_materials[mat.original] = rman_sg_material
@@ -681,6 +681,14 @@ class RmanScene(object):
             rfb_log().debug("   Exported %d/%d instances..." % (i, total))
 
     def attach_material(self, ob, group):
+        if ob.renderman.rman_material_override:
+            mat = ob.renderman.rman_material_override
+            rman_sg_material = self.rman_materials.get(mat.original, None)
+            if rman_sg_material and rman_sg_material.sg_node:
+                group.SetMaterial(rman_sg_material.sg_node) 
+                group.is_meshlight = rman_sg_material.has_meshlight     
+            return
+                        
         for mat in object_utils._get_used_materials_(ob): 
             if not mat:
                 continue

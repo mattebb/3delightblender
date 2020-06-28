@@ -136,6 +136,27 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         else:
             self.draw_props(layout, context)
 
+class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+    bl_label = "RenderMan Material Override"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        if context.object.type != 'EMPTY':
+            return False
+        return (context.object and rd.engine in {'PRMAN_RENDER'} )
+
+    def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False
+
+        layout = self.layout
+        layout.prop(context.object.renderman, 'rman_material_override')
+
+
 class OBJECT_PT_renderman_object_geometry_quadric(Panel, CollectionPanel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -581,6 +602,7 @@ class OBJECT_PT_renderman_object_matteid(Panel, _RManPanelHeader):
 
 classes = [
     OBJECT_PT_renderman_object_geometry,
+    OBJECT_PT_renderman_object_material_override,
     OBJECT_PT_renderman_object_geometry_quadric,
     OBJECT_PT_renderman_object_geometry_runprogram,
     OBJECT_PT_renderman_object_geometry_dynamic_load_dso,

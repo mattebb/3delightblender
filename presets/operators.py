@@ -152,7 +152,11 @@ class PRMAN_OT_load_asset_to_scene(bpy.types.Operator):
         mat = rmanAssetsBlender.importAsset(preset.json_path)
         if self.properties.assign and mat and type(mat) == bpy.types.Material:
             for ob in context.selected_objects:
-                ob.active_material = mat
+                if ob.type == 'EMPTY':
+                    ob.renderman.rman_material_override = mat
+                    ob.update_tag(refresh={'OBJECT'})
+                else:
+                    ob.active_material = mat
 
         return {'FINISHED'}
 

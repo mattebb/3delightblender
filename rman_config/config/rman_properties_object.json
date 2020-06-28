@@ -10,7 +10,12 @@
             "options": "Automatic:AUTO|Mesh:MESH|Volume:RI_VOLUME|Points:POINTS|Quadric:QUADRIC|RIB Archive:DELAYED_LOAD_ARCHIVE|RunProgram:PROCEDURAL_RUN_PROGRAM|Dynamic Load DSO:DYNAMIC_LOAD_DSO",
             "default": "AUTO",            
             "page": "",
-            "help": "Representation of this object's geometry in the renderer. "
+            "help": "Representation of this object's geometry in the renderer. ",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "hide_primitive_type",
+                "conditionalVisValue": "0"
+            }            
         },        
         {
             "panel": "OBJECT_PT_renderman_object_geometry",

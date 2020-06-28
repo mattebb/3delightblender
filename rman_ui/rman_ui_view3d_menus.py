@@ -20,36 +20,56 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         layout.operator_menu_enum(
                 "object.rman_add_light_filter", 'rman_lightfilter_name', text="RenderMan Light Filter", icon='LIGHT')   
 
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running     
-        selected_objects = []
-        if context.selected_objects:
-            for obj in context.selected_objects:
-                if obj.type not in ['CAMERA', 'LIGHT', 'SPEAKER']:
-                    selected_objects.append(obj)
+        layout.menu('VIEW3D_MT_renderman_add_object_quadrics_menu')
+     
+        op = layout.operator('object.rman_add_rman_geo', text='RiVolume')
+        op.rman_prim_type = 'RI_VOLUME'
+        op.rman_default_name = 'RiVolume'
 
-        if selected_objects:
-            layout.separator()
+        op = layout.operator('object.rman_add_rman_geo', text='RIB Archive')
+        op.rman_prim_type = 'DELAYED_LOAD_ARCHIVE'
+        op.rman_default_name = 'RIB_Archive'        
 
-            # Add Bxdf             
-            layout.operator_menu_enum(
-                "object.rman_add_bxdf", 'bxdf_name', text="Add New Material", icon='MATERIAL')         
+        op = layout.operator('object.rman_add_rman_geo', text='RunProgram')
+        op.rman_prim_type = 'PROCEDURAL_RUN_PROGRAM'
+        op.rman_default_name = 'RiRunProgram'          
 
-            # Make Selected Geo Emissive
-            rman_meshlight = icons.get("out_PxrMeshLight.png")
-            layout.operator("object.rman_create_meshlight", text="Convert to Mesh Light",
-                         icon_value=rman_meshlight.icon_id)
+        op = layout.operator('object.rman_add_rman_geo', text='RiProcedural')
+        op.rman_prim_type = 'DYNAMIC_LOAD_DSO'
+        op.rman_default_name = 'RiProcedural'            
+        
 
-            # Add Subdiv Sheme
-            rman_subdiv = icons.get("rman_subdiv.png")
-            layout.operator("object.rman_add_subdiv_scheme",
-                         text="Convert to Subdiv", icon_value=rman_subdiv.icon_id)
+class VIEW3D_MT_renderman_add_object_quadrics_menu(Menu):
+    bl_label = "Quadrics"
+    bl_idname = "VIEW3D_MT_renderman_add_object_quadrics_menu"
 
-            # Add/Create RIB Box /
-            # Create Archive node
-            rman_archive = icons.get("rman_CreateArchive.png")
-            layout.operator("export.export_rib_archive",
-                         icon_value=rman_archive.icon_id)    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    def draw(self, context):
+        layout = self.layout
+        icons = load_icons()
+        op = layout.operator('object.rman_add_rman_geo', text='Sphere')
+        op.rman_prim_type = 'QUADRIC'
+        op.rman_quadric_type = 'SPHERE'
+
+        op = layout.operator('object.rman_add_rman_geo', text='Cylinder')
+        op.rman_prim_type = 'QUADRIC'
+        op.rman_quadric_type = 'CYLINDER'
+
+        op = layout.operator('object.rman_add_rman_geo', text='Cone')
+        op.rman_prim_type = 'QUADRIC'
+        op.rman_quadric_type = 'CONE'
+
+        op = layout.operator('object.rman_add_rman_geo', text='Disk')
+        op.rman_prim_type = 'QUADRIC'
+        op.rman_quadric_type = 'DISK'      
+
+        op = layout.operator('object.rman_add_rman_geo', text='Torus')
+        op.rman_prim_type = 'QUADRIC'
+        op.rman_quadric_type = 'TORUS'                                 
 
 class VIEW3D_MT_renderman_object_context_menu(Menu):
     bl_label = "RenderMan"
@@ -144,6 +164,7 @@ def rman_object_context_menu(self, context):
 
 classes = [
     VIEW3D_MT_renderman_add_object_menu,
+    VIEW3D_MT_renderman_add_object_quadrics_menu,
     VIEW3D_MT_renderman_object_context_menu
 ]
 
