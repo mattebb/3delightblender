@@ -206,13 +206,19 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         icons = load_icons()    
-        layout.menu('PRMAN_MT_renderman_presets_categories_menu', text="Select Category")   
-
+        
         current_presets_category = prefs_utils.get_addon_prefs().presets_current_category
         presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
 
-        current = RendermanPresetCategory.get_current_category()
+        rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
+        if presets_root_category.name == '':          
+            layout.operator("renderman.init_preset_library", text="Choose Library")
+            if rman_asset_lib:
+                layout.operator("renderman.load_preset_library_from_env_var", text="Load from RMAN_ASSET_LIBRARY")
+            return
 
+        layout.menu('PRMAN_MT_renderman_presets_categories_menu', text="Select Category")   
+        current = RendermanPresetCategory.get_current_category()
         if current:
             presets = rpb_icons.load_previews(current)
             selected_objects = []
