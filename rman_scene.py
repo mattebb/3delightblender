@@ -144,7 +144,11 @@ class RmanScene(object):
         for l in rm.render_layers:
             if l.render_layer == self.bl_view_layer.name:
                 self.rm_rl = l
-                break                  
+                break     
+
+    def _update_progress(self, f):
+        if self.rman_render.bl_engine:
+            self.rman_render.bl_engine.update_progress(f)
 
     def reset(self):
         # clear out dictionaries etc.
@@ -436,7 +440,7 @@ class RmanScene(object):
                 ob = obj.evaluated_get(self.depsgraph)           
                 self.export_data_block(ob) 
             rfb_log().debug("   Exported %d/%d data blocks..." % (i, total))
-            self.rman_render.bl_engine.update_progress(i/total)
+            self._update_progress(i/total)
 
     def export_data_block(self, db_ob):
         obj = bpy.data.objects.get(db_ob.name, None)
@@ -670,7 +674,7 @@ class RmanScene(object):
                 continue
 
             self._export_instance(ob_inst)  
-            self.rman_render.bl_engine.update_progress(i/total)
+            self._update_progress(i/total)
             rfb_log().debug("   Exported %d/%d instances..." % (i, total))
 
     def attach_material(self, ob, group):
@@ -740,7 +744,7 @@ class RmanScene(object):
                 if first_sample:
                     # for the first motion sample use _export_instance()
                     self._export_instance(ob_inst, seg=seg)  
-                    self.rman_render.bl_engine.update_progress(i/total)
+                    self._update_progress(i/total)
                     continue  
 
                 rman_group_translator = self.rman_translators['GROUP']
@@ -770,7 +774,7 @@ class RmanScene(object):
                         rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps ) # should have been set in _export_instances()                       
                         rman_group_translator.update_transform_sample( ob_inst, rman_sg_group, samp, seg)
 
-                self.rman_render.bl_engine.update_progress(i/total)
+                self._update_progress(i/total)
 
             for ob_original,rman_sg_node in self.rman_objects.items():
                 ob = ob_original.evaluated_get(self.depsgraph)
