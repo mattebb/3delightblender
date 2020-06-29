@@ -21,6 +21,8 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
 
     rman_prim_type: StringProperty(name='rman_prim_type', default='QUADRIC',
         options={'HIDDEN'})
+    bl_prim_type: StringProperty(name='bl_prim_type', default='',
+        options={'HIDDEN'})        
     rman_quadric_type: StringProperty(name='rman_quadric_type', default='SPHERE',
         options={'HIDDEN'})
     rman_default_name: StringProperty(name='rman_default_name', default='RiPrimitive',
@@ -40,7 +42,11 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
         )        
 
     def execute(self, context):
-        bpy.ops.object.add(type='EMPTY')
+
+        if self.properties.bl_prim_type != '':
+            bpy.ops.object.add(type=self.properties.bl_prim_type)
+        else:
+            bpy.ops.object.add(type='EMPTY')
 
         ob = None
         for o in context.selected_objects:
@@ -50,7 +56,8 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
         ob.empty_display_type = 'PLAIN_AXES'
         rm = ob.renderman
         rm.hide_primitive_type = True
-        rm.primitive = self.properties.rman_prim_type
+        if self.properties.rman_prim_type:
+            rm.primitive = self.properties.rman_prim_type
         if rm.primitive == 'QUADRIC':
             rm.rman_quadric_type = self.properties.rman_quadric_type 
             ob.name = 'Ri%s' % rm.rman_quadric_type.capitalize()
@@ -59,10 +66,13 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
             elif rm.rman_quadric_type == 'CONE':
                 ob.empty_display_type = 'CONE'       
         else:
-            ob.name = self.properties.rman_default_name     
+            if self.properties.rman_default_name != '':
+                ob.name = self.properties.rman_default_name     
             if rm.primitive == 'RI_VOLUME':
                 ob.empty_display_type = 'CUBE'
                 bpy.ops.nodes.rman_new_material_override('EXEC_DEFAULT', bxdf_name='PxrVolume')
+            elif self.properties.bl_prim_type == 'VOLUME':
+                bpy.ops.object.rman_add_bxdf('EXEC_DEFAULT', bxdf_name='PxrVolume')
         if self.properties.rman_open_filebrowser:
             if rm.primitive == 'DELAYED_LOAD_ARCHIVE':
                 rm.path_archive = self.properties.filepath
@@ -71,7 +81,9 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
             elif rm.primitive == 'DYNAMIC_LOAD_DSO':
                 rm.path_dso = self.properties.filepath
             elif rm.primitive == 'BRICKMAP':  
-                rm.bkm_filepath = self.properties.filepath                  
+                rm.bkm_filepath = self.properties.filepath          
+            elif self.properties.bl_prim_type == 'VOLUME':        
+                ob.data.filepath = self.properties.filepath
 
         ob.update_tag(refresh={'DATA'})
         
@@ -84,6 +96,8 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
                 self.properties.filter_glob = ".rib"     
             elif self.properties.rman_prim_type  == 'BRICKMAP': 
                 self.properties.filter_glob = "*.bkm"
+            elif self.properties.bl_prim_type == 'VOLUME':
+                self.properties.filter_glob = "*.vdb"
             context.window_manager.fileselect_add(self)
             return{'RUNNING_MODAL'}          
         return self.execute(context)

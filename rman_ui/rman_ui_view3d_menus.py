@@ -27,11 +27,11 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         layout.separator()
         layout.menu('VIEW3D_MT_renderman_add_object_quadrics_menu', icon='MESH_UVSPHERE')
         layout.separator()
-     
-        op = layout.operator('object.rman_add_rman_geo', text='Volume Box', icon='SNAP_VOLUME')
-        op.rman_prim_type = 'RI_VOLUME'
-        op.rman_default_name = 'RiVolume'
 
+        layout.separator()
+        layout.menu('VIEW3D_MT_renderman_add_object_volumes_menu', icon='OUTLINER_DATA_VOLUME')
+        layout.separator()        
+     
         rman_icon = icons.get("rman_CreateArchive.png")
         op = layout.operator('object.rman_add_rman_geo', text='RIB Archive', icon_value=rman_icon.icon_id)
         op.rman_prim_type = 'DELAYED_LOAD_ARCHIVE'
@@ -52,6 +52,30 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         op.rman_prim_type = 'BRICKMAP'
         op.rman_default_name = 'BrickmapGeo'          
         op.rman_open_filebrowser = True
+
+class VIEW3D_MT_renderman_add_object_volumes_menu(Menu):
+    bl_label = "Volumes"
+    bl_idname = "VIEW3D_MT_renderman_add_object_volumes_menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    def draw(self, context):
+        layout = self.layout
+        icons = load_icons()
+        rman_icon = icons.get('rman_openvdb.png')
+        op = layout.operator('object.rman_add_rman_geo', text='Import OpenVDB', icon_value=rman_icon.icon_id)
+        op.rman_prim_type = ''
+        op.bl_prim_type = 'VOLUME'
+        op.rman_default_name = 'OpenVDB'    
+        op.rman_open_filebrowser = True 
+
+        op = layout.operator('object.rman_add_rman_geo', text='Volume Box', icon='OUTLINER_DATA_VOLUME')
+        op.rman_prim_type = 'RI_VOLUME'
+        op.rman_default_name = 'RiVolume'                         
+
 
 class VIEW3D_MT_renderman_add_object_quadrics_menu(Menu):
     bl_label = "Quadrics"
@@ -229,6 +253,7 @@ def rman_object_context_menu(self, context):
 classes = [
     VIEW3D_MT_renderman_add_object_menu,
     VIEW3D_MT_renderman_add_object_quadrics_menu,
+    VIEW3D_MT_renderman_add_object_volumes_menu,
     VIEW3D_MT_renderman_object_context_menu,
     VIEW3D_MT_RM_Add_Light_Menu,
     VIEW3D_MT_RM_Add_LightFilter_Menu,
