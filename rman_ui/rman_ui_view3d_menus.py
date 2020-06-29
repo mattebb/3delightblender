@@ -29,7 +29,8 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         layout.separator()
 
         layout.separator()
-        layout.menu('VIEW3D_MT_renderman_add_object_volumes_menu', icon='OUTLINER_DATA_VOLUME')
+        rman_icon = icons.get('out_PxrVolume.png')
+        layout.menu('VIEW3D_MT_renderman_add_object_volumes_menu', icon_value=rman_icon.icon_id)
         layout.separator()        
      
         rman_icon = icons.get("rman_CreateArchive.png")
@@ -72,7 +73,8 @@ class VIEW3D_MT_renderman_add_object_volumes_menu(Menu):
         op.rman_default_name = 'OpenVDB'    
         op.rman_open_filebrowser = True 
 
-        op = layout.operator('object.rman_add_rman_geo', text='Volume Box', icon='OUTLINER_DATA_VOLUME')
+        rman_icon = icons.get('out_PxrVolume.png')
+        op = layout.operator('object.rman_add_rman_geo', text='Volume Box', icon_value=rman_icon.icon_id)
         op.rman_prim_type = 'RI_VOLUME'
         op.rman_default_name = 'RiVolume'                         
 
