@@ -8,7 +8,7 @@ from ..rman_utils import shadergraph_utils
 from ..rman_utils import object_utils
 from ..rman_constants import RFB_ADDON_PATH
 from .rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
-from bpy.props import EnumProperty, StringProperty
+from bpy.props import EnumProperty, StringProperty, BoolProperty
 from bpy_extras.io_utils import ImportHelper
 
 __RFB_EXAMPLE_SCENE_LIST__ = []
@@ -19,9 +19,25 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
     bl_description = "Add RenderMan specific geometry"
     bl_options = {"REGISTER"}
 
-    rman_prim_type: StringProperty(name='rman_prim_type', default='QUADRIC')
-    rman_quadric_type: StringProperty(name='rman_quadric_type', default='SPHERE')
-    rman_default_name: StringProperty(name='rman_default_name', default='RiPrimitive')
+    rman_prim_type: StringProperty(name='rman_prim_type', default='QUADRIC',
+        options={'HIDDEN'})
+    rman_quadric_type: StringProperty(name='rman_quadric_type', default='SPHERE',
+        options={'HIDDEN'})
+    rman_default_name: StringProperty(name='rman_default_name', default='RiPrimitive',
+        options={'HIDDEN'})
+    rman_open_filebrowser: BoolProperty(name='rman_open_filebrowser', default=False,
+        options={'HIDDEN'})
+    filepath: bpy.props.StringProperty(
+        subtype="FILE_PATH")
+
+    filename: bpy.props.StringProperty(
+        subtype="FILE_NAME",
+        default="")    
+
+    filter_glob: StringProperty(
+        default="*.*",
+        options={'HIDDEN'},
+        )        
 
     def execute(self, context):
         bpy.ops.object.add(type='EMPTY')
@@ -45,10 +61,30 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
         else:
             ob.name = self.properties.rman_default_name         
 
+        if self.properties.rman_open_filebrowser:
+            if rm.primitive == 'DELAYED_LOAD_ARCHIVE':
+                rm.path_archive = self.properties.filepath
+            elif rm.primitive == 'PROCEDURAL_RUN_PROGRAM':
+                rm.runprogram_path = self.properties.filepath
+            elif rm.primitive == 'DYNAMIC_LOAD_DSO':
+                rm.path_dso = self.properties.filepath
+            elif rm.primitive == 'BRICKMAP':  
+                rm.bkm_filepath = self.properties.filepath                  
+
         ob.update_tag(refresh={'DATA'})
         
         return {"FINISHED"}    
+        
+    def invoke(self, context, event=None):
 
+        if self.properties.rman_open_filebrowser:
+            if self.properties.rman_prim_type == 'DELAYED_LOAD_ARCHIVE':
+                self.properties.filter_glob = ".rib"     
+            elif self.properties.rman_prim_type  == 'BRICKMAP': 
+                self.properties.filter_glob = "*.bkm"
+            context.window_manager.fileselect_add(self)
+            return{'RUNNING_MODAL'}          
+        return self.execute(context)
 
 class PRMAN_OT_RM_Add_Subdiv_Scheme(bpy.types.Operator):
     bl_idname = "object.rman_add_subdiv_scheme"

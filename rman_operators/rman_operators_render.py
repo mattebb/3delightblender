@@ -33,6 +33,12 @@ class PRMAN_OT_RendermanBakeSelectedBrickmap(bpy.types.Operator):
         subtype="FILE_NAME",
         default="")
 
+    filter_glob: bpy.props.StringProperty(
+        default="*.ptc",
+        options={'HIDDEN'},
+        )        
+
+
     @classmethod
     def poll(cls, context):
         return context.object is not None
@@ -52,18 +58,17 @@ class PRMAN_OT_RendermanBakeSelectedBrickmap(bpy.types.Operator):
             org_bake_illum_filename = scene.renderman.rman_bake_illum_filename
             scene.renderman.hider_type = 'BAKE_BRICKMAP_SELECTED'
             scene.renderman.rman_bake_mode = 'integrator'
-            #scene.renderman.rman_bake_illum_filename = 'BAKEFILEATTR'
             ob.renderman.bake_filename_attr = fp
             bpy.ops.render.render()
             scene.renderman.hider_type = 'RAYTRACE'
             scene.renderman.rman_bake_mode = org_bake_mode
-            #scene.renderman.rman_bake_illum_filename = org_bake_illum_filename
         else:
             self.report({"ERROR"}, "Viewport rendering is on.")        
         return {'FINISHED'}        
 
     def invoke(self, context, event=None):
-
+        ob = context.object
+        self.properties.filename = '%s.{F4}.ptc' % ob.name
         context.window_manager.fileselect_add(self)
         return{'RUNNING_MODAL'}         
 

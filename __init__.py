@@ -102,6 +102,8 @@ class PRManRender(bpy.types.RenderEngine):
         '''
    
         bl_scene = depsgraph.scene_eval
+        rm = bl_scene.renderman
+        baking = (rm.hider_type in ['BAKE', 'BAKE_BRICKMAP_SELECTED'])
 
         if self.is_preview:
             prefs = prefs_utils.get_addon_prefs()
@@ -121,10 +123,13 @@ class PRManRender(bpy.types.RenderEngine):
             while self.rman_render.rman_swatch_render_running:
                 time.sleep(0.001)
             self.rman_render.start_swatch_render(depsgraph)
-          
-        elif bl_scene.renderman.enable_external_rendering:
-            self.rman_render.start_external_render(depsgraph)               
-
+        elif baking:
+            if rm.enable_external_rendering:
+                self.rman_render.start_external_bake_render(depsgraph) 
+            elif not self.rman_render.start_bake_render(depsgraph, for_background=bpy.app.background):
+                return
+        elif rm.enable_external_rendering:
+            self.rman_render.start_external_render(depsgraph)              
         else:
             if not self.rman_render.start_render(depsgraph, for_background=bpy.app.background):
                 return    

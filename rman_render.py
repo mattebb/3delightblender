@@ -126,6 +126,9 @@ def progress_cb(e, d, db):
     if db.rman_is_live_rendering and int(d) == 100:
         db.rman_is_live_rendering = False
 
+def bake_progress_cb(e, d, db):
+    db.bl_engine.update_progress(float(d) / 100.0)     
+
 def render_cb(e, d, db):
     if d == 0:
         rfb_log().debug("RenderMan has exited.")
@@ -240,7 +243,34 @@ class RmanRender(object):
         self.bl_engine.end_result(result)      
 
     def _load_placeholder_image(self):   
-        self._load_swatch_image_into_blender(os.path.join(filepath_utils.guess_rmantree(), 'lib', 'textures', 'placeholder.png'))          
+        self._load_swatch_image_into_blender(os.path.join(filepath_utils.guess_rmantree(), 'lib', 'textures', 'placeholder.png'))        
+
+    def _call_brickmake_for_selected(self):  
+        rm = self.bl_scene.renderman
+        ob = bpy.context.active_object
+        if rm.external_animation:
+            for frame in range(bl_scene.frame_start, bl_scene.frame_end + 1):        
+                expanded_str = string_utils.expand_string(ob.renderman.bake_filename_attr, frame=self.bl_scene.frame_current) 
+                ptc_file = '%s.ptc' % expanded_str            
+                bkm_file = '%s.bkm' % expanded_str
+                args = []
+                args.append('%s/bin/brickmake' % filepath_utils.guess_rmantree())
+                args.append('-progress')
+                args.append('2')
+                args.append(ptc_file)
+                args.append(bkm_file)
+                subprocess.run(args)
+        else:     
+            expanded_str = string_utils.expand_string(ob.renderman.bake_filename_attr, frame=self.bl_scene.frame_current) 
+            ptc_file = '%s.ptc' % expanded_str            
+            bkm_file = '%s.bkm' % expanded_str
+            args = []
+            args.append('%s/bin/brickmake' % filepath_utils.guess_rmantree())
+            args.append('-progress')
+            args.append('2')
+            args.append(ptc_file)
+            args.append(bkm_file)
+            subprocess.run(args)               
 
     def start_render(self, depsgraph, for_background=False):
 
@@ -249,7 +279,6 @@ class RmanRender(object):
         self.it_port = start_cmd_server()    
         rfb_log().info("Parsing scene...")
         time_start = time.time()
-        baking = (rm.hider_type in ['BAKE', 'BAKE_BRICKMAP_SELECTED'])
 
         if for_background:
             self.rman_render_into = ''
@@ -287,31 +316,16 @@ class RmanRender(object):
         self.rman_running = True
         self._dump_rib_()
         rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
-        if baking:
-            self.sg_scene.Render("prman -blocking")
-            self.stop_render()
-            if rm.hider_type == 'BAKE_BRICKMAP_SELECTED':
-                ob = bpy.context.active_object
-                ptc_file = '%s.ptc' % ob.renderman.bake_filename_attr
-                bkm_file = '%s.bkm' % ob.renderman.bake_filename_attr
-                args = []
-                args.append('%s/bin/brickmake' % filepath_utils.guess_rmantree())
-                args.append('-progress')
-                args.append('2')
-                args.append(ptc_file)
-                args.append(bkm_file)
-                subprocess.run(args)
 
-        else:
-            self.rman_is_live_rendering = True
-            self.sg_scene.Render("prman -live")
-            while not self.bl_engine.test_break() and self.rman_is_live_rendering:
-                time.sleep(0.01)
-            self.stop_render()        
-            if self.rman_render_into == 'blender': 
-                self._load_image_into_blender()
+        self.rman_is_live_rendering = True
+        self.sg_scene.Render("prman -live")
+        while not self.bl_engine.test_break() and self.rman_is_live_rendering:
+            time.sleep(0.01)
+        self.stop_render()        
+        if self.rman_render_into == 'blender': 
+            self._load_image_into_blender()
 
-        return True  
+        return True   
 
     def start_external_render(self, depsgraph):         
 
@@ -372,6 +386,106 @@ class RmanRender(object):
         self.rman_running = False
         self.sg_scene = None
         return True          
+
+    def start_bake_render(self, depsgraph, for_background=False):
+
+        self.bl_scene = depsgraph.scene_eval
+        rm = self.bl_scene.renderman
+        self.it_port = start_cmd_server()    
+        rfb_log().info("Parsing scene...")
+        time_start = time.time()
+
+        if for_background:
+            is_external = True
+            self.rman_callbacks.clear()
+            ec = rman.EventCallbacks.Get()
+            ec.RegisterCallback("Render", render_cb, self)
+            self.rman_callbacks["Render"] = render_cb       
+            rman.Dspy.DisableDspyServer()          
+        else:
+            is_external = False                    
+            self.rman_callbacks.clear()
+            ec = rman.EventCallbacks.Get()
+            ec.RegisterCallback("Progress", bake_progress_cb, self)
+            self.rman_callbacks["Progress"] = bake_progress_cb
+            ec.RegisterCallback("Render", render_cb, self)
+            self.rman_callbacks["Render"] = render_cb        
+
+        self.rman_render_into = ''
+        rman.Dspy.DisableDspyServer()
+        config = rman.Types.RtParamList()
+        self.sg_scene = self.sgmngr.CreateScene(config) 
+        bl_layer = depsgraph.view_layer
+        self.rman_scene.export_for_bake_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
+
+        self.rman_running = True
+        self._dump_rib_()
+        rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
+        self.sg_scene.Render("prman -blocking")
+        self.stop_render()
+        if rm.hider_type == 'BAKE_BRICKMAP_SELECTED':
+            self._call_brickmake_for_selected()
+        return True        
+
+    def start_external_bake_render(self, depsgraph):         
+
+        bl_scene = depsgraph.scene_eval
+        rm = bl_scene.renderman
+
+        self.rman_running = True
+        self.rman_render_into = ''
+        rib_options = ""
+        if rm.rib_compression == "gzip":
+            rib_options += " -compression gzip"
+        rib_format = 'ascii'
+        if rm.rib_format == 'binary':
+            rib_format = 'binary' 
+        rib_options += " -format %s" % rib_format
+        if rib_format == "ascii":
+            rib_options += " -indent"
+
+        if rm.external_animation:
+            original_frame = bl_scene.frame_current
+            rfb_log().debug("Writing to RIB...")             
+            for frame in range(bl_scene.frame_start, bl_scene.frame_end + 1):
+                bl_view_layer = depsgraph.view_layer
+                self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
+                self.bl_engine.frame_set(frame, subframe=0.0)
+                self.rman_scene.export_for_bake_render(depsgraph, self.sg_scene, bl_view_layer, is_external=True)
+                rib_output = string_utils.expand_string(rm.path_rib_output, 
+                                                        frame=frame, 
+                                                        asFilePath=True)                                                                            
+                self.sg_scene.Render("rib %s %s" % (rib_output, rib_options))
+                self.sgmngr.DeleteScene(self.sg_scene)     
+
+            self.bl_engine.frame_set(original_frame, subframe=0.0)
+            
+
+        else:
+            self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
+
+            time_start = time.time()
+                    
+            bl_view_layer = depsgraph.view_layer         
+            rfb_log().info("Parsing scene...")             
+            self.rman_scene.export_for_bake_render(depsgraph, self.sg_scene, bl_view_layer, is_external=True)
+            rib_output = string_utils.expand_string(rm.path_rib_output, 
+                                                    frame=bl_scene.frame_current, 
+                                                    asFilePath=True)            
+
+            rfb_log().debug("Writing to RIB: %s..." % rib_output)
+            rib_time_start = time.time()
+            self.sg_scene.Render("rib %s %s" % (rib_output, rib_options))     
+            rfb_log().debug("Finished writing RIB. Time: %s" % string_utils._format_time_(time.time() - rib_time_start)) 
+            rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start))
+            self.sgmngr.DeleteScene(self.sg_scene)
+
+        if rm.queuing_system != 'none':
+            spooler = rman_spool.RmanSpool(self, self.rman_scene, depsgraph)
+            spooler.batch_render()
+        self.rman_running = False
+        self.sg_scene = None
+        return True                  
 
     def start_interactive_render(self, context, depsgraph):
 

@@ -22,25 +22,29 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
 
         layout.menu('VIEW3D_MT_renderman_add_object_quadrics_menu')
      
-        op = layout.operator('object.rman_add_rman_geo', text='RiVolume')
+        op = layout.operator('object.rman_add_rman_geo', text='Volume Box')
         op.rman_prim_type = 'RI_VOLUME'
         op.rman_default_name = 'RiVolume'
 
         op = layout.operator('object.rman_add_rman_geo', text='RIB Archive')
         op.rman_prim_type = 'DELAYED_LOAD_ARCHIVE'
-        op.rman_default_name = 'RIB_Archive'        
+        op.rman_default_name = 'RIB_Archive'    
+        op.rman_open_filebrowser = True    
 
         op = layout.operator('object.rman_add_rman_geo', text='RunProgram')
         op.rman_prim_type = 'PROCEDURAL_RUN_PROGRAM'
         op.rman_default_name = 'RiRunProgram'          
+        op.rman_open_filebrowser = True
 
         op = layout.operator('object.rman_add_rman_geo', text='RiProcedural')
         op.rman_prim_type = 'DYNAMIC_LOAD_DSO'
         op.rman_default_name = 'RiProcedural'            
+        op.rman_open_filebrowser = True
         
         op = layout.operator('object.rman_add_rman_geo', text='Brickmap Geometry')
         op.rman_prim_type = 'BRICKMAP'
         op.rman_default_name = 'BrickmapGeo'          
+        op.rman_open_filebrowser = True
 
 class VIEW3D_MT_renderman_add_object_quadrics_menu(Menu):
     bl_label = "Quadrics"

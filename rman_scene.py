@@ -174,7 +174,7 @@ class RmanScene(object):
 
     def export_for_final_render(self, depsgraph, sg_scene, bl_view_layer, is_external=False):
         self.sg_scene = sg_scene
-        self.context = bpy.context #None
+        self.context = bpy.context
         self.bl_scene = depsgraph.scene_eval
         self.bl_view_layer = bl_view_layer
         self._find_renderman_layer()
@@ -183,15 +183,25 @@ class RmanScene(object):
         self.is_interactive = False
         self.is_viewport_render = False
         self.do_motion_blur = self.bl_scene.renderman.motion_blur
-        self.rman_bake = (self.bl_scene.renderman.hider_type in ['BAKE', 'BAKE_BRICKMAP_SELECTED'])
+        self.export()
 
-        if self.rman_bake:
-            if self.bl_scene.renderman.hider_type == 'BAKE_BRICKMAP_SELECTED':
-                self.export_bake_brickmap_selected()
-            else:
-                self.export_bake_render_scene()
+    def export_for_bake_render(self, depsgraph, sg_scene, bl_view_layer, is_external=False):
+        self.sg_scene = sg_scene
+        self.context = bpy.context
+        self.bl_scene = depsgraph.scene_eval
+        self.bl_view_layer = bl_view_layer
+        self._find_renderman_layer()
+        self.depsgraph = depsgraph
+        self.external_render = is_external
+        self.is_interactive = False
+        self.is_viewport_render = False
+        self.do_motion_blur = self.bl_scene.renderman.motion_blur
+        self.rman_bake = True
+
+        if self.bl_scene.renderman.hider_type == 'BAKE_BRICKMAP_SELECTED':
+            self.export_bake_brickmap_selected()
         else:
-            self.export()
+            self.export_bake_render_scene()
 
     def export_for_interactive_render(self, context, depsgraph, sg_scene):
         self.sg_scene = sg_scene
@@ -409,6 +419,7 @@ class RmanScene(object):
 
         self.sg_scene.SetDisplayChannel([dspy_chan_Ci])
         render_output = '%s.ptc' % ob.renderman.bake_filename_attr
+        render_output = string_utils.expand_string(render_output)
         display = self.rman.SGManager.RixSGShader("Display", display_driver, render_output)
         display.params.SetString("mode", 'Ci')
         self.main_camera.sg_node.SetDisplay(display)         
