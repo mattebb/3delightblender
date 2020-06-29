@@ -22,7 +22,7 @@
             "type": "string",
             "default": "RAYTRACE",
             "widget": "mapper",
-            "options": "BAKE:BAKE|RAYTRACE:RAYTRACE",            
+            "options": "BAKE:BAKE|BAKE_BRICKMAP_SELECTED:BAKE_BRICKMAP_SELECTED|RAYTRACE:RAYTRACE",            
             "help": "(hidden) Choose hider type."
         },  
         {

@@ -183,10 +183,13 @@ class RmanScene(object):
         self.is_interactive = False
         self.is_viewport_render = False
         self.do_motion_blur = self.bl_scene.renderman.motion_blur
-        self.rman_bake = (self.bl_scene.renderman.hider_type == 'BAKE')
+        self.rman_bake = (self.bl_scene.renderman.hider_type in ['BAKE', 'BAKE_BRICKMAP_SELECTED'])
 
         if self.rman_bake:
-            self.export_bake_render_scene()
+            if self.bl_scene.renderman.hider_type == 'BAKE_BRICKMAP_SELECTED':
+                self.export_bake_brickmap_selected()
+            else:
+                self.export_bake_render_scene()
         else:
             self.export()
 
@@ -353,6 +356,63 @@ class RmanScene(object):
         options.SetIntegerArray(self.rman.Tokens.Rix.k_Ri_FormatResolution, (bake_resolution, bake_resolution), 2) 
         self.sg_scene.SetOptions(options)
 
+    def export_bake_brickmap_selected(self):
+        self.reset()
+
+        # update variables
+        string_utils.set_var('scene', self.bl_scene.name)
+        string_utils.set_var('layer', self.bl_view_layer.name)
+
+        self.bl_frame_current = self.bl_scene.frame_current
+        self.scene_any_lights = self._scene_has_lights()
+
+        rfb_log().debug("Calling export_materials()")
+        self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])
+                
+        rfb_log().debug("Calling txmake_all()")
+        texture_utils.get_txmanager().rman_scene = self  
+        texture_utils.get_txmanager().txmake_all(blocking=True)
+
+        rfb_log().debug("Creating root scene graph node")
+        self.export_root_sg_node()
+        
+        rm = self.bl_scene.renderman
+        attrs = self.rman_root_sg_node.sg_node.GetAttributes()
+        attrs.SetFloat("dice:worlddistancelength", rm.rman_bake_illlum_density)
+        self.rman_root_sg_node.sg_node.SetAttributes(attrs)
+        self.sg_scene.Root().AddChild(self.rman_root_sg_node.sg_node)                                
+
+        self.export_searchpaths() 
+        self.export_global_options()     
+        self.export_hider()
+        self.export_integrator()
+        self.export_cameras([c for c in self.depsgraph.objects if isinstance(c.data, bpy.types.Camera)])
+
+        ob = self.context.active_object
+        self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])
+        objects_needed = [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']
+        objects_needed.append(ob)
+        self.export_data_blocks(objects_needed)
+        self.export_instances()        
+
+        self.export_samplefilters()
+        self.export_displayfilters()
+
+        options = self.sg_scene.GetOptions()
+        bake_resolution = int(rm.rman_bake_illlum_res)
+        options.SetIntegerArray(self.rman.Tokens.Rix.k_Ri_FormatResolution, (bake_resolution, bake_resolution), 2) 
+        self.sg_scene.SetOptions(options)        
+
+        # Display
+        display_driver = 'pointcloud'
+        dspy_chan_Ci = self.rman.SGManager.RixSGDisplayChannel('color', 'Ci')
+
+        self.sg_scene.SetDisplayChannel([dspy_chan_Ci])
+        render_output = '%s.ptc' % ob.renderman.bake_filename_attr
+        display = self.rman.SGManager.RixSGShader("Display", display_driver, render_output)
+        display.params.SetString("mode", 'Ci')
+        self.main_camera.sg_node.SetDisplay(display)         
+                 
     def export_swatch_render_scene(self, render_output):
         self.reset()
 

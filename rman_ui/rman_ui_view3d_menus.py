@@ -38,6 +38,9 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         op.rman_prim_type = 'DYNAMIC_LOAD_DSO'
         op.rman_default_name = 'RiProcedural'            
         
+        op = layout.operator('object.rman_add_rman_geo', text='Brickmap Geometry')
+        op.rman_prim_type = 'BRICKMAP'
+        op.rman_default_name = 'BrickmapGeo'          
 
 class VIEW3D_MT_renderman_add_object_quadrics_menu(Menu):
     bl_label = "Quadrics"

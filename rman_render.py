@@ -10,6 +10,7 @@ from. import chatserver
 from .rfb_logger import rfb_log
 import socketserver
 import threading
+import subprocess
 import ctypes
 
 # utils
@@ -248,7 +249,7 @@ class RmanRender(object):
         self.it_port = start_cmd_server()    
         rfb_log().info("Parsing scene...")
         time_start = time.time()
-        baking = (rm.hider_type == 'BAKE')
+        baking = (rm.hider_type in ['BAKE', 'BAKE_BRICKMAP_SELECTED'])
 
         if for_background:
             self.rman_render_into = ''
@@ -289,6 +290,18 @@ class RmanRender(object):
         if baking:
             self.sg_scene.Render("prman -blocking")
             self.stop_render()
+            if rm.hider_type == 'BAKE_BRICKMAP_SELECTED':
+                ob = bpy.context.active_object
+                ptc_file = '%s.ptc' % ob.renderman.bake_filename_attr
+                bkm_file = '%s.bkm' % ob.renderman.bake_filename_attr
+                args = []
+                args.append('%s/bin/brickmake' % filepath_utils.guess_rmantree())
+                args.append('-progress')
+                args.append('2')
+                args.append(ptc_file)
+                args.append(bkm_file)
+                subprocess.run(args)
+
         else:
             self.rman_is_live_rendering = True
             self.sg_scene.Render("prman -live")

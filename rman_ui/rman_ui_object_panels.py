@@ -2,11 +2,13 @@ from .rman_ui_base import _RManPanelHeader
 from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel
 from ..rman_utils.draw_utils import _draw_ui_from_rman_config
-from ..rman_utils.draw_utils import _draw_props
+from ..rman_utils.draw_utils import draw_node_properties_recursive, panel_node_draw
+from ..rman_utils import prefs_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from ..rman_render import RmanRender
 from ..icons.icons import load_icons
 from ..rman_utils import object_utils
+from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 from bpy.types import Panel
 import bpy
 
@@ -114,6 +116,7 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         col.enabled = not rman_interactive_running
         col.operator("export.export_rib_archive",
                     text="Export Object as RIB Archive", icon_value=rman_archive.icon_id)     
+        col.operator("renderman.bake_selected_brickmap", text="Bake Object to Brickmap")
 
         col = layout.column()
 
@@ -150,11 +153,73 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
         return (context.object and rd.engine in {'PRMAN_RENDER'} )
 
     def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
         layout = self.layout
         layout.prop(context.object.renderman, 'rman_material_override')
+
+        mat = context.object.renderman.rman_material_override
+        if not mat:
+            layout.operator('nodes.rman_new_material_override', text='New Material')
+            return
+
+        if mat.renderman and mat.node_tree:
+            nt = mat.node_tree
+            rman_output_node = is_renderman_nodetree(mat)
+
+            if rman_output_node:
+                if rman_output_node.solo_node_name != '':
+                    solo_node = nt.nodes.get(rman_output_node.solo_node_name, None)
+                    if solo_node:
+                        icons = load_icons()
+
+                        split = layout.split(factor=0.25)
+                        split.context_pointer_set("nodetree", nt)  
+                        split.context_pointer_set("node", rman_output_node)  
+                        rman_icon = icons.get('rman_solo_on.png')   
+                        split.label(text=rman_output_node.solo_node_name , icon_value=rman_icon.icon_id)  
+                        
+                        split = split.split(factor=0.95)
+                        split.menu('NODE_MT_renderman_node_solo_output_menu', text='Select Output')
+                        op = split.operator('node.rman_set_node_solo', text='', icon='FILE_REFRESH')
+                        op.refresh_solo = True 
+                        layout.separator()
+                        
+                        layout.separator()
+                        draw_node_properties_recursive(layout, context, nt, solo_node, level=0)
+                    else:
+                        layout.separator()
+                        panel_node_draw(layout, context, mat,
+                                        'RendermanOutputNode', 'Bxdf')                           
+                else:
+                    layout.separator()
+                    panel_node_draw(layout, context, mat,
+                                    'RendermanOutputNode', 'Bxdf')       
+            else:
+                if not panel_node_draw(layout, context, mat, 'ShaderNodeOutputMaterial', 'Surface'):
+                    layout.prop(mat, "diffuse_color")
+            layout.separator()
+
+        else:
+            rm = mat.renderman
+
+            row = layout.row()
+            row.prop(mat, "diffuse_color")
+
+            layout.separator()
+        if mat and not is_renderman_nodetree(mat):
+            icons = load_icons()
+            rm = mat.renderman
+            row = layout.row()
+            
+            row = layout.row(align=True)
+            col = row.column()
+            rman_icon = icons.get('rman_graph.png')
+            col.operator(
+                'shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
+            if prefs_utils.get_addon_prefs().rman_do_cycles_convert:
+                col = row.column()                
+                op = col.operator('shading.convert_cycles_shader').idtype = "material"
+                if not mat.grease_pencil:
+                    layout.operator('shading.convert_cycles_stuff')
 
 
 class OBJECT_PT_renderman_object_geometry_quadric(Panel, CollectionPanel):

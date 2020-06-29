@@ -1,4 +1,5 @@
 from ..rman_render import RmanRender
+from ..rman_utils import filepath_utils
 import bpy
 import os
 import time
@@ -19,6 +20,52 @@ class PRMAN_OT_RendermanBake(bpy.types.Operator):
         else:
             self.report({"ERROR"}, "Viewport rendering is on.")        
         return {'FINISHED'}
+
+class PRMAN_OT_RendermanBakeSelectedBrickmap(bpy.types.Operator):
+    bl_idname = "renderman.bake_selected_brickmap"
+    bl_label = "Bake to Brickmap"
+    bl_description = "Bake to Brickmap"
+
+    filepath: bpy.props.StringProperty(
+        subtype="FILE_PATH")
+
+    filename: bpy.props.StringProperty(
+        subtype="FILE_NAME",
+        default="")
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None
+            
+    def execute(self, context):
+
+        scene = context.scene
+        rman_render = RmanRender.get_rman_render()
+        if not rman_render.rman_interactive_running:
+            ob = context.object
+            fp = filepath_utils.get_real_path(self.properties.filepath)
+            fp = os.path.splitext(fp)[0]
+
+            org_bake_filename_attr = ob.renderman.bake_filename_attr
+            org_bake_illum_mode = scene.renderman.rman_bake_illum_mode
+            org_bake_mode = scene.renderman.rman_bake_mode
+            org_bake_illum_filename = scene.renderman.rman_bake_illum_filename
+            scene.renderman.hider_type = 'BAKE_BRICKMAP_SELECTED'
+            scene.renderman.rman_bake_mode = 'integrator'
+            #scene.renderman.rman_bake_illum_filename = 'BAKEFILEATTR'
+            ob.renderman.bake_filename_attr = fp
+            bpy.ops.render.render()
+            scene.renderman.hider_type = 'RAYTRACE'
+            scene.renderman.rman_bake_mode = org_bake_mode
+            #scene.renderman.rman_bake_illum_filename = org_bake_illum_filename
+        else:
+            self.report({"ERROR"}, "Viewport rendering is on.")        
+        return {'FINISHED'}        
+
+    def invoke(self, context, event=None):
+
+        context.window_manager.fileselect_add(self)
+        return{'RUNNING_MODAL'}         
 
 class PRMAN_OT_ExternalRendermanBake(bpy.types.Operator):
     bl_idname = "renderman.external_bake"
@@ -125,6 +172,7 @@ class PRMAN_OT_StoptInteractive(bpy.types.Operator):
 
 classes = [
     PRMAN_OT_RendermanBake,
+    PRMAN_OT_RendermanBakeSelectedBrickmap,
     PRMAN_OT_ExternalRendermanBake,
     PRMAN_OT_ExternalRender,
     PRMAN_OT_StartInteractive,
