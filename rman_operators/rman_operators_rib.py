@@ -110,7 +110,7 @@ class PRMAN_OT_Open_Selected_RIB(bpy.types.Operator):
 
 class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
     bl_idname = "export.export_rib_archive"
-    bl_label = "Export Object as RIB Archive."
+    bl_label = "Export Object as RIB Archive"
     bl_description = "Export single object as a RIB archive for use in other blend files or for other uses"
 
     export_mat: BoolProperty(

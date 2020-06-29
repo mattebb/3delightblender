@@ -111,12 +111,9 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
 
         _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry', context, layout, rm)                       
 
-        rman_archive = load_icons().get("rman_CreateArchive.png")
         col = layout.column()
         col.enabled = not rman_interactive_running
-        col.operator("export.export_rib_archive",
-                    text="Export Object as RIB Archive", icon_value=rman_archive.icon_id)     
-        col.operator("renderman.bake_selected_brickmap", text="Bake Object to Brickmap")
+        col.menu('VIEW3D_MT_RM_Add_Export_Menu', icon_value=bpy.types.VIEW3D_MT_RM_Add_Export_Menu.get_icon_id())
 
         col = layout.column()
 

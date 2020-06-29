@@ -14,23 +14,25 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
 
+    @classmethod
+    def get_icon_id(cls):
+        icons = load_icons()   
+        return icons.get("rman_blender.png").icon_id          
+
     def draw(self, context):
         layout = self.layout
         icons = load_icons()
 
-        rman_icon = icons.get('rman_arealight.png')
-        layout.menu('VIEW3D_MT_RM_Add_Light_Menu', icon_value=rman_icon.icon_id)
+        layout.menu('VIEW3D_MT_RM_Add_Light_Menu', icon_value=bpy.types.VIEW3D_MT_RM_Add_Light_Menu.get_icon_id())
 
-        rman_icon = icons.get('rman_lightfilter.png')
-        layout.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', icon_value=rman_icon.icon_id)        
+        layout.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', icon_value=bpy.types.VIEW3D_MT_RM_Add_LightFilter_Menu.get_icon_id())
 
         layout.separator()
         layout.menu('VIEW3D_MT_renderman_add_object_quadrics_menu', icon='MESH_UVSPHERE')
         layout.separator()
 
         layout.separator()
-        rman_icon = icons.get('out_PxrVolume.png')
-        layout.menu('VIEW3D_MT_renderman_add_object_volumes_menu', icon_value=rman_icon.icon_id)
+        layout.menu('VIEW3D_MT_renderman_add_object_volumes_menu', icon_value=bpy.types.VIEW3D_MT_renderman_add_object_volumes_menu.get_icon_id())
         layout.separator()        
      
         rman_icon = icons.get("rman_CreateArchive.png")
@@ -62,6 +64,11 @@ class VIEW3D_MT_renderman_add_object_volumes_menu(Menu):
     def poll(cls, context):
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
+
+    @classmethod
+    def get_icon_id(cls):
+        icons = load_icons()   
+        return icons.get("out_PxrVolume.png").icon_id                    
 
     def draw(self, context):
         layout = self.layout
@@ -120,6 +127,11 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
 
+    @classmethod
+    def get_icon_id(cls):
+        icons = load_icons()   
+        return icons.get("rman_blender.png").icon_id             
+
     def draw(self, context):
         layout = self.layout
         icons = load_icons()
@@ -149,8 +161,7 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         layout.separator()
         if selected_objects:
             # Add Bxdf             
-            rman_icon = icons.get('out_PxrSurface.png')
-            layout.menu('VIEW3D_MT_RM_Add_bxdf_Menu', text='Add New Material', icon_value=rman_icon.icon_id)           
+            layout.menu('VIEW3D_MT_RM_Add_bxdf_Menu', text='Add New Material', icon_value=bpy.types.VIEW3D_MT_RM_Add_bxdf_Menu.get_icon_id())           
 
             # Make Selected Geo Emissive
             rman_meshlight = icons.get("out_PxrMeshLight.png")
@@ -162,11 +173,8 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
             layout.operator("object.rman_add_subdiv_scheme",
                             text="Convert to Subdiv", icon_value=rman_subdiv.icon_id)
 
-            # Add/Create RIB Box /
-            # Create Archive node
-            rman_archive = icons.get("rman_CreateArchive.png")
-            layout.operator("export.export_rib_archive",
-                            icon_value=rman_archive.icon_id)
+            layout.separator()
+            layout.menu('VIEW3D_MT_RM_Add_Export_Menu', icon_value=VIEW3D_MT_RM_Add_Export_Menu.get_icon_id())
 
         # Diagnose        
         layout.separator()
@@ -179,6 +187,29 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
             row = column.row()
             row.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)    
 
+class VIEW3D_MT_RM_Add_Export_Menu(bpy.types.Menu):
+    bl_label = "Export"
+    bl_idname = "VIEW3D_MT_RM_Add_Export_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    @classmethod
+    def get_icon_id(cls):
+        icons = load_icons()   
+        return icons.get("rman_CreateArchive.png").icon_id
+
+    def draw(self, context):
+        layout = self.layout
+        icons = load_icons()   
+
+        rman_archive = icons.get("rman_CreateArchive.png")
+        layout.operator("export.export_rib_archive",
+                        icon_value=rman_archive.icon_id)  
+        layout.operator("renderman.bake_selected_brickmap", text="Bake Object to Brickmap")      
+
 class VIEW3D_MT_RM_Add_Light_Menu(bpy.types.Menu):
     bl_label = "Light"
     bl_idname = "VIEW3D_MT_RM_Add_Light_Menu"
@@ -187,6 +218,11 @@ class VIEW3D_MT_RM_Add_Light_Menu(bpy.types.Menu):
     def poll(cls, context):
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
+
+    @classmethod
+    def get_icon_id(cls):
+        icons = load_icons()   
+        return icons.get("rman_arealight.png").icon_id        
 
     def draw(self, context):
         layout = self.layout
@@ -205,6 +241,11 @@ class VIEW3D_MT_RM_Add_LightFilter_Menu(bpy.types.Menu):
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
 
+    @classmethod
+    def get_icon_id(cls):
+        icons = load_icons()   
+        return icons.get("rman_lightfilter.png").icon_id             
+
     def draw(self, context):
         layout = self.layout
         icons = load_icons()
@@ -222,6 +263,11 @@ class VIEW3D_MT_RM_Add_bxdf_Menu(bpy.types.Menu):
         rd = context.scene.render
         return rd.engine == 'PRMAN_RENDER'
 
+    @classmethod
+    def get_icon_id(cls):
+        icons = load_icons()   
+        return icons.get("out_PxrSurface.png").icon_id              
+
     def draw(self, context):
         layout = self.layout
         icons = load_icons()
@@ -238,8 +284,7 @@ def rman_add_object_menu(self, context):
 
     layout = self.layout
     icons = load_icons()
-    rman_icon = icons.get("rman_blender.png")    
-    layout.menu('VIEW3D_MT_renderman_add_object_menu', text='RenderMan', icon_value=rman_icon.icon_id)
+    layout.menu('VIEW3D_MT_renderman_add_object_menu', text='RenderMan', icon_value=bpy.types.VIEW3D_MT_renderman_add_object_menu.get_icon_id())
 
 def rman_object_context_menu(self, context):
 
@@ -248,9 +293,8 @@ def rman_object_context_menu(self, context):
         return    
 
     layout = self.layout
-    icons = load_icons()
-    rman_icon = icons.get("rman_blender.png")    
-    layout.menu('VIEW3D_MT_renderman_object_context_menu', text='RenderMan', icon_value=rman_icon.icon_id)    
+    icons = load_icons()  
+    layout.menu('VIEW3D_MT_renderman_object_context_menu', text='RenderMan', icon_value=bpy.types.VIEW3D_MT_renderman_add_object_menu.get_icon_id())    
 
 classes = [
     VIEW3D_MT_renderman_add_object_menu,
@@ -259,7 +303,8 @@ classes = [
     VIEW3D_MT_renderman_object_context_menu,
     VIEW3D_MT_RM_Add_Light_Menu,
     VIEW3D_MT_RM_Add_LightFilter_Menu,
-    VIEW3D_MT_RM_Add_bxdf_Menu
+    VIEW3D_MT_RM_Add_bxdf_Menu,
+    VIEW3D_MT_RM_Add_Export_Menu
 ]
 
 def register():

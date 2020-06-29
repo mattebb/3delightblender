@@ -159,11 +159,8 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.label(text="Lights:")
         box = layout.box()
 
-        rman_icon = icons.get('rman_arealight.png')
-        box.menu('VIEW3D_MT_RM_Add_Light_Menu', text='Add Light', icon_value=rman_icon.icon_id)
-
-        rman_icon = icons.get('rman_lightfilter.png')
-        box.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', text='Add Light Filter', icon_value=rman_icon.icon_id)               
+        box.menu('VIEW3D_MT_RM_Add_Light_Menu', text='Add Light', icon_value=bpy.types.VIEW3D_MT_RM_Add_Light_Menu.get_icon_id())
+        box.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', text='Add Light Filter', icon_value=bpy.types.VIEW3D_MT_RM_Add_LightFilter_Menu.get_icon_id())               
 
         layout.separator()
         layout.label(text="Apps:")
@@ -185,8 +182,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             box = layout.box()
 
             # Add Bxdf                 
-            rman_icon = icons.get('out_PxrSurface.png')
-            box.menu('VIEW3D_MT_RM_Add_bxdf_Menu', text='Add New Material', icon_value=rman_icon.icon_id)                
+            box.menu('VIEW3D_MT_RM_Add_bxdf_Menu', text='Add New Material', icon_value=bpy.types.VIEW3D_MT_RM_Add_bxdf_Menu.get_icon_id())                 
 
             # Make Selected Geo Emissive
             rman_meshlight = icons.get("out_PxrMeshLight.png")
@@ -200,9 +196,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
             # Add/Create RIB Box /
             # Create Archive node
-            rman_archive = icons.get("rman_CreateArchive.png")
-            box.operator("export.export_rib_archive",
-                         icon_value=rman_archive.icon_id)
+            box.menu('VIEW3D_MT_RM_Add_Export_Menu', icon_value=bpy.types.VIEW3D_MT_RM_Add_Export_Menu.get_icon_id())
 
         # Diagnose
         layout.separator()
