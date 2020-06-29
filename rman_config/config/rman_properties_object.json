@@ -2,7 +2,7 @@
     "name": "rman_properties_object",
     "params": [
         {
-            "panel": "OBJECT_PT_renderman_object_geometry",
+            "panel": "",
             "name": "primitive",
             "label": "Primitive Type",
             "type": "string",
