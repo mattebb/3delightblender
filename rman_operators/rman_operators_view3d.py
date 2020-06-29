@@ -59,8 +59,10 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
             elif rm.rman_quadric_type == 'CONE':
                 ob.empty_display_type = 'CONE'       
         else:
-            ob.name = self.properties.rman_default_name         
-
+            ob.name = self.properties.rman_default_name     
+            if rm.primitive == 'RI_VOLUME':
+                ob.empty_display_type = 'CUBE'
+                bpy.ops.nodes.rman_new_material_override('EXEC_DEFAULT', bxdf_name='PxrVolume')
         if self.properties.rman_open_filebrowser:
             if rm.primitive == 'DELAYED_LOAD_ARCHIVE':
                 rm.path_archive = self.properties.filepath
