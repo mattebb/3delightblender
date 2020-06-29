@@ -1,5 +1,7 @@
 from ..icons.icons import load_icons
 from ..rman_render import RmanRender
+from .. import rman_bl_nodes
+from ..rman_operators.rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
 from bpy.types import Menu
 import bpy
 
@@ -15,18 +17,23 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
     def draw(self, context):
         layout = self.layout
         icons = load_icons()
-        layout.operator_menu_enum(
-                "object.rman_add_light", 'rman_light_name', text="RenderMan Light", icon='LIGHT')  
-        layout.operator_menu_enum(
-                "object.rman_add_light_filter", 'rman_lightfilter_name', text="RenderMan Light Filter", icon='LIGHT')   
 
-        layout.menu('VIEW3D_MT_renderman_add_object_quadrics_menu')
+        rman_icon = icons.get('rman_arealight.png')
+        layout.menu('VIEW3D_MT_RM_Add_Light_Menu', icon_value=rman_icon.icon_id)
+
+        rman_icon = icons.get('rman_lightfilter.png')
+        layout.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', icon_value=rman_icon.icon_id)        
+
+        layout.separator()
+        layout.menu('VIEW3D_MT_renderman_add_object_quadrics_menu', icon='MESH_UVSPHERE')
+        layout.separator()
      
-        op = layout.operator('object.rman_add_rman_geo', text='Volume Box')
+        op = layout.operator('object.rman_add_rman_geo', text='Volume Box', icon='SNAP_VOLUME')
         op.rman_prim_type = 'RI_VOLUME'
         op.rman_default_name = 'RiVolume'
 
-        op = layout.operator('object.rman_add_rman_geo', text='RIB Archive')
+        rman_icon = icons.get("rman_CreateArchive.png")
+        op = layout.operator('object.rman_add_rman_geo', text='RIB Archive', icon_value=rman_icon.icon_id)
         op.rman_prim_type = 'DELAYED_LOAD_ARCHIVE'
         op.rman_default_name = 'RIB_Archive'    
         op.rman_open_filebrowser = True    
@@ -58,23 +65,23 @@ class VIEW3D_MT_renderman_add_object_quadrics_menu(Menu):
     def draw(self, context):
         layout = self.layout
         icons = load_icons()
-        op = layout.operator('object.rman_add_rman_geo', text='Sphere')
+        op = layout.operator('object.rman_add_rman_geo', text='Sphere', icon='MESH_UVSPHERE')
         op.rman_prim_type = 'QUADRIC'
         op.rman_quadric_type = 'SPHERE'
 
-        op = layout.operator('object.rman_add_rman_geo', text='Cylinder')
+        op = layout.operator('object.rman_add_rman_geo', text='Cylinder', icon='MESH_CYLINDER')
         op.rman_prim_type = 'QUADRIC'
         op.rman_quadric_type = 'CYLINDER'
 
-        op = layout.operator('object.rman_add_rman_geo', text='Cone')
+        op = layout.operator('object.rman_add_rman_geo', text='Cone', icon='MESH_CONE')
         op.rman_prim_type = 'QUADRIC'
         op.rman_quadric_type = 'CONE'
 
-        op = layout.operator('object.rman_add_rman_geo', text='Disk')
+        op = layout.operator('object.rman_add_rman_geo', text='Disk', icon='MESH_CIRCLE')
         op.rman_prim_type = 'QUADRIC'
         op.rman_quadric_type = 'DISK'      
 
-        op = layout.operator('object.rman_add_rman_geo', text='Torus')
+        op = layout.operator('object.rman_add_rman_geo', text='Torus', icon='MESH_TORUS')
         op.rman_prim_type = 'QUADRIC'
         op.rman_quadric_type = 'TORUS'                                 
 
@@ -116,8 +123,8 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         layout.separator()
         if selected_objects:
             # Add Bxdf             
-            layout.operator_menu_enum(
-                "object.rman_add_bxdf", 'bxdf_name', text="Add New Material", icon='MATERIAL')         
+            rman_icon = icons.get('out_PxrSurface.png')
+            layout.menu('VIEW3D_MT_RM_Add_bxdf_Menu', text='Add New Material', icon_value=rman_icon.icon_id)           
 
             # Make Selected Geo Emissive
             rman_meshlight = icons.get("out_PxrMeshLight.png")
@@ -144,8 +151,58 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         row.operator("rman.open_scene_rib", text='View RIB', icon_value=rman_rib.icon_id)
         if selected_objects:
             row = column.row()
-            row.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)                                
+            row.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)    
 
+class VIEW3D_MT_RM_Add_Light_Menu(bpy.types.Menu):
+    bl_label = "Light"
+    bl_idname = "VIEW3D_MT_RM_Add_Light_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    def draw(self, context):
+        layout = self.layout
+        icons = load_icons()
+
+        for nm, nm, description, icon, i in get_light_items():
+            op = layout.operator('object.rman_add_light', text=nm, icon_value=icon)
+            op.rman_light_name = nm                                      
+
+class VIEW3D_MT_RM_Add_LightFilter_Menu(bpy.types.Menu):
+    bl_label = "Light Filter"
+    bl_idname = "VIEW3D_MT_RM_Add_LightFilter_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    def draw(self, context):
+        layout = self.layout
+        icons = load_icons()
+
+        for nm, nm, description, icon, i in get_lightfilter_items():
+            op = layout.operator('object.rman_add_light_filter', text=nm, icon_value=icon)
+            op.rman_lightfilter_name = nm                                   
+
+class VIEW3D_MT_RM_Add_bxdf_Menu(bpy.types.Menu):
+    bl_label = "Material"
+    bl_idname = "VIEW3D_MT_RM_Add_bxdf_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    def draw(self, context):
+        layout = self.layout
+        icons = load_icons()
+
+        for nm, nm, description, icon, i in get_bxdf_items():
+            op = layout.operator('object.rman_add_bxdf', text=nm, icon_value=icon)
+            op.bxdf_name = nm         
 
 def rman_add_object_menu(self, context):
 
@@ -172,7 +229,10 @@ def rman_object_context_menu(self, context):
 classes = [
     VIEW3D_MT_renderman_add_object_menu,
     VIEW3D_MT_renderman_add_object_quadrics_menu,
-    VIEW3D_MT_renderman_object_context_menu
+    VIEW3D_MT_renderman_object_context_menu,
+    VIEW3D_MT_RM_Add_Light_Menu,
+    VIEW3D_MT_RM_Add_LightFilter_Menu,
+    VIEW3D_MT_RM_Add_bxdf_Menu
 ]
 
 def register():
