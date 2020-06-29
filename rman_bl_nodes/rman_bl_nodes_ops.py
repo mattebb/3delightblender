@@ -266,6 +266,29 @@ class NODE_OT_rman_node_set_solo(bpy.types.Operator):
     solo_node_name: StringProperty(default="")
     refresh_solo: BoolProperty(default=False)
 
+    def hide_all(self, nt, node):
+        for n in nt.nodes:
+            hide = (n != node)
+            n.hide = hide
+            for input in n.inputs:
+                if not input.is_linked:
+                    input.hide = hide
+
+            for output in n.outputs:
+                if not output.is_linked:
+                    output.hide = hide                        
+
+    def unhide_all(self, nt):
+        for n in nt.nodes:
+            n.hide = False  
+            for input in n.inputs:
+                if not input.is_linked:
+                    input.hide = False
+
+            for output in n.outputs:
+                if not output.is_linked:
+                    output.hide = False                        
+
     def invoke(self, context, event):
         nt = context.nodetree
         output_node = context.node
@@ -274,11 +297,13 @@ class NODE_OT_rman_node_set_solo(bpy.types.Operator):
         if self.refresh_solo:
             output_node.solo_node_name = ''
             output_node.solo_node_output = ''
+            self.unhide_all(nt)
             return {'FINISHED'}           
 
         if self.solo_node_name:
             output_node.solo_node_name = self.solo_node_name
             output_node.solo_node_output = ''
+            self.hide_all(nt, nt.nodes[self.solo_node_name])
             return {'FINISHED'}        
 
         selected_node = find_selected_pattern_node(nt)
@@ -289,6 +314,7 @@ class NODE_OT_rman_node_set_solo(bpy.types.Operator):
 
         output_node.solo_node_name = selected_node.name
         output_node.solo_node_output = ''
+        self.hide_all(nt, nt.nodes[selected_node.name])
 
         return {'FINISHED'}        
 
