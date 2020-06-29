@@ -161,7 +161,7 @@ def update_array_size_func(self, context):
     node = self.node if hasattr(self, 'node') else self
 
     if context and hasattr(context, 'active_object'):
-        if context.active_object.type == 'LIGHT':
+        if context.active_object and context.active_object.type == 'LIGHT':
             context.active_object.update_tag(refresh={'DATA'})    
 
     if context and hasattr(context, 'material'):
@@ -191,7 +191,7 @@ def update_func(self, context):
     node = self.node if hasattr(self, 'node') else self
 
     if context and hasattr(context, 'active_object'):
-        if context.active_object.type == 'LIGHT':
+        if context.active_object and context.active_object.type == 'LIGHT':
             context.active_object.update_tag(refresh={'DATA'})
 
     if context and hasattr(context, 'material'):

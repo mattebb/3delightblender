@@ -75,7 +75,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         icons = load_icons()
         nt = self.id_data
         out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
-        if self.name == out_node.solo_node_name:
+        if out_node and self.name == out_node.solo_node_name:
             rman_icon = icons.get('rman_solo_on.png')
             layout.label(text='', icon_value=rman_icon.icon_id) 
         else:
