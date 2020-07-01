@@ -12,50 +12,8 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     rman_config_name: StringProperty(name='rman_config_name',
                                     default='rman_properties_dspychan') 
 
-    def channel_list(self, context):
-        items = []
-        items.append(("SELECT", "", "", "", 1))
-        pages = dict()
-        i = 2
-        for nm,settings in rman_config.__RMAN_DISPLAY_CHANNELS__.items():
-            page_nm = settings['group']
-            lst = None
-            if page_nm not in pages:
-                pages[page_nm] = []
-            lst = pages[page_nm]
-            #item = ( ('%s %s' % (settings['channelType'], settings['channelSource']), nm, settings['description'], "", i ) )
-            item = ( nm, nm, settings['description'], "", i )
-            i += 1
-            lst.append(item)
-
-        for page_nm,page_items in pages.items():
-            items.append( ("", page_nm, page_nm, "", 0 ) )
-            for page_item in page_items:
-                items.append(page_item)
-        
-        return items
-
-    def update_type(self, context):
-        types = self.channel_list(context)
-        if self.channel_selector == "SELECT":
-            return
-        for item in types:
-            if self.channel_selector == item[0]:
-                self.name = item[1]
-                self.channel_name = item[1]
-                self.channel_selector = "SELECT"
-                settings = rman_config.__RMAN_DISPLAY_CHANNELS__[item[0]]
-                self.channel_source = settings['channelSource']
-                self.channel_type = settings['channelType']
-
-                break
-
     name: StringProperty(name='Channel Name')
     channel_name: StringProperty()
-
-    channel_selector: EnumProperty(name="Select Channel",
-                            description="",
-                            items=channel_list, update=update_type)
 
     channel_source: StringProperty(name="Channel Source",
             description="Source definition for the channel"

@@ -6,6 +6,7 @@ from .rman_ui_base import _RManPanelHeader
 from ..txmanager3 import txparams
 from ..rman_utils import texture_utils
 from .. import txmanager3 as txmngr3
+from ..icons.icons import load_icons
 import os
 import uuid
 
@@ -318,6 +319,24 @@ class PRMAN_PT_Renderman_txmanager_list(_RManPanelHeader, Panel):
         scene = context.scene
 
         row = layout.row()
+        icons = load_icons()
+        rman_icon = icons.get('rman_txmanager.png')        
+        row.operator('rman_txmgr_list.open_txmanager', text='Open TxManager', icon_value=rman_icon.icon_id)
+
+class PRMAN_OT_Renderman_open_txmanager(Operator):
+
+    bl_idname = "rman_txmgr_list.open_txmanager"
+    bl_label = "Open TxManager"
+
+    def execute(self, context):
+        return{'FINISHED'}         
+
+    def draw(self, context):
+        layout = self.layout
+
+        scene = context.scene
+
+        row = layout.row()
         row.operator('rman_txmgr_list.parse_scene', text='Parse Scene')
 
         # FIXME: not totally working. The done callbacks fail
@@ -364,9 +383,14 @@ class PRMAN_PT_Renderman_txmanager_list(_RManPanelHeader, Panel):
             qsize = texture_utils.get_txmanager().txmanager.workQueue.qsize()
             if qsize != 0:
                 progress = 'Converting...%d left to convert' % (qsize)
-            row.label(text=progress)
-            
+            row.label(text=progress)        
 
+
+    def invoke(self, context, event):
+
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=700)     
+            
 def index_updated(self, context):
     '''
     When the index updates, make sure the texture settings
@@ -403,7 +427,8 @@ classes = [
     PRMAN_OT_Renderman_txmanager_apply_preset,
     PRMAN_OT_Renderman_txmanager_add_texture,
     PRMAN_OT_Renderman_txmanager_refresh,
-    PRMAN_PT_Renderman_txmanager_list
+    PRMAN_PT_Renderman_txmanager_list,
+    PRMAN_OT_Renderman_open_txmanager    
 ]
 
 def register():

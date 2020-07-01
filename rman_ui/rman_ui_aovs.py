@@ -75,18 +75,55 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
     bl_idname = "rman_dspy_channel_list.add_channel"
     bl_label = "Add Channel"
 
+    def channel_list(self, context):
+        items = []
+        pages = dict()
+        i = 1
+        for nm,settings in rman_config.__RMAN_DISPLAY_CHANNELS__.items():
+            page_nm = settings['group']
+            lst = None
+            if page_nm not in pages:
+                pages[page_nm] = []
+            lst = pages[page_nm]
+            item = ( nm, nm, settings['description'], "", i )
+            i += 1
+            lst.append(item)
+
+        for page_nm,page_items in pages.items():
+            items.append( ("", page_nm, page_nm, "", 0 ) )
+            for page_item in page_items:
+                items.append(page_item)
+        
+        return items
+
+    channel_selector: EnumProperty(name="Select Channel",
+                        description="Select the channel you want to add",
+                        items=channel_list)
+
     def execute(self, context):
         rm_rl = scene_utils.get_renderman_layer(context)
 
         if rm_rl:
             aov = rm_rl.custom_aovs[rm_rl.custom_aov_index]
             chan = aov.dspy_channels.add()
-            chan.name = 'Ci'
-            chan.channel_name = 'Ci'
-            chan.channel_source = 'Ci'
-            chan.channel_type = 'color'
+
+            selected_chan = self.properties.channel_selector
+            settings = rman_config.__RMAN_DISPLAY_CHANNELS__[selected_chan]
+            chan.name = selected_chan
+            chan.channel_name = selected_chan
+            chan.channel_source = settings['channelSource']
+            chan.channel_type = settings['channelType']
 
         return{'FINISHED'}       
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, 'channel_selector')
+
+    def invoke(self, context, event):
+
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=400)             
 
 class PRMAN_OT_Renderman_layer_delete_channel(Operator):
     """Delete a channel"""
@@ -188,7 +225,6 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         channel = item.dspy_channels[item.dspy_channels_index]
 
         col = layout.column()
-        col.prop(channel, "channel_selector")
         col.prop(channel, "name")      
         col.prop(channel, 'channel_type')
         col.prop(channel, "channel_source")      
