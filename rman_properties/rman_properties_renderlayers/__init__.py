@@ -13,7 +13,10 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     rman_config_name: StringProperty(name='rman_config_name',
                                     default='rman_properties_dspychan') 
 
-    name: StringProperty(name='Channel Name')
+    def update_name(self, context):
+        self.channel_name = self.name
+
+    name: StringProperty(name='Channel Name', update=update_name)
     channel_name: StringProperty()
 
     channel_source: StringProperty(name="Channel Source",

@@ -224,6 +224,17 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
             'params': dspy_params,
             'dspyDriverParams': None}     
 
+def _get_real_chan_name(chan):
+    """ Get the real channel name
+    Channels with a light group will have the light group
+    appended to the name
+    """
+    ch_name = chan.channel_name
+    lgt_grp = chan.light_group.strip()
+    if lgt_grp != '':
+        ch_name = '%s_%s' % (ch_name, lgt_grp)   
+    return ch_name
+
 def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
 
     rm = rman_scene.bl_scene.renderman
@@ -240,12 +251,12 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
         dspy_params['displayChannels'] = []
 
         for chan in aov.dspy_channels:
-            ch_name = chan.channel_name
+            ch_name = _get_real_chan_name(chan)
             dspy_params['displayChannels'].append(ch_name)
-            # add the channel if not already in list
+            lgt_grp = chan.light_group.strip()
+            # add the channel if not already in list            
             if ch_name not in dspys_dict['channels']:
-                d = _default_dspy_params()
-                lgt_grp = chan.light_group.strip()
+                d = _default_dspy_params()                
                 source_type = chan.channel_type
                 source = chan.channel_source
 
@@ -332,10 +343,11 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
         if aov.name != 'beauty' and display_driver == 'it':
             # break up display per channel when rendering to it
             for chan in aov.dspy_channels:
-                dspy_name = '%s_%s' % (aov.name, chan.channel_name)
+                ch_name = _get_real_chan_name(chan)
+                dspy_name = '%s_%s' % (aov.name, ch_name)
                 new_dspy_params = deepcopy(dspy_params)
-                new_dspy_params['displayChannels'] = [chan.channel_name]
-                new_file_path = filePath.replace('.it', '_%s.it' % chan.channel_name)
+                new_dspy_params['displayChannels'] = [ch_name]
+                new_file_path = filePath.replace('.it', '_%s.it' % ch_name)
 
                 dspys_dict['displays'][dspy_name] = {
                     'driverNode': display_driver,
