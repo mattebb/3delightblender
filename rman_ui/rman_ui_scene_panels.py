@@ -166,7 +166,7 @@ class PRMAN_OT_Renderman_Open_Light_Panel(CollectionPanel, bpy.types.Operator):
             for light in lights:
                 member = grp.members.add()
                 member.name = light.name
-                member.light_ob = light
+                member.light_ob = light.data
 
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=800)         
