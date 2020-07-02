@@ -6,6 +6,7 @@ from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel 
 from ..rman_utils.draw_utils import _draw_props
 from ..rman_utils.draw_utils import _draw_ui_from_rman_config  
+from ..rman_utils import scene_utils
 from ..rman_render import RmanRender       
 from ..icons.icons import load_icons          
 from bpy.types import Panel
@@ -126,62 +127,109 @@ class PRMAN_OT_Renderman_Open_Light_Panel(CollectionPanel, bpy.types.Operator):
     bl_idname = "scene.rman_open_light_panel"
     bl_label = "RenderMan Light Panel"
 
+    def add_button_enabled(self, context):
+        scene = context.scene
+        rm = scene.renderman
+        lights_in_group = []
+        for lg in rm.light_groups:
+            lights_in_group.extend([member.light_ob.name for member in lg.members])
+
+        items = []
+        for light in [light.name for light in context.scene.objects if light.type == 'LIGHT']:
+            if light not in lights_in_group:
+                items.append(light)
+        if not items:
+            return False
+        return True       
+
+    def remove_button_enabled(self, context):
+        scene = context.scene
+        rm = scene.renderman
+        return len(rm.light_groups) > 1 and rm.light_groups_index != 0
+
     def execute(self, context):
         return{'FINISHED'}         
+
+    def invoke(self, context, event):
+
+        scene = context.scene
+        rm = scene.renderman
+        rm.light_groups.clear()
+        if 'All' not in rm.light_groups.keys():
+            default_group = rm.light_groups.add()
+            default_group.name = 'All'      
+
+        lgt_grps = scene_utils.get_light_groups_in_scene(context.scene)
+        for nm, lights in lgt_grps.items():
+            grp = rm.light_groups.add()
+            grp.name = nm  
+            for light in lights:
+                member = grp.members.add()
+                member.name = light.name
+                member.light_ob = light
+
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=800)         
 
     def draw(self, context):
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
-        self._draw_collection(context, layout, rm, "",
+        self._draw_collection(context, layout, rm, "Light Groups",
                               "collection.add_remove",
                               "scene.renderman",
-                              "light_groups", "light_groups_index", default_name=str(len(rm.light_groups)))
+                              "light_groups", "light_groups_index", 
+                              default_name='lightGroup_%d' % len(rm.light_groups), 
+                              enable_add_func=self.add_button_enabled,
+                              enable_remove_func=self.remove_button_enabled)    
 
     def draw_item(self, layout, context, item):
         scene = context.scene
         rm = scene.renderman
         light_group = rm.light_groups[rm.light_groups_index]
 
-        row = layout.row()
-        add = row.operator('renderman.add_to_group', text='Add Selected to Group')
-        add.item_type = 'light'
-        add.group_index = rm.light_groups_index
+        lights = [member.light_ob for member in light_group.members]
+        row = layout.row(align=True)
 
-        # row = layout.row()
-        remove = row.operator('renderman.remove_from_group',
-                              text='Remove Selected from Group')
-        remove.item_type = 'light'
-        remove.group_index = rm.light_groups_index
-
-        light_names = [member.name for member in light_group.members]
+        split = row.split(factor=0.35)
+        split.prop(item, 'name')
+        split.enabled = light_group.name != 'All'
+        row.separator()        
         if light_group.name == 'All':
-            light_names = [
-                light.name for light in context.scene.objects if light.type == 'LIGHT']
+            lights = [
+                light.data for light in context.scene.objects if light.type == 'LIGHT']
+        else:            
+            box = layout.box()
+            row = box.row()
+            split = row.split(factor=0.25)
+            split.operator_menu_enum("renderman.add_light_to_group", 'selected_light_name', text="Add Light")
+            split.label(text='')
 
-        if len(light_names) > 0:
+        if len(lights) > 0:
             box = layout.box()
             row = box.row()
 
-            columns = box.column_flow(columns=8)
+            columns = box.column_flow(columns=11)
             columns.label(text='Name')
             columns.label(text='Solo')
             columns.label(text='Mute')
             columns.label(text='Intensity')
             columns.label(text='Exposure')
             columns.label(text='Color')
-            columns.label(text='Temperature')
+            columns.label(text='Enable Temp')
+            columns.label(text='Temp')
+            if light_group.name != 'All':
+                columns.label(text='Remove')
 
-            for light_name in light_names:
-                if light_name not in scene.objects:
+            for light in lights:
+                if light.name not in scene.objects:
                     continue
-                light = scene.objects[light_name].data
                 light_rm = light.renderman
                 if light_rm.renderman_light_role == 'RMAN_LIGHTFILTER':
                     continue
                 row = box.row()
-                columns = box.column_flow(columns=8)
-                columns.label(text=light_name)
+                columns = box.column_flow(columns=11)
+                columns.label(text=light.name)
                 columns.prop(light_rm, 'solo', text='')
                 columns.prop(light_rm, 'mute', text='')
                 light_shader = light.renderman.get_light_node()
@@ -190,27 +238,22 @@ class PRMAN_OT_Renderman_Open_Light_Panel(CollectionPanel, bpy.types.Operator):
                     columns.prop(light_shader, 'intensity', text='')
                     columns.prop(light_shader, 'exposure', text='')
                     if light_shader.bl_label == 'PxrEnvDayLight':
-                        # columns.label('sun tint')
                         columns.prop(light_shader, 'skyTint', text='')
                         columns.label(text='')
                     else:
                         columns.prop(light_shader, 'lightColor', text='')
-                        row = columns.row()
-                        row.prop(light_shader, 'enableTemperature', text='')
-                        if light_shader.enableTemperature:
-                            row.prop(light_shader, 'temperature', text='')
+                        columns.prop(light_shader, 'enableTemperature', text='')
+                        columns.prop(light_shader, 'temperature', text='')
                 else:
-                    columns.label(text='')
                     columns.label(text='')
                     columns.prop(light, 'energy', text='')
                     columns.prop(light, 'color', text='')
                     columns.label(text='')
-
-
-    def invoke(self, context, event):
-
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=800)    
+                    columns.label(text='')
+                if light_group.name != 'All':
+                    op = columns.operator('renderman.remove_light_from_group', text='', icon='CANCEL')
+                    op.group_index = rm.light_groups_index
+                    op.selected_light_name = light.name   
 
 class PRMAN_PT_Renderman_Light_Linking_Panel(PRManButtonsPanel, Panel):
     bl_label = "RenderMan Light Linking"
@@ -325,7 +368,7 @@ class PRMAN_OT_Renderman_Open_Object_Groups(CollectionPanel, bpy.types.Operator)
                               "collection.add_remove",
                               "scene.renderman",
                               "object_groups", "object_groups_index",
-                              default_name=str(len(rm.object_groups)))
+                              default_name='objectGroup_%d' % len(rm.object_groups))
 
     def draw_item(self, layout, context, item):
         row = layout.row()

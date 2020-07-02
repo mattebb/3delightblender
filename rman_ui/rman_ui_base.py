@@ -22,21 +22,27 @@ class CollectionPanel(_RManPanelHeader):
     bl_region_type = 'WINDOW'
 
     def _draw_collection(self, context, layout, ptr, name, operator,
-                         opcontext, prop_coll, collection_index, default_name='', ui_list_class="UI_UL_list"):
+                         opcontext, prop_coll, collection_index, default_name='', ui_list_class="UI_UL_list", enable_add_func=None, enable_remove_func=None):
         layout.label(text=name)
         row = layout.row()
         row.template_list(ui_list_class, "PRMAN", ptr, prop_coll, ptr,
                           collection_index, rows=1)
         col = row.column(align=True)
 
-        op = col.operator(operator, icon="ADD", text="")
+        row = col.row()
+        if enable_add_func:
+            row.enabled = enable_add_func(context)
+        op = row.operator(operator, icon="ADD", text="")
         op.context = opcontext
         op.collection = prop_coll
         op.collection_index = collection_index
         op.defaultname = default_name
         op.action = 'ADD'
 
-        op = col.operator(operator, icon="REMOVE", text="")
+        row = col.row()
+        if enable_remove_func:
+            row.enabled = enable_remove_func(context)
+        op = row.operator(operator, icon="REMOVE", text="")
         op.context = opcontext
         op.collection = prop_coll
         op.collection_index = collection_index

@@ -187,6 +187,11 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
             row = column.row()
             row.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)    
 
+        layout.separator()
+        layout.operator('scene.rman_open_light_panel', text='Light Panel') 
+        layout.operator("scene.rman_open_light_linking", text="Light Linking")
+        layout.operator("scene.rman_open_object_groups", text="Object Groups Panel")
+
 class VIEW3D_MT_RM_Add_Export_Menu(bpy.types.Menu):
     bl_label = "Export"
     bl_idname = "VIEW3D_MT_RM_Add_Export_Menu"

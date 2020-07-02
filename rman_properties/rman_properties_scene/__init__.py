@@ -9,7 +9,7 @@ from bpy.app.handlers import persistent
 from ... import rman_render
 from ... import rman_bl_nodes
 from ...rman_bl_nodes import rman_bl_nodes_props    
-from ..rman_properties_misc import RendermanGroup, LightLinking
+from ..rman_properties_misc import RendermanLightGroup, RendermanGroup, LightLinking
 from ..rman_properties_renderlayers import RendermanRenderLayerSettings
 from ... import rman_config
 from ...rman_config import RmanBasePropertyGroup
@@ -23,7 +23,7 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     rman_config_name: StringProperty(name='rman_config_name',
                                     default='rman_properties_scene')
     
-    light_groups: CollectionProperty(type=RendermanGroup,
+    light_groups: CollectionProperty(type=RendermanLightGroup,
                                       name='Light Groups')
     light_groups_index: IntProperty(min=-1, default=-1)
 

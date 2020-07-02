@@ -68,6 +68,33 @@ class Renderman_Dspys_COLLECTION_OT_add_remove(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class PRMAN_OT_Renderman_layer_channel_set_light_group(Operator):
+    """Set Light Group for Display Channel"""
+
+    bl_idname = "rman_dspy_channel_list.set_light_group"
+    bl_label = "Set Light Group"
+
+    def light_groups_list(self, context):
+        items = []
+        lgt_grps = scene_utils.get_light_groups_in_scene(context.scene)
+        items.append(('', '__CLEAR__', ''))
+        for nm in lgt_grps.keys():
+            items.append((nm, nm, ''))
+        return items
+
+    light_groups: EnumProperty(name="Light Groups",
+                        description="Select the light group you want to add",
+                        items=light_groups_list)
+
+    def execute(self, context):
+        rm_rl = scene_utils.get_renderman_layer(context)
+
+        if rm_rl:
+            aov = rm_rl.custom_aovs[rm_rl.custom_aov_index]
+            chan = aov.dspy_channels[aov.dspy_channels_index]
+            chan.light_group = self.properties.light_groups
+
+        return{'FINISHED'}        
 
 class PRMAN_OT_Renderman_layer_add_channel(Operator):
     """Add a new channel"""
@@ -259,7 +286,9 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             row = col.row()
             row.prop(channel, "stats_type")
             layout.separator()
-            col.prop(channel, "light_group")
+            split = col.split(factor=0.95)
+            split.prop(channel, "light_group")
+            split.operator_menu_enum('rman_dspy_channel_list.set_light_group', 'light_groups', text='', icon='DISCLOSURE_TRI_DOWN')
             
             # FIXME: don't show for now
             # col.prop(channel, "object_group")
@@ -451,6 +480,7 @@ class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
 
 classes = [
     Renderman_Dspys_COLLECTION_OT_add_remove,
+    PRMAN_OT_Renderman_layer_channel_set_light_group,
     PRMAN_OT_Renderman_layer_add_channel,
     PRMAN_OT_Renderman_layer_delete_channel,
     PRMAN_OT_RenderMan_Add_Dspy_Template,

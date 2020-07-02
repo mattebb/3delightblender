@@ -36,8 +36,12 @@ s_orientPxrEnvDayLightInv = [-0.0, 1.0, -0.0, 0.0,
 def get_light_group(light_ob, scene):
     scene_rm = scene.renderman
     for lg in scene_rm.light_groups:
-        if lg.name != 'All' and light_ob.name in lg.members:
-            return lg.name
+        #if lg.name != 'All' and light_ob.name in lg.members:
+        #    return lg.name
+        if lg.name != 'All':
+            for member in lg.members:
+                if light_ob.data == member.light_ob:
+                    return lg.name
     return ''     
 
 def find_portal_dome_parent(portal):  
@@ -135,9 +139,9 @@ class RmanLightTranslator(RmanTranslator):
         light = ob.data
         rm = light.renderman  
 
-        group_name=''
-        if self.rman_scene.bl_scene:
-            group_name = get_light_group(ob, self.rman_scene.bl_scene)
+        #group_name=''
+        #if self.rman_scene.bl_scene:
+        #    group_name = get_light_group(ob, self.rman_scene.bl_scene)
 
         # light filters
         self.update_light_filters(ob, rman_sg_light)
@@ -153,8 +157,8 @@ class RmanLightTranslator(RmanTranslator):
             property_utils.property_group_to_rixparams(light_shader, rman_sg_light, sg_node, light=light)
             
             rixparams = sg_node.params
-            if group_name:
-                rixparams.SetString('lightGroup',group_name)
+            #if group_name:
+            #    rixparams.SetString('lightGroup',group_name)
             if hasattr(light_shader, 'iesProfile'):
                 rixparams.SetString('iesProfile',  bpy.path.abspath(
                     light_shader.iesProfile) )

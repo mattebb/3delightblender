@@ -26,6 +26,16 @@ class LightLinking(bpy.types.PropertyGroup):
                ('ON', 'On', ''),
                ('OFF', 'Off', '')])
 
+class RendermanLightPointer(bpy.types.PropertyGroup):
+    name: StringProperty(name="name")
+    light_ob: PointerProperty(type=bpy.types.Light)               
+
+class RendermanLightGroup(bpy.types.PropertyGroup):
+    name: StringProperty(name="Group Name")
+    members: CollectionProperty(type=RendermanLightPointer,
+                                 name='Group Members')
+    members_index: IntProperty(min=-1, default=-1)               
+
 class RendermanGroup(bpy.types.PropertyGroup):
     name: StringProperty(name="Group Name")
     members: CollectionProperty(type=bpy.types.PropertyGroup,
@@ -77,6 +87,8 @@ class RendermanAnimSequenceSettings(bpy.types.PropertyGroup):
 
 classes = [      
     LightLinking,
+    RendermanLightPointer,
+    RendermanLightGroup,
     RendermanGroup,
     RendermanMeshPrimVar,   
     RendermanOpenVDBChannel,

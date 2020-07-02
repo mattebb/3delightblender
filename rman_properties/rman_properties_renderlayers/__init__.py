@@ -6,6 +6,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     
 from ... import rman_bl_nodes
 from ... import rman_config
+from ...rman_utils import scene_utils
 from ...rman_config import RmanBasePropertyGroup
 
 class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
@@ -27,16 +28,6 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         name="lpe String",
         description="This is where you enter the custom lpe string")
 
-    def light_groups(self, context):
-        items = []
-        items.append((" ", " ", ""))
-        rm = context.scene.renderman
-        for i, lgrp in enumerate(rm.light_groups):
-            if i == 0:
-                continue
-            items.append((lgrp.name, lgrp.name, ""))
-        return items
-
     def object_groups(self, context):
         items = []
         items.append((" ", " ", ""))
@@ -48,7 +39,7 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         return items        
 
     object_group: EnumProperty(name='Object Group', items=object_groups)       
-    light_group: EnumProperty(name='Light Group', items=light_groups)
+    light_group: StringProperty(name='Light Group', default='')
 
 class RendermanAOV(RmanBasePropertyGroup, bpy.types.PropertyGroup):
 

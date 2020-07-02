@@ -200,9 +200,9 @@ def load_addon():
         rman_operators.register()
         rman_config.register()
         rman_bl_nodes.register()
+        rman_properties.register()          
         operators.register()
-        rman_ui.register()  
-        rman_properties.register()      
+        rman_ui.register()      
         rman_handlers.register()
 
     else:
