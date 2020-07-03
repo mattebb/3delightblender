@@ -16,40 +16,16 @@ class RENDERMAN_UL_LIGHT_list(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
-        icon = 'NONE'
-        ll_prefix = "lg_%s>%s" % (rm.ll_light_type, item.name)
-        label = item.name
-        for ll in rm.ll.keys():
-            if ll_prefix in ll:
-                icon = 'TRIA_RIGHT'
-                break
-
-        layout.alignment = 'CENTER'
-        layout.label(text=label, icon=icon)
-
+        layout.label(text=label)
+        op = layout.operator("renderman.remove_light_link", text='', icon='CANCEL')  
 
 class RENDERMAN_UL_OBJECT_list(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
-        icon = 'NONE'
-        light_type = rm.ll_light_type
-        lg = bpy.data.lights if light_type == "light" else rm.light_groups
-        ll_prefix = "lg_%s>%s>obj_%s>%s" % (
-            light_type, lg[rm.ll_light_index].name, rm.ll_object_type, item.name)
-
-        label = item.name
-        if ll_prefix in rm.ll.keys():
-            ll = rm.ll[ll_prefix]
-            if ll.illuminate == 'DEFAULT':
-                icon = 'TRIA_RIGHT'
-            elif ll.illuminate == 'ON':
-                icon = 'DISCLOSURE_TRI_RIGHT'
-            else:
-                icon = 'DISCLOSURE_TRI_DOWN'
-
-        layout.alignment = 'CENTER'
-        layout.label(text=label, icon=icon)
+        layout.label(text=label)
+        op = layout.operator('renderman.remove_light_link_object', text='', icon='CANCEL')
+        op.selected_obj_name = item.name
 
 class RENDERMAN_GROUP_UL_List(bpy.types.UIList):
 
@@ -193,9 +169,9 @@ class PRMAN_OT_Renderman_Open_Light_Panel(CollectionPanel, bpy.types.Operator):
 
         split = row.split(factor=0.35)
         split.prop(item, 'name')
-        split.enabled = light_group.name != 'All'
+        split.enabled = rm.light_groups_index == 0
         row.separator()        
-        if light_group.name == 'All':
+        if rm.light_groups_index == 0:
             lights = [
                 light.data for light in context.scene.objects if light.type == 'LIGHT']
         else:            
@@ -218,7 +194,7 @@ class PRMAN_OT_Renderman_Open_Light_Panel(CollectionPanel, bpy.types.Operator):
             columns.label(text='Color')
             columns.label(text='Enable Temp')
             columns.label(text='Temp')
-            if light_group.name != 'All':
+            if rm.light_groups_index != 0:
                 columns.label(text='Remove')
 
             for light in lights:
@@ -250,7 +226,7 @@ class PRMAN_OT_Renderman_Open_Light_Panel(CollectionPanel, bpy.types.Operator):
                     columns.prop(light, 'color', text='')
                     columns.label(text='')
                     columns.label(text='')
-                if light_group.name != 'All':
+                if rm.light_groups_index != 0:
                     op = columns.operator('renderman.remove_light_from_group', text='', icon='CANCEL')
                     op.group_index = rm.light_groups_index
                     op.selected_light_name = light.name   
@@ -281,61 +257,38 @@ class PRMAN_PT_Renderman_Open_Light_Linking(CollectionPanel, bpy.types.Operator)
         return{'FINISHED'}         
 
     def draw(self, context):
-        layout = self.layout
+        layout = self.layout        
         scene = context.scene
         rm = scene.renderman
         row = layout.row()
 
-        flow = row.column_flow(columns=3)
-        # first colomn select Light
-        flow.prop(rm, 'll_light_type')
-        flow.prop(rm, 'll_object_type')
-        flow.label(text='')
-
-        # second row the selectors
+        row.operator_menu_enum("renderman.add_light_link", 'selected_light_name', text="Add Light Link")
         row = layout.row()
         flow = row.column_flow(columns=3)
-        if rm.ll_light_type == 'light':
-            flow.template_list("RENDERMAN_UL_LIGHT_list", "Renderman_light_link_list",
-                               bpy.data, "lights", rm, 'll_light_index')
-        else:
-            flow.template_list("RENDERMAN_UL_LIGHT_list", "Renderman_light_link_list",
-                               rm, "light_groups", rm, 'll_light_index')
 
-        if rm.ll_object_type == 'object':
+        flow.label(text='Lights')
+        flow.label(text='Excluded Objects')
+        flow.label(text='Illumination')
+
+        row = layout.row()
+        flow = row.column_flow(columns=3)
+
+        flow.template_list("RENDERMAN_UL_LIGHT_list", "Renderman_light_link_list",
+                            scene.renderman, "ll", rm, 'll_light_index', rows=6)
+
+        if rm.ll_light_index != -1:
+            light_link_item = scene.renderman.ll[rm.ll_light_index]            
+            flow.operator_menu_enum("renderman.add_light_link_object", 'selected_obj_name', text="Add Object")
             flow.template_list("RENDERMAN_UL_OBJECT_list", "Renderman_light_link_list",
-                               bpy.data, "objects", rm, 'll_object_index')
-        else:
-            flow.template_list("RENDERMAN_UL_OBJECT_list", "Renderman_light_link_list",
-                               rm, "object_groups", rm, 'll_object_index')
-
-        if rm.ll_light_index == -1 or rm.ll_object_index == -1:
-            flow.label(text="Select light and object")
-        else:
-            from_name = bpy.data.lights[rm.ll_light_index] if rm.ll_light_type == 'light' \
-                else rm.light_groups[rm.ll_light_index]
-            to_name = bpy.data.objects[rm.ll_object_index] if rm.ll_object_type == 'object' \
-                else rm.object_groups[rm.ll_object_index]
-            ll_name = "lg_%s>%s>obj_%s>%s" % (rm.ll_light_type, from_name.name,
-                                              rm.ll_object_type, to_name.name)
-
+                               light_link_item, "members", light_link_item, 'members_index', rows=5)            
+                                           
             col = flow.column()
-            if ll_name in rm.ll:
-                col.prop(rm.ll[ll_name], 'illuminate')
-                rem = col.operator(
-                    'renderman.add_rem_light_link', text='Remove Light Link')
-                rem.ll_name = ll_name
-                rem.add_remove = "remove"
-            else:
-                add = col.operator(
-                    'renderman.add_rem_light_link', text='Add Light Link')
-                add.ll_name = ll_name
-                add.add_remove = 'add'
+            col.prop(light_link_item, 'illuminate', text='')          
 
     def invoke(self, context, event):
 
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=700)                   
+        return wm.invoke_props_dialog(self, width=900)                   
 
 class PRMAN_PT_Renderman_Object_Panel(PRManButtonsPanel, Panel):
     bl_label = "RenderMan Object Groups"
@@ -377,16 +330,33 @@ class PRMAN_OT_Renderman_Open_Object_Groups(CollectionPanel, bpy.types.Operator)
         group = rm.object_groups[rm.object_groups_index]
 
         row = layout.row()
-        row.operator('renderman.add_to_group',
-                     text='Add Selected to Group').group_index = rm.object_groups_index
-        row.operator('renderman.remove_from_group',
-                     text='Remove Selected from Group').group_index = rm.object_groups_index
+        split = row.split(factor=0.35)
+        split.prop(item, 'name')
+        split.enabled = rm.object_groups_index !=  0
 
-        row = layout.row()
-        row.template_list("RENDERMAN_GROUP_UL_List", "Renderman_group_list",
-                          group, "members", group, 'members_index',
-                          item_dyntip_propname='name',
-                          type='GRID', columns=3)  
+        if rm.object_groups_index > 0:
+            row = layout.row()
+            row.separator()          
+            row.operator_menu_enum("renderman.add_to_group", 'selected_obj_name', text="Add Object")
+
+            row = layout.row()
+
+            if len(group.members) > 0:
+                box = layout.box()
+                row = box.row()
+
+                columns = box.column_flow(columns=2)
+                columns.label(text='Name')
+                columns.label(text='Remove')
+
+                for member in group.members:
+                    row = box.row()
+                    columns = box.column_flow(columns=2)
+                    columns.label(text=member.ob_pointer.name)
+
+                    op = columns.operator('renderman.remove_from_group', text='', icon='CANCEL')
+                    op.group_index = rm.object_groups_index
+                    op.selected_obj_name = member.ob_pointer.name               
 
     def invoke(self, context, event):
 

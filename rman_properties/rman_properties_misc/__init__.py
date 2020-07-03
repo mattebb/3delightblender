@@ -9,14 +9,44 @@ from ... import rman_config
 
 import bpy
 
+class RendermanLightPointer(bpy.types.PropertyGroup):
+    name: StringProperty(name="name")
+    light_ob: PointerProperty(type=bpy.types.Light)               
+
+class RendermanLightGroup(bpy.types.PropertyGroup):
+    def update_name(self, context):
+        for member in self.members:
+            rm = member.light_ob.renderman
+            light_shader = rm.get_light_node()
+            light_shader.lightGroup = self.name
+
+    name: StringProperty(name="Group Name", update=update_name)
+    members: CollectionProperty(type=RendermanLightPointer,
+                                 name='Group Members')
+    members_index: IntProperty(min=-1, default=-1)           
+
+class RendermanObjectPointer(bpy.types.PropertyGroup):
+    name: StringProperty(name="name")
+    ob_pointer: PointerProperty(type=bpy.types.Object)          
+
+class RendermanGroup(bpy.types.PropertyGroup):
+    name: StringProperty(name="Group Name")
+    members: CollectionProperty(type=RendermanObjectPointer,
+                                 name='Group Members')
+    members_index: IntProperty(min=-1, default=-1)
+
+
 class LightLinking(bpy.types.PropertyGroup):
 
     def update_link(self, context):
         pass
-        """
-        if engine.is_ipr_running():
-            engine.ipr.update_light_link(context, self)
-        """
+
+    light_ob: PointerProperty(type=bpy.types.Light)       
+
+    members: CollectionProperty(type=RendermanObjectPointer,
+                                 name='Group Members')    
+
+    members_index: IntProperty(min=-1, default=-1)                                      
 
     illuminate: EnumProperty(
         name="Illuminate",
@@ -24,23 +54,7 @@ class LightLinking(bpy.types.PropertyGroup):
         items=[
               ('DEFAULT', 'Default', ''),
                ('ON', 'On', ''),
-               ('OFF', 'Off', '')])
-
-class RendermanLightPointer(bpy.types.PropertyGroup):
-    name: StringProperty(name="name")
-    light_ob: PointerProperty(type=bpy.types.Light)               
-
-class RendermanLightGroup(bpy.types.PropertyGroup):
-    name: StringProperty(name="Group Name")
-    members: CollectionProperty(type=RendermanLightPointer,
-                                 name='Group Members')
-    members_index: IntProperty(min=-1, default=-1)               
-
-class RendermanGroup(bpy.types.PropertyGroup):
-    name: StringProperty(name="Group Name")
-    members: CollectionProperty(type=bpy.types.PropertyGroup,
-                                 name='Group Members')
-    members_index: IntProperty(min=-1, default=-1)
+               ('OFF', 'Off', '')])    
 
 class RendermanMeshPrimVar(bpy.types.PropertyGroup):
     name: StringProperty(
@@ -86,10 +100,11 @@ class RendermanAnimSequenceSettings(bpy.types.PropertyGroup):
         default=1)
 
 classes = [      
-    LightLinking,
     RendermanLightPointer,
     RendermanLightGroup,
+    RendermanObjectPointer,
     RendermanGroup,
+    LightLinking,
     RendermanMeshPrimVar,   
     RendermanOpenVDBChannel,
     RendermanAnimSequenceSettings

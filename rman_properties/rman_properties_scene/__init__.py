@@ -30,28 +30,7 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     ll: CollectionProperty(type=LightLinking,
                             name='Light Links')
 
-    # we need these in case object/light selector changes
-    def reset_ll_light_index(self, context):
-        self.ll_light_index = -1
-
-    def reset_ll_object_index(self, context):
-        self.ll_object_index = -1
-
     ll_light_index: IntProperty(min=-1, default=-1)
-    ll_object_index: IntProperty(min=-1, default=-1)
-    ll_light_type: EnumProperty(
-        name="Select by",
-        description="Select by",
-        items=[('light', 'Lights', ''),
-               ('group', 'Light Groups', '')],
-        default='group', update=reset_ll_light_index)
-
-    ll_object_type: EnumProperty(
-        name="Select by",
-        description="Select by",
-        items=[('object', 'Objects', ''),
-               ('group', 'Object Groups', '')],
-        default='group', update=reset_ll_object_index)
 
     render_layers: CollectionProperty(type=RendermanRenderLayerSettings,
                                        name='Custom AOVs')

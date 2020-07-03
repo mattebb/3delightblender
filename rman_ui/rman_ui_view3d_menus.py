@@ -188,6 +188,9 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
             row.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)    
 
         layout.separator()
+        layout.menu('VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu', text='Object Groups')
+
+        layout.separator()
         layout.operator('scene.rman_open_light_panel', text='Light Panel') 
         layout.operator("scene.rman_open_light_linking", text="Light Linking")
         layout.operator("scene.rman_open_object_groups", text="Object Groups Panel")
@@ -214,6 +217,39 @@ class VIEW3D_MT_RM_Add_Export_Menu(bpy.types.Menu):
         layout.operator("export.export_rib_archive",
                         icon_value=rman_archive.icon_id)  
         layout.operator("renderman.bake_selected_brickmap", text="Bake Object to Brickmap")      
+
+class VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu(bpy.types.Menu):
+    bl_label = "Add to Object Group"
+    bl_idname = "VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    @classmethod
+    def get_icon_id(cls):
+        icons = load_icons()   
+        return icons.get("rman_arealight.png").icon_id        
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
+
+        op = layout.operator('collection.add_remove', text='Create New Group')
+        op.context = 'scene.renderman'
+        op.collection = 'object_groups'
+        op.collection_index = 'object_groups_index'
+        op.defaultname = 'objectGroup_%d' % len(scene.renderman.object_groups)
+        op.action = 'ADD'
+
+        layout.separator()
+        layout.label(text='Object Groups')
+        for i, obj_grp in enumerate(scene.renderman.object_groups.keys()):
+            if i == 0:
+                continue
+            op = layout.operator('renderman.add_to_group', text=obj_grp)
+            op.do_scene_selected = True     
 
 class VIEW3D_MT_RM_Add_Light_Menu(bpy.types.Menu):
     bl_label = "Light"
@@ -306,6 +342,7 @@ classes = [
     VIEW3D_MT_renderman_add_object_quadrics_menu,
     VIEW3D_MT_renderman_add_object_volumes_menu,
     VIEW3D_MT_renderman_object_context_menu,
+    VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu,
     VIEW3D_MT_RM_Add_Light_Menu,
     VIEW3D_MT_RM_Add_LightFilter_Menu,
     VIEW3D_MT_RM_Add_bxdf_Menu,
