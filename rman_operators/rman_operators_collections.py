@@ -399,9 +399,23 @@ class PRMAN_OT_add_light_link(bpy.types.Operator):
             lights_in_group.append(lg.light_ob.name)
 
         items = []
-        for light in [light.name for light in context.scene.objects if light.type == 'LIGHT']:
-            if light not in lights_in_group:
-                items.append((light, light, ''))
+        light_items = list()
+        lightfilter_items = list()
+        i = 1
+        for light in [light for light in context.scene.objects if light.type == 'LIGHT']:
+            is_light = (light.data.renderman.renderman_light_role == 'RMAN_LIGHT')
+            if light.name not in lights_in_group:
+                if is_light:
+                    light_items.append((light.name, light.name, '',))
+                else:
+                    lightfilter_items.append((light.name, light.name, ''))
+                i += 1
+        if light_items:
+            items.append(('', 'Lights', ''))
+            items.extend(light_items)
+        if lightfilter_items:
+            items.append(('', 'LightFilters', ''))
+            items.extend(lightfilter_items)
         return items    
 
     selected_light_name: EnumProperty(name="Light", items=light_list_items)    

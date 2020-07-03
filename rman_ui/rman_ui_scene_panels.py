@@ -8,7 +8,7 @@ from ..rman_utils.draw_utils import _draw_props
 from ..rman_utils.draw_utils import _draw_ui_from_rman_config  
 from ..rman_utils import scene_utils
 from ..rman_render import RmanRender       
-from ..icons.icons import load_icons          
+from ..icons.icons import load_icons         
 from bpy.types import Panel
 import bpy
 
@@ -264,7 +264,10 @@ class PRMAN_PT_Renderman_Open_Light_Linking(CollectionPanel, bpy.types.Operator)
         rm = scene.renderman
         row = layout.row()
 
-        row.operator_menu_enum("renderman.add_light_link", 'selected_light_name', text="Add Light Link")
+        flow = row.column_flow(columns=3)
+        flow.operator_menu_enum("renderman.add_light_link", 'selected_light_name', text="Add Light Link")
+        flow.label(text='')
+        
         row = layout.row()
         flow = row.column_flow(columns=3)
 
