@@ -27,10 +27,10 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
                                       name='Light Groups')
     light_groups_index: IntProperty(min=-1, default=-1)
 
-    ll: CollectionProperty(type=LightLinking,
+    light_links: CollectionProperty(type=LightLinking,
                             name='Light Links')
 
-    ll_light_index: IntProperty(min=-1, default=-1)
+    light_links_index: IntProperty(min=-1, default=-1)
 
     render_layers: CollectionProperty(type=RendermanRenderLayerSettings,
                                        name='Custom AOVs')

@@ -276,10 +276,10 @@ class PRMAN_PT_Renderman_Open_Light_Linking(CollectionPanel, bpy.types.Operator)
         flow = row.column_flow(columns=3)
 
         flow.template_list("RENDERMAN_UL_LIGHT_list", "Renderman_light_link_list",
-                            scene.renderman, "ll", rm, 'll_light_index', rows=6)
+                            scene.renderman, "light_links", rm, 'light_links_index', rows=6)
 
-        if rm.ll_light_index != -1:
-            light_link_item = scene.renderman.ll[rm.ll_light_index]            
+        if rm.light_links_index != -1:
+            light_link_item = scene.renderman.light_links[rm.light_links_index]            
             flow.operator_menu_enum("renderman.add_light_link_object", 'selected_obj_name', text="Add Object")
             flow.template_list("RENDERMAN_UL_OBJECT_list", "Renderman_light_link_list",
                                light_link_item, "members", light_link_item, 'members_index', rows=5)            
