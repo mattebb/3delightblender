@@ -39,7 +39,29 @@ class RendermanGroup(bpy.types.PropertyGroup):
 class LightLinking(bpy.types.PropertyGroup):
 
     def update_link(self, context):
-        pass
+        for member in self.members:
+            ob = member.ob_pointer
+            if self.light_ob.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+                if self.illuminate == 'ON':
+                    subset = ob.renderman.rman_lightfilter_subset.add()
+                    subset.name = self.light_ob.name
+                    subset.light_ob = self.light_ob
+                else:
+                    for j, subset in enumerate(ob.renderman.rman_lightfilter_subset):
+                        if subset.light_ob == self.light_ob:
+                            ob.renderman.rman_lightfilter_subset.remove(j)
+                            break        
+            else:
+                if self.illuminate == 'OFF':
+                    subset = ob.renderman.rman_lighting_excludesubset.add()
+                    subset.name = self.light_ob.name
+                    subset.light_ob = self.light_ob
+                else:
+                    for j, subset in enumerate(ob.renderman.rman_lighting_excludesubset):
+                        if subset.light_ob == self.light_ob:
+                            ob.renderman.rman_lighting_excludesubset.remove(j)
+                            break        
+            ob.update_tag(refresh={'OBJECT'})
 
     light_ob: PointerProperty(type=bpy.types.Light)       
 

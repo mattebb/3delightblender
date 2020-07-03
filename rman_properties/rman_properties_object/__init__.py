@@ -5,6 +5,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 from ... import rman_config
 from ...rman_config import RmanBasePropertyGroup
 from ..rman_properties_misc import RendermanOpenVDBChannel, RendermanAnimSequenceSettings 
+from ..rman_properties_misc import RendermanLightPointer
 
 import bpy
 
@@ -30,6 +31,16 @@ class RendermanObjectSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         name='Material',
         type=bpy.types.Material
     )    
+
+    rman_lighting_excludesubset: CollectionProperty(
+        name='lighting:excludesubset',
+        type=RendermanLightPointer
+    )
+
+    rman_lightfilter_subset: CollectionProperty(
+        name='lighting:excludesubset',
+        type=RendermanLightPointer
+    )
 
     export_archive: BoolProperty(
         name="Export as Archive",

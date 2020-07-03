@@ -16,6 +16,7 @@ class RENDERMAN_UL_LIGHT_list(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
+        label = item.name
         layout.label(text=label)
         op = layout.operator("renderman.remove_light_link", text='', icon='CANCEL')  
 
@@ -23,6 +24,7 @@ class RENDERMAN_UL_OBJECT_list(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
+        label = item.name
         layout.label(text=label)
         op = layout.operator('renderman.remove_light_link_object', text='', icon='CANCEL')
         op.selected_obj_name = item.name

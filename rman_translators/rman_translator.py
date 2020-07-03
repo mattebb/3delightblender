@@ -136,68 +136,15 @@ class RmanTranslator(object):
         if lpe_groups_str != '*':                       
             attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_identifier_lpegroup, lpe_groups_str)
       
-        '''
-        # light linking
-        # get links this is a part of
-        ll_str = "obj_object>%s" % ob.name
-        lls = [ll for ll in self.rman_scene.bl_scene.renderman.ll if ll_str in ll.name]
-        # get links this is a group that is a part of
-        for group in self.rman_scene.bl_scene.renderman.object_groups:
-            if ob.name in group.members.keys():
-                ll_str = "obj_group>%s" % group.name
-                lls += [ll for ll in self.rman_scene.bl_scene.renderman.ll if ll_str in ll.name]
-        '''
-
         # for each light link do illuminates
         exclude_subset = []
         lightfilter_subset = []
-        '''
-        for link in lls:
-            strs = link.name.split('>')
 
-            scene_lights = [l.name for l in self.rman_scene.bl_scene.objects if l.type == 'LIGHT']
-            light_names = [strs[1]] if strs[0] == "lg_light" else \
-                self.rman_scene.bl_scene.renderman.light_groups[strs[1]].members.keys()
-            if strs[0] == 'lg_group' and strs[1] == 'All':
-                light_names = scene_lights
-            for light_name in light_names:
-                if link.illuminate != "DEFAULT" and light_name in self.rman_scene.bl_scene.objects:
-                    light_ob = self.rman_scene.bl_scene.objects[light_name]
-                    light = light_ob.data
-                    if light.renderman.renderman_type == 'FILTER':
-                        # for each light this is a part of do enable light filter
-                        filter_name = light_name
-                        for light_nm in scene_lights:
-                            if filter_name in self.rman_scene.bl_scene.objects[light_nm].data.renderman.light_filters.keys():
-                                if link.illuminate == 'ON':
-                                    lightfilter_subset.append(filter_name)
-                    else:
-                        if not link.illuminate == 'ON':
-                            exclude_subset.append(light_name)
-        '''
-        for light_link in self.rman_scene.bl_scene.renderman.ll:
-            scene_lights = [l.name for l in self.rman_scene.bl_scene.objects if l.type == 'LIGHT']
-            found = False
-            for member in light_link.members:
-                if member.ob_pointer == ob:
-                    found = True
-                    break
-            
-            if found and light_link.illuminate != 'DEFAULT':                
-                if light_link.light_ob.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
-                    light_filter = light_link.light_ob
-                    # for each light this is a part of do enable light filter
-                    filter_name = light_filter.name
-                    for light_nm in scene_lights:
-                        light = self.rman_scene.bl_scene.objects[light_nm]
-                        if filter_name in [ lf.linked_filter_ob.name for lf in light.data.renderman.light_filters]:
-                            if light_link.illuminate == 'ON':
-                                lightfilter_subset.append(filter_name)
-                else:
-                    light = light_link.light_ob
-                    if not light_link.illuminate == 'ON':
-                        exclude_subset.append(light.name)                
+        for subset in rm.rman_lighting_excludesubset:
+            exclude_subset.append(subset.light_ob.name)
 
+        for subset in rm.rman_lightfilter_subset:
+            lightfilter_subset.append(subset.light_ob.name)            
 
         if exclude_subset:
             attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_lighting_excludesubset, ' '. join(exclude_subset) )
