@@ -1,29 +1,24 @@
 from .. import rman_bl_nodes
-from ..icons.icons import load_icons
+from ..icons.icons import get_bxdf_icon, get_light_icon, get_lightfilter_icon
 
 def get_bxdf_items():
-    icons = load_icons()
-    rman_unknown_icon = icons.get("out_unknown.png")    
+ 
     items = []
     i = 0
     dflt = 'PxrSurface'
-    rman_bxdf_icon = icons.get("out_PxrSurface.png")
+    rman_bxdf_icon = get_bxdf_icon("PxrSurface")
     items.append((dflt, dflt, '', rman_bxdf_icon.icon_id, i))
     i += 1
     for n in rman_bl_nodes.__RMAN_BXDF_NODES__:
         if n.name == dflt:
             continue
-        rman_bxdf_icon = icons.get("out_%s.png" % n.name, None)
-        if not rman_bxdf_icon:
-            items.append( (n.name, n.name, '', rman_unknown_icon.icon_id, i))
-        else:
-            items.append( (n.name, n.name, '', rman_bxdf_icon.icon_id, i))                
+        rman_bxdf_icon = get_bxdf_icon(n.name)
+        items.append( (n.name, n.name, '', rman_bxdf_icon.icon_id, i))                
         i += 1
     return items     
 
 def get_light_items():
-    icons = load_icons()
-    rman_light_icon = icons.get("out_PxrRectLight.png")
+    rman_light_icon = get_light_icon("PxrRectLight")
     items = []
     i = 0
     dflt = 'PxrRectLight'
@@ -31,26 +26,19 @@ def get_light_items():
     for n in rman_bl_nodes.__RMAN_LIGHT_NODES__:
         if n.name != dflt:
             i += 1
-            light_icon = icons.get("out_%s.png" % n.name, None)
-            if not light_icon:
-                items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
-            else:
-                items.append( (n.name, n.name, '', light_icon.icon_id, i))
+            light_icon = get_light_icon(n.name)
+            items.append( (n.name, n.name, '', light_icon.icon_id, i))
     return items    
 
 def get_lightfilter_items():
-    icons = load_icons()
     items = []
     i = 0
-    rman_light_icon = icons.get("out_PxrBlockerLightFilter.png")
+    rman_light_icon = get_lightfilter_icon("PxrBlockerLightFilter")
     dflt = 'PxrBlockerLightFilter'
     items.append((dflt, dflt, '', rman_light_icon.icon_id, i))
     for n in rman_bl_nodes.__RMAN_LIGHTFILTER_NODES__:
         if n.name != dflt:
             i += 1
-            light_icon = icons.get("out_%s.png" % n.name, None)
-            if not light_icon:                
-                items.append( (n.name, n.name, '', rman_light_icon.icon_id, i))
-            else:
-                items.append( (n.name, n.name, '', light_icon.icon_id, i))
+            light_icon = get_lightfilter_icon(n.name)
+            items.append( (n.name, n.name, '', light_icon.icon_id, i))
     return items    

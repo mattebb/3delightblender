@@ -4,6 +4,11 @@ from ..rfb_logger import rfb_log
 
 import bpy
 
+def return_empty_list():
+    items = []
+    items.append(('0', '', '', '', 0))
+    return items  
+
 class COLLECTION_OT_add_remove(bpy.types.Operator):
     bl_label = "Add or Remove Paths"
     bl_idname = "collection.add_remove"
@@ -30,26 +35,11 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
         name="Default Name",
         description="Default name to give this collection item",
         default="")
-    # BBM addition begin
-    is_shader_param: BoolProperty(name='Is shader parameter', default=False)
-    shader_type: StringProperty(
-        name="shader type",
-        default='surface')
-    # BBM addition end
 
     def invoke(self, context, event):
         scene = context.scene
-        # BBM modification
-        if not self.properties.is_shader_param:
-            id = string_utils.getattr_recursive(context, self.properties.context)
-            rm = id.renderman if hasattr(id, 'renderman') else id
-        else:
-            if context.active_object.name in bpy.data.lights.keys():
-                rm = bpy.data.lights[context.active_object.name].renderman
-            else:
-                rm = context.active_object.active_material.renderman
-            id = getattr(rm, '%s_shaders' % self.properties.shader_type)
-            rm = getattr(id, self.properties.context)
+        id = string_utils.getattr_recursive(context, self.properties.context)
+        rm = id.renderman if hasattr(id, 'renderman') else id
 
         prop_coll = self.properties.collection
         coll_idx = self.properties.collection_index
@@ -57,19 +47,12 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
         collection = getattr(rm, prop_coll)
         index = getattr(rm, coll_idx)
 
-        # otherwise just add an empty one
         if self.properties.action == 'ADD':
             collection.add()
-
             index += 1
             setattr(rm, coll_idx, index)
             collection[-1].name = self.properties.defaultname
-            # BBM addition begin
-            # if coshader array, add the selected coshader
-            if self.is_shader_param:
-                coshader_name = getattr(rm, 'bl_hidden_%s_menu' % prop_coll)
-                collection[-1].name = coshader_name
-            # BBM addition end
+
         elif self.properties.action == 'REMOVE':
             collection.remove(index)
             setattr(rm, coll_idx, index - 1)
@@ -92,8 +75,10 @@ class PRMAN_OT_add_light_to_group(bpy.types.Operator):
     bl_label = 'Add Selected Light to Light Mixer Group' 
 
     selected_light_name: StringProperty(name="Light", default='')
+    group_index: IntProperty(default=0)
+    do_scene_selected: BoolProperty(name="do_scene_selected", default=False)    
 
-    def execute(self, context):
+    def add_selected(self, context):
         scene = context.scene
         group_index = scene.renderman.light_mixer_groups_index
         selected_light_name = self.properties.selected_light_name
@@ -114,7 +99,38 @@ class PRMAN_OT_add_light_to_group(bpy.types.Operator):
         if do_add:
             ob_in_group = object_group.members.add()
             ob_in_group.name = ob.name
-            ob_in_group.light_ob = ob.data
+            ob_in_group.light_ob = ob.data       
+            
+    def add_scene_selected(self, context):
+        scene = context.scene
+        group_index = self.group_index
+        if not hasattr(context, 'selected_objects'):
+            return {'FINISHED'}        
+        
+        object_groups = scene.renderman.light_mixer_groups
+        object_group = object_groups[group_index]
+        for ob in context.selected_objects:
+            if ob.type != 'LIGHT':
+                continue
+            if ob.data.renderman.renderman_light_role != 'RMAN_LIGHT':
+                continue
+
+            do_add = True
+            for member in object_group.members:
+                if ob.data == member.light_ob:
+                    do_add = False
+                    break                
+
+            if do_add:
+                ob_in_group = object_group.members.add()
+                ob_in_group.name = ob.name
+                ob_in_group.light_ob = ob.data          
+
+    def execute(self, context):
+        if self.properties.do_scene_selected:
+            self.add_scene_selected(context)
+        else:
+            self.add_selected(self, context)
 
         return {'FINISHED'}   
 
@@ -411,10 +427,14 @@ class PRMAN_OT_remove_light_link(bpy.types.Operator):
     bl_idname = 'renderman.remove_light_link'
     bl_label = 'Remove Light Link'
 
+    group_index: IntProperty(name="idx", default=-1)
+
     def execute(self, context):
         scene = context.scene
         rm = scene.renderman
-        group_index = rm.light_links_index
+        group_index = self.group_index
+        if group_index == -1:
+            group_index = rm.light_links_index
         if group_index != -1:
             light_link = rm.light_links[group_index]
             for i, member in enumerate(light_link.members):

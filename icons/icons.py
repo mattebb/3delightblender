@@ -59,6 +59,19 @@ def load_icons():
 
     return renderman_icon_collections["main"]
 
+def get_icon(name='', dflt='rman_blender'):
+    icons = load_icons()
+    dflt_icon = icons.get('%s.png' % dflt)
+    return icons.get('%s.png' % name, dflt_icon)
+
+def get_light_icon(name=''):
+    return get_icon('out_%s' % name, dflt='out_PxrRectLight')
+
+def get_lightfilter_icon(name=''):
+    return get_icon('out_%s' % name, dflt='out_PxrBlockerLightFilter')    
+
+def get_bxdf_icon(name=''):
+    return get_icon('out_%s' % name, dflt='out_unknown')
 
 def clear_icons():
     global renderman_icons_loaded
