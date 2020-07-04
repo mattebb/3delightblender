@@ -11,33 +11,65 @@ from ..rman_render import RmanRender
 from ..icons.icons import load_icons         
 from bpy.types import Panel
 import bpy
+import re
 
-class RENDERMAN_UL_LIGHT_list(bpy.types.UIList):
-
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        rm = context.scene.renderman
-        label = item.name
-        layout.label(text=label)
-        op = layout.operator("renderman.remove_light_link", text='', icon='CANCEL')  
-
-class RENDERMAN_UL_OBJECT_list(bpy.types.UIList):
+class RENDERMAN_UL_LightLink_Light_List(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
         label = item.name
         layout.label(text=label)
-        op = layout.operator('renderman.remove_light_link_object', text='', icon='CANCEL')
-        op.selected_obj_name = item.name
+        if rm.light_links_index == index:
+            op = layout.operator("renderman.remove_light_link", text='', icon='CANCEL')  
 
-class RENDERMAN_GROUP_UL_List(bpy.types.UIList):
+class RENDERMAN_UL_LightLink_Object_List(bpy.types.UIList):
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        rm = context.scene.renderman
+        custom_icon = 'OBJECT_DATAMODE'
+        label = item.name
+        layout.label(text=label, icon=custom_icon)
+        if getattr(active_data, active_propname) == index:
+            op = layout.operator('renderman.remove_light_link_object', text='', icon='CANCEL')
+            op.selected_obj_name = item.name
+
+class RENDERMAN_UL_Object_Group_List(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
 
         # We could write some code to decide which icon to use here...
         custom_icon = 'OBJECT_DATAMODE'
-        # Make sure your code supports all 3 layout types
-        layout.alignment = 'CENTER'
         layout.label(text=item.name, icon=custom_icon)
+        op = layout.operator('renderman.remove_from_group', text='', icon='CANCEL')
+        op.selected_obj_name = item.name
+
+class RENDERMAN_UL_LightMixer_Group_Members_List(bpy.types.UIList):
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        rm = context.scene.renderman
+        light = item.light_ob
+
+        op = layout.operator('renderman.remove_light_from_group', text='', icon='REMOVE')
+        op.group_index = rm.light_mixer_groups_index
+        op.selected_light_name = light.name  
+        layout.label(text=light.name)
+
+        light_shader = light.renderman.get_light_node()
+        light_rm = light.renderman
+        if light_shader.bl_label == 'PxrEnvDayLight':
+            layout.prop(light_shader, 'skyTint', text='')
+        else:
+            layout.prop(light_shader, 'enableTemperature', text='Temp')
+            if light_shader.enableTemperature:
+                layout.prop(light_shader, 'temperature', text='', slider=True)
+            else:
+                layout.prop(light_shader, 'lightColor', text='')
+        layout.prop(light_shader, 'exposure', slider=True)                
+        if light_rm.solo:
+            layout.prop(light_rm, 'solo', text='', icon='OUTLINER_OB_LIGHT', icon_only=True )
+        else:
+                layout.prop(light_rm, 'solo', text='', icon='LIGHT', icon_only=True )
+        layout.prop(light_rm, 'mute', text='', icon='CANCEL', icon_only=True)
 
 class RENDER_PT_Renderman_Workspace(PRManButtonsPanel, Panel):
     bl_label = "Workspace"
@@ -86,8 +118,8 @@ class RENDER_OT_Renderman_Open_Workspace(bpy.types.Operator):
         return wm.invoke_props_dialog(self, width=600)                      
 
 
-class PRMAN_PT_Renderman_Light_Panel(PRManButtonsPanel, Panel):
-    bl_label = "RenderMan Light Groups"
+class PRMAN_PT_Renderman_Light_Mixer_Panel(PRManButtonsPanel, Panel):
+    bl_label = "RenderMan Light Mixer"
     bl_context = "scene"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW' 
@@ -98,32 +130,41 @@ class PRMAN_PT_Renderman_Light_Panel(PRManButtonsPanel, Panel):
         rm = scene.renderman
 
         row = layout.row()
-        row.operator('scene.rman_open_light_panel', text='Open Light Panel')        
+        row.operator('scene.rman_open_light_mixer_panel', text='Open Light Mixer Panel')   
 
-class PRMAN_OT_Renderman_Open_Light_Panel(CollectionPanel, bpy.types.Operator):
+class PRMAN_OT_Renderman_Open_Light_Mixer_Panel(CollectionPanel, bpy.types.Operator):
 
-    bl_idname = "scene.rman_open_light_panel"
-    bl_label = "RenderMan Light Panel"
+    bl_idname = "scene.rman_open_light_mixer_panel"
+    bl_label = "RenderMan Light Mixer Panel"
 
-    def add_button_enabled(self, context):
+    def light_list_items(self, context):
+        pattern = re.compile(self.light_search_filter)   
         scene = context.scene
         rm = scene.renderman
+        group_index = rm.light_mixer_groups_index
         lights_in_group = []
-        for lg in rm.light_groups:
-            lights_in_group.extend([member.light_ob.name for member in lg.members])
+        object_groups = rm.light_mixer_groups
+        object_group = object_groups[group_index]
+        lights_in_group = [member.light_ob.name for member in object_group.members]        
 
         items = []
-        for light in [light.name for light in context.scene.objects if light.type == 'LIGHT']:
-            if light not in lights_in_group:
-                items.append(light)
+        for light in [light for light in context.scene.objects if light.type == 'LIGHT']:
+            is_light = (light.data.renderman.renderman_light_role == 'RMAN_LIGHT') 
+            if not is_light:
+                continue            
+            if light.name not in lights_in_group:
+                if self.do_light_filter and not re.match(pattern, light.name):
+                    continue
+                items.append((light.name, light.name, ''))
         if not items:
-            return False
-        return True       
+            items.append(('0', '', '', '', 0))
+        return items    
 
-    def remove_button_enabled(self, context):
-        scene = context.scene
-        rm = scene.renderman
-        return len(rm.light_groups) > 1 and rm.light_groups_index != 0
+    selected_light_name: EnumProperty(name="Light", items=light_list_items)
+    light_search_filter: StringProperty(name="Light Filter Search", default="")
+    do_light_filter: BoolProperty(name="Filter", 
+                                description="Search and add multiple lights",
+                                default=False)    
 
     def execute(self, context):
         return{'FINISHED'}         
@@ -147,91 +188,47 @@ class PRMAN_OT_Renderman_Open_Light_Panel(CollectionPanel, bpy.types.Operator):
                 member.light_ob = light.data
 
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=800)         
+        return wm.invoke_props_dialog(self, width=600)         
 
     def draw(self, context):
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
-        self._draw_collection(context, layout, rm, "Light Groups",
+        self._draw_collection(context, layout, rm, "Light Mixer Groups",
                               "collection.add_remove",
                               "scene.renderman",
-                              "light_groups", "light_groups_index", 
-                              default_name='lightGroup_%d' % len(rm.light_groups), 
-                              enable_add_func=self.add_button_enabled,
-                              enable_remove_func=self.remove_button_enabled)    
+                              "light_mixer_groups", "light_mixer_groups_index", 
+                              default_name='mixerGroup_%d' % len(rm.light_mixer_groups))
 
     def draw_item(self, layout, context, item):
         scene = context.scene
         rm = scene.renderman
-        light_group = rm.light_groups[rm.light_groups_index]
+        light_group = rm.light_mixer_groups[rm.light_mixer_groups_index]
 
         lights = [member.light_ob for member in light_group.members]
         row = layout.row(align=True)
 
         split = row.split(factor=0.35)
         split.prop(item, 'name')
-        split.enabled = rm.light_groups_index == 0
         row.separator()        
-        if rm.light_groups_index == 0:
-            lights = [
-                light.data for light in context.scene.objects if light.type == 'LIGHT']
-        else:            
-            box = layout.box()
+
+        box = layout.box()
+        row = box.row()
+        split = row.split(factor=0.25)
+        row = split.row()
+        row.prop(self, 'do_light_filter', text='', icon='FILTER', icon_only=True)
+        row.prop(self, 'selected_light_name', text='')
+        op = row.operator("renderman.add_light_to_group", text='', icon='ADD')
+        op.selected_light_name = self.selected_light_name
+
+        if self.do_light_filter:
             row = box.row()
             split = row.split(factor=0.25)
-            split.operator_menu_enum("renderman.add_light_to_group", 'selected_light_name', text="Add Light")
-            split.label(text='')
+            row = split.row()
+            row.prop(self, 'light_search_filter', text='', icon='VIEWZOOM')
 
-        if len(lights) > 0:
-            box = layout.box()
-            row = box.row()
-
-            columns = box.column_flow(columns=11)
-            columns.label(text='Name')
-            columns.label(text='Solo')
-            columns.label(text='Mute')
-            columns.label(text='Intensity')
-            columns.label(text='Exposure')
-            columns.label(text='Color')
-            columns.label(text='Enable Temp')
-            columns.label(text='Temp')
-            if rm.light_groups_index != 0:
-                columns.label(text='Remove')
-
-            for light in lights:
-                if light.name not in scene.objects:
-                    continue
-                light_rm = light.renderman
-                if light_rm.renderman_light_role == 'RMAN_LIGHTFILTER':
-                    continue
-                row = box.row()
-                columns = box.column_flow(columns=11)
-                columns.label(text=light.name)
-                columns.prop(light_rm, 'solo', text='')
-                columns.prop(light_rm, 'mute', text='')
-                light_shader = light.renderman.get_light_node()
-                if light_shader:
-
-                    columns.prop(light_shader, 'intensity', text='')
-                    columns.prop(light_shader, 'exposure', text='')
-                    if light_shader.bl_label == 'PxrEnvDayLight':
-                        columns.prop(light_shader, 'skyTint', text='')
-                        columns.label(text='')
-                    else:
-                        columns.prop(light_shader, 'lightColor', text='')
-                        columns.prop(light_shader, 'enableTemperature', text='')
-                        columns.prop(light_shader, 'temperature', text='')
-                else:
-                    columns.label(text='')
-                    columns.prop(light, 'energy', text='')
-                    columns.prop(light, 'color', text='')
-                    columns.label(text='')
-                    columns.label(text='')
-                if rm.light_groups_index != 0:
-                    op = columns.operator('renderman.remove_light_from_group', text='', icon='CANCEL')
-                    op.group_index = rm.light_groups_index
-                    op.selected_light_name = light.name   
+        layout.template_list("RENDERMAN_UL_LightMixer_Group_Members_List", "Renderman_light_mixer_list",
+                            light_group, "members", light_group, 'members_index', rows=6)
 
 class PRMAN_PT_Renderman_Light_Linking_Panel(PRManButtonsPanel, Panel):
     bl_label = "RenderMan Light Linking"
@@ -255,6 +252,70 @@ class PRMAN_PT_Renderman_Open_Light_Linking(CollectionPanel, bpy.types.Operator)
     bl_idname = "scene.rman_open_light_linking"
     bl_label = "RenderMan Light Linking"
 
+    def light_list_items(self, context):
+        pattern = re.compile(self.light_search_filter)        
+        scene = context.scene
+        rm = scene.renderman
+        lights_in_group = []
+        for lg in rm.light_links:
+            lights_in_group.append(lg.light_ob.name)
+
+        items = []
+        light_items = list()
+        lightfilter_items = list()
+        for light in [light for light in context.scene.objects if light.type == 'LIGHT']:
+            is_light = (light.data.renderman.renderman_light_role == 'RMAN_LIGHT')            
+            if light.name not in lights_in_group:
+                if self.do_light_filter and not re.match(pattern, light.name):
+                    continue    
+                if is_light:
+                    light_items.append((light.name, light.name, '',))
+                else:
+                    lightfilter_items.append((light.name, light.name, ''))        
+        if light_items:            
+            items.extend(light_items)
+        if lightfilter_items:           
+            items.extend(lightfilter_items)
+        if not items:
+            items.append(('0', '', '', '', 0))            
+        
+        return items    
+
+
+    def obj_list_items(self, context):
+        pattern = re.compile(self.object_search_filter)
+        scene = context.scene
+        rm = scene.renderman
+        group = rm.light_links[rm.light_links_index]
+        objs_in_group = []
+        for member in group.members:
+            objs_in_group.append(member.ob_pointer.name)
+
+        items = []
+        for ob_name in [ob.name for ob in context.scene.objects if ob.type not in ['LIGHT', 'CAMERA']]:            
+            if ob_name not in objs_in_group:
+                if self.do_object_filter and not re.match(pattern, ob_name):
+                    continue  
+                items.append((ob_name, ob_name, ''))
+        if not items:
+            items.append(('0', '', '', '', 0))                
+        return items       
+
+
+    light_search_filter: StringProperty(name="Light Filter Search", default="")
+    do_light_filter: BoolProperty(name="Filter", 
+                                description="Search and add multiple lights",
+                                default=False)
+    selected_light_name: EnumProperty(name="", items=light_list_items)
+
+    do_object_filter: BoolProperty(name="Object Filter", 
+                                description="Search and add multiple objects",
+                                default=False)    
+
+    object_search_filter: StringProperty(name="Object Filter Search", default="")        
+
+    selected_obj_name: EnumProperty(name="", items=obj_list_items)                   
+
     def execute(self, context):
         return{'FINISHED'}         
 
@@ -265,30 +326,58 @@ class PRMAN_PT_Renderman_Open_Light_Linking(CollectionPanel, bpy.types.Operator)
         row = layout.row()
 
         flow = row.column_flow(columns=3)
-        flow.operator_menu_enum("renderman.add_light_link", 'selected_light_name', text="Add Light Link")
+        row = flow.row()
+        row.prop(self, 'do_light_filter', text='', icon='FILTER', icon_only=True)
+        row.prop(self, 'selected_light_name', text='')
+        row.context_pointer_set('op_ptr', self) 
+        op = row.operator("renderman.add_light_link", text='', icon='ADD')
+        op.selected_light_name = self.selected_light_name
+
+        if self.do_light_filter:
+            row = layout.row()
+            flow = row.column_flow(columns=3)
+            flow.prop(self, 'light_search_filter', text='', icon='VIEWZOOM')   
+            flow.label(text='')
+            flow.label(text='')
+
         flow.label(text='')
-        
+
         row = layout.row()
         flow = row.column_flow(columns=3)
 
         flow.label(text='Lights')
-        flow.label(text='Excluded Objects')
+        flow.label(text='Objects')
         flow.label(text='Illumination')
 
         row = layout.row()
         flow = row.column_flow(columns=3)
 
-        flow.template_list("RENDERMAN_UL_LIGHT_list", "Renderman_light_link_list",
+        flow.template_list("RENDERMAN_UL_LightLink_Light_List", "Renderman_light_link_list",
                             scene.renderman, "light_links", rm, 'light_links_index', rows=6)
 
         if rm.light_links_index != -1:
-            light_link_item = scene.renderman.light_links[rm.light_links_index]            
-            flow.operator_menu_enum("renderman.add_light_link_object", 'selected_obj_name', text="Add Object")
-            flow.template_list("RENDERMAN_UL_OBJECT_list", "Renderman_light_link_list",
-                               light_link_item, "members", light_link_item, 'members_index', rows=5)            
-                                           
-            col = flow.column()
-            col.prop(light_link_item, 'illuminate', text='')          
+            light_link_item = scene.renderman.light_links[rm.light_links_index]  
+            row = flow.row()          
+            row.prop(self, 'do_object_filter', text='', icon='FILTER', icon_only=True)
+            if not self.do_object_filter:
+                row.prop(self, 'selected_obj_name', text='')
+                row.context_pointer_set('op_ptr', self) 
+                op = row.operator("renderman.add_light_link_object", text='', icon='ADD')
+                op.selected_obj_name = self.selected_obj_name
+
+                flow.template_list("RENDERMAN_UL_LightLink_Object_List", "Renderman_light_link_list",
+                                light_link_item, "members", light_link_item, 'members_index', rows=5)            
+            else:
+                row.prop(self, 'selected_obj_name')
+                row.context_pointer_set('op_ptr', self) 
+                op = row.operator("renderman.add_light_link_object", text='', icon='ADD')
+                op.selected_obj_name = self.selected_obj_name                             
+                row = flow.row()
+                row.prop(self, 'object_search_filter', text='', icon='VIEWZOOM')      
+
+            if not self.do_object_filter:         
+                col = flow.column()
+                col.prop(light_link_item, 'illuminate', text='')          
 
     def invoke(self, context, event):
 
@@ -315,6 +404,34 @@ class PRMAN_OT_Renderman_Open_Object_Groups(CollectionPanel, bpy.types.Operator)
     bl_idname = "scene.rman_open_object_groups"
     bl_label = "RenderMan Object Groups"
 
+    def obj_list_items(self, context):
+        pattern = re.compile(self.object_search_filter)        
+        scene = context.scene
+        rm = scene.renderman
+        group = rm.object_groups[rm.object_groups_index]
+        objs_in_group = []
+        for member in group.members:
+            objs_in_group.append(member.ob_pointer.name)
+
+        items = []
+        for ob_name in [ob.name for ob in context.scene.objects if ob.type not in ['LIGHT', 'CAMERA']]:
+            if ob_name not in objs_in_group:
+                if self.do_object_filter and not re.match(pattern, ob_name):
+                    continue
+                items.append((ob_name, ob_name, ''))
+        if not items:
+            items.append(('0', '', '', '', 0))                
+        return items       
+
+
+    do_object_filter: BoolProperty(name="Object Filter", 
+                                description="Search and add multiple objects",
+                                default=False)    
+
+    object_search_filter: StringProperty(name="Object Filter Search", default="")        
+
+    selected_obj_name: EnumProperty(name="", items=obj_list_items)       
+
     def execute(self, context):
         return{'FINISHED'}         
 
@@ -337,49 +454,41 @@ class PRMAN_OT_Renderman_Open_Object_Groups(CollectionPanel, bpy.types.Operator)
         row = layout.row()
         split = row.split(factor=0.35)
         split.prop(item, 'name')
-        split.enabled = rm.object_groups_index !=  0
 
-        if rm.object_groups_index > 0:
+        row = layout.row()
+        row.separator()          
+        row.prop(self, 'do_object_filter', text='', icon='FILTER', icon_only=True)
+        row.prop(self, 'selected_obj_name', text='')
+        op = row.operator('renderman.add_to_group', text='', icon='ADD')
+        op.selected_obj_name = self.selected_obj_name
+        op.group_index = rm.object_groups_index
+        if self.do_object_filter:
             row = layout.row()
-            row.separator()          
-            row.operator_menu_enum("renderman.add_to_group", 'selected_obj_name', text="Add Object")
+            row.prop(self, 'object_search_filter', icon='VIEWZOOM', text='')
 
-            row = layout.row()
-
-            if len(group.members) > 0:
-                box = layout.box()
-                row = box.row()
-
-                columns = box.column_flow(columns=2)
-                columns.label(text='Name')
-                columns.label(text='Remove')
-
-                for member in group.members:
-                    row = box.row()
-                    columns = box.column_flow(columns=2)
-                    columns.label(text=member.ob_pointer.name)
-
-                    op = columns.operator('renderman.remove_from_group', text='', icon='CANCEL')
-                    op.group_index = rm.object_groups_index
-                    op.selected_obj_name = member.ob_pointer.name               
+        row = layout.row()
+        
+        row.template_list('RENDERMAN_UL_Object_Group_List', "",
+                        group, "members", group, 'members_index', rows=6)
 
     def invoke(self, context, event):
 
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=700)                                                                   
+        return wm.invoke_props_dialog(self, width=500)                                                                   
 
 classes = [
     RENDER_PT_Renderman_Workspace,
     RENDER_OT_Renderman_Open_Workspace,
-    PRMAN_PT_Renderman_Light_Panel,
-    PRMAN_OT_Renderman_Open_Light_Panel,
+    PRMAN_PT_Renderman_Light_Mixer_Panel,
+    PRMAN_OT_Renderman_Open_Light_Mixer_Panel,    
     PRMAN_PT_Renderman_Light_Linking_Panel,
     PRMAN_PT_Renderman_Open_Light_Linking,
     PRMAN_PT_Renderman_Object_Panel,
     PRMAN_OT_Renderman_Open_Object_Groups,
-    RENDERMAN_GROUP_UL_List,
-    RENDERMAN_UL_LIGHT_list,
-    RENDERMAN_UL_OBJECT_list
+    RENDERMAN_UL_Object_Group_List,
+    RENDERMAN_UL_LightLink_Light_List,
+    RENDERMAN_UL_LightLink_Object_List,
+    RENDERMAN_UL_LightMixer_Group_Members_List
 
 ]
 

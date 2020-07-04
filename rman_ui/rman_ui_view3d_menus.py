@@ -146,14 +146,6 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
                 elif obj.type == 'LIGHT' and obj.data.renderman.renderman_light_role == 'RMAN_LIGHT':
                     selected_light_objects.append(obj)
 
-        if not selected_objects and not selected_light_objects:
-            column = layout.column()
-            column.enabled = not is_rman_interactive_running
-            row = column.row()
-            rman_rib = icons.get('rman_rib_small.png')
-            row.operator("rman.open_scene_rib", text='View RIB', icon_value=rman_rib.icon_id)            
-            return
-
         if selected_light_objects:
             layout.operator_menu_enum(
                     "object.rman_add_light_filter", 'rman_lightfilter_name', text="Attach New Light Filter", icon='LIGHT')              
@@ -191,8 +183,8 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         layout.menu('VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu', text='Object Groups')
 
         layout.separator()
-        layout.operator('scene.rman_open_light_panel', text='Light Panel') 
-        layout.operator("scene.rman_open_light_linking", text="Light Linking")
+        layout.operator('scene.rman_open_light_mixer_panel', text='Light Mixer Panel') 
+        layout.operator("scene.rman_open_light_linking", text="Light Linking Panel")
         layout.operator("scene.rman_open_object_groups", text="Object Groups Panel")
 
 class VIEW3D_MT_RM_Add_Export_Menu(bpy.types.Menu):
