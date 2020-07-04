@@ -2,7 +2,7 @@ from .rman_ui_base import _RManPanelHeader,ShaderPanel,ShaderNodePanel, Collecti
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 from ..rman_utils.draw_utils import _draw_props, panel_node_draw,draw_nodes_properties_ui,draw_node_properties_recursive
 from ..rman_utils import prefs_utils
-from ..icons.icons import load_icons
+from ..icons import icons
 from ..rman_render import RmanRender
 import bpy
 from bpy.types import Panel
@@ -54,12 +54,11 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
                 if rman_output_node.solo_node_name != '':
                     solo_node = nt.nodes.get(rman_output_node.solo_node_name, None)
                     if solo_node:
-                        icons = load_icons()
 
                         split = layout.split(factor=0.25)
                         split.context_pointer_set("nodetree", nt)  
                         split.context_pointer_set("node", rman_output_node)  
-                        rman_icon = icons.get('rman_solo_on.png')   
+                        rman_icon = icons.get_icon('rman_solo_on')   
                         split.label(text=rman_output_node.solo_node_name , icon_value=rman_icon.icon_id)  
                         
                         split = split.split(factor=0.95)
@@ -93,14 +92,13 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
 
             layout.separator()
         if mat and not is_renderman_nodetree(mat):
-            icons = load_icons()
             rm = mat.renderman
             row = layout.row()
             #row.prop(rm, "copy_color_params")
             
             row = layout.row(align=True)
             col = row.column()
-            rman_icon = icons.get('rman_graph.png')
+            rman_icon = icons.get_icon('rman_graph')
             col.operator(
                 'shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
             if prefs_utils.get_addon_prefs().rman_do_cycles_convert:
@@ -170,10 +168,8 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
         else:       
             row = layout.row()
             col = row.column()
-            icons = load_icons()
             light_shader = light.renderman.get_light_node_name()
-            rman_light_icon = icons.get("out_PxrRectLight.png")
-            rman_light_icon = icons.get("out_%s.png" % light_shader, rman_light_icon)                    
+            rman_light_icon = icons.get_lightfilter_icon(light_shader)
             col.label(text="%s" % light_shader, icon_value=rman_light_icon.icon_id)
 
 class PRMAN_PT_context_material(_RManPanelHeader, Panel):

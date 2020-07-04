@@ -5,7 +5,7 @@ from ..rman_utils.draw_utils import _draw_ui_from_rman_config
 from ..rman_utils.draw_utils import _draw_props
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from ..rman_render import RmanRender
-from .. icons.icons import load_icons
+from .. icons import icons
 from bpy.types import Panel
 import bpy
 
@@ -19,7 +19,6 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
 
-        icons = load_icons()
         layout = self.layout
         rd = context.scene.render
         rm = context.scene.renderman
@@ -30,18 +29,18 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
 
             # Render
             row = layout.row(align=True)
-            rman_render_icon = icons.get("rman_render.png") 
+            rman_render_icon = icons.get_icon("rman_render") 
             row.operator("render.render", text="Render",
                         icon_value=rman_render_icon.icon_id)
 
             # Batch Render
-            rman_batch = icons.get("rman_batch.png")
+            rman_batch = icons.get_icon("rman_batch")
             row.operator("render.render", text="Render Animation",
                         icon_value=rman_batch.icon_id).animation = True
 
         else:
             row = layout.row(align=True)
-            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
+            rman_rerender_controls = icons.get_icon("rman_ipr_cancel")
             row.operator('lighting.stop_interactive', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)                                          
 
@@ -69,13 +68,12 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         layout.enabled = not is_rman_interactive_running        
 
         # button
-        icons = load_icons()
         col = layout.column()
         row = col.row(align=True)
-        rman_batch = icons.get("rman_batch.png")
+        rman_batch = icons.get_icon("rman_batch")
         row.operator("renderman.external_render",
                      text="External Render", icon_value=rman_batch.icon_id)
-        rman_bake = icons.get("rman_bake.png")                     
+        rman_bake = icons.get_icon("rman_bake")                     
         row.operator("renderman.external_bake",
                      text="External Bake Render", icon_value=rman_bake.icon_id)
 
@@ -172,8 +170,7 @@ class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
         scene = context.scene
         rm = scene.renderman         
         row = layout.row()
-        icons = load_icons()
-        rman_batch = icons.get("rman_bake.png")
+        rman_batch = icons.get_icon("rman_bake")
         row.operator("renderman.bake",
                      text="Bake", icon_value=rman_batch.icon_id)  
 

@@ -1,5 +1,5 @@
 from ..rman_render import RmanRender
-from ..icons.icons import load_icons
+from ..icons import icons
 from .rman_ui_base import _RManPanelHeader
 import bpy
 
@@ -13,7 +13,6 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
     bl_category = "Renderman"
 
     def draw(self, context):
-        icons = load_icons()
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
@@ -33,7 +32,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         if not is_rman_interactive_running:
 
             row = layout.row(align=True)
-            rman_render_icon = icons.get("rman_render.png")
+            rman_render_icon = icons.get_icon("rman_render")
             row.operator("render.render", text="Render",
                         icon_value=rman_render_icon.icon_id)
 
@@ -55,12 +54,12 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 
                 # animation
                 row = box.row(align=True)
-                rman_batch = icons.get("rman_batch.png")
+                rman_batch = icons.get_icon("rman_batch")
                 row.operator("render.render", text="Render Animation",
                             icon_value=rman_batch.icon_id).animation = True
 
             row = layout.row(align=True)
-            rman_batch = icons.get("rman_batch.png")
+            rman_batch = icons.get_icon("rman_batch")
 
             row.operator("renderman.external_render",
                         text="External Render", icon_value=rman_batch.icon_id)
@@ -90,7 +89,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
         else:
             row = layout.row(align=True)
-            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
+            rman_rerender_controls = icons.get_icon("rman_ipr_cancel")
             row.operator('lighting.stop_interactive', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)            
 
@@ -165,9 +164,9 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.separator()
         layout.label(text="Apps:")
         box = layout.box()
-        rman_it = icons.get("rman_it.png")
+        rman_it = icons.get_icon("rman_it")
         box.operator("rman.start_it", icon_value=rman_it.icon_id)  
-        rman_lq = icons.get("rman_localqueue.png")
+        rman_lq = icons.get_icon("rman_localqueue")
         box.operator("rman.start_localqueue", icon_value=rman_lq.icon_id)          
         
         selected_objects = []
@@ -185,12 +184,12 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             box.menu('VIEW3D_MT_RM_Add_bxdf_Menu', text='Add New Material', icon_value=bpy.types.VIEW3D_MT_RM_Add_bxdf_Menu.get_icon_id())                 
 
             # Make Selected Geo Emissive
-            rman_meshlight = icons.get("out_PxrMeshLight.png")
+            rman_meshlight = icons.get_icon("out_PxrMeshLight")
             box.operator("object.rman_create_meshlight", text="Convert to Mesh Light",
                          icon_value=rman_meshlight.icon_id)
 
             # Add Subdiv Sheme
-            rman_subdiv = icons.get("rman_subdiv.png")
+            rman_subdiv = icons.get_icon("rman_subdiv")
             box.operator("object.rman_add_subdiv_scheme",
                          text="Convert to Subdiv", icon_value=rman_subdiv.icon_id)
 
@@ -203,7 +202,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.label(text='Diagnose')
         box = layout.box()
         box.enabled = not is_rman_interactive_running
-        rman_rib = icons.get('rman_rib_small.png')
+        rman_rib = icons.get_icon('rman_rib_small')
         box.operator("rman.open_scene_rib", text='View RIB', icon_value=rman_rib.icon_id)
         if selected_objects:
             box.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)
@@ -212,17 +211,17 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
         layout.separator()
         # RenderMan Doc
-        rman_help = icons.get("rman_help.png")
+        rman_help = icons.get_icon("rman_help")
         layout.operator("wm.url_open", text="RenderMan Docs",
                         icon_value=rman_help.icon_id).url = "https://github.com/prman-pixar/RenderManForBlender/wiki/Documentation-Home"
-        rman_info = icons.get("rman_blender.png")
+        rman_info = icons.get_icon("rman_blender")
         layout.operator("wm.url_open", text="About RenderMan",
                         icon_value=rman_info.icon_id).url = "https://renderman.pixar.com/store/intro"
 
         # Enable the menu item to display the examples menu in the RenderMan
         # Panel.
         layout.separator()
-        rman_beaker = icons.get("rman_beaker.png")
+        rman_beaker = icons.get_icon("rman_beaker")
         layout.menu("PRMAN_MT_LoadExampleSceneMenu", icon_value=rman_beaker.icon_id)    
 
 classes = [

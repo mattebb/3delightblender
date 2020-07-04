@@ -110,7 +110,6 @@ def get_panels():
 
 # icons
 import os
-from . icons.icons import load_icons
 from . util import get_addon_prefs
 
 
@@ -462,13 +461,6 @@ class PRMAN_PT_Renderman_Object_Panel(CollectionPanel, Panel):
 
 
 classes = [
-    #DATA_PT_renderman_display_filters,
-    #DATA_PT_renderman_Sample_filters,
-    #DATA_PT_renderman_node_filters_light,
-
-    #PRMAN_PT_Renderman_Light_Panel,
-    #PRMAN_PT_Renderman_Light_Link_Panel,
-    #PRMAN_PT_Renderman_Object_Panel,
 
     ]
 
@@ -476,24 +468,11 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    #bpy.utils.register_class(RENDERMAN_GROUP_UL_List)
-    #bpy.utils.register_class(RENDERMAN_UL_LIGHT_list)
-    #bpy.utils.register_class(RENDERMAN_UL_OBJECT_list)
-    # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
-    # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
-    #bpy.types.TOPBAR_MT_render.append(PRMan_menu_func)
-
     for panel in get_panels():
         panel.COMPAT_ENGINES.add('PRMAN_RENDER')
 
 
 def unregister():
-    #bpy.utils.unregister_class(RENDERMAN_GROUP_UL_List)
-    #bpy.utils.unregister_class(RENDERMAN_UL_LIGHT_list)
-    #bpy.utils.unregister_class(RENDERMAN_UL_OBJECT_list)
-    # bpy.utils.register_class(RENDERMAN_OUTPUT_list)
-    # bpy.utils.register_class(RENDERMAN_CHANNEL_list)
-    #bpy.types.TOPBAR_MT_render.remove(PRMan_menu_func)
 
     for panel in get_panels():
         panel.COMPAT_ENGINES.remove('PRMAN_RENDER')

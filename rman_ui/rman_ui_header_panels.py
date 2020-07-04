@@ -1,5 +1,5 @@
 from ..rman_render import RmanRender
-from ..icons.icons import load_icons
+from ..icons import icons
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree, find_selected_pattern_node
 import bpy
 
@@ -14,7 +14,6 @@ class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
         layout = self.layout
-        icons = load_icons()
         rman_render = RmanRender.get_rman_render()
         is_rman_interactive_running = rman_render.rman_interactive_running
 
@@ -23,12 +22,12 @@ class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
 
             # Render
             row = layout.row(align=True)
-            rman_render_icon = icons.get("rman_render.png")            
+            rman_render_icon = icons.get_icon("rman_render")            
             row.operator("render.render", text="Render",
                         icon_value=rman_render_icon.icon_id)
         else:
             row = layout.row(align=True)
-            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
+            rman_rerender_controls = icons.get_icon("rman_ipr_cancel")
             row.operator('lighting.stop_interactive', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)      
 
@@ -44,28 +43,26 @@ class NODE_MT_renderman_node_editor_menu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        icons = load_icons()
 
         if not hasattr(context.space_data, 'id'):
             return
 
         if type(context.space_data.id) == bpy.types.Material:
             rman_output_node = is_renderman_nodetree(context.space_data.id)
-            icons = load_icons()
 
             if not rman_output_node:           
-                rman_icon = icons.get('rman_graph.png') 
+                rman_icon = icons.get_icon('rman_graph') 
                 layout.operator(
                     'shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = "node_editor"
             else:
-                rman_icon = icons.get("out_PxrSurface.png")
+                rman_icon = icons.get_icon("out_PxrSurface")
                 layout.operator('nodes.rman_new_bxdf', text='New Bxdf', icon_value=rman_icon.icon_id).idtype = "node_editor"
                 nt = context.space_data.id.node_tree
                 layout.context_pointer_set("nodetree", nt)  
                 layout.context_pointer_set("node", rman_output_node)                  
                 selected_node = find_selected_pattern_node(nt)
                 if selected_node:                     
-                    rman_icon = icons.get('rman_solo_on.png')
+                    rman_icon = icons.get_icon('rman_solo_on')
                     op = layout.operator('node.rman_set_node_solo', text='Solo %s' % selected_node.name, icon_value=rman_icon.icon_id)
                     op.refresh_solo = False
                     op.solo_node_name = selected_node.name           
@@ -97,12 +94,11 @@ class NODE_HT_DrawRenderHeaderNode(bpy.types.Header):
         if not hasattr(context.space_data, 'id'):
             return
 
-        icons = load_icons()
         if type(context.space_data.id) == bpy.types.Material:
             rman_output_node = is_renderman_nodetree(context.space_data.id)            
 
             if not rman_output_node:           
-                rman_icon = icons.get('rman_graph.png') 
+                rman_icon = icons.get_icon('rman_graph') 
                 row.operator(
                     'shading.add_renderman_nodetree', text="", icon_value=rman_icon.icon_id).idtype = "node_editor"
             else:
@@ -112,7 +108,7 @@ class NODE_HT_DrawRenderHeaderNode(bpy.types.Header):
                 selected_node = find_selected_pattern_node(nt)
 
                 if rman_output_node.solo_node_name != '':
-                    rman_icon = icons.get('rman_solo_on.png')
+                    rman_icon = icons.get_icon('rman_solo_on')
                     if selected_node:
                         op = row.operator('node.rman_set_node_solo', text='', icon_value=rman_icon.icon_id, emboss=False)
                         op.refresh_solo = False
@@ -122,7 +118,7 @@ class NODE_HT_DrawRenderHeaderNode(bpy.types.Header):
                     op = row.operator('node.rman_set_node_solo', text='', icon='FILE_REFRESH')
                     op.refresh_solo = True                                           
                 else:
-                    rman_icon = icons.get('rman_solo_off.png')
+                    rman_icon = icons.get_icon('rman_solo_off')
                     if selected_node:
                         op = row.operator('node.rman_set_node_solo', text='', icon_value=rman_icon.icon_id)
                         op.refresh_solo = False
@@ -130,7 +126,7 @@ class NODE_HT_DrawRenderHeaderNode(bpy.types.Header):
 
         elif type(context.space_data.id) == bpy.types.World:
             if not context.space_data.id.renderman.use_renderman_node:
-                rman_icon = icons.get('rman_graph.png') 
+                rman_icon = icons.get_icon('rman_graph') 
                 row.operator(
                     'shading.add_renderman_nodetree', text="", icon_value=rman_icon.icon_id).idtype = "world"                
 
@@ -145,7 +141,6 @@ class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
         layout = self.layout
-        icons = load_icons()
 
         rman_render = RmanRender.get_rman_render()
         is_rman_interactive_running = rman_render.rman_interactive_running
@@ -154,20 +149,19 @@ class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
 
             # Render
             row = layout.row(align=True)
-            rman_render_icon = icons.get("rman_render.png")       
+            rman_render_icon = icons.get_icon("rman_render")       
             row.operator("render.render", text="Render",
                         icon_value=rman_render_icon.icon_id)    
 
         else:
             row = layout.row(align=True)
-            rman_rerender_controls = icons.get("rman_ipr_cancel.png")
+            rman_rerender_controls = icons.get_icon("rman_ipr_cancel")
             row.operator('lighting.stop_interactive', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)  
 
 def rman_add_node_editor_menu(self, context):
     layout = self.layout
-    icons = load_icons()    
-    rman_icon = icons.get("rman_blender.png")    
+    rman_icon = icons.get("rman_blender")    
     layout.menu('NODE_MT_renderman_node_editor_menu', text='RenderMan', icon_value=rman_icon.icon_id)
 
 classes = [

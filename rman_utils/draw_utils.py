@@ -1,7 +1,7 @@
 from . import shadergraph_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from .. import rman_config
-from ..icons.icons import load_icons
+from ..icons import icons
 import bpy
 
 def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
@@ -148,7 +148,6 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
     layout.context_pointer_set("nodetree", nt)
     layout.context_pointer_set("node", output_node)
     layout.context_pointer_set("socket", socket)
-    icons = load_icons()
 
     if input_name not in ['Light', 'LightFilter']:
         split = layout.split(factor=0.35)
@@ -158,11 +157,8 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
         split.context_pointer_set("node", output_node)
         split.context_pointer_set("nodetree", nt)            
         if socket.is_linked:
-            rman_icon = icons.get('out_%s.png' % node.bl_label, None )
-            if rman_icon:
-                split.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
-            else:
-                split.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon='NODE_MATERIAL')
+            rman_icon = icons.get_icon('out_%s' % node.bl_label)            
+            split.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
         else:
             split.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')            
 
@@ -172,7 +168,6 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
 
 def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
-    icons = load_icons()
 
     def indented_label(layout, label, level):
         for i in range(level):
@@ -235,9 +230,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                              icon_only=True, emboss=False)
                     label = prop_meta.get('label', prop_name)
                     
-                    rman_icon = icons.get('out_%s.png' % input_node.bl_label, None )
-                    if not rman_icon:
-                        rman_icon = icons.get('out_unknown.png')                  
+                    rman_icon = icons.get_icon('out_%s' % input_node.bl_label)               
                     row.label(text=label + ' (%s):' % input_node.name)
                     row.context_pointer_set("socket", socket)
                     row.context_pointer_set("node", node)
@@ -316,15 +309,13 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
                                     if socket.is_linked:
                                         input_node = shadergraph_utils.socket_node_input(nt, socket)
-                                        rman_icon = icons.get('out_%s.png' % input_node.bl_label, None )
-                                        if not rman_icon:
-                                            rman_icon = icons.get('out_unknown.png')
+                                        rman_icon = icons.get_icon('out_%s' % input_node.bl_label)
                                         row.label(text='%s[%d] (%s):' % (prop_label, i, input_node.name))    
                                         row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
                                         draw_node_properties_recursive(layout, context, nt, input_node, level=level + 1)
                                     else:
                                         row.label(text='%s[%d]: ' % (prop_label, i))
-                                        rman_icon = icons.get('out_unknown.png')
+                                        rman_icon = icons.get_icon('out_unknown')
                                         row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
                         continue
                     else:
@@ -347,7 +338,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             row.context_pointer_set("socket", socket)
                             row.context_pointer_set("node", node)
                             row.context_pointer_set("nodetree", nt)
-                            rman_icon = icons.get('out_unknown.png')
+                            rman_icon = icons.get_icon('out_unknown')
                             row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
 
 
@@ -365,9 +356,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 indented_label(row, None, level)
 
                 label = input.name                
-                rman_icon = icons.get('out_%s.png' % input_node.bl_label, None )
-                if not rman_icon:
-                    rman_icon = icons.get('out_unknown.png')   
+                rman_icon = icons.get_icon('out_%s' % input_node.bl_label)
                 row.prop(input, "show_expanded", icon=icon, text='',
                          icon_only=True, emboss=False)                                   
                 row.label(text=label + ' (%s):' % input_node.name)

@@ -2,7 +2,6 @@ from bpy.props import EnumProperty, StringProperty, BoolProperty
 from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
 from ..rman_utils.shadergraph_utils import find_node, find_selected_pattern_node
-from ..icons.icons import load_icons
 import bpy
 import os
 

@@ -6,7 +6,7 @@ from ..rman_utils.draw_utils import draw_node_properties_recursive, panel_node_d
 from ..rman_utils import prefs_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from ..rman_render import RmanRender
-from ..icons.icons import load_icons
+from ..icons import icons
 from ..rman_utils import object_utils
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 from bpy.types import Panel
@@ -166,12 +166,11 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
                 if rman_output_node.solo_node_name != '':
                     solo_node = nt.nodes.get(rman_output_node.solo_node_name, None)
                     if solo_node:
-                        icons = load_icons()
 
                         split = layout.split(factor=0.25)
                         split.context_pointer_set("nodetree", nt)  
                         split.context_pointer_set("node", rman_output_node)  
-                        rman_icon = icons.get('rman_solo_on.png')   
+                        rman_icon = icons.get_icon('rman_solo_on')   
                         split.label(text=rman_output_node.solo_node_name , icon_value=rman_icon.icon_id)  
                         
                         split = split.split(factor=0.95)
@@ -203,13 +202,12 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
 
             layout.separator()
         if mat and not is_renderman_nodetree(mat):
-            icons = load_icons()
             rm = mat.renderman
             row = layout.row()
             
             row = layout.row(align=True)
             col = row.column()
-            rman_icon = icons.get('rman_graph.png')
+            rman_icon = icons.get_icon('rman_graph')
             col.operator(
                 'shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
             if prefs_utils.get_addon_prefs().rman_do_cycles_convert:

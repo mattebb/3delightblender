@@ -59,7 +59,7 @@ def load_icons():
 
     return renderman_icon_collections["main"]
 
-def get_icon(name='', dflt='rman_blender'):
+def get_icon(name='', dflt='out_unknown'):
     icons = load_icons()
     dflt_icon = icons.get('%s.png' % dflt)
     return icons.get('%s.png' % name, dflt_icon)
@@ -71,6 +71,21 @@ def get_lightfilter_icon(name=''):
     return get_icon('out_%s' % name, dflt='out_PxrBlockerLightFilter')    
 
 def get_bxdf_icon(name=''):
+    return get_icon('out_%s' % name, dflt='out_unknown')
+
+def get_samplefilter_icon(name=''):
+    return get_icon('out_%s' % name, dflt='out_unknown')    
+
+def get_displayfilter_icon(name=''):
+    return get_icon('out_%s' % name, dflt='out_unknown')    
+
+def get_integrator_icon(name=''):
+    return get_icon('out_%s' % name, dflt='out_PathTracer')    
+
+def get_displacement_icon(name=''):
+    return get_icon('out_%s' % name, dflt='out_PxrDisplace')        
+
+def get_pattern_icon(name=''):
     return get_icon('out_%s' % name, dflt='out_unknown')
 
 def clear_icons():

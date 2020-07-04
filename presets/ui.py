@@ -26,7 +26,7 @@
 from ..rman_utils import prefs_utils
 
 # for panel icon
-from ..icons.icons import load_icons
+from ..icons import icons
 from . import icons as rpb_icons
 
 import bpy
@@ -54,8 +54,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
 
     def draw_header(self, context):
         if prefs_utils.get_addon_prefs().draw_panel_icon:
-            rfb_icons = load_icons()
-            rfb_icon = rfb_icons.get("rman_blender.png")
+            rfb_icon = icons.get_icon("rman_blender")
             self.layout.label(text="", icon_value=rfb_icon.icon_id)
         else:
             pass
@@ -205,7 +204,6 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        icons = load_icons()    
         
         current_presets_category = prefs_utils.get_addon_prefs().presets_current_category
         presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
@@ -259,9 +257,8 @@ def rman_presets_object_menu(self, context):
     if rd.engine != 'PRMAN_RENDER':
         return
 
-    layout = self.layout
-    icons = load_icons()   
-    rman_icon = icons.get("rman_blender.png")    
+    layout = self.layout 
+    rman_icon = icons.get_icon("rman_blender")    
     layout.menu('VIEW3D_MT_renderman_presets_object_context_menu', text="Preset Browser", icon_value=rman_icon.icon_id)     
 
 classes = [

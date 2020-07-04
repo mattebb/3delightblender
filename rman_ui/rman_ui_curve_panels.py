@@ -5,7 +5,6 @@ from ..rman_utils.draw_utils import _draw_ui_from_rman_config
 from ..rman_utils.draw_utils import _draw_props
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from ..rman_render import RmanRender
-from ..icons.icons import load_icons
 from ..rman_utils import object_utils
 from bpy.types import Panel
 import bpy

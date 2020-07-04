@@ -4,7 +4,7 @@ from . import rman_socket_utils
 from .. import rman_render
 from ..rman_utils import string_utils
 from ..rman_utils import shadergraph_utils
-from ..icons.icons import load_icons
+from ..icons import icons
 from bpy.types import Menu
 from bpy.props import EnumProperty, StringProperty, CollectionProperty
 import _cycles
@@ -72,26 +72,20 @@ class RendermanShadingNode(bpy.types.ShaderNode):
     # on connectable props will have the same name
     # node_props = None
     def draw_buttons(self, context, layout):
-        icons = load_icons()
         nt = self.id_data
         out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
         if out_node and self.name == out_node.solo_node_name:
-            rman_icon = icons.get('rman_solo_on.png')
+            rman_icon = icons.get_icon('rman_solo_on')
             layout.label(text='', icon_value=rman_icon.icon_id) 
         else:
-            rman_icon = icons.get('out_%s.png' % self.bl_label, None )
-            if not rman_icon:
-                rman_icon = icons.get('out_unknown.png')
+            rman_icon = icons.get_icon('out_%s' % self.bl_label)
             layout.label(text='', icon_value=rman_icon.icon_id)             
         self.draw_nonconnectable_props(context, layout, self.prop_names)
         if self.bl_idname == "PxrOSLPatternNode":
             layout.operator("node.refresh_osl_shader")
 
     def draw_buttons_ext(self, context, layout):
-        icons = load_icons()
-        rman_icon = icons.get('out_%s.png' % self.bl_label, None )
-        if not rman_icon:
-            rman_icon = icons.get('out_unknown.png')
+        rman_icon = icons.get_icon('out_%s.png' % self.bl_label, None )
         layout.label(text='', icon_value=rman_icon.icon_id)             
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 

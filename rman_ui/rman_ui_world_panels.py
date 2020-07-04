@@ -7,7 +7,7 @@ from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel 
 from ..rman_utils.draw_utils import draw_node_properties_recursive, draw_nodes_properties_ui
 from ..rman_utils.shadergraph_utils import find_node
-from ..icons.icons import load_icons
+from ..icons import icons
 from bpy.types import Panel
 import bpy
 
@@ -27,9 +27,8 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         world = context.scene.world
 
         if not world.renderman.use_renderman_node:
-            icons = load_icons()
             layout.prop(world, 'color')
-            rman_icon = icons.get('rman_graph.png')
+            rman_icon = icons.get_icon('rman_graph')
             layout.operator('shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
         
 class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):
@@ -76,7 +75,6 @@ class DATA_PT_renderman_world_display_filters(ShaderPanel, Panel):
         col = row.column()
         col.enabled = len(output.inputs) > 1
         col.operator('node.remove_displayfilter_node_socket', text='Remove')
-        icons = load_icons()
         for socket in output.inputs:
             layout.label(text=socket.name)
             layout.context_pointer_set("node", output)
@@ -85,11 +83,8 @@ class DATA_PT_renderman_world_display_filters(ShaderPanel, Panel):
             if socket.is_linked:
                 link = socket.links[0]
                 node = link.from_node                 
-                rman_icon = icons.get('out_%s.png' % node.bl_label, None )
-                if rman_icon:
-                    layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
-                else:
-                    layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon='NODE_MATERIAL')
+                rman_icon = icons.get_displayfilter_icon(node.bl_label)
+                layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
                 draw_node_properties_recursive(layout, context, nt, node, level=1)                    
             else:
                 layout.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')         
@@ -121,7 +116,6 @@ class DATA_PT_renderman_world_sample_filters(ShaderPanel, Panel):
         col = row.column()
         col.enabled = len(output.inputs) > 1
         col.operator('node.remove_samplefilter_node_socket', text='Remove')
-        icons = load_icons()
         for socket in (output.inputs):
             layout.label(text=socket.name)
 
@@ -131,11 +125,8 @@ class DATA_PT_renderman_world_sample_filters(ShaderPanel, Panel):
             if socket.is_linked:
                 link = socket.links[0]
                 node = link.from_node                 
-                rman_icon = icons.get('out_%s.png' % node.bl_label, None )
-                if rman_icon:
-                    layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
-                else:
-                    layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon='NODE_MATERIAL')
+                rman_icon = icons.get_samplefilter_icon(node.bl_label)
+                layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
                 draw_node_properties_recursive(layout, context, nt, node, level=1)                    
             else:
                 layout.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')   
