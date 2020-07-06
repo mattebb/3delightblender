@@ -130,7 +130,7 @@ class PRMAN_OT_add_light_to_group(bpy.types.Operator):
         if self.properties.do_scene_selected:
             self.add_scene_selected(context)
         else:
-            self.add_selected(self, context)
+            self.add_selected(context)
 
         return {'FINISHED'}   
 

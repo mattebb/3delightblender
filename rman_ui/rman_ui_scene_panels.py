@@ -67,6 +67,7 @@ class RENDERMAN_UL_LightMixer_Group_Members_List(bpy.types.UIList):
                 layout.prop(light_shader, 'temperature', text='', slider=True)
             else:
                 layout.prop(light_shader, 'lightColor', text='')
+        layout.prop(light_shader, 'intensity', slider=True)
         layout.prop(light_shader, 'exposure', slider=True)                
         if light_rm.solo:
             layout.prop(light_rm, 'solo', text='', icon='OUTLINER_OB_LIGHT', icon_only=True )
