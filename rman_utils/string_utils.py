@@ -124,7 +124,7 @@ def expand_string(string, display=None, glob_sequence=False, frame=None, token_d
     
     if not string or (not '{' in string and not '$' in string):
         # get the real path
-        if asFilePath:
+        if string and asFilePath:
             string = filepath_utils.get_real_path(string)
             dirname = os.path.dirname(string)
             if not os.path.exists(dirname):

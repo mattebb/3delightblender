@@ -170,6 +170,12 @@ class RendermanPreferences(AddonPreferences):
         description="Render all NURBS surfaces as meshes."
     )
 
+    rman_emit_default_params: BoolProperty(
+        name="Emit Default Params",
+        default=False,
+        description="Controls whether or not parameters that are not changed from their defaults should be emitted to RenderMan. Turning this on is only useful for debugging purposes."
+    )
+
     presets_current_category: PointerProperty(
         type=RendermanPresetCategory,
     )
@@ -212,6 +218,16 @@ class RendermanPreferences(AddonPreferences):
             row.alert = True
             row.label(text='Error in RMANTREE. Reload addon to reset.', icon='ERROR')
 
+        # UI Prefs
+        row = layout.row()
+        row.label(text='Behavior', icon_value=rman_r_icon.icon_id)
+        row = layout.row()
+        col = row.column()
+        col.prop(self, 'rman_do_preview_renders')  
+        col.prop(self, 'rman_render_nurbs_as_mesh')
+        col.prop(self, 'rman_do_cycles_convert')     
+        col.prop(self, 'rman_emit_default_params')    
+
         # Workspace
         env = self.env_vars
         row = layout.row()
@@ -226,9 +242,6 @@ class RendermanPreferences(AddonPreferences):
         row.label(text='UI', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
-        col.prop(self, 'rman_do_preview_renders')  
-        col.prop(self, 'rman_render_nurbs_as_mesh')
-        col.prop(self, 'rman_do_cycles_convert')   
         col.prop(self, 'draw_ipr_text')
         col.prop(self, 'draw_panel_icon')
         col.prop(self, 'rman_editor')

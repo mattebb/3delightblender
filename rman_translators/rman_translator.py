@@ -82,7 +82,8 @@ class RmanTranslator(object):
                 is_array = True
                 array_len = meta['arraySize']
             param_type = meta['renderman_type']
-            property_utils.set_rix_param(primvars, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)                
+            dflt = meta.get('renderman_default', None)
+            property_utils.set_rix_param(primvars, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len, dflt=dflt)                
 
         rman_sg_node.sg_node.SetPrimVars(primvars)
 
@@ -114,7 +115,8 @@ class RmanTranslator(object):
                 is_array = True
                 array_len = meta['arraySize']
             param_type = meta['renderman_type']
-            property_utils.set_rix_param(attrs, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len)             
+            dflt = meta.get('renderman_default', None)
+            property_utils.set_rix_param(attrs, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len, dflt=dflt)             
 
         # Add ID
         if name != "":            

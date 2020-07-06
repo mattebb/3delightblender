@@ -2,6 +2,7 @@ from . import texture_utils
 from . import string_utils
 from . import shadergraph_utils
 from . import node_desc
+from . import prefs_utils
 from ..rman_constants import RFB_ARRAYS_MAX_LEN
 from ..rfb_logger import rfb_log
 from collections import OrderedDict
@@ -35,7 +36,8 @@ __GAINS_TO_ENABLE__ = {
 # take an empty string as an item value
 __RMAN_EMPTY_STRING__ = '__empty__'
 
-def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1):
+def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1, dflt=None):
+    prefs = prefs_utils.get_addon_prefs()
     if is_array:
         if is_reference:
             if param_type == 'float':
@@ -45,6 +47,13 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
             elif param_type == 'color':
                 params.SetColorReferenceArray(param_name, val, array_len)
         else:
+            # check if we need to emit this parameter.
+            if dflt != None and not prefs.rman_emit_default_params:       
+                if isinstance(val, list):
+                    dflt = list(dflt)
+                if val == dflt:
+                    return
+
             if param_type == 'float':
                 params.SetFloatArray(param_name, val, array_len)
             elif param_type == 'int':
@@ -72,6 +81,15 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
         elif param_type == "bxdf":
             params.SetBxdfReference(param_name, val)                              
     else:        
+        # check if we need to emit this parameter.
+        if dflt != None and not prefs.rman_emit_default_params:       
+            if isinstance(val, list):
+                dflt = list(dflt)
+            if param_type == 'string' and val == __RMAN_EMPTY_STRING__:
+                val = ""
+            if val == dflt:
+                return
+
         if param_type == "float":
             params.SetFloat(param_name, float(val))
         elif param_type == "int":
@@ -621,6 +639,7 @@ def generate_property(node, sp, update_function=None):
 
     prop_meta['renderman_type'] = renderman_type
     prop_meta['renderman_name'] = renderman_name
+    prop_meta['renderman_default'] = param_default
     prop_meta['label'] = param_label
     prop_meta['type'] = param_type
 
@@ -807,7 +826,6 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                     param_type = meta['renderman_type']
                     param_name = meta['renderman_name']
                     val = None
-                    isArray = False
                     arrayLen = 0
 
                     # if this is a gain on PxrSurface and the lobe isn't
@@ -933,14 +951,12 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
 
                         val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
 
-                    if isArray:
-                        pass
-                    else:
-                        set_rix_param(params, param_type, param_name, val, is_reference=False)
+                    dflt = meta.get('renderman_default', None)
+                    set_rix_param(params, param_type, param_name, val, is_reference=False, dflt=dflt)
                         
     return params      
 
-def set_rixparams(node, rman_sg_node, params, light):
+def set_node_rixparams(node, rman_sg_node, params, light):
     for prop_name, meta in node.prop_meta.items():
         if not hasattr(node, prop_name):
             continue
@@ -1034,7 +1050,7 @@ def set_rixparams(node, rman_sg_node, params, light):
                     else:
                         rman_sg_node.is_frame_sensitive = False  
                                             
-                val = val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
+                val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
                 if meta['widget'] in ['fileinput', 'assetidinput']:
                     options = meta['options']
                     # txmanager doesn't currently deal with ptex
@@ -1053,11 +1069,13 @@ def set_rixparams(node, rman_sg_node, params, light):
                         display = 'texture'
                     val = string_utils.expand_string(val, display='texture', asFilePath=True)      
 
-                set_rix_param(params, type, name, val)      
+                dflt = meta.get('renderman_default', None)
+                set_rix_param(params, type, name, val, dflt=dflt)      
 
             else:
                 val = string_utils.convert_val(prop, type_hint=type)
-                set_rix_param(params, type, name, val)
+                dflt = meta.get('renderman_default', None)
+                set_rix_param(params, type, name, val, dflt=dflt)
 
 def property_group_to_rixparams(node, rman_sg_node, sg_node, light=None, mat_name=None):
 
@@ -1065,7 +1083,7 @@ def property_group_to_rixparams(node, rman_sg_node, sg_node, light=None, mat_nam
     if mat_name:
         set_material_rixparams(node, rman_sg_node, params, mat_name=mat_name)
     else:
-        set_rixparams(node, rman_sg_node, params, light=light)
+        set_node_rixparams(node, rman_sg_node, params, light=light)
 
 
 def portal_inherit_dome_params(portal_node, dome, dome_node, rixparams):

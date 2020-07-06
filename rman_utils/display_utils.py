@@ -289,13 +289,13 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
 
                 param_list = rman_scene.rman.Types.ParamList()
                 dspy_driver_settings = getattr(aov, '%s_settings' % display_driver)
-                property_utils.set_rixparams(dspy_driver_settings, None, param_list, None)                
+                property_utils.set_node_rixparams(dspy_driver_settings, None, param_list, None)                
         elif rman_scene.external_render:
             display_driver = aov.displaydriver
 
             param_list = rman_scene.rman.Types.ParamList()
             dspy_driver_settings = getattr(aov, '%s_settings' % display_driver)
-            property_utils.set_rixparams(dspy_driver_settings, None, param_list, None)             
+            property_utils.set_node_rixparams(dspy_driver_settings, None, param_list, None)             
         elif rm.render_into == 'blender':
             display_driver = 'openexr'
             #param_list = rman_scene.rman.Types.ParamList()

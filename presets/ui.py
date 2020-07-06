@@ -103,8 +103,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
 
                     # This doesn't seem to always work?
                     if prefs_utils.get_addon_prefs().presets_show_large_icons:
-                        #layout.template_icon_view(current, "selected_preset", show_labels=True)
-                        thumb = rfb_icons.get_icon(selected_preset.path)
+                        thumb = rpb_icons.get_icon(selected_preset.path)
                         layout.template_icon(thumb.icon_id, scale=8.0)
 
                     # row of controls for preset

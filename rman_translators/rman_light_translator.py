@@ -159,9 +159,6 @@ class RmanLightTranslator(RmanTranslator):
             rixparams = sg_node.params
             #if group_name:
             #    rixparams.SetString('lightGroup',group_name)
-            if hasattr(light_shader, 'iesProfile'):
-                rixparams.SetString('iesProfile',  bpy.path.abspath(
-                    light_shader.iesProfile) )
 
             # portal params
             if rm.get_light_node_name() == 'PxrPortalLight':
