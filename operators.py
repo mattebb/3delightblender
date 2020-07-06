@@ -31,7 +31,7 @@ import blf
 import webbrowser
 import math
 import addon_utils
-from .icons import icons
+from . import rfb_icons
 from operator import attrgetter, itemgetter
 from bl_operators.presets import AddPresetBase
 
@@ -174,7 +174,7 @@ class PRMAN_MT_PresetsMenu(bpy.types.Menu):
 def menu_draw(self, context):
     if context.scene.render.engine != "PRMAN_RENDER":
         return
-    examples_menu = icons.get_icon("rman_help")
+    examples_menu = rfb_icons.get_icon("rman_help")
     self.layout.menu("PRMAN_MT_examples", icon_value=examples_menu.icon_id)
 
 # Yuck, this should be built in to blender... Yes it should

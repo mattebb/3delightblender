@@ -7,7 +7,7 @@ from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel 
 from ..rman_utils.draw_utils import draw_node_properties_recursive, draw_nodes_properties_ui
 from ..rman_utils.shadergraph_utils import find_node
-from ..icons import icons
+from .. import rfb_icons
 from bpy.types import Panel
 import bpy
 
@@ -28,7 +28,7 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
 
         if not world.renderman.use_renderman_node:
             layout.prop(world, 'color')
-            rman_icon = icons.get_icon('rman_graph')
+            rman_icon = rfb_icons.get_icon('rman_graph')
             layout.operator('shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
         
 class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):

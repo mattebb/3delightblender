@@ -3,7 +3,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
     CollectionProperty, BoolVectorProperty
 from .. import rman_bl_nodes
-from ..icons import icons
+from .. import rfb_icons
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 
 class RendermanPluginSettings(bpy.types.PropertyGroup):

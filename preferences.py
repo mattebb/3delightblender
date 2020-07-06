@@ -32,7 +32,7 @@ from bpy.props import IntProperty, PointerProperty, EnumProperty
 
 from .rman_utils import filepath_utils
 from . import rfb_logger
-from .icons.icons import load_icons
+from . import rfb_icons
 
 from .presets.properties import RendermanPresetCategory
 
@@ -193,8 +193,7 @@ class RendermanPreferences(AddonPreferences):
         self.layout.use_property_decorate = False        
         layout = self.layout
 
-        icons = load_icons()
-        rman_r_icon = icons.get("rman_blender.png")
+        rman_r_icon = rfb_icons.get_icon("rman_blender")
 
         row = layout.row()
         row.use_property_split = False

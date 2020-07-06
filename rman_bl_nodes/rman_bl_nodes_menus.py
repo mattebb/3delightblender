@@ -4,7 +4,7 @@ from ..rman_utils import shadergraph_utils
 from . import rman_socket_utils
 from .. import rman_render
 from .. import rman_bl_nodes
-from ..icons import icons
+from .. import rfb_icons
 from bpy.types import Menu
 from bpy.props import EnumProperty, StringProperty, CollectionProperty
 import _cycles
@@ -239,7 +239,7 @@ class NODE_MT_renderman_connection_menu(Menu):
         socket = context.socket
         if context.socket.is_linked:
             input_node = context.socket.links[0].from_node
-            rman_icon = icons.get_icon(input_node.bl_label)
+            rman_icon = rfb_icons.get_icon(input_node.bl_label)
             layout.label(text=input_node.name, icon_value=rman_icon.icon_id)
             layout.separator()
             layout.context_pointer_set("node", node)
@@ -261,7 +261,7 @@ class NODE_MT_renderman_connection_menu(Menu):
                 out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
                 layout.context_pointer_set("node", out_node)
                 layout.context_pointer_set("nodetree", nt)      
-                rman_icon = icons.get_icon('rman_solo_on')
+                rman_icon = rfb_icons.get_icon('rman_solo_on')
                 op = layout.operator('node.rman_set_node_solo', text='Solo Input Node', icon_value=rman_icon.icon_id)
                 op.refresh_solo = False
                 op.solo_node_name = socket.links[0].from_node.name            

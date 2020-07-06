@@ -6,7 +6,7 @@ from .rman_ui_base import _RManPanelHeader
 from ..txmanager3 import txparams
 from ..rman_utils import texture_utils
 from .. import txmanager3 as txmngr3
-from ..icons import icons
+from .. import rfb_icons
 import os
 import uuid
 
@@ -319,7 +319,7 @@ class PRMAN_PT_Renderman_txmanager_list(_RManPanelHeader, Panel):
         scene = context.scene
 
         row = layout.row()
-        rman_icon = icons.get_icon('rman_txmanager')        
+        rman_icon = rfb_icons.get_icon('rman_txmanager')        
         row.operator('rman_txmgr_list.open_txmanager', text='Open TxManager', icon_value=rman_icon.icon_id)
 
 class PRMAN_OT_Renderman_open_txmanager(Operator):

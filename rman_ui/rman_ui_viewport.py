@@ -2,7 +2,7 @@ import bpy
 from bpy.props import EnumProperty, StringProperty, IntProperty, FloatProperty
 from ..rman_render import RmanRender
 from .. import rman_bl_nodes
-from ..icons import icons
+from .. import rfb_icons
 from bpy.types import Menu
 
 __HIDDEN_INTEGRATORS__ = ['PxrValidateBxdf', 'PxrDebugShadingContext']
@@ -126,25 +126,25 @@ def draw_rman_viewport_props(self, context):
         view = context.space_data
         rman_render = RmanRender.get_rman_render()
         if view.shading.type == 'RENDERED':
-            rman_rerender_controls = icons.get_icon("rman_ipr_cancel")
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
             layout.operator('lighting.stop_interactive', text="",
                             icon_value=rman_rerender_controls.icon_id)  
 
             # integrators menu
-            rman_icon = icons.get_icon('rman_vp_viz')
+            rman_icon = rfb_icons.get_icon('rman_vp_viz')
             layout.menu('PRMAN_MT_Viewport_Integrator_Menu', text='', icon_value=rman_icon.icon_id)
             # decidither
             layout.menu('PRMAN_MT_Viewport_Refinement_Menu', text='', icon='IMPORT')
             # resolution mult
             if rman_render.rman_is_viewport_rendering:
-                rman_icon = icons.get_icon('rman_vp_resolution')
+                rman_icon = rfb_icons.get_icon('rman_vp_resolution')
                 layout.menu('PRMAN_MT_Viewport_Res_Mult_Menu', text='', icon_value=rman_icon.icon_id)
             
         else:
             # stop rendering if we're not in viewport rendering
             if rman_render.rman_interactive_running:
                 rman_render.stop_render()              
-            rman_rerender_controls = icons.get_icon("rman_ipr_on")
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_on")
             layout.operator('lighting.start_interactive', text="",
                             icon_value=rman_rerender_controls.icon_id)               
 

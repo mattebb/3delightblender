@@ -1,5 +1,5 @@
 from .. import rman_bl_nodes
-from ..icons.icons import get_bxdf_icon, get_light_icon, get_lightfilter_icon
+from ..rfb_icons import get_bxdf_icon, get_light_icon, get_lightfilter_icon
 
 def get_bxdf_items():
  

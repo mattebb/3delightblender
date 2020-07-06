@@ -5,7 +5,7 @@ from ..rman_utils.draw_utils import _draw_ui_from_rman_config
 from ..rman_utils.draw_utils import _draw_props
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from ..rman_render import RmanRender
-from .. icons import icons
+from .. import rfb_icons
 from bpy.types import Panel
 import bpy
 
@@ -29,18 +29,18 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
 
             # Render
             row = layout.row(align=True)
-            rman_render_icon = icons.get_icon("rman_render") 
+            rman_render_icon = rfb_icons.get_icon("rman_render") 
             row.operator("render.render", text="Render",
                         icon_value=rman_render_icon.icon_id)
 
             # Batch Render
-            rman_batch = icons.get_icon("rman_batch")
+            rman_batch = rfb_icons.get_icon("rman_batch")
             row.operator("render.render", text="Render Animation",
                         icon_value=rman_batch.icon_id).animation = True
 
         else:
             row = layout.row(align=True)
-            rman_rerender_controls = icons.get_icon("rman_ipr_cancel")
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
             row.operator('lighting.stop_interactive', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)                                          
 
@@ -70,10 +70,10 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         # button
         col = layout.column()
         row = col.row(align=True)
-        rman_batch = icons.get_icon("rman_batch")
+        rman_batch = rfb_icons.get_icon("rman_batch")
         row.operator("renderman.external_render",
                      text="External Render", icon_value=rman_batch.icon_id)
-        rman_bake = icons.get_icon("rman_bake")                     
+        rman_bake = rfb_icons.get_icon("rman_bake")                     
         row.operator("renderman.external_bake",
                      text="External Bake Render", icon_value=rman_bake.icon_id)
 
@@ -170,7 +170,7 @@ class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
         scene = context.scene
         rm = scene.renderman         
         row = layout.row()
-        rman_batch = icons.get_icon("rman_bake")
+        rman_batch = rfb_icons.get_icon("rman_bake")
         row.operator("renderman.bake",
                      text="Bake", icon_value=rman_batch.icon_id)  
 

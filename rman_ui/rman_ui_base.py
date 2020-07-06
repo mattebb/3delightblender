@@ -1,4 +1,4 @@
-from ..icons import icons
+from .. import rfb_icons
 from ..rman_utils import prefs_utils                    
 
 # ------- Subclassed Panel Types -------
@@ -11,7 +11,7 @@ class _RManPanelHeader():
 
     def draw_header(self, context):
         if prefs_utils.get_addon_prefs().draw_panel_icon:
-            rfb_icon = icons.get_icon("rman_blender")
+            rfb_icon = rfb_icons.get_icon("rman_blender")
             self.layout.label(text="", icon_value=rfb_icon.icon_id)
         else:
             pass

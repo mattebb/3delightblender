@@ -26,7 +26,7 @@
 from ..rman_utils import prefs_utils
 
 # for panel icon
-from ..icons import icons
+from .. import rfb_icons
 from . import icons as rpb_icons
 
 import bpy
@@ -54,7 +54,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
 
     def draw_header(self, context):
         if prefs_utils.get_addon_prefs().draw_panel_icon:
-            rfb_icon = icons.get_icon("rman_blender")
+            rfb_icon = rfb_icons.get_icon("rman_blender")
             self.layout.label(text="", icon_value=rfb_icon.icon_id)
         else:
             pass
@@ -104,7 +104,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
                     # This doesn't seem to always work?
                     if prefs_utils.get_addon_prefs().presets_show_large_icons:
                         #layout.template_icon_view(current, "selected_preset", show_labels=True)
-                        thumb = icons.get_icon(selected_preset.path)
+                        thumb = rfb_icons.get_icon(selected_preset.path)
                         layout.template_icon(thumb.icon_id, scale=8.0)
 
                     # row of controls for preset
@@ -258,7 +258,7 @@ def rman_presets_object_menu(self, context):
         return
 
     layout = self.layout 
-    rman_icon = icons.get_icon("rman_blender")    
+    rman_icon = rfb_icons.get_icon("rman_blender")    
     layout.menu('VIEW3D_MT_renderman_presets_object_context_menu', text="Preset Browser", icon_value=rman_icon.icon_id)     
 
 classes = [

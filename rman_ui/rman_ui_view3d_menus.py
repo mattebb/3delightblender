@@ -1,4 +1,4 @@
-from ..icons.icons import get_icon
+from .. import rfb_icons
 from ..rman_render import RmanRender
 from .. import rman_bl_nodes
 from ..rman_operators.rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
@@ -16,7 +16,7 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
 
     @classmethod
     def get_icon_id(cls):
-        return get_icon("rman_blender").icon_id          
+        return rfb_icons.get_icon("rman_blender").icon_id          
 
     def draw(self, context):
         layout = self.layout
@@ -33,7 +33,7 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         layout.menu('VIEW3D_MT_renderman_add_object_volumes_menu', icon_value=bpy.types.VIEW3D_MT_renderman_add_object_volumes_menu.get_icon_id())
         layout.separator()        
      
-        rman_icon = get_icon("rman_CreateArchive")
+        rman_icon = rfb_icons.get_icon("rman_CreateArchive")
         op = layout.operator('object.rman_add_rman_geo', text='RIB Archive', icon_value=rman_icon.icon_id)
         op.rman_prim_type = 'DELAYED_LOAD_ARCHIVE'
         op.rman_default_name = 'RIB_Archive'    
@@ -65,18 +65,18 @@ class VIEW3D_MT_renderman_add_object_volumes_menu(Menu):
 
     @classmethod
     def get_icon_id(cls):
-        return get_icon("out_PxrVolume").icon_id                    
+        return rfb_icons.get_icon("out_PxrVolume").icon_id                    
 
     def draw(self, context):
         layout = self.layout
-        rman_icon = get_icon('rman_openvdb')
+        rman_icon = rfb_icons.get_icon('rman_openvdb')
         op = layout.operator('object.rman_add_rman_geo', text='Import OpenVDB', icon_value=rman_icon.icon_id)
         op.rman_prim_type = ''
         op.bl_prim_type = 'VOLUME'
         op.rman_default_name = 'OpenVDB'    
         op.rman_open_filebrowser = True 
 
-        rman_icon = get_icon('out_PxrVolume')
+        rman_icon = rfb_icons.get_icon('out_PxrVolume')
         op = layout.operator('object.rman_add_rman_geo', text='Volume Box', icon_value=rman_icon.icon_id)
         op.rman_prim_type = 'RI_VOLUME'
         op.rman_default_name = 'RiVolume'                         
@@ -124,7 +124,7 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
 
     @classmethod
     def get_icon_id(cls):
-        return get_icon("rman_blender").icon_id             
+        return rfb_icons.get_icon("rman_blender").icon_id             
 
     def draw(self, context):
         layout = self.layout
@@ -149,12 +149,12 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
             layout.menu('VIEW3D_MT_RM_Add_bxdf_Menu', text='Add New Material', icon_value=bpy.types.VIEW3D_MT_RM_Add_bxdf_Menu.get_icon_id())           
 
             # Make Selected Geo Emissive
-            rman_meshlight = get_icon("out_PxrMeshLight")
+            rman_meshlight = rfb_icons.get_icon("out_PxrMeshLight")
             layout.operator("object.rman_create_meshlight", text="Convert to Mesh Light",
                             icon_value=rman_meshlight.icon_id)
 
             # Add Subdiv Sheme
-            rman_subdiv = get_icon("rman_subdiv")
+            rman_subdiv = rfb_icons.get_icon("rman_subdiv")
             layout.operator("object.rman_add_subdiv_scheme",
                             text="Convert to Subdiv", icon_value=rman_subdiv.icon_id)
 
@@ -166,7 +166,7 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         column = layout.column()
         column.enabled = not is_rman_interactive_running
         row = column.row()
-        rman_rib = get_icon('rman_rib_small')
+        rman_rib = rfb_icons.get_icon('rman_rib_small')
         row.operator("rman.open_scene_rib", text='View RIB', icon_value=rman_rib.icon_id)
         if selected_objects:
             row = column.row()
@@ -193,12 +193,12 @@ class VIEW3D_MT_RM_Add_Export_Menu(bpy.types.Menu):
 
     @classmethod
     def get_icon_id(cls):  
-        return get_icon("rman_CreateArchive").icon_id
+        return rfb_icons.get_icon("rman_CreateArchive").icon_id
 
     def draw(self, context):
         layout = self.layout
 
-        rman_archive = get_icon("rman_CreateArchive")
+        rman_archive = rfb_icons.get_icon("rman_CreateArchive")
         layout.operator("export.export_rib_archive",
                         icon_value=rman_archive.icon_id)  
         layout.operator("renderman.bake_selected_brickmap", text="Bake Object to Brickmap")      
@@ -287,7 +287,7 @@ class VIEW3D_MT_RM_Add_Light_Menu(bpy.types.Menu):
 
     @classmethod
     def get_icon_id(cls): 
-        return get_icon("rman_arealight").icon_id        
+        return rfb_icons.get_icon("rman_arealight").icon_id        
 
     def draw(self, context):
         layout = self.layout
@@ -307,7 +307,7 @@ class VIEW3D_MT_RM_Add_LightFilter_Menu(bpy.types.Menu):
 
     @classmethod
     def get_icon_id(cls):  
-        return get_icon("rman_lightfilter").icon_id             
+        return rfb_icons.get_icon("rman_lightfilter").icon_id             
 
     def draw(self, context):
         layout = self.layout
@@ -327,7 +327,7 @@ class VIEW3D_MT_RM_Add_bxdf_Menu(bpy.types.Menu):
 
     @classmethod
     def get_icon_id(cls):
-        return get_icon("out_PxrSurface").icon_id              
+        return rfb_icons.get_icon("out_PxrSurface").icon_id              
 
     def draw(self, context):
         layout = self.layout

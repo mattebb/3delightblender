@@ -8,7 +8,7 @@ from ..rman_utils.draw_utils import _draw_props
 from ..rman_utils.draw_utils import _draw_ui_from_rman_config  
 from ..rman_utils import scene_utils
 from ..rman_render import RmanRender       
-from ..icons.icons import get_light_icon 
+from .. import rfb_icons
 from ..rman_operators.rman_operators_collections import return_empty_list     
 from bpy.types import Panel
 import bpy
@@ -23,7 +23,7 @@ class RENDERMAN_UL_LightLink_Light_List(bpy.types.UIList):
         op.group_index = index
         light = item.light_ob
         light_shader = light.renderman.get_light_node()        
-        icon = get_light_icon(light_shader.bl_label)        
+        icon = rfb_icons.get_light_icon(light_shader.bl_label)        
         layout.label(text=label, icon_value=icon.icon_id) 
 
 class RENDERMAN_UL_LightLink_Object_List(bpy.types.UIList):
@@ -51,7 +51,7 @@ class RENDERMAN_UL_LightMixer_Group_Members_List(bpy.types.UIList):
         rm = context.scene.renderman
         light = item.light_ob
         light_shader = light.renderman.get_light_node()        
-        icon = get_light_icon(light_shader.bl_label)
+        icon = rfb_icons.get_light_icon(light_shader.bl_label)
 
         op = layout.operator('renderman.remove_light_from_group', text='', icon='REMOVE')
         op.group_index = rm.light_mixer_groups_index

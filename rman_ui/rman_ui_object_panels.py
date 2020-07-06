@@ -6,7 +6,7 @@ from ..rman_utils.draw_utils import draw_node_properties_recursive, panel_node_d
 from ..rman_utils import prefs_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from ..rman_render import RmanRender
-from ..icons import icons
+from .. import rfb_icons
 from ..rman_utils import object_utils
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 from bpy.types import Panel
@@ -170,7 +170,7 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
                         split = layout.split(factor=0.25)
                         split.context_pointer_set("nodetree", nt)  
                         split.context_pointer_set("node", rman_output_node)  
-                        rman_icon = icons.get_icon('rman_solo_on')   
+                        rman_icon = rfb_icons.get_icon('rman_solo_on')   
                         split.label(text=rman_output_node.solo_node_name , icon_value=rman_icon.icon_id)  
                         
                         split = split.split(factor=0.95)
@@ -207,7 +207,7 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
             
             row = layout.row(align=True)
             col = row.column()
-            rman_icon = icons.get_icon('rman_graph')
+            rman_icon = rfb_icons.get_icon('rman_graph')
             col.operator(
                 'shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
             if prefs_utils.get_addon_prefs().rman_do_cycles_convert:
