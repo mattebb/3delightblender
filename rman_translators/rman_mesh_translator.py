@@ -141,8 +141,7 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
             is_array = True
             array_len = meta['arraySize']
         param_type = meta['renderman_type']
-        dflt = meta.get('renderman_default', None)
-        property_utils.set_rix_param(rixparams, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len, dflt=dflt)
+        property_utils.set_rix_param(rixparams, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len, node=rm)
 
 class RmanMeshTranslator(RmanTranslator):
 

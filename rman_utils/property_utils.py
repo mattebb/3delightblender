@@ -36,7 +36,33 @@ __GAINS_TO_ENABLE__ = {
 # take an empty string as an item value
 __RMAN_EMPTY_STRING__ = '__empty__'
 
-def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1, dflt=None):
+def get_property_default(node, prop_name):
+    prop = node.bl_rna.properties.get(prop_name, None)
+    dflt = None
+    if prop:
+        if getattr(prop, 'default_array', None):
+            dflt = [p for p in prop.default_array]
+        else:
+            dflt = prop.default
+            
+    return dflt
+
+def set_rix_param(params, param_type, param_name, val, is_reference=False, is_array=False, array_len=-1, node=None):
+    """Sets a single parameter in an RtParamList
+
+    Arguments:
+        params (RtParamList) - param list to set
+        param_type (str) - rman param type
+        param_name (str) - rman param name
+        val (AnyType) - the value to write to the RtParamList
+        is_reference (bool) - whether this is reference parameter
+        is_array (bool) - whether we are writing an array param type
+        array_len (int) - length of array
+        node (AnyType) - the Blender object that this param originally came from. This is necessary
+                        so we can grab and compare val with the default value (see get_property_default)
+    """
+
+
     if is_reference:
         if is_array:
             if param_type == 'float':
@@ -64,13 +90,25 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
                 params.SetBxdfReference(param_name, val)       
     else:
         # check if we need to emit this parameter.
-        if dflt != None and not prefs_utils.get_pref_val('rman_emit_default_params'):
-            if isinstance(val, list):
-                dflt = list(dflt)
-            if param_type == 'string' and val == __RMAN_EMPTY_STRING__:
-                val = ""
-            if val == dflt:
-                return                  
+        if node != None and not prefs_utils.get_pref_val('rman_emit_default_params'):
+            dflt = get_property_default(node, param_name)
+            if dflt != None:
+                if isinstance(val, list):
+                    dflt = list(dflt)
+
+                if not is_array:
+                    # these explicit conversions are necessary because of EnumProperties
+                    if param_type == 'string' and val == __RMAN_EMPTY_STRING__:
+                        val = ""
+                    elif param_type == 'int':
+                        val = int(val)
+                        dflt = int(dflt)
+                    elif param_type == 'float':
+                        val = float(val)
+                        dflt = float(val)
+
+                if val == dflt:
+                    return                  
 
         if is_array:
             if param_type == 'float':
@@ -631,7 +669,6 @@ def generate_property(node, sp, update_function=None):
 
     prop_meta['renderman_type'] = renderman_type
     prop_meta['renderman_name'] = renderman_name
-    prop_meta['renderman_default'] = param_default
     prop_meta['label'] = param_label
     prop_meta['type'] = param_type
 
@@ -943,8 +980,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
 
                         val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
 
-                    dflt = meta.get('renderman_default', None)
-                    set_rix_param(params, param_type, param_name, val, is_reference=False, dflt=dflt)
+                    set_rix_param(params, param_type, param_name, val, is_reference=False, node=node)
                         
     return params      
 
@@ -1061,13 +1097,11 @@ def set_node_rixparams(node, rman_sg_node, params, light):
                         display = 'texture'
                     val = string_utils.expand_string(val, display='texture', asFilePath=True)      
 
-                dflt = meta.get('renderman_default', None)
-                set_rix_param(params, type, name, val, dflt=dflt)      
+                set_rix_param(params, type, name, val, node=node)      
 
             else:
                 val = string_utils.convert_val(prop, type_hint=type)
-                dflt = meta.get('renderman_default', None)
-                set_rix_param(params, type, name, val, dflt=dflt)
+                set_rix_param(params, type, name, val, node=node)
 
 def property_group_to_rixparams(node, rman_sg_node, sg_node, light=None, mat_name=None):
 
