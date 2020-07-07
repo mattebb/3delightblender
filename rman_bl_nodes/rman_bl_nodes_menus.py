@@ -79,28 +79,28 @@ class NODE_MT_renderman_connection_menu(Menu):
             for n in rman_bl_nodes.__RMAN_DISPLACE_NODES__:
                 layout.context_pointer_set("node", node)
                 layout.context_pointer_set("nodetree", nt)
-                rman_icon = icons.get_displacement_icon(n.name)
+                rman_icon = rfb_icons.get_displacement_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
                 op.node_name = '%sDisplaceNode' % n.name     
         elif renderman_type == 'integrator':    
             for n in rman_bl_nodes.__RMAN_INTEGRATOR_NODES__:
                 layout.context_pointer_set("node", node)
                 layout.context_pointer_set("nodetree", nt)
-                rman_icon = icons.get_integrator_icon(n.name)
+                rman_icon = rfb_icons.get_integrator_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
                 op.node_name = '%sIntegratorNode' % n.name    
         elif 'samplefilter' in renderman_type:    
             for n in rman_bl_nodes.__RMAN_SAMPLEFILTER_NODES__:
                 layout.context_pointer_set("node", node)
                 layout.context_pointer_set("nodetree", nt)
-                rman_icon = icons.get_samplefilter_icon(n.name)
+                rman_icon = rfb_icons.get_samplefilter_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
                 op.node_name = '%sSamplefilterNode' % n.name 
         elif 'displayfilter' in renderman_type:    
             for n in rman_bl_nodes.__RMAN_DISPLAYFILTER_NODES__:
                 layout.context_pointer_set("node", node)
                 layout.context_pointer_set("nodetree", nt)
-                rman_icon = icons.get_displayfilter_icon(n.name)
+                rman_icon = rfb_icons.get_displayfilter_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
                 op.node_name = '%sDisplayfilterNode' % n.name                                                                              
         elif renderman_type == 'bxdf':    
@@ -145,7 +145,7 @@ class NODE_MT_renderman_connection_menu(Menu):
                     if vstruct:
                         layout.context_pointer_set("node", node)
                         layout.context_pointer_set("nodetree", nt)
-                        rman_icon = icons.get_pattern_icon(n.name)
+                        rman_icon = rfb_icons.get_pattern_icon(n.name)
                         op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
                         op.node_name = '%sPatternNode' % n.name
                         if n.path.endswith('.oso'):
@@ -292,7 +292,7 @@ def register_renderman_bxdf_node_submenus():
             if bxdf_cat != self.bl_label:
                 continue        
             for n in bxdfs[1]:
-                rman_icon = icons.get_bxdf_icon(n.name)
+                rman_icon = rfb_icons.get_bxdf_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
                 op.node_name = '%sBxdfNode' % n.name                     
 
@@ -336,7 +336,7 @@ def register_renderman_pattern_node_submenus():
                     if vstruct:               
                         break
                     if renderman_type == 'pattern' or node_desc_param.type == renderman_type:
-                        rman_icon = icons.get_pattern_icon(n.name)
+                        rman_icon = rfb_icons.get_pattern_icon(n.name)
                         label = n.name
                         if n.path.endswith('.oso'):
                             label = '%s.oso' % label
