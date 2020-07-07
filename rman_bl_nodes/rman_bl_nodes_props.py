@@ -122,12 +122,12 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
     def get_rman_light_shaders(self, context):
         items = []
         i = 0
-        rman_light_icon = icons.get_light_icon("PxrRectLight")
+        rman_light_icon = rfb_icons.get_light_icon("PxrRectLight")
         items.append(('PxrRectLight', 'PxrRectLight', '', rman_light_icon.icon_id, i))
         for n in rman_bl_nodes.__RMAN_LIGHT_NODES__:
             if n.name != 'PxrRectLight':
                 i += 1
-                light_icon = icons.get_light_icon(n.name)
+                light_icon = rfb_icons.get_light_icon(n.name)
                 items.append( (n.name, n.name, '', light_icon.icon_id, i))
         return items
 
@@ -149,12 +149,12 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
     def get_rman_light_filter_shaders(self, context):
         items = []
         i = 0
-        rman_light_icon = icons.get_lightfilter_icon("_PxrBlockerLightFilter")
+        rman_light_icon = rfb_icons.get_lightfilter_icon("_PxrBlockerLightFilter")
         items.append(('PxrBlockerLightFilter', 'PxrBlockerLightFilter', '', rman_light_icon.icon_id, i))
         for n in rman_bl_nodes.__RMAN_LIGHTFILTER_NODES__:
             if n.name != 'PxrBlockerLightFilter':
                 i += 1
-                light_icon = icons.get_lightfilter_icon(n.name)
+                light_icon = icrfb_iconsons.get_lightfilter_icon(n.name)
                 items.append( (n.name, n.name, '', light_icon.icon_id, i))
         return items        
 
