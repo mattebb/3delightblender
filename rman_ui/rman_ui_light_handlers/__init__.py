@@ -417,6 +417,12 @@ _SHADER_ = None
 if not bpy.app.background:
     _SHADER_ = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
 
+def set_selection_color(ob):
+    if ob in bpy.context.selected_objects:
+        _SHADER_.uniform_float("color", (1,1,1,1))
+    else:
+        _SHADER_.uniform_float("color", (0,0,0,1))
+
 def _get_indices(l):
     indices = []
     for i in range(0, len(l)):
@@ -522,8 +528,7 @@ def make_sphere(m):
 def draw_rect_light(ob):
     _SHADER_.bind()
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     m = Matrix(ob.matrix_world)        
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
@@ -564,8 +569,7 @@ def draw_sphere_light(ob):
     
     _SHADER_.bind()
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     m = Matrix(ob.matrix_world)        
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
@@ -601,8 +605,7 @@ def draw_envday_light(ob):
 
     _SHADER_.bind()
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     loc, rot, sca = Matrix(ob.matrix_world).decompose()
     axis,angle = rot.to_axis_angle()
@@ -747,8 +750,7 @@ def draw_disk_light(ob):
 
     _SHADER_.bind()
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     m = Matrix(ob.matrix_world)        
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
@@ -790,8 +792,7 @@ def draw_dist_light(ob):
 
     _SHADER_.bind()
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     m = Matrix(ob.matrix_world)        
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')  
@@ -847,8 +848,7 @@ def draw_dist_light(ob):
 def draw_portal_light(ob):
     _SHADER_.bind()
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     m = Matrix(ob.matrix_world)        
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
@@ -885,8 +885,7 @@ def draw_dome_light(ob):
     
     _SHADER_.bind()
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     loc, rot, sca = Matrix(ob.matrix_world).decompose()
     axis,angle = rot.to_axis_angle()
@@ -908,8 +907,7 @@ def draw_cylinder_light(ob):
 
     _SHADER_.bind()
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     m = Matrix(ob.matrix_world)
 
@@ -1012,8 +1010,7 @@ def draw_rod(leftEdge, rightEdge, topEdge,  bottomEdge,
 def draw_rod_light_filter(ob):
     _SHADER_.bind()
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     m = Matrix(ob.matrix_world)     
     m = m @ Matrix.Rotation(math.radians(90.0), 4, 'X')
@@ -1096,8 +1093,7 @@ def draw_rod_light_filter(ob):
 def draw_ramp_light_filter(ob):
     _SHADER_.bind()
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     light = ob.data
     rm = light.renderman.get_light_node()
@@ -1110,8 +1106,7 @@ def draw_ramp_light_filter(ob):
     if rampType in (0,2):
         _SHADER_.bind()
 
-        if ob in bpy.context.selected_objects:
-            _SHADER_.uniform_float("color", (1,1,1,1))
+        set_selection_color(ob)
 
         m = Matrix(ob.matrix_world)        
         m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
@@ -1210,8 +1205,7 @@ def draw_ramp_light_filter(ob):
     elif rampType == 3:
         _SHADER_.bind()
 
-        if ob in bpy.context.selected_objects:
-            _SHADER_.uniform_float("color", (1,1,1,1))
+        set_selection_color(ob)
 
         m = Matrix(ob.matrix_world)        
         m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
@@ -1251,8 +1245,7 @@ def draw_barn_light_filter(ob):
     m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
     #m = m @ Matrix.Rotation(math.radians(90.0), 4, 'Z')
 
-    if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+    set_selection_color(ob)
 
     if not _BARN_LIGHT_DRAW_HELPER_:
         _BARN_LIGHT_DRAW_HELPER_ = BarnLightFilterDrawHelper()
