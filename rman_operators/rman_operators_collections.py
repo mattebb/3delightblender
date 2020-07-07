@@ -4,9 +4,9 @@ from ..rfb_logger import rfb_log
 
 import bpy
 
-def return_empty_list():
+def return_empty_list(label=''):
     items = []
-    items.append(('0', '', '', '', 0))
+    items.append(('0', label, '', '', 0))
     return items  
 
 class COLLECTION_OT_add_remove(bpy.types.Operator):
@@ -100,6 +100,10 @@ class PRMAN_OT_add_light_to_group(bpy.types.Operator):
             ob_in_group = object_group.members.add()
             ob_in_group.name = ob.name
             ob_in_group.light_ob = ob.data       
+
+            op = getattr(context, 'op_ptr')
+            if op:
+                op.selected_light_name = '0'              
             
     def add_scene_selected(self, context):
         scene = context.scene
@@ -189,6 +193,9 @@ class PRMAN_OT_add_to_group(bpy.types.Operator):
             ob_in_group = object_group.members.add()
             ob_in_group.name = ob.name
             ob_in_group.ob_pointer = ob    
+            op = getattr(context, 'op_ptr')
+            if op:
+                op.selected_obj_name = '0'             
             ob.update_tag(refresh={'OBJECT'})    
 
     def add_scene_selected(self, context):
@@ -247,7 +254,7 @@ class PRMAN_OT_remove_from_group(bpy.types.Operator):
 
 class PRMAN_OT_add_light_link_object(bpy.types.Operator):
     bl_idname = 'renderman.add_light_link_object'
-    bl_label = 'Add Selected Object from Light Link'
+    bl_label = 'Add Selected Object to Light Link'
 
     def obj_list_items(self, context):
         scene = context.scene
@@ -307,6 +314,10 @@ class PRMAN_OT_add_light_link_object(bpy.types.Operator):
                     subset.name = ll.light_ob.name
                     subset.light_ob = ll.light_ob
                     ob.update_tag(refresh={'OBJECT'})
+
+            op = getattr(context, 'op_ptr')
+            if op:
+                op.selected_obj_name = '0'                    
 
         return {'FINISHED'}
 
@@ -380,6 +391,10 @@ class PRMAN_OT_add_light_link(bpy.types.Operator):
             ll = scene.renderman.light_links.add()
             ll.name = light_ob.name
             ll.light_ob = light_ob.data     
+            
+            op = getattr(context, 'op_ptr')
+            if op:
+                op.selected_light_name = '0'
             
     def add_scene_selected(self, context):
         scene = context.scene
