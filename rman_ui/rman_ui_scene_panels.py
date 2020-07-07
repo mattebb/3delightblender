@@ -26,6 +26,10 @@ class RENDERMAN_UL_LightLink_Light_List(bpy.types.UIList):
         icon = rfb_icons.get_light_icon(light_shader.bl_label)        
         layout.label(text=label, icon_value=icon.icon_id) 
 
+        bpy.context.view_layer.objects.active.select_set(False)
+        light.select_set(True)
+        bpy.context.view_layer.objects.active = light        
+
 class RENDERMAN_UL_LightLink_Object_List(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
@@ -68,12 +72,15 @@ class RENDERMAN_UL_LightMixer_Group_Members_List(bpy.types.UIList):
             else:
                 layout.prop(light_shader, 'lightColor', text='')
         layout.prop(light_shader, 'intensity', slider=True)
-        layout.prop(light_shader, 'exposure', slider=True)                
+        layout.prop(light_shader, 'exposure', slider=True)        
+        solo_icon = 'LIGHT'        
         if light_rm.solo:
-            layout.prop(light_rm, 'solo', text='', icon='OUTLINER_OB_LIGHT', icon_only=True )
-        else:
-                layout.prop(light_rm, 'solo', text='', icon='LIGHT', icon_only=True )
-        layout.prop(light_rm, 'mute', text='', icon='CANCEL', icon_only=True)
+            solo_icon = 'OUTLINER_OB_LIGHT'
+        layout.prop(light_rm, 'solo', text='', icon=solo_icon, icon_only=True, emboss=False )
+        mute_icon = 'HIDE_OFF'
+        if light_rm.mute:
+            mute_icon = 'HIDE_ON'
+        layout.prop(light_rm, 'mute', text='', icon=mute_icon, icon_only=True, emboss=False)
 
 class RENDER_PT_Renderman_Workspace(PRManButtonsPanel, Panel):
     bl_label = "Workspace"
