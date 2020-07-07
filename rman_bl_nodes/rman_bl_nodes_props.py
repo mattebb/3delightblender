@@ -95,29 +95,11 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
     )    
 
     def renderman_light_shader_update(self, context):
-        light = self.id_data        
-        light_shader = self.get_light_node_name()
-
-        # update the Blender native light type
-        if light_shader in ['PxrDomeLight', 'PxrEnvDayLight']:
-            light.type = 'POINT'
-        elif light_shader == 'PxrDistantLight':
-            light.type = 'SUN'
-        elif light_shader == 'PxrSphereLight':
-            light.type = 'AREA'
-            light.shape = 'ELLIPSE'
-            light.size = 1.0
-            light.size_y = 1.0
-        elif light_shader == 'PxrDiskLight':
-            light.type = 'AREA'
-            light.shape = 'DISK'
-            light.size = 1.0
-            light.size_y = 1.0      
-        else:
-            light.type = 'AREA'
-            light.shape = 'RECTANGLE'
-            light.size = 1.0
-            light.size_y = 1.0              
+        light = self.id_data      
+          
+        if hasattr(light, 'size'):
+            light.size = 0.0
+        light.type = 'POINT'
 
     def get_rman_light_shaders(self, context):
         items = []
@@ -141,10 +123,9 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         light = self.id_data
         light_shader = self.get_light_node_name()
 
-        light.type = 'AREA'
-        light.shape = 'RECTANGLE'
-        light.size = 1.0
-        light.size_y = 1.0  
+        if hasattr(light, 'size'):
+            light.size = 0.0
+        light.type = 'POINT'
           
     def get_rman_light_filter_shaders(self, context):
         items = []
@@ -154,7 +135,7 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         for n in rman_bl_nodes.__RMAN_LIGHTFILTER_NODES__:
             if n.name != 'PxrBlockerLightFilter':
                 i += 1
-                light_icon = icrfb_iconsons.get_lightfilter_icon(n.name)
+                light_icon = rfb_icons.get_lightfilter_icon(n.name)
                 items.append( (n.name, n.name, '', light_icon.icon_id, i))
         return items        
 

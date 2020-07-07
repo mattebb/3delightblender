@@ -1286,6 +1286,11 @@ def draw():
         if light_shader_name == '':
             return
 
+        if ob.data.type != 'POINT':
+            if hasattr(ob.data, 'size'):
+                ob.data.size = 0.0
+            ob.data.type = 'POINT'
+
         if light_shader_name == 'PxrSphereLight': 
             draw_sphere_light(ob)
         elif light_shader_name == 'PxrEnvDayLight': 

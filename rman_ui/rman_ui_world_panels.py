@@ -83,7 +83,7 @@ class DATA_PT_renderman_world_display_filters(ShaderPanel, Panel):
             if socket.is_linked:
                 link = socket.links[0]
                 node = link.from_node                 
-                rman_icon = icons.get_displayfilter_icon(node.bl_label)
+                rman_icon = rfb_icons.get_displayfilter_icon(node.bl_label)
                 layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
                 draw_node_properties_recursive(layout, context, nt, node, level=1)                    
             else:
@@ -125,7 +125,7 @@ class DATA_PT_renderman_world_sample_filters(ShaderPanel, Panel):
             if socket.is_linked:
                 link = socket.links[0]
                 node = link.from_node                 
-                rman_icon = icons.get_samplefilter_icon(node.bl_label)
+                rman_icon = rfb_icons.get_samplefilter_icon(node.bl_label)
                 layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
                 draw_node_properties_recursive(layout, context, nt, node, level=1)                    
             else:

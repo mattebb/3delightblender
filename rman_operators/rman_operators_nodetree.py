@@ -60,7 +60,11 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
             else:
                 light_shader = 'PxrRectLight'            
 
-            light.type = 'AREA'
+            #light.type = 'AREA'
+            if hasattr(light, 'size'):
+                light.size = 0.0
+            light.type = 'POINT'
+
             light.renderman.use_renderman_node = True
 
             output = nt.nodes.new('RendermanOutputNode')
