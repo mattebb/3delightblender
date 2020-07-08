@@ -36,7 +36,7 @@ class RmanHairTranslator(RmanTranslator):
             rman_sg_hair.sg_node = None
             return
         i = 0
-        for vertsArray, points, widthString, widths, scalpS, scalpT in curves:
+        for vertsArray, points, widths, scalpS, scalpT in curves:
             curves_sg = self.rman_scene.sg_scene.CreateCurves("%s-%d" % (psys.name, i))
             i += 1                
             curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", len(vertsArray), len(points))
@@ -49,11 +49,11 @@ class RmanHairTranslator(RmanTranslator):
                 index_nm = 'index'
             primvar.SetIntegerDetail(index_nm, range(len(vertsArray)), "uniform")
 
-            if widthString == self.rman_scene.rman.Tokens.Rix.k_constantwidth:
-                primvar.SetFloatDetail(widthString, widths, "constant")
-            else:
-                primvar.SetFloatDetail(widthString, widths, "vertex")
-
+            width_detail = "constant"
+            if isinstance(widths, list):
+                width_detail = "vertex"
+            primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, widths, width_detail)
+            
             if len(scalpS):
                 primvar.SetFloatDetail("scalpS", scalpS, "uniform")                
                 primvar.SetFloatDetail("scalpT", scalpT, "uniform")
@@ -96,10 +96,8 @@ class RmanHairTranslator(RmanTranslator):
         conwidth = (tip_width == base_width)
         steps = 2 ** psys.settings.render_step
         if conwidth:
-            widthString = self.rman_scene.rman.Tokens.Rix.k_constantwidth
             hair_width = base_width
         else:
-            widthString = self.rman_scene.rman.Tokens.Rix.k_width
             hair_width = []
 
         num_parents = len(psys.particles)
@@ -174,7 +172,7 @@ class RmanHairTranslator(RmanTranslator):
             # is to avoid a maxint on the array length
             if nverts > 100000:
                 curve_sets.append(
-                    (vertsArray, points, widthString, hair_width, scalpS, scalpT))
+                    (vertsArray, points, hair_width, scalpS, scalpT))
 
                 nverts = 0
                 points = []
@@ -185,7 +183,7 @@ class RmanHairTranslator(RmanTranslator):
                 scalpT = []
 
         if nverts > 0:
-            curve_sets.append((vertsArray, points, widthString,
+            curve_sets.append((vertsArray, points,
                             hair_width, scalpS, scalpT))
 
         return curve_sets              
