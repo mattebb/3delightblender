@@ -49,7 +49,11 @@ class CollectionPanel(_RManPanelHeader):
 
         if hasattr(ptr, prop_coll) and len(getattr(ptr, prop_coll)) > 0 and \
                 getattr(ptr, collection_index) >= 0:
-            item = getattr(ptr, prop_coll)[getattr(ptr, collection_index)]
+            idx = getattr(ptr, collection_index)
+            coll = getattr(ptr, prop_coll)
+            if idx >= len(coll):
+                return
+            item = coll[idx]
             self.draw_item(layout, context, item)
 
 class PRManButtonsPanel(_RManPanelHeader):

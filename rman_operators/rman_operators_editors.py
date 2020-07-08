@@ -499,18 +499,33 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
         self.selected_light_name = '0'        
 
     def update_light_groups_list(self, context):
+        # this function tries to keep light_groups in sync with
+        # what's set on the light's lightGroup parameter
         if self.groups_type == "LIGHT":
             scene = context.scene
             rm = scene.renderman
-            rm.light_groups.clear()
+            existing_lgt_grps = rm.light_groups
             scene_lightgrps = scene_utils.get_light_groups_in_scene(scene)
             for grp_nm, lights in scene_lightgrps.items():
-                light_grp = rm.light_groups.add()
-                light_grp.name = grp_nm
+                light_grp = None
+                for lg in existing_lgt_grps:
+                    if lg.name == grp_nm:
+                        light_grp = lg
+                        break
+
+                if not light_grp:
+                    light_grp = rm.light_groups.add()
+                    light_grp.name = grp_nm
                 for light in lights:
-                    member = light_grp.members.add()
-                    member.name = light.name
-                    member.light_ob = light.data
+                    do_add = True
+                    for member in light_grp.members:
+                        if member.light_ob == light.data:
+                            do_add = False
+                            break
+                    if do_add:
+                        member = light_grp.members.add()
+                        member.name = light.name
+                        member.light_ob = light.data
             rm.light_groups_index = 0
 
     groups_type: EnumProperty(name="Groups Type",
