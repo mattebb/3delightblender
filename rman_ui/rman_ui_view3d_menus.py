@@ -2,6 +2,7 @@ from .. import rfb_icons
 from ..rman_render import RmanRender
 from .. import rman_bl_nodes
 from ..rman_operators.rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
+from ..rman_utils import scene_utils
 from bpy.types import Menu
 import bpy
 
@@ -173,14 +174,10 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
             row.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)    
 
         layout.separator()
+        layout.label(text='Groups')
         layout.menu('VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu', text='Object Groups')
-        layout.separator()
-        layout.menu('VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu', text='Light Mixer Groups')        
-
-        layout.separator()
-        layout.operator('scene.rman_open_light_mixer_editor', text='Light Mixer Editor') 
-        layout.operator("scene.rman_open_light_linking", text="Light Linking Editor")
-        layout.operator("scene.rman_open_object_groups", text="Object Groups Editors")
+        layout.menu('VIEW3D_MT_RM_Add_Selected_To_LightGroup_Menu', text='Light Groups')        
+        layout.menu('VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu', text='Light Mixer Groups')      
 
 class VIEW3D_MT_RM_Add_Export_Menu(bpy.types.Menu):
     bl_label = "Export"
@@ -216,29 +213,33 @@ class VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu(bpy.types.Menu):
         layout = self.layout
         scene = context.scene
 
-        op = layout.operator('collection.add_remove', text='Create New Group')
-        op.context = 'scene.renderman'
-        op.collection = 'object_groups'
-        op.collection_index = 'object_groups_index'
-        op.defaultname = 'objectGroup_%d' % len(scene.renderman.object_groups)
-        op.action = 'ADD'
-
+        op = layout.operator("scene.rman_open_groups_editor", text="Object Groups Editor")
         selected_objects = []
         if context.selected_objects:
             for obj in context.selected_objects:
                 if obj.type not in ['CAMERA', 'LIGHT', 'SPEAKER']:
                     selected_objects.append(obj)
 
-        layout.separator()
-        layout.label(text='Add to Object Group')                    
-
         if not selected_objects:
-            return
+            return                  
 
-        for i, obj_grp in enumerate(scene.renderman.object_groups.keys()):
-            op = layout.operator('renderman.add_to_group', text=obj_grp)
-            op.do_scene_selected = True     
-            op.group_index = i
+        layout.separator()
+        op = layout.operator('collection.add_remove', text='Create New Group')
+        op.context = 'scene.renderman'
+        op.collection = 'object_groups'
+        op.collection_index = 'object_groups_index'
+        op.defaultname = 'objectGroup_%d' % len(scene.renderman.object_groups)
+        op.action = 'ADD'             
+
+        obj_grps = scene.renderman.object_groups
+        if obj_grps:
+            layout.separator()
+            layout.label(text='Add Selected To: ')                    
+
+            for i, obj_grp in enumerate(obj_grps.keys()):
+                op = layout.operator('renderman.add_to_group', text=obj_grp)
+                op.do_scene_selected = True     
+                op.group_index = i
 
 class VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu(bpy.types.Menu):
     bl_label = "Light Mixer"
@@ -252,6 +253,16 @@ class VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         scene = context.scene
+        layout.operator('scene.rman_open_light_mixer_editor', text='Light Mixer Editor') 
+        layout.separator()
+        selected_light_objects = []
+        if context.selected_objects:
+            for obj in context.selected_objects:
+                if obj.type == 'LIGHT' and obj.data.renderman.renderman_light_role == 'RMAN_LIGHT':
+                    selected_light_objects.append(obj)
+
+        if not selected_light_objects:
+            return                         
 
         op = layout.operator('collection.add_remove', text='Create Light Mixer Group')
         op.context = 'scene.renderman'
@@ -259,6 +270,28 @@ class VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu(bpy.types.Menu):
         op.collection_index = 'light_mixer_groups_index'
         op.defaultname = 'mixerGroup_%d' % len(scene.renderman.light_mixer_groups)
         op.action = 'ADD'
+  
+        lgt_mixer_grps = scene.renderman.light_mixer_groups
+        if lgt_mixer_grps:
+            layout.separator()
+            layout.label(text='Add Selected To: ')
+            for i, obj_grp in enumerate(lgt_mixer_grps.keys()):
+                op = layout.operator('renderman.add_light_to_light_mixer_group', text=obj_grp)
+                op.do_scene_selected = True   
+                op.group_index = i     
+
+class VIEW3D_MT_RM_Add_Selected_To_LightGroup_Menu(bpy.types.Menu):
+    bl_label = "Light Group"
+    bl_idname = "VIEW3D_MT_RM_Add_Selected_To_LightGroup_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'    
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene
 
         selected_light_objects = []
         if context.selected_objects:
@@ -266,15 +299,19 @@ class VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu(bpy.types.Menu):
                 if obj.type == 'LIGHT' and obj.data.renderman.renderman_light_role == 'RMAN_LIGHT':
                     selected_light_objects.append(obj)
 
-        layout.separator()
-        layout.label(text='Add to Light Mixer Group')
+        op = layout.operator("scene.rman_open_groups_editor", text="Light Groups Editor")
+        op.groups_type = 'LIGHT'
 
         if not selected_light_objects:
             return       
-        for i, obj_grp in enumerate(scene.renderman.light_mixer_groups.keys()):
-            op = layout.operator('renderman.add_light_to_group', text=obj_grp)
-            op.do_scene_selected = True   
-            op.group_index = i              
+        lgt_grps = scene_utils.get_light_groups_in_scene(scene)
+        if lgt_grps:
+            layout.separator()
+            layout.label(text='Add Selected To:')
+            for i, obj_grp in enumerate(lgt_grps.keys()):
+                op = layout.operator('renderman.add_to_light_group', text=obj_grp)
+                op.do_scene_selected = True   
+                op.group_name = obj_grp
 
 class VIEW3D_MT_RM_Add_Light_Menu(bpy.types.Menu):
     bl_label = "Light"
@@ -361,6 +398,7 @@ classes = [
     VIEW3D_MT_renderman_object_context_menu,
     VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu,
     VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu,
+    VIEW3D_MT_RM_Add_Selected_To_LightGroup_Menu,
     VIEW3D_MT_RM_Add_Light_Menu,
     VIEW3D_MT_RM_Add_LightFilter_Menu,
     VIEW3D_MT_RM_Add_bxdf_Menu,

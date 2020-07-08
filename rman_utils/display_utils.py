@@ -222,15 +222,6 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
         if len(aov.dspy_channels) < 1:
             continue
 
-        if rm.render_into == 'blender':
-            if rman_scene.is_viewport_render:
-                if aov.name == 'beauty':
-                    display_driver = 'blender'
-                else:
-                    display_driver = 'null'
-            else:
-                display_driver = 'openexr'
-
         dspy_params = {}            
         dspy_params['displayChannels'] = []
 
@@ -279,7 +270,15 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
 
             param_list = rman_scene.rman.Types.ParamList()
             dspy_driver_settings = getattr(aov, '%s_settings' % display_driver)
-            property_utils.set_node_rixparams(dspy_driver_settings, None, param_list, None)             
+            property_utils.set_node_rixparams(dspy_driver_settings, None, param_list, None)            
+        elif rm.render_into == 'blender': 
+            if rman_scene.is_viewport_render:
+                if aov.name == 'beauty':
+                    display_driver = 'blender'
+                else:
+                    display_driver = 'null'
+            else:
+                display_driver = 'openexr'            
         else:
             display_driver = 'it'
 
