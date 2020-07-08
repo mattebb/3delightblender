@@ -3,6 +3,7 @@ from bpy.props import EnumProperty, StringProperty, IntProperty, FloatProperty
 from ..rman_render import RmanRender
 from .. import rman_bl_nodes
 from .. import rfb_icons
+from ..rman_utils import display_utils
 from bpy.types import Menu
 
 __HIDDEN_INTEGRATORS__ = ['PxrValidateBxdf', 'PxrDebugShadingContext']
@@ -61,6 +62,21 @@ class PRMAN_MT_Viewport_Res_Mult_Menu(Menu):
             op = layout.operator('renderman_viewport.change_resolution_mult', text=nm)
             op.viewport_res_mult = val
 
+class PRMAN_MT_Viewport_Channel_Sel_Menu(Menu):
+    bl_label = "Channel Selector Menu"
+    bl_idname = "PRMAN_MT_Viewport_Channel_Sel_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None 
+
+    def draw(self, context):
+        layout = self.layout
+        rman_render = RmanRender.get_rman_render()
+        dspys_dict = display_utils.get_dspy_dict(rman_render.rman_scene)
+        for chan_name, chan_params in dspys_dict['channels'].items():
+            op = layout.operator('renderman_viewport.channel_selector', text=chan_name)
+            op.channel_name = chan_name
 
 class PRMAN_OT_Viewport_Integrators(bpy.types.Operator):
     bl_idname = "renderman_viewport.change_integrator"
@@ -116,7 +132,25 @@ class PRMAN_OT_Viewport_Resolution_Mult(bpy.types.Operator):
             rman_render.rman_scene.viewport_render_res_mult = float(self.viewport_res_mult)
             rman_render.rman_scene_sync.update_viewport_res_mult(context) 
 
-        return {"FINISHED"}                                                       
+        return {"FINISHED"}       
+
+class PRMAN_OT_Viewport_Channel_Selector(bpy.types.Operator):
+    bl_idname = "renderman_viewport.channel_selector"
+    bl_label = "Channel"
+    bl_description = "Select a different channel to view"
+    bl_options = {"REGISTER", "UNDO"}    
+
+    channel_name: StringProperty(name="Resolution Multiplier",
+                                      description="",
+                                      default="Ci"
+                                    )
+
+    def execute(self, context):
+        rman_render = RmanRender.get_rman_render()
+        if rman_render.rman_interactive_running:
+            rman_render.rman_scene_sync.update_viewport_chan(context, self.properties.channel_name) 
+
+        return {"FINISHED"}                                                            
 
 def draw_rman_viewport_props(self, context):
     layout = self.layout
@@ -139,6 +173,7 @@ def draw_rman_viewport_props(self, context):
             if rman_render.rman_is_viewport_rendering:
                 rman_icon = rfb_icons.get_icon('rman_vp_resolution')
                 layout.menu('PRMAN_MT_Viewport_Res_Mult_Menu', text='', icon_value=rman_icon.icon_id)
+                layout.menu('PRMAN_MT_Viewport_Channel_Sel_Menu', text='Chan')
             
         else:
             # stop rendering if we're not in viewport rendering
@@ -152,9 +187,11 @@ classes = [
     PRMAN_MT_Viewport_Integrator_Menu,
     PRMAN_MT_Viewport_Refinement_Menu,
     PRMAN_MT_Viewport_Res_Mult_Menu,
+    PRMAN_MT_Viewport_Channel_Sel_Menu,
     PRMAN_OT_Viewport_Integrators,
     PRMAN_OT_Viewport_Refinement,
-    PRMAN_OT_Viewport_Resolution_Mult
+    PRMAN_OT_Viewport_Resolution_Mult,
+    PRMAN_OT_Viewport_Channel_Selector
 ]
 
 def register():

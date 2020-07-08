@@ -75,37 +75,6 @@ def _add_denoiser_channels(dspys_dict, dspy_params):
     f,ext = os.path.splitext(filePath)
     dspys_dict['displays']['beauty']['filePath'] = f + '_variance' + ext
 
-def _get_dspy_dict_viewport(rm_rl, rman_scene, expandTokens=True):
-
-    dspys_dict = {'displays': OrderedDict(), 'channels': {}}
-    display_driver = 'blender'
-
-    dspy_params = {}                        
-    dspy_params['displayChannels'] = []
-
-    d = _default_dspy_params()
-    d[u'channelSource'] = {'type': u'string', 'value': 'Ci'}
-    d[u'channelType'] = { 'type': u'string', 'value': 'color'}       
-    dspys_dict['channels']['Ci'] = d
-    d = _default_dspy_params()
-    d[u'channelSource'] = {'type': u'string', 'value': 'a'}
-    d[u'channelType'] = { 'type': u'string', 'value': 'float'}          
-    dspys_dict['channels']['a'] = d     
-    dspy_params['displayChannels'].append('Ci')
-    dspy_params['displayChannels'].append('a')
-
-    dspys_dict['displays']['beauty'] = {
-        'driverNode': display_driver,
-        'filePath': 'beauty',
-        'denoise': False,
-        'denoise_mode': 'singleframe',
-        'camera': None,
-        'bake_mode': None,
-        'params': dspy_params,
-        'dspyDriverParams': None}
-
-    return dspys_dict   
-
 def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens):   
 
     rm = rman_scene.bl_scene.renderman
@@ -121,6 +90,12 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
     # add beauty (Ci,a)
     dspy_params = {}                        
     dspy_params['displayChannels'] = []
+
+    if rm.render_into == 'blender':
+        if rman_scene.is_viewport_render:
+            display_driver = 'blender'
+        else:
+            display_driver = 'openexr'
 
     d = _default_dspy_params()
     d[u'channelSource'] = {'type': u'string', 'value': 'Ci'}
@@ -148,11 +123,11 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
         'params': dspy_params,
         'dspyDriverParams': None}
 
-    if rman_scene.is_viewport_render:
-        # early out
-        return dspys_dict
+    if rm.render_into == 'blender':
+        if rman_scene.is_viewport_render:
+            display_driver = 'null'
 
-    if rman_scene.is_interactive and display_driver == "it":
+    if rman_scene.is_interactive:
         # Add ID pass
         dspy_params = {}                        
         dspy_params['displayChannels'] = []            
@@ -247,6 +222,15 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
         if len(aov.dspy_channels) < 1:
             continue
 
+        if rm.render_into == 'blender':
+            if rman_scene.is_viewport_render:
+                if aov.name == 'beauty':
+                    display_driver = 'blender'
+                else:
+                    display_driver = 'null'
+            else:
+                display_driver = 'openexr'
+
         dspy_params = {}            
         dspy_params['displayChannels'] = []
 
@@ -296,10 +280,6 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             param_list = rman_scene.rman.Types.ParamList()
             dspy_driver_settings = getattr(aov, '%s_settings' % display_driver)
             property_utils.set_node_rixparams(dspy_driver_settings, None, param_list, None)             
-        elif rm.render_into == 'blender':
-            display_driver = 'openexr'
-            #param_list = rman_scene.rman.Types.ParamList()
-            #param_list.SetInteger('asrgba', 1)
         else:
             display_driver = 'it'
 
@@ -340,7 +320,7 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
                                                     token_dict=token_dict,
                                                     asFilePath=True)
 
-        if aov.name != 'beauty' and display_driver == 'it':
+        if aov.name != 'beauty' and (display_driver == 'it' or rman_scene.is_viewport_render):
             # break up display per channel when rendering to it
             for chan in aov.dspy_channels:
                 ch_name = _get_real_chan_name(chan)
@@ -374,10 +354,10 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             _add_denoiser_channels(dspys_dict, dspy_params)
 
         if aov.name == 'beauty' and rman_scene.is_interactive:
-
+          
             if rman_scene.is_viewport_render:
-                return dspys_dict                
-            
+                display_driver = 'null'
+
             # Add ID pass
             dspy_params = {}                        
             dspy_params['displayChannels'] = []            
@@ -402,7 +382,10 @@ def _set_rman_holdouts_dspy_dict(dspys_dict, dspy_drv, rman_scene, expandTokens)
 
     rm = rman_scene.bl_scene.renderman
     display_driver = dspy_drv
-    addon_prefs = prefs_utils.get_addon_prefs()
+
+    if rm.render_into == 'blender':
+        if rman_scene.is_viewport_render:
+            display_driver = 'null'
 
     dspy_params = {}                        
     dspy_params['displayChannels'] = []
@@ -519,12 +502,12 @@ def get_dspy_dict(rman_scene, expandTokens=True):
     if rman_scene.is_interactive:
         if rman_scene.is_viewport_render:
             display_driver = 'blender'
-            dspys_dict = _get_dspy_dict_viewport(rm_rl, rman_scene, expandTokens=expandTokens)
-            return dspys_dict
         else:
             display_driver = 'it'
 
     elif (not rman_scene.external_render) and (rm.render_into == 'it'):
+        # if preview render and render_into is set to "it"
+        # we ignore the display driver setting in the AOV and render to "it"
         display_driver = 'it'
        
     if rm_rl:     

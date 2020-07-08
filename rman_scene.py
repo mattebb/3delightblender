@@ -291,14 +291,7 @@ class RmanScene(object):
         self.export_defaultlight()
         self.main_camera.sg_node.AddChild(self.default_light)
         
-        if self.is_viewport_render:
-            # For now, when rendering into Blender's viewport, create 
-            # a simple Ci,a display
-            self.export_viewport_display()
-        else:
-            self.export_displays()
-
-
+        self.export_displays()
         self.export_samplefilters()
         self.export_displayfilters()
 
@@ -1164,7 +1157,7 @@ class RmanScene(object):
 
         self.sg_scene.SetDisplayFilter(displayfilters_list)        
 
-    def export_samplefilters(self):
+    def export_samplefilters(self, sel_chan_name=None):
         rm = self.bl_scene.renderman
         sample_filter_names = []        
         samplefilters_list = list()
@@ -1195,6 +1188,15 @@ class RmanScene(object):
             sample_filter_names.append(sf_name)
             samplefilters_list.append(rman_sf_node)                    
 
+        if sel_chan_name:
+            sf_name = '__RMAN_VIEWPORT_CHANNEL_SELECT__'
+            rman_sel_chan_node = self.rman.SGManager.RixSGShader("SampleFilter", "PxrCopyAOVSampleFilter", sf_name)
+            params = rman_sel_chan_node.params
+            params.SetString("readAov", sel_chan_name)            
+            sample_filter_names.append(sf_name)
+            samplefilters_list.append(rman_sel_chan_node)             
+
+
         if len(sample_filter_names) > 1:
             sf_name = "rman_samplefilter_combiner"
             sf_node = self.rman.SGManager.RixSGShader("SampleFilter", "PxrSampleFilterCombiner", sf_name)
@@ -1204,20 +1206,6 @@ class RmanScene(object):
             samplefilters_list.append(sf_node)
 
         self.sg_scene.SetSampleFilter(samplefilters_list) 
-
-    def export_viewport_display(self):
-        rm = self.bl_scene.renderman
-        sg_displays = []
-        displaychannels = []
-        display_driver = 'blender'
-
-        dspy_chan_Ci = self.rman.SGManager.RixSGDisplayChannel('color', 'Ci')
-        dspy_chan_a = self.rman.SGManager.RixSGDisplayChannel('float', 'a')
-
-        self.sg_scene.SetDisplayChannel([dspy_chan_Ci, dspy_chan_a])
-        display = self.rman.SGManager.RixSGShader("Display", display_driver, 'blender_viewport')
-        display.params.SetString("mode", 'Ci,a')
-        self.main_camera.sg_node.SetDisplay(display)
 
     def export_bake_displays(self):
         rm = self.bl_scene.renderman
