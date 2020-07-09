@@ -319,6 +319,66 @@
         },
         {
             "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_reflectExcludeSubset",
+            "riattr": "trace:reflectexcludesubset",
+            "label": "Reflect Exclude Subset",
+            "type": "string",
+            "default": "",
+            "page": "Trace",
+            "help": "Exclude object groups from reflections"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_reflectSubset",
+            "riattr": "trace:reflectsubset",
+            "label": "Reflect Subset",
+            "type": "string",
+            "default": "",
+            "page": "Trace",
+            "help": "Object groups visible to reflections"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_shadowExcludeSubset",
+            "riattr": "trace:shadowexcludesubset",
+            "label": "Shadow Exclude Subset",
+            "type": "string",
+            "default": "",
+            "page": "Trace",
+            "help": "Exclude object groups from casting shadows"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_shadowSubset",
+            "riattr": "trace:shadowsubset",
+            "label": "Shadow Subset",
+            "type": "string",
+            "default": "",
+            "page": "Trace",
+            "help": "Object groups active in shadows"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_transmitExcludeSubset",
+            "riattr": "trace:transmitexcludesubset",
+            "label": "Transmit Exclude Subset",
+            "type": "string",
+            "default": "",
+            "page": "Trace",
+            "help": "Exclude object groups from transmission/refractions"
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_transmitSubset",
+            "riattr": "trace:transmitsubset",
+            "label": "Transmit Subset",
+            "type": "string",
+            "default": "",
+            "page": "Trace",
+            "help": "Object groups visible to transmission/refractions"
+        },        
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
             "name": "rman_intersectPriority",
             "riattr": "trace:intersectpriority",
             "label": "Intersection Priority",

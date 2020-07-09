@@ -169,9 +169,6 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         row.label(text='%s Size' % prop_name)               
                         row.prop(self, '%s_arraylen' % prop_name, text='')
 
-                    elif "Subset" in prop_name and prop_meta['type'] == 'string':
-                        layout.prop_search(self, prop_name, bpy.data.scenes[0].renderman,
-                                           "object_groups")
                     else:
                         if is_pxrramp and prop_name == 'useNewRamp':
                             # don't show useNewRamp param

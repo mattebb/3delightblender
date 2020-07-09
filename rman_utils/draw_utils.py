@@ -323,9 +323,9 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             # don't show useNewRamp param
                             continue                        
                         indented_label(row, None, level)
-                        # indented_label(row, socket.name+':')
                         
                         # don't draw prop for struct type
+                        '''
                         if "Subset" in prop_name and prop_meta['type'] == 'string':
                             row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
                                             "object_groups")
@@ -334,6 +334,12 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                 row.prop(node, prop_name, slider=True)
                             else:
                                 row.label(text=prop_meta['label'])
+                        '''
+                        if prop_meta['renderman_type'] not in ['struct', 'bxdf', 'vstruct']:
+                            row.prop(node, prop_name, slider=True)
+                        else:
+                            row.label(text=prop_meta['label'])
+
                         if prop_name in node.inputs:
                             row.context_pointer_set("socket", socket)
                             row.context_pointer_set("node", node)
