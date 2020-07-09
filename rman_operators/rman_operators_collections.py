@@ -139,7 +139,7 @@ class PRMAN_OT_add_multilayer_list(bpy.types.Operator):
 
 class PRMAN_OT_convert_mixer_group_to_light_group(bpy.types.Operator):
     bl_idname = 'renderman.convert_mixer_group_to_light_group'
-    bl_label = 'Add Selected Light to Light Mixer Group' 
+    bl_label = 'Convert to Light Mixer Group' 
     bl_description = 'Convert the currently selected light mixer group to a light group. If the lights in this mixer group were already in a light group, this will override.'
 
     group_index: IntProperty(name="group_index", default=-1)
@@ -158,6 +158,9 @@ class PRMAN_OT_convert_mixer_group_to_light_group(bpy.types.Operator):
             light_ob = member.light_ob
             light_shader = light_ob.renderman.get_light_node()
             light_shader.lightGroup = mixer_group.name
+
+        mixer_groups.remove(mixer_group_index)
+        mixer_group_index -= 1
 
         return {'FINISHED'}       
 
