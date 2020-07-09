@@ -222,8 +222,8 @@ class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Oper
                 op = col.operator("renderman.add_light_to_light_mixer_group", text='', icon='ADD')
             else:
                 col.context_pointer_set('op_ptr', self) 
+                col.context_pointer_set('selected_light', bpy.data.lights[self.selected_light_name])
                 op = col.operator("renderman.add_light_to_light_mixer_group", text='', icon='ADD')
-                op.selected_light_name = self.selected_light_name
         else:
             row.prop(self, 'light_search_filter', text='', icon='VIEWZOOM')
             row = box.row()
@@ -236,8 +236,12 @@ class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Oper
                 op = col.operator("renderman.add_light_to_light_mixer_group", text='', icon='ADD')
             else:
                 col.context_pointer_set('op_ptr', self) 
+                col.context_pointer_set('selected_light', bpy.data.lights[self.selected_light_name])
                 op = col.operator("renderman.add_light_to_light_mixer_group", text='', icon='ADD')
-                op.selected_light_name = self.selected_light_name
+        row = layout.row()
+        split = row.split(factor=0.25)
+        op = split.operator('renderman.convert_mixer_group_to_light_group', text='Convert to Light Group')
+        op.group_index = rm.light_mixer_groups_index
 
         layout.template_list("RENDERMAN_UL_LightMixer_Group_Members_List", "Renderman_light_mixer_list",
                             light_group, "members", light_group, 'members_index', rows=6)
@@ -504,28 +508,16 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
         if self.groups_type == "LIGHT":
             scene = context.scene
             rm = scene.renderman
-            existing_lgt_grps = rm.light_groups
+            rm.light_groups.clear()
             scene_lightgrps = scene_utils.get_light_groups_in_scene(scene)
-            for grp_nm, lights in scene_lightgrps.items():
-                light_grp = None
-                for lg in existing_lgt_grps:
-                    if lg.name == grp_nm:
-                        light_grp = lg
-                        break
 
-                if not light_grp:
-                    light_grp = rm.light_groups.add()
-                    light_grp.name = grp_nm
+            for grp_nm, lights in scene_lightgrps.items():
+                light_grp = rm.light_groups.add()
+                light_grp.name = grp_nm
                 for light in lights:
-                    do_add = True
-                    for member in light_grp.members:
-                        if member.light_ob == light.data:
-                            do_add = False
-                            break
-                    if do_add:
-                        member = light_grp.members.add()
-                        member.name = light.name
-                        member.light_ob = light.data
+                    member = light_grp.members.add()
+                    member.name = light.name
+                    member.light_ob = light.data
             rm.light_groups_index = 0
 
     groups_type: EnumProperty(name="Groups Type",

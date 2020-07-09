@@ -137,36 +137,58 @@ class PRMAN_OT_add_multilayer_list(bpy.types.Operator):
         scene.renderman.multilayer_lists[-1].render_layer = active_layer.name
         return {'FINISHED'}
 
+class PRMAN_OT_convert_mixer_group_to_light_group(bpy.types.Operator):
+    bl_idname = 'renderman.convert_mixer_group_to_light_group'
+    bl_label = 'Add Selected Light to Light Mixer Group' 
+    bl_description = 'Convert the currently selected light mixer group to a light group. If the lights in this mixer group were already in a light group, this will override.'
+
+    group_index: IntProperty(name="group_index", default=-1)
+
+    def execute(self, context):
+        if self.properties.group_index < 0:
+            return {'FINISHED'}
+
+        scene = context.scene
+        mixer_group_index = self.properties.group_index
+
+        mixer_groups = scene.renderman.light_mixer_groups
+        mixer_group = mixer_groups[mixer_group_index]
+
+        for member in mixer_group.members:
+            light_ob = member.light_ob
+            light_shader = light_ob.renderman.get_light_node()
+            light_shader.lightGroup = mixer_group.name
+
+        return {'FINISHED'}       
+
+
 class PRMAN_OT_add_light_to_light_mixer_group(bpy.types.Operator):
     bl_idname = 'renderman.add_light_to_light_mixer_group'
     bl_label = 'Add Selected Light to Light Mixer Group' 
 
-    selected_light_name: StringProperty(name="Light", default='')
     group_index: IntProperty(default=0)
     do_scene_selected: BoolProperty(name="do_scene_selected", default=False)    
 
     def add_selected(self, context):
         scene = context.scene
         group_index = scene.renderman.light_mixer_groups_index
-        selected_light_name = self.properties.selected_light_name
-
         object_groups = scene.renderman.light_mixer_groups
-        object_group = object_groups[group_index]
-        ob = scene.objects.get(selected_light_name, None)
+        object_group = object_groups[group_index]        
+        ob = getattr(context, "selected_light", None)
         if not ob:
             return {'FINISHED'}
 
         do_add = True
 
         for member in object_group.members:
-            if ob.data == member.light_ob:
+            if ob == member.light_ob:
                 do_add = False
                 break                
 
         if do_add:
             ob_in_group = object_group.members.add()
             ob_in_group.name = ob.name
-            ob_in_group.light_ob = ob.data       
+            ob_in_group.light_ob = ob       
 
             op = getattr(context, 'op_ptr')
             if op:
@@ -651,6 +673,7 @@ class PRMAN_OT_remove_light_link(bpy.types.Operator):
 classes = [
     COLLECTION_OT_add_remove,
     COLLECTION_OT_light_groups_add_remove,
+    PRMAN_OT_convert_mixer_group_to_light_group,
     PRMAN_OT_add_to_group,
     PRMAN_OT_add_light_to_light_mixer_group,
     PRMAN_OT_remove_light_from_light_mixer_group,
