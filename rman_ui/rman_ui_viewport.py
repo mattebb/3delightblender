@@ -14,12 +14,13 @@ class PRMAN_MT_Viewport_Integrator_Menu(Menu):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None    
+        return context.engine == "PRMAN_RENDER"
 
     def draw(self, context):
         layout = self.layout
         for node in rman_bl_nodes.__RMAN_INTEGRATOR_NODES__:
             if node.name not in __HIDDEN_INTEGRATORS__:
+                layout.operator_context = 'EXEC_DEFAULT'
                 op = layout.operator('renderman_viewport.change_integrator', text=node.name)
                 op.viewport_integrator = node.name  
 
@@ -30,11 +31,12 @@ class PRMAN_MT_Viewport_Refinement_Menu(Menu):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None    
+        return context.engine == "PRMAN_RENDER"    
 
     def draw(self, context):
         layout = self.layout
         for i in range(0, 7):
+            layout.operator_context = 'EXEC_DEFAULT'
             op = layout.operator('renderman_viewport.change_refinement', text='%d' % i)
             op.viewport_hider_decidither = i 
 
@@ -44,7 +46,7 @@ class PRMAN_MT_Viewport_Res_Mult_Menu(Menu):
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None 
+        return context.engine == "PRMAN_RENDER" 
 
     def get_items(self):
         items=[
@@ -59,22 +61,26 @@ class PRMAN_MT_Viewport_Res_Mult_Menu(Menu):
     def draw(self, context):
         layout = self.layout
         for val, nm in self.get_items():
+            layout.operator_context = 'EXEC_DEFAULT'
             op = layout.operator('renderman_viewport.change_resolution_mult', text=nm)
             op.viewport_res_mult = val
 
 class PRMAN_MT_Viewport_Channel_Sel_Menu(Menu):
     bl_label = "Channel Selector Menu"
     bl_idname = "PRMAN_MT_Viewport_Channel_Sel_Menu"
+    bl_options = {"REGISTER", "UNDO"}     
 
     @classmethod
     def poll(cls, context):
-        return context.active_object is not None 
+        return context.engine == "PRMAN_RENDER" 
 
     def draw(self, context):
         layout = self.layout
         rman_render = RmanRender.get_rman_render()
+        rman_render.rman_scene._find_renderman_layer()
         dspys_dict = display_utils.get_dspy_dict(rman_render.rman_scene)
         for chan_name, chan_params in dspys_dict['channels'].items():
+            layout.operator_context = 'EXEC_DEFAULT'
             op = layout.operator('renderman_viewport.channel_selector', text=chan_name)
             op.channel_name = chan_name
 
@@ -140,7 +146,7 @@ class PRMAN_OT_Viewport_Channel_Selector(bpy.types.Operator):
     bl_description = "Select a different channel to view"
     bl_options = {"REGISTER", "UNDO"}    
 
-    channel_name: StringProperty(name="Resolution Multiplier",
+    channel_name: StringProperty(name="Channel",
                                       description="",
                                       default="Ci"
                                     )
@@ -173,7 +179,8 @@ def draw_rman_viewport_props(self, context):
             if rman_render.rman_is_viewport_rendering:
                 rman_icon = rfb_icons.get_icon('rman_vp_resolution')
                 layout.menu('PRMAN_MT_Viewport_Res_Mult_Menu', text='', icon_value=rman_icon.icon_id)
-                layout.menu('PRMAN_MT_Viewport_Channel_Sel_Menu', text='Chan')
+                rman_icon = rfb_icons.get_icon('rman_vp_aovs')
+                layout.menu('PRMAN_MT_Viewport_Channel_Sel_Menu', text='', icon_value=rman_icon.icon_id)
             
         else:
             # stop rendering if we're not in viewport rendering
