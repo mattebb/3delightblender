@@ -1,0 +1,10 @@
+{
+    "name": "PxrRamp.args",
+    "params": [
+        {
+            "name": "useNewRamp",    
+            "widget": "null",
+            "default": "1"
+        }                 
+    ]
+}

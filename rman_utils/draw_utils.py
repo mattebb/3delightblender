@@ -318,10 +318,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                                         rman_icon = rfb_icons.get_icon('out_unknown')
                                         row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
                         continue
-                    else:
-                        if is_pxrramp and prop_name == 'useNewRamp':
-                            # don't show useNewRamp param
-                            continue                        
+                    else:                      
                         indented_label(row, None, level)
                         
                         # don't draw prop for struct type
