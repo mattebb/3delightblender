@@ -105,7 +105,7 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
                         dflt = int(dflt)
                     elif param_type == 'float':
                         val = float(val)
-                        dflt = float(val)
+                        dflt = float(dflt)
 
                 if val == dflt:
                     return                  
