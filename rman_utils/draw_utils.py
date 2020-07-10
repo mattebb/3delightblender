@@ -57,7 +57,15 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
 
             label = ndp.label if hasattr(ndp, 'label') else ndp.name
             row = curr_col.row()
-            row.prop(parent, ndp.name, text=label)    
+            widget = getattr(ndp, 'widget', '')
+            options = getattr(ndp, 'options', None)
+            if widget == 'propSearch' and options:
+                # use a prop_search layout
+                prop_search_parent = options.get('prop_parent')
+                prop_search_name = options.get('prop_name')
+                eval(f'row.prop_search(parent, ndp.name, {prop_search_parent}, "{prop_search_name}", text=label)')               
+            else:
+                row.prop(parent, ndp.name, text=label)    
 
 def _draw_props(node, prop_names, layout):
     for prop_name in prop_names:

@@ -325,6 +325,8 @@
             "type": "string",
             "default": "",
             "page": "Trace",
+            "widget": "propSearch",
+            "options": "prop_parent:context.scene.renderman|prop_name:object_groups",
             "help": "Exclude object groups from reflections"
         },
         {
@@ -335,6 +337,8 @@
             "type": "string",
             "default": "",
             "page": "Trace",
+            "widget": "propSearch",
+            "options": "prop_parent:context.scene.renderman|prop_name:object_groups",            
             "help": "Object groups visible to reflections"
         },
         {
@@ -345,6 +349,8 @@
             "type": "string",
             "default": "",
             "page": "Trace",
+            "widget": "propSearch",
+            "options": "prop_parent:context.scene.renderman|prop_name:object_groups",            
             "help": "Exclude object groups from casting shadows"
         },
         {
@@ -355,6 +361,8 @@
             "type": "string",
             "default": "",
             "page": "Trace",
+            "widget": "propSearch",
+            "options": "prop_parent:context.scene.renderman|prop_name:object_groups",            
             "help": "Object groups active in shadows"
         },
         {
@@ -365,6 +373,8 @@
             "type": "string",
             "default": "",
             "page": "Trace",
+            "widget": "propSearch",
+            "options": "prop_parent:context.scene.renderman|prop_name:object_groups",            
             "help": "Exclude object groups from transmission/refractions"
         },
         {
@@ -375,6 +385,8 @@
             "type": "string",
             "default": "",
             "page": "Trace",
+            "widget": "propSearch",
+            "options": "prop_parent:context.scene.renderman|prop_name:object_groups",            
             "help": "Object groups visible to transmission/refractions"
         },        
         {

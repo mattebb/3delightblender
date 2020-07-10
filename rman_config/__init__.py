@@ -126,6 +126,18 @@ def get_factory_config_path():
 
     return config_dir
 
+def get_factory_overrides_config_path():
+    """Get the factory overrides config path.
+
+    Returns:
+        str: The path to the factory overrides config files
+    """
+
+    cur_dir = os.path.dirname(os.path.realpath(__file__))
+    config_dir = os.path.join(cur_dir, 'config', 'overrides')
+
+    return config_dir    
+
 def get_override_paths():
     """Get the override config path(s). Consults the envrionment vairiable
     RFB_SITE_PATH, RFB_SHOW_PATH, and RFB_USER_PATH
@@ -201,19 +213,21 @@ def apply_overrides(rman_config_org, rman_config_override):
 
 def register():
 
-    config_path = get_factory_config_path()
-    for f in os.listdir(config_path):
-        if not f.endswith('.json'):
-            continue
-        jsonfile = os.path.join(config_path, f)
-        rfb_log().debug("Reading factory json file: %s" % jsonfile)
-        if f == __RMAN_CHANNELS_DEF_FILE__:
-            # this is our channels config file
-            configure_channels(jsonfile)
-        else:
-            # this is a regular properties config file
-            rman_config = RmanConfig(jsonfile)
-            __RMAN_CONFIG__[rman_config.name] = rman_config
+    paths = [get_factory_config_path(), get_factory_overrides_config_path()]
+
+    for config_path in paths:
+        for f in os.listdir(config_path):
+            if not f.endswith('.json'):
+                continue
+            jsonfile = os.path.join(config_path, f)
+            rfb_log().debug("Reading factory json file: %s" % jsonfile)
+            if f == __RMAN_CHANNELS_DEF_FILE__:
+                # this is our channels config file
+                configure_channels(jsonfile)
+            else:
+                # this is a regular properties config file
+                rman_config = RmanConfig(jsonfile)
+                __RMAN_CONFIG__[rman_config.name] = rman_config
 
     # Look for overrides
     override_paths = get_override_paths()

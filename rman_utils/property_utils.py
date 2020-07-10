@@ -470,14 +470,14 @@ def generate_property(node, sp, update_function=None):
         rman_ramps.append(param_name)
         node.__annotations__['__FLOAT_RAMPS__'] = rman_ramps               
 
-    elif 'float' == param_type:
+    elif param_type == 'float':
         if sp.is_array():
             prop = FloatProperty(name=param_label,
                                        default=0.0, precision=3,
                                        description=param_help,
                                        update=update_function)       
         else:
-            if param_widget == 'checkbox' or param_widget == 'switch':
+            if param_widget in ['checkbox', 'switch']:
                 
                 prop = BoolProperty(name=param_label,
                                     default=bool(param_default),
@@ -511,7 +511,7 @@ def generate_property(node, sp, update_function=None):
 
         renderman_type = 'float'
 
-    elif param_type == 'int' or param_type == 'integer':
+    elif param_type in ['int', 'integer']:
         if sp.is_array(): 
             prop = IntProperty(name=param_label,
                                 default=0,
@@ -581,7 +581,7 @@ def generate_property(node, sp, update_function=None):
                               default=param_default,
                               description=param_help, update=update_function)
         renderman_type = 'string'
-    elif param_type == 'string' or param_type == 'struct' or param_type == 'vstruct' or param_type == 'bxdf':
+    elif param_type in ['string', 'struct', 'vstruct', 'bxdf']:
         if param_default is None:
             param_default = ''
         #else:
@@ -634,7 +634,7 @@ def generate_property(node, sp, update_function=None):
                                 description=param_help, update=update_function)            
         renderman_type = param_type
 
-    elif param_type == 'vector' or param_type == 'normal':
+    elif param_type in ['vector', 'normal']:
         if param_default is None:
             param_default = '0 0 0'
         prop = FloatVectorProperty(name=param_label,
