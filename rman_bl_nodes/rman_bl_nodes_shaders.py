@@ -164,6 +164,13 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         row.label(text='%s Size' % prop_name)               
                         row.prop(self, '%s_arraylen' % prop_name, text='')
 
+                    elif prop_meta['widget'] == 'propsearch':                 
+                        # use a prop_search layout
+                        options = prop_meta['options']
+                        prop_search_parent = options.get('prop_parent')
+                        prop_search_name = options.get('prop_name')
+                        eval(f'layout.prop_search(self, prop_name, {prop_search_parent}, "{prop_search_name}")')                          
+
                     else:
                         layout.prop(self, prop_name, slider=True)
 

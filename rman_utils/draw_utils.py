@@ -203,23 +203,24 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 prop = getattr(node, prop_name)
 
                 if 'widget' in prop_meta:
-                    if prop_meta['widget'] == 'null' or \
+                    widget = prop_meta['widget']
+                    if widget == 'null' or \
                         'hidden' in prop_meta and prop_meta['hidden']:
                         continue
-                    elif prop_meta['widget'] == 'colorramp':
+                    elif widget == 'colorramp':
                         node_group = bpy.data.node_groups[node.rman_fake_node_group]
                         ramp_name =  prop
                         ramp_node = node_group.nodes[ramp_name]
                         layout.template_color_ramp(
                                 ramp_node, 'color_ramp')  
                         continue       
-                    elif prop_meta['widget'] == 'floatramp':
+                    elif widget == 'floatramp':
                         node_group = bpy.data.node_groups[node.rman_fake_node_group]
                         ramp_name =  prop
                         ramp_node = node_group.nodes[ramp_name]
                         layout.template_curve_mapping(
                                 ramp_node, 'mapping')  
-                        continue                         
+                        continue                           
 
                 # else check if the socket with this name is connected
                 socket = node.inputs[prop_name] if prop_name in node.inputs \
@@ -329,18 +330,13 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     else:                      
                         indented_label(row, None, level)
                         
-                        # don't draw prop for struct type
-                        '''
-                        if "Subset" in prop_name and prop_meta['type'] == 'string':
-                            row.prop_search(node, prop_name, bpy.data.scenes[0].renderman,
-                                            "object_groups")
-                        else:
-                            if prop_meta['renderman_type'] not in ['struct', 'bxdf', 'vstruct']:
-                                row.prop(node, prop_name, slider=True)
-                            else:
-                                row.label(text=prop_meta['label'])
-                        '''
-                        if prop_meta['renderman_type'] not in ['struct', 'bxdf', 'vstruct']:
+                        if prop_meta['widget'] == 'propsearch':
+                            # use a prop_search layout
+                            options = prop_meta['options']
+                            prop_search_parent = options.get('prop_parent')
+                            prop_search_name = options.get('prop_name')
+                            eval(f'row.prop_search(node, prop_name, {prop_search_parent}, "{prop_search_name}")')                            
+                        elif prop_meta['renderman_type'] not in ['struct', 'bxdf', 'vstruct']:
                             row.prop(node, prop_name, slider=True)
                         else:
                             row.label(text=prop_meta['label'])
