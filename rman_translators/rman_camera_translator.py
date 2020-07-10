@@ -59,7 +59,10 @@ class RmanCameraTranslator(RmanTranslator):
         rman_sg_camera.sg_node.SetTransformNumSamples(len(motion_steps))
 
     def _update_viewport_transform(self, rman_sg_camera):
-        mtx = self.rman_scene.context.region_data.view_matrix.inverted()
+        region_data = self.rman_scene.context.region_data
+        if not region_data:
+            return
+        mtx = region_data.view_matrix.inverted()
         v = transform_utils.convert_matrix(mtx)
         if rman_sg_camera.cam_matrix == v:
             return 
@@ -138,6 +141,8 @@ class RmanCameraTranslator(RmanTranslator):
         height = int(region.height * res_mult)      
 
         updated = False
+        ob = None
+        prop = rman_sg_camera.sg_node.GetProperties()
         if rman_sg_camera.res_width != width:
             rman_sg_camera.res_width = width
             updated = True
@@ -146,97 +151,97 @@ class RmanCameraTranslator(RmanTranslator):
             rman_sg_camera.res_height = height                
             updated = True      
 
-        if rman_sg_camera.view_perspective != region_data.view_perspective:
-            rman_sg_camera.view_perspective = region_data.view_perspective
-            updated = True            
+        if region_data:
+            if rman_sg_camera.view_perspective != region_data.view_perspective:
+                rman_sg_camera.view_perspective = region_data.view_perspective
+                updated = True            
 
-        if rman_sg_camera.view_camera_zoom != self.rman_scene.context.region_data.view_camera_zoom:
-            rman_sg_camera.view_camera_zoom = self.rman_scene.context.region_data.view_camera_zoom
-            updated = True
-
-        if rman_sg_camera.view_camera_offset != self.rman_scene.context.region_data.view_camera_offset:
-            rman_sg_camera.view_camera_offset = self.rman_scene.context.region_data.view_camera_offset
-            updated = True            
-
-        prop = rman_sg_camera.sg_node.GetProperties()
-        if region_data.view_perspective == 'CAMERA':
-            ob = self.rman_scene.bl_scene.camera    
-            if self.rman_scene.context.space_data.use_local_camera:
-                ob = self.rman_scene.context.space_data.camera      
-
-            cam = ob.data
-            r = self.rman_scene.bl_scene.render
-
-            xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
-
-            # magic zoom formula copied from blenderseed, which got it from cycles
-            zoom = 4 / ((math.sqrt(2) + rman_sg_camera.view_camera_zoom / 50) ** 2)   
-                
-            # shift and offset            
-            offset = tuple(rman_sg_camera.view_camera_offset)
-            dx = 2.0 * (aspectratio * cam.shift_x + offset[0] * xaspect * 2.0)
-            dy = 2.0 * (aspectratio * cam.shift_y + offset[1] * yaspect * 2.0)       
-            
-            xaspect *= zoom
-            yaspect *= zoom 
-            xaspect += dx
-            yaspect += dy
-            if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect: 
-                prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)      
-                rman_sg_camera.xaspect = xaspect
-                rman_sg_camera.yaspect = yaspect  
-                rman_sg_camera.aspectratio = aspectratio
+            if rman_sg_camera.view_camera_zoom != self.rman_scene.context.region_data.view_camera_zoom:
+                rman_sg_camera.view_camera_zoom = self.rman_scene.context.region_data.view_camera_zoom
                 updated = True
 
-        elif region_data.view_perspective ==  'PERSP': 
-            ob = self.rman_scene.context.space_data.camera 
-            cam = ob.data
-            r = self.rman_scene.bl_scene.render
+            if rman_sg_camera.view_camera_offset != self.rman_scene.context.region_data.view_camera_offset:
+                rman_sg_camera.view_camera_offset = self.rman_scene.context.region_data.view_camera_offset
+                updated = True            
 
-            xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)          
-            zoom = 2.0  
+            if region_data.view_perspective == 'CAMERA':
+                ob = self.rman_scene.bl_scene.camera    
+                if self.rman_scene.context.space_data.use_local_camera:
+                    ob = self.rman_scene.context.space_data.camera      
 
-            # shift and offset            
-            offset = tuple(rman_sg_camera.view_camera_offset)
-            dx = 2.0 * (aspectratio * cam.shift_x + offset[0] * xaspect * 2.0)
-            dy = 2.0 * (aspectratio * cam.shift_y + offset[1] * yaspect * 2.0)               
+                cam = ob.data
+                r = self.rman_scene.bl_scene.render
 
-            xaspect *= zoom
-            yaspect *= zoom
-            rman_sg_camera.lens = self.rman_scene.context.space_data.lens
-            if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect:
-                prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)   
-                rman_sg_camera.xaspect = xaspect
-                rman_sg_camera.yaspect = yaspect  
-                rman_sg_camera.aspectratio = aspectratio
-                updated = True                               
+                xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
 
-        else: 
-            ob = self.rman_scene.context.space_data.camera       
-            cam = ob.data
-            
-            r = self.rman_scene.bl_scene.render
+                # magic zoom formula copied from blenderseed, which got it from cycles
+                zoom = 4 / ((math.sqrt(2) + rman_sg_camera.view_camera_zoom / 50) ** 2)   
+                    
+                # shift and offset            
+                offset = tuple(rman_sg_camera.view_camera_offset)
+                dx = 2.0 * (aspectratio * cam.shift_x + offset[0] * xaspect * 2.0)
+                dy = 2.0 * (aspectratio * cam.shift_y + offset[1] * yaspect * 2.0)       
+                
+                xaspect *= zoom
+                yaspect *= zoom 
+                xaspect += dx
+                yaspect += dy
+                if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect: 
+                    prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)      
+                    rman_sg_camera.xaspect = xaspect
+                    rman_sg_camera.yaspect = yaspect  
+                    rman_sg_camera.aspectratio = aspectratio
+                    updated = True
 
-            xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
+            elif region_data.view_perspective ==  'PERSP': 
+                ob = self.rman_scene.context.space_data.camera 
+                cam = ob.data
+                r = self.rman_scene.bl_scene.render
 
-            # 2.25 zoom value copied from blenderseed
-            zoom = 2.25        
-            lens = self.rman_scene.context.space_data.lens
-            sensor = cam.sensor_height \
-                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+                xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)          
+                zoom = 2.0  
 
-            ortho_scale = region_data.view_distance * sensor / lens
-            xaspect = xaspect * ortho_scale / (aspectratio * 2.0)
-            yaspect = yaspect * ortho_scale / (aspectratio * 2.0)
+                # shift and offset            
+                offset = tuple(rman_sg_camera.view_camera_offset)
+                dx = 2.0 * (aspectratio * cam.shift_x + offset[0] * xaspect * 2.0)
+                dy = 2.0 * (aspectratio * cam.shift_y + offset[1] * yaspect * 2.0)               
 
-            xaspect *= zoom
-            yaspect *= zoom            
-            if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect:
-                prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)   
-                rman_sg_camera.xaspect = xaspect
-                rman_sg_camera.yaspect = yaspect  
-                rman_sg_camera.aspectratio = aspectratio
-                updated = True                                          
+                xaspect *= zoom
+                yaspect *= zoom
+                rman_sg_camera.lens = self.rman_scene.context.space_data.lens
+                if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect:
+                    prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)   
+                    rman_sg_camera.xaspect = xaspect
+                    rman_sg_camera.yaspect = yaspect  
+                    rman_sg_camera.aspectratio = aspectratio
+                    updated = True                               
+
+            else: 
+                ob = self.rman_scene.context.space_data.camera       
+                cam = ob.data
+                
+                r = self.rman_scene.bl_scene.render
+
+                xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)
+
+                # 2.25 zoom value copied from blenderseed
+                zoom = 2.25        
+                lens = self.rman_scene.context.space_data.lens
+                sensor = cam.sensor_height \
+                    if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+
+                ortho_scale = region_data.view_distance * sensor / lens
+                xaspect = xaspect * ortho_scale / (aspectratio * 2.0)
+                yaspect = yaspect * ortho_scale / (aspectratio * 2.0)
+
+                xaspect *= zoom
+                yaspect *= zoom            
+                if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect:
+                    prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)   
+                    rman_sg_camera.xaspect = xaspect
+                    rman_sg_camera.yaspect = yaspect  
+                    rman_sg_camera.aspectratio = aspectratio
+                    updated = True                                          
 
         if updated:
             options = self.rman_scene.sg_scene.GetOptions()

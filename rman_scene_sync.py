@@ -475,6 +475,9 @@ class RmanSceneSync(object):
     def update_viewport_res_mult(self, context):
         if not self.rman_scene.is_viewport_render:
             return         
+        if context:
+            self.rman_scene.context = context
+            self.rman_scene.bl_scene = context.scene            
         rman_sg_camera = self.rman_scene.main_camera
         translator = self.rman_scene.rman_translators['CAMERA']
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
