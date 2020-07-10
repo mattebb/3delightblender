@@ -10,6 +10,11 @@
             "name": "shadowExcludeSubset",    
             "widget": "propSearch",
             "options": "prop_parent:context.scene.renderman|prop_name:object_groups"
-        }                       
+        },
+        {
+            "name": "cheapCausticsExcludeGroup",    
+            "widget": "propSearch",
+            "options": "prop_parent:context.scene.renderman|prop_name:object_groups"
+        }                               
     ]
 }
