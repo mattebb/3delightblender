@@ -19,22 +19,34 @@ class RendermanLightGroup(bpy.types.PropertyGroup):
             rm = member.light_ob.renderman
             light_shader = rm.get_light_node()
             light_shader.lightGroup = self.name
+            member.light_ob.update_tag(refresh={'DATA'})
 
     name: StringProperty(name="Group Name", update=update_name)
     members: CollectionProperty(type=RendermanLightPointer,
                                  name='Group Members')
-    members_index: IntProperty(min=-1, default=-1)           
+    members_index: IntProperty(min=-1, default=-1) 
 
 class RendermanObjectPointer(bpy.types.PropertyGroup):
-    name: StringProperty(name="name")
-    ob_pointer: PointerProperty(type=bpy.types.Object)          
+    def update_name(self, context):
+        if self.ob_pointer:
+            self.ob_pointer.update_tag(refresh={'OBJECT'})        
+
+    name: StringProperty(name="name", update=update_name)
+
+    def update_ob_pointer(self, context):
+        self.ob_pointer.update_tag(refresh={'OBJECT'})
+
+    ob_pointer: PointerProperty(type=bpy.types.Object, update=update_ob_pointer)          
 
 class RendermanGroup(bpy.types.PropertyGroup):
-    name: StringProperty(name="Group Name")
+    def update_name(self, context):
+        for member in self.members:
+            member.ob_pointer.update_tag(refresh={'OBJECT'})
+
+    name: StringProperty(name="Group Name", update=update_name)
     members: CollectionProperty(type=RendermanObjectPointer,
                                  name='Group Members')
     members_index: IntProperty(min=-1, default=-1)
-
 
 class LightLinking(bpy.types.PropertyGroup):
 

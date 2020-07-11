@@ -1,5 +1,6 @@
 from .. import rfb_icons
 from ..rman_utils import prefs_utils                    
+import bpy
 
 # ------- Subclassed Panel Types -------
 class _RManPanelHeader():
@@ -16,12 +17,17 @@ class _RManPanelHeader():
         else:
             pass
 
+class RENDERMAN_UL_Basic_UIList(bpy.types.UIList):
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.prop(item, 'name', text='', emboss=False, icon_value=icon)    
+
 class CollectionPanel(_RManPanelHeader):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
 
     def _draw_collection(self, context, layout, ptr, name, operator,
-                         opcontext, prop_coll, collection_index, default_name='', ui_list_class="UI_UL_list", enable_add_func=None, enable_remove_func=None):
+                         opcontext, prop_coll, collection_index, default_name='', ui_list_class="RENDERMAN_UL_Basic_UIList", enable_add_func=None, enable_remove_func=None):
         layout.label(text=name)
         row = layout.row()
         row.template_list(ui_list_class, "PRMAN", ptr, prop_coll, ptr,
@@ -100,3 +106,18 @@ class ShaderPanel(_RManPanelHeader):
         elif cls.bl_context == 'material':
             return (hasattr(context, "material") and context.material is not None and is_rman)
 
+classes = [
+    RENDERMAN_UL_Basic_UIList
+]
+
+def register():
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
+def unregister():
+    for cls in classes:
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError:
+            rfb_log().debug('Could not unregister class: %s' % str(cls))
+            pass

@@ -63,8 +63,69 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class COLLECTION_OT_object_groups_add_remove(bpy.types.Operator):
+    bl_label = "Add or Remove Object Groups"
+    bl_idname = "renderman.add_remove_object_groups"
+
+    action: EnumProperty(
+        name="Action",
+        description="Either add or remove properties",
+        items=[('ADD', 'Add', ''),
+               ('REMOVE', 'Remove', '')],
+        default='ADD')
+    context: StringProperty(
+        name="Context",
+        description="Name of context member to find renderman pointer in",
+        default="")
+    collection: StringProperty(
+        name="Collection",
+        description="The collection to manipulate",
+        default="")
+    collection_index: StringProperty(
+        name="Index Property",
+        description="The property used as a collection index",
+        default="")
+    defaultname: StringProperty(
+        name="Default Name",
+        description="Default name to give this collection item",
+        default="")
+
+    def invoke(self, context, event):
+        scene = context.scene
+        id = string_utils.getattr_recursive(context, self.properties.context)
+        rm = id.renderman if hasattr(id, 'renderman') else id
+
+        prop_coll = self.properties.collection
+        coll_idx = self.properties.collection_index
+
+        collection = getattr(rm, prop_coll)
+        index = getattr(rm, coll_idx)
+
+        if self.properties.action == 'ADD':
+            dflt_name = self.properties.defaultname
+            for coll in collection:
+                if coll.name == dflt_name:
+                    dflt_name = '%s_NEW' % dflt_name
+            collection.add()
+            index += 1
+            setattr(rm, coll_idx, index)
+            collection[-1].name = dflt_name
+
+        elif self.properties.action == 'REMOVE':
+            group = collection[index]            
+            # get a list of all objects in this group
+            ob_list = [member.ob_pointer for member in group.members]
+            collection.remove(index)
+            setattr(rm, coll_idx, index - 1)
+
+            # now tell each object to update
+            for ob in ob_list:
+                ob.update_tag(refresh={'OBJECT'})
+
+        return {'FINISHED'}               
+
 class COLLECTION_OT_light_groups_add_remove(bpy.types.Operator):
-    bl_label = "Add or Remove Paths"
+    bl_label = "Add or Remove Light Groups"
     bl_idname = "renderman.add_remove_light_groups"
 
     action: EnumProperty(
@@ -675,6 +736,7 @@ class PRMAN_OT_remove_light_link(bpy.types.Operator):
 
 classes = [
     COLLECTION_OT_add_remove,
+    COLLECTION_OT_object_groups_add_remove,
     COLLECTION_OT_light_groups_add_remove,
     PRMAN_OT_convert_mixer_group_to_light_group,
     PRMAN_OT_add_to_group,

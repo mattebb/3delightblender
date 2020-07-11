@@ -557,7 +557,7 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
         layout.separator()
         if self.properties.groups_type == 'OBJECT':
             self._draw_collection(context, layout, rm, "Object Groups",
-                                "collection.add_remove",
+                                "renderman.add_remove_object_groups",
                                 "scene.renderman",
                                 "object_groups", "object_groups_index",
                                 default_name='objectGroup_%d' % len(rm.object_groups))

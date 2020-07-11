@@ -222,7 +222,7 @@ class VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu(bpy.types.Menu):
                     selected_objects.append(obj)          
 
         layout.separator()
-        op = layout.operator('collection.add_remove', text='Create New Group')
+        op = layout.operator('renderman.add_remove_object_groups', text='Create New Group')
         op.context = 'scene.renderman'
         op.collection = 'object_groups'
         op.collection_index = 'object_groups_index'
