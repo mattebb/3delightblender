@@ -126,15 +126,10 @@ class RmanTranslator(object):
         obj_groups_str += "," + name
         lpe_groups_str = "*"
         for obj_group in self.rman_scene.bl_scene.renderman.object_groups:
-            #if ob.name in obj_group.members.keys():
-            for member in obj_group.members:
-                print(f"GRP_NAME: {member.name}")
-                if member.ob_pointer == ob:
-                    obj_groups_str += ',' + obj_group.name
-                    lpe_groups_str += ',' + obj_group.name
-                    break
+            if ob.name in obj_group.members.keys():
+                obj_groups_str += ',' + obj_group.name
+                lpe_groups_str += ',' + obj_group.name
 
-        print(f"OB: {ob.name} GROUP: {obj_groups_str}")
         attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_grouping_membership, obj_groups_str)
 
         # add to trace sets
