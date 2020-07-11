@@ -219,10 +219,7 @@ class VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu(bpy.types.Menu):
         if context.selected_objects:
             for obj in context.selected_objects:
                 if obj.type not in ['CAMERA', 'LIGHT', 'SPEAKER']:
-                    selected_objects.append(obj)
-
-        if not selected_objects:
-            return                  
+                    selected_objects.append(obj)          
 
         layout.separator()
         op = layout.operator('collection.add_remove', text='Create New Group')
@@ -230,7 +227,10 @@ class VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu(bpy.types.Menu):
         op.collection = 'object_groups'
         op.collection_index = 'object_groups_index'
         op.defaultname = 'objectGroup_%d' % len(scene.renderman.object_groups)
-        op.action = 'ADD'             
+        op.action = 'ADD'         
+
+        if not selected_objects:
+            return                  
 
         obj_grps = scene.renderman.object_groups
         if obj_grps:
@@ -260,10 +260,7 @@ class VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu(bpy.types.Menu):
         if context.selected_objects:
             for obj in context.selected_objects:
                 if obj.type == 'LIGHT' and obj.data.renderman.renderman_light_role == 'RMAN_LIGHT':
-                    selected_light_objects.append(obj)
-
-        if not selected_light_objects:
-            return                         
+                    selected_light_objects.append(obj)                    
 
         op = layout.operator('collection.add_remove', text='Create Light Mixer Group')
         op.context = 'scene.renderman'
@@ -271,6 +268,9 @@ class VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu(bpy.types.Menu):
         op.collection_index = 'light_mixer_groups_index'
         op.defaultname = 'mixerGroup_%d' % len(scene.renderman.light_mixer_groups)
         op.action = 'ADD'
+
+        if not selected_light_objects:
+            return    
   
         lgt_mixer_grps = scene.renderman.light_mixer_groups
         if lgt_mixer_grps:
