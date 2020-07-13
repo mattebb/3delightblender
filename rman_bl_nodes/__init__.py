@@ -459,10 +459,52 @@ def generate_node_type(node_desc, is_oso=False):
 
             for ramp_name in color_rman_ramps:
                 n = node_group.nodes.new('ShaderNodeValToRGB')
+
+                knots = None
+                knots_name = '%s_Knots' % ramp_name
+                cols = None
+                cols_name = '%s_Colors' % ramp_name
+                for node_desc_param in node_desc.params:
+                    if node_desc_param.name == knots_name:
+                        knots = node_desc_param
+                    elif node_desc_param.name == cols_name:
+                        cols = node_desc_param
+                elements = n.color_ramp.elements
+                prev_val = None
+                for i in range(0, len(knots.default)):
+                    if not prev_val:
+                        prev_val = cols.default[i]
+                    elif prev_val == cols.default[i]:
+                        continue
+                    prev_val = cols.default[i]
+                    new_elem = elements.new(knots.default[i])
+                    new_elem.color = (cols.default[i][0], cols.default[i][1], cols.default[i][2], 1.0)
+                
                 setattr(self, ramp_name, n.name)
 
             for ramp_name in float_rman_ramps:
                 n = node_group.nodes.new('ShaderNodeVectorCurve') 
+
+                knots = None
+                knots_name = '%s_Knots' % ramp_name
+                vals = None
+                vals_name = '%s_Floats' % ramp_name
+                for node_desc_param in node_desc.params:
+                    if node_desc_param.name == knots_name:
+                        knots = node_desc_param
+                    elif node_desc_param.name == vals_name:
+                        vals = node_desc_param                
+                curve = n.mapping.curves[0]
+                points = curve.points
+                prev_val = None
+                for i in range(0, len(knots.default)):
+                    if not prev_val:
+                        prev_val = vals.default[i]
+                    elif prev_val == vals.default[i]:
+                        continue      
+                    prev_val = vals.default[i]              
+                    points.new(knots.default[i], vals.default[i])
+
                 setattr(self, ramp_name, n.name)        
 
             self.__annotations__['__COLOR_RAMPS__'] = color_rman_ramps
