@@ -266,9 +266,6 @@ class RmanCameraTranslator(RmanTranslator):
         proj = None
         fov = -1
 
-        options = self.rman_scene.sg_scene.GetOptions()
-        prop = rman_sg_camera.sg_node.GetProperties()
-
         updated = False
 
         if rman_sg_camera.view_perspective == 'CAMERA':
@@ -319,17 +316,7 @@ class RmanCameraTranslator(RmanTranslator):
             # orthographic
             proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")          
 
-        if updated:
-                        
-            # This may look redundant given that we've already set screen window on the camera, 
-            # but for some reason without this we seem to be getting
-            # the default -1 1 -1 1 screen window every time we change any of the camera's
-            # properties that affect FOV. Even setting the screen window again on the camera
-            # doesn't work
-            options = self.rman_scene.sg_scene.GetOptions()
-            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-rman_sg_camera.xaspect, rman_sg_camera.xaspect, -rman_sg_camera.yaspect, rman_sg_camera.yaspect), 4)               
-            self.rman_scene.sg_scene.SetOptions(options)
-
+        if updated:    
             rman_sg_camera.sg_node.SetProjection(proj)          
             #rman_sg_camera.sg_node.SetRenderable(True)         
 
