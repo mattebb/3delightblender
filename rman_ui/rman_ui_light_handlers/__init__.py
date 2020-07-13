@@ -530,8 +530,8 @@ def draw_rect_light(ob):
 
     set_selection_color(ob)
 
-    m = Matrix(ob.matrix_world)        
-    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
+    ob_matrix = Matrix(ob.matrix_world)        
+    m = ob_matrix @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
 
     box = []
     for pt in s_rmanLightLogo['box']:
@@ -549,6 +549,7 @@ def draw_rect_light(ob):
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": arrow}, indices=arrow_indices)    
     batch.draw(_SHADER_)
 
+    m = ob_matrix
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
         R_outside.append( m @ Vector(pt))
@@ -571,9 +572,36 @@ def draw_sphere_light(ob):
 
     set_selection_color(ob)
 
-    m = Matrix(ob.matrix_world)        
-    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
+    ob_matrix = Matrix(ob.matrix_world)        
+    m = ob_matrix @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
 
+    disk = []
+    for pt in s_diskLight:
+        disk.append( m @ Vector(pt) ) 
+
+    disk_indices = _get_indices(s_diskLight)
+    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+    batch.draw(_SHADER_)
+
+    m2 = m @ Matrix.Rotation(math.radians(90.0), 4, 'Y')
+    disk = []
+    for pt in s_diskLight:
+        disk.append( m2 @ Vector(pt)) 
+
+    disk_indices = _get_indices(s_diskLight)
+    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+    batch.draw(_SHADER_)
+
+    m3 = m @ Matrix.Rotation(math.radians(90.0), 4, 'X')
+    disk = []
+    for pt in s_diskLight:
+        disk.append( m3 @ Vector(pt))
+
+    disk_indices = _get_indices(s_diskLight)
+    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
+    batch.draw(_SHADER_)   
+
+    m = ob_matrix
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
         R_outside.append( m @ Vector(pt))
@@ -588,17 +616,6 @@ def draw_sphere_light(ob):
 
     R_inside_indices = _get_indices(s_rmanLightLogo['R_inside'])
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_inside}, indices=R_inside_indices)    
-    batch.draw(_SHADER_)    
-
-    sphere = make_sphere(m)
-    sphere_indices = []
-    for i in range(0, len(sphere)):
-        if i == len(sphere)-1:
-            sphere_indices.append((i, 0))
-        else:
-            sphere_indices.append((i, i+1))     
-
-    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": sphere}, indices=sphere_indices)    
     batch.draw(_SHADER_)    
 
 def draw_envday_light(ob): 
@@ -747,13 +764,12 @@ def draw_envday_light(ob):
 
 def draw_disk_light(ob): 
                  
-
     _SHADER_.bind()
 
     set_selection_color(ob)
 
-    m = Matrix(ob.matrix_world)        
-    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
+    ob_matrix = Matrix(ob.matrix_world)        
+    m = ob_matrix @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
 
     disk = []
     for pt in s_diskLight:
@@ -771,6 +787,7 @@ def draw_disk_light(ob):
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": arrow}, indices=arrow_indices)    
     batch.draw(_SHADER_)
 
+    m = ob_matrix
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
         R_outside.append( m @ Vector(pt)) 
@@ -794,16 +811,8 @@ def draw_dist_light(ob):
 
     set_selection_color(ob)
 
-    m = Matrix(ob.matrix_world)        
-    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')  
-
-    disk = []
-    for pt in s_diskLight:
-        disk.append( m @ Vector(pt) )
-
-    disk_indices = _get_indices(s_diskLight)
-    batch = batch_for_shader(_SHADER_, 'LINES', {"pos": disk}, indices=disk_indices)    
-    batch.draw(_SHADER_)    
+    ob_matrix = Matrix(ob.matrix_world)        
+    m = ob_matrix @ Matrix.Rotation(math.radians(180.0), 4, 'Y')  
 
     arrow1 = []
     for pt in s_distantLight['arrow1']:
@@ -829,6 +838,7 @@ def draw_dist_light(ob):
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": arrow3}, indices=arrow3_indices)    
     batch.draw(_SHADER_)         
 
+    m = ob_matrix
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
         R_outside.append( m @ Vector(pt) )
@@ -850,8 +860,8 @@ def draw_portal_light(ob):
 
     set_selection_color(ob)
 
-    m = Matrix(ob.matrix_world)        
-    m = m @ Matrix.Rotation(math.radians(180.0), 4, 'Y')
+    ob_matrix = Matrix(ob.matrix_world)        
+    m = ob_matrix
 
     R_outside = []
     for pt in s_rmanLightLogo['R_outside']:
@@ -869,8 +879,7 @@ def draw_portal_light(ob):
     batch = batch_for_shader(_SHADER_, 'LINES', {"pos": R_inside}, indices=R_inside_indices)    
     batch.draw(_SHADER_)                 
 
-    m = Matrix(ob.matrix_world)
-    m = m @ Matrix.Rotation(math.radians(90.0), 4, 'X')
+    m = ob_matrix @ Matrix.Rotation(math.radians(90.0), 4, 'X')
     m = m @ Matrix.Scale(0.5, 4)
     rays = []
     for pt in s_portalRays:
