@@ -417,11 +417,20 @@ _SHADER_ = None
 if not bpy.app.background:
     _SHADER_ = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
 
+_SELECTED_COLOR_ = (1, 1, 1)
+_WIRE_COLOR_ = (0, 0, 0)
+if 'Default' in bpy.context.preferences.themes:
+    _SELECTED_COLOR_ = bpy.context.preferences.themes['Default'].view_3d.object_active
+    _WIRE_COLOR_ = bpy.context.preferences.themes['Default'].view_3d.wire
+
 def set_selection_color(ob):
+    global _SELECTED_COLOR_, _WIRE_COLOR_
     if ob in bpy.context.selected_objects:
-        _SHADER_.uniform_float("color", (1,1,1,1))
+        col = (_SELECTED_COLOR_[0], _SELECTED_COLOR_[1], _SELECTED_COLOR_[2], 1)
     else:
-        _SHADER_.uniform_float("color", (0,0,0,1))
+        col = (_WIRE_COLOR_[0], _WIRE_COLOR_[1], _WIRE_COLOR_[2], 1)
+       
+    _SHADER_.uniform_float("color", col)
 
 def _get_indices(l):
     indices = []
