@@ -13,12 +13,12 @@ class RENDERMAN_UL_LightLink_Light_List(bpy.types.UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
-        label = item.name
         op = layout.operator("renderman.remove_light_link", text='', icon='REMOVE') 
         op.group_index = index
         light = item.light_ob
         light_shader = light.renderman.get_light_node()        
         icon = rfb_icons.get_light_icon(light_shader.bl_label)        
+        label = light.name
         layout.label(text=label, icon_value=icon.icon_id)     
 
 class RENDERMAN_UL_LightLink_Object_List(bpy.types.UIList):
@@ -26,9 +26,9 @@ class RENDERMAN_UL_LightLink_Object_List(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
         custom_icon = 'OBJECT_DATAMODE'
-        label = item.name
         layout.context_pointer_set("selected_obj", item.ob_pointer)
         op = layout.operator('renderman.remove_light_link_object', text='', icon='REMOVE')    
+        label = item.ob_pointer.name
         layout.label(text=label, icon=custom_icon)
 
 class RENDERMAN_UL_Object_Group_List(bpy.types.UIList):
@@ -38,7 +38,8 @@ class RENDERMAN_UL_Object_Group_List(bpy.types.UIList):
         custom_icon = 'OBJECT_DATAMODE'
         layout.context_pointer_set("selected_obj", item.ob_pointer)
         op = layout.operator('renderman.remove_from_group', text='', icon='REMOVE')     
-        layout.label(text=item.name, icon=custom_icon)
+        label = item.ob_pointer.name
+        layout.label(text=label, icon=custom_icon)
 
 class RENDERMAN_UL_Light_Group_List(bpy.types.UIList):
 
@@ -49,7 +50,8 @@ class RENDERMAN_UL_Light_Group_List(bpy.types.UIList):
         icon = rfb_icons.get_light_icon(light_shader.bl_label)
         layout.context_pointer_set("selected_light", item.light_ob)
         op = layout.operator('renderman.remove_from_light_group', text='', icon='REMOVE')
-        layout.label(text=item.name, icon_value=icon.icon_id)        
+        label = light.name
+        layout.label(text=label, icon_value=icon.icon_id)        
 
         light_rm = light.renderman
         if light_shader.bl_label == 'PxrEnvDayLight':
