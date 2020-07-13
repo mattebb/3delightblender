@@ -92,7 +92,13 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
         # check if we need to emit this parameter.
         if node != None and not prefs_utils.get_pref_val('rman_emit_default_params'):
             dflt = get_property_default(node, param_name)
-            if dflt != None:
+
+            # FIXME/TODO: currently, the python version of RtParamList
+            # doesn't allow us to retrieve existing values. For now, only do the
+            # default check when the param is not in there. Otherwise, we risk
+            # not setting the value during IPR, if the user happens to change
+            # the param val back to default. 
+            if dflt != None and not params.HasParam(param_name):
                 if isinstance(val, list):
                     dflt = list(dflt)
 
