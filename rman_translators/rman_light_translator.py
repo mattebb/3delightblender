@@ -102,6 +102,10 @@ class RmanLightTranslator(RmanTranslator):
         rm = light.renderman      
 
         light_filters = []
+        multLFs = []
+        maxLFs = []
+        minLFs = []
+        screenLFs = []
         lightfilter_translator = self.rman_scene.rman_translators['LIGHTFILTER']
         rman_sg_light.sg_node.SetLightFilter([])
         for lf in rm.light_filters:
@@ -130,6 +134,32 @@ class RmanLightTranslator(RmanTranslator):
                 light_filters.append(rman_sg_lightfilter.sg_filter_node)
                 if ob.original not in rman_sg_lightfilter.lights_list:
                     rman_sg_lightfilter.lights_list.append(ob.original)
+
+                # check which, if any, combineMode this light filter wants
+                lightfilter_node = light_filter.data.renderman.get_light_node()
+                instance_name = rman_sg_lightfilter.sg_filter_node.handle.CStr()
+                combineMode = getattr(lightfilter_node, 'combineMode', '')
+                if combineMode == 'mult':
+                    multLFs.append(instance_name)
+                elif combineMode == 'max':
+                    maxLFs.append(instance_name)
+                elif combineMode == 'min':
+                    minLFs.append(instance_name)
+                elif combineMode == 'screen':
+                    screenLFs.append(instance_name)
+
+        if len(light_filters) > 1:
+            # create a combiner node
+            combiner = self.rman_scene.rman.SGManager.RixSGShader("LightFilter", 'PxrCombinerLightFilter', '%s-PxrCombinerLightFilter' % (rman_sg_light.db_name))
+            if multLFs:
+                combiner.params.SetLightFilterReferenceArray("mult", multLFs, len(multLFs))
+            if maxLFs:
+                combiner.params.SetLightFilterReferenceArray("max", maxLFs, len(maxLFs))                
+            if minLFs:
+                combiner.params.SetLightFilterReferenceArray("min", minLFs, len(minLFs))                
+            if screenLFs:
+                combiner.params.SetLightFilterReferenceArray("screen", screenLFs, len(screenLFs))      
+            light_filters.append(combiner)                                        
 
         if len(light_filters) > 0:
             rman_sg_light.sg_node.SetLightFilter(light_filters)          
