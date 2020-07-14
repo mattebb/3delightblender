@@ -22,9 +22,18 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
     def draw(self, context):
         layout = self.layout
 
+        selected_light_objects = []
+        if context.selected_objects:
+            for obj in context.selected_objects:
+                if obj.type == 'LIGHT' and obj.data.renderman.renderman_light_role == 'RMAN_LIGHT':
+                    selected_light_objects.append(obj)       
+
         layout.menu('VIEW3D_MT_RM_Add_Light_Menu', icon_value=bpy.types.VIEW3D_MT_RM_Add_Light_Menu.get_icon_id())
 
-        layout.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', icon_value=bpy.types.VIEW3D_MT_RM_Add_LightFilter_Menu.get_icon_id())
+        if selected_light_objects:
+            layout.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', text='Attach Light Filter', icon_value=bpy.types.VIEW3D_MT_RM_Add_LightFilter_Menu.get_icon_id())
+        else:
+            layout.menu('VIEW3D_MT_RM_Add_LightFilter_Menu', icon_value=bpy.types.VIEW3D_MT_RM_Add_LightFilter_Menu.get_icon_id())
 
         layout.separator()
         layout.menu('VIEW3D_MT_renderman_add_object_quadrics_menu', icon='MESH_UVSPHERE')
@@ -352,7 +361,7 @@ class VIEW3D_MT_RM_Add_LightFilter_Menu(bpy.types.Menu):
 
         for nm, nm, description, icon, i in get_lightfilter_items():
             op = layout.operator('object.rman_add_light_filter', text=nm, icon_value=icon)
-            op.rman_lightfilter_name = nm                                   
+            op.rman_lightfilter_name = nm                             
 
 class VIEW3D_MT_RM_Add_bxdf_Menu(bpy.types.Menu):
     bl_label = "Material"
