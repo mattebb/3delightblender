@@ -511,7 +511,20 @@ class RmanSceneSync(object):
             return
         translator = self.rman_scene.rman_translators["LIGHT"]        
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
-            translator.update(ob, rman_sg_light)            
+            translator.update(ob, rman_sg_light)         
+
+    def update_light_filter(self, ob):
+        rman_sg_node = self.rman_scene.rman_objects.get(ob.original, None)
+        if not rman_sg_node:
+            return
+
+        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+            self.rman_scene.rman_translators['LIGHTFILTER'].update(ob, rman_sg_node)
+            for light_ob in rman_sg_node.lights_list:
+                light_key = object_utils.get_db_name(light_ob, rman_type='LIGHT')
+                rman_sg_light = self.rman_scene.rman_objects.get(light_ob.original, None)
+                if rman_sg_light:
+                    self.rman_scene.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)                    
 
     def update_solo_light(self, context):
         # solo light has changed

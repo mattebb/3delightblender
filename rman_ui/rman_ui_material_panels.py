@@ -38,6 +38,50 @@ class MATERIAL_PT_renderman_preview(Panel, ShaderPanel):
         col.prop(mat, "specular_color", text="")
         #FIXME col.prop(mat, "specular_hardness", text="Hardness")
 
+class MATERIAL_PT_renderman_material_refresh(ShaderPanel, Panel):
+    bl_context = "material"
+    bl_label = "Refresh"   
+
+    @classmethod
+    def poll(cls, context):
+        mat = getattr(context, 'material', None)
+        if not mat:
+            return False
+        rr = RmanRender.get_rman_render()
+        if not rr.rman_is_live_rendering:
+            return False
+        return True
+
+    def draw(self, context):
+        mat = context.material
+        layout = self.layout
+        rr = RmanRender.get_rman_render()
+        if rr.rman_is_live_rendering:
+            layout.context_pointer_set("material", mat)
+            layout.operator("nodes.rman_force_material_refresh", text='Force Refresh')
+
+class DATA_PT_renderman_light_refresh(ShaderPanel, Panel):
+    bl_context = "data"
+    bl_label = "Refresh"
+
+    @classmethod
+    def poll(cls, context):
+        rr = RmanRender.get_rman_render()
+        if not rr.rman_is_live_rendering:
+            return False
+        return True    
+
+    def draw(self, context):
+        layout = self.layout
+        light = context.light
+        rr = RmanRender.get_rman_render()
+        if light.renderman.renderman_light_role == 'RMAN_LIGHT':
+            layout.context_pointer_set("light", context.active_object)
+            layout.operator("nodes.rman_force_light_refresh", text='Force Refresh')
+        else:
+            layout.context_pointer_set("light_filter", context.active_object)
+            layout.operator("nodes.rman_force_lightfilter_refresh", text='Force Refresh')
+
 class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
     bl_context = "material"
     bl_label = "Bxdf"
@@ -50,7 +94,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             nt = context.material.node_tree
             rman_output_node = is_renderman_nodetree(mat)
 
-            if rman_output_node:
+            if rman_output_node:             
                 if rman_output_node.solo_node_name != '':
                     solo_node = nt.nodes.get(rman_output_node.solo_node_name, None)
                     if solo_node:
@@ -169,7 +213,10 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
             row = layout.row()
             col = row.column()
             light_shader = light.renderman.get_light_node_name()
-            rman_light_icon = rfb_icons.get_lightfilter_icon(light_shader)
+            if light.renderman.renderman_light_role == 'RMAN_LIGHT':
+                rman_light_icon = rfb_icons.get_light_icon(light_shader)
+            else:
+                rman_light_icon = rfb_icons.get_lightfilter_icon(light_shader)
             col.label(text="%s" % light_shader, icon_value=rman_light_icon.icon_id)
 
 class PRMAN_PT_context_material(_RManPanelHeader, Panel):
@@ -284,7 +331,7 @@ class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
     bl_context = 'data'
 
     def draw_item(self, layout, context, item):        
-        layout.prop(item, 'linked_filter_ob')
+        layout.prop(item, 'linked_filter_ob')    
 
         lightfilter = item.linked_filter_ob
         if lightfilter:
@@ -296,6 +343,12 @@ class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
                 return
 
             if lightfilter.data.node_tree:
+                col = layout.column()
+                rr = RmanRender.get_rman_render()
+                if rr.rman_is_live_rendering:
+                    col.context_pointer_set("light_filter", lightfilter)
+                    col.operator("nodes.rman_force_lightfilter_refresh", text='Force Refresh', icon='FILE_REFRESH')              
+
                 nt = lightfilter.data.node_tree
                 draw_nodes_properties_ui(
                     self.layout, context, nt, input_name='LightFilter')
@@ -319,6 +372,8 @@ class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
 
 classes = [
     MATERIAL_PT_renderman_preview,
+    MATERIAL_PT_renderman_material_refresh,
+    DATA_PT_renderman_light_refresh,
     MATERIAL_PT_renderman_shader_surface,
     MATERIAL_PT_renderman_shader_light,
     MATERIAL_PT_renderman_shader_displacement,

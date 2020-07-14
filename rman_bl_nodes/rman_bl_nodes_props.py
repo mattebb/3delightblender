@@ -24,7 +24,7 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
             return True
         return False
     
-    linked_filter_ob: PointerProperty(name='Light Filter:', 
+    linked_filter_ob: PointerProperty(name='Light Filter', 
                         description='Light Filter',
                         type=bpy.types.Object,
                         update=update_linked_filter_ob,

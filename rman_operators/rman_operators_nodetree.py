@@ -4,6 +4,7 @@ from .. import rman_cycles_convert
 from ..rman_utils import shadergraph_utils
 from .. import rman_bl_nodes
 from .rman_operators_utils import get_bxdf_items
+from ..rman_render import RmanRender
 import math
 
 class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
@@ -386,13 +387,58 @@ class PRMAN_OT_New_Material_Override(bpy.types.Operator):
 
         wm = context.window_manager
         return wm.invoke_props_dialog(self)        
+
+class PRMAN_OT_Force_Material_Refresh(bpy.types.Operator):
+    bl_idname = "nodes.rman_force_material_refresh"
+    bl_label = "Force Refresh"
+    bl_description = "Force Material to Refresh during IPR. Use this if your material is not responding to edits."
+    
+    def execute(self, context):
+        rr = RmanRender.get_rman_render()
+        if rr.rman_is_live_rendering:
+            mat = getattr(context, "material", None)
+            if mat:
+                rr.rman_scene_sync.update_material(mat)
+
+        return {"FINISHED"} 
+
+class PRMAN_OT_Force_Light_Refresh(bpy.types.Operator):
+    bl_idname = "nodes.rman_force_light_refresh"
+    bl_label = "Force Refresh"
+    bl_description = "Force Light to Refresh during IPR. Use this if your light is not responding to edits."
+    
+    def execute(self, context):
+        rr = RmanRender.get_rman_render()
+        if rr.rman_is_live_rendering:
+            ob = getattr(context, "light", context.active_object)
+            if ob:
+                rr.rman_scene_sync.update_light(ob)
+
+        return {"FINISHED"}       
         
+class PRMAN_OT_Force_LightFilter_Refresh(bpy.types.Operator):
+    bl_idname = "nodes.rman_force_lightfilter_refresh"
+    bl_label = "Force Refresh"
+    bl_description = "Force Light Filter to Refresh during IPR. Use this if your light filter is not responding to edits."
+    
+    def execute(self, context):
+        rr = RmanRender.get_rman_render()
+        if rr.rman_is_live_rendering:
+            ob = getattr(context, "light_filter", context.active_object)
+            if ob:
+                rr.rman_scene_sync.update_light_filter(ob)
+
+        return {"FINISHED"}  
+
 classes = [
     SHADING_OT_convert_all_renderman_nodetree,
     SHADING_OT_convert_cycles_to_renderman_nodetree,
     SHADING_OT_add_renderman_nodetree,
     PRMAN_OT_New_bxdf,
-    PRMAN_OT_New_Material_Override
+    PRMAN_OT_New_Material_Override,
+    PRMAN_OT_Force_Material_Refresh,
+    PRMAN_OT_Force_Light_Refresh,
+    PRMAN_OT_Force_LightFilter_Refresh
 ]
 
 def register():
