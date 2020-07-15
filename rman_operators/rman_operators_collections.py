@@ -174,13 +174,8 @@ class COLLECTION_OT_light_groups_add_remove(bpy.types.Operator):
 
         elif self.properties.action == 'REMOVE':
             group = collection[index]
-            # light group has been removed. Loop over
-            # all of the lights belonging to this group
-            # set lightGroup back to ''
             for member in group.members:
                 light = member.light_ob
-                light_shader = light.data.renderman.get_light_node()
-                light_shader.lightGroup = ''
                 light.update_tag(refresh={'DATA'})
 
             collection.remove(index)
@@ -218,8 +213,6 @@ class PRMAN_OT_convert_mixer_group_to_light_group(bpy.types.Operator):
 
         for member in mixer_group.members:
             light_ob = member.light_ob
-            light_shader = light_ob.data.renderman.get_light_node()
-            light_shader.lightGroup = mixer_group.name
             light_ob.update_tag(refresh={'DATA'})
 
         mixer_groups.remove(mixer_group_index)
@@ -339,13 +332,12 @@ class PRMAN_OT_add_to_light_group(bpy.types.Operator):
         for member in light_group.members:            
             if ob == member.light_ob:
                 do_add = False
+                self.report({'ERROR'}, f'Light: {ob.name} already belongs to LightGroup: {light_group.name}' )
                 break
         if do_add:
             ob_in_group = light_group.members.add()
             ob_in_group.name = ob.name
             ob_in_group.light_ob = ob
-            light_shader = ob.data.renderman.get_light_node()
-            light_shader.lightGroup = light_group.name
             ob.update_tag(refresh={'DATA'})
             op = getattr(context, 'op_ptr')
             if op:
@@ -358,11 +350,22 @@ class PRMAN_OT_add_to_light_group(bpy.types.Operator):
             return {'FINISHED'}
 
         group_index = self.properties.group_index
-        object_groups = scene.renderman.light_groups
-        object_group = object_groups[group_index]
+        light_groups = scene.renderman.light_groups
+        light_group = light_groups[group_index]
+
         for ob in context.selected_objects:
-            light_shader = ob.data.renderman.get_light_node()
-            light_shader.lightGroup = self.properties.group_name
+
+            do_add = True
+            for member in light_group.members:            
+                if ob == member.light_ob:
+                    do_add = False
+                    self.report({'ERROR'}, f'Light: {ob.name} already belongs to LightGroup: {light_group.name}' )
+                    break
+            if do_add:
+                ob_in_group = light_group.members.add()
+                ob_in_group.name = ob.name
+                ob_in_group.light_ob = ob         
+                ob.update_tag(refresh={'DATA'})       
 
     def execute(self, context):
         if self.properties.do_scene_selected:
@@ -388,10 +391,8 @@ class PRMAN_OT_remove_from_light_group(bpy.types.Operator):
         light_group = light_groups[group_index]
         for i, member in enumerate(light_group.members):
             if member.light_ob == ob:
-                light_shader = ob.data.renderman.get_light_node()
-                light_shader.lightGroup = ''
+                light_group.members.remove(i)                
                 ob.update_tag(refresh={'DATA'})
-                light_group.members.remove(i)
                 break
 
         return {'FINISHED'}        
@@ -429,8 +430,6 @@ class PRMAN_OT_movelight_group(bpy.types.Operator):
         members_index = light_group.members_index
         for i, member in enumerate(light_group.members):
             if member.light_ob == ob:
-                light_shader = ob.data.renderman.get_light_node()
-                light_shader.lightGroup = ''
                 light_group.members.remove(i)
                 light_group.members_index -= 1
                 break
@@ -441,8 +440,6 @@ class PRMAN_OT_movelight_group(bpy.types.Operator):
         ob_in_group = light_group.members.add()
         ob_in_group.name = ob.name
         ob_in_group.light_ob = ob
-        light_shader = ob.data.renderman.get_light_node()
-        light_shader.lightGroup = light_group.name  
         ob.update_tag(refresh={'DATA'})   
 
         return {'FINISHED'}                

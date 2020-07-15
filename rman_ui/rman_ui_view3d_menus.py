@@ -302,6 +302,9 @@ class VIEW3D_MT_RM_Add_Selected_To_LightGroup_Menu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         scene = context.scene
+        op = layout.operator("scene.rman_open_groups_editor", text="Light Groups Editor")
+        op.groups_type = 'LIGHT'
+        layout.separator()        
 
         selected_light_objects = []
         if context.selected_objects:
@@ -309,8 +312,12 @@ class VIEW3D_MT_RM_Add_Selected_To_LightGroup_Menu(bpy.types.Menu):
                 if obj.type == 'LIGHT' and obj.data.renderman.renderman_light_role == 'RMAN_LIGHT':
                     selected_light_objects.append(obj)
 
-        op = layout.operator("scene.rman_open_groups_editor", text="Light Groups Editor")
-        op.groups_type = 'LIGHT'
+        op = layout.operator('collection.add_remove', text='Create Light Group')
+        op.context = 'scene.renderman'
+        op.collection = 'light_groups'
+        op.collection_index = 'light_groups_index'
+        op.defaultname = 'lightGroup_%d' % len(scene.renderman.light_mixer_groups)
+        op.action = 'ADD'        
 
         if not selected_light_objects:
             return       

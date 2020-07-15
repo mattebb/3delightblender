@@ -510,31 +510,12 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
     def update_do_light_filter(self, context):
         self.selected_light_name = '0'        
 
-    def update_light_groups_list(self, context):
-        # this function tries to keep light_groups in sync with
-        # what's set on the light's lightGroup parameter
-        if self.groups_type == "LIGHT":
-            scene = context.scene
-            rm = scene.renderman
-            rm.light_groups.clear()
-            scene_lightgrps = scene_utils.get_light_groups_in_scene(scene)
-
-            for grp_nm, lights in scene_lightgrps.items():
-                light_grp = rm.light_groups.add()
-                light_grp.name = grp_nm
-                for light in lights:
-                    member = light_grp.members.add()
-                    member.name = light.name
-                    member.light_ob = light.data
-            rm.light_groups_index = 0
-
     groups_type: EnumProperty(name="Groups Type",
                               items=(
                                   ("OBJECT", "Object", ""),
                                   ("LIGHT", "Light", "")
                               ),
-                              description="Select which type of groups you want to edit.",
-                              update=update_light_groups_list
+                              description="Select which type of groups you want to edit."
                               )
 
     do_object_filter: BoolProperty(name="Object Filter", 

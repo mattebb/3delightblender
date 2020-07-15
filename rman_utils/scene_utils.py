@@ -54,17 +54,12 @@ def get_light_groups_in_scene(scene):
     """
 
     lgt_grps = dict()
-    for light in [ob for ob in scene.objects if ob.type == 'LIGHT']:
-        rm = light.data.renderman
-        if rm.renderman_light_role == 'RMAN_LIGHT':
-            light_shader = rm.get_light_node()
-            if not light_shader:
-                continue
-            lgt_grp = getattr(light_shader, 'lightGroup', '')
-            if lgt_grp != '':
-                light_list = lgt_grps.get(lgt_grp, list())
-                light_list.append(light)
-                lgt_grps[lgt_grp] = light_list
+    for lg in scene.renderman.light_groups:
+        lights = []
+        for member in lg.members:
+            lights.append(member.light_ob)
+        lgt_grps[lg.name] = lights
+
     return lgt_grps
 
 def is_renderable(scene, ob):
