@@ -1323,7 +1323,7 @@ def draw():
             draw_dome_light(ob)        
         elif light_shader_name == 'PxrCylinderLight':
             draw_cylinder_light(ob)     
-        elif light_shader_name in ['PxrGoboLightFilter', 'PxrCookieLightFilter']:
+        elif light_shader_name in ['PxrGoboLightFilter', 'PxrCookieLightFilter', 'PxrRectLight']:
              draw_rect_light(ob)             
         elif light_shader_name in ['PxrRodLightFilter', 'PxrBlockerLightFilter']:
             draw_rod_light_filter(ob)

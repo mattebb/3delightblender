@@ -10,8 +10,13 @@ from ... import rman_config
 import bpy
 
 class RendermanLightPointer(bpy.types.PropertyGroup):
+    def validate_light_obj(self, ob):
+        if ob.type == 'LIGHT' and ob.data.renderman.renderman_light_role in ['RMAN_LIGHT', 'RMAN_LIGHTFILTER']:
+            return True
+        return False
+
     name: StringProperty(name="name")
-    light_ob: PointerProperty(type=bpy.types.Light)               
+    light_ob: PointerProperty(type=bpy.types.Object, poll=validate_light_obj)               
 
 class RendermanLightGroup(bpy.types.PropertyGroup):
     def update_name(self, context):
@@ -51,19 +56,10 @@ class RendermanGroup(bpy.types.PropertyGroup):
 class LightLinking(bpy.types.PropertyGroup):
 
     def update_link(self, context):
+        self.light_ob.update_tag(refresh={'DATA'})
         for member in self.members:
             ob = member.ob_pointer
-            if self.light_ob.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
-                if self.illuminate == 'ON':
-                    subset = ob.renderman.rman_lightfilter_subset.add()
-                    subset.name = self.light_ob.name
-                    subset.light_ob = self.light_ob
-                else:
-                    for j, subset in enumerate(ob.renderman.rman_lightfilter_subset):
-                        if subset.light_ob == self.light_ob:
-                            ob.renderman.rman_lightfilter_subset.remove(j)
-                            break        
-            else:
+            if self.light_ob.data.renderman.renderman_light_role == 'RMAN_LIGHT':
                 if self.illuminate == 'OFF':
                     subset = ob.renderman.rman_lighting_excludesubset.add()
                     subset.name = self.light_ob.name
@@ -75,7 +71,12 @@ class LightLinking(bpy.types.PropertyGroup):
                             break        
             ob.update_tag(refresh={'OBJECT'})
 
-    light_ob: PointerProperty(type=bpy.types.Light)       
+    def validate_light_obj(self, ob):
+        if ob.type == 'LIGHT' and ob.data.renderman.renderman_light_role in ['RMAN_LIGHT', 'RMAN_LIGHTFILTER']:
+            return True
+        return False
+
+    light_ob: PointerProperty(type=bpy.types.Object, poll=validate_light_obj)       
 
     members: CollectionProperty(type=RendermanObjectPointer,
                                  name='Group Members')    

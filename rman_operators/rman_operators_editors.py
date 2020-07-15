@@ -16,7 +16,7 @@ class RENDERMAN_UL_LightLink_Light_List(bpy.types.UIList):
         op = layout.operator("renderman.remove_light_link", text='', icon='REMOVE') 
         op.group_index = index
         light = item.light_ob
-        light_shader = light.renderman.get_light_node()        
+        light_shader = light.data.renderman.get_light_node()        
         icon = rfb_icons.get_light_icon(light_shader.bl_label)        
         label = light.name
         layout.label(text=label, icon_value=icon.icon_id)     
@@ -46,14 +46,14 @@ class RENDERMAN_UL_Light_Group_List(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
 
         light = item.light_ob
-        light_shader = light.renderman.get_light_node()        
+        light_shader = light.data.renderman.get_light_node()        
         icon = rfb_icons.get_light_icon(light_shader.bl_label)
         layout.context_pointer_set("selected_light", item.light_ob)
         op = layout.operator('renderman.remove_from_light_group', text='', icon='REMOVE')
         label = light.name
         layout.label(text=label, icon_value=icon.icon_id)        
 
-        light_rm = light.renderman
+        light_rm = light.data.renderman
         if light_shader.bl_label == 'PxrEnvDayLight':
             layout.prop(light_shader, 'skyTint', text='')
         else:
@@ -79,14 +79,14 @@ class RENDERMAN_UL_LightMixer_Group_Members_List(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
         light = item.light_ob
-        light_shader = light.renderman.get_light_node()        
+        light_shader = light.data.renderman.get_light_node()        
         icon = rfb_icons.get_light_icon(light_shader.bl_label)
         layout.context_pointer_set("selected_light", item.light_ob)
         op = layout.operator('renderman.remove_light_from_light_mixer_group', text='', icon='REMOVE')
         op.group_index = rm.light_mixer_groups_index
         layout.label(text=light.name, icon_value=icon.icon_id)
 
-        light_rm = light.renderman
+        light_rm = light.data.renderman
         if light_shader.bl_label == 'PxrEnvDayLight':
             layout.prop(light_shader, 'skyTint', text='')
         else:
@@ -224,7 +224,7 @@ class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Oper
                 op = col.operator("renderman.add_light_to_light_mixer_group", text='', icon='ADD')
             else:
                 col.context_pointer_set('op_ptr', self) 
-                col.context_pointer_set('selected_light', bpy.data.lights[self.selected_light_name])
+                col.context_pointer_set('selected_light', bpy.data.objects[self.selected_light_name])
                 op = col.operator("renderman.add_light_to_light_mixer_group", text='', icon='ADD')
                 op.do_scene_selected = False
         else:
@@ -239,7 +239,7 @@ class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Oper
                 op = col.operator("renderman.add_light_to_light_mixer_group", text='', icon='ADD')
             else:
                 col.context_pointer_set('op_ptr', self) 
-                col.context_pointer_set('selected_light', bpy.data.lights[self.selected_light_name])
+                col.context_pointer_set('selected_light', bpy.data.objects[self.selected_light_name])
                 op = col.operator("renderman.add_light_to_light_mixer_group", text='', icon='ADD')
                 op.do_scene_selected = False
         row = layout.row()
@@ -360,7 +360,7 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
                 op = col.operator("renderman.add_light_link", text='', icon='ADD')
             else:
                 col.context_pointer_set('op_ptr', self) 
-                col.context_pointer_set('selected_light', bpy.data.lights[self.selected_light_name])
+                col.context_pointer_set('selected_light', bpy.data.objects[self.selected_light_name])
                 op = col.operator("renderman.add_light_link", text='', icon='ADD')
         else:
             row.prop(self, 'light_search_filter', text='', icon='VIEWZOOM')  
@@ -375,7 +375,7 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
                 op = col.operator("renderman.add_light_link", text='', icon='ADD')
             else:
                 col.context_pointer_set('op_ptr', self) 
-                col.context_pointer_set('selected_light', bpy.data.lights[self.selected_light_name])
+                col.context_pointer_set('selected_light', bpy.data.objects[self.selected_light_name])
                 op = col.operator("renderman.add_light_link", text='', icon='ADD')
 
         flow.label(text='')
@@ -396,6 +396,7 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
         if rm.light_links_index != -1:
             light_link_item = scene.renderman.light_links[rm.light_links_index]  
             row = flow.row()          
+            is_rman_light = light_link_item.light_ob.data.renderman.renderman_light_role == 'RMAN_LIGHT'
             row.prop(self, 'do_object_filter', text='', icon='FILTER', icon_only=True)
             if not self.do_object_filter:
                 row.prop(self, 'selected_obj_name', text='')
@@ -429,7 +430,8 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
                                 light_link_item, "members", light_link_item, 'members_index', rows=4)                                          
       
             col = flow.column()
-            col.prop(light_link_item, 'illuminate', text='')          
+            if is_rman_light:
+                col.prop(light_link_item, 'illuminate', text='')          
 
     def invoke(self, context, event):
 
@@ -630,7 +632,7 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
                 op = col.operator("renderman.add_to_light_group", text='', icon='ADD')
             else:
                 col.context_pointer_set('op_ptr', self) 
-                col.context_pointer_set('selected_light', bpy.data.lights[self.selected_light_name])
+                col.context_pointer_set('selected_light', bpy.data.objects[self.selected_light_name])
                 op = col.operator("renderman.add_to_light_group", text='', icon='ADD')
                 op.group_index = rm.light_groups_index    
                 op.do_scene_selected = False
@@ -644,7 +646,7 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
                 op = col.operator("renderman.add_to_light_group", text='', icon='ADD')
             else:
                 col.context_pointer_set('op_ptr', self) 
-                col.context_pointer_set('selected_light', bpy.data.lights[self.selected_light_name])
+                col.context_pointer_set('selected_light', bpy.data.objects[self.selected_light_name])
                 op = col.operator("renderman.add_to_light_group", text='', icon='ADD')
                 op.group_index = rm.light_groups_index
                 op.do_scene_selected = False

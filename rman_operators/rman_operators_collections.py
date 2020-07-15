@@ -179,8 +179,9 @@ class COLLECTION_OT_light_groups_add_remove(bpy.types.Operator):
             # set lightGroup back to ''
             for member in group.members:
                 light = member.light_ob
-                light_shader = light.renderman.get_light_node()
+                light_shader = light.data.renderman.get_light_node()
                 light_shader.lightGroup = ''
+                light.update_tag(refresh={'DATA'})
 
             collection.remove(index)
             setattr(rm, coll_idx, index - 1)
@@ -217,8 +218,9 @@ class PRMAN_OT_convert_mixer_group_to_light_group(bpy.types.Operator):
 
         for member in mixer_group.members:
             light_ob = member.light_ob
-            light_shader = light_ob.renderman.get_light_node()
+            light_shader = light_ob.data.renderman.get_light_node()
             light_shader.lightGroup = mixer_group.name
+            light_ob.update_tag(refresh={'DATA'})
 
         mixer_groups.remove(mixer_group_index)
         mixer_group_index -= 1
@@ -274,14 +276,14 @@ class PRMAN_OT_add_light_to_light_mixer_group(bpy.types.Operator):
 
             do_add = True
             for member in object_group.members:
-                if ob.data == member.light_ob:
+                if ob == member.light_ob:
                     do_add = False
                     break                
 
             if do_add:
                 ob_in_group = object_group.members.add()
                 ob_in_group.name = ob.name
-                ob_in_group.light_ob = ob.data          
+                ob_in_group.light_ob = ob          
 
     def execute(self, context):
         if self.properties.do_scene_selected:
@@ -342,8 +344,9 @@ class PRMAN_OT_add_to_light_group(bpy.types.Operator):
             ob_in_group = light_group.members.add()
             ob_in_group.name = ob.name
             ob_in_group.light_ob = ob
-            light_shader = ob.renderman.get_light_node()
+            light_shader = ob.data.renderman.get_light_node()
             light_shader.lightGroup = light_group.name
+            ob.update_tag(refresh={'DATA'})
             op = getattr(context, 'op_ptr')
             if op:
                 op.selected_light_name = '0'               
@@ -385,8 +388,9 @@ class PRMAN_OT_remove_from_light_group(bpy.types.Operator):
         light_group = light_groups[group_index]
         for i, member in enumerate(light_group.members):
             if member.light_ob == ob:
-                light_shader = ob.renderman.get_light_node()
+                light_shader = ob.data.renderman.get_light_node()
                 light_shader.lightGroup = ''
+                ob.update_tag(refresh={'DATA'})
                 light_group.members.remove(i)
                 break
 
@@ -425,7 +429,7 @@ class PRMAN_OT_movelight_group(bpy.types.Operator):
         members_index = light_group.members_index
         for i, member in enumerate(light_group.members):
             if member.light_ob == ob:
-                light_shader = ob.renderman.get_light_node()
+                light_shader = ob.data.renderman.get_light_node()
                 light_shader.lightGroup = ''
                 light_group.members.remove(i)
                 light_group.members_index -= 1
@@ -437,8 +441,9 @@ class PRMAN_OT_movelight_group(bpy.types.Operator):
         ob_in_group = light_group.members.add()
         ob_in_group.name = ob.name
         ob_in_group.light_ob = ob
-        light_shader = ob.renderman.get_light_node()
-        light_shader.lightGroup = light_group.name     
+        light_shader = ob.data.renderman.get_light_node()
+        light_shader.lightGroup = light_group.name  
+        ob.update_tag(refresh={'DATA'})   
 
         return {'FINISHED'}                
 
@@ -573,18 +578,16 @@ class PRMAN_OT_add_light_link_object(bpy.types.Operator):
             ob_in_group = ll.members.add()
             ob_in_group.name = ob.name
             ob_in_group.ob_pointer = ob   
-            if ll.light_ob.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
-                if ll.illuminate == 'ON':
-                    subset = ob.renderman.rman_lightfilter_subset.add()
-                    subset.name = ll.light_ob.name
-                    subset.light_ob = ll.light_ob
-                    ob.update_tag(refresh={'OBJECT'})                
+            if ll.light_ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+                subset = ob.renderman.rman_lightfilter_subset.add()
+                subset.name = ll.light_ob.name
+                subset.light_ob = ll.light_ob              
             else:
                 if ll.illuminate == 'OFF':
                     subset = ob.renderman.rman_lighting_excludesubset.add()
                     subset.name = ll.light_ob.name
                     subset.light_ob = ll.light_ob
-                    ob.update_tag(refresh={'OBJECT'})
+            ob.update_tag(refresh={'OBJECT'})
 
             op = getattr(context, 'op_ptr')
             if op:
@@ -621,11 +624,12 @@ class PRMAN_OT_remove_light_link_object(bpy.types.Operator):
                 ll.members.remove(i)
                 ll.members_index -= 1
                 grp = ob.renderman.rman_lighting_excludesubset
-                if ll.light_ob.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+                if ll.light_ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
                     grp = ob.renderman.rman_lightfilter_subset
                 for j, subset in enumerate(grp):
                     if subset.light_ob == ll.light_ob:
                         grp.remove(j)
+                        ob.update_tag(refresh={'OBJECT'})
                         break
                 break                            
 
@@ -661,6 +665,8 @@ class PRMAN_OT_add_light_link(bpy.types.Operator):
             op = getattr(context, 'op_ptr')
             if op:
                 op.selected_light_name = '0'
+
+            light_ob.update_tag(refresh={'DATA'})
             
     def add_scene_selected(self, context):
         scene = context.scene
@@ -694,7 +700,8 @@ class PRMAN_OT_add_light_link(bpy.types.Operator):
             if do_add:
                 ll = scene.renderman.light_links.add()
                 ll.name = light_ob.name
-                ll.light_ob = light_ob.data     
+                ll.light_ob = light_ob.data   
+                light_ob.update_tag(refresh={'DATA'})  
 
     def execute(self, context):
         if self.properties.do_scene_selected:
@@ -721,7 +728,7 @@ class PRMAN_OT_remove_light_link(bpy.types.Operator):
             for i, member in enumerate(light_link.members):
                 ob = member.ob_pointer
                 grp = ob.renderman.rman_lighting_excludesubset
-                if light_link.light_ob.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+                if light_link.light_ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
                     grp = ob.renderman.rman_lightfilter_subset
                 for j, subset in enumerate(grp):
                     if subset.light_ob == light_link.light_ob:
@@ -729,6 +736,7 @@ class PRMAN_OT_remove_light_link(bpy.types.Operator):
                         break
                 ob.update_tag(refresh={'OBJECT'})   
 
+            light_link.light_ob.update_tag(refresh={'DATA'})
             rm.light_links.remove(group_index)
             rm.light_links_index -= 1
 

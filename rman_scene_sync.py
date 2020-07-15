@@ -214,7 +214,8 @@ class RmanSceneSync(object):
         new_objs = []
         new_cams = []
         self.rman_scene.depsgraph = depsgraph
-        self.rman_scene.bl_scene = depsgraph.scene_eval
+        self.rman_scene.bl_scene = depsgraph.scene
+        self.rman_scene.context = context
         do_delete = False
         update_instances = []
         updated_geo = []

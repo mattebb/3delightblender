@@ -56,6 +56,6 @@ class RmanLightFilterTranslator(RmanTranslator):
             
         # check if this light filter belongs to a light link
         for ll in self.rman_scene.bl_scene.renderman.light_links:
-            if ll.light_ob == ob.data:
+            if ll.light_ob == ob:
                 rixparams.SetString("linkingGroups", ob.name)
                 break

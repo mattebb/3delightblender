@@ -11,18 +11,7 @@ def get_db_name(ob, rman_type='', psys=None):
     elif rman_type != '' and rman_type != 'NONE':
         if rman_type == 'META':
             db_name = '%s-META' % (ob.name.split('.')[0])
-        try:
-            if rman_type == 'LIGHT':
-                db_name = '%s-%s' % (ob.data.name_full, rman_type)
-            else:
-                '''
-                For meshes etc., don't use the data name. This prevents us
-                from re-using data when objects are linked, but because these instances
-                can overrides attributes like turning the instance into a subdiv
-                we have to treat them as their own object.
-                '''
-                db_name = '%s-%s' % (ob.name_full, rman_type)
-        except:
+        else:
             db_name = '%s-%s' % (ob.name_full, rman_type)
     elif isinstance(ob, bpy.types.Camera):
         db_name = '%s-CAMERA' % ob.name_full
