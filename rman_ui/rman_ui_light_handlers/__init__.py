@@ -1333,7 +1333,7 @@ def draw():
             # get all lights that the barn is attached to
             draw_barn_light_filter(ob)
         else: 
-            draw_rect_light(ob) 
+            draw_sphere_light(ob)
 
 def register():
     global _DRAW_HANDLER_
