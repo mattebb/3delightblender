@@ -66,6 +66,9 @@ class DATA_PT_renderman_light_refresh(ShaderPanel, Panel):
 
     @classmethod
     def poll(cls, context):
+        light = getattr(context, 'light', None)
+        if not light:
+            return False
         rr = RmanRender.get_rman_render()
         if not rr.rman_is_live_rendering:
             return False
@@ -73,7 +76,9 @@ class DATA_PT_renderman_light_refresh(ShaderPanel, Panel):
 
     def draw(self, context):
         layout = self.layout
-        light = context.light
+        light = getattr(context, 'light', None)
+        if not light:
+            return False
         rr = RmanRender.get_rman_render()
         if light.renderman.renderman_light_role == 'RMAN_LIGHT':
             layout.context_pointer_set("light", context.active_object)
