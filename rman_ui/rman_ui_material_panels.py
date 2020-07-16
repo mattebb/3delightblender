@@ -331,10 +331,7 @@ class DATA_PT_renderman_node_shader_lightfilter(ShaderNodePanel, Panel):
             draw_nodes_properties_ui(
                 self.layout, context, nt, input_name='LightFilter')     
 
-class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
-    bl_label = "Light Filters"
-    bl_context = 'data'
-
+class RENDERMAN_UL_LightFilters(CollectionPanel):
     def draw_item(self, layout, context, item):        
         layout.prop(item, 'linked_filter_ob')    
 
@@ -352,20 +349,13 @@ class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
                 rr = RmanRender.get_rman_render()
                 if rr.rman_is_live_rendering:
                     col.context_pointer_set("light_filter", lightfilter)
-                    col.operator("nodes.rman_force_lightfilter_refresh", text='Force Refresh', icon='FILE_REFRESH')              
+                    col.operator("nodes.rman_force_lightfilter_refresh", text='Force Refresh')              
 
                 nt = lightfilter.data.node_tree
                 draw_nodes_properties_ui(
                     self.layout, context, nt, input_name='LightFilter')
         else:
-            layout.label(text='No light filter linked')          
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "light") \
-            and context.light is not None and hasattr(context.light, 'renderman') \
-            and context.light.renderman.renderman_light_role != 'RMAN_LIGHTFILTER'
+            layout.label(text='No light filter linked')            
 
     def draw(self, context):
         layout = self.layout
@@ -374,6 +364,31 @@ class DATA_PT_renderman_node_filters_light(CollectionPanel, Panel):
         self._draw_collection(context, layout, light.renderman, "",
                               "collection.add_remove", "light", "light_filters",
                               "light_filters_index")
+
+class DATA_PT_renderman_node_filters_light(RENDERMAN_UL_LightFilters, Panel):
+    bl_label = "Light Filters"
+    bl_context = 'data'
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "light") \
+            and context.light is not None and hasattr(context.light, 'renderman') \
+            and context.light.renderman.renderman_light_role != 'RMAN_LIGHTFILTER'
+
+class MATERIAL_PT_renderman_shader_light_filters(RENDERMAN_UL_LightFilters, Panel):
+    bl_context = "material"
+    bl_label = "Light Filters"
+    bl_parent_id = 'MATERIAL_PT_renderman_shader_light'
+
+    def draw(self, context):
+        layout = self.layout
+        mat = context.material
+
+        self._draw_collection(context, layout, mat.renderman_light, "",
+                              "renderman.add_meshlight_lightfilter", "material", "light_filters",
+                              "light_filters_index")    
+
 
 classes = [
     MATERIAL_PT_renderman_preview,
@@ -386,7 +401,8 @@ classes = [
     DATA_PT_renderman_node_shader_light,
     DATA_PT_renderman_node_shader_lightfilter,
     DATA_PT_renderman_node_filters_light,
-    PRMAN_PT_context_material
+    PRMAN_PT_context_material,
+    MATERIAL_PT_renderman_shader_light_filters
 ]
 
 def register():

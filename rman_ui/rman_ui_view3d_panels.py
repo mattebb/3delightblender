@@ -1,5 +1,6 @@
 from ..rman_render import RmanRender
 from .. import rfb_icons
+from ..rman_utils import shadergraph_utils
 from .rman_ui_base import _RManPanelHeader
 import bpy
 
@@ -170,9 +171,12 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         box.operator("rman.start_localqueue", icon_value=rman_lq.icon_id)          
         
         selected_objects = []
+        selected_light_objects = []
         if context.selected_objects:
             for obj in context.selected_objects:
-                if obj.type not in ['CAMERA', 'LIGHT', 'SPEAKER']:
+                if shadergraph_utils.is_rman_light(obj, include_light_filters=False):                    
+                    selected_light_objects.append(obj)
+                elif obj.type not in ['CAMERA', 'LIGHT', 'SPEAKER']:
                     selected_objects.append(obj)
 
         if selected_objects:
@@ -204,7 +208,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         box.enabled = not is_rman_interactive_running
         rman_rib = rfb_icons.get_icon('rman_rib_small')
         box.operator("rman.open_scene_rib", text='View RIB', icon_value=rman_rib.icon_id)
-        if selected_objects:
+        if selected_objects or selected_light_objects:
             box.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)
 
 

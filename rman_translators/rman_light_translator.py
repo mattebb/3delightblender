@@ -6,6 +6,7 @@ from ..rman_utils import string_utils
 from ..rman_utils import property_utils
 from ..rman_utils import transform_utils
 from ..rman_utils import object_utils
+from ..rman_utils import scene_utils
 from ..rfb_logger import rfb_log
 from mathutils import Matrix
 import math
@@ -32,14 +33,6 @@ s_orientPxrEnvDayLightInv = [-0.0, 1.0, -0.0, 0.0,
                             -0.0, 0.0, 1.0, -0.0,
                             -1.0, -0.0, 0.0, -0.0,
                             0.0, -0.0, -0.0, 1.0]
-
-def get_light_group(light_ob, scene):
-    scene_rm = scene.renderman
-    for lg in scene_rm.light_groups:
-        for member in lg.members:
-            if light_ob == member.light_ob:
-                return lg.name
-    return ''     
 
 def find_portal_dome_parent(portal):  
     dome = None
@@ -97,78 +90,13 @@ class RmanLightTranslator(RmanTranslator):
     def update_light_filters(self, ob, rman_sg_light):
         light = ob.data
         rm = light.renderman      
-
-        light_filters = []
-        multLFs = []
-        maxLFs = []
-        minLFs = []
-        screenLFs = []
         lightfilter_translator = self.rman_scene.rman_translators['LIGHTFILTER']
-        rman_sg_light.sg_node.SetLightFilter([])
-        for lf in rm.light_filters:
-            light_filter = lf.linked_filter_ob
-            if light_filter:
-                # check to make sure this light filter is still in the scene
-                if not self.rman_scene.bl_scene.objects.get(light_filter.name, None):
-                    lf.name = 'Not Set'
-                    continue
-                light_filter_sg = None
-
-                light_filter_db_name = object_utils.get_db_name(light_filter)                
-                rman_sg_lightfilter = self.rman_scene.rman_objects.get(light_filter.original)
-                if not rman_sg_lightfilter:
-                    rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
-                elif not isinstance(rman_sg_lightfilter, RmanSgLightFilter):
-                    # We have a type mismatch. Delete this scene graph node and re-export
-                    # it as a RmanSgLightFilter
-                    for k,rman_sg_group in rman_sg_lightfilter.instances.items():
-                        self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
-                    rman_sg_lightfilter.instances.clear() 
-                    del rman_sg_lightfilter
-                    self.rman_scene.rman_objects.pop(light_filter.original)
-                    rman_sg_lightfilter = lightfilter_translator.export(light_filter, light_filter_db_name)
-                lightfilter_translator.update(light_filter, rman_sg_lightfilter)
-                light_filters.append(rman_sg_lightfilter.sg_filter_node)
-                if ob.original not in rman_sg_lightfilter.lights_list:
-                    rman_sg_lightfilter.lights_list.append(ob.original)
-
-                # check which, if any, combineMode this light filter wants
-                lightfilter_node = light_filter.data.renderman.get_light_node()
-                instance_name = rman_sg_lightfilter.sg_filter_node.handle.CStr()
-                combineMode = getattr(lightfilter_node, 'combineMode', '')
-                if combineMode == 'mult':
-                    multLFs.append(instance_name)
-                elif combineMode == 'max':
-                    maxLFs.append(instance_name)
-                elif combineMode == 'min':
-                    minLFs.append(instance_name)
-                elif combineMode == 'screen':
-                    screenLFs.append(instance_name)
-
-        if len(light_filters) > 1:
-            # create a combiner node
-            combiner = self.rman_scene.rman.SGManager.RixSGShader("LightFilter", 'PxrCombinerLightFilter', '%s-PxrCombinerLightFilter' % (rman_sg_light.db_name))
-            if multLFs:
-                combiner.params.SetLightFilterReferenceArray("mult", multLFs, len(multLFs))
-            if maxLFs:
-                combiner.params.SetLightFilterReferenceArray("max", maxLFs, len(maxLFs))                
-            if minLFs:
-                combiner.params.SetLightFilterReferenceArray("min", minLFs, len(minLFs))                
-            if screenLFs:
-                combiner.params.SetLightFilterReferenceArray("screen", screenLFs, len(screenLFs))      
-            light_filters.append(combiner)                                        
-
-        if len(light_filters) > 0:
-            rman_sg_light.sg_node.SetLightFilter(light_filters)          
+        lightfilter_translator.export_light_filters(ob, rman_sg_light, rm)
 
     def update(self, ob, rman_sg_light):
 
         light = ob.data
         rm = light.renderman  
-
-        group_name= ''
-        if self.rman_scene.bl_scene:
-            group_name = get_light_group(ob, self.rman_scene.bl_scene)
 
         # light filters
         self.update_light_filters(ob, rman_sg_light)
@@ -184,8 +112,6 @@ class RmanLightTranslator(RmanTranslator):
             property_utils.property_group_to_rixparams(light_shader, rman_sg_light, sg_node, light=light)
             
             rixparams = sg_node.params
-            if group_name:
-                rixparams.SetString('lightGroup', group_name)
 
             # portal params
             if rm.get_light_node_name() == 'PxrPortalLight':

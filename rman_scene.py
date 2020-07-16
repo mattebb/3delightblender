@@ -263,18 +263,19 @@ class RmanScene(object):
         string_utils.set_var('layer', self.bl_view_layer.name)
 
         self.bl_frame_current = self.bl_scene.frame_current
-        self.scene_any_lights = self._scene_has_lights()
+
+        rfb_log().debug("Creating root scene graph node")
+        self.export_root_sg_node()        
 
         rfb_log().debug("Calling export_materials()")
         #self.export_materials(bpy.data.materials)
-        self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])
+        self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])  
                 
         rfb_log().debug("Calling txmake_all()")
         texture_utils.get_txmanager().rman_scene = self  
         texture_utils.get_txmanager().txmake_all(blocking=True)
 
-        rfb_log().debug("Creating root scene graph node")
-        self.export_root_sg_node()
+        self.scene_any_lights = self._scene_has_lights()
         
         rfb_log().debug("Calling export_data_blocks()")
         self.export_data_blocks(bpy.data.objects)
@@ -316,17 +317,17 @@ class RmanScene(object):
         string_utils.set_var('layer', self.bl_view_layer.name)
 
         self.bl_frame_current = self.bl_scene.frame_current
-        self.scene_any_lights = self._scene_has_lights()
+        rfb_log().debug("Creating root scene graph node")
+        self.export_root_sg_node()
 
         rfb_log().debug("Calling export_materials()")
-        self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])
+        self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)]) 
                 
         rfb_log().debug("Calling txmake_all()")
         texture_utils.get_txmanager().rman_scene = self  
         texture_utils.get_txmanager().txmake_all(blocking=True)
 
-        rfb_log().debug("Creating root scene graph node")
-        self.export_root_sg_node()
+        self.scene_any_lights = self._scene_has_lights()
         
         rm = self.bl_scene.renderman
         attrs = self.rman_root_sg_node.sg_node.GetAttributes()
@@ -367,18 +368,17 @@ class RmanScene(object):
         string_utils.set_var('layer', self.bl_view_layer.name)
 
         self.bl_frame_current = self.bl_scene.frame_current
-        self.scene_any_lights = self._scene_has_lights()
+        rfb_log().debug("Creating root scene graph node")
+        self.export_root_sg_node()
 
         rfb_log().debug("Calling export_materials()")
         self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])
-                
         rfb_log().debug("Calling txmake_all()")
         texture_utils.get_txmanager().rman_scene = self  
-        texture_utils.get_txmanager().txmake_all(blocking=True)
+        texture_utils.get_txmanager().txmake_all(blocking=True)        
 
-        rfb_log().debug("Creating root scene graph node")
-        self.export_root_sg_node()
-        
+        self.scene_any_lights = self._scene_has_lights()        
+                        
         rm = self.bl_scene.renderman
         attrs = self.rman_root_sg_node.sg_node.GetAttributes()
         attrs.SetFloat("dice:worlddistancelength", rm.rman_bake_illlum_density)
@@ -619,7 +619,8 @@ class RmanScene(object):
             self.default_light.SetHidden(1)
 
     def _scene_has_lights(self):
-        return (len([x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']) > 0)        
+        num_lights = len(scene_utils.get_all_lights(self.bl_scene, include_light_filters=False))
+        return num_lights > 0       
 
     def _export_instance(self, ob_inst, seg=None):
    
@@ -880,20 +881,26 @@ class RmanScene(object):
 
     def check_solo_light(self):           
         if self.bl_scene.renderman.solo_light:   
-            for light_ob in [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
+            for light_ob in scene_utils.get_all_lights(self.bl_scene, include_light_filters=False):
                 rman_sg_node = self.rman_objects.get(light_ob.original, None)
                 if not rman_sg_node:
                     continue
-                if light_ob.data.renderman.solo:
+                rm = light_ob.renderman        
+                if not rm:
+                    continue
+                if rm.solo:
                     rman_sg_node.sg_node.SetHidden(0)
                 else:
                     rman_sg_node.sg_node.SetHidden(1)  
         else:            
-            for light_ob in [x for x in self.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
+            for light_ob in scene_utils.get_all_lights(self.bl_scene, include_light_filters=False):
                 rman_sg_node = self.rman_objects.get(light_ob.original, None)
                 if not rman_sg_node:
                     continue
-                rman_sg_node.sg_node.SetHidden(light_ob.data.renderman.mute)                   
+                rm = light_ob.renderman            
+                if not rm:
+                    continue
+                rman_sg_node.sg_node.SetHidden(light_ob.hide_get())                   
 
     def export_searchpaths(self):
         # TODO 

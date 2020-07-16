@@ -1,6 +1,7 @@
 from bpy.props import StringProperty, BoolProperty, EnumProperty, IntProperty,  CollectionProperty, PointerProperty
 from ..rman_utils import string_utils
 from ..rfb_logger import rfb_log
+from ..rman_utils import shadergraph_utils
 
 import bpy
 
@@ -63,6 +64,61 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class COLLECTION_OT_meshlight_lightfilter_add_remove(bpy.types.Operator):
+    bl_label = "Add Light Filter to Mesh Light"
+    bl_idname = "renderman.add_meshlight_lightfilter"
+
+    action: EnumProperty(
+        name="Action",
+        description="Either add or remove properties",
+        items=[('ADD', 'Add', ''),
+               ('REMOVE', 'Remove', '')],
+        default='ADD')
+    context: StringProperty(
+        name="Context",
+        description="Name of context member to find renderman pointer in",
+        default="")
+    collection: StringProperty(
+        name="Collection",
+        description="The collection to manipulate",
+        default="")
+    collection_index: StringProperty(
+        name="Index Property",
+        description="The property used as a collection index",
+        default="")
+    defaultname: StringProperty(
+        name="Default Name",
+        description="Default name to give this collection item",
+        default="")    
+
+    def invoke(self, context, event):
+        scene = context.scene
+        mat = context.material
+        rm = mat.renderman_light
+
+        prop_coll = self.properties.collection
+        coll_idx = self.properties.collection_index
+
+        collection = getattr(rm, prop_coll)
+        index = getattr(rm, coll_idx)
+
+        if self.properties.action == 'ADD':
+            dflt_name = self.properties.defaultname
+            for coll in collection:
+                if coll.name == dflt_name:
+                    dflt_name = '%s_NEW' % dflt_name
+            collection.add()
+            index += 1
+            setattr(rm, coll_idx, index)
+            collection[-1].name = dflt_name
+
+        elif self.properties.action == 'REMOVE':
+            collection.remove(index)
+            setattr(rm, coll_idx, index - 1)
+
+        return {'FINISHED'}               
+
+
 class COLLECTION_OT_object_groups_add_remove(bpy.types.Operator):
     bl_label = "Add or Remove Object Groups"
     bl_idname = "renderman.add_remove_object_groups"
@@ -124,65 +180,6 @@ class COLLECTION_OT_object_groups_add_remove(bpy.types.Operator):
 
         return {'FINISHED'}               
 
-class COLLECTION_OT_light_groups_add_remove(bpy.types.Operator):
-    bl_label = "Add or Remove Light Groups"
-    bl_idname = "renderman.add_remove_light_groups"
-
-    action: EnumProperty(
-        name="Action",
-        description="Either add or remove properties",
-        items=[('ADD', 'Add', ''),
-               ('REMOVE', 'Remove', '')],
-        default='ADD')
-    context: StringProperty(
-        name="Context",
-        description="Name of context member to find renderman pointer in",
-        default="")
-    collection: StringProperty(
-        name="Collection",
-        description="The collection to manipulate",
-        default="")
-    collection_index: StringProperty(
-        name="Index Property",
-        description="The property used as a collection index",
-        default="")
-    defaultname: StringProperty(
-        name="Default Name",
-        description="Default name to give this collection item",
-        default="")
-
-    def invoke(self, context, event):
-        scene = context.scene
-        id = string_utils.getattr_recursive(context, self.properties.context)
-        rm = id.renderman if hasattr(id, 'renderman') else id
-
-        prop_coll = self.properties.collection
-        coll_idx = self.properties.collection_index
-
-        collection = getattr(rm, prop_coll)
-        index = getattr(rm, coll_idx)
-
-        if self.properties.action == 'ADD':
-            dflt_name = self.properties.defaultname
-            for coll in collection:
-                if coll.name == dflt_name:
-                    dflt_name = '%s_NEW' % dflt_name
-            collection.add()
-            index += 1
-            setattr(rm, coll_idx, index)
-            collection[-1].name = dflt_name
-
-        elif self.properties.action == 'REMOVE':
-            group = collection[index]
-            for member in group.members:
-                light = member.light_ob
-                light.update_tag(refresh={'DATA'})
-
-            collection.remove(index)
-            setattr(rm, coll_idx, index - 1)
-
-        return {'FINISHED'}        
-
 class PRMAN_OT_add_multilayer_list(bpy.types.Operator):
     bl_idname = 'renderman.add_multilayer_list'
     bl_label = 'Add multilayer list'
@@ -213,10 +210,9 @@ class PRMAN_OT_convert_mixer_group_to_light_group(bpy.types.Operator):
 
         for member in mixer_group.members:
             light_ob = member.light_ob
+            light_shader = shadergraph_utils.get_light_node(light_ob, include_light_filters=False)
+            light_shader.lightGroup = mixer_group.name
             light_ob.update_tag(refresh={'DATA'})
-
-        mixer_groups.remove(mixer_group_index)
-        mixer_group_index -= 1
 
         return {'FINISHED'}       
 
@@ -262,11 +258,8 @@ class PRMAN_OT_add_light_to_light_mixer_group(bpy.types.Operator):
         object_groups = scene.renderman.light_mixer_groups
         object_group = object_groups[group_index]
         for ob in context.selected_objects:
-            if ob.type != 'LIGHT':
+            if not shadergraph_utils.is_rman_light(ob):
                 continue
-            if ob.data.renderman.renderman_light_role != 'RMAN_LIGHT':
-                continue
-
             do_add = True
             for member in object_group.members:
                 if ob == member.light_ob:
@@ -309,141 +302,6 @@ class PRMAN_OT_remove_light_from_light_mixer_group(bpy.types.Operator):
                 break
 
         return {'FINISHED'}            
-
-class PRMAN_OT_add_to_light_group(bpy.types.Operator):
-    bl_idname = 'renderman.add_to_light_group'
-    bl_label = 'Add Selected to Light Group'
-
-    group_index: IntProperty(default=-1)
-    group_name: StringProperty(name="Group Name", default="")
-    do_scene_selected: BoolProperty(name="do_scene_selected", default=False)
-
-    def add_selected(self, context):
-        scene = context.scene
-        rm = scene.renderman
-        group_index = rm.light_groups_index
-        ob = getattr(context, "selected_light", None)
-        if not ob:
-            return {'FINISHED'}         
-
-        light_groups = scene.renderman.light_groups
-        light_group = light_groups[group_index]
-        do_add = True
-        for member in light_group.members:            
-            if ob == member.light_ob:
-                do_add = False
-                self.report({'ERROR'}, f'Light: {ob.name} already belongs to LightGroup: {light_group.name}' )
-                break
-        if do_add:
-            ob_in_group = light_group.members.add()
-            ob_in_group.name = ob.name
-            ob_in_group.light_ob = ob
-            ob.update_tag(refresh={'DATA'})
-            op = getattr(context, 'op_ptr')
-            if op:
-                op.selected_light_name = '0'               
-
-    def add_scene_selected(self, context):
-        scene = context.scene
-        rm = scene.renderman
-        if not hasattr(context, 'selected_objects'):
-            return {'FINISHED'}
-
-        group_index = self.properties.group_index
-        light_groups = scene.renderman.light_groups
-        light_group = light_groups[group_index]
-
-        for ob in context.selected_objects:
-
-            do_add = True
-            for member in light_group.members:            
-                if ob == member.light_ob:
-                    do_add = False
-                    self.report({'ERROR'}, f'Light: {ob.name} already belongs to LightGroup: {light_group.name}' )
-                    break
-            if do_add:
-                ob_in_group = light_group.members.add()
-                ob_in_group.name = ob.name
-                ob_in_group.light_ob = ob         
-                ob.update_tag(refresh={'DATA'})       
-
-    def execute(self, context):
-        if self.properties.do_scene_selected:
-            self.add_scene_selected(context)
-        else:
-            self.add_selected(context)
-        return {'FINISHED'}
-
-
-class PRMAN_OT_remove_from_light_group(bpy.types.Operator):
-    bl_idname = 'renderman.remove_from_light_group'
-    bl_label = 'Remove Selected from Light Group'
-
-    def execute(self, context):
-        scene = context.scene
-        rm = scene.renderman        
-        group_index = rm.light_groups_index
-        ob = getattr(context, "selected_light", None)
-        if not ob:
-            return {'FINISHED'}   
-
-        light_groups = scene.renderman.light_groups
-        light_group = light_groups[group_index]
-        for i, member in enumerate(light_group.members):
-            if member.light_ob == ob:
-                light_group.members.remove(i)                
-                ob.update_tag(refresh={'DATA'})
-                break
-
-        return {'FINISHED'}        
-
-class PRMAN_OT_movelight_group(bpy.types.Operator):
-    bl_idname = 'renderman.move_light_group'
-    bl_label = 'Remove Selected from Light Group'
-
-    def new_light_groups(self, context):
-        scene = context.scene
-        rm = scene.renderman        
-        group_index = rm.light_groups_index        
-        items = []
-        for i,lgt_grp in enumerate(rm.light_groups):
-            if i == group_index:
-                continue
-            items.append(('%d' % i, lgt_grp.name, ''))
-        return items
-
-    selected_light_group: EnumProperty(name="New Light Group", items=new_light_groups)
-
-    def execute(self, context):
-        if self.properties.selected_light_group == "-1":
-            return {'FINISHED'}
-
-        scene = context.scene
-        rm = scene.renderman        
-        group_index = rm.light_groups_index
-        ob = getattr(context, "selected_light", None)
-        if not ob:
-            return {'FINISHED'}
-
-        light_groups = scene.renderman.light_groups
-        light_group = light_groups[group_index]
-        members_index = light_group.members_index
-        for i, member in enumerate(light_group.members):
-            if member.light_ob == ob:
-                light_group.members.remove(i)
-                light_group.members_index -= 1
-                break
-
-        group_index = int(self.properties.selected_light_group)
-        light_group = light_groups[group_index]        
-
-        ob_in_group = light_group.members.add()
-        ob_in_group.name = ob.name
-        ob_in_group.light_ob = ob
-        ob.update_tag(refresh={'DATA'})   
-
-        return {'FINISHED'}                
-
 
 class PRMAN_OT_add_to_group(bpy.types.Operator):
     bl_idname = 'renderman.add_to_group'
@@ -503,7 +361,6 @@ class PRMAN_OT_add_to_group(bpy.types.Operator):
         else:
             self.add_selected(context)
         return {'FINISHED'}
-
 
 class PRMAN_OT_remove_from_group(bpy.types.Operator):
     bl_idname = 'renderman.remove_from_group'
@@ -575,7 +432,8 @@ class PRMAN_OT_add_light_link_object(bpy.types.Operator):
             ob_in_group = ll.members.add()
             ob_in_group.name = ob.name
             ob_in_group.ob_pointer = ob   
-            if ll.light_ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+            light_props = shadergraph_utils.get_rman_light_properties_group(ll.light_ob)
+            if light_props.renderman_light_role == 'RMAN_LIGHTFILTER':
                 subset = ob.renderman.rman_lightfilter_subset.add()
                 subset.name = ll.light_ob.name
                 subset.light_ob = ll.light_ob              
@@ -621,7 +479,8 @@ class PRMAN_OT_remove_light_link_object(bpy.types.Operator):
                 ll.members.remove(i)
                 ll.members_index -= 1
                 grp = ob.renderman.rman_lighting_excludesubset
-                if ll.light_ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+                light_props = shadergraph_utils.get_rman_light_properties_group(self.light_ob)
+                if light_props.renderman_light_role == 'RMAN_LIGHTFILTER':
                     grp = ob.renderman.rman_lightfilter_subset
                 for j, subset in enumerate(grp):
                     if subset.light_ob == ll.light_ob:
@@ -725,7 +584,8 @@ class PRMAN_OT_remove_light_link(bpy.types.Operator):
             for i, member in enumerate(light_link.members):
                 ob = member.ob_pointer
                 grp = ob.renderman.rman_lighting_excludesubset
-                if light_link.light_ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
+                light_props = shadergraph_utils.get_rman_light_properties_group(light_link.light_ob)
+                if light_props.renderman_light_role == 'RMAN_LIGHTFILTER':
                     grp = ob.renderman.rman_lightfilter_subset
                 for j, subset in enumerate(grp):
                     if subset.light_ob == light_link.light_ob:
@@ -741,16 +601,13 @@ class PRMAN_OT_remove_light_link(bpy.types.Operator):
 
 classes = [
     COLLECTION_OT_add_remove,
+    COLLECTION_OT_meshlight_lightfilter_add_remove,
     COLLECTION_OT_object_groups_add_remove,
-    COLLECTION_OT_light_groups_add_remove,
     PRMAN_OT_convert_mixer_group_to_light_group,
     PRMAN_OT_add_to_group,
     PRMAN_OT_add_light_to_light_mixer_group,
     PRMAN_OT_remove_light_from_light_mixer_group,
     PRMAN_OT_remove_from_group,
-    PRMAN_OT_add_to_light_group,
-    PRMAN_OT_remove_from_light_group,
-    PRMAN_OT_movelight_group,
     PRMAN_OT_add_light_link_object,
     PRMAN_OT_remove_light_link_object,
     PRMAN_OT_add_light_link,

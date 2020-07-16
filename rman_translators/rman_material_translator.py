@@ -105,7 +105,7 @@ class RmanMaterialTranslator(RmanTranslator):
                 if out.solo_node_name:
                     solo_node = nt.nodes.get(out.solo_node_name, None)
                     if solo_node:
-                        success = self.export_solo_shader(out, solo_node, rman_sg_material, handle)
+                        success = self.export_solo_shader(id, out, solo_node, rman_sg_material, handle)
                         if success:
                             return True
 
@@ -114,7 +114,7 @@ class RmanMaterialTranslator(RmanTranslator):
                 if socket.is_linked:
                     bxdfList = []
                     for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
-                        shader_sg_nodes = self.shader_node_sg(sub_node, rman_sg_material, mat_name=handle,
+                        shader_sg_nodes = self.shader_node_sg(id, sub_node, rman_sg_material, mat_name=handle,
                                     portal=portal)
                         for s in shader_sg_nodes:
                             bxdfList.append(s) 
@@ -127,7 +127,7 @@ class RmanMaterialTranslator(RmanTranslator):
                     if socket.is_linked:
                         lightNodesList = []
                         for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
-                            shader_sg_nodes = self.shader_node_sg(sub_node, rman_sg_material, mat_name=handle, portal=portal)
+                            shader_sg_nodes = self.shader_node_sg(id, sub_node, rman_sg_material, mat_name=handle, portal=portal)
                             for s in shader_sg_nodes:
                                 lightNodesList.append(s) 
                         if lightNodesList:
@@ -139,7 +139,7 @@ class RmanMaterialTranslator(RmanTranslator):
                     if socket.is_linked:
                         dispList = []
                         for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
-                            shader_sg_nodes = self.shader_node_sg(sub_node, rman_sg_material, mat_name=handle,
+                            shader_sg_nodes = self.shader_node_sg(id, sub_node, rman_sg_material, mat_name=handle,
                                         portal=portal)
                             for s in shader_sg_nodes:
                                 dispList.append(s) 
@@ -154,10 +154,10 @@ class RmanMaterialTranslator(RmanTranslator):
 
         return False
 
-    def export_solo_shader(self, out, solo_node, rman_sg_material, mat_handle=''):
+    def export_solo_shader(self, mat, out, solo_node, rman_sg_material, mat_handle=''):
         bxdfList = []
         for sub_node in shadergraph_utils.gather_nodes(solo_node):
-            shader_sg_nodes = self.shader_node_sg(sub_node, rman_sg_material, mat_name=mat_handle,
+            shader_sg_nodes = self.shader_node_sg(mat, sub_node, rman_sg_material, mat_name=mat_handle,
                         portal=False)
             for s in shader_sg_nodes:
                 bxdfList.append(s) 
@@ -205,7 +205,7 @@ class RmanMaterialTranslator(RmanTranslator):
 
         return True
 
-    def translate_node_group(self, rman_sg_material, group_node, mat_name):
+    def translate_node_group(self, mat, rman_sg_material, group_node, mat_name):
         ng = group_node.node_tree
         out = next((n for n in ng.nodes if n.bl_idname == 'NodeGroupOutput'),
                 None)
@@ -217,13 +217,13 @@ class RmanMaterialTranslator(RmanTranslator):
         current_group_node = group_node
         sg_nodes = []
         for node in nodes_to_export:
-            sg_nodes += self.shader_node_sg(node, rman_sg_material, mat_name=mat_name)
+            sg_nodes += self.shader_node_sg(mat, node, rman_sg_material, mat_name=mat_name)
         current_group_node = None
         return sg_nodes        
 
-    def translate_cycles_node(self, rman_sg_material, node, mat_name):
+    def translate_cycles_node(self, mat, rman_sg_material, node, mat_name):
         if node.bl_idname == 'ShaderNodeGroup':
-            return self.translate_node_group(rman_sg_material, node, mat_name)
+            return self.translate_node_group(mat, rman_sg_material, node, mat_name)
 
         if node.bl_idname not in _CYCLES_NODE_MAP_.keys():
             print('No translation for node of type %s named %s' %
@@ -304,7 +304,7 @@ class RmanMaterialTranslator(RmanTranslator):
     
         return [sg_node]        
 
-    def shader_node_sg(self, node, rman_sg_material, mat_name, portal=False):
+    def shader_node_sg(self, mat, node, rman_sg_material, mat_name, portal=False):
  
         sg_node = None
 
@@ -327,7 +327,7 @@ class RmanMaterialTranslator(RmanTranslator):
                     
             return [sg_node]
         elif not hasattr(node, 'renderman_node_type'):
-            return self.translate_cycles_node(rman_sg_material, node, mat_name)
+            return self.translate_cycles_node(mat, rman_sg_material, node, mat_name)
 
         instance = string_utils.sanitize_node_name(mat_name + '_' + node.name)
 
@@ -358,9 +358,9 @@ class RmanMaterialTranslator(RmanTranslator):
                 # flag this material as having a mesh light
                 rman_sg_material.has_meshlight = True
 
-        elif node.renderman_node_type == "lightfilter":
+            # export any light filters
+            self.update_light_filters(mat, rman_sg_material)       
 
-            light_name = node.bl_label
         elif node.renderman_node_type == "displace":
             sg_node = self.rman_scene.rman.SGManager.RixSGShader("Displacement", node.bl_label, instance)
         else:
@@ -369,4 +369,9 @@ class RmanMaterialTranslator(RmanTranslator):
         if sg_node:
             property_utils.property_group_to_rixparams(node, rman_sg_material, sg_node, light=None, mat_name=mat_name)
 
-        return [sg_node]        
+        return [sg_node]       
+
+    def update_light_filters(self, mat, rman_sg_material):
+        rm = mat.renderman_light 
+        lightfilter_translator = self.rman_scene.rman_translators['LIGHTFILTER']
+        lightfilter_translator.export_light_filters(mat, rman_sg_material, rm)             

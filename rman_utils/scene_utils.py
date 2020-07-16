@@ -43,6 +43,60 @@ def get_renderman_layer(context):
 
     return rm_rl    
 
+def get_light_group(light_ob, scene):
+    """Return the name of the lightGroup for this
+    light, if any
+
+    Args:
+    light_ob (bpy.types.Object) - object we are interested in
+    scene (byp.types.Scene) - scene file to look for lights
+
+    Returns:
+    (str) - light group name
+    """
+
+    scene_rm = scene.renderman
+    for lg in scene_rm.light_groups:
+        for member in lg.members:
+            if light_ob == member.light_ob:
+                return lg.name
+    return ''         
+
+def get_all_lights(scene, include_light_filters=True):
+    """Return a list of all lights in the scene, including
+    mesh lights
+
+    Args:
+    scene (byp.types.Scene) - scene file to look for lights
+    include_light_filters (bool) - whether or not light filters should be included in the list
+
+    Returns:
+    (list) - list of all lights
+    """
+
+    lights = list()
+    for ob in scene.objects:
+        if ob.type == 'LIGHT':
+            if hasattr(ob.data, 'renderman'):
+                if include_light_filters:
+                    lights.append(ob)
+                elif ob.data.renderman.renderman_light_role == 'RMAN_LIGHT':            
+                    lights.append(ob)
+        else:
+            mat = getattr(ob, 'active_material', None)
+            if not mat:
+                continue
+            output = shadergraph_utils.is_renderman_nodetree(mat)
+            if not output:
+                continue
+            if len(output.inputs) > 1:
+                socket = output.inputs[1]
+                if socket.is_linked:
+                    node = socket.links[0].from_node
+                    if node.bl_label == 'PxrMeshLight':
+                        lights.append(ob)       
+    return lights
+
 def get_light_groups_in_scene(scene):
     """ Return a dictionary of light groups in the scene
 
@@ -54,11 +108,13 @@ def get_light_groups_in_scene(scene):
     """
 
     lgt_grps = dict()
-    for lg in scene.renderman.light_groups:
-        lights = []
-        for member in lg.members:
-            lights.append(member.light_ob)
-        lgt_grps[lg.name] = lights
+    for light in get_all_lights(scene, include_light_filters=False):
+        light_shader = shadergraph_utils.get_light_node(light, include_light_filters=False)
+        lgt_grp_nm = getattr(light_shader, 'lightGroup', '')
+        if lgt_grp_nm:
+            lights_list = lgt_grps.get(lgt_grp_nm, list())
+            lights_list.append(light)
+            lgt_grps[lgt_grp_nm] = lights_list
 
     return lgt_grps
 

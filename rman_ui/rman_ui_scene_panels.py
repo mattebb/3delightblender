@@ -48,7 +48,7 @@ class PRMAN_PT_Renderman_Light_Linking_Panel(PRManButtonsPanel, Panel):
         layout.operator('scene.rman_open_light_linking', text='Open Light Linking')            
 
 class PRMAN_PT_Renderman_Groups_Panel(PRManButtonsPanel, Panel):
-    bl_label = "RenderMan Groups"
+    bl_label = "RenderMan Trace Sets"
     bl_context = "scene"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
@@ -60,7 +60,7 @@ class PRMAN_PT_Renderman_Groups_Panel(PRManButtonsPanel, Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.operator('scene.rman_open_groups_editor', text='Groups Editor')                                                   
+        layout.operator('scene.rman_open_groups_editor', text='Trace Sets Editor')                                                   
 
 classes = [
     RENDER_PT_Renderman_Workspace,

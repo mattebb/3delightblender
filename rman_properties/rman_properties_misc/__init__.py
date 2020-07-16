@@ -4,6 +4,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 
 from ...rman_utils import filepath_utils
 from ...rman_utils import property_utils
+from ...rman_utils import shadergraph_utils
 from ...rfb_logger import rfb_log 
 from ... import rman_config
 
@@ -11,7 +12,7 @@ import bpy
 
 class RendermanLightPointer(bpy.types.PropertyGroup):
     def validate_light_obj(self, ob):
-        if ob.type == 'LIGHT' and ob.data.renderman.renderman_light_role in ['RMAN_LIGHT', 'RMAN_LIGHTFILTER']:
+        if shadergraph_utils.is_rman_light(ob, include_light_filters=True):
             return True
         return False
 
@@ -20,10 +21,7 @@ class RendermanLightPointer(bpy.types.PropertyGroup):
 
 class RendermanLightGroup(bpy.types.PropertyGroup):
     def update_name(self, context):
-        for member in self.members:
-            rm = member.light_ob.renderman
-            light_shader = rm.get_light_node()
-            light_shader.lightGroup = self.name
+        for member in self.members:            
             member.light_ob.update_tag(refresh={'DATA'})
 
     name: StringProperty(name="Group Name", update=update_name)
@@ -56,10 +54,12 @@ class RendermanGroup(bpy.types.PropertyGroup):
 class LightLinking(bpy.types.PropertyGroup):
 
     def update_link(self, context):
-        self.light_ob.update_tag(refresh={'DATA'})
+        if self.light_ob.type == 'LIGHT':
+            self.light_ob.update_tag(refresh={'DATA'})
         for member in self.members:
             ob = member.ob_pointer
-            if self.light_ob.data.renderman.renderman_light_role == 'RMAN_LIGHT':
+            light_props = shadergraph_utils.get_rman_light_properties_group(self.light_ob)
+            if light_props.renderman_light_role == 'RMAN_LIGHT':
                 if self.illuminate == 'OFF':
                     subset = ob.renderman.rman_lighting_excludesubset.add()
                     subset.name = self.light_ob.name
@@ -72,7 +72,7 @@ class LightLinking(bpy.types.PropertyGroup):
             ob.update_tag(refresh={'OBJECT'})
 
     def validate_light_obj(self, ob):
-        if ob.type == 'LIGHT' and ob.data.renderman.renderman_light_role in ['RMAN_LIGHT', 'RMAN_LIGHTFILTER']:
+        if shadergraph_utils.is_rman_light(ob, include_light_filters=True):
             return True
         return False
 

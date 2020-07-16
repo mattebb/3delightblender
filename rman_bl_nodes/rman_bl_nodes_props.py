@@ -5,6 +5,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 from .. import rman_bl_nodes
 from .. import rfb_icons
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
+from ..rman_utils import shadergraph_utils
 
 class RendermanPluginSettings(bpy.types.PropertyGroup):
     pass
@@ -170,9 +171,11 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         if self.solo:
             if scene.renderman.solo_light:
                 for ob in scene.objects:
-                    if ob.type == 'LIGHT' and ob.data.renderman != self and ob.data.renderman.solo:
-                        ob.data.renderman.solo = False
-                        break
+                    if shadergraph_utils.is_rman_light(ob, include_light_filters=False):
+                        rm = shadergraph_utils.get_rman_light_properties_group(ob)
+                        if rm != self and rm.solo:
+                            rm.solo = False
+                            break
 
     solo: BoolProperty(
         name="Solo",
@@ -283,6 +286,9 @@ def register():
 
     bpy.types.Light.renderman = PointerProperty(
         type=RendermanLightSettings, name="Renderman Light Settings")
+    # light settings for mesh lights, that are a part of a material   
+    bpy.types.Material.renderman_light = PointerProperty(
+        type=RendermanLightSettings, name="Renderman Light Settings")        
 
 def unregister():
     for cls in classes:

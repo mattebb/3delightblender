@@ -2,6 +2,8 @@
 from .rman_utils import object_utils
 from .rman_utils import transform_utils
 from .rman_utils import texture_utils
+from .rman_utils import scene_utils
+from .rman_utils import shadergraph_utils
 
 from .rfb_logger import rfb_log
 from .rman_sg_nodes.rman_sg_lightfilter import RmanSgLightFilter
@@ -175,10 +177,14 @@ class RmanSceneSync(object):
 
                     self.rman_scene.rman_translators['LIGHTFILTER'].update(ob, rman_sg_node)
                     for light_ob in rman_sg_node.lights_list:
-                        light_key = object_utils.get_db_name(light_ob, rman_type='LIGHT')
-                        rman_sg_light = self.rman_scene.rman_objects.get(light_ob.original, None)
-                        if rman_sg_light:
-                            self.rman_scene.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)                      
+                        if isinstance(light_ob, bpy.types.Material):
+                            rman_sg_material = self.rman_scene.rman_materials.get(light_ob.original, None)
+                            if rman_sg_material:
+                                self.rman_scene.rman_translators['MATERIAL'].update_light_filters(light_ob, rman_sg_material)                      
+                        else:
+                            rman_sg_light = self.rman_scene.rman_objects.get(light_ob.original, None)
+                            if rman_sg_light:
+                                self.rman_scene.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)                      
 
                 elif rman_type == 'LIGHT':
                     self.rman_scene.rman_translators['LIGHT'].update(ob, rman_sg_node)
@@ -200,15 +206,19 @@ class RmanSceneSync(object):
                 translator = self.rman_scene.rman_translators.get(rman_type, None)
                 if not translator:
                     return
-                translator.update(ob, rman_sg_node)
+                if shadergraph_utils.is_mesh_light(ob):
+                    # FIXME: the renderer currently doesn't allow geometry edits of
+                    # mesh lights
+                    pass
+                else:
+                    translator.update(ob, rman_sg_node)
 
     def _update_light_visibility(self, rman_sg_node, ob):
         if not self.rman_scene.scene_solo_light:
-            if ob.data.renderman.mute:
-                rman_sg_node.sg_node.SetHidden(ob.data.renderman.mute)     
+            if not ob.hide_get():
+                rman_sg_node.sg_node.SetHidden(ob.renderman.mute)
             else:
-                rman_sg_node.sg_node.SetHidden(ob.hide_get())            
-                            
+                rman_sg_node.sg_node.SetHidden(1)     
 
     def update_scene(self, context, depsgraph):
         new_objs = []
@@ -303,7 +313,7 @@ class RmanSceneSync(object):
                     # to get the updated value
                     ob_data = bpy.data.objects.get(ob.name, ob)
                     with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene): 
-                        if rman_type == 'LIGHT':
+                        if shadergraph_utils.is_rman_light(ob_data, include_light_filters=False): #rman_type == 'LIGHT':
                             self._update_light_visibility(rman_sg_node, ob_data)
                         else:
                             rman_sg_node.sg_node.SetHidden(ob_data.hide_get())
@@ -532,12 +542,16 @@ class RmanSceneSync(object):
         self.rman_scene.bl_scene = context.scene
         self.rman_scene.scene_solo_light = self.rman_scene.bl_scene.renderman.solo_light
                     
-        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
-            for light_ob in [x for x in self.rman_scene.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
+        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):            
+            for light_ob in scene_utils.get_all_lights(self.rman_scene.bl_scene, include_light_filters=False):
                 rman_sg_node = self.rman_scene.rman_objects.get(light_ob.original, None)
                 if not rman_sg_node:
                     continue
-                if light_ob.data.renderman.solo:
+                rm = light_ob.renderman
+                if not rm:
+                    continue
+
+                if rm.solo:
                     rman_sg_node.sg_node.SetHidden(0)
                 else:
                     rman_sg_node.sg_node.SetHidden(1)  
@@ -547,12 +561,15 @@ class RmanSceneSync(object):
         self.rman_scene.bl_scene = context.scene
         self.rman_scene.scene_solo_light = self.rman_scene.bl_scene.renderman.solo_light
                     
-        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):                                   
-            for light_ob in [x for x in self.rman_scene.bl_scene.objects if object_utils._detect_primitive_(x) == 'LIGHT']:
+        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):                                               
+            for light_ob in scene_utils.get_all_lights(self.rman_scene.bl_scene, include_light_filters=False):
                 rman_sg_node = self.rman_scene.rman_objects.get(light_ob.original, None)
                 if not rman_sg_node:
                     continue
-                rman_sg_node.sg_node.SetHidden(light_ob.data.renderman.mute)         
+                rm = light_ob.renderman
+                if not rm:
+                    continue         
+                rman_sg_node.sg_node.SetHidden(light_ob.hide_get())         
 
     def update_viewport_chan(self, context, chan_name):
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):

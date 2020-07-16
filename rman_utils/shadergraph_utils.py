@@ -6,6 +6,83 @@ import math
 def is_renderman_nodetree(material):
     return find_node(material, 'RendermanOutputNode')
 
+def is_mesh_light(ob):
+    '''Checks to see if ob is a RenderMan mesh light
+
+    Args:
+    ob (bpy.types.Object) - Object caller wants to check.
+
+    Returns:
+    (bpy.types.Node) - the PxrMeshLight node if this is a mesh light. Else, returns None.
+    '''
+        
+    mat = getattr(ob, 'active_material', None)
+    if not mat:
+        return None
+    output = is_renderman_nodetree(mat)
+    if not output:
+        return None
+    if len(output.inputs) > 1:
+        socket = output.inputs[1]
+        if socket.is_linked:
+            node = socket.links[0].from_node
+            if node.bl_label == 'PxrMeshLight':
+                return node 
+
+    return None   
+
+def is_rman_light(ob, include_light_filters=True):
+    '''Checks to see if ob is a RenderMan light
+
+    Args:
+    ob (bpy.types.Object) - Object caller wants to check.
+    include_light_filters (bool) - whether or not light filters should be included
+
+    Returns:
+    (bpy.types.Node) - the shading node, else returns None.
+    '''   
+    return get_light_node(ob, include_light_filters=include_light_filters)
+
+def get_rman_light_properties_group(ob):
+    '''Return the RendermanLightSettings properties
+    for this object. 
+
+    Args:
+    ob (bpy.types.Object) - Object caller wants to get the RendermanLightSettings for.
+
+    Returns:
+    (RendermanLightSettings) - RendermanLightSettings object
+    '''
+
+    if ob.type == 'LIGHT':
+        return ob.data.renderman
+    else:
+        mat = ob.active_material
+        if mat:
+            return mat.renderman_light
+
+    return None
+
+def get_light_node(ob, include_light_filters=True):
+    '''Return the shading node for this light object. 
+
+    Args:
+    ob (bpy.types.Object) - Object caller is interested in.
+    include_light_filters (bool) - whether or not light filters should be included    
+
+    Returns:
+    (bpy.types.Node) - The associated shading node for ob
+    '''
+
+    if ob.type == 'LIGHT':
+        if hasattr(ob.data, 'renderman'):
+            if include_light_filters:
+                return ob.data.renderman.get_light_node()
+            elif ob.data.renderman.renderman_light_role == 'RMAN_LIGHT':
+                return ob.data.renderman.get_light_node()
+    else:
+        return is_mesh_light(ob)
+
 def socket_node_input(nt, socket):
     return next((l.from_node for l in nt.links if l.to_socket == socket), None)
 

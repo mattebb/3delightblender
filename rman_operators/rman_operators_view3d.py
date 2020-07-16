@@ -195,6 +195,11 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
             if rman_type == 'LIGHT':
                 light_filter_item = ob.data.renderman.light_filters.add()
                 light_filter_item.linked_filter_ob = light_filter_ob
+            elif shadergraph_utils.is_mesh_light(ob):
+                mat = ob.active_material
+                if mat:
+                    light_filter_item = mat.renderman_light.light_filters.add()
+                    light_filter_item.linked_filter_ob = light_filter_ob
 
         return {"FINISHED"}        
 

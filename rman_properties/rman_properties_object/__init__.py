@@ -52,6 +52,32 @@ class RendermanObjectSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         subtype='FILE_PATH',
         default="")
 
+    mute: BoolProperty(
+        name="Mute",
+        description="Turn off this light",
+        default=False)        
+
+    def update_solo(self, context):
+        light = self.id_data
+        scene = context.scene
+
+        # if the scene solo is on already find the old one and turn off
+        scene.renderman.solo_light = self.solo
+        if self.solo:
+            if scene.renderman.solo_light:
+                for ob in scene.objects:
+                    if shadergraph_utils.is_rman_light(ob, include_light_filters=False):
+                        rm = ob.renderman
+                        if rm != self and rm.solo:
+                            rm.solo = False
+                            break
+
+    solo: BoolProperty(
+        name="Solo",
+        update=update_solo,
+        description="Turn on only this light",
+        default=False)        
+
 classes = [         
     RendermanObjectSettings
 ]           
