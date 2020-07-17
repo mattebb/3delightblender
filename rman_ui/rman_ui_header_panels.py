@@ -161,7 +161,7 @@ class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
 
 def rman_add_node_editor_menu(self, context):
     layout = self.layout
-    rman_icon = rfb_icons.get("rman_blender")    
+    rman_icon = rfb_icons.get_icon("rman_blender")    
     layout.menu('NODE_MT_renderman_node_editor_menu', text='RenderMan', icon_value=rman_icon.icon_id)
 
 classes = [
