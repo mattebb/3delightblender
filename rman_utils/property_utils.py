@@ -40,7 +40,8 @@ __RMAN_EMPTY_STRING__ = '__empty__'
 __RESERVED_BLENDER_NAMES__ = {
     'dimensions' : 'rman_dimensions',
     'inputs': 'rman_inputs',
-    'outputs': 'rman_outputs'
+    'outputs': 'rman_outputs',
+    'resolution': 'rman_resolution'
 }
 
 def get_property_default(node, prop_name):
@@ -110,7 +111,7 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
                 if isinstance(val, list):
                     dflt = list(dflt)
 
-                if not is_array:
+                if not is_array and isinstance(val, str):
                     # these explicit conversions are necessary because of EnumProperties
                     if param_type == 'string' and val == __RMAN_EMPTY_STRING__:
                         val = ""
