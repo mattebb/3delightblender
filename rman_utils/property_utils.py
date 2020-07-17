@@ -36,8 +36,16 @@ __GAINS_TO_ENABLE__ = {
 # take an empty string as an item value
 __RMAN_EMPTY_STRING__ = '__empty__'
 
+# these are reserved property names for Blender's nodes
+__RESERVED_BLENDER_NAMES__ = {
+    'dimensions' : 'rman_dimensions',
+    'inputs': 'rman_inputs',
+    'outputs': 'rman_outputs'
+}
+
 def get_property_default(node, prop_name):
-    prop = node.bl_rna.properties.get(prop_name, None)
+    bl_prop_name = __RESERVED_BLENDER_NAMES__.get(prop_name, prop_name)
+    prop = node.bl_rna.properties.get(bl_prop_name, None)
     dflt = None
     if prop:
         if getattr(prop, 'default_array', None):
@@ -398,6 +406,8 @@ def generate_property(node, sp, update_function=None):
         param_name = param_name[1:]
     if param_name[0] == '_':
         param_name = param_name[1:]
+
+    param_name = __RESERVED_BLENDER_NAMES__.get(param_name, param_name)        
 
     param_label = sp.label if hasattr(sp,'label') else param_name
     param_widget = sp.widget.lower() if hasattr(sp,'widget') and sp.widget else 'default'
