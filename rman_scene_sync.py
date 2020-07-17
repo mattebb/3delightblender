@@ -67,6 +67,33 @@ class RmanSceneSync(object):
                         if rman_sg_node.is_frame_sensitive:
                             light_translator.update(o, rman_sg_node)   
 
+    def _mesh_light_geo_update(self, target_ob):
+        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+            for ob_inst in self.rman_scene.depsgraph.object_instances:
+                if ob_inst.is_instance:
+                    ob = ob_inst.instance_object
+                    group_db_name =  object_utils.get_group_db_name(ob_inst)
+                else:
+                    ob = ob_inst.object
+                    group_db_name =  object_utils.get_group_db_name(ob_inst)
+                
+                if ob != target_ob:
+                    continue
+                     
+                rman_sg_node = self.rman_scene.rman_objects.get(ob.original, None)
+                if rman_sg_node:
+                    rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
+                    if rman_sg_group:
+                        rman_sg_node.instances.pop(group_db_name)
+                        self.rman_scene.sg_scene.DeleteDagNode(rman_sg_group.sg_node)
+                        rman_type = object_utils._detect_primitive_(ob)
+                        translator = self.rman_scene.rman_translators.get(rman_type, None)
+                        if not translator:
+                            return
+                        translator.update(ob, rman_sg_node)                                
+                        self.rman_scene._export_instance(ob_inst)  
+                        break     
+
     def _mesh_light_update(self, mat):
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
             for ob_inst in self.rman_scene.depsgraph.object_instances:
@@ -80,7 +107,7 @@ class RmanSceneSync(object):
                 if not hasattr(ob.data, 'materials'):
                     continue   
                 if ob.type in ('ARMATURE', 'CURVE', 'CAMERA'):
-                    continue                                 
+                    continue                         
                 rman_sg_node = self.rman_scene.rman_objects.get(ob.original, None)
                 if rman_sg_node:
                     found = False
@@ -92,8 +119,8 @@ class RmanSceneSync(object):
                         rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
                         if rman_sg_group:
                             rman_sg_node.instances.pop(group_db_name)
-                            self.rman_scene.sg_scene.DeleteDagNode(rman_sg_group.sg_node)
-                            self.rman_scene._export_instance(ob_inst)                     
+                            self.rman_scene.sg_scene.DeleteDagNode(rman_sg_group.sg_node)                              
+                            self.rman_scene._export_instance(ob_inst)                 
 
     def _material_updated(self, obj):
         mat = obj.id
@@ -206,19 +233,14 @@ class RmanSceneSync(object):
                 translator = self.rman_scene.rman_translators.get(rman_type, None)
                 if not translator:
                     return
-                if shadergraph_utils.is_mesh_light(ob):
-                    # FIXME: the renderer currently doesn't allow geometry edits of
-                    # mesh lights
-                    pass
-                else:
-                    translator.update(ob, rman_sg_node)
+                translator.update(ob, rman_sg_node)
 
     def _update_light_visibility(self, rman_sg_node, ob):
         if not self.rman_scene.scene_solo_light:
             if not ob.hide_get():
                 rman_sg_node.sg_node.SetHidden(ob.renderman.mute)
             else:
-                rman_sg_node.sg_node.SetHidden(1)     
+                rman_sg_node.sg_node.SetHidden(1)    
 
     def update_scene(self, context, depsgraph):
         new_objs = []
@@ -284,6 +306,14 @@ class RmanSceneSync(object):
                     continue
 
                 if obj.is_updated_geometry:
+                    if shadergraph_utils.is_mesh_light(obj.id):
+                        # FIXME: the renderer currently doesn't allow geometry edits of
+                        # mesh lights. For now, we remove instances of this mesh light
+                        # and re-add. This is the same workaround we do when we convert
+                        # a regular geometry into a mesh light. Once there's a fix in the 
+                        # renderer, we can remove this if block.
+                        self._mesh_light_geo_update(obj.id)
+                        continue
                     rfb_log().debug("Object updated: %s" % obj.id.name)
                     self._obj_geometry_updated(obj)                    
                     updated_geo.append(obj.id.original)
