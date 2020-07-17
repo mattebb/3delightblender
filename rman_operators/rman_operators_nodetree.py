@@ -346,7 +346,7 @@ class PRMAN_OT_New_bxdf(bpy.types.Operator):
         return self.execute(context)      
 
 class PRMAN_OT_New_Material_Override(bpy.types.Operator):
-    bl_idname = "nodes.rman_new_material_override"
+    bl_idname = "node.rman_new_material_override"
     bl_label = "New RenderMan Material Override"
     bl_description = "Create a new material override"
     bl_options = {"REGISTER", "UNDO"}

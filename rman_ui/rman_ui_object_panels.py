@@ -155,7 +155,7 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
 
         mat = context.object.renderman.rman_material_override
         if not mat:
-            layout.operator('nodes.rman_new_material_override', text='New Material')
+            layout.operator('node.rman_new_material_override', text='New Material')
             return
 
         if mat.renderman and mat.node_tree:
