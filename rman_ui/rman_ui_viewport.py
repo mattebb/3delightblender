@@ -167,7 +167,7 @@ def draw_rman_viewport_props(self, context):
         rman_render = RmanRender.get_rman_render()
         if view.shading.type == 'RENDERED':
             rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
-            layout.operator('lighting.stop_interactive', text="",
+            layout.operator('renderman.stop_ipr', text="",
                             icon_value=rman_rerender_controls.icon_id)  
 
             # integrators menu
@@ -187,7 +187,7 @@ def draw_rman_viewport_props(self, context):
             if rman_render.rman_interactive_running:
                 rman_render.stop_render()              
             rman_rerender_controls = rfb_icons.get_icon("rman_ipr_on")
-            layout.operator('lighting.start_interactive', text="",
+            layout.operator('renderman.start_ipr', text="",
                             icon_value=rman_rerender_controls.icon_id)               
 
 classes = [

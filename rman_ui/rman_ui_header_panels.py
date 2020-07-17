@@ -28,7 +28,7 @@ class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
         else:
             row = layout.row(align=True)
             rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
-            row.operator('lighting.stop_interactive', text="Stop IPR",
+            row.operator('renderman.stop_ipr', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)      
 
 
@@ -53,10 +53,10 @@ class NODE_MT_renderman_node_editor_menu(bpy.types.Menu):
             if not rman_output_node:           
                 rman_icon = rfb_icons.get_icon('rman_graph') 
                 layout.operator(
-                    'shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = "node_editor"
+                    'material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = "node_editor"
             else:
                 rman_icon = rfb_icons.get_icon("out_PxrSurface")
-                layout.operator('nodes.rman_new_bxdf', text='New Bxdf', icon_value=rman_icon.icon_id).idtype = "node_editor"
+                layout.operator('node.rman_new_bxdf', text='New Bxdf', icon_value=rman_icon.icon_id).idtype = "node_editor"
                 nt = context.space_data.id.node_tree
                 layout.context_pointer_set("nodetree", nt)  
                 layout.context_pointer_set("node", rman_output_node)                  
@@ -74,7 +74,7 @@ class NODE_MT_renderman_node_editor_menu(bpy.types.Menu):
         elif type(context.space_data.id) == bpy.types.World:
             if not context.space_data.id.renderman.use_renderman_node:
                 layout.operator(
-                    'shading.add_renderman_nodetree', text="Add RenderMan Nodes").idtype = "world"        
+                    'material.rman_add_rman_nodetree', text="Add RenderMan Nodes").idtype = "world"        
 
 
 class NODE_HT_DrawRenderHeaderNode(bpy.types.Header):
@@ -100,7 +100,7 @@ class NODE_HT_DrawRenderHeaderNode(bpy.types.Header):
             if not rman_output_node:           
                 rman_icon = rfb_icons.get_icon('rman_graph') 
                 row.operator(
-                    'shading.add_renderman_nodetree', text="", icon_value=rman_icon.icon_id).idtype = "node_editor"
+                    'material.rman_add_rman_nodetree', text="", icon_value=rman_icon.icon_id).idtype = "node_editor"
             else:
                 nt = context.space_data.id.node_tree
                 row.context_pointer_set("nodetree", nt)  
@@ -128,7 +128,7 @@ class NODE_HT_DrawRenderHeaderNode(bpy.types.Header):
             if not context.space_data.id.renderman.use_renderman_node:
                 rman_icon = rfb_icons.get_icon('rman_graph') 
                 row.operator(
-                    'shading.add_renderman_nodetree', text="", icon_value=rman_icon.icon_id).idtype = "world"                
+                    'material.rman_add_rman_nodetree', text="", icon_value=rman_icon.icon_id).idtype = "world"                
 
 class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
     '''Adds a render button or stop IPR button to the image editor
@@ -156,7 +156,7 @@ class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
         else:
             row = layout.row(align=True)
             rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
-            row.operator('lighting.stop_interactive', text="Stop IPR",
+            row.operator('renderman.stop_ipr', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)  
 
 def rman_add_node_editor_menu(self, context):

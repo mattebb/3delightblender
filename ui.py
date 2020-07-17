@@ -201,10 +201,10 @@ def PRMan_menu_func(self, context):
     is_rman_interactive_running = rman_render.rman_interactive_running
 
     if not is_rman_interactive_running:
-        self.layout.operator('lighting.start_interactive',
+        self.layout.operator('renderman.start_ipr',
                             text="RenderMan Start Interactive Rendering")
     else:
-        self.layout.operator('lighting.stop_interactive',
+        self.layout.operator('renderman.stop_ipr',
                             text="RenderMan Stop Interactive Rendering")                                           
 
 #################

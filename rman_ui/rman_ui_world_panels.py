@@ -29,7 +29,7 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
         if not world.renderman.use_renderman_node:
             layout.prop(world, 'color')
             rman_icon = rfb_icons.get_icon('rman_graph')
-            layout.operator('shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
+            layout.operator('material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
         
 class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):
     bl_label = "Integrator"
@@ -71,10 +71,10 @@ class DATA_PT_renderman_world_display_filters(ShaderPanel, Panel):
       
         row = layout.row(align=True)
         col = row.column()
-        col.operator('node.add_displayfilter_node_socket', text='Add')
+        col.operator('node.rman_add_displayfilter_node_socket', text='Add')
         col = row.column()
         col.enabled = len(output.inputs) > 1
-        col.operator('node.remove_displayfilter_node_socket', text='Remove')
+        col.operator('node.rman_remove_displayfilter_node_socket', text='Remove')
         for socket in output.inputs:
             layout.label(text=socket.name)
             layout.context_pointer_set("node", output)
@@ -112,10 +112,10 @@ class DATA_PT_renderman_world_sample_filters(ShaderPanel, Panel):
 
         row = layout.row(align=True)
         col = row.column()
-        col.operator('node.add_samplefilter_node_socket', text='Add')
+        col.operator('node.rman_add_samplefilter_node_socket', text='Add')
         col = row.column()
         col.enabled = len(output.inputs) > 1
-        col.operator('node.remove_samplefilter_node_socket', text='Remove')
+        col.operator('node.rman_remove_samplefilter_node_socket', text='Remove')
         for socket in (output.inputs):
             layout.label(text=socket.name)
 

@@ -10,7 +10,7 @@ import math
 class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
 
     ''''''
-    bl_idname = "shading.convert_cycles_stuff"
+    bl_idname = "material.rman_convert_all_cycles_shaders"
     bl_label = "Convert All Cycles to RenderMan"
     bl_description = "Convert all Cycles nodetrees to RenderMan. This is not guaranteed to work. It is still recommended to use RenderMan only nodes."
 
@@ -98,7 +98,7 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
 class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
 
     ''''''
-    bl_idname = "shading.convert_cycles_shader"
+    bl_idname = "material.rman_convert_cycles_shader"
     bl_label = "Convert Cycles Shader"
     bl_description = "Try to convert the current Cycles Shader to RenderMan. This is not guaranteed to work. It is still recommended to use RenderMan only nodes."
 
@@ -143,7 +143,7 @@ class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
 class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
     ''''''
-    bl_idname = "shading.add_renderman_nodetree"
+    bl_idname = "material.rman_add_rman_nodetree"
     bl_label = "Add RenderMan Nodetree"
     bl_description = "Add a RenderMan shader node tree"
 
@@ -286,7 +286,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
         return self.execute(context)
 
 class PRMAN_OT_New_bxdf(bpy.types.Operator):
-    bl_idname = "nodes.rman_new_bxdf"
+    bl_idname = "node.rman_new_bxdf"
     bl_label = "New RenderMan Material"
     bl_description = "Create a new material with a new RenderMan Bxdf"
     bl_options = {"REGISTER", "UNDO"}
@@ -389,7 +389,7 @@ class PRMAN_OT_New_Material_Override(bpy.types.Operator):
         return wm.invoke_props_dialog(self)        
 
 class PRMAN_OT_Force_Material_Refresh(bpy.types.Operator):
-    bl_idname = "nodes.rman_force_material_refresh"
+    bl_idname = "node.rman_force_material_refresh"
     bl_label = "Force Refresh"
     bl_description = "Force Material to Refresh during IPR. Use this if your material is not responding to edits."
     
@@ -403,7 +403,7 @@ class PRMAN_OT_Force_Material_Refresh(bpy.types.Operator):
         return {"FINISHED"} 
 
 class PRMAN_OT_Force_Light_Refresh(bpy.types.Operator):
-    bl_idname = "nodes.rman_force_light_refresh"
+    bl_idname = "node.rman_force_light_refresh"
     bl_label = "Force Refresh"
     bl_description = "Force Light to Refresh during IPR. Use this if your light is not responding to edits."
     
@@ -417,7 +417,7 @@ class PRMAN_OT_Force_Light_Refresh(bpy.types.Operator):
         return {"FINISHED"}       
         
 class PRMAN_OT_Force_LightFilter_Refresh(bpy.types.Operator):
-    bl_idname = "nodes.rman_force_lightfilter_refresh"
+    bl_idname = "node.rman_force_lightfilter_refresh"
     bl_label = "Force Refresh"
     bl_description = "Force Light Filter to Refresh during IPR. Use this if your light filter is not responding to edits."
     

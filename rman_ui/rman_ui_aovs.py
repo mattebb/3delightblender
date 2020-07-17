@@ -11,9 +11,10 @@ from ..rman_utils import scene_utils
 from ..rman_utils.draw_utils import _draw_ui_from_rman_config
 from .. import rman_config
 
-class Renderman_Dspys_COLLECTION_OT_add_remove(bpy.types.Operator):
-    bl_label = "Add or Remove Paths"
-    bl_idname = "rman_dspys_collection.add_remove"
+class COLLECTION_OT_rman_dspy_add_remove(bpy.types.Operator):
+    bl_label = "Add or Remove RenderMan Displays"
+    bl_idname = "renderman.dspy_add_remove"
+    bl_description = "Add or remove RenderMan AOVs"
 
     action: EnumProperty(
         name="Action",
@@ -71,7 +72,7 @@ class Renderman_Dspys_COLLECTION_OT_add_remove(bpy.types.Operator):
 class PRMAN_OT_Renderman_layer_channel_set_light_group(Operator):
     """Set Light Group for Display Channel"""
 
-    bl_idname = "rman_dspy_channel_list.set_light_group"
+    bl_idname = "renderman.dspychan_set_light_group"
     bl_label = "Set Light Group"
 
     def light_groups_list(self, context):
@@ -99,7 +100,7 @@ class PRMAN_OT_Renderman_layer_channel_set_light_group(Operator):
 class PRMAN_OT_Renderman_layer_add_channel(Operator):
     """Add a new channel"""
 
-    bl_idname = "rman_dspy_channel_list.add_channel"
+    bl_idname = "renderman.dspy_add_channel"
     bl_label = "Add Channel"
 
     def channel_list(self, context):
@@ -155,7 +156,7 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
 class PRMAN_OT_Renderman_layer_delete_channel(Operator):
     """Delete a channel"""
 
-    bl_idname = "rman_dspy_channel_list.delete_channel"
+    bl_idname = "renderman.dspychan_delete_channel"
     bl_label = "Delete Channel"
 
     def execute(self, context):
@@ -237,8 +238,8 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row = col.row()
         row.label(text="Channels")
         row = col.row()
-        row.operator("rman_dspy_channel_list.add_channel", text="Add Channel")
-        row.operator("rman_dspy_channel_list.delete_channel", text="Delete Channel")
+        row.operator("renderman.dspy_add_channel", text="Add Channel")
+        row.operator("renderman.dspychan_delete_channel", text="Delete Channel")
         row = col.row()
         row.template_list("UI_UL_list", "PRMAN", item, "dspy_channels", item,
                           "dspy_channels_index", rows=1)
@@ -288,7 +289,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             layout.separator()
             split = col.split(factor=0.95)
             split.prop(channel, "light_group")
-            split.operator_menu_enum('rman_dspy_channel_list.set_light_group', 'light_groups', text='', icon='DISCLOSURE_TRI_DOWN')
+            split.operator_menu_enum('renderman.dspychan_set_light_group', 'light_groups', text='', icon='DISCLOSURE_TRI_DOWN')
             
             # FIXME: don't show for now
             # col.prop(channel, "object_group")
@@ -304,7 +305,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
                 rm_rl = l
                 break
         if rm_rl is None:
-            layout.operator('renderman.add_renderman_aovs')
+            layout.operator('renderman.dspy_convert_renderman_displays')
             layout.prop(scene.render.image_settings, "file_format")
             split = layout.split()
             col = split.column()
@@ -334,10 +335,10 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             col.prop(rl, "use_pass_ambient_occlusion")
         else:
             layout.operator_menu_enum(
-                "renderman.rman_add_dspy_template", 'dspy_template', text="Add Display Template")  
+                "renderman.dspy_rman_add_dspy_template", 'dspy_template', text="Add Display Template")  
             layout.context_pointer_set("pass_list", rm_rl)
             self._draw_collection(context, layout, rm_rl, "AOVs",
-                                  "rman_dspys_collection.add_remove", "pass_list",
+                                  "renderman.dspy_add_remove", "pass_list",
                                   "custom_aovs", "custom_aov_index", default_name='dspy',
                                   ui_list_class='PRMAN_UL_Renderman_aov_list')
 
@@ -372,8 +373,9 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
 
 
 class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
-    bl_idname = 'renderman.add_renderman_aovs'
-    bl_label = "Switch to RenderMan Passes"
+    bl_idname = 'renderman.dspy_convert_renderman_displays'
+    bl_label = "Switch to RenderMan Displays"
+    bl_description = "Convert curent view layer to use RenderMan Display system"
 
     def execute(self, context):
         scene = context.scene
@@ -439,15 +441,14 @@ class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
         return {'FINISHED'}
 
 class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
-    bl_idname = "renderman.rman_add_dspy_template"
+    bl_idname = "renderman.dspy_rman_add_dspy_template"
     bl_label = "Add Display Template"
-    bl_description = "Add a display template"
+    bl_description = "Add a display from a display template"
     bl_options = {"REGISTER", "UNDO"}
 
     def dspy_template_items(self, context):
         items = []
         for nm, props in rman_config.__RMAN_DISPLAY_TEMPLATES__.items():
-
             items.append((nm, nm, ''))
         return items        
 
@@ -479,7 +480,7 @@ class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
 
 
 classes = [
-    Renderman_Dspys_COLLECTION_OT_add_remove,
+    COLLECTION_OT_rman_dspy_add_remove,
     PRMAN_OT_Renderman_layer_channel_set_light_group,
     PRMAN_OT_Renderman_layer_add_channel,
     PRMAN_OT_Renderman_layer_delete_channel,

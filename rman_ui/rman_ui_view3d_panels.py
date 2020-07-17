@@ -91,7 +91,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         else:
             row = layout.row(align=True)
             rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
-            row.operator('lighting.stop_interactive', text="Stop IPR",
+            row.operator('renderman.stop_ipr', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)            
 
         layout.separator()
@@ -166,9 +166,9 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.label(text="Apps:")
         box = layout.box()
         rman_it = rfb_icons.get_icon("rman_it")
-        box.operator("rman.start_it", icon_value=rman_it.icon_id)  
+        box.operator("renderman.start_it", icon_value=rman_it.icon_id)  
         rman_lq = rfb_icons.get_icon("rman_localqueue")
-        box.operator("rman.start_localqueue", icon_value=rman_lq.icon_id)          
+        box.operator("renderman.start_localqueue", icon_value=rman_lq.icon_id)          
         
         selected_objects = []
         selected_light_objects = []
@@ -194,7 +194,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
 
             # Add Subdiv Sheme
             rman_subdiv = rfb_icons.get_icon("rman_subdiv")
-            box.operator("object.rman_add_subdiv_scheme",
+            box.operator("mesh.rman_convert_subdiv",
                          text="Convert to Subdiv", icon_value=rman_subdiv.icon_id)
 
             # Add/Create RIB Box /
@@ -207,9 +207,9 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         box = layout.box()
         box.enabled = not is_rman_interactive_running
         rman_rib = rfb_icons.get_icon('rman_rib_small')
-        box.operator("rman.open_scene_rib", text='View RIB', icon_value=rman_rib.icon_id)
+        box.operator("renderman.open_scene_rib", text='View RIB', icon_value=rman_rib.icon_id)
         if selected_objects or selected_light_objects:
-            box.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)
+            box.operator("renderman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)
 
 
 

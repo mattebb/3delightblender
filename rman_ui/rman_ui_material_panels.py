@@ -58,7 +58,7 @@ class MATERIAL_PT_renderman_material_refresh(ShaderPanel, Panel):
         rr = RmanRender.get_rman_render()
         if rr.rman_is_live_rendering:
             layout.context_pointer_set("material", mat)
-            layout.operator("nodes.rman_force_material_refresh", text='Force Refresh')
+            layout.operator("node.rman_force_material_refresh", text='Force Refresh')
 
 class DATA_PT_renderman_light_refresh(ShaderPanel, Panel):
     bl_context = "data"
@@ -82,10 +82,10 @@ class DATA_PT_renderman_light_refresh(ShaderPanel, Panel):
         rr = RmanRender.get_rman_render()
         if light.renderman.renderman_light_role == 'RMAN_LIGHT':
             layout.context_pointer_set("light", context.active_object)
-            layout.operator("nodes.rman_force_light_refresh", text='Force Refresh')
+            layout.operator("node.rman_force_light_refresh", text='Force Refresh')
         else:
             layout.context_pointer_set("light_filter", context.active_object)
-            layout.operator("nodes.rman_force_lightfilter_refresh", text='Force Refresh')
+            layout.operator("node.rman_force_lightfilter_refresh", text='Force Refresh')
 
 class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
     bl_context = "material"
@@ -149,12 +149,12 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             col = row.column()
             rman_icon = rfb_icons.get_icon('rman_graph')
             col.operator(
-                'shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
+                'material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
             if prefs_utils.get_addon_prefs().rman_do_cycles_convert:
                 col = row.column()                
-                op = col.operator('shading.convert_cycles_shader').idtype = "material"
+                op = col.operator('material.rman_convert_cycles_shader').idtype = "material"
                 if not mat.grease_pencil:
-                    layout.operator('shading.convert_cycles_stuff')
+                    layout.operator('material.rman_convert_all_cycles_shaders')
 
 
 class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
@@ -212,7 +212,7 @@ class DATA_PT_renderman_light(ShaderPanel, Panel):
             layout.prop(light, "color")
             layout.prop(light, "energy")
             layout.label(text='')
-            layout.operator('shading.add_renderman_nodetree').idtype = 'light'
+            layout.operator('material.rman_add_rman_nodetree').idtype = 'light'
             return
         else:       
             row = layout.row()
@@ -349,7 +349,7 @@ class RENDERMAN_UL_LightFilters(CollectionPanel):
                 rr = RmanRender.get_rman_render()
                 if rr.rman_is_live_rendering:
                     col.context_pointer_set("light_filter", lightfilter)
-                    col.operator("nodes.rman_force_lightfilter_refresh", text='Force Refresh')              
+                    col.operator("node.rman_force_lightfilter_refresh", text='Force Refresh')              
 
                 nt = lightfilter.data.node_tree
                 draw_nodes_properties_ui(

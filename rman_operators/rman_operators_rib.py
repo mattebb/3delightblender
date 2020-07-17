@@ -50,7 +50,7 @@ def _view_rib(rib_output):
         rfb_log().error("Open RIB file with web browser failed: %s" % str(e))
 
 class PRMAN_OT_Renderman_open_scene_RIB(bpy.types.Operator):
-    bl_idname = 'rman.open_scene_rib'
+    bl_idname = 'renderman.open_scene_rib'
     bl_label = "View RIB."
     bl_description = "Generate RIB for the current frame and open in a text editor"
 
@@ -83,7 +83,7 @@ class PRMAN_OT_Renderman_open_scene_RIB(bpy.types.Operator):
         return {'FINISHED'}
 
 class PRMAN_OT_Open_Selected_RIB(bpy.types.Operator):
-    bl_idname = "rman.open_selected_rib"
+    bl_idname = "renderman.open_selected_rib"
     bl_label = "View Selected RIB"
     bl_description = "Open RIB for selected object"
 
@@ -109,7 +109,7 @@ class PRMAN_OT_Open_Selected_RIB(bpy.types.Operator):
         return {'FINISHED'}         
 
 class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
-    bl_idname = "export.export_rib_archive"
+    bl_idname = "export.rman_export_rib_archive"
     bl_label = "Export Object as RIB Archive"
     bl_description = "Export single object as a RIB archive for use in other blend files or for other uses"
 

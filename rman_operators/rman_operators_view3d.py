@@ -103,7 +103,7 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
         return self.execute(context)
 
 class PRMAN_OT_RM_Add_Subdiv_Scheme(bpy.types.Operator):
-    bl_idname = "object.rman_add_subdiv_scheme"
+    bl_idname = "mesh.rman_convert_subdiv"
     bl_label = "Convert to Subdiv"
     bl_description = "Convert selected object to a subdivision surface"
     bl_options = {"REGISTER"}
@@ -276,7 +276,7 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
         return {"FINISHED"}
 
 class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
-    bl_idname = 'rman.start_it'
+    bl_idname = 'renderman.start_it'
     bl_label = "Start 'it'"
     bl_description = "Start RenderMan's it"
 
@@ -291,7 +291,7 @@ class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
         return {'FINISHED'}        
 
 class PRMAN_OT_Renderman_start_localqueue(bpy.types.Operator):
-    bl_idname = 'rman.start_localqueue'
+    bl_idname = 'renderman.start_localqueue'
     bl_label = "Start Local Queue"
     bl_description = "Start LocalQueue"
 
@@ -388,7 +388,7 @@ class PRMAN_OT_AddCamera(bpy.types.Operator):
         return {"FINISHED"}
 
 class PRMAN_OT_Renderman_open_stats(bpy.types.Operator):
-    bl_idname = 'rman.open_stats'
+    bl_idname = 'renderman.open_stats'
     bl_label = "Open Frame Stats"
     bl_description = "Open Current Frame stats file"
 
@@ -405,7 +405,7 @@ class PRMAN_OT_Renderman_open_stats(bpy.types.Operator):
 
 class PRMAN_OT_LoadExampleScene(bpy.types.Operator):
     bl_label = "RenderMan Examples"
-    bl_idname = "rman.open_example_scene"
+    bl_idname = "renderman.open_example_scene"
     bl_description = "Open a RenderMan Example Scene"
 
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
@@ -422,7 +422,7 @@ class PRMAN_MT_LoadExampleSceneMenu(bpy.types.Menu):
     def draw(self, context):
         global __RFB_EXAMPLE_SCENE_LIST__
         for nm, filepath in __RFB_EXAMPLE_SCENE_LIST__:
-            op = self.layout.operator("rman.open_example_scene", text=nm)
+            op = self.layout.operator("renderman.open_example_scene", text=nm)
             op.filepath = filepath
 
 classes = [

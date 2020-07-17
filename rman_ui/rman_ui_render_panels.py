@@ -41,7 +41,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         else:
             row = layout.row(align=True)
             rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
-            row.operator('lighting.stop_interactive', text="Stop IPR",
+            row.operator('renderman.stop_ipr', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)                                          
 
 

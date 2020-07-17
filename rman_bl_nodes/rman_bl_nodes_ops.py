@@ -52,7 +52,7 @@ def link_node(nt, from_node, in_socket):
 
 class NODE_OT_add_displayfilter_node_socket(bpy.types.Operator):
 
-    bl_idname = 'node.add_displayfilter_node_socket'
+    bl_idname = 'node.rman_add_displayfilter_node_socket'
     bl_label = 'Add DisplayFilter Socket'
     bl_description = 'Add a new socket to the displayfilter output node'
 
@@ -75,7 +75,7 @@ class NODE_OT_add_displayfilter_node_socket(bpy.types.Operator):
 
 class NODE_OT_remove_displayfilter_node_socket(bpy.types.Operator):
 
-    bl_idname = 'node.remove_displayfilter_node_socket'
+    bl_idname = 'node.rman_remove_displayfilter_node_socket'
     bl_label = 'Remove DisplayFilter Socket'
     bl_description = 'Remove a new socket to the displayfilter output node'
 
@@ -96,7 +96,7 @@ class NODE_OT_remove_displayfilter_node_socket(bpy.types.Operator):
 
 class NODE_OT_add_samplefilter_node_socket(bpy.types.Operator):
 
-    bl_idname = 'node.add_samplefilter_node_socket'
+    bl_idname = 'node.rman_add_samplefilter_node_socket'
     bl_label = 'Add SampleFilter Socket'
     bl_description = 'Add a new socket to the samplefilter output node'
 
@@ -117,7 +117,7 @@ class NODE_OT_add_samplefilter_node_socket(bpy.types.Operator):
 
 class NODE_OT_remove_samplefilter_node_socket(bpy.types.Operator):
 
-    bl_idname = 'node.remove_samplefilter_node_socket'
+    bl_idname = 'node.rman_remove_samplefilter_node_socket'
     bl_label = 'Remove SampleFilter Socket'
     bl_description = 'Remove a new socket to the samplefilter output node'
 
@@ -334,7 +334,7 @@ class NODE_OT_rman_node_set_solo_output(bpy.types.Operator):
         return {'FINISHED'}         
 
 class NODE_OT_rman_refresh_osl_shader(bpy.types.Operator):
-    bl_idname = "node.refresh_osl_shader"
+    bl_idname = "node.rman_refresh_osl_shader"
     bl_label = "Refresh OSL Node"
     bl_description = "Refreshes the OSL node This takes a second!!"
 

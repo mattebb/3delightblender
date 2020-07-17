@@ -145,7 +145,7 @@ class PRMAN_OT_ExternalRender(bpy.types.Operator):
 class PRMAN_OT_StartInteractive(bpy.types.Operator):
 
     ''''''
-    bl_idname = "lighting.start_interactive"
+    bl_idname = "renderman.start_ipr"
     bl_label = "Start Interactive Rendering"
     bl_description = "Start Interactive Rendering"
 
@@ -160,7 +160,7 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
 class PRMAN_OT_StoptInteractive(bpy.types.Operator):
 
     ''''''
-    bl_idname = "lighting.stop_interactive"
+    bl_idname = "renderman.stop_ipr"
     bl_label = "Stop Interactive Rendering"
     bl_description = "Stop Interactive Rendering"
 

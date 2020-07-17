@@ -103,7 +103,7 @@ def is_ipr_running():
         else:
             # shutdown IPR
             ipr.is_interactive_ready = False
-            bpy.ops.lighting.start_interactive('INVOKE_DEFAULT')
+            bpy.ops.renderman.start_ipr('INVOKE_DEFAULT')
             return False
     else:
         return False
@@ -124,7 +124,7 @@ def shutdown_ipr():
             override['window'] = window
             override['screen'] = window.screen
             #override['selected_bases'] = list(bpy.context.scene.object_bases)
-            bpy.ops.lighting.start_interactive(override, 'INVOKE_DEFAULT')
+            bpy.ops.renderman.start_ipr(override, 'INVOKE_DEFAULT')
 
 def create(engine, data, depsgraph, region=0, space_data=0, region_data=0):
     # TODO add support for regions (rerendering)

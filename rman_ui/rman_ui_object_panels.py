@@ -209,12 +209,12 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
             col = row.column()
             rman_icon = rfb_icons.get_icon('rman_graph')
             col.operator(
-                'shading.add_renderman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
+                'material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
             if prefs_utils.get_addon_prefs().rman_do_cycles_convert:
                 col = row.column()                
-                op = col.operator('shading.convert_cycles_shader').idtype = "material"
+                op = col.operator('material.rman_convert_cycles_shader').idtype = "material"
                 if not mat.grease_pencil:
-                    layout.operator('shading.convert_cycles_stuff')
+                    layout.operator('material.rman_convert_all_cycles_shaders')
 
 
 class OBJECT_PT_renderman_object_geometry_quadric(Panel, CollectionPanel):

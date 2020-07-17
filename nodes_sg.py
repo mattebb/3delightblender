@@ -333,7 +333,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
     def draw_buttons(self, context, layout):
         self.draw_nonconnectable_props(context, layout, self.prop_names)
         if self.bl_idname == "PxrOSLPatternNode":
-            layout.operator("node.refresh_osl_shader")
+            layout.operator("node.rman_refresh_osl_shader")
 
     def draw_buttons_ext(self, context, layout):
         self.draw_nonconnectable_props(context, layout, self.prop_names)

@@ -166,7 +166,7 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
 
             # Add Subdiv Sheme
             rman_subdiv = rfb_icons.get_icon("rman_subdiv")
-            layout.operator("object.rman_add_subdiv_scheme",
+            layout.operator("mesh.rman_convert_subdiv",
                             text="Convert to Subdiv", icon_value=rman_subdiv.icon_id)
 
             layout.separator()
@@ -178,10 +178,10 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         column.enabled = not is_rman_interactive_running
         row = column.row()
         rman_rib = rfb_icons.get_icon('rman_rib_small')
-        row.operator("rman.open_scene_rib", text='View RIB', icon_value=rman_rib.icon_id)
+        row.operator("renderman.open_scene_rib", text='View RIB', icon_value=rman_rib.icon_id)
         if selected_objects or selected_light_objects:
             row = column.row()
-            row.operator("rman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)    
+            row.operator("renderman.open_selected_rib", text='View Selected RIB', icon_value=rman_rib.icon_id)    
 
         layout.separator()
         layout.label(text='Groups')
@@ -206,7 +206,7 @@ class VIEW3D_MT_RM_Add_Export_Menu(bpy.types.Menu):
         layout = self.layout
 
         rman_archive = rfb_icons.get_icon("rman_CreateArchive")
-        layout.operator("export.export_rib_archive",
+        layout.operator("export.rman_export_rib_archive",
                         icon_value=rman_archive.icon_id)  
         layout.operator("renderman.bake_selected_brickmap", text="Bake Object to Brickmap")      
 
