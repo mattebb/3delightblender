@@ -1,5 +1,3 @@
-import mathutils
-from mathutils import Matrix, Vector
 from .string_expr import StringExpression
 from . import filepath_utils
 from bpy.app.handlers import persistent
@@ -157,8 +155,6 @@ def get_var(nm):
 
 @persistent
 def update_blender_tokens_cb(bl_scene):
-    if bpy.context.engine != 'PRMAN_RENDER':
-        return    
     global __SCENE_STRING_CONVERTER__
     converter_validity_check()
     __SCENE_STRING_CONVERTER__.update()
@@ -172,6 +168,7 @@ def _format_time_(seconds):
     return "%02i:%02i:%02i" % (hours, minutes, seconds)
 
 def convert_val(v, type_hint=None):
+    import mathutils
 
     # float, int
     if type_hint == 'color':
