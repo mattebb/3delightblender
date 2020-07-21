@@ -28,7 +28,7 @@ import blf
 import time
 from .rman_utils import filepath_utils
 from .rman_utils import texture_utils
-from .rman_utils import prefs_utils
+from .rman_utils.prefs_utils import get_pref
 from .rman_utils import string_utils
 from .rfb_logger import rfb_log
 
@@ -106,13 +106,12 @@ class PRManRender(bpy.types.RenderEngine):
         baking = (rm.hider_type in ['BAKE', 'BAKE_BRICKMAP_SELECTED'])
 
         if self.is_preview:
-            prefs = prefs_utils.get_addon_prefs()
             # double check we're not already viewport rendering
             if self.rman_render.rman_interactive_running:
                 if prefs.rman_do_preview_renders:
                     rfb_log().error("Cannot preview render while viewport rendering.")
                 return            
-            if not prefs.rman_do_preview_renders:
+            if not get_pref('rman_do_preview_renders', False):
                 # user has turned off preview renders, just load the placeholder image
                 self.rman_render.bl_scene = depsgraph.scene_eval
                 self.rman_render._load_placeholder_image()
@@ -141,7 +140,7 @@ class PRManRender(bpy.types.RenderEngine):
         h = context.region.height          
 
         # Draw text area that RenderMan is running.        
-        if prefs_utils.get_addon_prefs().draw_ipr_text:
+        if get_pref('draw_ipr_text', False):
 
             pos_x = w / 2 - 100
             pos_y = 20

@@ -99,7 +99,7 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
                 params.SetBxdfReference(param_name, val)       
     else:
         # check if we need to emit this parameter.
-        if node != None and not prefs_utils.get_pref_val('rman_emit_default_params'):
+        if node != None and not prefs_utils.get_pref('rman_emit_default_params', False):
             dflt = get_property_default(node, param_name)
 
             # FIXME/TODO: currently, the python version of RtParamList

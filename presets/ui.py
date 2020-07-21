@@ -23,7 +23,7 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 
-from ..rman_utils import prefs_utils
+from ..rman_utils.prefs_utils import get_pref
 
 # for panel icon
 from .. import rfb_icons
@@ -53,7 +53,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
         return rd.engine == 'PRMAN_RENDER'
 
     def draw_header(self, context):
-        if prefs_utils.get_addon_prefs().draw_panel_icon:
+        if get_pref('draw_panel_icon', True):
             rfb_icon = rfb_icons.get_icon("rman_blender")
             self.layout.label(text="", icon_value=rfb_icon.icon_id)
         else:
@@ -68,8 +68,8 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
 
-        current_presets_category = prefs_utils.get_addon_prefs().presets_current_category
-        presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
+        current_presets_category = get_pref('presets_current_category')
+        presets_root_category = get_pref('presets_root_category')
 
         rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
         if presets_root_category.name == '':
@@ -102,7 +102,7 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
                     row.prop(current, 'selected_preset', text='')
 
                     # This doesn't seem to always work?
-                    if prefs_utils.get_addon_prefs().presets_show_large_icons:
+                    if get_pref('presets_show_large_icons', True):
                         thumb = rpb_icons.get_icon(selected_preset.path)
                         layout.template_icon(thumb.icon_id, scale=8.0)
 
@@ -165,7 +165,7 @@ class PRMAN_MT_Renderman_Presets_Categories_Menu(bpy.types.Menu):
     path: StringProperty(default="")
 
     def draw(self, context):
-        presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
+        presets_root_category = get_pref('presets_root_category')
         presets_envmaps_category = presets_root_category.sub_categories['EnvironmentMaps']
         presets_lightrigs_category = presets_root_category.sub_categories['LightRigs']
         presets_materials_category = presets_root_category.sub_categories['Materials']
@@ -204,8 +204,8 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
         
-        current_presets_category = prefs_utils.get_addon_prefs().presets_current_category
-        presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
+        current_presets_category = get_pref('presets_current_category')
+        presets_root_category = get_pref('presets_root_category')
 
         rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
         if presets_root_category.name == '':          
@@ -227,7 +227,7 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
                     elif obj.type == 'LIGHT':
                         selected_light_objects.append(obj)
 
-            presets_path = prefs_utils.get_addon_prefs().presets_root_category.path
+            presets_path = get_pref('presets_root_category').path
             rel_path = os.path.relpath(current.path, presets_path)                      
 
             asset_type = 'Environment'

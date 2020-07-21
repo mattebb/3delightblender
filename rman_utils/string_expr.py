@@ -6,7 +6,7 @@ import datetime
 from collections import OrderedDict
 from ..rfb_logger import rfb_log
 from ..rman_utils import filepath_utils
-from . import prefs_utils
+from .prefs_utils import get_pref
 import bpy
 
 COUNTERS = None
@@ -116,7 +116,7 @@ class StringExpression(object):
         else:
             self.tokens['blend'] = os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]     
 
-        self.tokens['OUT'] = self.expand(prefs_utils.get_addon_prefs().env_vars.out)
+        self.tokens['OUT'] = self.expand(get_pref('env_vars').out)
         self.tokens['scene'] = bpy.context.scene.name 
         self.set_frame_context(bpy.context.scene.frame_current)
 

@@ -3,7 +3,7 @@ import os
 import webbrowser
 import sys
 from ..rfb_logger import rfb_log
-from ..rman_utils import prefs_utils
+from ..rman_utils.prefs_utils import get_pref
 from ..rman_utils import string_utils
 from ..rman_utils import filepath_utils
 from ..rman_render import RmanRender
@@ -12,10 +12,10 @@ from bpy.props import StringProperty, BoolProperty
 
 def _view_rib(rib_output):
     
-    prefs = prefs_utils.get_addon_prefs()
+    rman_editor = get_pref('rman_editor', '')
 
-    if prefs.rman_editor:
-        rman_editor = filepath_utils.get_real_path(prefs.rman_editor)
+    if rman_editor:
+        rman_editor = filepath_utils.get_real_path(rman_editor)
         command = rman_editor + " " + rib_output
         try:
             os.system(command)

@@ -1,7 +1,7 @@
 from .rman_ui_base import _RManPanelHeader,ShaderPanel,ShaderNodePanel, CollectionPanel 
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 from ..rman_utils.draw_utils import _draw_props, panel_node_draw,draw_nodes_properties_ui,draw_node_properties_recursive
-from ..rman_utils import prefs_utils
+from ..rman_utils.prefs_utils import get_pref
 from .. import rfb_icons
 from ..rman_render import RmanRender
 import bpy
@@ -16,7 +16,7 @@ class MATERIAL_PT_renderman_preview(Panel, ShaderPanel):
 
     @classmethod
     def poll(cls, context):
-        return prefs_utils.get_addon_prefs().rman_do_preview_renders
+        return get_pref('rman_do_preview_renders', False)
 
     def draw(self, context):
         layout = self.layout
@@ -150,7 +150,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             rman_icon = rfb_icons.get_icon('rman_graph')
             col.operator(
                 'material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
-            if prefs_utils.get_addon_prefs().rman_do_cycles_convert:
+            if get_pref('rman_do_cycles_convert', False):
                 col = row.column()                
                 op = col.operator('material.rman_convert_cycles_shader').idtype = "material"
                 if not mat.grease_pencil:

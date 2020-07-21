@@ -26,7 +26,7 @@
 import os
 import bpy
 import bpy.utils.previews
-from ..rman_utils import prefs_utils
+from ..rman_utils.prefs_utils import get_pref
 from ..rman_utils import filepath_utils
 
 asset_previews = bpy.utils.previews.new()
@@ -36,7 +36,7 @@ __RMAN_MAT_FLAT_FILENAME__ = 'rman_Mat_default_big_100.png'
 def get_presets_for_category(preset_category):
     items = list(preset_category.presets)
     
-    if prefs_utils.get_addon_prefs().presets_show_subcategories:
+    if get_pref('presets_show_subcategories', False):
         for sub_category in preset_category.sub_categories:
             items.extend(get_presets_for_category(sub_category))
 
@@ -70,7 +70,7 @@ def load_previews(preset_category):
 
     enum_items = []
 
-    category_dir = prefs_utils.get_addon_prefs().presets_current_category.path
+    category_dir = get_pref('presets_current_category').path
 
     items = get_presets_for_category(preset_category)
     items = sorted(items, key=lambda item: item.label)

@@ -1,7 +1,7 @@
 from . import string_utils
 from . import filepath_utils
 from . import scene_utils
-from . import prefs_utils
+from .prefs_utils import get_pref
 from ..rfb_logger import rfb_log
 from .. import txmanager3
 from ..txmanager3 import core as txcore
@@ -18,9 +18,8 @@ __RFB_TXMANAGER__ = None
 
 class RfBTxManager(object):
 
-    def __init__(self):
-        addon_prefs = prefs_utils.get_addon_prefs()
-        fallback_path = string_utils.expand_string(addon_prefs.path_fallback_textures_path, 
+    def __init__(self):        
+        fallback_path = string_utils.expand_string(get_pref('path_fallback_textures_path'), 
                                                   asFilePath=True)
         self.txmanager = txcore.TxManager(host_token_resolver_func=self.host_token_resolver_func, 
                                         fallback_path=fallback_path,

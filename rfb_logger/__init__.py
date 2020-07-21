@@ -1,7 +1,7 @@
 import logging
 import logging.handlers
 import os
-from ..rman_utils import prefs_utils
+from ..rman_utils.prefs_utils import get_pref
 
 LOGGING_DISABLED = 100
 CRITICAL = logging.CRITICAL
@@ -93,9 +93,8 @@ def check_log_level_preferences():
     if __RFB_LOG_LEVEL:
         return
 
-    rman_prefs = prefs_utils.get_addon_prefs()
-    if rman_prefs and rman_prefs.rman_logging_level in __LOG_LEVELS__:
-        level = __LOG_LEVELS__[rman_prefs.rman_logging_level]
+    level = get_pref('rman_logging_level', WARNING)
+    if level in __LOG_LEVELS__:        
         set_logger_level(level)
     else:
         set_logger_level(WARNING)       
@@ -110,9 +109,7 @@ def check_logfile_preferences():
 
     logFile = ''
     err_msg = []
-    rman_prefs = prefs_utils.get_addon_prefs()
-    if rman_prefs and rman_prefs.rman_logging_file:
-        logFile = rman_prefs.rman_logging_file     
+    logFile = get_pref('rman_logging_file', '')
 
     if logFile:
         set_file_logger(logFile)

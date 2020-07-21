@@ -1,5 +1,4 @@
 from . import string_utils
-from . import prefs_utils
 from . import property_utils
 from . import shadergraph_utils
 from .. import rman_constants
@@ -79,7 +78,6 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
 
     rm = rman_scene.bl_scene.renderman
     display_driver = dspy_drv
-    addon_prefs = prefs_utils.get_addon_prefs()
     param_list = None
 
     if not display_driver:
@@ -214,7 +212,6 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
 
     rm = rman_scene.bl_scene.renderman
     display_driver = dspy_drv
-    addon_prefs = prefs_utils.get_addon_prefs()
 
     for aov in rm_rl.custom_aovs:
         if aov.name == '':
@@ -495,7 +492,6 @@ def get_dspy_dict(rman_scene, expandTokens=True):
     rm_rl = rman_scene.rm_rl
     layer = rman_scene.bl_view_layer
     dspys_dict = {'displays': OrderedDict(), 'channels': {}}
-    addon_prefs = prefs_utils.get_addon_prefs()   
     display_driver = None
 
     if rman_scene.is_interactive:

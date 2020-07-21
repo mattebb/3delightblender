@@ -210,7 +210,7 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
             rman_icon = rfb_icons.get_icon('rman_graph')
             col.operator(
                 'material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
-            if prefs_utils.get_addon_prefs().rman_do_cycles_convert:
+            if get_pref('rman_do_cycles_convert', False):
                 col = row.column()                
                 op = col.operator('material.rman_convert_cycles_shader').idtype = "material"
                 if not mat.grease_pencil:

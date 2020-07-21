@@ -7,7 +7,7 @@ import bpy
 from .rman_utils import string_utils
 from .rman_utils import filepath_utils
 from .rman_utils import display_utils
-from .rman_utils import prefs_utils
+from .rman_utils.prefs_utils import get_pref
 from .rfb_logger import rfb_log
 
 #import tractor.api.author as author
@@ -72,9 +72,7 @@ class RmanSpool(object):
 
     def blender_batch_render(self, bl_filename):
 
-        prefs = prefs_utils.get_addon_prefs()
-
-        out_dir = prefs.env_vars.out       
+        out_dir = get_pref('env_vars').out       
         scene = self.bl_scene 
         rm = scene.renderman
         bl_view_layer = self.depsgraph.view_layer
@@ -152,9 +150,7 @@ class RmanSpool(object):
 
     def batch_render(self):
 
-        prefs = prefs_utils.get_addon_prefs()
-
-        out_dir = prefs.env_vars.out       
+        out_dir = get_pref('env_vars').out       
         scene = self.bl_scene 
         rm = scene.renderman
         bl_view_layer = self.depsgraph.view_layer

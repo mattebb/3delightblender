@@ -5,12 +5,9 @@ import platform
 import sys
 from ..rfb_logger import rfb_log
 from .. import rman_constants
+from .prefs_utils import get_pref
 
 __RMANTREE__ = None
-
-def get_addon_prefs():
-    addon = bpy.context.preferences.addons[__name__.split('.')[0]]
-    return addon.preferences
 
 def rmantree_from_env():
     RMANTREE = ''
@@ -75,14 +72,13 @@ def guess_rmantree():
     if __RMANTREE__:
         return __RMANTREE__
 
-    prefs = get_addon_prefs()
-    rmantree_method = prefs.rmantree_method
-    choice = prefs.rmantree_choice
+    rmantree_method = get_pref('rmantree_method', 'ENV')
+    choice = get_pref('rmantree_choice')
 
     rmantree = ''
 
     if rmantree_method == 'MANUAL':
-        rmantree = prefs.path_rmantree    
+        rmantree = get_pref('path_rmantree')
 
     if rmantree_method == 'DETECT' and choice != 'NEWEST':
         rmantree = choice

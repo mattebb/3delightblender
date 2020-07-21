@@ -23,7 +23,7 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 
-from ..rman_utils import prefs_utils
+from ..rman_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rman_utils import filepath_utils
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 import os
@@ -49,8 +49,8 @@ class PRMAN_OT_reload_preset_library(bpy.types.Operator):
     bl_description = "Reload Presets Library."
 
     def execute(self, context):
-        presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
-        presets_current_category = prefs_utils.get_addon_prefs().presets_current_category
+        presets_root_category = get_pref('presets_root_category')
+        presets_current_category = get_pref('presets_current_category')
         rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
         if rman_asset_lib:
             # check if RMAN_ASSET_LIBRARY is diffrent from our current library
@@ -63,7 +63,7 @@ class PRMAN_OT_reload_preset_library(bpy.types.Operator):
 
         refresh_presets_libraries(presets_root_category.path, presets_root_category)
         presets_current_category = presets_root_category.sub_categories['LightRigs']
-        prefs_utils.get_addon_prefs().presets_current_category_path = presets_current_category.path     
+        get_addon_prefs().presets_current_category_path = presets_current_category.path     
         bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
@@ -83,7 +83,7 @@ class PRMAN_OT_init_preset_library(bpy.types.Operator):
     def execute(self, context):
 
         json_file = os.path.join(self.directory, 'library.json')
-        presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
+        presets_root_category = get_pref('presets_root_category')
         if os.path.exists(json_file):
             presets_library_name = get_library_name(json_file)
             presets_root_category.name = presets_library_name
@@ -114,7 +114,7 @@ class PRMAN_OT_load_preset_library_from_env_var(bpy.types.Operator):
             return {'FINISHED'}
 
         json_file = os.path.join(rman_asset_lib, 'library.json')
-        presets_root_category = prefs_utils.get_addon_prefs().presets_root_category
+        presets_root_category = get_pref('presets_root_category')
         if os.path.exists(json_file):
             presets_library_name = get_library_name(json_file)
             presets_root_category.name = presets_library_name
@@ -174,9 +174,8 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        prefs = prefs_utils.get_addon_prefs()
-        category_path = prefs.presets_current_category_path
-        root_presets_path = prefs.presets_root_category.path
+        category_path = get_pref('presets_current_category_path')
+        root_presets_path = get_pref('presets_root_category').path
         path = os.path.relpath(category_path, root_presets_path)
         if not path.startswith('Materials'):
             return False
@@ -202,7 +201,7 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
         col.prop(self, 'material_version')
 
     def execute(self, context):
-        presets_path = prefs_utils.get_addon_prefs().presets_root_category.path
+        presets_path = get_pref('presets_root_category').path
         path = os.path.relpath(self.properties.category_path, presets_path)
         category = RendermanPresetCategory.get_from_path(self.properties.category_path)
         ob = context.active_object
@@ -230,9 +229,8 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
         self.material_label = mat.name
         self.material_author = getpass.getuser()
         self.material_version = '1.0'
-        prefs = prefs_utils.get_addon_prefs()
-        presets_path = prefs.presets_root_category.path
-        current_category_path = prefs.presets_current_category_path
+        presets_path = get_pref('presets_root_category').path
+        current_category_path = get_pref('presets_current_category_path')
         path = os.path.relpath(current_category_path, presets_path)        
         self.material_category = path.split('/')[-1]     
 
@@ -249,7 +247,7 @@ class PRMAN_OT_set_current_preset_category(bpy.types.Operator):
     def execute(self, context):
         preset_current_path = self.properties.preset_current_path  
         if preset_current_path:
-            prefs_utils.get_addon_prefs().presets_current_category_path = preset_current_path
+            get_addon_prefs().presets_current_category_path = preset_current_path
             bpy.ops.wm.save_userpref()
         return {'FINISHED'}  
 
@@ -271,7 +269,7 @@ class PRMAN_OT_add_new_preset_category(bpy.types.Operator):
             sub_category.name = new_folder
             sub_category.path = path
 
-            prefs_utils.get_addon_prefs().presets_current_category_path = path
+            get_addon_prefs().presets_current_category_path = path
         bpy.ops.wm.save_userpref()
         return {'FINISHED'}
 
@@ -301,7 +299,7 @@ class PRMAN_OT_remove_preset_category(bpy.types.Operator):
         if current_path:
             parent_path = os.path.split(current.path)[0]
             parent = RendermanPresetCategory.get_from_path(parent_path)
-            prefs_utils.get_addon_prefs().presets_current_category_path = parent_path
+            get_addon_prefs().presets_current_category_path = parent_path
             
             shutil.rmtree(current.path)
 
@@ -349,7 +347,7 @@ class PRMAN_OT_move_preset(bpy.types.Operator):
             for lib in parent_lib.sub_groups:
                 enum.extend(get_libs(lib))
             return enum
-        return get_libs(prefs_utils.get_addon_prefs().presets_library)
+        return get_libs(get_pref('presets_library'))
 
     preset_path: StringProperty(default='')
     new_library: EnumProperty(items=get_libraries, description='New Library', name="New Library")
@@ -390,7 +388,7 @@ class PRMAN_OT_move_preset_category(bpy.types.Operator):
 
     def get_all_categories(self, context):
         current_category = RendermanPresetCategory.get_current_category()
-        root_category = prefs_utils.get_addon_prefs().presets_root_category
+        root_category = get_pref('presets_root_category')
         relpath = os.path.relpath(current_category.path, root_category.path)
         asset_type = relpath.split(os.sep)[0]
 

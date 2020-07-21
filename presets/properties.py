@@ -26,7 +26,7 @@
 from bpy.props import *
 from bpy.types import PropertyGroup
 import bpy.utils
-from ..rman_utils import prefs_utils
+from ..rman_utils.prefs_utils import get_pref
 from . import icons
 import json
 import os
@@ -149,8 +149,8 @@ class RendermanPresetCategory(PropertyGroup):
     @classmethod
     def get_from_path(cls, preset_path):
         ''' get from abs preset_path '''
-        preset_library_path = presets_root_category = prefs_utils.get_addon_prefs().presets_root_category.path
-        head = prefs_utils.get_addon_prefs().presets_root_category
+        preset_library_path = presets_root_category = get_pref('presets_root_category').path
+        head = get_pref('presets_root_category')
         preset_path = os.path.relpath(preset_path, preset_library_path)
         active = head
         for sub_path in preset_path.split(os.sep):
@@ -162,7 +162,7 @@ class RendermanPresetCategory(PropertyGroup):
     # get the current category from the addon pref 
     @classmethod
     def get_current_category(cls):
-        current_path = prefs_utils.get_addon_prefs().presets_current_category_path
+        current_path = get_pref('presets_current_category_path')
         if current_path != '':
             return cls.get_from_path(current_path)
         else:
@@ -186,7 +186,7 @@ class RendermanPresetCategory(PropertyGroup):
         return all_presets 
 
     def is_current_category(self):
-        return self.path == prefs_utils.get_addon_prefs().presets_current_category_path
+        return self.path == get_pref('presets_current_category_path')
 
 classes = [
     RendermanPreset,
