@@ -164,6 +164,8 @@ class RmanRender(object):
         self.rman_render_into = 'blender'
         self.it_port = -1 
         self.rman_callbacks = dict()
+        self.viewport_res_x = -1
+        self.viewport_res_y = -1
 
         self._start_prman_begin()
 
@@ -492,6 +494,7 @@ class RmanRender(object):
         global __DRAW_THREAD__
 
         self.rman_interactive_running = True
+        self.bl_scene = depsgraph.scene_eval
         rm = depsgraph.scene_eval.renderman
         self.it_port = start_cmd_server()    
         render_into_org = '' 
@@ -615,24 +618,87 @@ class RmanRender(object):
         self.rman_scene_sync = None
         self.rman_scene.reset()
         rfb_log().debug("RenderMan has Stopped.")
+
+    def get_blender_dspy_plugin(self):
+        global __BLENDER_DSPY_PLUGIN__
+        if __BLENDER_DSPY_PLUGIN__ == None:
+            # grab a pointer to the Blender display driver
+            ext = '.so'
+            if sys.platform == ("win32"):
+                    ext = '.dll'
+            __BLENDER_DSPY_PLUGIN__ = ctypes.CDLL(os.path.join(filepath_utils.guess_rmantree(), 'lib', 'plugins', 'd_blender%s' % ext))
+
+        return __BLENDER_DSPY_PLUGIN__
                 
     def draw_pixels(self, width, height):
+        self.viewport_res_x = width
+        self.viewport_res_y = height
         if self.rman_is_viewport_rendering:
-            global __BLENDER_DSPY_PLUGIN__
-            try:
-                if __BLENDER_DSPY_PLUGIN__ == None:
-                    # grab a pointer to the Blender display driver
-                    ext = '.so'
-                    if sys.platform == ("win32"):
-                         ext = '.dll'
-                    __BLENDER_DSPY_PLUGIN__ = ctypes.CDLL(os.path.join(filepath_utils.guess_rmantree(), 'lib', 'plugins', 'd_blender%s' % ext))
+            dspy_plugin = self.get_blender_dspy_plugin()
 
-                # (the driver will handle pixel scaling to the given viewport size)
-                __BLENDER_DSPY_PLUGIN__.DrawBufferToBlender(ctypes.c_int(width), ctypes.c_int(height))
+            # (the driver will handle pixel scaling to the given viewport size)
+            dspy_plugin.DrawBufferToBlender(ctypes.c_int(width), ctypes.c_int(height))
 
-            except:
-                pass
+    def save_viewport_snapshot(self, frame=1):
+        if not self.rman_is_viewport_rendering:
+            return
 
+        width = self.viewport_res_x
+        height = self.viewport_res_y
+
+        dspy_plugin = self.get_blender_dspy_plugin()
+        num_channels = dspy_plugin.GetNumberOfChannels()
+        if num_channels > 4 or num_channels < 0:
+            rfb_log().error("Could not save snapshot. Incorrect number of channels: %d" % num_channels)
+            return
+
+        ArrayType = ctypes.c_float * (width * height * num_channels)
+        f = dspy_plugin.GetFloatFramebuffer
+        f.restype = ctypes.POINTER(ArrayType)
+
+        try:
+            buffer = f().contents
+            pixels = list()
+
+            # we need to flip the image
+            # also, Blender is expecting a 4 channel image
+            for y in range(height-1, -1, -1):
+                i = (width * y * num_channels)
+                
+                # if this is already a 4 channel image, just slice it
+                if num_channels == 4:
+                    j = i + (num_channels * (width))
+                    pixels.extend(buffer[i:j])
+                    continue
+
+                for x in range(0, width):
+                    j = i + (num_channels * x)
+                    pixels.append(buffer[j])    
+                    if num_channels == 3:
+                        pixels.append(buffer[j])
+                        pixels.append(buffer[j+1])
+                        pixels.append(buffer[j+2])
+                        pixels.append(1.0)
+                    elif num_channels == 2:
+                        pixels.append(buffer[j])
+                        pixels.append(buffer[j+1])
+                        pixels.append(1.0)                        
+                        pixels.append(1.0)                        
+                    elif num_channels == 1:
+                        pixels.append(buffer[j])
+                        pixels.append(buffer[j])
+                        pixels.append(buffer[j])
+                        pixels.append(1.0)
+
+            nm = 'rman_viewport_snapshot_{F4}_%d' % len(bpy.data.images)
+            nm = string_utils.expand_string(nm, frame=frame)
+            img = bpy.data.images.new(nm, width, height, float_buffer=True, alpha=True)                
+            img.pixels = pixels
+            img.update()
+        except Exception as e:
+            rfb_log().error("Could not save snapshot: %s" % str(e))
+            pass
+       
     def update_scene(self, context, depsgraph):
         if self.rman_interactive_running:
             self.rman_scene_sync.update_scene(context, depsgraph)

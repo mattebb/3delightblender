@@ -158,6 +158,20 @@ class PRMAN_OT_Viewport_Channel_Selector(bpy.types.Operator):
 
         return {"FINISHED"}                                                            
 
+class PRMAN_OT_Viewport_Snapshot(bpy.types.Operator):
+    bl_idname = "renderman_viewport.snapshot"
+    bl_label = "Snapshot"
+    bl_description = "Save a snapshot of the current viewport render. Image is saved into the Image Editor."
+    bl_options = {"REGISTER", "UNDO"}    
+
+    def execute(self, context):
+        rman_render = RmanRender.get_rman_render()
+        if rman_render.rman_interactive_running:
+            scene = context.scene
+            rman_render.save_viewport_snapshot(frame=scene.frame_current)        
+
+        return {"FINISHED"}              
+
 def draw_rman_viewport_props(self, context):
     layout = self.layout
     scene = context.scene
@@ -174,13 +188,17 @@ def draw_rman_viewport_props(self, context):
             rman_icon = rfb_icons.get_icon('rman_vp_viz')
             layout.menu('PRMAN_MT_Viewport_Integrator_Menu', text='', icon_value=rman_icon.icon_id)
             # decidither
-            layout.menu('PRMAN_MT_Viewport_Refinement_Menu', text='', icon='IMPORT')
-            # resolution mult
+            layout.menu('PRMAN_MT_Viewport_Refinement_Menu', text='', icon='IMPORT')            
             if rman_render.rman_is_viewport_rendering:
+                # resolution mult
                 rman_icon = rfb_icons.get_icon('rman_vp_resolution')
                 layout.menu('PRMAN_MT_Viewport_Res_Mult_Menu', text='', icon_value=rman_icon.icon_id)
+                # channel selection
                 rman_icon = rfb_icons.get_icon('rman_vp_aovs')
                 layout.menu('PRMAN_MT_Viewport_Channel_Sel_Menu', text='', icon_value=rman_icon.icon_id)
+                # snapshot
+                rman_icon = rfb_icons.get_icon('rman_vp_snapshot')
+                layout.operator('renderman_viewport.snapshot', text='', icon_value=rman_icon.icon_id)
             
         else:
             # stop rendering if we're not in viewport rendering
@@ -198,7 +216,8 @@ classes = [
     PRMAN_OT_Viewport_Integrators,
     PRMAN_OT_Viewport_Refinement,
     PRMAN_OT_Viewport_Resolution_Mult,
-    PRMAN_OT_Viewport_Channel_Selector
+    PRMAN_OT_Viewport_Channel_Selector,
+    PRMAN_OT_Viewport_Snapshot
 ]
 
 def register():
