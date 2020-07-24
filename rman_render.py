@@ -120,7 +120,6 @@ def draw_threading_func(db):
             rfb_log().error("Error calling tag_redraw (%s). Aborting..." % str(e))
             return
 
-
 def progress_cb(e, d, db):
     db.bl_engine.update_progress(float(d) / 100.0)
     if db.rman_is_live_rendering and int(d) == 100:
@@ -321,11 +320,52 @@ class RmanRender(object):
 
         self.rman_is_live_rendering = True
         self.sg_scene.Render("prman -live")
-        while not self.bl_engine.test_break() and self.rman_is_live_rendering:
-            time.sleep(0.01)
-        self.stop_render()        
-        if self.rman_render_into == 'blender': 
-            self._load_image_into_blender()
+
+        if self.rman_render_into == 'blender':        
+            dspy_dict = display_utils.get_dspy_dict(self.rman_scene)
+            
+            render = self.rman_scene.bl_scene.render
+            render_view = self.bl_engine.active_view_get()
+            image_scale = render.resolution_percentage / 100.0
+            width = int(render.resolution_x * image_scale)
+            height = int(render.resolution_y * image_scale)
+            result = self.bl_engine.begin_result(0, 0,
+                                        width,
+                                        height,
+                                        view=render_view)
+            layer = result.layers[0].passes.find_by_name("Combined", render_view)
+
+            bl_images = dict()
+            for i, dspy_nm in enumerate(dspy_dict['displays'].keys()):
+                if i == 0:
+                    continue
+                nm = '%s_{F4}' % (dspy_nm) 
+                nm = string_utils.expand_string(nm, frame=self.bl_scene.frame_current)
+                img = bpy.data.images.get(nm, None)
+                if not img:
+                    img = bpy.data.images.new(nm, width, height, float_buffer=True, alpha=True)     
+                bl_images[i] = img                       
+            
+            while not self.bl_engine.test_break() and self.rman_is_live_rendering:
+                time.sleep(0.01)        
+                if layer:
+                    buffer = self._get_buffer(width, height, image_num=0, as_flat=False)
+                    if buffer:
+                        layer.rect = buffer
+                        self.bl_engine.update_result(result)
+                for i, img in bl_images.items():
+                    buffer = self._get_buffer(width, height, image_num=i, as_flat=True)
+                    if buffer:
+                        img.pixels = buffer
+                        img.update()               
+
+            self.stop_render()           
+            if result:   
+                self.bl_engine.end_result(result)  
+        else:
+            while not self.bl_engine.test_break() and self.rman_is_live_rendering:
+                time.sleep(0.01)      
+            self.stop_render()                                
 
         return True   
 
@@ -543,21 +583,19 @@ class RmanRender(object):
 
     def start_swatch_render(self, depsgraph):
         self.bl_scene = depsgraph.scene_eval
-        self._load_placeholder_image()
 
         rfb_log().info("Parsing scene...")
         time_start = time.time()                
         self.rman_callbacks.clear()
         ec = rman.EventCallbacks.Get()
+        rman.Dspy.DisableDspyServer()
+        ec.RegisterCallback("Progress", progress_cb, self)
+        self.rman_callbacks["Progress"] = progress_cb        
         ec.RegisterCallback("Render", render_cb, self)
         self.rman_callbacks["Render"] = render_cb        
-
-        render_output = '/var/tmp/blender_preview.exr'
-        if sys.platform == ("win32"):
-            render_output = 'C:/tmp/blender_preview.exr'
         
         self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
-        self.rman_scene.export_for_swatch_render(depsgraph, self.sg_scene, render_output)
+        self.rman_scene.export_for_swatch_render(depsgraph, self.sg_scene)
 
         self.rman_running = True
         self.rman_swatch_render_running = True
@@ -565,12 +603,27 @@ class RmanRender(object):
         rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
         self.rman_is_live_rendering = True
         self.sg_scene.Render("prman -live")
+        render = self.rman_scene.bl_scene.render
+        render_view = self.bl_engine.active_view_get()
+        image_scale = render.resolution_percentage / 100.0
+        width = int(render.resolution_x * image_scale)
+        height = int(render.resolution_y * image_scale)
+        result = self.bl_engine.begin_result(0, 0,
+                                    width,
+                                    height,
+                                    view=render_view)
+        layer = result.layers[0].passes.find_by_name("Combined", render_view)        
         while not self.bl_engine.test_break() and self.rman_is_live_rendering:
-            time.sleep(0.01)
-        self.stop_render()  
-        rfb_log().debug("Load swatch image.")      
-        self._load_swatch_image_into_blender(render_output)
+            time.sleep(0.001)
+            if layer:
+                buffer = self._get_buffer(width, height, image_num=0, as_flat=False)
+                if buffer:
+                    layer.rect = buffer
+                    self.bl_engine.update_result(result)
 
+        self.stop_render()  
+        self.bl_engine.end_result(result)           
+       
         return True  
 
     def start_export_rib_selected(self, context, rib_path, export_materials=True, export_all_frames=False):
@@ -639,6 +692,86 @@ class RmanRender(object):
             # (the driver will handle pixel scaling to the given viewport size)
             dspy_plugin.DrawBufferToBlender(ctypes.c_int(width), ctypes.c_int(height))
 
+    def _get_buffer(self, width, height, image_num=0, as_flat=True):
+        dspy_plugin = self.get_blender_dspy_plugin()
+        num_channels = dspy_plugin.GetNumberOfChannels(ctypes.c_size_t(image_num))
+        if num_channels > 4 or num_channels < 0:
+            rfb_log().debug("Could not get buffer. Incorrect number of channels: %d" % num_channels)
+            return None
+
+        ArrayType = ctypes.c_float * (width * height * num_channels)
+        f = dspy_plugin.GetFloatFramebuffer
+        f.restype = ctypes.POINTER(ArrayType)
+
+        try:
+            buffer = f(ctypes.c_size_t(image_num)).contents
+            pixels = list()
+
+            # we need to flip the image
+            # also, Blender is expecting a 4 channel image
+
+            if as_flat:
+                # return the buffer as a flat list
+                for y in range(height-1, -1, -1):
+                    i = (width * y * num_channels)
+                    
+                    # if this is already a 4 channel image, just slice it
+                    if num_channels == 4:
+                        j = i + (num_channels * (width))          
+                        pixels.extend(buffer[i:j])
+                        continue
+
+                    for x in range(0, width):
+                        j = i + (num_channels * x)
+                        if num_channels == 3:
+                            pixels.append(buffer[j])
+                            pixels.append(buffer[j+1])
+                            pixels.append(buffer[j+2])
+                            pixels.append(1.0)
+                        elif num_channels == 2:
+                            pixels.append(buffer[j])
+                            pixels.append(buffer[j+1])
+                            pixels.append(1.0)                        
+                            pixels.append(1.0)                        
+                        elif num_channels == 1:
+                            pixels.append(buffer[j])
+                            pixels.append(buffer[j])
+                            pixels.append(buffer[j])   
+            else:
+                # return the buffer as a list of lists
+                for y in range(height-1, -1, -1):
+                    i = (width * y * num_channels)
+
+                    for x in range(0, width):
+                        j = i + (num_channels * x)
+                        pixel = []
+                        pixel.append(buffer[j])    
+                        if num_channels == 4:
+                            pixel.append(buffer[j+1])
+                            pixel.append(buffer[j+2])
+                            pixel.append(buffer[j+3])                            
+                        elif num_channels == 3:
+                            pixel.append(buffer[j])
+                            pixel.append(buffer[j+1])
+                            pixel.append(buffer[j+2])
+                            pixel.append(1.0)
+                        elif num_channels == 2:
+                            pixel.append(buffer[j])
+                            pixel.append(buffer[j+1])
+                            pixel.append(1.0)                        
+                            pixel.append(1.0)                        
+                        elif num_channels == 1:
+                            pixel.append(buffer[j])
+                            pixel.append(buffer[j])
+                            pixel.append(buffer[j])      
+
+                        pixels.append(pixel)            
+
+            return pixels
+        except Exception as e:
+            rfb_log().error("Could not get buffer: %s" % str(e))
+            return None                             
+
     def save_viewport_snapshot(self, frame=1):
         if not self.rman_is_viewport_rendering:
             return
@@ -646,58 +779,16 @@ class RmanRender(object):
         width = self.viewport_res_x
         height = self.viewport_res_y
 
-        dspy_plugin = self.get_blender_dspy_plugin()
-        num_channels = dspy_plugin.GetNumberOfChannels()
-        if num_channels > 4 or num_channels < 0:
-            rfb_log().error("Could not save snapshot. Incorrect number of channels: %d" % num_channels)
+        pixels = self._get_buffer(width, height)
+        if not pixels:
+            rfb_log().error("Could not save snapshot.")
             return
 
-        ArrayType = ctypes.c_float * (width * height * num_channels)
-        f = dspy_plugin.GetFloatFramebuffer
-        f.restype = ctypes.POINTER(ArrayType)
-
-        try:
-            buffer = f().contents
-            pixels = list()
-
-            # we need to flip the image
-            # also, Blender is expecting a 4 channel image
-            for y in range(height-1, -1, -1):
-                i = (width * y * num_channels)
-                
-                # if this is already a 4 channel image, just slice it
-                if num_channels == 4:
-                    j = i + (num_channels * (width))
-                    pixels.extend(buffer[i:j])
-                    continue
-
-                for x in range(0, width):
-                    j = i + (num_channels * x)
-                    pixels.append(buffer[j])    
-                    if num_channels == 3:
-                        pixels.append(buffer[j])
-                        pixels.append(buffer[j+1])
-                        pixels.append(buffer[j+2])
-                        pixels.append(1.0)
-                    elif num_channels == 2:
-                        pixels.append(buffer[j])
-                        pixels.append(buffer[j+1])
-                        pixels.append(1.0)                        
-                        pixels.append(1.0)                        
-                    elif num_channels == 1:
-                        pixels.append(buffer[j])
-                        pixels.append(buffer[j])
-                        pixels.append(buffer[j])
-                        pixels.append(1.0)
-
-            nm = 'rman_viewport_snapshot_{F4}_%d' % len(bpy.data.images)
-            nm = string_utils.expand_string(nm, frame=frame)
-            img = bpy.data.images.new(nm, width, height, float_buffer=True, alpha=True)                
-            img.pixels = pixels
-            img.update()
-        except Exception as e:
-            rfb_log().error("Could not save snapshot: %s" % str(e))
-            pass
+        nm = 'rman_viewport_snapshot_{F4}_%d' % len(bpy.data.images)
+        nm = string_utils.expand_string(nm, frame=frame)
+        img = bpy.data.images.new(nm, width, height, float_buffer=True, alpha=True)                
+        img.pixels = pixels
+        img.update()
        
     def update_scene(self, context, depsgraph):
         if self.rman_interactive_running:

@@ -239,7 +239,7 @@ class RmanScene(object):
         self.export_data_blocks([ob])
         self.export_instances(obj_selected=ob)
 
-    def export_for_swatch_render(self, depsgraph, sg_scene, render_output):
+    def export_for_swatch_render(self, depsgraph, sg_scene):
         self.sg_scene = sg_scene
         self.context = bpy.context #None
         self.bl_scene = depsgraph.scene_eval
@@ -250,7 +250,7 @@ class RmanScene(object):
         self.do_motion_blur = False
         self.rman_bake = False
         self.is_swatch_render = True
-        self.export_swatch_render_scene(render_output)
+        self.export_swatch_render_scene()
 
     def export(self):
 
@@ -417,7 +417,7 @@ class RmanScene(object):
         display.params.SetString("mode", 'Ci')
         self.main_camera.sg_node.SetDisplay(display)         
                  
-    def export_swatch_render_scene(self, render_output):
+    def export_swatch_render_scene(self):
         self.reset()
 
         group_db_name = '__RMAN_ROOT_SG_NODE'
@@ -428,7 +428,7 @@ class RmanScene(object):
         options = self.sg_scene.GetOptions()
         options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, 0)
         options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, 4)
-        options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, 0)
+        options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, 1)
         options.SetString("adaptivemetric", "variance")
         scale = 100.0 / self.bl_scene.render.resolution_percentage
         w = int(self.bl_scene.render.resolution_x * scale)
@@ -450,14 +450,13 @@ class RmanScene(object):
         self.export_cameras([c for c in self.depsgraph.objects if isinstance(c.data, bpy.types.Camera)])
 
         # Display
-        display_driver = 'openexr'
+        display_driver = 'blender'
         dspy_chan_Ci = self.rman.SGManager.RixSGDisplayChannel('color', 'Ci')
         dspy_chan_a = self.rman.SGManager.RixSGDisplayChannel('float', 'a')
 
         self.sg_scene.SetDisplayChannel([dspy_chan_Ci, dspy_chan_a])
-        display = self.rman.SGManager.RixSGShader("Display", display_driver, render_output)
+        display = self.rman.SGManager.RixSGShader("Display", display_driver, 'blender_preview')
         display.params.SetString("mode", 'Ci,a')
-        display.params.SetInteger("asrgba", 1)
         self.main_camera.sg_node.SetDisplay(display)          
 
         rfb_log().debug("Calling materials()")

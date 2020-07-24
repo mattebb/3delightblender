@@ -90,10 +90,7 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
     dspy_params['displayChannels'] = []
 
     if rm.render_into == 'blender':
-        if rman_scene.is_viewport_render:
-            display_driver = 'blender'
-        else:
-            display_driver = 'openexr'
+        display_driver = 'blender'
 
     d = _default_dspy_params()
     d[u'channelSource'] = {'type': u'string', 'value': 'Ci'}
@@ -275,7 +272,7 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
                 else:
                     display_driver = 'null'
             else:
-                display_driver = 'openexr'            
+                display_driver = 'blender'    
         else:
             display_driver = 'it'
 
@@ -316,7 +313,7 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
                                                     token_dict=token_dict,
                                                     asFilePath=True)
 
-        if aov.name != 'beauty' and (display_driver == 'it' or rman_scene.is_viewport_render):
+        if aov.name != 'beauty' and (display_driver in ['it', 'blender']): #(display_driver == 'it' or rman_scene.is_viewport_render):
             # break up display per channel when rendering to it
             for chan in aov.dspy_channels:
                 ch_name = _get_real_chan_name(chan)
