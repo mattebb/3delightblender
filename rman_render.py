@@ -207,29 +207,8 @@ class RmanRender(object):
                 self.sg_scene.Render("rib /var/tmp/blender.rib")     
             rfb_log().debug("Finished writing RIB. Time: %s" % string_utils._format_time_(time.time() - rib_time_start))            
 
-    def _load_image_into_blender(self):
-        # try to load image into Blender
-        if self.rman_render_into == 'blender': 
-            dspy_dict = display_utils.get_dspy_dict(self.rman_scene)
-            render_output = dspy_dict['displays']['beauty']['filePath']
-
-            if not os.path.exists(render_output):
-                return
-
-            render = self.bl_scene.render
-            image_scale = 100.0 / render.resolution_percentage
-            result = self.bl_engine.begin_result(0, 0,
-                                        render.resolution_x * image_scale,
-                                        render.resolution_y * image_scale)
-            lay = result.layers[0]
-            try:
-                lay.load_from_file(render_output)
-            except:
-                pass
-            self.bl_engine.end_result(result)   
-
-    def _load_swatch_image_into_blender(self, render_output):
-        # try to load image into Blender
+    def _load_placeholder_image(self):   
+        placeholder_image = os.path.join(filepath_utils.guess_rmantree(), 'lib', 'textures', 'placeholder.png')
 
         render = self.bl_scene.render
         image_scale = 100.0 / render.resolution_percentage
@@ -238,13 +217,10 @@ class RmanRender(object):
                                     render.resolution_y * image_scale)
         lay = result.layers[0]
         try:
-            lay.load_from_file(render_output)
+            lay.load_from_file(placeholder_image)
         except:
             pass
-        self.bl_engine.end_result(result)      
-
-    def _load_placeholder_image(self):   
-        self._load_swatch_image_into_blender(os.path.join(filepath_utils.guess_rmantree(), 'lib', 'textures', 'placeholder.png'))        
+        self.bl_engine.end_result(result)               
 
     def _call_brickmake_for_selected(self):  
         rm = self.bl_scene.renderman
