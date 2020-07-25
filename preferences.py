@@ -145,6 +145,11 @@ class RendermanPreferences(AddonPreferences):
         subtype='FILE_PATH'
     )
 
+    rman_do_simple_viewport_shading: BoolProperty(
+        name="Viewport Shading",
+        description="When IPR rendering to 'it', we do a simple shade of meshes in the viewport. Turn this off if you're finding the viewport slow.",
+        default=True)
+
     rman_do_preview_renders: BoolProperty(
         name="Render Previews",
         description="Enable rendering of material previews. This is considered a WIP.",
@@ -218,12 +223,13 @@ class RendermanPreferences(AddonPreferences):
             row.alert = True
             row.label(text='Error in RMANTREE. Reload addon to reset.', icon='ERROR')
 
-        # UI Prefs
+        # Behavior Prefs
         row = layout.row()
         row.label(text='Behavior', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
         col.prop(self, 'rman_do_preview_renders')  
+        col.prop(self, 'rman_do_simple_viewport_shading')
         col.prop(self, 'rman_render_nurbs_as_mesh')
         col.prop(self, 'rman_do_cycles_convert')     
         col.prop(self, 'rman_emit_default_params')    

@@ -13,16 +13,23 @@ import threading
 import subprocess
 import ctypes
 
+import bgl
+import numpy as np
+from mathutils import Matrix, Vector
+import gpu
+from gpu_extras.batch import batch_for_shader
+
 # utils
 from .rman_utils import filepath_utils
 from .rman_utils import string_utils
 from .rman_utils import display_utils
-from .rman_utils import prefs_utils
+from .rman_utils.prefs_utils import get_pref
 
 __RMAN_RENDER__ = None
 __RMAN_IT_PORT__ = -1
 __BLENDER_DSPY_PLUGIN__ = None
 __DRAW_THREAD__ = None
+__DRAW_SIMPLE_SHADING_HANDLER__ = None
 
 def __turn_off_viewport__():
     rfb_log().debug("Attempting to turn off viewport render")
@@ -110,6 +117,70 @@ def start_cmd_server():
     __RMAN_IT_PORT__ = port
 
     return __RMAN_IT_PORT__   
+
+def draw_simple_shading(context, depsgraph):
+    '''Try to shade meshes with a lambertian diffuse.
+    This is needed when we do IPR to 'it' as Blender is expecting
+    us to draw something to the viewport. 
+    '''
+
+    scene = depsgraph.scene
+    bgl.glEnable(bgl.GL_DEPTH_TEST)
+    bgl.glEnable(bgl.GL_BLEND)
+    bgl.glBlendFunc(bgl.GL_ONE, bgl.GL_ONE_MINUS_SRC_ALPHA)
+    shader = gpu.shader.from_builtin('3D_SMOOTH_COLOR')
+    for ob in scene.objects:
+        if ob.type in ['LIGHT', 'CAMERA', 'ARMATURE', 'EMPTY']:
+            continue
+        is_mesh = ob.type == 'MESH'
+        if is_mesh:
+            mesh = ob.data
+        else:
+            mesh = ob.to_mesh()
+            if not mesh:
+                continue
+        mesh.calc_loop_triangles()
+
+        vertices = np.empty((len(mesh.vertices), 3), 'f')
+        indices = np.empty((len(mesh.loop_triangles), 3), 'i')
+        normals = np.empty((len(mesh.vertices), 3), 'f')
+
+        mesh.vertices.foreach_get(
+            "co", np.reshape(vertices, len(mesh.vertices) * 3))
+        mesh.loop_triangles.foreach_get(
+            "vertices", np.reshape(indices, len(mesh.loop_triangles) * 3))
+        mesh.vertices.foreach_get(
+            "normal", np.reshape(normals, len(mesh.vertices) * 3))    
+
+        ob_matrix = Matrix(ob.matrix_world)   
+        pts = [ ob_matrix @ Vector(p) for p in vertices]                        
+            
+        vertex_colors = []    
+        cam = context.space_data.camera 
+        col = [1.0, 1.0, 1.0, 1.0]
+        mat = ob.active_material 
+        if mat:
+            col = mat.diffuse_color            
+
+        for normal in normals:
+            L = Vector(cam.location - ob.location).normalized()
+            N = Vector(normal).normalized()
+            dot = L.dot(N)
+            c = [col[0] * dot, col[1] * dot, col[2] * dot, col[3]]
+            vertex_colors.append(c)
+
+        batch = batch_for_shader(
+            shader, 'TRIS',
+            {"pos": pts, "color": vertex_colors},
+            indices=indices,
+        )               
+
+        batch.draw(shader)
+        if not is_mesh:
+            ob.to_mesh_clear()
+
+    bgl.glDisable(bgl.GL_BLEND)
+    bgl.glDisable(bgl.GL_DEPTH_TEST)            
 
 def draw_threading_func(db):
     while db.rman_is_live_rendering:
@@ -507,6 +578,7 @@ class RmanRender(object):
     def start_interactive_render(self, context, depsgraph):
 
         global __DRAW_THREAD__
+        global __DRAW_SIMPLE_SHADING_HANDLER__
 
         self.rman_interactive_running = True
         self.bl_scene = depsgraph.scene_eval
@@ -547,6 +619,10 @@ class RmanRender(object):
         self.sg_scene.Render("prman -live")
 
         rfb_log().info("RenderMan Viewport Render Started.")  
+
+        # turn on simple shading
+        if get_pref('rman_do_simple_viewport_shading', True) and self.rman_render_into == 'it':
+            __DRAW_SIMPLE_SHADING_HANDLER__ = bpy.types.SpaceView3D.draw_handler_add(draw_simple_shading, (context, depsgraph), 'WINDOW', 'POST_VIEW')
 
         if render_into_org != '':
             rm.render_into = render_into_org    
@@ -614,6 +690,7 @@ class RmanRender(object):
 
     def stop_render(self):
         global __DRAW_THREAD__
+        global __DRAW_SIMPLE_SHADING_HANDLER__
 
         if not self.rman_interactive_running and not self.rman_running:
             return
@@ -631,6 +708,10 @@ class RmanRender(object):
         if __DRAW_THREAD__:
             __DRAW_THREAD__.join()
             __DRAW_THREAD__ = None
+
+        if __DRAW_SIMPLE_SHADING_HANDLER__:            
+            bpy.types.SpaceView3D.draw_handler_remove(__DRAW_SIMPLE_SHADING_HANDLER__, 'WINDOW')
+            __DRAW_SIMPLE_SHADING_HANDLER__ = None
 
         rfb_log().debug("Telling SceneGraph to stop.")    
         if self.sg_scene:    

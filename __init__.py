@@ -108,7 +108,7 @@ class PRManRender(bpy.types.RenderEngine):
         if self.is_preview:
             # double check we're not already viewport rendering
             if self.rman_render.rman_interactive_running:
-                if prefs.rman_do_preview_renders:
+                if get_pref('rman_do_preview_renders', False):
                     rfb_log().error("Cannot preview render while viewport rendering.")
                 return            
             if not get_pref('rman_do_preview_renders', False):
