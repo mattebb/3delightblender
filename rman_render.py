@@ -305,35 +305,34 @@ class RmanRender(object):
             image_scale = render.resolution_percentage / 100.0
             width = int(render.resolution_x * image_scale)
             height = int(render.resolution_y * image_scale)
+
+            bl_images = dict()
+            # register any AOV's as passes
+            for i, dspy_nm in enumerate(dspy_dict['displays'].keys()):
+                if i == 0:
+                    continue     
+                self.bl_engine.add_pass(dspy_nm, 4, 'RGBA')
+
             result = self.bl_engine.begin_result(0, 0,
                                         width,
                                         height,
                                         view=render_view)
-            layer = result.layers[0].passes.find_by_name("Combined", render_view)
 
-            bl_images = dict()
             for i, dspy_nm in enumerate(dspy_dict['displays'].keys()):
                 if i == 0:
-                    continue
-                nm = '%s_{F4}' % (dspy_nm) 
-                nm = string_utils.expand_string(nm, frame=self.bl_scene.frame_current)
-                img = bpy.data.images.get(nm, None)
-                if not img:
-                    img = bpy.data.images.new(nm, width, height, float_buffer=True, alpha=True)     
-                bl_images[i] = img                       
+                    lyr = result.layers[0].passes.find_by_name("Combined", render_view)           
+                else:
+                    lyr = result.layers[0].passes.find_by_name(dspy_nm, render_view)
+                bl_images[i] = lyr            
             
             while not self.bl_engine.test_break() and self.rman_is_live_rendering:
                 time.sleep(0.01)        
-                if layer:
-                    buffer = self._get_buffer(width, height, image_num=0, as_flat=False)
-                    if buffer:
-                        layer.rect = buffer
-                        self.bl_engine.update_result(result)
                 for i, img in bl_images.items():
-                    buffer = self._get_buffer(width, height, image_num=i, as_flat=True)
+                    buffer = self._get_buffer(width, height, image_num=i, as_flat=False)
                     if buffer:
-                        img.pixels = buffer
-                        img.update()               
+                        img.rect = buffer
+        
+                self.bl_engine.update_result(result)        
 
             self.stop_render()           
             if result:   
@@ -713,6 +712,7 @@ class RmanRender(object):
                             pixels.append(buffer[j])
                             pixels.append(buffer[j])
                             pixels.append(buffer[j])   
+                            pixels.append(1.0)                               
             else:
                 # return the buffer as a list of lists
                 for y in range(height-1, -1, -1):
@@ -727,19 +727,17 @@ class RmanRender(object):
                             pixel.append(buffer[j+2])
                             pixel.append(buffer[j+3])                            
                         elif num_channels == 3:
-                            pixel.append(buffer[j])
                             pixel.append(buffer[j+1])
                             pixel.append(buffer[j+2])
                             pixel.append(1.0)
                         elif num_channels == 2:
-                            pixel.append(buffer[j])
                             pixel.append(buffer[j+1])
                             pixel.append(1.0)                        
                             pixel.append(1.0)                        
                         elif num_channels == 1:
                             pixel.append(buffer[j])
-                            pixel.append(buffer[j])
                             pixel.append(buffer[j])      
+                            pixel.append(1.0)  
 
                         pixels.append(pixel)            
 
