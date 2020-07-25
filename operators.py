@@ -180,18 +180,6 @@ def menu_draw(self, context):
 # Yuck, this should be built in to blender... Yes it should
 
 
-class PRMAN_OT_add_multilayer_list(bpy.types.Operator):
-    bl_idname = 'renderman.add_multilayer_list'
-    bl_label = 'Add multilayer list'
-
-    def execute(self, context):
-        scene = context.scene
-        scene.renderman.multilayer_lists.add()
-        active_layer = context.view_layer
-        scene.renderman.multilayer_lists[-1].render_layer = active_layer.name
-        return {'FINISHED'}
-
-
 #################
 #       Tab     #
 #################
@@ -201,21 +189,22 @@ compile_shader_menu_func = (lambda self, context: self.layout.operator(
     TEXT_OT_compile_shader.bl_idname))
 
 classes = [
-    PRMAN_OT_AddPresetRendermanRender,
-    PRMAN_MT_PresetsMenu,
-    PRMAN_OT_add_multilayer_list
+    #PRMAN_OT_AddPresetRendermanRender,
+    #PRMAN_MT_PresetsMenu,
+    #PRMAN_OT_add_multilayer_list
 ]
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     
-    bpy.types.TEXT_MT_text.append(compile_shader_menu_func)
+    #bpy.types.TEXT_MT_text.append(compile_shader_menu_func)
     #bpy.types.TEXT_MT_toolbox.append(compile_shader_menu_func)
-    bpy.types.TOPBAR_MT_help.append(menu_draw)
+    #bpy.types.TOPBAR_MT_help.append(menu_draw)
 
     # Register any default presets here. This includes render based and
     # Material based
+    '''
     quickAddPresets(RendermanRenderPresets.FinalDenoisePreset,
                     os.path.join("renderman", "render"), "FinalDenoisePreset")
     quickAddPresets(RendermanRenderPresets.FinalHighPreset,
@@ -228,12 +217,12 @@ def register():
                     os.path.join("renderman", "render"), "PreviewPreset")
     quickAddPresets(RendermanRenderPresets.TractorLocalQueuePreset, os.path.join(
         "renderman", "render"), "TractorLocalQueuePreset")
-
+    '''
 
 def unregister():
-    bpy.types.TEXT_MT_text.remove(compile_shader_menu_func)
+    #bpy.types.TEXT_MT_text.remove(compile_shader_menu_func)
     #bpy.types.TEXT_MT_toolbox.remove(compile_shader_menu_func)
-    bpy.types.TOPBAR_MT_help.remove(menu_draw)
+    #bpy.types.TOPBAR_MT_help.remove(menu_draw)
     
     # It should be fine to leave presets registered as they are not in memory.
     
