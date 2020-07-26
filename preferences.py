@@ -28,7 +28,7 @@ import sys
 import os
 from bpy.types import AddonPreferences
 from bpy.props import CollectionProperty, BoolProperty, StringProperty
-from bpy.props import IntProperty, PointerProperty, EnumProperty
+from bpy.props import IntProperty, PointerProperty, EnumProperty, FloatVectorProperty
 
 from .rman_utils import filepath_utils
 from . import rfb_logger
@@ -150,6 +150,13 @@ class RendermanPreferences(AddonPreferences):
         description="Enable rendering of material previews. This is considered a WIP.",
         default=False)
 
+    rman_viewport_crop_color: FloatVectorProperty(
+        name="CropWindow Color",
+        description="Color of the cropwindow border in the viewport when in IPR.",
+        default=(0.0, 0.498, 1.0, 1.0), 
+        size=4,
+        subtype="COLOR")     
+
     rman_editor: StringProperty(
         name="Editor",
         subtype='FILE_PATH',
@@ -224,6 +231,7 @@ class RendermanPreferences(AddonPreferences):
         row = layout.row()
         col = row.column()
         col.prop(self, 'rman_do_preview_renders')  
+        col.prop(self, 'rman_viewport_crop_color')
         col.prop(self, 'rman_render_nurbs_as_mesh')
         col.prop(self, 'rman_do_cycles_convert')     
         col.prop(self, 'rman_emit_default_params')    
