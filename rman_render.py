@@ -35,6 +35,12 @@ def __turn_off_viewport__():
                 for space in area.spaces:
                     if space.type == 'VIEW_3D':
                         space.shading.type = 'SOLID'    
+            area.tag_redraw()                        
+
+def __update_areas__():
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            area.tag_redraw()
 
 class ItHandler(chatserver.ItBaseHandler):
 
@@ -519,6 +525,7 @@ class RmanRender(object):
         global __DRAW_SIMPLE_SHADING_HANDLER__
 
         self.rman_interactive_running = True
+        __update_areas__()
         self.bl_scene = depsgraph.scene_eval
         rm = depsgraph.scene_eval.renderman
         self.it_port = start_cmd_server()    
@@ -655,6 +662,7 @@ class RmanRender(object):
         self.sg_scene = None
         self.rman_scene_sync = None
         self.rman_scene.reset()
+        __update_areas__()
         rfb_log().debug("RenderMan has Stopped.")
 
     def get_blender_dspy_plugin(self):
