@@ -16,6 +16,9 @@ class MATERIAL_PT_renderman_preview(Panel, ShaderPanel):
 
     @classmethod
     def poll(cls, context):
+        rr = RmanRender.get_rman_render()
+        if rr.rman_interactive_running:
+            return False    
         return get_pref('rman_do_preview_renders', False)
 
     def draw(self, context):
