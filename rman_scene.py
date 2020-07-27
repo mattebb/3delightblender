@@ -33,6 +33,9 @@ from .rman_utils import scene_utils
 from .rman_utils import prefs_utils
 from .rman_utils import shadergraph_utils
 
+# config
+from .rman_config import __RFB_CONFIG_DICT__ as rfb_config
+
 from .rfb_logger import rfb_log
 from .rman_sg_nodes.rman_sg_node import RmanSgNode
 
@@ -1059,6 +1062,15 @@ class RmanScene(object):
             elif rm.shutter_timing == 'POST':
                 shutter_open, shutter_close = 0, shutter_interval
             options.SetFloatArray(self.rman.Tokens.Rix.k_Ri_Shutter, (shutter_open, shutter_close), 2)        
+
+        # dirmaps
+        dirmaps = ''
+        for k in rfb_config['dirmaps']:
+            dirmap = rfb_config['dirmaps'][k]
+            d = "[ \"%s\" \"%s\" \"%s\"]" % (dirmap['zone'], dirmap['from'], dirmap['to'])
+            dirmaps += d
+        if dirmaps:
+            options.SetString('searchpath:dirmap', dirmaps)
 
         self.sg_scene.SetOptions(options)        
 

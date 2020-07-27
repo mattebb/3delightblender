@@ -191,14 +191,12 @@ def load_addon():
         from . import operators
         from . import rman_bl_nodes
         from . import rman_properties
-        from . import rman_config
         from . import rman_handlers
 
         # need this now rather than at beginning to make
         # sure preferences are loaded
 
         rman_operators.register()
-        rman_config.register()
         rman_bl_nodes.register()
         rman_properties.register()          
         operators.register()
@@ -221,6 +219,8 @@ def register():
     presets.register()
     from . import preferences
     preferences.register()
+    from . import rman_config
+    rman_config.register()
     load_addon()
 
 def unregister():

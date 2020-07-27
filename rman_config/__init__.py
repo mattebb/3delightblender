@@ -1,5 +1,7 @@
 from ..rman_utils.node_desc import NodeDescParamJSON
 from ..rman_utils import property_utils
+from ..rman_utils.prefs_utils import get_pref
+from ..rman_utils import filepath_utils
 from ..rfb_logger import rfb_log
 from bpy.props import StringProperty, BoolProperty
 import json
@@ -8,6 +10,8 @@ import types
 
 __RMAN_CONFIG__ = dict()
 __RMAN_CHANNELS_DEF_FILE__ = 'rman_dspychan_definitions.json'
+__RFB_CONFIG_FILE__ = 'rfb.json'
+__RFB_CONFIG_DICT__ = dict()
 __RMAN_DISPLAY_CHANNELS__ = dict()
 __RMAN_DISPLAY_TEMPLATES__ = dict()
 
@@ -99,8 +103,69 @@ class RmanConfig:
                     rfb_log().error('FAILED to parse param: %s' % pdata)
                     raise
                 self.params[param.name] = param
+
         else:
-            rfb_log().error("Could not find 'params' list in JSON file: %s" % jsonfile)
+            rfb_log().error("Could not parse JSON file: %s" % jsonfile)
+
+def _uniquify_list(seq):
+    """Remove duplicates while preserving order."""
+    seen = set()
+    seen_add = seen.add
+    try:
+        # this will fail if the list contains dicts
+        return [x for x in seq if not (x in seen or seen_add(x))]
+    except TypeError:
+        return seq
+
+def recursive_updater(in_dict, out_dict):
+    """Recursively update a out_dict with in_dict.
+
+    WARNING: if you change this code, update rfm2/unit_tests/ut_rfm_json.py.
+
+    - dicts are recursively updated, i.e.:
+      - new val will replace old val for the same key.
+      - new key will be added if it doesn't exist in that dict.
+    - lists are merged, i.e.:
+        - new list is prepended to old list.
+          merge ['c'] in ['a', 'b'] -> ['c', 'a', 'b']
+        - duplicates are removed while preserving the original order:
+          merge ['c', 'd'] in ['a', 'b', 'c'] -> ['c', 'd', 'a', 'b']
+
+    Args:
+    - in_dict (dict): what will be merged in out_dict.
+    - out_dict (dict): the final output.
+
+    Returns:
+    - a dict.
+    """
+
+    for key, val in in_dict.items():
+        if isinstance(val, dict):
+            nested = recursive_updater(val, out_dict.get(key, {}))
+            out_dict[key] = nested
+        elif isinstance(val, list):
+            out_dict[key] = _uniquify_list(val + out_dict.get(key, []))
+        else:
+            out_dict[key] = in_dict[key]
+    return out_dict
+
+def read_rfbconfig_file(fpath, config_dict):
+    """Read rfb.json and update the config_dict with its contents.
+
+    Args:
+    - fpath (str): file path to rfb.json file.
+    - config_dict (dict): the dict we will update with the file's contents.
+    """
+    fdict = {}
+    with open(fpath, 'r') as fhdl:
+        try:
+            fdict = json.load(fhdl)
+        except ValueError as err:
+            __log__.error('failed to parse json file %s: %s' %
+                          (fpath, err))
+            fdict = None
+    if fdict:
+        config_dict = recursive_updater(fdict, config_dict)    
 
 def configure_channels(jsonfile):
     jdata = json.load(open(jsonfile))
@@ -147,6 +212,12 @@ def get_override_paths():
     """    
 
     paths = []
+
+    prefs_path = get_pref('rman_config_dir', default='FOOBAR')
+    if prefs_path:
+        prefs_path = filepath_utils.get_real_path(prefs_path)
+        if os.path.exists(prefs_path):
+            paths.append(prefs_path)    
 
     # first, RFB_SITE_PATH
     RFB_SITE_PATH = os.environ.get('RFB_SITE_PATH', None)
@@ -224,6 +295,8 @@ def register():
             if f == __RMAN_CHANNELS_DEF_FILE__:
                 # this is our channels config file
                 configure_channels(jsonfile)
+            elif f == __RFB_CONFIG_FILE__:
+                read_rfbconfig_file(jsonfile, __RFB_CONFIG_DICT__)
             else:
                 # this is a regular properties config file
                 rman_config = RmanConfig(jsonfile)
@@ -239,6 +312,8 @@ def register():
             rfb_log().debug("Reading override json file: %s" % jsonfile)
             if f == __RMAN_CHANNELS_DEF_FILE__:
                 configure_channels(jsonfile)
+            elif f == __RFB_CONFIG_FILE__:
+                read_rfbconfig_file(jsonfile, __RFB_CONFIG_DICT__)
             else:
                 rman_config_override = RmanConfig(jsonfile)
                 if rman_config_override.name in __RMAN_CONFIG__:

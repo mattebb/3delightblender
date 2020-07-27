@@ -19,6 +19,9 @@ from .rman_utils import string_utils
 from .rman_utils import display_utils
 from .rman_utils.prefs_utils import get_pref
 
+# config
+from .rman_config import __RFB_CONFIG_DICT__ as rfb_config
+
 __RMAN_RENDER__ = None
 __RMAN_IT_PORT__ = -1
 __BLENDER_DSPY_PLUGIN__ = None
@@ -192,6 +195,11 @@ class RmanRender(object):
         argv.append("-progress")  
         argv.append("-dspyserver")
         argv.append("it")
+
+        woffs = ',' . join(rfb_config['woffs'])
+        if woffs:
+            argv.append('-woff')
+            argv.append(woffs)
 
         self.rictl.PRManBegin(argv)  
 

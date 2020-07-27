@@ -157,15 +157,6 @@ class RendermanPreferences(AddonPreferences):
         size=4,
         subtype="COLOR")     
 
-    rman_viewport_refresh_rate: FloatProperty(
-        name="Viewport Refresh Rate",
-        description="The number of seconds to wait before the viewport refreshes during IPR.",
-        default=0.01,
-        precision=5,
-        min=0.00001,
-        max=0.1
-    )
-
     rman_editor: StringProperty(
         name="Editor",
         subtype='FILE_PATH',
@@ -191,6 +182,28 @@ class RendermanPreferences(AddonPreferences):
         default=False,
         description="Controls whether or not parameters that are not changed from their defaults should be emitted to RenderMan. Turning this on is only useful for debugging purposes."
     )
+
+    rman_show_advanced_params: BoolProperty(
+        name="Show Advanced",
+        default=False,
+        description="Show advanced preferences"
+    )
+
+    rman_config_dir: StringProperty(
+        name="Config Directory",
+        subtype='DIR_PATH',
+        description="Path to JSON configuration files. Requires a restart.",
+        default=""
+    )    
+
+    rman_viewport_refresh_rate: FloatProperty(
+        name="Viewport Refresh Rate",
+        description="The number of seconds to wait before the viewport refreshes during IPR.",
+        default=0.01,
+        precision=5,
+        min=0.00001,
+        max=0.1
+    )    
 
     presets_current_category: PointerProperty(
         type=RendermanPresetCategory,
@@ -281,11 +294,23 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'rman_logging_level')
         col.prop(self, 'rman_logging_file')
 
-        row = layout.row()
+        row = layout.row()   
         row.label(text='Advanced', icon_value=rman_r_icon.icon_id)
         row = layout.row()
-        col = row.column()
-        col.prop(self, 'rman_viewport_refresh_rate')      
+
+        ui_open = getattr(self, 'rman_show_advanced_params')
+        icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
+            else 'DISCLOSURE_TRI_RIGHT'
+
+        row.prop(self, 'rman_show_advanced_params', icon=icon, text='',
+            icon_only=True, emboss=False)              
+
+        row = layout.row()
+        col = row.column() 
+
+        if ui_open:
+            col.prop(self, 'rman_viewport_refresh_rate')  
+            col.prop(self, 'rman_config_dir')    
 
 def register():
     bpy.utils.register_class(RendermanPreferencePath)

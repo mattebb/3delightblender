@@ -1,0 +1,92 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "definitions": {
+        "dirmap": {
+            "type": "object",
+            "properties": {
+                "from": {
+                    "type": "string"
+                },
+                "to": {
+                    "type": "string"
+                },
+                "zone": {
+                    "type": "string",
+                    "enum": [
+                        "UNC",
+                        "NFS"
+                    ]
+                }
+            },
+            "required": [
+                "from",
+                "to",
+                "zone"
+            ]
+        },
+        "tractor_cfg": {
+            "type": "object",
+            "properties": {
+                "engine": {
+                    "type": "string"
+                },
+                "port": {
+                    "type": "string"
+                },
+                "user": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "engine",
+                "port"
+            ]
+        },
+        "preference": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": ["integer", "string", "array"]
+                }
+            }
+        }
+    },
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "description": "This is a validation schema for this file.\nSome editors can validate on the fly using this information.",
+            "type": "string"
+        },    
+        "woffs": {
+            "type": "array",
+            "description": "A list of Xcpt codes that will be removed from logging.",
+            "items": {
+                "type": "string"
+            }
+        },
+        "user tokens": {
+            "type": "array",
+            "description": "A list of dicts containing a token name and a value.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dirmaps": {
+            "type": "object",
+            "patternProperties": {
+                "[A-Za-z0-9_-]+": {
+                    "$ref": "#/definitions/dirmap"
+                }
+            }
+        }
+    },
+    "additionalProperties": false
+}

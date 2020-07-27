@@ -1,0 +1,13 @@
+{
+    "$schema": "./schemas/rfbSchema.json",
+    "tractor_cfg": {
+        "engine": "tractor-engine",
+        "port": 80,
+        "user": ""
+    },    
+    "dirmaps": {
+    },
+    "woffs": [
+        "R90007"
+    ]  
+}

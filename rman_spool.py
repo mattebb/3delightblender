@@ -8,6 +8,7 @@ from .rman_utils import string_utils
 from .rman_utils import filepath_utils
 from .rman_utils import display_utils
 from .rman_utils.prefs_utils import get_pref
+from .rman_config import __RFB_CONFIG_DICT__ as rfb_config
 from .rfb_logger import rfb_log
 
 #import tractor.api.author as author
@@ -62,6 +63,15 @@ class RmanSpool(object):
             'comment': 'Created by RenderMan for Blender',
             'envkey': '{prman-%s}' % rman_vers
         }
+
+        # dirmaps
+        dirmaps = ''
+        for k in rfb_config['dirmaps']:
+            dirmap = rfb_config['dirmaps'][k]
+            dirmaps += '{ {%s} {%s} %s }' % (dirmap['from'], dirmap['to'], dirmap['zone'])
+        if dirmaps:
+            job_params['dirmaps'] = dirmaps
+
         job_str = 'Job'
         for key, val in job_params.items():
             if key == 'serialsubtasks':
@@ -129,6 +139,11 @@ class RmanSpool(object):
             tractor_engine ='tractor-engine'
             tractor_port = '80'
             owner = getpass.getuser()        
+
+            tractor_cfg = rfb_config['tractor_cfg']
+            tractor_engine = tractor_cfg.get('engine', tractor_engine)
+            tractor_port = str(tractor_cfg.get('port', tractor_port))
+            owner = tractor_cfg.get('user', owner)            
 
             if 'TRACTOR_ENGINE' in os.environ:
                 tractor_env = os.environ['TRACTOR_ENGINE'].split(':')
@@ -250,7 +265,12 @@ class RmanSpool(object):
             # spool to tractor
             tractor_engine ='tractor-engine'
             tractor_port = '80'
-            owner = getpass.getuser()        
+            owner = getpass.getuser()    
+
+            tractor_cfg = rfb_config['tractor_cfg']
+            tractor_engine = tractor_cfg.get('engine', tractor_engine)
+            tractor_port = str(tractor_cfg.get('port', tractor_port))
+            owner = tractor_cfg.get('user', owner)
 
             if 'TRACTOR_ENGINE' in os.environ:
                 tractor_env = os.environ['TRACTOR_ENGINE'].split(':')
@@ -276,7 +296,11 @@ class RmanSpool(object):
     Once it is, re-enable this, and uncomment the import line at the top
 
     def add_job_level_attrs(self, is_localqueue, job):
-        pass
+        for k in rfb_config['dirmaps']:
+            dirmap = rfb_config['dirmaps'][k]
+            job.newDirMap(src=str(dirmap['from']),
+                        dst=str(dirmap['to']),
+                        zone=str(dirmap['zone']))
 
     def _add_checkpoint_args(self, checkpoint_str, args):
         if checkpoint_str != '':
