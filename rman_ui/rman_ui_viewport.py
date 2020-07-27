@@ -74,7 +74,7 @@ class PRMAN_MT_Viewport_Res_Mult_Menu(Menu):
 class PRMAN_MT_Viewport_Channel_Sel_Menu(Menu):
     bl_label = "Channel Selector Menu"
     bl_idname = "PRMAN_MT_Viewport_Channel_Sel_Menu"
-    bl_options = {"REGISTER", "UNDO"}     
+    bl_options = {"INTERNAL"}       
 
     @classmethod
     def poll(cls, context):
@@ -94,7 +94,7 @@ class PRMAN_OT_Viewport_Integrators(bpy.types.Operator):
     bl_idname = "renderman_viewport.change_integrator"
     bl_label = "Select Integrator"
     bl_description = "Quickly change integrators during viewport renders. Does not change the scene integrator."
-    bl_options = {"REGISTER", "UNDO"}    
+    bl_options = {"INTERNAL"}      
 
     viewport_integrator: StringProperty(name="Viewport Integrator",
                                       description="Viewport integrator"
@@ -111,7 +111,7 @@ class PRMAN_OT_Viewport_Refinement(bpy.types.Operator):
     bl_idname = "renderman_viewport.change_refinement"
     bl_label = "Refinement"
     bl_description = "This value determines how much refinement (in a dither pattern) will be applied to the image during interactive rendering. 0 means full refinement up to a value of 6 which is the least refinement per iteration."
-    bl_options = {"REGISTER", "UNDO"}    
+    bl_options = {"INTERNAL"}       
 
     viewport_hider_decidither: IntProperty(name="Interactive Refinement",
                                       description="",
@@ -131,7 +131,7 @@ class PRMAN_OT_Viewport_Resolution_Mult(bpy.types.Operator):
     bl_idname = "renderman_viewport.change_resolution_mult"
     bl_label = "Res Mult"
     bl_description = "Lower the resolution of the viewport. This can help speed up renders."
-    bl_options = {"REGISTER", "UNDO"}    
+    bl_options = {"INTERNAL"}       
 
     viewport_res_mult: FloatProperty(name="Resolution Multiplier",
                                       description="",
@@ -150,7 +150,7 @@ class PRMAN_OT_Viewport_Channel_Selector(bpy.types.Operator):
     bl_idname = "renderman_viewport.channel_selector"
     bl_label = "Channel"
     bl_description = "Select a different channel to view"
-    bl_options = {"REGISTER", "UNDO"}    
+    bl_options = {"INTERNAL"}      
 
     channel_name: StringProperty(name="Channel",
                                       description="",
@@ -168,7 +168,7 @@ class PRMAN_OT_Viewport_Snapshot(bpy.types.Operator):
     bl_idname = "renderman_viewport.snapshot"
     bl_label = "Snapshot"
     bl_description = "Save a snapshot of the current viewport render. Image is saved into the Image Editor."
-    bl_options = {"REGISTER", "UNDO"}    
+    bl_options = {"INTERNAL"} 
 
     def execute(self, context):
         rman_render = RmanRender.get_rman_render()
@@ -439,7 +439,7 @@ def draw_rman_viewport_props(self, context):
             rman_icon = rfb_icons.get_icon('rman_vp_viz')
             row.menu('PRMAN_MT_Viewport_Integrator_Menu', text='', icon_value=rman_icon.icon_id)
             # decidither
-            layout.menu('PRMAN_MT_Viewport_Refinement_Menu', text='', icon='IMPORT')            
+            row.menu('PRMAN_MT_Viewport_Refinement_Menu', text='', icon='IMPORT')            
             if rman_render.rman_is_viewport_rendering:
 
                 # resolution mult
