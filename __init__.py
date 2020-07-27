@@ -55,6 +55,10 @@ class PRManRender(bpy.types.RenderEngine):
     def __init__(self):
         from . import rman_render
         self.rman_render = rman_render.RmanRender.get_rman_render()
+        if self.is_preview and self.rman_render.rman_swatch_render_running:
+            # if a preview render is requested and a swatch render is 
+            # already in progress, ignore this render request
+            return
         if self.rman_render.rman_interactive_running:
             if self.is_preview:
                 return
@@ -115,12 +119,9 @@ class PRManRender(bpy.types.RenderEngine):
                 # user has turned off preview renders, just load the placeholder image
                 self.rman_render.bl_scene = depsgraph.scene_eval
                 self.rman_render._load_placeholder_image()
-                return         
-            # hopefully, swatch renders are fast enough where this sleep will
-            # have minimal impact, but we need to make sure we don't start a new
-            # swatch render while one is still rendering
-            while self.rman_render.rman_swatch_render_running:
-                time.sleep(0.001)
+                return    
+            if self.rman_render.rman_swatch_render_running:
+                return                     
             self.rman_render.start_swatch_render(depsgraph)
         elif baking:
             if rm.enable_external_rendering:

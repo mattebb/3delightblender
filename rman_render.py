@@ -561,7 +561,7 @@ class RmanRender(object):
     def start_swatch_render(self, depsgraph):
         self.bl_scene = depsgraph.scene_eval
 
-        rfb_log().info("Parsing scene...")
+        rfb_log().debug("Parsing scene...")
         time_start = time.time()                
         self.rman_callbacks.clear()
         ec = rman.EventCallbacks.Get()
@@ -577,7 +577,7 @@ class RmanRender(object):
         self.rman_running = True
         self.rman_swatch_render_running = True
         self._dump_rib_()
-        rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
+        rfb_log().debug("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
         self.rman_is_live_rendering = True
         self.sg_scene.Render("prman -live")
         render = self.rman_scene.bl_scene.render
