@@ -27,7 +27,7 @@ import bpy
 import sys
 import os
 from bpy.types import AddonPreferences
-from bpy.props import CollectionProperty, BoolProperty, StringProperty
+from bpy.props import CollectionProperty, BoolProperty, StringProperty, FloatProperty
 from bpy.props import IntProperty, PointerProperty, EnumProperty, FloatVectorProperty
 
 from .rman_utils import filepath_utils
@@ -157,6 +157,15 @@ class RendermanPreferences(AddonPreferences):
         size=4,
         subtype="COLOR")     
 
+    rman_viewport_refresh_rate: FloatProperty(
+        name="Viewport Refresh Rate",
+        description="The number of seconds to wait before the viewport refreshes during IPR.",
+        default=0.01,
+        precision=4,
+        min=0.0001,
+        max=0.1
+    )
+
     rman_editor: StringProperty(
         name="Editor",
         subtype='FILE_PATH',
@@ -272,7 +281,11 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'rman_logging_level')
         col.prop(self, 'rman_logging_file')
 
-
+        row = layout.row()
+        row.label(text='Advanced', icon_value=rman_r_icon.icon_id)
+        row = layout.row()
+        col = row.column()
+        col.prop(self, 'rman_viewport_refresh_rate')      
 
 def register():
     bpy.utils.register_class(RendermanPreferencePath)

@@ -112,10 +112,11 @@ def start_cmd_server():
     return __RMAN_IT_PORT__        
 
 def draw_threading_func(db):
+    refresh_rate = get_pref('rman_viewport_refresh_rate', default=0.01)
     while db.rman_is_live_rendering:
         try:
             db.bl_engine.tag_redraw()
-            time.sleep(0.01)
+            time.sleep(refresh_rate)
         except ReferenceError as e:
             rfb_log().error("Error calling tag_redraw (%s). Aborting..." % str(e))
             return
