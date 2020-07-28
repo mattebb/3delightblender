@@ -141,7 +141,7 @@ class PRManRender(bpy.types.RenderEngine):
         h = context.region.height          
 
         # Draw text area that RenderMan is running.        
-        if get_pref('draw_ipr_text', False):
+        if get_pref('draw_ipr_text', False) and not self.rman_render.rman_is_viewport_rendering:
 
             pos_x = w / 2 - 100
             pos_y = 20

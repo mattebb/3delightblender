@@ -194,7 +194,12 @@ class DrawCropWindowHelper(object):
         self.start_pos_y = -1
         self.end_pos_x = -1
         self.end_pos_y = -1  
+        self.del_start_x = -1
+        self.del_start_y = -1
+        self.del_end_x = -1
+        self.del_end_y = -1        
         self.__crop_windowing = False    
+        self.__edit_cropwindow = False
 
     @property
     def crop_windowing(self):
@@ -202,7 +207,15 @@ class DrawCropWindowHelper(object):
 
     @crop_windowing.setter
     def crop_windowing(self, crop_windowing):
-        self.__crop_windowing = crop_windowing            
+        self.__crop_windowing = crop_windowing      
+
+    @property
+    def edit_cropwindow(self):
+        return self.__edit_cropwindow
+
+    @edit_cropwindow.setter
+    def edit_cropwindow(self, edit_cropwindow):
+        self.__edit_cropwindow = edit_cropwindow                  
 
     @property
     def start_pos_x(self):
@@ -234,7 +247,39 @@ class DrawCropWindowHelper(object):
 
     @end_pos_y.setter
     def end_pos_y(self, end_pos_y):
-        self.__end_pos_y = end_pos_y                                 
+        self.__end_pos_y = end_pos_y              
+
+    @property
+    def del_start_x(self):
+        return self.__del_start_x
+
+    @del_start_x.setter
+    def del_start_x(self, del_start_x):
+        self.__del_start_x = del_start_x                             
+
+    @property
+    def del_start_y(self):
+        return self.__del_start_y
+
+    @del_start_y.setter
+    def del_start_y(self, del_start_y):
+        self.__del_start_y = del_start_y  
+
+    @property
+    def del_end_x(self):
+        return self.__del_end_x
+
+    @del_end_x.setter
+    def del_end_x(self, del_end_x):
+        self.__del_end_x = del_end_x    
+
+    @property
+    def del_end_y(self):
+        return self.__del_end_y
+
+    @del_end_y.setter
+    def del_end_y(self, del_end_y):
+        self.__del_end_y = del_end_y                  
 
     def draw(self):
 
@@ -247,8 +292,35 @@ class DrawCropWindowHelper(object):
         c3 = (self.end_pos_x, self.end_pos_y)
         c4 = (self.start_pos_x, self.end_pos_y)
 
-        vertices = (c1,c2,c3,c4)
-        indices = ((0, 1), (1, 2), (2,3), (3, 0))
+        vertices = [c1,c2,c3,c4]
+        indices = [(0, 1), (1, 2), (2,3), (3, 0)]
+
+        # draw delete box
+        if self.__edit_cropwindow:
+            self.del_start_x = self.end_pos_x
+            self.del_start_y = self.end_pos_y
+            if self.end_pos_x < self.start_pos_x:
+                self.del_start_x = self.start_pos_x
+            if self.end_pos_y < self.start_pos_y:
+                self.del_start_y = self.start_pos_y
+
+            self.del_end_x = self.del_start_x + 10
+            self.del_end_y = self.del_start_y + 10
+
+            c1 = (self.del_start_x, self.del_start_y )
+            c2 = (self.del_end_x, self.del_start_y)
+            c3 = (self.del_end_x, self.del_end_y)
+            c4 = (self.del_start_x, self.del_end_y)
+            vertices.append(c1)
+            vertices.append(c2)
+            vertices.append(c3)
+            vertices.append(c4)
+            indices.append((4, 5))
+            indices.append((5,6)) 
+            indices.append((6,7)) 
+            indices.append((7,4)) 
+            indices.append((7,5))
+            indices.append((6,4))
 
         shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
         batch = batch_for_shader(shader, 'LINES', {"pos": vertices}, indices=indices)
@@ -283,6 +355,32 @@ class DrawCropWindowHelper(object):
 
         return (inside_x and inside_y)
 
+    def is_inside_del_box(self, x, y):       
+
+        if self.del_start_x == -1 and self.del_start_y == -1 and self.del_end_x == -1 and self.del_end_y == -1:
+            return False
+
+        if not self.__edit_cropwindow:
+            return False
+
+        inside_x = False
+        inside_y = False
+        if self.del_start_x < self.del_end_x:
+            if x > self.del_start_x and x < self.del_end_x:
+                inside_x = True
+        else:
+            if x > self.del_end_x and x < self.del_start_x:
+                inside_x = True
+
+        if self.del_start_y < self.del_end_y:
+            if y > self.del_start_y and y < self.del_end_y:
+                inside_y = True
+        else:
+            if y > self.del_end_y and y < self.del_start_y:
+                inside_y = True
+
+        return (inside_x and inside_y)         
+
 def get_crop_helper():
     global __DRAW_CROP_HANDLER__
     return __DRAW_CROP_HANDLER__
@@ -308,8 +406,14 @@ class PRMAN_OT_Viewport_Cropwindow(bpy.types.Operator):
     bl_options = {"INTERNAL"}    
 
     def __init__(self):
+        crop_handler = get_crop_helper()
         self.mouse_prev_x = -1
         self.mouse_prev_y = -1
+        crop_handler.edit_cropwindow = True
+
+    def __del__(self):
+        crop_handler = get_crop_helper()
+        crop_handler.edit_cropwindow = False        
 
     def execute(self, context):
         rman_render = RmanRender.get_rman_render()
@@ -366,6 +470,8 @@ class PRMAN_OT_Viewport_Cropwindow(bpy.types.Operator):
             if crop_handler.crop_windowing:
                 if crop_handler.is_inside_cropwindow(x, y):
                     context.window.cursor_modal_set('HAND')
+                elif crop_handler.is_inside_del_box(x, y):
+                    context.window.cursor_modal_restore()   
                 else:
                     context.window.cursor_modal_set('CROSSHAIR')
             else:
@@ -391,6 +497,13 @@ class PRMAN_OT_Viewport_Cropwindow(bpy.types.Operator):
                     context.window.cursor_modal_restore()                   
                     self.execute(context)
                     return {'FINISHED'}
+
+                elif crop_handler.is_inside_del_box(x, y):
+                    context.window.cursor_modal_restore()
+                    bpy.ops.renderman_viewport.cropwindow_reset()
+                    crop_handler.crop_windowing = False
+                    return {'CANCELLED'}
+
                 if not crop_handler.is_inside_cropwindow(x, y):
                     crop_handler.start_pos_x = x
                     crop_handler.start_pos_y = y
@@ -399,16 +512,10 @@ class PRMAN_OT_Viewport_Cropwindow(bpy.types.Operator):
             elif event.value == 'RELEASE':
                 self.execute(context)
 
-        elif event.type == 'RET':
+        elif event.type in {'ESC', 'RET'}:
             context.window.cursor_modal_restore()
             self.execute(context)
             return {'FINISHED'}
-
-        elif event.type in {'ESC'}: 
-            context.window.cursor_modal_restore()
-            crop_handler.reset()
-            crop_handler.crop_windowing = False
-            return {'CANCELLED'}
 
         self.mouse_prev_x = x
         self.mouse_prev_y = y
@@ -451,10 +558,8 @@ def draw_rman_viewport_props(self, context):
 
                 # crop window
                 rman_icon = rfb_icons.get_icon('rman_vp_crop')
-                if get_crop_helper().crop_windowing:
-                    row.operator('renderman_viewport.cropwindow_reset', text='', icon_value=rman_icon.icon_id, emboss=True, depress=True)                
-                else:
-                    row.operator('renderman_viewport.cropwindow', text='', icon_value=rman_icon.icon_id)   
+                depress = get_crop_helper().edit_cropwindow
+                row.operator('renderman_viewport.cropwindow', text='', icon_value=rman_icon.icon_id, depress=depress)
 
                 # snapshot
                 rman_icon = rfb_icons.get_icon('rman_vp_snapshot')
