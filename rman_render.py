@@ -13,6 +13,9 @@ import threading
 import subprocess
 import ctypes
 
+import gpu
+from gpu_extras.batch import batch_for_shader
+
 # utils
 from .rman_utils import filepath_utils
 from .rman_utils import string_utils
@@ -682,8 +685,33 @@ class RmanRender(object):
         if self.rman_is_viewport_rendering:
             dspy_plugin = self.get_blender_dspy_plugin()
 
+            arXMin = ctypes.c_int(0)
+            arXMax = ctypes.c_int(0)
+            arYMin = ctypes.c_int(0)
+            arYMax = ctypes.c_int(0)
+
             # (the driver will handle pixel scaling to the given viewport size)
-            dspy_plugin.DrawBufferToBlender(ctypes.c_int(width), ctypes.c_int(height))
+            dspy_plugin.DrawBufferToBlender(ctypes.c_int(width), ctypes.c_int(height), ctypes.byref(arXMin), ctypes.byref(arXMax), ctypes.byref(arYMin), ctypes.byref(arYMax))
+
+            # draw bucket indicators
+            if ( (arXMin.value + arXMax.value + arYMin.value + arYMax.value) > 0):
+                vertices = []
+                c1 = (arXMin.value, height-1 - arYMin.value)
+                c2 = (arXMax.value, height-1 - arYMin.value)
+                c3 = (arXMax.value, height-1 - arYMax.value)
+                c4 = (arXMin.value, height-1 - arYMax.value)
+                vertices.append(c1)
+                vertices.append(c2)
+                vertices.append(c3)
+                vertices.append(c4)
+                indices = [(0, 1), (1, 2), (2,3), (3, 0)]
+
+                shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+                batch = batch_for_shader(shader, 'LINES', {"pos": vertices}, indices=indices)
+
+                shader.bind()
+                shader.uniform_float("color", get_pref('rman_viewport_bucket_color', default=(0.0, 0.498, 1.0, 1.0)))
+                batch.draw(shader)              
 
     def _get_buffer(self, width, height, image_num=0, as_flat=True):
         dspy_plugin = self.get_blender_dspy_plugin()

@@ -192,6 +192,13 @@ class RendermanPreferences(AddonPreferences):
         size=4,
         subtype="COLOR")     
 
+    rman_viewport_bucket_color: FloatVectorProperty(
+        name="Bucket Marker Color",
+        description="Color of the bucket markers in the viewport when in IPR.",
+        default=(0.0, 0.498, 1.0, 1.0), 
+        size=4,
+        subtype="COLOR")     
+
     rman_editor: StringProperty(
         name="Editor",
         subtype='FILE_PATH',
@@ -288,7 +295,6 @@ class RendermanPreferences(AddonPreferences):
         row = layout.row()
         col = row.column()
         col.prop(self, 'rman_do_preview_renders')  
-        col.prop(self, 'rman_viewport_crop_color')
         col.prop(self, 'rman_render_nurbs_as_mesh')
         col.prop(self, 'rman_do_cycles_convert')     
         col.prop(self, 'rman_emit_default_params')    
@@ -311,6 +317,8 @@ class RendermanPreferences(AddonPreferences):
         row.label(text='UI', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
+        col.prop(self, 'rman_viewport_crop_color')
+        col.prop(self, 'rman_viewport_bucket_color')        
         col.prop(self, 'draw_ipr_text')
         col.prop(self, 'draw_panel_icon')
         col.prop(self, 'rman_editor')
