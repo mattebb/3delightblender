@@ -1,0 +1,17 @@
+{
+    "name": "rman_properties_scene",
+    "params": [
+        {
+            "name": "ipr_hider_minSamples",
+            "default": 0
+        },
+        {
+            "name": "ipr_hider_maxSamples",
+            "default": 64
+        },                
+        {
+            "name": "ipr_ri_pixelVariance",
+            "default": 0.015
+        }        
+    ]
+}

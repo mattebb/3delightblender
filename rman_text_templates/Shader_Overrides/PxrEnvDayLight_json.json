@@ -1,0 +1,9 @@
+{
+    "name": "PxrEnvDayLight.args",
+    "params": [
+        {
+            "name": "sunDirection",
+            "default": [0.0, 0.0, 1.0] 
+        }
+    ]
+}

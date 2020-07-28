@@ -1,0 +1,20 @@
+{
+    "channels": {
+        "MyAOV": {
+            "description": "This a custom AOV",
+            "channelType": "color",
+            "channelSource": "MyAOV",
+            "group": "Pixar"
+        }        
+    },
+    "displays": {
+        "MyOutput": {
+            "description": "MyOutput AOVs",
+            "channels": [
+                "diffuse",
+                "albedo",
+                "directSpecular"
+            ]
+        }
+    }    
+}

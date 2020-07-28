@@ -1,0 +1,16 @@
+{
+    "$schema": "./schemas/rfbSchema.json",
+    "tractor_cfg": {
+        "engine": "tractor-engine",
+        "port": 80,
+        "user": ""
+    },     
+    "dirmaps": {
+        "myserver_to_z": {
+            "from": "/myserver/",
+            "to": "Z:/",
+            "zone": "UNC"
+        }
+    },
+    "user tokens": ["PROD", "SHOT"]
+}

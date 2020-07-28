@@ -1,0 +1,14 @@
+{
+    "name": "rman_properties_object",
+    "params": [
+        {
+            "panel": "OBJECT_PT_renderman_object_custom_attributes",
+            "name": "user_char_db",
+            "label": "Character DB",
+            "riattr": "user:char_db",
+            "type": "string",
+            "default": "",
+            "help": "This is a new instance attribute called char_db"
+        }        
+    ]
+}

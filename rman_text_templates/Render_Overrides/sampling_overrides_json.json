@@ -1,0 +1,21 @@
+{
+    "name": "rman_properties_scene",
+    "params": [
+        {
+            "name": "hider_minSamples",
+            "default": 0
+        },
+        {
+            "name": "hider_maxSamples",
+            "default": 128
+        },            
+        {
+            "name": "ri_pixelVariance",
+            "default": 0.015
+        },
+        {
+            "name": "hider_darkfalloff",
+            "default": 0.025
+        }
+    ]
+}       
