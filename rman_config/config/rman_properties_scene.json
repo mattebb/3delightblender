@@ -976,7 +976,7 @@
             "name": "path_rib_output",
             "label": "RIB Output Path",
             "type": "string",
-            "default": "{OUT}/{scene}.{layer}.{F4}.rib",
+            "default": "{OUT}/rib/v{version}_t{take}/{scene}.{layer}.{F4}.rib",
             "widget": "fileinput",
             "help": "Path to generated RIB files"                   
         },    
@@ -986,7 +986,7 @@
             "name": "path_beauty_image_output",
             "label": "Beauty Image Output Path",
             "type": "string",
-            "default": "{OUT}/images/{scene}.{layer}.{F4}.{ext}",
+            "default": "{OUT}/images/v{version}_t{take}/{scene}.{layer}.{F4}.{ext}",
             "widget": "fileinput",
             "help": "Path for the beauty image"                   
         },  
@@ -996,7 +996,7 @@
             "name": "path_aov_image_output",
             "label": "AOV Image Output Path",
             "type": "string",
-            "default": "{OUT}/images/{scene}.{layer}.{aov}.{F4}.{ext}",
+            "default": "{OUT}/images/v{version}_t{take}/{scene}.{layer}.{aov}.{F4}.{ext}",
             "widget": "fileinput",
             "help": "Path for the beauty image"                   
         },  
@@ -1006,7 +1006,7 @@
             "name": "path_bake_illum_ptc",
             "label": "Bake 3D Illumination Output Path",
             "type": "string",
-            "default": "{OUT}/bake/{scene}.{layer}.{aov}.{F4}.{ext}",
+            "default": "{OUT}/bake/v{version}_t{take}/{scene}.{layer}.{aov}.{F4}.{ext}",
             "widget": "fileinput",
             "help": "Path for bake illumation output point cloud files"                   
         }, 
@@ -1016,7 +1016,7 @@
             "name": "path_bake_illum_img",
             "label": "Bake 2D Illumination Output Path",
             "type": "string",
-            "default": "{OUT}/bake/{scene}.{layer}.{aov}.{F4}.{ext}",
+            "default": "{OUT}/bake/v{version}_t{take}/{scene}.{layer}.{aov}.{F4}.{ext}",
             "widget": "fileinput",
             "help": "Path for bake illumation output texture files."                   
         },                                           

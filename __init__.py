@@ -99,6 +99,18 @@ class PRManRender(bpy.types.RenderEngine):
 
         self._draw_pixels(context, depsgraph)
 
+    def _increment_version_tokens(self, external_render=False):
+        bl_scene = bpy.context.scene
+        vi = get_pref('rman_scene_version_increment', default='MANUALLY')
+        ti = get_pref('rman_scene_take_increment', default='MANUALLY')
+
+        if (vi == 'RENDER' and not external_render) or (vi == 'BATCH_RENDER' and external_render):
+            bl_scene.renderman.version_token += 1
+            string_utils.set_var('version', bl_scene.renderman.version_token)
+        
+        if (ti == 'RENDER' and not external_render) or (ti == 'BATCH_RENDER' and external_render):
+            bl_scene.renderman.take_token += 1
+            string_utils.set_var('take', bl_scene.renderman.take_token)            
 
     def render(self, depsgraph):
         '''
@@ -129,10 +141,14 @@ class PRManRender(bpy.types.RenderEngine):
             elif not self.rman_render.start_bake_render(depsgraph, for_background=bpy.app.background):
                 return
         elif rm.enable_external_rendering:
-            self.rman_render.start_external_render(depsgraph)              
+            self.rman_render.start_external_render(depsgraph)         
+            self._increment_version_tokens(external_render=True)                 
         else:
-            if not self.rman_render.start_render(depsgraph, for_background=bpy.app.background):
+            for_background = bpy.app.background                
+            if not self.rman_render.start_render(depsgraph, for_background=for_background):
                 return    
+            if not for_background:
+                self._increment_version_tokens(external_render=False)
 
     def _draw_pixels(self, context, depsgraph):     
 

@@ -60,6 +60,7 @@ STD_TOKENS['assetlib'] = '<assetlib>:\tpath to the standard RenderManAssetLibrar
 STD_TOKENS['imagedir'] = '<imagedir>:\timages output path defined in rmanGlobals'
 STD_TOKENS['integrator'] = '<integrator>:\tcurrent integrator'
 
+PAD_FMT = ['%d', '%01d', '%02d', '%03d', '%04d']
 
 # split the token into 3 groups:
 #   1 - the main token
@@ -79,7 +80,10 @@ PARSING_EXPR = re.compile(r'{([\w\:]*[\w\.]+)(\?[\w\d\._-]+)*'  # token
 class StringExpression(object):
 
     # @time_this
-    def __init__(self, tokens=None):
+    def __init__(self, tokens=None, bl_scene=None):
+        self.bl_scene = bpy.context.scene
+        if bl_scene:
+            self.bl_scene = bl_scene
         self.tokens = {}
         self.update_blend_tokens()  
         self.tokens['pwd'] = ''
@@ -92,11 +96,8 @@ class StringExpression(object):
         self.tokens['ext'] = 'exr'
         self.tokens['aov'] = '' 
         self.tokens['aovdir'] = 'beauty'
-        self.tokens['version'] = '001'
-        self.tokens['take'] = '01'  
         self.tokens['file'] = self.tokens['blend']
         self.tokens['ws'] = self.tokens['OUT']
-
 
         for k, v in self.tokens.items():
             # print '%s = %s' % (k, repr(v))
@@ -110,6 +111,12 @@ class StringExpression(object):
             self.tokens.update(tokens)
 
     def update_blend_tokens(self):
+        scene = self.bl_scene
+        rm = scene.renderman        
+        for i in range(len(rm.user_tokens)):
+            user_token = rm.user_tokens[i]
+            self.tokens[user_token.name] = user_token.value
+
         unsaved = True if not bpy.data.filepath else False
         if unsaved:
             self.tokens['blend'] = 'UNTITLED'
@@ -117,8 +124,13 @@ class StringExpression(object):
             self.tokens['blend'] = os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]     
 
         self.tokens['OUT'] = self.expand(get_pref('env_vars').out)
-        self.tokens['scene'] = bpy.context.scene.name 
-        self.set_frame_context(bpy.context.scene.frame_current)
+        self.tokens['scene'] = scene.name 
+        self.set_frame_context(scene.frame_current)
+
+        vp = get_pref('rman_scene_version_padding', default=3)
+        tp = get_pref('rman_scene_take_padding', default=1)
+        self.tokens['version'] = PAD_FMT[vp] % rm.version_token
+        self.tokens['take'] = PAD_FMT[tp] % rm.take_token
 
     # @time_this
     def set_frame_context(self, frame):

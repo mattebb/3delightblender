@@ -40,6 +40,8 @@ def get_panels():
         'RENDER_PT_stamp',
         'RENDER_PT_simplify',
         'RENDER_PT_color_management',
+        'RENDER_PT_output',
+        'RENDER_PT_stereoscopy',
         'TEXTURE_PT_context_texture',
         'WORLD_PT_ambient_occlusion',
         'WORLD_PT_environment_lighting',

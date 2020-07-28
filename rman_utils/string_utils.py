@@ -52,11 +52,11 @@ class SceneStringConverter(object):
 
         return self.expr.expand(string, asFilePath=asFilePath)
 
-    def update(self):
+    def update(self, bl_scene=None):
         """Create a new StringExpression and configures it for the current state
         of the scene."""
         tk = None
-        self.expr = StringExpression(tokens=tk)
+        self.expr = StringExpression(tokens=tk, bl_scene=bl_scene)
 
     def set_display(self, display):
         """Sets the <aov> and <ext> tokens based on the display.
@@ -157,7 +157,7 @@ def get_var(nm):
 def update_blender_tokens_cb(bl_scene):
     global __SCENE_STRING_CONVERTER__
     converter_validity_check()
-    __SCENE_STRING_CONVERTER__.update()
+    __SCENE_STRING_CONVERTER__.update(bl_scene=bl_scene)
 
 
 def _format_time_(seconds):

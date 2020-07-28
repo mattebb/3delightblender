@@ -110,6 +110,41 @@ class RendermanPreferences(AddonPreferences):
         subtype='FILE_PATH',
         default=os.path.join('{OUT}', 'textures'))        
 
+    rman_scene_version_padding: IntProperty(
+        name="Version Padding",
+        description="The number of zeros to pad the version token",
+        default=3,
+        min=1, max=4
+    )
+    rman_scene_take_padding: IntProperty(
+        name="Take Padding",
+        description="The number of zeros to pad the take token",
+        default=2,
+        min=1, max=4
+    )    
+
+    rman_scene_version_increment: EnumProperty(
+        name="Increment Version",
+        description="The version number can be set to automatically increment each time you render",
+        items=[
+            ('MANUALLY', 'Manually', ''),
+            ('RENDER', 'On Render', ''),
+            ('BATCH RENDER', 'On Batch Render', '')
+        ],
+        default='MANUALLY'
+    )
+
+    rman_scene_take_increment: EnumProperty(
+        name="Increment Take",
+        description="The take number can be set to automatically increment each time you render",
+        items=[
+            ('MANUALLY', 'Manually', ''),
+            ('RENDER', 'On Render', ''),
+            ('BATCH RENDER', 'On Batch Render', '')
+        ],        
+        default='MANUALLY'
+    )    
+
     env_vars: PointerProperty(
         type=RendermanEnvVarSettings,
         name="Environment Variable Settings")
@@ -266,6 +301,10 @@ class RendermanPreferences(AddonPreferences):
         col = row.column()
         col.prop(env, "out")
         col.prop(self, 'path_fallback_textures_path')
+        col.prop(self, "rman_scene_version_padding")
+        col.prop(self, "rman_scene_take_padding")
+        col.prop(self, "rman_scene_version_increment")
+        col.prop(self, "rman_scene_take_increment")
 
         # UI Prefs
         row = layout.row()

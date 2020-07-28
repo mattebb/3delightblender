@@ -8,7 +8,7 @@ from ...rfb_logger import rfb_log
 from ... import rman_render
 from ... import rman_bl_nodes
 from ...rman_bl_nodes import rman_bl_nodes_props    
-from ..rman_properties_misc import RendermanLightGroup, RendermanGroup, LightLinking
+from ..rman_properties_misc import RendermanLightGroup, RendermanGroup, LightLinking, RendermanUserTokenGroup
 from ..rman_properties_renderlayers import RendermanRenderLayerSettings
 from ... import rman_config
 from ...rman_config import RmanBasePropertyGroup
@@ -63,6 +63,12 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     object_groups: CollectionProperty(
         type=RendermanGroup, name="Trace Sets")
     object_groups_index: IntProperty(min=-1, default=-1)
+
+    # Tokens
+    version_token: IntProperty(name="version", default=1, min=1)
+    take_token: IntProperty(name="take", default=1, min=1)
+    user_tokens: CollectionProperty(type=RendermanUserTokenGroup, name="User Tokens")
+    user_tokens_index: IntProperty(min=-1, max=10, default=-1)
 
 classes = [         
     RendermanSceneSettings

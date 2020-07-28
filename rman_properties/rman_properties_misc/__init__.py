@@ -10,6 +10,10 @@ from ... import rman_config
 
 import bpy
 
+class RendermanUserTokenGroup(bpy.types.PropertyGroup):
+    name: StringProperty(name="Name", default="")
+    value: StringProperty(name="Value", default="")
+
 class RendermanLightPointer(bpy.types.PropertyGroup):
     def validate_light_obj(self, ob):
         if shadergraph_utils.is_rman_light(ob, include_light_filters=True):
@@ -135,6 +139,7 @@ class RendermanAnimSequenceSettings(bpy.types.PropertyGroup):
         default=1)
 
 classes = [      
+    RendermanUserTokenGroup,
     RendermanLightPointer,
     RendermanLightGroup,
     RendermanObjectPointer,
