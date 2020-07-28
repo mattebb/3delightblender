@@ -1,5 +1,6 @@
 from .string_expr import StringExpression
 from . import filepath_utils
+from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 from bpy.app.handlers import persistent
 import bpy
 import os
@@ -155,10 +156,27 @@ def get_var(nm):
 
 @persistent
 def update_blender_tokens_cb(bl_scene):
+    scene = bl_scene
+    if not scene:
+        scene = bpy.context.scene
+
     global __SCENE_STRING_CONVERTER__
     converter_validity_check()
-    __SCENE_STRING_CONVERTER__.update(bl_scene=bl_scene)
+    
+    # add user tokens specified in rfb.json
+    user_tokens = rfb_config.get('user tokens', list())
 
+    for nm in user_tokens:
+        found = False
+        for user_token in scene.renderman.user_tokens:
+            if user_token.name == nm:
+                found = True
+                break
+        if not found:
+            user_token = scene.renderman.user_tokens.add()
+            user_token.name = nm
+
+    __SCENE_STRING_CONVERTER__.update(bl_scene=scene)
 
 def _format_time_(seconds):
     hours = seconds // (60 * 60)
