@@ -3,6 +3,7 @@ import os
 import rman
 import bpy
 import sys
+from .rman_constants import RFB_VIEWPORT_MAX_BUCKETS
 from .rman_scene import RmanScene
 from .rman_scene_sync import RmanSceneSync
 from. import rman_spool
@@ -13,6 +14,7 @@ import threading
 import subprocess
 import ctypes
 
+# for viewport buckets
 import gpu
 from gpu_extras.batch import batch_for_shader
 
@@ -133,6 +135,14 @@ def draw_threading_func(db):
             rfb_log().error("Error calling tag_redraw (%s). Aborting..." % str(e))
             return
 
+def viewport_progress_cb(e, d, db):
+    if float(d) > 99.0:
+        # clear bucket indicators
+        db.draw_viewport_buckets = False
+        db.viewport_buckets.clear()
+    else:
+        db.draw_viewport_buckets = True
+
 def progress_cb(e, d, db):
     db.bl_engine.update_progress(float(d) / 100.0)
     if db.rman_is_live_rendering and int(d) == 100:
@@ -178,6 +188,8 @@ class RmanRender(object):
         self.rman_callbacks = dict()
         self.viewport_res_x = -1
         self.viewport_res_y = -1
+        self.viewport_buckets = list()
+        self.draw_viewport_buckets = False
 
         self._start_prman_begin()
 
@@ -541,7 +553,13 @@ class RmanRender(object):
             if self.rman_render_into == 'blender':
                 # turn off dspyserver mode if we're not rendering to "it"
                 self.rman_is_viewport_rendering = True    
-                rman.Dspy.DisableDspyServer()                  
+                rman.Dspy.DisableDspyServer()             
+                self.rman_callbacks.clear()
+                ec = rman.EventCallbacks.Get()
+                ec.RegisterCallback("Progress", viewport_progress_cb, self)
+                self.rman_callbacks["Progress"] = viewport_progress_cb       
+                self.viewport_buckets.clear()
+                self.draw_viewport_buckets = True                           
             else:
                 rman.Dspy.EnableDspyServer()
         except:
@@ -665,6 +683,8 @@ class RmanRender(object):
         self.sg_scene = None
         self.rman_scene_sync = None
         self.rman_scene.reset()
+        self.viewport_buckets.clear()
+        self.draw_viewport_buckets = False                
         __update_areas__()
         rfb_log().debug("RenderMan has Stopped.")
 
@@ -694,7 +714,7 @@ class RmanRender(object):
             dspy_plugin.DrawBufferToBlender(ctypes.c_int(width), ctypes.c_int(height), ctypes.byref(arXMin), ctypes.byref(arXMax), ctypes.byref(arYMin), ctypes.byref(arYMax))
 
             # draw bucket indicators
-            if ( (arXMin.value + arXMax.value + arYMin.value + arYMax.value) > 0):
+            if self.draw_viewport_buckets and ( (arXMin.value + arXMax.value + arYMin.value + arYMax.value) > 0):
                 vertices = []
                 c1 = (arXMin.value, height-1 - arYMin.value)
                 c2 = (arXMax.value, height-1 - arYMin.value)
@@ -706,12 +726,20 @@ class RmanRender(object):
                 vertices.append(c4)
                 indices = [(0, 1), (1, 2), (2,3), (3, 0)]
 
-                shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-                batch = batch_for_shader(shader, 'LINES', {"pos": vertices}, indices=indices)
+                # we've reach our max buckets, pop the oldest one off the list
+                if len(self.viewport_buckets) > RFB_VIEWPORT_MAX_BUCKETS:
+                    self.viewport_buckets.pop(0)
+                self.viewport_buckets.append([vertices, indices])
+                bucket_color =  get_pref('rman_viewport_bucket_color', default=(0.0, 0.498, 1.0, 1.0))
 
-                shader.bind()
-                shader.uniform_float("color", get_pref('rman_viewport_bucket_color', default=(0.0, 0.498, 1.0, 1.0)))
-                batch.draw(shader)              
+                # draw from newest to oldest
+                for v, i in reversed(self.viewport_buckets):
+                    shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+                    batch = batch_for_shader(shader, 'LINES', {"pos": v}, indices=i)
+
+                    shader.bind()
+                    shader.uniform_float("color", bucket_color)
+                    batch.draw(shader)              
 
     def _get_buffer(self, width, height, image_num=0, as_flat=True):
         dspy_plugin = self.get_blender_dspy_plugin()
