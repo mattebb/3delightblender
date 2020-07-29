@@ -79,9 +79,11 @@ class ItHandler(chatserver.ItBaseHandler):
         name = __RMAN_RENDER__.rman_scene.obj_hash[obj_id]
         rfb_log().debug('ID: %d Obj Name: %s' % (obj_id, name))
         obj = bpy.context.scene.objects[name]
-        bpy.context.view_layer.objects.active.select_set(False)
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
+        if obj:
+            if bpy.context.view_layer.objects.active:
+                bpy.context.view_layer.objects.active.select_set(False)
+            obj.select_set(True)
+            bpy.context.view_layer.objects.active = obj
 
     def selectSurfaceById(self):
         self.selectObjectById()

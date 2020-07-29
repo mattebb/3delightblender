@@ -63,7 +63,7 @@ class RmanLightTranslator(RmanTranslator):
 
         # Add ID
         if name != "":            
-            obj_id = len(self.rman_scene.obj_hash.keys())
+            obj_id = len(self.rman_scene.obj_hash.keys())+1
             self.rman_scene.obj_hash[obj_id] = name
             attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_identifier_id, obj_id)
 

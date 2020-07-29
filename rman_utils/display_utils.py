@@ -128,7 +128,9 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
         dspy_params['displayChannels'] = []            
         d = _default_dspy_params()
         d[u'channelSource'] = {'type': u'string', 'value': 'id'}
-        d[u'channelType'] = { 'type': u'string', 'value': 'integer'}               
+        d[u'channelType'] = { 'type': u'string', 'value': 'integer'}        
+        d[u'filter'] = {'type': u'string', 'value': 'zmin'}
+        d[u'filterwidth'] = { 'type': u'float2', 'value': [1, 1]}                       
         dspys_dict['channels']['id'] = d     
         dspy_params['displayChannels'].append('id')
         filePath = 'id_pass'
@@ -357,6 +359,8 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             d = _default_dspy_params()
             d[u'channelSource'] = {'type': u'string', 'value': 'id'}
             d[u'channelType'] = { 'type': u'string', 'value': 'integer'}     
+            d[u'filter'] = {'type': u'string', 'value': 'zmin'}
+            d[u'filterwidth'] = { 'type': u'float2', 'value': [1, 1]}            
             dspys_dict['channels']['id'] = d     
             dspy_params['displayChannels'].append('id')
             filePath = 'id_pass'
