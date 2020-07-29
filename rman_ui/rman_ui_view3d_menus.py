@@ -150,7 +150,9 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
                 elif obj.type not in ['CAMERA', 'LIGHT', 'SPEAKER']:
                     selected_objects.append(obj)
 
+        layout.menu('VIEW3D_MT_RM_Add_Render_Menu', icon_value=VIEW3D_MT_RM_Add_Render_Menu.get_icon_id())
         if selected_light_objects:
+            layout.separator()
             layout.operator_menu_enum(
                     "object.rman_add_light_filter", 'rman_lightfilter_name', text="Attach New Light Filter", icon='LIGHT')              
 
@@ -188,6 +190,38 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         layout.menu('VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu', text='Trace Sets')     
         layout.menu('VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu', text='Light Mixer Groups')  
         layout.operator("scene.rman_open_light_linking", text="Light Linking Editor")    
+
+
+class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
+    bl_label = "Render"
+    bl_idname = "VIEW3D_MT_RM_Add_Render_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    @classmethod
+    def get_icon_id(cls):  
+        return rfb_icons.get_icon("rman_blender").icon_id
+
+    def draw(self, context):
+        layout = self.layout
+        rman_render = RmanRender.get_rman_render()
+        is_rman_interactive_running = rman_render.rman_interactive_running        
+
+        if not is_rman_interactive_running:
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_on")
+            layout.operator('renderman.start_ipr', text="IPR",
+                            icon_value=rman_rerender_controls.icon_id)                
+            rman_render_icon = rfb_icons.get_icon("rman_render")
+            layout.operator("render.render", text="Render",
+                        icon_value=rman_render_icon.icon_id)        
+        else:
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
+            layout.operator('renderman.stop_ipr', text="Stop IPR",
+                            icon_value=rman_rerender_controls.icon_id)              
+
 
 class VIEW3D_MT_RM_Add_Export_Menu(bpy.types.Menu):
     bl_label = "Export"
@@ -378,7 +412,8 @@ classes = [
     VIEW3D_MT_RM_Add_Light_Menu,
     VIEW3D_MT_RM_Add_LightFilter_Menu,
     VIEW3D_MT_RM_Add_bxdf_Menu,
-    VIEW3D_MT_RM_Add_Export_Menu
+    VIEW3D_MT_RM_Add_Export_Menu,
+    VIEW3D_MT_RM_Add_Render_Menu
 ]
 
 def register():

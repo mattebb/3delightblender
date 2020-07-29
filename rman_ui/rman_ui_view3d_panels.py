@@ -60,6 +60,24 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                             icon_value=rman_batch.icon_id).animation = True
 
             row = layout.row(align=True)
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_on")
+            row.operator('renderman.start_ipr', text="IPR",
+                            icon_value=rman_rerender_controls.icon_id)    
+
+            row.prop(context.scene, "rm_ipr", text="",
+                    icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_render else 'DISCLOSURE_TRI_RIGHT')                            
+
+            if context.scene.rm_ipr:
+                scene = context.scene
+                rd = scene.render
+
+                box = layout.box()
+                row = box.row(align=True)
+
+                # Display Driver
+                row.prop(rm, "render_into")
+
+            row = layout.row(align=True)
             rman_batch = rfb_icons.get_icon("rman_batch")
 
             row.operator("renderman.external_render",
