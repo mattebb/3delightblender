@@ -137,10 +137,13 @@ def draw_threading_func(db):
 
 def viewport_progress_cb(e, d, db):
     if float(d) > 99.0:
-        # clear bucket indicators
+        # clear bucket markers
         db.draw_viewport_buckets = False
         db.viewport_buckets.clear()
     else:
+        if float(d) < 1.0:
+            # clear bucket markers if we are back to 0 progress
+            db.viewport_buckets.clear()
         db.draw_viewport_buckets = True
 
 def progress_cb(e, d, db):
@@ -715,11 +718,25 @@ class RmanRender(object):
 
             # draw bucket indicators
             if self.draw_viewport_buckets and ( (arXMin.value + arXMax.value + arYMin.value + arYMax.value) > 0):
+                yMin = height-1 - arYMin.value
+                yMax = height-1 - arYMax.value
+                xMin = arXMin.value
+                xMax = arXMax.value
+                if self.rman_scene.viewport_render_res_mult != 1.0:
+                    # render resolution multiplier is set, we need to re-scale the bucket markers
+                    scaled_width = width * self.rman_scene.viewport_render_res_mult
+                    xMin = int(width * ((arXMin.value) / (scaled_width)))
+                    xMax = int(width * ((arXMax.value) / (scaled_width)))
+
+                    scaled_height = height * self.rman_scene.viewport_render_res_mult
+                    yMin = height-1 - int(height * ((arYMin.value) / (scaled_height)))
+                    yMax = height-1 - int(height * ((arYMax.value) / (scaled_height)))
+                   
                 vertices = []
-                c1 = (arXMin.value, height-1 - arYMin.value)
-                c2 = (arXMax.value, height-1 - arYMin.value)
-                c3 = (arXMax.value, height-1 - arYMax.value)
-                c4 = (arXMin.value, height-1 - arYMax.value)
+                c1 = (xMin, yMin)
+                c2 = (xMax, yMin)
+                c3 = (xMax, yMax)
+                c4 = (xMin, yMax)
                 vertices.append(c1)
                 vertices.append(c2)
                 vertices.append(c3)
