@@ -41,6 +41,7 @@ from .rman_sg_nodes.rman_sg_node import RmanSgNode
 
 import bpy
 import os
+import sys
 
 class RmanScene(object):
     '''
@@ -913,12 +914,18 @@ class RmanScene(object):
         cur_dir = os.path.dirname(os.path.realpath(__file__))
         cycles_shader_dir = os.path.join(cur_dir, '..', 'cycles', 'shader' )
 
-        options = self.sg_scene.GetOptions()
         RMAN_SHADERPATH = os.environ.get('RMAN_SHADERPATH', '')
-        options.SetString(self.rman.Tokens.Rix.k_searchpath_shader, '.:%s:%s:@' % (cycles_shader_dir, RMAN_SHADERPATH))
         RMAN_TEXTUREPATH = os.environ.get('RMAN_TEXTUREPATH', '')
-        options.SetString(self.rman.Tokens.Rix.k_searchpath_texture, '.:%s:@' % RMAN_TEXTUREPATH)
         RMAN_RIXPLUGINPATH = os.environ.get('RMAN_RIXPLUGINPATH', '')
+        if sys.platform == ("win32"):
+            # substitute ; for : in paths
+            RMAN_SHADERPATH = RMAN_SHADERPATH.replace(';', ':')
+            RMAN_TEXTUREPATH = RMAN_TEXTUREPATH.replace(';', ':')
+            RMAN_RIXPLUGINPATH = RMAN_RIXPLUGINPATH.replace(';', ':')
+
+        options = self.sg_scene.GetOptions()
+        options.SetString(self.rman.Tokens.Rix.k_searchpath_shader, '.:%s:%s:@' % (cycles_shader_dir, RMAN_SHADERPATH))
+        options.SetString(self.rman.Tokens.Rix.k_searchpath_texture, '.:%s:@' % RMAN_TEXTUREPATH)
         options.SetString(self.rman.Tokens.Rix.k_searchpath_rixplugin, '.:%s:@' % RMAN_RIXPLUGINPATH)
         options.SetString(self.rman.Tokens.Rix.k_searchpath_display, '.:@')
 

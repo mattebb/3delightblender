@@ -594,11 +594,11 @@ def get_path_list():
 
     if 'RMAN_RIXPLUGINPATH' in os.environ:
         RMAN_RIXPLUGINPATH = os.environ['RMAN_RIXPLUGINPATH']
-        for p in RMAN_RIXPLUGINPATH.split(':'):
+        for p in RMAN_RIXPLUGINPATH.split(os.path.pathsep):
             paths.append(os.path.join(p, 'Args'))
     if 'RMAN_SHADERPATH' in os.environ:
         RMAN_SHADERPATH = os.environ['RMAN_SHADERPATH']
-        for p in RMAN_SHADERPATH.split(':'):
+        for p in RMAN_SHADERPATH.split(os.path.pathsep):
             paths.append(p)
 
     return paths

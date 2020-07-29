@@ -213,7 +213,7 @@ def get_override_paths():
 
     paths = []
 
-    prefs_path = get_pref('rman_config_dir', default='FOOBAR')
+    prefs_path = get_pref('rman_config_dir', default='')
     if prefs_path:
         prefs_path = filepath_utils.get_real_path(prefs_path)
         if os.path.exists(prefs_path):
@@ -222,19 +222,19 @@ def get_override_paths():
     # first, RFB_SITE_PATH
     RFB_SITE_PATH = os.environ.get('RFB_SITE_PATH', None)
     if RFB_SITE_PATH:
-        for path in RFB_SITE_PATH.split(':'):
+        for path in RFB_SITE_PATH.split(os.path.pathsep):
             paths.append(path)
 
     # next, RFB_SHOW_PATH
     RFB_SHOW_PATH = os.environ.get('RFB_SHOW_PATH', None)
     if RFB_SHOW_PATH:
-        for path in RFB_SHOW_PATH.split(':'):
+        for path in RFB_SHOW_PATH.split(os.path.pathsep):
             paths.append(path)
 
     # finally, RFB_USER_PATH
     RFB_USER_PATH = os.environ.get('RFB_USER_PATH', None)
     if RFB_USER_PATH:
-        for path in RFB_USER_PATH.split(':'):
+        for path in RFB_USER_PATH.split(os.path.pathsep):
             paths.append(path)                        
 
     return paths
