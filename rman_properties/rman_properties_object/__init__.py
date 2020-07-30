@@ -6,6 +6,7 @@ from ... import rman_config
 from ...rman_config import RmanBasePropertyGroup
 from ..rman_properties_misc import RendermanOpenVDBChannel, RendermanAnimSequenceSettings 
 from ..rman_properties_misc import RendermanLightPointer
+from ...rman_utils import shadergraph_utils
 
 import bpy
 
