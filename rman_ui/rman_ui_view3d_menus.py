@@ -220,8 +220,20 @@ class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
         else:
             rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
             layout.operator('renderman.stop_ipr', text="Stop IPR",
-                            icon_value=rman_rerender_controls.icon_id)              
-
+                            icon_value=rman_rerender_controls.icon_id) 
+            layout.separator()
+            rman_icon = rfb_icons.get_icon('rman_vp_viz')
+            layout.menu('PRMAN_MT_Viewport_Integrator_Menu', icon_value=rman_icon.icon_id)
+            layout.menu('PRMAN_MT_Viewport_Refinement_Menu', icon='IMPORT')
+            if rman_render.rman_is_viewport_rendering:
+                rman_icon = rfb_icons.get_icon('rman_vp_resolution')
+                layout.menu('PRMAN_MT_Viewport_Res_Mult_Menu', icon_value=rman_icon.icon_id)
+                rman_icon = rfb_icons.get_icon('rman_vp_aovs')
+                layout.menu('PRMAN_MT_Viewport_Channel_Sel_Menu', icon_value=rman_icon.icon_id)
+                rman_icon = rfb_icons.get_icon('rman_vp_crop')
+                layout.operator("renderman_viewport.cropwindow", icon_value=rman_icon.icon_id)
+                rman_icon = rfb_icons.get_icon('rman_vp_snapshot')
+                layout.operator("renderman_viewport.snapshot", icon_value=rman_icon.icon_id)
 
 class VIEW3D_MT_RM_Add_Export_Menu(bpy.types.Menu):
     bl_label = "Export"

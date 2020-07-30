@@ -15,7 +15,7 @@ __HIDDEN_INTEGRATORS__ = ['PxrValidateBxdf', 'PxrDebugShadingContext']
 __DRAW_CROP_HANDLER__ = None
 
 class PRMAN_MT_Viewport_Integrator_Menu(Menu):
-    bl_label = "Viewport Integrator Menu"
+    bl_label = "Change Integrator"
     bl_idname = "PRMAN_MT_Viewport_Integrator_Menu"
 
     @classmethod
@@ -32,7 +32,7 @@ class PRMAN_MT_Viewport_Integrator_Menu(Menu):
 
 
 class PRMAN_MT_Viewport_Refinement_Menu(Menu):
-    bl_label = "Viewport Refinement Menu"
+    bl_label = "Interactive Refinement"
     bl_idname = "PRMAN_MT_Viewport_Refinement_Menu"
 
     @classmethod
@@ -47,7 +47,7 @@ class PRMAN_MT_Viewport_Refinement_Menu(Menu):
             op.viewport_hider_decidither = i 
 
 class PRMAN_MT_Viewport_Res_Mult_Menu(Menu):
-    bl_label = "Viewport Res Mult Menu"
+    bl_label = "Scale Resolution"
     bl_idname = "PRMAN_MT_Viewport_Res_Mult_Menu"
 
     @classmethod
@@ -72,7 +72,7 @@ class PRMAN_MT_Viewport_Res_Mult_Menu(Menu):
             op.viewport_res_mult = val
 
 class PRMAN_MT_Viewport_Channel_Sel_Menu(Menu):
-    bl_label = "Channel Selector Menu"
+    bl_label = "Channel"
     bl_idname = "PRMAN_MT_Viewport_Channel_Sel_Menu"
     bl_options = {"INTERNAL"}       
 
@@ -141,6 +141,8 @@ class PRMAN_OT_Viewport_Resolution_Mult(bpy.types.Operator):
     def execute(self, context):
         rman_render = RmanRender.get_rman_render()
         if rman_render.rman_interactive_running:
+            bpy.ops.renderman_viewport.cropwindow_reset()
+            get_crop_helper().crop_windowing = False
             rman_render.rman_scene.viewport_render_res_mult = float(self.viewport_res_mult)
             rman_render.rman_scene_sync.update_viewport_res_mult(context) 
 
@@ -347,7 +349,7 @@ class PRMAN_OT_Viewport_CropWindow_Reset(bpy.types.Operator):
 
 class PRMAN_OT_Viewport_Cropwindow(bpy.types.Operator):
     bl_idname = "renderman_viewport.cropwindow"
-    bl_label = "crop"
+    bl_label = "Edit Cropwindow"
     bl_description = "Cropwindow"
     bl_options = {"INTERNAL"}    
 
