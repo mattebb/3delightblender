@@ -9,7 +9,6 @@ from .rman_socket_utils import node_add_outputs
 from .rman_socket_utils import update_inputs
 from .. import rman_config
 from .. import rman_render
-from .. import properties
 from ..rman_properties import rman_properties_scene
 from ..rman_properties import rman_properties_renderlayers
 from ..rman_properties import rman_properties_world

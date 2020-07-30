@@ -138,6 +138,52 @@ class RendermanAnimSequenceSettings(bpy.types.PropertyGroup):
         description="The frame in Blender to begin playing back the sequence",
         default=1)
 
+class Tab_CollectionGroup(bpy.types.PropertyGroup):
+
+    #################
+    #       Tab     #
+    #################
+
+    bpy.types.Scene.rm_ipr = BoolProperty(
+        name="IPR settings",
+        description="Show some useful setting for the Interactive Rendering",
+        default=False)
+
+    bpy.types.Scene.rm_render = BoolProperty(
+        name="Render settings",
+        description="Show some useful setting for the Rendering",
+        default=False)
+
+    bpy.types.Scene.rm_render_external = BoolProperty(
+        name="Render settings",
+        description="Show some useful setting for external rendering",
+        default=False)
+
+    bpy.types.Scene.rm_help = BoolProperty(
+        name="Help",
+        description="Show some links about RenderMan and the documentation",
+        default=False)
+
+    bpy.types.Scene.rm_env = BoolProperty(
+        name="Envlight",
+        description="Show some settings about the selected Env light",
+        default=False)
+
+    bpy.types.Scene.rm_area = BoolProperty(
+        name="AreaLight",
+        description="Show some settings about the selected Area Light",
+        default=False)
+
+    bpy.types.Scene.rm_daylight = BoolProperty(
+        name="DayLight",
+        description="Show some settings about the selected Day Light",
+        default=False)
+
+    bpy.types.Scene.prm_cam = BoolProperty(
+        name="Renderman Camera",
+        description="Show some settings about the camera",
+        default=False)        
+
 classes = [      
     RendermanUserTokenGroup,
     RendermanLightPointer,
@@ -147,7 +193,8 @@ classes = [
     LightLinking,
     RendermanMeshPrimVar,   
     RendermanOpenVDBChannel,
-    RendermanAnimSequenceSettings
+    RendermanAnimSequenceSettings,
+    Tab_CollectionGroup
 ]
 
 def register():

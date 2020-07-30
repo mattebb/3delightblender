@@ -195,27 +195,19 @@ def set_up_paths():
     filepath_utils.set_pythonpath(pythonbindings)
 
 def load_addon():
-    # if rmantree is ok load the stuff
-    from . import preferences
-
     if filepath_utils.guess_rmantree():
         # else display an error, tell user to correct
         # and don't load anything else
         set_up_paths()
         from . import rman_operators
         from . import rman_ui
-        from . import operators
         from . import rman_bl_nodes
         from . import rman_properties
         from . import rman_handlers
 
-        # need this now rather than at beginning to make
-        # sure preferences are loaded
-
         rman_operators.register()
         rman_bl_nodes.register()
         rman_properties.register()          
-        operators.register()
         rman_ui.register()      
         rman_handlers.register()
 
@@ -243,7 +235,6 @@ def unregister():
     from . import preferences
     rman_handlers.unregister()
     rman_bl_nodes.unregister()    
-    operators.unregister()
     rman_ui.unregister()
     rman_properties.unregister()
     preferences.unregister()
