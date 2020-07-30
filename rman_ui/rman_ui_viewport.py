@@ -198,6 +198,17 @@ class DrawCropWindowHelper(object):
         self.del_start_y = -1
         self.del_end_x = -1
         self.del_end_y = -1        
+
+        self.cw_c1 = (-1, -1)
+        self.cw_c2 = (-1, -1)
+        self.cw_c3 = (-1, -1)
+        self.cw_c4 = (-1, -1)
+
+        self.del_c1 = (-1, -1)
+        self.del_c2 = (-1, -1)
+        self.del_c3 = (-1, -1)
+        self.del_c4 = (-1, -1)
+
         self.__crop_windowing = False    
         self.__edit_cropwindow = False
 
@@ -287,34 +298,41 @@ class DrawCropWindowHelper(object):
             return
 
         self.crop_windowing = True
-        c1 = (self.start_pos_x, self.start_pos_y)
-        c2 = (self.end_pos_x, self.start_pos_y)
-        c3 = (self.end_pos_x, self.end_pos_y)
-        c4 = (self.start_pos_x, self.end_pos_y)
+        x0 = self.start_pos_x
+        x1 = self.end_pos_x
+        if self.end_pos_x < self.start_pos_x:
+            x0 = self.end_pos_x
+            x1 = self.start_pos_x
+        y0 = self.start_pos_y
+        y1 = self.end_pos_y
+        if self.end_pos_y < self.start_pos_y:
+            y0 = self.end_pos_y
+            y1 = self.start_pos_y
 
-        vertices = [c1,c2,c3,c4]
+        self.cw_c1 = (x0, y0)
+        self.cw_c2 = (x1, y0)
+        self.cw_c3 = (x1, y1)
+        self.cw_c4 = (x0, y1)
+
+        vertices = [self.cw_c1,self.cw_c2,self.cw_c3,self.cw_c4]
         indices = [(0, 1), (1, 2), (2,3), (3, 0)]
 
         # draw delete box
         if self.__edit_cropwindow:
-            self.del_start_x = self.end_pos_x
-            self.del_start_y = self.end_pos_y
-            if self.end_pos_x < self.start_pos_x:
-                self.del_start_x = self.start_pos_x
-            if self.end_pos_y < self.start_pos_y:
-                self.del_start_y = self.start_pos_y
-
+            self.del_start_x = x1
+            self.del_start_y = y1
+            
             self.del_end_x = self.del_start_x + 10
             self.del_end_y = self.del_start_y + 10
 
-            c1 = (self.del_start_x, self.del_start_y )
-            c2 = (self.del_end_x, self.del_start_y)
-            c3 = (self.del_end_x, self.del_end_y)
-            c4 = (self.del_start_x, self.del_end_y)
-            vertices.append(c1)
-            vertices.append(c2)
-            vertices.append(c3)
-            vertices.append(c4)
+            self.del_c1 = (self.del_start_x, self.del_start_y )
+            self.del_c2 = (self.del_end_x, self.del_start_y)
+            self.del_c3 = (self.del_end_x, self.del_end_y)
+            self.del_c4 = (self.del_start_x, self.del_end_y)
+            vertices.append(self.del_c1)
+            vertices.append(self.del_c2)
+            vertices.append(self.del_c3)
+            vertices.append(self.del_c4)
             indices.append((4, 5))
             indices.append((5,6)) 
             indices.append((6,7)) 
@@ -339,19 +357,12 @@ class DrawCropWindowHelper(object):
 
         inside_x = False
         inside_y = False
-        if self.start_pos_x < self.end_pos_x:
-            if x > self.start_pos_x and x < self.end_pos_x:
-                inside_x = True
-        else:
-            if x > self.end_pos_x and x < self.start_pos_x:
-                inside_x = True
 
-        if self.start_pos_y < self.end_pos_y:
-            if y > self.start_pos_y and y < self.end_pos_y:
-                inside_y = True
-        else:
-            if y > self.end_pos_y and y < self.start_pos_y:
-                inside_y = True
+        if x > self.cw_c1[0] and x < self.cw_c2[0]:
+            inside_x = True
+
+        if y > self.cw_c1[1] and y < self.cw_c3[1]:
+            inside_y = True
 
         return (inside_x and inside_y)
 
@@ -365,21 +376,14 @@ class DrawCropWindowHelper(object):
 
         inside_x = False
         inside_y = False
-        if self.del_start_x < self.del_end_x:
-            if x > self.del_start_x and x < self.del_end_x:
-                inside_x = True
-        else:
-            if x > self.del_end_x and x < self.del_start_x:
-                inside_x = True
 
-        if self.del_start_y < self.del_end_y:
-            if y > self.del_start_y and y < self.del_end_y:
-                inside_y = True
-        else:
-            if y > self.del_end_y and y < self.del_start_y:
-                inside_y = True
+        if x > self.del_c1[0] and x < self.del_c2[0]:
+            inside_x = True
 
-        return (inside_x and inside_y)         
+        if y > self.del_c2[1] and y < self.del_c3[1]:
+            inside_y = True
+
+        return (inside_x and inside_y)                    
 
 def get_crop_helper():
     global __DRAW_CROP_HANDLER__
@@ -478,18 +482,19 @@ class PRMAN_OT_Viewport_Cropwindow(bpy.types.Operator):
                 context.window.cursor_modal_set('CROSSHAIR')
 
         if event.type == 'MOUSEMOVE':  
+            if outside_region:
+                return {'RUNNING_MODAL'}
             if event.value == 'PRESS':
-                if not crop_handler.is_inside_cropwindow(x, y):
-                    crop_handler.end_pos_x = x
-                    crop_handler.end_pos_y = y
-                else:
-                    diff_x = x - self.mouse_prev_x
-                    diff_y = y - self.mouse_prev_y
-
+                diff_x = x - self.mouse_prev_x
+                diff_y = y - self.mouse_prev_y                
+                if crop_handler.is_inside_cropwindow(x, y):
                     crop_handler.start_pos_x += diff_x
                     crop_handler.start_pos_y += diff_y
                     crop_handler.end_pos_x += diff_x
-                    crop_handler.end_pos_y += diff_y                    
+                    crop_handler.end_pos_y += diff_y    
+                else:
+                    crop_handler.end_pos_x = x
+                    crop_handler.end_pos_y = y
 
         elif event.type == 'LEFTMOUSE':  
             if event.value == 'PRESS':
