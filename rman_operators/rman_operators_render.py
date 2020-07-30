@@ -4,6 +4,18 @@ import bpy
 import os
 import time
 
+class PRMAN_OT_Renderman_Use_Renderman(bpy.types.Operator):
+    bl_idname = "renderman.use_renderman"
+    bl_label = "Use RenderMan"
+    bl_description = "Switch render engine to RenderMan"
+            
+    def execute(self, context):
+        rd = context.scene.render
+        if rd.engine != 'PRMAN_RENDER':
+            rd.engine = 'PRMAN_RENDER'
+
+        return {'FINISHED'}
+
 class PRMAN_OT_RendermanBake(bpy.types.Operator):
     bl_idname = "renderman.bake"
     bl_label = "Baking"
@@ -176,6 +188,7 @@ class PRMAN_OT_StoptInteractive(bpy.types.Operator):
         return {'FINISHED'}
 
 classes = [
+    PRMAN_OT_Renderman_Use_Renderman,
     PRMAN_OT_RendermanBake,
     PRMAN_OT_RendermanBakeSelectedBrickmap,
     PRMAN_OT_ExternalRendermanBake,
