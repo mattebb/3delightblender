@@ -240,7 +240,7 @@ class RmanSceneSync(object):
             if not ob.hide_get():
                 rman_sg_node.sg_node.SetHidden(ob.renderman.mute)
             else:
-                rman_sg_node.sg_node.SetHidden(1)    
+                rman_sg_node.sg_node.SetHidden(1)   
 
     def update_scene(self, context, depsgraph):
         new_objs = []
@@ -312,11 +312,12 @@ class RmanSceneSync(object):
                         # and re-add. This is the same workaround we do when we convert
                         # a regular geometry into a mesh light. Once there's a fix in the 
                         # renderer, we can remove this if block.
+                        rfb_log().debug("Mesh light updated: %s" % obj.id.name)
                         self._mesh_light_geo_update(obj.id)
-                        continue
-                    rfb_log().debug("Object updated: %s" % obj.id.name)
-                    self._obj_geometry_updated(obj)                    
-                    updated_geo.append(obj.id.original)
+                    else:
+                        rfb_log().debug("Object updated: %s" % obj.id.name)
+                        self._obj_geometry_updated(obj)                    
+                        updated_geo.append(obj.id.original)
                                           
                 if obj.is_updated_transform:
                     if ob.type in ['CAMERA']:
