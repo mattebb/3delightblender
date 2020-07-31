@@ -8,6 +8,7 @@ from ..rman_constants import NODE_LAYOUT_SPLIT
 from ..rman_render import RmanRender
 from .. import rfb_icons
 from ..rman_utils import object_utils
+from ..rman_utils.prefs_utils import get_pref
 from ..rman_utils.shadergraph_utils import is_renderman_nodetree
 from bpy.types import Panel
 import bpy

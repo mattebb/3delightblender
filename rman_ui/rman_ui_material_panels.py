@@ -7,7 +7,7 @@ from ..rman_render import RmanRender
 import bpy
 from bpy.types import Panel
 
-class MATERIAL_PT_renderman_preview(Panel, ShaderPanel):
+class MATERIAL_PT_renderman_preview(ShaderPanel, Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_options = {'DEFAULT_CLOSED'}
@@ -16,6 +16,8 @@ class MATERIAL_PT_renderman_preview(Panel, ShaderPanel):
 
     @classmethod
     def poll(cls, context):
+        if context.scene.render.engine != "PRMAN_RENDER":
+            return        
         mat = getattr(context, 'material', None)
         if not mat:
             return False        

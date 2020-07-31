@@ -24,6 +24,8 @@ def get_light_items():
     dflt = 'PxrRectLight'
     items.append((dflt, dflt, '', rman_light_icon.icon_id, i))
     for n in rman_bl_nodes.__RMAN_LIGHT_NODES__:
+        if n.name == 'PxrMeshLight':
+            continue
         if n.name != dflt:
             i += 1
             light_icon = get_light_icon(n.name)

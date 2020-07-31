@@ -228,6 +228,7 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
         default.location = output.location
         default.location[0] -= 300
         nt.links.new(default.outputs[0], output.inputs[0])
+        output.inputs[1].hide = True
         output.inputs[3].hide = True  
 
         if bxdf_name == 'PxrLayerSurface':
@@ -236,9 +237,8 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
                 bpy.ops.object.material_slot_add()
-
                 obj.material_slots[-1].material = mat
-
+                obj.active_material = mat
         return {"FINISHED"}  
 
 class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
@@ -249,6 +249,9 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
 
     def execute(self, context):
         selection = bpy.context.selected_objects
+        if shadergraph_utils.is_mesh_light(selection):
+            return {"FINISHED"}          
+
         mat = bpy.data.materials.new("PxrMeshLight")
 
         mat.use_nodes = True
