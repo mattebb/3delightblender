@@ -268,6 +268,8 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
         if (default is not None):
             nt.links.new(default.outputs[0], output.inputs[0])
 
+        output.inputs[3].hide = True            
+
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
                 bpy.ops.object.material_slot_add()

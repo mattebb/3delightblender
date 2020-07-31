@@ -545,7 +545,7 @@ class RmanSceneSync(object):
         if has_meshlight != rman_sg_material.has_meshlight:
             # we're dealing with a mesh light
             self.rman_scene.depsgraph = bpy.context.evaluated_depsgraph_get()
-            self.rman_scene._mesh_light_update(mat)    
+            self._mesh_light_update(mat)    
 
     def update_light(self, ob):
         rman_sg_light = self.rman_scene.rman_objects.get(ob.original, None)

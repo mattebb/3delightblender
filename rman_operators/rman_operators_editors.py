@@ -49,16 +49,16 @@ class RENDERMAN_UL_LightMixer_Group_Members_List(bpy.types.UIList):
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
         rm = context.scene.renderman
         light = item.light_ob
+        layout.context_pointer_set("selected_light", light)        
         op = layout.operator('renderman.remove_light_from_light_mixer_group', text='', icon='REMOVE')
    
         light_shader = shadergraph_utils.get_light_node(light)
         if not light_shader:
             layout.label(text=light.name)
-            layout.prop('NO LIGHT SHADER')
+            layout.label(text='NO LIGHT SHADER')
             return 
 
         icon = rfb_icons.get_light_icon(light_shader.bl_label)
-        layout.context_pointer_set("selected_light", item.light_ob)
         op.group_index = rm.light_mixer_groups_index
         layout.label(text=light.name, icon_value=icon.icon_id)
 
