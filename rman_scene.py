@@ -903,7 +903,10 @@ class RmanScene(object):
                 rm = light_ob.renderman            
                 if not rm:
                     continue
-                rman_sg_node.sg_node.SetHidden(light_ob.hide_get())                   
+                if not light_ob.hide_get():
+                    rman_sg_node.sg_node.SetHidden(rm.mute)
+                else:
+                    rman_sg_node.sg_node.SetHidden(1)                                   
 
     def export_searchpaths(self):
         # TODO 
