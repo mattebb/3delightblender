@@ -239,7 +239,7 @@ class NODE_MT_renderman_connection_menu(Menu):
         socket = context.socket
         if context.socket.is_linked:
             input_node = context.socket.links[0].from_node
-            rman_icon = rfb_icons.get_icon(input_node.bl_label)
+            rman_icon = rfb_icons.get_icon('out_%s' % input_node.bl_label)
             layout.label(text=input_node.name, icon_value=rman_icon.icon_id)
             layout.separator()
             layout.context_pointer_set("node", node)
