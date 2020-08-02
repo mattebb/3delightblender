@@ -30,7 +30,7 @@ from .rman_utils import string_utils
 from .rman_utils import texture_utils
 from .rman_utils import filepath_utils
 from .rman_utils import scene_utils
-from .rman_utils import prefs_utils
+from .rman_utils.prefs_utils import get_pref
 from .rman_utils import shadergraph_utils
 
 # config
@@ -424,21 +424,17 @@ class RmanScene(object):
     def export_swatch_render_scene(self):
         self.reset()
 
-        group_db_name = '__RMAN_ROOT_SG_NODE'
-        self.rman_root_sg_node = self.rman_translators['GROUP'].export(None, group_db_name)
-        self.sg_scene.Root().AddChild(self.rman_root_sg_node.sg_node) 
-
         # options
         options = self.sg_scene.GetOptions()
-        options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, 0)
-        options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, 4)
+        options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, get_pref('rman_preview_renders_minSamples', default=0))
+        options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, get_pref('rman_preview_renders_minSamples', default=1))
         options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, 1)
         options.SetString("adaptivemetric", "variance")
         scale = 100.0 / self.bl_scene.render.resolution_percentage
         w = int(self.bl_scene.render.resolution_x * scale)
         h = int(self.bl_scene.render.resolution_y * scale)
         options.SetIntegerArray(self.rman.Tokens.Rix.k_Ri_FormatResolution, (w, h), 2)
-        options.SetFloat(self.rman.Tokens.Rix.k_Ri_PixelVariance, 0.015)
+        options.SetFloat(self.rman.Tokens.Rix.k_Ri_PixelVariance, get_pref('rman_preview_renders_pixelVariance', default=0.15))
         options.SetInteger(self.rman.Tokens.Rix.k_threads, -2)
         options.SetString(self.rman.Tokens.Rix.k_bucket_order, 'horizontal')
         self.sg_scene.SetOptions(options)
@@ -472,11 +468,10 @@ class RmanScene(object):
 
     def export_root_sg_node(self):
         
-        group_db_name = '__RMAN_ROOT_SG_NODE'
-        self.rman_root_sg_node = self.rman_translators['GROUP'].export(None, group_db_name)
         rm = self.bl_scene.renderman
+        root_sg = self.get_root_sg_node()
+        attrs = root_sg.GetAttributes()
 
-        attrs = self.rman_root_sg_node.sg_node.GetAttributes()
         # set any properties marked riattr in the config file
         for prop_name, meta in rm.prop_meta.items():
             if 'riattr' not in meta:
@@ -491,12 +486,11 @@ class RmanScene(object):
                 array_len = meta['arraySize']
             param_type = meta['renderman_type']         
             property_utils.set_rix_param(attrs, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len, node=rm)
-
-        self.rman_root_sg_node.sg_node.SetAttributes(attrs)
-        self.sg_scene.Root().AddChild(self.rman_root_sg_node.sg_node)                                
+                           
+        root_sg.SetAttributes(attrs)
         
     def get_root_sg_node(self):
-        return self.rman_root_sg_node.sg_node
+        return self.sg_scene.Root()
 
     def export_materials(self, materials):
         for mat in materials:   

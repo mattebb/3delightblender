@@ -638,8 +638,13 @@ class RmanRender(object):
                 if buffer:
                     layer.rect = buffer
                     self.bl_engine.update_result(result)
-
-        self.stop_render()  
+        # try to get the buffer one last time before exiting
+        if layer:
+            buffer = self._get_buffer(width, height, image_num=0, as_flat=False)
+            if buffer:
+                layer.rect = buffer
+                self.bl_engine.update_result(result)        
+        self.stop_render()              
         self.bl_engine.end_result(result)           
        
         return True  

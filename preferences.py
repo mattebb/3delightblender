@@ -185,6 +185,25 @@ class RendermanPreferences(AddonPreferences):
         description="Enable rendering of material previews. This is considered a WIP.",
         default=False)
 
+    rman_preview_renders_minSamples: IntProperty(
+        name="Preview Min Samples",
+        description="Minimum samples for preview renders",
+        default=0,
+        min=0, soft_max=4,
+    )
+    rman_preview_renders_maxSamples: IntProperty(
+        name="Preview Max Samples",
+        description="Maximum samples for preview renders",
+        default=1,
+        min=1, soft_max=4,
+    )  
+    rman_preview_renders_pixelVariance: FloatProperty(
+        name="Pixel Variance",
+        description="Maximum samples for preview renders",
+        default=0.15,
+        min=0.001, soft_max=0.5,
+    )          
+
     rman_viewport_crop_color: FloatVectorProperty(
         name="CropWindow Color",
         description="Color of the cropwindow border in the viewport when in IPR.",
@@ -357,7 +376,11 @@ class RendermanPreferences(AddonPreferences):
 
         if ui_open:
             col.prop(self, 'rman_viewport_refresh_rate')  
-            col.prop(self, 'rman_config_dir')    
+            col.prop(self, 'rman_config_dir')   
+            if self.rman_do_preview_renders:
+                col.prop(self, 'rman_preview_renders_minSamples')
+                col.prop(self, 'rman_preview_renders_maxSamples')
+                col.prop(self, 'rman_preview_renders_pixelVariance') 
 
 def register():
     bpy.utils.register_class(RendermanPreferencePath)
