@@ -37,7 +37,7 @@ class RmanHairTranslator(RmanTranslator):
             return
         i = 0
         for vertsArray, points, widths, scalpS, scalpT in curves:
-            curves_sg = self.rman_scene.sg_scene.CreateCurves("%s-%d" % (psys.name, i))
+            curves_sg = self.rman_scene.sg_scene.CreateCurves("%s-%d" % (rman_sg_hair.db_name, i))
             i += 1                
             curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", len(vertsArray), len(points))
             primvar = curves_sg.GetPrimVars()

@@ -20,6 +20,7 @@ from .rman_translators.rman_curve_translator import RmanCurveTranslator
 from .rman_translators.rman_nurbs_translator import RmanNurbsTranslator
 from .rman_translators.rman_volume_translator import RmanVolumeTranslator
 from .rman_translators.rman_brickmap_translator import RmanBrickmapTranslator
+from .rman_translators.rman_emitter_translator import RmanEmitterTranslator
 
 # utils
 from .rman_utils import object_utils
@@ -129,7 +130,8 @@ class RmanScene(object):
         self.rman_translators['GROUP'] = RmanGroupTranslator(rman_scene=self)
         self.rman_translators['POINTS'] = RmanPointsTranslator(rman_scene=self)
         self.rman_translators['META'] = RmanBlobbyTranslator(rman_scene=self)
-        self.rman_translators['EMITTER'] = RmanParticlesTranslator(rman_scene=self)
+        self.rman_translators['PARTICLES'] = RmanParticlesTranslator(rman_scene=self)
+        self.rman_translators['EMITTER'] = RmanEmitterTranslator(rman_scene=self)
         self.rman_translators['DYNAMIC_LOAD_DSO'] = RmanProceduralTranslator(rman_scene=self)
         self.rman_translators['DELAYED_LOAD_ARCHIVE'] = RmanDraTranslator(rman_scene=self)
         self.rman_translators['PROCEDURAL_RUN_PROGRAM'] = RmanRunProgramTranslator(rman_scene=self)
@@ -567,37 +569,24 @@ class RmanScene(object):
                     self.motion_steps.update(subframes)
 
                 if len(ob.particle_systems) > 0:
-                    particles_group_db = '%s_particles_group' % db_name
+                    particles_group_db = ''
                     rman_sg_node.rman_sg_particle_group_node = self.rman_translators['GROUP'].export(None, particles_group_db) 
                     rman_sg_node.sg_node.AddChild(rman_sg_node.rman_sg_particle_group_node.sg_node)                   
 
-                for psys in ob.particle_systems:
-                    psys_translator = self.rman_translators[psys.settings.type]
-                    if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
-                        hair_db_name = object_utils.get_db_name(ob, psys=psys)
-                        rman_sg_hair_node = psys_translator.export(ob, psys, hair_db_name)
-                        rman_sg_hair_node.motion_steps = subframes
-                        psys_translator.update(ob, psys, rman_sg_hair_node)
-                        if rman_sg_hair_node.sg_node:
-                            rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_hair_node.sg_node)
-                        ob_psys = self.rman_particles.get(ob.original, dict())
-                        ob_psys[psys.settings.original] = rman_sg_hair_node
-                        self.rman_particles[ob.original] = ob_psys
-                    elif psys.settings.type == 'EMITTER':
-                        psys_db_name = object_utils.get_db_name(ob, psys=psys)
-                        rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)                        
-                        if psys.settings.render_type != 'OBJECT':
-                            rman_sg_particles_node.motion_steps = subframes
-                            psys_translator.update(ob, psys, rman_sg_particles_node)
-                            if rman_sg_particles_node.sg_node:
-                                rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
-                        else:
-                            rman_sg_particles_node.is_deforming = False
-                            rman_sg_particles_node.is_transforming = False
-                            self.sg_scene.Root().AddChild(rman_sg_particles_node.sg_node)                                  
-                        ob_psys = self.rman_particles.get(ob.original, dict())
-                        ob_psys[psys.settings.original] = rman_sg_particles_node
-                        self.rman_particles[ob.original] = ob_psys                                             
+                psys_translator = self.rman_translators['PARTICLES']
+                for psys in ob.particle_systems:           
+                    psys_db_name = '%s' % psys.name
+                    rman_sg_particles = psys_translator.export(ob, psys, psys_db_name)    
+                    if not rman_sg_particles:
+                        continue  
+                
+                    psys_translator.set_motion_steps(rman_sg_particles, subframes)
+                    psys_translator.update(ob, psys, rman_sg_particles)      
+
+                    ob_psys = self.rman_particles.get(ob.original, dict())
+                    ob_psys[psys.settings.original] = rman_sg_particles
+                    self.rman_particles[ob.original] = ob_psys                       
+                    rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles.sg_node)
 
             # motion blur
             if rman_sg_node.is_transforming or rman_sg_node.is_deforming:
@@ -883,20 +872,14 @@ class RmanScene(object):
 
             for ob_original,rman_sg_node in self.rman_objects.items():
                 ob = ob_original.evaluated_get(self.depsgraph)
+                psys_translator = self.rman_translators['PARTICLES']
                 for psys in ob.particle_systems:
-                    psys_translator = self.rman_translators[psys.settings.type]
-                    psys_db_name = object_utils.get_db_name(ob, psys=psys)
-                    ob_sys = self.rman_particles.get(ob.original, dict())
-                    rman_psys_node = ob_sys.get(psys.settings.original, None)
-                    if not rman_psys_node:
-                        continue
-                    if not seg in rman_psys_node.motion_steps:
-                        continue
-                    if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
-                        # for now, we won't deal with deforming hair
-                        continue
-                    elif psys.settings.type == 'EMITTER' and psys.settings.render_type != 'OBJECT':
-                        psys_translator.export_deform_sample(rman_psys_node, ob, psys, samp) 
+                    ob_psys = self.rman_particles.get(ob.original, dict())
+                    rman_sg_particles = ob_psys.get(psys.settings.original, None)
+                    if rman_sg_particles:
+                        if not seg in rman_sg_particles.motion_steps:
+                            continue
+                        psys_translator.export_deform_sample(rman_sg_particles, ob, psys, samp)                                    
 
                 if rman_sg_node.is_deforming:
                     rman_type = rman_sg_node.rman_type

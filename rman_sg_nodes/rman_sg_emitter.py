@@ -1,16 +1,13 @@
 from .rman_sg_node import RmanSgNode
 
-class RmanSgParticles(RmanSgNode):
+class RmanSgEmitter(RmanSgNode):
 
     def __init__(self, rman_scene, sg_node, db_name):
         super().__init__(rman_scene, sg_node, db_name)
         self.matrix_world = None
         self.npoints = -1
         self.render_type = ''
-        
-        #self.sg_particles_node = None
-        self.rman_sg_emitter = None
-        self.rman_sg_hair = None
+        self.sg_particles_node = None
 
     @property
     def matrix_world(self):
