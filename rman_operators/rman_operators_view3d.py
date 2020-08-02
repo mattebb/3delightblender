@@ -237,8 +237,15 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
                 bpy.ops.object.material_slot_add()
-                obj.material_slots[-1].material = mat
-                obj.active_material = mat
+                material_slots = getattr(obj, 'material_slots', None)
+                if material_slots:
+                    if len(material_slots) > 0:
+                        material_slots[-1].material = mat
+                        obj.active_material = mat
+                    else:
+                        obj.renderman.rman_material_override = mat    
+                else:
+                    obj.renderman.rman_material_override = mat
         return {"FINISHED"}  
 
 class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
@@ -248,10 +255,7 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        selection = bpy.context.selected_objects
-        if shadergraph_utils.is_mesh_light(selection):
-            return {"FINISHED"}          
-
+        selection = bpy.context.selected_objects 
         mat = bpy.data.materials.new("PxrMeshLight")
 
         mat.use_nodes = True
@@ -275,9 +279,15 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
 
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
+                if shadergraph_utils.is_mesh_light(obj):
+                    continue
                 bpy.ops.object.material_slot_add()
-                obj.material_slots[-1].material = mat
-                obj.active_material = mat
+                material_slots = getattr(obj, 'material_slots', None)
+                if material_slots:
+                    if len(material_slots) > 0:
+                        material_slots[-1].material = mat
+                        obj.active_material = mat
+
         return {"FINISHED"}
 
 class PRMAN_OT_Renderman_start_it(bpy.types.Operator):

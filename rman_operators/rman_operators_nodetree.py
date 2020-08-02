@@ -114,14 +114,19 @@ class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
             context_data = {'material': context.material,
                             'light': context.light, 'world': context.scene.world}
             idblock = context_data[idtype]
+            if not idblock:
+                # try getting material from context.object
+                ob = context.object
+                rm = ob.renderman
+                idblock = rm.rman_material_override            
 
         idblock.use_nodes = True
         nt = idblock.node_tree
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
-            if context.material.grease_pencil:
-                shadergraph_utils.convert_grease_pencil_mat(context.material, nt, output)
+            if idblock.grease_pencil:
+                shadergraph_utils.convert_grease_pencil_mat(idblock, nt, output)
 
             elif not rman_cycles_convert.convert_cycles_nodetree(idblock, output):
                 default = nt.nodes.new('%sBxdfNode' %
@@ -163,6 +168,11 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             context_data = {'material': context.material,
                             'light': context.light, 'world': context.scene.world}
             idblock = context_data[idtype]
+            if not idblock:
+                # try getting material from context.object
+                ob = context.object
+                rm = ob.renderman
+                idblock = rm.rman_material_override
 
         # nt = bpy.data.node_groups.new(idblock.name,
         #                              type='RendermanPatternGraph')
@@ -172,8 +182,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
         if idtype == 'material':
             output = nt.nodes.new('RendermanOutputNode')
-            if context.material.grease_pencil:
-                shadergraph_utils.convert_grease_pencil_mat(context.material, nt, output)
+            if idblock.grease_pencil:
+                shadergraph_utils.convert_grease_pencil_mat(idblock, nt, output)
 
             else:
                 default = nt.nodes.new('%sBxdfNode' %
@@ -274,12 +284,17 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             context_data = {'material': context.material,
                             'light': context.light, 'world': context.scene.world}
             idblock = context_data[idtype]
+            if not idblock:
+                # try getting material from context.object
+                ob = context.object
+                rm = ob.renderman
+                idblock = rm.rman_material_override            
 
         idblock.use_nodes = True
         nt = idblock.node_tree
 
         if idtype == 'material':      
-            if context.material.grease_pencil:
+            if idblock.grease_pencil:
                 return self.execute(context)  
             wm = context.window_manager
             return wm.invoke_props_dialog(self)  
