@@ -579,8 +579,10 @@ class RmanScene(object):
                         rman_sg_hair_node.motion_steps = subframes
                         psys_translator.update(ob, psys, rman_sg_hair_node)
                         if rman_sg_hair_node.sg_node:
-                            rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_hair_node.sg_node)                               
-                        self.rman_particles[psys.settings.original] = rman_sg_hair_node
+                            rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_hair_node.sg_node)
+                        ob_psys = self.rman_particles.get(ob.original, dict())
+                        ob_psys[psys.settings.original] = rman_sg_hair_node
+                        self.rman_particles[ob.original] = ob_psys
                     elif psys.settings.type == 'EMITTER':
                         psys_db_name = object_utils.get_db_name(ob, psys=psys)
                         rman_sg_particles_node = psys_translator.export(ob, psys, psys_db_name)                        
@@ -592,8 +594,10 @@ class RmanScene(object):
                         else:
                             rman_sg_particles_node.is_deforming = False
                             rman_sg_particles_node.is_transforming = False
-                            self.sg_scene.Root().AddChild(rman_sg_particles_node.sg_node)                                
-                        self.rman_particles[psys.settings.original] = rman_sg_particles_node                         
+                            self.sg_scene.Root().AddChild(rman_sg_particles_node.sg_node)                                  
+                        ob_psys = self.rman_particles.get(ob.original, dict())
+                        ob_psys[psys.settings.original] = rman_sg_particles_node
+                        self.rman_particles[ob.original] = ob_psys                                             
 
             # motion blur
             if rman_sg_node.is_transforming or rman_sg_node.is_deforming:
@@ -641,8 +645,9 @@ class RmanScene(object):
             ob = ob_inst.instance_object
             psys = ob_inst.particle_system
             if psys:
-                particles_db_name = object_utils.get_db_name(parent, psys=psys)
-                rman_sg_particles = self.rman_particles.get(psys.settings.original, None)
+                #particles_db_name = object_utils.get_db_name(parent, psys=psys)
+                #rman_sg_particles = self.rman_particles.get(psys.settings.original, None)
+                pass
             else:                
                 #if parent.type == "EMPTY" and parent.is_instancer:
                 if parent.is_instancer:
@@ -683,28 +688,47 @@ class RmanScene(object):
 
             if group_db_name in rman_sg_node.instances:
                 # we've already added this instance
-                return
+                #return
+                rman_sg_group = rman_sg_node.instances.get(group_db_name)
+                rman_sg_group.sg_node.SetHidden(0)
 
-            translator = self.rman_translators.get(rman_type, None)
-            if translator:
-                if not ob.original in self.processed_obs:
-                    translator.update(ob, rman_sg_node)
-                    translator.export_object_primvars(ob, rman_sg_node)
-                    self.processed_obs.append(ob.original)
+            else:
 
-            rman_sg_group = rman_group_translator.export(ob, group_db_name)
-            if ob.is_instancer and ob.instance_type != 'NONE':
-                rman_sg_group.is_instancer = ob.is_instancer
-            if rman_sg_node.sg_node is None:
-                # add the group to the root anyways
-                db_name = object_utils.get_db_name(ob, rman_type=rman_type)
-                rman_sg_group.db_name = db_name
+                translator = self.rman_translators.get(rman_type, None)
+                if translator:
+                    if not ob.original in self.processed_obs:
+                        translator.update(ob, rman_sg_node)
+                        translator.export_object_primvars(ob, rman_sg_node)
+                        self.processed_obs.append(ob.original)
+
+                rman_sg_group = rman_group_translator.export(ob, group_db_name)
+                if ob.is_instancer and ob.instance_type != 'NONE':
+                    rman_sg_group.is_instancer = ob.is_instancer
+                if rman_sg_node.sg_node is None:
+                    # add the group to the root anyways
+                    db_name = object_utils.get_db_name(ob, rman_type=rman_type)
+                    rman_sg_group.db_name = db_name
+                    self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
+                    self.rman_objects[ob.original] = rman_sg_group
+                    return
+
+                rman_sg_group.sg_node.AddChild(rman_sg_node.sg_node)
+                rman_sg_group.rman_sg_node_instance = rman_sg_node
+
                 self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
-                self.rman_objects[ob.original] = rman_sg_group
-                return
 
-            rman_sg_group.sg_node.AddChild(rman_sg_node.sg_node)
-            rman_sg_group.rman_sg_node_instance = rman_sg_node
+                # object attrs             
+                if translator:
+                    translator.export_object_attributes(ob, rman_sg_group)  
+
+                # attach material
+                if psys:
+                    self.attach_particle_material(psys, ob, rman_sg_group)
+                else:
+                    self.attach_material(ob, rman_sg_group)
+
+                # add this instance to rman_sg_node
+                rman_sg_node.instances[group_db_name] = rman_sg_group                     
             
             if rman_type != "META":
                 # meta/blobbies are already in world space. Their instances don't need to
@@ -715,20 +739,7 @@ class RmanScene(object):
                 else:
                     rman_group_translator.update_transform(ob_inst, rman_sg_group)
 
-            self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
-
-            # object attrs             
-            if translator:
-                translator.export_object_attributes(ob, rman_sg_group)  
-
-            # attach material
-            if psys:
-                self.attach_particle_material(psys, ob, rman_sg_group)
-            else:
-                self.attach_material(ob, rman_sg_group)
-
-            # add this instance to rman_sg_node
-            rman_sg_node.instances[group_db_name] = rman_sg_group         
+                
 
     def export_instances(self, obj_selected=None):
         objFound = False
@@ -875,7 +886,8 @@ class RmanScene(object):
                 for psys in ob.particle_systems:
                     psys_translator = self.rman_translators[psys.settings.type]
                     psys_db_name = object_utils.get_db_name(ob, psys=psys)
-                    rman_psys_node = self.rman_particles.get(psys.settings.original, None)
+                    ob_sys = self.rman_particles.get(ob.original, dict())
+                    rman_psys_node = ob_sys.get(psys.settings.original, None)
                     if not rman_psys_node:
                         continue
                     if not seg in rman_psys_node.motion_steps:

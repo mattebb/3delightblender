@@ -359,14 +359,15 @@ class RmanSceneSync(object):
                 if not new_objs:
                     do_delete = True
                 
-                # mark all objects in a collection that is part of a dupli_group
+                # mark all objects in a collection
                 # as needing their instances updated
                 # the collection could have been updated with new objects
                 # FIXME: like grease pencil above we seem to crash when removing and adding instances 
                 # of curves, we need to figure out what's going on
-                if obj.id.users_dupli_group:
-                    for o in obj.id.all_objects:
-                        update_instances.append(o.original)
+                for o in obj.id.all_objects:
+                    if o.type in ('ARMATURE', 'CURVE', 'CAMERA'):
+                        continue
+                    update_instances.append(o.original)
 
         # call txmake all in case of new textures
         texture_utils.get_txmanager().txmake_all(blocking=False)                      
@@ -398,15 +399,21 @@ class RmanSceneSync(object):
                         psys_translator.update(ob_eval, psys, rman_sg_hair_node)
                         if rman_sg_hair_node.sg_node:
                             rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_hair_node.sg_node) 
-                        self.rman_scene.rman_particles[psys.settings.original] = rman_sg_hair_node
+                        ob_psys = self.rman_scene.rman_particles.get(ob_eval.original, dict())
+                        ob_psys[psys.settings.original] = rman_sg_hair_node
+                        self.rman_scene.rman_particles[ob_eval.original] = ob_psys                        
                     elif psys.settings.type == 'EMITTER':                        
-                        rman_sg_particles_node = self.rman_scene.rman_particles.get(psys.settings.original, None)
+                        ob_psys = self.rman_scene.rman_particles.get(ob_eval.original, dict())
+                        rman_sg_particles_node = ob_psys.get(psys.settings.original, None)
+
                         if psys.settings.render_type != 'OBJECT':
                             psys_db_name = object_utils.get_db_name(ob_eval, psys=psys)
                             rman_sg_particles_node = psys_translator.export(ob_eval, psys, psys_db_name)
                             if rman_sg_particles_node.sg_node:
                                 rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles_node.sg_node)  
-                            self.rman_scene.rman_particles[psys.settings.original] = rman_sg_particles_node 
+                            ob_psys[psys.settings.original] = rman_sg_particles_node
+                            self.rman_scene.rman_particles[ob.original] = ob_psys  
+
                             psys_translator.update(ob_eval, psys, rman_sg_particles_node)
                         elif psys.settings.render_type == 'OBJECT':
                             if rman_sg_particles_node:
@@ -414,7 +421,6 @@ class RmanSceneSync(object):
                             inst_ob = psys.settings.instance_object 
                             if inst_ob:
                                 update_instances.append(inst_ob.original)
-
         # add new objs:
         if new_objs:
             with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene): 
@@ -423,7 +429,41 @@ class RmanSceneSync(object):
 
                 self.rman_scene.scene_any_lights = self.rman_scene._scene_has_lights()
                 if self.rman_scene.scene_any_lights:
-                    self.rman_scene.default_light.SetHidden(1)        
+                    self.rman_scene.default_light.SetHidden(1)    
+
+        # update instances
+        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+            # delete all instances for each object in the
+            # update_instances list
+            # even if it's a simple a transform, we still have to delete all
+            # the instances as this could be coming from a particle system where
+            # some instances aren't there any more
+            #
+            # For now, rather than delete the instance from the scene graph, we hide it
+            # Deleting from the scene graph is an expensive operation. The theory being
+            # that in most cases the instance will come back, eventually, so we choose
+            # hiding/unhiding and take the memory hit.
+            for ob in update_instances:
+                rfb_log().debug("Deleting instances of: %s" % ob.name)
+                rman_sg_node = self.rman_scene.rman_objects.get(ob, None) 
+                if rman_sg_node:
+                    for k,rman_sg_group in rman_sg_node.instances.items():
+                        #self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
+                        rman_sg_group.sg_node.SetHidden(1)
+                    #rman_sg_node.instances.clear()         
+            parent = None
+            for ob_inst in self.rman_scene.depsgraph.object_instances: 
+                if ob_inst.is_instance:
+                    ob = ob_inst.instance_object
+                    parent = ob_inst.parent
+                else:
+                    ob = ob_inst.object
+
+                if ob.original not in update_instances:
+                    continue
+
+                rfb_log().debug("Re-emit instance: %s" % ob.name)
+                self.rman_scene._export_instance(ob_inst)                              
 
         # delete any objects, if necessary    
         if do_delete:
@@ -435,7 +475,7 @@ class RmanSceneSync(object):
                         ob = self.rman_scene.bl_scene.objects.get(obj.name_full, None)
                         if ob:
                             continue
-                    except:
+                    except Exception as e:
                         pass
      
                     rman_sg_node = self.rman_scene.rman_objects.get(obj, None)
@@ -449,7 +489,7 @@ class RmanSceneSync(object):
                         # there may be a collection instance still referencing the geo
 
                         # self.rman_scene.sg_scene.DeleteDagNode(rman_sg_node.sg_node)                     
-                        # del self.rman_scene.rman_objects[obj]
+                        del self.rman_scene.rman_objects[obj]
 
                         # We just deleted a light filter. We need to tell all lights
                         # associated with this light filter to update
@@ -468,35 +508,7 @@ class RmanSceneSync(object):
                     if self.rman_scene.render_default_light:
                         self.rman_scene.scene_any_lights = self.rman_scene._scene_has_lights()     
                         if not self.rman_scene.scene_any_lights:
-                            self.rman_scene.default_light.SetHidden(0)
-
-        # update instances
-        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
-            # delete all instances for each object in the
-            # update_instances list
-            # even if it's a simple a transform, we still have to delete all
-            # the instances as this could be coming from a particle system where
-            # some instances aren't there any more
-            for ob in update_instances:
-                rfb_log().debug("Deleting instances of: %s" % ob.name)
-                rman_sg_node = self.rman_scene.rman_objects.get(ob, None) 
-                if rman_sg_node:
-                    for k,rman_sg_group in rman_sg_node.instances.items():
-                        self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
-                    rman_sg_node.instances.clear()         
-            parent = None
-            for ob_inst in self.rman_scene.depsgraph.object_instances: 
-                if ob_inst.is_instance:
-                    ob = ob_inst.instance_object
-                    parent = ob_inst.parent
-                else:
-                    ob = ob_inst.object
-
-                if ob.original not in update_instances:
-                    continue
-
-                rfb_log().debug("Re-emit instance: %s" % ob.name)
-                self.rman_scene._export_instance(ob_inst)                            
+                            self.rman_scene.default_light.SetHidden(0)                      
 
     def update_cropwindow(self, cropwindow=None):
         if cropwindow:
