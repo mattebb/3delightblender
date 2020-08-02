@@ -158,6 +158,25 @@ def _detect_primitive_(ob):
     else:
         return rm_primitive    
 
+def get_active_material(ob):
+    mat = None
+    if ob.renderman.rman_material_override:
+        mat = ob.renderman.rman_material_override
+        
+    if mat:
+        return mat
+
+    material_slots = getattr(ob, 'material_slots', None)
+    if not material_slots:
+        return None
+
+    if len(material_slots) > 0:
+        for mat_slot in material_slots:
+            mat = mat_slot.material
+            if mat:
+                break
+    return mat
+
 def _get_used_materials_(ob):
     if ob.type == 'MESH' and len(ob.data.materials) > 0:
         if len(ob.data.materials) == 1:

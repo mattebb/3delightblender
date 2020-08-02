@@ -24,10 +24,9 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel, _RManPanelHead
             if psys.settings.render_type != 'OBJECT':
                 col.row().prop(rm, "constant_width", text="Override Width")
                 col.row().prop(rm, "width")
+                
         if psys.settings.render_type == 'OBJECT':
-            col.prop(rm, 'use_object_material')
-            if not rm.use_object_material:
-                col.prop(psys.settings, "material_slot")
+            pass
         else:
             col.prop(psys.settings, "material_slot")            
 

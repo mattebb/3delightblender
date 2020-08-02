@@ -515,6 +515,18 @@ class RmanScene(object):
             self._update_progress(i/total)
 
     def export_data_block(self, db_ob):
+
+        # FIXME? 
+        # We currently export a unique geometry/mesh per Object
+        # This means we're not actually sharing datablocks per Object, even if they are shared
+        # in Blender. We do this for a couple of reasons:
+        # 
+        # 1. Each object can have different modifiers applied. This includes applying a subdiv and/or bevel modifiers.
+        # 2. Each object may want a different number of deformation motion samples
+        #
+        # This is incredibly wasteful when these don't apply. We could try and detect this case and
+        # create a shareable geometry.
+
         obj = bpy.data.objects.get(db_ob.name, None)
         if not obj and self.is_swatch_render:
             obj = db_ob
@@ -544,8 +556,6 @@ class RmanScene(object):
                 return
 
             rman_sg_node = None
-            #if db_name in self.rman_objects:
-            #    return
             if ob.original in self.rman_objects:
                 return
 
@@ -719,9 +729,9 @@ class RmanScene(object):
 
             # attach material
             if psys:
-                self.attach_particle_material(psys, ob, rman_sg_group.sg_node)
+                self.attach_particle_material(psys, ob, rman_sg_group)
             else:
-                self.attach_material(ob, rman_sg_group.sg_node)
+                self.attach_material(ob, rman_sg_group)
 
             # add this instance to rman_sg_node
             rman_sg_node.instances[group_db_name] = rman_sg_group         
@@ -750,32 +760,41 @@ class RmanScene(object):
             self._update_progress(i/total)
             rfb_log().debug("   Exported %d/%d instances..." % (i, total))
 
-    def attach_material(self, ob, group):
-        if ob.renderman.rman_material_override:
-            mat = ob.renderman.rman_material_override
+    def attach_material(self, ob, rman_sg_node):
+        mat = object_utils.get_active_material(ob)
+        if mat:
             rman_sg_material = self.rman_materials.get(mat.original, None)
             if rman_sg_material and rman_sg_material.sg_node:
-                group.SetMaterial(rman_sg_material.sg_node) 
-                group.is_meshlight = rman_sg_material.has_meshlight     
-            return
-                        
+                rman_sg_node.sg_node.SetMaterial(rman_sg_material.sg_node) 
+                rman_sg_node.is_meshlight = rman_sg_material.has_meshlight 
+
+        '''
         for mat in object_utils._get_used_materials_(ob): 
             if not mat:
                 continue
             mat_db_name = object_utils.get_db_name(mat)
             rman_sg_material = self.rman_materials.get(mat.original, None)
             if rman_sg_material and rman_sg_material.sg_node:
-                group.SetMaterial(rman_sg_material.sg_node) 
-                group.is_meshlight = rman_sg_material.has_meshlight       
+                rman_sg_node.sg_node.SetMaterial(rman_sg_material.sg_node) 
+                rman_sg_node.sg_node.is_meshlight = rman_sg_material.has_meshlight       
+        '''
 
     def attach_particle_material(self, psys, ob, group):
+        if ob.renderman.rman_material_override:
+            mat = ob.renderman.rman_material_override
+            rman_sg_material = self.rman_materials.get(mat.original, None)
+            if rman_sg_material and rman_sg_material.sg_node:
+                group.sg_node.SetMaterial(rman_sg_material.sg_node) 
+                group.is_meshlight = rman_sg_material.has_meshlight     
+            return
+
         mat_idx = psys.settings.material - 1
         if mat_idx < len(ob.material_slots):
             mat = ob.material_slots[mat_idx].material
             mat_db_name = object_utils.get_db_name(mat)
             rman_sg_material = self.rman_materials.get(mat.original, None)
             if rman_sg_material:
-                group.SetMaterial(rman_sg_material.sg_node)                    
+                group.sg_node.SetMaterial(rman_sg_material.sg_node)                    
 
     def export_instances_motion(self, obj_selected=None):
         actual_subframes = []

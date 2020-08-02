@@ -156,6 +156,7 @@ class RmanSceneSync(object):
                                     else:
                                         rman_sg_group.sg_node.SetMaterial(rman_sg_material.sg_node)  
                 '''
+                
             else:
                 rfb_log().debug("Material, call update")
                 translator.update(mat, rman_sg_material)   
@@ -234,6 +235,10 @@ class RmanSceneSync(object):
                 if not translator:
                     return
                 translator.update(ob, rman_sg_node)
+                # material slots could have changed, so we need to double
+                # check that too
+                for k,v in rman_sg_node.instances.items():
+                    self.rman_scene.attach_material(ob, v)
 
     def _update_light_visibility(self, rman_sg_node, ob):
         if not self.rman_scene.scene_solo_light:
@@ -303,7 +308,7 @@ class RmanSceneSync(object):
                         else:
                             new_objs.append(obj.id.original)
                             update_instances.append(obj.id.original)
-                    continue
+                    continue              
 
                 if obj.is_updated_geometry:
                     if shadergraph_utils.is_mesh_light(obj.id):
@@ -317,7 +322,7 @@ class RmanSceneSync(object):
                     else:
                         rfb_log().debug("Object updated: %s" % obj.id.name)
                         self._obj_geometry_updated(obj)                    
-                        updated_geo.append(obj.id.original)
+                        updated_geo.append(obj.id.original)    
                                           
                 if obj.is_updated_transform:
                     if ob.type in ['CAMERA']:
@@ -351,7 +356,8 @@ class RmanSceneSync(object):
 
             elif isinstance(obj.id, bpy.types.Collection):
                 rfb_log().debug("Collection updated")
-                do_delete = True
+                if not new_objs:
+                    do_delete = True
                 
                 # mark all objects in a collection that is part of a dupli_group
                 # as needing their instances updated
@@ -419,6 +425,51 @@ class RmanSceneSync(object):
                 if self.rman_scene.scene_any_lights:
                     self.rman_scene.default_light.SetHidden(1)        
 
+        # delete any objects, if necessary    
+        if do_delete:
+            rfb_log().debug("Deleting objects")
+            with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+                keys = [k for k in self.rman_scene.rman_objects.keys()]
+                for obj in keys:
+                    try:
+                        ob = self.rman_scene.bl_scene.objects.get(obj.name_full, None)
+                        if ob:
+                            continue
+                    except:
+                        pass
+     
+                    rman_sg_node = self.rman_scene.rman_objects.get(obj, None)
+                    if rman_sg_node:                        
+                        for k,v in rman_sg_node.instances.items():
+                            if v.sg_node:
+                                self.rman_scene.sg_scene.DeleteDagNode(v.sg_node)    
+                        rman_sg_node.instances.clear()             
+
+                        # For now, don't delete the geometry itself
+                        # there may be a collection instance still referencing the geo
+
+                        # self.rman_scene.sg_scene.DeleteDagNode(rman_sg_node.sg_node)                     
+                        # del self.rman_scene.rman_objects[obj]
+
+                        # We just deleted a light filter. We need to tell all lights
+                        # associated with this light filter to update
+                        if isinstance(rman_sg_node, RmanSgLightFilter):
+                            for light_ob in rman_sg_node.lights_list:
+                                light_key = object_utils.get_db_name(light_ob, rman_type='LIGHT')
+                                rman_sg_light = self.rman_scene.rman_objects.get(light_ob.original, None)
+                                if rman_sg_light:
+                                    self.rman_scene.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)                                
+                        try:
+                            self.rman_scene.processed_obs.remove(obj)
+                        except ValueError:
+                            rfb_log().debug("Obj not in self.rman_scene.processed_obs")
+                            pass
+
+                    if self.rman_scene.render_default_light:
+                        self.rman_scene.scene_any_lights = self.rman_scene._scene_has_lights()     
+                        if not self.rman_scene.scene_any_lights:
+                            self.rman_scene.default_light.SetHidden(0)
+
         # update instances
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
             # delete all instances for each object in the
@@ -445,53 +496,7 @@ class RmanSceneSync(object):
                     continue
 
                 rfb_log().debug("Re-emit instance: %s" % ob.name)
-                self.rman_scene._export_instance(ob_inst)
-
-        # delete any objects, if necessary    
-        if do_delete:
-            rfb_log().debug("Deleting objects")
-            with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
-                keys = [k for k in self.rman_scene.rman_objects.keys()]
-                for obj in keys:
-                    try:
-                        ob = self.rman_scene.bl_scene.objects.get(obj.name_full, None)
-                        #ob = bpy.data.lights.get(obj.name_full, ob)
-                        if ob:
-                            continue
-                    except:
-                        pass
-     
-                    rman_sg_node = self.rman_scene.rman_objects.get(obj, None)
-                    if rman_sg_node:                        
-                        for k,v in rman_sg_node.instances.items():
-                            if v.sg_node:
-                                self.rman_scene.sg_scene.DeleteDagNode(v.sg_node)    
-                        rman_sg_node.instances.clear()             
-
-                        # For now, don't delete the geometry itself
-                        # there may be a collection instance still referencing the geo
-
-                        # self.rman_scene.sg_scene.DeleteDagNode(rman_sg_node.sg_node)                     
-                        del self.rman_scene.rman_objects[obj]
-
-                        # We just deleted a light filter. We need to tell all lights
-                        # associated with this light filter to update
-                        if isinstance(rman_sg_node, RmanSgLightFilter):
-                            for light_ob in rman_sg_node.lights_list:
-                                light_key = object_utils.get_db_name(light_ob, rman_type='LIGHT')
-                                rman_sg_light = self.rman_scene.rman_objects.get(light_ob.original, None)
-                                if rman_sg_light:
-                                    self.rman_scene.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)                                
-                        try:
-                            self.rman_scene.processed_obs.remove(obj)
-                        except ValueError:
-                            rfb_log().debug("Obj not in self.rman_scene.processed_obs")
-                            pass
-
-                    if self.rman_scene.render_default_light:
-                        self.rman_scene.scene_any_lights = self.rman_scene._scene_has_lights()     
-                        if not self.rman_scene.scene_any_lights:
-                            self.rman_scene.default_light.SetHidden(0)
+                self.rman_scene._export_instance(ob_inst)                            
 
     def update_cropwindow(self, cropwindow=None):
         if cropwindow:

@@ -1,6 +1,7 @@
 from . import color_utils
 from . import filepath_utils
 from . import string_utils
+from . import object_utils
 import math
 
 def is_renderman_nodetree(material):
@@ -16,7 +17,8 @@ def is_mesh_light(ob):
     (bpy.types.Node) - the PxrMeshLight node if this is a mesh light. Else, returns None.
     '''
         
-    mat = getattr(ob, 'active_material', None)
+    #mat = getattr(ob, 'active_material', None)
+    mat = object_utils.get_active_material(ob)
     if not mat:
         return None
     output = is_renderman_nodetree(mat)
@@ -57,7 +59,8 @@ def get_rman_light_properties_group(ob):
     if ob.type == 'LIGHT':
         return ob.data.renderman
     else:
-        mat = ob.active_material
+        #mat = ob.active_material
+        mat = object_utils.get_active_material(ob)
         if mat:
             return mat.renderman_light
 

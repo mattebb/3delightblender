@@ -146,7 +146,10 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        if context.object.type != 'EMPTY':
+        ob = context.object
+        if ob.type != 'EMPTY':
+            return False
+        if ob.is_instancer:
             return False
         return (context.object and rd.engine in {'PRMAN_RENDER'} )
 

@@ -46,13 +46,6 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
         active = context.active_object
         active.update_tag(refresh={'DATA'})
 
-    use_object_material: BoolProperty(
-        name="Use Master Object's Material",
-        description="Use the master object's material for instancing",
-        default=True,
-        update=update_psys
-    )
-
     def update_point_type(self, context):
         return
 
