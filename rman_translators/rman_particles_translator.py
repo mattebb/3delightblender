@@ -19,6 +19,8 @@ class RmanParticlesTranslator(RmanTranslator):
         if psys.settings.type == 'EMITTER' and psys.settings.render_type == 'OBJECT':
             return None
 
+        self.particles_type = psys.settings.type
+
         sg_node = self.rman_scene.sg_scene.CreateGroup(db_name)
         rman_sg_particles = RmanSgParticles(self.rman_scene, sg_node, db_name)
 
@@ -58,16 +60,21 @@ class RmanParticlesTranslator(RmanTranslator):
 
     def update(self, ob, psys, rman_sg_particles):
 
-        rman_sg_particles.sg_node.RemoveChild(rman_sg_particles.rman_sg_hair.sg_node)
-        rman_sg_particles.sg_node.RemoveChild(rman_sg_particles.rman_sg_emitter.sg_node)
-
         if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
             hair_translator = self.rman_scene.rman_translators['HAIR']
             hair_translator.update(ob, psys, rman_sg_particles.rman_sg_hair)
             if rman_sg_particles.rman_sg_hair.sg_node:
                 rman_sg_particles.sg_node.AddChild(rman_sg_particles.rman_sg_hair.sg_node)
+
+            if self.particles_type == 'EMITTER':
+                rman_sg_particles.sg_node.RemoveChild(rman_sg_particles.rman_sg_emitter.sg_node)
+            self.particles_type = psys.settings.type
+
         elif psys.settings.type == 'EMITTER' and psys.settings.render_type != 'OBJECT':
             emitter_translator = self.rman_scene.rman_translators['EMITTER']  
             emitter_translator.update(ob, psys, rman_sg_particles.rman_sg_emitter)
             if rman_sg_particles.rman_sg_emitter.sg_node:
                 rman_sg_particles.sg_node.AddChild(rman_sg_particles.rman_sg_emitter.sg_node)
+            if self.particles_type == 'HAIR':
+                rman_sg_particles.sg_node.RemoveChild(rman_sg_particles.rman_sg_hair.sg_node)                
+            self.particles_type = psys.settings.type

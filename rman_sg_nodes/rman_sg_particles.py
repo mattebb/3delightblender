@@ -8,9 +8,9 @@ class RmanSgParticles(RmanSgNode):
         self.npoints = -1
         self.render_type = ''
         
-        #self.sg_particles_node = None
         self.rman_sg_emitter = None
         self.rman_sg_hair = None
+        self.particles_type = ''
 
     @property
     def matrix_world(self):
