@@ -32,7 +32,9 @@ class RmanHairTranslator(RmanTranslator):
         for i, points in enumerate(curves):
             curves_sg = rman_sg_hair.sg_node
             if i > 0:
-                curves_sg = rman_sg_hair.sg_node.GetChild(i-1)
+                curves_sg = rman_sg_hair.overflow_rman_sg_hair[i-1] 
+                if not curves_sg:
+                    continue
             primvar = curves_sg.GetPrimVars()
 
             primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, points, "vertex", time_sample)  
@@ -77,7 +79,8 @@ class RmanHairTranslator(RmanTranslator):
             curves_sg.SetPrimVars(primvar)
 
             if i > 0:
-                rman_sg_hair.sg_node.AddChild(curves_sg)   
+                rman_sg_hair.sg_node.AddChild(curves_sg)  
+                rman_sg_hair.overflow_rman_sg_hair.append(curves_sg)
 
         # Attach material
         mat_idx = psys.settings.material - 1
@@ -153,8 +156,6 @@ class RmanHairTranslator(RmanTranslator):
                 vertsArray.append(vertsInStrand)
                 nverts += vertsInStrand
 
-            # if we get more than 100000 vertices, export ri.Curve and reset.  This
-            # is to avoid a maxint on the array length
             if nverts > 100000:
                 curve_sets.append(points)
 
@@ -187,7 +188,12 @@ class RmanHairTranslator(RmanTranslator):
         base_width = psys.settings.root_radius * psys.settings.radius_scale
 
         conwidth = (tip_width == base_width)
-        steps = 2 ** psys.settings.render_step
+
+        if self.rman_scene.is_interactive:
+            steps = 2 ** psys.settings.display_step
+        else:
+            steps = 2 ** psys.settings.render_step        
+        
         if conwidth:
             hair_width = base_width
         else:

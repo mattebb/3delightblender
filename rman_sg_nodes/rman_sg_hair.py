@@ -4,3 +4,5 @@ class RmanSgHair(RmanSgNode):
 
     def __init__(self, rman_scene, sg_node, db_name):
         super().__init__(rman_scene, sg_node, db_name)
+
+        self.overflow_rman_sg_hair = list()

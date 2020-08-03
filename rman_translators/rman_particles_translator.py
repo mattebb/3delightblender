@@ -64,8 +64,10 @@ class RmanParticlesTranslator(RmanTranslator):
         if psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
             hair_translator = self.rman_scene.rman_translators['HAIR']
             hair_translator.update(ob, psys, rman_sg_particles.rman_sg_hair)
-            rman_sg_particles.sg_node.AddChild(rman_sg_particles.rman_sg_hair.sg_node)
+            if rman_sg_particles.rman_sg_hair.sg_node:
+                rman_sg_particles.sg_node.AddChild(rman_sg_particles.rman_sg_hair.sg_node)
         elif psys.settings.type == 'EMITTER' and psys.settings.render_type != 'OBJECT':
             emitter_translator = self.rman_scene.rman_translators['EMITTER']  
             emitter_translator.update(ob, psys, rman_sg_particles.rman_sg_emitter)
-            rman_sg_particles.sg_node.AddChild(rman_sg_particles.rman_sg_emitter.sg_node)
+            if rman_sg_particles.rman_sg_emitter.sg_node:
+                rman_sg_particles.sg_node.AddChild(rman_sg_particles.rman_sg_emitter.sg_node)
