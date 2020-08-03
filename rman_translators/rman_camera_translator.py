@@ -186,6 +186,10 @@ class RmanCameraTranslator(RmanTranslator):
                 yaspect *= zoom 
                 xaspect += dx
                 yaspect += dy
+                if rman_sg_camera.lens != ob.data.lens:
+                    rman_sg_camera.lens = ob.data.lens
+                    updated = True
+
                 if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect: 
                     prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)      
                     rman_sg_camera.xaspect = xaspect
@@ -208,7 +212,12 @@ class RmanCameraTranslator(RmanTranslator):
 
                 xaspect *= zoom
                 yaspect *= zoom
-                rman_sg_camera.lens = self.rman_scene.context.space_data.lens
+                xaspect += dx
+                yaspect += dy
+                if rman_sg_camera.lens != self.rman_scene.context.space_data.lens:
+                    rman_sg_camera.lens = self.rman_scene.context.space_data.lens
+                    updated = True
+                    
                 if rman_sg_camera.xaspect != xaspect or rman_sg_camera.yaspect != yaspect:
                     prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect, xaspect, -yaspect, yaspect), 4)   
                     rman_sg_camera.xaspect = xaspect
