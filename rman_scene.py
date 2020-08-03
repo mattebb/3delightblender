@@ -589,14 +589,16 @@ class RmanScene(object):
                     rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles.sg_node)
 
             # motion blur
+            # we set motion steps for this object, even if it's not moving
+            # it could be moving as part of a particle system
+            mb_segs = self.bl_scene.renderman.motion_segments
+            if mb_segs > 1:
+                subframes = scene_utils._get_subframes_(mb_segs, self.bl_scene)
+                rman_sg_node.motion_steps = subframes
+                self.motion_steps.update(subframes)
+
             if rman_sg_node.is_transforming or rman_sg_node.is_deforming:
-                mb_segs = self.bl_scene.renderman.motion_segments
-                if ob.renderman.motion_segments_override:
-                    mb_segs = ob.renderman.motion_segments
                 if mb_segs > 1:
-                    subframes = scene_utils._get_subframes_(mb_segs, self.bl_scene)
-                    rman_sg_node.motion_steps = subframes
-                    self.motion_steps.update(subframes)
                     self.moving_objects[ob.name_full] = ob
                 else:
                     rman_sg_node.is_transforming = False
@@ -725,10 +727,11 @@ class RmanScene(object):
                 if rman_sg_node.is_transforming:
                     rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps )
                     rman_group_translator.update_transform_sample(ob_inst, rman_sg_group, 0, seg )
+                elif psys and self.do_motion_blur:
+                    rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps )
+                    rman_group_translator.update_transform_sample(ob_inst, rman_sg_group, 0, seg )                    
                 else:
                     rman_group_translator.update_transform(ob_inst, rman_sg_group)
-
-                
 
     def export_instances(self, obj_selected=None):
         objFound = False
@@ -842,12 +845,14 @@ class RmanScene(object):
                     continue  
 
                 rman_group_translator = self.rman_translators['GROUP']
+                psys = None
                 if ob_inst.is_instance:
                     ob = ob_inst.instance_object.original  
+                    psys = ob_inst.particle_system
                 else:
                     ob = ob_inst.object
 
-                if ob.name_full not in self.moving_objects:
+                if ob.name_full not in self.moving_objects and not psys:
                     continue
 
                 if ob.type not in ['MESH']:
@@ -862,7 +867,7 @@ class RmanScene(object):
                 if not seg in rman_sg_node.motion_steps:
                     continue
 
-                if rman_sg_node.is_transforming:
+                if rman_sg_node.is_transforming or psys:
                     rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
                     if rman_sg_group:
                         rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps ) # should have been set in _export_instances()                       

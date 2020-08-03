@@ -15,7 +15,7 @@ class RmanHairTranslator(RmanTranslator):
 
     def export(self, ob, psys, db_name):
 
-        sg_node = self.rman_scene.sg_scene.CreateGroup(db_name)
+        sg_node = self.rman_scene.sg_scene.CreateCurves(db_name)
         rman_sg_hair = RmanSgHair(self.rman_scene, sg_node, db_name)
 
         return rman_sg_hair
@@ -26,6 +26,18 @@ class RmanHairTranslator(RmanTranslator):
                 rman_sg_hair.sg_node.RemoveChild(c)
                 self.rman_scene.sg_scene.DeleteDagNode(c)        
 
+    def export_deform_sample(self, rman_sg_hair, ob, psys, time_sample):
+
+        curves = self._get_points(ob, psys)
+        for i, points in enumerate(curves):
+            curves_sg = rman_sg_hair.sg_node
+            if i > 0:
+                curves_sg = rman_sg_hair.sg_node.GetChild(i-1)
+            primvar = curves_sg.GetPrimVars()
+
+            primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, points, "vertex", time_sample)  
+            curves_sg.SetPrimVars(primvar)
+
     def update(self, ob, psys, rman_sg_hair):
         if rman_sg_hair.sg_node:
             if rman_sg_hair.sg_node.GetNumChildren() > 0:
@@ -35,10 +47,11 @@ class RmanHairTranslator(RmanTranslator):
         if not curves:
             rman_sg_hair.sg_node = None
             return
-        i = 0
-        for vertsArray, points, widths, scalpS, scalpT in curves:
-            curves_sg = self.rman_scene.sg_scene.CreateCurves("%s-%d" % (rman_sg_hair.db_name, i))
-            i += 1                
+
+        for i, (vertsArray, points, widths, scalpS, scalpT) in enumerate(curves):
+            curves_sg = rman_sg_hair.sg_node
+            if i > 0:
+                curves_sg = self.rman_scene.sg_scene.CreateCurves("%s-%d" % (rman_sg_hair.db_name, i))
             curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", len(vertsArray), len(points))
             primvar = curves_sg.GetPrimVars()
 
@@ -58,9 +71,13 @@ class RmanHairTranslator(RmanTranslator):
                 primvar.SetFloatDetail("scalpS", scalpS, "uniform")                
                 primvar.SetFloatDetail("scalpT", scalpT, "uniform")
                     
+            if rman_sg_hair.motion_steps:
+                primvar.SetTimes(rman_sg_hair.motion_steps)
+
             curves_sg.SetPrimVars(primvar)
 
-            rman_sg_hair.sg_node.AddChild(curves_sg)   
+            if i > 0:
+                rman_sg_hair.sg_node.AddChild(curves_sg)   
 
         # Attach material
         mat_idx = psys.settings.material - 1
@@ -69,11 +86,87 @@ class RmanHairTranslator(RmanTranslator):
             rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
             if rman_sg_material:
                 rman_sg_hair.sg_node.SetMaterial(rman_sg_material.sg_node)  
-
+        
     def add_object_instance(self, rman_sg_hair, rman_sg_group):
         rman_sg_hair.sg_node.AddChild(rman_sg_group.sg_node)                
         rman_sg_hair.instances[rman_sg_group.db_name] = rman_sg_group
         rman_sg_group.rman_sg_group_parent = rman_sg_particles
+
+    def _get_points(self, ob, psys):
+        psys_modifier = None
+        for mod in ob.modifiers:
+            if hasattr(mod, 'particle_system') and mod.particle_system == psys:
+                psys_modifier = mod
+                break
+
+        if self.rman_scene.is_interactive:
+            if psys_modifier and not psys_modifier.show_viewport:
+                return None
+        else:
+            if psys_modifier and not psys_modifier.show_render:
+                return None             
+                
+        if self.rman_scene.is_interactive:
+            steps = 2 ** psys.settings.display_step
+        else:
+            steps = 2 ** psys.settings.render_step
+            
+        num_parents = len(psys.particles)
+        num_children = len(psys.child_particles)
+        total_hair_count = num_parents + num_children
+        curve_sets = []
+        points = []
+        vertsArray = []
+        nverts = 0
+
+        ob_inv_mtx = ob.matrix_world.inverted_safe()
+        
+        for pindex in range(total_hair_count):
+            if psys.settings.child_type != 'NONE' and pindex < num_parents:
+                continue
+
+            strand_points = []
+            # walk through each strand
+            for step in range(0, steps + 1):           
+                pt = psys.co_hair(ob, particle_no=pindex, step=step)
+
+                if pt.length_squared == 0:
+                    # this strand ends prematurely                    
+                    break                
+
+                # put points in object space
+                pt = ob_inv_mtx @ pt
+
+                strand_points.append(pt)
+
+            if len(strand_points) > 1:
+                # double the first and last
+                strand_points = strand_points[:1] + \
+                    strand_points + strand_points[-1:]
+                vertsInStrand = len(strand_points)
+
+                if vertsInStrand < 4:
+                    continue
+
+                # add the last point again
+                points.extend(strand_points)
+                vertsArray.append(vertsInStrand)
+                nverts += vertsInStrand
+
+            # if we get more than 100000 vertices, export ri.Curve and reset.  This
+            # is to avoid a maxint on the array length
+            if nverts > 100000:
+                curve_sets.append(points)
+
+                nverts = 0
+                points = []
+                vertsArray = []
+
+        if nverts > 0:
+            curve_sets.append(points)
+
+        return curve_sets              
+                    
 
     def _get_strands_(self, ob, psys):
 
