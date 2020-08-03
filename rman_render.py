@@ -752,17 +752,16 @@ class RmanRender(object):
 
                 # we've reach our max buckets, pop the oldest one off the list
                 if len(self.viewport_buckets) > RFB_VIEWPORT_MAX_BUCKETS:
-                    self.viewport_buckets.pop(0)
-                self.viewport_buckets.append([vertices, indices])
+                    self.viewport_buckets.pop()
+                self.viewport_buckets.insert(0,[vertices, indices])
                 bucket_color =  get_pref('rman_viewport_bucket_color', default=(0.0, 0.498, 1.0, 1.0))
 
                 # draw from newest to oldest
-                for v, i in reversed(self.viewport_buckets):
-                    shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+                shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+                shader.uniform_float("color", bucket_color)
+                for v, i in (self.viewport_buckets):                    
                     batch = batch_for_shader(shader, 'LINES', {"pos": v}, indices=i)
-
                     shader.bind()
-                    shader.uniform_float("color", bucket_color)
                     batch.draw(shader)              
 
     def _get_buffer(self, width, height, image_num=0, as_flat=True):
