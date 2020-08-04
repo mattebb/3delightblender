@@ -17,6 +17,9 @@ class RmanSgCamera(RmanSgNode):
         self.lens = -1
         self.sensor = -1
         self.view_camera_offset = -1
+        self.shift_x = -1
+        self.shift_y = -1
+        self.screenwindow = None
 
     @property
     def bl_camera(self):
