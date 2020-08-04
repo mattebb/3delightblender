@@ -15,7 +15,7 @@ class RmanHairTranslator(RmanTranslator):
 
     def export(self, ob, psys, db_name):
 
-        sg_node = self.rman_scene.sg_scene.CreateCurves(db_name)
+        sg_node = self.rman_scene.sg_scene.CreateGroup(db_name)
         rman_sg_hair = RmanSgHair(self.rman_scene, sg_node, db_name)
 
         return rman_sg_hair
@@ -24,17 +24,16 @@ class RmanHairTranslator(RmanTranslator):
         if rman_sg_hair.sg_node:
             for c in [ rman_sg_hair.sg_node.GetChild(i) for i in range(0, rman_sg_hair.sg_node.GetNumChildren())]:
                 rman_sg_hair.sg_node.RemoveChild(c)
-                self.rman_scene.sg_scene.DeleteDagNode(c)        
+                self.rman_scene.sg_scene.DeleteDagNode(c)     
+                rman_sg_hair.sg_curves_list.clear()   
 
     def export_deform_sample(self, rman_sg_hair, ob, psys, time_sample):
 
         curves = self._get_points(ob, psys)
         for i, points in enumerate(curves):
-            curves_sg = rman_sg_hair.sg_node
-            if i > 0:
-                curves_sg = rman_sg_hair.overflow_rman_sg_hair[i-1] 
-                if not curves_sg:
-                    continue
+            curves_sg = rman_sg_hair.sg_curves_list[i]
+            if not curves_sg:
+                continue
             primvar = curves_sg.GetPrimVars()
 
             primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, points, "vertex", time_sample)  
@@ -51,9 +50,7 @@ class RmanHairTranslator(RmanTranslator):
             return
 
         for i, (vertsArray, points, widths, scalpS, scalpT) in enumerate(curves):
-            curves_sg = rman_sg_hair.sg_node
-            if i > 0:
-                curves_sg = self.rman_scene.sg_scene.CreateCurves("%s-%d" % (rman_sg_hair.db_name, i))
+            curves_sg = self.rman_scene.sg_scene.CreateCurves("%s-%d" % (rman_sg_hair.db_name, i))
             curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_cubic, "nonperiodic", "catmull-rom", len(vertsArray), len(points))
             primvar = curves_sg.GetPrimVars()
 
@@ -77,10 +74,8 @@ class RmanHairTranslator(RmanTranslator):
                 primvar.SetTimes(rman_sg_hair.motion_steps)
 
             curves_sg.SetPrimVars(primvar)
-
-            if i > 0:
-                rman_sg_hair.sg_node.AddChild(curves_sg)  
-                rman_sg_hair.overflow_rman_sg_hair.append(curves_sg)
+            rman_sg_hair.sg_node.AddChild(curves_sg)  
+            rman_sg_hair.sg_curves_list.append(curves_sg)
 
         # Attach material
         mat_idx = psys.settings.material - 1

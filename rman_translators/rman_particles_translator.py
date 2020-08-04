@@ -49,7 +49,8 @@ class RmanParticlesTranslator(RmanTranslator):
         if psys.settings.type == 'EMITTER' and psys.settings.render_type != 'OBJECT':
             emitter_translator.export_deform_sample(rman_sg_particles.rman_sg_emitter, ob, psys, time_sample)
         elif psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
-            hair_translator.export_deform_sample(rman_sg_particles.rman_sg_hair, ob, psys, time_sample)
+            #hair_translator.export_deform_sample(rman_sg_particles.rman_sg_hair, ob, psys, time_sample)
+            pass
 
 
     def clear_children(self, ob, psys, rman_sg_particles):
