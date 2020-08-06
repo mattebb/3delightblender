@@ -715,14 +715,15 @@ class RmanRender(object):
         if self.rman_is_viewport_rendering:
             dspy_plugin = self.get_blender_dspy_plugin()
 
+            # (the driver will handle pixel scaling to the given viewport size)
+            dspy_plugin.DrawBufferToBlender(ctypes.c_int(width), ctypes.c_int(height))
+
+            image_num = 0
             arXMin = ctypes.c_int(0)
             arXMax = ctypes.c_int(0)
             arYMin = ctypes.c_int(0)
-            arYMax = ctypes.c_int(0)
-
-            # (the driver will handle pixel scaling to the given viewport size)
-            dspy_plugin.DrawBufferToBlender(ctypes.c_int(width), ctypes.c_int(height), ctypes.byref(arXMin), ctypes.byref(arXMax), ctypes.byref(arYMin), ctypes.byref(arYMax))
-
+            arYMax = ctypes.c_int(0)            
+            dspy_plugin.GetActiveRegion(ctypes.c_size_t(image_num), ctypes.byref(arXMin), ctypes.byref(arXMax), ctypes.byref(arYMin), ctypes.byref(arYMax))
             # draw bucket indicators
             if self.draw_viewport_buckets and ( (arXMin.value + arXMax.value + arYMin.value + arYMax.value) > 0):
                 yMin = height-1 - arYMin.value
