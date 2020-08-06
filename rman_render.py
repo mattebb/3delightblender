@@ -757,9 +757,9 @@ class RmanRender(object):
                 bucket_color =  get_pref('rman_viewport_bucket_color', default=(0.0, 0.498, 1.0, 1.0))
 
                 # draw from newest to oldest
-                shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
-                shader.uniform_float("color", bucket_color)
-                for v, i in (self.viewport_buckets):                    
+                for v, i in (self.viewport_buckets):      
+                    shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+                    shader.uniform_float("color", bucket_color)                                  
                     batch = batch_for_shader(shader, 'LINES', {"pos": v}, indices=i)
                     shader.bind()
                     batch.draw(shader)              
