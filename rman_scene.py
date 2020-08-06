@@ -675,6 +675,10 @@ class RmanScene(object):
             if not rman_sg_node:
                 return
 
+            translator = self.rman_translators.get(rman_type, None)
+            if not translator:
+                return
+
             if group_db_name in rman_sg_node.instances:
                 # we've already added this instance
                 #return
@@ -683,12 +687,10 @@ class RmanScene(object):
 
             else:
 
-                translator = self.rman_translators.get(rman_type, None)
-                if translator:
-                    if not ob.original in self.processed_obs:
-                        translator.update(ob, rman_sg_node)
-                        translator.export_object_primvars(ob, rman_sg_node)
-                        self.processed_obs.append(ob.original)
+                if not ob.original in self.processed_obs:
+                    translator.update(ob, rman_sg_node)
+                    translator.export_object_primvars(ob, rman_sg_node)
+                    self.processed_obs.append(ob.original)
 
                 rman_sg_group = rman_group_translator.export(ob, group_db_name)
                 if ob.is_instancer and ob.instance_type != 'NONE':
@@ -706,18 +708,17 @@ class RmanScene(object):
 
                 self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
 
-                # object attrs             
-                if translator:
-                    translator.export_object_attributes(ob, rman_sg_group)  
-
-                # attach material
-                if psys:
-                    self.attach_particle_material(psys, ob, rman_sg_group)
-                else:
-                    self.attach_material(ob, rman_sg_group)
-
                 # add this instance to rman_sg_node
                 rman_sg_node.instances[group_db_name] = rman_sg_group                     
+
+            # object attrs             
+            translator.export_object_attributes(ob, rman_sg_group)  
+
+            # attach material
+            if psys:
+                self.attach_particle_material(psys, ob, rman_sg_group)
+            else:
+                self.attach_material(ob, rman_sg_group)                
             
             if rman_type != "META":
                 # meta/blobbies are already in world space. Their instances don't need to
