@@ -78,7 +78,61 @@
             "options": "Off:OFF|In Alpha:ALPHA|Separate AOV:AOV",    
             "help": "Render a holdout matte."
 
+        },    
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "IPR Sampling",
+            "name": "ipr_hider_minSamples",
+            "riopt": "hider:minsamples",
+            "label": "Min Samples",
+            "type": "int",
+            "default": 0,
+            "min": 0,
+            "max": 65536,
+            "widget": false,
+            "slidermin": 0,
+            "slidermax": 4096,
+            "help": "When set to zero this value is automatically computed as the square root of the max samples."
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "IPR Sampling",
+            "name": "ipr_hider_maxSamples",
+            "riopt": "hider:maxsamples",
+            "label": "Max Samples",
+            "type": "int",
+            "default": 64,
+            "min": 0,
+            "max": 65535,
+            "widget": false,
+            "slidermin": 0,
+            "slidermax": 4096,
+            "presets": {
+                "Fast": 256,
+                "Production": 1024,
+                "High Quality": 2048
+            },
+            "help": "The maximum number of camera rays to be traced for each pixel.  When adaptive sampling is enabled (ie. Pixel Variance is greater than zero), fewer rays may be traced in smoother regions of the image."
         },                
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "IPR Sampling",
+            "name": "ipr_ri_pixelVariance",
+            "riopt": "Ri:PixelVariance",
+            "label": "Pixel Variance",
+            "type": "float",
+            "default": 0.015,
+            "min": 0.0,
+            "max": 0.5,
+            "digits": 5,
+            "connectable": false,
+            "presets": {
+                "Test": 0.15,
+                "Denoising": 0.05,
+                "High Quality": 0.01
+            },
+            "help": "This value is applied during IPR.  Adaptive sampling is done when Pixel Variance is greater than zero. Reducing this value increases the likelihood that more rays will be traced while increasing its value allows undersampling."
+        },                     
         {
             "panel": "RENDER_PT_renderman_render",
             "page": "Threads Control",
@@ -1110,58 +1164,6 @@
             "default": 0,
             "widget": "checkbox",
             "help": "The denoiser will attempt to use the GPU (if available)"
-        },      
-        {
-            "panel": "RENDER_PT_renderman_sampling_ipr",
-            "page": "",
-            "name": "ipr_hider_minSamples",
-            "riopt": "hider:minsamples",
-            "label": "Min Samples",
-            "type": "int",
-            "default": 0,
-            "min": 0,
-            "max": 65536,
-            "widget": false,
-            "slidermin": 0,
-            "slidermax": 4096,
-            "help": "When set to zero this value is automatically computed as the square root of the max samples."
-        },
-        {
-            "panel": "RENDER_PT_renderman_sampling_ipr",
-            "name": "ipr_hider_maxSamples",
-            "riopt": "hider:maxsamples",
-            "label": "Max Samples",
-            "type": "int",
-            "default": 64,
-            "min": 0,
-            "max": 65535,
-            "widget": false,
-            "slidermin": 0,
-            "slidermax": 4096,
-            "presets": {
-                "Fast": 256,
-                "Production": 1024,
-                "High Quality": 2048
-            },
-            "help": "The maximum number of camera rays to be traced for each pixel.  When adaptive sampling is enabled (ie. Pixel Variance is greater than zero), fewer rays may be traced in smoother regions of the image."
-        },                
-        {
-            "panel": "RENDER_PT_renderman_sampling_ipr",
-            "name": "ipr_ri_pixelVariance",
-            "riopt": "Ri:PixelVariance",
-            "label": "Pixel Variance",
-            "type": "float",
-            "default": 0.015,
-            "min": 0.0,
-            "max": 0.5,
-            "digits": 5,
-            "connectable": false,
-            "presets": {
-                "Test": 0.15,
-                "Denoising": 0.05,
-                "High Quality": 0.01
-            },
-            "help": "This value is applied during IPR.  Adaptive sampling is done when Pixel Variance is greater than zero. Reducing this value increases the likelihood that more rays will be traced while increasing its value allows undersampling."
         }
     ]
 }

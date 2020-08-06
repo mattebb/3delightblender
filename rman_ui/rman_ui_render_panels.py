@@ -126,24 +126,6 @@ class RENDER_PT_renderman_sampling(PRManButtonsPanel, Panel):
 
         _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_sampling', context, layout, rm)
 
-class RENDER_PT_renderman_sampling_ipr(PRManButtonsPanel, Panel):
-    bl_label = "IPR Sampling"
-    bl_parent_id = 'RENDER_PT_renderman_sampling'
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-
-        col = layout.column()
-        row = col.row(align=True)
-
-        _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_sampling_ipr', context, layout, rm)  
-
 class RENDER_PT_renderman_motion_blur(PRManButtonsPanel, Panel):
     bl_label = "Motion Blur"
     bl_options = {'DEFAULT_CLOSED'}
@@ -210,7 +192,6 @@ classes = [
     RENDER_PT_renderman_spooling_export_options,    
     RENDER_PT_renderman_baking,
     RENDER_PT_renderman_sampling,
-    RENDER_PT_renderman_sampling_ipr,
     RENDER_PT_renderman_motion_blur,    
     RENDER_PT_renderman_advanced_settings,
     RENDER_PT_renderman_custom_options
