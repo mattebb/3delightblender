@@ -234,7 +234,7 @@ class RendermanPreferences(AddonPreferences):
 
     rman_render_nurbs_as_mesh: BoolProperty(
         name="NURBS as Mesh",
-        default=False,
+        default=True,
         description="Render all NURBS surfaces as meshes."
     )
 
