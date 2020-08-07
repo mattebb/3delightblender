@@ -349,40 +349,41 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
             row.template_list("PRMAN_UL_Renderman_txmanager_list", "The_List", scene,
                             "rman_txmgr_list", scene, "rman_txmgr_list_index", item_dyntip_propname="tooltip")
 
+            if scene.rman_txmgr_list_index < len(scene.rman_txmgr_list):
 
-            item = scene.rman_txmgr_list[scene.rman_txmgr_list_index]
+                item = scene.rman_txmgr_list[scene.rman_txmgr_list_index]
 
-            row = layout.row()
-            row.label(text='Texture Settings')
-            row = layout.row()
-            row.enabled = item.enable
-            row.prop(item, "texture_type")
-            row = layout.row()
-            row.enabled = item.enable
-            row.prop(item, "smode")
-            row.prop(item, "tmode")
-            row = layout.row()
-            row.enabled = item.enable
-            row.prop(item, "texture_format")
-            row = layout.row()
-            row.enabled = item.enable
-            row.prop(item, "data_type")
-            row = layout.row()
-            row.enabled = item.enable
-            row.prop(item, "resize")   
-            row = layout.row()   
-            row.enabled = item.enable      
-            row.alignment = 'RIGHT'          
-            row.operator('rman_txmgr_list.apply_preset', text='Apply')
-            
-            row = layout.row()
-            row.alignment='CENTER'
-            in_list = len(context.scene.rman_txmgr_list)
-            progress = 'All Converted'
-            qsize = texture_utils.get_txmanager().txmanager.workQueue.qsize()
-            if qsize != 0:
-                progress = 'Converting...%d left to convert' % (qsize)
-            row.label(text=progress)        
+                row = layout.row()
+                row.label(text='Texture Settings')
+                row = layout.row()
+                row.enabled = item.enable
+                row.prop(item, "texture_type")
+                row = layout.row()
+                row.enabled = item.enable
+                row.prop(item, "smode")
+                row.prop(item, "tmode")
+                row = layout.row()
+                row.enabled = item.enable
+                row.prop(item, "texture_format")
+                row = layout.row()
+                row.enabled = item.enable
+                row.prop(item, "data_type")
+                row = layout.row()
+                row.enabled = item.enable
+                row.prop(item, "resize")   
+                row = layout.row()   
+                row.enabled = item.enable      
+                row.alignment = 'RIGHT'          
+                row.operator('rman_txmgr_list.apply_preset', text='Apply')
+                
+                row = layout.row()
+                row.alignment='CENTER'
+                in_list = len(context.scene.rman_txmgr_list)
+                progress = 'All Converted'
+                qsize = texture_utils.get_txmanager().txmanager.workQueue.qsize()
+                if qsize != 0:
+                    progress = 'Converting...%d left to convert' % (qsize)
+                row.label(text=progress)        
 
 
     def invoke(self, context, event):
