@@ -381,8 +381,6 @@ class RmanSceneSync(object):
             if rman_type not in ['MESH', 'POINTS']:
                 continue
             ob_eval = ob.evaluated_get(self.rman_scene.depsgraph)
-            if len(ob_eval.particle_systems) < 1:
-                continue
 
             with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
                 
@@ -394,6 +392,9 @@ class RmanSceneSync(object):
 
                 rman_sg_node.rman_sg_particle_group_node.sg_node.RemoveAllChildren()
                 psys_translator = self.rman_scene.rman_translators['PARTICLES']
+                if len(ob_eval.particle_systems) < 1:
+                    continue
+
                 for psys in ob_eval.particle_systems:
                     if psys.settings.render_type == 'OBJECT':
                         # this particle system is a instancer, add the instanced object
