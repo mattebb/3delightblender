@@ -10,5 +10,35 @@
     "woffs": [
         "R90007"
     ],
+    "bxdf_viewport_color_mapping": {
+        "PxrDisney": {
+            "diffuse_color": ["baseColor"],
+            "specular_color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "metallic": "metallic",
+            "roughness": "roughness"
+        },
+        "PxrSurface": {
+            "diffuse_color": ["diffuseColor"],
+            "specular_color": [
+                1.0,
+                1.0,
+                1.0
+            ]        
+        },
+        "PxrMarschnerHair": {
+            "diffuse_color": ["diffuseColor"],
+            "specular_color": ["specularColorR"]
+        },
+        "PxrVolume": {
+            "diffuse_color": ["diffuseColor"]
+        },
+        "LamaDiffuse": {
+            "diffuse_color": ["color"]
+        }                   
+    },
     "user tokens": []  
 }

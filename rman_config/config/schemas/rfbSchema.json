@@ -42,6 +42,32 @@
                 "port"
             ]
         },
+        "bxdf_viewport_color_map": {
+            "type": "object",
+            "properties": {
+                "diffuse_color": {
+                    "type": "array",
+                    "items": {
+                        "type": ["string", "number"]
+                    }
+                },
+                "specular_color": {
+                    "type": "array",                  
+                    "items": {
+                        "type": ["string", "number"]
+                    }
+                },
+                "specular_intensity": {
+                    "type": ["string", "number"]
+                },
+                "metallic": {
+                    "type": ["string", "number"]
+                },
+                "roughness": {
+                    "type": ["string", "number"]
+                }                               
+            }
+        },
         "preference": {
             "type": "object",
             "properties": {
@@ -86,7 +112,15 @@
                     "$ref": "#/definitions/dirmap"
                 }
             }
-        }
+        },
+        "bxdf_viewport_color_mappings": {
+            "type": "object",
+            "patternProperties": {
+                "[A-Za-z0-9_-]+": {
+                    "$ref": "#/definitions/bxdf_viewport_color_mapping"
+                }
+            }
+        }        
     },
     "additionalProperties": false
 }

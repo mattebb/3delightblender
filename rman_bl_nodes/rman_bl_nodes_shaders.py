@@ -4,6 +4,7 @@ from . import rman_socket_utils
 from .. import rman_render
 from ..rman_utils import string_utils
 from ..rman_utils import shadergraph_utils
+from ..rman_config import __RFB_CONFIG_DICT__
 from .. import rfb_icons
 from bpy.types import Menu
 from bpy.props import EnumProperty, StringProperty, CollectionProperty
@@ -28,45 +29,38 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             mat.specular_intensity = 0
             #mat.diffuse_intensity = 1
 
-            if hasattr(self, "baseColor"):
-                mat.diffuse_color[:3] = [i for i in self.baseColor]
-            elif hasattr(self, "emitColor"):
-                mat.diffuse_color[:3] = [i for i in self.emitColor]
-            elif hasattr(self, "diffuseColor"):
-                mat.diffuse_color = (*self.diffuseColor, 1.0)
-            elif hasattr(self, "midColor"):
-                mat.diffuse_color[:3] = [i for i in self.midColor]
-            elif hasattr(self, "transmissionColor"):
-                mat.diffuse_color[:3] = [i for i in self.transmissionColor]
-            elif hasattr(self, "frontColor"):
-                mat.diffuse_color[:3] = [i for i in self.frontColor]
+            bxdf_name = self.bl_label
+            bxdf_props = __RFB_CONFIG_DICT__['bxdf_viewport_color_mapping'].get(bxdf_name, None)
+            if bxdf_props:
+                diffuse_color = bxdf_props.get('diffuse_color', None)
+                if diffuse_color:
+                    if isinstance(diffuse_color[0], str):
+                        diffuse_color = getattr(self, diffuse_color[0])
+                    mat.diffuse_color[:3] = [i for i in diffuse_color]
 
-            # specular intensity
-            if hasattr(self, "specular"):
-                mat.specular_intensity = self.specular
-            elif hasattr(self, "SpecularGainR"):
-                mat.specular_intensity = self.specularGainR
-            elif hasattr(self, "reflectionGain"):
-                mat.specular_intensity = self.reflectionGain
+                specular_color = bxdf_props.get('specular_color', None)
+                if specular_color:
+                    if isinstance(specular_color[0], str):
+                        specular_color = getattr(self, specular_color[0])
+                    mat.specular_color[:3] = [i for i in specular_color]   
 
-            # specular color
-            if hasattr(self, "specularColor"):
-                mat.specular_color[:3] = [i for i in self.specularColor]
-            elif hasattr(self, "reflectionColor"):
-                mat.specular_color[:3] = [i for i in self.reflectionColor]
+                specular_intensity = bxdf_props.get('specular_intensity', None)
+                if specular_intensity:
+                    if isinstance(specular_intensity, str):
+                        specular_intensity = getattr(self, specular_intensity)
+                    mat.specular_intensity = specular_intensity
 
-            if self.bl_idname in ["PxrGlassBxdfNode", "PxrLMGlassBxdfNode"]:
-                #FIXME mat.use_transparency = True
-                mat.diffuse_color[3] = .5#alpha
+                metallic = bxdf_props.get('metallic', None)
+                if metallic:
+                    if isinstance(metallic, str):
+                        metallic = getattr(self, metallic)
+                    mat.metallic = metallic                    
 
-            if self.bl_idname == "PxrLMMetalBxdfNode":
-                mat.diffuse_color = [0, 0, 0, 1]
-                mat.specular_intensity = 1
-                mat.specular_color = self.specularColor
-                mat.mirror_color = [1, 1, 1]
-
-            elif self.bl_idname == "PxrLMPlasticBxdfNode":
-                mat.specular_intensity = 1
+                roughness = bxdf_props.get('roughness', None)
+                if roughness:
+                    if isinstance(roughness, str):
+                        roughness = getattr(self, roughness)
+                    mat.roughness = roughness          
 
     # all the properties of a shader will go here, also inputs/outputs
     # on connectable props will have the same name

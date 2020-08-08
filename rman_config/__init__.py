@@ -140,8 +140,8 @@ def recursive_updater(in_dict, out_dict):
         if isinstance(val, dict):
             nested = recursive_updater(val, out_dict.get(key, {}))
             out_dict[key] = nested
-        elif isinstance(val, list):
-            out_dict[key] = _uniquify_list(val + out_dict.get(key, []))
+        #elif isinstance(val, list):
+        #    out_dict[key] = _uniquify_list(val + out_dict.get(key, []))
         else:
             out_dict[key] = in_dict[key]
     return out_dict
