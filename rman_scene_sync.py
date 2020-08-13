@@ -371,7 +371,8 @@ class RmanSceneSync(object):
                     ob_psys = self.rman_scene.rman_particles.get(ob_eval.original, dict())
                     rman_sg_particles = ob_psys.get(psys.settings.original, None)
                     if not rman_sg_particles:
-                        continue
+                        psys_db_name = '%s' % psys.name
+                        rman_sg_particles = psys_translator.export(ob, psys, psys_db_name) 
                     psys_translator.update(ob, psys, rman_sg_particles)
                     ob_psys[psys.settings.original] = rman_sg_particles
                     self.rman_scene.rman_particles[ob.original] = ob_psys                       
