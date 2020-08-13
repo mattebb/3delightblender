@@ -1277,14 +1277,12 @@ def createNodes(Asset):
     lightrig_type = 'SPHERE'
     lightrig_size = 2
 
-    asset_list = Asset.nodeList()
-    #first go through and create materials if we need them
-    for node in asset_list:
-        nodeClass = node.nodeClass()
-        if nodeClass == 'root':
-            mat = bpy.data.materials.new(Asset.label())
-            mat.use_nodes = True
-            nt = mat.node_tree
+    mat = bpy.data.materials.new(Asset.label())
+    mat.use_nodes = True
+    nt = mat.node_tree       
+
+    # create output node
+    output_node = nt.nodes.new('RendermanOutputNode')
 
     curr_x = 250
     for node in Asset.nodeList():
@@ -1304,12 +1302,16 @@ def createNodes(Asset):
             curr_x = curr_x + 250
             created_node.name = nodeId
             created_node.label = nodeId
+
+            nt.links.new(created_node.outputs['Bxdf'], output_node.inputs['Bxdf'])            
         elif nodeClass == 'displace':
             created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
             created_node.location[0] = -curr_x
             curr_x = curr_x + 250
             created_node.name = nodeId
             created_node.label = nodeId
+
+            nt.links.new(created_node.outputs['Displacement'], output_node.inputs['Displacement'])            
         elif nodeClass == 'pattern':
             if node.externalOSL():
                 # if externalOSL() is True, it is a dynamic OSL node i.e. one
@@ -1349,9 +1351,7 @@ def createNodes(Asset):
                         raise RmanAssetBlenderError(err)
 
         elif nodeClass == 'root':
-            created_node = nt.nodes.new('RendermanOutputNode')
-            created_node.name = nodeId
-            created_node.label = nodeId
+            continue
         elif nodeClass == 'light':
             # if the helper object isn't there, create one. it's the first
             # light node from JSON.
@@ -1434,8 +1434,17 @@ def connectNodes(Asset, nt, nodeDict):
     for con in Asset.connectionList():
         #print('+ %s.%s -> %s.%s' % (nodeDict[con.srcNode()](), con.srcParam(),
         #                             nodeDict[con.dstNode()](), con.dstParam()))
-        srcNode = nt.nodes[nodeDict[con.srcNode()]]
-        dstNode = nt.nodes[nodeDict[con.dstNode()]]
+
+        srcName = nodeDict.get(con.srcNode(), '')
+        dstName = nodeDict.get(con.dstNode(), '')
+        if srcName == '' or dstName == '':
+            continue
+
+        srcNode = nt.nodes.get(srcName, None)
+        dstNode = nt.nodes.get(dstName, None)
+
+        if srcNode == None or dstNode == None:
+            continue
 
         srcSocket = con.srcParam()
         dstSocket = con.dstParam()
