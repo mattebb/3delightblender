@@ -320,7 +320,12 @@ class RmanSceneSync(object):
 
             elif isinstance(obj.id, bpy.types.Collection):
                 rfb_log().debug("Collection updated")
-                if not new_objs:
+                if new_objs:
+                    # don't do a collection check or an delete object
+                    # check if we've already determined a new object was
+                    # added to the scene
+                    continue
+                else:
                     do_delete = True
                 
                 # mark all objects in a collection
