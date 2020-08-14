@@ -96,6 +96,7 @@ class RmanScene(object):
         self.is_swatch_render = False
         self.scene_solo_light = False
         self.scene_any_lights = False
+        self.is_xpu = False
 
         self.rman_materials = dict()
         self.rman_objects = dict()
@@ -176,7 +177,8 @@ class RmanScene(object):
         self.render_default_light = False
         self.world_df_node = None
         self.default_light = None        
-        self.viewport_render_res_mult = 1.0    
+        self.viewport_render_res_mult = 1.0  
+        self.is_xpu = False  
 
     def export_for_final_render(self, depsgraph, sg_scene, bl_view_layer, is_external=False):
         self.sg_scene = sg_scene
@@ -263,6 +265,7 @@ class RmanScene(object):
         self.reset()
 
         self.render_default_light = self.bl_scene.renderman.render_default_light
+        self.is_xpu = (self.bl_scene.renderman.renderVariant != 'prman')
 
         # update variables
         string_utils.set_var('scene', self.bl_scene.name)

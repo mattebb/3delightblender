@@ -342,8 +342,9 @@ class RmanMaterialTranslator(RmanTranslator):
                     
             else:
                 shader = node.bl_label
-                if not shader.endswith('.oso') and self.rman_scene.bl_scene.renderman.opt_useOSLPatterns:
-                    shader = '%s.oso' % shader
+                if not shader.endswith('.oso'):
+                    if self.rman_scene.is_xpu or self.rman_scene.bl_scene.renderman.opt_useOSLPatterns:
+                        shader = '%s.oso' % shader
                 sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", shader, instance)
         elif node.renderman_node_type == "light":
             light_group_name = ''            
