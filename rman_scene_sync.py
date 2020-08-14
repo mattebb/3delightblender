@@ -272,10 +272,10 @@ class RmanSceneSync(object):
                 rman_type = object_utils._detect_primitive_(ob)
 
                 if obj.id.original not in self.rman_scene.rman_objects:
-                    rfb_log().debug("New object added: %s" % obj.id.name)
-                    if ob.type == 'CAMERA' and not self.rman_scene.is_viewport_render:
+                    if ob.type == 'CAMERA': 
                         new_cams.append(obj.id.original)
                     else:
+                        rfb_log().debug("New object added: %s" % obj.id.name)
                         if ob.type == 'EMPTY' and ob.is_instancer:
                             _check_empty(ob)
                         else:
@@ -330,7 +330,7 @@ class RmanSceneSync(object):
 
             elif isinstance(obj.id, bpy.types.Collection):
                 rfb_log().debug("Collection updated")
-                if new_objs:
+                if new_objs or new_cams:
                     # don't do a collection check or an delete object
                     # check if we've already determined a new object was
                     # added to the scene
