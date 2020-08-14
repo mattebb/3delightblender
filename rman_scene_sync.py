@@ -279,6 +279,16 @@ class RmanSceneSync(object):
                         if ob.type == 'EMPTY' and ob.is_instancer:
                             _check_empty(ob)
                         else:
+                            if rman_type == 'LIGHT':
+                                # double check if this light is an rman light
+                                # for now, we don't support adding Blender lights in IPR
+                                #
+                                # we can also get to this point when adding new rman lights because
+                                # blender will tell us a new light has been added before we've had to chance
+                                # to modify its properties to be an rman light, so we don't want to
+                                # add this light just yet.
+                                if not shadergraph_utils.is_rman_light(ob):
+                                    continue
                             new_objs.append(obj.id.original)
                             update_instances.append(obj.id.original)
                     continue              
