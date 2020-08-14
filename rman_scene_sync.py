@@ -594,3 +594,9 @@ class RmanSceneSync(object):
     def update_viewport_chan(self, context, chan_name):
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
             self.rman_scene.export_samplefilters(sel_chan_name=chan_name)
+
+    def update_displays(self, context):
+        self.rman_scene.bl_scene = context.scene    
+        self.rman_scene._find_renderman_layer()
+        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+            self.rman_scene.export_displays()          

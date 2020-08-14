@@ -10,6 +10,7 @@ from ..rman_utils import string_utils
 from ..rman_utils import scene_utils
 from ..rman_utils.draw_utils import _draw_ui_from_rman_config
 from .. import rman_config
+from ..rman_render import RmanRender
 
 class COLLECTION_OT_rman_dspy_add_remove(bpy.types.Operator):
     bl_label = "Add or Remove RenderMan Displays"
@@ -352,6 +353,9 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
 
             col.prop(rl, "use_pass_ambient_occlusion")
         else:
+            rman_render = RmanRender.get_rman_render()            
+            if rman_render.rman_interactive_running:            
+                layout.operator("renderman.dspy_displays_reload")            
             layout.operator_menu_enum(
                 "renderman.dspy_rman_add_dspy_template", 'dspy_template', text="Add Display Template")  
             layout.context_pointer_set("pass_list", rm_rl)
@@ -496,6 +500,19 @@ class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
      
         return {"FINISHED"}        
 
+class PRMAN_OT_Renderman_Displays_Reload(Operator):
+    """AOVs Reaload"""
+
+    bl_idname = "renderman.dspy_displays_reload"
+    bl_label = "Displays Reload"
+    bl_description = "Tell RenderMan to re-read the displays during IPR"
+
+    def execute(self, context):     
+        rman_render = RmanRender.get_rman_render()   
+        if rman_render.rman_interactive_running:         
+            rman_render.rman_scene_sync.update_displays(context) 
+
+        return {"FINISHED"}           
 
 classes = [
     COLLECTION_OT_rman_dspy_add_remove,
@@ -507,7 +524,8 @@ classes = [
     PRMAN_UL_Renderman_channel_list,
     RENDER_PT_layer_custom_aovs,
     RENDER_PT_layer_options,
-    PRMAN_OT_add_renderman_aovs
+    PRMAN_OT_add_renderman_aovs,
+    PRMAN_OT_Renderman_Displays_Reload
 ]
 
 def register():
