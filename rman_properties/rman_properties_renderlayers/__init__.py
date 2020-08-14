@@ -24,9 +24,16 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
             default="lpe:C[<.D><.S>][DS]*[<L.>O]"
             )
 
-    channel_type: StringProperty(name="Channel Type",
+    channel_type: EnumProperty(name="Channel Type",
             description="Channel type",
-            default='color'
+            items=[
+                ("color", "color", ""),
+                ("float", "float", ""),
+                ("vector", "vector", ""),
+                ("normal", "normal", ""),
+                ("point", "point", ""),
+                ("int", "int", "")],
+            default="color"
             )            
 
     custom_lpe_string: StringProperty(
