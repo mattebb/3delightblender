@@ -100,7 +100,7 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
     if rm.export_default_vcol:
         vcols = _get_mesh_vcol_(geo)
         if vcols and len(vcols) > 0:
-            rixparams.SetColorDetail("Cs", string_utils.convert_val(vcols, type_hint="color"), interpolation)
+            rixparams.SetColorDetail("Cs", string_utils.convert_val(vcols, type_hint="color"), "vertex")
     
     # custom prim vars
 
@@ -109,7 +109,7 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
             vcols = _get_mesh_vcol_(geo, p.data_name)
             
             if vcols and len(vcols) > 0:
-                rixparams.SetColorDetail(p.name, string_utils.convert_val(vcols, type_hint="color"), interpolation)
+                rixparams.SetColorDetail(p.name, string_utils.convert_val(vcols, type_hint="color"), "vertex")
             
         elif p.data_source == 'UV_TEXTURE':
             uvs = _get_mesh_uv_(geo, p.data_name)
