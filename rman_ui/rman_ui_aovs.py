@@ -108,6 +108,7 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
         items = []
         pages = dict()
         i = 1
+        items.append(('Custom', 'Custom', '', 0))
         for nm,settings in rman_config.__RMAN_DISPLAY_CHANNELS__.items():
             page_nm = settings['group']
             lst = None
@@ -133,15 +134,16 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
         rm_rl = scene_utils.get_renderman_layer(context)
 
         if rm_rl:
-            aov = rm_rl.custom_aovs[rm_rl.custom_aov_index]
-            chan = aov.dspy_channels.add()
-
             selected_chan = self.properties.channel_selector
-            settings = rman_config.__RMAN_DISPLAY_CHANNELS__[selected_chan]
-            chan.name = selected_chan
+            aov = rm_rl.custom_aovs[rm_rl.custom_aov_index]            
+            chan = aov.dspy_channels.add()
+            chan.name = selected_chan    
             chan.channel_name = selected_chan
-            chan.channel_source = settings['channelSource']
-            chan.channel_type = settings['channelType']
+
+            settings = rman_config.__RMAN_DISPLAY_CHANNELS__.get(selected_chan, None)
+            if settings:
+                chan.channel_source = settings['channelSource']
+                chan.channel_type = settings['channelType']
 
         return{'FINISHED'}       
 

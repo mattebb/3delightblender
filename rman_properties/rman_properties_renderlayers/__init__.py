@@ -20,11 +20,13 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     channel_name: StringProperty()
 
     channel_source: StringProperty(name="Channel Source",
-            description="Source definition for the channel"
+            description="Source definition for the channel",
+            default="lpe:C[<.D><.S>][DS]*[<L.>O]"
             )
 
     channel_type: StringProperty(name="Channel Type",
-            description="Channel type"
+            description="Channel type",
+            default='color'
             )            
 
     custom_lpe_string: StringProperty(
