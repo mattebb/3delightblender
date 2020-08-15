@@ -41,9 +41,9 @@ def get_group_db_name(ob_inst):
             #    group_db_name = "%s|%s|%s|%d|%d" % (parent.name_full, ob.parent.name_full, ob.name_full, ob_inst.persistent_id[0], ob_inst.persistent_id[1])
             #else:
             if psys:
-                group_db_name = "%s|%s|%s|%d|%d" % (parent.name_full, ob.name_full, psys.name, ob_inst.persistent_id[0], ob_inst.persistent_id[1])
+                group_db_name = "%s|%s|%s|%d|%d" % (parent.name_full, ob.name_full, psys.name, ob_inst.persistent_id[1], ob_inst.persistent_id[0])
             else:
-                group_db_name = "%s|%s|%d|%d" % (parent.name_full, ob.name_full, ob_inst.persistent_id[0], ob_inst.persistent_id[1])
+                group_db_name = "%s|%s|%d|%d" % (parent.name_full, ob.name_full, ob_inst.persistent_id[1], ob_inst.persistent_id[0])
         else:
             ob = ob_inst.object
             group_db_name = "%s" % (ob.name_full)

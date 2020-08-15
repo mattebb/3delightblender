@@ -684,10 +684,7 @@ class RmanScene(object):
 
             if group_db_name in rman_sg_node.instances:
                 # we've already added this instance
-                #return
-                rman_sg_group = rman_sg_node.instances.get(group_db_name)
-                rman_sg_group.sg_node.SetHidden(0)
-
+                return
             else:
 
                 if not ob.original in self.processed_obs:

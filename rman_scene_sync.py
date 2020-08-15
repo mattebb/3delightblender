@@ -407,34 +407,33 @@ class RmanSceneSync(object):
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
             # delete all instances for each object in the
             # update_instances list
-            # even if it's a simple a transform, we still have to delete all
-            # the instances as this could be coming from a particle system where
-            # some instances aren't there any more
             #
-            # For now, rather than delete the instance from the scene graph, we hide it
-            # Deleting from the scene graph is an expensive operation. The theory being
-            # that in most cases the instance will come back, eventually, so we choose
-            # hiding/unhiding and take the memory hit.
+            # even if it's a simple a transform, we still have to delete all
+            # the instances as this could be part of a particle system, or
+            # the object is instanced at the vertices/faces of another object
+            #
+            # in these cases, Blender only seems to tell us that the object has
+            # transformed; it does not tell us whether instances of the object
+            # has been removed
+
             for ob in update_instances:
                 rfb_log().debug("Deleting instances of: %s" % ob.name)
                 rman_sg_node = self.rman_scene.rman_objects.get(ob, None) 
                 if rman_sg_node:
                     for k,rman_sg_group in rman_sg_node.instances.items():
-                        #self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
-                        rman_sg_group.sg_node.SetHidden(1)
-                    #rman_sg_node.instances.clear()         
-            parent = None
+                        self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
+                    rman_sg_node.instances.clear()         
+
+            rfb_log().debug("Re-emit instances")
             for ob_inst in self.rman_scene.depsgraph.object_instances: 
                 if ob_inst.is_instance:
                     ob = ob_inst.instance_object
-                    parent = ob_inst.parent
                 else:
                     ob = ob_inst.object
 
                 if ob.original not in update_instances:
                     continue
 
-                rfb_log().debug("Re-emit instance: %s" % ob.name)
                 self.rman_scene._export_instance(ob_inst)                              
 
         # delete any objects, if necessary    
