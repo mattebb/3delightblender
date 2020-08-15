@@ -86,6 +86,20 @@ class RmanTranslator(object):
 
         rman_sg_node.sg_node.SetPrimVars(primvars)
 
+    def export_object_id(self, ob, rman_sg_node, ob_inst):
+        name = ob.name_full
+        attrs = rman_sg_node.sg_node.GetAttributes()
+
+        # Add ID
+        if name != "":            
+            persistent_id = ob_inst.persistent_id[0]
+            if persistent_id == 0:
+                persistent_id = hash(ob.name_full) % 10**8                   
+            self.rman_scene.obj_hash[persistent_id] = name
+            attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_identifier_id, persistent_id)
+
+        rman_sg_node.sg_node.SetAttributes(attrs)      
+
     def export_object_attributes(self, ob, rman_sg_node):
 
         name = ob.name_full
@@ -115,12 +129,6 @@ class RmanTranslator(object):
                 array_len = meta['arraySize']
             param_type = meta['renderman_type']
             property_utils.set_rix_param(attrs, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len, node=rm)             
-
-        # Add ID
-        if name != "":            
-            obj_id = len(self.rman_scene.obj_hash.keys())+1
-            self.rman_scene.obj_hash[obj_id] = name
-            attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_identifier_id, obj_id)
 
         obj_groups_str = "World"
         obj_groups_str += "," + name

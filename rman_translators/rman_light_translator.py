@@ -56,18 +56,7 @@ class RmanLightTranslator(RmanTranslator):
         pass
 
     def export_object_attributes(self, ob, rman_sg_node):
-
-        name = ob.name_full
-        rm = ob.renderman
-        attrs = rman_sg_node.sg_node.GetAttributes()
-
-        # Add ID
-        if name != "":            
-            obj_id = len(self.rman_scene.obj_hash.keys())+1
-            self.rman_scene.obj_hash[obj_id] = name
-            attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_identifier_id, obj_id)
-
-        rman_sg_node.sg_node.SetAttributes(attrs)         
+        pass
 
     def export(self, ob, db_name):
 
