@@ -411,9 +411,8 @@ def rman_object_context_menu(self, context):
     layout = self.layout      
     if rd.engine != 'PRMAN_RENDER':
         layout.operator('renderman.use_renderman', text='Use RenderMan', icon_value=rfb_icons.get_icon("rman_blender").icon_id)        
-        return    
-
-    layout.menu('VIEW3D_MT_renderman_object_context_menu', text='RenderMan', icon_value=bpy.types.VIEW3D_MT_renderman_add_object_menu.get_icon_id())    
+    else:
+        layout.menu('VIEW3D_MT_renderman_object_context_menu', text='RenderMan', icon_value=bpy.types.VIEW3D_MT_renderman_add_object_menu.get_icon_id())    
 
 classes = [
     VIEW3D_MT_renderman_add_object_menu,
