@@ -141,15 +141,18 @@ class RmanCameraTranslator(RmanTranslator):
         height = int(region.height * res_mult)      
 
         updated = False
+        resolution_updated = False
         ob = None
         prop = rman_sg_camera.sg_node.GetProperties()
         if rman_sg_camera.res_width != width:
             rman_sg_camera.res_width = width
             updated = True
+            resolution_updated = True
         
         if rman_sg_camera.res_height != height:
             rman_sg_camera.res_height = height                
             updated = True      
+            resolution_updated = True
 
         if region_data:
             if rman_sg_camera.view_perspective != region_data.view_perspective:
@@ -306,6 +309,18 @@ class RmanCameraTranslator(RmanTranslator):
             options = self.rman_scene.sg_scene.GetOptions()
             options.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)   
             options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (width, height), 2)
+            if resolution_updated:
+
+                # This is super yucky. We need to be able to tell the 
+                # crop handler to stop drawing and reset the 
+                # crop window when the resolution changes. Unfortunately
+                # Blender doesn't seem to allow us to call operators during this
+                # state, so we tell the handler to reset directly. 
+                from ..rman_ui.rman_ui_viewport import __DRAW_CROP_HANDLER__ as crop_handler
+                if crop_handler and crop_handler.crop_windowing:
+                    crop_handler.reset()
+                options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_CropWindow, [0.0, 1.0, 0.0, 1.0], 4)
+
             self.rman_scene.sg_scene.SetOptions(options)
             rman_sg_camera.sg_node.SetProperties(prop)
             return ob

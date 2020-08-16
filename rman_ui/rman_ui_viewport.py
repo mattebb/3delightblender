@@ -203,8 +203,8 @@ class DrawCropWindowHelper(object):
         self.del_c3 = (-1, -1)
         self.del_c4 = (-1, -1)
 
-        self.__crop_windowing = False    
-        self.__edit_cropwindow = False
+        self.crop_windowing = False    
+        self.edit_cropwindow = False
 
     @property
     def crop_windowing(self):
@@ -223,8 +223,7 @@ class DrawCropWindowHelper(object):
         self.__edit_cropwindow = edit_cropwindow                               
 
     def valid_crop_window(self):
-        t = self.cw_c1[0] * self.cw_c1[0] * self.cw_c2[0] * self.cw_c2[0] * self.cw_c3[0] * self.cw_c3[0] * self.cw_c4[0] * self.cw_c4[0]
-        return t != -1
+        return not (self.cw_c1[0] == -1 and self.cw_c1[0] == -1 and self.cw_c2[0] == -1 and self.cw_c2[0] == -1 and self.cw_c3[0] == -1 and self.cw_c3[0] == -1 and  self.cw_c4[0] == -1 and self.cw_c4[0] == -1 )
 
     def draw(self):
         if not self.valid_crop_window():
