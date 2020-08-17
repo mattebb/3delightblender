@@ -48,21 +48,25 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         op = layout.operator('object.rman_add_rman_geo', text='RIB Archive', icon_value=rman_icon.icon_id)
         op.rman_prim_type = 'DELAYED_LOAD_ARCHIVE'
         op.rman_default_name = 'RIB_Archive'    
+        op.bl_prim_type = ''
         op.rman_open_filebrowser = True    
 
         op = layout.operator('object.rman_add_rman_geo', text='RunProgram')
         op.rman_prim_type = 'PROCEDURAL_RUN_PROGRAM'
         op.rman_default_name = 'RiRunProgram'          
+        op.bl_prim_type = ''
         op.rman_open_filebrowser = True
 
         op = layout.operator('object.rman_add_rman_geo', text='RiProcedural')
         op.rman_prim_type = 'DYNAMIC_LOAD_DSO'
         op.rman_default_name = 'RiProcedural'            
+        op.bl_prim_type = ''
         op.rman_open_filebrowser = True
         
         op = layout.operator('object.rman_add_rman_geo', text='Brickmap Geometry')
         op.rman_prim_type = 'BRICKMAP'
         op.rman_default_name = 'BrickmapGeo'          
+        op.bl_prim_type = ''
         op.rman_open_filebrowser = True
 
 class VIEW3D_MT_renderman_add_object_volumes_menu(Menu):
@@ -90,7 +94,8 @@ class VIEW3D_MT_renderman_add_object_volumes_menu(Menu):
         rman_icon = rfb_icons.get_icon('out_PxrVolume')
         op = layout.operator('object.rman_add_rman_geo', text='Volume Box', icon_value=rman_icon.icon_id)
         op.rman_prim_type = 'RI_VOLUME'
-        op.rman_default_name = 'RiVolume'                         
+        op.rman_default_name = 'RiVolume'   
+        op.rman_open_filebrowser = False                      
 
 
 class VIEW3D_MT_renderman_add_object_quadrics_menu(Menu):
@@ -107,22 +112,32 @@ class VIEW3D_MT_renderman_add_object_quadrics_menu(Menu):
         op = layout.operator('object.rman_add_rman_geo', text='Sphere', icon='MESH_UVSPHERE')
         op.rman_prim_type = 'QUADRIC'
         op.rman_quadric_type = 'SPHERE'
+        op.bl_prim_type = ''
+        op.rman_open_filebrowser = False
 
         op = layout.operator('object.rman_add_rman_geo', text='Cylinder', icon='MESH_CYLINDER')
         op.rman_prim_type = 'QUADRIC'
         op.rman_quadric_type = 'CYLINDER'
+        op.bl_prim_type = ''
+        op.rman_open_filebrowser = False
 
         op = layout.operator('object.rman_add_rman_geo', text='Cone', icon='MESH_CONE')
         op.rman_prim_type = 'QUADRIC'
         op.rman_quadric_type = 'CONE'
+        op.bl_prim_type = ''
+        op.rman_open_filebrowser = False
 
         op = layout.operator('object.rman_add_rman_geo', text='Disk', icon='MESH_CIRCLE')
         op.rman_prim_type = 'QUADRIC'
-        op.rman_quadric_type = 'DISK'      
+        op.rman_quadric_type = 'DISK'   
+        op.bl_prim_type = ''
+        op.rman_open_filebrowser = False   
 
         op = layout.operator('object.rman_add_rman_geo', text='Torus', icon='MESH_TORUS')
         op.rman_prim_type = 'QUADRIC'
-        op.rman_quadric_type = 'TORUS'                                 
+        op.rman_quadric_type = 'TORUS'  
+        op.bl_prim_type = ''
+        op.rman_open_filebrowser = False                               
 
 class VIEW3D_MT_renderman_object_context_menu(Menu):
     bl_label = "RenderMan"
