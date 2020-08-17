@@ -38,9 +38,7 @@ def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
         params.SetColor('emitColor', col)     
         rman_sg_material.sg_stroke_mat.SetBxdf([bxdf]) 
     else:
-        if bl_image.packed_file:
-            bl_image.unpack()
-        real_file = bpy.path.abspath(bl_image.filepath, library=bl_image.library)            
+        real_file = texture_utils.get_blender_image_path(bl_image)
 
         manifold_handle = '%s-PxrManifold2D' % handle
         manifold = rman.SGManager.RixSGShader("Pattern", "PxrManifold2D", manifold_handle) 
@@ -102,10 +100,8 @@ def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
         #params.SetColor('emitColor', [0.0, 0.0, 0.0])     
         params.SetColor('emitColor', col)
         rman_sg_material.sg_fill_mat.SetBxdf([bxdf]) 
-    else:
-        if bl_image.packed_file:
-            bl_image.unpack()
-        real_file = bpy.path.abspath(bl_image.filepath, library=bl_image.library)        
+    else:   
+        real_file = texture_utils.get_blender_image_path(bl_image)
 
         manifold_handle = '%s-PxrManifold2D' % handle
         manifold = rman.SGManager.RixSGShader("Pattern", "PxrManifold2D", manifold_handle) 

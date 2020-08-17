@@ -24,6 +24,7 @@
 # ##### END MIT LICENSE BLOCK #####
 import bpy
 from .rman_utils import filepath_utils
+from .rman_utils import texture_utils
 
 converted_nodes = {}
 report = None
@@ -142,10 +143,9 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
 
 
 def convert_tex_image_node(nt, cycles_node, rman_node):
-    if cycles_node.image:
-        if cycles_node.image.packed_file:
-            cycles_node.image.unpack()
-        img_path = bpy.path.abspath(cycles_node.image.filepath, library=cycles_node.image.library)
+    bl_image = cycles_node.image
+    if bl_image:
+        img_path = texture_utils.get_blender_image_path(bl_image)
         if img_path != '':
             setattr(rman_node, 'filename', img_path)
 

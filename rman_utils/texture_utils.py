@@ -182,15 +182,19 @@ def recursive_texture_set(ob):
 
     return mat_set    
 
+def get_blender_image_path(bl_image):
+    if bl_image.packed_file:
+        bl_image.unpack()
+    real_file = bpy.path.abspath(bl_image.filepath, library=bl_image.library)          
+    return real_file 
+
 def add_images_from_image_editor():
     
     # convert images in the image editor
     for img in bpy.data.images:
         if img.type != 'IMAGE':
             continue
-        if img.packed_file:
-            img.unpack()
-        img_path = bpy.path.abspath(img.filepath, library=img.library)
+        img_path = get_blender_image_path(img)
         if img_path != '' and os.path.exists(img_path): 
             nodeID = str(uuid.uuid1())
             txfile = get_txmanager().txmanager.add_texture(nodeID, img_path)        
