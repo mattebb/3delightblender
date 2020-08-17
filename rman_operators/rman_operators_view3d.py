@@ -73,6 +73,12 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
                 bpy.ops.node.rman_new_material_override('EXEC_DEFAULT', bxdf_name='PxrVolume')
             elif self.properties.bl_prim_type == 'VOLUME':
                 bpy.ops.object.rman_add_bxdf('EXEC_DEFAULT', bxdf_name='PxrVolume')
+                mat = ob.active_material
+                nt = mat.node_tree
+                output = shadergraph_utils.find_node(mat, 'RendermanOutputNode')
+                bxdf = output.inputs['Bxdf'].links[0].from_node
+                bxdf.densityFloatPrimVar = 'density'
+
         if self.properties.rman_open_filebrowser:
             if rm.primitive == 'DELAYED_LOAD_ARCHIVE':
                 rm.path_archive = self.properties.filepath
