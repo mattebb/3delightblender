@@ -259,8 +259,7 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
     bl_description = "Convert selected object to a mesh light"
     bl_options = {"REGISTER", "UNDO"}
 
-    def execute(self, context):
-        selection = bpy.context.selected_objects 
+    def create_mesh_light_material(self, context):
         mat = bpy.data.materials.new("PxrMeshLight")
 
         mat.use_nodes = True
@@ -282,12 +281,18 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
 
         output.inputs[3].hide = True            
 
+        return mat
+
+    def execute(self, context):
+        selection = bpy.context.selected_objects 
+
         for obj in selection:
             if(obj.type not in EXCLUDED_OBJECT_TYPES):
                 if shadergraph_utils.is_mesh_light(obj):
                     continue
                 if obj.type == 'EMPTY':
                     continue
+                mat = self.create_mesh_light_material(context)
                 material_slots = getattr(obj, 'material_slots', None)
                 if material_slots:
                     obj.active_material = mat

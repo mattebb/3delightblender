@@ -288,7 +288,7 @@ class RmanSceneSync(object):
                                 # to modify its properties to be an rman light, so we don't want to
                                 # add this light just yet.
                                 if not shadergraph_utils.is_rman_light(ob):
-                                    continue
+                                    return
                             new_objs.append(obj.id.original)
                             update_instances.append(obj.id.original)
                     continue              
