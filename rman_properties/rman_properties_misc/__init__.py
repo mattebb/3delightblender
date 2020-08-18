@@ -28,10 +28,20 @@ class RendermanLightGroup(bpy.types.PropertyGroup):
         for member in self.members:            
             member.light_ob.update_tag(refresh={'DATA'})
 
+    def update_members_index(self, context):
+        member = self.members[self.members_index]
+        light_ob = member.light_ob
+                
+        if context.view_layer.objects.active:
+            context.view_layer.objects.active.select_set(False)
+        light_ob.select_set(True)
+        context.view_layer.objects.active = light_ob        
+        
     name: StringProperty(name="Group Name", update=update_name)
     members: CollectionProperty(type=RendermanLightPointer,
                                  name='Group Members')
-    members_index: IntProperty(min=-1, default=-1) 
+    members_index: IntProperty(min=-1, default=-1,
+                                 update=update_members_index) 
 
 class RendermanObjectPointer(bpy.types.PropertyGroup):
     def update_name(self, context):

@@ -222,7 +222,8 @@ class PRMAN_OT_add_light_to_light_mixer_group(bpy.types.Operator):
     bl_label = 'Add Selected Light to Light Mixer Group' 
 
     group_index: IntProperty(default=0)
-    do_scene_selected: BoolProperty(name="do_scene_selected", default=False)    
+    do_scene_selected: BoolProperty(name="do_scene_selected", default=False)  
+    open_editor: BoolProperty(default=False)  
 
     def add_selected(self, context):
         scene = context.scene
@@ -277,6 +278,8 @@ class PRMAN_OT_add_light_to_light_mixer_group(bpy.types.Operator):
         else:
             self.add_selected(context)
 
+        if self.properties.open_editor:
+            bpy.ops.scene.rman_open_light_mixer_editor('INVOKE_DEFAULT')
         return {'FINISHED'}   
 
 class PRMAN_OT_remove_light_from_light_mixer_group(bpy.types.Operator):
@@ -309,6 +312,7 @@ class PRMAN_OT_add_to_group(bpy.types.Operator):
 
     group_index: IntProperty(default=-1)
     do_scene_selected: BoolProperty(name="do_scene_selected", default=False)
+    open_editor: BoolProperty(default=False)
 
     def add_selected(self, context):
         scene = context.scene
@@ -360,6 +364,10 @@ class PRMAN_OT_add_to_group(bpy.types.Operator):
             self.add_scene_selected(context)
         else:
             self.add_selected(context)
+
+        if self.properties.open_editor:
+            bpy.ops.scene.rman_open_groups_editor('INVOKE_DEFAULT')            
+        
         return {'FINISHED'}
 
 class PRMAN_OT_remove_from_group(bpy.types.Operator):
