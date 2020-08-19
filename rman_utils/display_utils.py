@@ -89,9 +89,6 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
     dspy_params = {}                        
     dspy_params['displayChannels'] = []
 
-    if rm.render_into == 'blender':
-        display_driver = 'blender'
-
     d = _default_dspy_params()
     d[u'channelSource'] = {'type': u'string', 'value': 'Ci'}
     d[u'channelType'] = { 'type': u'string', 'value': 'color'}       
@@ -118,8 +115,7 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
         'params': dspy_params,
         'dspyDriverParams': None}
 
-    if rm.render_into == 'blender':
-        if rman_scene.is_viewport_render:
+    if display_driver == 'blender' and rman_scene.is_viewport_render:
             display_driver = 'null'
 
     if rman_scene.is_interactive:
@@ -267,16 +263,10 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             param_list = rman_scene.rman.Types.ParamList()
             dspy_driver_settings = getattr(aov, '%s_settings' % display_driver)
             property_utils.set_node_rixparams(dspy_driver_settings, None, param_list, None)            
-        elif rm.render_into == 'blender': 
+        elif display_driver == 'blender': 
             if rman_scene.is_viewport_render:
-                if aov.name == 'beauty':
-                    display_driver = 'blender'
-                else:
-                    display_driver = 'null'
-            else:
-                display_driver = 'blender'    
-        else:
-            display_driver = 'it'
+                if aov.name != 'beauty':
+                    display_driver = 'null'   
 
         if rman_scene.rman_bake:            
             filePath = rm.path_bake_illum_ptc
@@ -380,8 +370,12 @@ def _set_rman_holdouts_dspy_dict(dspys_dict, dspy_drv, rman_scene, expandTokens)
     rm = rman_scene.bl_scene.renderman
     display_driver = dspy_drv
 
-    if rm.render_into == 'blender':
-        if rman_scene.is_viewport_render:
+    if not display_driver:
+        display_driver = __BLENDER_TO_RMAN_DSPY__.get(rman_scene.bl_scene.render.image_settings.file_format, 'openexr')
+        param_list = rman_scene.rman.Types.ParamList()
+        param_list.SetInteger('asrgba', 1)
+
+    if display_driver == 'blender' and rman_scene.is_viewport_render:
             display_driver = 'null'
 
     dspy_params = {}                        
@@ -496,15 +490,13 @@ def get_dspy_dict(rman_scene, expandTokens=True):
     display_driver = None
 
     if rman_scene.is_interactive:
-        if rman_scene.is_viewport_render:
-            display_driver = 'blender'
-        else:
-            display_driver = 'it'
+        display_driver = rm.render_into
 
-    elif (not rman_scene.external_render) and (rm.render_into == 'it'):
-        # if preview render and render_into is set to "it"
-        # we ignore the display driver setting in the AOV and render to "it"
-        display_driver = 'it'
+    elif (not rman_scene.external_render): 
+        # if preview render
+        # we ignore the display driver setting in the AOV and render to whatever
+        # render_into is set to
+        display_driver = rm.render_into
        
     if rm_rl:     
         _set_rman_dspy_dict(rm_rl, dspys_dict, display_driver, rman_scene, expandTokens)        

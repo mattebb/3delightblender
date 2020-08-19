@@ -87,15 +87,19 @@ class RmanSpool(object):
         rm = scene.renderman
         bl_view_layer = self.depsgraph.view_layer
 
-
         frame_begin = self.bl_scene.frame_start
         frame_end = self.bl_scene.frame_end
         if not rm.external_animation:
             frame_begin = self.bl_scene.frame_current
             frame_end = frame_begin
-        
-        alf_file = os.path.splitext(bpy.data.filepath)[0] + '.%s.alf' % bl_view_layer.name.replace(' ', '_')
 
+        bl_filename = bpy.data.filepath
+        if bl_filename == '':
+            alf_file = string_utils.expand_string('{OUT}/{scene}.{layer}.alf', 
+                                                asFilePath=True)            
+        else:
+            alf_file = os.path.splitext(bl_filename)[0] + '.%s.alf' % bl_view_layer.name.replace(' ', '_')            
+        
         # open file
         f = open(alf_file, 'w')
 
@@ -178,7 +182,12 @@ class RmanSpool(object):
             frame_begin = self.bl_scene.frame_current
             frame_end = frame_begin
         
-        alf_file = os.path.splitext(bpy.data.filepath)[0] + '.%s.alf' % bl_view_layer.name.replace(' ', '_')
+        bl_filename = bpy.data.filepath
+        if bl_filename == '':
+            alf_file = string_utils.expand_string('{OUT}/{scene}.{layer}.alf', 
+                                                asFilePath=True)            
+        else:
+            alf_file = os.path.splitext(bl_filename)[0] + '.%s.alf' % bl_view_layer.name.replace(' ', '_')
 
         # open file
         f = open(alf_file, 'w')
