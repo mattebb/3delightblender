@@ -91,6 +91,7 @@ class RmanSpool(object):
         frame_begin = self.bl_scene.frame_start
         frame_end = self.bl_scene.frame_end
         if not rm.external_animation:
+            frame_begin = self.bl_scene.frame_current
             frame_end = frame_begin
         
         alf_file = os.path.splitext(bpy.data.filepath)[0] + '.%s.alf' % bl_view_layer.name.replace(' ', '_')
@@ -174,6 +175,7 @@ class RmanSpool(object):
         frame_begin = self.bl_scene.frame_start
         frame_end = self.bl_scene.frame_end
         if not rm.external_animation:
+            frame_begin = self.bl_scene.frame_current
             frame_end = frame_begin
         
         alf_file = os.path.splitext(bpy.data.filepath)[0] + '.%s.alf' % bl_view_layer.name.replace(' ', '_')
