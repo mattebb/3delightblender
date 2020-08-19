@@ -33,7 +33,18 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     light_links: CollectionProperty(type=LightLinking,
                             name='Light Links')
 
-    light_links_index: IntProperty(min=-1, default=-1)
+    def update_light_link_index(self, context):
+        scene = context.scene
+        rm = scene.renderman
+        light_links = rm.light_links[rm.light_links_index]
+        light_ob = light_links.light_ob
+                
+        if context.view_layer.objects.active:
+            context.view_layer.objects.active.select_set(False)
+        light_ob.select_set(True)
+        context.view_layer.objects.active = light_ob    
+
+    light_links_index: IntProperty(min=-1, default=-1, update=update_light_link_index)
 
     render_layers: CollectionProperty(type=RendermanRenderLayerSettings,
                                        name='Custom AOVs')

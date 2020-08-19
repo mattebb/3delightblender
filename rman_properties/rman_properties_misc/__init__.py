@@ -60,10 +60,19 @@ class RendermanGroup(bpy.types.PropertyGroup):
         for member in self.members:
             member.ob_pointer.update_tag(refresh={'OBJECT'})
 
+    def update_members_index(self, context):
+        member = self.members[self.members_index]
+        ob = member.ob_pointer
+                
+        if context.view_layer.objects.active:
+            context.view_layer.objects.active.select_set(False)
+        ob.select_set(True)
+        context.view_layer.objects.active = ob                  
+
     name: StringProperty(name="Group Name", update=update_name)
     members: CollectionProperty(type=RendermanObjectPointer,
                                  name='Group Members')
-    members_index: IntProperty(min=-1, default=-1)
+    members_index: IntProperty(min=-1, default=-1, update=update_members_index)
 
 class LightLinking(bpy.types.PropertyGroup):
 
@@ -95,7 +104,16 @@ class LightLinking(bpy.types.PropertyGroup):
     members: CollectionProperty(type=RendermanObjectPointer,
                                  name='Group Members')    
 
-    members_index: IntProperty(min=-1, default=-1)                                      
+    def update_members_index(self, context):
+        member = self.members[self.members_index]
+        ob = member.ob_pointer
+                
+        if context.view_layer.objects.active:
+            context.view_layer.objects.active.select_set(False)
+        ob.select_set(True)
+        context.view_layer.objects.active = ob                                      
+
+    members_index: IntProperty(min=-1, default=-1, update=update_members_index)                                      
 
     illuminate: EnumProperty(
         name="Illuminate",

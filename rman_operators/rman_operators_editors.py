@@ -150,6 +150,16 @@ class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Oper
     bl_idname = "scene.rman_open_light_mixer_editor"
     bl_label = "RenderMan Light Mixer Editor"
 
+    def updated_light_selected_name(self, context):
+        light_ob = context.scene.objects.get(self.selected_light_name, None)
+        if not light_ob:
+            return
+                
+        if context.view_layer.objects.active:
+            context.view_layer.objects.active.select_set(False)
+        light_ob.select_set(True)
+        context.view_layer.objects.active = light_ob   
+
     def light_list_items(self, context):
         pattern = re.compile(self.light_search_filter)   
         scene = context.scene
@@ -181,7 +191,7 @@ class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Oper
     def update_do_light_filter(self, context):
         self.selected_light_name = '0'
 
-    selected_light_name: EnumProperty(name="Light", items=light_list_items)
+    selected_light_name: EnumProperty(name="Light", items=light_list_items, update=updated_light_selected_name)
     light_search_filter: StringProperty(name="Light Filter Search", default="")
     do_light_filter: BoolProperty(name="Filter", 
                                 description="Search and add multiple lights",
@@ -263,6 +273,16 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
     bl_idname = "scene.rman_open_light_linking"
     bl_label = "RenderMan Light Linking Editor"
 
+    def updated_light_selected_name(self, context):
+        light_ob = context.scene.objects.get(self.selected_light_name, None)
+        if not light_ob:
+            return
+                
+        if context.view_layer.objects.active:
+            context.view_layer.objects.active.select_set(False)
+        light_ob.select_set(True)
+        context.view_layer.objects.active = light_ob       
+
     def light_list_items(self, context):
         pattern = re.compile(self.light_search_filter)        
         scene = context.scene
@@ -303,6 +323,16 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
     def update_do_light_filter(self, context):
         self.selected_light_name = '0'
 
+    def updated_object_selected_name(self, context):
+        ob = context.scene.objects.get(self.selected_obj_name, None)
+        if not ob:
+            return
+                
+        if context.view_layer.objects.active:
+            context.view_layer.objects.active.select_set(False)
+        ob.select_set(True)
+        context.view_layer.objects.active = ob             
+
     def obj_list_items(self, context):
         pattern = re.compile(self.object_search_filter)
         scene = context.scene
@@ -341,8 +371,7 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
     do_light_filter: BoolProperty(name="Filter", 
                                 description="Search and add multiple lights",
                                 default=False, update=update_do_light_filter)
-    selected_light_name: EnumProperty(name="", items=light_list_items)
-
+    selected_light_name: EnumProperty(name="", items=light_list_items, update=updated_light_selected_name)
     do_object_filter: BoolProperty(name="Object Filter", 
                                 description="Search and add multiple objects",
                                 default=False,
@@ -350,7 +379,7 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
 
     object_search_filter: StringProperty(name="Object Filter Search", default="")        
 
-    selected_obj_name: EnumProperty(name="", items=obj_list_items)                   
+    selected_obj_name: EnumProperty(name="", items=obj_list_items, update=updated_object_selected_name)                   
 
     def execute(self, context):
         return{'FINISHED'}         
@@ -456,6 +485,16 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
     bl_idname = "scene.rman_open_groups_editor"
     bl_label = "RenderMan Trace Sets Editor"
 
+    def updated_object_selected_name(self, context):
+        ob = context.scene.objects.get(self.selected_obj_name, None)
+        if not ob:
+            return
+                
+        if context.view_layer.objects.active:
+            context.view_layer.objects.active.select_set(False)
+        ob.select_set(True)
+        context.view_layer.objects.active = ob       
+
     def obj_list_items(self, context):
         pattern = re.compile(self.object_search_filter)        
         scene = context.scene
@@ -491,7 +530,7 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
                                 default=False,
                                 update=update_do_object_filter)    
     object_search_filter: StringProperty(name="Object Filter Search", default="")       
-    selected_obj_name: EnumProperty(name="", items=obj_list_items)       
+    selected_obj_name: EnumProperty(name="", items=obj_list_items, update=updated_object_selected_name)       
 
     def execute(self, context):
         return{'FINISHED'}         
