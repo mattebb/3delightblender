@@ -366,7 +366,11 @@ class PRMAN_OT_Viewport_Cropwindow(bpy.types.Operator):
         self.reset()
 
     def __del__(self):
-        self.crop_handler.edit_cropwindow = False        
+        try:
+            if self.crop_handler:
+                self.crop_handler.edit_cropwindow = False        
+        except:
+            pass
 
     def reset(self):
         self.outside_region = False
@@ -664,4 +668,4 @@ def unregister():
     bpy.types.VIEW3D_HT_header.remove(draw_rman_viewport_props)    
 
     if __DRAW_CROP_HANDLER__:
-       del __DRAW_CROP_HANDLER__
+       __DRAW_CROP_HANDLER__ = None
