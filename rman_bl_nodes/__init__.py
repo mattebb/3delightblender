@@ -83,6 +83,7 @@ __RMAN_PLUGIN_MAPPING__ = {
 }
 
 __RMAN_NODES_NO_REGISTER__ = ['PxrCombinerLightFilter', 'PxrSampleFilterCombiner', 'PxrDisplayFilterCombiner']
+__RMAN_NODES_ALREADY_REGISTERED__ = False
 
 def update_conditional_visops(node):
     for param_name, prop_meta in getattr(node, 'prop_meta').items():
@@ -750,6 +751,9 @@ def register_rman_nodes():
 
     rfb_log().debug("Finished Registering RenderMan Plugin Nodes.")
 
+
+def register_node_categories():
+
     # all categories in a list
     node_categories = []
     for k,v in __RMAN_NODE_CATEGORIES__.items():
@@ -763,7 +767,11 @@ def register_rman_nodes():
                                              node_categories)    
 
 def register():
-    register_rman_nodes()    
+    global __RMAN_NODES_ALREADY_REGISTERED__
+    if not __RMAN_NODES_ALREADY_REGISTERED__:
+        register_rman_nodes()
+        __RMAN_NODES_ALREADY_REGISTERED__ = True    
+    register_node_categories()
     rman_bl_nodes_props.register()
     rman_bl_nodes_sockets.register()
     rman_bl_nodes_shaders.register()

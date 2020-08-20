@@ -183,4 +183,6 @@ def unregister():
             bpy.utils.unregister_class(cls)
         except RuntimeError:
             rfb_log().debug('Could not unregister class: %s' % str(cls))
-            pass                            
+            pass              
+
+    bpy.types.NODE_MT_context_menu.remove(rman_add_node_editor_menu)

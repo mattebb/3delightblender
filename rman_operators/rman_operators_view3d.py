@@ -483,7 +483,9 @@ def register_example_scenes():
                     break
 
 def register():
-    register_example_scenes()
+    global __RFB_EXAMPLE_SCENE_LIST__    
+    if not __RFB_EXAMPLE_SCENE_LIST__:
+        register_example_scenes()
     for cls in classes:
         bpy.utils.register_class(cls)
     
