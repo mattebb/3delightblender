@@ -275,7 +275,6 @@ class RmanSceneSync(object):
                     if ob.type == 'CAMERA': 
                         new_cams.append(obj.id.original)
                     else:
-                        rfb_log().debug("New object added: %s" % obj.id.name)
                         if ob.type == 'EMPTY' and ob.is_instancer:
                             _check_empty(ob)
                         else:
@@ -289,6 +288,9 @@ class RmanSceneSync(object):
                                 # add this light just yet.
                                 if not shadergraph_utils.is_rman_light(ob):
                                     return
+                            elif rman_type == 'EMPTY':
+                                continue
+                            rfb_log().debug("New object added: %s" % obj.id.name)                                    
                             new_objs.append(obj.id.original)
                             update_instances.append(obj.id.original)
                     continue              
@@ -404,37 +406,39 @@ class RmanSceneSync(object):
                     self.rman_scene.default_light.SetHidden(1)    
 
         # update instances
-        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
-            # delete all instances for each object in the
-            # update_instances list
-            #
-            # even if it's a simple a transform, we still have to delete all
-            # the instances as this could be part of a particle system, or
-            # the object is instanced at the vertices/faces of another object
-            #
-            # in these cases, Blender only seems to tell us that the object has
-            # transformed; it does not tell us whether instances of the object
-            # has been removed
+        if update_instances:
+            with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+                # delete all instances for each object in the
+                # update_instances list
+                #
+                # even if it's a simple a transform, we still have to delete all
+                # the instances as this could be part of a particle system, or
+                # the object is instanced at the vertices/faces of another object
+                #
+                # in these cases, Blender only seems to tell us that the object has
+                # transformed; it does not tell us whether instances of the object
+                # has been removed
 
-            for ob in update_instances:
-                rfb_log().debug("Deleting instances of: %s" % ob.name)
-                rman_sg_node = self.rman_scene.rman_objects.get(ob, None) 
-                if rman_sg_node:
-                    for k,rman_sg_group in rman_sg_node.instances.items():
-                        self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
-                    rman_sg_node.instances.clear()         
+                rfb_log().debug("Deleting instances")
+                for ob in update_instances:
+                    #rfb_log().debug("Deleting instances of: %s" % ob.name)
+                    rman_sg_node = self.rman_scene.rman_objects.get(ob, None) 
+                    if rman_sg_node:
+                        for k,rman_sg_group in rman_sg_node.instances.items():
+                            self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
+                        rman_sg_node.instances.clear()         
 
-            rfb_log().debug("Re-emit instances")
-            for ob_inst in self.rman_scene.depsgraph.object_instances: 
-                if ob_inst.is_instance:
-                    ob = ob_inst.instance_object
-                else:
-                    ob = ob_inst.object
+                rfb_log().debug("Re-emit instances")
+                for ob_inst in self.rman_scene.depsgraph.object_instances: 
+                    if ob_inst.is_instance:
+                        ob = ob_inst.instance_object
+                    else:
+                        ob = ob_inst.object
 
-                if ob.original not in update_instances:
-                    continue
+                    if ob.original not in update_instances:
+                        continue
 
-                self.rman_scene._export_instance(ob_inst)                              
+                    self.rman_scene._export_instance(ob_inst)                              
 
         # delete any objects, if necessary    
         if do_delete:
