@@ -80,7 +80,7 @@ def get_displayfilter_icon(name=''):
     return get_icon('out_%s' % name, dflt='out_unknown')    
 
 def get_integrator_icon(name=''):
-    return get_icon('out_%s' % name, dflt='out_PathTracer')    
+    return get_icon('out_%s' % name, dflt='out_PxrPathTracer')    
 
 def get_displacement_icon(name=''):
     return get_icon('out_%s' % name, dflt='out_PxrDisplace')        
