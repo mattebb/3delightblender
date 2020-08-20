@@ -97,13 +97,13 @@ class RmanSceneSync(object):
 
     def _material_updated(self, obj):
         mat = obj.id
-        db_name = object_utils.get_db_name(mat)
         rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
         translator = self.rman_scene.rman_translators["MATERIAL"]              
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):   
             mat = obj.id              
             if not rman_sg_material:
                 rfb_log().debug("New material: %s" % mat.name)
+                db_name = object_utils.get_db_name(mat)
                 rman_sg_material = translator.export(mat, db_name)
                 self.rman_scene.rman_materials[mat.original] = rman_sg_material
                 
@@ -208,6 +208,7 @@ class RmanSceneSync(object):
                 if not translator:
                     return
                 translator.update(ob, rman_sg_node)
+                translator.export_object_primvars(ob, rman_sg_node)
                 # material slots could have changed, so we need to double
                 # check that too
                 for k,v in rman_sg_node.instances.items():
