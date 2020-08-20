@@ -293,13 +293,8 @@ class RmanSceneSync(object):
                             rfb_log().debug("New object added: %s" % obj.id.name)                                    
                             new_objs.append(obj.id.original)
                             update_instances.append(obj.id.original)
-                    continue              
+                    continue      
 
-                if obj.is_updated_geometry:
-                    rfb_log().debug("Object updated: %s" % obj.id.name)
-                    self._obj_geometry_updated(obj)                    
-                    updated_geo.append(obj.id.original)                            
-                                          
                 if obj.is_updated_transform:
                     if ob.type in ['CAMERA']:
                         # we deal with camera transforms in view_draw
@@ -316,7 +311,13 @@ class RmanSceneSync(object):
                         if ob.type == 'EMPTY' and ob.is_instancer:
                             _check_empty(ob)
                         else:
-                            update_instances.append(obj.id.original)
+                            update_instances.append(obj.id.original)            
+                            continue            
+
+                if obj.is_updated_geometry:
+                    rfb_log().debug("Object updated: %s" % obj.id.name)
+                    self._obj_geometry_updated(obj)                    
+                    updated_geo.append(obj.id.original)                            
 
                 rman_sg_node = self.rman_scene.rman_objects.get(obj.id.original, None)
                 if rman_sg_node and rman_sg_node.sg_node:
@@ -531,11 +532,13 @@ class RmanSceneSync(object):
             return
         translator = self.rman_scene.rman_translators["MATERIAL"]     
         has_meshlight = rman_sg_material.has_meshlight   
+        rfb_log().debug("Manual material update called for: %s." % mat.name)
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):                  
             translator.update(mat, rman_sg_material)
 
         if has_meshlight != rman_sg_material.has_meshlight:
             # we're dealing with a mesh light
+            rfb_log().debug("Manually calling mesh_light_update")
             self.rman_scene.depsgraph = bpy.context.evaluated_depsgraph_get()
             self._mesh_light_update(mat)    
 
