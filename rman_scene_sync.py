@@ -312,8 +312,7 @@ class RmanSceneSync(object):
                         if ob.type == 'EMPTY' and ob.is_instancer:
                             _check_empty(ob)
                         else:
-                            update_instances.append(obj.id.original)            
-                            continue            
+                            update_instances.append(obj.id.original)                  
 
                 if obj.is_updated_geometry:
                     rfb_log().debug("Object updated: %s" % obj.id.name)
