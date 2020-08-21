@@ -1,6 +1,7 @@
 from bpy.props import EnumProperty, StringProperty, BoolProperty
 from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
+from .. import rman_render
 from ..rman_utils.shadergraph_utils import find_node, find_selected_pattern_node
 import bpy
 import os
@@ -149,6 +150,12 @@ class NODE_OT_rman_node_remove(bpy.types.Operator):
         input_node = socket_node_input(nt, socket)
 
         nt.nodes.remove(input_node)
+        rr = rman_render.RmanRender.get_rman_render()        
+        if rr.rman_interactive_running:        
+            active_material = context.active_object.active_material
+            if active_material:
+                rr.rman_scene_sync.update_material(active_material) 
+
         return {'FINISHED'}
 
 class NODE_OT_rman_node_disconnect(bpy.types.Operator):
@@ -164,6 +171,13 @@ class NODE_OT_rman_node_disconnect(bpy.types.Operator):
 
         link = next((l for l in nt.links if l.to_socket == socket), None)
         nt.links.remove(link)
+
+        nt.nodes.remove(input_node)
+        rr = rman_render.RmanRender.get_rman_render()        
+        if rr.rman_interactive_running:        
+            active_material = context.active_object.active_material
+            if active_material:
+                rr.rman_scene_sync.update_material(active_material)         
 
         return {'FINISHED'}
 
