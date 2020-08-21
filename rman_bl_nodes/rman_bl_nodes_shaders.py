@@ -6,6 +6,7 @@ from ..rman_utils import string_utils
 from ..rman_utils import shadergraph_utils
 from ..rman_config import __RFB_CONFIG_DICT__
 from .. import rfb_icons
+from .. import rman_render
 from bpy.types import Menu
 from bpy.props import EnumProperty, StringProperty, CollectionProperty
 import _cycles
@@ -60,7 +61,11 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 if roughness:
                     if isinstance(roughness, str):
                         roughness = getattr(self, roughness)
-                    mat.roughness = roughness          
+                    mat.roughness = roughness   
+        else:
+            rr = rman_render.RmanRender.get_rman_render()        
+            if rr.rman_interactive_running:        
+                rr.rman_scene_sync.update_material(mat)                    
 
     # all the properties of a shader will go here, also inputs/outputs
     # on connectable props will have the same name

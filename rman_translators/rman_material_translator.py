@@ -33,6 +33,11 @@ class RmanMaterialTranslator(RmanTranslator):
         rm = mat.renderman
         succeed = False
 
+        rman_sg_material.has_meshlight = False
+        rman_sg_material.sg_node.SetBxdf(None)        
+        rman_sg_material.sg_node.SetLight(None)
+        rman_sg_material.sg_node.SetDisplace(None)        
+
         handle = string_utils.sanitize_node_name(rman_sg_material.db_name)
         if mat.grease_pencil:
             if not mat.node_tree or not shadergraph_utils.is_renderman_nodetree(mat):
@@ -89,17 +94,6 @@ class RmanMaterialTranslator(RmanTranslator):
                         None)
                 if out is None:
                     return False
-
-
-                rman_sg_material.has_meshlight = False
-
-                # For some reason, calling SetBxdf(None) and then
-                # SetBxdf again will fail in certain cases
-                #rman_sg_material.sg_node.SetBxdf(None)
-                
-                rman_sg_material.sg_node.SetLight(None)
-                rman_sg_material.sg_node.SetDisplace(None)
-
 
                 # check if there's a solo node
                 if out.solo_node_name:

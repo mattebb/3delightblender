@@ -171,8 +171,6 @@ class NODE_OT_rman_node_disconnect(bpy.types.Operator):
 
         link = next((l for l in nt.links if l.to_socket == socket), None)
         nt.links.remove(link)
-
-        nt.nodes.remove(input_node)
         rr = rman_render.RmanRender.get_rman_render()        
         if rr.rman_interactive_running:        
             active_material = context.active_object.active_material
