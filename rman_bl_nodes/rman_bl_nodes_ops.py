@@ -3,6 +3,7 @@ from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
 from .. import rman_render
 from ..rman_utils.shadergraph_utils import find_node, find_selected_pattern_node
+from ..rman_utils.node_desc import FLOAT3
 import bpy
 import os
 
@@ -35,10 +36,12 @@ def link_node(nt, from_node, in_socket):
         if not out_socket:
             out_socket = from_node.outputs.get('result', None)
 
+    '''
     else:
         out_socket = from_node.outputs.get('resultF',
                                            next((s for s in from_node.outputs
                                                  if type(s).__name__ == 'RendermanNodeSocketFloat'), None))
+    '''
 
     if not out_socket:
         # try matching the first one we can find
@@ -47,6 +50,19 @@ def link_node(nt, from_node, in_socket):
             if type(s).__name__ == in_socket_type:
                 out_socket = s
                 break
+
+    if not out_socket:
+        # try one more time, assuming we're trying
+        # to connect float3 like types
+        # again, connect the first one we find
+        in_socket_type = in_socket.renderman_type
+        if in_socket_type in FLOAT3:
+            for s in from_node.outputs:
+                out_socket_type = s.renderman_type
+                if out_socket_type in FLOAT3:
+                    out_socket = s
+                    break        
+
 
     if out_socket:
         nt.links.new(out_socket, in_socket)    

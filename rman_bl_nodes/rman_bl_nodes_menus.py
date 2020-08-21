@@ -1,6 +1,7 @@
 from ..rfb_logger import rfb_log
 from ..rman_utils.osl_utils import readOSO
 from ..rman_utils import shadergraph_utils
+from ..rman_utils.node_desc import FLOAT3
 from . import rman_socket_utils
 from .. import rman_render
 from .. import rman_bl_nodes
@@ -175,6 +176,9 @@ class NODE_MT_renderman_connection_menu(Menu):
                         if node_desc_param.type == renderman_type:
                             has_any = True
                             break
+                        elif node_desc_param.type in FLOAT3 and renderman_type in FLOAT3:
+                            has_any = True
+                            break           
                 if has_any:
                     layout.context_pointer_set("node", node)
                     layout.context_pointer_set("nodetree", nt)
@@ -335,7 +339,7 @@ def register_renderman_pattern_node_submenus():
                     vstruct = getattr(node_desc_param, 'vstruct', None)
                     if vstruct:               
                         break
-                    if renderman_type == 'pattern' or node_desc_param.type == renderman_type:
+                    if renderman_type == 'pattern' or node_desc_param.type == renderman_type or (node_desc_param.type in FLOAT3 and renderman_type in FLOAT3):
                         rman_icon = rfb_icons.get_pattern_icon(n.name)
                         label = n.name
                         if n.path.endswith('.oso'):
