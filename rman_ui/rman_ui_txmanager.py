@@ -5,6 +5,7 @@ from bpy_extras.io_utils import ImportHelper
 from .rman_ui_base import _RManPanelHeader
 from ..txmanager3 import txparams
 from ..rman_utils import texture_utils
+from .. import rman_render
 from .. import txmanager3 as txmngr3
 from .. import rfb_icons
 import os
@@ -186,10 +187,17 @@ class PRMAN_OT_Renderman_txmanager_clear_all_cache(Operator):
 
     bl_idname = "rman_txmgr_list.clear_all_cache"
     bl_label = "Clear Texture Cache"
+    bl_description = "Tell the core RenderMan to clear its texture cache."
 
     def execute(self, context):
-        # needs to call InvalidateTexture
-
+        rr = rman_render.RmanRender.get_rman_render() 
+        if rr.rman_interactive_running:    
+            for item in context.scene.rman_txmgr_list:
+                txfile = None
+                if item.nodeID != "":
+                    output_texture = texture_utils.get_txfile_from_id(item.nodeID)
+                    rr.rictl.InvalidateTexture(output_texture)
+                    
         return{'FINISHED'}
 
 class PRMAN_OT_Renderman_txmanager_reconvert_all(Operator):
@@ -197,6 +205,7 @@ class PRMAN_OT_Renderman_txmanager_reconvert_all(Operator):
 
     bl_idname = "rman_txmgr_list.reconvert_all"
     bl_label = "RE-Convert All"
+    bl_description = "Clear all .tex files for all input images"
 
     def execute(self, context):
         texture_utils.get_txmanager().txmanager.delete_texture_files()
@@ -204,11 +213,35 @@ class PRMAN_OT_Renderman_txmanager_reconvert_all(Operator):
 
         return{'FINISHED'}        
 
+class PRMAN_OT_Renderman_txmanager_reconvert_selected(Operator):
+    """Clear all .tex files and re-convert selected."""
+
+    bl_idname = "rman_txmgr_list.reconvert_selected"
+    bl_label = "RE-Convert Selected"
+    bl_description = "Clear all .tex files for selected image"
+
+    def execute(self, context):
+        idx = context.scene.rman_txmgr_list_index
+        item = context.scene.rman_txmgr_list[idx]
+
+        txfile = None
+        if item.nodeID != "":
+            txfile = texture_utils.get_txmanager().txmanager.get_txfile_from_id(item.nodeID)
+        else:
+            txfile = texture_utils.get_txmanager().txmanager.get_txfile_from_path(item.name)
+
+        if txfile:           
+            txfile.delete_texture_files()
+            texture_utils.get_txmanager().txmake_all(blocking=False)
+
+        return{'FINISHED'}               
+
 class PRMAN_OT_Renderman_txmanager_apply_preset(Operator):
     """Apply current settings to the selected texture."""
 
     bl_idname = "rman_txmgr_list.apply_preset"
     bl_label = "Apply preset"
+    bl_description = "Apply the current settings for this input image and re-convert."
 
     def execute(self, context):
         idx = context.scene.rman_txmgr_list_index
@@ -227,7 +260,11 @@ class PRMAN_OT_Renderman_txmanager_apply_preset(Operator):
                 txfile = texture_utils.get_txmanager().txmanager.get_txfile_from_id(item.nodeID)
             else:
                 txfile = texture_utils.get_txmanager().txmanager.get_txfile_from_path(item.name)
-            txfile.params.set_params_from_dict(txsettings)
+
+            if txfile:
+                txfile.params.set_params_from_dict(txsettings)
+                txfile.delete_texture_files()
+                texture_utils.get_txmanager().txmake_all(blocking=False)
 
         return{'FINISHED'}        
 
@@ -341,7 +378,7 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
         # FIXME: not totally working. The done callbacks fail
         #row.operator('rman_txmgr_list.pick_images', text='Pick Images')
         
-        row.operator('rman_txmgr_list.reconvert_all', text='Reconvert')
+        row.operator('rman_txmgr_list.reconvert_all', text='Reconvert All')
         row.operator('rman_txmgr_list.clear_all_cache', text='Clear All Cache')        
 
         if scene.rman_txmgr_list_index >= 0 and scene.rman_txmgr_list:
@@ -374,8 +411,10 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
                 row = layout.row()   
                 row.enabled = item.enable      
                 row.alignment = 'RIGHT'          
+                row.operator('rman_txmgr_list.reconvert_selected', text='Reconvert')
                 row.operator('rman_txmgr_list.apply_preset', text='Apply')
                 
+                '''
                 row = layout.row()
                 row.alignment='CENTER'
                 in_list = len(context.scene.rman_txmgr_list)
@@ -384,7 +423,7 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
                 if qsize != 0:
                     progress = 'Converting...%d left to convert' % (qsize)
                 row.label(text=progress)        
-
+                '''
 
     def invoke(self, context, event):
 
@@ -424,6 +463,7 @@ classes = [
     PRMAN_OT_Renderman_txmanager_pick_images,
     PRMAN_OT_Renderman_txmanager_clear_all_cache,
     PRMAN_OT_Renderman_txmanager_reconvert_all,
+    PRMAN_OT_Renderman_txmanager_reconvert_selected,
     PRMAN_OT_Renderman_txmanager_apply_preset,
     PRMAN_OT_Renderman_txmanager_add_texture,
     PRMAN_OT_Renderman_txmanager_refresh,
