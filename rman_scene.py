@@ -343,9 +343,10 @@ class RmanScene(object):
         self.scene_any_lights = self._scene_has_lights()
         
         rm = self.bl_scene.renderman
-        attrs = self.rman_root_sg_node.sg_node.GetAttributes()
+        rman_root_sg_node = self.get_root_sg_node()
+        attrs = rman_root_sg_node.GetAttributes()
         attrs.SetFloat("dice:worlddistancelength", rm.rman_bake_illlum_density)
-        self.rman_root_sg_node.sg_node.SetAttributes(attrs)                       
+        rman_root_sg_node.SetAttributes(attrs)                       
 
         rfb_log().debug("Calling export_data_blocks()")
         self.export_data_blocks(bpy.data.objects)
@@ -392,9 +393,10 @@ class RmanScene(object):
         self.scene_any_lights = self._scene_has_lights()        
                         
         rm = self.bl_scene.renderman
-        attrs = self.rman_root_sg_node.sg_node.GetAttributes()
+        rman_root_sg_node = self.get_root_sg_node()
+        attrs = rman_root_sg_node.GetAttributes()
         attrs.SetFloat("dice:worlddistancelength", rm.rman_bake_illlum_density)
-        self.rman_root_sg_node.sg_node.SetAttributes(attrs)                            
+        rman_root_sg_node.SetAttributes(attrs)                            
 
         self.export_searchpaths() 
         self.export_global_options()     
