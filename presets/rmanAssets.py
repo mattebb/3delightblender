@@ -37,6 +37,7 @@ import filecmp
 import distutils.version as dv
 from collections import OrderedDict
 from . import vstruct as vstruct
+from ..rman_utils import filepath_utils
 
 
 # use a global to store the last read json file to be able to read from it
@@ -1670,6 +1671,7 @@ class RmanAsset:
     #
     def processExternalFile(self, stringvalue):
         logExternalFiles('>> processExternalFile: %s' % stringvalue)
+        stringvalue = filepath_utils.get_real_path(stringvalue)
         if os.path.isfile(stringvalue):
             # single file
             logExternalFiles('  > it is a file')
