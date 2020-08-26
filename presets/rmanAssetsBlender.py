@@ -1341,14 +1341,18 @@ def createNodes(Asset):
                 else:
                     try:
                         created_node = nt.nodes.new('%sPatternNode' % nodeType)
-                        created_node.location[0] = -curr_x
-                        curr_x = curr_x + 250
-                        created_node.name = nodeId
-                        created_node.label = nodeId                        
                     except:
-                        err = ('createNodes: Unknown nodetype "%s"'
-                            % nodeType)
-                        raise RmanAssetBlenderError(err)
+                        try:
+                            # Try agin. This might be an OSL shader.
+                            created_node = nt.nodes.new('%sPatternOSLNode' % nodeType)
+                        except:
+                            err = ('createNodes: Unknown nodetype "%s"'
+                                % nodeType)
+                            raise RmanAssetBlenderError(err)                            
+                    created_node.location[0] = -curr_x
+                    curr_x = curr_x + 250
+                    created_node.name = nodeId
+                    created_node.label = nodeId   
 
         elif nodeClass == 'root':
             continue
