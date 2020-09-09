@@ -84,7 +84,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             layout.operator("node.rman_refresh_osl_shader")
 
     def draw_buttons_ext(self, context, layout):
-        rman_icon = rfb_icons.get_icon('out_%s.png' % self.bl_label, None )
+        rman_icon = rfb_icons.get_icon('out_%s' % self.bl_label)
         layout.label(text='', icon_value=rman_icon.icon_id)             
         self.draw_nonconnectable_props(context, layout, self.prop_names)
 

@@ -501,8 +501,11 @@ def generate_property(node, sp, update_function=None):
                                     description=param_help, update=update_function)
             elif param_widget == 'mapper':
                 items = []
+                in_items = False
                 for k,v in sp.options.items():
                     items.append((str(v), k, ''))
+                    if v == param_default:
+                        in_items = True
                 
                 bl_default = ''
                 for item in items:
@@ -510,10 +513,22 @@ def generate_property(node, sp, update_function=None):
                         bl_default = item[0]
                         break                
 
-                prop = EnumProperty(name=param_label,
-                                    items=items,
-                                    default=bl_default,
-                                    description=param_help, update=update_function)
+                if in_items:
+                    prop = EnumProperty(name=param_label,
+                                        items=items,
+                                        default=bl_default,
+                                        description=param_help, update=update_function)
+                else:
+                    param_min = sp.min if hasattr(sp, 'min') else (-1.0 * sys.float_info.max)
+                    param_max = sp.max if hasattr(sp, 'max') else sys.float_info.max
+                    param_min = sp.slidermin if hasattr(sp, 'slidermin') else param_min
+                    param_max = sp.slidermax if hasattr(sp, 'slidermax') else param_max   
+
+                    prop = FloatProperty(name=param_label,
+                                        default=param_default, precision=3,
+                                        soft_min=param_min, soft_max=param_max,
+                                        description=param_help, update=update_function)
+
             else:
                 param_min = sp.min if hasattr(sp, 'min') else (-1.0 * sys.float_info.max)
                 param_max = sp.max if hasattr(sp, 'max') else sys.float_info.max
@@ -546,6 +561,7 @@ def generate_property(node, sp, update_function=None):
 
             elif param_widget == 'mapper':
                 items = []
+                in_items = False
                 for k,v in sp.options.items():
                     v = str(v)
                     if len(v.split(':')) > 1:
@@ -553,6 +569,8 @@ def generate_property(node, sp, update_function=None):
                         v = tokens[1]
                         k = '%s:%s' % (k, tokens[0])
                     items.append((str(v), k, ''))
+                    if v == str(param_default):
+                        in_items = True
                 
                 bl_default = ''
                 for item in items:
@@ -560,12 +578,22 @@ def generate_property(node, sp, update_function=None):
                         bl_default = item[0]
                         break
 
-                prop = EnumProperty(name=param_label,
-                                    items=items,
-                                    default=bl_default,
+                if in_items:
+                    prop = EnumProperty(name=param_label,
+                                        items=items,
+                                        default=bl_default,
+                                        description=param_help, update=update_function)
+                else:
+                    param_min = int(sp.min) if hasattr(sp, 'min') else 0
+                    param_max = int(sp.max) if hasattr(sp, 'max') else 2 ** 31 - 1
+
+                    prop = IntProperty(name=param_label,
+                                    default=param_default,
+                                    soft_min=param_min,
+                                    soft_max=param_max,
                                     description=param_help, update=update_function)
+
             else:
-                pass
                 param_min = int(sp.min) if hasattr(sp, 'min') else 0
                 param_max = int(sp.max) if hasattr(sp, 'max') else 2 ** 31 - 1
 
@@ -611,33 +639,30 @@ def generate_property(node, sp, update_function=None):
             prop = StringProperty(name=param_label,
                                   default=param_default, subtype="FILE_PATH",
                                   description=param_help, update=update_function)
-        elif param_widget == 'mapper':
+        elif param_widget in ['mapper', 'popup']:
             items = []
-            for k,v in sp.options.items():
-                if v == '' or v == "''":
-                    v = __RMAN_EMPTY_STRING__
-                items.append((str(v), str(k), ''))
             
             if param_default == '' or param_default == "''":
                 param_default = __RMAN_EMPTY_STRING__
 
-            prop = EnumProperty(name=param_label,
-                                default=param_default, description=param_help,
-                                items=items,
-                                update=update_function)
-
-        elif param_widget == 'popup':
-            items = []
+            in_items = False
             for k,v in sp.options.items():
                 if v == '' or v == "''":
                     v = __RMAN_EMPTY_STRING__
-                items.append((v, k, ''))                
-            if param_default == '' or param_default == "''":
-                param_default = __RMAN_EMPTY_STRING__
+                items.append((str(v), str(k), ''))                
+                if param_default == str(k):
+                    in_items = True
 
-            prop = EnumProperty(name=param_label,
-                                default=param_default, description=param_help,
-                                items=items, update=update_function)
+            if in_items:
+                prop = EnumProperty(name=param_label,
+                                    default=param_default, description=param_help,
+                                    items=items,
+                                    update=update_function)
+            else:
+                prop = StringProperty(name=param_label,
+                                    default=str(param_default),
+                                    description=param_help, 
+                                    update=update_function)                                        
 
         elif param_widget == 'scenegraphlocation':
             reference_type = eval(sp.options['nodeType'])

@@ -342,8 +342,8 @@ def register_renderman_pattern_node_submenus():
                     if renderman_type == 'pattern' or node_desc_param.type == renderman_type or (node_desc_param.type in FLOAT3 and renderman_type in FLOAT3):
                         rman_icon = rfb_icons.get_pattern_icon(n.name)
                         label = n.name
-                        if n.path.endswith('.oso'):
-                            label = '%s.oso' % label
+                        #if n.path.endswith('.oso'):
+                        #    label = '%s.oso' % label
                         op = layout.operator('node.rman_shading_create_node', text=label, icon_value=rman_icon.icon_id)
                         op.node_name = '%sPatternNode' % n.name
                         if n.path.endswith('.oso'):

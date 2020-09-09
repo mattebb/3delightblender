@@ -21,6 +21,16 @@
             "metallic": "metallic",
             "roughness": "roughness"
         },
+        "PxrDisneyBsdf": {
+            "diffuse_color": ["baseColor"],
+            "specular_color": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "metallic": "metallic",
+            "roughness": "roughness"
+        },        
         "PxrSurface": {
             "diffuse_color": ["diffuseColor"],
             "specular_color": [

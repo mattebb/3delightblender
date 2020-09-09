@@ -82,7 +82,14 @@ __RMAN_PLUGIN_MAPPING__ = {
     'projection': rman_properties_camera.RendermanCameraSettings
 }
 
-__RMAN_NODES_NO_REGISTER__ = ['PxrCombinerLightFilter', 'PxrSampleFilterCombiner', 'PxrDisplayFilterCombiner']
+__RMAN_NODES_NO_REGISTER__ = [
+        'PxrCombinerLightFilter.args', 
+        'PxrSampleFilterCombiner.args', 
+        'PxrDisplayFilterCombiner.args', 
+        'PxrShadowDisplayFilter.args',
+        'PxrShadowFilter.args',
+        'PxrDisplace.oso'
+]
 __RMAN_NODES_ALREADY_REGISTERED__ = False
 
 def update_conditional_visops(node):
@@ -405,10 +412,13 @@ def generate_node_type(node_desc, is_oso=False):
     if nodeType not in nodeDict.keys():
         return (None, None)
     ntype = type(typename, (nodeDict[nodeType],), {})
+    '''
     if is_oso:
         ntype.bl_label = '%s.oso' % name
     else:
         ntype.bl_label = name
+    '''
+    ntype.bl_label = name
     ntype.typename = typename
 
     def init(self, context):
@@ -588,18 +598,19 @@ def register_plugin_types(node_desc):
 def get_path_list():
     paths = []
     rmantree = filepath_utils.guess_rmantree()
+    paths.append(os.path.join(rmantree, 'lib', 'shaders'))    
     paths.append(os.path.join(rmantree, 'lib', 'plugins', 'Args'))
-    paths.append(os.path.join(rmantree, 'lib', 'shaders'))
     paths.append(os.path.join(RFB_ADDON_PATH, 'Args'))
+
+    if 'RMAN_SHADERPATH' in os.environ:
+        RMAN_SHADERPATH = os.environ['RMAN_SHADERPATH']
+        for p in RMAN_SHADERPATH.split(os.path.pathsep):
+            paths.append(p)
 
     if 'RMAN_RIXPLUGINPATH' in os.environ:
         RMAN_RIXPLUGINPATH = os.environ['RMAN_RIXPLUGINPATH']
         for p in RMAN_RIXPLUGINPATH.split(os.path.pathsep):
             paths.append(os.path.join(p, 'Args'))
-    if 'RMAN_SHADERPATH' in os.environ:
-        RMAN_SHADERPATH = os.environ['RMAN_SHADERPATH']
-        for p in RMAN_SHADERPATH.split(os.path.pathsep):
-            paths.append(p)
 
     return paths
                      
@@ -625,21 +636,18 @@ def register_rman_nodes():
                 continue
             visited.add(real)
 
-            for filename in filenames:                
+            for filename in filenames:        
                 if filename.endswith(('.args', '.oso')):
-                    is_oso = filename.endswith('.oso')
-
-                    if is_oso:
-                        # for now, skip registering an OSL shader, if there's
-                        # already an equivalent c++ shader
-                        osl_filename = os.path.splitext(filename)[0]
-                        if osl_filename in [node_desc.name for node_desc_list in [nodes for cat,nodes in __RMAN_NODES__.items()] for node_desc in node_desc_list]:
-                            continue
+                    # skip registering these nodes
+                    if filename in __RMAN_NODES_NO_REGISTER__:
+                        continue       
+                    is_oso = False 
+                    is_args = True 
+                    if filename.endswith('.oso'):
+                        is_oso = True
+                        is_args = False
 
                     node_desc = NodeDesc(FilePath(root).join(FilePath(filename)))
-                    # skip registering these nodes
-                    if node_desc.name in __RMAN_NODES_NO_REGISTER__:
-                        continue
 
                     # apply any overrides
                     rman_config.apply_args_overrides(filename, node_desc)
@@ -665,6 +673,12 @@ def register_rman_nodes():
                     # categories
                     node_item = NodeItem(typename, label=nodetype.bl_label)
                     if node_desc.node_type == 'pattern':
+                        # we favor the OSL version over the C++ version
+                        # so only add the OSL version into categories list                        
+                        if is_args:
+                            args_filename = os.path.splitext(filename)[0]
+                            if args_filename in [node_desc.name for node_desc_list in [nodes for cat,nodes in __RMAN_NODES__.items()] for node_desc in node_desc_list]:
+                                continue                              
                         if hasattr(node_desc, 'classification'):
                             try:
                                 tokens = node_desc.classification.split('/')                                
