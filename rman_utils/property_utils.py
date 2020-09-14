@@ -649,8 +649,8 @@ def generate_property(node, sp, update_function=None):
             for k,v in sp.options.items():
                 if v == '' or v == "''":
                     v = __RMAN_EMPTY_STRING__
-                items.append((str(v), str(k), ''))                
-                if param_default == str(k):
+                items.append((str(v), str(k), ''))         
+                if param_default == str(v):
                     in_items = True
 
             if in_items:
