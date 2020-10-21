@@ -321,7 +321,7 @@ class RmanRender(object):
 
         config = rman.Types.RtParamList()
         config.SetString("rendervariant", rm.renderVariant)
-        self.sg_scene = self.sgmngr.CreateScene(config, None) 
+        self.sg_scene = self.sgmngr.CreateScene(config) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
 
@@ -401,7 +401,7 @@ class RmanRender(object):
             rfb_log().debug("Writing to RIB...")             
             for frame in range(bl_scene.frame_start, bl_scene.frame_end + 1):
                 bl_view_layer = depsgraph.view_layer
-                self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList(), None) 
+                self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
                 self.bl_engine.frame_set(frame, subframe=0.0)
                 self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_view_layer, is_external=True)
                 rib_output = string_utils.expand_string(rm.path_rib_output, 
@@ -414,7 +414,7 @@ class RmanRender(object):
             
 
         else:
-            self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList(), None) 
+            self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
 
             time_start = time.time()
                     
@@ -466,7 +466,7 @@ class RmanRender(object):
         self.rman_render_into = ''
         rman.Dspy.DisableDspyServer()
         config = rman.Types.RtParamList()
-        self.sg_scene = self.sgmngr.CreateScene(config, None) 
+        self.sg_scene = self.sgmngr.CreateScene(config) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_bake_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
 
@@ -501,7 +501,7 @@ class RmanRender(object):
             rfb_log().debug("Writing to RIB...")             
             for frame in range(bl_scene.frame_start, bl_scene.frame_end + 1):
                 bl_view_layer = depsgraph.view_layer
-                self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList(), None) 
+                self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
                 self.bl_engine.frame_set(frame, subframe=0.0)
                 self.rman_scene.export_for_bake_render(depsgraph, self.sg_scene, bl_view_layer, is_external=True)
                 rib_output = string_utils.expand_string(rm.path_rib_output, 
@@ -514,7 +514,7 @@ class RmanRender(object):
             
 
         else:
-            self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList(), None) 
+            self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
 
             time_start = time.time()
                     
@@ -579,7 +579,7 @@ class RmanRender(object):
 
         config = rman.Types.RtParamList()
         config.SetString("rendervariant", rm.renderVariant)      
-        self.sg_scene = self.sgmngr.CreateScene(config, None) 
+        self.sg_scene = self.sgmngr.CreateScene(config) 
         self.rman_scene_sync = RmanSceneSync(rman_render=self, rman_scene=self.rman_scene, sg_scene=self.sg_scene)
         rfb_log().info("Parsing scene...")        
         self.rman_scene.export_for_interactive_render(context, depsgraph, self.sg_scene)
@@ -612,7 +612,7 @@ class RmanRender(object):
         ec.RegisterCallback("Render", render_cb, self)
         self.rman_callbacks["Render"] = render_cb        
         
-        self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList(), None) 
+        self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
         self.rman_scene.export_for_swatch_render(depsgraph, self.sg_scene)
 
         self.rman_running = True
@@ -652,7 +652,7 @@ class RmanRender(object):
     def start_export_rib_selected(self, context, rib_path, export_materials=True, export_all_frames=False):
 
         self.rman_running = True  
-        self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList(), None)
+        self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList())     
         self.rman_scene.export_for_rib_selection(context, self.sg_scene)
         self.sg_scene.Render("rib " + rib_path + " -archive")
         self.sgmngr.DeleteScene(self.sg_scene)
