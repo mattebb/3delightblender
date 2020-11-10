@@ -1,8 +1,8 @@
 from .rman_mesh_translator import RmanMeshTranslator
 from ..rman_sg_nodes.rman_sg_curve import RmanSgCurve
-from ..rman_utils import object_utils
-from ..rman_utils import string_utils
-from ..rman_utils import property_utils
+from ..rfb_utils import object_utils
+from ..rfb_utils import string_utils
+from ..rfb_utils import property_utils
 
 import bpy
 import math

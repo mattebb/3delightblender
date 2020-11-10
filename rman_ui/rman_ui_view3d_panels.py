@@ -1,6 +1,6 @@
 from ..rman_render import RmanRender
 from .. import rfb_icons
-from ..rman_utils import shadergraph_utils
+from ..rfb_utils import shadergraph_utils
 from .rman_ui_base import _RManPanelHeader
 import bpy
 

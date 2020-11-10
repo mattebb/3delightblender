@@ -1,6 +1,6 @@
-from ..rman_utils import color_utils
-from ..rman_utils import texture_utils
-from ..rman_utils import filepath_utils
+from ..rfb_utils import color_utils
+from ..rfb_utils import texture_utils
+from ..rfb_utils import filepath_utils
 from .. import txmanager3
 import math
 import bpy

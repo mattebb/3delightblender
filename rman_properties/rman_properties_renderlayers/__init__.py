@@ -6,7 +6,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     
 from ... import rman_bl_nodes
 from ... import rman_config
-from ...rman_utils import scene_utils
+from ...rfb_utils import scene_utils
 from ...rman_config import RmanBasePropertyGroup
 
 class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):

@@ -3,10 +3,10 @@ import os
 import webbrowser
 import sys
 from ..rfb_logger import rfb_log
-from ..rman_utils.prefs_utils import get_pref
-from ..rman_utils import prefs_utils
-from ..rman_utils import string_utils
-from ..rman_utils import filepath_utils
+from ..rfb_utils.prefs_utils import get_pref
+from ..rfb_utils import prefs_utils
+from ..rfb_utils import string_utils
+from ..rfb_utils import filepath_utils
 from ..rman_render import RmanRender
 from bpy.props import StringProperty, BoolProperty
 

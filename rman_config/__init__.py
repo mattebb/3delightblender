@@ -1,7 +1,7 @@
-from ..rman_utils.node_desc import NodeDescParamJSON
-from ..rman_utils import property_utils
-from ..rman_utils.prefs_utils import get_pref
-from ..rman_utils import filepath_utils
+from ..rfb_utils.node_desc import NodeDescParamJSON
+from ..rfb_utils import property_utils
+from ..rfb_utils.prefs_utils import get_pref
+from ..rfb_utils import filepath_utils
 from ..rfb_logger import rfb_log
 from bpy.props import StringProperty, BoolProperty
 import json

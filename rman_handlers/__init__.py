@@ -1,6 +1,6 @@
-from ..rman_utils import texture_utils
-from ..rman_utils import string_utils
-from ..rman_utils import shadergraph_utils
+from ..rfb_utils import texture_utils
+from ..rfb_utils import string_utils
+from ..rfb_utils import shadergraph_utils
 from bpy.app.handlers import persistent
 import bpy
 

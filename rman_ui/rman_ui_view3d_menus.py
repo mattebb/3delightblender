@@ -2,8 +2,8 @@ from .. import rfb_icons
 from ..rman_render import RmanRender
 from .. import rman_bl_nodes
 from ..rman_operators.rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
-from ..rman_utils import scene_utils
-from ..rman_utils import shadergraph_utils
+from ..rfb_utils import scene_utils
+from ..rfb_utils import shadergraph_utils
 from bpy.types import Menu
 import bpy
 

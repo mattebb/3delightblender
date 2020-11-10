@@ -23,9 +23,9 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 
-from ..rman_utils.prefs_utils import get_pref, get_addon_prefs
-from ..rman_utils import filepath_utils
-from ..rman_utils.shadergraph_utils import is_renderman_nodetree
+from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
+from ..rfb_utils import filepath_utils
+from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
 import os
 from distutils.dir_util import copy_tree
 import shutil

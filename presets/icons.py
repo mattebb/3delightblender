@@ -26,8 +26,8 @@
 import os
 import bpy
 import bpy.utils.previews
-from ..rman_utils.prefs_utils import get_pref
-from ..rman_utils import filepath_utils
+from ..rfb_utils.prefs_utils import get_pref
+from ..rfb_utils import filepath_utils
 
 asset_previews = bpy.utils.previews.new()
 __RMAN_MAT_FLAT_PATH__ = 'lib/rmanAssetResources/icons'

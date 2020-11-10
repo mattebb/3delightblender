@@ -1,7 +1,7 @@
 import bpy
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from .. import rman_cycles_convert
-from ..rman_utils import shadergraph_utils
+from ..rfb_utils import shadergraph_utils
 from .. import rman_bl_nodes
 from .rman_operators_utils import get_bxdf_items
 from ..rman_render import RmanRender

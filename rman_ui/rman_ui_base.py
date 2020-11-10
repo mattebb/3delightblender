@@ -1,5 +1,5 @@
 from .. import rfb_icons
-from ..rman_utils.prefs_utils import get_pref
+from ..rfb_utils.prefs_utils import get_pref
 import bpy
 
 # ------- Subclassed Panel Types -------

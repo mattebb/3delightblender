@@ -23,8 +23,8 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 import bpy
-from .rman_utils import filepath_utils
-from .rman_utils import texture_utils
+from .rfb_utils import filepath_utils
+from .rfb_utils import texture_utils
 
 converted_nodes = {}
 report = None

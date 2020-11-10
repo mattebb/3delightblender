@@ -1,6 +1,6 @@
 from ..rman_render import RmanRender
 from .. import rfb_icons
-from ..rman_utils.shadergraph_utils import is_renderman_nodetree, find_selected_pattern_node
+from ..rfb_utils.shadergraph_utils import is_renderman_nodetree, find_selected_pattern_node
 import bpy
 
 class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):

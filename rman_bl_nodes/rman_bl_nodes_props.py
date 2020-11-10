@@ -4,8 +4,8 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     CollectionProperty, BoolVectorProperty
 from .. import rman_bl_nodes
 from .. import rfb_icons
-from ..rman_utils.shadergraph_utils import is_renderman_nodetree
-from ..rman_utils import shadergraph_utils
+from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
+from ..rfb_utils import shadergraph_utils
 
 class RendermanPluginSettings(bpy.types.PropertyGroup):
     pass

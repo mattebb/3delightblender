@@ -1,7 +1,7 @@
 from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_particles import RmanSgParticles
-from ..rman_utils import object_utils
-from ..rman_utils import transform_utils
+from ..rfb_utils import object_utils
+from ..rfb_utils import transform_utils
 
 import bpy
 import math

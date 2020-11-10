@@ -1,7 +1,7 @@
 from bpy.props import StringProperty, BoolProperty, EnumProperty, IntProperty,  CollectionProperty, PointerProperty
-from ..rman_utils import string_utils
+from ..rfb_utils import string_utils
 from ..rfb_logger import rfb_log
-from ..rman_utils import shadergraph_utils
+from ..rfb_utils import shadergraph_utils
 
 import bpy
 

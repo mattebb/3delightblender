@@ -23,16 +23,16 @@ from .rman_translators.rman_brickmap_translator import RmanBrickmapTranslator
 from .rman_translators.rman_emitter_translator import RmanEmitterTranslator
 
 # utils
-from .rman_utils import object_utils
-from .rman_utils import transform_utils
-from .rman_utils import property_utils
-from .rman_utils import display_utils
-from .rman_utils import string_utils
-from .rman_utils import texture_utils
-from .rman_utils import filepath_utils
-from .rman_utils import scene_utils
-from .rman_utils.prefs_utils import get_pref
-from .rman_utils import shadergraph_utils
+from .rfb_utils import object_utils
+from .rfb_utils import transform_utils
+from .rfb_utils import property_utils
+from .rfb_utils import display_utils
+from .rfb_utils import string_utils
+from .rfb_utils import texture_utils
+from .rfb_utils import filepath_utils
+from .rfb_utils import scene_utils
+from .rfb_utils.prefs_utils import get_pref
+from .rfb_utils import shadergraph_utils
 
 # config
 from .rman_config import __RFB_CONFIG_DICT__ as rfb_config

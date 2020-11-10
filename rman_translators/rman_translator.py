@@ -1,6 +1,6 @@
-from ..rman_utils import transform_utils
-from ..rman_utils import property_utils
-from ..rman_utils import string_utils
+from ..rfb_utils import transform_utils
+from ..rfb_utils import property_utils
+from ..rfb_utils import string_utils
 import os
 
 class RmanTranslator(object):

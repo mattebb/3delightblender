@@ -4,7 +4,7 @@ from bpy.types import PropertyGroup, UIList, Operator, Panel
 from bpy_extras.io_utils import ImportHelper
 from .rman_ui_base import _RManPanelHeader
 from ..txmanager3 import txparams
-from ..rman_utils import texture_utils
+from ..rfb_utils import texture_utils
 from .. import rman_render
 from .. import txmanager3 as txmngr3
 from .. import rfb_icons

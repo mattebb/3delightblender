@@ -2,11 +2,11 @@ from .rman_translator import RmanTranslator
 from .rman_lightfilter_translator import RmanLightFilterTranslator
 from ..rman_sg_nodes.rman_sg_light import RmanSgLight
 from ..rman_sg_nodes.rman_sg_lightfilter import RmanSgLightFilter
-from ..rman_utils import string_utils
-from ..rman_utils import property_utils
-from ..rman_utils import transform_utils
-from ..rman_utils import object_utils
-from ..rman_utils import scene_utils
+from ..rfb_utils import string_utils
+from ..rfb_utils import property_utils
+from ..rfb_utils import transform_utils
+from ..rfb_utils import object_utils
+from ..rfb_utils import scene_utils
 from ..rfb_logger import rfb_log
 from mathutils import Matrix
 import math

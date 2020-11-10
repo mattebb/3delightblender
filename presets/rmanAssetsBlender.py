@@ -35,8 +35,8 @@ import bpy as mc  # just a test
 import bpy
 import mathutils
 from math import radians
-from ..rman_utils import filepath_utils
-from ..rman_utils.property_utils import __GAINS_TO_ENABLE__
+from ..rfb_utils import filepath_utils
+from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__
 
 ##
 # @brief      Exception class to tell the world about our miserable failings.
@@ -982,7 +982,7 @@ def parseNodeGraph(nt, Asset):
 
     graph = BlenderGraph()
     graph.AddNode(out)
-    from ..rman_utils.shadergraph_utils import gather_nodes
+    from ..rfb_utils.shadergraph_utils import gather_nodes
     nodes_to_convert = gather_nodes(out)
 
     for node in nodes_to_convert:

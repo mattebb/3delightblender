@@ -5,10 +5,10 @@ from ..rfb_logger import rfb_log
 from .rman_ui_base import _RManPanelHeader
 from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel
-from ..rman_utils.draw_utils import _draw_props
-from ..rman_utils import string_utils
-from ..rman_utils import scene_utils
-from ..rman_utils.draw_utils import _draw_ui_from_rman_config
+from ..rfb_utils.draw_utils import _draw_props
+from ..rfb_utils import string_utils
+from ..rfb_utils import scene_utils
+from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
 from .. import rman_config
 from ..rman_render import RmanRender
 

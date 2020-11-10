@@ -1,7 +1,7 @@
 from .rman_ui_base import ShaderPanel
-from ..rman_utils.shadergraph_utils import is_renderman_nodetree
-from ..rman_utils.draw_utils import _draw_props
-from ..rman_utils.draw_utils import _draw_ui_from_rman_config
+from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
+from ..rfb_utils.draw_utils import _draw_props
+from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
 import bpy
 from bpy.types import Panel
 

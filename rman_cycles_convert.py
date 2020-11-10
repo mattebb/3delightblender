@@ -1,6 +1,6 @@
 from .rfb_logger import rfb_log
 from .cycles_convert import *
-from .rman_utils import shadergraph_utils
+from .rfb_utils import shadergraph_utils
 
 _CYCLES_NODE_MAP_ = {
     'ShaderNodeAttribute': 'node_attribute',

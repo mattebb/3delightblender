@@ -1,7 +1,7 @@
 from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_gp import RmanSgGreaseP
-from ..rman_utils import object_utils
-from ..rman_utils import string_utils
+from ..rfb_utils import object_utils
+from ..rfb_utils import string_utils
 from ..rfb_logger import rfb_log
 from mathutils import Vector, Matrix
 

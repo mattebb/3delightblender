@@ -1,6 +1,6 @@
 from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_dra import RmanSgDra
-from ..rman_utils import filepath_utils
+from ..rfb_utils import filepath_utils
 
 class RmanDraTranslator(RmanTranslator):
 

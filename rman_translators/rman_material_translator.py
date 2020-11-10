@@ -1,10 +1,10 @@
 from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_material import RmanSgMaterial
-from ..rman_utils import string_utils
-from ..rman_utils import property_utils
-from ..rman_utils import shadergraph_utils
-from ..rman_utils import color_utils
-from ..rman_utils import gpmaterial_utils
+from ..rfb_utils import string_utils
+from ..rfb_utils import property_utils
+from ..rfb_utils import shadergraph_utils
+from ..rfb_utils import color_utils
+from ..rfb_utils import gpmaterial_utils
 
 from ..rfb_logger import rfb_log
 from ..rman_cycles_convert import _CYCLES_NODE_MAP_

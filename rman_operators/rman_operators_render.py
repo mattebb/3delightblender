@@ -1,5 +1,5 @@
 from ..rman_render import RmanRender
-from ..rman_utils import filepath_utils
+from ..rfb_utils import filepath_utils
 import bpy
 import os
 import time

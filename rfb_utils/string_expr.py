@@ -5,7 +5,7 @@ import os
 import datetime
 from collections import OrderedDict
 from ..rfb_logger import rfb_log
-from ..rman_utils import filepath_utils
+from ..rfb_utils import filepath_utils
 from .prefs_utils import get_pref
 import bpy
 

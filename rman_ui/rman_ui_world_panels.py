@@ -5,8 +5,8 @@ from bpy.props import (PointerProperty, StringProperty, BoolProperty,
 
 from .rman_ui_base import CollectionPanel   
 from .rman_ui_base import PRManButtonsPanel 
-from ..rman_utils.draw_utils import draw_node_properties_recursive, draw_nodes_properties_ui
-from ..rman_utils.shadergraph_utils import find_node
+from ..rfb_utils.draw_utils import draw_node_properties_recursive, draw_nodes_properties_ui
+from ..rfb_utils.shadergraph_utils import find_node
 from .. import rfb_icons
 from bpy.types import Panel
 import bpy

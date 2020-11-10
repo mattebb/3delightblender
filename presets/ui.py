@@ -23,7 +23,7 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 
-from ..rman_utils.prefs_utils import get_pref
+from ..rfb_utils.prefs_utils import get_pref
 
 # for panel icon
 from .. import rfb_icons

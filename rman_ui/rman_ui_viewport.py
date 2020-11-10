@@ -2,8 +2,8 @@ from bpy.props import EnumProperty, StringProperty, IntProperty, FloatProperty
 from ..rman_render import RmanRender
 from .. import rman_bl_nodes
 from .. import rfb_icons
-from ..rman_utils.prefs_utils import get_pref
-from ..rman_utils import display_utils
+from ..rfb_utils.prefs_utils import get_pref
+from ..rfb_utils import display_utils
 from bpy.types import Menu
 
 import bpy

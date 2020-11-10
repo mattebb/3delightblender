@@ -2,8 +2,8 @@ from bpy.props import EnumProperty, StringProperty, BoolProperty
 from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
 from .. import rman_render
-from ..rman_utils.shadergraph_utils import find_node, find_selected_pattern_node
-from ..rman_utils.node_desc import FLOAT3
+from ..rfb_utils.shadergraph_utils import find_node, find_selected_pattern_node
+from ..rfb_utils.node_desc import FLOAT3
 import bpy
 import os
 

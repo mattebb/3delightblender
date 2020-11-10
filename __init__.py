@@ -26,10 +26,10 @@ import bpy
 import bgl
 import blf
 import time
-from .rman_utils import filepath_utils
-from .rman_utils import texture_utils
-from .rman_utils.prefs_utils import get_pref
-from .rman_utils import string_utils
+from .rfb_utils import filepath_utils
+from .rfb_utils import texture_utils
+from .rfb_utils.prefs_utils import get_pref
+from .rfb_utils import string_utils
 from .rfb_logger import rfb_log
 
 bl_info = {

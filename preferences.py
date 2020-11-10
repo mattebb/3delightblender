@@ -30,7 +30,7 @@ from bpy.types import AddonPreferences
 from bpy.props import CollectionProperty, BoolProperty, StringProperty, FloatProperty
 from bpy.props import IntProperty, PointerProperty, EnumProperty, FloatVectorProperty
 
-from .rman_utils import filepath_utils
+from .rfb_utils import filepath_utils
 from . import rfb_logger
 from . import rfb_icons
 

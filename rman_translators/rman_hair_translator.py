@@ -1,5 +1,5 @@
 from .rman_translator import RmanTranslator
-from ..rman_utils import object_utils
+from ..rfb_utils import object_utils
 from ..rman_sg_nodes.rman_sg_hair import RmanSgHair
 from mathutils import Vector
 import math

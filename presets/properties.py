@@ -26,7 +26,7 @@
 from bpy.props import *
 from bpy.types import PropertyGroup
 import bpy.utils
-from ..rman_utils.prefs_utils import get_pref
+from ..rfb_utils.prefs_utils import get_pref
 from . import icons
 import json
 import os

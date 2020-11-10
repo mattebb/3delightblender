@@ -1,6 +1,6 @@
 import unittest
 import bpy
-from ..rman_utils import string_utils
+from ..rfb_utils import string_utils
 
 class StringExprTest(unittest.TestCase):
 

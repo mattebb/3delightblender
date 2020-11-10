@@ -1,7 +1,7 @@
 from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_blobby import RmanSgBlobby
-from ..rman_utils import object_utils
-from ..rman_utils import string_utils
+from ..rfb_utils import object_utils
+from ..rfb_utils import string_utils
 from mathutils import Matrix
 
 import bpy

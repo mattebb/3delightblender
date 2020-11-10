@@ -1,7 +1,7 @@
 import logging
 import logging.handlers
 import os
-from ..rman_utils.prefs_utils import get_pref
+from ..rfb_utils.prefs_utils import get_pref
 
 LOGGING_DISABLED = 100
 CRITICAL = logging.CRITICAL
