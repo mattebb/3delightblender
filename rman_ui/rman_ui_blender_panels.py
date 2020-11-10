@@ -39,7 +39,7 @@ def get_panels():
         'RENDER_PT_render',
         'RENDER_PT_stamp',
         'RENDER_PT_simplify',
-        'RENDER_PT_color_management',
+        #'RENDER_PT_color_management',
         'RENDER_PT_output',
         'RENDER_PT_stereoscopy',
         'TEXTURE_PT_context_texture',
