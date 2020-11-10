@@ -133,7 +133,8 @@ class TxFile(object):
     tokenExpr = re.compile(r'(_MAPID_|{(udim|UDIM|[F|f][1-4]*)}|_u<[uU]>_v<[vV]>|`.+`|\$(F[1-4]*)|\${[A-Z]+})|\%\(UDIM\)d')
     uvTokenExpr = re.compile(r'_u<[uU]>_v<[vV]>|\%\(UDIM\)d')
     atlasExpr = re.compile(r'(_MAPID_|<(udim|UDIM)>|_u<[uU]>_v<[vV]>|\%\(UDIM\)d)')
-    rules = _load_rules()
+    #rules = _load_rules()
+    rules = None
 
     def __init__(self, input_image, tex_ext_list=TEX_EXTENSIONS,
                  fallback_path='',
