@@ -46,9 +46,8 @@ import sys
 
 class RmanScene(object):
     '''
-    The RmanScene handles translating the Blender scene. It also handles changes
-    to the scene during interactive rendering.
-
+    The RmanScene handles translating the Blender scene. 
+    
     Attributes:
         rman_render (RmanRender) - pointer back to the current RmanRender object
         rman () - rman python module
