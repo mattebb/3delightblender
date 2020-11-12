@@ -550,6 +550,11 @@ def generate_node_type(node_desc, is_oso=False):
             name="Light Primary Visibility",
             description="Camera visibility for this light",
             default=True)
+    elif nodeType in ['samplefilter', 'displayfilter']:
+        ntype.__annotations__['is_active'] = BoolProperty(
+            name="Active",
+            description="Enable or disable this filter",
+            default=True)        
 
     bpy.utils.register_class(ntype)
 

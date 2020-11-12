@@ -1196,6 +1196,8 @@ class RmanScene(object):
             return
 
         for bl_df_node in shadergraph_utils.find_displayfilter_nodes(world):
+            if not bl_df_node.is_active:
+                continue
             df_name = bl_df_node.name
             if df_name == "":
                 df_name = "rman_displayfilter_filter%d" % i
@@ -1236,6 +1238,8 @@ class RmanScene(object):
         world = self.bl_scene.world
 
         for bl_sf_node in shadergraph_utils.find_samplefilter_nodes(world):
+            if not bl_sf_node.is_active:
+                continue
             sf_name = bl_sf_node.name
             if sf_name == "":
                 sf_name = "rman_samplefilter_filter%d" % i

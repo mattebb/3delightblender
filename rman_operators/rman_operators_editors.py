@@ -598,7 +598,27 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
     def invoke(self, context, event):
 
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=500)                
+        return wm.invoke_props_dialog(self, width=500)  
+
+class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
+
+    bl_idname = "scene.rman_open_stylized_editor"
+    bl_label = "RenderMan Stylized Editor"
+         
+    def execute(self, context):
+        return{'FINISHED'}         
+
+    def draw(self, context):
+        layout = self.layout
+        scene = context.scene   
+        rm = scene.renderman
+        layout.separator()
+        layout.label(text="RenderMan Stylized Looks Editor")
+
+    def invoke(self, context, event):
+
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=500)                      
 
 classes = [
     RENDER_OT_Renderman_Open_Workspace,
@@ -608,8 +628,8 @@ classes = [
     RENDERMAN_UL_Object_Group_List,
     RENDERMAN_UL_LightLink_Light_List,
     RENDERMAN_UL_LightLink_Object_List,
-    RENDERMAN_UL_LightMixer_Group_Members_List
-
+    RENDERMAN_UL_LightMixer_Group_Members_List,
+    PRMAN_OT_Renderman_Open_Stylized_Editor
 ]
 
 def register():
