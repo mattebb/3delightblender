@@ -1208,13 +1208,9 @@ class RmanScene(object):
 
         if len(display_filter_names) > 1:
             df_name = "rman_displayfilter_combiner"
-            df_node = None
-            if df_name in self.sg_nodes_dict:
-                df_node = self.sg_nodes_dict[df_name]
-            else:
-                df_node = self.rman.SGManager.RixSGShader("DisplayFilter", "PxrDisplayFilterCombiner", df_name)
+            df_node = self.rman.SGManager.RixSGShader("DisplayFilter", "PxrDisplayFilterCombiner", df_name)
             params = df_node.params
-            params.ReferenceDisplayFilterArray("filter", display_filter_names, len(display_filter_names))
+            params.SetDisplayFilterReferenceArray("filter", display_filter_names, len(display_filter_names))
             displayfilters_list.append(df_node)
 
         self.sg_scene.SetDisplayFilter(displayfilters_list)        
@@ -1263,7 +1259,7 @@ class RmanScene(object):
             sf_name = "rman_samplefilter_combiner"
             sf_node = self.rman.SGManager.RixSGShader("SampleFilter", "PxrSampleFilterCombiner", sf_name)
             params = sf_node.params
-            params.ReferenceDisplayFilterArray("filter", display_filter_names, len(display_filter_names))
+            params.SetSampleFilterReferenceArray("filter", sample_filter_names, len(sample_filter_names))
 
             samplefilters_list.append(sf_node)
 

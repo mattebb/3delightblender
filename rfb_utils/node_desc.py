@@ -101,10 +101,12 @@ PAGE_SEP = '|'
 PYTYPES = ['int', 'float']
 
 def _is_alpha_string(s):
+    hasAlpha = False
     for c in s:
-        if not (c.isalpha() or c.isspace()):
-            return False
-    return True
+        if (c.isalpha() or c.isspace()):
+            hasAlpha = True
+            break
+    return hasAlpha
 
 class NodeDescError(Exception):
     """Custom exception for NodeDesc-related errors."""

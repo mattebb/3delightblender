@@ -637,7 +637,102 @@
             "channelType": "normal",
             "channelSource": "__WNref",
             "group": "Data AOVs"
-         }        
+         },
+         "Position":{
+            "channelType": "color",
+            "channelSource": "lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;CU3L",
+            "group": "User Lobes"
+        },
+        "Color":{
+            "channelType": "color",
+            "channelSource": "lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;CU4L",
+            "group": "User Lobes"
+        },
+        "NPRfinal": {
+            "channelType": "color",
+            "channelSource": "NPRfinal",
+            "group": "NPR"
+        },
+        "NPRallLines": {
+            "channelType": "color",
+            "channelSource": "NPRallLines",
+            "group": "NPR"
+        },
+        "NPRcurvature": {
+            "channelType": "color",
+            "channelSource": "NPRcurvature",
+            "group": "NPR"
+        },
+        "NPRoutline": {
+            "channelType": "color",
+            "channelSource": "NPRoutline",
+            "group": "NPR"
+        },
+        "NPRlineNZ": {
+            "channelType": "color",
+            "channelSource": "NPRlineNZ",
+            "group": "NPR"
+        },
+        "NPRsections": {
+            "channelType": "color",
+            "channelSource": "NPRsections",
+            "group": "NPR"
+        },
+        "NPRlineCamdist": {
+            "channelType": "color",
+            "channelSource": "NPRlineCamdist",
+            "group": "NPR"
+        },
+        "NPRlineMask": {
+            "channelType": "color",
+            "channelSource": "NPRlineMask",
+            "group": "NPR"
+        },
+        "NPRlineAlbedo": {
+            "channelType": "color",
+            "channelSource": "NPRlineAlbedo",
+            "group": "NPR"
+        },
+        "NPRlineWidth": {
+            "channelType": "color",
+            "channelSource": "NPRlineWidth",
+            "group": "NPR"
+        },
+        "NPRoriginalBeauty": {
+            "channelType": "color",
+            "channelSource": "NPRoriginalBeauty",
+            "group": "NPR"
+        },
+        "NPRallLinesAlpha": {
+            "channelType": "color",
+            "channelSource": "NPRallLinesAlpha",
+            "group": "NPR"
+        },
+        "NPRtextureCoords": {
+            "channelType": "color",
+            "channelSource": "NPRtextureCoords",
+            "group": "NPR"
+        },
+        "NPRtoonDiff": {
+            "channelType": "color",
+            "channelSource": "NPRtoonDiff",
+            "group": "NPR"
+        },
+        "NPRtoonDiffRamp": {
+            "channelType": "color",
+            "channelSource": "NPRtoonDiffRamp",
+            "group": "NPR"
+                },
+        "NPRPtriplanar": {
+            "channelType": "color",
+            "channelSource": "NPRPtriplanar",
+            "group": "NPR"
+                },
+        "NPRalbedo": {
+            "channelType": "color",
+            "channelSource": "NPRalbedo",
+            "group": "NPR"
+        }
     },
     "displays": {
         "Default": {
@@ -684,6 +779,33 @@
                 "MatteID6",
                 "MatteID7"
             ]
-        }
+        },
+        "NPR": {
+            "description": "AOVs for Stylized Looks",
+            "channels": [
+                "diffuse",
+                "albedo",
+                "P",
+                "Nn",
+                "sampleCount",
+                "directSpecular",
+                "NPRfinal",
+                "NPRallLines",
+                "NPRallLinesAlpha",
+                "NPRoutline",
+                "NPRlineNZ",
+                "NPRsections",
+                "NPRlineCamdist",
+                "NPRlineAlbedo",
+                "NPRlineWidth",
+                "NPRlineMask",
+                "NPRcurvature",
+                "NPRalbedo",
+                "NPRtoonDiffRamp",
+                "NPRtextureCoords",
+                "NPRPtriplanar",
+                "NPRoriginalBeauty"
+            ]
+        }        
     }
 }
