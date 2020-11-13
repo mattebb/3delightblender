@@ -185,6 +185,7 @@ class PRManRender(bpy.types.RenderEngine):
 
 def set_up_paths():
     import os
+    import platform
 
     rmantree = filepath_utils.guess_rmantree()
     filepath_utils.set_rmantree(rmantree)
@@ -193,6 +194,11 @@ def set_up_paths():
     filepath_utils.set_path([os.path.join(rmantree, 'bin'), it_dir])
     pythonbindings = os.path.join(rmantree, 'bin', 'pythonbindings')
     filepath_utils.set_pythonpath(pythonbindings)
+    if platform.system() == 'Windows':
+        rman_packages = os.path.join(rmantree, 'lib', 'python3.7', 'Lib', 'site-packages')
+    else:
+        rman_packages = os.path.join(rmantree, 'lib', 'python3.7', 'site-packages')
+    filepath_utils.set_pythonpath(rman_packages)    
 
 def load_addon():
     if filepath_utils.guess_rmantree():

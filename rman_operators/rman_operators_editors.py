@@ -8,7 +8,7 @@ from ..rfb_utils import string_utils
 from ..rman_render import RmanRender       
 from .. import rfb_icons
 from ..rman_operators.rman_operators_collections import return_empty_list   
-from ..rman_constants import RFB_MAX_USER_TOKENS  
+from ..rman_constants import RFB_MAX_USER_TOKENS, RMAN_STYLIZED_PATTERNS  
 import bpy
 import re
 
@@ -605,48 +605,111 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
     bl_idname = "scene.rman_open_stylized_editor"
     bl_label = "RenderMan Stylized Editor"
 
-    selected_dspyfilter_idx: IntProperty(default=0)
+    def rman_stylized_filters(self, context):
+        items = []
+        for f in RMAN_STYLIZED_PATTERNS:
+            items.append((f, f, ""))
+        return items
+
+    add_stylized_filter: EnumProperty(
+        name="",
+        items=rman_stylized_filters
+    )
+
+    def current_filters(self, context):
+        items = []
+        items.append(('0', '', '', '', 0))
+        scene = context.scene   
+        world = scene.world
+        nt = world.node_tree
+
+        nodes = shadergraph_utils.find_all_stylized_filters(world)
+
+        for node in nodes:
+            items.append((node.name, node.name, ""))
+
+        return items  
+
+    stylized_filter: EnumProperty(
+        name="",
+        items=current_filters
+    )    
          
     def execute(self, context):
         return{'FINISHED'}         
 
     def draw(self, context):
+
         layout = self.layout
         scene = context.scene   
         world = scene.world
-        rm = world.renderman
+        rm = scene.renderman
         nt = world.node_tree
+        selected_objects = context.selected_objects
 
-        output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')
-        if not output:
-            return
-      
+        rm_rl = None
+        active_layer = context.view_layer
+        enabled_button = True
+        for l in rm.render_layers:
+            if l.render_layer == active_layer.name:
+                rm_rl = l
+                break
+        if rm_rl:
+            for aov in rm_rl.custom_aovs:
+                if aov.name == 'NPR':
+                    enabled_button = False
+                    break
+            
         row = layout.row(align=True)
         col = row.column()
-        col.operator('node.rman_add_displayfilter_node_socket', text='Add')
-        col = row.column()
-        col.enabled = len(output.inputs) > 1
-        col.operator('node.rman_remove_displayfilter_node_socket', text='Remove')
-        for socket in output.inputs:
-            layout.label(text=socket.name)
-            layout.context_pointer_set("node", output)
-            layout.context_pointer_set("nodetree", nt)
-            layout.context_pointer_set("socket", socket)   
+        op = col.operator('renderman.dspy_rman_add_dspy_template', text='Add AOVs')
+        op.dspy_template = 'NPR'
+        col.enabled = enabled_button
 
-            if socket.is_linked:
-                link = socket.links[0]
-                node = link.from_node                 
-                rman_icon = rfb_icons.get_displayfilter_icon(node.bl_label)
-                layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)    
-                layout.prop(node, "is_active")
-                if node.is_active:                          
-                    draw_node_properties_recursive(layout, context, nt, node, level=1)                    
-            else:
-                layout.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')                
+        enabled_button = False
+        for ob in selected_objects:
+            if not shadergraph_utils.has_stylized_pattern_node(ob):
+                enabled_button = True
+                continue        
+
+        col = row.column()
+        col.operator('node.rman_attach_stylized_pattern', text='Attach Pattern')
+        col.enabled = enabled_button
+
+
+        layout.separator()  
+        row = layout.row(align=True)
+        col = row.column()
+        col.prop(self, 'add_stylized_filter')
+        col = row.column()
+        op = col.operator('node.rman_add_stylized_filter', text="Add")
+        op.filter_name = self.properties.add_stylized_filter
         
+        layout.separator()  
+        output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')
+        if not output:
+            row = layout.row()
+            row.label(text="No Stylized Patterns")
+            return 
+
+        layout.prop(self, 'stylized_filter')    
+        nodes = shadergraph_utils.find_all_stylized_filters(world)
+        layout.label(text='Filters: %d' % len(nodes))
+        selected_stylized_node = None
+        if self.properties.stylized_filter != '':
+            for node in nodes:
+                if node.name == self.properties.stylized_filter:
+                    selected_stylized_node = node
+                    break
+        
+        if selected_stylized_node:
+            rman_icon = rfb_icons.get_displayfilter_icon(node.bl_label) 
+            layout.label(text='%s (%s)' % (selected_stylized_node.name, selected_stylized_node.bl_label))
+            layout.prop(selected_stylized_node, "is_active")
+            if selected_stylized_node.is_active:                          
+                draw_node_properties_recursive(layout, context, nt, selected_stylized_node, level=1)                
 
     def invoke(self, context, event):
-
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=500)                      
 

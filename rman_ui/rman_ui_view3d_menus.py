@@ -206,6 +206,24 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         layout.menu('VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu', text='Light Mixer Groups')  
         layout.operator("scene.rman_open_light_linking", text="Light Linking Editor")    
         layout.separator()
+        layout.menu('VIEW3D_MT_RM_Stylized_Menu', text='Stylized')  
+
+class VIEW3D_MT_RM_Stylized_Menu(bpy.types.Menu):
+    bl_label = "Stylized"
+    bl_idname = "VIEW3D_MT_RM_Stylized_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    @classmethod
+    def get_icon_id(cls):  
+        return rfb_icons.get_icon("rman_blender").icon_id
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator('node.rman_attach_stylized_pattern', text='Attach Stylized Pattern')             
         layout.operator("scene.rman_open_stylized_editor", text="Stylized Looks Editor")    
 
 class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
@@ -443,7 +461,8 @@ classes = [
     VIEW3D_MT_RM_Add_LightFilter_Menu,
     VIEW3D_MT_RM_Add_bxdf_Menu,
     VIEW3D_MT_RM_Add_Export_Menu,
-    VIEW3D_MT_RM_Add_Render_Menu
+    VIEW3D_MT_RM_Add_Render_Menu,
+    VIEW3D_MT_RM_Stylized_Menu
 ]
 
 def register():

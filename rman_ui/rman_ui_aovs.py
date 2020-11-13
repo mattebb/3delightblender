@@ -482,6 +482,15 @@ class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
         # add the already existing passes
         scene = context.scene
         rm = scene.renderman
+        rm_rl = None
+        active_layer = context.view_layer
+        for l in rm.render_layers:
+            if l.render_layer == active_layer.name:
+                rm_rl = l
+                break
+        if rm_rl is None:
+            bpy.ops.renderman.dspy_convert_renderman_displays('EXEC_DEFAULT')
+
         rm_rl = scene.renderman.render_layers[-1]
 
         rman_dspy_channels = rman_config.__RMAN_DISPLAY_CHANNELS__

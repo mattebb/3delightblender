@@ -26,3 +26,9 @@ RFB_ARRAYS_MAX_LEN = 50
 RFB_MAX_USER_TOKENS = 10
 RFB_VIEWPORT_MAX_BUCKETS = 10
 RFB_PREFS_NAME = "RenderManForBlender"
+
+RMAN_STYLIZED_PATTERNS = [
+    "PxrStylizedHatchingDisplayFilter",
+    "PxrStylizedLinesDisplayFilter",
+    "PxrStylizedToonDisplayFilter"
+]    

@@ -2,6 +2,7 @@ from . import color_utils
 from . import filepath_utils
 from . import string_utils
 from . import object_utils
+from ..rman_constants import RMAN_STYLIZED_PATTERNS
 import math
 
 def is_renderman_nodetree(material):
@@ -301,6 +302,56 @@ def find_samplefilter_nodes(world):
                 sf_nodes.append(bl_sf_node)   
 
     return sf_nodes
+
+def find_all_stylized_filters(world):
+    nodes = list()
+    output = find_node(world, 'RendermanDisplayfiltersOutputNode')
+    if not output:
+        return nodes   
+
+    for i, socket in enumerate(output.inputs):
+        if socket.is_linked:
+            link = socket.links[0]
+            node = link.from_node    
+            if node.bl_label in RMAN_STYLIZED_PATTERNS:
+                nodes.append(node)
+
+    return nodes
+                          
+def has_stylized_pattern_node(ob, node=None):
+    pattern_name = "PxrStylizedPattern"
+    prop_name = "utilityPattern"    
+    if not node:
+        if len(ob.material_slots) < 1:
+            return False
+        mat = ob.material_slots[0].material
+        nt = mat.node_tree
+        output = is_renderman_nodetree(mat)
+        if not output:
+            return False
+        socket = output.inputs[0]
+        if not socket.is_linked:
+            return False
+
+        link = socket.links[0]
+        node = link.from_node 
+        prop = getattr(node, prop_name, None)
+        if not prop:
+            return False
+
+    array_len = getattr(node, '%s_arraylen' % prop_name)
+    for i in range(0, array_len):
+        nm = '%s[%d]' % (prop_name, i)
+        sub_prop = getattr(node, nm)
+        if hasattr(node, 'inputs')  and nm in node.inputs and \
+            node.inputs[nm].is_linked: 
+
+            to_socket = node.inputs[nm]                    
+            from_node = to_socket.links[0].from_node
+            if from_node.bl_label == pattern_name:
+                return True
+
+    return False
 
 def create_pxrlayer_nodes(nt, bxdf):
     mixer = nt.nodes.new("PxrLayerMixerPatternOSLNode")
