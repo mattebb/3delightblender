@@ -1,7 +1,7 @@
 from bpy.props import (StringProperty, BoolProperty, EnumProperty, IntProperty)
 
 from ..rman_ui.rman_ui_base import CollectionPanel   
-from ..rfb_utils.draw_utils import _draw_ui_from_rman_config  
+from ..rfb_utils.draw_utils import _draw_ui_from_rman_config, draw_node_properties_recursive
 from ..rfb_utils import scene_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import string_utils
@@ -604,6 +604,8 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
 
     bl_idname = "scene.rman_open_stylized_editor"
     bl_label = "RenderMan Stylized Editor"
+
+    selected_dspyfilter_idx: IntProperty(default=0)
          
     def execute(self, context):
         return{'FINISHED'}         
@@ -611,9 +613,37 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
     def draw(self, context):
         layout = self.layout
         scene = context.scene   
-        rm = scene.renderman
-        layout.separator()
-        layout.label(text="RenderMan Stylized Looks Editor")
+        world = scene.world
+        rm = world.renderman
+        nt = world.node_tree
+
+        output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')
+        if not output:
+            return
+      
+        row = layout.row(align=True)
+        col = row.column()
+        col.operator('node.rman_add_displayfilter_node_socket', text='Add')
+        col = row.column()
+        col.enabled = len(output.inputs) > 1
+        col.operator('node.rman_remove_displayfilter_node_socket', text='Remove')
+        for socket in output.inputs:
+            layout.label(text=socket.name)
+            layout.context_pointer_set("node", output)
+            layout.context_pointer_set("nodetree", nt)
+            layout.context_pointer_set("socket", socket)   
+
+            if socket.is_linked:
+                link = socket.links[0]
+                node = link.from_node                 
+                rman_icon = rfb_icons.get_displayfilter_icon(node.bl_label)
+                layout.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)    
+                layout.prop(node, "is_active")
+                if node.is_active:                          
+                    draw_node_properties_recursive(layout, context, nt, node, level=1)                    
+            else:
+                layout.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')                
+        
 
     def invoke(self, context, event):
 

@@ -713,21 +713,11 @@
             "channelSource": "NPRtextureCoords",
             "group": "NPR"
         },
-        "NPRtoonDiff": {
-            "channelType": "color",
-            "channelSource": "NPRtoonDiff",
-            "group": "NPR"
-        },
-        "NPRtoonDiffRamp": {
-            "channelType": "color",
-            "channelSource": "NPRtoonDiffRamp",
-            "group": "NPR"
-                },
         "NPRPtriplanar": {
             "channelType": "color",
             "channelSource": "NPRPtriplanar",
             "group": "NPR"
-                },
+        },
         "NPRalbedo": {
             "channelType": "color",
             "channelSource": "NPRalbedo",
@@ -801,7 +791,6 @@
                 "NPRlineMask",
                 "NPRcurvature",
                 "NPRalbedo",
-                "NPRtoonDiffRamp",
                 "NPRtextureCoords",
                 "NPRPtriplanar",
                 "NPRoriginalBeauty"

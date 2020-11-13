@@ -205,7 +205,8 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         layout.menu('VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu', text='Trace Sets')     
         layout.menu('VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu', text='Light Mixer Groups')  
         layout.operator("scene.rman_open_light_linking", text="Light Linking Editor")    
-
+        layout.separator()
+        layout.operator("scene.rman_open_stylized_editor", text="Stylized Looks Editor")    
 
 class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
     bl_label = "Render"
