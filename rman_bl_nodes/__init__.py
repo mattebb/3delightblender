@@ -172,11 +172,11 @@ def update_array_size_func(self, context):
             context.active_object.update_tag(refresh={'DATA'})    
 
     if context and hasattr(context, 'material'):
-        mat = context.material
+        mat = getattr(context, 'material', None)
         if mat:
             node.update_mat(mat)
     elif context and hasattr(context, 'node'):
-        mat = context.space_data.id
+        mat = getattr(context.space_data, 'id', None)
         if mat:
             node.update_mat(mat)
     
@@ -202,12 +202,12 @@ def update_func(self, context):
             context.active_object.update_tag(refresh={'DATA'})
 
     if context and hasattr(context, 'material'):
-        mat = context.material
+        mat = getattr(context, 'material', None)
         if mat:
             node.update_mat(mat)
 
     elif context and hasattr(context, 'node'):
-        mat = context.space_data.id
+        mat = getattr(context.space_data, 'id', None)
         if mat:
             node.update_mat(mat)
     # update the conditional_vis_ops
