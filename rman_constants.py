@@ -32,3 +32,16 @@ RMAN_STYLIZED_PATTERNS = [
     "PxrStylizedLinesDisplayFilter",
     "PxrStylizedToonDisplayFilter"
 ]    
+
+# special string to indicate an empty string
+# necessary for EnumProperty because it cannot
+# take an empty string as an item value
+__RMAN_EMPTY_STRING__ = '__empty__'
+
+# these are reserved property names for Blender's nodes
+__RESERVED_BLENDER_NAMES__ = {
+    'dimensions' : 'rman_dimensions',
+    'inputs': 'rman_inputs',
+    'outputs': 'rman_outputs',
+    'resolution': 'rman_resolution'
+}

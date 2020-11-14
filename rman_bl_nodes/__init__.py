@@ -2,7 +2,7 @@ from ..rfb_utils.node_desc import NodeDesc
 from ..rfb_utils import filepath_utils
 from ..rfb_utils.filepath import FilePath
 from ..rfb_utils import texture_utils
-from ..rfb_utils import property_utils
+from ..rfb_utils import generate_property_utils
 from ..rfb_logger import rfb_log
 from .rman_socket_utils import node_add_inputs
 from .rman_socket_utils import node_add_outputs
@@ -304,10 +304,10 @@ def class_generate_properties(node, parent_name, node_desc):
 
         if node_desc_param.is_array():
             # this is an array 
-            if property_utils.generate_array_property(node, prop_names, prop_meta, node_desc_param, update_array_size_func=update_array_size_func, update_array_elem_func=update_function):
+            if generate_property_utils.generate_array_property(node, prop_names, prop_meta, node_desc_param, update_array_size_func=update_array_size_func, update_array_elem_func=update_function):
                 continue
 
-        name, meta, prop = property_utils.generate_property(node, node_desc_param, update_function=update_function)
+        name, meta, prop = generate_property_utils.generate_property(node, node_desc_param, update_function=update_function)
         if name is None:
             continue          
         if hasattr(node_desc_param, 'page') and node_desc_param.page != '':

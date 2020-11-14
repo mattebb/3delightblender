@@ -1,5 +1,5 @@
 from ..rfb_utils.node_desc import NodeDescParamJSON
-from ..rfb_utils import property_utils
+from ..rfb_utils import generate_property_utils
 from ..rfb_utils.prefs_utils import get_pref
 from ..rfb_utils import filepath_utils
 from ..rfb_logger import rfb_log
@@ -59,7 +59,7 @@ class RmanBasePropertyGroup:
                 exec('update_func = %s' % ndp.update_function_name, globals(), lcls)
                 update_func = lcls['update_func']
                 setattr(cls, ndp.update_function_name, update_func)
-            name, meta, prop = property_utils.generate_property(cls, ndp, update_function=update_func)
+            name, meta, prop = generate_property_utils.generate_property(cls, ndp, update_function=update_func)
             if prop:
                 cls.__annotations__[ndp._name] = prop
                 prop_names.append(ndp.name)
