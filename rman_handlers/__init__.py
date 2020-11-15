@@ -105,9 +105,9 @@ def _update_renderman_lights_(bl_scene):
         rm.renderman_type = 'UPDATED'
 
 def register():
-    # parse for textures to convert on scene load
-    if texture_utils.parse_for_textures_load_cb not in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.append(texture_utils.parse_for_textures_load_cb)
+    # texture manager load state on scene load
+    if texture_utils.txmanager_load_cb not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(texture_utils.txmanager_load_cb)
 
     # token updater on scene load
     if string_utils.update_blender_tokens_cb not in bpy.app.handlers.load_post:
@@ -120,6 +120,10 @@ def register():
     # renderman light updater        
     if _update_renderman_lights_ not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(_update_renderman_lights_)    
+
+    # texture manager save state on scene save
+    if texture_utils.txmanager_pre_save_cb not in bpy.app.handlers.save_pre:
+        bpy.app.handlers.save_pre.append(texture_utils.txmanager_pre_save_cb)    
 
 def unregister():
     if texture_utils.parse_for_textures_load_cb in bpy.app.handlers.load_post:

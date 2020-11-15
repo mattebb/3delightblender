@@ -3,9 +3,11 @@ from . import filepath_utils
 from . import scene_utils
 from .prefs_utils import get_pref
 from ..rfb_logger import rfb_log
-from .. import txmanager3
-from ..txmanager3 import core as txcore
-from ..txmanager3 import txparams as txparams
+from rman_utils import txmanager
+from rman_utils.txmanager import core as txcore
+from rman_utils.txmanager import txparams as txparams
+from .color_manager_blender import color_manager
+
 from bpy.app.handlers import persistent
 
 import os
@@ -23,7 +25,10 @@ class RfBTxManager(object):
                                                   asFilePath=True)
         self.txmanager = txcore.TxManager(host_token_resolver_func=self.host_token_resolver_func, 
                                         fallback_path=fallback_path,
-                                        host_tex_done_func=self.done_callback)
+                                        host_tex_done_func=self.done_callback,
+                                        host_load_func=load_scene_state,
+                                        host_save_func=save_scene_state,
+                                        color_manager=color_manager())
         self.rman_scene = None
 
     @property
@@ -42,7 +47,11 @@ class RfBTxManager(object):
         return outpath
 
     def done_callback(self, nodeID, txfile):
-        bpy.ops.rman_txmgr_list.refresh('EXEC_DEFAULT')
+        try:
+            # try and refresh the texture manager UI
+            bpy.ops.rman_txmgr_list.refresh('EXEC_DEFAULT')
+        except:
+            pass
         tokens = nodeID.split('|')
         if len(tokens) < 3:
             return
@@ -69,7 +78,7 @@ class RfBTxManager(object):
         if not txfile:
             return ''
 
-        if txfile.state in (txmanager3.STATE_EXISTS, txmanager3.STATE_IS_TEX):
+        if txfile.state in (txmanager.STATE_EXISTS, txmanager.STATE_IS_TEX):
             output_tex = txfile.get_output_texture()
         else:
             output_tex = self.txmanager.get_placeholder_tex()
@@ -151,7 +160,7 @@ def generate_node_id(node, prop_name):
 
 def get_txfile_from_id(nodeid):
     txfile = get_txmanager().get_txfile_from_id(nodeid)
-    if txfile.state in (txmanager3.STATE_EXISTS, txmanager3.STATE_IS_TEX):
+    if txfile.state in (txmanager.STATE_EXISTS, txmanager.STATE_IS_TEX):
         output_tex = txfile.get_output_texture()
     else:
         output_tex = get_txmanager().get_placeholder_tex()
@@ -224,11 +233,41 @@ def parse_for_textures(bl_scene):
     rfb_log().debug("Parsing scene for textures.")                                   
     parse_scene_for_textures(bl_scene)
 
+def save_scene_state(state):
+    """Save the serialized TxManager object in scene.renderman.txmanagerData.
+    """
+    if bpy.context.engine != 'PRMAN_RENDER':
+        return
+    scene = bpy.context.scene
+    rm = getattr(scene, 'renderman', None)
+    if rm:
+        setattr(rm, 'txmanagerData', state)
+
+def load_scene_state():
+    """Load the JSON serialization from scene.renderman.txmanagerData and use it
+    to update the texture manager.
+    """
+    if bpy.context.engine != 'PRMAN_RENDER':
+        return
+    scene = bpy.context.scene
+    rm = getattr(scene, 'renderman', None)
+    state = '{}'
+    if rm:
+        state = getattr(rm, 'txmanagerData', state)
+    return state
+
 @persistent
-def parse_for_textures_load_cb(bl_scene):
+def txmanager_load_cb(bl_scene):
     if bpy.context.engine != 'PRMAN_RENDER':
         return    
+    get_txmanager().txmanager.load_state()
     bpy.ops.rman_txmgr_list.parse_scene('EXEC_DEFAULT')
+
+@persistent
+def txmanager_pre_save_cb(bl_scene):
+    if bpy.context.engine != 'PRMAN_RENDER':
+        return    
+    get_txmanager().txmanager.save_state()  
 
 def txmake_all(blocking=True):
     get_txmanager().txmake_all(blocking=blocking)        

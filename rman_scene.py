@@ -33,6 +33,7 @@ from .rfb_utils import filepath_utils
 from .rfb_utils import scene_utils
 from .rfb_utils.prefs_utils import get_pref
 from .rfb_utils import shadergraph_utils
+from .rfb_utils import color_manager_blender
 
 # config
 from .rman_config import __RFB_CONFIG_DICT__ as rfb_config
@@ -1101,19 +1102,7 @@ class RmanScene(object):
             options.SetString('searchpath:dirmap', dirmaps)
 
         # colorspace
-        ocioconfig = os.environ.get('OCIO', None)
-        if not ocioconfig:
-            # figure out the path to Blender's default ocio config file
-            # hopefully, this won't change between versions
-            version  = '%d.%d' % (bpy.app.version[0], bpy.app.version[1])
-            binary_path = os.path.dirname(bpy.app.binary_path)
-            rel_config_path = os.path.join(version, 'datafiles', 'colormanagement', 'config.ocio')
-            if sys.platform == ("win32"):
-                ocioconfig = os.path.join(binary_path, rel_config_path)
-            elif sys.platform == ("darwin"):                
-                ocioconfig = os.path.join(binary_path, '..', 'Resources', rel_config_path )
-            else:
-                ocioconfig = os.path.join(binary_path, rel_config_path)
+        ocioconfig = color_manager_blender.get_config_path()
         options.SetString('user:ocioconfigpath', ocioconfig)
 
         self.sg_scene.SetOptions(options)        

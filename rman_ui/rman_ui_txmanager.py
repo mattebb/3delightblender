@@ -3,10 +3,10 @@ from bpy.props import StringProperty, IntProperty, CollectionProperty, EnumPrope
 from bpy.types import PropertyGroup, UIList, Operator, Panel
 from bpy_extras.io_utils import ImportHelper
 from .rman_ui_base import _RManPanelHeader
-from ..txmanager3 import txparams
 from ..rfb_utils import texture_utils
 from .. import rman_render
-from .. import txmanager3 as txmngr3
+from rman_utils.txmanager import txparams
+from rman_utils import txmanager as txmngr
 from .. import rfb_icons
 import os
 import uuid
@@ -43,8 +43,8 @@ class TxFileItem(PropertyGroup):
             )
 
     txsettings = ['texture_type', 
-                  'smode', 
-                  'tmode', 
+                  's_mode', 
+                  't_mode', 
                   'texture_format',
                   'data_type',
                   'resize']
@@ -63,12 +63,12 @@ class TxFileItem(PropertyGroup):
     for item in txparams.TX_WRAP_MODES:
         items.append((item, item, ''))           
 
-    smode: EnumProperty(
+    s_mode: EnumProperty(
         name="S Wrap",
         items=items,
         default=txparams.TX_WRAP_MODE_PERIODIC)
 
-    tmode: EnumProperty(
+    t_mode: EnumProperty(
         name="T Wrap",
         items=items,
         default=txparams.TX_WRAP_MODE_PERIODIC)       
@@ -111,15 +111,15 @@ class PRMAN_UL_Renderman_txmanager_list(UIList):
     def draw_item(self, context, layout, data, item, icon, active_data,
                   active_propname, index):
 
-        icons_map = {txmngr3.STATE_MISSING: 'ERROR',
-                    txmngr3.STATE_EXISTS: 'CHECKBOX_HLT',
-                    txmngr3.STATE_IS_TEX: 'TEXTURE',
-                    txmngr3.STATE_IN_QUEUE: 'PLUS',
-                    txmngr3.STATE_PROCESSING: 'TIME',
-                    txmngr3.STATE_ERROR: 'CANCEL',
-                    txmngr3.STATE_REPROCESS: 'TIME',
-                    txmngr3.STATE_UNKNOWN: 'CANCEL',
-                    txmngr3.STATE_INPUT_MISSING: 'ERROR'}
+        icons_map = {txmngr.STATE_MISSING: 'ERROR',
+                    txmngr.STATE_EXISTS: 'CHECKBOX_HLT',
+                    txmngr.STATE_IS_TEX: 'TEXTURE',
+                    txmngr.STATE_IN_QUEUE: 'PLUS',
+                    txmngr.STATE_PROCESSING: 'TIME',
+                    txmngr.STATE_ERROR: 'CANCEL',
+                    txmngr.STATE_REPROCESS: 'TIME',
+                    txmngr.STATE_UNKNOWN: 'CANCEL',
+                    txmngr.STATE_INPUT_MISSING: 'ERROR'}
         
 
         txfile = None
@@ -262,7 +262,7 @@ class PRMAN_OT_Renderman_txmanager_apply_preset(Operator):
                 txfile = texture_utils.get_txmanager().txmanager.get_txfile_from_path(item.name)
 
             if txfile:
-                txfile.params.set_params_from_dict(txsettings)
+                txfile.params.from_dict(txsettings)
                 txfile.delete_texture_files()
                 texture_utils.get_txmanager().txmake_all(blocking=False)
 
@@ -294,17 +294,17 @@ class PRMAN_OT_Renderman_txmanager_add_texture(Operator):
         item.name = txfile.input_image
         params = txfile.params
         item.texture_type = params.texture_type
-        item.smode = params.smode
-        item.tmode = params.tmode
-        item.texture_type = params.texture_type
+        item.s_mode = params.s_mode
+        item.t_mode = params.t_mode
+        item.texture_format = params.texture_format
         if params.data_type is not None:
             item.data_type = params.data_type
         item.resize = params.resize 
         item.state = txfile.state    
-        if txfile.state == txmngr3.STATE_IS_TEX:
+        if txfile.state == txmngr.STATE_IS_TEX:
             item.enable = False  
-
-        item.tooltip = '\n' + txfile.tooltip_text()    
+  
+        item.tooltip = '\n' + str(txfile)
         # FIXME: should also add the nodes that this texture is referenced in     
 
         return{'FINISHED'}        
@@ -327,17 +327,17 @@ class PRMAN_OT_Renderman_txmanager_refresh(Operator):
             item.name = txfile.input_image
             params = txfile.params
             item.texture_type = params.texture_type
-            item.smode = params.smode
-            item.tmode = params.tmode
+            item.s_mode = params.s_mode
+            item.t_mode = params.t_mode
             item.texture_type = params.texture_type
             if params.data_type is not None:
                 item.data_type = params.data_type
             item.resize = params.resize 
             item.state = txfile.state    
-            if txfile.state == txmngr3.STATE_IS_TEX:
+            if txfile.state == txmngr.STATE_IS_TEX:
                 item.enable = False  
-
-            item.tooltip = '\n' + txfile.tooltip_text()    
+ 
+            item.tooltip = '\n' + str(txfile)
 
 
         return{'FINISHED'}            
@@ -397,8 +397,8 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
                 row.prop(item, "texture_type")
                 row = layout.row()
                 row.enabled = item.enable
-                row.prop(item, "smode")
-                row.prop(item, "tmode")
+                row.prop(item, "s_mode")
+                row.prop(item, "t_mode")
                 row = layout.row()
                 row.enabled = item.enable
                 row.prop(item, "texture_format")
@@ -447,13 +447,14 @@ def index_updated(self, context):
     if txfile:
         params = txfile.params
         item.texture_type = params.texture_type
-        item.smode = params.smode
-        item.tmode = params.tmode
+        item.s_mode = params.s_mode
+        item.t_mode = params.t_mode
+        item.texture_format = params.texture_format
         item.texture_type = params.texture_type
         if params.data_type is not None:
             item.data_type = params.data_type
         item.resize = params.resize 
-        if txfile.state == txmngr3.STATE_IS_TEX:
+        if txfile.state == txmngr.STATE_IS_TEX:
             item.enable = False
 
 classes = [

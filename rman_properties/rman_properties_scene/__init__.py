@@ -81,6 +81,9 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     user_tokens: CollectionProperty(type=RendermanUserTokenGroup, name="User Tokens")
     user_tokens_index: IntProperty(min=-1, max=10, default=-1)
 
+    # txmanager
+    txmanagerData: StringProperty(name="txmanagerData", default="")
+
 classes = [         
     RendermanSceneSettings
 ]           
