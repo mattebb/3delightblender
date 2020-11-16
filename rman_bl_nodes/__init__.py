@@ -107,19 +107,21 @@ def update_conditional_visops(node):
 def assetid_update_func(self, context):
     node = self.node if hasattr(self, 'node') else self
     light = None
+    mat = None
     active = context.active_object
     if active.type == 'LIGHT':
         light = active.data
            
-    texture_utils.update_texture(node, light=light)   
     if context and hasattr(context, 'material'):
         mat = context.material
-        if mat:
-            node.update_mat(mat)
     elif context and hasattr(context, 'node'):
         mat = context.space_data.id
-        if mat:
-            node.update_mat(mat)  
+
+    texture_utils.update_texture(node, light=light, mat=mat)
+    if mat:
+        node.update_mat(mat)  
+    if active.type == 'LIGHT':
+        active.update_tag(refresh={'DATA'})
 
 def update_func_with_inputs(self, context):
     # check if this prop is set on an input

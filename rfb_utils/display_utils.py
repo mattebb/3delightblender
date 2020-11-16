@@ -461,7 +461,7 @@ def get_dspy_dict(rman_scene, expandTokens=True):
       },
       'displays': { u'rmanDefaultDisplay':
                       { 'driverNode': u'd_openexr1',
-                        'filePath': u'{OUT}/{blender}/images/{scene}.{F4}.{ext}',
+                        'filePath': u'<OUT>/<blender>/images/<scene>.<F4>.<ext>',
                         'params': { u'enable': { 'type': u'int', 'value': True},
                                     u'displayChannels': { 'type': u'message', 'value': [ u'Ci', u'a']},
                                     u'displayType': { 'type': u'message', 'value': u'd_openexr'},

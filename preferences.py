@@ -48,7 +48,7 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
             name="OUT (Output Root)",
             description="Default RIB export path root",
             subtype='DIR_PATH',
-            default='C:/tmp/renderman_for_blender/{blend}')
+            default='C:/tmp/renderman_for_blender/<blend>')
 
     else:
         outpath = os.path.join(os.environ.get('HOME'), "Documents", "PRMan")
@@ -56,7 +56,7 @@ class RendermanEnvVarSettings(bpy.types.PropertyGroup):
             name="OUT (Output Root)",
             description="Default RIB export path root",
             subtype='DIR_PATH',
-            default='/tmp/renderman_for_blender/{blend}')
+            default='/tmp/renderman_for_blender/<blend>')
 
 class RendermanPreferences(AddonPreferences):
     bl_idname = __package__
@@ -108,7 +108,7 @@ class RendermanPreferences(AddonPreferences):
         name="Fallback Texture Path",
         description="Fallback path for textures, when the current directory is not writable",
         subtype='FILE_PATH',
-        default=os.path.join('{OUT}', 'textures'))        
+        default=os.path.join('<OUT>', 'textures'))        
 
     rman_scene_version_padding: IntProperty(
         name="Version Padding",

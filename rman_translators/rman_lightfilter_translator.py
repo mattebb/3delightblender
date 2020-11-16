@@ -101,7 +101,7 @@ class RmanLightFilterTranslator(RmanTranslator):
 
     def update(self, ob, rman_sg_lightfilter):
         lightfilter_node = ob.data.renderman.get_light_node()
-        property_utils.property_group_to_rixparams(lightfilter_node, rman_sg_lightfilter, rman_sg_lightfilter.sg_filter_node, light=ob.data)
+        property_utils.property_group_to_rixparams(lightfilter_node, rman_sg_lightfilter, rman_sg_lightfilter.sg_filter_node, ob=ob.data)
         rixparams = rman_sg_lightfilter.sg_filter_node.params
         rixparams.SetString("coordsys", rman_sg_lightfilter.coord_sys)
             

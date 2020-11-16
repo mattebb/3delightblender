@@ -85,7 +85,7 @@ class RfBTxManager(object):
         if self.rman_scene:
             output_tex = string_utils.expand_string(output_tex, frame=self.rman_scene.bl_frame_current, asFilePath=True)
         else:
-            output_tex = string_utils.expand_string(output_tex, asFilePath=True)            
+            output_tex = string_utils.expand_string(output_tex, asFilePath=True)           
         return output_tex
             
     def get_txfile_from_path(self, filepath):
@@ -100,7 +100,7 @@ def get_txmanager():
         __RFB_TXMANAGER__ = RfBTxManager()
     return __RFB_TXMANAGER__    
 
-def update_texture(node, light=None):
+def update_texture(node, light=None, mat=None):
     if hasattr(node, 'bl_idname'):
         if node.bl_idname == "PxrPtexturePatternNode":
             return
@@ -135,11 +135,11 @@ def update_texture(node, light=None):
                         if node.renderman_node_type == 'light':
                             node_name = light.name
                             node_type = light.renderman.get_light_node_name()
-                            nodeID = generate_node_id(node, prop_name)
+                            nodeID = generate_node_id(node, prop_name, ob=light)
                         elif hasattr(node, 'name'):
                             node_name = node.name
                             node_type = node.bl_label
-                            nodeID = generate_node_id(node, prop_name)
+                            nodeID = generate_node_id(node, prop_name, ob=mat)
 
                         if node_name != '':       
                             real_file = filepath_utils.get_real_path(prop)
@@ -149,22 +149,17 @@ def update_texture(node, light=None):
                             if txfile:
                                 get_txmanager().done_callback(nodeID, txfile)
 
-def generate_node_id(node, prop_name):
-    prop = ''
-    real_file = ''
-    if hasattr(node, prop_name):
-        prop = getattr(node, prop_name)
-        real_file = filepath_utils.get_real_path(prop)
-    nodeID = '%s|%s|%s' % (node.name, prop_name, real_file)
-    return nodeID
-
-def get_txfile_from_id(nodeid):
-    txfile = get_txmanager().get_txfile_from_id(nodeid)
-    if txfile.state in (txmanager.STATE_EXISTS, txmanager.STATE_IS_TEX):
-        output_tex = txfile.get_output_texture()
+def generate_node_id(node, prop_name, ob=None):
+    if ob:
+        nodeID = '%s|%s|%s' % (node.name, prop_name, ob.name)    
     else:
-        output_tex = get_txmanager().get_placeholder_tex()
-    return string_utils.replace_frame_num(output_tex)
+        prop = ''
+        real_file = ''
+        if hasattr(node, prop_name):
+            prop = getattr(node, prop_name)
+            real_file = filepath_utils.get_real_path(prop)
+        nodeID = '%s|%s|%s' % (node.name, prop_name, real_file)
+    return nodeID
 
 def get_textures(id):
     if id is None or not id.node_tree:
@@ -172,7 +167,7 @@ def get_textures(id):
 
     nt = id.node_tree
     for node in nt.nodes:
-        update_texture(node)
+        update_texture(node, mat=id)
 
 def recursive_texture_set(ob):
     mat_set = []

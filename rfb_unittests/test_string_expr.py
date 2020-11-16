@@ -21,7 +21,7 @@ class StringExprTest(unittest.TestCase):
 
     # test string expansion
     def test_expand_string(self):
-        s = '{OUT}/{unittest}/{scene}.{f4}.{ext}'
+        s = '<OUT>/<unittest>/<scene>.<f4>.<ext>'
         compare = f'/var/tmp/StringExprTest/{bpy.context.scene.name}.0001.exr'
         string_utils.set_var('OUT', '/var/tmp')
         string_utils.set_var('unittest', 'StringExprTest')

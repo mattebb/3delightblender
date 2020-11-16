@@ -72,8 +72,8 @@ PAD_FMT = ['%d', '%01d', '%02d', '%03d', '%04d']
 #   '<shape.fogColor:%g %g %g>'  ->  ('shape.fogColor', ':%g %g %g', None)
 #   '$RMANTREE/bin' ->  (None, None, '$RMANTREE')
 #
-PARSING_EXPR = re.compile(r'{([\w\:]*[\w\.]+)(\?[\w\d\._-]+)*'  # token
-                          r'(:[^}]+)*}|'                        # formatter
+PARSING_EXPR = re.compile(r'<([\w\:]*[\w\.]+)(\?[\w\d\._-]+)*'  # token
+                          r'(:[^>]+)*>|'                        # formatter
                           r'\$\{?([A-Z0-9_]{3,})\}?')           # env var
 
 
@@ -151,7 +151,7 @@ class StringExpression(object):
         """handle the '<token>' format"""
 
         # early exit: around 0.003ms
-        if '{' not in expr and '$' not in expr:
+        if '<' not in expr and '$' not in expr:
             return expr
 
         toks = dict(self.tokens)

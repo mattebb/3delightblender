@@ -431,7 +431,7 @@ class RmanCameraTranslator(RmanTranslator):
         if cam_rm.projection_type != 'none':
             proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", cam_rm.get_projection_name(), "proj")
             rman_sg_node = RmanSgNode(self.rman_scene, proj, "")                           
-            property_utils.property_group_to_rixparams(cam_rm.get_projection_node(), rman_sg_node, proj)
+            property_utils.property_group_to_rixparams(cam_rm.get_projection_node(), rman_sg_node, proj, ob=cam)
         elif cam.type == 'PERSP':
 
             lens = cam.lens

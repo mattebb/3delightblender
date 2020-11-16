@@ -3,23 +3,23 @@
     "params": [
         {
             "name": "path_rib_output",
-            "default": "{OUT}/rib/v{version}_t{take}/{scene}.{layer}.{F4}.rib"              
+            "default": "<OUT>/rib/v<version>_t<take>/<scene>.<layer>.<F4>.rib"
         },    
         {
             "name": "path_beauty_image_output",
-            "default": "{OUT}/images/v{version}_t{take}/{scene}.{layer}.{F4}.{ext}"             
+            "default": "<OUT>/images/v<version>_t<take>/<scene>.<layer>.<F4>.<ext>"
         },  
         {
             "name": "path_aov_image_output",
-            "default": "{OUT}/images/v{version}_t{take}/{scene}.{layer}.{aov}.{F4}.{ext}"             
+            "default": "<OUT>/images/v<version>_t<take>/<scene>.<layer>.<aov>.<F4>.<ext>"
         },  
         {
             "name": "path_bake_illum_ptc",
-            "default": "{OUT}/bake/v{version}_t{take}/{scene}.{layer}.{aov}.{F4}.{ext}"         
+            "default": "<OUT>/bake/v<version>_t<take>/<scene>.<layer>.<aov>.<F4>.<ext>"
         }, 
         {
             "name": "path_bake_illum_img",
-            "default": "{OUT}/bake/v{version}_t{take}/{scene}.{layer}.{aov}.{F4}.{ext}"                
+            "default": "<OUT>/bake/v<version>_t<take>/<scene>.<layer>.<aov>.<F4>.<ext>"
         }
     ]
 }        

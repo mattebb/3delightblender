@@ -307,7 +307,14 @@ def vstruct_conditional(node, param):
         new_tokens.extend(['else', 'False'])
     return eval(" ".join(new_tokens))
 
-def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
+def set_frame_sensitive(rman_sg_node, prop):
+    # FIXME: Need a better way to check for a frame variable
+    if '<F' in prop or '<f' in prop:
+        rman_sg_node.is_frame_sensitive = True
+    else:
+        rman_sg_node.is_frame_sensitive = False  
+
+def set_material_rixparams(node, rman_sg_node, params, mat=None, mat_name=None):
     # If node is OSL node get properties from dynamic location.
     if node.bl_idname == "PxrOSLPatternNode":
 
@@ -500,11 +507,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                             'renderman_type'] == 'color' else 0
 
                     elif meta['renderman_type'] == 'string':
-                        # FIXME: Need a better way to check for a frame variable
-                        if '{F' in prop:
-                            rman_sg_node.is_frame_sensitive = True
-                        else:
-                            rman_sg_node.is_frame_sensitive = False  
+                        set_frame_sensitive(rman_sg_node, prop)
 
                         val = val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
                         if meta['widget'] in ['fileinput', 'assetidinput']:
@@ -517,7 +520,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                                 val = string_utils.expand_string(val, display='ies', asFilePath=True)
                             # this is a texture
                             elif ('texture' in options) or ('env' in options):
-                                tx_node_id = texture_utils.generate_node_id(node, param_name)
+                                tx_node_id = texture_utils.generate_node_id(node, param_name, ob=mat)
                                 val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
                         elif meta['widget'] == 'assetidoutput':
                             display = 'openexr'
@@ -617,7 +620,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat_name=None):
                         
     return params      
 
-def set_node_rixparams(node, rman_sg_node, params, light):
+def set_node_rixparams(node, rman_sg_node, params, ob=None):
     for prop_name, meta in node.prop_meta.items():
         if not hasattr(node, prop_name):
             continue
@@ -704,12 +707,8 @@ def set_node_rixparams(node, rman_sg_node, params, light):
                 continue            
 
             elif meta['renderman_type'] == 'string':
-                # FIXME: Need a better way to check for a frame variable
                 if rman_sg_node:
-                    if '{F' in prop:
-                        rman_sg_node.is_frame_sensitive = True
-                    else:
-                        rman_sg_node.is_frame_sensitive = False  
+                    set_frame_sensitive(rman_sg_node, prop)
                                             
                 val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
                 if meta['widget'] in ['fileinput', 'assetidinput']:
@@ -722,7 +721,7 @@ def set_node_rixparams(node, rman_sg_node, params, light):
                         val = string_utils.expand_string(val, display='ies', asFilePath=True)
                     # this is a texture
                     elif ('texture' in options) or ('env' in options):
-                        tx_node_id = texture_utils.generate_node_id(node, prop_name)
+                        tx_node_id = texture_utils.generate_node_id(node, prop_name, ob=ob)
                         val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
                 elif meta['widget'] == 'assetidoutput':
                     display = 'openexr'
@@ -736,20 +735,20 @@ def set_node_rixparams(node, rman_sg_node, params, light):
                 val = string_utils.convert_val(prop, type_hint=type)
                 set_rix_param(params, type, name, val, node=node)
 
-def property_group_to_rixparams(node, rman_sg_node, sg_node, light=None, mat_name=None):
+def property_group_to_rixparams(node, rman_sg_node, sg_node, ob=None, mat_name=None):
 
     params = sg_node.params
     if mat_name:
-        set_material_rixparams(node, rman_sg_node, params, mat_name=mat_name)
+        set_material_rixparams(node, rman_sg_node, params, mat=ob, mat_name=mat_name)
     else:
-        set_node_rixparams(node, rman_sg_node, params, light=light)
+        set_node_rixparams(node, rman_sg_node, params, ob=ob)
 
 
 def portal_inherit_dome_params(portal_node, dome, dome_node, rixparams):
 
-    tx_node_id = texture_utils.generate_node_id(dome_node, 'lightColorMap')
+    tx_node_id = texture_utils.generate_node_id(dome_node, 'lightColorMap', ob=dome.data)
     tex = string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id))
-    rixparams.SetString('domeColorMap', string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)))
+    rixparams.SetString('domeColorMap', string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id,)))
 
     prop = getattr(portal_node, 'colorMapGamma')
     if string_utils.convert_val(prop) == (1.0, 1.0, 1.0):

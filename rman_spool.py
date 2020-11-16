@@ -95,7 +95,7 @@ class RmanSpool(object):
 
         bl_filename = bpy.data.filepath
         if bl_filename == '':
-            alf_file = string_utils.expand_string('{OUT}/{scene}.{layer}.alf', 
+            alf_file = string_utils.expand_string('<OUT>/<scene>.<layer>.alf', 
                                                 asFilePath=True)            
         else:
             alf_file = os.path.splitext(bl_filename)[0] + '.%s.alf' % bl_view_layer.name.replace(' ', '_')            
@@ -184,7 +184,7 @@ class RmanSpool(object):
         
         bl_filename = bpy.data.filepath
         if bl_filename == '':
-            alf_file = string_utils.expand_string('{OUT}/{scene}.{layer}.alf', 
+            alf_file = string_utils.expand_string('<OUT>/<scene>.<layer>.alf', 
                                                 asFilePath=True)            
         else:
             alf_file = os.path.splitext(bl_filename)[0] + '.%s.alf' % bl_view_layer.name.replace(' ', '_')

@@ -187,7 +187,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         else:
             node = nodeOR
 
-        out_path = string_utils.expand_string('{OUT}', asFilePath=True)
+        out_path = string_utils.expand_string('<OUT>', asFilePath=True)
         compile_path = os.path.join(out_path, "shaders")
 
         if os.path.exists(compile_path):

@@ -362,7 +362,7 @@ class RmanMaterialTranslator(RmanTranslator):
             sg_node = self.rman_scene.rman.SGManager.RixSGShader("Bxdf", node.bl_label, instance)        
 
         if sg_node:
-            property_utils.property_group_to_rixparams(node, rman_sg_material, sg_node, light=None, mat_name=mat_name)
+            property_utils.property_group_to_rixparams(node, rman_sg_material, sg_node, ob=mat, mat_name=mat_name)
 
         return [sg_node]       
 

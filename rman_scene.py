@@ -1115,7 +1115,7 @@ class RmanScene(object):
         if bl_integrator_node:
             integrator_sg = self.rman.SGManager.RixSGShader("Integrator", bl_integrator_node.bl_label, "integrator")
             rman_sg_node = RmanSgNode(self, integrator_sg, "")
-            property_utils.property_group_to_rixparams(bl_integrator_node, rman_sg_node, integrator_sg)
+            property_utils.property_group_to_rixparams(bl_integrator_node, rman_sg_node, integrator_sg, ob=world)
         else:
             integrator_sg = self.rman.SGManager.RixSGShader("Integrator", "PxrPathTracer", "integrator")
 
@@ -1193,7 +1193,7 @@ class RmanScene(object):
 
             rman_df_node = self.rman.SGManager.RixSGShader("DisplayFilter", bl_df_node.bl_label, df_name)
             rman_sg_node = RmanSgNode(self, rman_df_node, "")
-            property_utils.property_group_to_rixparams(bl_df_node, rman_sg_node, rman_df_node)
+            property_utils.property_group_to_rixparams(bl_df_node, rman_sg_node, rman_df_node, ob=world)
             display_filter_names.append(df_name)
             displayfilters_list.append(rman_df_node)    
 
@@ -1235,7 +1235,7 @@ class RmanScene(object):
 
             rman_sf_node = self.rman.SGManager.RixSGShader("SampleFilter", bl_sf_node.bl_label, sf_name)
             rman_sg_node = RmanSgNode(self, rman_sf_node, "")
-            property_utils.property_group_to_rixparams(bl_sf_node, rman_sg_node, rman_sf_node)
+            property_utils.property_group_to_rixparams(bl_sf_node, rman_sg_node, rman_sf_node, ob=world)
             sample_filter_names.append(sf_name)
             samplefilters_list.append(rman_sf_node)                    
 

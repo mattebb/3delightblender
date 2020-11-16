@@ -42,12 +42,27 @@ class TxFileItem(PropertyGroup):
             default=True
             )
 
+    def colorspace_names(self, context):
+        items = []
+        items.append(('0', '', ''))
+        mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
+        for nm in mdict:
+            items.append((nm, nm, ""))
+        return items
+
+    ocioconvert: EnumProperty(
+            name="Color Space",
+            description="colorspace",
+            items=colorspace_names
+            )
+
     txsettings = ['texture_type', 
                   's_mode', 
                   't_mode', 
                   'texture_format',
                   'data_type',
-                  'resize']
+                  'resize',
+                  'ocioconvert']
 
     items = []
     for item in txparams.TX_TYPES:
@@ -284,7 +299,7 @@ class PRMAN_OT_Renderman_txmanager_add_texture(Operator):
 
         item = None
         # check if nodeID already exists in the list
-        for i in context.scene.rman_txmgr_list:
+        for idx, i in enumerate(context.scene.rman_txmgr_list):
             if i.nodeID == self.nodeID:
                 item = i
                 break
@@ -303,6 +318,8 @@ class PRMAN_OT_Renderman_txmanager_add_texture(Operator):
         item.state = txfile.state    
         if txfile.state == txmngr.STATE_IS_TEX:
             item.enable = False  
+        if params.ocioconvert:
+            item.ocioconvert = params.ocioconvert
   
         item.tooltip = '\n' + str(txfile)
         # FIXME: should also add the nodes that this texture is referenced in     
@@ -408,6 +425,12 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
                 row = layout.row()
                 row.enabled = item.enable
                 row.prop(item, "resize")   
+                if item.ocioconvert != '0':
+                    row = layout.row()
+                    row.enabled = item.enable
+                    row.prop(item, "ocioconvert")   
+                    dst = texture_utils.get_txmanager().txmanager.color_manager.scene_colorspace_name
+                    row.label(text='%s' % dst if dst else txmngr.NO_COLORSPACE)             
                 row = layout.row()   
                 row.enabled = item.enable      
                 row.alignment = 'RIGHT'          
@@ -456,6 +479,8 @@ def index_updated(self, context):
         item.resize = params.resize 
         if txfile.state == txmngr.STATE_IS_TEX:
             item.enable = False
+        if params.ocioconvert:
+            item.ocioconvert = params.ocioconvert
 
 classes = [
     TxFileItem,

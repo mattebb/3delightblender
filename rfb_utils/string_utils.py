@@ -121,7 +121,7 @@ def expand_string(string, display=None, glob_sequence=False, frame=None, token_d
         except:
             pass
     
-    if not string or (not '{' in string and not '$' in string):
+    if not string or (not '<' in string and not '$' in string):
         # get the real path
         if string and asFilePath:
             string = filepath_utils.get_real_path(string)
