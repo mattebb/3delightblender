@@ -605,4 +605,27 @@ class RmanSceneSync(object):
         self.rman_scene.bl_scene = context.scene    
         self.rman_scene._find_renderman_layer()
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
-            self.rman_scene.export_displays()          
+            self.rman_scene.export_displays()         
+
+    def texture_updated(self, nodeID):
+        if nodeID == '':
+            return
+        tokens = nodeID.split('|')
+        if len(tokens) < 3:
+            return
+        node_name,param,ob_name = tokens
+        mat = bpy.data.materials.get(ob_name, None)
+        if mat:
+            self.update_material(mat)
+            return
+
+        ob = bpy.data.objects.get(ob_name, None)
+        if ob:
+            rman_type = object_utils._detect_primitive_(ob)
+            if rman_type in ['LIGHT', 'LIGHTFILTER', 'CAMERA']:
+                ob.update_tag(refresh={'DATA'})
+                return
+
+        ob = bpy.data.worlds.get(ob_name, None)
+        if ob:
+            ob.update_tag()

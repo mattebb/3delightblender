@@ -98,7 +98,7 @@ class RmanLightTranslator(RmanTranslator):
             light_shader_name = rm.get_light_node_name()
 
             sg_node = self.rman_scene.rman.SGManager.RixSGShader("Light", light_shader_name , rman_sg_light.db_name)
-            property_utils.property_group_to_rixparams(light_shader, rman_sg_light, sg_node, ob=light)
+            property_utils.property_group_to_rixparams(light_shader, rman_sg_light, sg_node, ob=ob)
             
             rixparams = sg_node.params
 

@@ -1,6 +1,7 @@
 from . import string_utils
 from . import filepath_utils
 from . import scene_utils
+from . import object_utils
 from .prefs_utils import get_pref
 from ..rfb_logger import rfb_log
 from rman_utils import txmanager
@@ -52,26 +53,10 @@ class RfBTxManager(object):
             bpy.ops.rman_txmgr_list.refresh('EXEC_DEFAULT')
         except:
             pass
-        tokens = nodeID.split('|')
-        if len(tokens) < 3:
-            return
-        node_name,param,param_val = tokens
         from .. import rman_render
         rr = rman_render.RmanRender.get_rman_render()
         if rr.rman_interactive_running:
-            for mat in bpy.data.materials:
-                if mat.grease_pencil:
-                    rr.rman_scene_sync.update_material(mat)
-
-                if not mat.node_tree:
-                    continue
-                if node_name in mat.node_tree.nodes:
-                    rr.rman_scene_sync.update_material(mat)
-                    return
-
-            if node_name in bpy.data.objects:
-                ob = bpy.data.objects[node_name]
-                rr.rman_scene_sync.update_light(ob)
+            rr.rman_scene_sync.texture_updated(nodeID)
 
     def get_txfile_from_id(self, nodeID):
         txfile = self.txmanager.get_txfile_from_id(nodeID)
