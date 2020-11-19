@@ -435,7 +435,7 @@ class RendermanSamplefiltersOutputNode(RendermanShadingNode):
         if socket.is_linked:
             old_node = socket.links[0].from_node
             node_tree = self.id_data
-            nodetree.remove(old_node)
+            node_tree.nodes.remove(old_node)
         self.inputs.remove( socket )
 
     def draw_buttons(self, context, layout):
@@ -496,7 +496,7 @@ class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
         if socket.is_linked:
             old_node = socket.links[0].from_node
             node_tree = self.id_data
-            nodetree.remove(old_node)
+            node_tree.nodes.remove(old_node)
         self.inputs.remove( socket )        
 
     def draw_buttons(self, context, layout):

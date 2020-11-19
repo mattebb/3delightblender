@@ -27,11 +27,14 @@ RFB_MAX_USER_TOKENS = 10
 RFB_VIEWPORT_MAX_BUCKETS = 10
 RFB_PREFS_NAME = "RenderManForBlender"
 
-RMAN_STYLIZED_PATTERNS = [
+RMAN_STYLIZED_FILTERS = [
     "PxrStylizedHatchingDisplayFilter",
     "PxrStylizedLinesDisplayFilter",
     "PxrStylizedToonDisplayFilter"
 ]    
+
+RMAN_STYLIZED_PATTERN = "PxrStylizedPattern"
+RMAN_UTILITY_PATTERN_NAME = "utilityPattern"
 
 # special string to indicate an empty string
 # necessary for EnumProperty because it cannot

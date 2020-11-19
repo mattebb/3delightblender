@@ -1,4 +1,5 @@
 import bpy
+import os
 from bpy.props import StringProperty, IntProperty, CollectionProperty, EnumProperty, BoolProperty
 from bpy.types import PropertyGroup, UIList, Operator, Panel
 from ..rfb_logger import rfb_log
@@ -79,7 +80,7 @@ class PRMAN_OT_Renderman_layer_channel_set_light_group(Operator):
     def light_groups_list(self, context):
         items = []
         lgt_grps = scene_utils.get_light_groups_in_scene(context.scene)
-        items.append(('', '__CLEAR__', ''))
+        items.append(('__CLEAR__', '__CLEAR__', ''))
         for nm in lgt_grps.keys():
             items.append((nm, nm, ''))
         return items
@@ -93,8 +94,29 @@ class PRMAN_OT_Renderman_layer_channel_set_light_group(Operator):
 
         if rm_rl:
             aov = rm_rl.custom_aovs[rm_rl.custom_aov_index]
-            chan = aov.dspy_channels[aov.dspy_channels_index]
-            chan.light_group = self.properties.light_groups
+            chan_ptr = aov.dspy_channels[aov.dspy_channels_index]
+            chan = rm_rl.dspy_channels[chan_ptr.dspy_chan_idx]
+            
+            chan_light_group = self.properties.light_groups
+            if chan_light_group == '__CLEAR__':
+                chan_light_group = ''
+            if chan_light_group != '':
+                chan_name = '%s_%s' % (chan.name, chan_light_group)
+            else:
+                # find original name
+                for nm,settings in rman_config.__RMAN_DISPLAY_CHANNELS__.items():
+                    if chan.channel_source == settings['channelSource'] and chan.channel_type == settings['channelType']:
+                        chan_name = nm
+                        break
+            for idx, c in enumerate(rm_rl.dspy_channels):
+                # this channel with the same light group already exists
+                # use that instead
+                if chan_name == c.name and chan_light_group == c.light_group:
+                    chan_ptr.dspy_chan_idx = idx
+                    return
+
+            chan.light_group = chan_light_group
+            chan.name = chan_name
 
         return{'FINISHED'}        
 
@@ -105,17 +127,40 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
     bl_label = "Add Channel"
 
     def channel_list(self, context):
+        rm_rl = scene_utils.get_renderman_layer(context)
+ 
+        aov = rm_rl.custom_aovs[rm_rl.custom_aov_index] 
+        aov_channels = list()
+        for chan_ptr in aov.dspy_channels:
+            if chan_ptr.dspy_chan_idx < 0:
+                continue
+            chan = rm_rl.dspy_channels[chan_ptr.dspy_chan_idx]
+            aov_channels.append(chan.name)
+
+        existing = list()
+        for dspy_chan in rm_rl.dspy_channels:
+            if dspy_chan.channel_name not in aov_channels:
+                existing.append(dspy_chan.channel_name)
+
         items = []
         pages = dict()
         i = 1
         items.append(('Custom', 'Custom', '', 0))
+        items.append( ("", 'Existing', 'Existing', "", 0 ) )
+        for nm in existing:
+            items.append((nm, nm, "", "", i))
+            i += 1
+
         for nm,settings in rman_config.__RMAN_DISPLAY_CHANNELS__.items():
+            if nm in existing or nm in aov_channels:
+                continue
             page_nm = settings['group']
             lst = None
             if page_nm not in pages:
                 pages[page_nm] = []
             lst = pages[page_nm]
-            item = ( nm, nm, settings['description'], "", i )
+            description = settings.get('description', '')
+            item = ( nm, nm, description, "", i )
             i += 1
             lst.append(item)
 
@@ -135,15 +180,29 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
 
         if rm_rl:
             selected_chan = self.properties.channel_selector
-            aov = rm_rl.custom_aovs[rm_rl.custom_aov_index]            
-            chan = aov.dspy_channels.add()
-            chan.name = selected_chan    
-            chan.channel_name = selected_chan
+            aov = rm_rl.custom_aovs[rm_rl.custom_aov_index] 
 
-            settings = rman_config.__RMAN_DISPLAY_CHANNELS__.get(selected_chan, None)
-            if settings:
-                chan.channel_source = settings['channelSource']
-                chan.channel_type = settings['channelType']
+            chan = None
+            chan_idx = -1
+            for idx, c in enumerate(rm_rl.dspy_channels):
+                if c.name == selected_chan:
+                    chan = c
+                    chan_idx = idx
+                    break
+            if not chan:
+                chan = rm_rl.dspy_channels.add()
+                chan_idx = len(rm_rl.dspy_channels)-1
+                chan.name = selected_chan    
+                chan.channel_name = selected_chan
+
+                settings = rman_config.__RMAN_DISPLAY_CHANNELS__.get(selected_chan, None)
+                if settings:
+                    chan.channel_source = settings['channelSource']
+                    chan.channel_type = settings['channelType']
+
+            chan_ptr = aov.dspy_channels.add()  
+            aov.dspy_channels_index = len(aov.dspy_channels)-1   
+            chan_ptr.dspy_chan_idx = chan_idx
 
         return{'FINISHED'}       
 
@@ -191,7 +250,10 @@ class PRMAN_UL_Renderman_channel_list(UIList):
                   active_propname, index):
 
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(text=item.name)
+            rm_rl = scene_utils.get_renderman_layer(context)
+            if item.dspy_chan_idx > -1:
+                chan = rm_rl.dspy_channels[item.dspy_chan_idx]
+                layout.label(text=chan.name)
 
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
@@ -254,7 +316,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row = col.row()
         row.label(text="Channels")
         row = col.row()
-        if rm_rl and rm_rl.custom_aov_index == 0:
+        if rm_rl and rm_rl.custom_aov_index == 0 and not os.environ.get('RFB_DUMP_RIB', None):
             row.enabled = False
         row.operator("renderman.dspy_add_channel", text="Add Channel")
         row.operator("renderman.dspychan_delete_channel", text="Delete Channel")
@@ -271,7 +333,10 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         if len(item.dspy_channels) < 1:
             return
 
-        channel = item.dspy_channels[item.dspy_channels_index]
+        channel_ptr = item.dspy_channels[item.dspy_channels_index]
+        if channel_ptr.dspy_chan_idx < 0:
+            return 
+        channel = rm_rl.dspy_channels[channel_ptr.dspy_chan_idx]
 
         col = layout.column()
         col.prop(channel, "name")      
@@ -439,28 +504,36 @@ class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
                 if source == "rgba":
                     aov_setting = rm_rl.custom_aovs.add()
                     aov_setting.name = 'beauty'
-                    channel = aov_setting.dspy_channels.add()
+                    channel = rm_rl.dspy_channels.add()
                     channel.name = 'Ci'
                     channel.channel_name = 'Ci'
                     channel.channel_source = 'Ci'
-                    channel.channel_type = 'color'
-                    channel = aov_setting.dspy_channels.add()
+                    channel.channel_type = 'color'     
+                    chan_ptr = aov_setting.dspy_channels.add()                                   
+                    chan_ptr.name = 'Ci'
+                    chan_ptr.dspy_chan_idx = 0
+
+                    channel = rm_rl.dspy_channels.add()
                     channel.name = 'a'
                     channel.channel_name = 'a'
                     channel.channel_source = 'a'
-                    channel.channel_type = 'float'   
+                    channel.channel_type = 'float'     
+                    chan_ptr = aov_setting.dspy_channels.add()                                   
+                    chan_ptr.name = 'a'
+                    chan_ptr.dspy_chan_idx = 1                   
 
-                else:
+                else:                
                     aov_setting = rm_rl.custom_aovs.add()
                     aov_setting.name = name
-
                     settings = rman_config.__RMAN_DISPLAY_CHANNELS__[source]
-
-                    channel = aov_setting.dspy_channels.add()
+                    channel = rm_rl.dspy_channels.add()
                     channel.name = name
-                    channel.channel_name = name  
+                    channel.channel_name = name
                     channel.channel_source = settings['channelSource']
-                    channel.channel_type = settings['channelType']                  
+                    channel.channel_type = settings['channelType']
+                    chan_ptr = aov_setting.dspy_channels.add()                                   
+                    chan_ptr.name = name
+                    chan_ptr.dspy_chan_idx = len(rm_rl.dspy_channels)-1
 
         return {'FINISHED'}
 
@@ -473,7 +546,9 @@ class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
     def dspy_template_items(self, context):
         items = []
         for nm, props in rman_config.__RMAN_DISPLAY_TEMPLATES__.items():
-            items.append((nm, nm, ''))
+            hidden = props.get('hidden', 0)
+            if not hidden:
+                items.append((nm, nm, ''))
         return items        
 
     dspy_template: EnumProperty(items=dspy_template_items, name="Add Display Template")
@@ -497,17 +572,28 @@ class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
         tmplt = rman_config.__RMAN_DISPLAY_TEMPLATES__[self.dspy_template]
 
         aov_setting = rm_rl.custom_aovs.add()
-        aov_setting.name = self.dspy_template
+        dspy_name = tmplt.get('displayName', self.dspy_template)
+        aov_setting.name = dspy_name
 
         for chan in tmplt['channels']:
-            channel = aov_setting.dspy_channels.add()
-            settings = rman_dspy_channels[chan]
-            channel.name = chan
-            channel.channel_name = chan
-            channel.channel_source = settings['channelSource']
-            channel.channel_type = settings['channelType']
-            stats_type = settings.get('statistics', 'none')
-            channel.stats_type = stats_type
+            channel = None
+            for c in rm_rl.dspy_channels:
+                if c.name == chan:
+                    channel = c
+                    break
+            if not channel:
+                channel = rm_rl.dspy_channels.add()
+                settings = rman_dspy_channels[chan]
+                channel.name = chan
+                channel.channel_name = chan
+                channel.channel_source = settings['channelSource']
+                channel.channel_type = settings['channelType']
+                stats_type = settings.get('statistics', 'none')
+                channel.stats_type = stats_type                
+
+            chan_ptr = aov_setting.dspy_channels.add()                                   
+            chan_ptr.name = chan
+            chan_ptr.dspy_chan_idx = len(rm_rl.dspy_channels)-1            
      
         return {"FINISHED"}        
 

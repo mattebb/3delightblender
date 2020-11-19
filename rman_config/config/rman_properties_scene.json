@@ -56,7 +56,17 @@
             "widget": "popup",
             "options": "prman|xpu|xpucpu|xpugpu",
             "help": ""
-        },         
+        },       
+        {
+            "panel": "RENDER_PT_renderman_render",
+            "page": "",
+            "name": "render_rman_stylized",
+            "label": "Stylized Render",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Render with RenderMan Stylized looks."
+        },          
         {
             "panel": "RENDER_PT_renderman_render",
             "page": "",
@@ -78,7 +88,7 @@
             "options": "Off:OFF|In Alpha:ALPHA|Separate AOV:AOV",    
             "help": "Render a holdout matte."
 
-        },    
+        },          
         {
             "panel": "RENDER_PT_renderman_sampling",
             "page": "IPR Sampling",

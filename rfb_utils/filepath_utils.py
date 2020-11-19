@@ -234,7 +234,9 @@ def filesystem_path(p):
 	return pout.replace('\\', '/')
 
 def get_real_path(path):
-    return os.path.realpath(filesystem_path(path))
+    if os.path.isabs(path):
+        return os.path.realpath(filesystem_path(path))
+    return path
 
 def init_env(rm):
     RMANTREE = guess_rmantree()

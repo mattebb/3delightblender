@@ -2,7 +2,7 @@ import bpy
 
 from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
-    CollectionProperty, BoolVectorProperty
+    CollectionProperty, BoolVectorProperty, PointerProperty
     
 from ... import rman_bl_nodes
 from ... import rman_config
@@ -53,6 +53,9 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     object_group: EnumProperty(name='Object Group', items=object_groups)       
     light_group: StringProperty(name='Light Group', default='')
 
+class RendermanDspyChannelPointer(bpy.types.PropertyGroup):
+    dspy_chan_idx: IntProperty(default=-1, name="Display Channel Index")
+
 class RendermanAOV(RmanBasePropertyGroup, bpy.types.PropertyGroup):
 
     name: StringProperty(name='Display Name')
@@ -76,9 +79,8 @@ class RendermanAOV(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         description="Display driver for rendering",
         items=displaydriver_items)
 
-    dspy_channels: CollectionProperty(type=RendermanDspyChannel,
-                                     name='Display Channels')
-    dspy_channels_index: IntProperty(min=-1, default=-1)    
+    dspy_channels_index: IntProperty(min=-1, default=-1)   
+    dspy_channels: CollectionProperty(type=RendermanDspyChannelPointer, name="Display Channels") 
 
 class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
 
@@ -86,20 +88,25 @@ class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
     custom_aovs: CollectionProperty(type=RendermanAOV,
                                      name='Custom AOVs')
     custom_aov_index: IntProperty(min=-1, default=-1)
+    dspy_channels: CollectionProperty(type=RendermanDspyChannel,
+                                     name='Display Channels')                                          
+
 
 classes = [
     RendermanRenderLayerSettings          
 ]
 
 props_classes = [
-    (RendermanDspyChannel, 'rman_properties_dspychan'),
+    (RendermanDspyChannel, 'rman_properties_dspychan'),    
+    (RendermanDspyChannelPointer, ''),
     (RendermanAOV, 'rman_properties_aov')
 ]
 
 def register():
 
     for cls,cfg_name in props_classes:
-        cls._add_properties(cls, cfg_name)
+        if cfg_name:
+            cls._add_properties(cls, cfg_name)
         bpy.utils.register_class(cls)    
 
     for cls in classes:

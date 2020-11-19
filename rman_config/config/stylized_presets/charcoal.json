@@ -1,0 +1,67 @@
+{
+    "name": "Charcoal",
+    "patterns": {
+        "PxrStylizedPattern": {
+            "node": "PxrStylizedPattern",
+            "params": {
+                "lineThickness": {
+                    "type": "float",
+                    "value": 2.0
+                }
+            }
+        }
+    },
+    "display_filters": {
+        "rman_Charcoal_hatching": {
+            "node": "PxrStylizedHatchingDisplayFilter",
+            "params": {
+                "hatchingTex1": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-charcoal/pxrStylized-charcoal-01.tex"
+                },
+                "hatchingTex2": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-charcoal/pxrStylized-charcoal-02.tex"
+                },
+                "hatchingTex3": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-charcoal/pxrStylized-charcoal-03.tex"
+                },
+                "hatchingTex4": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-charcoal/pxrStylized-charcoal-04.tex"
+                },
+                "hatchingTex5": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-charcoal/pxrStylized-charcoal-05.tex"
+                },
+                "hatchingTex6": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-charcoal/pxrStylized-charcoal-06.tex"
+                },
+                "hatchingTex7": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-charcoal/pxrStylized-charcoal-07.tex"
+                },
+                "hatchingTex8": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-charcoal/pxrStylized-charcoal-08.tex"
+                },
+                "visualizer": {
+                    "type": "string",
+                    "value": "hatchingOnColor"
+                }                
+            }
+        },
+        "rman_Charcoal_lines": {
+            "node": "PxrStylizedLinesDisplayFilter",
+            "params": {
+                "lineThickness": {
+                    "type": "float",
+                    "value": 2.0
+                }
+            }            
+        }
+
+    }
+}

@@ -37,6 +37,7 @@ from .rfb_utils import color_manager_blender
 
 # config
 from .rman_config import __RFB_CONFIG_DICT__ as rfb_config
+from . import rman_constants
 
 from .rfb_logger import rfb_log
 from .rman_sg_nodes.rman_sg_node import RmanSgNode
@@ -1187,6 +1188,11 @@ class RmanScene(object):
         for bl_df_node in shadergraph_utils.find_displayfilter_nodes(world):
             if not bl_df_node.is_active:
                 continue
+
+            # don't emit stylized filters, if render_rman_stylized is false
+            if bl_df_node.bl_label in rman_constants.RMAN_STYLIZED_FILTERS and not rm.render_rman_stylized:
+                continue
+
             df_name = bl_df_node.name
             if df_name == "":
                 df_name = "rman_displayfilter_filter%d" % i

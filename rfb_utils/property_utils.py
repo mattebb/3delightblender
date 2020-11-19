@@ -521,7 +521,8 @@ def set_material_rixparams(node, rman_sg_node, params, mat=None, mat_name=None):
                             # this is a texture
                             elif ('texture' in options) or ('env' in options):
                                 tx_node_id = texture_utils.generate_node_id(node, param_name, ob=mat)
-                                val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+                                tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+                                val = tx_val if tx_val != '' else val
                         elif meta['widget'] == 'assetidoutput':
                             display = 'openexr'
                             if 'texture' in meta['options']:
@@ -722,7 +723,8 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None):
                     # this is a texture
                     elif ('texture' in options) or ('env' in options):
                         tx_node_id = texture_utils.generate_node_id(node, prop_name, ob=ob)
-                        val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+                        tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+                        val = tx_val if tx_val != '' else val
                 elif meta['widget'] == 'assetidoutput':
                     display = 'openexr'
                     if 'texture' in meta['options']:

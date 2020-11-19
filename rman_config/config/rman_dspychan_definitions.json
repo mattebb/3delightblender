@@ -726,6 +726,7 @@
     },
     "displays": {
         "Default": {
+            "displayName": "rman_default",
             "description": "The default beauty render.",
             "channels": [
                 "Ci",
@@ -733,6 +734,7 @@
             ]
         },
         "Denoiser": {
+            "displayName": "rman_denoiser",
             "description": "Everything the denoiser needs.",
             "channels": [
                 "mse",
@@ -751,9 +753,10 @@
             ]
         },        
         "Mattes": {
+            "displayName": "rman_mattes",
             "description": "All MatteID channels in an OpenEXR file.",
             "display": {
-                "displayType": "d_openexr"
+                "displayType": "openexr"
             },
             "driver": {
                 "storage": "planar",
@@ -770,8 +773,13 @@
                 "MatteID7"
             ]
         },
-        "NPR": {
+        "Stylized": {
+            "displayName": "rman_stylized",
+            "hidden": 1,
             "description": "AOVs for Stylized Looks",
+            "display": {
+                "displayType": "openexr"
+            },           
             "channels": [
                 "diffuse",
                 "albedo",

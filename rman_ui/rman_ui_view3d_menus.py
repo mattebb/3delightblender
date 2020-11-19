@@ -4,6 +4,7 @@ from .. import rman_bl_nodes
 from ..rman_operators.rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
 from ..rfb_utils import scene_utils
 from ..rfb_utils import shadergraph_utils
+from ..rman_config import __RMAN_STYLIZED_TEMPLATES__
 from bpy.types import Menu
 import bpy
 
@@ -206,10 +207,10 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         layout.menu('VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu', text='Light Mixer Groups')  
         layout.operator("scene.rman_open_light_linking", text="Light Linking Editor")    
         layout.separator()
-        layout.menu('VIEW3D_MT_RM_Stylized_Menu', text='Stylized')  
+        layout.menu('VIEW3D_MT_RM_Stylized_Menu', text='Stylized Looks')  
 
 class VIEW3D_MT_RM_Stylized_Menu(bpy.types.Menu):
-    bl_label = "Stylized"
+    bl_label = "Stylized Looks"
     bl_idname = "VIEW3D_MT_RM_Stylized_Menu"
 
     @classmethod
@@ -222,9 +223,39 @@ class VIEW3D_MT_RM_Stylized_Menu(bpy.types.Menu):
         return rfb_icons.get_icon("rman_blender").icon_id
 
     def draw(self, context):
+        rm = context.scene.renderman
         layout = self.layout
-        layout.operator('node.rman_attach_stylized_pattern', text='Attach Stylized Pattern')             
-        layout.operator("scene.rman_open_stylized_editor", text="Stylized Looks Editor")    
+        if rm.render_rman_stylized:
+            layout.operator('node.rman_attach_stylized_pattern', text='Attach Stylized Pattern')  
+            layout.operator("scene.rman_open_stylized_editor", text="Stylized Looks Editor")    
+        else:
+            #layout.prop(rm, 'render_rman_stylized', text='Enable Stylized Looks')           
+            op = layout.operator("scene.rman_enable_stylized_looks", text="Enable Stylized Looks")   
+            op.open_editor = True
+            layout.menu('VIEW3D_MT_RM_Stylized_Templates_Menu', text='Templates')   
+
+class VIEW3D_MT_RM_Stylized_Templates_Menu(bpy.types.Menu):
+    bl_label = "Stylized Templates"
+    bl_idname = "VIEW3D_MT_RM_Stylized_Templates_Menu"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    @classmethod
+    def get_icon_id(cls):  
+        return rfb_icons.get_icon("rman_blender").icon_id
+
+    def draw(self, context):
+        rm = context.scene.renderman
+        layout = self.layout
+        if not rm.render_rman_stylized:
+            for nm, settings in __RMAN_STYLIZED_TEMPLATES__.items():
+                op = layout.operator("scene.rman_enable_stylized_looks", text="%s" % nm)
+                op.create_template = True
+                op.template_name = nm
+                op.open_editor = True
 
 class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
     bl_label = "Render"
@@ -462,7 +493,8 @@ classes = [
     VIEW3D_MT_RM_Add_bxdf_Menu,
     VIEW3D_MT_RM_Add_Export_Menu,
     VIEW3D_MT_RM_Add_Render_Menu,
-    VIEW3D_MT_RM_Stylized_Menu
+    VIEW3D_MT_RM_Stylized_Menu,
+    VIEW3D_MT_RM_Stylized_Templates_Menu
 ]
 
 def register():

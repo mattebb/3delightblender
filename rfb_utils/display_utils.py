@@ -46,6 +46,89 @@ def _default_dspy_params():
 
     return d    
 
+def _add_stylized_channels(dspys_dict, dspy_drv, rman_scene, expandTokens):
+    """
+    Add the necessary dspy channels for stylized looks. 
+    """ 
+    stylized_tmplt = rman_config.__RMAN_DISPLAY_TEMPLATES__.get('Stylized', None)
+    if not stylized_tmplt:
+        return  
+
+    rm = rman_scene.bl_scene.renderman
+    display_driver = dspy_drv
+    rman_dspy_channels = rman_config.__RMAN_DISPLAY_CHANNELS__
+
+    if not display_driver:
+        display_driver = __BLENDER_TO_RMAN_DSPY__.get(rman_scene.bl_scene.render.image_settings.file_format, 'openexr')
+        if 'display' in stylized_tmplt:
+            display_driver = stylized_tmplt['display']['displayType']        
+
+    if display_driver == 'blender' and rman_scene.is_viewport_render:
+        display_driver = 'null'
+
+        for chan in stylized_tmplt['channels']:
+            dspy_params = {}                        
+            dspy_params['displayChannels'] = []
+            dspy_name = '%s_%s' % (stylized_tmplt.get('displayName', 'rman_stylized'), chan)
+
+            d = _default_dspy_params()
+            if chan not in dspys_dict['channels']:
+                d = _default_dspy_params()
+                settings = rman_dspy_channels[chan]
+                chan_src = settings['channelSource']
+                chan_type = settings['channelType']
+                d[u'channelSource'] = {'type': u'string', 'value': chan_src}
+                d[u'channelType'] = { 'type': u'string', 'value': chan_type}                  
+                dspys_dict['channels'][chan] = d
+            dspy_params['displayChannels'].append(chan)
+
+            filePath = '%s_%s' % (dspy_name, chan)         
+
+            dspys_dict['displays'][dspy_name] = {
+                'driverNode': display_driver,
+                'filePath': filePath,
+                'denoise': False,
+                'denoise_mode': 'singleframe',   
+                'camera': None,  
+                'bake_mode': None,                   
+                'params': dspy_params,
+                'dspyDriverParams': None}        
+    else:
+        dspy_name = stylized_tmplt.get('displayName', 'rman_stylized')
+        dspy_params = {}                        
+        dspy_params['displayChannels'] = []
+
+        for chan in stylized_tmplt['channels']:
+            d = _default_dspy_params()
+            if chan not in dspys_dict['channels']:
+                d = _default_dspy_params()
+                settings = rman_dspy_channels[chan]
+                chan_src = settings['channelSource']
+                chan_type = settings['channelType']
+                d[u'channelSource'] = {'type': u'string', 'value': chan_src}
+                d[u'channelType'] = { 'type': u'string', 'value': chan_type}                  
+                dspys_dict['channels'][chan] = d
+            dspy_params['displayChannels'].append(chan)
+
+        filePath = rm.path_beauty_image_output
+        f, ext = os.path.splitext(filePath)
+        filePath = f + '_rman_stylized' + ext      
+        if expandTokens:      
+            filePath = string_utils.expand_string(filePath,
+                                                display=display_driver, 
+                                                frame=rman_scene.bl_frame_current,
+                                                asFilePath=True)            
+
+        dspys_dict['displays'][dspy_name] = {
+            'driverNode': display_driver,
+            'filePath': filePath,
+            'denoise': False,
+            'denoise_mode': 'singleframe',   
+            'camera': None,  
+            'bake_mode': None,                   
+            'params': dspy_params,
+            'dspyDriverParams': None}                    
+
 def _add_denoiser_channels(dspys_dict, dspy_params):
     """
     Add the necessary dspy channels for denoiser. We assume
@@ -199,7 +282,7 @@ def _get_real_chan_name(chan):
     """
     ch_name = chan.channel_name
     lgt_grp = chan.light_group.strip()
-    if lgt_grp != '':
+    if lgt_grp != '' and lgt_grp not in ch_name:
         ch_name = '%s_%s' % (ch_name, lgt_grp)   
     return ch_name
 
@@ -207,6 +290,35 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
 
     rm = rman_scene.bl_scene.renderman
     display_driver = dspy_drv
+
+    for chan in rm_rl.dspy_channels:
+        ch_name = _get_real_chan_name(chan)
+        lgt_grp = chan.light_group.strip()
+        # add the channel if not already in list            
+        if ch_name not in dspys_dict['channels']:
+            d = _default_dspy_params()                
+            source_type = chan.channel_type
+            source = chan.channel_source
+
+            if lgt_grp or lgt_grp != '':
+                if 'Ci' in source:
+                    source = "lpe:C[DS]*[<L.>O]"
+                if "<L.>" in source:
+                    source = source.replace("<L.>", "<L.'%s'>" % lgt_grp)
+                elif "lpe:" in source:
+                    source = source.replace("L", "<L.'%s'>" % lgt_grp)
+
+            d[u'channelSource'] = {'type': u'string', 'value': source}
+            d[u'channelType'] = { 'type': u'string', 'value': source_type}
+            d[u'lpeLightGroup'] = { 'type': u'string', 'value': lgt_grp}
+            d[u'remap_a'] = { 'type': u'float', 'value': chan.remap_a}
+            d[u'remap_b'] = { 'type': u'float', 'value': chan.remap_b}
+            d[u'remap_c'] = { 'type': u'float', 'value': chan.remap_c}
+            d[u'exposure'] = { 'type': u'float2', 'value': [chan.exposure_gain, chan.exposure_gamma] }
+            d[u'filter'] = {'type': u'string', 'value': chan.chan_pixelfilter}
+            d[u'filterwidth'] = { 'type': u'float2', 'value': [chan.chan_pixelfilter_x, chan.chan_pixelfilter_y]}
+            d[u'statistics'] = { 'type': u'string', 'value': chan.stats_type}
+            dspys_dict['channels'][ch_name] = d    
 
     for aov in rm_rl.custom_aovs:
         if aov.name == '':
@@ -217,35 +329,9 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
         dspy_params = {}            
         dspy_params['displayChannels'] = []
 
-        for chan in aov.dspy_channels:
-            ch_name = _get_real_chan_name(chan)
-            dspy_params['displayChannels'].append(ch_name)
-            lgt_grp = chan.light_group.strip()
-            # add the channel if not already in list            
-            if ch_name not in dspys_dict['channels']:
-                d = _default_dspy_params()                
-                source_type = chan.channel_type
-                source = chan.channel_source
-
-                if lgt_grp or lgt_grp != '':
-                    if 'Ci' in source:
-                        source = "lpe:C[DS]*[<L.>O]"
-                    if "<L.>" in source:
-                        source = source.replace("<L.>", "<L.'%s'>" % lgt_grp)
-                    elif "lpe:" in source:
-                        source = source.replace("L", "<L.'%s'>" % lgt_grp)
-
-                d[u'channelSource'] = {'type': u'string', 'value': source}
-                d[u'channelType'] = { 'type': u'string', 'value': source_type}
-                d[u'lpeLightGroup'] = { 'type': u'string', 'value': lgt_grp}
-                d[u'remap_a'] = { 'type': u'float', 'value': chan.remap_a}
-                d[u'remap_b'] = { 'type': u'float', 'value': chan.remap_b}
-                d[u'remap_c'] = { 'type': u'float', 'value': chan.remap_c}
-                d[u'exposure'] = { 'type': u'float2', 'value': [chan.exposure_gain, chan.exposure_gamma] }
-                d[u'filter'] = {'type': u'string', 'value': chan.chan_pixelfilter}
-                d[u'filterwidth'] = { 'type': u'float2', 'value': [chan.chan_pixelfilter_x, chan.chan_pixelfilter_y]}
-                d[u'statistics'] = { 'type': u'string', 'value': chan.stats_type}
-                dspys_dict['channels'][ch_name] = d
+        for chan_ptr in aov.dspy_channels:
+            chan = rm_rl.dspy_channels[chan_ptr.dspy_chan_idx]
+            dspy_params['displayChannels'].append(chan.channel_name)
 
         param_list = None
         if rman_scene.rman_bake:
@@ -497,6 +583,9 @@ def get_dspy_dict(rman_scene, expandTokens=True):
         # we ignore the display driver setting in the AOV and render to whatever
         # render_into is set to
         display_driver = rm.render_into
+
+    if rm.render_rman_stylized:
+        _add_stylized_channels(dspys_dict, display_driver, rman_scene, expandTokens)        
        
     if rm_rl:     
         _set_rman_dspy_dict(rm_rl, dspys_dict, display_driver, rman_scene, expandTokens)        

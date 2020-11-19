@@ -65,12 +65,19 @@ class RfBTxManager(object):
 
         if txfile.state in (txmanager.STATE_EXISTS, txmanager.STATE_IS_TEX):
             output_tex = txfile.get_output_texture()
+            if self.rman_scene:
+                output_tex = string_utils.expand_string(output_tex, frame=self.rman_scene.bl_frame_current, asFilePath=True)
+            else:
+                output_tex = string_utils.expand_string(output_tex, asFilePath=True)    
+        elif txfile.state == txmanager.STATE_INPUT_MISSING:       
+            output_tex = txfile.input_image
+            if self.rman_scene:
+                output_tex = string_utils.expand_string(output_tex, frame=self.rman_scene.bl_frame_current, asFilePath=True)
+            else:
+                output_tex = string_utils.expand_string(output_tex, asFilePath=True)                
         else:
             output_tex = self.txmanager.get_placeholder_tex()
-        if self.rman_scene:
-            output_tex = string_utils.expand_string(output_tex, frame=self.rman_scene.bl_frame_current, asFilePath=True)
-        else:
-            output_tex = string_utils.expand_string(output_tex, asFilePath=True)           
+
         return output_tex
             
     def get_txfile_from_path(self, filepath):
@@ -85,7 +92,7 @@ def get_txmanager():
         __RFB_TXMANAGER__ = RfBTxManager()
     return __RFB_TXMANAGER__    
 
-def update_texture(node, light=None, mat=None):
+def update_texture(node, light=None, mat=None, ob=None):
     if hasattr(node, 'bl_idname'):
         if node.bl_idname == "PxrPtexturePatternNode":
             return
@@ -121,10 +128,14 @@ def update_texture(node, light=None, mat=None):
                             node_name = light.name
                             node_type = light.renderman.get_light_node_name()
                             nodeID = generate_node_id(node, prop_name, ob=light)
-                        elif hasattr(node, 'name'):
+                        elif mat:
                             node_name = node.name
                             node_type = node.bl_label
-                            nodeID = generate_node_id(node, prop_name, ob=mat)
+                            nodeID = generate_node_id(node, prop_name, ob=mat)                            
+                        elif ob:
+                            node_name = node.name
+                            node_type = node.bl_label
+                            nodeID = generate_node_id(node, prop_name, ob=ob)
 
                         if node_name != '':       
                             real_file = filepath_utils.get_real_path(prop)

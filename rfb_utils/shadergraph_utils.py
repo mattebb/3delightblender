@@ -2,7 +2,7 @@ from . import color_utils
 from . import filepath_utils
 from . import string_utils
 from . import object_utils
-from ..rman_constants import RMAN_STYLIZED_PATTERNS
+from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERN, RMAN_UTILITY_PATTERN_NAME
 import math
 
 def is_renderman_nodetree(material):
@@ -313,14 +313,12 @@ def find_all_stylized_filters(world):
         if socket.is_linked:
             link = socket.links[0]
             node = link.from_node    
-            if node.bl_label in RMAN_STYLIZED_PATTERNS:
+            if node.bl_label in RMAN_STYLIZED_FILTERS:
                 nodes.append(node)
 
     return nodes
                           
 def has_stylized_pattern_node(ob, node=None):
-    pattern_name = "PxrStylizedPattern"
-    prop_name = "utilityPattern"    
     if not node:
         if len(ob.material_slots) < 1:
             return False
@@ -335,21 +333,21 @@ def has_stylized_pattern_node(ob, node=None):
 
         link = socket.links[0]
         node = link.from_node 
-        prop = getattr(node, prop_name, None)
+        prop = getattr(node, RMAN_UTILITY_PATTERN_NAME, None)
         if not prop:
             return False
 
-    array_len = getattr(node, '%s_arraylen' % prop_name)
+    array_len = getattr(node, '%s_arraylen' % RMAN_UTILITY_PATTERN_NAME)
     for i in range(0, array_len):
-        nm = '%s[%d]' % (prop_name, i)
+        nm = '%s[%d]' % (RMAN_UTILITY_PATTERN_NAME, i)
         sub_prop = getattr(node, nm)
         if hasattr(node, 'inputs')  and nm in node.inputs and \
             node.inputs[nm].is_linked: 
 
             to_socket = node.inputs[nm]                    
             from_node = to_socket.links[0].from_node
-            if from_node.bl_label == pattern_name:
-                return True
+            if from_node.bl_label == RMAN_STYLIZED_PATTERN:
+                return from_node
 
     return False
 

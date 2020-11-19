@@ -153,7 +153,7 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
         split.context_pointer_set("nodetree", nt)            
         if socket.is_linked:
             rman_icon = rfb_icons.get_icon('out_%s' % node.bl_label)            
-            split.menu('NODE_MT_renderman_connection_menu', text=node.bl_label, icon_value=rman_icon.icon_id)
+            split.menu('NODE_MT_renderman_connection_menu', text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
         else:
             split.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')            
 

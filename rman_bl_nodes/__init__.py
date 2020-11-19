@@ -83,13 +83,18 @@ __RMAN_PLUGIN_MAPPING__ = {
 }
 
 __RMAN_NODES_NO_REGISTER__ = [
-        'PxrCombinerLightFilter.args', 
-        'PxrSampleFilterCombiner.args', 
-        'PxrDisplayFilterCombiner.args', 
-        'PxrShadowDisplayFilter.args',
-        'PxrShadowFilter.args',
-        'PxrDisplace.oso'
+    'PxrCombinerLightFilter.args', 
+    'PxrSampleFilterCombiner.args', 
+    'PxrDisplayFilterCombiner.args', 
+    'PxrShadowDisplayFilter.args',
+    'PxrShadowFilter.args',
+    'PxrDisplace.oso'
 ]
+
+# map RenderMan name to Blender node name
+# ex: PxrStylizedPattern -> PxrStylizedPatternPatternOSLNode
+__BL_NODES_MAP__ = dict()
+
 __RMAN_NODES_ALREADY_REGISTERED__ = False
 
 def update_conditional_visops(node):
@@ -108,19 +113,28 @@ def assetid_update_func(self, context):
     node = self.node if hasattr(self, 'node') else self
     light = None
     mat = None
-    active = context.active_object
-    if active.type == 'LIGHT':
-        light = active.data
-           
-    if context and hasattr(context, 'material'):
-        mat = context.material
-    elif context and hasattr(context, 'node'):
-        mat = context.space_data.id
+    ob = None
+    active = None
+    if node.renderman_node_type in ['displayfilter', 'samplefilter', 'integrator']:
+        ob = context.scene.world        
+    else:    
+        active = context.active_object
+        if active:
+            if active.type == 'LIGHT':
+                light = active.data
+            else:
+                ob = active
+                
+        if context and hasattr(context, 'material'):
+            mat = context.material
+        elif context and hasattr(context, 'node'):
+            mat = context.space_data.id
 
-    texture_utils.update_texture(node, light=light, mat=mat)
+    texture_utils.update_texture(node, light=light, mat=mat, ob=ob)
+    
     if mat:
         node.update_mat(mat)  
-    if active.type == 'LIGHT':
+    if light:
         active.update_tag(refresh={'DATA'})
 
 def update_func_with_inputs(self, context):
@@ -676,6 +690,7 @@ def register_rman_nodes():
 
                     if typename and nodetype:
                         __RMAN_NODE_TYPES__[typename] = nodetype
+                        __BL_NODES_MAP__[node_desc.name] = typename
 
                     # categories
                     node_item = NodeItem(typename, label=nodetype.bl_label)

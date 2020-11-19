@@ -23,7 +23,8 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
             output = nt.nodes.new('RendermanOutputNode')
             try:
                 if not rman_cycles_convert.convert_cycles_nodetree(mat, output):
-                    default = nt.nodes.new('PxrSurfaceBxdfNode')
+                    pxr_surface_node = rman_bl_nodes.__BL_NODES_MAP__['PxrSurface']
+                    default = nt.nodes.new(pxr_surface_node)
                     default.location = output.location
                     default.location[0] -= 300
                     nt.links.new(default.outputs[0], output.inputs[0])
@@ -129,8 +130,8 @@ class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
                 shadergraph_utils.convert_grease_pencil_mat(idblock, nt, output)
 
             elif not rman_cycles_convert.convert_cycles_nodetree(idblock, output):
-                default = nt.nodes.new('%sBxdfNode' %
-                                       self.properties.bxdf_name)
+                bxdf_node_name = rman_bl_nodes.__BL_NODES_MAP__[self.properties.bxdf_name]
+                default = nt.nodes.new(bxdf_node_name)
                 default.location = output.location
                 default.location[0] -= 300
                 nt.links.new(default.outputs[0], output.inputs[0])
@@ -188,8 +189,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 shadergraph_utils.convert_grease_pencil_mat(idblock, nt, output)
 
             else:
-                default = nt.nodes.new('%sBxdfNode' %
-                                       self.properties.bxdf_name)
+                bxdf_node_name = rman_bl_nodes.__BL_NODES_MAP__[self.properties.bxdf_name]
+                default = nt.nodes.new(bxdf_node_name)
                 default.location = output.location
                 default.location[0] -= 300
                 nt.links.new(default.outputs[0], output.inputs[0])
@@ -326,7 +327,8 @@ class PRMAN_OT_New_bxdf(bpy.types.Operator):
         nt = mat.node_tree
 
         output = nt.nodes.new('RendermanOutputNode')
-        default = nt.nodes.new('%sBxdfNode' % bxdf_name)
+        bxdf_node_name = rman_bl_nodes.__BL_NODES_MAP__[bxdf_name]        
+        default = nt.nodes.new('%sBxdfNode' % bxdf_node_name)
         default.location = output.location
         default.location[0] -= 300
         nt.links.new(default.outputs[0], output.inputs[0])
@@ -384,7 +386,8 @@ class PRMAN_OT_New_Material_Override(bpy.types.Operator):
         nt = mat.node_tree
 
         output = nt.nodes.new('RendermanOutputNode')
-        default = nt.nodes.new('%sBxdfNode' % bxdf_name)
+        bxdf_node_name = rman_bl_nodes.__BL_NODES_MAP__[bxdf_name]        
+        default = nt.nodes.new(bxdf_node_name)
         default.location = output.location
         default.location[0] -= 300
         nt.links.new(default.outputs[0], output.inputs[0])
@@ -447,81 +450,7 @@ class PRMAN_OT_Force_LightFilter_Refresh(bpy.types.Operator):
             if ob:
                 rr.rman_scene_sync.update_light_filter(ob)
 
-        return {"FINISHED"}  
-
-class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
-    bl_idname = "node.rman_attach_stylized_pattern"
-    bl_label = "Attach Stylized"
-    bl_description = "Attach the stylized pattern node to your material network."
-    
-    def execute(self, context):
-        scene = context.scene
-        selected_objects = context.selected_objects
-        pattern_name = "PxrStylizedPattern"
-        prop_name = "utilityPattern"
-        for ob in selected_objects:
-            if len(ob.material_slots) < 1:
-                continue
-            mat = ob.material_slots[0].material
-            nt = mat.node_tree
-            output = shadergraph_utils.is_renderman_nodetree(mat)
-            if not output:
-                continue
-            socket = output.inputs[0]
-            if not socket.is_linked:
-                continue
-
-            link = socket.links[0]
-            node = link.from_node 
-            prop = getattr(node, prop_name, None)
-            if not prop:
-                continue
-
-            if shadergraph_utils.has_stylized_pattern_node(ob, node=node):
-                continue
-
-            array_len = getattr(node, '%s_arraylen' % prop_name)
-            array_len += 1
-            setattr(node, '%s_arraylen' % prop_name, array_len)
-            pattern_node = nt.nodes.new('%sPatternOSLNode' % pattern_name)      
-            sub_prop_nm = '%s[%d]' % (prop_name, array_len-1)     
-            nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[sub_prop_nm])    
-
-        return {"FINISHED"}         
-
-class PRMAN_OT_Add_Stylized_Filter(bpy.types.Operator):
-    bl_idname = "node.rman_add_stylized_filter"
-    bl_label = "Add Stylized Filter"
-    bl_description = "Add a stylized filter"
-
-    filter_name: StringProperty(default="PxrStylizedLinesDisplayFilter", name="Filter Name")
-    
-    def execute(self, context):
-        scene = context.scene
-        world = scene.world
-        rm = world.renderman
-        nt = world.node_tree
-
-        output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')
-        if not output:
-            bpy.ops.material.rman_add_rman_nodetree('EXEC_DEFAULT', idtype='world')
-            output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')   
-
-        filter_node = nt.nodes.new('%sDisplayfilterNode' % self.properties.filter_name) 
-
-        free_socket = None
-        for i, socket in enumerate(output.inputs):
-            if not socket.is_linked:
-                free_socket = socket
-                break
-
-        if not free_socket:
-            bpy.ops.node.rman_add_displayfilter_node_socket('EXEC_DEFAULT')
-            free_socket = output.inputs[len(output.inputs)-1]
-
-        nt.links.new(filter_node.outputs[0], free_socket)
-
-        return {"FINISHED"}            
+        return {"FINISHED"}     
 
 classes = [
     SHADING_OT_convert_all_renderman_nodetree,
@@ -531,9 +460,7 @@ classes = [
     PRMAN_OT_New_Material_Override,
     PRMAN_OT_Force_Material_Refresh,
     PRMAN_OT_Force_Light_Refresh,
-    PRMAN_OT_Force_LightFilter_Refresh,
-    PRMAN_OT_Attach_Stylized_Pattern,
-    PRMAN_OT_Add_Stylized_Filter
+    PRMAN_OT_Force_LightFilter_Refresh
 ]
 
 def register():

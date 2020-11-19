@@ -5,10 +5,11 @@ from ..rfb_utils.draw_utils import _draw_ui_from_rman_config, draw_node_properti
 from ..rfb_utils import scene_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import string_utils
+from ..rfb_utils import object_utils
 from ..rman_render import RmanRender       
 from .. import rfb_icons
 from ..rman_operators.rman_operators_collections import return_empty_list   
-from ..rman_constants import RFB_MAX_USER_TOKENS, RMAN_STYLIZED_PATTERNS  
+from ..rman_constants import RFB_MAX_USER_TOKENS, RMAN_STYLIZED_FILTERS  
 import bpy
 import re
 
@@ -605,20 +606,60 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
     bl_idname = "scene.rman_open_stylized_editor"
     bl_label = "RenderMan Stylized Editor"
 
-    def rman_stylized_filters(self, context):
-        items = []
-        for f in RMAN_STYLIZED_PATTERNS:
-            items.append((f, f, ""))
-        return items
+    def updated_object_selected_name(self, context):
+        ob = context.scene.objects.get(self.selected_obj_name, None)
+        if not ob:
+            return
+                
+        if context.view_layer.objects.active:
+            context.view_layer.objects.active.select_set(False)
+        ob.select_set(True)
+        context.view_layer.objects.active = ob       
 
-    add_stylized_filter: EnumProperty(
-        name="",
-        items=rman_stylized_filters
-    )
+    def obj_list_items(self, context):
+        pattern = re.compile(self.object_search_filter)        
+        scene = context.scene
+        rm = scene.renderman
+
+        if self.do_object_filter and self.object_search_filter == '':
+            return return_empty_list(label='No Objects Found')        
+
+        items = []
+        for ob in context.scene.objects:
+            if ob.type in ['LIGHT', 'CAMERA']:
+                continue
+
+            mat = object_utils.get_active_material(ob)
+            if not mat:
+                continue
+
+            if not shadergraph_utils.is_renderman_nodetree(mat):
+                continue
+
+            if self.do_object_filter and not re.match(pattern, ob.name):
+                continue
+            if not shadergraph_utils.has_stylized_pattern_node(ob):
+                items.append((ob.name, ob.name, ''))
+        if not items:
+            return return_empty_list(label='No Objects Found')               
+        elif self.do_object_filter:
+            items.insert(0, ('0', 'Results (%d)' % len(items), '', '', 0))
+        else:
+            items.insert(0, ('0', 'Select Object', '', '', 0))
+        return items  
+
+    def update_do_object_filter(self, context):
+        self.selected_obj_name = '0'            
+
+    do_object_filter: BoolProperty(name="Object Filter", 
+                                description="Search and add multiple objects",
+                                default=False,
+                                update=update_do_object_filter)    
+    object_search_filter: StringProperty(name="Object Filter Search", default="")       
+    selected_obj_name: EnumProperty(name="", items=obj_list_items, update=updated_object_selected_name)    
 
     def current_filters(self, context):
         items = []
-        items.append(('0', '', '', '', 0))
         scene = context.scene   
         world = scene.world
         nt = world.node_tree
@@ -628,75 +669,147 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         for node in nodes:
             items.append((node.name, node.name, ""))
 
+        if len(items) < 1:
+            items.append(('0', '', '', '', 0))
+
         return items  
 
     stylized_filter: EnumProperty(
         name="",
         items=current_filters
     )    
+
+    stylized_tabs: EnumProperty(
+        name="",
+        items=[
+            ('patterns', 'Patterns', ''),
+            ('filters', 'Filters', ''),
+        ]
+    )
+
+    stylized_pattern_use_template: BoolProperty(
+        name="Use Template",
+        default=False
+    )    
+
+    stylized_filter_use_template: BoolProperty(
+        name="Use Template",
+        default=False
+    )
+
+    def get_stylized_objects(self, context):
+        items = []
+        scene = context.scene 
+        for ob in scene.objects:
+            node = shadergraph_utils.has_stylized_pattern_node(ob)
+            if node:
+                items.append((ob.name, ob.name, ''))
+
+        if len(items) < 1:
+            items.append(('0', '', '', '', 0))                
+
+        return items      
+
+    stylized_objects: EnumProperty(
+        name="",
+        items=get_stylized_objects
+    )
          
     def execute(self, context):
-        return{'FINISHED'}         
+        return{'FINISHED'}   
 
-    def draw(self, context):
 
-        layout = self.layout
+    def draw_patterns_tab(self, context): 
+        scene = context.scene   
+        rm = scene.renderman
+        selected_objects = context.selected_objects        
+
+        layout = self.layout           
+
+        row = layout.row()
+        row.prop(self, 'stylized_pattern_use_template')
+
+        row = layout.row()
+        row.separator()   
+
+        row.prop(self, 'do_object_filter', text='', icon='FILTER', icon_only=True)
+        if not self.do_object_filter:
+            row.prop(self, 'selected_obj_name', text='')
+            col = row.column()
+
+            if self.selected_obj_name == '0' or self.selected_obj_name == '':
+                pass
+            else:
+                col.context_pointer_set('op_ptr', self) 
+                col.context_pointer_set('selected_obj', scene.objects[self.selected_obj_name])  
+                if self.properties.stylized_pattern_use_template:
+                    col.operator_menu_enum('node.rman_attach_stylized_pattern', 'template_name')
+                else:    
+                    op = col.operator('node.rman_attach_stylized_pattern', text='Attach Pattern')
+
+        else:
+            row.prop(self, 'object_search_filter', text='', icon='VIEWZOOM')
+            row = layout.row()  
+            row.prop(self, 'selected_obj_name')
+            col = row.column()
+
+            if self.selected_obj_name == '0' or self.selected_obj_name == '':
+                pass
+            else:
+                col.context_pointer_set('op_ptr', self) 
+                col.context_pointer_set('selected_obj', scene.objects[self.selected_obj_name])                
+                if self.properties.stylized_pattern_use_template:
+                    col.operator_menu_enum('node.rman_attach_stylized_pattern', 'template_name')
+                else:    
+                    op = col.operator('node.rman_attach_stylized_pattern', text='Attach Pattern')
+
+        if self.properties.stylized_objects != '0':                
+
+            layout.separator()
+            row = layout.row(align=True)
+            col = row.column()
+            col.label(text='Stylized Objects')           
+
+            row = layout.row(align=True)
+            col = row.column()
+            col.prop(self, 'stylized_objects')
+
+            ob = scene.objects.get(self.properties.stylized_objects, None)
+            node = shadergraph_utils.has_stylized_pattern_node(ob)
+            mat = object_utils.get_active_material(ob)
+            draw_node_properties_recursive(layout, context, mat.node_tree, node, level=1)
+
+    def draw_filters_tab(self, context):
         scene = context.scene   
         world = scene.world
-        rm = scene.renderman
-        nt = world.node_tree
-        selected_objects = context.selected_objects
-
-        rm_rl = None
-        active_layer = context.view_layer
-        enabled_button = True
-        for l in rm.render_layers:
-            if l.render_layer == active_layer.name:
-                rm_rl = l
-                break
-        if rm_rl:
-            for aov in rm_rl.custom_aovs:
-                if aov.name == 'NPR':
-                    enabled_button = False
-                    break
-            
-        row = layout.row(align=True)
-        col = row.column()
-        op = col.operator('renderman.dspy_rman_add_dspy_template', text='Add AOVs')
-        op.dspy_template = 'NPR'
-        col.enabled = enabled_button
-
-        enabled_button = False
-        for ob in selected_objects:
-            if not shadergraph_utils.has_stylized_pattern_node(ob):
-                enabled_button = True
-                continue        
-
-        col = row.column()
-        col.operator('node.rman_attach_stylized_pattern', text='Attach Pattern')
-        col.enabled = enabled_button
-
-
-        layout.separator()  
-        row = layout.row(align=True)
-        col = row.column()
-        col.prop(self, 'add_stylized_filter')
-        col = row.column()
-        op = col.operator('node.rman_add_stylized_filter', text="Add")
-        op.filter_name = self.properties.add_stylized_filter
+        nt = world.node_tree             
+        layout = self.layout            
         
+        row = layout.row(align=True)
+        col = row.column()
+        col.prop(self, 'stylized_filter_use_template')
+        col.context_pointer_set('op_ptr', self) 
+        if self.properties.stylized_filter_use_template:
+            col.operator_menu_enum('node.rman_add_stylized_filter', 'template_name')    
+        else:
+            col.operator_menu_enum('node.rman_add_stylized_filter', 'filter_name')
+
         layout.separator()  
         output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')
         if not output:
             row = layout.row()
-            row.label(text="No Stylized Patterns")
+            row.label(text="No Stylized Filters")
             return 
 
-        layout.prop(self, 'stylized_filter')    
-        nodes = shadergraph_utils.find_all_stylized_filters(world)
-        layout.label(text='Filters: %d' % len(nodes))
+        layout.separator()
+        row = layout.row()
+        row.label(text="Scene Filters")            
+        row = layout.row()
+
+        layout.prop(self, 'stylized_filter')
         selected_stylized_node = None
         if self.properties.stylized_filter != '':
+            nodes = shadergraph_utils.find_all_stylized_filters(world)
             for node in nodes:
                 if node.name == self.properties.stylized_filter:
                     selected_stylized_node = node
@@ -704,14 +817,36 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         
         if selected_stylized_node:
             rman_icon = rfb_icons.get_displayfilter_icon(node.bl_label) 
-            layout.label(text='%s (%s)' % (selected_stylized_node.name, selected_stylized_node.bl_label))
             layout.prop(selected_stylized_node, "is_active")
-            if selected_stylized_node.is_active:                          
-                draw_node_properties_recursive(layout, context, nt, selected_stylized_node, level=1)                
+            if selected_stylized_node.is_active:
+                draw_node_properties_recursive(layout, context, nt, selected_stylized_node, level=1)             
+
+    def draw(self, context):
+
+        layout = self.layout  
+        scene = context.scene 
+        rm = scene.renderman         
+        row = layout.row(align=True)
+        col = row.column()
+        if not rm.render_rman_stylized:
+            op = col.operator('scene.rman_enable_stylized_looks')        
+            op.open_editor = False
+            return
+        col.operator('scene.rman_disable_stylized_looks')        
+        
+        row = layout.row(align=True)
+        row.prop_tabs_enum(self, 'stylized_tabs', icon_only=False)
+
+        if self.properties.stylized_tabs == "patterns":
+            self.draw_patterns_tab(context)
+        else:
+            self.draw_filters_tab(context)
+        
+           
 
     def invoke(self, context, event):
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=500)                      
+        return wm.invoke_props_dialog(self, width=600)                      
 
 classes = [
     RENDER_OT_Renderman_Open_Workspace,
