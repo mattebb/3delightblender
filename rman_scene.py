@@ -1104,7 +1104,9 @@ class RmanScene(object):
 
         # colorspace
         ocioconfig = color_manager_blender.get_config_path()
+        ociocolorspacename = color_manager_blender.get_colorspace_name()
         options.SetString('user:ocioconfigpath', ocioconfig)
+        options.SetString('user:ociocolorspacename', ociocolorspacename)
 
         self.sg_scene.SetOptions(options)        
 
