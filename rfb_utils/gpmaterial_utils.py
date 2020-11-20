@@ -1,7 +1,7 @@
 from ..rfb_utils import color_utils
 from ..rfb_utils import texture_utils
 from ..rfb_utils import filepath_utils
-from .. import txmanager3
+from rman_utils import txmanager
 import math
 import bpy
 
@@ -53,7 +53,7 @@ def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
         output_tex = texture_utils.get_txmanager().get_txfile_from_id(nodeID)
         if output_tex == '':  
             txfile = texture_utils.get_txmanager().txmanager.add_texture(nodeID, real_file) 
-            if txfile.state in (txmanager3.STATE_EXISTS, txmanager3.STATE_IS_TEX):
+            if txfile.state in (txmanager.STATE_EXISTS, txmanager.STATE_IS_TEX):
                 output_tex = txfile.get_output_texture()
             else:
                 output_tex = texture_utils.get_txmanager().txmanager.get_placeholder_tex() 
@@ -122,7 +122,7 @@ def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
         output_tex = texture_utils.get_txmanager().get_txfile_from_id(nodeID)
         if output_tex == '':  
             txfile = texture_utils.get_txmanager().txmanager.add_texture(nodeID, real_file) 
-            if txfile.state in (txmanager3.STATE_EXISTS, txmanager3.STATE_IS_TEX):
+            if txfile.state in (txmanager.STATE_EXISTS, txmanager.STATE_IS_TEX):
                 output_tex = txfile.get_output_texture()
             else:
                 output_tex = texture_utils.get_txmanager().txmanager.get_placeholder_tex() 
