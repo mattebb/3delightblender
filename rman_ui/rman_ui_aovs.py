@@ -1,7 +1,7 @@
 import bpy
 import os
 from bpy.props import StringProperty, IntProperty, CollectionProperty, EnumProperty, BoolProperty
-from bpy.types import PropertyGroup, UIList, Operator, Panel
+from bpy.types import PropertyGroup, UIList, Operator, Panel, Menu
 from ..rfb_logger import rfb_log
 from .rman_ui_base import _RManPanelHeader
 from .rman_ui_base import CollectionPanel
@@ -126,54 +126,9 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
     bl_idname = "renderman.dspy_add_channel"
     bl_label = "Add Channel"
 
-    def channel_list(self, context):
-        rm_rl = scene_utils.get_renderman_layer(context)
- 
-        aov = rm_rl.custom_aovs[rm_rl.custom_aov_index] 
-        aov_channels = list()
-        for chan_ptr in aov.dspy_channels:
-            if chan_ptr.dspy_chan_idx < 0:
-                continue
-            chan = rm_rl.dspy_channels[chan_ptr.dspy_chan_idx]
-            aov_channels.append(chan.name)
-
-        existing = list()
-        for dspy_chan in rm_rl.dspy_channels:
-            if dspy_chan.channel_name not in aov_channels:
-                existing.append(dspy_chan.channel_name)
-
-        items = []
-        pages = dict()
-        i = 1
-        items.append(('Custom', 'Custom', '', 0))
-        items.append( ("", 'Existing', 'Existing', "", 0 ) )
-        for nm in existing:
-            items.append((nm, nm, "", "", i))
-            i += 1
-
-        for nm,settings in rman_config.__RMAN_DISPLAY_CHANNELS__.items():
-            if nm in existing or nm in aov_channels:
-                continue
-            page_nm = settings['group']
-            lst = None
-            if page_nm not in pages:
-                pages[page_nm] = []
-            lst = pages[page_nm]
-            description = settings.get('description', '')
-            item = ( nm, nm, description, "", i )
-            i += 1
-            lst.append(item)
-
-        for page_nm,page_items in pages.items():
-            items.append( ("", page_nm, page_nm, "", 0 ) )
-            for page_item in page_items:
-                items.append(page_item)
-        
-        return items
-
-    channel_selector: EnumProperty(name="Select Channel",
+    channel_selector: StringProperty(name="Select Channel",
                         description="Select the channel you want to add",
-                        items=channel_list)
+                        default='')    
 
     def execute(self, context):
         rm_rl = scene_utils.get_renderman_layer(context)
@@ -194,6 +149,8 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
                 chan_idx = len(rm_rl.dspy_channels)-1
                 chan.name = selected_chan    
                 chan.channel_name = selected_chan
+                if selected_chan == 'Custom':
+                    chan.is_custom = True
 
                 settings = rman_config.__RMAN_DISPLAY_CHANNELS__.get(selected_chan, None)
                 if settings:
@@ -205,15 +162,6 @@ class PRMAN_OT_Renderman_layer_add_channel(Operator):
             chan_ptr.dspy_chan_idx = chan_idx
 
         return{'FINISHED'}       
-
-    def draw(self, context):
-        layout = self.layout
-        layout.prop(self, 'channel_selector')
-
-    def invoke(self, context, event):
-
-        wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=400)             
 
 class PRMAN_OT_Renderman_layer_delete_channel(Operator):
     """Delete a channel"""
@@ -318,7 +266,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row = col.row()
         if rm_rl and rm_rl.custom_aov_index == 0 and not os.environ.get('RFB_DUMP_RIB', None):
             row.enabled = False
-        row.operator("renderman.dspy_add_channel", text="Add Channel")
+        row.menu('PRMAN_MT_renderman_create_dspychan_menu', text='Add Channel')
         row.operator("renderman.dspychan_delete_channel", text="Delete Channel")
         row = col.row()
         row.template_list("PRMAN_UL_Renderman_channel_list", "PRMAN", item, "dspy_channels", item,
@@ -333,12 +281,17 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         if len(item.dspy_channels) < 1:
             return
 
+        if item.dspy_channels_index >= len(item.dspy_channels):
+            return
+
         channel_ptr = item.dspy_channels[item.dspy_channels_index]
         if channel_ptr.dspy_chan_idx < 0:
             return 
         channel = rm_rl.dspy_channels[channel_ptr.dspy_chan_idx]
 
         col = layout.column()
+        if not channel.is_custom:
+            col.enabled = False
         col.prop(channel, "name")      
         col.prop(channel, 'channel_type')
         col.prop(channel, "channel_source")      
@@ -609,7 +562,54 @@ class PRMAN_OT_Renderman_Displays_Reload(Operator):
         if rman_render.rman_interactive_running:         
             rman_render.rman_scene_sync.update_displays(context) 
 
-        return {"FINISHED"}           
+        return {"FINISHED"}   
+
+
+class PRMAN_MT_renderman_create_dspychan_menu(Menu):
+    bl_label = ""
+    bl_idname = "PRMAN_MT_renderman_create_dspychan_menu"
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None    
+
+    def draw(self, context):
+        layout = self.layout
+
+        op = layout.operator("renderman.dspy_add_channel", text='Custom')
+        op.channel_selector = 'Custom'
+        layout.menu('PRMAN_MT_renderman_create_dspychan_submenu_existing')
+
+        groups = list()
+        for nm,settings in rman_config.__RMAN_DISPLAY_CHANNELS__.items():
+            group = settings['group']
+            if group not in groups:
+                groups.append(group)               
+
+        for grp in groups:
+            nm_cleanup = grp.replace(' ', '_')
+            layout.menu('PRMAN_MT_renderman_create_dspychan_submenu_%s' % nm_cleanup)
+     
+
+class PRMAN_MT_renderman_create_dspychan_submenu_existing(Menu):
+    bl_label = "Existing"
+    bl_idname = "PRMAN_MT_renderman_create_dspychan_submenu_existing"
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None    
+
+    def draw(self, context):
+        layout = self.layout
+
+        rm_rl = scene_utils.get_renderman_layer(context)
+        existing = list()
+        for dspy_chan in rm_rl.dspy_channels:
+            existing.append(dspy_chan.channel_name)
+
+        for nm in existing:
+            op = layout.operator("renderman.dspy_add_channel", text='%s' % nm)
+            op.channel_selector = nm                             
 
 classes = [
     COLLECTION_OT_rman_dspy_add_remove,
@@ -622,10 +622,61 @@ classes = [
     RENDER_PT_layer_custom_aovs,
     RENDER_PT_layer_options,
     PRMAN_OT_add_renderman_aovs,
-    PRMAN_OT_Renderman_Displays_Reload
+    PRMAN_OT_Renderman_Displays_Reload,
+    PRMAN_MT_renderman_create_dspychan_menu,
+    PRMAN_MT_renderman_create_dspychan_submenu_existing    
 ]
+    
+def register_renderman_dspychan_submenus():
+    global classes
+
+    def draw(self, context):
+        layout = self.layout  
+
+        rm_rl = scene_utils.get_renderman_layer(context)
+ 
+        aov = rm_rl.custom_aovs[rm_rl.custom_aov_index] 
+        aov_channels = list()
+        for chan_ptr in aov.dspy_channels:
+            if chan_ptr.dspy_chan_idx < 0:
+                continue
+            chan = rm_rl.dspy_channels[chan_ptr.dspy_chan_idx]
+            aov_channels.append(chan.name)
+
+        existing = list()
+        for dspy_chan in rm_rl.dspy_channels:
+            if dspy_chan.channel_name not in aov_channels:
+                existing.append(dspy_chan.channel_name)
+
+        for nm,settings in rman_config.__RMAN_DISPLAY_CHANNELS__.items():
+            if nm in existing or nm in aov_channels:
+                continue
+            group = settings['group'] 
+            if group != self.bl_label:
+                continue        
+            op = layout.operator("renderman.dspy_add_channel", text='%s' % nm)
+            op.channel_selector = nm    
+                 
+    groups = list()
+    for nm,settings in rman_config.__RMAN_DISPLAY_CHANNELS__.items():
+        group = settings['group']
+        if group not in groups:
+            groups.append(group)               
+
+    for grp in groups:
+        nm_cleanup = grp.replace(' ', '_')
+        typename = 'PRMAN_MT_renderman_create_dspychan_submenu_%s' % nm_cleanup
+        ntype = type(typename, (Menu,), {})
+        ntype.bl_label = grp
+        ntype.bl_idname = typename
+        if "__annotations__" not in ntype.__dict__:
+            setattr(ntype, "__annotations__", {})        
+        ntype.draw = draw
+        classes.append(ntype)    
 
 def register():
+
+    register_renderman_dspychan_submenus()
 
     for cls in classes:
         bpy.utils.register_class(cls)

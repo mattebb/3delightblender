@@ -36,6 +36,8 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
             default="color"
             )            
 
+    is_custom: BoolProperty(name="Custom", default=False)
+
     custom_lpe_string: StringProperty(
         name="lpe String",
         description="This is where you enter the custom lpe string")
