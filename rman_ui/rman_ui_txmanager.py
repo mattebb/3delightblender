@@ -318,6 +318,8 @@ class PRMAN_OT_Renderman_txmanager_add_texture(Operator):
         item.state = txfile.state    
         if txfile.state == txmngr.STATE_IS_TEX:
             item.enable = False  
+        else:
+            item.enable = True
         if params.ocioconvert:
             item.ocioconvert = params.ocioconvert
   
@@ -353,6 +355,8 @@ class PRMAN_OT_Renderman_txmanager_refresh(Operator):
             item.state = txfile.state    
             if txfile.state == txmngr.STATE_IS_TEX:
                 item.enable = False  
+            else:
+                item.enable = True
  
             item.tooltip = '\n' + str(txfile)
 
@@ -479,6 +483,8 @@ def index_updated(self, context):
         item.resize = params.resize 
         if txfile.state == txmngr.STATE_IS_TEX:
             item.enable = False
+        else:
+            item.enable = True
         if params.ocioconvert:
             item.ocioconvert = params.ocioconvert
 
