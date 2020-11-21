@@ -1176,24 +1176,6 @@ def setParams(node, paramsList):
 
     # if this is a PxrSurface and default != val, then turn on the enable.
     if hasattr(node, 'plugin_name') and node.plugin_name == 'PxrSurface':
-        __GAINS_TO_ENABLE__ = {
-            'diffuseGain': 'enableDiffuse',
-            'specularFaceColor': 'enablePrimarySpecular',
-            'specularEdgeColor': 'enablePrimarySpecular',
-            'roughSpecularFaceColor': 'enableRoughSpecular',
-            'roughSpecularEdgeColor': 'enableRoughSpecular',
-            'clearcoatFaceColor': 'enableClearCoat',
-            'clearcoatEdgeColor': 'enableClearCoat',
-            'iridescenceFaceGain': 'enableIridescence',
-            'iridescenceEdgeGain': 'enableIridescence',
-            'fuzzGain': 'enableFuzz',
-            'subsurfaceGain': 'enableSubsurface',
-            'singlescatterGain': 'enableSingleScatter',
-            'singlescatterDirectGain': 'enableSingleScatter',
-            'refractionGain': 'enableGlass',
-            'reflectionGain': 'enableGlass',
-            'glowGain': 'enableGlow',
-        }
         setattr(node, 'enableDiffuse', (getattr(node, 'diffuseGain') != 0))
         for gain,enable in __GAINS_TO_ENABLE__.items():
             val = getattr(node, gain)
