@@ -28,6 +28,7 @@ import bpy
 import bpy.utils.previews
 from ..rfb_utils.prefs_utils import get_pref
 from ..rfb_utils import filepath_utils
+import json
 
 asset_previews = bpy.utils.previews.new()
 __RMAN_MAT_FLAT_PATH__ = 'lib/rmanAssetResources/icons'
@@ -53,7 +54,27 @@ def get_icon(path):
             flat_icon_thumb = asset_previews.load(flat_icon_path, flat_icon_thumb_path, 'IMAGE', force_reload=True)     
 
         return flat_icon_thumb
-    return thumb   
+    return thumb  
+
+def get_preset_icon(preset):
+    global asset_previews
+    flat_icon_path = os.path.join( filepath_utils.guess_rmantree(), __RMAN_MAT_FLAT_PATH__)
+    flat_icon_thumb = asset_previews.get(flat_icon_path, None)
+    if not flat_icon_thumb:
+        flat_icon_thumb_path = os.path.join(flat_icon_path, __RMAN_MAT_FLAT_FILENAME__)
+        flat_icon_thumb = asset_previews.load(flat_icon_path, flat_icon_thumb_path, 'IMAGE', force_reload=True)
+    
+    path = preset.path
+    if path not in asset_previews:
+        thumb_path = os.path.join(path, 'asset_100.png')
+        if os.path.exists(thumb_path):
+            thumb = asset_previews.load(path, thumb_path, 'IMAGE', force_reload=True)
+        else:
+            thumb = flat_icon_thumb
+    else:
+        thumb = asset_previews[path]   
+
+    return thumb      
 
 def load_previews(preset_category):
     '''Load icons for this preset category
@@ -94,7 +115,7 @@ def load_previews(preset_category):
         x = img.icon_size[0]
         y = img.icon_size[1]
 
-    if not enum_items:
-        return [('none', 'none', '', '', 0)]
+    #if not enum_items:
+    #    return [('none', 'none', '', '', 0)]
 
     return enum_items

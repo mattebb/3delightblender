@@ -36,6 +36,7 @@ import bpy
 import mathutils
 from math import radians
 from ..rfb_utils import filepath_utils
+from ..rfb_utils import string_utils
 from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__
 
 ##
@@ -993,6 +994,42 @@ def parseNodeGraph(nt, Asset):
     graph.Process()
     graph.Serialize(Asset)
 
+def exportLightRig(obs, Asset):
+    from ..rfb_utils import shadergraph_utils
+    from ..rfb_utils import transform_utils
+    for ob in obs:
+        bl_node = shadergraph_utils.get_light_node(ob)
+
+        nodeName = bl_node.name
+        nodeType = bl_node.bl_label
+        nodeClass = 'light'
+        rmanNodeName = bl_node.bl_label
+
+        Asset.addNode(nodeName, nodeType,
+                        nodeClass, rmanNodeName,
+                        externalosl=False)
+
+        mtx = ob.matrix_world
+        floatVals = list()
+        floatVals = transform_utils.convert_matrix(mtx)
+        Asset.addNodeTransform(nodeName, floatVals )
+
+        for prop_name, meta in bl_node.prop_meta.items():
+            if not hasattr(bl_node, prop_name):
+                continue
+            prop = getattr(bl_node, prop_name)   
+            if meta['renderman_type'] == 'page' or prop_name == 'notes' or meta['renderman_type'] == 'enum':
+                continue
+
+            elif 'widget' in meta and meta['widget'] == 'null':
+                continue
+
+            ptype = meta['renderman_type']
+            pname = meta['renderman_name']                    
+            val = string_utils.convert_val(prop, type_hint=ptype)
+
+            pdict = {'type': ptype, 'value': val}
+            Asset.addParam(nodeName, pname, pdict)
 
 ##
 # @brief      Gathers infos from the image header
@@ -1027,6 +1064,13 @@ def exportAsset(nt, atype, infodict, category, assetPath, renderPreview=True,
     label = infodict['label']
     Asset = RmanAsset(atype, label)
 
+    asset_type = ''
+    if atype == 'nodeGraph':
+        if category.startswith('Materials'):
+            asset_type = 'Materials'
+        else:
+            asset_type = 'LightRigs'
+
     # Add user metadata
     #
     for k, v in infodict.items():
@@ -1045,7 +1089,10 @@ def exportAsset(nt, atype, infodict, category, assetPath, renderPreview=True,
     # parse maya scene
     #
     if atype is "nodeGraph":
-        parseNodeGraph(nt, Asset)
+        if asset_type == 'Materials':
+            parseNodeGraph(nt, Asset)
+        else:
+            exportLightRig(nt, Asset)
     elif atype is "envMap":
         parseTexture(nt, Asset)
     else:
@@ -1078,9 +1125,9 @@ def exportAsset(nt, atype, infodict, category, assetPath, renderPreview=True,
         return
     json = Asset.jsonFilePath()
     Asset.load(json, localizeFilePaths=True)
-    if category.startswith('Materials'):
+    if asset_type == 'Materials':
         ral.renderAssetPreview(Asset, progress=None, resize=None)
-    elif category.startswith('LightRigs'):
+    elif asset_type == 'LightRigs':
         pass
     elif Asset._type == 'envMap':
         ral.renderAssetPreview(Asset, progress=None, resize=None)
@@ -1250,15 +1297,6 @@ def createNodes(Asset):
     nodeDict = {}
     nt = None
 
-    # To handle light rigs easily like a single object, group lights into
-    # an empty parent.
-    lightrig_helper = None
-    lightrig_name = None
-
-    # TODO: type and size should be options in settings
-    lightrig_type = 'SPHERE'
-    lightrig_size = 2
-
     mat = bpy.data.materials.new(Asset.label())
     mat.use_nodes = True
     nt = mat.node_tree       
@@ -1339,25 +1377,15 @@ def createNodes(Asset):
         elif nodeClass == 'root':
             continue
         elif nodeClass == 'light':
-            # if the helper object isn't there, create one. it's the first
-            # light node from JSON.
-            if not lightrig_helper:
-                lightrig_name = Asset.label()
-                lightrig_helper = bpy.data.objects.new(lightrig_name, None)
-                bpy.context.scene.collection.objects.link(lightrig_helper)
-                lightrig_helper.empty_display_size = lightrig_size
-                lightrig_helper.empty_display_type = lightrig_type
-                lightrig_helper.hide_viewport = True
-
+            # we don't deal with mesh lights
+            if nodeType == 'PxrMeshLight':
+                continue
 
             bpy.ops.object.rman_add_light(rman_light_name=nodeType)
             light = bpy.context.active_object
 
-            # add current light object from JSON to helper
-            light.parent = lightrig_helper
-
             light.name = nodeId
-            light.data.name = nodeId
+            light.data.name = nodeId    
            
             if fmt[2] == TrMode.k_flat:
                 if fmt[0] == TrStorage.k_matrix:                   
@@ -1373,6 +1401,12 @@ def createNodes(Asset):
                     # rotation
                     light.rotation_euler = (radians(vals[3]), radians(vals[4]), radians(vals[5]))
 
+            if not Asset.IsCompatible(hostName='Blender'):
+                # assume that if a lightrig did not come from Blender,
+                # we need convert from Y-up to Z-up
+                yup_to_zup = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
+                light.matrix_world = yup_to_zup @ light.matrix_world
+
             created_node = light.data.renderman.get_light_node()
             mat = light
             nt = light.data.node_tree 
@@ -1380,25 +1414,6 @@ def createNodes(Asset):
         if created_node:
             nodeDict[nodeId] = created_node.name
             setParams(created_node, node.paramsDict())
-
-    # if we have a light rig after iterating over the JSON, then correct
-    # Maya to Blender world by rotation around x-axis with a value of +90°.
-    #
-    # NOTE: In Maya +Y is pointing upwards, +Z is near and -Z far, in Blender
-    #       things are differnt, +Z is to the sky, -Y is near and +Y far.
-    if lightrig_helper:
-        lightrig_helper.rotation_euler = (radians(90), 0, 0)
-
-        # deselect all selected obejects
-        for ob in bpy.context.selected_objects:
-            ob.select_set(state=False)
-
-        # select lightrig and make active (same behavior like adding a object via UI)
-        lightrig_helper.select_set(state=True)
-        bpy.context.view_layer.objects.active = lightrig_helper
-
-        # apply former rotation
-        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
 
     # # restore selection
     # mc.select(sel)
@@ -1516,8 +1531,8 @@ def importAsset(filepath):
 
     # compatibility check
     #
-    if not compatibilityCheck(Asset):
-        return
+    #if not compatibilityCheck(Asset):
+    #    return
 
     if assetType == "nodeGraph":
         mat,nt,newNodes = createNodes(Asset)

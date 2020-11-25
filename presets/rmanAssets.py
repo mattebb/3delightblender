@@ -2069,10 +2069,10 @@ class RmanAsset:
             print('Warning: compatibility data is missing')
             return True
 
-        sameHostOK = False
+        sameHostOK = True
         if hostName is not None:
-            if cdata['host']['name'] == hostName:
-                sameHostOK = True
+            if cdata['host']['name'] != hostName:
+                sameHostOK = False
 
         if hostVersion is not None:
             try:
@@ -2105,7 +2105,7 @@ class RmanAsset:
         if not sameHostOK:
             # Are there any host-specific nodes in that asset ?
             # If not, we consider this asset compatible.
-            pass
+            return False
             # if len(cdata['hostNodeTypes']) > 0:
             #     # if the validNodeTypes list has been passed, check if we have
             #     # all required nodes...

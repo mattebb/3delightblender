@@ -1,7 +1,5 @@
 import bpy
 import os
-import webbrowser
-import sys
 from ..rfb_logger import rfb_log
 from ..rfb_utils.prefs_utils import get_pref
 from ..rfb_utils import prefs_utils
@@ -9,46 +7,6 @@ from ..rfb_utils import string_utils
 from ..rfb_utils import filepath_utils
 from ..rman_render import RmanRender
 from bpy.props import StringProperty, BoolProperty
-
-
-def _view_rib(rib_output):
-    
-    rman_editor = get_pref('rman_editor', '')
-
-    if rman_editor:
-        rman_editor = filepath_utils.get_real_path(rman_editor)
-        command = rman_editor + " " + rib_output
-        try:
-            os.system(command)
-            return
-        except Exception:
-            rfb_log().error("File or text editor not available. (Check and make sure text editor is in system path.)")        
-
-
-    if sys.platform == ("win32"):
-        try:
-            os.startfile(rib_output)
-            return
-        except:
-            pass
-    else:
-        if sys.platform == ("darwin"):
-            opener = 'open -t'
-        else:
-            opener = os.getenv('EDITOR', 'xdg-open')
-            opener = os.getenv('VIEW', opener)
-        try:
-            command = opener + " " + rib_output
-            os.system(command)
-        except Exception as e:
-            rfb_log().error("Open RIB file command failed: %s" % command)
-            pass
-        
-    # last resort, try webbrowser
-    try:
-        webbrowser.open(rib_output)
-    except Exception as e:
-        rfb_log().error("Open RIB file with web browser failed: %s" % str(e))
 
 class PRMAN_OT_Renderman_open_scene_RIB(bpy.types.Operator):
     bl_idname = 'renderman.open_scene_rib'
@@ -77,7 +35,7 @@ class PRMAN_OT_Renderman_open_scene_RIB(bpy.types.Operator):
                                                     frame=scene.frame_current, 
                                                     asFilePath=True)   
 
-            _view_rib(rib_output)
+            filepath_utils.view_file(rib_output)
         else:
             self.report({"ERROR"}, "Viewport rendering is on.")   
 
@@ -100,7 +58,7 @@ class PRMAN_OT_Open_Selected_RIB(bpy.types.Operator):
             rman_render = RmanRender.get_rman_render()
             if not rman_render.rman_interactive_running:
                 rman_render.start_export_rib_selected(context, rib_output, export_materials=True, export_all_frames=False)
-                _view_rib(rib_output)
+                filepath_utils.view_file(rib_output)
             else:
                 self.report({"ERROR"}, "Viewport rendering is on.")
 

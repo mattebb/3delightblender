@@ -3,11 +3,51 @@ import os
 import subprocess
 import platform
 import sys
+import webbrowser
 from ..rfb_logger import rfb_log
 from .. import rman_constants
 from .prefs_utils import get_pref
 
 __RMANTREE__ = None
+
+def view_file(file_path):
+    
+    rman_editor = get_pref('rman_editor', '')
+
+    if rman_editor:
+        rman_editor = get_real_path(rman_editor)
+        command = rman_editor + " " + file_path
+        try:
+            os.system(command)
+            return
+        except Exception:
+            rfb_log().error("File or text editor not available. (Check and make sure text editor is in system path.)")        
+
+
+    if sys.platform == ("win32"):
+        try:
+            os.startfile(file_path)
+            return
+        except:
+            pass
+    else:
+        if sys.platform == ("darwin"):
+            opener = 'open -t'
+        else:
+            opener = os.getenv('EDITOR', 'xdg-open')
+            opener = os.getenv('VIEW', opener)
+        try:
+            command = opener + " " + file_path
+            os.system(command)
+        except Exception as e:
+            rfb_log().error("Open file command failed: %s" % command)
+            pass
+        
+    # last resort, try webbrowser
+    try:
+        webbrowser.open(file_path)
+    except Exception as e:
+        rfb_log().error("Open file with web browser failed: %s" % str(e))      
 
 def rmantree_from_env():
     RMANTREE = ''

@@ -34,6 +34,7 @@ import os
 # update the tree structure from disk file
 def refresh_presets_libraries(disk_lib, preset_library):
     dirs = os.listdir(disk_lib)
+    preset_library.sub_categories.clear()
     for dir in dirs:
         cdir = os.path.join(disk_lib, dir)
         # skip if not a dir
@@ -65,6 +66,8 @@ def refresh_presets_libraries(disk_lib, preset_library):
                     preset.resolution = str(meta_data['metadata'].get('Resolution', ''))
             except:
                 pass
+            thumb = icons.get_preset_icon(preset)
+            preset.icon_id = thumb.icon_id
 
         else:
             sub_group = preset_library.sub_categories.get(dir, None)
@@ -120,6 +123,7 @@ class RendermanPreset(PropertyGroup):
     thumb_path: StringProperty(subtype='FILE_PATH')
     path: StringProperty(subtype='FILE_PATH')
     json_path: StringProperty(subtype='FILE_PATH')
+    icon_id: IntProperty(default=-1)
 
 
 # forward define preset category
@@ -176,7 +180,8 @@ class RendermanPresetCategory(PropertyGroup):
     
     path: StringProperty(default='', name='Path', subtype="FILE_PATH")
     presets: CollectionProperty(type=RendermanPreset)
-    selected_preset: EnumProperty(items=generate_previews, name='Selected Preset')
+    selected_preset: StringProperty(default="", name='Selected Preset')
+    parent: StringProperty(default='', name='')
 
     # gets the presets and all from children
     def get_presets(self):
