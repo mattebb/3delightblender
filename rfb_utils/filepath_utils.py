@@ -125,10 +125,13 @@ def guess_rmantree():
 
     if rmantree == '' or rmantree_method == 'ENV':
         # Fallback to RMANTREE env var
-        rfb_log().debug('Fallback to using RMANTREE.')
+        if rmantree == '':
+            rfb_log().info('Fallback to using RMANTREE.')
         rmantree = rmantree_from_env()
 
     if rmantree == '':
+        if rmantree_method == 'ENV':
+            rfb_log().info('Fallback to autodetecting newest.')
                  
         if choice == 'NEWEST':
             # get from detected installs (at default installation path)

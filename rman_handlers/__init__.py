@@ -126,8 +126,8 @@ def register():
         bpy.app.handlers.save_pre.append(texture_utils.txmanager_pre_save_cb)    
 
 def unregister():
-    if texture_utils.parse_for_textures_load_cb in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.remove(texture_utils.parse_for_textures_load_cb)
+    if texture_utils.txmanager_load_cb in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(texture_utils.txmanager_load_cb)
 
     if string_utils.update_blender_tokens_cb in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.remove(string_utils.update_blender_tokens_cb)

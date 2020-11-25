@@ -41,6 +41,7 @@ bl_info = {
     "warning": "",
     "category": "Render"}
 
+__RMAN_ADDON_LOADED__ = False
 
 class PRManRender(bpy.types.RenderEngine):
     bl_idname = 'PRMAN_RENDER'
@@ -200,6 +201,8 @@ def set_up_paths():
     filepath_utils.set_pythonpath(rman_packages)    
 
 def load_addon():
+    global __RMAN_ADDON_LOADED__
+
     if filepath_utils.guess_rmantree():
         # else display an error, tell user to correct
         # and don't load anything else
@@ -215,6 +218,8 @@ def load_addon():
         rman_properties.register()          
         rman_ui.register()      
         rman_handlers.register()
+
+        __RMAN_ADDON_LOADED__ = True
 
     else:
         rfb_log().error(
@@ -237,15 +242,20 @@ def register():
     load_addon()
 
 def unregister():
+    global __ADDON_LOADED__
+
     from . import preferences
-    rman_handlers.unregister()
-    rman_bl_nodes.unregister()    
-    rman_ui.unregister()
-    rman_properties.unregister()
     preferences.unregister()
+
     from . import presets
     presets.unregister()
-    rman_operators.unregister()
+
+    if __RMAN_ADDON_LOADED__:
+        rman_handlers.unregister()
+        rman_bl_nodes.unregister()    
+        rman_ui.unregister()
+        rman_properties.unregister()
+        rman_operators.unregister()    
     
     for cls in classes:
         try:

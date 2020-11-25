@@ -273,6 +273,7 @@ class RendermanPreferences(AddonPreferences):
         type=RendermanPresetCategory,
     )     
     presets_current_category_path: StringProperty(default='')
+
     presets_show_large_icons: BoolProperty(
         name="Show Large Icons",
         description="Turns this off if you do not want to see the large version of the preset's icon",
