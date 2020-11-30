@@ -138,6 +138,8 @@ class RendermanShadingNode(bpy.types.ShaderNode):
 
                 if prop_name not in self.inputs:
                     if prop_meta['renderman_type'] == 'page':
+                        # for now, don't draw the page   
+                        '''
                         ui_prop = prop_name + "_uio"
                         ui_open = getattr(self, ui_prop)
                         icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
@@ -153,6 +155,10 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                             prop = getattr(self, prop_name)
                             self.draw_nonconnectable_props(
                                 context, layout, prop)
+                        '''
+                        prop = getattr(self, prop_name)
+                        self.draw_nonconnectable_props(
+                            context, layout, prop)          
 
                     
                     elif prop_meta['renderman_type'] == 'array':
