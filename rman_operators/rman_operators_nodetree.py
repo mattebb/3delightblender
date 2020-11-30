@@ -198,6 +198,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
                 if self.properties.bxdf_name == 'PxrLayerSurface':
                     shadergraph_utils.create_pxrlayer_nodes(nt, default)
 
+                default.update_mat(idblock)    
+
             output.inputs[3].hide = True
                       
         elif idtype == 'light':
@@ -336,6 +338,7 @@ class PRMAN_OT_New_bxdf(bpy.types.Operator):
             shadergraph_utils.create_pxrlayer_nodes(nt, default)
 
         output.inputs[3].hide = True
+        default.update_mat(mat)
 
         return {"FINISHED"}  
 
@@ -395,6 +398,7 @@ class PRMAN_OT_New_Material_Override(bpy.types.Operator):
             shadergraph_utils.create_pxrlayer_nodes(nt, default)
 
         output.inputs[3].hide = True
+        default.update_mat(mat)
         ob.update_tag(refresh={'OBJECT'})
 
         return {"FINISHED"}  

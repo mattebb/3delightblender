@@ -236,6 +236,7 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
         nt.links.new(default.outputs[0], output.inputs[0])
         output.inputs[1].hide = True
         output.inputs[3].hide = True  
+        default.update_mat(mat)
 
         if bxdf_name == 'PxrLayerSurface':
             shadergraph_utils.create_pxrlayer_nodes(nt, default)
@@ -279,7 +280,8 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
         if (default is not None):
             nt.links.new(default.outputs[0], output.inputs[0])
 
-        output.inputs[3].hide = True            
+        output.inputs[3].hide = True        
+        default.update_mat(mat)    
 
         return mat
 
