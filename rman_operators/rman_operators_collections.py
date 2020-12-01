@@ -180,17 +180,6 @@ class COLLECTION_OT_object_groups_add_remove(bpy.types.Operator):
 
         return {'FINISHED'}               
 
-class PRMAN_OT_add_multilayer_list(bpy.types.Operator):
-    bl_idname = 'renderman.add_multilayer_list'
-    bl_label = 'Add multilayer list'
-
-    def execute(self, context):
-        scene = context.scene
-        scene.renderman.multilayer_lists.add()
-        active_layer = context.view_layer
-        scene.renderman.multilayer_lists[-1].render_layer = active_layer.name
-        return {'FINISHED'}
-
 class PRMAN_OT_convert_mixer_group_to_light_group(bpy.types.Operator):
     bl_idname = 'renderman.convert_mixer_group_to_light_group'
     bl_label = 'Convert to Light Mixer Group' 

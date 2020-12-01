@@ -86,7 +86,7 @@ class RendermanAOV(RmanBasePropertyGroup, bpy.types.PropertyGroup):
 
 class RendermanRenderLayerSettings(bpy.types.PropertyGroup):
 
-    render_layer: StringProperty()
+    use_renderman: BoolProperty(name="use_renderman", default=False)
     custom_aovs: CollectionProperty(type=RendermanAOV,
                                      name='Custom AOVs')
     custom_aov_index: IntProperty(min=-1, default=-1)
@@ -114,9 +114,13 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-        
+    bpy.types.ViewLayer.renderman = PointerProperty(
+        type=RendermanRenderLayerSettings, name="Renderman RenderLayer Settings")           
 
 def unregister():
+
+    del bpy.types.ViewLayer.renderman
+
     for cls,cfg_name in props_classes:        
         try:
             bpy.utils.unregister_class(cls)

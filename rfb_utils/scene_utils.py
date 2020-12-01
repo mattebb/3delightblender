@@ -34,13 +34,8 @@ def is_visible_layer(scene, ob):
 
 def get_renderman_layer(context):
     rm_rl = None
-    layer = context.view_layer
-    rm = context.scene.renderman
-        
-    for l in rm.render_layers:
-        if l.render_layer == layer.name:
-            rm_rl = l
-            break         
+    layer = context.view_layer  
+    rm_rl = layer.renderman 
 
     return rm_rl    
 

@@ -46,10 +46,6 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
 
     light_links_index: IntProperty(min=-1, default=-1, update=update_light_link_index)
 
-    render_layers: CollectionProperty(type=RendermanRenderLayerSettings,
-                                       name='Custom AOVs')
-
-
     def update_scene_solo_light(self, context):
         rr = rman_render.RmanRender.get_rman_render()        
         if rr.rman_interactive_running:

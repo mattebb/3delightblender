@@ -335,10 +335,11 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
 
     def draw(self, context):
         layout = self.layout
-        scene = context.scene
-        rm = scene.renderman
-        rm_rl = scene_utils.get_renderman_layer(context)            
-        if rm_rl is None:
+        scene = context.scene      
+        active_layer = context.view_layer
+        rm_rl = active_layer.renderman
+
+        if not rm_rl.use_renderman:
             layout.operator('renderman.dspy_convert_renderman_displays')
             layout.prop(scene.render.image_settings, "file_format")
             split = layout.split()
@@ -410,16 +411,13 @@ class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
     bl_description = "Convert curent view layer to use RenderMan Display system"
 
     def execute(self, context):
-        scene = context.scene
-        scene.renderman.render_layers.add()
         active_layer = context.view_layer
-        # this sucks.  but can't find any other way to refer to render layer
-        scene.renderman.render_layers[-1].render_layer = active_layer.name
-
         # add the already existing passes
         scene = context.scene
         rm = scene.renderman
-        rm_rl = scene.renderman.render_layers[-1]
+        rm_rl = active_layer.renderman
+        rm_rl.use_renderman = True
+        
         active_layer = context.view_layer
 
         rl = active_layer
@@ -501,10 +499,8 @@ class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
         scene = context.scene
         rm = scene.renderman
         rm_rl = scene_utils.get_renderman_layer(context)
-        if rm_rl is None:
+        if not rm_rl.use_renderman:
             bpy.ops.renderman.dspy_convert_renderman_displays('EXEC_DEFAULT')
-
-        rm_rl = scene.renderman.render_layers[-1]
 
         rman_dspy_channels = rman_config.__RMAN_DISPLAY_CHANNELS__
         tmplt = rman_config.__RMAN_DISPLAY_TEMPLATES__[self.dspy_template]

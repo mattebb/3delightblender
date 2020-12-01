@@ -149,12 +149,8 @@ class RmanScene(object):
 
     def _find_renderman_layer(self):
         self.rm_rl = None
-        rm = self.bl_scene.renderman
-            
-        for l in rm.render_layers:
-            if l.render_layer == self.bl_view_layer.name:
-                self.rm_rl = l
-                break     
+        if self.bl_view_layer.renderman.use_renderman:
+            self.rm_rl = self.bl_view_layer.renderman  
 
     def _update_progress(self, msg, f):
         if self.rman_render.bl_engine:
