@@ -343,7 +343,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             layout.prop(scene.render.image_settings, "file_format")
             split = layout.split()
             col = split.column()
-            rl = active_layer
+            rl = context.view_layer
             col.prop(rl, "use_pass_z")
             col.prop(rl, "use_pass_normal")
             col.prop(rl, "use_pass_vector")
