@@ -25,7 +25,7 @@ class PRMAN_OT_Renderman_open_scene_RIB(bpy.types.Operator):
             rm.external_animation = False
             rm.queuing_system = 'none'
             rm.rib_format = 'ASCII'
-            bpy.ops.render.render()
+            bpy.ops.render.render(layer=context.view_layer.name)
             rm.enable_external_rendering = False
             rm.external_animation = anim_prev_val
             rm.queuing_system = spool_prev_val

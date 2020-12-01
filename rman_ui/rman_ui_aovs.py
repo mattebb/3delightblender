@@ -337,12 +337,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
-        rm_rl = None
-        active_layer = context.view_layer
-        for l in rm.render_layers:
-            if l.render_layer == active_layer.name:
-                rm_rl = l
-                break
+        rm_rl = scene_utils.get_renderman_layer(context)            
         if rm_rl is None:
             layout.operator('renderman.dspy_convert_renderman_displays')
             layout.prop(scene.render.image_settings, "file_format")
@@ -401,12 +396,7 @@ class RENDER_PT_layer_options(PRManButtonsPanel, Panel):
         col.prop(scene, "layers", text="Scene")
 
         rm = scene.renderman
-        rm_rl = None
-        active_layer = context.view_layer
-        for l in rm.render_layers:
-            if l.render_layer == active_layer.name:
-                rm_rl = l
-                break
+        rm_rl = scene_utils.get_renderman_layer(context)
         if rm_rl is None:
             return
         else:
@@ -510,12 +500,7 @@ class PRMAN_OT_RenderMan_Add_Dspy_Template(bpy.types.Operator):
         # add the already existing passes
         scene = context.scene
         rm = scene.renderman
-        rm_rl = None
-        active_layer = context.view_layer
-        for l in rm.render_layers:
-            if l.render_layer == active_layer.name:
-                rm_rl = l
-                break
+        rm_rl = scene_utils.get_renderman_layer(context)
         if rm_rl is None:
             bpy.ops.renderman.dspy_convert_renderman_displays('EXEC_DEFAULT')
 

@@ -27,7 +27,7 @@ class PRMAN_OT_RendermanBake(bpy.types.Operator):
         rman_render = RmanRender.get_rman_render()
         if not rman_render.rman_interactive_running:
             scene.renderman.hider_type = 'BAKE'
-            bpy.ops.render.render()
+            bpy.ops.render.render(layer=context.view_layer.name)
             scene.renderman.hider_type = 'RAYTRACE'
         else:
             self.report({"ERROR"}, "Viewport rendering is on.")        
@@ -71,7 +71,7 @@ class PRMAN_OT_RendermanBakeSelectedBrickmap(bpy.types.Operator):
             scene.renderman.hider_type = 'BAKE_BRICKMAP_SELECTED'
             scene.renderman.rman_bake_mode = 'integrator'
             ob.renderman.bake_filename_attr = fp
-            bpy.ops.render.render()
+            bpy.ops.render.render(layer=context.view_layer.name)
             scene.renderman.hider_type = 'RAYTRACE'
             scene.renderman.rman_bake_mode = org_bake_mode
         else:
@@ -96,7 +96,7 @@ class PRMAN_OT_ExternalRendermanBake(bpy.types.Operator):
         if not rman_render.rman_interactive_running:
             scene.renderman.hider_type = 'BAKE'
             scene.renderman.enable_external_rendering = True
-            bpy.ops.render.render()
+            bpy.ops.render.render(layer=context.view_layer.name)
             scene.renderman.hider_type = 'RAYTRACE'
             scene.renderman.enable_external_rendering = False
         else:
@@ -137,7 +137,7 @@ class PRMAN_OT_ExternalRender(bpy.types.Operator):
         rman_render = RmanRender.get_rman_render()
         if not rman_render.rman_interactive_running:        
             scene.renderman.enable_external_rendering = True        
-            bpy.ops.render.render()
+            bpy.ops.render.render(layer=context.view_layer.name)
             scene.renderman.enable_external_rendering = False
         else:
             self.report({"ERROR"}, "Viewport rendering is on.")           

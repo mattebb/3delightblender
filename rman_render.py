@@ -52,7 +52,7 @@ class ItHandler(chatserver.ItBaseHandler):
     def dspyRender(self):
         global __RMAN_RENDER__
         if not __RMAN_RENDER__.is_running:                        
-            bpy.ops.render.render()             
+            bpy.ops.render.render(layer=context.view_layer.name)             
 
     def dspyIPR(self):
         global __RMAN_RENDER__
