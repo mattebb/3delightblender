@@ -59,6 +59,10 @@ def is_ncr_license():
     pixar_license = os.path.join(guess_rmantree(), '..', 'pixar.license')
     pixar_license = os.environ.get('PIXAR_LICENSE_FILE', pixar_license)
 
+    if not os.path.isfile(pixar_license):
+        __IS_NCR_LICENSE__ = False
+        return __IS_NCR_LICENSE__
+
     tree = ET.parse(pixar_license)
     root = tree.getroot()
     license_info = None
