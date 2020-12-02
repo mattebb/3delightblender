@@ -36,7 +36,7 @@
             "help": "(hidden) Enable external RIB rendering"
         },    
         {
-            "panel": "RENDER_PT_renderman_render",
+            "panel": "",
             "page": "",
             "name": "render_into",
             "label": "Render to",
@@ -47,7 +47,7 @@
             "help": "Controls where preview and IPR renders will go to."
         }, 
         {
-            "panel": "RENDER_PT_renderman_render",
+            "panel": "",
             "page": "",
             "name": "renderVariant",
             "label": "Renderer",
@@ -58,7 +58,7 @@
             "help": ""
         },       
         {
-            "panel": "RENDER_PT_renderman_render",
+            "panel": "",
             "page": "",
             "name": "render_rman_stylized",
             "label": "Stylized Render",

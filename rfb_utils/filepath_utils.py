@@ -4,11 +4,13 @@ import subprocess
 import platform
 import sys
 import webbrowser
+import xml.etree.ElementTree as ET
 from ..rfb_logger import rfb_log
 from .. import rman_constants
 from .prefs_utils import get_pref
 
 __RMANTREE__ = None
+__IS_NCR_LICENSE__ = None
 
 def view_file(file_path):
     
@@ -47,7 +49,36 @@ def view_file(file_path):
     try:
         webbrowser.open(file_path)
     except Exception as e:
-        rfb_log().error("Open file with web browser failed: %s" % str(e))      
+        rfb_log().error("Open file with web browser failed: %s" % str(e))    
+
+def is_ncr_license():
+    global __IS_NCR_LICENSE__
+    if __IS_NCR_LICENSE__:
+        return __IS_NCR_LICENSE__
+
+    pixar_license = os.path.join(guess_rmantree(), '..', 'pixar.license')
+    pixar_license = os.environ.get('PIXAR_LICENSE_FILE', pixar_license)
+
+    tree = ET.parse(pixar_license)
+    root = tree.getroot()
+    license_info = None
+    for child in root:
+        if child.tag == 'LicenseInfo':
+            license_info = child
+            break
+    if not license_info:
+        __IS_NCR_LICENSE__ = False
+        return __IS_NCR_LICENSE__
+
+    serial_num = None
+    for child in license_info:
+        if child.tag == 'SerialNumber':
+            serial_num = child
+            break
+
+    __IS_NCR_LICENSE__ = (serial_num.text == 'Non-commercial')
+
+    return __IS_NCR_LICENSE__
 
 def rmantree_from_env():
     RMANTREE = ''

@@ -3,6 +3,7 @@ from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel
 from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
 from ..rfb_utils.draw_utils import _draw_props
+from ..rfb_utils import filepath_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from ..rman_render import RmanRender
 from .. import rfb_icons
@@ -19,11 +20,18 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
 
+        is_ncr = filepath_utils.is_ncr_license()
         layout = self.layout
         rd = context.scene.render
         rm = context.scene.renderman
         rman_render = RmanRender.get_rman_render()
         is_rman_interactive_running = rman_render.rman_interactive_running
+
+        if is_ncr:
+            split = layout.split(factor=0.25)
+            col = split.column()
+            col = split.column()
+            col.label(text="NON-COMMERCIAL VERSION")
 
         if not is_rman_interactive_running:
 
@@ -48,6 +56,11 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         split = layout.split(factor=0.33)
         col = layout.column()
         col.enabled = not is_rman_interactive_running
+
+        col.prop(rm, "render_into", text='Render To')
+        if not is_ncr:         
+            col.prop(rm, "renderVariant", text='Renderer')
+            col.prop(rm, "render_rman_stylized", text='Stylized Render')
 
         _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_render', context, layout, rm)  
 

@@ -6,6 +6,7 @@ from ..rfb_utils import scene_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import string_utils
 from ..rfb_utils import object_utils
+from ..rfb_utils import filepath_utils
 from ..rman_render import RmanRender       
 from .. import rfb_icons
 from ..rman_operators.rman_operators_collections import return_empty_list   
@@ -605,6 +606,11 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
 
     bl_idname = "scene.rman_open_stylized_editor"
     bl_label = "RenderMan Stylized Editor"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine in {'PRMAN_RENDER'} and not filepath_utils.is_ncr_license()   
 
     def updated_object_selected_name(self, context):
         ob = context.scene.objects.get(self.selected_obj_name, None)

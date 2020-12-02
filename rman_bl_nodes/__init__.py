@@ -91,6 +91,12 @@ __RMAN_NODES_NO_REGISTER__ = [
     'PxrDisplace.oso'
 ]
 
+if filepath_utils.is_ncr_license():
+    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedHatchingDisplayFilter.args")
+    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedLinesDisplayFilter.args")
+    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedToonDisplayFilter.args")
+    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedPattern.oso")
+
 # map RenderMan name to Blender node name
 # ex: PxrStylizedPattern -> PxrStylizedPatternPatternOSLNode
 __BL_NODES_MAP__ = dict()

@@ -9,6 +9,7 @@ class PRMAN_OT_Enable_Sylized_Looks(bpy.types.Operator):
     bl_idname = "scene.rman_enable_stylized_looks"
     bl_label = "Enable Stylized Looks"
     bl_description = "Enable stylized looks."
+    bl_options = {'INTERNAL'}
 
     create_template: BoolProperty(name="", default=False)
     template_name: StringProperty(name="", default="")
@@ -35,6 +36,7 @@ class PRMAN_OT_Disable_Sylized_Looks(bpy.types.Operator):
     bl_idname = "scene.rman_disable_stylized_looks"
     bl_label = "Disable Stylized Looks"
     bl_description = "Disable stylized looks."
+    bl_options = {'INTERNAL'}
     
     def execute(self, context):
         scene = context.scene
@@ -50,6 +52,7 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
     bl_idname = "node.rman_attach_stylized_pattern"
     bl_label = "Attach Stylized"
     bl_description = "Attach the stylized pattern node to your material network."
+    bl_options = {'INTERNAL'}
 
     def rman_stylized_templates(self, context):
         items = []
@@ -125,6 +128,7 @@ class PRMAN_OT_Add_Stylized_Filter(bpy.types.Operator):
     bl_idname = "node.rman_add_stylized_filter"
     bl_label = "Add Stylized Filter"
     bl_description = "Add a stylized filter"
+    bl_options = {'INTERNAL'}
 
     def rman_stylized_filters(self, context):
         items = []
