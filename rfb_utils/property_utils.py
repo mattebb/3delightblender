@@ -12,6 +12,7 @@ import bpy
 import sys
 import os
 import shutil
+import re
 
 
 __GAINS_TO_ENABLE__ = {
@@ -310,9 +311,14 @@ def vstruct_conditional(node, param):
     return eval(" ".join(new_tokens))
 
 def set_frame_sensitive(rman_sg_node, prop):
-    # FIXME: Need a better way to check for a frame variable
-    if '<F' in prop or '<f' in prop:
-        rman_sg_node.is_frame_sensitive = True
+    # check if the prop value has any frame token
+    # ex: <f>, <f4>, <F4> etc.
+    # if it does, it means we need to issue a material
+    # update if the frame changes
+    pat = re.compile(r'<[f|F]\d*>')
+    m = pat.search(prop)
+    if m:
+        rman_sg_node.is_frame_sensitive = True        
     else:
         rman_sg_node.is_frame_sensitive = False  
 
