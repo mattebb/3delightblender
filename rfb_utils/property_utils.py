@@ -322,7 +322,7 @@ def set_frame_sensitive(rman_sg_node, prop):
     else:
         rman_sg_node.is_frame_sensitive = False  
 
-def set_material_rixparams(node, rman_sg_node, params, mat=None, mat_name=None):
+def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
     # If node is OSL node get properties from dynamic location.
     if node.bl_idname == "PxrOSLPatternNode":
 
@@ -403,15 +403,13 @@ def set_material_rixparams(node, rman_sg_node, params, mat=None, mat_name=None):
 
         for prop_name, meta in node.prop_meta.items():
             if node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
-                pass
+                continue
 
-            if(prop_name in ['sblur', 'tblur', 'notes']):
-                pass
-
-            if 'widget' in meta and meta['widget'] == 'null' and 'vstructmember' not in meta:
+            param_widget = meta.get('widget', 'default')
+            if param_widget == 'null' and 'vstructmember' not in meta:
                 # if widget is marked null, don't export parameter and rely on default
                 # unless it has a vstructmember
-                pass
+                continue
 
             else:
                 prop = getattr(node, prop_name)
@@ -515,10 +513,11 @@ def set_material_rixparams(node, rman_sg_node, params, mat=None, mat_name=None):
                             'renderman_type'] == 'color' else 0
 
                     elif meta['renderman_type'] == 'string':
-                        set_frame_sensitive(rman_sg_node, prop)
+                        if rman_sg_node:
+                            set_frame_sensitive(rman_sg_node, prop)
 
                         val = val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
-                        if meta['widget'] in ['fileinput', 'assetidinput']:
+                        if param_widget in ['fileinput', 'assetidinput']:
                             options = meta['options']
                             # txmanager doesn't currently deal with ptex
                             if node.bl_idname == "PxrPtexturePatternNode":
@@ -528,10 +527,10 @@ def set_material_rixparams(node, rman_sg_node, params, mat=None, mat_name=None):
                                 val = string_utils.expand_string(val, display='ies', asFilePath=True)
                             # this is a texture
                             elif ('texture' in options) or ('env' in options):
-                                tx_node_id = texture_utils.generate_node_id(node, param_name, ob=mat)
+                                tx_node_id = texture_utils.generate_node_id(node, param_name, ob=ob)
                                 tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
                                 val = tx_val if tx_val != '' else val
-                        elif meta['widget'] == 'assetidoutput':
+                        elif param_widget == 'assetidoutput':
                             display = 'openexr'
                             if 'texture' in meta['options']:
                                 display = 'texture'
@@ -629,130 +628,10 @@ def set_material_rixparams(node, rman_sg_node, params, mat=None, mat_name=None):
                         
     return params      
 
-def set_node_rixparams(node, rman_sg_node, params, ob=None):
-    for prop_name, meta in node.prop_meta.items():
-        if not hasattr(node, prop_name):
-            continue
-        prop = getattr(node, prop_name)
-        # if property group recurse
-        if meta['renderman_type'] == 'page' or prop_name == 'notes' or meta['renderman_type'] == 'enum':
-            continue
-
-        elif 'widget' in meta and meta['widget'] == 'null':
-            continue
-        else:
-            type = meta['renderman_type']
-            name = meta['renderman_name']
-
-            if 'renderman_array_name' in meta:
-                continue
-            elif meta['renderman_type'] == 'array':
-                array_len = getattr(node, '%s_arraylen' % prop_name)
-                sub_prop_names = getattr(node, prop_name)
-                sub_prop_names = sub_prop_names[:array_len]
-                val_array = []
-                param_type = meta['renderman_array_type']
-                
-                for nm in sub_prop_names:
-                    prop = getattr(node, nm)
-                    val = string_utils.convert_val(prop, type_hint=param_type)
-                    if param_type in node_desc.FLOAT3:
-                        val_array.extend(val)
-                    else:
-                        val_array.append(val)
-                set_rix_param(params, param_type, param_name, val_array, is_reference=False, is_array=True, array_len=len(val_array))
-                continue
-
-            elif meta['renderman_type'] == 'colorramp':
-                nt = bpy.data.node_groups[node.rman_fake_node_group]
-                if nt:
-                    ramp_name =  prop
-                    color_ramp_node = nt.nodes[ramp_name]                            
-                    colors = []
-                    positions = []
-                    # double the start and end points
-                    positions.append(float(color_ramp_node.color_ramp.elements[0].position))
-                    colors.append(color_ramp_node.color_ramp.elements[0].color[:3])
-                    for e in color_ramp_node.color_ramp.elements:
-                        positions.append(float(e.position))
-                        colors.append(e.color[:3])
-                    positions.append(
-                        float(color_ramp_node.color_ramp.elements[-1].position))
-                    colors.append(color_ramp_node.color_ramp.elements[-1].color[:3])
-
-                    params.SetInteger('%s' % prop_name, len(positions))
-                    params.SetFloatArray("%s_Knots" % prop_name, positions, len(positions))
-                    params.SetColorArray("%s_Colors" % prop_name, colors, len(positions))
-
-                    rman_interp_map = { 'LINEAR': 'linear', 'CONSTANT': 'constant'}
-                    interp = rman_interp_map.get(color_ramp_node.color_ramp.interpolation,'catmull-rom')
-                    params.SetString("%s_Interpolation" % prop_name, interp )         
-                continue               
-            elif meta['renderman_type'] == 'floatramp':
-                nt = bpy.data.node_groups[node.rman_fake_node_group]
-                if nt:
-                    ramp_name =  prop
-                    float_ramp_node = nt.nodes[ramp_name]                            
-
-                    curve = float_ramp_node.mapping.curves[0]
-                    knots = []
-                    vals = []
-                    # double the start and end points
-                    knots.append(curve.points[0].location[0])
-                    vals.append(curve.points[0].location[1])
-                    for p in curve.points:
-                        knots.append(p.location[0])
-                        vals.append(p.location[1])
-                    knots.append(curve.points[-1].location[0])
-                    vals.append(curve.points[-1].location[1])
-
-                    params.SetInteger('%s' % prop_name, len(knots))
-                    params.SetFloatArray('%s_Knots' % prop_name, knots, len(knots))
-                    params.SetFloatArray('%s_Floats' % prop_name, vals, len(vals))                   
-                            
-                    # Blender doesn't have an interpolation selection for float ramps. Default to catmull-rom
-                    interp = 'catmull-rom'
-                    params.SetString("%s_Interpolation" % prop_name, interp )                            
-                continue            
-
-            elif meta['renderman_type'] == 'string':
-                if rman_sg_node:
-                    set_frame_sensitive(rman_sg_node, prop)
-                                            
-                val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
-                if meta['widget'] in ['fileinput', 'assetidinput']:
-                    options = meta['options']
-                    # txmanager doesn't currently deal with ptex
-                    if node.bl_idname == "PxrPtexturePatternNode":
-                        val = string_utils.expand_string(val, display='ptex', asFilePath=True)        
-                    # ies profiles don't need txmanager for converting                       
-                    elif 'ies' in options:
-                        val = string_utils.expand_string(val, display='ies', asFilePath=True)
-                    # this is a texture
-                    elif ('texture' in options) or ('env' in options):
-                        tx_node_id = texture_utils.generate_node_id(node, prop_name, ob=ob)
-                        tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
-                        val = tx_val if tx_val != '' else val
-                elif meta['widget'] == 'assetidoutput':
-                    display = 'openexr'
-                    if 'texture' in meta['options']:
-                        display = 'texture'
-                    val = string_utils.expand_string(val, display='texture', asFilePath=True)      
-
-                set_rix_param(params, type, name, val, node=node)      
-
-            else:
-                val = string_utils.convert_val(prop, type_hint=type)
-                set_rix_param(params, type, name, val, node=node)
-
 def property_group_to_rixparams(node, rman_sg_node, sg_node, ob=None, mat_name=None):
 
     params = sg_node.params
-    if mat_name:
-        set_material_rixparams(node, rman_sg_node, params, mat=ob, mat_name=mat_name)
-    else:
-        set_node_rixparams(node, rman_sg_node, params, ob=ob)
-
+    set_node_rixparams(node, rman_sg_node, params, ob=ob, mat_name=mat_name)
 
 def portal_inherit_dome_params(portal_node, dome, dome_node, rixparams):
 

@@ -108,13 +108,7 @@ def generate_property(node, sp, update_function=None):
     else:
         param_type = sp.type
     renderman_type = param_type
-
-    if hasattr(sp, 'vstructmember'):
-        prop_meta['vstructmember'] = sp.vstructmember
-
-    if hasattr(sp, 'vstructConditionalExpr'):
-        prop_meta['vstructConditionalExpr'] = sp.vstructConditionalExpr        
-     
+        
     prop = None
 
     prop_meta['label'] = param_label
@@ -133,31 +127,22 @@ def generate_property(node, sp, update_function=None):
     if param_widget in ['null', 'checkbox', 'switch', 'colorramp', 'floatramp']:
         prop_meta['__noconnection'] = True        
 
-
-    if hasattr(sp, 'conditionalVisOps'):
-        prop_meta['conditionalVisOp'] = sp.conditionalVisOps
-
     param_help = ''
     if hasattr(sp, 'help'):
         param_help = sp.help
 
-    if hasattr(sp, 'riopt'):
-        prop_meta['riopt'] = sp.riopt
+    for nm in ['vstructmember',
+        'vstructConditionalExpr',
+        'conditionalVisOps',
+        'riopt',
+        'riattr',
+        'primvar',
+        'inheritable',
+        'inherit_true_value',
+        'presets']:
+        if hasattr(sp, nm):
+            prop_meta[nm] = getattr(sp, nm)
 
-    if hasattr(sp, 'riattr'):
-        prop_meta['riattr'] = sp.riattr
-
-    if hasattr(sp, 'primvar'):
-        prop_meta['primvar'] = sp.primvar
-
-    if hasattr(sp, 'inheritable'):
-        prop_meta['inheritable'] = sp.inheritable
-    
-    if hasattr(sp, 'inherit_true_value'):
-        prop_meta['inherit_true_value'] = sp.inherit_true_value
-
-    if hasattr(sp, 'presets'):
-        prop_meta['presets'] = sp.presets
 
     if param_widget == 'colorramp':
         renderman_type = 'colorramp'
