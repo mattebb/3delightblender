@@ -23,51 +23,17 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 
-from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rfb_utils import filepath_utils
 from ..rfb_utils import object_utils
 from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
 import os
 from distutils.dir_util import copy_tree
-import shutil
 import bpy
 from bpy.props import StringProperty, EnumProperty, BoolProperty
-from .properties import RendermanPresetCategory, RendermanPreset, refresh_presets_libraries
-from . import icons
-import json
-from bpy.types import NodeTree
+from . import rmanAssetsBlender as rab
+from rman_utils.rman_assets import lib as ral
+from rman_utils.filepath import FilePath
 import getpass
-
-def get_library_name(jsonfile):
-    if not os.path.exists(jsonfile):
-        return 'Library'
-    data = json.load(open(jsonfile))
-    return data["RenderManAssetLibrary"]["name"]
-
-class PRMAN_OT_reload_preset_library(bpy.types.Operator):
-    bl_idname = "renderman.reload_preset_library"
-    bl_label = "Reload RenderMan Preset Library"
-    bl_description = "Reload Presets Library."
-
-    def execute(self, context):
-        presets_root_category = get_pref('presets_root_category')
-        presets_current_category = get_pref('presets_current_category')
-        rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
-        if rman_asset_lib:
-            # check if RMAN_ASSET_LIBRARY is diffrent from our current library
-            if rman_asset_lib != presets_root_category.path:
-                json_file = os.path.join(rman_asset_lib, 'library.json')
-                if os.path.exists(json_file):
-                    presets_library_name = get_library_name(json_file)
-                    presets_root_category.name = presets_library_name
-                    presets_root_category.path = rman_asset_lib
-
-        refresh_presets_libraries(presets_root_category.path, presets_root_category)
-        presets_current_category = presets_root_category.sub_categories['LightRigs']
-        get_addon_prefs().presets_current_category_path = presets_current_category.path     
-        bpy.ops.wm.save_userpref()
-        return {'FINISHED'}
-
 
 # if the library isn't present copy it from rmantree to the path in addon prefs
 class PRMAN_OT_init_preset_library(bpy.types.Operator):
@@ -79,64 +45,33 @@ class PRMAN_OT_init_preset_library(bpy.types.Operator):
 
     def invoke(self, context, event):
         context.window_manager.fileselect_add(self)
+        self.op = getattr(context, 'op_ptr', None) 
         return {'RUNNING_MODAL'}
 
     def execute(self, context):
 
         json_file = os.path.join(self.directory, 'library.json')
-        presets_root_category = get_pref('presets_root_category')
+        hostPrefs = rab.get_host_prefs()
+
         if os.path.exists(json_file):
-            presets_library_name = get_library_name(json_file)
-            presets_root_category.name = presets_library_name
-            presets_root_category.path = self.directory
+            hostPrefs.cfg.addLibraryToLibraryList(self.directory)
+            
         
         elif os.access(self.directory, os.W_OK):
             rmantree_lib_path = os.path.join(filepath_utils.guess_rmantree(), 'lib', 'RenderManAssetLibrary')
             copy_tree(rmantree_lib_path, self.directory)
-            presets_root_category.name = 'Library'
-            presets_root_category.path = self.directory
         else:
             raise Exception("No preset library found or directory chosen is not writable.")
             return {'FINISHED'}
 
-        bpy.ops.renderman.reload_preset_library()        
+        hostPrefs.setSelectedLibrary(self.directory)
+        hostPrefs.setSelectedCategory('')
+        hostPrefs.setSelectedPreset('')
+        hostPrefs.saveAllPrefs()     
+        if self.op:
+            self.op.dummy_index = -1
+            self.op.preset_categories_index = 0             
 
-        return {'FINISHED'}
-
-class PRMAN_OT_load_preset_library_from_env_var(bpy.types.Operator):
-    bl_idname = "renderman.load_preset_library_from_env_var"
-    bl_label = "Load RenderMan Preset Library from RMAN_ASSET_LIBRARY"
-    bl_description = "Load a RenderMan Preset Library from RMAN_ASSET_LIBRARY "
-
-    def execute(self, context):
-        rman_asset_lib = os.environ.get('RMAN_ASSET_LIBRARY', None)
-        if not rman_asset_lib:
-            raise Exception("RMAN_ASSET_LIBRARY not set.")
-            return {'FINISHED'}
-
-        json_file = os.path.join(rman_asset_lib, 'library.json')
-        presets_root_category = get_pref('presets_root_category')
-        if os.path.exists(json_file):
-            presets_library_name = get_library_name(json_file)
-            presets_root_category.name = presets_library_name
-            presets_root_category.path = rman_asset_lib
-
-        else:
-            raise Exception("Could not find a library.json file in RMAN_ASSET_LIBRARY.")
-            return {'FINISHED'}
-       
-        bpy.ops.renderman.reload_preset_library()                  
-
-        return {'FINISHED'}        
-
-class PRMAN_OT_refresh_preset_category(bpy.types.Operator):
-    bl_idname = "renderman.refresh_preset_category"
-    bl_label = "Refresh Category"
-    bl_description = "Refresh current preset category"
-
-    def invoke(self, context, event):
-        current_category = RendermanPresetCategory.get_current_category()
-        refresh_presets_libraries(current_category.path, current_category)
         return {'FINISHED'}
 
 class PRMAN_OT_load_asset_to_scene(bpy.types.Operator):
@@ -148,9 +83,8 @@ class PRMAN_OT_load_asset_to_scene(bpy.types.Operator):
     assign: BoolProperty(default=False)
 
     def invoke(self, context, event):
-        preset = RendermanPreset.get_from_path(self.properties.preset_path)
         from . import rmanAssetsBlender
-        mat = rmanAssetsBlender.importAsset(preset.json_path)
+        mat = rmanAssetsBlender.importAsset(self.properties.preset_path)
         if self.properties.assign and mat and type(mat) == bpy.types.Material:
             for ob in context.selected_objects:
                 if ob.type == 'EMPTY':
@@ -170,7 +104,6 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
     category_path: StringProperty(default='')
     material_label: StringProperty(name='Asset Name', default='')
     material_author: StringProperty(name='Author', default='')
-    material_category: StringProperty(name='Category', default='')
     material_version: StringProperty(name='Version', default='1.0')
 
     @classmethod
@@ -192,30 +125,20 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
         col = layout.column()
         col.prop(self, 'material_label')
         col.prop(self, 'material_author')
-        #col.prop(self, 'material_category')
         col.prop(self, 'material_version')
 
     def execute(self, context):
-        presets_path = get_pref('presets_root_category').path
-        path = os.path.relpath(self.properties.category_path, presets_path)
-        category = RendermanPresetCategory.get_from_path(self.properties.category_path)
-        ob = context.active_object
-        mat = ob.active_material
-        nt = mat.node_tree
-        if nt:
-            if not path.endswith(self.material_category):
-                path = os.path.join(path, self.material_category)
-            assetPath = os.path.join(presets_path, path)
-            from . import rmanAssetsBlender
-            rmanAssetsBlender.exportAsset(nt, 'nodeGraph', 
-                                          {'label': self.material_label,
-                                           'author': self.material_author,
-                                           'version': self.material_version},
-                                           path,
-                                           assetPath
-                                           )
-        refresh_presets_libraries(category.path, category)
-        bpy.ops.wm.save_userpref()
+        hostPrefs = rab.get_host_prefs()
+        if hostPrefs.preExportCheck('material', hdr=None, context=context):
+            infodict = {'label': self.material_label,
+                        'author': self.material_author,
+                        'version': self.material_version}     
+            category = hostPrefs.getSelectedCategory()   
+            hostPrefs.exportMaterial(category, infodict, None)
+
+
+        if self.op:
+            self.op.preset_categories_index = 0 
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -224,7 +147,7 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
         self.material_label = mat.name
         self.material_author = getpass.getuser()
         self.material_version = '1.0'
-
+        self.op = getattr(context, 'op_ptr', None) 
         return wm.invoke_props_dialog(self) 
 
 class PRMAN_OT_save_lightrig_to_lib(bpy.types.Operator):
@@ -259,29 +182,15 @@ class PRMAN_OT_save_lightrig_to_lib(bpy.types.Operator):
         col.prop(self, 'version')
 
     def execute(self, context):
-        selected_light_objects = []
-        if context.selected_objects:
-            for obj in context.selected_objects:  
-                if object_utils._detect_primitive_(obj) == 'LIGHT':
-                    selected_light_objects.append(obj)
-
-        presets_path = get_pref('presets_root_category').path
-        path = os.path.relpath(self.properties.category_path, presets_path)
-        category = RendermanPresetCategory.get_from_path(self.properties.category_path)
-        if selected_light_objects:
-            if not path.endswith(self.category):
-                path = os.path.join(path, self.category)
-            assetPath = os.path.join(presets_path, path)
-            from . import rmanAssetsBlender
-            rmanAssetsBlender.exportAsset(selected_light_objects, 'nodeGraph', 
-                                          {'label': self.label,
-                                           'author': self.author,
-                                           'version': self.version},
-                                           path,
-                                           assetPath
-                                           )
-        refresh_presets_libraries(category.path, category)
-        bpy.ops.wm.save_userpref()
+        hostPrefs = rab.get_host_prefs()
+        if hostPrefs.preExportCheck('lightrigs', hdr=None, context=context):
+            infodict =  {'label': self.label,
+                        'author': self.author,
+                        'version': self.version}    
+            category = hostPrefs.getSelectedCategory()   
+            hostPrefs.exportMaterial(category, infodict, None)        
+        if self.op:
+            self.op.preset_categories_index = 0 
         return {'FINISHED'}
 
     def invoke(self, context, event):
@@ -291,7 +200,7 @@ class PRMAN_OT_save_lightrig_to_lib(bpy.types.Operator):
             self.label = ob.name
         self.author = getpass.getuser()
         self.version = '1.0'
-
+        self.op = getattr(context, 'op_ptr', None) 
         return wm.invoke_props_dialog(self) 
 
 class PRMAN_OT_save_envmap_to_lib(bpy.types.Operator):
@@ -311,7 +220,7 @@ class PRMAN_OT_save_envmap_to_lib(bpy.types.Operator):
         default="")
 
     filter_glob: bpy.props.StringProperty(
-        default="*.hdr,*.tex",
+        default="*.hdr;*.tex",
         options={'HIDDEN'},
         )        
 
@@ -331,25 +240,24 @@ class PRMAN_OT_save_envmap_to_lib(bpy.types.Operator):
         if self.properties.filename == '':
             return {'FINISHED'}            
 
-        presets_path = get_pref('presets_root_category').path
-        path = os.path.relpath(self.properties.category_path, presets_path)
-        category = RendermanPresetCategory.get_from_path(self.properties.category_path)
+        hostPrefs = rab.get_host_prefs()
+        hdr = FilePath(self.properties.filepath)
+        if self.label == '':
+            self.label = os.path.splitext(os.path.basename(self.properties.filepath))[0]
+        if hostPrefs.preExportCheck('envmap', hdr=hdr):
+            infodict = {'label': self.label,
+                        'author': self.author,
+                        'version': self.version}     
+            category = hostPrefs.getSelectedCategory()   
+            hostPrefs.exportEnvMap(category, infodict)
 
-        assetPath = os.path.join(presets_path, path)
-        from . import rmanAssetsBlender
-        rmanAssetsBlender.exportAsset(nt, 'envMap', 
-                                        {'label': self.label,
-                                        'author': self.author,
-                                        'version': self.version},
-                                        path,
-                                        assetPath
-                                        )
-        refresh_presets_libraries(category.path, category)
-        bpy.ops.wm.save_userpref()
+        if self.op:
+            self.op.preset_categories_index = 0 
         return {'FINISHED'}
 
     def invoke(self, context, event=None):
         context.window_manager.fileselect_add(self)
+        self.op = getattr(context, 'op_ptr', None)         
         return{'RUNNING_MODAL'}                
 
 class PRMAN_OT_set_current_preset_category(bpy.types.Operator):
@@ -360,10 +268,10 @@ class PRMAN_OT_set_current_preset_category(bpy.types.Operator):
     preset_current_path: StringProperty(default='')
 
     def execute(self, context):
-        preset_current_path = self.properties.preset_current_path 
-        if preset_current_path:
-            get_addon_prefs().presets_current_category_path = preset_current_path
-            bpy.ops.wm.save_userpref()
+        hostPrefs = rab.get_host_prefs()
+        hostPrefs.setSelectedCategory(self.properties.preset_current_path)
+        hostPrefs.saveAllPrefs()
+
         return {'FINISHED'}  
 
 class PRMAN_OT_add_new_preset_category(bpy.types.Operator):
@@ -375,28 +283,25 @@ class PRMAN_OT_add_new_preset_category(bpy.types.Operator):
     current_path: StringProperty(default="")
     
     def execute(self, context):
-        if current_path == "":
-            current = RendermanPresetCategory.get_current_category()
-            current_path = current.path
+        if self.properties.new_name == '':
+            return {'FINISHED'}
 
-        new_folder = self.properties.new_name
-        if current_path and new_folder:
-            path = os.path.join(current_path, new_folder)
-            os.mkdir(path)
-            sub_category = current.sub_categories.add()
-            sub_category.name = new_folder
-            sub_category.path = path
-
-            get_addon_prefs().presets_current_category_path = path
-        bpy.ops.wm.save_userpref()
+        hostPrefs = rab.get_host_prefs()
+        rel_path = os.path.relpath(self.properties.current_path, hostPrefs.getSelectedLibrary())          
+        rel_path = os.path.join(rel_path, self.properties.new_name)
+        ral.createCategory(hostPrefs.cfg, rel_path)
+        if self.op:
+            self.op.dummy_index = -1
+            self.op.preset_categories_index = 0         
         return {'FINISHED'}
 
     def invoke(self, context, event):
+        self.op = getattr(context, 'op_ptr', None)               
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
         row = self.layout
-        row.prop(self, "new_name", text="New Folder Name:")      
+        row.prop(self, "new_name", text="New Name:")      
 
 
 class PRMAN_OT_remove_preset_category(bpy.types.Operator):
@@ -406,27 +311,26 @@ class PRMAN_OT_remove_preset_category(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        current = RendermanPresetCategory.get_current_category()
-        if current.name in ['EnvironmentMaps', 'Materials', 'LightRigs']:
+        hostPrefs = rab.get_host_prefs()
+        current_category_path = hostPrefs.getSelectedCategory()
+        if current_category_path == '':
+            return False
+        rel_path = os.path.relpath(current_category_path, hostPrefs.getSelectedLibrary())  
+        if rel_path in ['EnvironmentMaps', 'Materials', 'LightRigs']:
             return False
         return True    
 
     def execute(self, context):
-        current = RendermanPresetCategory.get_current_category()
-        current_path = current.path
-        if current_path:
-            parent_path = os.path.split(current.path)[0]
-            parent = RendermanPresetCategory.get_from_path(parent_path)
-            get_addon_prefs().presets_current_category_path = parent_path
-            
-            shutil.rmtree(current.path)
+        hostPrefs = rab.get_host_prefs()
+        current_category_path = hostPrefs.getSelectedCategory()
+        rel_path = os.path.relpath(current_category_path, hostPrefs.getSelectedLibrary())  
+        ral.deleteCategory(hostPrefs.cfg, rel_path)
+        self.op = getattr(context, 'op_ptr', None)
+        if self.op:
+            self.op.dummy_index = -1
+            self.op.preset_categories_index = 0    
 
-            refresh_presets_libraries(parent.path, parent)
-        bpy.ops.wm.save_userpref()  
         return {'FINISHED'}
-
-    def invoke(self, context, event):
-        return context.window_manager.invoke_confirm(self, event)
 
 class PRMAN_OT_remove_preset(bpy.types.Operator):
     bl_idname = "renderman.remove_preset"
@@ -437,21 +341,16 @@ class PRMAN_OT_remove_preset(bpy.types.Operator):
 
     def execute(self, context):
         preset_path = self.properties.preset_path
-        active = RendermanPreset.get_from_path(preset_path)
-        if active:
-            parent_path = os.path.split(preset_path)[0]
-            parent = RendermanPresetCategory.get_from_path(parent_path)
-            
-            try:
-                shutil.rmtree(active.path)
-            except:
-                pass
-
-            refresh_presets_libraries(parent.path, parent)
-        bpy.ops.wm.save_userpref()   
+        hostPrefs = rab.get_host_prefs()
+        ral.deleteAsset(preset_path)
+        hostPrefs.setSelectedPreset('')
+        hostPrefs.saveAllPrefs()
+        if self.op:
+            self.op.preset_categories_index = self.op.preset_categories_index        
         return {'FINISHED'}
 
     def invoke(self, context, event):
+        self.op = getattr(context, 'op_ptr', None)          
         return context.window_manager.invoke_confirm(self, event)
 
 class PRMAN_OT_move_preset(bpy.types.Operator):
@@ -459,93 +358,41 @@ class PRMAN_OT_move_preset(bpy.types.Operator):
     bl_label = "Move RenderMan Preset"
     bl_description = "Move a Preset"
 
-    def get_libraries(self, context):
-        def get_libs(parent_lib):
-            enum = [(parent_lib.path, parent_lib.name, '')]
-            for lib in parent_lib.sub_groups:
-                enum.extend(get_libs(lib))
-            return enum
-        return get_libs(get_pref('presets_library'))
+    def get_categories(self, context):
+        hostPrefs = rab.get_host_prefs()
+        items = []
+        for cat in hostPrefs.getAllCategories(asDict=False):
+            tokens = cat.split('/')
+            level = len(tokens)
+            category_name = ''
+            for i in range(0, level-1):
+                category_name += '    '            
+            category_name = '%s%s' % (category_name, tokens[-1])            
+            items.append((str(cat), str(cat), ''))
+        return items
 
     preset_path: StringProperty(default='')
-    new_library: EnumProperty(items=get_libraries, description='New Library', name="New Library")
+    new_category: EnumProperty(items=get_categories, description='New Category', name="New Category")
 
     def execute(self, context):
-        new_parent_path = self.properties.new_library
-        active = RendermanPreset.get_from_path(self.properties.preset_path)
-        if active:
-            old_parent_path = os.path.split(active.path)[0]
-            old_parent = RendermanPresetCategory.get_from_path(old_parent_path)
-            new_parent = RendermanPresetCategory.get_from_path(new_parent_path)
-
-            shutil.move(active.path, new_parent_path)
-            
-            refresh_presets_libraries(old_parent.path, old_parent)
-            refresh_presets_libraries(new_parent.path, new_parent)
-        bpy.ops.wm.save_userpref()
+        preset_path = self.properties.preset_path
+        hostPrefs = rab.get_host_prefs()
+        ral.moveAsset(hostPrefs.cfg, preset_path, self.properties.new_category)
+        dst = os.path.join(hostPrefs.getSelectedLibrary(), self.properties.new_category)
+        hostPrefs.setSelectedPreset(dst)
+        hostPrefs.saveAllPrefs()      
+        if self.op:
+            self.op.preset_categories_index = self.op.preset_categories_index
         return {'FINISHED'}
 
     def invoke(self, context, event):
+        self.op = getattr(context, 'op_ptr', None)     
         return context.window_manager.invoke_props_dialog(self)
 
     def draw(self, context):
         row = self.layout
-        row.prop(self, "new_library", text="New Library")
-
-class PRMAN_OT_move_preset_category(bpy.types.Operator):
-    bl_idname = "renderman.move_preset_category"
-    bl_label = "Move RenderMan Preset Category"
-    bl_description = "Move a Preset category"
-
-    @classmethod
-    def poll(cls, context):
-        current = RendermanPresetCategory.get_current_category()
-        if current.name in ['EnvironmentMaps', 'Materials', 'LightRigs']:
-            return False
-        return True    
-
-    def get_all_categories(self, context):
-        current_category = RendermanPresetCategory.get_current_category()
-        root_category = get_pref('presets_root_category')
-        relpath = os.path.relpath(current_category.path, root_category.path)
-        asset_type = relpath.split(os.sep)[0]
-
-        def get_sub_categories(parent_catgegory):
-            enum = []
-            # don't include self
-            if (current_category.name != parent_catgegory.name) and (current_category.path != os.path.join(parent_catgegory.path, current_category.name)):
-                enum = [(parent_catgegory.path, parent_catgegory.name, '')]
-            for category in parent_catgegory.sub_categories:
-                enum.extend(get_sub_categories(category))
-            return enum
-
-        return get_sub_categories(root_category.sub_categories[asset_type])
-
-    category_path: StringProperty(default='')
-    new_category: EnumProperty(items=get_all_categories, description='New Category', name="New Category")
-
-    def execute(self, context):
-        new_parent_path = self.properties.new_category
-        active = RendermanPresetCategory.get_from_path(self.properties.category_path)
-        if active:
-            old_parent_path = os.path.split(active.path)[0]
-            old_parent = RendermanPresetCategory.get_from_path(old_parent_path)
-            new_parent = RendermanPresetCategory.get_from_path(new_parent_path)
-
-            shutil.move(active.path, new_parent_path)
-            
-            refresh_presets_libraries(old_parent.path, old_parent)
-            refresh_presets_libraries(new_parent.path, new_parent)
-        bpy.ops.wm.save_userpref()
-        return {'FINISHED'}
-
-    def invoke(self, context, event):
-        return context.window_manager.invoke_props_dialog(self)
-
-    def draw(self, context):
-        row = self.layout
-        row.prop(self, "new_category", text="New Parent")        
-
+        row.prop(self, "new_category")
+ 
 class PRMAN_OT_view_preset_json(bpy.types.Operator):
     bl_idname = "renderman.view_preset_json"
     bl_label = "View Preset JSON"
@@ -559,9 +406,8 @@ class PRMAN_OT_view_preset_json(bpy.types.Operator):
         return rd.engine == 'PRMAN_RENDER'
 
     def execute(self, context):
-        current_presets_category = get_pref('presets_current_category')
-        preset = RendermanPreset.get_from_path(current_presets_category.selected_preset)  
-        filepath_utils.view_file(preset.json_path)
+        json_path = os.path.join(self.properties.preset_path, 'asset.json')
+        filepath_utils.view_file(json_path)
         return {'FINISHED'}
 
 class PRMAN_OT_forget_preset_library(bpy.types.Operator):
@@ -569,7 +415,7 @@ class PRMAN_OT_forget_preset_library(bpy.types.Operator):
     bl_label = "Forgot Library"
     bl_description = "Forget Library"
 
-    preset_path: StringProperty(default='')
+    library_path: StringProperty(default='')
     
     @classmethod
     def poll(cls, context):
@@ -577,24 +423,72 @@ class PRMAN_OT_forget_preset_library(bpy.types.Operator):
         return rd.engine == 'PRMAN_RENDER'
 
     def execute(self, context):
-        presets_root_category = get_pref('presets_root_category')
-        current_presets_category = get_pref('presets_current_category')
-        presets_root_category.name = ''
-        presets_root_category.path = ''
-        presets_root_category.presets.clear()
-        presets_root_category.sub_categories.clear()
-        current_presets_category.name = ''
-        current_presets_category.path = ''
-        current_presets_category.presets.clear()
-        current_presets_category.sub_categories.clear()
+        json_file = os.path.join(self.library_path, 'library.json')
+        if not os.path.exists(json_file):
+            return {'FINISHED'}
+
+        hostPrefs = rab.get_host_prefs()
+        hostPrefs.cfg.removeLibraryFromLibraryList(self.library_path)
+        hostPrefs.cfg.setCurrentLibraryByName(None)
+        hostPrefs.setSelectedLibrary(
+            hostPrefs.cfg.getCurrentLibraryPath())       
+
+        hostPrefs.setSelectedPreset('')
+        hostPrefs.setSelectedCategory('')
+        hostPrefs.saveAllPrefs()    
+
         
         return {'FINISHED'}
 
+class PRMAN_OT_select_preset_library(bpy.types.Operator):
+    bl_idname = "renderman.select_preset_library"
+    bl_label = "Select Library"
+    bl_description = "Select Library"
+
+    def get_libraries(self, context):
+        items = []
+        hostPrefs = rab.get_host_prefs()
+        for p,libinfo in hostPrefs.cfg.libs.items():
+            items.append((p, libinfo.getData('name'), p))    
+
+        return items
+
+    library_paths: EnumProperty(items=get_libraries, name="Select Library")
+    
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER'
+
+    def execute(self, context):
+        json_file = os.path.join(self.library_paths, 'library.json')
+        if not os.path.exists(json_file):
+            return {'FINISHED'}
+
+        hostPrefs = rab.get_host_prefs()
+        hostPrefs.cfg.setCurrentLibraryByPath(FilePath(self.library_paths))
+        hostPrefs.setSelectedLibrary(self.library_paths)
+      
+        hostPrefs.setSelectedPreset('')
+        hostPrefs.setSelectedCategory(os.path.join(self.library_paths, 'EnvironmentMaps'))
+        hostPrefs.saveAllPrefs()    
+
+        if self.op:
+            self.op.dummy_index = -1
+            self.op.preset_categories_index = 0         
+        
+        return {'FINISHED'}        
+        
+    def invoke(self, context, event):
+        self.op = getattr(context, 'op_ptr', None)     
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        row = self.layout
+        row.prop(self, "library_paths")        
+
 classes = [
-    PRMAN_OT_reload_preset_library,
     PRMAN_OT_init_preset_library,
-    PRMAN_OT_load_preset_library_from_env_var,
-    PRMAN_OT_refresh_preset_category,
     PRMAN_OT_set_current_preset_category,
     PRMAN_OT_load_asset_to_scene,
     PRMAN_OT_save_asset_to_lib,
@@ -602,11 +496,11 @@ classes = [
     PRMAN_OT_save_envmap_to_lib,
     PRMAN_OT_add_new_preset_category,
     PRMAN_OT_remove_preset_category,
-    PRMAN_OT_move_preset_category,
     PRMAN_OT_move_preset,
     PRMAN_OT_remove_preset,
     PRMAN_OT_view_preset_json,
-    PRMAN_OT_forget_preset_library
+    PRMAN_OT_forget_preset_library,
+    PRMAN_OT_select_preset_library
 ]
 
 def register():

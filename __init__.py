@@ -189,16 +189,16 @@ def set_up_paths():
 
     rmantree = filepath_utils.guess_rmantree()
     filepath_utils.set_rmantree(rmantree)
+    if platform.system() == 'Windows':
+        rman_packages = os.path.join(rmantree, 'lib', 'python3.7', 'Lib', 'site-packages')
+    else:
+        rman_packages = os.path.join(rmantree, 'lib', 'python3.7', 'site-packages')
+    filepath_utils.set_pythonpath(rman_packages)        
     filepath_utils.set_pythonpath(os.path.join(rmantree, 'bin'))
     it_dir = os.path.dirname(filepath_utils.find_it_path())
     filepath_utils.set_path([os.path.join(rmantree, 'bin'), it_dir])
     pythonbindings = os.path.join(rmantree, 'bin', 'pythonbindings')
     filepath_utils.set_pythonpath(pythonbindings)
-    if platform.system() == 'Windows':
-        rman_packages = os.path.join(rmantree, 'lib', 'python3.7', 'Lib', 'site-packages')
-    else:
-        rman_packages = os.path.join(rmantree, 'lib', 'python3.7', 'site-packages')
-    filepath_utils.set_pythonpath(rman_packages)    
 
 def load_addon():
     global __RMAN_ADDON_LOADED__
@@ -207,12 +207,14 @@ def load_addon():
         # else display an error, tell user to correct
         # and don't load anything else
         set_up_paths()
+        from . import presets
         from . import rman_operators
         from . import rman_ui
         from . import rman_bl_nodes
         from . import rman_properties
         from . import rman_handlers
 
+        presets.register()        
         rman_operators.register()
         rman_bl_nodes.register()
         rman_properties.register()          
@@ -233,8 +235,8 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     
-    from . import presets
-    presets.register()
+    #from . import presets
+    #presets.register()
     from . import preferences
     preferences.register()
     from . import rman_config
@@ -247,10 +249,11 @@ def unregister():
     from . import preferences
     preferences.unregister()
 
-    from . import presets
+    #from . import presets
     presets.unregister()
 
     if __RMAN_ADDON_LOADED__:
+        presets.unregister()
         rman_handlers.unregister()
         rman_bl_nodes.unregister()    
         rman_ui.unregister()

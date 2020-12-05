@@ -56,7 +56,7 @@ def get_icon(path):
         return flat_icon_thumb
     return thumb  
 
-def get_preset_icon(preset):
+def get_preset_icon(preset_path):
     global asset_previews
     flat_icon_path = os.path.join( filepath_utils.guess_rmantree(), __RMAN_MAT_FLAT_PATH__)
     flat_icon_thumb = asset_previews.get(flat_icon_path, None)
@@ -64,7 +64,7 @@ def get_preset_icon(preset):
         flat_icon_thumb_path = os.path.join(flat_icon_path, __RMAN_MAT_FLAT_FILENAME__)
         flat_icon_thumb = asset_previews.load(flat_icon_path, flat_icon_thumb_path, 'IMAGE', force_reload=True)
     
-    path = preset.path
+    path = preset_path
     if path not in asset_previews:
         thumb_path = os.path.join(path, 'asset_100.png')
         if os.path.exists(thumb_path):
@@ -75,47 +75,3 @@ def get_preset_icon(preset):
         thumb = asset_previews[path]   
 
     return thumb      
-
-def load_previews(preset_category):
-    '''Load icons for this preset category
-
-        Returns:
-            (list) - a list of tuples containing preset path, preset label, and icon ID
-    '''
-    global asset_previews
-    flat_icon_path = os.path.join( filepath_utils.guess_rmantree(), __RMAN_MAT_FLAT_PATH__)
-    flat_icon_thumb = asset_previews.get(flat_icon_path, None)
-    if not flat_icon_thumb:
-        flat_icon_thumb_path = os.path.join(flat_icon_path, __RMAN_MAT_FLAT_FILENAME__)
-        flat_icon_thumb = asset_previews.load(flat_icon_path, flat_icon_thumb_path, 'IMAGE', force_reload=True)
-
-    enum_items = []
-
-    category_dir = get_pref('presets_current_category').path
-
-    items = get_presets_for_category(preset_category)
-    items = sorted(items, key=lambda item: item.label)
-
-    for i, asset in enumerate(items):
-        path = asset.path
-        
-        if path not in asset_previews:
-            thumb_path = os.path.join(asset.path, 'asset_100.png')
-            if os.path.exists(thumb_path):
-                thumb = asset_previews.load(path, thumb_path, 'IMAGE', force_reload=True)
-            else:
-                thumb = flat_icon_thumb
-        else:
-            thumb = asset_previews[path]
-        enum_items.append((asset.path, asset.label, '', thumb.icon_id, i))
-
-    # FIXME: Not sure why this is needed
-    # Without it, icons don't seem to show up?
-    for img in asset_previews.values():
-        x = img.icon_size[0]
-        y = img.icon_size[1]
-
-    #if not enum_items:
-    #    return [('none', 'none', '', '', 0)]
-
-    return enum_items

@@ -34,10 +34,10 @@ from .rfb_utils import filepath_utils
 from . import rfb_logger
 from . import rfb_icons
 
-from .presets.properties import RendermanPresetCategory
+#from .presets.properties import RendermanPresetCategory
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
-    name: StringProperty(name="", subtype='DIR_PATH')
+    path: StringProperty(name="", subtype='DIR_PATH')
 
 
 class RendermanEnvVarSettings(bpy.types.PropertyGroup):
@@ -266,24 +266,12 @@ class RendermanPreferences(AddonPreferences):
         max=0.1
     )    
 
-    presets_current_category: PointerProperty(
-        type=RendermanPresetCategory,
-    )
-    presets_root_category: PointerProperty(
-        type=RendermanPresetCategory,
-    )     
-    presets_current_category_path: StringProperty(default='')
-
-    presets_show_large_icons: BoolProperty(
-        name="Show Large Icons",
-        description="Turns this off if you do not want to see the large version of the preset's icon",
-        default=True
-    )    
-    presets_show_subcategories: BoolProperty(
-        name="Show Subcategories",
-        description="By default, we only show presets in the current category. Turn this on if you want to also show subcategories (can be slow if there are large number of presets).",
-        default=False
-    )
+    # For the preset browser
+    rpbConfigFile: StringProperty(default='')
+    rpbUserLibraries: CollectionProperty(type=RendermanPreferencePath)
+    rpbSelectedLibrary: StringProperty(default='')
+    rpbSelectedCategory: StringProperty(default='')
+    rpbSelectedPreset: StringProperty(default='')
 
     def draw(self, context):
         self.layout.use_property_split = True
@@ -342,16 +330,6 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'draw_ipr_text')
         col.prop(self, 'draw_panel_icon')
         col.prop(self, 'rman_editor')
-
-        # Preset Browser
-        row = layout.row()
-        row.label(text='Preset Browser', icon_value=rman_r_icon.icon_id)
-        row = layout.row()
-        col = row.column()
-        if self.presets_root_category:
-            col.label(text='Path: %s' % self.presets_root_category.path)
-        col.prop(self, 'presets_show_large_icons')
-        col.prop(self, 'presets_show_subcategories')
 
         # Logging
         row = layout.row()

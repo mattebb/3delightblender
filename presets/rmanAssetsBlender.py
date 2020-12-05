@@ -23,9 +23,12 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 
-from . import rmanAssets as ra
-from . import rmanAssetsLib as ral
-from .rmanAssets import RmanAsset, TrMode, TrStorage, TrSpace, TrType
+from rman_utils.rman_assets import core as ra
+from rman_utils.rman_assets import lib as ral
+from rman_utils.rman_assets.core import RmanAsset
+from rman_utils.rman_assets.common.definitions import TrMode, TrStorage, TrSpace, TrType
+from rman_utils.filepath import FilePath
+
 import os
 import os.path
 import re
@@ -37,7 +40,245 @@ import mathutils
 from math import radians
 from ..rfb_utils import filepath_utils
 from ..rfb_utils import string_utils
+from ..rfb_utils import shadergraph_utils
+from ..rfb_utils import object_utils   
+from ..rfb_utils import transform_utils
+from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__
+
+def default_label_from_file_name(filename):
+    # print filename
+    lbl = os.path.splitext(os.path.basename(filename))[0]
+    # print lbl
+    lbl = re.sub('([A-Z]+)', r' \1', lbl)
+    # print lbl
+    lbl = lbl.replace('_', ' ')
+    return lbl.strip().capitalize()
+
+def asset_name_from_label(label):
+    """Builds a filename from the asset label string.
+
+    Args:
+    - label (str): User-friendly label
+
+    Returns:
+    - the asset file name
+    """
+    assetDir = re.sub(r'[^\w]', '', re.sub(' ', '_', label)) + '.rma'
+    return assetDir
+
+
+
+class BlenderHostPrefs(ral.HostPrefs):
+    def __init__(self):
+        super(BlenderHostPrefs, self).__init__('24.0')
+        self.debug = False
+
+        # === Library Prefs ===
+        #
+        self.rpbConfigFile = FilePath(self.getHostPref('rpbConfigFile', u''))
+        # the list of user libraries from Maya prefs
+        self.rpbUserLibraries = self.getHostPref('rpbUserLibraries', [])
+        # We don't initialize the library configuration just yet. We want
+        # to do it only once the prefs objects has been fully contructed.
+        # This is currently done in rman_assets.ui.Ui.__init__()
+        self.cfg = None
+
+        # === UI Prefs ===
+        #
+        # our prefered swatch size in the UI.
+        self.rpbSwatchSize = self.getHostPref('rpbSwatchSize', 64)
+        # the last selected preview type
+        self.rpbSelectedPreviewEnv = self.getHostPref(
+            'rpbSelectedPreviewEnv', 0)
+        # the last selected category
+        self.rpbSelectedCategory = self.getHostPref('rpbSelectedCategory', u'')
+        # the last selected preset
+        self.rpbSelectedPreset = self.getHostPref('rpbSelectedPreset', u'')
+
+        # the last selected library
+        self.rpbSelectedLibrary = FilePath(self.getHostPref(
+            'rpbSelectedLibrary', u''))
+    
+        # store these to make sure we render the previews with the same version.
+        self.hostTree = os.environ.get('RFMTREE', '')
+        self.rmanTree = os.environ.get('RMANTREE', '')
+
+        # === User Prefs ===
+        #
+        # render all HDR environments ?
+        self.rpbRenderAllHDRs = self.getHostPref('rpbRenderAllHDRs', 0)
+        self.rpbHideFactoryLib = self.getHostPref('rpbHideFactoryLib', 0)
+
+        # function pointers to report errors to the client
+        #self.warning = rfm_log().warning
+        #self.error = rfm_log().error
+        #self.progress = MayaProgress()
+        # pass the preferred text editor
+        #self.textEditor = self.getHostPref('textEditor', '')
+
+        self._nodesToExport = list()
+
+    def getHostPref(self, prefName, defaultValue): # pylint: disable=unused-argument
+        if prefName == 'rpbUserLibraries':
+            val = list()
+            prefs = get_addon_prefs()
+            for p in prefs.rpbUserLibraries:
+                val.append(p.path)
+        else:
+            val = get_pref(pref_name=prefName, default=defaultValue)
+        return val
+
+    def setHostPref(self, prefName, value): # pylint: disable=unused-argument
+        """Save the given value in the host's preferences.
+        First look at the value's type and call the matching host API.
+
+        Args:
+            prefName (str): The class attribute name for that pref.
+            value (any): The value we should pass to the delegate.
+
+        Raises:
+            RmanAssetLibError: If we don't support the given data type.
+        """
+        isArray = isinstance(value, list)
+        tvalue = value
+        prefs = get_addon_prefs()
+        if isArray:
+            tvalue = value[0]
+        if isinstance(tvalue, int):
+            if isArray:
+                pass
+            else:
+                setattr(prefs, prefName, value) 
+        elif isinstance(tvalue, str):
+            if isArray:
+                if prefName == 'rpbUserLibraries':
+                    prefs = get_addon_prefs()
+                    prefs.rpbUserLibraries.clear()
+                    for val in value:
+                        p = prefs.rpbUserLibraries.add()
+                        p.path = val
+            else:
+                setattr(prefs, prefName, value)                
+        else:
+            arrayStr = ''
+            if isArray:
+                arrayStr = ' array'
+            msg = ('HostPrefs.setHostPref: %s%s NOT supported !' %
+                   (type(tvalue), arrayStr))
+            pass
+        bpy.ops.wm.save_userpref()        
+
+    def saveAllPrefs(self):
+        self.setHostPref('rpbUserLibraries', self.rpbUserLibraries)
+        self.setHostPref('rpbSelectedLibrary', self.rpbSelectedLibrary)
+        self.setHostPref('rpbSelectedCategory', self.rpbSelectedCategory)
+        self.setHostPref('rpbSelectedPreset', self.rpbSelectedPreset)
+
+    def updateLibraryConfig(self):
+        self.cfg.buildLibraryList(updateFromPrefs=True)
+
+    def getSelectedCategory(self):
+        return self.rpbSelectedCategory
+
+    def setSelectedCategory(self, val):
+        self.rpbSelectedCategory = val
+
+    def getSelectedPreset(self):
+        return self.rpbSelectedPreset
+
+    def setSelectedPreset(self, val):
+        self.rpbSelectedPreset = val        
+
+    def getSelectedLibrary(self):
+        return self.rpbSelectedLibrary
+
+    def setSelectedLibrary(self, path):
+        self.rpbSelectedLibrary = path
+
+    def getSwatchSize(self):
+        return self.rpbSwatchSize
+
+    def setSwatchSize(self, value):
+        self.rpbSwatchSize = min(max(value, 64), 128)
+
+    def doAssign(self):
+        return True
+
+    def gather_material_nodes(self, mat):
+        out = shadergraph_utils.is_renderman_nodetree(mat)
+        nodes = shadergraph_utils.gather_nodes(out)
+        self._nodesToExport.extend(nodes)
+
+    def preExportCheck(self, mode, hdr=None, context=None): # pylint: disable=unused-argument
+        if mode == 'material':
+            ob = context.active_object
+            mat = ob.active_material
+            self.gather_material_nodes(mat)            
+        elif mode == 'lightrigs':
+            selected_light_objects = []
+            if context.selected_objects:
+                for obj in context.selected_objects:  
+                    if object_utils._detect_primitive_(obj) == 'LIGHT':
+                        selected_light_objects.append(obj)
+            if not selected_light_objects:
+                return False
+            self._nodesToExport.extend(selected_light_objects)
+        elif mode == 'envmap':
+            if not hdr.exists():
+                rfm_log().warning('hdr file does not exist: %s', hdr)
+                return False
+            self._nodesToExport = [hdr]
+            self._defaultLabel = default_label_from_file_name(hdr)
+            return True
+        else:
+            print('preExportCheck: unknown mode: %s', repr(mode))
+            return False
+        return True
+
+    def exportMaterial(self, categorypath, infodict, previewtype): # pylint: disable=unused-argument
+        return export_asset(self._nodesToExport, 'nodeGraph', infodict, categorypath,
+                            self.cfg)
+
+    def exportLightRig(self, categorypath, infodict): # pylint: disable=unused-argument
+        return export_asset(self._nodesToExport, 'nodeGraph', infodict, categorypath,
+                            self.cfg)
+
+    def exportEnvMap(self, categorypath, infodict): # pylint: disable=unused-argument
+        return export_asset(self._nodesToExport, 'envMap', infodict, categorypath,
+                            self.cfg)
+
+    def importAsset(self, asset, assignToSelected=False): # pylint: disable=unused-argument
+        # IMPLEMENT ME
+        pass
+
+    def getAllCategories(self, asDict=False):
+        return sorted(ral.getAllCategories(self.cfg, asDict=asDict))
+
+    def getAssetList(self, relpath):
+        return ral.getAssetList(self.cfg, relpath)
+
+__BLENDER_PRESETS_HOST_PREFS__ = None
+
+def get_host_prefs():
+    global __BLENDER_PRESETS_HOST_PREFS__
+    if not __BLENDER_PRESETS_HOST_PREFS__:
+        __BLENDER_PRESETS_HOST_PREFS__ = BlenderHostPrefs()
+        __BLENDER_PRESETS_HOST_PREFS__.initConfig()
+
+        # restore the last library selection
+        try:
+            __BLENDER_PRESETS_HOST_PREFS__.cfg.setCurrentLibraryByPath(
+                __BLENDER_PRESETS_HOST_PREFS__.getSelectedLibrary())
+        except BaseException:
+            # the last library selected by the client app can not be found.
+            # we fallback to the first available library and update the
+            # client's prefs.
+            __BLENDER_PRESETS_HOST_PREFS__.cfg.setCurrentLibraryByName(None)
+            __BLENDER_PRESETS_HOST_PREFS__.setSelectedLibrary(
+                __BLENDER_PRESETS_HOST_PREFS__.cfg.getCurrentLibraryPath())       
+
+    return __BLENDER_PRESETS_HOST_PREFS__
 
 ##
 # @brief      Exception class to tell the world about our miserable failings.
@@ -51,58 +292,11 @@ class RmanAssetBlenderError(Exception):
         return repr(self.value)
 
 
-##
-# @brief      A class used to query environment variables. It can be overriden
-#             by a client app, like Maya, who may have a slightly different
-#             environment.
-#
-class BlenderEnv:
-    def getenv(self, key):
-        filepath_utils.init_env(None)
-        val = os.environ[key] if key in os.environ else None
-        return val
-
-    def Exists(self, key):
-        # print '++++ MayaEnv::Exists %s' % key
-        if self.getenv(key):
-            return True
-        else:
-            return False
-
-    def GetValue(self, key):
-        # print '++++ MayaEnv::GetValue %s' % key
-        val = self.getenv(key)
-        if val is None:
-            print(key,val)
-            raise ra.RmanAssetError('%s is not an registered environment variable !' % key)
-        # print 'MayaEnv.GetValue( %s ) = %s' % (key, repr(val))
-        return os.path.expandvars(val)
-
-
-# Pass our implementation to override the library's default
-#
-ra.setEnvClass(BlenderEnv())
-
-
-blenderEnv = BlenderEnv()
-rmantree = ra.internalPath(blenderEnv.GetValue('RMANTREE'))
-rmanpath = os.path.join(rmantree, "bin")
-if ra.externalPath(rmanpath) not in sys.path:
-    sys.path.append(ra.externalPath(rmanpath))
-
 ##############################
 #                            #
 #           GLOBALS          #
 #                            #
 ##############################
-
-# store the last read asset to avoid reloading it everytime. Used from MEL.
-#
-__lastAsset = None
-
-# default categories for our browser
-#
-__defaultCategories = {'Materials', 'LightRigs', 'EnvironmentMaps'}
 
 # store the list of maya nodes we translate to patterns
 # without telling anyone...
@@ -155,16 +349,6 @@ def isValidNodeType(nodetype):
 #
 #   END of GLOBALS
 #
-
-
-##
-# @brief      Helper to get the last exception message string.
-#
-# @return     system error message string
-#
-def sysErr():
-    return str(sys.exc_info()[0])
-
 
 ##
 # @brief      Returns a normalized maya version, i.e. add a '.0' if it is an
@@ -247,13 +431,6 @@ class BlenderNode:
             self.oslPath = path
 
         self.ReadParams()
-        # else:
-        #     # this will fail if we insert a node that doesn't exist in maya,
-        #     # but it's OK if it is a conversion plug.
-        #     if nodetype not in self.__conversionNodeTypes:
-        #         raise RmanAssetBlenderError(sysErr())
-        #     else:
-        #         self.DefaultParams()
 
     ##
     # @brief      simple method to make sure we respect the natural parameter
@@ -843,107 +1020,6 @@ class BlenderGraph:
     def __repr__(self):
         return str(self)
 
-
-##
-# @brief      Builds a filename from the asset label string
-#
-# @param      label  User-friendly label
-#
-# @return     the asset file name
-#
-def assetNameFromLabel(label):
-    assetDir = re.sub('[^\w]', '', re.sub(' ', '_', label)) + '.rma'
-    return assetDir
-
-
-##
-# @brief      Returns the path to the asset library's root directory.
-#             The path is stored in a rmanAssetLibrary optionVar. If the
-#             optionVar is missing, query the library for the environment var.
-#             If it fails too : ask the user to interactively pick a directory.
-#
-# @return     path as a string
-#
-def getLibraryPath(pick=False):
-    root = ''
-    if not pick:
-        if mc.optionVar(exists='rmanAssetLibrary'):
-            #  We start by checking the rmanAssetLibrary optionVar. If it is
-            #  available, this is our first choice.
-            root = mc.optionVar(q='rmanAssetLibrary')
-            # check if root actually exists
-            if os.path.exists(root):
-                ral.setLibraryPath(root)
-                # print ('getLibraryPath Maya: ',
-                #        'root in rmanAssetLibrary optionVar')
-                return root
-
-        # next we check is the standard environment variable was used
-        try:
-            root = ral.getLibraryPath()
-        except:
-            root = ''
-        if root != '':
-            mc.optionVar(sv=['rmanAssetLibrary',
-                             ral.validateLibraryRoot(root)])
-            # print 'getLibraryPath Maya: root defined by lib'
-            return root
-
-    if root == '':
-        if not mc.about(batch=True):
-            # If all failed and we are in an interactive session, ask our user
-            # where it should be...
-            caption = 'Select the RenderMan Asset Library directory'
-            startdir = None
-            try:
-                # if pick==True, the library path might be valid and it's nicer
-                # to jump back to it.
-                startdir = ral.getLibraryPath()
-            except:
-                # If we don't have a valid path, jump to the current project.
-                startdir = mc.workspace(q=True, rd=True)
-
-            libdir = mc.fileDialog2(ds=2, fm=3, okc='Select Library',
-                                    cap=caption, dir=startdir)
-            # print 'libdir = %s' % libdir
-            if libdir is not None and os.path.exists(libdir[0]):
-                mc.optionVar(sv=['rmanAssetLibrary',
-                                 ral.validateLibraryRoot(libdir[0])])
-                root = mc.optionVar(q='rmanAssetLibrary')
-                ral.setLibraryPath(root)
-            else:
-                # we raise an exception if the path doesn't exists, but if it
-                # was None it means the user pressed the cancel button and we
-                # just return an empty string that should be interpreted as
-                # 'no update' by the caller.
-                if libdir is not None:
-                    err = 'RenderMan Asset Library path undefined !!'
-                    raise RmanAssetBlenderError(err)
-                else:
-                    return ''
-            # make sure the basic directory structure exists
-            root = ral.initLibrary(root)
-
-    if root == '':
-        raise RmanAssetBlenderError('RenderMan Asset Library path undefined !!')
-
-    # print 'Library path: %s' % root
-    return root
-
-
-##
-# @brief      Return absolute path to an asset's json file.
-#
-# @param      relpath  relative path to the asset.
-#
-# @return     absolute json file path (string).
-#
-def jsonFilePath(relpath):
-    # print("jsonFilePath: %s" % (relpath))
-    path = ral.getAbsCategoryPath(relpath)
-    return os.path.join(path, "asset.json")
-
-
 ##
 # @brief      Returns a params array similar to the one returned by
 #             rmanShadingNode. This allows us to deal with maya nodes.
@@ -975,16 +1051,10 @@ def blenderParams(nodetype):
 #
 # @return     none
 #
-def parseNodeGraph(nt, Asset):
-    out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and
-                    n.renderman_node_type == 'output'), None)
-    if out is None:
-        return
+def parseNodeGraph(nodes_to_convert, Asset):
 
     graph = BlenderGraph()
     graph.AddNode(out)
-    from ..rfb_utils.shadergraph_utils import gather_nodes
-    nodes_to_convert = gather_nodes(out)
 
     for node in nodes_to_convert:
         # some "nodes" are actually tuples
@@ -995,8 +1065,6 @@ def parseNodeGraph(nt, Asset):
     graph.Serialize(Asset)
 
 def exportLightRig(obs, Asset):
-    from ..rfb_utils import shadergraph_utils
-    from ..rfb_utils import transform_utils
     for ob in obs:
         bl_node = shadergraph_utils.get_light_node(ob)
 
@@ -1034,42 +1102,47 @@ def exportLightRig(obs, Asset):
 ##
 # @brief      Gathers infos from the image header
 #
-# @param      nodes  the image path
+# @param      imagePath  the image path
 # @param      Asset  The asset in which infos will be stored.
 #
-def parseTexture(nodes, Asset):
-    img = nodes[0]
-    # print 'Parsing: %s' % img
+def parse_texture(imagePath, Asset):
+    """Gathers infos from the image header
+
+    Args:
+        imagePath {list} -- A list of texture paths.
+        Asset {RmanAsset} -- the asset in which the infos will be stored.
+    """
+    img = FilePath(imagePath)
     # gather info on the envMap
     #
     Asset.addTextureInfos(img)
 
+def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
+                 alwaysOverwrite=False):
+    """Exports a nodeGraph or envMap as a RenderManAsset.
 
-##
-# @brief      Exports a nodeGraph or envMap as a RenderManAsset
-#
-# @param      nodes            Maya node used as root
-# @param      atype            Asset type : 'nodeGraph' or 'envMap'
-# @param      infodict         dict with 'label', 'author' & 'version'
-# @param      category         Category as a path, i.e.: "/Lights/LookDev"
-# @param      assetPath        Full path to where to save the asset
-# @param      renderPreview    Render an asset preview or not. On by default.
-# @param      alwaysOverwrite  default to False. Will ask the user if not in
-#                              batch mode.
-#
-# @return     none
-#
-def exportAsset(nt, atype, infodict, category, assetPath, renderPreview=True,
-                alwaysOverwrite=False):
+    Args:
+        nodes (str) -- Maya node used as root
+        atype (str) -- Asset type : 'nodeGraph' or 'envMap'
+        infodict (dict) -- dict with 'label', 'author' & 'version'
+        category (str) -- Category as a path, i.e.: "/Lights/LookDev"
+
+    Kwargs:
+        renderPreview (str) -- Render an asset preview ('std', 'fur', None).\
+                        Render the standard preview swatch by default.\
+                        (default: {'std'})
+        alwaysOverwrite {bool) -- Will ask the user if the asset already \
+                        exists when not in batch mode. (default: {False})
+    """
     label = infodict['label']
-    Asset = RmanAsset(atype, label)
+    Asset = RmanAsset(assetType=atype, label=label, previewType=renderPreview)
 
     asset_type = ''
     if atype == 'nodeGraph':
         if category.startswith('Materials'):
             asset_type = 'Materials'
         else:
-            asset_type = 'LightRigs'
+            asset_type = 'LightRigs'    
 
     # Add user metadata
     #
@@ -1081,56 +1154,52 @@ def exportAsset(nt, atype, infodict, category, assetPath, renderPreview=True,
     # Compatibility data
     # This will help other application decide if they can use this asset.
     #
-    prmanversion = "%d.%d.%s" % filepath_utils.get_rman_version(rmantree)
+    prmanversion = "%d.%d.%s" % filepath_utils.get_rman_version(filepath_utils.guess_rmantree())
     Asset.setCompatibility(hostName='Blender',
                            hostVersion=bpy.app.version,
-                           rendererVersion=prmanversion)
+                           rendererVersion=prmanversion)                           
 
     # parse maya scene
     #
     if atype is "nodeGraph":
         if asset_type == 'Materials':
-            parseNodeGraph(nt, Asset)
+            parseNodeGraph(nodes, Asset)
         else:
-            exportLightRig(nt, Asset)
+            exportLightRig(nodes, Asset)
     elif atype is "envMap":
-        parseTexture(nt, Asset)
+        #parse_texture(nodes[0], Asset)
+        pass
     else:
-        raise RmanAssetBlenderError("%s is not a known asset type !" % atype)
+        raise RmanRmanAssetBlenderError("%s is not a known asset type !" % atype)
 
     #  Get path to our library
     #
-    # assetPath = ral.getAbsCategoryPath(category)
+    assetPath = FilePath(category)
 
     #  Create our directory
     #
-    assetDir = assetNameFromLabel(label)
-    dirPath = os.path.join(assetPath, assetDir)
-
-    if not os.path.exists(dirPath):
+    assetDir = asset_name_from_label(label)
+    dirPath = assetPath.join(assetDir)
+    if not dirPath.exists():
         os.mkdir(dirPath)
 
     #   Check if we are overwriting an existing asset
     #
-    jsonfile = os.path.join(dirPath, "asset.json")
+    jsonfile = dirPath.join("asset.json")
 
     #  Save our json file
     #
-    # print("exportAsset: %s..." %   dirPath)
-    Asset.save(jsonfile, False)
+    # print("export_asset: %s..." %   dirPath)
+    Asset.save(jsonfile, compact=False)
 
-    # Render the preview
-    #
-    if not renderPreview:
-        return
-    json = Asset.jsonFilePath()
-    Asset.load(json, localizeFilePaths=True)
     if asset_type == 'Materials':
-        ral.renderAssetPreview(Asset, progress=None, resize=None)
+        ral.renderAssetPreview(Asset, progress=None, rmantree=filepath_utils.guess_rmantree())
     elif asset_type == 'LightRigs':
-        pass
+        ral.renderAssetPreview(Asset, progress=None, rmantree=filepath_utils.guess_rmantree())
     elif Asset._type == 'envMap':
-        ral.renderAssetPreview(Asset, progress=None, resize=None)
+        ral.renderAssetPreview(Asset, progress=None, rmantree=filepath_utils.guess_rmantree())
+
+    return True        
 
 
 ##
@@ -1458,35 +1527,6 @@ def connectNodes(Asset, nt, nodeDict):
         else:
             print('error connecting %s.%s to %s.%s' % (srcNode,srcSocket, dstNode, dstSocket))
 
-            # # special cases for maya placement nodes
-            # #
-            # # print '+ OOOPS: %s' % sysErr()
-            # if con.dstParam() in ['manifold', 'uvCoord', 'placementMatrix']:
-            #     if mc.objExists('%s.uvCoord' % dstNode):
-            #         # this is a node looking for a place2d
-            #         src = '%s.outUV' % srcNode
-            #         dst = '%s.uvCoord' % dstNode
-            #         if mc.isConnected(src, dst):
-            #             continue
-            #         # print "++ connect %s -> %s" % (src, dst)
-            #         mc.connectAttr(src, dst)
-            #         src = '%s.outUvFilterSize' % srcNode
-            #         dst = '%s.uvFilterSize' % dstNode
-            #         # print "++ connect %s -> %s" % (src, dst)
-            #         mc.connectAttr(src, dst)
-            #     elif mc.objExists('%s.placementMatrix' % dstNode):
-            #         # this is a node looking for a place3d
-            #         src = '%s.wim[0]' % srcNode
-            #         dst = '%s.placementMatrix' % dstNode
-            #         if mc.isConnected(src, dst):
-            #             continue
-            #         # print "++ connect %s -> %s" % (src, dst)
-            #         mc.connectAttr(src, dst)
-            # else:
-            #     mc.warning("Failed to connect : %s -> %s (%s)" %
-            #                (src, dst, con.dstParam()))
-
-
 ##
 # @brief      Check the compatibility of the loaded asset with the host app and
 #             the renderman version. We pass g_validNodeTypes to help determine
@@ -1503,7 +1543,7 @@ def compatibilityCheck(Asset):
     global g_validNodeTypes
     # the version numbers should always contain at least 1 dot.
     # I'm going to skip the maya stuff
-    prmanversion = "%d.%d.%s" % filepath_utils.get_rman_version(rmantree)
+    prmanversion = "%d.%d.%s" % filepath_utils.get_rman_version(filepath_utils.guess_rmantree())
     compatible = Asset.IsCompatible(rendererVersion=prmanversion,
                                     validNodeTypes=g_validNodeTypes)
     if not compatible:
@@ -1571,85 +1611,3 @@ def importAsset(filepath):
         raise RmanAssetBlenderError("Unknown asset type : %s" % assetType)
 
     return ''
-
-
-def setCurrentAsset(category, name):
-    global __lastAsset
-    __lastAsset = RmanAsset()
-    json = jsonFilePath(name)
-    # print("- Loading %s" % json)
-    __lastAsset.load(json, localizeFilePaths=True)
-
-
-def currentAssetLabel():
-    global __lastAsset
-    return __lastAsset.label()
-
-
-def currentType():
-    global __lastAsset
-    return __lastAsset.type()
-
-
-def currentJsonFile():
-    global __lastAsset
-    return __lastAsset.jsonFilePath()
-
-
-def currentAssetDir(relative=False):
-    global __lastAsset
-    if relative is True:
-        dirpath = os.path.dirname(__lastAsset.jsonFilePath())
-        return dirpath[len(getLibraryPath()):]
-    else:
-        return os.path.dirname(__lastAsset.jsonFilePath())
-
-
-def currentInfos():
-    global __lastAsset
-    infos = __lastAsset.stdMetadata()
-    infoStr = ''
-    for (k, v) in infos.items():
-        if k == 'created':
-            infoStr += "%s\n" % (v)
-        else:
-            infoStr += "%s: %s\n" % (k, v)
-    return infoStr
-
-
-def currentAllMetadata(pretty=False):
-    global __lastAsset
-    meta = ''
-    fmt = '<br><span style="font-weight:bold">%s</span>: %s'
-    # print fmt
-    for k, v in sorted(__lastAsset._meta.items()):
-        if pretty:
-            meta += fmt % (k, v)
-        else:
-            meta += '%s:%s' % (k, v)
-    return meta
-
-
-def currentAllMetadataValues():
-    global __lastAsset
-    metavals = ''
-    for k, v in sorted(__lastAsset._meta.items()):
-        metavals += (" %s" % v).lower()
-    return metavals
-
-
-def currentUsedNodes():
-    global __lastAsset
-    return __lastAsset.getUsedNodeTypes(asString=True)
-
-
-def currentRIB(jsonfile):
-    global __lastAsset
-    __lastAsset.load(jsonfile)
-    return __lastAsset.getRIB()
-
-
-def renderPreview():
-    global __lastAsset
-    prog = MayaProgress()
-    ral.renderAssetPreview(__lastAsset, progress=prog, resize=None)
