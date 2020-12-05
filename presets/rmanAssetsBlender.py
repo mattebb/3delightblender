@@ -45,6 +45,7 @@ from ..rfb_utils import object_utils
 from ..rfb_utils import transform_utils
 from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__
+from ..rman_bl_nodes import __BL_NODES_MAP__, __RMAN_NODE_TYPES__
 
 def default_label_from_file_name(filename):
     # print filename
@@ -109,13 +110,6 @@ class BlenderHostPrefs(ral.HostPrefs):
         # render all HDR environments ?
         self.rpbRenderAllHDRs = self.getHostPref('rpbRenderAllHDRs', 0)
         self.rpbHideFactoryLib = self.getHostPref('rpbHideFactoryLib', 0)
-
-        # function pointers to report errors to the client
-        #self.warning = rfm_log().warning
-        #self.error = rfm_log().error
-        #self.progress = MayaProgress()
-        # pass the preferred text editor
-        #self.textEditor = self.getHostPref('textEditor', '')
 
         self._nodesToExport = list()
 
@@ -301,43 +295,15 @@ class RmanAssetBlenderError(Exception):
 # store the list of maya nodes we translate to patterns
 # without telling anyone...
 #
-
-from ..rman_bl_nodes import __RMAN_NODE_TYPES__
 g_BlenderToPxrNodes = {}
-g_PxrToBlenderNodes = {}
 
 for name, node_class in __RMAN_NODE_TYPES__.items():
     g_BlenderToPxrNodes[name] = node_class.bl_label
-    g_PxrToBlenderNodes[node_class.bl_label] = name
 
 # fix material output
 g_BlenderToPxrNodes['RendermanOutputNode'] = 'shadingEngine'
-g_PxrToBlenderNodes['shadingEngine'] = 'RendermanOutputNode'
-
-# global list of nodes we can translate from a maya DAG
-#
 g_validNodeTypes = ['shadingEngine']
-# add prman nodes
-# classifications = ['rendernode/RenderMan/bxdf',
-#                    'rendernode/RenderMan/legacybxdf',
-#                    'rendernode/RenderMan/pattern',
-#                    'rendernode/RenderMan/legacypattern',
-#                    'rendernode/RenderMan/displacementpattern',
-#                    'rendernode/RenderMan/exclude',
-#                    'rendernode/RenderMan/displacement',
-#                    'rendernode/RenderMan/light',
-#                    'rendernode/RenderMan/lightfilter',
-#                    'rendernode/RenderMan/displayfilter',
-#                    'rendernode/RenderMan/samplefilter']
-# for cls in classifications:
-#     try:
-#         g_validNodeTypes += mc.listNodeTypes(cls)
-#     except:
-#         raise RmanAssetBlenderError('Bad category: "%s"' % cls)
-# add maya nodes
 g_validNodeTypes += g_BlenderToPxrNodes.keys()
-# print 'g_validNodeTypes = %s' % g_validNodeTypes
-
 
 # wrapper to avoid global access in code
 def isValidNodeType(nodetype):
@@ -349,16 +315,6 @@ def isValidNodeType(nodetype):
 #
 #   END of GLOBALS
 #
-
-##
-# @brief      Returns a normalized maya version, i.e. add a '.0' if it is an
-#             integer.
-#
-# @return     The normalized version string
-#
-def blenderVersion():
-    return bpy.app.version
-
 
 ##
 # @brief      Class used by rfm.rmanAssetsLib.renderAssetPreview to report
@@ -1359,9 +1315,6 @@ def setTransform(name, fmt, vals):
 # @return     dict mapping the graph id to the actual maya node names.
 #
 def createNodes(Asset):
-    global g_PxrToBlenderNodes
-    # preserve selection
-    #sel = mc.ls(sl=True)
 
     nodeDict = {}
     nt = None
@@ -1383,10 +1336,10 @@ def createNodes(Asset):
         # print('+ %s %s: %s' % (fmt, vals, ttype))
 
         if nodeClass == 'bxdf':
-            if nodeType in g_PxrToBlenderNodes:
-                created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
-            else:
-                created_node = nt.nodes.new('%sBxdfNode' % nodeType)
+            bl_node_name = __BL_NODES_MAP__.get(nodeType, None)
+            if not bl_node_name:
+                continue
+            created_node = nt.nodes.new(bl_node_name)
             created_node.location[0] = -curr_x
             curr_x = curr_x + 250
             created_node.name = nodeId
@@ -1394,7 +1347,10 @@ def createNodes(Asset):
 
             nt.links.new(created_node.outputs['Bxdf'], output_node.inputs['Bxdf'])            
         elif nodeClass == 'displace':
-            created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
+            bl_node_name = __BL_NODES_MAP__.get(nodeType, None)
+            if not bl_node_name:
+                continue
+            created_node = nt.nodes.new(bl_node_name)            
             created_node.location[0] = -curr_x
             curr_x = curr_x + 250
             created_node.name = nodeId
@@ -1419,29 +1375,14 @@ def createNodes(Asset):
                 created_node.shadercode = oso
                 created_node.RefreshNodes({}, nodeOR=created_node)
             else:
-                # the nodeType should in general correspond to a maya node
-                # type.
-                if nodeType in g_PxrToBlenderNodes:
-                    created_node = nt.nodes.new(g_PxrToBlenderNodes[nodeType])
-                    created_node.location[0] = -curr_x
-                    curr_x = curr_x + 250
-                    created_node.name = nodeId
-                    created_node.label = nodeId
-                else:
-                    try:
-                        created_node = nt.nodes.new('%sPatternNode' % nodeType)
-                    except:
-                        try:
-                            # Try agin. This might be an OSL shader.
-                            created_node = nt.nodes.new('%sPatternOSLNode' % nodeType)
-                        except:
-                            err = ('createNodes: Unknown nodetype "%s"'
-                                % nodeType)
-                            raise RmanAssetBlenderError(err)                            
-                    created_node.location[0] = -curr_x
-                    curr_x = curr_x + 250
-                    created_node.name = nodeId
-                    created_node.label = nodeId   
+                bl_node_name = __BL_NODES_MAP__.get(nodeType, None)
+                if not bl_node_name:
+                    continue
+                created_node = nt.nodes.new(bl_node_name)   
+                created_node.location[0] = -curr_x
+                curr_x = curr_x + 250
+                created_node.name = nodeId
+                created_node.label = nodeId                             
 
         elif nodeClass == 'root':
             continue

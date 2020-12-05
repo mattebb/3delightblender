@@ -202,7 +202,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             os.mkdir(compile_path)
 
         if getattr(node, "codetypeswitch") == "EXT":
-            osl_path = user_path(getattr(node, 'shadercode'))
+            osl_path = string_utils.expand_string(getattr(node, 'shadercode'))
             FileName = os.path.basename(osl_path)
             FileNameNoEXT = os.path.splitext(FileName)[0]
             FileNameOSO = FileNameNoEXT
@@ -309,7 +309,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     pass
                 else:
                     input = self.inputs.new(rman_socket_utils.__RMAN_SOCKET_MAP__[shader_meta[prop_name]["type"]],
-                                            prop_name, prop_name)
+                                            prop_name, identifier=prop_name)
                     input.default_value = prop_default
                     if prop_type == 'struct' or prop_type == 'point':
                         input.hide_value = True

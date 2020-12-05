@@ -47,7 +47,7 @@ def __update_areas__():
         for area in window.screen.areas:
             area.tag_redraw()
 
-def __get_render_variant(bl_scene):
+def get_render_variant(bl_scene):
     if filepath_utils.is_ncr_license():
         return 'prman'
 
@@ -326,7 +326,7 @@ class RmanRender(object):
                 pass
 
         config = rman.Types.RtParamList()
-        config.SetString("rendervariant", __get_render_variant(self.bl_scene))
+        config.SetString("rendervariant", get_render_variant(self.bl_scene))
         self.sg_scene = self.sgmngr.CreateScene(config) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
@@ -584,7 +584,7 @@ class RmanRender(object):
         time_start = time.time()      
 
         config = rman.Types.RtParamList()
-        config.SetString("rendervariant", __get_render_variant(self.bl_scene))      
+        config.SetString("rendervariant", get_render_variant(self.bl_scene))      
         self.sg_scene = self.sgmngr.CreateScene(config) 
         self.rman_scene_sync = RmanSceneSync(rman_render=self, rman_scene=self.rman_scene, sg_scene=self.sg_scene)
         rfb_log().info("Parsing scene...")        

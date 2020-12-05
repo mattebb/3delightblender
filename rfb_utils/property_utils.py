@@ -10,6 +10,8 @@ from bpy.props import *
 from copy import deepcopy
 import bpy
 import sys
+import os
+import shutil
 
 
 __GAINS_TO_ENABLE__ = {
@@ -319,16 +321,16 @@ def set_material_rixparams(node, rman_sg_node, params, mat=None, mat_name=None):
     if node.bl_idname == "PxrOSLPatternNode":
 
         if getattr(node, "codetypeswitch") == "EXT":
-            prefs = bpy.context.preferences.addons[__package__].preferences
-            osl_path = user_path(getattr(node, 'shadercode'))
+            prefs = prefs_utils.get_addon_prefs()
+            osl_path = string_utils.expand_string(getattr(node, 'shadercode'))
             FileName = os.path.basename(osl_path)
             FileNameNoEXT,ext = os.path.splitext(FileName)
-            out_file = os.path.join(
-                user_path(prefs.env_vars.out), "shaders", FileName)
+            shaders_path = os.path.join(string_utils.expand_string(prefs.env_vars.out), "shaders")
+            out_file = os.path.join(shaders_path, FileName)
             if ext == ".oso":
                 if not os.path.exists(out_file) or not os.path.samefile(osl_path, out_file):
-                    if not os.path.exists(os.path.join(user_path(prefs.env_vars.out), "shaders")):
-                        os.mkdir(os.path.join(user_path(prefs.env_vars.out), "shaders"))
+                    if not os.path.exists(shaders_path):
+                        os.mkdir(shaders_path)
                     shutil.copy(osl_path, out_file)
         for input_name, input in node.inputs.items():
             prop_type = input.renderman_type
@@ -343,7 +345,7 @@ def set_material_rixparams(node, rman_sg_node, params, mat=None, mat_name=None):
 
                 set_rix_param(params, param_type, param_name, val, is_reference=True)    
 
-            elif type(input) != RendermanNodeSocketStruct:
+            elif type(input).__name__ != 'RendermanNodeSocketStruct':
 
                 param_type = prop_type
                 param_name = input_name
