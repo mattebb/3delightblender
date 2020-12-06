@@ -1,7 +1,10 @@
 import os
 import bpy
 import sys
-from rman_utils.color_manager import ColorManager
+try:
+    from rman_utils.color_manager import ColorManager
+except:
+    ColorManager = None
 
 __clrmgr__ = None
 
@@ -22,7 +25,8 @@ def init():
 
     if __clrmgr__ is None:
         ociopath = os.getenv('OCIO', None)
-        __clrmgr__ = ColorManager(ociopath)
+        if ColorManager:
+            __clrmgr__ = ColorManager(ociopath)
 
 def get_blender_ocio_config():
     # figure out the path to Blender's default ocio config file
@@ -48,8 +52,12 @@ def get_config_path():
     ociopath = os.getenv('OCIO', None)
     if ociopath is None:
         ociopath = get_blender_ocio_config()
-    clrmgr.update(ociopath)
-    return clrmgr.config_file_path()
+
+    if ColorManager:
+        clrmgr.update(ociopath)
+        return clrmgr.config_file_path()
+
+    return ociopath
 
 def get_colorspace_name():
     """return the scene colorspace name. updating with $OCIO
@@ -59,5 +67,8 @@ def get_colorspace_name():
     ociopath = os.getenv('OCIO', None)
     if ociopath is None:
         ociopath = get_blender_ocio_config()
-    clrmgr.update(ociopath)
-    return clrmgr.scene_colorspace_name
+    if ColorManager:
+        clrmgr.update(ociopath)
+        return clrmgr.scene_colorspace_name
+        
+    return ""
