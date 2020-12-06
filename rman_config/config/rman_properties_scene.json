@@ -322,6 +322,18 @@
             "help": "The maximum number of camera rays to be traced for each pixel.  When adaptive sampling is enabled (ie. Pixel Variance is greater than zero), fewer rays may be traced in smoother regions of the image."
         },  
         {
+            "panel": "RENDER_PT_renderman_sampling",            
+            "name": "hider_pixelFilterMode",
+            "riopt": "hider:pixelfiltermode",
+            "label": "Filter Mode",
+            "type": "string",
+            "widget": "popup",
+            "default": "importance",
+            "options": "weighted|importance",
+            "connectable": false,
+            "help": "Weighted mode converges faster (because it smoothes variance) but importance MUST be used if the image will be denoised. NOTE: importance will automatically be selected if you enable denoising in the AOV tab of the Globals."
+        },        
+        {
             "panel": "RENDER_PT_renderman_sampling",
             "page": "",
             "name": "adaptiveMetric",
