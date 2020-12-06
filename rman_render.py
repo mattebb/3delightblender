@@ -862,7 +862,7 @@ class RmanRender(object):
             rfb_log().error("Could not save snapshot.")
             return
 
-        nm = 'rman_viewport_snapshot_{F4}_%d' % len(bpy.data.images)
+        nm = 'rman_viewport_snapshot_<F4>_%d' % len(bpy.data.images)
         nm = string_utils.expand_string(nm, frame=frame)
         img = bpy.data.images.new(nm, width, height, float_buffer=True, alpha=True)                
         img.pixels = pixels
