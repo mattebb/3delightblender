@@ -80,7 +80,7 @@ class PRMAN_OT_RendermanBakeSelectedBrickmap(bpy.types.Operator):
 
     def invoke(self, context, event=None):
         ob = context.object
-        self.properties.filename = '%s.{F4}.ptc' % ob.name
+        self.properties.filename = '%s.<F4>.ptc' % ob.name
         context.window_manager.fileselect_add(self)
         return{'RUNNING_MODAL'}         
 

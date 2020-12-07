@@ -658,10 +658,30 @@ class RmanRender(object):
     def start_export_rib_selected(self, context, rib_path, export_materials=True, export_all_frames=False):
 
         self.rman_running = True  
-        self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList())     
-        self.rman_scene.export_for_rib_selection(context, self.sg_scene)
-        self.sg_scene.Render("rib " + rib_path + " -archive")
-        self.sgmngr.DeleteScene(self.sg_scene)
+        bl_scene = context.scene
+        if export_all_frames:
+            original_frame = bl_scene.frame_current
+            rfb_log().debug("Writing to RIB...")             
+            for frame in range(bl_scene.frame_start, bl_scene.frame_end + 1):        
+                bl_scene.frame_set(frame, subframe=0.0)
+                self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList())     
+                self.rman_scene.export_for_rib_selection(context, self.sg_scene)
+                rib_output = string_utils.expand_string(rib_path, 
+                                                    frame=frame, 
+                                                    asFilePath=True) 
+                self.sg_scene.Render("rib " + rib_output + " -archive")
+                self.sgmngr.DeleteScene(self.sg_scene)
+            bl_scene.frame_set(original_frame, subframe=0.0)    
+        else:
+            self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList())     
+            self.rman_scene.export_for_rib_selection(context, self.sg_scene)
+            rib_output = string_utils.expand_string(rib_path, 
+                                                frame=bl_scene.frame_current, 
+                                                asFilePath=True) 
+            self.sg_scene.Render("rib " + rib_output + " -archive")
+            self.sgmngr.DeleteScene(self.sg_scene)            
+
+
         self.sg_scene = None
         self.rman_running = False        
         return True                 

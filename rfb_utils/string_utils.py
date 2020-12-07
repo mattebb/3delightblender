@@ -34,7 +34,7 @@ class SceneStringConverter(object):
         Kwargs:
         - display (str): The display being considered. This is necessary if your
         expression contains <aov> or <ext>
-        - frame (int): An optional frame number to expand {F}, {F4}, etc.
+        - frame (int): An optional frame number to expand <F>, <F4>, etc.
 
         Returns:
         - The expanded string

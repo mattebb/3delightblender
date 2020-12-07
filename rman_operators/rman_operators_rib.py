@@ -89,6 +89,11 @@ class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
         subtype="FILE_NAME",
         default="")
 
+    filter_glob: bpy.props.StringProperty(
+        default="*.rib",
+        options={'HIDDEN'},
+        )            
+
     @classmethod
     def poll(cls, context):
         return context.object is not None
@@ -101,9 +106,6 @@ class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
             export_mats = self.export_mat
             rman_render = RmanRender.get_rman_render()
             if not rman_render.rman_interactive_running:
-                tokens = os.path.splitext(export_path)
-                if tokens[-1] != '.rib':
-                    export_path = '%s.rib' % tokens[0]
                 rman_render.start_export_rib_selected(context, export_path, export_materials=export_mats, export_all_frames=export_range)
             else:
                 self.report({"ERROR"}, "Viewport rendering is on.")
@@ -114,7 +116,8 @@ class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
         return {'FINISHED'}
 
     def invoke(self, context, event=None):
-
+        ob = context.object
+        self.properties.filename = '%s.<F4>.rib' % ob.name
         context.window_manager.fileselect_add(self)
         return{'RUNNING_MODAL'}        
 
