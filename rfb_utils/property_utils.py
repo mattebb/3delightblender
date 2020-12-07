@@ -547,7 +547,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                             elif 'ies' in options:
                                 val = string_utils.expand_string(val, display='ies', asFilePath=True)
                             # this is a texture
-                            elif ('texture' in options) or ('env' in options):
+                            elif ('texture' in options) or ('env' in options) or ('imageplane' in options):
                                 tx_node_id = texture_utils.generate_node_id(node, param_name, ob=ob)
                                 tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
                                 val = tx_val if tx_val != '' else val
