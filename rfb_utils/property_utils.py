@@ -195,6 +195,26 @@ def get_output_param_str(node, mat_name, socket, to_socket=None, param_type=''):
 def is_vstruct_or_linked(node, param):
     meta = node.prop_meta[param]
 
+    vstructmember = meta.get('vsturctmember', None)
+    input_node = node.inputs.get('param', None)
+    if not vstructmember:
+        if input_node:
+            return input_node.is_linked
+        else:
+            return False
+
+    if input_node:
+        return input_node.is_linked
+    else:
+        vstruct_name, vstruct_member = meta['vstructmember'].split('.')
+        if node.inputs[vstruct_name].is_linked:
+            from_socket = node.inputs[vstruct_name].links[0].from_socket
+            vstruct_from_param = "%s_%s" % (
+                from_socket.identifier, vstruct_member)
+            return vstruct_conditional(from_socket.node, vstruct_from_param)
+        else:
+            return False            
+    '''
     if 'vstructmember' not in meta.keys():
         return node.inputs[param].is_linked
     elif param in node.inputs and node.inputs[param].is_linked:
@@ -208,6 +228,7 @@ def is_vstruct_or_linked(node, param):
             return vstruct_conditional(from_socket.node, vstruct_from_param)
         else:
             return False
+    '''
 
 # tells if this param has a vstuct connection that is linked and
 # conditional met
