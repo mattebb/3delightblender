@@ -58,7 +58,14 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         col.enabled = not is_rman_interactive_running
 
         col.prop(rm, "render_into", text='Render To')
-        if not is_ncr:         
+        '''
+        if rm.render_into == "blender":
+            col2 = layout.column()
+            col2.prop(rm, "blender_optix_denoiser")
+        '''
+        if not is_ncr:        
+            col = layout.column()
+            col.enabled = not is_rman_interactive_running             
             col.prop(rm, "renderVariant", text='Renderer')
             col.prop(rm, "render_rman_stylized", text='Stylized Render')
 

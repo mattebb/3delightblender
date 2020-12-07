@@ -49,6 +49,18 @@
         {
             "panel": "",
             "page": "",
+            "name": "blender_optix_denoiser",
+            "label": "Use Optix Denoiser",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "help": "Denoise with OptiX denoiser",
+            "update_function_name": "update_blender_optix_denoiser",
+            "update_function": "def update_blender_optix_denoiser(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_displays(context)"
+        },         
+        {
+            "panel": "",
+            "page": "",
             "name": "renderVariant",
             "label": "Renderer",
             "type": "string",

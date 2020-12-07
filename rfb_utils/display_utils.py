@@ -168,6 +168,10 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
         param_list = rman_scene.rman.Types.ParamList()
         param_list.SetInteger('asrgba', 1)
 
+    if display_driver == 'blender' and rm.blender_optix_denoiser:   
+        param_list = rman_scene.rman.Types.ParamList()     
+        param_list.SetInteger("use_optix_denoiser", 1)        
+
     # add beauty (Ci,a)
     dspy_params = {}                        
     dspy_params['displayChannels'] = []
@@ -196,7 +200,7 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
         'camera': None,
         'bake_mode': None,            
         'params': dspy_params,
-        'dspyDriverParams': None}
+        'dspyDriverParams': param_list}
 
     if display_driver == 'blender' and rman_scene.is_viewport_render:
             display_driver = 'null'
@@ -273,7 +277,7 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
             'camera': None, 
             'bake_mode': None,                
             'params': dspy_params,
-            'dspyDriverParams': None}     
+            'dspyDriverParams': param_list}     
 
 def _get_real_chan_name(chan):
     """ Get the real channel name
@@ -334,6 +338,8 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             dspy_params['displayChannels'].append(chan.channel_name)
 
         param_list = None
+        aov_denoise = aov.denoise
+        aov_denoise_mode = aov.denoise_mode
         if rman_scene.rman_bake:
             if rm.rman_bake_illum_mode == '3D':
                 display_driver = 'pointcloud'
@@ -353,6 +359,9 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             if rman_scene.is_viewport_render:
                 if aov.name != 'beauty':
                     display_driver = 'null'   
+            if display_driver == 'blender' and rm.blender_optix_denoiser:
+                param_list = rman_scene.rman.Types.ParamList()
+                param_list.SetInteger("use_optix_denoiser", 1)
 
         if rman_scene.rman_bake:            
             filePath = rm.path_bake_illum_ptc
@@ -403,8 +412,8 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
                 dspys_dict['displays'][dspy_name] = {
                     'driverNode': display_driver,
                     'filePath': new_file_path,
-                    'denoise': aov.denoise,
-                    'denoise_mode': aov.denoise_mode,
+                    'denoise': aov_denoise,
+                    'denoise_mode': aov_denoise_mode,
                     'camera': aov.camera,
                     'bake_mode': aov.aov_bake,
                     'params': new_dspy_params,
@@ -414,14 +423,14 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             dspys_dict['displays'][aov.name] = {
                 'driverNode': display_driver,
                 'filePath': filePath,
-                'denoise': aov.denoise,
-                'denoise_mode': aov.denoise_mode,
+                'denoise': aov_denoise,
+                'denoise_mode': aov_denoise_mode,
                 'camera': aov.camera,
                 'bake_mode': aov.aov_bake,
                 'params': dspy_params,
                 'dspyDriverParams': param_list }
 
-        if aov.denoise and display_driver == 'openexr' and not rman_scene.is_interactive:
+        if aov_denoise and display_driver == 'openexr' and not rman_scene.is_interactive:
             _add_denoiser_channels(dspys_dict, dspy_params)
 
         if aov.name == 'beauty' and rman_scene.is_interactive:
