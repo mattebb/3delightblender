@@ -262,13 +262,17 @@ class NODE_MT_renderman_connection_menu(Menu):
             self.draw_output_node_menu(context)
         else:
             if socket.is_linked:        
-                out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
-                layout.context_pointer_set("node", out_node)
-                layout.context_pointer_set("nodetree", nt)      
-                rman_icon = rfb_icons.get_icon('rman_solo_on')
-                op = layout.operator('node.rman_set_node_solo', text='Solo Input Node', icon_value=rman_icon.icon_id)
-                op.refresh_solo = False
-                op.solo_node_name = socket.links[0].from_node.name            
+                prop_name = socket.name
+                prop_meta = node.prop_meta[prop_name]
+                vstruct = prop_meta.get('vstruct', False)
+                if not vstruct and prop_name != 'inputMaterial':                
+                    out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
+                    layout.context_pointer_set("node", out_node)
+                    layout.context_pointer_set("nodetree", nt)      
+                    rman_icon = rfb_icons.get_icon('rman_solo_on')
+                    op = layout.operator('node.rman_set_node_solo', text='Solo Input Node', icon_value=rman_icon.icon_id)
+                    op.refresh_solo = False
+                    op.solo_node_name = socket.links[0].from_node.name            
             layout.separator()   
             if hasattr(node, 'prop_meta'):
                 self.draw_patterns_menu(context)

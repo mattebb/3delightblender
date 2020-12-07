@@ -173,6 +173,8 @@ def find_selected_pattern_node(ntree):
     for n in ntree.nodes:
         node_type = getattr(n, 'renderman_node_type', '')
         if n.select and node_type == 'pattern':
+            if n.bl_label in ['PxrLayer', 'PxrLayerMixer']:
+                continue
             selected_node = n
             break    
     return selected_node
