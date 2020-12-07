@@ -241,10 +241,10 @@ class RmanScene(object):
         
         self.depsgraph = context.evaluated_depsgraph_get()
         self.export_root_sg_node()
-        ob = context.active_object
+        objs = context.selected_objects
         self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])
-        self.export_data_blocks([ob])
-        self.export_instances(obj_selected=ob)
+        self.export_data_blocks(objs)
+        self.export_instances(obj_selected=objs)
 
     def export_for_swatch_render(self, depsgraph, sg_scene):
         self.sg_scene = sg_scene
@@ -737,17 +737,18 @@ class RmanScene(object):
                     rman_group_translator.update_transform(ob_inst, rman_sg_group)
 
     def export_instances(self, obj_selected=None):
-        objFound = False
         total = len(self.depsgraph.object_instances)
+        obj_selected_names = []
+        if obj_selected:
+            obj_selected_names = [o.name for o in obj_selected]
         for i, ob_inst in enumerate(self.depsgraph.object_instances):
             if obj_selected:
-                if objFound:
-                    break
+                objFound = False
 
                 if ob_inst.is_instance:
-                    if ob_inst.instance_object.name == obj_selected:
+                    if ob_inst.instance_object.name in obj_selected_names:
                         objFound = True
-                elif ob_inst.object.name == obj_selected.name:
+                elif ob_inst.object.name in obj_selected_names:
                         objFound = True
 
                 if not objFound:

@@ -51,8 +51,8 @@ class PRMAN_OT_Open_Selected_RIB(bpy.types.Operator):
         return context.object is not None
 
     def invoke(self, context, event=None):
-        ob = context.active_object
-        if ob:
+        selected_objects = context.selected_objects
+        if selected_objects:
             temp_dir = prefs_utils.get_bl_temp_dir()
             rib_output = os.path.join(temp_dir, 'selected.rib')
             rman_render = RmanRender.get_rman_render()
@@ -94,13 +94,16 @@ class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
         return context.object is not None
 
     def execute(self, context):
-        ob = context.active_object
-        if ob:
+        selected_objects = context.selected_objects
+        if selected_objects:
             export_path = self.filepath
             export_range = self.export_all_frames
             export_mats = self.export_mat
             rman_render = RmanRender.get_rman_render()
             if not rman_render.rman_interactive_running:
+                tokens = os.path.splitext(export_path)
+                if tokens[-1] != '.rib':
+                    export_path = '%s.rib' % tokens[0]
                 rman_render.start_export_rib_selected(context, export_path, export_materials=export_mats, export_all_frames=export_range)
             else:
                 self.report({"ERROR"}, "Viewport rendering is on.")
