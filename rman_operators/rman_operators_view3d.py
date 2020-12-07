@@ -99,9 +99,11 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
 
         if self.properties.rman_open_filebrowser:
             if self.properties.rman_prim_type == 'DELAYED_LOAD_ARCHIVE':
-                self.properties.filter_glob = ".rib"     
+                self.properties.filter_glob = "*.rib"     
             elif self.properties.rman_prim_type  == 'BRICKMAP': 
                 self.properties.filter_glob = "*.bkm"
+            elif self.properties.rman_prim_type  == 'DYNAMIC_LOAD_DSO': 
+                self.properties.filter_glob = "*.so;*.dll"                
             elif self.properties.bl_prim_type == 'VOLUME':
                 self.properties.filter_glob = "*.vdb"
             context.window_manager.fileselect_add(self)
