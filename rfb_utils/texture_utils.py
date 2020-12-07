@@ -55,8 +55,7 @@ class RfBTxManager(object):
             pass
         from .. import rman_render
         rr = rman_render.RmanRender.get_rman_render()
-        if rr.rman_interactive_running:
-            rr.rman_scene_sync.texture_updated(nodeID)
+        rr.rman_scene_sync.texture_updated(nodeID)
 
     def get_txfile_from_id(self, nodeID):
         txfile = self.txmanager.get_txfile_from_id(nodeID)

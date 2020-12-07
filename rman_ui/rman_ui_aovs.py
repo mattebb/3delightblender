@@ -540,8 +540,7 @@ class PRMAN_OT_Renderman_Displays_Reload(Operator):
 
     def execute(self, context):     
         rman_render = RmanRender.get_rman_render()   
-        if rman_render.rman_interactive_running:         
-            rman_render.rman_scene_sync.update_displays(context) 
+        rman_render.rman_scene_sync.update_displays(context) 
 
         return {"FINISHED"}   
 

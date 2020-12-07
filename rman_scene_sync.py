@@ -27,7 +27,15 @@ class RmanSceneSync(object):
         self.rman_render = rman_render
         self.rman = rman_render.rman
         self.rman_scene = rman_scene
-        self.sg_scene = sg_scene          
+        self.sg_scene = sg_scene        
+
+    @property
+    def sg_scene(self):
+        return self.__sg_scene
+
+    @sg_scene.setter
+    def sg_scene(self, sg_scene):
+        self.__sg_scene = sg_scene          
 
     def update_view(self, context, depsgraph):
         camera = depsgraph.scene.camera
@@ -487,6 +495,8 @@ class RmanSceneSync(object):
                             self.rman_scene.default_light.SetHidden(0)                      
 
     def update_cropwindow(self, cropwindow=None):
+        if not self.rman_render.rman_interactive_running:
+            return
         if cropwindow:
             with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene): 
                 options = self.rman_scene.sg_scene.GetOptions()
@@ -494,6 +504,8 @@ class RmanSceneSync(object):
                 self.rman_scene.sg_scene.SetOptions(options)           
 
     def update_integrator(self, context):
+        if not self.rman_render.rman_interactive_running:
+            return        
         if context:
             self.rman_scene.bl_scene = context.scene
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
@@ -501,6 +513,8 @@ class RmanSceneSync(object):
             self.rman_scene.export_viewport_stats()
 
     def update_viewport_integrator(self, context, integrator):
+        if not self.rman_render.rman_interactive_running:
+            return        
         self.rman_scene.bl_scene = context.scene
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
             integrator_sg = self.rman_scene.rman.SGManager.RixSGShader("Integrator", integrator, "integrator")       
@@ -508,6 +522,8 @@ class RmanSceneSync(object):
             self.rman_scene.export_viewport_stats(integrator=integrator)  
 
     def update_viewport_res_mult(self, context):
+        if not self.rman_render.rman_interactive_running:
+            return        
         if not self.rman_scene.is_viewport_render:
             return         
         if context:
@@ -521,12 +537,16 @@ class RmanSceneSync(object):
             self.rman_scene.export_viewport_stats()                  
 
     def update_hider_options(self, context):
+        if not self.rman_render.rman_interactive_running:
+            return        
         self.rman_scene.bl_scene = context.scene
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
             self.rman_scene.export_hider()
             self.rman_scene.export_viewport_stats()
  
     def update_material(self, mat):
+        if not self.rman_render.rman_interactive_running:
+            return        
         rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
         if not rman_sg_material:
             return
@@ -543,6 +563,8 @@ class RmanSceneSync(object):
             self._mesh_light_update(mat)    
 
     def update_light(self, ob):
+        if not self.rman_render.rman_interactive_running:
+            return        
         rman_sg_light = self.rman_scene.rman_objects.get(ob.original, None)
         if not rman_sg_light:
             return
@@ -551,6 +573,8 @@ class RmanSceneSync(object):
             translator.update(ob, rman_sg_light)         
 
     def update_light_filter(self, ob):
+        if not self.rman_render.rman_interactive_running:
+            return        
         rman_sg_node = self.rman_scene.rman_objects.get(ob.original, None)
         if not rman_sg_node:
             return
@@ -564,6 +588,8 @@ class RmanSceneSync(object):
                     self.rman_scene.rman_translators['LIGHT'].update_light_filters(light_ob, rman_sg_light)                    
 
     def update_solo_light(self, context):
+        if not self.rman_render.rman_interactive_running:
+            return        
         # solo light has changed
         self.rman_scene.bl_scene = context.scene
         self.rman_scene.scene_solo_light = self.rman_scene.bl_scene.renderman.solo_light
@@ -583,6 +609,8 @@ class RmanSceneSync(object):
                     rman_sg_node.sg_node.SetHidden(1)  
 
     def update_un_solo_light(self, context):
+        if not self.rman_render.rman_interactive_running:
+            return        
         # solo light has changed
         self.rman_scene.bl_scene = context.scene
         self.rman_scene.scene_solo_light = self.rman_scene.bl_scene.renderman.solo_light
@@ -598,16 +626,22 @@ class RmanSceneSync(object):
                 rman_sg_node.sg_node.SetHidden(light_ob.hide_get())         
 
     def update_viewport_chan(self, context, chan_name):
+        if not self.rman_render.rman_interactive_running:
+            return        
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
             self.rman_scene.export_samplefilters(sel_chan_name=chan_name)
 
     def update_displays(self, context):
+        if not self.rman_render.rman_interactive_running:
+            return        
         self.rman_scene.bl_scene = context.scene    
         self.rman_scene._find_renderman_layer()
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
             self.rman_scene.export_displays()         
 
     def texture_updated(self, nodeID):
+        if not self.rman_render.rman_interactive_running:
+            return        
         if nodeID == '':
             return
         tokens = nodeID.split('|')

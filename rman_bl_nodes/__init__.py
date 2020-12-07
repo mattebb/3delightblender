@@ -247,8 +247,7 @@ def update_func(self, context):
 
 def update_integrator_func(self, context):
     rr = rman_render.RmanRender.get_rman_render()
-    if rr.rman_interactive_running:
-        rr.rman_scene_sync.update_integrator(context)    
+    rr.rman_scene_sync.update_integrator(context)    
 
 def class_generate_properties(node, parent_name, node_desc):
     prop_names = []

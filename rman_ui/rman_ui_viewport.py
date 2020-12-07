@@ -102,8 +102,7 @@ class PRMAN_OT_Viewport_Integrators(bpy.types.Operator):
 
     def execute(self, context):
         rman_render = RmanRender.get_rman_render()
-        if rman_render.rman_interactive_running:
-            rman_render.rman_scene_sync.update_viewport_integrator(context, self.viewport_integrator)
+        rman_render.rman_scene_sync.update_viewport_integrator(context, self.viewport_integrator)
 
         return {"FINISHED"}    
 
@@ -120,10 +119,9 @@ class PRMAN_OT_Viewport_Refinement(bpy.types.Operator):
 
     def execute(self, context):
         rman_render = RmanRender.get_rman_render()
-        if rman_render.rman_interactive_running:
-            rm = context.scene.renderman
-            rm.hider_decidither = int(self.viewport_hider_decidither)
-            rman_render.rman_scene_sync.update_hider_options(context) 
+        rm = context.scene.renderman
+        rm.hider_decidither = int(self.viewport_hider_decidither)
+        rman_render.rman_scene_sync.update_hider_options(context) 
 
         return {"FINISHED"}        
 
@@ -140,11 +138,10 @@ class PRMAN_OT_Viewport_Resolution_Mult(bpy.types.Operator):
 
     def execute(self, context):
         rman_render = RmanRender.get_rman_render()
-        if rman_render.rman_interactive_running:
-            bpy.ops.renderman_viewport.cropwindow_reset()
-            get_crop_helper().crop_windowing = False
-            rman_render.rman_scene.viewport_render_res_mult = float(self.viewport_res_mult)
-            rman_render.rman_scene_sync.update_viewport_res_mult(context) 
+        bpy.ops.renderman_viewport.cropwindow_reset()
+        get_crop_helper().crop_windowing = False
+        rman_render.rman_scene.viewport_render_res_mult = float(self.viewport_res_mult)
+        rman_render.rman_scene_sync.update_viewport_res_mult(context) 
 
         return {"FINISHED"}       
 
@@ -161,8 +158,7 @@ class PRMAN_OT_Viewport_Channel_Selector(bpy.types.Operator):
 
     def execute(self, context):
         rman_render = RmanRender.get_rman_render()
-        if rman_render.rman_interactive_running:
-            rman_render.rman_scene_sync.update_viewport_chan(context, self.properties.channel_name) 
+        rman_render.rman_scene_sync.update_viewport_chan(context, self.properties.channel_name) 
 
         return {"FINISHED"}                                                            
 
@@ -174,9 +170,8 @@ class PRMAN_OT_Viewport_Snapshot(bpy.types.Operator):
 
     def execute(self, context):
         rman_render = RmanRender.get_rman_render()
-        if rman_render.rman_interactive_running:
-            scene = context.scene
-            rman_render.save_viewport_snapshot(frame=scene.frame_current)        
+        scene = context.scene
+        rman_render.save_viewport_snapshot(frame=scene.frame_current)        
 
         return {"FINISHED"}  
 

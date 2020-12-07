@@ -187,7 +187,7 @@ class RmanRender(object):
         self.rman = rman
         self.sg_scene = None
         self.rman_scene = RmanScene(rman_render=self)
-        self.rman_scene_sync = None
+        self.rman_scene_sync = RmanSceneSync(rman_render=self, rman_scene=self.rman_scene)
         self.bl_engine = None
         self.rman_running = False
         self.rman_interactive_running = False
@@ -586,7 +586,7 @@ class RmanRender(object):
         config = rman.Types.RtParamList()
         config.SetString("rendervariant", get_render_variant(self.bl_scene))      
         self.sg_scene = self.sgmngr.CreateScene(config) 
-        self.rman_scene_sync = RmanSceneSync(rman_render=self, rman_scene=self.rman_scene, sg_scene=self.sg_scene)
+        self.rman_scene_sync.sg_scene = self.sg_scene
         rfb_log().info("Parsing scene...")        
         self.rman_scene.export_for_interactive_render(context, depsgraph, self.sg_scene)
 
@@ -717,7 +717,6 @@ class RmanRender(object):
         self.rman_swatch_render_running = False
         self.rman_is_viewport_rendering = False
         self.sg_scene = None
-        self.rman_scene_sync = None
         self.rman_scene.reset()
         self.viewport_buckets.clear()
         self.draw_viewport_buckets = False                
