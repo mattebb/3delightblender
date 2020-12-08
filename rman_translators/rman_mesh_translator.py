@@ -98,24 +98,18 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
             rixparams.SetFloatArrayDetail("st", uvs, 2, interpolation)
 
     if rm.export_default_vcol:
-        pass
-        '''
         vcols = _get_mesh_vcol_(geo)
         if vcols and len(vcols) > 0:
             rixparams.SetColorDetail("Cs", string_utils.convert_val(vcols, type_hint="color"), "vertex")
-        '''
     
     # custom prim vars
 
     for p in rm.prim_vars:
         if p.data_source == 'VERTEX_COLOR':
-            pass
-            '''
             vcols = _get_mesh_vcol_(geo, p.data_name)
             
             if vcols and len(vcols) > 0:
                 rixparams.SetColorDetail(p.name, string_utils.convert_val(vcols, type_hint="color"), "vertex")
-            '''
             
         elif p.data_source == 'UV_TEXTURE':
             uvs = _get_mesh_uv_(geo, p.data_name)
