@@ -6,6 +6,10 @@ def get_addon_prefs():
         addon = bpy.context.preferences.addons[RFB_PREFS_NAME]
         return addon.preferences
     except:
+        # try looking for all variants of RFB_PREFS_NAME
+        for k, v in bpy.context.preferences.addons.items():
+            if RFB_PREFS_NAME in k:
+                return v
         return None
 
 def get_pref(pref_name='', default=None):
