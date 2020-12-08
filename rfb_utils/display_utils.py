@@ -162,6 +162,7 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
     rm = rman_scene.bl_scene.renderman
     display_driver = dspy_drv
     param_list = None
+    aov_denoise = False
 
     if not display_driver:
         display_driver = __BLENDER_TO_RMAN_DSPY__.get(rman_scene.bl_scene.render.image_settings.file_format, 'openexr')
@@ -169,6 +170,7 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
         param_list.SetInteger('asrgba', 1)
 
     if display_driver == 'blender' and rm.blender_optix_denoiser:   
+        aov_denoise = True
         param_list = rman_scene.rman.Types.ParamList()     
         param_list.SetInteger("use_optix_denoiser", 1)        
 
@@ -195,7 +197,7 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
     dspys_dict['displays']['beauty'] = {
         'driverNode': display_driver,
         'filePath': filePath,
-        'denoise': False,
+        'denoise': aov_denoise,
         'denoise_mode': 'singleframe',
         'camera': None,
         'bake_mode': None,            
@@ -272,7 +274,7 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
             dspys_dict['displays'][name] = {
             'driverNode': display_driver,
             'filePath': filePath,
-            'denoise': False,
+            'denoise': aov_denoise,
             'denoise_mode': 'singleframe',  
             'camera': None, 
             'bake_mode': None,                
@@ -360,6 +362,7 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
                 if aov.name != 'beauty':
                     display_driver = 'null'   
             if display_driver == 'blender' and rm.blender_optix_denoiser:
+                aov_denoise = True
                 param_list = rman_scene.rman.Types.ParamList()
                 param_list.SetInteger("use_optix_denoiser", 1)
 
