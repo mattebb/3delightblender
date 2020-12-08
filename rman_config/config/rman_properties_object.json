@@ -56,7 +56,21 @@
         },
         {
             "panel": "OBJECT_PT_renderman_object_geometry_quadric",
-            "name": "quadric_height",
+            "name": "quadric_cone_height",
+            "label": "Height",
+            "type": "float",
+            "default": 1.0,
+            "page": "",
+            "help": "Height offset above XY plane",
+            "conditionalVisOps": {
+                "conditionalVisOp": "in",
+                "conditionalVisPath": "rman_quadric_type",
+                "conditionalVisValue": "CONE"
+            }
+        },   
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_quadric",
+            "name": "quadric_disk_height",
             "label": "Height",
             "type": "float",
             "default": 0.0,
@@ -65,9 +79,9 @@
             "conditionalVisOps": {
                 "conditionalVisOp": "in",
                 "conditionalVisPath": "rman_quadric_type",
-                "conditionalVisValue": "CONE,DISK"
+                "conditionalVisValue": "DISK"
             }
-        },   
+        },           
         {
             "panel": "OBJECT_PT_renderman_object_geometry_quadric",
             "name": "quadric_radius",

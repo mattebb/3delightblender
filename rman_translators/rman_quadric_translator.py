@@ -41,13 +41,13 @@ class RmanQuadricTranslator(RmanTranslator):
         elif quadric_type == 'CONE':
             rman_sg_quadric.sg_node.SetGeometry(self.rman_scene.rman.Tokens.Rix.k_Ri_Cone)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_radius, rm.quadric_radius)
-            primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_height, rm.quadric_height)
+            primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_height, rm.quadric_cone_height)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_thetamax, rm.quadric_sweepangle)
 
         elif quadric_type == 'DISK':
             rman_sg_quadric.sg_node.SetGeometry(self.rman_scene.rman.Tokens.Rix.k_Ri_Disk)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_radius, rm.quadric_radius)
-            primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_height, rm.quadric_height)
+            primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_height, rm.quadric_disk_height)
             primvar.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_thetamax, rm.quadric_sweepangle)
 
         elif quadric_type == 'TORUS':

@@ -62,9 +62,7 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
             rm.rman_quadric_type = self.properties.rman_quadric_type 
             ob.name = 'Ri%s' % rm.rman_quadric_type.capitalize()
             if rm.rman_quadric_type == 'SPHERE':
-                ob.empty_display_type = 'SPHERE'
-            elif rm.rman_quadric_type == 'CONE':
-                ob.empty_display_type = 'CONE'       
+                ob.empty_display_type = 'SPHERE'  
         else:
             if self.properties.rman_default_name != '':
                 ob.name = self.properties.rman_default_name     
