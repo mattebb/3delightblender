@@ -92,13 +92,13 @@ __RMAN_NODES_NO_REGISTER__ = [
 ]
 
 if filepath_utils.is_ncr_license():
-    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedHatchingDisplayFilter.args")
-    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedLinesDisplayFilter.args")
-    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedToonDisplayFilter.args")
-    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedPattern.oso")
+    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedHatching.args")
+    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedLines.args")
+    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedToon.args")
+    __RMAN_NODES_NO_REGISTER__.append("PxrStylizedControl.oso")
 
 # map RenderMan name to Blender node name
-# ex: PxrStylizedPattern -> PxrStylizedPatternPatternOSLNode
+# ex: PxrStylizedControl -> PxrStylizedControlPatternOSLNode
 __BL_NODES_MAP__ = dict()
 
 __RMAN_NODES_ALREADY_REGISTERED__ = False

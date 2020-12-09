@@ -1,8 +1,8 @@
 {
     "name": "Charcoal",
     "patterns": {
-        "PxrStylizedPattern": {
-            "node": "PxrStylizedPattern",
+        "PxrStylizedControl": {
+            "node": "PxrStylizedControl",
             "params": {
                 "lineThickness": {
                     "type": "float",
@@ -13,7 +13,7 @@
     },
     "display_filters": {
         "rman_Charcoal_hatching": {
-            "node": "PxrStylizedHatchingDisplayFilter",
+            "node": "PxrStylizedHatching",
             "params": {
                 "hatchingTex1": {
                     "type": "string",
@@ -54,7 +54,7 @@
             }
         },
         "rman_Charcoal_lines": {
-            "node": "PxrStylizedLinesDisplayFilter",
+            "node": "PxrStylizedLines",
             "params": {
                 "lineThickness": {
                     "type": "float",

@@ -28,12 +28,12 @@ RFB_VIEWPORT_MAX_BUCKETS = 10
 RFB_PREFS_NAME = "RenderManForBlender"
 
 RMAN_STYLIZED_FILTERS = [
-    "PxrStylizedHatchingDisplayFilter",
-    "PxrStylizedLinesDisplayFilter",
-    "PxrStylizedToonDisplayFilter"
+    "PxrStylizedHatching",
+    "PxrStylizedLines",
+    "PxrStylizedToon"
 ]    
 
-RMAN_STYLIZED_PATTERN = "PxrStylizedPattern"
+RMAN_STYLIZED_PATTERN = "PxrStylizedControl"
 RMAN_UTILITY_PATTERN_NAME = "utilityPattern"
 
 # special string to indicate an empty string
