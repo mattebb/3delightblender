@@ -21,6 +21,7 @@ from .rman_translators.rman_nurbs_translator import RmanNurbsTranslator
 from .rman_translators.rman_volume_translator import RmanVolumeTranslator
 from .rman_translators.rman_brickmap_translator import RmanBrickmapTranslator
 from .rman_translators.rman_emitter_translator import RmanEmitterTranslator
+from .rman_translators.rman_empty_translator import RmanEmptyTranslator
 
 # utils
 from .rfb_utils import object_utils
@@ -130,6 +131,7 @@ class RmanScene(object):
         self.rman_translators['MATERIAL'] = RmanMaterialTranslator(rman_scene=self)       
         self.rman_translators['HAIR'] = RmanHairTranslator(rman_scene=self) 
         self.rman_translators['GROUP'] = RmanGroupTranslator(rman_scene=self)
+        self.rman_translators['EMPTY'] = RmanEmptyTranslator(rman_scene=self)
         self.rman_translators['POINTS'] = RmanPointsTranslator(rman_scene=self)
         self.rman_translators['META'] = RmanBlobbyTranslator(rman_scene=self)
         self.rman_translators['PARTICLES'] = RmanParticlesTranslator(rman_scene=self)
@@ -671,6 +673,19 @@ class RmanScene(object):
                 rman_sg_node = rman_group_translator.export(ob, empty_db_name)
                 self.rman_objects[ob.original] = rman_sg_node
         else:
+            if rman_type == 'EMPTY':
+                # this is just a regular empty object.
+                rman_sg_node = self.rman_objects.get(ob.original, None)
+                if rman_sg_node:      
+                    translator = self.rman_translators.get(rman_type, None)          
+                    translator.export_object_attributes(ob, rman_sg_node)  
+                    self.attach_material(ob, rman_sg_node)
+                    if ob.parent and object_utils._detect_primitive_(ob.parent) == 'EMPTY':
+                        rman_empty_node = self.rman_objects.get(ob.parent.original)
+                        rman_empty_node.sg_node.AddChild(rman_sg_node.sg_node)
+                    else:
+                        self.get_root_sg_node().AddChild(rman_sg_node.sg_node)
+                    return
 
             if rman_type == "META":
                 # only add the meta instance that matches the family name
@@ -709,7 +724,12 @@ class RmanScene(object):
                 rman_sg_group.sg_node.AddChild(rman_sg_node.sg_node)
                 rman_sg_group.rman_sg_node_instance = rman_sg_node
 
-                self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
+                if ob.parent and object_utils._detect_primitive_(ob.parent) == 'EMPTY':
+                    # this object is a child of an empty. Add it to the empty.
+                    rman_empty_node = self.rman_objects.get(ob.parent.original)
+                    rman_empty_node.sg_node.AddChild(rman_sg_group.sg_node)
+                else:
+                    self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
 
                 # add this instance to rman_sg_node
                 rman_sg_node.instances[group_db_name] = rman_sg_group                     
