@@ -1,6 +1,7 @@
 from ..rfb_utils import transform_utils
 from ..rfb_utils import property_utils
 from ..rfb_utils import string_utils
+from ..rfb_utils import object_utils
 import os
 
 class RmanTranslator(object):
@@ -150,10 +151,12 @@ class RmanTranslator(object):
         lightfilter_subset = []
 
         for subset in rm.rman_lighting_excludesubset:
-            exclude_subset.append(subset.light_ob.name)
+            nm = object_utils.sanitize_node_name(subset.light_ob.name)
+            exclude_subset.append(nm)
 
         for subset in rm.rman_lightfilter_subset:
-            lightfilter_subset.append(subset.light_ob.name)            
+            nm = object_utils.sanitize_node_name(subset.light_ob.name)
+            lightfilter_subset.append(nm)            
 
         if exclude_subset:
             attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_lighting_excludesubset, ' '. join(exclude_subset) )
