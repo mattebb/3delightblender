@@ -441,22 +441,22 @@ class RendermanSamplefiltersOutputNode(RendermanShadingNode):
             node_tree.nodes.remove(old_node)
         self.inputs.remove( socket )
 
+    def remove_input_index(self, socket):
+        self.inputs.remove( socket )   
+        for i,socket in enumerate(self.inputs):
+            socket.name = 'samplefilter[%d]' % i
+                 
+
     def draw_buttons(self, context, layout):
         row = layout.row(align=True)
         col = row.column()
         col.operator('node.rman_add_samplefilter_node_socket', text='Add')
-        col = row.column()
-        col.enabled = len(self.inputs) > 1
-        col.operator('node.rman_remove_samplefilter_node_socket', text='Remove')
         return
 
     def draw_buttons_ext(self, context, layout):
         row = layout.row(align=True)
         col = row.column()
-        col.operator('node.rman_add_samplefilter_node_socket', text='Add')
-        col = row.column()
-        col.enabled = len(self.inputs) > 1
-        col.operator('node.rman_remove_samplefilter_node_socket', text='Remove')      
+        col.operator('node.rman_add_samplefilter_node_socket', text='Add')    
         return
 
     def insert_link(self, link):
@@ -500,24 +500,23 @@ class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
             old_node = socket.links[0].from_node
             node_tree = self.id_data
             node_tree.nodes.remove(old_node)
-        self.inputs.remove( socket )        
+        self.inputs.remove( socket ) 
+
+    def remove_input_index(self, socket):
+        self.inputs.remove( socket )  
+        for i,socket in enumerate(self.inputs):
+            socket.name = 'displayfilter[%d]' % i                            
 
     def draw_buttons(self, context, layout):
         row = layout.row(align=True)
         col = row.column()
-        col.operator('node.rman_add_displayfilter_node_socket', text='Add')
-        col = row.column()
-        col.enabled = len(self.inputs) > 1
-        col.operator('node.rman_remove_displayfilter_node_socket', text='Remove')        
+        col.operator('node.rman_add_displayfilter_node_socket', text='Add')    
         return
 
     def draw_buttons_ext(self, context, layout):
         row = layout.row(align=True)
         col = row.column()
         col.operator('node.rman_add_displayfilter_node_socket', text='Add')
-        col = row.column()
-        col.enabled = len(self.inputs) > 1
-        col.operator('node.rman_remove_displayfilter_node_socket', text='Remove')      
         return
 
     def insert_link(self, link):

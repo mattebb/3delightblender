@@ -72,11 +72,19 @@ class DATA_PT_renderman_world_display_filters(ShaderPanel, Panel):
         row = layout.row(align=True)
         col = row.column()
         col.operator('node.rman_add_displayfilter_node_socket', text='Add')
-        col = row.column()
-        col.enabled = len(output.inputs) > 1
-        col.operator('node.rman_remove_displayfilter_node_socket', text='Remove')
-        for socket in output.inputs:
-            layout.label(text=socket.name)
+        layout.separator()
+
+        for i, socket in enumerate(output.inputs):
+            row = layout.row()
+            col = row.column()
+            col.context_pointer_set("node", output)
+            col.context_pointer_set("nodetree", nt)
+            col.context_pointer_set("socket", socket)                 
+            op = col.operator("node.rman_remove_displayfilter_node_socket", text="", icon="REMOVE")
+            op.index = i            
+            col = row.column()
+            col.label(text=socket.name)
+
             layout.context_pointer_set("node", output)
             layout.context_pointer_set("nodetree", nt)
             layout.context_pointer_set("socket", socket)      
@@ -115,11 +123,18 @@ class DATA_PT_renderman_world_sample_filters(ShaderPanel, Panel):
         row = layout.row(align=True)
         col = row.column()
         col.operator('node.rman_add_samplefilter_node_socket', text='Add')
-        col = row.column()
-        col.enabled = len(output.inputs) > 1
-        col.operator('node.rman_remove_samplefilter_node_socket', text='Remove')
-        for socket in (output.inputs):
-            layout.label(text=socket.name)
+        layout.separator()
+
+        for i, socket in enumerate(output.inputs):
+            row = layout.row()
+            col = row.column()
+            col.context_pointer_set("node", output)
+            col.context_pointer_set("nodetree", nt)
+            col.context_pointer_set("socket", socket)                 
+            op = col.operator("node.rman_remove_samplefilter_node_socket", text="", icon="REMOVE")
+            op.index = i               
+            col = row.column()
+            col.label(text=socket.name)        
 
             layout.context_pointer_set("socket", socket)
             layout.context_pointer_set("node", output)

@@ -1,4 +1,4 @@
-from bpy.props import EnumProperty, StringProperty, BoolProperty
+from bpy.props import EnumProperty, StringProperty, BoolProperty, IntProperty
 from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
 from .. import rman_render
@@ -96,6 +96,8 @@ class NODE_OT_remove_displayfilter_node_socket(bpy.types.Operator):
     bl_label = 'Remove DisplayFilter Socket'
     bl_description = 'Remove a new socket to the displayfilter output node'
 
+    index: IntProperty(default=-1)
+
     def execute(self, context):
         if hasattr(context, 'node'):
             node = context.node
@@ -108,7 +110,11 @@ class NODE_OT_remove_displayfilter_node_socket(bpy.types.Operator):
             if not node:
                 return {'FINISHED'}
 
-        node.remove_input()
+        if self.index == -1:
+            node.remove_input()
+        else:
+            socket = node.inputs[self.index]
+            node.remove_input_index(socket)
         return {'FINISHED'}                
 
 class NODE_OT_add_samplefilter_node_socket(bpy.types.Operator):
@@ -138,6 +144,8 @@ class NODE_OT_remove_samplefilter_node_socket(bpy.types.Operator):
     bl_label = 'Remove SampleFilter Socket'
     bl_description = 'Remove a new socket to the samplefilter output node'
 
+    index: IntProperty(default=-1)    
+
     def execute(self, context):
         if hasattr(context, 'node'):
             node = context.node
@@ -150,7 +158,11 @@ class NODE_OT_remove_samplefilter_node_socket(bpy.types.Operator):
             if not node:
                 return {'FINISHED'}
 
-        node.remove_input()
+        if self.index == -1:
+            node.remove_input()
+        else:
+            socket = node.inputs[self.index]
+            node.remove_input_index(socket)
         return {'FINISHED'}             
 
 class NODE_OT_rman_node_remove(bpy.types.Operator):
