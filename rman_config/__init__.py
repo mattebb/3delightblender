@@ -332,6 +332,8 @@ def register():
     stylized_paths += get_override_paths()
     for path in stylized_paths:
         stylized_path = os.path.join(path, 'stylized_presets')
+        if not os.path.exists(stylized_path):
+            continue
         for f in os.listdir(stylized_path):
             if not f.endswith('.json'):
                 continue    
