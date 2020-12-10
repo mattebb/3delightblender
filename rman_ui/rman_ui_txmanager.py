@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import StringProperty, IntProperty, CollectionProperty, EnumProperty, BoolProperty
+from bpy.props import StringProperty, IntProperty, CollectionProperty, EnumProperty, BoolProperty, FloatProperty
 from bpy.types import PropertyGroup, UIList, Operator, Panel
 from bpy_extras.io_utils import ImportHelper
 from .rman_ui_base import _RManPanelHeader
@@ -119,6 +119,37 @@ class TxFileItem(PropertyGroup):
             items=items,
             description="The type of resizing flag to pass to txmake")
 
+    bumpRough: EnumProperty(
+            name="Bump Rough",
+            default="-1",
+            items=(
+                ("-1", "Off", ""),
+                ("0", "Bump Map", ""),
+                ("1", "Normal Map", "")
+            )
+    )
+    bumpRough_factor: FloatProperty(
+            name="Scale",
+            default=2.0
+    )
+
+    bumpRough_invert: BoolProperty(
+            name="Invert",
+            default=False
+    )
+
+    bumpRough_invertU: BoolProperty(
+            name="InvertU",
+            default=False
+    )    
+    bumpRough_invertV: BoolProperty(
+            name="InvertV",
+            default=False
+    )    
+    bumpRough_refit: BoolProperty(
+            name="Refit",
+            default=False
+    )    
 
 class PRMAN_UL_Renderman_txmanager_list(UIList):
     """RenderMan TxManager UIList."""
@@ -269,6 +300,19 @@ class PRMAN_OT_Renderman_txmanager_apply_preset(Operator):
                 val = None
             txsettings[attr] = val
 
+        # b2r
+        bumprough = dict()
+        if item.bumprough != "-1":
+            bumprough['normalmap'] = int(item.bumpRough)
+            bumprough['factor'] = item.bumpRough_factor
+            bumprough['invert'] = item.bumpRough_invert
+            bumprough['invertU'] = item.bumpRough_invertU
+            bumprough['invertV'] = item.bumpRough_invertV
+            bumprough['refit'] = item.bumpRough_refit
+        else:
+            bumprough = list()        
+        txsettings['bumprough'] = bumprough
+
         if txsettings:
             txfile = None
             if item.nodeID != "":
@@ -322,8 +366,19 @@ class PRMAN_OT_Renderman_txmanager_add_texture(Operator):
             item.enable = True
         if params.ocioconvert:
             item.ocioconvert = params.ocioconvert
+
+        if params.bumprough:
+            item.bumpRough = str(params.bumprough['normalmap'])
+            item.bumpRough_factor = params.bumprough['factor']
+            item.bumpRough_invert = params.bumprough['invert']
+            item.bumpRough_invertU = params.bumprough['invertU']
+            item.bumpRough_invertV = params.bumprough['invertV']
+            item.bumpRough_refit = params.bumprough['refit']
+        else:
+            params.bumpRough = "-1"
+
   
-        item.tooltip = '\n' + str(txfile)
+        item.tooltip = '\n' + item.nodeID + "\n" + str(txfile)
         # FIXME: should also add the nodes that this texture is referenced in     
 
         return{'FINISHED'}        
@@ -357,11 +412,37 @@ class PRMAN_OT_Renderman_txmanager_refresh(Operator):
                 item.enable = False  
             else:
                 item.enable = True
- 
-            item.tooltip = '\n' + str(txfile)
+
+            if params.bumprough:
+                item.bumpRough = str(params.bumprough['normalmap'])
+                item.bumpRough_factor = params.bumprough['factor']
+                item.bumpRough_invert = params.bumprough['invert']
+                item.bumpRough_invertU = params.bumprough['invertU']
+                item.bumpRough_invertV = params.bumprough['invertV']
+                item.bumpRough_refit = params.bumprough['refit']
+            else:
+                params.bumpRough = "-1"                
+    
+            item.tooltip = '\n' + item.nodeID + "\n" + str(txfile)
 
 
-        return{'FINISHED'}            
+        return{'FINISHED'}    
+
+class PRMAN_OT_Renderman_txmanager_remove_texture(Operator):
+
+    bl_idname = "rman_txmgr_list.remove_texture"
+    bl_label = "remove texture"
+
+    nodeID: StringProperty()
+
+    def execute(self, context):
+
+        for i, item in enumerate(context.scene.rman_txmgr_list):
+            if item.nodeID == self.properties.nodeID:
+                context.scene.rman_txmgr_list.remove(i)
+                break              
+
+        return{'FINISHED'}                    
 
 class PRMAN_PT_Renderman_txmanager_list(_RManPanelHeader, Panel):
     """RenderMan Texture Manager Panel."""
@@ -434,7 +515,22 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
                     row.enabled = item.enable
                     row.prop(item, "ocioconvert")   
                     dst = texture_utils.get_txmanager().txmanager.color_manager.scene_colorspace_name
-                    row.label(text='%s' % dst if dst else txmngr.NO_COLORSPACE)             
+                    row.label(text='%s' % dst if dst else txmngr.NO_COLORSPACE)        
+
+                # b2r
+                row = layout.row()   
+                row.prop(item, "bumpRough")
+                if item.bumpRough != "-1":
+                    row = layout.row()
+                    row.alignment = "RIGHT"
+                    row.label(text="")
+                    row.prop(item, "bumpRough_factor")
+                    row.prop(item, "bumpRough_invert")
+                    row.prop(item, "bumpRough_invertU")
+                    row.prop(item, "bumpRough_invertV")
+                    row.prop(item, "bumpRough_refit")
+
+
                 row = layout.row()   
                 row.enabled = item.enable      
                 row.alignment = 'RIGHT'          
@@ -488,6 +584,18 @@ def index_updated(self, context):
         if params.ocioconvert:
             item.ocioconvert = params.ocioconvert
 
+        if params.bumprough:
+            item.bumpRough = str(params.bumprough['normalmap'])
+            item.bumpRough_factor = params.bumprough['factor']
+            item.bumpRough_invert = params.bumprough['invert']
+            item.bumpRough_invertU = params.bumprough['invertU']
+            item.bumpRough_invertV = params.bumprough['invertV']
+            item.bumpRough_refit = params.bumprough['refit']
+        else:
+            params.bumpRough = "-1"  
+
+        item.tooltip = '\n' + item.nodeID + "\n" + str(txfile)                      
+
 classes = [
     TxFileItem,
     PRMAN_UL_Renderman_txmanager_list,
@@ -500,7 +608,8 @@ classes = [
     PRMAN_OT_Renderman_txmanager_add_texture,
     PRMAN_OT_Renderman_txmanager_refresh,
     PRMAN_PT_Renderman_txmanager_list,
-    PRMAN_OT_Renderman_open_txmanager    
+    PRMAN_OT_Renderman_open_txmanager,
+    PRMAN_OT_Renderman_txmanager_remove_texture    
 ]
 
 def register():

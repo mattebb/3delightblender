@@ -119,8 +119,6 @@ def update_texture(node, light=None, mat=None, ob=None):
                     continue
                 else:
                     if 'widget' in meta and meta['widget'] in ['assetidinput', 'fileinput'] and prop_name != 'iesProfile':
-                        if prop == '':
-                            continue
                         node_name = ''
                         node_type = ''
                         if node.renderman_node_type == 'light':
@@ -136,13 +134,21 @@ def update_texture(node, light=None, mat=None, ob=None):
                             node_type = node.bl_label
                             nodeID = generate_node_id(node, prop_name, ob=ob)
 
-                        if node_name != '':       
-                            real_file = filepath_utils.get_real_path(prop)
-                            txfile = get_txmanager().txmanager.add_texture(nodeID, real_file, nodetype=node_type)    
-                            bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=real_file, nodeID=nodeID)
-                            txmake_all(blocking=False)
-                            if txfile:
-                                get_txmanager().done_callback(nodeID, txfile)
+                        if node_name != '':  
+                            if prop == "":
+                                txfile = get_txmanager().txmanager.get_txfile_from_id(nodeID)
+                                if txfile:
+                                    # property was set to empty string, remove any texture from the UI
+                                    # if exists
+                                    get_txmanager().txmanager.remove_texture(nodeID)
+                                    bpy.ops.rman_txmgr_list.remove_texture('EXEC_DEFAULT', nodeID=nodeID)
+                            else:
+                                real_file = filepath_utils.get_real_path(prop)
+                                txfile = get_txmanager().txmanager.add_texture(nodeID, real_file, nodetype=node_type)    
+                                bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=real_file, nodeID=nodeID)
+                                txmake_all(blocking=False)
+                                if txfile:
+                                    get_txmanager().done_callback(nodeID, txfile)
 
 def generate_node_id(node, prop_name, ob=None):
     if ob:
