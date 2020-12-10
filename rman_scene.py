@@ -599,6 +599,8 @@ class RmanScene(object):
             # it could be moving as part of a particle system
             mb_segs = self.bl_scene.renderman.motion_segments
             if mb_segs > 1:
+                if ob.renderman.motion_segments_override:
+                    mb_segs = ob.renderman.motion_segments
                 subframes = scene_utils._get_subframes_(mb_segs, self.bl_scene)
                 rman_sg_node.motion_steps = subframes
                 self.motion_steps.update(subframes)
