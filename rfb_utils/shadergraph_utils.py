@@ -305,6 +305,26 @@ def find_samplefilter_nodes(world):
 
     return sf_nodes
 
+def find_projection_node(camera):
+    '''Find the projection node, if any
+
+    Arguments:
+        camera (bpy.types.Camera) - Camera object
+
+    Returns:
+        (bpy.types.ShaderNode) - projection node
+    '''    
+    projection_node = None
+    nt = camera.data.renderman.rman_nodetree
+    if nt:
+        output = find_node_from_nodetree(nt, 'RendermanProjectionsOutputNode')
+        socket = output.inputs[0]
+    
+        if socket.is_linked:
+            projection_node = socket.links[0].from_node  
+
+    return projection_node       
+
 def find_all_stylized_filters(world):
     nodes = list()
     output = find_node(world, 'RendermanDisplayfiltersOutputNode')

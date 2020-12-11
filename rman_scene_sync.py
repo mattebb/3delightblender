@@ -202,6 +202,7 @@ class RmanSceneSync(object):
                         # only set if a solo light hasn't been set
                         rman_sg_node.sg_node.SetHidden(ob.data.renderman.mute)
                 elif rman_type == 'CAMERA':
+                    ob = ob.original
                     rman_camera_translator = self.rman_scene.rman_translators['CAMERA']
                     if not self.rman_scene.is_viewport_render:
                         rman_camera_translator.update(ob, rman_sg_node)         

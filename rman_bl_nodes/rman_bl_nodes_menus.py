@@ -103,7 +103,14 @@ class NODE_MT_renderman_connection_menu(Menu):
                 layout.context_pointer_set("nodetree", nt)
                 rman_icon = rfb_icons.get_displayfilter_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
-                op.node_name = '%sDisplayfilterNode' % n.name                                                                              
+                op.node_name = '%sDisplayfilterNode' % n.name         
+        elif 'projection' in renderman_type:    
+            for n in rman_bl_nodes.__RMAN_PROJECTION_NODES__:
+                layout.context_pointer_set("node", node)
+                layout.context_pointer_set("nodetree", nt)
+                rman_icon = rfb_icons.get_samplefilter_icon(n.name)
+                op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
+                op.node_name = '%sProjectionNode' % n.name                                                                                            
         elif renderman_type == 'bxdf':    
             for bxdf_cat, bxdfs in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
                 tokens = bxdf_cat.split('_')
@@ -257,7 +264,8 @@ class NODE_MT_renderman_connection_menu(Menu):
                                 'RendermanOutputNode', 
                                 'RendermanSamplefiltersOutputNode', 
                                 'RendermanDisplayfiltersOutputNode', 
-                                'RendermanIntegratorsOutputNode']:
+                                'RendermanIntegratorsOutputNode',
+                                'RendermanProjectionsOutputNode']:
             layout.separator()                                
             self.draw_output_node_menu(context)
         else:

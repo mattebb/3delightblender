@@ -105,7 +105,12 @@ __RENDERMAN_TYPES_SOCKETS__ = [
         {
             'default_value': '',
         }
-    ),                
+    ),  
+    ('projection', 'Projection', bpy.types.NodeSocketString, (0.25, 1.0, 0.25, 1.0), True,
+        {
+            'default_value': '',
+        }
+    ),                    
 ]
 
 # list for socket interface registration
@@ -198,7 +203,12 @@ __RENDERMAN_TYPES_SOCKET_INTERFACES__ =[
         {
             'default_value': '',
         }
-    ),        
+    ), 
+    ('projection', 'Projection', bpy.types.NodeSocketInterfaceShader, (0.25, 1.0, 0.25, 1.0), True,
+        {
+            'default_value': '',
+        }
+    ),           
 ]
 
 # map types in args files to socket types

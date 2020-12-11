@@ -553,6 +553,46 @@ class RendermanDisplayfiltersOutputNode(RendermanShadingNode):
         if world:
             world.update_tag()
 
+class RendermanProjectionsOutputNode(RendermanShadingNode):
+    bl_label = 'RenderMan Projections'
+    renderman_node_type = 'projections_output'
+    bl_icon = 'MATERIAL'
+    node_tree = None
+    new_links = []
+
+    @classmethod
+    def poll(cls, ntree):
+        return ntree.bl_idname == 'ShaderNodeTree'
+        
+    def init(self, context):
+        input = self.inputs.new('RendermanNodeSocketProjection', 'Projection')
+
+    def draw_buttons(self, context, layout):
+        return
+
+    def draw_buttons_ext(self, context, layout):   
+        return
+
+    def insert_link(self, link):
+        if link in self.new_links:
+            pass
+        else:
+            self.new_links.append(link)
+
+    def update(self):
+        for link in self.new_links:
+            from_node_type = getattr(link.from_socket, 'renderman_type', None)
+            if not from_node_type:
+                continue            
+            if from_node_type != 'projection':
+                node_tree = self.id_data
+                node_tree.links.remove(link)
+
+        self.new_links.clear()    
+        cam = getattr(bpy.context, 'active_object', None)
+        if cam:
+            cam.update_tag(refresh={'DATA'})        
+
 # Final output node, used as a dummy to find top level shaders
 class RendermanBxdfNode(RendermanShadingNode):
     bl_label = 'Bxdf'
@@ -595,6 +635,14 @@ class RendermanIntegratorNode(RendermanShadingNode):
     bl_label = 'Integrator'
     renderman_node_type = 'integrator'
 
+class RendermanProjectionNode(RendermanShadingNode):
+    bl_label = 'Projection'
+    renderman_node_type = 'projection'   
+
+    @classmethod
+    def poll(cls, ntree):
+        return ntree.bl_idname == 'ShaderNodeTree'     
+
 classes = [
     RendermanShadingNode,
     RendermanOutputNode,
@@ -608,12 +656,16 @@ classes = [
     RendermanSamplefiltersOutputNode,
     RendermanDisplayfiltersOutputNode,
     RendermanIntegratorsOutputNode,
+    RendermanProjectionsOutputNode,
     RendermanIntegratorNode,
+    RendermanProjectionNode
 ]
 
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)       
+
+    
 
 def unregister():
     for cls in classes:

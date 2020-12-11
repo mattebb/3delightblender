@@ -3,7 +3,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from .. import rman_cycles_convert
 from ..rfb_utils import shadergraph_utils
 from .. import rman_bl_nodes
-from .rman_operators_utils import get_bxdf_items
+from .rman_operators_utils import get_bxdf_items, get_projection_items
 from ..rman_render import RmanRender
 import math
 
@@ -454,7 +454,47 @@ class PRMAN_OT_Force_LightFilter_Refresh(bpy.types.Operator):
             if ob:
                 rr.rman_scene_sync.update_light_filter(ob)
 
-        return {"FINISHED"}     
+        return {"FINISHED"}  
+
+class PRMAN_OT_Add_Projection_Nodetree(bpy.types.Operator):
+    bl_idname = "node.rman_add_projection_nodetree"
+    bl_label = "New Projection"
+    bl_description = "Attach a RenderMan projection plugin"
+    bl_options = {"REGISTER"}
+
+    def get_type_items(self, context):
+        return get_projection_items()  
+
+    proj_name: EnumProperty(items=get_type_items, name="Projection")    
+    
+    def execute(self, context):
+        ob = context.object
+        if ob.type != 'CAMERA':
+            return {'FINISHED'}
+
+        nt = bpy.data.node_groups.new(ob.data.name, 'ShaderNodeTree')
+        output = nt.nodes.new('RendermanProjectionsOutputNode')
+        ob.data.renderman.rman_nodetree = nt
+
+        proj_node_name = rman_bl_nodes.__BL_NODES_MAP__[self.proj_name]    
+        default = nt.nodes.new(proj_node_name)
+        default.location = output.location
+        default.location[0] -= 300
+        nt.links.new(default.outputs[0], output.inputs[0])      
+        ob.update_tag(refresh={'DATA'})  
+
+        return {"FINISHED"}          
+
+    def draw(self, context):
+        layout = self.layout
+        col = layout.column()
+        col.label(text="Select a Projection")
+        col.prop(self, 'proj_name')      
+
+    def invoke(self, context, event):
+
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self)           
 
 classes = [
     SHADING_OT_convert_all_renderman_nodetree,
@@ -464,7 +504,8 @@ classes = [
     PRMAN_OT_New_Material_Override,
     PRMAN_OT_Force_Material_Refresh,
     PRMAN_OT_Force_Light_Refresh,
-    PRMAN_OT_Force_LightFilter_Refresh
+    PRMAN_OT_Force_LightFilter_Refresh,
+    PRMAN_OT_Add_Projection_Nodetree
 ]
 
 def register():

@@ -88,6 +88,9 @@ def get_displacement_icon(name=''):
 def get_pattern_icon(name=''):
     return get_icon('out_%s' % name, dflt='out_unknown')
 
+def get_projection_icon(name=''):
+    return get_icon('out_%s' % name, dflt='out_unknown')     
+
 def clear_icons():
     global renderman_icons_loaded
     for icon in renderman_icon_collections.values():

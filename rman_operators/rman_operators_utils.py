@@ -1,5 +1,5 @@
 from .. import rman_bl_nodes
-from ..rfb_icons import get_bxdf_icon, get_light_icon, get_lightfilter_icon
+from ..rfb_icons import get_bxdf_icon, get_light_icon, get_lightfilter_icon, get_projection_icon
 
 def get_bxdf_items():
  
@@ -44,3 +44,16 @@ def get_lightfilter_items():
             light_icon = get_lightfilter_icon(n.name)
             items.append( (n.name, n.name, '', light_icon.icon_id, i))
     return items    
+
+def get_projection_items():
+    items = []
+    i = 0
+    proj_icon = get_projection_icon("PxrCamera")
+    dflt = 'PxrCamera'
+    items.append((dflt, dflt, '', proj_icon.icon_id, i))
+    for n in rman_bl_nodes.__RMAN_PROJECTION_NODES__:
+        if n.name != dflt:
+            i += 1
+            proj_icon = get_projection_icon(n.name)
+            items.append( (n.name, n.name, '', proj_icon.icon_id, i))
+    return items        

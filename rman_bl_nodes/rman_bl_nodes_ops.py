@@ -233,7 +233,8 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
             link_node(nt, newnode, socket)
             newnode.location = old_node.location
             active_material = context.active_object.active_material
-            newnode.update_mat(active_material)
+            if active_material:
+                newnode.update_mat(active_material)
             #nt.nodes.remove(old_node)
         return {'FINISHED'}
 
@@ -270,7 +271,8 @@ class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
             old_node = input.links[0].from_node
             link_node(nt, newnode, socket)
             active_material = context.active_object.active_material
-            newnode.update_mat(active_material)
+            if active_material:
+                newnode.update_mat(active_material)
         return {'FINISHED'}
 
 class NODE_OT_rman_preset_set_param(bpy.types.Operator):

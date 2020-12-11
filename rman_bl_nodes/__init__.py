@@ -53,6 +53,7 @@ __RMAN_NODE_CATEGORIES__['displace'] = dict()
 __RMAN_NODE_CATEGORIES__['samplefilter'] = dict()
 __RMAN_NODE_CATEGORIES__['displayfilter'] = dict()
 __RMAN_NODE_CATEGORIES__['integrator'] = dict()
+__RMAN_NODE_CATEGORIES__['projection'] = dict()
 
 
 __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'] = (('RenderMan Misc Bxdfs', []), [])
@@ -62,6 +63,7 @@ __RMAN_NODE_CATEGORIES__['displace']['displace'] = (('RenderMan Displacements', 
 __RMAN_NODE_CATEGORIES__['samplefilter']['samplefilter'] = (('RenderMan SampleFilters', []), [])
 __RMAN_NODE_CATEGORIES__['displayfilter']['displayfilter'] = (('RenderMan DisplayFilters', []), [])
 __RMAN_NODE_CATEGORIES__['integrator']['integrator'] = (('RenderMan Integrators', []), [])
+__RMAN_NODE_CATEGORIES__['projection']['projection'] = (('RenderMan Projections', []), [])
   
 
 __RMAN_NODES__ = { 
@@ -148,8 +150,9 @@ def update_func_with_inputs(self, context):
     node = self.node if hasattr(self, 'node') else self
 
     if context and hasattr(context, 'active_object'):
-        if context.active_object.type == 'LIGHT':
-            context.active_object.update_tag(refresh={'DATA'})
+        if context.active_object:
+            if context.active_object.type in ['CAMERA', 'LIGHT']:
+                context.active_object.update_tag(refresh={'DATA'})
 
     if context and hasattr(context, 'material'):
         mat = context.material
@@ -190,8 +193,9 @@ def update_array_size_func(self, context):
     node = self.node if hasattr(self, 'node') else self
 
     if context and hasattr(context, 'active_object'):
-        if context.active_object and context.active_object.type == 'LIGHT':
-            context.active_object.update_tag(refresh={'DATA'})    
+        if context.active_object:
+            if context.active_object.type in ['CAMERA', 'LIGHT']:
+                context.active_object.update_tag(refresh={'DATA'})
 
     if context and hasattr(context, 'material'):
         mat = getattr(context, 'material', None)
@@ -220,8 +224,9 @@ def update_func(self, context):
     node = self.node if hasattr(self, 'node') else self
 
     if context and hasattr(context, 'active_object'):
-        if context.active_object and context.active_object.type == 'LIGHT':
-            context.active_object.update_tag(refresh={'DATA'})
+        if context.active_object:
+            if context.active_object.type in ['CAMERA', 'LIGHT']:
+                context.active_object.update_tag(refresh={'DATA'})
 
     if context and hasattr(context, 'material'):
         mat = getattr(context, 'material', None)
@@ -428,7 +433,8 @@ def generate_node_type(node_desc, is_oso=False):
                 'lightfilter': rman_bl_nodes_shaders.RendermanLightfilterNode,
                 'samplefilter': rman_bl_nodes_shaders.RendermanSamplefilterNode,
                 'displayfilter': rman_bl_nodes_shaders.RendermanDisplayfilterNode,
-                'integrator': rman_bl_nodes_shaders.RendermanIntegratorNode}
+                'integrator': rman_bl_nodes_shaders.RendermanIntegratorNode,
+                'projection': rman_bl_nodes_shaders.RendermanProjectionNode}
 
     if nodeType not in nodeDict.keys():
         return (None, None)
@@ -470,7 +476,10 @@ def generate_node_type(node_desc, is_oso=False):
             node_add_inputs(self, name, self.prop_names)    
         elif self.renderman_node_type == 'integrator':
             self.outputs.new('RendermanNodeSocketIntegrator', "Integrator")
-            node_add_inputs(self, name, self.prop_names)                           
+            node_add_inputs(self, name, self.prop_names)     
+        elif self.renderman_node_type == 'projection':
+            self.outputs.new('RendermanNodeSocketProjection', "Projection")
+            node_add_inputs(self, name, self.prop_names)                                   
         # else pattern
         elif name == "PxrOSL":
             self.outputs.clear()
@@ -656,7 +665,7 @@ class RendermanWorldShaderNodeCategory(NodeCategory):
         rd = context.scene.render
         if rd.engine != 'PRMAN_RENDER':
             return False        
-        return context.space_data.tree_type == 'ShaderNodeTree' and context.space_data.shader_type == 'WORLD'       
+        return context.space_data.tree_type == 'ShaderNodeTree' and context.space_data.shader_type == 'WORLD'  
 
 def register_rman_nodes():
     global __RMAN_NODE_CATEGORIES__
@@ -697,7 +706,7 @@ def register_rman_nodes():
                     # nodes that can be used in Blender's shading editor, but 
                     # we still create PropertyGroups for them so they can be inserted
                     # into the correct UI panel.
-                    if node_desc.node_type in ['projection', 'displaydriver']: 
+                    if node_desc.node_type in ['displaydriver']: 
                         register_plugin_types(node_desc)
                         continue
                     
@@ -800,7 +809,10 @@ def register_rman_nodes():
                         __RMAN_NODE_CATEGORIES__['displayfilter']['displayfilter'][1].append(node_desc)                                                                
                     elif node_desc.node_type == 'integrator':
                         __RMAN_NODE_CATEGORIES__['integrator']['integrator'][0][1].append(node_item)  
-                        __RMAN_NODE_CATEGORIES__['integrator']['integrator'][1].append(node_desc)        
+                        __RMAN_NODE_CATEGORIES__['integrator']['integrator'][1].append(node_desc)    
+                    elif node_desc.node_type == 'projection':
+                        __RMAN_NODE_CATEGORIES__['projection']['projection'][0][1].append(node_item)  
+                        __RMAN_NODE_CATEGORIES__['projection']['projection'][1].append(node_desc)                             
 
     rfb_log().debug("Finished Registering RenderMan Plugin Nodes.")
 
@@ -830,8 +842,7 @@ def register_node_categories():
                                                                                 key=attrgetter('_label'))))      
 
     nodeitems_utils.register_node_categories("RENDERMANWORLDSHADERNODES",
-                                             world_node_categories)                                                                                   
-
+                                             world_node_categories)          
 
 def register():
     global __RMAN_NODES_ALREADY_REGISTERED__

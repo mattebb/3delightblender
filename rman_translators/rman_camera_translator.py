@@ -5,6 +5,7 @@ from ..rfb_utils import transform_utils
 from ..rfb_utils import property_utils
 from ..rfb_utils import object_utils
 from ..rfb_utils import scene_utils
+from ..rfb_utils import shadergraph_utils
 from mathutils import Matrix, Vector
 import math
 
@@ -428,10 +429,13 @@ class RmanCameraTranslator(RmanTranslator):
 
         dx = 0
         dy = 0
-        if cam_rm.projection_type != 'none':
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", cam_rm.get_projection_name(), "proj")
+
+        node = shadergraph_utils.find_projection_node(ob)        
+        if node:
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", node.bl_label, "proj")
             rman_sg_node = RmanSgNode(self.rman_scene, proj, "")                           
-            property_utils.property_group_to_rixparams(cam_rm.get_projection_node(), rman_sg_node, proj, ob=cam)
+            property_utils.property_group_to_rixparams(node, rman_sg_node, proj, ob=cam)            
+
         elif cam.type == 'PERSP':
 
             lens = cam.lens
