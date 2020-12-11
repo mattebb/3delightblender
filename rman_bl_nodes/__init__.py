@@ -644,7 +644,19 @@ class RendermanShaderNodeCategory(NodeCategory):
 
     @classmethod
     def poll(cls, context):
-        return context.space_data.tree_type == 'ShaderNodeTree'
+        rd = context.scene.render
+        if rd.engine != 'PRMAN_RENDER':
+            return False        
+        return context.space_data.tree_type == 'ShaderNodeTree' and context.space_data.shader_type == 'OBJECT' 
+
+class RendermanWorldShaderNodeCategory(NodeCategory):
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        if rd.engine != 'PRMAN_RENDER':
+            return False        
+        return context.space_data.tree_type == 'ShaderNodeTree' and context.space_data.shader_type == 'WORLD'       
 
 def register_rman_nodes():
     global __RMAN_NODE_CATEGORIES__
@@ -797,7 +809,8 @@ def register_node_categories():
 
     # all categories in a list
     node_categories = []
-    for k,v in __RMAN_NODE_CATEGORIES__.items():
+    for k in ['bxdf', 'displace', 'light', 'pattern']:
+        v = __RMAN_NODE_CATEGORIES__[k]
         for name, ((desc, items), lst) in v.items():
             if items:
                 node_categories.append(RendermanShaderNodeCategory(name, desc,
@@ -805,7 +818,20 @@ def register_node_categories():
                                                                                 key=attrgetter('_label'))))    
 
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES",
-                                             node_categories)    
+                                             node_categories)  
+
+    world_node_categories = []
+    for k in ['integrator', 'displayfilter', 'samplefilter']:
+        v = __RMAN_NODE_CATEGORIES__[k]
+        for name, ((desc, items), lst) in v.items():
+            if items:
+                world_node_categories.append(RendermanWorldShaderNodeCategory(name, desc,
+                                                                    items=sorted(items,
+                                                                                key=attrgetter('_label'))))      
+
+    nodeitems_utils.register_node_categories("RENDERMANWORLDSHADERNODES",
+                                             world_node_categories)                                                                                   
+
 
 def register():
     global __RMAN_NODES_ALREADY_REGISTERED__
@@ -821,6 +847,7 @@ def register():
 
 def unregister():
     nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
+    nodeitems_utils.unregister_node_categories("RENDERMANWORLDSHADERNODES")
 
     rman_bl_nodes_props.unregister()
     rman_bl_nodes_sockets.unregister()    

@@ -282,10 +282,24 @@ class RendermanShadingNode(bpy.types.ShaderNode):
 
     @classmethod
     def poll(cls, ntree):
+        rd = bpy.context.scene.render
+        if rd.engine != 'PRMAN_RENDER':
+            return False
+
         if hasattr(ntree, 'bl_idname'):
             return ntree.bl_idname == 'ShaderNodeTree'
         else:
             return True
+
+    def poll_instance(cls, ntree):
+        rd = bpy.context.scene.render
+        if rd.engine != 'PRMAN_RENDER':
+            return False
+
+        if hasattr(ntree, 'bl_idname'):
+            return ntree.bl_idname == 'ShaderNodeTree'
+        else:
+            return True            
 
     def setOslProps(self, prop_names, shader_meta):
         for prop_name in prop_names:
