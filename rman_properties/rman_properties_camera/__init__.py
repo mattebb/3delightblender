@@ -16,6 +16,12 @@ class RendermanCameraSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         type=bpy.types.ShaderNodeTree
     )
 
+    rman_use_cam_fov: BoolProperty(
+        name="Use Camera FOV",
+        default=True,
+        description="When using a projection plugin, copy the FOV settings from the camera object, effectively ignoring any FOV params on the projection plugin."
+    )
+
 classes = [
     RendermanCameraSettings,
 ]

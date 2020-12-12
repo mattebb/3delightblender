@@ -16,7 +16,7 @@
             "name": "rman_aperture_fstop",
             "label": "F Stop",
             "type": "float",
-            "default": 16.0,
+            "default": 2.8,
             "page": "Aperture Controls",
             "help": "",
             "conditionalVisOps": {
