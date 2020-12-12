@@ -84,6 +84,22 @@ def is_ncr_license():
 
     return __IS_NCR_LICENSE__
 
+def get_cycles_shader_path():
+    # figure out the path to Cycles' shader path
+    # hopefully, this won't change between versions
+    path = ''
+    version  = '%d.%d' % (bpy.app.version[0], bpy.app.version[1])
+    binary_path = os.path.dirname(bpy.app.binary_path)
+    rel_config_path = os.path.join(version, 'scripts', 'addons', 'cycles', 'shader')
+    if sys.platform == ("win32"):
+        path = os.path.join(binary_path, rel_config_path)
+    elif sys.platform == ("darwin"):                
+        path = os.path.join(binary_path, '..', 'Resources', rel_config_path )
+    else:
+        path = os.path.join(binary_path, rel_config_path)        
+
+    return path
+
 def rmantree_from_env():
     RMANTREE = ''
 

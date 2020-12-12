@@ -953,8 +953,7 @@ class RmanScene(object):
         # RMAN_DISPLAYPATH, RMAN_PROCEDURALPATH, and RMAN_DSOPATH (combines procedurals and displays)
         
         # get cycles shader directory
-        cur_dir = os.path.dirname(os.path.realpath(__file__))
-        cycles_shader_dir = os.path.join(cur_dir, '..', 'cycles', 'shader' )
+        cycles_shader_dir = filepath_utils.get_cycles_shader_path()
 
         RMAN_SHADERPATH = os.environ.get('RMAN_SHADERPATH', '')
         RMAN_TEXTUREPATH = os.environ.get('RMAN_TEXTUREPATH', '')
