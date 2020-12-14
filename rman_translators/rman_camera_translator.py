@@ -70,7 +70,7 @@ class RmanCameraTranslator(RmanTranslator):
         rman_sg_camera.cam_matrix = v
         rman_sg_camera.sg_node.SetTransform( v )    
 
-    def _update_render_cam_transform(self, ob, rman_sg_camera, index=0):
+    def _update_render_cam_transform(self, ob, rman_sg_camera, index=0, seg=0.0):
 
         cam = ob.data
         mtx = ob.matrix_world
@@ -81,15 +81,15 @@ class RmanCameraTranslator(RmanTranslator):
 
         rman_sg_camera.cam_matrix = v
         if rman_sg_camera.is_transforming:
-            rman_sg_camera.sg_node.SetTransformSample(index, v, rman_sg_camera.motion_steps[index] )              
+            rman_sg_camera.sg_node.SetTransformSample(index, v, seg )              
         else:
             rman_sg_camera.sg_node.SetTransform( v )                            
 
-    def update_transform(self, ob, rman_sg_camera, index=0):
+    def update_transform(self, ob, rman_sg_camera, index=0, seg=0):
         if self.rman_scene.is_viewport_render:
             self._update_viewport_transform(rman_sg_camera)
         else:
-            self._update_render_cam_transform(ob, rman_sg_camera, index)
+            self._update_render_cam_transform(ob, rman_sg_camera, index, seg)
 
     def _export_viewport_cam(self, db_name=""):  
         sg_camera = self.rman_scene.sg_scene.CreateCamera(db_name)

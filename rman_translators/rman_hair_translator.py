@@ -71,7 +71,7 @@ class RmanHairTranslator(RmanTranslator):
                 primvar.SetFloatDetail("scalpT", scalpT, "uniform")
                     
             if rman_sg_hair.motion_steps:
-                primvar.SetTimes(rman_sg_hair.motion_steps)
+                super().set_primvar_times(rman_sg_hair.motion_steps, primvar)
 
             curves_sg.SetPrimVars(primvar)
             rman_sg_hair.sg_node.AddChild(curves_sg)  

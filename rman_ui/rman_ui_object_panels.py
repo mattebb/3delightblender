@@ -123,6 +123,7 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         rm = ob.renderman        
         col = layout.column()
         col.prop(rm, "motion_segments_override")
+        col = layout.column()
         col.active = rm.motion_segments_override
         col.prop(rm, "motion_segments")         
 

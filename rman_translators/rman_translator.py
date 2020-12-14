@@ -47,6 +47,16 @@ class RmanTranslator(object):
     def update(self, ob, rman_sg_node):
         pass
 
+    def set_primvar_times(self, motion_steps, primvar):
+        # take the motion steps, sort it and 
+        # normalize it to lie between 0 and 1
+        times = []
+        sorted_steps = sorted(list(motion_steps))
+        delta = -sorted_steps[0]
+        for m in sorted_steps:
+            times.append(m + delta)
+        primvar.SetTimes(times)
+
     def export_transform(self, ob, sg_node):
         m = ob.matrix_local if ob.parent and ob.parent_type == "object" and ob.type != 'LIGHT'\
                 else ob.matrix_world

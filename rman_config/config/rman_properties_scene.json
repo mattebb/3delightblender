@@ -544,31 +544,35 @@
         },        
         {
             "panel": "RENDER_PT_renderman_motion_blur",
-            "name": "shutter_efficiency_open",
+            "name": "shutter_open",
             "label": "Shutter Open",
             "type": "float",
             "default": 0.0,
+            "min": 0.0,
+            "max": 1.0,
             "widget": false,
             "conditionalVisOps": {
                 "conditionalVisOp": "equalTo",
                 "conditionalVisPath": "motion_blur",
                 "conditionalVisValue": "1"
             },           
-            "help": "Shutter open efficiency - controls the speed of the shutter opening.  0 means instantaneous, > 0 is a gradual opening"
+            "help": "Controls the speed of the shutter opening.  0 means instantaneous, > 0 is a gradual opening"
         }, 
         {
             "panel": "RENDER_PT_renderman_motion_blur",
-            "name": "shutter_efficiency_close",
+            "name": "shutter_close",
             "label": "Shutter Close",
             "type": "float",
             "default": 1.0,
+            "min": 0.0,
+            "max": 1.0,
             "widget": false,
             "conditionalVisOps": {
                 "conditionalVisOp": "equalTo",
                 "conditionalVisPath": "motion_blur",
                 "conditionalVisValue": "1"
             },  
-            "help": "Shutter close efficiency - controls the speed of the shutter closing. 1 means instantaneous, < 1 is a gradual closing"
+            "help": "Controls the speed of the shutter closing. 1 means instantaneous, < 1 is a gradual closing"
         },               
         {
             "panel": "RENDER_PT_renderman_advanced_settings",

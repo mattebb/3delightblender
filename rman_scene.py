@@ -830,6 +830,7 @@ class RmanScene(object):
         motion_steps = sorted(list(self.motion_steps))
 
         first_sample = False
+        delta = -motion_steps[0]
         for samp, seg in enumerate(motion_steps):
             first_sample = (samp == 0)
             if seg < 0.0:
@@ -838,14 +839,19 @@ class RmanScene(object):
                 self.rman_render.bl_engine.frame_set(origframe, subframe=seg)  
 
             self.depsgraph.update()
-
+            time_samp = seg + delta # get the normlized version of the segment
             total = len(self.depsgraph.object_instances)
             objFound = False
             
             # update camera
             if not first_sample and self.main_camera.is_transforming and seg in self.main_camera.motion_steps:
                 cam_translator =  self.rman_translators['CAMERA']
-                cam_translator.update_transform(self.depsgraph.scene_eval.camera, self.main_camera, samp)
+                idx = 0
+                for i, s in enumerate(self.main_camera.motion_steps):
+                    if s == seg:
+                        idx = i
+                        break
+                cam_translator.update_transform(self.depsgraph.scene_eval.camera, self.main_camera, idx, time_samp)
 
             for i, ob_inst in enumerate(self.depsgraph.object_instances):  
                 if obj_selected:
@@ -866,7 +872,7 @@ class RmanScene(object):
 
                 if first_sample:
                     # for the first motion sample use _export_instance()
-                    self._export_instance(ob_inst, seg=seg)  
+                    self._export_instance(ob_inst, seg=time_samp)  
                     self._update_progress("Exporting instances (%f)" % seg, i/total)
                     continue  
 
@@ -893,11 +899,17 @@ class RmanScene(object):
                 if not seg in rman_sg_node.motion_steps:
                     continue
 
+                idx = 0
+                for i, s in enumerate(rman_sg_node.motion_steps):
+                    if s == seg:
+                        idx = i
+                        break                
+
                 if rman_sg_node.is_transforming or psys:
                     rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
                     if rman_sg_group:
                         rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps ) # should have been set in _export_instances()                       
-                        rman_group_translator.update_transform_sample( ob_inst, rman_sg_group, samp, seg)
+                        rman_group_translator.update_transform_sample( ob_inst, rman_sg_group, idx, time_samp)
 
                 self._update_progress("Exporting instances (%f)" % seg, i/total)
 
@@ -1101,7 +1113,9 @@ class RmanScene(object):
         # Shutter
         if rm.motion_blur:
             shutter_interval = rm.shutter_angle / 360.0
-            shutter_open, shutter_close = 0, 1
+            shutter_open = rm.shutter_open
+            shutter_close = rm.shutter_close
+            '''
             if rm.shutter_timing == 'FRAME_CENTER':
                 shutter_open, shutter_close = 0 - .5 * \
                     shutter_interval, 0 + .5 * shutter_interval
@@ -1109,6 +1123,8 @@ class RmanScene(object):
                 shutter_open, shutter_close = 0 - shutter_interval, 0
             elif rm.shutter_timing == 'FRAME_OPEN':
                 shutter_open, shutter_close = 0, shutter_interval
+            '''
+            shutter_open, shutter_close = 0, shutter_interval   
             options.SetFloatArray(self.rman.Tokens.Rix.k_Ri_Shutter, (shutter_open, shutter_close), 2)        
 
         # dirmaps

@@ -133,7 +133,7 @@ class RmanEmitterTranslator(RmanTranslator):
         primvar.Clear()
             
         if rman_sg_emitter.motion_steps:
-            primvar.SetTimes(rman_sg_emitter.motion_steps)
+            super().set_primvar_times(rman_sg_emitter.motion_steps, primvar)
         
         
         self.get_primvars_particle(primvar,  psys, [self.rman_scene.bl_scene.frame_current], 0)      

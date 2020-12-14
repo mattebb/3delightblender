@@ -65,7 +65,7 @@ class RmanPointsTranslator(RmanTranslator):
         primvar = rman_sg_points.sg_node.GetPrimVars()
         primvar.Clear()      
 
-        primvar.SetTimes(rman_sg_points.motion_steps)
+        super().set_primvar_times(rman_sg_points.motion_steps, steps)
 
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")
         primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_constantwidth, rm.primitive_point_width, "constant")
