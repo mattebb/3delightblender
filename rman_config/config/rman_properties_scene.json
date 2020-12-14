@@ -532,15 +532,15 @@
             "name": "shutter_timing",
             "label": "Shutter Timing",
             "type": "string",
-            "default": "CENTER",
+            "default": "FRAME_CENTER",
             "widget": "mapper",
             "conditionalVisOps": {
                 "conditionalVisOp": "equalTo",
                 "conditionalVisPath": "motion_blur",
                 "conditionalVisValue": "1"
             },           
-            "options": "Center on frame:CENTER|Pre frame:PRE|Post frame:POST",
-            "help": "Controls when the shutter opens for a given frame.\n\n    Center on frame - motion is centered on frame.\n    Pre frame - motion ends on frame\n    Post frame - motion starts on frame.\n "
+            "options": "Start on Frame:FRAME_OPEN|Center on Frame:FRAME_CENTER|End on Frame:FRAME_CLOSE",
+            "help": "Controls when the shutter opens for a given frame.\n\n Center on Frame - the shutter opens before the frame, and closes after, centered on the frame.\nStart on Frame - shutter opens at the start of the frame\nEnd on Frame - the shutter closes on the frame.\n "
         },        
         {
             "panel": "RENDER_PT_renderman_motion_blur",

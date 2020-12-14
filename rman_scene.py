@@ -1102,12 +1102,12 @@ class RmanScene(object):
         if rm.motion_blur:
             shutter_interval = rm.shutter_angle / 360.0
             shutter_open, shutter_close = 0, 1
-            if rm.shutter_timing == 'CENTER':
+            if rm.shutter_timing == 'FRAME_CENTER':
                 shutter_open, shutter_close = 0 - .5 * \
                     shutter_interval, 0 + .5 * shutter_interval
-            elif rm.shutter_timing == 'PRE':
+            elif rm.shutter_timing == 'FRAME_CLOSE':
                 shutter_open, shutter_close = 0 - shutter_interval, 0
-            elif rm.shutter_timing == 'POST':
+            elif rm.shutter_timing == 'FRAME_OPEN':
                 shutter_open, shutter_close = 0, shutter_interval
             options.SetFloatArray(self.rman.Tokens.Rix.k_Ri_Shutter, (shutter_open, shutter_close), 2)        
 

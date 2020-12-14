@@ -145,11 +145,11 @@ def _get_subframes_(segs, scene):
     min = -1.0
     rm = scene.renderman
     shutter_interval = rm.shutter_angle / 360.0
-    if rm.shutter_timing == 'CENTER':
+    if rm.shutter_timing == 'FRAME_CENTER':
         min = 0 - .5 * shutter_interval
-    elif rm.shutter_timing == 'PRE':
+    elif rm.shutter_timing == 'FRAME_CLOSE':
         min = 0 - shutter_interval
-    elif rm.shutter_timing == 'POST':
+    elif rm.shutter_timing == 'FRAME_OPEN':
         min = 0
 
     return [min + i * shutter_interval / (segs - 1) for i in range(segs)]
