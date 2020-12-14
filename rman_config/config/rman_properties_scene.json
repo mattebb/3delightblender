@@ -545,7 +545,7 @@
         {
             "panel": "RENDER_PT_renderman_motion_blur",
             "name": "shutter_efficiency_open",
-            "label": "Shutter open speed",
+            "label": "Shutter Open",
             "type": "float",
             "default": 0.0,
             "widget": false,
@@ -559,7 +559,7 @@
         {
             "panel": "RENDER_PT_renderman_motion_blur",
             "name": "shutter_efficiency_close",
-            "label": "Shutter close speed",
+            "label": "Shutter Close",
             "type": "float",
             "default": 1.0,
             "widget": false,
