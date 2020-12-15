@@ -1425,6 +1425,9 @@ def createNodes(Asset):
             nodeDict[nodeId] = created_node.name
             setParams(created_node, node.paramsDict())
 
+        if nodeClass == 'bxdf':
+            created_node.update_mat(mat)
+
     # # restore selection
     # mc.select(sel)
     return mat,nt,nodeDict
