@@ -107,8 +107,8 @@ __RMAN_NODES_ALREADY_REGISTERED__ = False
 
 def update_conditional_visops(node):
     for param_name, prop_meta in getattr(node, 'prop_meta').items():
-        if 'conditionalVisOp' in prop_meta:
-            cond_expr = prop_meta['conditionalVisOp']['expr']
+        if 'conditionalVisOps' in prop_meta:
+            cond_expr = prop_meta['conditionalVisOps']['expr']
             try:
                 hidden = not eval(cond_expr)
                 prop_meta['hidden'] = hidden
