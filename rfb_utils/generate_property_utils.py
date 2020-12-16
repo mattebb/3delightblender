@@ -139,7 +139,8 @@ def generate_property(node, sp, update_function=None):
         'primvar',
         'inheritable',
         'inherit_true_value',
-        'presets']:
+        'presets',
+        'readOnly']:
         if hasattr(sp, nm):
             prop_meta[nm] = getattr(sp, nm)
 

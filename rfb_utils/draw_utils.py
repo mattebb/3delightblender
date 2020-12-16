@@ -188,6 +188,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
             else:
                 prop_meta = node.prop_meta[prop_name]
                 prop = getattr(node, prop_name)
+                read_only = prop_meta.get('readOnly', False)
 
                 if 'widget' in prop_meta:
                     widget = prop_meta['widget']
@@ -323,7 +324,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             prop_search_parent = options.get('prop_parent')
                             prop_search_name = options.get('prop_name')
                             eval(f'row.prop_search(node, prop_name, {prop_search_parent}, "{prop_search_name}")')                            
-                        elif prop_meta['renderman_type'] not in ['struct', 'bxdf', 'vstruct']:
+                        elif prop_meta['renderman_type'] not in ['struct', 'bxdf', 'vstruct'] and not read_only:
                             row.prop(node, prop_name, slider=True)
                         else:
                             row.label(text=prop_meta['label'])

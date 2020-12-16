@@ -68,7 +68,7 @@ OPTIONAL_ATTRS = ['URL', 'buttonText', 'conditionalVisOp', 'conditionalVisPath',
                   'label', 'match', 'max', 'min', 'riattr', 'riopt',
                   'scriptText', 'sensitivity', 'slider', 'slidermax',
                   'slidermin', 'sliderMin', 'sliderMax', 'syntax', 'tag', 'units',
-                  'vstructConditionalExpr', 'vstructmember', 'hidden', 'uiStruct']
+                  'vstructConditionalExpr', 'vstructmember', 'hidden', 'uiStruct', 'readOnly']
 INTERP_MAYA = {'none': 0,
                'linear': 1,
                'smooth': 2,
