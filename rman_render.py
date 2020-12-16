@@ -336,7 +336,10 @@ class RmanRender(object):
         rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
 
         self.rman_is_live_rendering = True
-        self.sg_scene.Render("prman -live")
+        if self.rman_render_into == 'it':
+            self.sg_scene.Render("prman -blocking")
+        else:
+            self.sg_scene.Render("prman -live")
 
         if self.rman_render_into == 'blender':        
             dspy_dict = display_utils.get_dspy_dict(self.rman_scene)
