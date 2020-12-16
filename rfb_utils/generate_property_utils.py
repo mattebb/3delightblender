@@ -114,6 +114,7 @@ def generate_property(node, sp, update_function=None):
     prop_meta['label'] = param_label
     prop_meta['widget'] = param_widget
     prop_meta['options'] = getattr(sp, 'options', OrderedDict())
+    prop_meta['hidden'] = False
 
     if hasattr(sp, 'connectable') and not sp.connectable:
         prop_meta['__noconnection'] = True

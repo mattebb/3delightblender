@@ -189,26 +189,25 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 prop_meta = node.prop_meta[prop_name]
                 prop = getattr(node, prop_name)
                 read_only = prop_meta.get('readOnly', False)
+                widget = prop_meta.get('widget', 'default')
+                prop_hidden = prop_meta.get('hidden', False)
 
-                if 'widget' in prop_meta:
-                    widget = prop_meta['widget']
-                    if widget == 'null' or \
-                        'hidden' in prop_meta and prop_meta['hidden']:
-                        continue
-                    elif widget == 'colorramp':
-                        node_group = bpy.data.node_groups[node.rman_fake_node_group]
-                        ramp_name =  prop
-                        ramp_node = node_group.nodes[ramp_name]
-                        layout.template_color_ramp(
-                                ramp_node, 'color_ramp')  
-                        continue       
-                    elif widget == 'floatramp':
-                        node_group = bpy.data.node_groups[node.rman_fake_node_group]
-                        ramp_name =  prop
-                        ramp_node = node_group.nodes[ramp_name]
-                        layout.template_curve_mapping(
-                                ramp_node, 'mapping')  
-                        continue                           
+                if widget == 'null' or prop_hidden:
+                    continue
+                elif widget == 'colorramp':
+                    node_group = bpy.data.node_groups[node.rman_fake_node_group]
+                    ramp_name =  prop
+                    ramp_node = node_group.nodes[ramp_name]
+                    layout.template_color_ramp(
+                            ramp_node, 'color_ramp')  
+                    continue       
+                elif widget == 'floatramp':
+                    node_group = bpy.data.node_groups[node.rman_fake_node_group]
+                    ramp_name =  prop
+                    ramp_node = node_group.nodes[ramp_name]
+                    layout.template_curve_mapping(
+                            ramp_node, 'mapping')  
+                    continue                           
 
                 # else check if the socket with this name is connected
                 socket = node.inputs[prop_name] if prop_name in node.inputs \
@@ -252,8 +251,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
                         split = layout.split(factor=NODE_LAYOUT_SPLIT)
                         row = split.row()
-                        for i in range(level):
-                            row.label(text='', icon='BLANK1')
+                        indented_label(row, None, level)
 
                         row.prop(node, ui_prop, icon=icon, text='',
                                  icon_only=True, emboss=False)
@@ -277,8 +275,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
                         split = layout.split(factor=NODE_LAYOUT_SPLIT)
                         row = split.row()
-                        for i in range(level):
-                            row.label(text='', icon='BLANK1')
+                        indented_label(row, None, level)
 
                         row.prop(node, ui_prop, icon=icon, text='',
                                  icon_only=True, emboss=False)
@@ -288,12 +285,15 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         row.label(text=prop_label + ' [%d]:' % arraylen)
 
                         if ui_open:
+                            level += 1
                             row = layout.row(align=True)
                             col = row.column()
                             row = col.row()
                             indented_label(row, None, level)                     
                             row.prop(node, '%s_arraylen' % prop_name, text='Size')
                             for i in range(0, arraylen):
+                                row = layout.row(align=True)
+                                col = row.column()                           
                                 row = col.row()
                                 array_elem_nm = '%s[%d]' % (prop_name, i)
                                 indented_label(row, None, level)
@@ -318,7 +318,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     else:                      
                         indented_label(row, None, level)
                         
-                        if prop_meta['widget'] == 'propsearch':
+                        if widget == 'propsearch':
                             # use a prop_search layout
                             options = prop_meta['options']
                             prop_search_parent = options.get('prop_parent')
