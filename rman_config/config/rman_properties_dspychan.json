@@ -132,7 +132,7 @@
         {
             "panel": "RENDER_PT_layer_custom_aovs",            
             "name": "stats_type",
-            "label": "Type",
+            "label": "Statistics",
             "type": "string",
             "default": "none",
             "page": "Statistics",
@@ -144,6 +144,19 @@
                 "conditionalVisPath": "show_advanced",
                 "conditionalVisValue": 1
             }            
-        }
+        },
+        {
+            "panel": "RENDER_PT_layer_custom_aovs",            
+            "name": "shadowthreshold",
+            "label": "Shadow Threshold",
+            "type": "float",
+            "default": 0.01,
+            "help": "Threshold used to compute shadowing contributions in LPEs containing the 'shadow' token. If the shadow is cut, lower the threshold. If there are white pixels in shadowed areas, raise the threshold.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "show_advanced",
+                "conditionalVisValue": 1
+            }            
+        }     
     ]
 }
