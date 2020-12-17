@@ -3,6 +3,7 @@ from ..rfb_logger import rfb_log
 from collections import OrderedDict
 from bpy.props import *
 from copy import deepcopy
+import math
 import bpy
 import sys
 
@@ -108,6 +109,10 @@ def generate_property(node, sp, update_function=None):
     else:
         param_type = sp.type
     renderman_type = param_type
+
+    prop_precision = 3
+    if hasattr(sp, 'sensitivity'):
+        prop_precision = -int(math.log10(sp.sensitivity))
         
     prop = None
 
@@ -198,7 +203,7 @@ def generate_property(node, sp, update_function=None):
                     param_max = sp.slidermax if hasattr(sp, 'slidermax') else param_max   
 
                     prop = FloatProperty(name=param_label,
-                                        default=param_default, precision=3,
+                                        default=param_default, precision=prop_precision,
                                         soft_min=param_min, soft_max=param_max,
                                         description=param_help, update=update_function)
 
@@ -209,7 +214,7 @@ def generate_property(node, sp, update_function=None):
                 param_max = sp.slidermax if hasattr(sp, 'slidermax') else param_max   
 
                 prop = FloatProperty(name=param_label,
-                                     default=param_default, precision=3,
+                                     default=param_default, precision=prop_precision,
                                      soft_min=param_min, soft_max=param_max,
                                      description=param_help, update=update_function)
 
@@ -283,6 +288,7 @@ def generate_property(node, sp, update_function=None):
                                     default=(1.0, 1.0, 1.0), size=3,
                                     subtype="COLOR",
                                     soft_min=0.0, soft_max=1.0,
+                                    precision=prop_precision,
                                     description=param_help, update=update_function)
         else:
             if param_default == 'null' or param_default is None:
@@ -291,6 +297,7 @@ def generate_property(node, sp, update_function=None):
                                     default=param_default, size=3,
                                     subtype="COLOR",
                                     soft_min=0.0, soft_max=1.0,
+                                    precision=prop_precision,
                                     description=param_help, update=update_function)
         renderman_type = 'color'
     elif param_type == 'shader':
@@ -354,6 +361,7 @@ def generate_property(node, sp, update_function=None):
             param_default = '0 0 0'
         prop = FloatVectorProperty(name=param_label,
                                    default=param_default, size=3,
+                                   precision=prop_precision,
                                    subtype="NONE",
                                    description=param_help, update=update_function)
     elif param_type == 'point':
@@ -362,6 +370,7 @@ def generate_property(node, sp, update_function=None):
         prop = FloatVectorProperty(name=param_label,
                                    default=param_default, size=3,
                                    subtype="XYZ",
+                                   precision=prop_precision,
                                    description=param_help, update=update_function)
         renderman_type = param_type
     elif param_type == 'int2':
@@ -378,6 +387,7 @@ def generate_property(node, sp, update_function=None):
         is_array = 2
         prop = FloatVectorProperty(name=param_label,
                                  default=param_default, size=2,
+                                 precision=prop_precision,
                                  description=param_help, update=update_function)
         renderman_type = 'float'
         prop_meta['arraySize'] = 2      
