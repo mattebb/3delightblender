@@ -43,6 +43,7 @@ from ..rfb_utils import string_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import object_utils   
 from ..rfb_utils import transform_utils
+from ..rfb_utils import texture_utils
 from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__
 from ..rman_bl_nodes import __BL_NODES_MAP__, __RMAN_NODE_TYPES__
@@ -688,7 +689,7 @@ class BlenderGraph:
             print('%s invalid' % node.name)
             return False
        
-        if node.__class__.__name__ not in g_validNodeTypes:
+        if node.bl_label not in __BL_NODES_MAP__:
             self._invalids.append(node)
             # we must warn the user, as this is not really supposed to happen.
             print('%s is not a valid node type (%s)' %
@@ -732,9 +733,10 @@ class BlenderGraph:
             for l in cnx:
                 # don't store connections to un-related nodes.
                 #
-                
-                ignoreDst = type(l.to_node).__name__ not in g_validNodeTypes
-                ignoreSrc = type(l.to_node).__name__ not in g_validNodeTypes
+
+                ignoreDst = l.to_node.bl_label not in __BL_NODES_MAP__
+                ignoreSrc = l.from_node.bl_label not in __BL_NODES_MAP__
+
                 if ignoreDst or ignoreSrc:
                     print("Ignoring connection %s -> %s" % (l.from_node.name, l.to_node.name))
                     continue
@@ -1009,8 +1011,11 @@ def blenderParams(nodetype):
 #
 def parseNodeGraph(nodes_to_convert, Asset):
 
+    #out = next((n for n in nodes_to_convert if hasattr(n, 'renderman_node_type') and
+    #                    n.renderman_node_type == 'output'), None)
+
     graph = BlenderGraph()
-    graph.AddNode(out)
+    #graph.AddNode(out)
 
     for node in nodes_to_convert:
         # some "nodes" are actually tuples
@@ -1045,12 +1050,35 @@ def exportLightRig(obs, Asset):
             if meta['renderman_type'] == 'page' or prop_name == 'notes' or meta['renderman_type'] == 'enum':
                 continue
 
-            elif 'widget' in meta and meta['widget'] == 'null':
+            elif meta['widget'] == 'null':
                 continue
 
             ptype = meta['renderman_type']
-            pname = meta['renderman_name']                    
-            val = string_utils.convert_val(prop, type_hint=ptype)
+            pname = meta['renderman_name']  
+            param_widget = meta['widget']           
+
+            if ptype == 'string':
+                val = string_utils.convert_val(prop, type_hint=ptype)
+                if param_widget in ['fileinput', 'assetidinput']:
+                    options = meta['options']
+                    # txmanager doesn't currently deal with ptex
+                    if bl_node.bl_idname == "PxrPtexturePatternNode":
+                        val = string_utils.expand_string(val, display='ptex', asFilePath=True)        
+                    # ies profiles don't need txmanager for converting                       
+                    elif 'ies' in options:
+                        val = string_utils.expand_string(val, display='ies', asFilePath=True)
+                    # this is a texture
+                    elif ('texture' in options) or ('env' in options) or ('imageplane' in options):
+                        tx_node_id = texture_utils.generate_node_id(bl_node, pname, ob=ob)
+                        tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+                        val = tx_val if tx_val != '' else val
+                elif param_widget == 'assetidoutput':
+                    display = 'openexr'
+                    if 'texture' in meta['options']:
+                        display = 'texture'
+                    val = string_utils.expand_string(val, display='texture', asFilePath=True)         
+            else:
+                val = string_utils.convert_val(prop, type_hint=ptype)                    
 
             pdict = {'type': ptype, 'value': val}
             Asset.addParam(nodeName, pname, pdict)
@@ -1095,7 +1123,9 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
 
     asset_type = ''
     if atype == 'nodeGraph':
-        if category.startswith('Materials'):
+        hostPrefs = get_host_prefs()
+        rel_path = os.path.relpath(category, hostPrefs.getSelectedLibrary())   
+        if rel_path.startswith('Materials'):
             asset_type = 'Materials'
         else:
             asset_type = 'LightRigs'    
@@ -1123,8 +1153,7 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
         else:
             exportLightRig(nodes, Asset)
     elif atype is "envMap":
-        #parse_texture(nodes[0], Asset)
-        pass
+        parse_texture(nodes[0], Asset)
     else:
         raise RmanRmanAssetBlenderError("%s is not a known asset type !" % atype)
 
