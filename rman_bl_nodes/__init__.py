@@ -765,27 +765,26 @@ def register_rman_nodes():
                                     category = token
                                     continue
                             # if we didn't find anything, put this into the misc. cateogry   
-                            if category == '' or ('main' not in category):
+                            if category == '' or ('bxdf' not in category):
                                 __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'][0][1].append(node_item)
                                 __RMAN_NODE_CATEGORIES__['bxdf']['bxdf_misc'][1].append(node_desc)
                                 continue
                            
-                            # now, split on /, and look for main
+                            # now, split on /, and look for bxdf
                             tokens = category.split('/')
                             i = 0
                             for i,token in enumerate(tokens):
-                                if token == 'main':
+                                if token == 'bxdf':
+                                    # found bxdf, all the tokens after are the category
+                                    i += 1
                                     break
-
-                            # if there are more tokens after "main", let's
-                            # not include main in the category name
-                            if i+1 < len(tokens):
-                                i += 1
 
                             category = '_'.join(tokens[i:])
                             category_nice_name = ''
                             for token in tokens[i:]:
-                                category_nice_name += token.capitalize() + ' '
+                                if category_nice_name != '':
+                                    category_nice_name += '/'
+                                category_nice_name += token.capitalize()
                             lst = __RMAN_NODE_CATEGORIES__['bxdf'].get('bxdf_%s' % category, None)
                             if not lst:
                                 lst = (('RenderMan %s Bxdf' % category_nice_name, []), [])

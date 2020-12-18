@@ -113,6 +113,8 @@ class NODE_MT_renderman_connection_menu(Menu):
                 op.node_name = '%sProjectionNode' % n.name                                                                                            
         elif renderman_type == 'bxdf':    
             for bxdf_cat, bxdfs in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
+                if not bxdfs[1]:
+                    continue
                 tokens = bxdf_cat.split('_')
                 bxdf_category = ' '.join(tokens[1:])
 
@@ -162,6 +164,8 @@ class NODE_MT_renderman_connection_menu(Menu):
 
         elif renderman_type == 'bxdf':
             for bxdf_cat, bxdfs in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
+                if not bxdfs[1]:
+                    continue
                 tokens = bxdf_cat.split('_')
                 bxdf_category = ' '.join(tokens[1:])
 
@@ -172,6 +176,8 @@ class NODE_MT_renderman_connection_menu(Menu):
 
         else:    
             for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'].items():
+                if not patterns[1]:
+                    continue
                 tokens = pattern_cat.split('_')
                 pattern_category = ' '.join(tokens[1:])
                 has_any = False
@@ -226,6 +232,8 @@ class NODE_MT_renderman_connection_menu(Menu):
         prop_name = socket.name
   
         for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'].items():
+            if not patterns[1]:
+                continue
             tokens = pattern_cat.split('_')
             pattern_category = ' '.join(tokens[1:])
 
@@ -313,7 +321,9 @@ def register_renderman_bxdf_node_submenus():
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
                 op.node_name = '%sBxdfNode' % n.name                     
 
-    for bxdf_cat, bxdf in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
+    for bxdf_cat, ((desc, items), lst) in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
+        if not items:
+            continue
         typename = 'NODE_MT_renderman_connection_submenu_%s' % bxdf_cat
         ntype = type(typename, (Menu,), {})
         ntype.bl_label = bxdf_cat
@@ -342,6 +352,8 @@ def register_renderman_pattern_node_submenus():
             renderman_type = 'pattern'
       
         for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'].items():
+            if not patterns[1]:
+                continue
             tokens = pattern_cat.split('_')
             pattern_category = ' '.join(tokens[1:])
             if pattern_cat != self.bl_label:
