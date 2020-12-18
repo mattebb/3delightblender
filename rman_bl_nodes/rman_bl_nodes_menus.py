@@ -116,6 +116,9 @@ class NODE_MT_renderman_connection_menu(Menu):
                 if not bxdfs[1]:
                     continue
                 tokens = bxdf_cat.split('_')
+                if len(tokens) > 2:
+                    # this should be a subcategory/submenu
+                    continue                
                 bxdf_category = ' '.join(tokens[1:])
 
                 layout.context_pointer_set("node", node)
@@ -167,6 +170,9 @@ class NODE_MT_renderman_connection_menu(Menu):
                 if not bxdfs[1]:
                     continue
                 tokens = bxdf_cat.split('_')
+                if len(tokens) > 2:
+                    # this should be a subcategory/submenu
+                    continue
                 bxdf_category = ' '.join(tokens[1:])
 
                 layout.context_pointer_set("node", node)
@@ -179,6 +185,9 @@ class NODE_MT_renderman_connection_menu(Menu):
                 if not patterns[1]:
                     continue
                 tokens = pattern_cat.split('_')
+                if len(tokens) > 2:
+                    # this should be a subcategory/submenu
+                    continue                
                 pattern_category = ' '.join(tokens[1:])
                 has_any = False
                 for n in patterns[1]:
@@ -235,6 +244,9 @@ class NODE_MT_renderman_connection_menu(Menu):
             if not patterns[1]:
                 continue
             tokens = pattern_cat.split('_')
+            if len(tokens) > 2:
+                # this should be a subcategory/submenu
+                continue            
             pattern_category = ' '.join(tokens[1:])
 
             layout.context_pointer_set("node", node)
@@ -311,6 +323,17 @@ def register_renderman_bxdf_node_submenus():
         node = context.node
         socket = context.socket
 
+        # add submenus for subcategories
+        for bxdf_cat, bxdfs in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
+            if self.bl_label == bxdf_cat:
+                continue
+            if self.bl_label in bxdf_cat:
+                if not bxdfs[1]:
+                    continue
+                tokens = bxdf_cat.split('_')
+                bxdf_category = ' '.join(tokens[1:])                
+                layout.menu('NODE_MT_renderman_connection_submenu_%s' % bxdf_cat, text=bxdf_category.capitalize())                   
+
         for bxdf_cat, bxdfs in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
             tokens = bxdf_cat.split('_')
             bxdf_category = ' '.join(tokens[1:])
@@ -350,6 +373,17 @@ def register_renderman_pattern_node_submenus():
             renderman_type = prop_meta.get('renderman_array_type', renderman_type)
         else:
             renderman_type = 'pattern'
+
+        # add submenus for subcategories
+        for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'].items():
+            if self.bl_label == pattern_cat:
+                continue
+            if self.bl_label in pattern_cat:
+                if not patterns[1]:
+                    continue
+                tokens = pattern_cat.split('_')
+                pattern_category = ' '.join(tokens[1:])               
+                layout.menu('NODE_MT_renderman_connection_submenu_%s' % pattern_cat, text=pattern_category.capitalize())                
       
         for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'].items():
             if not patterns[1]:
