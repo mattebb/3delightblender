@@ -156,25 +156,27 @@ class RmanMaterialTranslator(RmanTranslator):
             for s in shader_sg_nodes:
                 bxdfList.append(s) 
 
+        node_type = getattr(solo_node, 'renderman_node_type', '')
         if bxdfList:
-            sg_node = self.rman_scene.rman.SGManager.RixSGShader("Bxdf", 'PxrConstant', '__RMAN_SOLO_SHADER__')
-            params = sg_node.params
-            from_socket = solo_node.outputs[0]
-            if out.solo_node_output:
-                from_socket = solo_node.outputs.get(out.solo_node_output)
-            val = property_utils.build_output_param_str(mat_handle, solo_node, from_socket, convert_socket=False, param_type='')                
+            if node_type == 'pattern':
+                sg_node = self.rman_scene.rman.SGManager.RixSGShader("Bxdf", 'PxrConstant', '__RMAN_SOLO_SHADER__')
+                params = sg_node.params
+                from_socket = solo_node.outputs[0]
+                if out.solo_node_output:
+                    from_socket = solo_node.outputs.get(out.solo_node_output)
+                val = property_utils.build_output_param_str(mat_handle, solo_node, from_socket, convert_socket=False, param_type='')                
 
-            # check the output type
-            if from_socket.renderman_type in ['color', 'normal', 'vector', 'point']:               
-                property_utils.set_rix_param(params, 'color', 'emitColor', val, is_reference=True)
-                bxdfList.append(sg_node)
-            elif from_socket.renderman_type in ['float']:
-                to_float3 = self.rman_scene.rman.SGManager.RixSGShader("Pattern", 'PxrToFloat3', '__RMAN_SOLO_SHADER_PXRTOFLOAT3__')
-                property_utils.set_rix_param(to_float3.params, from_socket.renderman_type, 'input', val, is_reference=True)
-                val = '__RMAN_SOLO_SHADER_PXRTOFLOAT3__:resultRGB'
-                property_utils.set_rix_param(params, 'color', 'emitColor', val, is_reference=True)
-                bxdfList.append(to_float3)
-                bxdfList.append(sg_node)
+                # check the output type
+                if from_socket.renderman_type in ['color', 'normal', 'vector', 'point']:               
+                    property_utils.set_rix_param(params, 'color', 'emitColor', val, is_reference=True)
+                    bxdfList.append(sg_node)
+                elif from_socket.renderman_type in ['float']:
+                    to_float3 = self.rman_scene.rman.SGManager.RixSGShader("Pattern", 'PxrToFloat3', '__RMAN_SOLO_SHADER_PXRTOFLOAT3__')
+                    property_utils.set_rix_param(to_float3.params, from_socket.renderman_type, 'input', val, is_reference=True)
+                    val = '__RMAN_SOLO_SHADER_PXRTOFLOAT3__:resultRGB'
+                    property_utils.set_rix_param(params, 'color', 'emitColor', val, is_reference=True)
+                    bxdfList.append(to_float3)
+                    bxdfList.append(sg_node)
                 
             rman_sg_material.sg_node.SetBxdf(bxdfList)   
             return True             

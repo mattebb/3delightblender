@@ -1,6 +1,6 @@
 from ..rman_render import RmanRender
 from .. import rfb_icons
-from ..rfb_utils.shadergraph_utils import is_renderman_nodetree, find_selected_pattern_node
+from ..rfb_utils.shadergraph_utils import is_renderman_nodetree, find_soloable_node
 import bpy
 
 class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
@@ -60,7 +60,7 @@ class NODE_MT_renderman_node_editor_menu(bpy.types.Menu):
                 nt = context.space_data.id.node_tree
                 layout.context_pointer_set("nodetree", nt)  
                 layout.context_pointer_set("node", rman_output_node)                  
-                selected_node = find_selected_pattern_node(nt)
+                selected_node = find_soloable_node(nt)
                 if selected_node:                     
                     rman_icon = rfb_icons.get_icon('rman_solo_on')
                     op = layout.operator('node.rman_set_node_solo', text='Solo %s' % selected_node.name, icon_value=rman_icon.icon_id)
@@ -105,7 +105,7 @@ class NODE_HT_DrawRenderHeaderNode(bpy.types.Header):
                 nt = context.space_data.id.node_tree
                 row.context_pointer_set("nodetree", nt)  
                 row.context_pointer_set("node", rman_output_node)                  
-                selected_node = find_selected_pattern_node(nt)
+                selected_node = find_soloable_node(nt)
 
                 if rman_output_node.solo_node_name != '':
                     rman_icon = rfb_icons.get_icon('rman_solo_on')

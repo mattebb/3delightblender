@@ -168,6 +168,27 @@ def find_node_from_nodetree(ntree, nodetype):
 
     return None
 
+def is_soloable_node(node):
+    is_soloable = False
+    node_type = getattr(node, 'renderman_node_type', '')
+    if node_type in ('pattern', 'bxdf'):
+        if node.bl_label in ['PxrLayer', 'PxrLayerMixer']:
+            is_soloable = False
+        else:
+            is_soloable = True
+    return is_soloable
+
+def find_soloable_node(ntree):
+    selected_node = None
+    for n in ntree.nodes:
+        node_type = getattr(n, 'renderman_node_type', '')
+        if n.select and node_type in ('pattern', 'bxdf'):
+            if n.bl_label in ['PxrLayer', 'PxrLayerMixer']:
+                continue
+            selected_node = n
+            break    
+    return selected_node    
+
 def find_selected_pattern_node(ntree):
     selected_node = None
     for n in ntree.nodes:

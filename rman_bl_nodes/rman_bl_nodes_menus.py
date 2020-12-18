@@ -260,27 +260,28 @@ class NODE_MT_renderman_connection_menu(Menu):
             layout.operator('node.rman_shading_disconnect', text='Disconnect')
             layout.operator('node.rman_shading_remove', text='Remove')
 
-        if node.bl_idname in [
-                                'RendermanOutputNode', 
+        is_output_node = node.bl_idname in ['RendermanOutputNode', 
                                 'RendermanSamplefiltersOutputNode', 
                                 'RendermanDisplayfiltersOutputNode', 
                                 'RendermanIntegratorsOutputNode',
-                                'RendermanProjectionsOutputNode']:
+                                'RendermanProjectionsOutputNode']
+
+        # Solo menu
+        if not is_output_node and socket.is_linked:
+            from_node = socket.links[0].from_node
+            if shadergraph_utils.is_soloable_node(from_node):
+                out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
+                layout.context_pointer_set("node", out_node)
+                layout.context_pointer_set("nodetree", nt)      
+                rman_icon = rfb_icons.get_icon('rman_solo_on')
+                op = layout.operator('node.rman_set_node_solo', text='Solo Input Node', icon_value=rman_icon.icon_id)
+                op.refresh_solo = False
+                op.solo_node_name = from_node.name                 
+
+        if is_output_node:
             layout.separator()                                
             self.draw_output_node_menu(context)
         else:
-            if socket.is_linked:        
-                prop_name = socket.name
-                prop_meta = node.prop_meta[prop_name]
-                vstruct = prop_meta.get('vstruct', False)
-                if not vstruct and prop_name != 'inputMaterial':                
-                    out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
-                    layout.context_pointer_set("node", out_node)
-                    layout.context_pointer_set("nodetree", nt)      
-                    rman_icon = rfb_icons.get_icon('rman_solo_on')
-                    op = layout.operator('node.rman_set_node_solo', text='Solo Input Node', icon_value=rman_icon.icon_id)
-                    op.refresh_solo = False
-                    op.solo_node_name = socket.links[0].from_node.name            
             layout.separator()   
             if hasattr(node, 'prop_meta'):
                 self.draw_patterns_menu(context)
