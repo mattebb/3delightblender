@@ -461,7 +461,11 @@ class VIEW3D_MT_RM_Add_bxdf_Menu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
 
-        for nm, nm, description, icon, i in get_bxdf_items():
+        for nm, label, description, icon, i in get_bxdf_items():
+            if not nm:
+                layout.separator()
+                layout.label(text=label)
+                continue
             op = layout.operator('object.rman_add_bxdf', text=nm, icon_value=icon)
             op.bxdf_name = nm         
 

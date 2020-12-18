@@ -4,17 +4,18 @@ from ..rfb_icons import get_bxdf_icon, get_light_icon, get_lightfilter_icon, get
 def get_bxdf_items():
  
     items = []
-    i = 0
-    dflt = 'PxrSurface'
-    rman_bxdf_icon = get_bxdf_icon("PxrSurface")
-    items.append((dflt, dflt, '', rman_bxdf_icon.icon_id, i))
-    i += 1
-    for n in rman_bl_nodes.__RMAN_BXDF_NODES__:
-        if n.name == dflt:
+    i = 1
+    for bxdf_cat, bxdfs in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
+        if not bxdfs[1]:
             continue
-        rman_bxdf_icon = get_bxdf_icon(n.name)
-        items.append( (n.name, n.name, '', rman_bxdf_icon.icon_id, i))                
-        i += 1
+        tokens = bxdf_cat.split('_')
+        bxdf_category = ' '.join(tokens[1:])      
+        items.append(('', bxdf_category.capitalize(), '', 0, 0))
+        for n in bxdfs[1]:
+            rman_bxdf_icon = get_bxdf_icon(n.name)
+            items.append( (n.name, n.name, '', rman_bxdf_icon.icon_id, i))       
+            i += 1
+
     return items     
 
 def get_light_items():
