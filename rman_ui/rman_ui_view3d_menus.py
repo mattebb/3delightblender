@@ -53,11 +53,14 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         op.bl_prim_type = ''
         op.rman_open_filebrowser = True    
 
+        '''
+        # Remove RunProgram for now
         op = layout.operator('object.rman_add_rman_geo', text='RunProgram')
         op.rman_prim_type = 'PROCEDURAL_RUN_PROGRAM'
         op.rman_default_name = 'RiRunProgram'          
         op.bl_prim_type = ''
         op.rman_open_filebrowser = True
+        '''
 
         op = layout.operator('object.rman_add_rman_geo', text='RiProcedural')
         op.rman_prim_type = 'DYNAMIC_LOAD_DSO'
