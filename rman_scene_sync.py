@@ -48,7 +48,7 @@ class RmanSceneSync(object):
             if self.rman_scene.is_viewport_render:
                 ob = translator.update_viewport_resolution(rman_sg_camera)
                 if ob:
-                    translator.update_viewport_cam(ob, rman_sg_camera)
+                    translator.update_viewport_cam(ob, rman_sg_camera, force_update=True)
                 translator.update_transform(None, rman_sg_camera)
             else:
                 translator.update_transform(camera, rman_sg_camera)  
@@ -205,7 +205,9 @@ class RmanSceneSync(object):
                     ob = ob.original
                     rman_camera_translator = self.rman_scene.rman_translators['CAMERA']
                     if not self.rman_scene.is_viewport_render:
-                        rman_camera_translator.update(ob, rman_sg_node)         
+                        rman_camera_translator.update(ob, rman_sg_node)  
+                    else:
+                        rman_camera_translator.update_viewport_cam(ob, rman_sg_node, force_update=True)       
 
         else:
             if rman_sg_node.rman_type != rman_type:
