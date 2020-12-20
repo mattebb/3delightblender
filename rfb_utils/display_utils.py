@@ -405,7 +405,8 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
 
         if aov.name != 'beauty' and (display_driver in ['it', 'blender']): #(display_driver == 'it' or rman_scene.is_viewport_render):
             # break up display per channel when rendering to it
-            for chan in aov.dspy_channels:
+            for chan_ptr in aov.dspy_channels:
+                chan = rm_rl.dspy_channels[chan_ptr.dspy_chan_idx]
                 ch_name = _get_real_chan_name(chan)
                 dspy_name = '%s_%s' % (aov.name, ch_name)
                 new_dspy_params = deepcopy(dspy_params)

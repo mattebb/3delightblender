@@ -416,14 +416,8 @@ class PRMAN_OT_add_renderman_aovs(bpy.types.Operator):
     def execute(self, context):
         active_layer = context.view_layer
         # add the already existing passes
-        scene = context.scene
-        rm = scene.renderman
         rm_rl = active_layer.renderman
         rm_rl.use_renderman = True
-        
-        active_layer = context.view_layer
-
-        rl = active_layer
 
         blender_aovs = [
             ('rgba', active_layer.use_pass_combined, ''),
