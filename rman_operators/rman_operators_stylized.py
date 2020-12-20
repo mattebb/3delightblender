@@ -2,7 +2,7 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from ..rfb_utils import shadergraph_utils
 from .. import rman_bl_nodes
-from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERN, RMAN_UTILITY_PATTERN_NAME  
+from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERN, RMAN_UTILITY_PATTERN_NAMES  
 from ..rman_config import __RMAN_STYLIZED_TEMPLATES__
 
 class PRMAN_OT_Enable_Sylized_Looks(bpy.types.Operator):
@@ -77,31 +77,54 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
 
         link = socket.links[0]
         node = link.from_node 
-        prop = getattr(node, RMAN_UTILITY_PATTERN_NAME, None)
-        if not prop:
+        prop_name = ''
+        for nm in RMAN_UTILITY_PATTERN_NAMES:
+            if hasattr(node, nm):
+                prop_name = nm
+                break
+
+        if prop_name == "":
             return
 
         if shadergraph_utils.has_stylized_pattern_node(ob, node=node):
             return
 
-        array_len = getattr(node, '%s_arraylen' % RMAN_UTILITY_PATTERN_NAME)
-        array_len += 1
-        setattr(node, '%s_arraylen' % RMAN_UTILITY_PATTERN_NAME, array_len)      
-        pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[RMAN_STYLIZED_PATTERN]
-        pattern_node = nt.nodes.new(pattern_node_name)   
+        prop_meta = node.prop_meta[prop_name]
+        if prop_meta['renderman_type'] == 'array':
 
-        if self.properties.create_template and self.properties.template_name != "":
-            settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.template_name]
-            pattern_tmplt = settings['patterns'] 
-            for pattern_name, pattern_settings in pattern_tmplt.items():
-                for param_name, param_settings in pattern_settings['params'].items():
-                    val = param_settings['value']
-                    setattr(pattern_node, param_name, val)
-                break
+            array_len = getattr(node, '%s_arraylen' % prop_name)
+            array_len += 1
+            setattr(node, '%s_arraylen' % prop_name, array_len)      
+            pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[RMAN_STYLIZED_PATTERN]
+            pattern_node = nt.nodes.new(pattern_node_name)   
+
+            if self.properties.create_template and self.properties.template_name != "":
+                settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.template_name]
+                pattern_tmplt = settings['patterns'] 
+                for pattern_name, pattern_settings in pattern_tmplt.items():
+                    for param_name, param_settings in pattern_settings['params'].items():
+                        val = param_settings['value']
+                        setattr(pattern_node, param_name, val)
+                    break
         
+            sub_prop_nm = '%s[%d]' % (prop_name, array_len-1)     
+            nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[sub_prop_nm])      
+
+        else:
+            pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[RMAN_STYLIZED_PATTERN]
+            pattern_node = nt.nodes.new(pattern_node_name)   
+
+            if self.properties.create_template and self.properties.template_name != "":
+                settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.template_name]
+                pattern_tmplt = settings['patterns'] 
+                for pattern_name, pattern_settings in pattern_tmplt.items():
+                    for param_name, param_settings in pattern_settings['params'].items():
+                        val = param_settings['value']
+                        setattr(pattern_node, param_name, val)
+                    break
         
-        sub_prop_nm = '%s[%d]' % (RMAN_UTILITY_PATTERN_NAME, array_len-1)     
-        nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[sub_prop_nm])         
+            nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[prop_name])
+
     
     def execute(self, context):
         scene = context.scene

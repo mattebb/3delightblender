@@ -34,7 +34,10 @@ RMAN_STYLIZED_FILTERS = [
 ]    
 
 RMAN_STYLIZED_PATTERN = "PxrStylizedControl"
-RMAN_UTILITY_PATTERN_NAME = "utilityPattern"
+RMAN_UTILITY_PATTERN_NAMES = [
+                            "utilityPattern",
+                            "inputAOV",
+                            "utilityInteger"]
 
 # special string to indicate an empty string
 # necessary for EnumProperty because it cannot

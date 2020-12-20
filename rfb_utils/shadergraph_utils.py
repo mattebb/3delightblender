@@ -2,7 +2,7 @@ from . import color_utils
 from . import filepath_utils
 from . import string_utils
 from . import object_utils
-from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERN, RMAN_UTILITY_PATTERN_NAME
+from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERN, RMAN_UTILITY_PATTERN_NAMES
 import math
 
 def is_renderman_nodetree(material):
@@ -362,6 +362,7 @@ def find_all_stylized_filters(world):
     return nodes
                           
 def has_stylized_pattern_node(ob, node=None):
+    prop_name = ''
     if not node:
         if len(ob.material_slots) < 1:
             return False
@@ -376,21 +377,34 @@ def has_stylized_pattern_node(ob, node=None):
 
         link = socket.links[0]
         node = link.from_node 
-        prop = getattr(node, RMAN_UTILITY_PATTERN_NAME, None)
-        if not prop:
-            return False
 
-    array_len = getattr(node, '%s_arraylen' % RMAN_UTILITY_PATTERN_NAME)
-    for i in range(0, array_len):
-        nm = '%s[%d]' % (RMAN_UTILITY_PATTERN_NAME, i)
-        sub_prop = getattr(node, nm)
-        if hasattr(node, 'inputs')  and nm in node.inputs and \
-            node.inputs[nm].is_linked: 
+    for nm in RMAN_UTILITY_PATTERN_NAMES:
+        if hasattr(node, nm):
+            prop_name = nm
+            break
 
-            to_socket = node.inputs[nm]                    
-            from_node = to_socket.links[0].from_node
-            if from_node.bl_label == RMAN_STYLIZED_PATTERN:
-                return from_node
+    if prop_name == '':
+        return False
+
+    prop_meta = node.prop_meta[prop_name]
+    if prop_meta['renderman_type'] == 'array':
+        array_len = getattr(node, '%s_arraylen' % prop_name)
+        for i in range(0, array_len):
+            nm = '%s[%d]' % (prop_name, i)
+            sub_prop = getattr(node, nm)
+            if hasattr(node, 'inputs')  and nm in node.inputs and \
+                node.inputs[nm].is_linked: 
+
+                to_socket = node.inputs[nm]                    
+                from_node = to_socket.links[0].from_node
+                if from_node.bl_label == RMAN_STYLIZED_PATTERN:
+                    return from_node
+
+    elif node.inputs[prop_name].is_linked: 
+        to_socket = node.inputs[prop_name]                    
+        from_node = to_socket.links[0].from_node
+        if from_node.bl_label == RMAN_STYLIZED_PATTERN:
+            return from_node        
 
     return False
 
