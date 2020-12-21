@@ -1,0 +1,67 @@
+{
+    "name": "Scumble",
+    "patterns": {
+        "PxrStylizedControl": {
+            "node": "PxrStylizedControl",
+            "params": {
+                "lineThickness": {
+                    "type": "float",
+                    "value": 2.0
+                }
+            }
+        }
+    },
+    "display_filters": {
+        "rman_Scumble_hatching": {
+            "node": "PxrStylizedHatching",
+            "params": {
+                "hatchingTex1": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-scumble/pxrStylized-scumble-01.tex"
+                },
+                "hatchingTex2": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-scumble/pxrStylized-scumble-02.tex"
+                },
+                "hatchingTex3": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-scumble/pxrStylized-scumble-03.tex"
+                },
+                "hatchingTex4": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-scumble/pxrStylized-scumble-04.tex"
+                },
+                "hatchingTex5": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-scumble/pxrStylized-scumble-05.tex"
+                },
+                "hatchingTex6": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-scumble/pxrStylized-scumble-06.tex"
+                },
+                "hatchingTex7": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-scumble/pxrStylized-scumble-07.tex"
+                },
+                "hatchingTex8": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-scumble/pxrStylized-scumble-08.tex"
+                },
+                "visualizer": {
+                    "type": "string",
+                    "value": "hatchingOnColor"
+                }                
+            }
+        },
+        "rman_Scumble_lines": {
+            "node": "PxrStylizedLines",
+            "params": {
+                "lineThickness": {
+                    "type": "float",
+                    "value": 2.0
+                }
+            }            
+        }
+
+    }
+}

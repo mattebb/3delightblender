@@ -1,0 +1,67 @@
+{
+    "name": "Wash",
+    "patterns": {
+        "PxrStylizedControl": {
+            "node": "PxrStylizedControl",
+            "params": {
+                "lineThickness": {
+                    "type": "float",
+                    "value": 2.0
+                }
+            }
+        }
+    },
+    "display_filters": {
+        "rman_Wash_hatching": {
+            "node": "PxrStylizedHatching",
+            "params": {
+                "hatchingTex1": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-wash/pxrStylized-wash-01.tex"
+                },
+                "hatchingTex2": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-wash/pxrStylized-wash-02.tex"
+                },
+                "hatchingTex3": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-wash/pxrStylized-wash-03.tex"
+                },
+                "hatchingTex4": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-wash/pxrStylized-wash-04.tex"
+                },
+                "hatchingTex5": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-wash/pxrStylized-wash-05.tex"
+                },
+                "hatchingTex6": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-wash/pxrStylized-wash-06.tex"
+                },
+                "hatchingTex7": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-wash/pxrStylized-wash-07.tex"
+                },
+                "hatchingTex8": {
+                    "type": "string",
+                    "value": "StylizedLooks/pxrStylized-wash/pxrStylized-wash-08.tex"
+                },
+                "visualizer": {
+                    "type": "string",
+                    "value": "hatchingOnColor"
+                }                
+            }
+        },
+        "rman_Wash_lines": {
+            "node": "PxrStylizedLines",
+            "params": {
+                "lineThickness": {
+                    "type": "float",
+                    "value": 2.0
+                }
+            }            
+        }
+
+    }
+}

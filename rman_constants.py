@@ -35,8 +35,8 @@ RMAN_STYLIZED_FILTERS = [
 
 RMAN_STYLIZED_PATTERN = "PxrStylizedControl"
 RMAN_UTILITY_PATTERN_NAMES = [
-                            "userColor",
                             "utilityPattern",
+                            "userColor",
                             "inputAOV",
                             "utilityInteger"]
 
