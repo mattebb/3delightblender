@@ -86,7 +86,7 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
 
     export_scalp_st: BoolProperty(
         name="Export Emitter UV",
-        description="On hair, export the u/v from the emitter where the hair originates.  Use the variables 'scalpS' and 'scalpT' in your manifold node",
+        description="On hair, export the u/v from the emitter where the hair originates.  Use the variable 'scalpST' in your manifold node",
         default=True
     )
 
