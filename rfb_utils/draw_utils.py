@@ -323,8 +323,13 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             options = prop_meta['options']
                             prop_search_parent = options.get('prop_parent')
                             prop_search_name = options.get('prop_name')
-                            eval(f'row.prop_search(node, prop_name, {prop_search_parent}, "{prop_search_name}")')                            
-                        elif prop_meta['renderman_type'] not in ['struct', 'bxdf', 'vstruct'] and not read_only:
+                            eval(f'row.prop_search(node, prop_name, {prop_search_parent}, "{prop_search_name}")') 
+                        elif read_only:
+                            # param is read_only i.e.: it is expected that this param has a connection
+                            row2 = row.row()
+                            row2.prop(node, prop_name, slider=True)
+                            row2.enabled=False                           
+                        elif prop_meta['renderman_type'] not in ['struct', 'bxdf', 'vstruct']:
                             row.prop(node, prop_name, slider=True)
                         else:
                             row.label(text=prop_meta['label'])
