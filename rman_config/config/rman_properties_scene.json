@@ -704,7 +704,7 @@
             }              
         },        
         {
-            "panel": "RENDER_PT_renderman_advanced_settings",
+            "panel": "",
             "page": "Open Shading Language",
             "name": "opt_useOSLPatterns",
             "label": "Convert C++ patterns to OSL",
