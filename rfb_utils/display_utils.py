@@ -63,8 +63,9 @@ def _add_stylized_channels(dspys_dict, dspy_drv, rman_scene, expandTokens):
         if 'display' in stylized_tmplt:
             display_driver = stylized_tmplt['display']['displayType']        
 
-    if display_driver == 'blender' and rman_scene.is_viewport_render:
-        display_driver = 'null'
+    if display_driver in ['it', 'blender']:
+        if rman_scene.is_viewport_render:
+            display_driver = 'null'
 
         for chan in stylized_tmplt['channels']:
             dspy_params = {}                        
