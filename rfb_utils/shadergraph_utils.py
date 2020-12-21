@@ -381,30 +381,26 @@ def has_stylized_pattern_node(ob, node=None):
     for nm in RMAN_UTILITY_PATTERN_NAMES:
         if hasattr(node, nm):
             prop_name = nm
-            break
 
-    if prop_name == '':
-        return False
+            prop_meta = node.prop_meta[prop_name]
+            if prop_meta['renderman_type'] == 'array':
+                array_len = getattr(node, '%s_arraylen' % prop_name)
+                for i in range(0, array_len):
+                    nm = '%s[%d]' % (prop_name, i)
+                    sub_prop = getattr(node, nm)
+                    if hasattr(node, 'inputs')  and nm in node.inputs and \
+                        node.inputs[nm].is_linked: 
 
-    prop_meta = node.prop_meta[prop_name]
-    if prop_meta['renderman_type'] == 'array':
-        array_len = getattr(node, '%s_arraylen' % prop_name)
-        for i in range(0, array_len):
-            nm = '%s[%d]' % (prop_name, i)
-            sub_prop = getattr(node, nm)
-            if hasattr(node, 'inputs')  and nm in node.inputs and \
-                node.inputs[nm].is_linked: 
+                        to_socket = node.inputs[nm]                    
+                        from_node = to_socket.links[0].from_node
+                        if from_node.bl_label == RMAN_STYLIZED_PATTERN:
+                            return from_node
 
-                to_socket = node.inputs[nm]                    
+            elif node.inputs[prop_name].is_linked: 
+                to_socket = node.inputs[prop_name]                    
                 from_node = to_socket.links[0].from_node
                 if from_node.bl_label == RMAN_STYLIZED_PATTERN:
-                    return from_node
-
-    elif node.inputs[prop_name].is_linked: 
-        to_socket = node.inputs[prop_name]                    
-        from_node = to_socket.links[0].from_node
-        if from_node.bl_label == RMAN_STYLIZED_PATTERN:
-            return from_node        
+                    return from_node        
 
     return False
 

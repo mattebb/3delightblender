@@ -81,49 +81,48 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
         for nm in RMAN_UTILITY_PATTERN_NAMES:
             if hasattr(node, nm):
                 prop_name = nm
-                break
 
-        if prop_name == "":
-            return
+            if shadergraph_utils.has_stylized_pattern_node(ob, node=node):
+                continue
 
-        if shadergraph_utils.has_stylized_pattern_node(ob, node=node):
-            return
+            prop_meta = node.prop_meta[prop_name]
+            if prop_meta['renderman_type'] == 'array':
 
-        prop_meta = node.prop_meta[prop_name]
-        if prop_meta['renderman_type'] == 'array':
+                array_len = getattr(node, '%s_arraylen' % prop_name)
+                array_len += 1
+                setattr(node, '%s_arraylen' % prop_name, array_len)      
+                pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[RMAN_STYLIZED_PATTERN]
+                pattern_node = nt.nodes.new(pattern_node_name)   
 
-            array_len = getattr(node, '%s_arraylen' % prop_name)
-            array_len += 1
-            setattr(node, '%s_arraylen' % prop_name, array_len)      
-            pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[RMAN_STYLIZED_PATTERN]
-            pattern_node = nt.nodes.new(pattern_node_name)   
+                if self.properties.create_template and self.properties.template_name != "":
+                    settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.template_name]
+                    pattern_tmplt = settings['patterns'] 
+                    for pattern_name, pattern_settings in pattern_tmplt.items():
+                        for param_name, param_settings in pattern_settings['params'].items():
+                            val = param_settings['value']
+                            setattr(pattern_node, param_name, val)
+                        break
+            
+                sub_prop_nm = '%s[%d]' % (prop_name, array_len-1)     
+                nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[sub_prop_nm])      
 
-            if self.properties.create_template and self.properties.template_name != "":
-                settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.template_name]
-                pattern_tmplt = settings['patterns'] 
-                for pattern_name, pattern_settings in pattern_tmplt.items():
-                    for param_name, param_settings in pattern_settings['params'].items():
-                        val = param_settings['value']
-                        setattr(pattern_node, param_name, val)
-                    break
-        
-            sub_prop_nm = '%s[%d]' % (prop_name, array_len-1)     
-            nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[sub_prop_nm])      
+            else:
+                if node.inputs[prop_name].is_linked:
+                    continue
 
-        else:
-            pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[RMAN_STYLIZED_PATTERN]
-            pattern_node = nt.nodes.new(pattern_node_name)   
+                pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[RMAN_STYLIZED_PATTERN]
+                pattern_node = nt.nodes.new(pattern_node_name)   
 
-            if self.properties.create_template and self.properties.template_name != "":
-                settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.template_name]
-                pattern_tmplt = settings['patterns'] 
-                for pattern_name, pattern_settings in pattern_tmplt.items():
-                    for param_name, param_settings in pattern_settings['params'].items():
-                        val = param_settings['value']
-                        setattr(pattern_node, param_name, val)
-                    break
-        
-            nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[prop_name])
+                if self.properties.create_template and self.properties.template_name != "":
+                    settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.template_name]
+                    pattern_tmplt = settings['patterns'] 
+                    for pattern_name, pattern_settings in pattern_tmplt.items():
+                        for param_name, param_settings in pattern_settings['params'].items():
+                            val = param_settings['value']
+                            setattr(pattern_node, param_name, val)
+                        break
+            
+                nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[prop_name])
 
     
     def execute(self, context):
