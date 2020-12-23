@@ -62,6 +62,13 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         op.rman_open_filebrowser = True
         '''
 
+        op = layout.operator('object.rman_add_rman_geo', text='Alembic Archive')
+        op.rman_prim_type = 'ALEMBIC'
+        op.rman_default_name = 'rman_AlembicArchive'            
+        op.bl_prim_type = ''
+        op.rman_open_filebrowser = True   
+        op.rman_convert_to_zup = True     
+
         op = layout.operator('object.rman_add_rman_geo', text='RiProcedural')
         op.rman_prim_type = 'DYNAMIC_LOAD_DSO'
         op.rman_default_name = 'RiProcedural'            
@@ -95,6 +102,7 @@ class VIEW3D_MT_renderman_add_object_volumes_menu(Menu):
         op.bl_prim_type = 'VOLUME'
         op.rman_default_name = 'OpenVDB'    
         op.rman_open_filebrowser = True 
+        op.rman_convert_to_zup = True
 
         rman_icon = rfb_icons.get_icon('out_PxrVolume')
         op = layout.operator('object.rman_add_rman_geo', text='Volume Box', icon_value=rman_icon.icon_id)

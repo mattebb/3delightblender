@@ -266,7 +266,50 @@
             "page": "",
             "widget": "fileinput",
             "help": "Path to brickmap to render"
-        },          
+        },     
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_alembic",
+            "name": "abc_filepath",
+            "label": "File Path",
+            "type": "string",
+            "default": "",
+            "page": "",
+            "widget": "fileinput",
+            "help": "Path to alembic archive"
+        }, 
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_alembic",
+            "name": "abc_use_scene_frame",
+            "label": "Use Scene Frame",
+            "type": "int",
+            "default": 0.0,
+            "page": "",
+            "widget": "checkbox",
+            "help": "Use the current scene frame"
+        },               
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_alembic",
+            "name": "abc_frame",
+            "label": "Frame",
+            "type": "float",
+            "default": 1.0,
+            "page": "",
+            "help": "Frame",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "abc_use_scene_frame",
+                "conditionalVisValue": "0"
+            }            
+        },           
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_alembic",
+            "name": "abc_fps",
+            "label": "FPS",
+            "type": "float",
+            "default": 24.0,
+            "page": "",
+            "help": "Frames per second"
+        },                      
         {
             "panel": "OBJECT_PT_renderman_object_geometry_points",
             "name": "primitive_point_width",

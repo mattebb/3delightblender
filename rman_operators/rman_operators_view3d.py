@@ -10,6 +10,8 @@ from ..rman_constants import RFB_ADDON_PATH
 from .rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
 from bpy.props import EnumProperty, StringProperty, BoolProperty
 from bpy_extras.io_utils import ImportHelper
+import mathutils
+import math
 
 __RFB_EXAMPLE_SCENE_LIST__ = []
 
@@ -29,6 +31,8 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
         options={'HIDDEN'})
     rman_open_filebrowser: BoolProperty(name='rman_open_filebrowser', default=False,
         options={'HIDDEN'})
+    rman_convert_to_zup: BoolProperty(name="Convert to Z-Up", default=False,
+        description="Rotate the object so it is Z-up")
     filepath: bpy.props.StringProperty(
         subtype="FILE_PATH")
 
@@ -69,13 +73,15 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
             if rm.primitive == 'RI_VOLUME':
                 ob.empty_display_type = 'CUBE'
                 bpy.ops.node.rman_new_material_override('EXEC_DEFAULT', bxdf_name='PxrVolume')
+            elif rm.primitive == 'ALEMBIC':
+                ob.empty_display_type = 'CUBE'
             elif self.properties.bl_prim_type == 'VOLUME':
                 bpy.ops.object.rman_add_bxdf('EXEC_DEFAULT', bxdf_name='PxrVolume')
                 mat = ob.active_material
                 nt = mat.node_tree
                 output = shadergraph_utils.find_node(mat, 'RendermanOutputNode')
                 bxdf = output.inputs['Bxdf'].links[0].from_node
-                bxdf.densityFloatPrimVar = 'density'
+                bxdf.densityFloatPrimVar = 'density'           
 
         if self.properties.rman_open_filebrowser:
             if rm.primitive == 'DELAYED_LOAD_ARCHIVE':
@@ -88,6 +94,12 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
                 rm.bkm_filepath = self.properties.filepath          
             elif self.properties.bl_prim_type == 'VOLUME':        
                 ob.data.filepath = self.properties.filepath
+            elif rm.primitive == 'ALEMBIC':        
+                rm.abc_filepath = self.properties.filepath     
+
+        if self.properties.rman_convert_to_zup:
+            yup_to_zup = mathutils.Matrix.Rotation(math.radians(90.0), 4, 'X')
+            ob.matrix_world = yup_to_zup @ ob.matrix_world                               
 
         ob.update_tag(refresh={'DATA'})
         
@@ -104,6 +116,8 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
                 self.properties.filter_glob = "*.so;*.dll"                
             elif self.properties.bl_prim_type == 'VOLUME':
                 self.properties.filter_glob = "*.vdb"
+            elif self.properties.rman_prim_type == 'ALEMBIC':
+                self.properties.filter_glob = "*.abc"                
             context.window_manager.fileselect_add(self)
             return{'RUNNING_MODAL'}          
         return self.execute(context)
