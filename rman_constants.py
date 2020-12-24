@@ -33,7 +33,7 @@ RMAN_STYLIZED_FILTERS = [
     "PxrStylizedToon"
 ]    
 
-RMAN_STYLIZED_PATTERN = "PxrStylizedControl"
+RMAN_STYLIZED_PATTERNS = ["PxrStylizedControl"]
 RMAN_UTILITY_PATTERN_NAMES = [
                             "utilityPattern",
                             "userColor",

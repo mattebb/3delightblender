@@ -238,37 +238,13 @@ class VIEW3D_MT_RM_Stylized_Menu(bpy.types.Menu):
     def draw(self, context):
         rm = context.scene.renderman
         layout = self.layout
-        if rm.render_rman_stylized:
-            layout.operator('node.rman_attach_stylized_pattern', text='Attach Stylized Pattern')  
+        if rm.render_rman_stylized: 
+            layout.operator_menu_enum('node.rman_attach_stylized_pattern', 'stylized_pattern')
             layout.operator("scene.rman_open_stylized_editor", text="Stylized Looks Editor")    
         else:
-            #layout.prop(rm, 'render_rman_stylized', text='Enable Stylized Looks')           
+            layout.operator_menu_enum('scene.rman_use_stylized_template', 'stylized_template')
             op = layout.operator("scene.rman_enable_stylized_looks", text="Enable Stylized Looks")   
             op.open_editor = True
-            layout.menu('VIEW3D_MT_RM_Stylized_Templates_Menu', text='Templates')   
-
-class VIEW3D_MT_RM_Stylized_Templates_Menu(bpy.types.Menu):
-    bl_label = "Stylized Templates"
-    bl_idname = "VIEW3D_MT_RM_Stylized_Templates_Menu"
-
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        return rd.engine == 'PRMAN_RENDER'
-
-    @classmethod
-    def get_icon_id(cls):  
-        return rfb_icons.get_icon("rman_blender").icon_id
-
-    def draw(self, context):
-        rm = context.scene.renderman
-        layout = self.layout
-        if not rm.render_rman_stylized:
-            for nm, settings in __RMAN_STYLIZED_TEMPLATES__.items():
-                op = layout.operator("scene.rman_enable_stylized_looks", text="%s" % nm)
-                op.create_template = True
-                op.template_name = nm
-                op.open_editor = True
 
 class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
     bl_label = "Render"
@@ -510,8 +486,7 @@ classes = [
     VIEW3D_MT_RM_Add_bxdf_Menu,
     VIEW3D_MT_RM_Add_Export_Menu,
     VIEW3D_MT_RM_Add_Render_Menu,
-    VIEW3D_MT_RM_Stylized_Menu,
-    VIEW3D_MT_RM_Stylized_Templates_Menu
+    VIEW3D_MT_RM_Stylized_Menu
 ]
 
 def register():

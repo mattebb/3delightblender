@@ -2,17 +2,15 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from ..rfb_utils import shadergraph_utils
 from .. import rman_bl_nodes
-from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERN, RMAN_UTILITY_PATTERN_NAMES  
+from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES  
 from ..rman_config import __RMAN_STYLIZED_TEMPLATES__
 
 class PRMAN_OT_Enable_Sylized_Looks(bpy.types.Operator):
     bl_idname = "scene.rman_enable_stylized_looks"
     bl_label = "Enable Stylized Looks"
-    bl_description = "Enable stylized looks."
+    bl_description = "Enable stylized looks. Objects still need to have a stylzed pattern connected to their material network, and stylized filters need to be added to the scene."
     bl_options = {'INTERNAL'}
 
-    create_template: BoolProperty(name="", default=False)
-    template_name: StringProperty(name="", default="")
     open_editor: BoolProperty(name="", default=False)
     
     def execute(self, context):
@@ -20,17 +18,41 @@ class PRMAN_OT_Enable_Sylized_Looks(bpy.types.Operator):
         rm = scene.renderman
         rm.render_rman_stylized = 1
         bpy.ops.renderman.dspy_displays_reload('EXEC_DEFAULT')        
-
-        world = scene.world
-        if self.properties.create_template:
-            bpy.ops.node.rman_attach_stylized_pattern('EXEC_DEFAULT', template_name=self.properties.template_name)
-            bpy.ops.node.rman_add_stylized_filter('EXEC_DEFAULT', template_name=self.properties.template_name, create_template=True)
-
-        world.update_tag()
         if self.properties.open_editor:
             bpy.ops.scene.rman_open_stylized_editor('INVOKE_DEFAULT')
 
         return {"FINISHED"} 
+
+class PRMAN_OT_Use_Sylized_Template(bpy.types.Operator):
+
+    bl_idname = "scene.rman_use_stylized_template"
+    bl_label = "Use Stylize Template"
+    bl_description = "Stylized Template. This will enable stylized looks, attach a stylized pattern to the current selected objects, and add the stylized filters."
+    bl_options = {'INTERNAL'}    
+
+    def rman_stylized_templates(self, context):
+        items = []
+        for nm, settings in __RMAN_STYLIZED_TEMPLATES__.items():
+            items.append((nm, nm, ""))        
+        return items      
+
+    stylized_template: EnumProperty(name="", items=rman_stylized_templates)    
+
+    def execute(self, context):
+        scene = context.scene
+        rm = scene.renderman
+        rm.render_rman_stylized = 1
+        bpy.ops.renderman.dspy_displays_reload('EXEC_DEFAULT')        
+
+        world = scene.world
+        bpy.ops.node.rman_attach_stylized_pattern('EXEC_DEFAULT', stylized_pattern=self.properties.stylized_template)
+        bpy.ops.node.rman_add_stylized_filter('EXEC_DEFAULT', filter_name=self.properties.stylized_template)
+
+        world.update_tag()
+        bpy.ops.scene.rman_open_stylized_editor('INVOKE_DEFAULT')
+
+        return {"FINISHED"}     
+
 
 class PRMAN_OT_Disable_Sylized_Looks(bpy.types.Operator):
     bl_idname = "scene.rman_disable_stylized_looks"
@@ -50,18 +72,26 @@ class PRMAN_OT_Disable_Sylized_Looks(bpy.types.Operator):
 
 class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
     bl_idname = "node.rman_attach_stylized_pattern"
-    bl_label = "Attach Stylized"
-    bl_description = "Attach the stylized pattern node to your material network."
+    bl_label = "Attach Stylized Pattern"
+    bl_description = "Attach a stylized pattern node to your material network."
     bl_options = {'INTERNAL'}
 
-    def rman_stylized_templates(self, context):
+    def rman_stylized_patterns(self, context):
         items = []
-        for nm, settings in __RMAN_STYLIZED_TEMPLATES__.items():
-            items.append((nm, nm, ""))
-        return items
+        i = 1
 
-    template_name: EnumProperty(name="", items=rman_stylized_templates)
-    create_template: BoolProperty(name="", default=False)
+        items.append(("", "Patterns", "", "", 0))
+        for f in RMAN_STYLIZED_PATTERNS:
+            items.append((f, f, "", "", i))
+            i += 1
+
+        items.append(("", "Templates", "", "", 0))
+        for nm, settings in __RMAN_STYLIZED_TEMPLATES__.items():
+            items.append((nm, nm, "", "", i))        
+            i += 1  
+        return items      
+
+    stylized_pattern: EnumProperty(name="", items=rman_stylized_patterns)
 
     def attach_pattern(self, context, ob):
         if len(ob.material_slots) < 1:
@@ -78,6 +108,21 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
         link = socket.links[0]
         node = link.from_node 
         prop_name = ''
+
+        pattern_node_name = None
+        pattern_settings = None
+        if self.properties.stylized_pattern in RMAN_STYLIZED_PATTERNS:
+            pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[self.properties.stylized_pattern]
+        elif self.properties.stylized_pattern in __RMAN_STYLIZED_TEMPLATES__:
+            settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.stylized_pattern]
+            pattern_tmplt = settings['patterns'] 
+            for k, v in pattern_tmplt.items():  
+                pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[k]      
+                pattern_settings = v
+                break
+        else:
+            return
+
         for nm in RMAN_UTILITY_PATTERN_NAMES:
             if hasattr(node, nm):
                 prop_name = nm
@@ -91,17 +136,12 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
                 array_len = getattr(node, '%s_arraylen' % prop_name)
                 array_len += 1
                 setattr(node, '%s_arraylen' % prop_name, array_len)      
-                pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[RMAN_STYLIZED_PATTERN]
                 pattern_node = nt.nodes.new(pattern_node_name)   
 
-                if self.properties.create_template and self.properties.template_name != "":
-                    settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.template_name]
-                    pattern_tmplt = settings['patterns'] 
-                    for pattern_name, pattern_settings in pattern_tmplt.items():
-                        for param_name, param_settings in pattern_settings['params'].items():
-                            val = param_settings['value']
-                            setattr(pattern_node, param_name, val)
-                        break
+                if pattern_settings:
+                    for param_name, param_settings in pattern_settings['params'].items():
+                        val = param_settings['value']
+                        setattr(pattern_node, param_name, val)
             
                 sub_prop_nm = '%s[%d]' % (prop_name, array_len-1)     
                 nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[sub_prop_nm])      
@@ -110,17 +150,12 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
                 if node.inputs[prop_name].is_linked:
                     continue
 
-                pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[RMAN_STYLIZED_PATTERN]
-                pattern_node = nt.nodes.new(pattern_node_name)   
+                pattern_node = nt.nodes.new(pattern_node_name) 
 
-                if self.properties.create_template and self.properties.template_name != "":
-                    settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.template_name]
-                    pattern_tmplt = settings['patterns'] 
-                    for pattern_name, pattern_settings in pattern_tmplt.items():
-                        for param_name, param_settings in pattern_settings['params'].items():
-                            val = param_settings['value']
-                            setattr(pattern_node, param_name, val)
-                        break
+                if pattern_settings:                 
+                    for param_name, param_settings in pattern_settings['params'].items():
+                        val = param_settings['value']
+                        setattr(pattern_node, param_name, val)
             
                 nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[prop_name])
 
@@ -149,26 +184,27 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
 class PRMAN_OT_Add_Stylized_Filter(bpy.types.Operator):
     bl_idname = "node.rman_add_stylized_filter"
     bl_label = "Add Stylized Filter"
-    bl_description = "Add a stylized filter"
+    bl_description = "Add a stylized filter to the scene."
     bl_options = {'INTERNAL'}
 
     def rman_stylized_filters(self, context):
         items = []
+        i = 1
+
+        items.append(("", "Filters", "", "", 0))
         for f in RMAN_STYLIZED_FILTERS:
-            items.append((f, f, ""))
+            items.append((f, f, "", "", i))
+            i += 1
+
+        items.append(("", "Templates", "", "", 0))
+        for nm, settings in __RMAN_STYLIZED_TEMPLATES__.items():
+            items.append((nm, nm, "", "", i))        
+            i += 1
+
         return items
 
     filter_name: EnumProperty(items=rman_stylized_filters, name="Filter Name")
     node_name: StringProperty(name="", default="")
-    create_template: BoolProperty(name="", default=False)
-
-    def rman_stylized_templates(self, context):
-        items = []
-        for nm, settings in __RMAN_STYLIZED_TEMPLATES__.items():
-            items.append((nm, nm, ""))
-        return items
-
-    template_name: EnumProperty(name="", items=rman_stylized_templates)
     
     def execute(self, context):
         scene = context.scene
@@ -181,8 +217,16 @@ class PRMAN_OT_Add_Stylized_Filter(bpy.types.Operator):
             bpy.ops.material.rman_add_rman_nodetree('EXEC_DEFAULT', idtype='world')
             output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode') 
 
-        if self.properties.create_template != "":
-            settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.template_name]
+        use_template = False
+        if self.properties.filter_name in RMAN_STYLIZED_FILTERS:
+            use_template = False
+        elif self.properties.filter_name in __RMAN_STYLIZED_TEMPLATES__:
+            use_template = True
+        else:
+            return {"FINISHED"}            
+
+        if use_template:
+            settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.filter_name]
             display_filters = settings['display_filters']
             for node_name, df_settings in display_filters.items():
                 if node_name in nt.nodes:
@@ -236,6 +280,7 @@ class PRMAN_OT_Add_Stylized_Filter(bpy.types.Operator):
 
 classes = [
     PRMAN_OT_Enable_Sylized_Looks,
+    PRMAN_OT_Use_Sylized_Template,
     PRMAN_OT_Disable_Sylized_Looks,
     PRMAN_OT_Attach_Stylized_Pattern,
     PRMAN_OT_Add_Stylized_Filter

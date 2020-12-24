@@ -693,16 +693,6 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         ]
     )
 
-    stylized_pattern_use_template: BoolProperty(
-        name="Use Template",
-        default=False
-    )    
-
-    stylized_filter_use_template: BoolProperty(
-        name="Use Template",
-        default=False
-    )
-
     def get_stylized_objects(self, context):
         items = []
         scene = context.scene 
@@ -733,9 +723,6 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         layout = self.layout           
 
         row = layout.row()
-        row.prop(self, 'stylized_pattern_use_template')
-
-        row = layout.row()
         row.separator()   
 
         row.prop(self, 'do_object_filter', text='', icon='FILTER', icon_only=True)
@@ -748,10 +735,7 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
             else:
                 col.context_pointer_set('op_ptr', self) 
                 col.context_pointer_set('selected_obj', scene.objects[self.selected_obj_name])  
-                if self.properties.stylized_pattern_use_template:
-                    col.operator_menu_enum('node.rman_attach_stylized_pattern', 'template_name')
-                else:    
-                    op = col.operator('node.rman_attach_stylized_pattern', text='Attach Pattern')
+                col.operator_menu_enum('node.rman_attach_stylized_pattern', 'stylized_pattern')                
 
         else:
             row.prop(self, 'object_search_filter', text='', icon='VIEWZOOM')
@@ -763,11 +747,8 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
                 pass
             else:
                 col.context_pointer_set('op_ptr', self) 
-                col.context_pointer_set('selected_obj', scene.objects[self.selected_obj_name])                
-                if self.properties.stylized_pattern_use_template:
-                    col.operator_menu_enum('node.rman_attach_stylized_pattern', 'template_name')
-                else:    
-                    op = col.operator('node.rman_attach_stylized_pattern', text='Attach Pattern')
+                col.context_pointer_set('selected_obj', scene.objects[self.selected_obj_name])             
+                col.operator_menu_enum('node.rman_attach_stylized_pattern', 'stylized_pattern')            
 
         if self.properties.stylized_objects != '0':                
 
@@ -783,6 +764,9 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
             ob = scene.objects.get(self.properties.stylized_objects, None)
             node = shadergraph_utils.has_stylized_pattern_node(ob)
             mat = object_utils.get_active_material(ob)
+            col.separator()
+            col.label(text=node.name)
+            col.separator()
             draw_node_properties_recursive(layout, context, mat.node_tree, node, level=1)
 
     def draw_filters_tab(self, context):
@@ -793,12 +777,8 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         
         row = layout.row(align=True)
         col = row.column()
-        col.prop(self, 'stylized_filter_use_template')
         col.context_pointer_set('op_ptr', self) 
-        if self.properties.stylized_filter_use_template:
-            col.operator_menu_enum('node.rman_add_stylized_filter', 'template_name')    
-        else:
-            col.operator_menu_enum('node.rman_add_stylized_filter', 'filter_name')
+        col.operator_menu_enum('node.rman_add_stylized_filter', 'filter_name')            
 
         layout.separator()  
         output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')

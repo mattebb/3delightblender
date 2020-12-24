@@ -2,7 +2,7 @@ from . import color_utils
 from . import filepath_utils
 from . import string_utils
 from . import object_utils
-from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERN, RMAN_UTILITY_PATTERN_NAMES
+from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES
 import math
 
 def is_renderman_nodetree(material):
@@ -393,13 +393,13 @@ def has_stylized_pattern_node(ob, node=None):
 
                         to_socket = node.inputs[nm]                    
                         from_node = to_socket.links[0].from_node
-                        if from_node.bl_label == RMAN_STYLIZED_PATTERN:
+                        if from_node.bl_label in RMAN_STYLIZED_PATTERNS:
                             return from_node
 
             elif node.inputs[prop_name].is_linked: 
                 to_socket = node.inputs[prop_name]                    
                 from_node = to_socket.links[0].from_node
-                if from_node.bl_label == RMAN_STYLIZED_PATTERN:
+                if from_node.bl_label in RMAN_STYLIZED_PATTERNS:
                     return from_node        
 
     return False
