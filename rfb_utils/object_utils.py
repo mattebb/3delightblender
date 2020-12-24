@@ -15,7 +15,8 @@ def get_db_name(ob, rman_type='', psys=None):
         else:
             db_name = '%s-%s' % (ob.name_full, rman_type)
     elif isinstance(ob, bpy.types.Camera):
-        db_name = '%s-CAMERA' % ob.name_full
+        db_name = ob.name_full
+        return db_name
     elif isinstance(ob, bpy.types.Material):
         mat_name = ob.name_full.replace('.', '_')
         db_name = '%s-MATERIAL' % mat_name
@@ -25,7 +26,8 @@ def get_db_name(ob, rman_type='', psys=None):
         elif ob.type == 'LIGHT':
             db_name = '%s-LIGHT' % ob.data.name_full
         elif ob.type == 'CAMERA':
-            db_name = '%s-CAMERA' % ob.name_full
+            db_name = ob.name_full
+            return db_name
         elif ob.type == 'EMPTY':
             db_name = '%s-EMPTY' % ob.name_full  
 

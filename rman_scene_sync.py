@@ -309,10 +309,17 @@ class RmanSceneSync(object):
                     continue      
 
                 if obj.is_updated_transform:
-                    if ob.type in ['CAMERA']:
-                        # we deal with camera transforms in view_draw
-                        continue
                     rfb_log().debug("Transform updated: %s" % obj.id.name)
+                    if ob.type in ['CAMERA']:
+                        # we deal with main camera transforms in view_draw
+                        rman_sg_camera = self.rman_scene.rman_cameras[ob.original]
+                        if rman_sg_camera == self.rman_scene.main_camera:
+                            continue
+                        translator = self.rman_scene.rman_translators['CAMERA']
+                        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+                            translator._update_render_cam_transform(ob, rman_sg_camera)                        
+                        continue
+                    
                     if rman_type == 'LIGHTFILTER':
                         self._light_filter_transform_updated(obj)
                     elif rman_type == 'GPENCIL':

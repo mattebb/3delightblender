@@ -83,7 +83,8 @@ class RmanCameraTranslator(RmanTranslator):
         if rman_sg_camera.is_transforming:
             rman_sg_camera.sg_node.SetTransformSample(index, v, seg )              
         else:
-            rman_sg_camera.sg_node.SetTransform( v )                            
+            rman_sg_camera.sg_node.SetTransform( v )    
+            rman_sg_camera.sg_coord_sys.SetTransform( v )                        
 
     def update_transform(self, ob, rman_sg_camera, index=0, seg=0):
         if self.rman_scene.is_viewport_render:
@@ -92,8 +93,9 @@ class RmanCameraTranslator(RmanTranslator):
             self._update_render_cam_transform(ob, rman_sg_camera, index, seg)
 
     def _export_viewport_cam(self, db_name=""):  
-        sg_camera = self.rman_scene.sg_scene.CreateCamera(db_name)
+        sg_camera = self.rman_scene.sg_scene.CreateCamera('%s-CAMERA' % db_name)
         rman_sg_camera = RmanSgCamera(self.rman_scene, sg_camera, db_name)
+        rman_sg_camera.sg_coord_sys = self.rman_scene.sg_scene.CreateGroup(db_name)        
         ob = self.update_viewport_resolution(rman_sg_camera)
         self.update_viewport_cam(ob, rman_sg_camera)
         self._set_orientation(rman_sg_camera)
@@ -101,8 +103,9 @@ class RmanCameraTranslator(RmanTranslator):
         return rman_sg_camera        
 
     def _export_render_cam(self, ob, db_name=""):
-        sg_camera = self.rman_scene.sg_scene.CreateCamera(db_name)
+        sg_camera = self.rman_scene.sg_scene.CreateCamera('%s-CAMERA' % db_name)
         rman_sg_camera = RmanSgCamera(self.rman_scene, sg_camera, db_name)
+        rman_sg_camera.sg_coord_sys = self.rman_scene.sg_scene.CreateGroup(db_name)
         if self.rman_scene.do_motion_blur:
             rman_sg_camera.is_transforming = object_utils.is_transforming(ob)
             mb_segs = self.rman_scene.bl_scene.renderman.motion_segments
