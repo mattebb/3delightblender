@@ -35,7 +35,10 @@ class RmanAlembicTranslator(RmanTranslator):
         shutter_open, shutter_close = 0, shutter_interval   
         abc_frame = rm.abc_frame
         if rm.abc_use_scene_frame:
+            rman_sg_alembic.is_frame_sensitive = True
             abc_frame = float(self.rman_scene.bl_frame_current)       
+        else:
+            rman_sg_alembic.is_frame_sensitive = False
 
         abc_args = "-filename %s -frame %f -fps %f -shutteropen %f -shutterclose %f" % (abc_filepath, abc_frame, rm.abc_fps, shutter_open, shutter_close)
 

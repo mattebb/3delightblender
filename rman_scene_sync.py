@@ -55,11 +55,10 @@ class RmanSceneSync(object):
 
     def _scene_updated(self):
         if self.rman_scene.bl_frame_current != self.rman_scene.bl_scene.frame_current:
-            # frame changed, update any materials and lights that 
+            # frame changed, update any materials and objects that 
             # are marked as frame sensitive
             self.rman_scene.bl_frame_current = self.rman_scene.bl_scene.frame_current
             material_translator = self.rman_scene.rman_translators["MATERIAL"]
-            light_translator = self.rman_scene.rman_translators["LIGHT"]
 
             with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):  
                 for mat in bpy.data.materials:   
@@ -69,11 +68,13 @@ class RmanSceneSync(object):
                         material_translator.update(mat, rman_sg_material)
 
                 for o in bpy.data.objects:
-                    if o.type == 'LIGHT':                                
-                        obj_key = object_utils.get_db_name(o, rman_type='LIGHT') 
-                        rman_sg_node = self.rman_scene.rman_objects[o.original]
-                        if rman_sg_node.is_frame_sensitive:
-                            light_translator.update(o, rman_sg_node)   
+                    rman_type = object_utils._detect_primitive_(o)
+                    rman_sg_node = self.rman_scene.rman_objects.get(o.original, None)
+                    if not rman_sg_node:
+                        continue
+                    translator = self.rman_scene.rman_translators.get(rman_type, None)
+                    if translator and rman_sg_node.is_frame_sensitive:
+                        translator.update(o, rman_sg_node)
 
     def _mesh_light_update(self, mat):
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
