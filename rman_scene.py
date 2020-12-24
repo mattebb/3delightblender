@@ -1169,7 +1169,7 @@ class RmanScene(object):
         if self.is_viewport_render:
             db_name = 'main_camera'
             self.main_camera = cam_translator.export(None, db_name)
-            self.main_camera.sg_node.SetRenderable(1)
+            self.main_camera.sg_camera_node.SetRenderable(1)
             self.sg_scene.Root().AddChild(self.main_camera.sg_node)
 
             # add camera so we don't mistake it for a new obj
@@ -1205,15 +1205,11 @@ class RmanScene(object):
             self.rman_objects[cam.original] = rman_sg_camera
             
             self.sg_scene.Root().AddChild(rman_sg_camera.sg_node)
-            if rman_sg_camera.sg_coord_sys:
-                self.sg_scene.Root().AddChild(rman_sg_camera.sg_coord_sys)
-                self.sg_scene.Root().AddCoordinateSystem(rman_sg_camera.sg_coord_sys)
+            self.sg_scene.Root().AddCoordinateSystem(rman_sg_camera.sg_node)
 
         # For now, make the main camera the 'primary' dicing camera
-        self.main_camera.sg_node.SetRenderable(1)
-        if self.main_camera.sg_coord_sys:
-            self.sg_scene.Root().AddChild(self.main_camera.sg_coord_sys)
-            self.sg_scene.Root().AddCoordinateSystem(self.main_camera.sg_coord_sys)
+        self.main_camera.sg_camera_node.SetRenderable(1)
+        self.sg_scene.Root().AddCoordinateSystem(self.main_camera.sg_node)
         
 
     def export_displayfilters(self):
@@ -1418,8 +1414,8 @@ class RmanScene(object):
             if not cam_sg_node:
                 continue
             if cam_sg_node != self.main_camera:
-                cam_sg_node.sg_node.SetRenderable(2)
-            cam_sg_node.sg_node.SetDisplay(cam_dspys)
+                cam_sg_node.sg_camera_node.SetRenderable(2)
+            cam_sg_node.sg_camera_node.SetDisplay(cam_dspys)
 
         self.sg_scene.SetDisplayChannel(displaychannels)          
 
@@ -1505,8 +1501,8 @@ class RmanScene(object):
             if not cam_sg_node:
                 continue
             if cam_sg_node != self.main_camera:
-                cam_sg_node.sg_node.SetRenderable(2)
-            cam_sg_node.sg_node.SetDisplay(cam_dspys)
+                cam_sg_node.sg_camera_node.SetRenderable(2)
+            cam_sg_node.sg_camera_node.SetDisplay(cam_dspys)
 
         self.sg_scene.SetDisplayChannel(displaychannels)  
 

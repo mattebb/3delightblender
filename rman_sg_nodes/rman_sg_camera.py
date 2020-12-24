@@ -20,7 +20,7 @@ class RmanSgCamera(RmanSgNode):
         self.shift_x = -1
         self.shift_y = -1
         self.screenwindow = None
-        self.sg_coord_sys = None
+        self.sg_camera_node = None
 
     @property
     def bl_camera(self):
@@ -111,10 +111,10 @@ class RmanSgCamera(RmanSgNode):
         self.__view_camera_offset = view_camera_offset               
 
     @property
-    def sg_coord_sys(self):
-        return self.__sg_coord_sys
+    def sg_camera_node(self):
+        return self.__sg_camera_node
 
-    @sg_coord_sys.setter
-    def sg_coord_sys(self, sg_coord_sys):
-        self.__sg_coord_sys = sg_coord_sys         
+    @sg_camera_node.setter
+    def sg_camera_node(self, sg_camera_node):
+        self.__sg_camera_node = sg_camera_node         
                                        

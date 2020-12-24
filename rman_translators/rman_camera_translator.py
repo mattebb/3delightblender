@@ -54,7 +54,7 @@ class RmanCameraTranslator(RmanTranslator):
     def _set_orientation(self, rman_sg_camera):
         camtransform = self.rman_scene.rman.Types.RtMatrix4x4()
         camtransform.Identity()
-        rman_sg_camera.sg_node.SetOrientTransform(self.s_rightHanded)        
+        rman_sg_camera.sg_camera_node.SetOrientTransform(self.s_rightHanded)        
 
     def update_transform_num_samples(self, rman_sg_camera, motion_steps ):
         rman_sg_camera.sg_node.SetTransformNumSamples(len(motion_steps))
@@ -69,7 +69,6 @@ class RmanCameraTranslator(RmanTranslator):
             return 
         rman_sg_camera.cam_matrix = v
         rman_sg_camera.sg_node.SetTransform( v )    
-        rman_sg_camera.sg_coord_sys.SetTransform( v )  
 
     def _update_render_cam_transform(self, ob, rman_sg_camera, index=0, seg=0.0):
 
@@ -85,7 +84,7 @@ class RmanCameraTranslator(RmanTranslator):
             rman_sg_camera.sg_node.SetTransformSample(index, v, seg )              
         else:
             rman_sg_camera.sg_node.SetTransform( v )    
-            rman_sg_camera.sg_coord_sys.SetTransform( v )                        
+               
 
     def update_transform(self, ob, rman_sg_camera, index=0, seg=0):
         if self.rman_scene.is_viewport_render:
@@ -94,9 +93,10 @@ class RmanCameraTranslator(RmanTranslator):
             self._update_render_cam_transform(ob, rman_sg_camera, index, seg)
 
     def _export_viewport_cam(self, db_name=""):  
-        sg_camera = self.rman_scene.sg_scene.CreateCamera('%s-CAMERA' % db_name)
-        rman_sg_camera = RmanSgCamera(self.rman_scene, sg_camera, db_name)
-        rman_sg_camera.sg_coord_sys = self.rman_scene.sg_scene.CreateGroup(db_name)        
+        sg_group = self.rman_scene.sg_scene.CreateGroup(db_name) 
+        rman_sg_camera = RmanSgCamera(self.rman_scene, sg_group, db_name)
+        rman_sg_camera.sg_camera_node = self.rman_scene.sg_scene.CreateCamera('%s-CAMERA' % db_name)  
+        sg_group.AddChild(rman_sg_camera.sg_camera_node)      
         ob = self.update_viewport_resolution(rman_sg_camera)
         self.update_viewport_cam(ob, rman_sg_camera)
         self._set_orientation(rman_sg_camera)
@@ -104,9 +104,10 @@ class RmanCameraTranslator(RmanTranslator):
         return rman_sg_camera        
 
     def _export_render_cam(self, ob, db_name=""):
-        sg_camera = self.rman_scene.sg_scene.CreateCamera('%s-CAMERA' % db_name)
-        rman_sg_camera = RmanSgCamera(self.rman_scene, sg_camera, db_name)
-        rman_sg_camera.sg_coord_sys = self.rman_scene.sg_scene.CreateGroup(db_name)
+        sg_group = self.rman_scene.sg_scene.CreateGroup(db_name) 
+        rman_sg_camera = RmanSgCamera(self.rman_scene, sg_group, db_name)
+        rman_sg_camera.sg_camera_node = self.rman_scene.sg_scene.CreateCamera('%s-CAMERA' % db_name) 
+        sg_group.AddChild(rman_sg_camera.sg_camera_node)             
         if self.rman_scene.do_motion_blur:
             rman_sg_camera.is_transforming = object_utils.is_transforming(ob)
             mb_segs = self.rman_scene.bl_scene.renderman.motion_segments
@@ -148,7 +149,7 @@ class RmanCameraTranslator(RmanTranslator):
         updated = False
         resolution_updated = False
         ob = None
-        prop = rman_sg_camera.sg_node.GetProperties()
+        prop = rman_sg_camera.sg_camera_node.GetProperties()
         if rman_sg_camera.res_width != width:
             rman_sg_camera.res_width = width
             updated = True
@@ -327,7 +328,7 @@ class RmanCameraTranslator(RmanTranslator):
                 options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_CropWindow, [0.0, 1.0, 0.0, 1.0], 4)
 
             self.rman_scene.sg_scene.SetOptions(options)
-            rman_sg_camera.sg_node.SetProperties(prop)
+            rman_sg_camera.sg_camera_node.SetProperties(prop)
             return ob
         return None
 
@@ -422,7 +423,7 @@ class RmanCameraTranslator(RmanTranslator):
             updated = True        
 
         if updated or force_update:    
-            rman_sg_camera.sg_node.SetProjection(proj)         
+            rman_sg_camera.sg_camera_node.SetProjection(proj)         
 
     def _set_fov(self, ob, cam, aspectratio, projparams):
         lens = cam.lens
@@ -530,9 +531,9 @@ class RmanCameraTranslator(RmanTranslator):
 
         self.rman_scene.sg_scene.SetOptions(options)
 
-        rman_sg_camera.sg_node.SetProjection(proj)
+        rman_sg_camera.sg_camera_node.SetProjection(proj)
 
-        prop = rman_sg_camera.sg_node.GetProperties()
+        prop = rman_sg_camera.sg_camera_node.GetProperties()
 
         # clipping planes         
         prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_nearClip, cam.clip_start)
@@ -546,5 +547,5 @@ class RmanCameraTranslator(RmanTranslator):
 
         prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_dofaspect, cam_rm.rman_aperture_ratio)    
 
-        rman_sg_camera.sg_node.SetProperties(prop)
+        rman_sg_camera.sg_camera_node.SetProperties(prop)
     
