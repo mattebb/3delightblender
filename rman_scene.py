@@ -1188,24 +1188,26 @@ class RmanScene(object):
             
             self.sg_scene.Root().AddChild(rman_sg_camera.sg_node)            
 
-        else:
-            for cam in bl_cameras:
-                ob = cam.original
-                db_name = object_utils.get_db_name(ob)
-                rman_sg_camera = cam_translator.export(ob, db_name)
-                if cam == main_cam:
-                    self.main_camera = rman_sg_camera 
-                    if self.main_camera.is_transforming:
-                        self.motion_steps.update(self.main_camera.motion_steps)             
+        # export all other scene cameras
+        for cam in bl_cameras:
+            ob = cam.original
+            if cam.original in self.rman_cameras:
+                continue
+            db_name = object_utils.get_db_name(ob)
+            rman_sg_camera = cam_translator.export(ob, db_name)
+            if cam == main_cam:
+                self.main_camera = rman_sg_camera 
+                if self.main_camera.is_transforming:
+                    self.motion_steps.update(self.main_camera.motion_steps)             
 
-                self.rman_cameras[cam.original] = rman_sg_camera
-                
-                self.rman_objects[cam.original] = rman_sg_camera
-                
-                self.sg_scene.Root().AddChild(rman_sg_camera.sg_node)
-                if rman_sg_camera.sg_coord_sys:
-                    self.sg_scene.Root().AddChild(rman_sg_camera.sg_coord_sys)
-                    self.sg_scene.Root().AddCoordinateSystem(rman_sg_camera.sg_coord_sys)
+            self.rman_cameras[cam.original] = rman_sg_camera
+            
+            self.rman_objects[cam.original] = rman_sg_camera
+            
+            self.sg_scene.Root().AddChild(rman_sg_camera.sg_node)
+            if rman_sg_camera.sg_coord_sys:
+                self.sg_scene.Root().AddChild(rman_sg_camera.sg_coord_sys)
+                self.sg_scene.Root().AddCoordinateSystem(rman_sg_camera.sg_coord_sys)
 
         # For now, make the main camera the 'primary' dicing camera
         self.main_camera.sg_node.SetRenderable(1)
