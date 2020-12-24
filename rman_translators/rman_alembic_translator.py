@@ -40,7 +40,7 @@ class RmanAlembicTranslator(RmanTranslator):
         else:
             rman_sg_alembic.is_frame_sensitive = False
 
-        abc_args = "-filename %s -frame %f -fps %f -shutteropen %f -shutterclose %f" % (abc_filepath, abc_frame, rm.abc_fps, shutter_open, shutter_close)
+        abc_args = "-filename %s -frame %f -fps %f -shutteropen %f -shutterclose %f -ccw" % (abc_filepath, abc_frame, rm.abc_fps, shutter_open, shutter_close)
 
         primvar.SetString(self.rman_scene.rman.Tokens.Rix.k_data, abc_args)
 
