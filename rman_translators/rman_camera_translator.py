@@ -69,6 +69,7 @@ class RmanCameraTranslator(RmanTranslator):
             return 
         rman_sg_camera.cam_matrix = v
         rman_sg_camera.sg_node.SetTransform( v )    
+        rman_sg_camera.sg_coord_sys.SetTransform( v )  
 
     def _update_render_cam_transform(self, ob, rman_sg_camera, index=0, seg=0.0):
 
