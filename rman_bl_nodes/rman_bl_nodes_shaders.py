@@ -613,6 +613,31 @@ class RendermanPatternNode(RendermanShadingNode):
     renderman_node_type = 'pattern'
     bl_type = 'TEX_IMAGE'
     bl_static_type = 'TEX_IMAGE'
+    node_tree = None
+    new_links = []    
+
+    def insert_link(self, link):
+        if link in self.new_links:
+            pass
+        else:
+            self.new_links.append(link)
+
+    def update(self):
+        for link in self.new_links:
+            from_node_type = getattr(link.from_socket, 'renderman_type', None)
+            to_node_type = getattr(link.to_socket, 'renderman_type', None)
+            if not from_node_type:
+                continue            
+            if not to_node_type:
+                continue            
+            if from_node_type != to_node_type:
+                node_tree = self.id_data
+                node_tree.links.remove(link)
+
+        self.new_links.clear()    
+        ob = getattr(bpy.context, 'active_object', None)
+        if ob:
+            ob.update_tag(refresh={'DATA'})            
 
 
 class RendermanLightNode(RendermanShadingNode):
