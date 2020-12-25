@@ -7,6 +7,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
 from ... import rman_bl_nodes
 from ... import rman_config
 from ...rfb_utils import scene_utils
+from ... import rfb_icons
 from ...rman_config import RmanBasePropertyGroup
 
 class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
@@ -67,13 +68,17 @@ class RendermanAOV(RmanBasePropertyGroup, bpy.types.PropertyGroup):
 
     def displaydriver_items(self, context):
         items = []   
-        # default to OpenEXR    
-        items.append(('openexr', 'openexr', '')) 
+        # default to OpenEXR   
+        rman_icon = rfb_icons.get_icon(name='out_d_openexr', dflt='out_rmanDisplay') 
+        items.append(('openexr', 'openexr', '', rman_icon.icon_id, 0)) 
+        i = 1
         for n in rman_bl_nodes.__RMAN_DISPLAY_NODES__:
             dspy = n.name.split('d_')[1]
             if dspy == 'openexr':
                 continue
-            items.append((dspy, dspy, ''))
+            rman_icon = rfb_icons.get_icon(name='out_%s' % n, dflt='out_rmanDisplay')
+            items.append((dspy, dspy, '', rman_icon.icon_id, i))
+            i += 1
         return items
 
     displaydriver: EnumProperty(

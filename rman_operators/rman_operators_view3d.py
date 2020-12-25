@@ -73,8 +73,6 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
             if rm.primitive == 'RI_VOLUME':
                 ob.empty_display_type = 'CUBE'
                 bpy.ops.node.rman_new_material_override('EXEC_DEFAULT', bxdf_name='PxrVolume')
-            elif rm.primitive == 'ALEMBIC':
-                ob.empty_display_type = 'CUBE'
             elif self.properties.bl_prim_type == 'VOLUME':
                 bpy.ops.object.rman_add_bxdf('EXEC_DEFAULT', bxdf_name='PxrVolume')
                 mat = ob.active_material

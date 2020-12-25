@@ -62,7 +62,8 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         op.rman_open_filebrowser = True
         '''
 
-        op = layout.operator('object.rman_add_rman_geo', text='Alembic Archive')
+        rman_icon = rfb_icons.get_icon("rman_alembic")
+        op = layout.operator('object.rman_add_rman_geo', text='Alembic Archive', icon_value=rman_icon.icon_id)
         op.rman_prim_type = 'ALEMBIC'
         op.rman_default_name = 'rman_AlembicArchive'            
         op.bl_prim_type = ''
