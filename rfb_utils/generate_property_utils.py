@@ -83,11 +83,6 @@ def generate_property(node, sp, update_function=None):
     param_name = sp._name
     renderman_name = param_name
 
-    # FIXME: figure out a better to skip
-    # manifold struct members coming in from OSL shaders
-    if 'manifold.' in renderman_name:
-        return (None, None, None)
-
     # blender doesn't like names with __ but we save the
     # "renderman_name with the real one"
     if param_name[0] == '_':
@@ -146,7 +141,8 @@ def generate_property(node, sp, update_function=None):
         'inheritable',
         'inherit_true_value',
         'presets',
-        'readOnly']:
+        'readOnly',
+        'struct_name']:
         if hasattr(sp, nm):
             prop_meta[nm] = getattr(sp, nm)
 
@@ -183,12 +179,12 @@ def generate_property(node, sp, update_function=None):
                 in_items = False
                 for k,v in sp.options.items():
                     items.append((str(v), k, ''))
-                    if v == param_default:
+                    if float(v) == float(param_default):
                         in_items = True
                 
                 bl_default = ''
                 for item in items:
-                    if item[0] == str(param_default):
+                    if float(item[0]) == float(param_default):
                         bl_default = item[0]
                         break                
 

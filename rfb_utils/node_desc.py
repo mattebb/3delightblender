@@ -108,6 +108,13 @@ def _is_alpha_string(s):
             break
     return hasAlpha
 
+def osl_metadatum(metadict, name, default=None):
+    """Return metadatum value, based on oslquery's return format."""
+    if name in metadict:
+        return metadict[name]['default']
+    else:
+        return default    
+
 class NodeDescError(Exception):
     """Custom exception for NodeDesc-related errors."""
 
@@ -829,10 +836,11 @@ class NodeDescParamOSL(NodeDescParam):
 
     def __init__(self, pdata):
         super(NodeDescParamOSL, self).__init__()
+        metadict = {d['name']: d for d in pdata['metadata']}        
         self.category = self._set_category(pdata)
         self.name = self._set_name(pdata)
         self.type = validate_type(self.name, self._set_type(pdata))
-        self._set_optional_attributes(pdata)
+        self._set_optional_attributes(pdata, metadict)
         if hasattr(self, 'sliderMin'):
             self.slidermin = self.sliderMin
         if hasattr(self, 'sliderMax'):
@@ -840,193 +848,96 @@ class NodeDescParamOSL(NodeDescParam):
         self.finalize()
 
     def _set_category(self, pdata):
-        # FIXME: can we support attributes in OSL metadata ?
-        numTokens = len(pdata[0])
-        if numTokens == 4 and pdata[0][1] == '"output':
+        # NOTE: can we support attributes in OSL metadata ?
+        if pdata['isoutput']:
             # this is a struct parameter
             return DescPropType.Output
-        elif numTokens == 3:
-            if pdata[0][1] == '"output':
-                return DescPropType.Output
-            else:
-                return DescPropType.Param
-        elif numTokens == 2:
-            return DescPropType.Param
         else:
-            return None
+            return DescPropType.Param
+
+
 
     def _set_name(self, pdata):
-        return pdata[0][0].strip('"')
+        return pdata['name']
+
 
     def _set_type(self, pdata):
-        if pdata[0][-2].strip('"') == 'struct':
-            data_type = 'struct'
-        else:
-            data_type = pdata[0][-1].strip('"')
-        data_type = data_type.split('[')
-        return data_type[0]
+        if pdata['isstruct']:
+            self.struct_name = pdata['structname']
+            return 'struct'
+        return pdata['type'].split('[')[0]        
 
     def _set_size(self, pdata):
-        data_type = pdata[0][-1].strip('"')
-        if '[' in data_type:
-            # array
-            if '[]' in data_type:
-                self.size = -1
-            else:
-                try:
-                    # remove the trailing ']' and match the numbers at the
-                    # end of the string.
-                    self.size = int(
-                        re.search('\d+$', data_type[:-1]).group())
-                except:
-                    print("ERROR: could not parse size: %s" % data_type)
-                    raise
+        if pdata['varlenarray']:
+            self.size = len(pdata['default'])
+        elif pdata['arraylen'] > 0:
+            self.size = pdata['arraylen']
         else:
-            # non-array
-            self.size = None
+            self.size = None        
 
     def _set_default(self, pdata):
-        pdefault = pdata[1][2:]
-        dwidth = DATA_TYPE_WIDTH[self.type]
-        if self.size is None:
-            if dwidth == 1:
-                try:
-                    if self.type == 'string':
-                        raise TypeError("Do not eval strings")
-                    self.default = eval(pdefault[0])
-                except:
-                    self.default = pdefault[0]
-            elif dwidth == 0:
-                # string
-                self.default = (' '.join(pdefault)).strip('"')
-                try:
-                    if self.type == 'string':
-                        raise TypeError("Do not eval strings")
-                    self.default = eval((' '.join(pdefault)).strip('"'))
-                except:
-                    self.default = (' '.join(pdefault)).strip('"')
-            else:
-                # numerical values
-                try:
-                    self.default = eval(', '.join(pdefault[1:-1]))
-                except:
-                    self.default = DEFAULT_VALUE[self.type]
-        else:
-            # array
-            if dwidth == 0:
-                # string
-                self.default = []
-                for data in pdata:
-                    if not isinstance(data, list) or data[0] != 'Default':
-                        continue
-                    self.default.append(' '.join(data[2:]).strip('"'))
-            elif dwidth == 1:
-                # float, int
-                try:
-                    self.default = eval('[%s]' % ', '.join(pdefault[1:-1]))
-                except:
-                    self.default = DEFAULT_VALUE[self.type]
-            else:
-                # matrix, color, normal, etc.
-                try:
-                    pdefault = eval('[%s]' % ', '.join(pdefault[1:-1]))
-                except:
-                    pdefault = DEFAULT_VALUE[self.type]
-                self.default = []
-                while pdefault:
-                    self.default.append(tuple(pdefault[0:dwidth]))
-                    for i in range(dwidth):
-                        pdefault.pop(0)
-            # conform default and array size
-            if len(self.default) == 1 and self.size > 0:
-                self.default = self.default * self.size
+        self.default = pdata['default']        
 
-        # if dwidth != 0:
-        #     try:
-        #         self.default = eval(self.default)
-        #     except:
-        #         # print('failed to set default for %s -> %s' % (self.name,
-        #         #                                               repr(self.default)))
-        #         pass
-
-    def _set_page(self, pdata):
+    def _set_page(self, metadict):
         # NOTE: no provision for the page's open state at startup in OSL.
-        metadict = pdata[-1]
         if 'page' in metadict:
-            self.page = ' '.join(metadict['page'][3:])
-            self.page = self.page.replace('.', PAGE_SEP).strip('"')
+            self.page = osl_metadatum(metadict, 'page', None).replace('.', PAGE_SEP)
+            # the page's open state at startup in OSL.
+            # Should be set on the first param of the page.
+            self.page_open = osl_metadatum(metadict, 'page_open', False)        
 
-    def _set_help(self, pdata):
-        metadict = pdata[-1]
-        if 'help' in metadict:
-            self.help = ' '.join(metadict['help'][3:])
-            self.help = self.help.strip('"')
-        else:
-            self._format_help()
+    def _set_help(self, metadict):
+        self.help = osl_metadatum(metadict, 'help', '').replace('  ', ' ')
+        self._format_help()        
 
-    def _set_widget(self, pdata):
+    def _set_widget(self, metadict):
         # hintdict
-        metadict = pdata[-1]
         if 'options' in metadict:
             self.options = OrderedDict()
-            olist = (' '.join(metadict['options'][3:])).split('|')
-            wgt = getattr(self, 'widget', None)
+            olist = osl_metadatum(metadict, 'options').split('|')
             key = None
             val = None
-            for o in olist:
-                if ':' in o:
-                    # only allow a max split of 1 to ensure that options with a ':' in the value don't get split
-                    # example:
-                    # string options = "none:|all hits simple:user:surfSimplify0|glass > 1 bounce > simple:user:surfSimplify1|glass > 2 bounces > simple:user:surfSimplify2|glass > 3 bounces > simple:user:surfSimplify3",
-                    key, val = o.split(':', 1)
+            for opt in olist:
+                if ':' in opt:
+                    key, val = opt.rsplit(':', 1)  # consider only first ':'
                 else:
-                    key = o
-                    val = o
+                    key = opt
+                    val = opt
                 try:
-                    if self.type == 'string':
-                        raise TypeError("Do not eval strings")
-                    self.options[key.strip('"')] = eval(val.strip('"'))
-                except:
-                    self.options[key.strip('"')] = val.strip('"')
+                    self.options[key] = safe_value_eval(val)
+                except BaseException:
+                    self.options[key] = val
 
         if 'presets' in metadict:
             self.presets = OrderedDict()
-            plist = (' '.join(metadict['presets'][3:])).split('|')
-            # print('presets: %s -> %s' % (metadict['presets'], plist))
+            plist = osl_metadatum(metadict, 'presets').split('|')
             for preset in plist:
-                key, val = preset.strip('"').split(':')
+                key, val = preset.split(':')
                 if self.type in FLOATX:
                     self.presets[key] = tuple([float(v) for v in val.split()])
                 elif self.type == 'string':
                     self.presets[key] = val
                 else:
-                    self.presets[key] = eval(val)
+                    self.presets[key] = safe_value_eval(val)
 
-        if 'widget' in metadict:
-            self.widget = ' '.join(metadict['widget'][3:])
-            self.widget = self.widget.strip('"')
-            if self.widget == 'null' and self.name.endswith('_Interpolation'):
-                # Store an enum with maya-compatible values.
-                self.interpEnum = {
-                    k: INTERP_RMAN_TO_MAYA[k] for k in self.options}
-                self.interpDefault = INTERP_RMAN_TO_MAYA[self.default]
+        self.widget = osl_metadatum(metadict, 'widget', 'default')        
 
-    def _set_optional_attributes(self, pdata):
+    def _set_optional_attributes(self, pdata, metadict):
         self._set_size(pdata)
         self._set_default(pdata)
-        self._set_widget(pdata)
-        self._set_page(pdata)
-        self._set_help(pdata)
-        metadict = pdata[-1]
+        self._set_widget(metadict)
+        self._set_page(metadict)
+        self._set_help(metadict)
 
-        def __setAttrNamed(attrName):
-            if attrName in metadict:
-                val = ' '.join(metadict[attrName][3:])
-                try:
-                    val = eval(val)
-                except:
-                    pass
-                setattr(self, attrName, val)
+        def __setAttrNamed(attr_name):
+            func = None
+            if isinstance(attr_name, tuple):
+                attr_name, func = attr_name
+            if attr_name not in metadict:
+                return
+            val = metadict[attr_name]['default']
+            # val = safe_value_eval(val)
+            setattr(self, attr_name, val if not func else func(val))
 
         for attr in OPTIONAL_ATTRS:
             __setAttrNamed(attr)
@@ -1440,13 +1351,47 @@ class NodeDesc(object):
         Arguments:
             oso {FilePath} -- full path of the *.oso file.
         """
+        if not os.path.exists(oso.os_path()):
+            print("OSO not found: %s", oso.os_path())
+            return
 
-        def _add_osl_param(self, param_data):
-            try:
-                obj = NodeDescParamOSL(param_data)
-            except:
-                print('Parsing failed on: %s' % param_data)
-                raise
+        # open shader
+        import oslquery as oslq
+        oinfo = oslq.OslQuery()
+        oinfo.open(oso)
+
+        self._parsed_data = oinfo
+        self._parsed_data_type = 'oso'
+
+        # get name and type
+        self.name = oinfo.shadername()
+        self.rman_node_type = self.name
+        self.node_type = OSL_TO_RIS_TYPES[oinfo.shadertype()]
+        if self.node_type != DescNodeType.kPattern:
+            print("WARNING: OSL %s not supported by RIS (%s)",
+                             self.node_type, self.name)
+
+        meta = {p['name']: p for p in oinfo.shadermetadata()}
+        self.classification = osl_metadatum(meta, 'rfm_classification')
+        # categorize osl shaders as patterns by default, if metadata didn't
+        # say.
+        if not self.classification:
+            self.classification = 'rendernode/RenderMan/pattern/'
+        self.help = osl_metadatum(meta, 'help')                             
+
+        # parse params
+        for i in range(oinfo.nparams()):
+            param_data = oinfo.getparam(i)
+
+            # try:
+            obj = NodeDescParamOSL(param_data)
+            # except BaseException as err:
+            #     logger().error('Parsing failed on: %s (%s)', param_data, err)
+
+            # struct members appear as struct.member: ignore.
+            if '.' in obj.name:
+                #logger().warning("not adding struct param %s" % obj.name)
+                continue
 
             if obj.category == DescPropType.Param:
                 self.params.append(obj)
@@ -1456,123 +1401,8 @@ class NodeDesc(object):
             elif obj.category == DescPropType.Attribute:
                 self.attributes.append(obj)
             else:
-                #rfm_log().warning('WARNING: unknown category !%s' % str(obj.category))
-                print('WARNING: unknown category !%s' % str(obj.category))
-
-        if not os.path.exists(oso.os_path()):
-            #rfm_log().warning("OSO not found: %s" % oso.os_path())
-            print("OSO not found: %s" % oso.os_path())
-            return
-
-        # use oslinfo to read parameter list
-        # ath this point RMANTREE WILL be in the environment.
-        rmantree = FilePath(os.environ['RMANTREE'])
-        # FIXME: add '.exe' on windows
-        oslinfo = rmantree.join('bin', 'oslinfo')
-        cmd = [oslinfo.os_path(), '-v', oso.os_path()]
-        p = subprocess.Popen(cmd,
-                             stdin=subprocess.PIPE,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             startupinfo=startup_info(),
-                             bufsize=-1)
-        out, err = p.communicate()
-        # make sure we use the os' favorite end-of-line sequence.
-        lines = out.decode('utf-8').split(os.linesep)
-        # self.oso = lines
-        toks = lines[0].split()
-        self.name = toks[1].replace('"', '')
-        self.rman_node_type = self.name
-        # only support OSL patterns for now
-        self.node_type = OSL_TO_RIS_TYPES[toks[0]]
-        if self.node_type != DescNodeType.kPattern:
-            #rfm_log().warning("WARNING: OSL %s not supported by RIS (%s)", self.node_type, self.name)
-            print("WARNING: OSL %s not supported by RIS (%s)" % (self.node_type, self.name))
-
-        header_data = []
-        param_data = []
-        param_metadata = {}
-        in_param_block = False
-
-        for l in NodeDesc._filtered_osl_Lines(lines):
-            # print(l)
-            toks = l.split()
-
-            if len(toks) < 1:
-                # skip empty lines
-                continue
-
-            if not in_param_block and l[0] == '"':
-                # we reached the first parameter: process whatever header data
-                # we have.
-                in_param_block = True
-                self._parse_osl_header(header_data)
-
-            if not in_param_block:
-                # store header infos
-                header_data.append(toks)
-            elif l[0] == '"':
-                # new parameter declaration
-                # add the previous parameter to the param list.
-                if param_data:
-                    param_data.append(param_metadata)
-                    _add_osl_param(self, param_data)
-                    param_data = []
-                    param_metadata = {}
-
-                if toks[0] == 'metadata:':
-                    param_metadata[toks[2]] = toks[1:]
-                else:
-                    param_data.append(toks)
-            else:
-                if toks[0] == 'metadata:':
-                    param_metadata[toks[2]] = toks[1:]
-                else:
-                    param_data.append(toks)
-
-        # A parameter only gets added when we detect the next one... Make sure
-        # the last one is added too !
-        if param_data:
-            param_data.append(param_metadata)
-            _add_osl_param(self, param_data)
-
-    @staticmethod
-    def _filtered_osl_Lines(lines):
-        """Generator returning only interesting lines."""
-        for l in lines:
-            l = l.strip()
-            if not l or l.startswith('//'):
-                continue
-            yield l
-
-    def _parse_osl_header(self, header):
-        """Parse the OSL header to retrieve known metadata fields:
-        'rfm_nodeid', 'rfm_classification' and 'help'.
-
-        Args:
-            header (str): The header contents as a string
-        """
-        for line in header:
-            # typical line looks like so:
-            #   tokens: ['metadata:'][type][name][=][value]...[]
-            #  indices:       0         1     2   3    4   ... n
-            if line[0] != 'metadata:':
-                continue
-            if line[2] == 'rfm_nodeid':
-                self.nodeid = line[4]
-                try:
-                    self.nodeid = long(self.nodeid)
-                except:
-                    self.nodeid = None
-            elif line[2] == 'rfm_classification':
-                self.classification = line[4].strip('"')
-            elif line[2] == 'rfh_classification':
-                self.rfh_classification = line[4].strip('"')
-            elif line[2] == 'help':
-                self.help = ' '.join(line[4:]).strip('"')
-        # categorize osl shaders as patterns by default, if metadata didn't say
-        if not self.classification:
-            self.classification = 'rendernode/RenderMan/pattern/'
+                print('WARNING: unknown category ! %s',
+                                 str(obj.category))        
 
     @staticmethod
     def _invalid_json_file_warning(validator, json_file):

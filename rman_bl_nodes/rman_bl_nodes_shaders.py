@@ -634,6 +634,12 @@ class RendermanPatternNode(RendermanShadingNode):
                 node_tree = self.id_data
                 node_tree.links.remove(link)
 
+            # if this is a struct, check that the struct name matches
+            if from_node_type == 'struct':
+                if link.from_socket.struct_name != link.to_socket.struct_name:
+                    node_tree = self.id_data
+                    node_tree.links.remove(link)
+
         self.new_links.clear()    
         ob = getattr(bpy.context, 'active_object', None)
         if ob:

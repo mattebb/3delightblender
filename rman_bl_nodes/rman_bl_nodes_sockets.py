@@ -39,6 +39,7 @@ __RENDERMAN_TYPES_SOCKETS__ = [
     ('struct', 'Struct', bpy.types.NodeSocketString, (1.0, 0.344, 0.0, 1.0), True,
         {
             'default_value': '',
+            'struct_name': StringProperty(default='')
         }
     ),  
     ('vstruct', 'VStruct', bpy.types.NodeSocketString, (1.0, 0.0, 1.0, 1.0), True,
@@ -137,6 +138,7 @@ __RENDERMAN_TYPES_SOCKET_INTERFACES__ =[
     ('struct', 'Struct', bpy.types.NodeSocketInterfaceString, (1.0, 0.344, 0.0, 1.0), True,
         {
             'default_value': '',
+            'struct_name': StringProperty(default='')
         }
     ),  
     ('vstruct', 'VStruct', bpy.types.NodeSocketInterfaceString, (1.0, 0.0, 1.0, 1.0), True,

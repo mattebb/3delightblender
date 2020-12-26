@@ -150,6 +150,7 @@ class NODE_MT_renderman_connection_menu(Menu):
         prop_meta = node.prop_meta[prop_name]
         renderman_type = prop_meta.get('renderman_type', 'pattern')
         renderman_type = prop_meta.get('renderman_array_type', renderman_type)
+        struct_name = prop_meta.get('struct_name', '')
 
         if hasattr(prop_meta, 'vstruct') or prop_name == 'inputMaterial':
             for n in rman_bl_nodes.__RMAN_PATTERN_NODES__:
@@ -196,6 +197,9 @@ class NODE_MT_renderman_connection_menu(Menu):
                         if vstruct:               
                             break               
                         if node_desc_param.type == renderman_type:
+                            if node_desc_param.type == 'struct':
+                                if node_desc_param.struct_name != struct_name:
+                                    continue
                             has_any = True
                             break
                         elif node_desc_param.type in FLOAT3 and renderman_type in FLOAT3:
