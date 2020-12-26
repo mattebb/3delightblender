@@ -48,6 +48,9 @@ def link_node(nt, from_node, in_socket):
         in_socket_type = type(in_socket).__name__
         for s in from_node.outputs:
             if type(s).__name__ == in_socket_type:
+                if in_socket_type == 'struct':
+                    if s.struct_name != in_socket.struct_name:
+                        continue
                 out_socket = s
                 break
 
