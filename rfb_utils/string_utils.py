@@ -1,6 +1,5 @@
 from .string_expr import StringExpression
 from . import filepath_utils
-from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 from bpy.app.handlers import persistent
 import bpy
 import os
@@ -156,6 +155,8 @@ def get_var(nm):
 
 @persistent
 def update_blender_tokens_cb(bl_scene):
+    from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
+
     scene = bl_scene
     if not scene:
         scene = bpy.context.scene

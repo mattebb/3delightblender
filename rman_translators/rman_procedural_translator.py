@@ -1,6 +1,5 @@
 from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_procedural import RmanSgProcedural
-from ..rfb_utils import filepath_utils
 
 class RmanProceduralTranslator(RmanTranslator):
 
@@ -22,7 +21,7 @@ class RmanProceduralTranslator(RmanTranslator):
 
     def update(self, ob, rman_sg_procedural):
         rm = ob.renderman
-        path_dso = filepath_utils.get_real_path(rm.path_dso)
+        path_dso = rm.path_dso
         bounds = (-100000, 100000, -100000, 100000, -100000, 100000 )
 
         primvar = rman_sg_procedural.sg_node.GetPrimVars()

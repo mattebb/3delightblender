@@ -1,6 +1,5 @@
 from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_brickmap import RmanSgBrickmap
-from ..rfb_utils import filepath_utils
 
 import bpy
 
@@ -24,6 +23,6 @@ class RmanBrickmapTranslator(RmanTranslator):
     def update(self, ob, rman_sg_brickmap):       
         primvar = rman_sg_brickmap.sg_node.GetPrimVars()
         rm = ob.renderman
-        bkm_filepath = filepath_utils.get_real_path(rm.bkm_filepath)
+        bkm_filepath = rm.bkm_filepath 
         primvar.SetString("filename", bkm_filepath)
         rman_sg_brickmap.sg_node.SetPrimVars(primvar)        

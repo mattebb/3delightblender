@@ -1,5 +1,4 @@
 from . import shadergraph_utils
-from ..rman_config import __RMAN_DISPLAY_CHANNELS__
 
 
 # ------------- Atom's helper functions -------------
@@ -153,20 +152,3 @@ def _get_subframes_(segs, scene):
         min = 0
 
     return [min + i * shutter_interval / (segs - 1) for i in range(segs)]
-
-def _fix_displays(context):
-    scene = context.scene
-    rm = scene.renderman
-    rm_rl = None
-    active_layer = context.view_layer
-    for l in rm.render_layers:
-        if l.render_layer == active_layer.name:
-            rm_rl = l
-            break
-    if rm_rl:
-        for aov in rm_rl.custom_aovs:
-            for chan in aov.dspy_channels:
-                settings = __RMAN_DISPLAY_CHANNELS__.get(chan.name, None)
-                if settings:
-                    print("Fixing channel: %s" % chan.name)
-                    chan.channel_type = settings['channelType']

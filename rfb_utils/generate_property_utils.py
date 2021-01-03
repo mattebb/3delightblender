@@ -6,6 +6,46 @@ from copy import deepcopy
 import math
 import bpy
 import sys
+import os
+
+def assetid_update_func(self, context, param_name):
+    from . import texture_utils
+    from . import filepath_utils
+
+    node = self.node if hasattr(self, 'node') else self
+
+    # get the real path if the value is the weird Blender relative path
+    if param_name in node:
+        node[param_name] = filepath_utils.get_real_path(node[param_name])
+
+    if not hasattr(node, 'renderman_node_type'):
+        return
+
+    light = None
+    mat = None
+    ob = None
+    active = None
+    if node.renderman_node_type in ['displayfilter', 'samplefilter', 'integrator']:
+        ob = context.scene.world        
+    else:    
+        active = context.active_object
+        if active:
+            if active.type == 'LIGHT':
+                light = active.data
+            else:
+                ob = active
+                
+        if context and hasattr(context, 'material'):
+            mat = context.material
+        elif context and hasattr(context, 'node'):
+            mat = context.space_data.id
+
+    texture_utils.update_texture(node, light=light, mat=mat, ob=ob)
+    
+    if mat:
+        node.update_mat(mat)  
+    if light:
+        active.update_tag(refresh={'DATA'})
 
 def generate_array_property(node, prop_names, prop_meta, node_desc_param, update_array_size_func=None, update_array_elem_func=None):
     '''Generate the necessary properties for an array parameter and
@@ -315,7 +355,8 @@ def generate_property(node, sp, update_function=None):
         if (param_widget in ['fileinput','assetidinput','assetidoutput']):
             prop = StringProperty(name=param_label,
                                   default=param_default, subtype="FILE_PATH",
-                                  description=param_help, update=update_function)
+                                  description=param_help, update=lambda s,c: assetid_update_func(s,c, param_name))
+
         elif param_widget in ['mapper', 'popup']:
             items = []
             

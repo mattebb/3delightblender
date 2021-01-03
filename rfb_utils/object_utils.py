@@ -1,7 +1,7 @@
 import bpy
 import numpy as np
 from .prefs_utils import get_pref
-from .string_utils import sanitize_node_name
+from . import string_utils
 
 def get_db_name(ob, rman_type='', psys=None):
     db_name = ''    
@@ -32,7 +32,7 @@ def get_db_name(ob, rman_type='', psys=None):
             db_name = '%s-EMPTY' % ob.name_full  
 
 
-    return sanitize_node_name(db_name)
+    return string_utils.sanitize_node_name(db_name)
 
 def get_group_db_name(ob_inst):
     if isinstance(ob_inst, bpy.types.DepsgraphObjectInstance):
@@ -53,7 +53,7 @@ def get_group_db_name(ob_inst):
     else:
         group_db_name = "%s" % (ob_inst.name_full)
 
-    return sanitize_node_name(group_db_name)
+    return string_utils.sanitize_node_name(group_db_name)
 
 def get_meta_family(ob):
     return ob.name.split('.')[0]

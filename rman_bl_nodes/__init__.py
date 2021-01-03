@@ -1,7 +1,6 @@
 from ..rfb_utils.node_desc import NodeDesc
 from ..rfb_utils import filepath_utils
 from ..rfb_utils.filepath import FilePath
-from ..rfb_utils import texture_utils
 from ..rfb_utils import generate_property_utils
 from ..rfb_logger import rfb_log
 from .rman_socket_utils import node_add_inputs
@@ -19,7 +18,6 @@ from nodeitems_utils import NodeCategory, NodeItem
 from collections import OrderedDict
 from operator import attrgetter
 from bpy.props import *
-from copy import deepcopy
 import bpy
 import os
 import sys
@@ -116,34 +114,6 @@ def update_conditional_visops(node):
                     node.inputs[param_name].hide = hidden
             except:
                 print("Error in conditional visop: %s" % (cond_expr))
-
-def assetid_update_func(self, context):
-    node = self.node if hasattr(self, 'node') else self
-    light = None
-    mat = None
-    ob = None
-    active = None
-    if node.renderman_node_type in ['displayfilter', 'samplefilter', 'integrator']:
-        ob = context.scene.world        
-    else:    
-        active = context.active_object
-        if active:
-            if active.type == 'LIGHT':
-                light = active.data
-            else:
-                ob = active
-                
-        if context and hasattr(context, 'material'):
-            mat = context.material
-        elif context and hasattr(context, 'node'):
-            mat = context.space_data.id
-
-    texture_utils.update_texture(node, light=light, mat=mat, ob=ob)
-    
-    if mat:
-        node.update_mat(mat)  
-    if light:
-        active.update_tag(refresh={'DATA'})
 
 def update_func_with_inputs(self, context):
     # check if this prop is set on an input
@@ -319,11 +289,7 @@ def class_generate_properties(node, parent_name, node_desc):
         if node_desc.node_type == 'integrator':
             update_function = update_integrator_func
         else:
-            param_widget = node_desc_param.widget.lower() if hasattr(node_desc_param,'widget') else 'default'
-            if param_widget == 'fileinput' or param_widget == 'assetidinput' or (param_widget == 'default' and node_desc_param.name == 'filename'):
-                update_function = assetid_update_func
-            else:
-                update_function = update_func_with_inputs if 'enable' in node_desc_param.name else update_func         
+            update_function = update_func_with_inputs if 'enable' in node_desc_param.name else update_func         
 
         if not update_function:
             update_function = update_func

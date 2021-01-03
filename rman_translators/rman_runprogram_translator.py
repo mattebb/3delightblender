@@ -1,6 +1,5 @@
 from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_runprogram import RmanSgRunProgram
-from ..rfb_utils import filepath_utils
 
 class RmanRunProgramTranslator(RmanTranslator):
 
@@ -22,7 +21,7 @@ class RmanRunProgramTranslator(RmanTranslator):
 
     def update(self, ob, rman_sg_runprogram):
         rm = ob.renderman
-        path_runprogram = filepath_utils.get_real_path(rm.path_runprogram)
+        path_runprogram = rm.path_runprogram
         bounds = (-100000, 100000, -100000, 100000, -100000, 100000 )
 
         primvar = rman_sg_runprogram.sg_node.GetPrimVars()
