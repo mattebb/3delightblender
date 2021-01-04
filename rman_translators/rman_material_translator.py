@@ -79,27 +79,20 @@ class RmanMaterialTranslator(RmanTranslator):
             else:
                 gpmaterial_utils.gp_material_fill_solid(mat, self.rman_scene.rman, rman_sg_material, '%s-FILL' % handle)
              
-    def export_shader_nodetree(self, id, rman_sg_material, handle):
+    def export_shader_nodetree(self, material, rman_sg_material, handle):
 
-        if id and id.node_tree:
+        if material and material.node_tree:
 
-            if shadergraph_utils.is_renderman_nodetree(id):
-                portal = type(
-                    id).__name__ == 'AreaLight' and id.renderman.renderman_type == 'PORTAL'
+            out = shadergraph_utils.is_renderman_nodetree(material)
 
-                nt = id.node_tree
-
-                out = next((n for n in nt.nodes if hasattr(n, 'renderman_node_type') and
-                            n.renderman_node_type == 'output'),
-                        None)
-                if out is None:
-                    return False
+            if out:
+                nt = material.node_tree
 
                 # check if there's a solo node
                 if out.solo_node_name:
                     solo_node = nt.nodes.get(out.solo_node_name, None)
                     if solo_node:
-                        success = self.export_solo_shader(id, out, solo_node, rman_sg_material, handle)
+                        success = self.export_solo_shader(material, out, solo_node, rman_sg_material, handle)
                         if success:
                             return True
 
@@ -108,8 +101,7 @@ class RmanMaterialTranslator(RmanTranslator):
                 if socket.is_linked:
                     bxdfList = []
                     for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
-                        shader_sg_nodes = self.shader_node_sg(id, sub_node, rman_sg_material, mat_name=handle,
-                                    portal=portal)
+                        shader_sg_nodes = self.shader_node_sg(material, sub_node, rman_sg_material, mat_name=handle)
                         for s in shader_sg_nodes:
                             bxdfList.append(s) 
                     if bxdfList:
@@ -121,7 +113,7 @@ class RmanMaterialTranslator(RmanTranslator):
                     if socket.is_linked:
                         lightNodesList = []
                         for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
-                            shader_sg_nodes = self.shader_node_sg(id, sub_node, rman_sg_material, mat_name=handle, portal=portal)
+                            shader_sg_nodes = self.shader_node_sg(material, sub_node, rman_sg_material, mat_name=handle)
                             for s in shader_sg_nodes:
                                 lightNodesList.append(s) 
                         if lightNodesList:
@@ -133,8 +125,7 @@ class RmanMaterialTranslator(RmanTranslator):
                     if socket.is_linked:
                         dispList = []
                         for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
-                            shader_sg_nodes = self.shader_node_sg(id, sub_node, rman_sg_material, mat_name=handle,
-                                        portal=portal)
+                            shader_sg_nodes = self.shader_node_sg(material, sub_node, rman_sg_material, mat_name=handle)
                             for s in shader_sg_nodes:
                                 dispList.append(s) 
                         if dispList:
@@ -142,8 +133,8 @@ class RmanMaterialTranslator(RmanTranslator):
 
                 return True                        
                     
-            elif shadergraph_utils.find_node(id, 'ShaderNodeOutputMaterial'):
-                rfb_log().debug("Error Material %s needs a RenderMan BXDF" % id.name)
+            elif shadergraph_utils.find_node(material, 'ShaderNodeOutputMaterial'):
+                rfb_log().debug("Error Material %s needs a RenderMan BXDF" % material.name)
                 return False
 
         return False
@@ -300,7 +291,7 @@ class RmanMaterialTranslator(RmanTranslator):
     
         return [sg_node]        
 
-    def shader_node_sg(self, mat, node, rman_sg_material, mat_name, portal=False):
+    def shader_node_sg(self, mat, node, rman_sg_material, mat_name):
  
         sg_node = None
 
