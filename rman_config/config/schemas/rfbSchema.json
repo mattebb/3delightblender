@@ -31,7 +31,7 @@
                     "type": "string"
                 },
                 "port": {
-                    "type": "string"
+                    "type": "number"
                 },
                 "user": {
                     "type": "string"
@@ -113,14 +113,15 @@
                 }
             }
         },
-        "bxdf_viewport_color_mappings": {
+        "bxdf_viewport_color_mapping": {
             "type": "object",
             "patternProperties": {
                 "[A-Za-z0-9_-]+": {
-                    "$ref": "#/definitions/bxdf_viewport_color_mapping"
+                    "$ref": "#/definitions/bxdf_viewport_color_map"
                 }
             }
-        }        
+        } ,
+        "tractor_cfg": {"$ref": "#/definitions/tractor_cfg" }       
     },
     "additionalProperties": false
 }
