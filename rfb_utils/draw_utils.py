@@ -207,7 +207,21 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     ramp_node = node_group.nodes[ramp_name]
                     layout.template_curve_mapping(
                             ramp_node, 'mapping')  
-                    continue                           
+                    continue                      
+
+                # double check the conditionalVisOps
+                # this might be our first time drawing, i.e.: scene was just opened.
+                if 'conditionalVisOps' in prop_meta:
+                    cond_expr = prop_meta['conditionalVisOps']['expr']
+                    try:
+                        hidden = not eval(cond_expr)
+                        prop_meta['hidden'] = hidden
+                        if hasattr(node, 'inputs') and param_name in node.inputs:
+                            node.inputs[param_name].hide = hidden
+                        if hidden:
+                            continue
+                    except:                        
+                        pass                             
 
                 # else check if the socket with this name is connected
                 socket = node.inputs[prop_name] if prop_name in node.inputs \
@@ -334,7 +348,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             row2.enabled=False                           
                         else:
                             row.prop(node, prop_name, slider=True)
-                            
+
                         if prop_name in node.inputs:
                             row.context_pointer_set("socket", socket)
                             row.context_pointer_set("node", node)
