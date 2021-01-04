@@ -216,8 +216,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     try:
                         hidden = not eval(cond_expr)
                         prop_meta['hidden'] = hidden
-                        if hasattr(node, 'inputs') and param_name in node.inputs:
-                            node.inputs[param_name].hide = hidden
+                        if hasattr(node, 'inputs') and prop_name in node.inputs:
+                            node.inputs[prop_name].hide = hidden
                         if hidden:
                             continue
                     except:                        
