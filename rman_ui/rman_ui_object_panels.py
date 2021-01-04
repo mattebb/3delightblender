@@ -23,7 +23,7 @@ class OBJECT_PT_renderman_object_render(CollectionPanel, Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        if context.object.type == 'CAMERA':
+        if context.object.type in ['CAMERA', 'LIGHT']:
             return False        
         return (context.object and rd.engine in {'PRMAN_RENDER'})
 
@@ -58,7 +58,7 @@ class OBJECT_PT_renderman_object_raytracing(CollectionPanel, Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        if context.object.type == 'CAMERA':
+        if context.object.type in ['CAMERA', 'LIGHT']:
             return False        
         return (context.object and rd.engine in {'PRMAN_RENDER'})
 
@@ -652,7 +652,7 @@ class OBJECT_PT_renderman_object_baking(Panel, _RManPanelHeader):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        if context.object.type == 'CAMERA':
+        if context.object.type in ['CAMERA', 'LIGHT']:
             return False        
         return (context.object and rd.engine in {'PRMAN_RENDER'})    
 
@@ -679,7 +679,7 @@ class OBJECT_PT_renderman_object_custom_primvars(CollectionPanel, Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        if context.object.type == 'CAMERA':
+        if context.object.type in ['CAMERA', 'LIGHT']:
             return False        
         return (context.object and rd.engine in {'PRMAN_RENDER'})
 
@@ -706,7 +706,7 @@ class OBJECT_PT_renderman_object_custom_attributes(CollectionPanel, Panel):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        if context.object.type == 'CAMERA':
+        if context.object.type in ['CAMERA', 'LIGHT']:
             return False        
         return (context.object and rd.engine in {'PRMAN_RENDER'})
 
@@ -732,7 +732,7 @@ class OBJECT_PT_renderman_object_matteid(Panel, _RManPanelHeader):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        if context.object.type == 'CAMERA':
+        if context.object.type in ['CAMERA', 'LIGHT']:
             return False        
         return (context.object and rd.engine in {'PRMAN_RENDER'})    
 

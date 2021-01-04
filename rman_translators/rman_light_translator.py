@@ -82,6 +82,20 @@ class RmanLightTranslator(RmanTranslator):
         lightfilter_translator = self.rman_scene.rman_translators['LIGHTFILTER']
         lightfilter_translator.export_light_filters(ob, rman_sg_light, rm)
 
+    def update_light_attributes(self, ob, rman_sg_light):
+        light = ob.data
+        rm = light.renderman             
+
+        primary_vis = rm.light_primary_visibility
+        attrs = rman_sg_light.sg_node.GetAttributes()
+        attrs.SetInteger("visibility:camera", int(primary_vis))
+        attrs.SetInteger("visibility:transmission", 0)
+        attrs.SetInteger("visibility:indirect", 0)
+        obj_groups_str = "World,%s" % rman_sg_light.db_name
+        attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_grouping_membership, obj_groups_str)
+
+        rman_sg_light.sg_node.SetAttributes(attrs)
+
     def update(self, ob, rman_sg_light):
 
         light = ob.data
@@ -143,16 +157,7 @@ class RmanLightTranslator(RmanTranslator):
             
 
             rman_sg_light.sg_node.SetLight(sg_node)
-
-            primary_vis = rm.light_primary_visibility
-            attrs = rman_sg_light.sg_node.GetAttributes()
-            attrs.SetInteger("visibility:camera", int(primary_vis))
-            attrs.SetInteger("visibility:transmission", 0)
-            attrs.SetInteger("visibility:indirect", 0)
-            obj_groups_str = "World,%s" % rman_sg_light.db_name
-            attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_grouping_membership, obj_groups_str)
-
-            rman_sg_light.sg_node.SetAttributes(attrs)
+            self.update_light_attributes(ob, rman_sg_light)
 
         else:
             names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrDistantLight',
@@ -169,17 +174,7 @@ class RmanLightTranslator(RmanTranslator):
                 rixparams.SetInteger('areaNormalize', 1)
 
             rman_sg_light.sg_node.SetLight(sg_node)
-
-            primary_vis = rm.light_primary_visibility
-            attrs = rman_sg_light.sg_node.GetAttributes()
-            attrs.SetInteger("visibility:camera", int(primary_vis))
-            attrs.SetInteger("visibility:transmission", 0)
-            attrs.SetInteger("visibility:indirect", 0)
-            obj_groups_str = "World,%s" % rman_sg_light.db_name
-            attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_grouping_membership, obj_groups_str)
-
-                     
-            rman_sg_light.sg_node.SetAttributes(attrs)              
+            self.update_light_attributes(ob, rman_sg_light)
 
         if  light_shader_name in ("PxrRectLight", 
                                 "PxrDiskLight",
