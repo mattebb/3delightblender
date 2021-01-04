@@ -43,6 +43,7 @@ def _default_dspy_params():
     d[u'filter'] = {'type': u'string', 'value': 'default'}
     d[u'filterwidth'] = { 'type': u'float2', 'value': [2,2]}   
     d[u'statistics'] = { 'type': u'string', 'value': 'none'}
+    d[u'shadowthreshold'] = { 'type': u'float', 'value': 0.01} 
 
     return d    
 
@@ -325,6 +326,7 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             d[u'filter'] = {'type': u'string', 'value': chan.chan_pixelfilter}
             d[u'filterwidth'] = { 'type': u'float2', 'value': [chan.chan_pixelfilter_x, chan.chan_pixelfilter_y]}
             d[u'statistics'] = { 'type': u'string', 'value': chan.stats_type}
+            d[u'shadowthreshold'] = { 'type': u'float', 'value': chan.shadowthreshold}
             dspys_dict['channels'][ch_name] = d    
 
     for aov in rm_rl.custom_aovs:
