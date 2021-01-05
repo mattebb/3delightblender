@@ -1115,8 +1115,6 @@ class RmanScene(object):
         # Shutter
         if rm.motion_blur:
             shutter_interval = rm.shutter_angle / 360.0
-            shutter_open = rm.shutter_open
-            shutter_close = rm.shutter_close
             '''
             if rm.shutter_timing == 'FRAME_CENTER':
                 shutter_open, shutter_close = 0 - .5 * \

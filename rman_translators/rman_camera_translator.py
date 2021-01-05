@@ -535,6 +535,24 @@ class RmanCameraTranslator(RmanTranslator):
 
         prop = rman_sg_camera.sg_camera_node.GetProperties()
 
+        # Shutter Timings
+        prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_shutterOpenTime, self.rman_scene.bl_scene.renderman.shutter_open)
+        prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_shutterCloseTime, self.rman_scene.bl_scene.renderman.shutter_close)
+
+        # Shutter Opening
+        if cam_rm.rman_use_shutteropening:
+            shutteropenings = [
+                cam_rm.rman_shutteropening_0,
+                cam_rm.rman_shutteropening_1,
+                cam_rm.rman_shutteropening_2,
+                cam_rm.rman_shutteropening_3,
+                cam_rm.rman_shutteropening_4,
+                cam_rm.rman_shutteropening_5,
+                cam_rm.rman_shutteropening_6,
+                cam_rm.rman_shutteropening_7
+            ]
+            prop.SetFloatArray(self.rman_scene.rman.Tokens.k_shutteropening, shutteropenings, 8)
+
         # clipping planes         
         prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_nearClip, cam.clip_start)
         prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_farClip, cam.clip_end)

@@ -13,6 +13,129 @@
         },
         {
             "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_use_shutteropening",
+            "label": "Control Shutter Opening",
+            "type": "int",
+            "default": 0,
+            "widget": "checkbox",
+            "page": "Shutter",
+            "help": ""
+        },      
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_shutteropening_0",
+            "label": "",
+            "type": "float",
+            "default": 0.0,
+            "page": "Shutter",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_use_shutteropening",
+                "conditionalVisValue": "1"
+            }              
+        },   
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_shutteropening_1",
+            "label": "",
+            "type": "float",
+            "default": 0.0,
+            "page": "Shutter",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_use_shutteropening",
+                "conditionalVisValue": "1"
+            } 
+        }, 
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_shutteropening_2",
+            "label": "",
+            "type": "float",
+            "default": 0.0,
+            "page": "Shutter",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_use_shutteropening",
+                "conditionalVisValue": "1"
+            } 
+        }, 
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_shutteropening_3",
+            "label": "",
+            "type": "float",
+            "default": 0.0,
+            "page": "Shutter",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_use_shutteropening",
+                "conditionalVisValue": "1"
+            } 
+        }, 
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_shutteropening_4",
+            "label": "",
+            "type": "float",
+            "default": 1.0,
+            "page": "Shutter",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_use_shutteropening",
+                "conditionalVisValue": "1"
+            } 
+        }, 
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_shutteropening_5",
+            "label": "",
+            "type": "float",
+            "default": 1.0,
+            "page": "Shutter",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_use_shutteropening",
+                "conditionalVisValue": "1"
+            } 
+        }, 
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_shutteropening_6",
+            "label": "",
+            "type": "float",
+            "default": 1.0,
+            "page": "Shutter",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_use_shutteropening",
+                "conditionalVisValue": "1"
+            } 
+        }, 
+        {
+            "panel": "DATA_PT_renderman_camera",            
+            "name": "rman_shutteropening_7",
+            "label": "",
+            "type": "float",
+            "default": 1.0,
+            "page": "Shutter",
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_use_shutteropening",
+                "conditionalVisValue": "1"
+            } 
+        },                                                                  
+
+        {
+            "panel": "DATA_PT_renderman_camera",            
             "name": "rman_aperture_fstop",
             "label": "F Stop",
             "type": "float",
