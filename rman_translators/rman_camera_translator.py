@@ -551,7 +551,7 @@ class RmanCameraTranslator(RmanTranslator):
                 cam_rm.rman_shutteropening_6,
                 cam_rm.rman_shutteropening_7
             ]
-            prop.SetFloatArray(self.rman_scene.rman.Tokens.k_shutteropening, shutteropenings, 8)
+            prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_shutteropening, shutteropenings, 8)
 
         # clipping planes         
         prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_nearClip, cam.clip_start)
