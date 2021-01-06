@@ -233,6 +233,9 @@ class RmanRender(object):
             argv.append('-woff')
             argv.append(woffs)
 
+        argv.append('-statsconfig')
+        argv.append( os.path.join(filepath_utils.guess_rmantree(), 'etc', 'stats.ini'))
+
         self.rictl.PRManBegin(argv)  
 
     def __del__(self):   
