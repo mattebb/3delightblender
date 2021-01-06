@@ -553,6 +553,24 @@ class RmanCameraTranslator(RmanTranslator):
             ]
             prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_shutteropening, shutteropenings, 8)
 
+        # Stereo Planes
+        rman_stereoplanedepths_arraylen = getattr(cam_rm, 'rman_stereoplanedepths_arraylen', 0)
+        rman_stereoplaneoffsets_arraylen = getattr(cam_rm, 'rman_stereoplaneoffsets_arraylen', 0)
+        if (rman_stereoplanedepths_arraylen > 0) and (rman_stereoplaneoffsets_arraylen > 0) and (rman_stereoplanedepths_arraylen == rman_stereoplaneoffsets_arraylen):
+            stereoplanedepths = []
+            for i in range(rman_stereoplanedepths_arraylen):
+                val = getattr(cam_rm, 'rman_stereoplanedepths[%d]' % i)
+                stereoplanedepths.append(val)
+
+            prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_stereoplanedepths, stereoplanedepths, rman_stereoplanedepths_arraylen)
+
+            stereoplaneoffsets = []
+            for i in range(rman_stereoplaneoffsets_arraylen):
+                val = getattr(cam_rm, 'rman_stereoplaneoffsets[%d]' % i)
+                stereoplaneoffsets.append(val)
+
+            prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_stereoplaneoffsets, stereoplaneoffsets, rman_stereoplaneoffsets_arraylen)            
+
         # clipping planes         
         prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_nearClip, cam.clip_start)
         prop.SetFloat(self.rman_scene.rman.Tokens.Rix.k_farClip, cam.clip_end)

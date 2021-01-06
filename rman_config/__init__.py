@@ -60,6 +60,9 @@ class RmanBasePropertyGroup:
                 exec('update_func = %s' % ndp.update_function_name, globals(), lcls)
                 update_func = lcls['update_func']
                 setattr(cls, ndp.update_function_name, update_func)
+            if ndp.is_array():
+                if generate_property_utils.generate_array_property(cls, prop_names, prop_meta, ndp):
+                    continue
             name, meta, prop = generate_property_utils.generate_property(cls, ndp, update_function=update_func)
             if prop:
                 cls.__annotations__[ndp._name] = prop

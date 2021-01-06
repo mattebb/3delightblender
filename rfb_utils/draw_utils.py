@@ -46,12 +46,44 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             row = curr_col.row()
             widget = getattr(ndp, 'widget', '')
             options = getattr(ndp, 'options', None)
-            if widget == 'propSearch' and options:
+            if ndp.is_array():
+                ui_prop = param_name + "_uio"
+                ui_open = getattr(parent, ui_prop)
+                icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
+                    else 'DISCLOSURE_TRI_RIGHT'
+
+                row.prop(parent, ui_prop, icon=icon, text='',
+                            icon_only=True, emboss=False)
+                prop = getattr(parent, param_name)      
+                prop_meta = node.prop_meta[param_name]                      
+                sub_prop_names = list(prop)
+                arraylen_nm = '%s_arraylen' % param_name
+                arraylen = getattr(parent, arraylen_nm)
+                prop_label = prop_meta.get('label', param_name)
+                row.label(text=prop_label + ' [%d]:' % arraylen)
+                if ui_open:
+                    row2 = curr_col.row()
+                    col = row2.column()
+                    row3 = col.row()      
+                    row3.label(text='', icon='BLANK1')                  
+                    row3.prop(parent, arraylen_nm, text='Size')
+                    for i in range(0, arraylen):
+                        row4 = col.row()
+                        row4.label(text='', icon='BLANK1')
+                        row4.label(text='%s[%d]' % (prop_label, i))
+                        row4.prop(parent, '%s[%d]' % (param_name, i), text='')                
+
+                
+            elif widget == 'propSearch' and options:
                 # use a prop_search layout
                 prop_search_parent = options.get('prop_parent')
                 prop_search_name = options.get('prop_name')
+                if hasattr(ndp, 'page') and ndp.page != '':
+                    row.label(text='', icon='BLANK1')
                 eval(f'row.prop_search(parent, ndp.name, {prop_search_parent}, "{prop_search_name}", text=label)')               
             else:
+                if hasattr(ndp, 'page') and ndp.page != '':
+                    row.label(text='', icon='BLANK1')
                 row.prop(parent, ndp.name, text=label)    
 
 def _draw_props(node, prop_names, layout):
