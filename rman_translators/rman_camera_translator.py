@@ -542,14 +542,14 @@ class RmanCameraTranslator(RmanTranslator):
         # Shutter Opening
         if cam_rm.rman_use_shutteropening:
             shutteropenings = [
-                cam_rm.rman_shutteropening_0,
-                cam_rm.rman_shutteropening_1,
-                cam_rm.rman_shutteropening_2,
-                cam_rm.rman_shutteropening_3,
-                cam_rm.rman_shutteropening_4,
-                cam_rm.rman_shutteropening_5,
-                cam_rm.rman_shutteropening_6,
-                cam_rm.rman_shutteropening_7
+                cam_rm.rman_shutteropening_c1,
+                cam_rm.rman_shutteropening_c2,
+                cam_rm.rman_shutteropening_d1,
+                cam_rm.rman_shutteropening_d2,
+                cam_rm.rman_shutteropening_e1,
+                cam_rm.rman_shutteropening_e2,
+                cam_rm.rman_shutteropening_f1,
+                cam_rm.rman_shutteropening_f2
             ]
             prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_shutteropening, shutteropenings, 8)
 
