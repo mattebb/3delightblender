@@ -402,7 +402,7 @@
             ],
             "widget": false,
             "help": "Intended exposure Bracket [min max] in post-production to help inform the adaptive sampling."
-        },                  
+        },                            
         {
             "panel": "RENDER_PT_renderman_sampling",
             "name": "hider_incremental",
@@ -470,7 +470,18 @@
                 "conditionalVisPath": "rman_autoBias",
                 "conditionalVisValue": 1
             }
-        },                                  
+        },  
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_geomShadowTermBias",
+            "primvar": "hider:geomShadowTermBias",
+            "label": "Geometric Shadow Terminator",
+            "type": "int",
+            "default": 1,
+            "page": "Global Trace Settings",
+            "widget": "checkbox",
+            "help": "This setting will control when to compute and apply a bias to Poly Meshes to avoid the geometric shadow terminator artifacts that appear for shading points when they are visible from a light wrt their shading normal, but not visible wrt their geometric normal. The default value is 1 (on). Set to 0 (off) if you don't want this bias to be applied to the Poly Meshes in your scene."
+        },                                           
         {
             "panel": "RENDER_PT_renderman_motion_blur",
             "name": "motion_blur",
@@ -584,6 +595,28 @@
             "widget": "checkbox",
             "help": "Experimental scheme to use earlier lighting results to drive selection of lights in later iterations."
         },
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "hider_bluenoise",
+            "riopt": "hider:bluenoise",
+            "label": "Blue Noise Samples",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "connectable": false,
+            "help": "Setting to control whether the samples should have a visually pleasing blue noise distribution or not.  Default is 1 (on). Set to 0 (off) if the samples in adjacent pixels need to be completely decorrelated."
+        },     
+        {
+            "panel": "RENDER_PT_renderman_advanced_settings",
+            "name": "shade_roughnessmollification",
+            "riopt": "shade:roughnessmollification",
+            "label": "Specular Roughness Mollification",
+            "type": "float",
+            "default": 1.0,
+            "min": 0.0,
+            "max": 1.0, 
+            "help": "Specular Roughness Mollification. This selectively increases material roughness on secondary bounces after diffuse or broad glossy reflections and on highly curved surfaces. This reduces noise and fireflies, but can also make caustics blurrier or disappear entirely. Set this value to 0.0 when you want to render ground-truth caustics.  The default value is 1.0."
+        },                 
         {
             "panel": "RENDER_PT_renderman_sampling",            
             "page": "Filter",
