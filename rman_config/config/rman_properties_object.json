@@ -488,11 +488,42 @@
             "inherit_true_value": -1,
             "page": "Bias",
             "conditionalVisOps": {
-                "conditionalVisOp": "notEqualTo",
+                "conditionalVisOp": "equalTo",
                 "conditionalVisPath": "rman_autoBias",
                 "conditionalVisValue": 1
             }
         },
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_traceSssAutoBias",
+            "primvar": "trace:sssautobias",
+            "label": "Auto Bias Subsurface Scattering",
+            "type": "int",
+            "default": -1,
+            "widget": "mapper",
+            "inheritable": true,
+            "inherit_true_value": -1,      
+            "page": "Bias",            
+            "help": "Enable automatic raytrace bias for subsurface scattering rays.",      
+            "options": "Inherit:-1|Yes:1|No:0"        
+        },    
+        {
+            "panel": "OBJECT_PT_renderman_object_raytracing",
+            "name": "rman_traceSssBias",
+            "primvar": "trace:bias",
+            "label": "Trace Bias",
+            "type": "float",
+            "default": -1,
+            "inheritable": true,
+            "inherit_true_value": -1,
+            "page": "Bias",
+            "help": "Manual raytrace bias (in object space) for subsurface scattering rays. Small values should be used to avoid artifacts such as surface acne.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_traceSssAutoBias",
+                "conditionalVisValue": 1
+            }
+        },          
         {   
             "panel": "OBJECT_PT_renderman_object_geometry_attributes",
             "name": "rman_displacementBound",

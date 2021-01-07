@@ -99,6 +99,17 @@
             "widget": "checkbox",
             "help": "Export the active Vertex Color set as the default 'Cs' primitive variable",
             "page": ""
-        }      
+        },     
+        {
+            "panel": "CURVE_PT_renderman_prim_vars",
+            "name": "curve_widthaffectscurvature",
+            "primvar": "curve:widthaffectscurvature", 
+            "label": "Width Affects Curvature",
+            "type": "int",
+            "default": 1,
+            "widget": "checkbox",
+            "help": "When true the curve width of round curves is taken into account in the computation of the tube curvature, otherwise only the curvature along the curve is. This control does not affect curve ribbons.",
+            "page": ""
+        }        
     ]
 }
