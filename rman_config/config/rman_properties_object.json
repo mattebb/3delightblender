@@ -510,7 +510,7 @@
         {
             "panel": "OBJECT_PT_renderman_object_raytracing",
             "name": "rman_traceSssBias",
-            "primvar": "trace:bias",
+            "primvar": "trace:sssbias",
             "label": "Trace Bias",
             "type": "float",
             "default": -1,

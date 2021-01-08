@@ -473,6 +473,33 @@
         },  
         {
             "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_traceSssAutoBias",
+            "primvar": "trace:sssautobias",
+            "label": "Auto Bias Subsurface Scattering",
+            "type": "int",
+            "default": 1,
+            "widget": "mapper",   
+            "page": "Global Trace Settings",            
+            "help": "Enable automatic raytrace bias for subsurface scattering rays.",      
+            "options": "Yes:1|No:0"        
+        },    
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_traceSssBias",
+            "primvar": "trace:sssbias",
+            "label": "Subsurface Trace Bias",
+            "type": "float",
+            "default": 0.0001,
+            "page": "Global Trace Settings",
+            "help": "Manual raytrace bias (in object space) for subsurface scattering rays. Small values should be used to avoid artifacts such as surface acne.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "rman_traceSssAutoBias",
+                "conditionalVisValue": 1
+            }
+        },           
+        {
+            "panel": "RENDER_PT_renderman_sampling",
             "name": "rman_geomShadowTermBias",
             "primvar": "hider:geomShadowTermBias",
             "label": "Geometric Shadow Terminator",
