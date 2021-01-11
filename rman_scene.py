@@ -1191,12 +1191,13 @@ class RmanScene(object):
             ob = cam.original
             if cam.original in self.rman_cameras:
                 continue
-            db_name = object_utils.get_db_name(ob)
-            rman_sg_camera = cam_translator.export(ob, db_name)
             if cam == main_cam:
-                self.main_camera = rman_sg_camera 
                 if self.main_camera.is_transforming:
-                    self.motion_steps.update(self.main_camera.motion_steps)             
+                    self.motion_steps.update(self.main_camera.motion_steps)   
+                continue
+
+            db_name = object_utils.get_db_name(ob)
+            rman_sg_camera = cam_translator._export_render_cam(ob, db_name)
 
             self.rman_cameras[cam.original] = rman_sg_camera
             
