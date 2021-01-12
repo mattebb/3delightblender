@@ -448,9 +448,7 @@ class RmanCameraTranslator(RmanTranslator):
                 projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalLength, dof_focal_length)
             projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalDistance, dof_focal_distance)          
 
-
-    def _update_render_cam(self, ob, rman_sg_camera):
-
+    def _update_render_resolution(self, ob, rman_sg_camera):
         r = self.rman_scene.bl_scene.render
         cam = ob.data
         rm = self.rman_scene.bl_scene.renderman
@@ -458,6 +456,8 @@ class RmanCameraTranslator(RmanTranslator):
         rman_sg_camera.bl_camera = ob
 
         xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam)
+        dx = 0
+        dy = 0
 
         options = self.rman_scene.sg_scene.GetOptions()
 
@@ -473,36 +473,7 @@ class RmanCameraTranslator(RmanTranslator):
                 min_y = 0.0
                 max_y = 1.0
 
-            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_CropWindow, (min_x, max_x, min_y, max_y), 4)
-
-        proj = None
-
-        dx = 0
-        dy = 0
-
-        node = shadergraph_utils.find_projection_node(ob)        
-        if node:
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", node.bl_label, "proj")
-            rman_sg_node = RmanSgNode(self.rman_scene, proj, "")                           
-            property_utils.property_group_to_rixparams(node, rman_sg_node, proj, ob=cam)   
-            if cam_rm.rman_use_cam_fov:
-                self._set_fov(ob, cam, aspectratio, proj.params)
-
-
-        elif cam.type == 'PERSP':
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
-            self._set_fov(ob, cam, aspectratio, proj.params)              
-                     
-        elif cam.type == 'PANO':
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrSphereCamera", "proj")
-            projparams = proj.params
-            projparams.SetFloat("hsweep", 360)
-            projparams.SetFloat("vsweep", 180)           
-        else:
-            lens = cam.ortho_scale
-            xaspect = xaspect * lens / (aspectratio * 2.0)
-            yaspect = yaspect * lens / (aspectratio * 2.0)
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")
+            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_CropWindow, (min_x, max_x, min_y, max_y), 4)   
 
         # convert the crop border to screen window, flip y
         resolution = _render_get_resolution_(self.rman_scene.bl_scene.render)
@@ -529,7 +500,42 @@ class RmanCameraTranslator(RmanTranslator):
             options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
             options.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)
 
-        self.rman_scene.sg_scene.SetOptions(options)
+        self.rman_scene.sg_scene.SetOptions(options)                 
+
+    def _update_render_cam(self, ob, rman_sg_camera):
+
+        r = self.rman_scene.bl_scene.render
+        cam = ob.data
+        rm = self.rman_scene.bl_scene.renderman
+        cam_rm = cam.renderman
+        rman_sg_camera.bl_camera = ob
+
+        xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam)
+        proj = None
+
+        node = shadergraph_utils.find_projection_node(ob)        
+        if node:
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", node.bl_label, "proj")
+            rman_sg_node = RmanSgNode(self.rman_scene, proj, "")                           
+            property_utils.property_group_to_rixparams(node, rman_sg_node, proj, ob=cam)   
+            if cam_rm.rman_use_cam_fov:
+                self._set_fov(ob, cam, aspectratio, proj.params)
+
+
+        elif cam.type == 'PERSP':
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+            self._set_fov(ob, cam, aspectratio, proj.params)              
+                     
+        elif cam.type == 'PANO':
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrSphereCamera", "proj")
+            projparams = proj.params
+            projparams.SetFloat("hsweep", 360)
+            projparams.SetFloat("vsweep", 180)           
+        else:
+            lens = cam.ortho_scale
+            xaspect = xaspect * lens / (aspectratio * 2.0)
+            yaspect = yaspect * lens / (aspectratio * 2.0)
+            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")
 
         rman_sg_camera.sg_camera_node.SetProjection(proj)
 

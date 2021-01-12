@@ -1185,6 +1185,8 @@ class RmanScene(object):
             self.rman_cameras[main_cam.original] = rman_sg_camera            
             self.rman_objects[main_cam.original] = rman_sg_camera
             
+            # resolution
+            cam_translator._update_render_resolution(main_cam, self.main_camera)            
             self.sg_scene.Root().AddChild(rman_sg_camera.sg_node)            
 
         # export all other scene cameras
@@ -1209,8 +1211,7 @@ class RmanScene(object):
 
         # For now, make the main camera the 'primary' dicing camera
         self.main_camera.sg_camera_node.SetRenderable(1)
-        self.sg_scene.Root().AddCoordinateSystem(self.main_camera.sg_node)
-        
+        self.sg_scene.Root().AddCoordinateSystem(self.main_camera.sg_node)        
 
     def export_displayfilters(self):
         rm = self.bl_scene.renderman
