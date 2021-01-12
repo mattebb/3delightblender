@@ -1275,39 +1275,10 @@ def setParams(node, paramsList):
                     if type(getattr(node, pname)) == bpy.types.EnumProperty:
                         setattr(node, pname, str(pval))
 
-    # if this is a PxrSurface and default != val, then turn on the enable.
+    # if this is a PxrSurface, turn on all of the enable gains.
     if hasattr(node, 'plugin_name') and node.plugin_name == 'PxrSurface':
-        setattr(node, 'enableDiffuse', (getattr(node, 'diffuseGain') != 0))
         for gain,enable in __GAINS_TO_ENABLE__.items():
-            val = getattr(node, gain)
-            param = next((x for x in paramsList if x.name() == gain), None)
-            if param and "reference" in param.type():
-                setattr(node, enable, True)
-            elif val and node.bl_rna.properties[gain].default != getattr(node, gain):
-                if type(val) == float:
-                    if val == 0.0:
-                        continue
-                else:
-                    for i in val:
-                        if i:
-                            break
-                    else:
-                        continue
-                setattr(node, enable, True)
-
-                        # if ptype == 'riattr':
-                        #     mayatype = mc.getAttr(nattr, type=True)
-                        #     try:
-                        #         mc.setAttr(nattr, pval, type=mayatype)
-                        #     except:
-                        #         print('setParams scalar FAILED: %s  ptype: %s'
-                        #               '  pval:" %s  mayatype: %s' %
-                        #               (nattr, ptype, repr(pval), mayatype))
-                        # else:
-                        #     print('setParams scalar FAILED: %s  ptype: %s'
-                        #           '  pval:" %s  mayatype: %s' %
-                        #           (nattr, ptype, repr(pval), mayatype))
-
+            setattr(node, enable, True)
 
 ##
 # @brief      Set the transform values of the maya node.
@@ -1502,33 +1473,7 @@ def connectNodes(Asset, nt, nodeDict):
         elif dstSocket == 'displacementShader' or dstSocket == 'rman__displacement':
             nt.links.new(srcNode.outputs['Displacement'], dstNode.inputs['Displacement'])
         else:
-            print('error connecting %s.%s to %s.%s' % (srcNode,srcSocket, dstNode, dstSocket))
-
-##
-# @brief      Check the compatibility of the loaded asset with the host app and
-#             the renderman version. We pass g_validNodeTypes to help determine
-#             if we have any substitution nodes available. To support
-#             Katana/Blender/Houdini nodes in Maya, you would just need to
-#             implement a node with the same nßame (C++ or OSL) and make it
-#             available to RfM.
-#
-# @param      Asset  The asset we are checking out.
-#
-# @return     True if compatible, False otherwise.
-#
-def compatibilityCheck(Asset):
-    global g_validNodeTypes
-    # the version numbers should always contain at least 1 dot.
-    # I'm going to skip the maya stuff
-    prmanversion = "%d.%d.%s" % filepath_utils.get_rman_version(filepath_utils.guess_rmantree())
-    compatible = Asset.IsCompatible(rendererVersion=prmanversion,
-                                    validNodeTypes=g_validNodeTypes)
-    if not compatible:
-        str1 = 'This Asset is incompatible ! '
-        str2 = 'See Console for details...'
-        print(str1 + str2)
-    return compatible
-
+            print('error connecting %s.%s to %s.%s' % (srcNode.name,srcSocket, dstNode.name, dstSocket))
 
 ##
 # @brief      Import an asset into maya
@@ -1545,11 +1490,6 @@ def importAsset(filepath):
     Asset = RmanAsset()
     Asset.load(filepath, localizeFilePaths=True)
     assetType = Asset.type()
-
-    # compatibility check
-    #
-    #if not compatibilityCheck(Asset):
-    #    return
 
     if assetType == "nodeGraph":
         mat,nt,newNodes = createNodes(Asset)
