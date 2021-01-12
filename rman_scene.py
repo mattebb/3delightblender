@@ -1176,13 +1176,14 @@ class RmanScene(object):
             self.rman_objects[main_cam.original] = self.main_camera
       
             self.processed_obs.append(main_cam.original)
-        elif len(bl_cameras) < 1 and self.is_interactive:
-            cam = self.context.space_data.camera
-            db_name = object_utils.get_db_name(cam)
-            rman_sg_camera = cam_translator.export(cam, db_name)
+        else:
+            if self.is_interactive:
+                main_cam = self.context.space_data.camera
+            db_name = object_utils.get_db_name(main_cam)
+            rman_sg_camera = cam_translator.export(main_cam, db_name)
             self.main_camera = rman_sg_camera         
-            self.rman_cameras[cam.original] = rman_sg_camera            
-            self.rman_objects[cam.original] = rman_sg_camera
+            self.rman_cameras[main_cam.original] = rman_sg_camera            
+            self.rman_objects[main_cam.original] = rman_sg_camera
             
             self.sg_scene.Root().AddChild(rman_sg_camera.sg_node)            
 
@@ -1195,7 +1196,7 @@ class RmanScene(object):
                 if self.main_camera.is_transforming:
                     self.motion_steps.update(self.main_camera.motion_steps)   
                 continue
-
+            
             db_name = object_utils.get_db_name(ob)
             rman_sg_camera = cam_translator._export_render_cam(ob, db_name)
 
