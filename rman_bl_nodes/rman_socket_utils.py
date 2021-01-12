@@ -90,7 +90,8 @@ def node_add_inputs(node, node_name, prop_names, first_level=True, label_prefix=
         if param_type in ['struct', 'normal', 'vector', 'vstruct', 'void']:
             socket.hide_value = True
             if param_type == 'struct':
-                socket.struct_name = meta['struct_name']
+                struct_name = meta.get('struct_name', 'Manifold')
+                socket.struct_name = struct_name
 
     update_inputs(node)
 

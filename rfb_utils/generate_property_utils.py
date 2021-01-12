@@ -401,6 +401,7 @@ def generate_property(node, sp, update_function=None):
                                    default=param_default, size=3,
                                    subtype="NONE",
                                    description=param_help, update=update_function)
+        renderman_type = param_type
     elif param_type == 'point':
         if param_default is None:
             param_default = '0 0 0'
