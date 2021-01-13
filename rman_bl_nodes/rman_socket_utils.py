@@ -107,4 +107,5 @@ def node_add_outputs(node):
             socket = node.outputs.new(__RMAN_SOCKET_MAP__[rman_type], name)
             socket.renderman_type = rman_type
             if rman_type == 'struct':
-                socket.struct_name = meta['struct_name']
+                struct_name = meta.get('struct_name', 'Manifold')
+                socket.struct_name = struct_name
