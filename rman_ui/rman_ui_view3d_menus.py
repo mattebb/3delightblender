@@ -5,7 +5,6 @@ from ..rman_operators.rman_operators_utils import get_bxdf_items, get_light_item
 from ..rfb_utils import scene_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import filepath_utils
-from ..rman_config import __RMAN_STYLIZED_TEMPLATES__
 from bpy.types import Menu
 import bpy
 
@@ -243,7 +242,6 @@ class VIEW3D_MT_RM_Stylized_Menu(bpy.types.Menu):
             layout.operator_menu_enum('node.rman_attach_stylized_pattern', 'stylized_pattern')
             layout.operator("scene.rman_open_stylized_editor", text="Stylized Looks Editor")    
         else:
-            layout.operator_menu_enum('scene.rman_use_stylized_template', 'stylized_template')
             op = layout.operator("scene.rman_enable_stylized_looks", text="Enable Stylized Looks")   
             op.open_editor = True
 

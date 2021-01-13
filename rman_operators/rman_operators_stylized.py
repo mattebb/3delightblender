@@ -3,7 +3,6 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from ..rfb_utils import shadergraph_utils
 from .. import rman_bl_nodes
 from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES  
-from ..rman_config import __RMAN_STYLIZED_TEMPLATES__
 
 class PRMAN_OT_Enable_Sylized_Looks(bpy.types.Operator):
     bl_idname = "scene.rman_enable_stylized_looks"
@@ -22,37 +21,6 @@ class PRMAN_OT_Enable_Sylized_Looks(bpy.types.Operator):
             bpy.ops.scene.rman_open_stylized_editor('INVOKE_DEFAULT')
 
         return {"FINISHED"} 
-
-class PRMAN_OT_Use_Sylized_Template(bpy.types.Operator):
-
-    bl_idname = "scene.rman_use_stylized_template"
-    bl_label = "Use Stylize Template"
-    bl_description = "Stylized Template. This will enable stylized looks, attach a stylized pattern to the current selected objects, and add the stylized filters."
-    bl_options = {'INTERNAL'}    
-
-    def rman_stylized_templates(self, context):
-        items = []
-        for nm, settings in __RMAN_STYLIZED_TEMPLATES__.items():
-            items.append((nm, nm, ""))        
-        return items      
-
-    stylized_template: EnumProperty(name="", items=rman_stylized_templates)    
-
-    def execute(self, context):
-        scene = context.scene
-        rm = scene.renderman
-        rm.render_rman_stylized = 1
-        bpy.ops.renderman.dspy_displays_reload('EXEC_DEFAULT')        
-
-        world = scene.world
-        bpy.ops.node.rman_attach_stylized_pattern('EXEC_DEFAULT', stylized_pattern=self.properties.stylized_template)
-        bpy.ops.node.rman_add_stylized_filter('EXEC_DEFAULT', filter_name=self.properties.stylized_template)
-
-        world.update_tag()
-        bpy.ops.scene.rman_open_stylized_editor('INVOKE_DEFAULT')
-
-        return {"FINISHED"}     
-
 
 class PRMAN_OT_Disable_Sylized_Looks(bpy.types.Operator):
     bl_idname = "scene.rman_disable_stylized_looks"
@@ -78,17 +46,8 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
 
     def rman_stylized_patterns(self, context):
         items = []
-        i = 1
-
-        items.append(("", "Patterns", "", "", 0))
         for f in RMAN_STYLIZED_PATTERNS:
-            items.append((f, f, "", "", i))
-            i += 1
-
-        items.append(("", "Templates", "", "", 0))
-        for nm, settings in __RMAN_STYLIZED_TEMPLATES__.items():
-            items.append((nm, nm, "", "", i))        
-            i += 1  
+            items.append((f, f, ""))
         return items      
 
     stylized_pattern: EnumProperty(name="", items=rman_stylized_patterns)
@@ -113,13 +72,6 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
         pattern_settings = None
         if self.properties.stylized_pattern in RMAN_STYLIZED_PATTERNS:
             pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[self.properties.stylized_pattern]
-        elif self.properties.stylized_pattern in __RMAN_STYLIZED_TEMPLATES__:
-            settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.stylized_pattern]
-            pattern_tmplt = settings['patterns'] 
-            for k, v in pattern_tmplt.items():  
-                pattern_node_name = rman_bl_nodes.__BL_NODES_MAP__[k]      
-                pattern_settings = v
-                break
         else:
             return
 
@@ -189,17 +141,8 @@ class PRMAN_OT_Add_Stylized_Filter(bpy.types.Operator):
 
     def rman_stylized_filters(self, context):
         items = []
-        i = 1
-
-        items.append(("", "Filters", "", "", 0))
         for f in RMAN_STYLIZED_FILTERS:
-            items.append((f, f, "", "", i))
-            i += 1
-
-        items.append(("", "Templates", "", "", 0))
-        for nm, settings in __RMAN_STYLIZED_TEMPLATES__.items():
-            items.append((nm, nm, "", "", i))        
-            i += 1
+            items.append((f, f, ""))
 
         return items
 
@@ -215,60 +158,25 @@ class PRMAN_OT_Add_Stylized_Filter(bpy.types.Operator):
         output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')
         if not output:
             bpy.ops.material.rman_add_rman_nodetree('EXEC_DEFAULT', idtype='world')
-            output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode') 
+            output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')           
 
-        use_template = False
-        if self.properties.filter_name in RMAN_STYLIZED_FILTERS:
-            use_template = False
-        elif self.properties.filter_name in __RMAN_STYLIZED_TEMPLATES__:
-            use_template = True
-        else:
-            return {"FINISHED"}            
+        filter_name = self.properties.filter_name
+        filter_node_name = rman_bl_nodes.__BL_NODES_MAP__[filter_name]
+        filter_node = nt.nodes.new(filter_node_name) 
 
-        if use_template:
-            settings = __RMAN_STYLIZED_TEMPLATES__[self.properties.filter_name]
-            display_filters = settings['display_filters']
-            for node_name, df_settings in display_filters.items():
-                if node_name in nt.nodes:
-                    continue
-                node_type = df_settings['node']          
-                filter_node_name = rman_bl_nodes.__BL_NODES_MAP__[node_type]
-                filter_node = nt.nodes.new(filter_node_name)       
-                filter_node.name = node_name
-                for param_name, param_settings in df_settings['params'].items():
-                    val = param_settings['value']
-                    setattr(filter_node, param_name, val)
+        free_socket = None
+        for i, socket in enumerate(output.inputs):
+            if not socket.is_linked:
+                free_socket = socket
+                break
 
-                free_socket = None
-                for i, socket in enumerate(output.inputs):
-                    if not socket.is_linked:
-                        free_socket = socket
-                        break
+        if not free_socket:
+            bpy.ops.node.rman_add_displayfilter_node_socket('EXEC_DEFAULT')
+            free_socket = output.inputs[len(output.inputs)-1]
 
-                if not free_socket:
-                    bpy.ops.node.rman_add_displayfilter_node_socket('EXEC_DEFAULT')
-                    free_socket = output.inputs[len(output.inputs)-1]
-
-                nt.links.new(filter_node.outputs[0], free_socket)                  
-        else:
-
-            filter_name = self.properties.filter_name
-            filter_node_name = rman_bl_nodes.__BL_NODES_MAP__[filter_name]
-            filter_node = nt.nodes.new(filter_node_name) 
-
-            free_socket = None
-            for i, socket in enumerate(output.inputs):
-                if not socket.is_linked:
-                    free_socket = socket
-                    break
-
-            if not free_socket:
-                bpy.ops.node.rman_add_displayfilter_node_socket('EXEC_DEFAULT')
-                free_socket = output.inputs[len(output.inputs)-1]
-
-            nt.links.new(filter_node.outputs[0], free_socket)
-            if self.properties.node_name != "":
-                filter_node.name = self.properties.node_name
+        nt.links.new(filter_node.outputs[0], free_socket)
+        if self.properties.node_name != "":
+            filter_node.name = self.properties.node_name
 
         op = getattr(context, 'op_ptr', None)
         if op:
@@ -280,7 +188,6 @@ class PRMAN_OT_Add_Stylized_Filter(bpy.types.Operator):
 
 classes = [
     PRMAN_OT_Enable_Sylized_Looks,
-    PRMAN_OT_Use_Sylized_Template,
     PRMAN_OT_Disable_Sylized_Looks,
     PRMAN_OT_Attach_Stylized_Pattern,
     PRMAN_OT_Add_Stylized_Filter

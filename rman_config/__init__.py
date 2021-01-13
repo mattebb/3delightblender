@@ -14,7 +14,6 @@ __RFB_CONFIG_FILE__ = 'rfb.json'
 __RFB_CONFIG_DICT__ = dict()
 __RMAN_DISPLAY_CHANNELS__ = dict()
 __RMAN_DISPLAY_TEMPLATES__ = dict()
-__RMAN_STYLIZED_TEMPLATES__ = dict()
 
 class RmanBasePropertyGroup:
     """Base class that can be inhreited for custom PropertyGroups
@@ -167,12 +166,6 @@ def read_rfbconfig_file(fpath, config_dict):
             fdict = None
     if fdict:
         config_dict = recursive_updater(fdict, config_dict)    
-
-def read_stylized_file(jsonfile):
-    global __RMAN_STYLIZED_TEMPLATES__
-
-    jdata = json.load(open(jsonfile))
-    __RMAN_STYLIZED_TEMPLATES__[jdata['name']] = jdata    
 
 def configure_channels(jsonfile):
     jdata = json.load(open(jsonfile))
@@ -329,17 +322,3 @@ def register():
                     __RMAN_CONFIG__[rman_config_override.name] = rman_config_original
                 else:
                     __RMAN_CONFIG__[rman_config_override.name] = rman_config_override
-
-    # Stylized presets
-    stylized_paths = [get_factory_config_path()]
-    stylized_paths += get_override_paths()
-    for path in stylized_paths:
-        stylized_path = os.path.join(path, 'stylized_presets')
-        if not os.path.exists(stylized_path):
-            continue
-        for f in os.listdir(stylized_path):
-            if not f.endswith('.json'):
-                continue    
-            jsonfile = os.path.join(stylized_path, f)
-            rfb_log().debug("Reading stylized json file: %s" % jsonfile)
-            read_stylized_file(jsonfile)
