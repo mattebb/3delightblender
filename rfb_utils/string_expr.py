@@ -117,13 +117,15 @@ class StringExpression(object):
             user_token = rm.user_tokens[i]
             self.tokens[user_token.name] = user_token.value
 
+        self.tokens['OUT'] = self.expand(get_pref('env_vars').out)
         unsaved = True if not bpy.data.filepath else False
         if unsaved:
             self.tokens['blend'] = 'UNTITLED'
+            self.tokens['blend_dir'] = self.tokens['OUT']
         else:
+            self.tokens['blend_dir'] = os.path.split(bpy.data.filepath)[0]     
             self.tokens['blend'] = os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]     
 
-        self.tokens['OUT'] = self.expand(get_pref('env_vars').out)
         self.tokens['scene'] = scene.name 
         self.set_frame_context(scene.frame_current)
 

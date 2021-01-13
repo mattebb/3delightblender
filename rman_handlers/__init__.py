@@ -5,13 +5,13 @@ from bpy.app.handlers import persistent
 import bpy
 
 def register():
-    # texture manager load state on scene load
-    if texture_utils.txmanager_load_cb not in bpy.app.handlers.load_post:
-        bpy.app.handlers.load_post.append(texture_utils.txmanager_load_cb)
-
     # token updater on scene load
     if string_utils.update_blender_tokens_cb not in bpy.app.handlers.load_post:
         bpy.app.handlers.load_post.append(string_utils.update_blender_tokens_cb)
+
+    # texture manager load state on scene load
+    if texture_utils.txmanager_load_cb not in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.append(texture_utils.txmanager_load_cb)
 
     # token updater on scene save
     if string_utils.update_blender_tokens_cb not in bpy.app.handlers.save_post:
