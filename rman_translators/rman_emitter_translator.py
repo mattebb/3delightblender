@@ -151,6 +151,9 @@ class RmanEmitterTranslator(RmanTranslator):
         mat_idx = psys.settings.material - 1
         if mat_idx < len(ob.material_slots):
             mat = ob.material_slots[mat_idx].material
-            rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
-            if rman_sg_material:
-                sg_emitter_node.SetMaterial(rman_sg_material.sg_node)          
+            material_sg_node = None
+            if mat:
+                rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
+                if rman_sg_material:
+                    material_sg_node = rman_sg_material.sg_node
+            sg_emitter_node.SetMaterial(material_sg_node)          

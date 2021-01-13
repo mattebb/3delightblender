@@ -79,9 +79,12 @@ class RmanHairTranslator(RmanTranslator):
         mat_idx = psys.settings.material - 1
         if mat_idx < len(ob.material_slots):
             mat = ob.material_slots[mat_idx].material
-            rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
-            if rman_sg_material:
-                rman_sg_hair.sg_node.SetMaterial(rman_sg_material.sg_node)  
+            material_sg_node = None
+            if mat:
+                rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
+                if rman_sg_material:
+                    material_sg_node = rman_sg_material.sg_node
+            rman_sg_hair.sg_node.SetMaterial(material_sg_node)  
         
     def add_object_instance(self, rman_sg_hair, rman_sg_group):
         rman_sg_hair.sg_node.AddChild(rman_sg_group.sg_node)                
