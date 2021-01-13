@@ -217,10 +217,16 @@ def generate_property(node, sp, update_function=None):
             elif param_widget == 'mapper':
                 items = []
                 in_items = False
-                for k,v in sp.options.items():
-                    items.append((str(v), k, ''))
-                    if float(v) == float(param_default):
-                        in_items = True
+                if isinstance(sp.options, list):
+                    for v in sp.options:
+                        items.append((str(v), v, ''))
+                        if float(v) == float(param_default):
+                            in_items = True
+                else:                    
+                    for k,v in sp.options.items():
+                        items.append((str(v), k, ''))
+                        if float(v) == float(param_default):
+                            in_items = True
                 
                 bl_default = ''
                 for item in items:
@@ -279,15 +285,22 @@ def generate_property(node, sp, update_function=None):
             elif param_widget == 'mapper':
                 items = []
                 in_items = False
-                for k,v in sp.options.items():
-                    v = str(v)
-                    if len(v.split(':')) > 1:
-                        tokens = v.split(':')
-                        v = tokens[1]
-                        k = '%s:%s' % (k, tokens[0])
-                    items.append((str(v), k, ''))
-                    if v == str(param_default):
-                        in_items = True
+                if isinstance(sp.options, list):
+                    for k in sp.options:
+                        v = str(k)
+                        items.append((v, k, ''))
+                        if v == str(param_default):
+                            in_items = True                    
+                else:
+                    for k,v in sp.options.items():
+                        v = str(v)
+                        if len(v.split(':')) > 1:
+                            tokens = v.split(':')
+                            v = tokens[1]
+                            k = '%s:%s' % (k, tokens[0])
+                        items.append((str(v), k, ''))
+                        if v == str(param_default):
+                            in_items = True
                 
                 bl_default = ''
                 for item in items:
@@ -364,12 +377,20 @@ def generate_property(node, sp, update_function=None):
                 param_default = __RMAN_EMPTY_STRING__
 
             in_items = False
-            for k,v in sp.options.items():
-                if v == '' or v == "''":
-                    v = __RMAN_EMPTY_STRING__
-                items.append((str(v), str(k), ''))         
-                if param_default == str(v):
-                    in_items = True
+            if isinstance(sp.options, list):
+                for v in sp.options:
+                    if v == '' or v == "''":
+                        v = __RMAN_EMPTY_STRING__
+                    items.append((str(v), str(v), ''))         
+                    if param_default == str(v):
+                        in_items = True
+            else:                
+                for k,v in sp.options.items():
+                    if v == '' or v == "''":
+                        v = __RMAN_EMPTY_STRING__
+                    items.append((str(v), str(k), ''))         
+                    if param_default == str(v):
+                        in_items = True
 
             if in_items:
                 prop = EnumProperty(name=param_label,
