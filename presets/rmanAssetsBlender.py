@@ -1412,12 +1412,13 @@ def createNodes(Asset):
                     light.rotation_euler = (radians(vals[3]), radians(vals[4]), radians(vals[5]))
 
             try:
-                cdata = Asset._assetData['compatibility']
-                if cdata['host']['name'] != 'Blender':
-                    # assume that if a lightrig did not come from Blender,
-                    # we need convert from Y-up to Z-up
-                    yup_to_zup = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
-                    light.matrix_world = yup_to_zup @ light.matrix_world
+                if nodeType not in ['PxrDomeLight', 'PxrEnvDayLight']:
+                    cdata = Asset._assetData['compatibility']
+                    if cdata['host']['name'] != 'Blender':
+                        # assume that if a lightrig did not come from Blender,
+                        # we need convert from Y-up to Z-up
+                        yup_to_zup = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
+                        light.matrix_world = yup_to_zup @ light.matrix_world
             except:
                 pass
 
