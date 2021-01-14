@@ -142,8 +142,7 @@ class RmanMaterialTranslator(RmanTranslator):
     def export_solo_shader(self, mat, out, solo_node, rman_sg_material, mat_handle=''):
         bxdfList = []
         for sub_node in shadergraph_utils.gather_nodes(solo_node):
-            shader_sg_nodes = self.shader_node_sg(mat, sub_node, rman_sg_material, mat_name=mat_handle,
-                        portal=False)
+            shader_sg_nodes = self.shader_node_sg(mat, sub_node, rman_sg_material, mat_name=mat_handle)
             for s in shader_sg_nodes:
                 bxdfList.append(s) 
 
