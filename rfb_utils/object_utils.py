@@ -12,6 +12,8 @@ def get_db_name(ob, rman_type='', psys=None):
     elif rman_type != '' and rman_type != 'NONE':
         if rman_type == 'META':
             db_name = '%s-META' % (ob.name.split('.')[0])
+        elif rman_type == 'EMPTY':
+            db_name = '%s' % ob.name_full 
         else:
             db_name = '%s-%s' % (ob.name_full, rman_type)
     elif isinstance(ob, bpy.types.Camera):
@@ -19,7 +21,8 @@ def get_db_name(ob, rman_type='', psys=None):
         return db_name
     elif isinstance(ob, bpy.types.Material):
         mat_name = ob.name_full.replace('.', '_')
-        db_name = '%s-MATERIAL' % mat_name
+        #db_name = '%s-MATERIAL' % mat_name
+        db_name = '%s' % mat_name
     elif isinstance(ob, bpy.types.Object):
         if ob.type == 'MESH':
             db_name = '%s-MESH' % ob.name_full
@@ -29,7 +32,8 @@ def get_db_name(ob, rman_type='', psys=None):
             db_name = ob.name_full
             return db_name
         elif ob.type == 'EMPTY':
-            db_name = '%s-EMPTY' % ob.name_full  
+            #db_name = '%s-EMPTY' % ob.name_full  
+            db_name = '%s' % ob.name_full  
 
 
     return string_utils.sanitize_node_name(db_name)

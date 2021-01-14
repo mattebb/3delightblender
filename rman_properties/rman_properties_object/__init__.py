@@ -53,6 +53,11 @@ class RendermanObjectSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         subtype='FILE_PATH',
         default="")
 
+    export_as_coordsys: BoolProperty(
+        name="Export As CoordSys",
+        description="Export this empty as a coordinate system.",
+        default=False)      
+
     mute: BoolProperty(
         name="Mute",
         description="Turn off this light",

@@ -108,7 +108,11 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         rman_interactive_running = rman_render.rman_interactive_running  
 
         col = layout.column()
-        col.enabled = not rman_interactive_running           
+        col.enabled = not rman_interactive_running          
+
+        if rman_type == 'EMPTY':
+            col.prop(rm, 'export_as_coordsys') 
+            return
 
         _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry', context, layout, rm)                       
 
