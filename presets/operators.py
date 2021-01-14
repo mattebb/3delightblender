@@ -64,8 +64,9 @@ class PRMAN_OT_init_preset_library(bpy.types.Operator):
             raise Exception("No preset library found or directory chosen is not writable.")
             return {'FINISHED'}
 
+        hostPrefs.cfg.setCurrentLibraryByPath(FilePath(self.directory))
         hostPrefs.setSelectedLibrary(self.directory)
-        hostPrefs.setSelectedCategory('')
+        hostPrefs.setSelectedCategory(os.path.join(self.library_paths, 'EnvironmentMaps'))
         hostPrefs.setSelectedPreset('')
         hostPrefs.saveAllPrefs()     
         if self.op:
