@@ -637,9 +637,11 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
 
             mat = object_utils.get_active_material(ob)
             if not mat:
+                items.append((ob.name, ob.name, ''))
                 continue
 
             if not shadergraph_utils.is_renderman_nodetree(mat):
+                items.append((ob.name, ob.name, ''))
                 continue
 
             if self.do_object_filter and not re.match(pattern, ob.name):

@@ -47,6 +47,7 @@ from ..rfb_utils import texture_utils
 from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__
 from ..rman_bl_nodes import __BL_NODES_MAP__, __RMAN_NODE_TYPES__
+from ..rman_constants import RMAN_STYLIZED_FILTERS
 
 def default_label_from_file_name(filename):
     # print filename
@@ -1199,12 +1200,101 @@ def setParams(node, paramsList):
     '''Set param values.
        Note: we are only handling a subset of maya attribute types.'''
     float3 = ['color', 'point', 'vector', 'normal']
+    ramp_names = []
+    rman_ramp_size = dict()    
+    rman_ramps = dict()
+    rman_color_ramps = dict()
+
+    # Look for ramps
+    for param in paramsList:
+        pname = param.name()
+
+        prop_meta = node.prop_meta[pname]        
+        param_widget = prop_meta.get('widget', 'default')        
+
+        if prop_meta['renderman_type'] == 'colorramp':
+            prop = getattr(node, pname)
+            nt = bpy.data.node_groups[node.rman_fake_node_group]
+            if nt:
+                ramp_name = prop
+                color_ramp_node = nt.nodes[ramp_name]                    
+                rman_color_ramps[pname] = color_ramp_node  
+                rman_ramp_size[pname] = param.value()           
+            ramp_names.append(pname)       
+            continue
+        elif prop_meta['renderman_type'] == 'floatramp':
+            prop = getattr(node, pname)
+            nt = bpy.data.node_groups[node.rman_fake_node_group]
+            if nt:
+                ramp_name =  prop
+                float_ramp_node = nt.nodes[ramp_name]  
+                rman_ramps[pname] = float_ramp_node
+                rman_ramp_size[pname] = param.value()                  
+            ramp_names.append(pname)
+            continue
+
+    # set ramp params
+    for nm in ramp_names:
+        knots_param = None
+        colors_param = None
+        floats_param = None
+
+        if (nm not in rman_ramps) and (nm not in rman_color_ramps):
+            continue
+
+        for param in paramsList:
+            pname = param.name()
+            if pname.startswith(nm):
+                if '_Knots' in pname:
+                    knots_param = param
+                elif '_Colors' in pname: 
+                    colors_param = param
+                elif '_Floats' in pname:
+                    floats_param = param
+            
+        if colors_param:
+            n = rman_color_ramps[nm]
+            elements = n.color_ramp.elements
+            size = rman_ramp_size[nm]
+            knots_vals = knots_param.value()
+            colors_vals = colors_param.value()            
+
+            for i in range(0, len(knots.default)):
+                new_elem = elements.new(knots_vals[i])
+                new_elem.color = (colors_vals[i][0], colors_vals[i][1], colors_vals[i][2], 1.0)
+
+        elif floats_param:
+            n = rman_ramps[nm]
+            curve = n.mapping.curves[0]
+            points = curve.points
+            size = rman_ramp_size[nm]
+            knots_vals = knots_param.value()
+            floats_vals = floats_param.value()
+
+            for i in range(0, size):          
+                points.new(knots_vals[i], floats_vals[i])            
+
     for param in paramsList:
         pname = param.name()
         ptype = param.type()
 
+        prop_meta = node.prop_meta[pname]        
+        param_widget = prop_meta.get('widget', 'default')        
+
+        if pname in ramp_names:
+            continue
+
+        is_ramp_param = False
+        for nm in ramp_names:
+            if pname.startswith(nm):
+                is_ramp_param = True
+                break
+
+        if is_ramp_param:
+            continue
+
         # arrays
-        if '[' in ptype:
+        elif '[' in ptype:
             # always set the array length
 
             # try to get array length
@@ -1476,6 +1566,36 @@ def connectNodes(Asset, nt, nodeDict):
         else:
             print('error connecting %s.%s to %s.%s' % (srcNode.name,srcSocket, dstNode.name, dstSocket))
 
+def create_displayfilter_nodes(Asset):
+    has_stylized = False
+    df_list = Asset.displayFilterList()
+    world = bpy.context.scene.world
+
+    if not world.renderman.use_renderman_node:
+        bpy.ops.material.rman_add_rman_nodetree('EXEC_DEFAULT', idtype='world')
+
+    output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')
+    nt = world.node_tree 
+    nodeDict = {}      
+    
+    for df_node in df_list:
+        node_id = df_node.name()
+        node_type = df_node.rmanNode()
+
+        bl_node_name = __BL_NODES_MAP__.get(node_type, None)
+        if not bl_node_name:
+            continue
+        created_node = nt.nodes.new(bl_node_name)    
+        created_node.name = node_id
+        created_node.label = node_id        
+        output.add_input()    
+        nt.links.new(created_node.outputs['DisplayFilter'], output.inputs[-1])
+        nodeDict[node_id] = created_node.name
+        setParams(created_node, df_node.paramsDict())
+
+        if not has_stylized and node_type in RMAN_STYLIZED_FILTERS:
+            bpy.ops.scene.rman_enable_stylized_looks('EXEC_DEFAULT')
+
 ##
 # @brief      Import an asset into maya
 #
@@ -1493,8 +1613,12 @@ def importAsset(filepath):
     assetType = Asset.type()
 
     if assetType == "nodeGraph":
-        mat,nt,newNodes = createNodes(Asset)
-        connectNodes(Asset, nt, newNodes)
+        mat = None
+        if Asset.displayFilterList():
+            create_displayfilter_nodes(Asset)
+        if Asset.nodeList():
+            mat,nt,newNodes = createNodes(Asset)
+            connectNodes(Asset, nt, newNodes)
         return mat
 
     elif assetType == "envMap":

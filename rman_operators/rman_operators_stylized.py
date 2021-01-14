@@ -54,12 +54,13 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
 
     def attach_pattern(self, context, ob):
         if len(ob.material_slots) < 1:
-            return
+            bpy.ops.object.rman_add_bxdf('EXEC_DEFAULT', bxdf_name='PxrSurface')
         mat = ob.material_slots[0].material
         nt = mat.node_tree
         output = shadergraph_utils.is_renderman_nodetree(mat)
         if not output:
-            return
+            bpy.ops.material.rman_add_rman_nodetree('EXEC_DEFAULT', idtype='material', bxdf_Name='PxrSurface')
+            
         socket = output.inputs[0]
         if not socket.is_linked:
             return
