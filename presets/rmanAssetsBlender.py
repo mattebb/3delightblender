@@ -1208,6 +1208,8 @@ def setParams(node, paramsList):
     # Look for ramps
     for param in paramsList:
         pname = param.name()
+        if pname in node.outputs:
+            continue
 
         prop_meta = node.prop_meta[pname]        
         param_widget = prop_meta.get('widget', 'default')        
@@ -1244,6 +1246,8 @@ def setParams(node, paramsList):
 
         for param in paramsList:
             pname = param.name()
+            if pname in node.outputs:
+                continue            
             if pname.startswith(nm):
                 if '_Knots' in pname:
                     knots_param = param
@@ -1276,6 +1280,8 @@ def setParams(node, paramsList):
 
     for param in paramsList:
         pname = param.name()
+        if pname in node.outputs:
+            continue        
         ptype = param.type()
 
         prop_meta = node.prop_meta[pname]        
