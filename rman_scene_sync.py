@@ -327,6 +327,17 @@ class RmanSceneSync(object):
                         # hitting a prman crash when removing and adding instances of
                         # grease pencil curves
                         self._gpencil_transform_updated(obj)
+                    elif rman_type == 'EMPTY':
+                        translator = self.rman_scene.rman_translators['EMPTY']
+                        rman_sg_node = self.rman_scene.rman_objects.get(ob.original, None)
+                        if rman_sg_node:
+                            with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+                                translator.export_transform(ob, rman_sg_node.sg_node)
+                                if ob.renderman.export_as_coordsys:
+                                    self.rman_scene.get_root_sg_node().AddCoordinateSystem(rman_sg_node.sg_node)
+                                else:
+                                    self.rman_scene.get_root_sg_node().RemoveCoordinateSystem(rman_sg_node.sg_node)
+                        continue
                     else:
                         if ob.type == 'EMPTY' and ob.is_instancer:
                             _check_empty(ob)
@@ -445,7 +456,11 @@ class RmanSceneSync(object):
                     rman_sg_node = self.rman_scene.rman_objects.get(ob, None) 
                     if rman_sg_node:
                         for k,rman_sg_group in rman_sg_node.instances.items():
-                            self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)
+                            if ob.parent and object_utils._detect_primitive_(ob.parent) == 'EMPTY':
+                                rman_empty_node = self.rman_scene.rman_objects.get(ob.parent.original)
+                                rman_empty_node.sg_node.RemoveChild(rman_sg_group.sg_node)
+                            else:
+                                self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)                            
                         rman_sg_node.instances.clear()         
 
                 rfb_log().debug("Re-emit instances")

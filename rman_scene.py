@@ -689,6 +689,7 @@ class RmanScene(object):
                         rman_empty_node.sg_node.AddChild(rman_sg_node.sg_node)
                     else:
                         self.get_root_sg_node().AddChild(rman_sg_node.sg_node)
+                        translator.export_transform(ob, rman_sg_node.sg_node)
                         if ob.renderman.export_as_coordsys:
                             self.get_root_sg_node().AddCoordinateSystem(rman_sg_node.sg_node)
                     return
@@ -733,6 +734,7 @@ class RmanScene(object):
                 if ob.parent and object_utils._detect_primitive_(ob.parent) == 'EMPTY':
                     # this object is a child of an empty. Add it to the empty.
                     rman_empty_node = self.rman_objects.get(ob.parent.original)
+                    rman_sg_group.sg_node.SetInheritTransform(False) # we don't want to inherit the transform
                     rman_empty_node.sg_node.AddChild(rman_sg_group.sg_node)
                 else:
                     self.get_root_sg_node().AddChild(rman_sg_group.sg_node)
