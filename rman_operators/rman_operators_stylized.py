@@ -16,6 +16,8 @@ class PRMAN_OT_Enable_Sylized_Looks(bpy.types.Operator):
         scene = context.scene
         rm = scene.renderman
         rm.render_rman_stylized = 1
+        world = scene.world
+        world.update_tag()        
         bpy.ops.renderman.dspy_displays_reload('EXEC_DEFAULT')        
         if self.properties.open_editor:
             bpy.ops.scene.rman_open_stylized_editor('INVOKE_DEFAULT')
