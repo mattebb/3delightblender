@@ -246,9 +246,9 @@ class RmanRender(object):
             rfb_log().debug("Writing to RIB...")
             rib_time_start = time.time()
             if sys.platform == ("win32"):
-                self.sg_scene.Render("rib C:/tmp/blender.rib")
+                self.sg_scene.Render("rib C:/tmp/blender.rib -format ascii -indent")
             else:
-                self.sg_scene.Render("rib /var/tmp/blender.rib")     
+                self.sg_scene.Render("rib /var/tmp/blender.rib -format ascii -indent")     
             rfb_log().debug("Finished writing RIB. Time: %s" % string_utils._format_time_(time.time() - rib_time_start))            
 
     def _load_placeholder_image(self):   

@@ -1013,8 +1013,8 @@ class RmanScene(object):
 
             if self.is_interactive:
                 options.SetInteger(self.rman.Tokens.Rix.k_hider_decidither, rm.hider_decidither)
-                options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, rm.ipr_hider_minSamples)
-                options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, rm.ipr_hider_maxSamples)
+                options.SetInteger(self.rman.Tokens.Rix.k_hider_minsamples, rm.ipr_hider_minSamples)
+                options.SetInteger(self.rman.Tokens.Rix.k_hider_maxsamples, rm.ipr_hider_maxSamples)
                 options.SetInteger(self.rman.Tokens.Rix.k_hider_incremental, 1)
                 pv = rm.ipr_ri_pixelVariance
 
