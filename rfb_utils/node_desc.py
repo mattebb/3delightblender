@@ -68,7 +68,8 @@ OPTIONAL_ATTRS = ['URL', 'buttonText', 'conditionalVisOp', 'conditionalVisPath',
                   'label', 'match', 'max', 'min', 'riattr', 'riopt',
                   'scriptText', 'sensitivity', 'slider', 'slidermax',
                   'slidermin', 'sliderMin', 'sliderMax', 'syntax', 'tag', 'units',
-                  'vstructConditionalExpr', 'vstructmember', 'hidden', 'uiStruct', 'readOnly']
+                  'vstructConditionalExpr', 'vstructmember', 'hidden', 'uiStruct', 'readOnly',
+                  'editable', 'lockgeom']
 INTERP_MAYA = {'none': 0,
                'linear': 1,
                'smooth': 2,
@@ -1394,8 +1395,9 @@ class NodeDesc(object):
                 continue
 
             if obj.category == DescPropType.Param:
-                self.params.append(obj)
-                self._mark_if_textured(obj)
+                if getattr(obj, 'lockgeom', True):
+                    self.params.append(obj)
+                    self._mark_if_textured(obj)
             elif obj.category == DescPropType.Output:
                 self.outputs.append(obj)
             elif obj.category == DescPropType.Attribute:
