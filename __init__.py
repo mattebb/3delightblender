@@ -200,13 +200,21 @@ def set_up_paths():
     pythonbindings = os.path.join(rmantree, 'bin', 'pythonbindings')
     filepath_utils.set_pythonpath(pythonbindings)
 
+def set_ocio():
+    # make sure we set OCIO env var
+    # so that "it" will also get the correct configuration
+
+    import os
+    from .rfb_utils import color_manager_blender
+    path = color_manager_blender.get_config_path()
+    os.environ['OCIO'] = path
+
 def load_addon():
     global __RMAN_ADDON_LOADED__
 
     if filepath_utils.guess_rmantree():
-        # else display an error, tell user to correct
-        # and don't load anything else
         set_up_paths()
+        set_ocio()
         from . import presets
         from . import rman_operators
         from . import rman_ui
