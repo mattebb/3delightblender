@@ -120,7 +120,11 @@ class BlenderHostPrefs(ral.HostPrefs):
             val = list()
             prefs = get_addon_prefs()
             for p in prefs.rpbUserLibraries:
-                val.append(p.path)
+                path = p.path
+                if path.endswith('/'):
+                    path = path[:-1]
+                if path not in val:
+                    val.append(path)
         else:
             val = get_pref(pref_name=prefName, default=defaultValue)
         return val
@@ -151,7 +155,7 @@ class BlenderHostPrefs(ral.HostPrefs):
                 if prefName == 'rpbUserLibraries':
                     prefs = get_addon_prefs()
                     prefs.rpbUserLibraries.clear()
-                    for val in value:
+                    for val in list(dict.fromkeys(value)):
                         p = prefs.rpbUserLibraries.add()
                         p.path = val
             else:
