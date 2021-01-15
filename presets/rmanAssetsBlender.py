@@ -1215,6 +1215,9 @@ def setParams(node, paramsList):
         if pname in node.outputs:
             continue
 
+        if pname not in node.prop_meta:
+            continue
+
         prop_meta = node.prop_meta[pname]        
         param_widget = prop_meta.get('widget', 'default')        
 
@@ -1288,7 +1291,7 @@ def setParams(node, paramsList):
             continue        
         ptype = param.type()
 
-        prop_meta = node.prop_meta[pname]        
+        prop_meta = node.prop_meta.get(pname, dict())
         param_widget = prop_meta.get('widget', 'default')        
 
         if pname in ramp_names:
@@ -1373,10 +1376,10 @@ def setParams(node, paramsList):
                         setattr(node, pname, pval)
                 except:
                     if type(getattr(node, pname)) == bpy.types.EnumProperty:
-                        setattr(node, pname, str(pval))
+                        setattr(node, pname, str(pval))                   
 
     # if this is a PxrSurface, turn on all of the enable gains.
-    if hasattr(node, 'plugin_name') and node.plugin_name == 'PxrSurface':
+    if hasattr(node, 'plugin_name') and node.plugin_name in ['PxrLayer', 'PxrSurface']:
         for gain,enable in __GAINS_TO_ENABLE__.items():
             setattr(node, enable, True)
 

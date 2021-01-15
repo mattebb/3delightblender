@@ -113,7 +113,7 @@ def update_conditional_visops(node):
                 if hasattr(node, 'inputs') and param_name in node.inputs:
                     node.inputs[param_name].hide = hidden
             except:
-                print("Error in conditional visop: %s" % (cond_expr))
+                rfb_log().debug("Error in conditional visop: %s" % (cond_expr))
 
 def update_func_with_inputs(self, context):
     # check if this prop is set on an input
