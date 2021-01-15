@@ -207,7 +207,8 @@ def set_ocio():
     import os
     from .rfb_utils import color_manager_blender
     path = color_manager_blender.get_config_path()
-    os.environ['OCIO'] = path
+    if path != '':
+        os.environ['OCIO'] = path
 
 def load_addon():
     global __RMAN_ADDON_LOADED__
