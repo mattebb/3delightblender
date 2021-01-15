@@ -328,7 +328,7 @@ class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
                         "Could not find 'it'.")
         else:
             environ = os.environ.copy()
-            subprocess.Popen([it_path], env=environ, shell=True)
+            subprocess.Popen([it_path], env=environ, close_fds=True)
         return {'FINISHED'}        
 
 class PRMAN_OT_Renderman_start_localqueue(bpy.types.Operator):
@@ -343,7 +343,7 @@ class PRMAN_OT_Renderman_start_localqueue(bpy.types.Operator):
                         "Could not find LocalQueue.")
         else:
             environ = os.environ.copy()
-            subprocess.Popen([lq_path], env=environ, shell=True)
+            subprocess.Popen([lq_path], env=environ, close_fds=True)
         return {'FINISHED'}        
 
 class PRMAN_OT_Select_Cameras(bpy.types.Operator):
