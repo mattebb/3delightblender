@@ -117,15 +117,17 @@ class StringExpression(object):
             user_token = rm.user_tokens[i]
             self.tokens[user_token.name] = user_token.value
 
-        self.tokens['OUT'] = self.expand(get_pref('env_vars').out)
         unsaved = True if not bpy.data.filepath else False
         if unsaved:
             self.tokens['blend'] = 'UNTITLED'
-            self.tokens['blend_dir'] = self.tokens['OUT']
+            self.tokens['blend_dir'] = ''
         else:
             self.tokens['blend_dir'] = os.path.split(bpy.data.filepath)[0]     
             self.tokens['blend'] = os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]     
 
+        self.tokens['OUT'] = self.expand(get_pref('env_vars').out)
+        if self.tokens['blend_dir'] == '':
+            self.tokens['blend_dir'] = self.tokens['OUT']
         self.tokens['scene'] = scene.name 
         self.set_frame_context(scene.frame_current)
 
@@ -177,50 +179,8 @@ class StringExpression(object):
                         tok_val = toks[tok.lower()]
                     except KeyError:
                         # the token REALLY doesn't exist...
-                        try:
-                            # if it contains 'shape.' it may be a getAttr for an
-                            # attribute on the current shape.
-                            tok = tok.replace('shape.', '%s.' % toks['shape'])
-                        except KeyError:
-                            pass
-                        try:
-                            # if it contains 'shapepath.' it may be a getAttr for an
-                            # attribute on the current shape.
-                            tok = tok.replace('shapepath.', '%s.' % toks['shapepath'])
-                        except KeyError:
-                            pass
-                        try:
-                            # could be a getAttr node.attr ?
-                            tok_val = '' #mc.getAttr(tok)
-                        except ValueError as err:
-                            # the node or attribute desn't exist.
-                            if m.group(2):
-                                # a default value has been provided
-                                tok_val = m.group(2)[1:]
-                            else:
-                                # the node or/and attribute doesn't exist, pass
-                                # un-substituted: that's better for debugging.
-                                rfb_log().debug('%s  (maya plug = %r)', err, tok)
-                                tok_val = m.group(0)
-                        except TypeError as err:
-                            # invalid plug string, just append it. Tokens like
-                            # <udim> will be substituted by the renderer.
-                            tok_val = m.group(0)
-                            rfb_log().debug('%s  (maya plug = %r)', err, tok)
-                            # print '   un-processed token: %s' % m.group(0)
-                        else:
-                            pass 
-                            # getAttr(tok) succeeded: store the result
-                            """
-                            if mc.getAttr(tok, mi=True) is None:
-                                if mc.getAttr(tok, type=True) == 'float3':
-                                    # maya returns [(x, x, x)] and we just want (x, x, x)
-                                    tok_val = tok_val[0]
-                            else:
-                                rfb_log().warning('Array attribute lookups are '
-                                                  'not supported ! (%s)', tok)
-                                continue
-                            """
+                        tok_val = '<%s>' % tok
+
                 # optional formating
                 if m.group(3):
                     if isinstance(tok_val, basestring) and tok_val:
