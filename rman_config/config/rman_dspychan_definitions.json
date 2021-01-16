@@ -722,7 +722,12 @@
             "channelType": "color",
             "channelSource": "NPRalbedo",
             "group": "NPR"
-        }
+        },
+        "NPRtoonDiffRamp": {
+            "channelType": "color",
+            "channelSource": "NPRtoonDiffRamp",
+            "group": "NPR"
+        }        
     },
     "displays": {
         "Default": {
@@ -787,6 +792,7 @@
                 "Nn",
                 "sampleCount",
                 "directSpecular",
+                "NPRtoonDiffRamp",
                 "NPRfinal",
                 "NPRallLines",
                 "NPRallLinesAlpha",
