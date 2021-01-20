@@ -15,8 +15,10 @@ def assetid_update_func(self, context, param_name):
     node = self.node if hasattr(self, 'node') else self
 
     # get the real path if the value is the weird Blender relative path
+    file_path = None
     if param_name in node:
-        node[param_name] = filepath_utils.get_real_path(node[param_name])
+        file_path = filepath_utils.get_real_path(node[param_name])
+        node[param_name] = file_path
 
     if not hasattr(node, 'renderman_node_type'):
         return
@@ -41,11 +43,68 @@ def assetid_update_func(self, context, param_name):
             mat = context.space_data.id
 
     texture_utils.update_texture(node, light=light, mat=mat, ob=ob)
+
+    if file_path:
+        # update colorspace param from txmanager
+        txfile = texture_utils.get_txmanager().txmanager.get_txfile_from_path(file_path)
+        if txfile:
+            params = txfile.params          
+            param_colorspace = '%s_colorspace'  % param_name
+            mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
+            val = 0
+            for i, nm in enumerate(mdict):
+                if nm == params.ocioconvert:
+                    val = i+1
+                    break
+
+            node[param_colorspace] = val
     
     if mat:
         node.update_mat(mat)  
     if light:
         active.update_tag(refresh={'DATA'})
+
+def update_colorspace_name(self, context, param_name):
+    from . import texture_utils
+
+    node = self.node if hasattr(self, 'node') else self
+
+    param_colorspace = '%s_colorspace'  % param_name
+    ociconvert = getattr(node, param_colorspace)
+    if ociconvert != '0':
+        # tell txmanager the new colorspace requested by the user
+        file_path = getattr(node, param_name)
+        txfile = texture_utils.get_txmanager().txmanager.get_txfile_from_path(file_path)
+        if txfile:
+            params = txfile.params.as_dict()     
+            if params['ocioconvert'] != ociconvert:
+                params['ocioconvert'] = ociconvert
+                txfile.params.from_dict(params)
+                txfile.delete_texture_files()
+                texture_utils.get_txmanager().txmake_all(blocking=False)     
+
+                bpy.ops.rman_txmgr_list.refresh('EXEC_DEFAULT')  
+
+def generate_colorspace_menu(node, param_name):
+    '''Generate a colorspace enum property for the incoming parameter name
+
+    Arguments:
+        node (ShadingNode) - shading node
+        parm_name (str) - the string parameter name
+    '''      
+    def colorspace_names(self, context):
+        from . import texture_utils
+
+        items = []
+        items.append(('0', '', ''))
+        mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
+        for nm in mdict:
+            items.append((nm, nm, ""))
+        return items
+
+    ui_label = "%s_colorspace" % param_name
+    node.__annotations__[ui_label] = EnumProperty(name=ui_label, items=colorspace_names,update=lambda s,c: update_colorspace_name(s,c, param_name))    
+
 
 def generate_array_property(node, prop_names, prop_meta, node_desc_param, update_array_size_func=None, update_array_elem_func=None):
     '''Generate the necessary properties for an array parameter and
@@ -369,6 +428,8 @@ def generate_property(node, sp, update_function=None):
             prop = StringProperty(name=param_label,
                                   default=param_default, subtype="FILE_PATH",
                                   description=param_help, update=lambda s,c: assetid_update_func(s,c, param_name))
+
+            generate_colorspace_menu(node, param_name)
 
         elif param_widget in ['mapper', 'popup']:
             items = []

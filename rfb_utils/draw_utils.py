@@ -86,11 +86,22 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
                     row.label(text='', icon='BLANK1')
                 row.prop(parent, ndp.name, text=label)    
 
+            if widget in ['fileinput','assetidinput','assetidoutput']:                            
+                prop_val = getattr(node, prop_name)
+                if prop_val != '':
+                    row = layout.row(align=True)
+                    indented_label(row, None, level)
+                    row.prop(node, '%s_colorspace' % prop_name, text='Color Space')
+                    rman_icon = rfb_icons.get_icon('rman_txmanager')        
+                    row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)                     
+
 def _draw_props(node, prop_names, layout):
     for prop_name in prop_names:
         prop_meta = node.prop_meta[prop_name]
         prop = getattr(node, prop_name)
         row = layout.row()
+        widget = prop_meta.get('widget', 'default')
+        prop_hidden = prop_meta.get('hidden', False)
 
         if prop_meta['renderman_type'] == 'page':
             ui_prop = prop_name + "_uio"
@@ -136,8 +147,7 @@ def _draw_props(node, prop_names, layout):
                     row.prop(node, '%s[%d]' % (prop_name, i), text='')
             continue
         else:
-            if 'widget' in prop_meta and prop_meta['widget'] == 'null' or \
-                    'hidden' in prop_meta and prop_meta['hidden'] or prop_name == 'combineMode':
+            if widget == 'null' or prop_hidden or prop_name == 'combineMode':
                 continue
 
             row.label(text='', icon='BLANK1')
@@ -147,6 +157,15 @@ def _draw_props(node, prop_names, layout):
                                 "object_groups")
             else:
                 row.prop(node, prop_name)   
+
+            if widget in ['fileinput','assetidinput','assetidoutput']:                            
+                prop_val = getattr(node, prop_name)
+                if prop_val != '':
+                    row = layout.row(align=True)
+                    indented_label(row, None, level)
+                    row.prop(node, '%s_colorspace' % prop_name, text='Color Space')
+                    rman_icon = rfb_icons.get_icon('rman_txmanager')        
+                    row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)        
 
 
 def panel_node_draw(layout, context, id_data, output_type, input_name):
@@ -388,6 +407,19 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             rman_icon = rfb_icons.get_icon('out_unknown')
                             row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
 
+                    if widget in ['fileinput','assetidinput','assetidoutput']:                            
+                        prop_val = getattr(node, prop_name)
+                        if prop_val != '':
+                            row = layout.row(align=True)
+                            indented_label(row, None, level)
+                            row.prop(node, '%s_colorspace' % prop_name, text='Color Space')
+                            rman_icon = rfb_icons.get_icon('rman_txmanager')        
+                            from . import texture_utils
+                            from . import object_utils
+                            id = object_utils.get_context_id(node)
+                            nodeID = texture_utils.generate_node_id(node, prop_name, ob=id)
+                            op = row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)  
+                            op.nodeID = nodeID
 
     # if this is a cycles node do something different
     if not hasattr(node, 'plugin_name') or node.bl_idname == 'PxrOSLPatternNode':

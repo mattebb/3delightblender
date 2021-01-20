@@ -412,6 +412,8 @@ class PRMAN_OT_Renderman_txmanager_refresh(Operator):
                 item.enable = False  
             else:
                 item.enable = True
+            if params.ocioconvert:
+                item.ocioconvert = params.ocioconvert
 
             if params.bumprough:
                 item.bumpRough = str(params.bumprough['normalmap'])
@@ -465,6 +467,8 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
 
     bl_idname = "rman_txmgr_list.open_txmanager"
     bl_label = "Open TxManager"
+
+    nodeID: StringProperty(default='')
 
     def execute(self, context):
         return{'FINISHED'}         
@@ -549,6 +553,11 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
                 '''
 
     def invoke(self, context, event):
+        if self.properties.nodeID != '':
+            for i, item in enumerate(context.scene.rman_txmgr_list):
+                if item.nodeID == self.properties.nodeID:
+                    context.scene.rman_txmgr_list_index = i
+                    break
 
         wm = context.window_manager
         return wm.invoke_props_dialog(self, width=700)     

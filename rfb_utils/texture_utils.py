@@ -48,14 +48,16 @@ class RfBTxManager(object):
         return outpath
 
     def done_callback(self, nodeID, txfile):
-        try:
-            # try and refresh the texture manager UI
-            bpy.ops.rman_txmgr_list.refresh('EXEC_DEFAULT')
-        except:
-            pass
-        from .. import rman_render
-        rr = rman_render.RmanRender.get_rman_render()
-        rr.rman_scene_sync.texture_updated(nodeID)
+        def tex_done():
+            try:
+                # try and refresh the texture manager UI
+                bpy.ops.rman_txmgr_list.refresh('EXEC_DEFAULT')
+            except:
+                pass
+            from .. import rman_render
+            rr = rman_render.RmanRender.get_rman_render()
+            rr.rman_scene_sync.texture_updated(nodeID)
+        return tex_done    
 
     def get_txfile_from_id(self, nodeID):
         txfile = self.txmanager.get_txfile_from_id(nodeID)
