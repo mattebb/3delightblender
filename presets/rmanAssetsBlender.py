@@ -1608,6 +1608,7 @@ def create_displayfilter_nodes(Asset):
 
         if not has_stylized and node_type in RMAN_STYLIZED_FILTERS:
             bpy.ops.scene.rman_enable_stylized_looks('EXEC_DEFAULT')
+            has_stylized = True
 
 ##
 # @brief      Import an asset into maya
