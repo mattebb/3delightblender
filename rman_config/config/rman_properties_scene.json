@@ -66,7 +66,7 @@
             "type": "string",
             "default": "prman",
             "widget": "popup",
-            "options": "prman|xpu|xpucpu|xpugpu",
+            "options": "RIS:prman|XPU:xpu|XPU - CPU:xpucpu|XPU - GPU:xpugpu",
             "help": ""
         },       
         {
