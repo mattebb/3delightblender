@@ -86,7 +86,7 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
                     row.label(text='', icon='BLANK1')
                 row.prop(parent, ndp.name, text=label)    
 
-            if widget in ['fileinput','assetidinput','assetidoutput']:                            
+            if widget in ['fileinput','assetidinput']:                            
                 prop_val = getattr(node, prop_name)
                 if prop_val != '':
                     row = layout.row(align=True)
@@ -158,7 +158,7 @@ def _draw_props(node, prop_names, layout):
             else:
                 row.prop(node, prop_name)   
 
-            if widget in ['fileinput','assetidinput','assetidoutput']:                            
+            if widget in ['fileinput','assetidinput']:                            
                 prop_val = getattr(node, prop_name)
                 if prop_val != '':
                     row = layout.row(align=True)
@@ -407,7 +407,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             rman_icon = rfb_icons.get_icon('out_unknown')
                             row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
 
-                    if widget in ['fileinput','assetidinput','assetidoutput']:                            
+                    if widget in ['fileinput','assetidinput']:                            
                         prop_val = getattr(node, prop_name)
                         if prop_val != '':
                             row = layout.row(align=True)

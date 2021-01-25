@@ -429,7 +429,8 @@ def generate_property(node, sp, update_function=None):
                                   default=param_default, subtype="FILE_PATH",
                                   description=param_help, update=lambda s,c: assetid_update_func(s,c, param_name))
 
-            generate_colorspace_menu(node, param_name)
+            if (param_widget in ['fileinput','assetidinput']):
+                generate_colorspace_menu(node, param_name)
 
         elif param_widget in ['mapper', 'popup']:
             items = []
