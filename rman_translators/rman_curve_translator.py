@@ -14,6 +14,22 @@ def get_curve(curve):
         P = []
         width = []
 
+        for bp in spline.points:
+            P.append([bp.co[0], bp.co[1], bp.co[2]])
+            width.extend( 3 * [bp.radius * 0.01])  
+
+        name = spline.id_data.name
+        splines.append((P, width, name))              
+
+    return splines  
+
+def get_bezier_curve(curve):
+    splines = []
+
+    for spline in curve.splines:
+        P = []
+        width = []
+
         for bp in spline.bezier_points:
             P.append(bp.handle_left)
             P.append(bp.co)
@@ -34,6 +50,7 @@ def get_curve(curve):
         splines.append((P, width, period, name))
 
     return splines      
+
 
 def get_is_cyclic(curve):
     if len(curve.splines) < 1:
@@ -95,6 +112,30 @@ class RmanCurveTranslator(RmanMeshTranslator):
         curve_type =  get_curve_type(ob.data)
         if curve_type == 'BEZIER':
             self.update_bezier_curve(ob, rman_sg_curve)
+        else:
+            self.update_curve(ob, rman_sg_curve)
+
+    def update_curve(self, ob, rman_sg_curve):
+        for c in [ rman_sg_curve.sg_node.GetChild(i) for i in range(0, rman_sg_curve.sg_node.GetNumChildren())]:
+            rman_sg_curve.sg_node.RemoveChild(c)
+            self.rman_scene.sg_scene.DeleteDagNode(c) 
+
+        curves = get_curve(ob.data)
+        for P, width, name in curves:
+            num_pts = len(P)
+            if num_pts < 1:
+                continue            
+            curves_sg = self.rman_scene.sg_scene.CreateCurves(name)
+            curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_linear, 'nonperiodic', "bezier", 1, num_pts)
+            
+            primvar = curves_sg.GetPrimVars()
+            primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")   
+            primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, [num_pts], "uniform")
+            if width:
+                primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, width, "vertex")
+            curves_sg.SetPrimVars(primvar)     
+
+            rman_sg_curve.sg_node.AddChild(curves_sg)    
 
     def update_bezier_curve(self, ob, rman_sg_curve):
 
@@ -102,7 +143,7 @@ class RmanCurveTranslator(RmanMeshTranslator):
             rman_sg_curve.sg_node.RemoveChild(c)
             self.rman_scene.sg_scene.DeleteDagNode(c)             
 
-        curves = get_curve(ob.data)
+        curves = get_bezier_curve(ob.data)
         for P, width, period, name in curves:
             num_pts = len(P)
             if num_pts < 1:
