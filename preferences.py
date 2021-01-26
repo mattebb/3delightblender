@@ -1,6 +1,6 @@
 # ##### BEGIN MIT LICENSE BLOCK #####
 #
-# Copyright (c) 2015 - 2017 Pixar
+# Copyright (c) 2015 - 2021 Pixar
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -33,8 +33,6 @@ from bpy.props import IntProperty, PointerProperty, EnumProperty, FloatVectorPro
 from .rfb_utils import filepath_utils
 from . import rfb_logger
 from . import rfb_icons
-
-#from .presets.properties import RendermanPresetCategory
 
 class RendermanPreferencePath(bpy.types.PropertyGroup):
     path: StringProperty(name="", subtype='DIR_PATH')

@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 #
-# Copyright (c) 1986-2018 Pixar. All rights reserved.
+# Copyright (c) 1986-2021 Pixar. All rights reserved.
 #
 # The information in this file (the "Software") is provided for the exclusive
 # use of the software licensees of Pixar ("Licensees").  Licensees have the
