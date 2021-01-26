@@ -8,20 +8,24 @@ import bpy
 import math
 
 def get_curve(curve):
-    splines = []
+    P = []
+    widths = []
+    nvertices = []
+    name = ''
+    num_curves = len(curve.splines)
 
     for spline in curve.splines:
-        P = []
-        width = []
 
+        width = []
         for bp in spline.points:
             P.append([bp.co[0], bp.co[1], bp.co[2]])
             width.extend( 3 * [bp.radius * 0.01])  
 
+        widths.append(width)
+        nvertices.append(len(spline.points))
         name = spline.id_data.name
-        splines.append((P, width, name))              
-
-    return splines  
+    
+    return (P, num_curves, nvertices, widths, name)
 
 def get_bezier_curve(curve):
     splines = []
@@ -44,7 +48,7 @@ def get_bezier_curve(curve):
             period = 'nonperiodic'
             # remove the two unused handles
             P = P[1:-1]
-            widith = width[1:-1]
+            width = width[1:-1]
 
         name = spline.id_data.name
         splines.append((P, width, period, name))
@@ -120,22 +124,20 @@ class RmanCurveTranslator(RmanMeshTranslator):
             rman_sg_curve.sg_node.RemoveChild(c)
             self.rman_scene.sg_scene.DeleteDagNode(c) 
 
-        curves = get_curve(ob.data)
-        for P, width, name in curves:
-            num_pts = len(P)
-            if num_pts < 1:
-                continue            
-            curves_sg = self.rman_scene.sg_scene.CreateCurves(name)
-            curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_linear, 'nonperiodic', "bezier", 1, num_pts)
-            
-            primvar = curves_sg.GetPrimVars()
-            primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")   
-            primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, [num_pts], "uniform")
-            if width:
-                primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, width, "vertex")
-            curves_sg.SetPrimVars(primvar)     
+        P, num_curves, nvertices, widths, name = get_curve(ob.data)
+        num_pts = len(P)
+         
+        curves_sg = self.rman_scene.sg_scene.CreateCurves(name)
+        curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_linear, 'nonperiodic', "linear", num_curves, num_pts)
+        
+        primvar = curves_sg.GetPrimVars()
+        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")   
+        primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, nvertices, "uniform")
+        if widths:
+            primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, widths, "vertex")
+        curves_sg.SetPrimVars(primvar)     
 
-            rman_sg_curve.sg_node.AddChild(curves_sg)    
+        rman_sg_curve.sg_node.AddChild(curves_sg)          
 
     def update_bezier_curve(self, ob, rman_sg_curve):
 
