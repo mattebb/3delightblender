@@ -19,7 +19,10 @@ def get_curve(curve):
         width = []
         for bp in spline.points:
             P.append([bp.co[0], bp.co[1], bp.co[2]])
-            width.extend( 3 * [bp.radius * 0.01])  
+            w = bp.radius * 0.01
+            if w < 0.01:
+                w = 0.01
+            width.extend( 3 * [w])  
 
         widths.append(width)
         nvertices.append(len(spline.points))
