@@ -1270,7 +1270,7 @@ def setParams(node, paramsList):
             knots_vals = knots_param.value()
             colors_vals = colors_param.value()            
 
-            for i in range(0, len(knots.default)):
+            for i in range(0, size):
                 new_elem = elements.new(knots_vals[i])
                 new_elem.color = (colors_vals[i][0], colors_vals[i][1], colors_vals[i][2], 1.0)
 
