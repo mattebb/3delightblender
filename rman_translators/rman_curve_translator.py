@@ -13,8 +13,9 @@ def get_curve(curve):
     nvertices = []
     name = ''
     num_curves = len(curve.splines)
+    index = []
 
-    for spline in curve.splines:
+    for i, spline in enumerate(curve.splines):
 
         width = []
         for bp in spline.points:
@@ -25,10 +26,11 @@ def get_curve(curve):
             width.extend( 3 * [w])  
 
         widths.append(width)
+        index.append(i)
         nvertices.append(len(spline.points))
         name = spline.id_data.name
     
-    return (P, num_curves, nvertices, widths, name)
+    return (P, num_curves, nvertices, widths, index, name)
 
 def get_bezier_curve(curve):
     splines = []
@@ -127,7 +129,7 @@ class RmanCurveTranslator(RmanMeshTranslator):
             rman_sg_curve.sg_node.RemoveChild(c)
             self.rman_scene.sg_scene.DeleteDagNode(c) 
 
-        P, num_curves, nvertices, widths, name = get_curve(ob.data)
+        P, num_curves, nvertices, widths, index, name = get_curve(ob.data)
         num_pts = len(P)
          
         curves_sg = self.rman_scene.sg_scene.CreateCurves(name)
@@ -138,6 +140,7 @@ class RmanCurveTranslator(RmanMeshTranslator):
         primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, nvertices, "uniform")
         if widths:
             primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, widths, "vertex")
+        primvar.SetIntegerDetail("index", index, "uniform")
         curves_sg.SetPrimVars(primvar)     
 
         rman_sg_curve.sg_node.AddChild(curves_sg)          
