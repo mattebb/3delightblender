@@ -51,7 +51,7 @@ def get_config_path():
 
     ociopath = os.getenv('OCIO', None)
     if ociopath is None:
-        if 'RFB_IGNORE_BLENDER_OCIO' in os.environ:
+        if 'RFB_USE_BLENDER_OCIO' not in os.environ:
             return ''
         ociopath = get_blender_ocio_config()
 
@@ -68,7 +68,7 @@ def get_colorspace_name():
     
     ociopath = os.getenv('OCIO', None)
     if ociopath is None:
-        if 'RFB_IGNORE_BLENDER_OCIO' in os.environ:
+        if 'RFB_USE_BLENDER_OCIO' not in os.environ:
             return ''
         ociopath = get_blender_ocio_config()
     if ColorManager:
