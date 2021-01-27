@@ -368,12 +368,13 @@ class PRMAN_OT_Renderman_txmanager_add_texture(Operator):
             item.ocioconvert = params.ocioconvert
 
         if params.bumprough:
-            item.bumpRough = str(params.bumprough['normalmap'])
-            item.bumpRough_factor = params.bumprough['factor']
-            item.bumpRough_invert = params.bumprough['invert']
-            item.bumpRough_invertU = params.bumprough['invertU']
-            item.bumpRough_invertV = params.bumprough['invertV']
-            item.bumpRough_refit = params.bumprough['refit']
+            bumprough = params.bumprough_as_dict()
+            item.bumpRough = str(bumprough['normalmap'])
+            item.bumpRough_factor = float(bumprough['factor'])
+            item.bumpRough_invert = bool(bumprough['invert'])
+            item.bumpRough_invertU = bool(bumprough['invertU'])
+            item.bumpRough_invertV = bool(bumprough['invertV'])
+            item.bumpRough_refit = bool(bumprough['refit'])
         else:
             params.bumpRough = "-1"
 
@@ -594,12 +595,13 @@ def index_updated(self, context):
             item.ocioconvert = params.ocioconvert
 
         if params.bumprough:
-            item.bumpRough = str(params.bumprough['normalmap'])
-            item.bumpRough_factor = params.bumprough['factor']
-            item.bumpRough_invert = params.bumprough['invert']
-            item.bumpRough_invertU = params.bumprough['invertU']
-            item.bumpRough_invertV = params.bumprough['invertV']
-            item.bumpRough_refit = params.bumprough['refit']
+            bumprough = params.bumprough_as_dict()
+            item.bumpRough = str(bumprough['normalmap'])
+            item.bumpRough_factor = float(bumprough['factor'])
+            item.bumpRough_invert = bool(bumprough['invert'])
+            item.bumpRough_invertU = bool(bumprough['invertU'])
+            item.bumpRough_invertV = bool(bumprough['invertV'])
+            item.bumpRough_refit = bool(bumprough['refit'])
         else:
             params.bumpRough = "-1"  
 

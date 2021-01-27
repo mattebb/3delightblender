@@ -1461,7 +1461,19 @@ def createNodes(Asset):
 
             nt.links.new(created_node.outputs['Displacement'], output_node.inputs['Displacement'])            
         elif nodeClass == 'pattern':
-            if node.externalOSL():
+            if nodeType == 'PxrDisplace':
+                # Temporary. RfM presets seem to be setting PxrDisplace as a pattern node
+                bl_node_name = __BL_NODES_MAP__.get(nodeType, None)
+                if not bl_node_name:
+                    continue
+                created_node = nt.nodes.new(bl_node_name)            
+                created_node.location[0] = -curr_x
+                curr_x = curr_x + 250
+                created_node.name = nodeId
+                created_node.label = nodeId
+
+                nt.links.new(created_node.outputs['Displacement'], output_node.inputs['Displacement'])                 
+            elif node.externalOSL():
                 # if externalOSL() is True, it is a dynamic OSL node i.e. one
                 # loaded through a PxrOSL node.
                 # if PxrOSL is used, we need to find the oso in the asset to
@@ -1488,6 +1500,7 @@ def createNodes(Asset):
                 created_node.label = nodeId                             
 
         elif nodeClass == 'root':
+            nodeDict[nodeId] = output_node.name
             continue
         elif nodeClass == 'light':
             # we don't deal with mesh lights
@@ -1553,6 +1566,8 @@ def createNodes(Asset):
 # @return     none
 #
 def connectNodes(Asset, nt, nodeDict):
+    output = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
+
     for con in Asset.connectionList():
         #print('+ %s.%s -> %s.%s' % (nodeDict[con.srcNode()](), con.srcParam(),
         #                             nodeDict[con.dstNode()](), con.dstParam()))
@@ -1570,13 +1585,18 @@ def connectNodes(Asset, nt, nodeDict):
 
         srcSocket = con.srcParam()
         dstSocket = con.dstParam()
+        renderman_node_type = getattr(srcNode, 'renderman_node_type', '')
         if srcSocket in srcNode.outputs and dstSocket in dstNode.inputs:
             nt.links.new(srcNode.outputs[srcSocket], dstNode.inputs[dstSocket])
         elif dstSocket == 'surfaceShader' or dstSocket == 'rman__surface':
-            nt.links.new(srcNode.outputs['Bxdf'], dstNode.inputs['Bxdf'])
+            if output:
+                nt.links.new(srcNode.outputs['Bxdf'], output.inputs['Bxdf'])
         elif dstSocket == 'displacementShader' or dstSocket == 'rman__displacement':
-            nt.links.new(srcNode.outputs['Displacement'], dstNode.inputs['Displacement'])
-        else:
+            if output:
+                nt.links.new(srcNode.outputs['Displacement'], output.inputs['Displacement'])
+        elif renderman_node_type == 'bxdf':
+            nt.links.new(srcNode.outputs['Bxdf'], dstNode.inputs[dstSocket])            
+        else:            
             print('error connecting %s.%s to %s.%s' % (srcNode.name,srcSocket, dstNode.name, dstSocket))
 
 def create_displayfilter_nodes(Asset):
