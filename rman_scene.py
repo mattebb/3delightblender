@@ -268,7 +268,8 @@ class RmanScene(object):
         self.reset()
 
         self.render_default_light = self.bl_scene.renderman.render_default_light
-        self.is_xpu = (self.bl_scene.renderman.renderVariant != 'prman')
+        if sys.platform != "darwin":
+            self.is_xpu = (self.bl_scene.renderman.renderVariant != 'prman')
 
         # update variables
         string_utils.set_var('scene', self.bl_scene.name)

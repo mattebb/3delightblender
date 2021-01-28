@@ -51,6 +51,10 @@ def get_render_variant(bl_scene):
     if filepath_utils.is_ncr_license():
         return 'prman'
 
+    if sys.platform == ("darwin"):
+        rfb_log().warning("XPU is not implemented on OSX: using RIS...")
+        return 'prman'
+
     return bl_scene.renderman.renderVariant
 
 class ItHandler(chatserver.ItBaseHandler):
