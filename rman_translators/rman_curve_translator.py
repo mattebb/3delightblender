@@ -7,6 +7,31 @@ from ..rfb_utils import property_utils
 import bpy
 import math
 
+def get_bspline_curve(curve):
+    P = []
+    widths = []
+    nvertices = []
+    name = ''
+    num_curves = len(curve.splines)
+    index = []
+
+    for i, spline in enumerate(curve.splines):
+
+        width = []
+        for bp in spline.points:
+            P.append([bp.co[0], bp.co[1], bp.co[2]])
+            w = bp.radius * 0.01
+            if w < 0.01:
+                w = 0.01
+            width.extend( 3 * [w])  
+
+        widths.append(width)
+        index.append(i)
+        nvertices.append(len(spline.points))
+        name = spline.id_data.name
+    
+    return (P, num_curves, nvertices, widths, index, name)
+
 def get_curve(curve):
     P = []
     widths = []
@@ -121,8 +146,31 @@ class RmanCurveTranslator(RmanMeshTranslator):
         curve_type =  get_curve_type(ob.data)
         if curve_type == 'BEZIER':
             self.update_bezier_curve(ob, rman_sg_curve)
+        elif curve_type in ['BSPLINE', 'NURBS']:
+            self.update_bspline_curve(ob, rman_sg_curve)
         else:
             self.update_curve(ob, rman_sg_curve)
+
+    def update_bspline_curve(self, ob, rman_sg_curve):
+        for c in [ rman_sg_curve.sg_node.GetChild(i) for i in range(0, rman_sg_curve.sg_node.GetNumChildren())]:
+            rman_sg_curve.sg_node.RemoveChild(c)
+            self.rman_scene.sg_scene.DeleteDagNode(c) 
+
+        P, num_curves, nvertices, widths, index, name = get_bspline_curve(ob.data)
+        num_pts = len(P)
+         
+        curves_sg = self.rman_scene.sg_scene.CreateCurves(name)
+        curves_sg.Define(self.rman_scene.rman.Tokens.Rix.k_cubic, 'nonperiodic', "b-spline", num_curves, num_pts)
+        
+        primvar = curves_sg.GetPrimVars()
+        primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")   
+        primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, nvertices, "uniform")
+        if widths:
+            primvar.SetFloatDetail(self.rman_scene.rman.Tokens.Rix.k_width, widths, "vertex")
+        primvar.SetIntegerDetail("index", index, "uniform")
+        curves_sg.SetPrimVars(primvar)     
+
+        rman_sg_curve.sg_node.AddChild(curves_sg)                       
 
     def update_curve(self, ob, rman_sg_curve):
         for c in [ rman_sg_curve.sg_node.GetChild(i) for i in range(0, rman_sg_curve.sg_node.GetNumChildren())]:
