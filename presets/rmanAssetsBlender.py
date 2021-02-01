@@ -46,6 +46,7 @@ from ..rfb_utils import transform_utils
 from ..rfb_utils import texture_utils
 from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__
+from ..rfb_logger import rfb_log
 from ..rman_bl_nodes import __BL_NODES_MAP__, __RMAN_NODE_TYPES__
 from ..rman_constants import RMAN_STYLIZED_FILTERS
 
@@ -69,6 +70,21 @@ def asset_name_from_label(label):
     """
     assetDir = re.sub(r'[^\w]', '', re.sub(' ', '_', label)) + '.rma'
     return assetDir
+
+class BlenderProgress:
+    def __init__(self,):
+        self._val = -1
+        self._pbar = bpy.context.window_manager
+        # print 'Progress init: using %s' % self._pbar
+
+    def Start(self):
+        self._pbar.progress_begin(0,100)
+
+    def Update(self, val, msg=None):
+        self._pbar.progress_update(val)
+
+    def End(self):
+        self._pbar.progress_end()
 
 
 
@@ -114,6 +130,7 @@ class BlenderHostPrefs(ral.HostPrefs):
         self.rpbHideFactoryLib = self.getHostPref('rpbHideFactoryLib', 0)
 
         self._nodesToExport = list()
+        self.progress = BlenderProgress()
 
     def getHostPref(self, prefName, defaultValue): # pylint: disable=unused-argument
         if prefName == 'rpbUserLibraries':
@@ -207,7 +224,7 @@ class BlenderHostPrefs(ral.HostPrefs):
 
     def gather_material_nodes(self, mat):
         out = shadergraph_utils.is_renderman_nodetree(mat)
-        self._nodesToExport.extend(out)
+        self._nodesToExport.append(out)
         nodes = shadergraph_utils.gather_nodes(out)
         self._nodesToExport.extend(nodes)
 
@@ -322,26 +339,6 @@ def isValidNodeType(nodetype):
 #
 #   END of GLOBALS
 #
-
-##
-# @brief      Class used by rfm.rmanAssetsLib.renderAssetPreview to report
-#             progress back to the host application.
-#
-class BlenderProgress:
-    def __init__(self,):
-        self._val = -1
-        self._pbar = bpy.context.window_manager
-        # print 'Progress init: using %s' % self._pbar
-
-    def Start(self):
-        self._pbar.progress_begin(0,100)
-
-    def Update(self, val, msg=None):
-        self._pbar.progress_update(val)
-
-    def End(self):
-        self._pbar.progress_end()
-
 
 def fix_blender_name(name):
     return name.replace(' ', '').replace('.', '')
@@ -521,7 +518,7 @@ class BlenderNode:
 
         if fail:
             # ignore unreadable but warn
-            print("Ignoring un-readable parameter : %s" % nodeattr)
+            rfb_log().debug("Ignoring un-readable parameter : %s" % nodeattr)
             return None
 
         return pvalue
@@ -552,11 +549,11 @@ class BlenderNode:
             ptype = param['type']
             node = self.node
             # safety check
-            if not p_name in node.prop_meta:
+            if not p_name in node.prop_meta and not ptype.startswith('output'):
                 self.AddParam(p_name, {'type': ptype,
                                    'value': param['default']})
                 if p_name not in self.__safeToIgnore and not ptype.startswith('output'):
-                    print("Setting missing parameter to default"
+                    rfb_log().debug("Setting missing parameter to default"
                                " value :" + " %s = %s (%s)" %
                                (node.name + '.' + p_name, param['default'],
                                 self.blenderNodeType))
@@ -689,13 +686,13 @@ class BlenderGraph:
 
         if node in self._invalids:
             # print '    already in invalids'
-            print('%s invalid' % node.name)
+            rfb_log().error('%s invalid' % node.name)
             return False
        
         if node.bl_label not in __BL_NODES_MAP__:
             self._invalids.append(node)
             # we must warn the user, as this is not really supposed to happen.
-            print('%s is not a valid node type (%s)' %
+            rfb_log().error('%s is not a valid node type (%s)' %
                        (node.name, node.__class__.__name__))
             # print '    not a valid node type -> %s' % nodetype
             return False
@@ -741,11 +738,21 @@ class BlenderGraph:
                 ignoreSrc = l.from_node.bl_label not in __BL_NODES_MAP__
 
                 if ignoreDst or ignoreSrc:
-                    print("Ignoring connection %s -> %s" % (l.from_node.name, l.to_node.name))
+                    rfb_log().debug("Ignoring connection %s -> %s" % (l.from_node.name, l.to_node.name))
                     continue
 
-                self._connections.append(("%s.%s" % (fix_blender_name(l.from_node.name), l.from_socket.name),
-                                          "%s.%s" % (fix_blender_name(l.to_node.name), l.to_socket.name)))
+                from_node = l.from_node
+                to_node = l.to_node
+                from_socket_name = l.from_socket.name
+                to_socket_name = l.to_socket.name 
+
+                renderman_node_type = getattr(from_node, 'renderman_node_type', '')
+                if renderman_node_type == 'bxdf':
+                    # for Bxdf nodes, use the same socket name as RfM
+                    from_socket_name = 'outColor'
+
+                self._connections.append(("%s.%s" % (fix_blender_name(l.from_node.name), from_socket_name),
+                                          "%s.%s" % (fix_blender_name(l.to_node.name), to_socket_name)))
 
         # remove duplicates
         self._connections = list(set(self._connections))
@@ -1123,8 +1130,8 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
     Asset = RmanAsset(assetType=atype, label=label, previewType=renderPreview)
 
     asset_type = ''
+    hostPrefs = get_host_prefs()    
     if atype == 'nodeGraph':
-        hostPrefs = get_host_prefs()
         rel_path = os.path.relpath(category, hostPrefs.getSelectedLibrary())   
         if rel_path.startswith('Materials'):
             asset_type = 'Materials'
@@ -1362,7 +1369,7 @@ def setParams(node, paramsList):
                 try:
                    setattr(node, pname, pval)
                 except:
-                    print('setParams float3 FAILED: %s  ptype: %s  pval: %s' %
+                    rfb_log().error('setParams float3 FAILED: %s  ptype: %s  pval: %s' %
                           (nattr, ptype, repr(pval)))
             else:
                 try:
@@ -1647,7 +1654,7 @@ def connectNodes(Asset, nt, nodeDict):
         elif renderman_node_type == 'bxdf':
             nt.links.new(srcNode.outputs['Bxdf'], dstNode.inputs[dstSocket])            
         else:            
-            print('error connecting %s.%s to %s.%s' % (srcNode.name,srcSocket, dstNode.name, dstSocket))
+            rfb_log().debug('error connecting %s.%s to %s.%s' % (srcNode.name,srcSocket, dstNode.name, dstSocket))
 
     if not bxdf_socket.is_linked:
         # look for a LamaSurface node
@@ -1745,7 +1752,7 @@ def importAsset(filepath):
                 plugin_node = light.renderman.get_light_node()
                 plugin_node.lightColorMap = env_map_path
             else:
-                print('More than one dome in scene.  Not sure which to use')
+                rfb_log().error('More than one dome in scene.  Not sure which to use')
         else:
             for light in selected_dome_lights:
                 light = dome_lights[0].data

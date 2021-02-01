@@ -51,7 +51,7 @@ def get_render_variant(bl_scene):
     if filepath_utils.is_ncr_license():
         return 'prman'
 
-    if sys.platform == ("darwin"):
+    if sys.platform == ("darwin") and bl_scene.renderman.renderVariant != 'prman':
         rfb_log().warning("XPU is not implemented on OSX: using RIS...")
         return 'prman'
 
