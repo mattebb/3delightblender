@@ -181,6 +181,7 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
         return get_lightfilter_items()
 
     rman_lightfilter_name: EnumProperty(items=get_type_items, name="Light Filter Name")
+    add_to_selected: BoolProperty(default=True)
 
     def execute(self, context):
         selected_objects = context.selected_objects
@@ -208,16 +209,17 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
         output.inputs[2].hide = True   
         bpy.context.object.data.renderman.renderman_light_filter_shader = self.rman_lightfilter_name
 
-        for ob in selected_objects:
-            rman_type = object_utils._detect_primitive_(ob)
-            if rman_type == 'LIGHT':
-                light_filter_item = ob.data.renderman.light_filters.add()
-                light_filter_item.linked_filter_ob = light_filter_ob
-            elif shadergraph_utils.is_mesh_light(ob):
-                mat = ob.active_material
-                if mat:
-                    light_filter_item = mat.renderman_light.light_filters.add()
+        if self.properties.add_to_selected:
+            for ob in selected_objects:
+                rman_type = object_utils._detect_primitive_(ob)
+                if rman_type == 'LIGHT':
+                    light_filter_item = ob.data.renderman.light_filters.add()
                     light_filter_item.linked_filter_ob = light_filter_ob
+                elif shadergraph_utils.is_mesh_light(ob):
+                    mat = ob.active_material
+                    if mat:
+                        light_filter_item = mat.renderman_light.light_filters.add()
+                        light_filter_item.linked_filter_ob = light_filter_ob
 
         return {"FINISHED"}        
 

@@ -207,6 +207,7 @@ class BlenderHostPrefs(ral.HostPrefs):
 
     def gather_material_nodes(self, mat):
         out = shadergraph_utils.is_renderman_nodetree(mat)
+        self._nodesToExport.extend(out)
         nodes = shadergraph_utils.gather_nodes(out)
         self._nodesToExport.extend(nodes)
 
@@ -529,13 +530,10 @@ class BlenderNode:
         # get node parameters
         #
         params = []
-        if self.blenderNodeType == 'RendermanOutputNode':
-            params = blenderParams(self.blenderNodeType)
-        else:
-            # This is a rman node
-            rmanNode = ra.RmanShadingNode(self.rmanNodeType,
-                                          osoPath=self.oslPath)
-            params = rmanNode.params()
+        # This is a rman node
+        rmanNode = ra.RmanShadingNode(self.rmanNodeType,
+                                        osoPath=self.oslPath)
+        params = rmanNode.params()
 
         if self.node.bl_label == "PxrOSL":
             for inp in self.node.inputs:
@@ -984,29 +982,6 @@ class BlenderGraph:
         return str(self)
 
 ##
-# @brief      Returns a params array similar to the one returned by
-#             rmanShadingNode. This allows us to deal with maya nodes.
-#
-# @param      nodetype  the maya node type
-#
-# @return     Array of structs
-#
-def blenderParams(nodetype):
-    params = []
-    if nodetype == 'shadingEngine':
-        params.append({'type': 'float[]', 'name': 'surfaceShader'})
-        params.append({'type': 'float[]', 'name': 'displacementShader'})
-        params.append({'type': 'float[]', 'name': 'volumeShader'})
-    elif nodetype == 'place3dTexture':
-        params.append({'type': 'float[]', 'name': 'translate'})
-        params.append({'type': 'float[]', 'name': 'rotate'})
-        params.append({'type': 'float[]', 'name': 'scale'})
-    else:
-        print('Ignoring unsupported node type: %s !' % nodetype)
-    return params
-
-
-##
 # @brief      Parses a Maya node graph, starting from 'node'.
 #
 # @param      node   root of the graph
@@ -1016,13 +991,34 @@ def blenderParams(nodetype):
 #
 def parseNodeGraph(nodes_to_convert, Asset):
 
-    #out = next((n for n in nodes_to_convert if hasattr(n, 'renderman_node_type') and
-    #                    n.renderman_node_type == 'output'), None)
-
     graph = BlenderGraph()
-    #graph.AddNode(out)
 
     for node in nodes_to_convert:
+        renderman_node_type = getattr(node, 'renderman_node_type', '')
+        if renderman_node_type == 'output':
+            # create a Maya-like shadingEngine node for our output node
+            nodeClass = 'root'
+            rmanNode = 'shadingEngine'
+            nodeType = 'shadingEngine'
+            nodeName = '%s_SG' % Asset.label()
+            Asset.addNode(nodeName, nodeType,
+                            nodeClass, rmanNode,
+                            externalosl=False)
+
+            infodict = {}
+            infodict['name'] = 'rman__surface'
+            infodict['type'] = 'reference float3'
+            infodict['value'] = None
+            Asset.addParam(nodeName, 'rman__surface', infodict)                            
+
+            infodict = {}
+            infodict['name'] = 'rman__displacement'
+            infodict['type'] = 'reference float3'
+            infodict['value'] = None
+            Asset.addParam(nodeName, 'rman__displacement', infodict)                            
+
+            continue
+        
         # some "nodes" are actually tuples
         if type(node) != type((1,2,3)):
             graph.AddNode(node)
@@ -1384,30 +1380,6 @@ def setParams(node, paramsList):
             setattr(node, enable, True)
 
 ##
-# @brief      Set the transform values of the maya node.
-# @note       We only support flat transformations for now, which means that we
-#             don't rebuild hierarchies of transforms.
-#
-# @param      name  The name of the tranform node
-# @param      fmt   The format data
-# @param      vals  The transformation values
-#
-# @return     None
-#
-def setTransform(name, fmt, vals):
-    if fmt[2] == TrMode.k_flat:
-        if fmt[0] == TrStorage.k_matrix:
-            mc.xform(name, ws=True, matrix=vals)
-        elif fmt[0] == TrStorage.k_TRS:
-            # much simpler
-            mc.setAttr((name + '.translate'), *vals[0:3], type='float3')
-            mc.setAttr((name + '.rotate'), *vals[3:6], type='float3')
-            mc.setAttr((name + '.scale'), *vals[6:9], type='float3')
-    else:
-        raise RmanAssetBlenderError('Unsupported transform mode ! (hierarchical)')
-
-
-##
 # @brief      Creates all maya nodes defined in the asset's nodeGraph and sets
 #             their param values. Nodes will be renamed by Maya and the mapping
 #             from original name to actual name retuned as a dict, to allow us
@@ -1502,45 +1474,6 @@ def createNodes(Asset):
         elif nodeClass == 'root':
             nodeDict[nodeId] = output_node.name
             continue
-        elif nodeClass == 'light':
-            # we don't deal with mesh lights
-            if nodeType == 'PxrMeshLight':
-                continue
-
-            bpy.ops.object.rman_add_light(rman_light_name=nodeType)
-            light = bpy.context.active_object
-
-            light.name = nodeId
-            light.data.name = nodeId    
-           
-            if fmt[2] == TrMode.k_flat:
-                if fmt[0] == TrStorage.k_matrix:                   
-                    light.matrix_world[0] = vals[0:4]
-                    light.matrix_world[1] = vals[4:8]
-                    light.matrix_world[2] = vals[8:12]
-                    light.matrix_world[3] = vals[12:]
-                    light.matrix_world.transpose()
-                elif fmt[0] == TrStorage.k_TRS:  
-                    light.location = vals[0:3]                    
-                    light.scale = vals[6:9]
-
-                    # rotation
-                    light.rotation_euler = (radians(vals[3]), radians(vals[4]), radians(vals[5]))
-
-            try:
-                if nodeType not in ['PxrDomeLight', 'PxrEnvDayLight']:
-                    cdata = Asset._assetData['compatibility']
-                    if cdata['host']['name'] != 'Blender':
-                        # assume that if a lightrig did not come from Blender,
-                        # we need convert from Y-up to Z-up
-                        yup_to_zup = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
-                        light.matrix_world = yup_to_zup @ light.matrix_world
-            except:
-                pass
-
-            created_node = light.data.renderman.get_light_node()
-            mat = light
-            nt = light.data.node_tree 
 
         if created_node:
             nodeDict[nodeId] = created_node.name
@@ -1549,9 +1482,125 @@ def createNodes(Asset):
         if nodeClass == 'bxdf':
             created_node.update_mat(mat)
 
-    # # restore selection
-    # mc.select(sel)
     return mat,nt,nodeDict
+
+def import_light_rig(Asset):
+    nodeDict = {}
+
+    filter_nodes = dict()
+    light_nodes = dict()
+    domelight_nodes = dict()
+    portallight_nodes = dict()
+
+    curr_x = 250
+    for node in Asset.nodeList():
+        nodeId = node.name()
+        nodeType = node.type()
+        nodeClass = node.nodeClass()
+
+        if nodeClass not in ['light', 'lightfilter']:
+            continue
+
+        # print('%s %s: %s' % (nodeId, nodeType, nodeClass))
+        fmt, vals, ttype = node.transforms()
+        # print('+ %s %s: %s' % (fmt, vals, ttype))      
+
+        created_node = None
+        light = None
+                      
+        if nodeClass == 'light':
+            # we don't deal with mesh lights
+            if nodeType == 'PxrMeshLight':
+                continue
+
+            bpy.ops.object.rman_add_light(rman_light_name=nodeType)
+
+        elif nodeClass == 'lightfilter':
+            bpy.ops.object.rman_add_light_filter(rman_lightfilter_name=nodeType, add_to_selected=False)
+
+        light = bpy.context.active_object
+        nt = light.data.node_tree
+
+        light.name = nodeId
+        light.data.name = nodeId      
+
+        created_node = light.data.renderman.get_light_node()          
+
+        if created_node:
+            nodeDict[nodeId] = created_node.name
+            setParams(created_node, node.paramsDict())
+
+        if nodeClass == 'light':
+            light_nodes[nodeId] = light
+        elif nodeClass == 'lightfilter':
+            filter_nodes[nodeId] = light
+
+        if nodeType == "PxrDomeLight":
+            domelight_nodes[nodeId] = light
+        elif nodeType == "PxrPortalLight":
+            portallight_nodes[nodeId] = light          
+
+        if fmt[2] == TrMode.k_flat:
+            if fmt[0] == TrStorage.k_matrix:                   
+                light.matrix_world[0] = vals[0:4]
+                light.matrix_world[1] = vals[4:8]
+                light.matrix_world[2] = vals[8:12]
+                light.matrix_world[3] = vals[12:]
+                light.matrix_world.transpose()
+            elif fmt[0] == TrStorage.k_TRS:  
+                light.location = vals[0:3]                    
+                light.scale = vals[6:9]
+
+                # rotation
+                light.rotation_euler = (radians(vals[3]), radians(vals[4]), radians(vals[5]))
+
+        try:
+            if nodeType not in ['PxrDomeLight', 'PxrEnvDayLight']:
+                cdata = Asset._assetData['compatibility']
+                if cdata['host']['name'] != 'Blender':
+                    # assume that if a lightrig did not come from Blender,
+                    # we need convert from Y-up to Z-up
+                    yup_to_zup = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
+                    light.matrix_world = yup_to_zup @ light.matrix_world
+        except:
+            pass   
+
+        if bpy.context.view_layer.objects.active:
+            bpy.context.view_layer.objects.active.select_set(False)                 
+
+    lights_to_filters = dict()            
+
+    # loop over connections, and map each light to filters
+    for con in Asset.connectionList():
+
+        srcNode = con.srcNode()
+        dstNode = con.dstNode()
+
+        # check if this is portal light/dome light connection
+        # if so, let's do it, here
+        if (srcNode in portallight_nodes) and (dstNode in domelight_nodes):
+            portal = portallight_nodes[srcNode]
+            dome = domelight_nodes[dstNode]
+            portal.parent = dome
+            continue        
+
+        if dstNode not in lights_to_filters:
+            lights_to_filters[dstNode] = [srcNode]
+        else:
+            lights_to_filters[dstNode].append(srcNode)
+
+
+    for light,filters in lights_to_filters.items():
+        if light not in light_nodes:
+            continue
+        light_node = light_nodes[light]
+        for i,f in enumerate(filters):
+            filter_node = filter_nodes[f]
+
+            light_filter_item = light_node.data.renderman.light_filters.add()
+            light_filter_item.linked_filter_ob = filter_node            
+
+    return nodeDict    
 
 
 ##
@@ -1567,6 +1616,7 @@ def createNodes(Asset):
 #
 def connectNodes(Asset, nt, nodeDict):
     output = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
+    bxdf_socket = output.inputs['Bxdf']
 
     for con in Asset.connectionList():
         #print('+ %s.%s -> %s.%s' % (nodeDict[con.srcNode()](), con.srcParam(),
@@ -1598,6 +1648,19 @@ def connectNodes(Asset, nt, nodeDict):
             nt.links.new(srcNode.outputs['Bxdf'], dstNode.inputs[dstSocket])            
         else:            
             print('error connecting %s.%s to %s.%s' % (srcNode.name,srcSocket, dstNode.name, dstSocket))
+
+    if not bxdf_socket.is_linked:
+        # look for a LamaSurface node
+        lama_surface_node = None
+        for node in nt.nodes:
+            renderman_node_type = getattr(node, 'renderman_node_type', '')                
+            if renderman_node_type == 'LamaSurface':
+                lama_surface_node = node        
+                break
+
+        if lama_surface_node:
+            nt.links.new(lama_surface.outputs['Bxdf'], output.inputs['Bxdf'])
+
 
 def create_displayfilter_nodes(Asset):
     has_stylized = False
@@ -1648,11 +1711,17 @@ def importAsset(filepath):
 
     if assetType == "nodeGraph":
         mat = None
+        path = os.path.dirname(Asset.path())
         if Asset.displayFilterList():
             create_displayfilter_nodes(Asset)
         if Asset.nodeList():
-            mat,nt,newNodes = createNodes(Asset)
-            connectNodes(Asset, nt, newNodes)
+            paths = path.split('/')
+            if 'Materials' in paths:
+                mat,nt,newNodes = createNodes(Asset)
+                connectNodes(Asset, nt, newNodes)
+            elif 'LightRigs' in paths:
+                newNodes = import_light_rig(Asset)
+
         return mat
 
     elif assetType == "envMap":
