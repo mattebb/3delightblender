@@ -45,10 +45,11 @@ from ..rfb_utils import object_utils
 from ..rfb_utils import transform_utils
 from ..rfb_utils import texture_utils
 from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
-from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__
+from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__, is_vstruct_and_linked
 from ..rfb_logger import rfb_log
 from ..rman_bl_nodes import __BL_NODES_MAP__, __RMAN_NODE_TYPES__
 from ..rman_constants import RMAN_STYLIZED_FILTERS
+from ..rman_cycles_convert import _CYCLES_NODE_MAP_
 
 def default_label_from_file_name(filename):
     # print filename
@@ -130,6 +131,8 @@ class BlenderHostPrefs(ral.HostPrefs):
         self.rpbHideFactoryLib = self.getHostPref('rpbHideFactoryLib', 0)
 
         self._nodesToExport = list()
+        self.renderman_output_node = None
+        self.blender_material = None
         self.progress = BlenderProgress()
 
     def getHostPref(self, prefName, defaultValue): # pylint: disable=unused-argument
@@ -224,7 +227,7 @@ class BlenderHostPrefs(ral.HostPrefs):
 
     def gather_material_nodes(self, mat):
         out = shadergraph_utils.is_renderman_nodetree(mat)
-        self._nodesToExport.append(out)
+        self.renderman_output_node = out
         nodes = shadergraph_utils.gather_nodes(out)
         self._nodesToExport.extend(nodes)
 
@@ -232,6 +235,7 @@ class BlenderHostPrefs(ral.HostPrefs):
         if mode == 'material':
             ob = context.active_object
             mat = ob.active_material
+            self.blender_material = mat
             self.gather_material_nodes(mat)            
         elif mode == 'lightrigs':
             selected_light_objects = []
@@ -250,7 +254,7 @@ class BlenderHostPrefs(ral.HostPrefs):
             self._defaultLabel = default_label_from_file_name(hdr)
             return True
         else:
-            print('preExportCheck: unknown mode: %s', repr(mode))
+            rfb_log().error('preExportCheck: unknown mode: %s', repr(mode))
             return False
         return True
 
@@ -343,695 +347,341 @@ def isValidNodeType(nodetype):
 def fix_blender_name(name):
     return name.replace(' ', '').replace('.', '')
 
-##
-# @brief    Class representing a node in Maya's DAG
-#
-#
-class BlenderNode:
-    __float3 = ['color', 'point', 'vector', 'normal']
-    __safeToIgnore = ['Maya_UsePref', 'Maya_Pref']
-    __conversionNodeTypes = ['PxrToFloat', 'PxrToFloat3']
+def set_asset_params(ob, node, nodeName, Asset):
+    # If node is OSL node get properties from dynamic location.
+    if node.bl_idname == "PxrOSLPatternNode":
+        for input_name, input in node.inputs.items():
+            prop_type = input.renderman_type           
+            if input.is_linked:
+                to_socket = input
+                from_socket = input.links[0].from_socket
 
-    def __init__(self, node, nodetype):
-        # the node name / handle
-        self.name = fix_blender_name(node.name)
-        self.node = node
-        # the maya node type
-        self.blenderNodeType = nodetype
-        # The rman node it translates to. Could be same as mayaNodeType or not.
-        self.rmanNodeType = None
-        # either 16 or 9 floats (matrix vs. TranslateRotateScale)
-        self.transform = []
-        self.hasTransform = None
-        self.tr_type = None
-        self.tr_mode = None
-        self.tr_storage = None
-        self.tr_space = None
-        # 3d manifolds need special treatment
-        self.has3dManifold = False
-        # node params
-        self._params = {}
-        self._paramsOrder = []
+                param_type = 'reference %s' % prop_type
+                param_name = input_name
+                val = None
 
-        # find the corresponding RenderMan node if need be.
-        global g_BlenderToPxrNodes
-        self.rmanNodeType = self.blenderNodeType
-        if self.blenderNodeType in g_BlenderToPxrNodes:
-            self.rmanNodeType = g_BlenderToPxrNodes[self.blenderNodeType]
+            elif type(input).__name__ != 'RendermanNodeSocketStruct':
 
-        # special case: osl objects can be injected though the PxrOSL node.
-        self.oslPath = None
-        if node.bl_label == 'PxrOSL':
-            osl = getattr(node, 'shadercode')
-            if not os.path.exists(osl):
-                err = ('Cant read osl file: %s' % osl)
-                raise RmanAssetBlenderError(err)
-            path, fileext = os.path.split(osl)
-            self.rmanNodeType = os.path.splitext(fileext)[0]
-            self.oslPath = path
+                param_type = prop_type
+                param_name = input_name
+                val = string_utils.convert_val(input.default_value, type_hint=prop_type)  
 
-        self.ReadParams()
+            pdict = {'type': param_type, 'value': val}
+            Asset.addParam(nodeName, param_name, pdict)                                  
 
-    ##
-    # @brief      simple method to make sure we respect the natural parameter
-    #             order in our output.
-    #
-    # @param      self      The object
-    # @param      name      The name
-    # @param      datadict  The datadict
-    #
-    # @return     None
-    #
-    def AddParam(self, name, datadict):
-        # print '+ %s : adding %s %s' % (self.name, datadict['type'], name)
-        self._paramsOrder.append(name)
-        self._params[name] = datadict
+    else:
 
-    def OrderedParams(self):
-        return self._paramsOrder
+        for prop_name, meta in node.prop_meta.items():
+            if node.plugin_name == 'PxrRamp' and prop_name in ['colors', 'positions']:
+                continue
 
-    def ParamDict(self, name):
-        return self._params[name]
+            param_widget = meta.get('widget', 'default')
+            if param_widget == 'null' and 'vstructmember' not in meta:
+                continue
 
-    def StoreTransformValues(self, Tnode):
-        worldSpace = (self.tr_space == TrSpace.k_world)
-        if self.tr_storage == TrStorage.k_TRS:
-            # get translate, rotate and scale in world-space and store
-            # them in that order in self.transform
-            tmp = mc.xform(Tnode, ws=worldSpace, q=True,
-                           translation=True)
-            self.transform = tmp
-            tmp = mc.xform(Tnode, ws=worldSpace, q=True,
-                           rotation=True)
-            self.transform += tmp
-            tmp = mc.xform(Tnode, ws=worldSpace, q=True,
-                           scale=True)
-            self.transform += tmp
-            # print 'k_TRS : %s' % self.transform
-        elif self.tr_storage == TrStorage.k_matrix:
-            # get the world-space transformation matrix and store
-            # in self.transform
-            self.transform = mc.xform(Tnode, ws=worldSpace, q=True,
-                                      matrix=True)
-            # print 'k_matrix: %s' % self.transform
-
-    def HasTransform(self, storage=TrStorage.k_matrix,
-                     space=TrSpace.k_world, mode=TrMode.k_flat):
-        # we already know and the data has been stored.
-        if self.hasTransform is not None:
-            return self.hasTransform
-
-        if not mc.objExists(self.name):
-            # We may have 'inserted' nodes in our graph that don't exist in
-            # maya. 'inserted' nodes are typically color->float3 nodes.
-            self.hasTransform = False
-            return self.hasTransform
-
-        # get a list of inherited classes for that node
-        inherited = mc.nodeType(self.name, inherited=True)
-
-        if 'dagNode' in inherited:
-            self.hasTransform = True
-
-            # This is a transform-able node.
-            # We store the transformation settings for later use.
-            self.tr_mode = mode
-            self.tr_storage = storage
-            self.tr_space = space
-
-            # we only support flat transformations for now.
-            #
-            if mode == TrMode.k_flat:
-                pass
-            elif mode == TrMode.k_hierarchical:
-                raise RmanAssetBlenderError('Hierarchical transforms '
-                                         'not implemented yet !')
             else:
-                raise RmanAssetBlenderError('Unknown transform mode !')
-
-            if 'shape' in inherited:
-                transformNodes = mc.listRelatives(self.name, allParents=True,
-                                                  type='transform')
-
-                if transformNodes is None:
-                    raise RmanAssetBlenderError('This is wrong : '
-                                             'no transfom for this shape: %s' %
-                                             self.name)
-
-                # print 'we have valid transform nodes : %s' % transformNodes
-                Tnode = transformNodes[0]
-                # the node is under a transform node
-                self.tr_type = TrType.k_nodeTransform
-                self.StoreTransformValues(Tnode)
-            elif 'transform' in inherited:
-                # the node itself is a transform, like place3dTexture...
-                self.tr_type = TrType.k_coordsys
-                self.StoreTransformValues(self.name)
-            else:
-                err = 'Unexpected dagNode: %s = %s' % (self.name, inherited)
-                raise RmanAssetBlenderError(err)
-        else:
-            self.hasTransform = False
-
-        return self.hasTransform
-
-    def BlenderGetAttr(self, nodeattr):
-        fail = False
-        arraysize = -1
-
-        # get actual parameter value
-        pvalue = None
-        try:
-            pvalue = getattr(self.node, nodeattr)
-            if type(pvalue) in (mathutils.Vector, mathutils.Color) or\
-                    pvalue.__class__.__name__ == 'bpy_prop_array'\
-                    or pvalue.__class__.__name__ == 'Euler':
-                # BBM modified from if to elif
-                pvalue = list(pvalue)[:3]
-            meta = getattr(self.node, 'prop_meta')[nodeattr]
-            if 'renderman_type' in meta and meta['renderman_type'] == 'int':
-                pvalue = int(pvalue)
-            if 'renderman_type' in meta and meta['renderman_type'] == 'float':
-                pvalue = float(pvalue)
-        except:
-            fail = True
-
-        if fail:
-            # ignore unreadable but warn
-            rfb_log().debug("Ignoring un-readable parameter : %s" % nodeattr)
-            return None
-
-        return pvalue
-
-    def ReadParams(self):
-        # get node parameters
-        #
-        params = []
-        # This is a rman node
-        rmanNode = ra.RmanShadingNode(self.rmanNodeType,
-                                        osoPath=self.oslPath)
-        params = rmanNode.params()
-
-        if self.node.bl_label == "PxrOSL":
-            for inp in self.node.inputs:
-                ptype = inp.renderman_type
-                if inp.is_linked:
-                    self.SetConnected(inp.name, ptype)
-                else:
-                    self.AddParam(inp.name, {'type': ptype, 'value': inp.default_value})
-            return
-
-        # loop through parameters
-        #
-        prop_meta = getattr(self.node, 'prop_meta', None)
-        for param in params:
-            p_name = param['name']
-            ptype = param['type']
-            node = self.node
-            # safety check
-            if not p_name in node.prop_meta and not ptype.startswith('output'):
-                self.AddParam(p_name, {'type': ptype,
-                                   'value': param['default']})
-                if p_name not in self.__safeToIgnore and not ptype.startswith('output'):
-                    rfb_log().debug("Setting missing parameter to default"
-                               " value :" + " %s = %s (%s)" %
-                               (node.name + '.' + p_name, param['default'],
-                                self.blenderNodeType))
-
-            # if the attr is a float3 and one or more components are connected
-            # we need to find out.
-            elif p_name in node.inputs and node.inputs[p_name].is_linked:
-                link = node.inputs[p_name].links[0]
-                # connected parameter
-                self.SetConnected(p_name, ptype)
-            
-            # arrays
-            elif '[' in ptype:
-                array_len = getattr(self.node, '%s_arraylen' % p_name, -1)
-                if array_len < 1:
+                prop = getattr(node, prop_name)
+                # if property group recurse
+                if meta['renderman_type'] == 'page':
+                    continue
+                elif prop_name == 'inputMaterial' or \
+                        ('vstruct' in meta and meta['vstruct'] is True) or \
+                        ('type' in meta and meta['type'] == 'vstruct'):
                     continue
 
-                rman_type = ptype.split('[')[0]
-                ptype = '%s[%d]' % (rman_type, array_len)
-                is_any_connected = False
-                # check if there's any connections:
-                for i in range(0, array_len):
-                    nodeattr = '%s[%d]' % (p_name, i)
-                    if nodeattr in node.inputs and node.inputs[nodeattr].is_linked:
-                        is_any_connected = True
-                        break
+                # if input socket is linked reference that
+                elif hasattr(node, 'inputs') and prop_name in node.inputs and \
+                        node.inputs[prop_name].is_linked:
+
+                    if 'arraySize' in meta:
+                        pass
+                    elif 'renderman_array_name' in meta:
+                        continue           
+
+                    param_type = 'reference %s' % meta['renderman_type']
+                    param_name = meta['renderman_name']
+                    
+                    pdict = {'type': param_type, 'value': None}
+                    Asset.addParam(nodeName, param_name, pdict)    
+
+                # see if vstruct linked
+                elif is_vstruct_and_linked(node, prop_name):
+                    val = None
+                    vstruct_name, vstruct_member = meta[
+                        'vstructmember'].split('.')
+                    from_socket = node.inputs[
+                        vstruct_name].links[0].from_socket
+
+                    vstruct_from_param = "%s_%s" % (
+                        from_socket.identifier, vstruct_member)
+                    if vstruct_from_param in from_socket.node.output_meta:
+                        actual_socket = from_socket.node.output_meta[
+                            vstruct_from_param]
+
+                        param_type = 'reference %s' % meta['renderman_type']
+                        param_name = meta['renderman_name']
+
+                        node_meta = getattr(
+                            node, 'shader_meta') if node.bl_idname == "PxrOSLPatternNode" else node.output_meta                        
+                        node_meta = node_meta.get(vstruct_from_param)
+                        is_reference = True
+                        if node_meta:
+                            expr = node_meta.get('vstructConditionalExpr')
+                            # check if we should connect or just set a value
+                            if expr:
+                                if expr.split(' ')[0] == 'set':
+                                    val = 1
+                                    param_type = meta['renderman_type']      
+
+                        pdict = {'type': param_type, 'value': val}
+                        Asset.addParam(nodeName, param_name, pdict)                          
+
+                    else:
+                        rfb_log().warning('Warning! %s not found on %s' %
+                              (vstruct_from_param, from_socket.node.name))
+
+                # else output rib
+                else:
+                    # if struct is not linked continue
+                    if meta['renderman_type'] in ['struct', 'enum']:
+                        continue
+
+                    param_type = meta['renderman_type']
+                    param_name = meta['renderman_name']
+                    val = None
+                    arrayLen = 0
+
+                    # if this is a gain on PxrSurface and the lobe isn't
+                    # enabled
+                    
+                    if node.bl_idname == 'PxrSurfaceBxdfNode' and \
+                            prop_name in __GAINS_TO_ENABLE__ and \
+                            not getattr(node, __GAINS_TO_ENABLE__[prop_name]):
+                        val = [0, 0, 0] if meta[
+                            'renderman_type'] == 'color' else 0
+
+                    elif meta['renderman_type'] == 'string':
+
+                        val = val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
+                        if param_widget in ['fileinput', 'assetidinput']:
+                            options = meta['options']
+                            # txmanager doesn't currently deal with ptex
+                            if node.bl_idname == "PxrPtexturePatternNode":
+                                val = string_utils.expand_string(val, display='ptex', asFilePath=True)        
+                            # ies profiles don't need txmanager for converting                       
+                            elif 'ies' in options:
+                                val = string_utils.expand_string(val, display='ies', asFilePath=True)
+                            # this is a texture
+                            elif ('texture' in options) or ('env' in options) or ('imageplane' in options):
+                                tx_node_id = texture_utils.generate_node_id(node, param_name, ob=ob)
+                                tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+                                val = tx_val if tx_val != '' else val
+                        elif param_widget == 'assetidoutput':
+                            display = 'openexr'
+                            if 'texture' in meta['options']:
+                                display = 'texture'
+                            val = string_utils.expand_string(val, display='texture', asFilePath=True)
+
+                    elif 'renderman_array_name' in meta:
+                        continue
+                    elif meta['renderman_type'] == 'array':
+                        array_len = getattr(node, '%s_arraylen' % prop_name)
+                        sub_prop_names = getattr(node, prop_name)
+                        sub_prop_names = sub_prop_names[:array_len]
+                        val_array = []
+                        val_ref_array = []
+                        param_type = '%s[%d]' % (meta['renderman_array_type'], array_len)
+                        
+                        for nm in sub_prop_names:
+                            if hasattr(node, 'inputs')  and nm in node.inputs and \
+                                node.inputs[nm].is_linked:
+
+                                to_socket = node.inputs[nm]
+                                from_socket = to_socket.links[0].from_socket
+                                from_node = to_socket.links[0].from_node
+
+                                val = get_output_param_str(
+                                    from_node, mat_name, from_socket, to_socket, param_type)
+                                val_ref_array.append(val)
+                            else:
+                                prop = getattr(node, nm)
+                                val = string_utils.convert_val(prop, type_hint=param_type)
+                                if param_type in node_desc.FLOAT3:
+                                    val_array.extend(val)
+                                else:
+                                    val_array.append(val)
+                        if val_ref_array:
+                            pass
+                            #set_rix_param(params, param_type, param_name, val_ref_array, is_reference=True, is_array=True, array_len=len(val_ref_array))
+                        else:                            
+                            pdict = {'type': param_type, 'value': val_array}
+                            Asset.addParam(nodeName, param_name, pdict)
+                        continue
+                    elif meta['renderman_type'] == 'colorramp':
+                        nt = bpy.data.node_groups[node.rman_fake_node_group]
+                        if nt:
+                            ramp_name =  prop
+                            color_ramp_node = nt.nodes[ramp_name]                            
+                            colors = []
+                            positions = []
+                            # double the start and end points
+                            positions.append(float(color_ramp_node.color_ramp.elements[0].position))
+                            colors.append(color_ramp_node.color_ramp.elements[0].color[:3])
+                            for e in color_ramp_node.color_ramp.elements:
+                                positions.append(float(e.position))
+                                colors.append(e.color[:3])
+                            positions.append(
+                                float(color_ramp_node.color_ramp.elements[-1].position))
+                            colors.append(color_ramp_node.color_ramp.elements[-1].color[:3])
+
+                            array_size = len(positions)
+                            pdict = {'type': 'int', 'value': array_size}
+                            Asset.addParam(nodeName, prop_name, pdict)
+
+                            pdict = {'type': 'float[%d]' % array_size, 'value': positions}
+                            Asset.addParam(nodeName, "%s_Knots" % prop_name, pdict)
+
+                            pdict = {'type': 'color[%d]' % array_size, 'value': colors}
+                            Asset.addParam(nodeName, "%s_Colors" % prop_name, pdict)
+
+                            rman_interp_map = { 'LINEAR': 'linear', 'CONSTANT': 'constant'}
+                            interp = rman_interp_map.get(color_ramp_node.color_ramp.interpolation,'catmull-rom')   
+                            pdict = {'type': 'string', 'value': interp}
+                            Asset.addParam(nodeName, "%s_Interpolation" % prop_name, pdict)                            
+                        continue               
+                    elif meta['renderman_type'] == 'floatramp':
+                        nt = bpy.data.node_groups[node.rman_fake_node_group]
+                        if nt:
+                            ramp_name =  prop
+                            float_ramp_node = nt.nodes[ramp_name]                            
+
+                            curve = float_ramp_node.mapping.curves[0]
+                            knots = []
+                            vals = []
+                            # double the start and end points
+                            knots.append(curve.points[0].location[0])
+                            vals.append(curve.points[0].location[1])
+                            for p in curve.points:
+                                knots.append(p.location[0])
+                                vals.append(p.location[1])
+                            knots.append(curve.points[-1].location[0])
+                            vals.append(curve.points[-1].location[1])
+                            array_size = len(knots)   
+
+                            pdict = {'type': 'int', 'value': array_size}
+                            Asset.addParam(nodeName, prop_name, pdict)
+
+                            pdict = {'type': 'float[%d]' % array_size, 'value': knots}
+                            Asset.addParam(nodeName, "%s_Knots" % prop_name, pdict)
+
+                            pdict = {'type': 'float[%d]' % array_size, 'value': vals}
+                            Asset.addParam(nodeName, "%s_Floats" % prop_name, pdict)                                                     
+
+                            pdict = {'type': 'string', 'value': 'catmull-rom'}
+                            Asset.addParam(nodeName, "%s_Interpolation" % prop_name, pdict)                              
                 
-                if is_any_connected:
-                    self.SetConnected(p_name, ptype)
-                else:
-                    pvalues = []
-                    for i in range(0, array_len):
-                        nodeattr = '%s[%d]' % (p_name, i)
-                        pvalue = self.BlenderGetAttr(nodeattr)
-                        pvalues.append(pvalue)
-                    self.AddParam(p_name, {'type': ptype, 'value': pvalue})
+                        continue
+                    else:
 
-            else:
-                # skip vstruct and structs
-                # these should be connections
-                if ptype in ['vstruct', 'struct']:
-                    continue
+                        val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
 
-                # get actual parameter value
-                pvalue = self.BlenderGetAttr(p_name)
+                    pdict = {'type': param_type, 'value': val}
+                    Asset.addParam(nodeName, param_name, pdict)     
 
-                if pvalue is None:
-                    # unreadable : skip
-                    continue
-                # set basic data
-                self.AddParam(p_name, {'type': ptype, 'value': pvalue})
+def set_asset_connections(nodes_list, Asset):
+    for node in nodes_list:
 
-            self.AddParamMetadata(p_name, param)
-
-    def DefaultParams(self):
-            rmanNode = ra.RmanShadingNode(self.rmanNodeType)
-            params = rmanNode.params()
-            for p in params:
-                self.AddParam(p['name'], {'type': p['type'],
-                                          'value': p['default']})
-
-    def SetConnected(self, pname, ptype=None):
-        # print 'connected: %s.%s' % (self.name, pname)
-        if ptype is None:
-            ptype = self._params[pname]['type']
-        if 'reference' in ptype:
-            return
-        self.AddParam(pname, {'type': 'reference %s' % ptype, 'value': None})
-
-    def AddParamMetadata(self, pname, pdict):
-        for k, v in pdict.items():
-            if k == 'type' or k == 'value':
-                continue
-            self._params[pname][k] = v
-
-    def __str__(self):
-        return ('[[name: %s   mayaNodeType: %s   rmanNodeType: %s]]' %
-                (self.name, self.blenderNodeType, self.rmanNodeType))
-
-    def __repr__(self):
-        return str(self)
-
-
-##
-# @brief    Represents a Maya shading network.
-#
-#           Graph nodes will be stored as represented in the maya DAG.
-#           The graph analysis will :
-#               - store connectivity infos
-#               - recognise nodes that need special treatment and process them.
-#
-#           We need to make sure the final asset is host-agnostic enough to be
-#           used in another host. To do so, we decouple the maya DAG from the
-#           prman DAG. Effectively, the json file stores RenderMan's graph
-#           representation. This class will translate from maya to prman.
-#
-#           RfM applies special treatment to a number of nodes :
-#           - Native maya nodes are translated to PxrMaya* nodes.
-#           - Some nodes are ignored (unitConversion, etc).
-#           - Some nodes are translated into more than one node.
-#               - place3dTexture translates to 2 nodes : PxrMayaPlacement3d and
-#                 a scoped coordinate system.
-#           - Some connections (float->color, etc) are created by inserting an
-#             additionnal node in the graph (PxrToFloat3, PxrToFloat).
-#           It is safer to handle these exceptions once the graph has been
-#           parsed.
-#
-class BlenderGraph:
-    __CompToAttr = {'R': 'inputR', 'X': 'inputR',
-                    'G': 'inputG', 'Y': 'inputG',
-                    'B': 'inputB', 'Z': 'inputB'}
-    __CompToIdx = {'R': 0, 'X': 0,
-                   'G': 1, 'Y': 1,
-                   'B': 2, 'Z': 2}
-
-    def __init__(self):
-        self._nodes = {}
-        self._invalids = []
-        self._connections = []
-        self._extras = {}
-
-    def NodeList(self):
-        return self._nodes
-
-    def AddNode(self, node, nodetype=None):
-        global g_validNodeTypes
-
-        # make sure we always consider the node if we get 'node.attr'
-        #node = nodename.split('.')[0]
-
-        if node in self._invalids:
-            # print '    already in invalids'
-            rfb_log().error('%s invalid' % node.name)
-            return False
-       
-        if node.bl_label not in __BL_NODES_MAP__:
-            self._invalids.append(node)
-            # we must warn the user, as this is not really supposed to happen.
-            rfb_log().error('%s is not a valid node type (%s)' %
-                       (node.name, node.__class__.__name__))
-            # print '    not a valid node type -> %s' % nodetype
-            return False
-
-        if node not in self._nodes:
-            #print('adding %s ' % node.name)
-            if node.renderman_node_type == 'output':
-                self._nodes[node] = BlenderNode(node, 'RendermanOutputNode')
-            else:
-                self._nodes[node] = BlenderNode(node, node.plugin_name)
-            # print '    add to node list'
-            return True
-
-        # print '    %s already in node list ? ( %s )' % (node, nodetype)
-        return False
-
-    ##
-    # @brief      builds topological information and optionaly inserts
-    #             floatToFloat3 or float3ToFloat nodes when necessary.
-    #
-    # @param      self  The object
-    #
-    # @return     None
-    #
-    def Process(self):
-        global g_validNodeTypes
-
-        # analyse topology
-        #
-        for node in self._nodes:
-
-            # get incoming connections (both plugs)
-            cnx = [l for inp in node.inputs for l in inp.links ]
-            # print 'topo: %s -> %s' % (node, cnx)
-            if not cnx:
-                continue
-
-            for l in cnx:
-                # don't store connections to un-related nodes.
-                #
-
-                ignoreDst = l.to_node.bl_label not in __BL_NODES_MAP__
-                ignoreSrc = l.from_node.bl_label not in __BL_NODES_MAP__
-
-                if ignoreDst or ignoreSrc:
-                    rfb_log().debug("Ignoring connection %s -> %s" % (l.from_node.name, l.to_node.name))
-                    continue
-
-                from_node = l.from_node
-                to_node = l.to_node
-                from_socket_name = l.from_socket.name
-                to_socket_name = l.to_socket.name 
-
-                renderman_node_type = getattr(from_node, 'renderman_node_type', '')
-                if renderman_node_type == 'bxdf':
-                    # for Bxdf nodes, use the same socket name as RfM
-                    from_socket_name = 'outColor'
-
-                self._connections.append(("%s.%s" % (fix_blender_name(l.from_node.name), from_socket_name),
-                                          "%s.%s" % (fix_blender_name(l.to_node.name), to_socket_name)))
-
-        # remove duplicates
-        self._connections = list(set(self._connections))
-
-        # add the extra conversion nodes to the node list
-        #for k, v in self._extras.iteritems():
-        #    self._nodes[k] = v
-
-    ##
-    # @brief      prepare data for the jason file
-    #
-    # @param      self   The object
-    # @param      Asset  The asset
-    #
-    # @return     None
-    #
-    def Serialize(self, Asset):
-        global g_validNodeTypes
-
-        # register connections
-        #
-        for srcPlug, dstPlug in self._connections:
-            # print '%s -> %s' % (srcPlug, dstPlug)
-            Asset.addConnection(srcPlug, dstPlug)
-
-        # register nodes
-        #
-        for nodeNm, node in self._nodes.items():
-
-            # Add node to asset
-            #
-            rmanNode = None
-            nodeClass = None
-            rmanNodeName = node.rmanNodeType
-            if node.blenderNodeType == 'RendermanOutputNode':
-                nodeClass = 'root'
-                oslPath=None
-            else:
-                # print 'Serialize %s' % node.mayaNodeType
-                oslPath = node.oslPath if node.name == 'PxrOSL' else None
-                rmanNode = ra.RmanShadingNode(node.rmanNodeType,
-                                              osoPath=oslPath)
-                nodeClass = rmanNode.nodeType()
-                rmanNodeName = rmanNode.rmanNode()
-                # Register the oso file as a dependency that should be saved with
-                # the asset.
-                if oslPath:
-                    osoFile = os.path.join(node.oslPath,
-                                           '%s.oso' % node.rmanNodeType)
-                    Asset.processExternalFile(osoFile)
-
-            Asset.addNode(node.name, node.rmanNodeType,
-                          nodeClass, rmanNodeName,
-                          externalosl=(oslPath is not None))
-
-            # some nodes may have an associated transformation
-            # keep it simple for now: we support a single world-space
-            # matrix or the TRS values in world-space.
-            #
-            # if node.HasTransform():
-            #     Asset.addNodeTransform(node.name, node.transform,
-            #                            trStorage=node.tr_storage,
-            #                            trSpace=node.tr_space,
-            #                            trMode=node.tr_mode,
-            #                            trType=node.tr_type)
-
-            for pname, prop in node._params.items():
-                Asset.addParam(node.name, pname, prop)
-
-            # if the node is a native maya node, add it to the hostNodes
-            # compatibility list.
-            #
-            #if node.mayaNodeType != node.rmanNodeType:
-            #    Asset.registerHostNode(node.rmanNodeType)
-
-    def _parentPlug(self, plug):
-        tokens = plug.split('.')
-        parent = mc.attributeQuery(tokens[-1], node=tokens[0],
-                                   listParent=True)
-        if parent is None:
-            raise RmanAssetBlenderError('%s is not a child plug !')
-        tokens[-1] = parent[0]
-        return '.'.join(tokens)
-
-    def _isParentPlug(self, plug):
-        tokens = plug.split('.')
-        parents = mc.attributeQuery(tokens[-1], node=tokens[0],
-                                    listParent=True)
-        return (parents is None)
-
-    def _isChildPlug(self, plug):
-        tokens = plug.split('.')
-        parents = mc.attributeQuery(tokens[-1], node=tokens[0],
-                                    listParent=True)
-        return (parents is not None)
-
-    def _conversionNodeName(self, plug):
-        return re.sub('[\W]', '_', plug)
-
-    def _f3_to_f1_connection(self, srcPlug, dstPlug):
-        #
-        #   Insert a PxrToFloat node:
-        #
-        #   texture.resultRGBR->srf.presence
-        #   becomes:
-        #   texture.resultRGB->srf_presence.input|resultF->srf.presence
-        #
-        convNode = self._conversionNodeName(dstPlug)
-        if convNode not in self._extras:
-            self._extras[convNode] = MayaNode(convNode,
-                                              'PxrToFloat')
-
-        # connect the conversion node's out to the dstPlug's
-        # attr
-        #
-        convOutPlug = '%s.resultF' % convNode
-        self._connections.append((convOutPlug, dstPlug))
-
-        # connect the src parent plug to the conversion node's
-        # input.
-        #
-        srcParentPlug = self._parentPlug(srcPlug)
-        convInPlug = '%s.input' % (convNode)
-        self._connections.append((srcParentPlug, convInPlug))
-        # Tell the PxrToFloat node to use the correct channel.
-        comp = srcPlug[-1]
-        self._extras[convNode]._params['mode']['value'] = \
-            self.__CompToIdx[comp]
-
-        # register the connect the plug as connected
-        #
-        self._extras[convNode].SetConnected('input')
-
-        # print '\noriginal cnx: %s -> %s ---' % (srcPlug, dstPlug)
-        # print ('new cnx: %s -> %s | %s -> %s' %
-        #        (srcParentPlug, convInPlug, convOutPlug, dstPlug))
-
-    def _f1_to_f3_connection(self, srcPlug, dstPlug):
-        #
-        #   Insert a PxrToFloat3 node:
-        #
-        #   noise.resultF->srf.colorR
-        #   becomes:
-        #   noise.resultF->srf_color.inputR|resultRGB->srf.color
-        #
-        # create a conversion node
-        #
-        dstParentPlug = self._parentPlug(dstPlug)
-        convNode = self._conversionNodeName(dstParentPlug)
-        if convNode not in self._extras:
-            self._extras[convNode] = MayaNode(convNode,
-                                              'PxrToFloat3')
-
-        # connect the conversion node's out to the dstPlug's
-        # parent attr
-        #
-        convOutPlug = '%s.resultRGB' % convNode
-        self._connections.append((convOutPlug, dstParentPlug))
-
-        # connect the src plug to the conversion node's input
-        #
-        comp = dstPlug[-1]
-        convAttr = self.__CompToAttr[comp]
-        convInPlug = '%s.%s' % (convNode, convAttr)
-        self._connections.append((srcPlug, convInPlug))
-
-        # print '\noriginal cnx: %s -> %s ---' % (srcPlug, dstPlug)
-        # print ('new cnx: %s -> %s | %s -> %s' %
-        #        (srcPlug, convInPlug, convOutPlug, dstParentPlug))
-
-        # register the conversion plug as connected
-        #
-        self._extras[convNode].SetConnected(convAttr)
-
-    def _f3_to_f3_connection(self, srcPlug, dstPlug):
-        #
-        #   Insert a PxrToFloat->PxrToFloat3 node chain:
-        #
-        #   tex.resultRGBR->srf.colorG
-        #   becomes:
-        #   tex.resultRGB->srf_colorComp.input|mode=R|resultF->
-        #       ->srf_color.inputG|resultRGB->srf.color
-        #
-
-        # create PxrToFloat3->dstNode
-        parentPlug = self._parentPlug(dstPlug)
-        convDst = self._conversionNodeName(parentPlug)
-        if convDst not in self._extras:
-            self._extras[convDst] = MayaNode(convDst,
-                                             'PxrToFloat3')
-
-        # create srcNode->PxrToFloat
-        # this time we use the child plug to name the node as each
-        # child plug could create a new conversion node.
-        convSrc = self._conversionNodeName(srcPlug)
-        if convSrc not in self._extras:
-            self._extras[convSrc] = MayaNode(convSrc,
-                                             'PxrToFloat')
-
-        # connect the srcOutPlug to convSrcInPlug (color->color)
-        srcParentPlug = self._parentPlug(srcPlug)
-        convSrcInPlug = '%s.input' % convSrc
-        self._connections.append((srcParentPlug, convSrcInPlug))
-        comp = srcPlug[-1]
-        # set the matching channel
-        self._extras[convSrc]._params['mode']['value'] = self.__CompToIdx[comp]
-
-        # connect convSrcOutPlug to convDstInPlug
-        convSrcOutPlug = '%s.resultF' % convSrc
-        comp = dstPlug[-1]
-        convDstAttr = self.__CompToAttr[comp]
-        convDstInPlug = '%s.%s' % (convDst, convDstAttr)
-        self._connections.append((convSrcOutPlug, convDstInPlug))
-
-        # finally, connect convDstOutPlug to dstPlug's parent
-        convDstOutPlug = "%s.resultRGB" % convDst
-        dstParentPlug = self._parentPlug(dstPlug)
-        self._connections.append((convDstOutPlug, dstParentPlug))
-
-        # print '\noriginal cnx: %s -> %s ---' % (srcPlug, dstPlug)
-        # print ('new cnx: %s -> %s | %s -> %s | %s -> %s' %
-        #        (srcParentPlug, convSrcInPlug, convSrcOutPlug,
-        #         convDstInPlug, convDstOutPlug, dstParentPlug))
-
-        # register connected plugs
-        self._extras[convSrc].SetConnected('input')
-        self._extras[convDst].SetConnected(convDstAttr)
-
-    def __str__(self):
-        return ('_nodes = %s\n_connections = %s' %
-                (self._nodes, self._connections))
-
-    def __repr__(self):
-        return str(self)
-
-##
-# @brief      Parses a Maya node graph, starting from 'node'.
-#
-# @param      node   root of the graph
-# @param      Asset  RmanAsset object to store the nodeGraph
-#
-# @return     none
-#
-def parseNodeGraph(nodes_to_convert, Asset):
-
-    graph = BlenderGraph()
-
-    for node in nodes_to_convert:
-        renderman_node_type = getattr(node, 'renderman_node_type', '')
-        if renderman_node_type == 'output':
-            # create a Maya-like shadingEngine node for our output node
-            nodeClass = 'root'
-            rmanNode = 'shadingEngine'
-            nodeType = 'shadingEngine'
-            nodeName = '%s_SG' % Asset.label()
-            Asset.addNode(nodeName, nodeType,
-                            nodeClass, rmanNode,
-                            externalosl=False)
-
-            infodict = {}
-            infodict['name'] = 'rman__surface'
-            infodict['type'] = 'reference float3'
-            infodict['value'] = None
-            Asset.addParam(nodeName, 'rman__surface', infodict)                            
-
-            infodict = {}
-            infodict['name'] = 'rman__displacement'
-            infodict['type'] = 'reference float3'
-            infodict['value'] = None
-            Asset.addParam(nodeName, 'rman__displacement', infodict)                            
-
+        cnx = [l for inp in node.inputs for l in inp.links ]
+        if not cnx:
             continue
-        
-        # some "nodes" are actually tuples
-        if type(node) != type((1,2,3)):
-            graph.AddNode(node)
 
-    graph.Process()
-    graph.Serialize(Asset)
+        for l in cnx:
+            ignoreDst = l.to_node.bl_label not in __BL_NODES_MAP__
+            ignoreSrc = l.from_node.bl_label not in __BL_NODES_MAP__
+
+            if ignoreDst or ignoreSrc:
+                rfb_log().debug("Ignoring connection %s -> %s" % (l.from_node.name, l.to_node.name))
+                continue        
+
+            from_node = l.from_node
+            to_node = l.to_node
+            from_socket_name = l.from_socket.name
+            to_socket_name = l.to_socket.name 
+
+            renderman_node_type = getattr(from_node, 'renderman_node_type', '')
+            if renderman_node_type == 'bxdf':
+                # for Bxdf nodes, use the same socket name as RfM
+                from_socket_name = 'outColor'
+
+            srcPlug = "%s.%s" % (fix_blender_name(l.from_node.name), from_socket_name)
+            dstPlug = "%s.%s" % (fix_blender_name(l.to_node.name), to_socket_name)    
+
+            Asset.addConnection(srcPlug, dstPlug)    
+
+def export_material_preset(mat, nodes_to_convert, renderman_output_node, Asset):
+    # first, create a Maya-like shadingEngine node for our output node
+    nodeClass = 'root'
+    rmanNode = 'shadingEngine'
+    nodeType = 'shadingEngine'
+    nodeName = '%s_SG' % Asset.label()
+    Asset.addNode(nodeName, nodeType,
+                    nodeClass, rmanNode,
+                    externalosl=False)
+
+    if renderman_output_node.inputs['Bxdf'].is_linked:
+        infodict = {}
+        infodict['name'] = 'rman__surface'
+        infodict['type'] = 'reference float3'
+        infodict['value'] = None
+        Asset.addParam(nodeName, 'rman__surface', infodict)                            
+
+    if renderman_output_node.inputs['Displacement'].is_linked:
+        infodict = {}
+        infodict['name'] = 'rman__displacement'
+        infodict['type'] = 'reference float3'
+        infodict['value'] = None
+        Asset.addParam(nodeName, 'rman__displacement', infodict)                
+
+    for node in nodes_to_convert:        
+        if type(node) != type((1,2,3)):
+            externalosl = False
+            renderman_node_type = getattr(node, 'renderman_node_type', '')            
+            if node.bl_idname == "PxrOSLPatternNode":            
+                if getattr(node, "codetypeswitch") == "EXT":
+                    prefs = prefs_utils.get_addon_prefs()
+                    osl_path = string_utils.expand_string(getattr(node, 'shadercode'))
+                    FileName = os.path.basename(osl_path)
+                    FileNameNoEXT,ext = os.path.splitext(FileName)
+                    shaders_path = os.path.join(string_utils.expand_string(prefs.env_vars.out), "shaders")
+                    out_file = os.path.join(shaders_path, FileName)
+                    if ext == ".oso":
+                        if not os.path.exists(out_file) or not os.path.samefile(osl_path, out_file):
+                            if not os.path.exists(shaders_path):
+                                os.mkdir(shaders_path)
+                            shutil.copy(osl_path, out_file)                
+                    externalosl = True
+                    Asset.processExternalFile(out_file)
+
+            elif renderman_node_type == '':
+                # check if a cycles node
+                if node.bl_idname not in _CYCLES_NODE_MAP_.keys():
+                    rfb_log().debug('No translation for node of type %s named %s' % (node.bl_idname, node.name))
+                    continue
+                mapping = _CYCLES_NODE_MAP_[node.bl_idname]
+                cycles_shader_dir = filepath_utils.get_cycles_shader_path()
+                out_file = os.path.join(cycles_shader_dir, '%s.oso' % cycles_shader_dir)
+                Asset.processExternalFile(out_file)
+
+            input_name = node.name
+            shader_name = node.bl_label
+
+            Asset.addNode(
+                    input_name, shader_name,
+                    renderman_node_type, shader_name, externalosl)
+
+            set_asset_params(mat, node, input_name, Asset)      
+
+    set_asset_connections(nodes_to_convert, Asset)                    
 
 def exportLightRig(obs, Asset):
     for ob in obs:
@@ -1051,45 +701,40 @@ def exportLightRig(obs, Asset):
         floatVals = transform_utils.convert_matrix(mtx)
         Asset.addNodeTransform(nodeName, floatVals )
 
-        for prop_name, meta in bl_node.prop_meta.items():
-            if not hasattr(bl_node, prop_name):
+        set_asset_params(ob, bl_node, nodeName, Asset)        
+
+    # light filters
+    for ob in obs:
+        light = ob.data
+        rm = light.renderman            
+        for i, lf in enumerate(rm.light_filters):
+            light_filter = lf.linked_filter_ob
+            if not light_filter:
                 continue
-            prop = getattr(bl_node, prop_name)   
-            if meta['renderman_type'] == 'page' or prop_name == 'notes' or meta['renderman_type'] == 'enum':
-                continue
 
-            elif meta['widget'] == 'null':
-                continue
+            bl_node = shadergraph_utils.get_light_node(light_filter)
 
-            ptype = meta['renderman_type']
-            pname = meta['renderman_name']  
-            param_widget = meta['widget']           
+            nodeName = bl_node.name
+            nodeType = bl_node.bl_label
+            nodeClass = 'lightfilter'
+            rmanNodeName = bl_node.bl_label
 
-            if ptype == 'string':
-                val = string_utils.convert_val(prop, type_hint=ptype)
-                if param_widget in ['fileinput', 'assetidinput']:
-                    options = meta['options']
-                    # txmanager doesn't currently deal with ptex
-                    if bl_node.bl_idname == "PxrPtexturePatternNode":
-                        val = string_utils.expand_string(val, display='ptex', asFilePath=True)        
-                    # ies profiles don't need txmanager for converting                       
-                    elif 'ies' in options:
-                        val = string_utils.expand_string(val, display='ies', asFilePath=True)
-                    # this is a texture
-                    elif ('texture' in options) or ('env' in options) or ('imageplane' in options):
-                        tx_node_id = texture_utils.generate_node_id(bl_node, pname, ob=ob)
-                        tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
-                        val = tx_val if tx_val != '' else val
-                elif param_widget == 'assetidoutput':
-                    display = 'openexr'
-                    if 'texture' in meta['options']:
-                        display = 'texture'
-                    val = string_utils.expand_string(val, display='texture', asFilePath=True)         
-            else:
-                val = string_utils.convert_val(prop, type_hint=ptype)                    
+            Asset.addNode(nodeName, nodeType,
+                            nodeClass, rmanNodeName,
+                            externalosl=False)
 
-            pdict = {'type': ptype, 'value': val}
-            Asset.addParam(nodeName, pname, pdict)
+            mtx = ob.matrix_world
+            floatVals = list()
+            floatVals = transform_utils.convert_matrix(mtx)
+            Asset.addNodeTransform(nodeName, floatVals )
+
+            set_asset_params(ob, bl_node, nodeName, Asset)        
+
+            srcPlug = "%s.outColor" % fix_blender_name(light_filter.name)
+            dstPlug = "%s.rman__lightfilters[%d]" % (fix_blender_name(ob.name), i)    
+
+            Asset.addConnection(srcPlug, dstPlug)    
+                                          
 
 ##
 # @brief      Gathers infos from the image header
@@ -1157,7 +802,8 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
     #
     if atype is "nodeGraph":
         if asset_type == 'Materials':
-            parseNodeGraph(nodes, Asset)
+            #parseNodeGraph(nodes, hostPrefs.renderman_output_node, Asset)
+            export_material_preset(hostPrefs.blender_material, nodes, hostPrefs.renderman_output_node, Asset)
         else:
             exportLightRig(nodes, Asset)
     elif atype is "envMap":
