@@ -681,9 +681,24 @@ def export_material_preset(mat, nodes_to_convert, renderman_output_node, Asset):
 
             set_asset_params(mat, node, input_name, Asset)      
 
-    set_asset_connections(nodes_to_convert, Asset)                    
+    set_asset_connections(nodes_to_convert, Asset)             
 
-def exportLightRig(obs, Asset):
+def find_portal_dome_parent(portal):  
+    dome = None
+    parent = portal.parent
+    while parent:
+        if parent.type == 'LIGHT' and hasattr(parent.data, 'renderman'): 
+            rm = parent.data.renderman
+            if rm.renderman_light_role == 'RMAN_LIGHT' and rm.get_light_node_name() == 'PxrDomeLight':
+                dome = parent
+                break
+        parent = parent.parent
+    return dome                     
+
+def export_light_rig(obs, Asset):
+
+    dome_to_portals = dict()
+
     for ob in obs:
         bl_node = shadergraph_utils.get_light_node(ob)
 
@@ -701,7 +716,24 @@ def exportLightRig(obs, Asset):
         floatVals = transform_utils.convert_matrix(mtx)
         Asset.addNodeTransform(nodeName, floatVals )
 
-        set_asset_params(ob, bl_node, nodeName, Asset)        
+        set_asset_params(ob, bl_node, nodeName, Asset)     
+
+        if nodeType == "PxrPortaLight":
+            # if a portal light, fine the associate PxrDomeLight
+            dome = find_portal_dome_parent(ob)
+            if not dome:
+                continue
+            dome_name = dome.name
+            portals = dome_to_portals.get(dome_name, list())
+            portals.append(nodeName)
+            dome_to_portals[dome_name] = portals
+
+    # do portal connections
+    for dome,portals in dome_to_portals.items():
+        for i, portal in enumerate(portals):
+            dst = '%s.rman__portals[%d]' % (dome, i)
+            src = '%s.message' % (portal)
+            Asset.addConnection(src, dst)
 
     # light filters
     for ob in obs:
@@ -802,10 +834,9 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
     #
     if atype is "nodeGraph":
         if asset_type == 'Materials':
-            #parseNodeGraph(nodes, hostPrefs.renderman_output_node, Asset)
             export_material_preset(hostPrefs.blender_material, nodes, hostPrefs.renderman_output_node, Asset)
         else:
-            exportLightRig(nodes, Asset)
+            export_light_rig(nodes, Asset)
     elif atype is "envMap":
         parse_texture(nodes[0], Asset)
     else:
