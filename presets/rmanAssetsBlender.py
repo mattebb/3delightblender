@@ -130,9 +130,10 @@ class BlenderHostPrefs(ral.HostPrefs):
         self.rpbRenderAllHDRs = self.getHostPref('rpbRenderAllHDRs', 0)
         self.rpbHideFactoryLib = self.getHostPref('rpbHideFactoryLib', 0)
 
-        self._nodesToExport = list()
+        self._nodesToExport = dict()
         self.renderman_output_node = None
         self.blender_material = None
+        self.bl_world = None
         self.progress = BlenderProgress()
 
     def getHostPref(self, prefName, defaultValue): # pylint: disable=unused-argument
@@ -226,18 +227,29 @@ class BlenderHostPrefs(ral.HostPrefs):
         return True
 
     def gather_material_nodes(self, mat):
+        lst = list()
         out = shadergraph_utils.is_renderman_nodetree(mat)
         self.renderman_output_node = out
         nodes = shadergraph_utils.gather_nodes(out)
-        self._nodesToExport.extend(nodes)
+        lst.extend(nodes)
+        self._nodesToExport['material'] = lst
 
-    def preExportCheck(self, mode, hdr=None, context=None): # pylint: disable=unused-argument
+    def gather_displayfilter_nodes(self, context):
+        self.bl_world = context.scene.world
+        nodes = shadergraph_utils.find_displayfilter_nodes(self.bl_world)
+        self._nodesToExport['displayfilter'] = nodes
+
+    def preExportCheck(self, mode, hdr=None, context=None, include_display_filters=False): # pylint: disable=unused-argument
         if mode == 'material':
             ob = context.active_object
             mat = ob.active_material
             self.blender_material = mat
-            self.gather_material_nodes(mat)            
+            self.gather_material_nodes(mat) 
+            if include_display_filters:
+                self.gather_displayfilter_nodes(context)
+
         elif mode == 'lightrigs':
+            lst = list()
             selected_light_objects = []
             if context.selected_objects:
                 for obj in context.selected_objects:  
@@ -245,12 +257,13 @@ class BlenderHostPrefs(ral.HostPrefs):
                         selected_light_objects.append(obj)
             if not selected_light_objects:
                 return False
-            self._nodesToExport.extend(selected_light_objects)
+            lst.extend(selected_light_objects)
+            self._nodesToExport['lightrigs'] = lst
         elif mode == 'envmap':
             if not hdr.exists():
                 rfm_log().warning('hdr file does not exist: %s', hdr)
                 return False
-            self._nodesToExport = [hdr]
+            self._nodesToExport['envmap'] = [hdr]
             self._defaultLabel = default_label_from_file_name(hdr)
             return True
         else:
@@ -464,14 +477,7 @@ def set_asset_params(ob, node, nodeName, Asset):
                         for nm in sub_prop_names:
                             if hasattr(node, 'inputs')  and nm in node.inputs and \
                                 node.inputs[nm].is_linked:
-
-                                to_socket = node.inputs[nm]
-                                from_socket = to_socket.links[0].from_socket
-                                from_node = to_socket.links[0].from_node
-
-                                val = get_output_param_str(
-                                    from_node, mat_name, from_socket, to_socket, param_type)
-                                val_ref_array.append(val)
+                                val_ref_array.append('')
                             else:
                                 prop = getattr(node, nm)
                                 val = string_utils.convert_val(prop, type_hint=param_type)
@@ -480,8 +486,8 @@ def set_asset_params(ob, node, nodeName, Asset):
                                 else:
                                     val_array.append(val)
                         if val_ref_array:
-                            pass
-                            #set_rix_param(params, param_type, param_name, val_ref_array, is_reference=True, is_array=True, array_len=len(val_ref_array))
+                            pdict = {'type': '%s [%d]' % (param_type, len(val_ref_array)), 'value': None}
+                            Asset.addParam(nodeName, param_name, pdict)
                         else:                            
                             pdict = {'type': param_type, 'value': val_array}
                             Asset.addParam(nodeName, param_name, pdict)
@@ -652,14 +658,14 @@ def export_material_preset(mat, nodes_to_convert, renderman_output_node, Asset):
                 out_file = os.path.join(cycles_shader_dir, '%s.oso' % cycles_shader_dir)
                 Asset.processExternalFile(out_file)
 
-            input_name = node.name
+            node_name = node.name
             shader_name = node.bl_label
 
             Asset.addNode(
-                    input_name, shader_name,
+                    node_name, shader_name,
                     renderman_node_type, shader_name, externalosl)
 
-            set_asset_params(mat, node, input_name, Asset)      
+            set_asset_params(mat, node, node_name, Asset)      
 
     set_asset_connections(nodes_to_convert, Asset)             
 
@@ -746,7 +752,45 @@ def export_light_rig(obs, Asset):
             dstPlug = "%s.rman__lightfilters[%d]" % (fix_blender_name(ob.name), i)    
 
             Asset.addConnection(srcPlug, dstPlug)    
-                                          
+
+def export_displayfilter_nodes(world, nodes, Asset):
+    any_stylized = False
+    for node in nodes:
+        nodeName = node.name
+        shaderName = node.bl_label
+        externalosl = False
+
+        Asset.addNode(
+                nodeName, shaderName,
+                'displayfilter', shaderName, externalosl) 
+        set_asset_params(world, node, nodeName, Asset) 
+
+        if not any_stylized and shaderName in RMAN_STYLIZED_FILTERS:
+            any_stylized = True
+
+    if any_stylized:
+        # add stylized channels to Asset
+        from .. import rman_config
+        stylized_tmplt = rman_config.__RMAN_DISPLAY_TEMPLATES__.get('Stylized', None)
+        rman_dspy_channels = rman_config.__RMAN_DISPLAY_CHANNELS__
+
+        for chan in stylized_tmplt['channels']:
+            settings = rman_dspy_channels[chan]
+            chan_src = settings['channelSource']
+            chan_type = settings['channelType']
+
+            Asset.addNode(chan, chan,
+                        'displaychannel', 'DisplayChannel',
+                        datatype=chan_type)
+            
+            pdict = dict()
+            pdict['value'] = chan_src
+            pdict['name'] = 'source'
+            pdict['type'] = 'string'
+            if pdict['value'].startswith('lpe:'):
+                pdict['value'] = 'color ' + pdict['value']
+            Asset.addParam(chan, 'source', pdict)        
+                                            
 def parse_texture(imagePath, Asset):
     """Gathers infos from the image header
 
@@ -764,7 +808,7 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
     """Exports a nodeGraph or envMap as a RenderManAsset.
 
     Args:
-        nodes (str) -- Maya node used as root
+        nodes (dict) -- dictionary containing the nodes to export
         atype (str) -- Asset type : 'nodeGraph' or 'envMap'
         infodict (dict) -- dict with 'label', 'author' & 'version'
         category (str) -- Category as a path, i.e.: "/Lights/LookDev"
@@ -807,11 +851,13 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
     #
     if atype is "nodeGraph":
         if asset_type == 'Materials':
-            export_material_preset(hostPrefs.blender_material, nodes, hostPrefs.renderman_output_node, Asset)
+            export_material_preset(hostPrefs.blender_material, nodes['material'], hostPrefs.renderman_output_node, Asset)
+            if nodes['displayfilter']:
+                export_displayfilter_nodes(hostPrefs.bl_world, nodes['displayfilter'], Asset)
         else:
-            export_light_rig(nodes, Asset)
+            export_light_rig(nodes['lightrigs'], Asset)
     elif atype is "envMap":
-        parse_texture(nodes[0], Asset)
+        parse_texture(nodes['envmap'][0], Asset)
     else:
         raise RmanRmanAssetBlenderError("%s is not a known asset type !" % atype)
 

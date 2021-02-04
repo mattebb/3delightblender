@@ -106,6 +106,9 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
     material_label: StringProperty(name='Asset Name', default='')
     material_author: StringProperty(name='Author', default='')
     material_version: StringProperty(name='Version', default='1.0')
+    include_display_filters: BoolProperty(name='Include DisplayFilters', 
+        description="Include display filters with this preset. This is necessary if you want to export any stylized materials.",
+        default=False)
 
     @classmethod
     def poll(cls, context):
@@ -127,10 +130,11 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
         col.prop(self, 'material_label')
         col.prop(self, 'material_author')
         col.prop(self, 'material_version')
+        col.prop(self, 'include_display_filters')
 
     def execute(self, context):
         hostPrefs = rab.get_host_prefs()
-        if hostPrefs.preExportCheck('material', hdr=None, context=context):
+        if hostPrefs.preExportCheck('material', hdr=None, context=context, include_display_filters=self.include_display_filters):
             infodict = {'label': self.material_label,
                         'author': self.material_author,
                         'version': self.material_version}     
