@@ -313,37 +313,6 @@ class RmanAssetBlenderError(Exception):
     def __str__(self):
         return repr(self.value)
 
-
-##############################
-#                            #
-#           GLOBALS          #
-#                            #
-##############################
-
-# store the list of maya nodes we translate to patterns
-# without telling anyone...
-#
-g_BlenderToPxrNodes = {}
-
-for name, node_class in __RMAN_NODE_TYPES__.items():
-    g_BlenderToPxrNodes[name] = node_class.bl_label
-
-# fix material output
-g_BlenderToPxrNodes['RendermanOutputNode'] = 'shadingEngine'
-g_validNodeTypes = ['shadingEngine']
-g_validNodeTypes += g_BlenderToPxrNodes.keys()
-
-# wrapper to avoid global access in code
-def isValidNodeType(nodetype):
-    global g_validNodeTypes
-    # if nodetype not in g_validNodeTypes:
-    #     print '!! %s is not a valid node type !!' % nodetype
-    return (nodetype in g_validNodeTypes)
-
-#
-#   END of GLOBALS
-#
-
 def fix_blender_name(name):
     return name.replace(' ', '').replace('.', '')
 
@@ -778,13 +747,6 @@ def export_light_rig(obs, Asset):
 
             Asset.addConnection(srcPlug, dstPlug)    
                                           
-
-##
-# @brief      Gathers infos from the image header
-#
-# @param      imagePath  the image path
-# @param      Asset  The asset in which infos will be stored.
-#
 def parse_texture(imagePath, Asset):
     """Gathers infos from the image header
 
@@ -882,15 +844,6 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
 
     return True        
 
-
-##
-# @brief      Sets param values of a nodeGraph node
-#
-# @param      nodeName    string
-# @param      paramsList  list of RmanAssetNodeParam objects
-#
-# @return     none
-#
 def setParams(node, paramsList):
     '''Set param values.
        Note: we are only handling a subset of maya attribute types.'''
@@ -1074,16 +1027,6 @@ def setParams(node, paramsList):
         for gain,enable in __GAINS_TO_ENABLE__.items():
             setattr(node, enable, True)
 
-##
-# @brief      Creates all maya nodes defined in the asset's nodeGraph and sets
-#             their param values. Nodes will be renamed by Maya and the mapping
-#             from original name to actual name retuned as a dict, to allow us
-#             to connect the newly created nodes later.
-#
-# @param      Asset  RmanAsset object containing a nodeGraph
-#
-# @return     dict mapping the graph id to the actual maya node names.
-#
 def createNodes(Asset):
 
     nodeDict = {}
@@ -1114,8 +1057,7 @@ def createNodes(Asset):
             curr_x = curr_x + 250
             created_node.name = nodeId
             created_node.label = nodeId
-
-            nt.links.new(created_node.outputs['Bxdf'], output_node.inputs['Bxdf'])            
+        
         elif nodeClass == 'displace':
             bl_node_name = __BL_NODES_MAP__.get(nodeType, None)
             if not bl_node_name:
@@ -1125,8 +1067,7 @@ def createNodes(Asset):
             curr_x = curr_x + 250
             created_node.name = nodeId
             created_node.label = nodeId
-
-            nt.links.new(created_node.outputs['Displacement'], output_node.inputs['Displacement'])            
+           
         elif nodeClass == 'pattern':
             if nodeType == 'PxrDisplace':
                 # Temporary. RfM presets seem to be setting PxrDisplace as a pattern node
@@ -1138,8 +1079,7 @@ def createNodes(Asset):
                 curr_x = curr_x + 250
                 created_node.name = nodeId
                 created_node.label = nodeId
-
-                nt.links.new(created_node.outputs['Displacement'], output_node.inputs['Displacement'])                 
+              
             elif node.externalOSL():
                 # if externalOSL() is True, it is a dynamic OSL node i.e. one
                 # loaded through a PxrOSL node.
@@ -1167,7 +1107,9 @@ def createNodes(Asset):
                 created_node.label = nodeId                             
 
         elif nodeClass == 'root':
+            output_node.name = nodeId
             nodeDict[nodeId] = output_node.name
+            
             continue
 
         if created_node:
@@ -1297,21 +1239,10 @@ def import_light_rig(Asset):
 
     return nodeDict    
 
-
-##
-# @brief      Connect all nodes in the nodeGraph. Failed connections are only
-#             reported as warning.
-#
-# @param      Asset     a RmanAssetNode object containg a nodeGraph
-# @param      nodeDict  map from graph node name to maya node name. If there
-#                       was already a node with the same name as the graph
-#                       node, this maps to the new node name.
-#
-# @return     none
-#
 def connectNodes(Asset, nt, nodeDict):
     output = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
     bxdf_socket = output.inputs['Bxdf']
+    displace_socket = output.inputs['Displacement']
 
     for con in Asset.connectionList():
         #print('+ %s.%s -> %s.%s' % (nodeDict[con.srcNode()](), con.srcParam(),
@@ -1333,28 +1264,36 @@ def connectNodes(Asset, nt, nodeDict):
         renderman_node_type = getattr(srcNode, 'renderman_node_type', '')
         if srcSocket in srcNode.outputs and dstSocket in dstNode.inputs:
             nt.links.new(srcNode.outputs[srcSocket], dstNode.inputs[dstSocket])
-        elif dstSocket == 'surfaceShader' or dstSocket == 'rman__surface':
-            if output:
+        elif output == dstNode:        
+            # check if this is a root node connection
+            if dstSocket == 'surfaceShader' or dstSocket == 'rman__surface':
                 nt.links.new(srcNode.outputs['Bxdf'], output.inputs['Bxdf'])
-        elif dstSocket == 'displacementShader' or dstSocket == 'rman__displacement':
-            if output:
+            elif dstSocket == 'displacementShader' or dstSocket == 'rman__displacement':           
                 nt.links.new(srcNode.outputs['Displacement'], output.inputs['Displacement'])
-        elif renderman_node_type == 'bxdf':
-            nt.links.new(srcNode.outputs['Bxdf'], dstNode.inputs[dstSocket])            
+        elif renderman_node_type == 'bxdf':         
+            # this is a regular upstream bxdf connection
+            nt.links.new(srcNode.outputs['Bxdf'], dstNode.inputs[dstSocket])  
         else:            
             rfb_log().debug('error connecting %s.%s to %s.%s' % (srcNode.name,srcSocket, dstNode.name, dstSocket))
 
     if not bxdf_socket.is_linked:
-        # look for a LamaSurface node
-        lama_surface_node = None
+        # Our RenderManOutputNode still does not have a bxdf connected
+        # look for all bxdf nodes and find one that does not have a connected output
+        bxdf_candidate = None
+        displace_candidate = None
         for node in nt.nodes:
-            renderman_node_type = getattr(node, 'renderman_node_type', '')                
-            if renderman_node_type == 'LamaSurface':
-                lama_surface_node = node        
-                break
+            renderman_node_type = getattr(node, 'renderman_node_type', '')             
+            if renderman_node_type == 'bxdf':                
+                if not node.outputs['Bxdf'].is_linked:
+                    bxdf_candidate = node
+            elif renderman_node_type == 'displace':
+                displace_candidate = node
 
-        if lama_surface_node:
-            nt.links.new(lama_surface.outputs['Bxdf'], output.inputs['Bxdf'])
+        if bxdf_candidate:
+            nt.links.new(bxdf_candidate.outputs['Bxdf'], output.inputs['Bxdf'])
+
+        if not displace_socket.is_linked and displace_candidate:
+            nt.links.new(displace_candidate.outputs['Displacement'], output.inputs['Displacement'])
 
 
 def create_displayfilter_nodes(Asset):
@@ -1388,13 +1327,6 @@ def create_displayfilter_nodes(Asset):
             bpy.ops.scene.rman_enable_stylized_looks('EXEC_DEFAULT')
             has_stylized = True
 
-##
-# @brief      Import an asset into maya
-#
-# @param      filepath  full path to a *.rma directory
-#
-# @return     none
-#
 def importAsset(filepath):
     # early exit
     if not os.path.exists(filepath):
