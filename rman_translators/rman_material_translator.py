@@ -180,12 +180,12 @@ class RmanMaterialTranslator(RmanTranslator):
         if name == '':
             name = 'material_%s' % mat.name_full
 
-        bxdf_name = '%s_PxrDisney' % name
-        sg_node = self.rman_scene.rman.SGManager.RixSGShader("Bxdf", "PxrDisney", bxdf_name)
+        bxdf_name = '%s_PxrDisneyBsdf' % name
+        sg_node = self.rman_scene.rman.SGManager.RixSGShader("Bxdf", "PxrDisneyBsdf", bxdf_name)
         rix_params = sg_node.params
         rix_params.SetColor('baseColor', string_utils.convert_val(mat.diffuse_color, 'color'))
-        rix_params.SetFloat('specular', mat.specular_intensity )
         rix_params.SetFloat('metallic', mat.metallic )
+        rix_params.SetFloat('roughness', mat.roughness)
        
         rman_sg_material.sg_node.SetBxdf([sg_node])        
 
