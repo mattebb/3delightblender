@@ -254,6 +254,7 @@ class RmanSceneSync(object):
                         new_objs.append(col_obj.original)
                     update_instances.append(col_obj.original)            
 
+        rfb_log().debug("------Start update scene--------")
         for obj in depsgraph.updates:
             ob = obj.id
 
@@ -346,8 +347,9 @@ class RmanSceneSync(object):
 
                 if obj.is_updated_geometry:
                     rfb_log().debug("Object updated: %s" % obj.id.name)
-                    self._obj_geometry_updated(obj)                    
-                    updated_geo.append(obj.id.original)                            
+                    self._obj_geometry_updated(obj)   
+                    if obj.id.type not in ['CAMERA']:                 
+                        updated_geo.append(obj.id.original)                            
 
                 rman_sg_node = self.rman_scene.rman_objects.get(obj.id.original, None)
                 if rman_sg_node and rman_sg_node.sg_node:
@@ -393,6 +395,7 @@ class RmanSceneSync(object):
             if rman_type not in ['MESH', 'POINTS']:
                 continue
             ob_eval = ob.evaluated_get(self.rman_scene.depsgraph)
+            rfb_log().debug("Find particle systems for: %s" % ob.name)
 
             with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
                 
@@ -420,10 +423,12 @@ class RmanSceneSync(object):
                     rman_sg_particles = ob_psys.get(psys.settings.original, None)
                     if not rman_sg_particles:
                         psys_db_name = '%s' % psys.name
-                        rman_sg_particles = psys_translator.export(ob, psys, psys_db_name) 
+                        rman_sg_particles = psys_translator.export(ob, psys, psys_db_name)
+                        if not rman_sg_particles:
+                            continue
                     psys_translator.update(ob, psys, rman_sg_particles)
                     ob_psys[psys.settings.original] = rman_sg_particles
-                    self.rman_scene.rman_particles[ob.original] = ob_psys                       
+                    self.rman_scene.rman_particles[ob.original] = ob_psys          
                     rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles.sg_node)                    
                     
         # add new objs:
@@ -518,7 +523,8 @@ class RmanSceneSync(object):
                     if self.rman_scene.render_default_light:
                         self.rman_scene.scene_any_lights = self.rman_scene._scene_has_lights()     
                         if not self.rman_scene.scene_any_lights:
-                            self.rman_scene.default_light.SetHidden(0)                      
+                            self.rman_scene.default_light.SetHidden(0)      
+        rfb_log().debug("------End update scene----------")
 
     def update_cropwindow(self, cropwindow=None):
         if not self.rman_render.rman_interactive_running:
