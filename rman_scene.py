@@ -568,7 +568,7 @@ class RmanScene(object):
             if not rman_sg_node:
                 return
             rman_sg_node.rman_type = rman_type
-            self.rman_objects[ob.original] = rman_sg_node
+            self.rman_objects[ob.original] = rman_sg_node       
 
             if rman_type in ['MESH', 'POINTS']:
                 # Deal with any particles now. Particles are children to mesh nodes.
@@ -596,6 +596,12 @@ class RmanScene(object):
                     ob_psys[psys.settings.original] = rman_sg_particles
                     self.rman_particles[ob.original] = ob_psys                       
                     rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles.sg_node)
+
+            elif rman_type == 'EMPTY' and (ob.hide_render or ob.hide_viewport):
+                # Make sure empties that are hidden still go out. Children
+                # could still be visible
+                self._export_hidden_instance(ob, rman_sg_node)
+
 
             # motion blur
             # we set motion steps for this object, even if it's not moving
@@ -633,7 +639,20 @@ class RmanScene(object):
 
     def _scene_has_lights(self):
         num_lights = len(scene_utils.get_all_lights(self.bl_scene, include_light_filters=False))
-        return num_lights > 0       
+        return num_lights > 0     
+
+    def _export_hidden_instance(self, ob, rman_sg_node):
+        translator = self.rman_translators.get('EMPTY')
+        translator.export_object_attributes(ob, rman_sg_node)  
+        self.attach_material(ob, rman_sg_node)        
+        if ob.parent and object_utils._detect_primitive_(ob.parent) == 'EMPTY':
+            rman_empty_node = self.rman_objects.get(ob.parent.original)
+            rman_empty_node.sg_node.AddChild(rman_sg_node.sg_node)
+        else:
+            self.get_root_sg_node().AddChild(rman_sg_node.sg_node)          
+            translator.export_transform(ob, rman_sg_node.sg_node)
+            if ob.renderman.export_as_coordsys:
+                self.get_root_sg_node().AddCoordinateSystem(rman_sg_node.sg_node)              
 
     def _export_instance(self, ob_inst, seg=None):
    
@@ -681,18 +700,8 @@ class RmanScene(object):
             if rman_type == 'EMPTY':
                 # this is just a regular empty object.
                 rman_sg_node = self.rman_objects.get(ob.original, None)
-                if rman_sg_node:      
-                    translator = self.rman_translators.get(rman_type, None)          
-                    translator.export_object_attributes(ob, rman_sg_node)  
-                    self.attach_material(ob, rman_sg_node)
-                    if ob.parent and object_utils._detect_primitive_(ob.parent) == 'EMPTY':
-                        rman_empty_node = self.rman_objects.get(ob.parent.original)
-                        rman_empty_node.sg_node.AddChild(rman_sg_node.sg_node)
-                    else:
-                        self.get_root_sg_node().AddChild(rman_sg_node.sg_node)
-                        translator.export_transform(ob, rman_sg_node.sg_node)
-                        if ob.renderman.export_as_coordsys:
-                            self.get_root_sg_node().AddCoordinateSystem(rman_sg_node.sg_node)
+                if rman_sg_node: 
+                    self._export_hidden_instance(ob, rman_sg_node)
                     return
 
             if rman_type == "META":
