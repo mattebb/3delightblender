@@ -52,7 +52,6 @@ def _get_mesh_uv_(mesh, name=""):
 def _get_mesh_vcol_(mesh, name=""):
     vcol_layer = mesh.vertex_colors[name] if name != "" \
         else mesh.vertex_colors.active
-    cols = []
 
     if vcol_layer is None:
         return None
@@ -60,8 +59,10 @@ def _get_mesh_vcol_(mesh, name=""):
     vcol_count = len(vcol_layer.data)
     fastvcols = np.zeros(vcol_count * 4)
     vcol_layer.data.foreach_get("color", fastvcols)
-    fastvcols.reshape(vcol_count, 4)    
-    cols = fastvcols.tolist()        
+    fastvcols = np.reshape(fastvcols, (vcol_count, 4))
+    pre_cols = fastvcols.tolist()     
+    
+    cols = [ [c[0], c[1], c[2]] for c in pre_cols ]
 
     return cols    
 
@@ -100,7 +101,7 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
     if rm.export_default_vcol:
         vcols = _get_mesh_vcol_(geo)
         if vcols and len(vcols) > 0:
-            rixparams.SetColorDetail("Cs", string_utils.convert_val(vcols, type_hint="color"), "vertex")
+            rixparams.SetColorDetail("Cs", vcols, "vertex")
     
     # custom prim vars
 
@@ -109,7 +110,7 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
             vcols = _get_mesh_vcol_(geo, p.data_name)
             
             if vcols and len(vcols) > 0:
-                rixparams.SetColorDetail(p.name, string_utils.convert_val(vcols, type_hint="color"), "vertex")
+                rixparams.SetColorDetail(p.name, vcols, "vertex")
             
         elif p.data_source == 'UV_TEXTURE':
             uvs = _get_mesh_uv_(geo, p.data_name)

@@ -208,6 +208,10 @@ class RmanMaterialTranslator(RmanTranslator):
         return sg_nodes        
 
     def translate_cycles_node(self, mat, rman_sg_material, node, mat_name):
+        from ..rfb_utils.node_desc import NodeDesc
+        from ..rfb_utils import filepath_utils
+        from ..rfb_utils.filepath import FilePath
+
         if node.bl_idname == 'ShaderNodeGroup':
             return self.translate_node_group(mat, rman_sg_material, node, mat_name)
 
@@ -217,6 +221,8 @@ class RmanMaterialTranslator(RmanTranslator):
             return []
 
         mapping = _CYCLES_NODE_MAP_[node.bl_idname]
+        shader_path = FilePath(filepath_utils.get_cycles_shader_path()).join(FilePath('%s.oso' % mapping))
+        node_desc = NodeDesc(shader_path)
 
         sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", mapping, shadergraph_utils.get_node_name(node, mat_name))
         params = sg_node.params      
@@ -239,6 +245,23 @@ class RmanMaterialTranslator(RmanTranslator):
                     continue
 
                 property_utils.set_rix_param(params, param_type, param_name, val, is_reference=False)
+
+        for node_desc_param in node_desc.params:
+            param_name = node_desc_param._name
+            if param_name in node.inputs:
+                continue
+            if param_name == 'name':
+                param_name = 'attribute_name'
+            if not hasattr(node, param_name):
+                continue
+            param_type = node_desc_param.type
+            val = string_utils.convert_val(getattr(node, param_name),
+                            type_hint=param_type)
+
+            if param_type == 'string':
+                val = str(val)
+
+            property_utils.set_rix_param(params, param_type, param_name, val, is_reference=False)            
 
         ramp_size = 256
         if node.bl_idname == 'ShaderNodeValToRGB':
