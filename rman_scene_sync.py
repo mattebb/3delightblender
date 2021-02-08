@@ -284,8 +284,15 @@ class RmanSceneSync(object):
             elif isinstance(obj.id, bpy.types.Object):
 
                 rman_type = object_utils._detect_primitive_(ob)
-
-                if obj.id.original not in self.rman_scene.rman_objects:
+                # grab the object from bpy.data, because the depsgraph doesn't seem
+                # to get the updated viewport hidden value                
+                ob_data = bpy.data.objects.get(ob.name, ob)
+                rman_sg_node = self.rman_scene.rman_objects.get(obj.id.original, None)
+                is_hidden = ob_data.hide_get()
+                if not rman_sg_node:
+                    if ob_data.hide_get():
+                        # don't add if this hidden in the viewport
+                        continue                    
                     if ob.type == 'CAMERA': 
                         new_cams.append(obj.id.original)
                     else:
@@ -308,6 +315,16 @@ class RmanSceneSync(object):
                             new_objs.append(obj.id.original)
                             update_instances.append(obj.id.original)
                     continue      
+
+                if rman_sg_node and rman_sg_node.sg_node:
+                    # double check hidden value
+                    if rman_sg_node.sg_node.GetHidden() != int(is_hidden):
+                        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene): 
+                            if shadergraph_utils.is_rman_light(ob_data, include_light_filters=False):
+                                self._update_light_visibility(rman_sg_node, ob_data)
+                            else:
+                                rman_sg_node.sg_node.SetHidden(is_hidden)     
+                        updated_geo.append(obj.id.original)           
 
                 if obj.is_updated_transform:
                     rfb_log().debug("Transform updated: %s" % obj.id.name)
@@ -346,22 +363,14 @@ class RmanSceneSync(object):
                             update_instances.append(obj.id.original)                  
 
                 if obj.is_updated_geometry:
+                    if is_hidden:
+                        # don't update if this is hidden
+                        continue
                     rfb_log().debug("Object updated: %s" % obj.id.name)
                     self._obj_geometry_updated(obj)   
-                    if obj.id.type not in ['CAMERA']:                 
-                        updated_geo.append(obj.id.original)                            
-
-                rman_sg_node = self.rman_scene.rman_objects.get(obj.id.original, None)
-                if rman_sg_node and rman_sg_node.sg_node:
-                    # double check hidden value
-                    # grab the object from bpy.data, because the depsgraph doesn't seem
-                    # to get the updated value
-                    ob_data = bpy.data.objects.get(ob.name, ob)
-                    with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene): 
-                        if shadergraph_utils.is_rman_light(ob_data, include_light_filters=False): #rman_type == 'LIGHT':
-                            self._update_light_visibility(rman_sg_node, ob_data)
-                        else:
-                            rman_sg_node.sg_node.SetHidden(ob_data.hide_get())
+                    if obj.id.type not in ['CAMERA']:    
+                        if obj.id.original not in updated_geo:             
+                            updated_geo.append(obj.id.original)                            
 
             elif isinstance(obj.id, bpy.types.Collection):
                 rfb_log().debug("Collection updated")

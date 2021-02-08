@@ -516,7 +516,7 @@ class RmanScene(object):
             if obj.type not in ('ARMATURE', 'CAMERA'):
                 ob = obj.evaluated_get(self.depsgraph)           
                 self.export_data_block(ob) 
-            rfb_log().debug("   Exported %d/%d data blocks..." % (i, total))
+            rfb_log().debug("   Exported %d/%d data blocks... (%s)" % (i, total, obj.name))
             self._update_progress("Exporting data blocks",i/total)
 
     def export_data_block(self, db_ob):
