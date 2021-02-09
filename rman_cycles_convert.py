@@ -314,4 +314,5 @@ def convert_cycles_nodetree(id, output_node):
         convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
         convert_cycles_displacement(
             nt, base_surface, cycles_output_node.inputs[2], output_node)
+        base_surface.update_mat(id)
     return True

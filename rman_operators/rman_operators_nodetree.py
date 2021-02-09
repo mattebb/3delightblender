@@ -23,8 +23,8 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
             output = nt.nodes.new('RendermanOutputNode')
             try:
                 if not rman_cycles_convert.convert_cycles_nodetree(mat, output):
-                    pxr_surface_node = rman_bl_nodes.__BL_NODES_MAP__['PxrSurface']
-                    default = nt.nodes.new(pxr_surface_node)
+                    pxr_disney_node = rman_bl_nodes.__BL_NODES_MAP__['PxrDisneyBsdf']
+                    default = nt.nodes.new(pxr_disney_node)
                     default.location = output.location
                     default.location[0] -= 300
                     nt.links.new(default.outputs[0], output.inputs[0])
@@ -104,7 +104,7 @@ class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
     bl_description = "Try to convert the current Cycles Shader to RenderMan. This is not guaranteed to work. It is still recommended to use RenderMan only nodes."
 
     idtype: StringProperty(name="ID Type", default="material")
-    bxdf_name: StringProperty(name="Bxdf Name", default="PxrDisneyBsdf")
+    bxdf_name: StringProperty(name="Bxdf Name", default="LamaSurface")
 
     def execute(self, context):
         idtype = self.properties.idtype
