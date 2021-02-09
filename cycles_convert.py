@@ -28,6 +28,7 @@ from .rfb_utils import texture_utils
 
 converted_nodes = {}
 report = None
+__CURRENT_MATERIAL__ = None
 
 
 def convert_cycles_node(nt, node, location=None):
@@ -68,31 +69,54 @@ def convert_cycles_node(nt, node, location=None):
         node2 = node.inputs[
             1 + i].links[0].from_node if node.inputs[1 + i].is_linked else None
 
-        mixer = nt.nodes.new('PxrLayerMixerPatternOSLNode')
-        if location:
-            mixer.location = location
-        # set the layer masks
-        if node.bl_idname == 'ShaderNodeAddShader':
-            mixer.layer1Mask = .5
-        else:
-            convert_cycles_input(nt, node.inputs['Fac'], mixer, 'layer1Mask')
+        if node.bl_idname == 'ShaderNodeAddShader':        
+            add = nt.nodes.new('LamaAddBxdfNode')
+            if location:
+                add.location = location            
 
-        # make a new node for each
-        convert_cycles_input(nt, node.inputs[0 + i], mixer, 'baselayer')
-        convert_cycles_input(nt, node.inputs[1 + i], mixer, 'layer1')
-        return mixer
+            # make a new node for each
+            rman_node1 = convert_cycles_bsdf(nt, add, node1, 0)
+            rman_node2 = convert_cycles_bsdf(nt, add, node2, 1)
+
+            nt.links.new(rman_node1.outputs["Bxdf"],
+                        add.inputs['material1'])        
+            nt.links.new(rman_node2.outputs["Bxdf"],
+                        add.inputs['material2'])   
+
+            setattr(add, "weight1", 0.5)    
+            setattr(add, "weight2", 0.5)
+
+            return add                      
+
+        elif node.bl_idname == 'ShaderNodeMixShader': 
+
+            mixer = nt.nodes.new('LamaMixBxdfNode')
+            if location:
+                mixer.location = location
+
+            convert_cycles_input(
+                nt, node.inputs['Fac'], mixer, 'mix')
+
+            # make a new node for each
+            rman_node1 = convert_cycles_bsdf(nt, mixer, node1, 0)
+            rman_node2 = convert_cycles_bsdf(nt, mixer, node2, 1)
+
+            nt.links.new(rman_node1.outputs["Bxdf"],
+                        mixer.inputs['material1'])        
+            nt.links.new(rman_node2.outputs["Bxdf"],
+                        mixer.inputs['material2'])          
+
+            return mixer        
+
+
     elif node_type in bsdf_map.keys():
         rman_name, convert_func = bsdf_map[node_type]
         if not convert_func:
             return None
-        node_name = 'PxrLayerPatternOSLNode'
-        rman_node = nt.nodes.new(node_name)
-        rman_node.enableDiffuse = False
-        rman_node.diffuseGain = 0
-        if location:
-            rman_node.location = location
-        convert_func(nt, node, rman_node)
+
+        rman_node = convert_func(nt, node)
         converted_nodes[node.name] = rman_node.name
+
         return rman_node
     # else this is just copying the osl node!
     # TODO make this an RMAN osl node
@@ -148,7 +172,8 @@ def convert_tex_image_node(nt, cycles_node, rman_node):
     if bl_image:
         img_path = texture_utils.get_blender_image_path(bl_image)
         if img_path != '':
-            setattr(rman_node, 'filename', img_path)
+            rman_node['filename'] = img_path
+            texture_utils.update_texture(rman_node, light=None, mat=__CURRENT_MATERIAL__, ob=None)
 
     # can't link a vector to a manifold :(
     # if cycles_node.inputs['Vector'].is_linked:
@@ -192,7 +217,8 @@ def convert_mix_rgb_node(nt, cycles_node, rman_node):
                   'COLOR': '0',
                   'SOFT_LIGHT': '24',
                   'LINEAR_LIGHT': '16'}
-    setattr(rman_node, 'operation', conversion[cycles_node.blend_type])
+    rman_op = conversion.get(cycles_node.blend_type, '10')
+    setattr(rman_node, 'operation', rman_op)
 
 
 def convert_node_group(nt, cycles_node, rman_node):

@@ -186,6 +186,7 @@ class RmanMaterialTranslator(RmanTranslator):
         rix_params.SetColor('baseColor', string_utils.convert_val(mat.diffuse_color, 'color'))
         rix_params.SetFloat('metallic', mat.metallic )
         rix_params.SetFloat('roughness', mat.roughness)
+        rix_params.SetFloat('specReflectScale', mat.metallic )
        
         rman_sg_material.sg_node.SetBxdf([sg_node])        
 

@@ -99,46 +99,24 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         if not node1 and not node2:
             return
         elif not node1:
-            convert_cycles_bsdf(nt, rman_parent, node2, input_index)
-        elif not node2:
-            convert_cycles_bsdf(nt, rman_parent, node1, input_index)
-
-        # if ones a combiner or they're of the same type and not glossy we need
-        # to make a mixer
-        elif node.bl_idname == 'ShaderNodeMixShader' or node1.bl_idname in _COMBINE_NODES_ \
-                or node2.bl_idname in _COMBINE_NODES_ or \
-                node1.bl_idname == 'ShaderNodeGroup' or node2.bl_idname == 'ShaderNodeGroup' \
-                or (_BSDF_MAP_[node1.bl_idname][0] == _BSDF_MAP_[node2.bl_idname][0]):
-
-            mixer = nt.nodes.new('LamaMixBxdfNode')
+            rman_node2 = convert_cycles_bsdf(nt, rman_parent, node2, input_index)
             if rman_parent.bl_label == 'LamaSurface':
-                nt.links.new(mixer.outputs["Bxdf"],
-                             rman_parent.inputs['materialFront'])
+                nt.links.new(rman_node2.outputs["Bxdf"],
+                             rman_parent.inputs['materialFront'])    
             else:
-                nt.links.new(mixer.outputs["Bxdf"],
-                             rman_parent.inputs[input_index])                
-            offset_node_location(rman_parent, mixer, node)
+                nt.links.new(rman_node2.outputs["Bxdf"],
+                             rman_parent.inputs[input_index])                                  
 
-            # set the layer masks
-            if node.bl_idname == 'ShaderNodeAddShader':
-                mixer.mix = .5
+        elif not node2:
+            rman_node1 = convert_cycles_bsdf(nt, rman_parent, node1, input_index)
+            if rman_parent.bl_label == 'LamaSurface':
+                nt.links.new(rman_node1.outputs["Bxdf"],
+                             rman_parent.inputs['materialFront'])  
             else:
-                convert_cycles_input(
-                    nt, node.inputs['Fac'], mixer, 'mix')
+                nt.links.new(rman_node1.outputs["Bxdf"],
+                             rman_parent.inputs[input_index])                                          
 
-            # make a new node for each
-            rman_node1 = convert_cycles_bsdf(nt, mixer, node1, 0)
-            rman_node2 = convert_cycles_bsdf(nt, mixer, node2, 1)
-
-            nt.links.new(rman_node1.outputs["Bxdf"],
-                        mixer.inputs['material2'])        
-            nt.links.new(rman_node2.outputs["Bxdf"],
-                        mixer.inputs['material1'])          
-
-            return mixer 
-
-        # this is a heterogenous mix of add
-        else:
+        elif node.bl_idname == 'ShaderNodeAddShader':
 
             add = nt.nodes.new('LamaAddBxdfNode')
             if rman_parent.bl_label == 'LamaSurface':
@@ -154,24 +132,48 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
             rman_node2 = convert_cycles_bsdf(nt, add, node2, 1)
 
             nt.links.new(rman_node1.outputs["Bxdf"],
-                        add.inputs['material2'])        
+                        add.inputs['material1'])        
             nt.links.new(rman_node2.outputs["Bxdf"],
-                        add.inputs['material1'])       
+                        add.inputs['material2'])   
 
-            return add            
+            setattr(add, "weight1", 0.5)    
+            setattr(add, "weight2", 0.5)
 
-    # else set lobe on parent
+            return add                      
+
+        elif node.bl_idname == 'ShaderNodeMixShader': 
+
+            mixer = nt.nodes.new('LamaMixBxdfNode')
+            if rman_parent.bl_label == 'LamaSurface':
+                nt.links.new(mixer.outputs["Bxdf"],
+                             rman_parent.inputs['materialFront'])
+            else:
+                nt.links.new(mixer.outputs["Bxdf"],
+                             rman_parent.inputs[input_index])                
+            offset_node_location(rman_parent, mixer, node)
+
+            convert_cycles_input(
+                nt, node.inputs['Fac'], mixer, 'mix')
+
+            # make a new node for each
+            rman_node1 = convert_cycles_bsdf(nt, mixer, node1, 0)
+            rman_node2 = convert_cycles_bsdf(nt, mixer, node2, 1)
+
+            nt.links.new(rman_node1.outputs["Bxdf"],
+                        mixer.inputs['material1'])        
+            nt.links.new(rman_node2.outputs["Bxdf"],
+                        mixer.inputs['material2'])          
+
+            return mixer        
+
     elif 'Bsdf' in node.bl_idname or node.bl_idname == 'ShaderNodeSubsurfaceScattering':
-        if rman_parent.plugin_name == 'PxrLayerMixer':
-            old_parent = rman_parent
-            rman_parent = create_rman_surface(nt, rman_parent, input_index,
-                                              'PxrLayerPatternOSLNode')
-            offset_node_location(old_parent, rman_parent, node)
-
         node_type = node.bl_idname
-        return _BSDF_MAP_[node_type][1](nt, node, rman_parent)
-    # if we find an emission node, naively make it a meshlight
-    # note this will only make the last emission node the light
+        rman_node = _BSDF_MAP_[node_type][1](nt, node, rman_parent)
+        if rman_parent.bl_label == 'LamaSurface':
+            nt.links.new(rman_node.outputs["Bxdf"],
+                            rman_parent.inputs['materialFront'])  
+        return rman_node
+
     elif node.bl_idname == 'ShaderNodeEmission':
 
         emission = nt.nodes.new('LamaEmissionBxdfNode')
@@ -265,6 +267,7 @@ def convert_cycles_nodetree(id, output_node):
     # find base node
     from . import cycles_convert
     cycles_convert.converted_nodes = {}
+    cycles_convert.__CURRENT_MATERIAL__ = id
     nt = id.node_tree
     rfb_log().info('Converting material ' + id.name + ' to RenderMan')
     cycles_output_node = shadergraph_utils.find_node(id, 'ShaderNodeOutputMaterial')
