@@ -1,4 +1,6 @@
 from . import shadergraph_utils
+from . import object_utils
+import bpy
 
 
 # ------------- Atom's helper functions -------------
@@ -112,6 +114,73 @@ def get_light_groups_in_scene(scene):
             lgt_grps[lgt_grp_nm] = lights_list
 
     return lgt_grps
+
+def find_node_owner(node, context=None):
+    """ Return the owner of this node
+
+    Args:
+    node (bpy.types.ShaderNode) - the node that the caller is trying to find its owner
+    context (bpy.types.Context) - Blender context
+
+    Returns:
+    (id_data) - The owner of this node
+    """    
+    nt = node.id_data
+
+    for mat in bpy.data.materials:
+        if mat.node_tree == nt:
+            return mat
+
+    for world in bpy.data.worlds:
+        if world.node_tree == nt:
+            return world
+
+    for ob in bpy.data.objects:
+        if ob.type == 'LIGHT':
+            light = ob.data
+            if light.node_tree == nt:
+                return ob
+        elif ob.type == 'CAMERA':
+            if shadergraph_utils.find_projection_node(ob) == node:
+                return ob
+
+    return None
+
+def find_node_by_name(node_name, ob_name):
+    """ Finder shader node and object by name(s)
+
+    Args:
+    node_name (str) - name of the node we are trying to find
+    ob_name (str) - object name we are trying to look for that has node_name
+
+    Returns:
+    (list) - node and object
+    """    
+
+    mat = bpy.data.materials.get(ob_name, None)
+    if mat:
+        node = mat.node_tree.nodes.get(node_name, None)
+        if node:
+            return (node, mat)
+
+    world = bpy.data.worlds.get(ob_name, None)
+    if world:
+        node = world.node_tree.nodes.get(node_name, None)
+        if node:
+            return (node, world)
+
+    obj = bpy.data.objects.get(ob_name, None)
+    if obj:
+        rman_type = object_utils._detect_primitive_(obj)
+        if rman_type in ['LIGHT', 'LIGHTFILTER']:
+            light_node = shadergraph_utils.get_light_node(obj, include_light_filters=True)
+            return (light_node, obj)
+        elif rman_type == 'CAMERA':
+            node = shadergraph_utils.find_projection_node(obj)
+            if node:
+                return (node, obj)
+
+    return (None, None)
 
 def is_renderable(scene, ob):
     return (is_visible_layer(scene, ob) and not ob.hide_render) or \

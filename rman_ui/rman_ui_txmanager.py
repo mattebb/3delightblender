@@ -4,6 +4,9 @@ from bpy.types import PropertyGroup, UIList, Operator, Panel
 from bpy_extras.io_utils import ImportHelper
 from .rman_ui_base import _RManPanelHeader
 from ..rfb_utils import texture_utils
+from ..rfb_utils import shadergraph_utils
+from ..rfb_utils import scene_utils
+from ..rfb_utils import object_utils
 from .. import rman_render
 from rman_utils.txmanager import txparams
 from rman_utils import txmanager as txmngr
@@ -191,6 +194,21 @@ class PRMAN_OT_Renderman_txmanager_parse_scene(Operator):
 
     bl_idname = "rman_txmgr_list.parse_scene"
     bl_label = "Parse Scene"
+    bl_description = "Parse the scene and look for textures that need converting."
+
+    def execute(self, context):
+        rman_txmgr_list = context.scene.rman_txmgr_list
+        texture_utils.parse_for_textures(context.scene)
+        texture_utils.get_txmanager().txmake_all(blocking=False)
+        bpy.ops.rman_txmgr_list.refresh('EXEC_DEFAULT')
+        return{'FINISHED'}
+
+class PRMAN_OT_Renderman_txmanager_reset_state(Operator):
+    """Reset State"""
+
+    bl_idname = "rman_txmgr_list.reset_state"
+    bl_label = "Reset State"
+    bl_description = "All texture settings will be erased and the scene will be re-parsed. All manual edits will be lost."
 
     def execute(self, context):
         rman_txmgr_list = context.scene.rman_txmgr_list
@@ -198,14 +216,15 @@ class PRMAN_OT_Renderman_txmanager_parse_scene(Operator):
         texture_utils.get_txmanager().txmanager.reset()
         texture_utils.parse_for_textures(context.scene)
         texture_utils.get_txmanager().txmake_all(blocking=False)
+        texture_utils.get_txmanager().txmanager.reset_state()
         return{'FINISHED'}
-
 
 class PRMAN_OT_Renderman_txmanager_pick_images(Operator, ImportHelper):
     """Pick images from a directory."""
 
     bl_idname = "rman_txmgr_list.pick_images"
     bl_label = "Pick Images"
+    bl_description = "Manually choose images on disk to convert."
 
     filename: StringProperty(maxlen=1024)
     directory: StringProperty(maxlen=1024)
@@ -214,16 +233,15 @@ class PRMAN_OT_Renderman_txmanager_pick_images(Operator, ImportHelper):
     def execute(self, context):
 
         rman_txmgr_list = context.scene.rman_txmgr_list
-        rman_txmgr_list.clear()
-        texture_utils.get_txmanager().txmanager.reset()
 
         if len(self.files) > 0:
             for f in self.files:
                 img = os.path.join(self.directory, f.name)  
-                item = context.scene.rman_txmgr_list.add()
-                item.nodeID = str(uuid.uuid1())
-                texture_utils.get_txmanager().txmanager.add_texture(item.nodeID, img)         
-                item.name = img
+                nodeID = str(uuid.uuid1())
+                texture_utils.get_txmanager().txmanager.add_texture(nodeID, img) 
+                bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=img, nodeID=nodeID)
+            texture_utils.get_txmanager().txmake_all(blocking=False)
+            texture_utils.get_txmanager().txmanager.save_state()
 
         return{'FINISHED'}
 
@@ -251,7 +269,7 @@ class PRMAN_OT_Renderman_txmanager_reconvert_all(Operator):
 
     bl_idname = "rman_txmgr_list.reconvert_all"
     bl_label = "RE-Convert All"
-    bl_description = "Clear all .tex files for all input images"
+    bl_description = "Clear all .tex files for all input images and re-convert."
 
     def execute(self, context):
         texture_utils.get_txmanager().txmanager.delete_texture_files()
@@ -264,7 +282,7 @@ class PRMAN_OT_Renderman_txmanager_reconvert_selected(Operator):
 
     bl_idname = "rman_txmgr_list.reconvert_selected"
     bl_label = "RE-Convert Selected"
-    bl_description = "Clear all .tex files for selected image"
+    bl_description = "Clear all .tex files for selected image and re-convert"
 
     def execute(self, context):
         idx = context.scene.rman_txmgr_list_index
@@ -302,7 +320,7 @@ class PRMAN_OT_Renderman_txmanager_apply_preset(Operator):
 
         # b2r
         bumprough = dict()
-        if item.bumprough != "-1":
+        if item.bumpRough != "-1":
             bumprough['normalmap'] = int(item.bumpRough)
             bumprough['factor'] = item.bumpRough_factor
             bumprough['invert'] = item.bumpRough_invert
@@ -325,7 +343,27 @@ class PRMAN_OT_Renderman_txmanager_apply_preset(Operator):
                 txfile.delete_texture_files()
                 texture_utils.get_txmanager().txmake_all(blocking=False)
 
-        return{'FINISHED'}        
+        texture_utils.get_txmanager().txmanager.save_state()
+
+        # update any nodes with colorspace in it
+        tokens = item.nodeID.split('|')
+        if len(tokens) < 3:
+            return
+        node_name,prop_name,ob_name = tokens            
+        prop_colorspace_name = '%s_colorspace' % prop_name
+
+        mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
+        val = 0
+        for i, nm in enumerate(mdict):
+            if nm == item.ocioconvert:
+                val = i+1
+                break        
+
+        node, ob = scene_utils.find_node_by_name(node_name, ob_name)
+        if node:
+            node[prop_colorspace_name] = val        
+
+        return {'FINISHED'}        
 
 class PRMAN_OT_Renderman_txmanager_add_texture(Operator):
     """Add texture."""
@@ -379,7 +417,7 @@ class PRMAN_OT_Renderman_txmanager_add_texture(Operator):
             params.bumpRough = "-1"
 
   
-        item.tooltip = '\n' + item.nodeID + "\n" + str(txfile)
+        item.tooltip = '\nNode ID: ' + item.nodeID + "\n" + str(txfile)
         # FIXME: should also add the nodes that this texture is referenced in     
 
         return{'FINISHED'}        
@@ -481,12 +519,11 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
 
         row = layout.row()
         row.operator('rman_txmgr_list.parse_scene', text='Parse Scene')
-
-        # FIXME: not totally working. The done callbacks fail
-        #row.operator('rman_txmgr_list.pick_images', text='Pick Images')
-        
+        row.operator('rman_txmgr_list.reset_state', text='Reset', icon='FILE_REFRESH')         
+        row.operator('rman_txmgr_list.pick_images', text='Pick Images', icon='FILE_FOLDER')        
         row.operator('rman_txmgr_list.reconvert_all', text='Reconvert All')
-        row.operator('rman_txmgr_list.clear_all_cache', text='Clear All Cache')        
+        #row.operator('rman_txmgr_list.clear_all_cache', text='Clear All Cache')      
+         
 
         if scene.rman_txmgr_list_index >= 0 and scene.rman_txmgr_list:
             row = layout.row()
@@ -605,12 +642,13 @@ def index_updated(self, context):
         else:
             params.bumpRough = "-1"  
 
-        item.tooltip = '\n' + item.nodeID + "\n" + str(txfile)                      
+        item.tooltip = '\nNode ID: ' + item.nodeID + "\n" + str(txfile)                      
 
 classes = [
     TxFileItem,
     PRMAN_UL_Renderman_txmanager_list,
     PRMAN_OT_Renderman_txmanager_parse_scene,
+    PRMAN_OT_Renderman_txmanager_reset_state,
     PRMAN_OT_Renderman_txmanager_pick_images,
     PRMAN_OT_Renderman_txmanager_clear_all_cache,
     PRMAN_OT_Renderman_txmanager_reconvert_all,

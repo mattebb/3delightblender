@@ -689,18 +689,18 @@ class RmanSceneSync(object):
         if len(tokens) < 3:
             return
         node_name,param,ob_name = tokens
-        mat = bpy.data.materials.get(ob_name, None)
-        if mat:
-            self.update_material(mat)
+
+        node, ob = scene_utils.find_node_by_name(node_name, ob_name)
+        if node == None or ob == None:
             return
 
-        ob = bpy.data.objects.get(ob_name, None)
-        if ob:
-            rman_type = object_utils._detect_primitive_(ob)
-            if rman_type in ['LIGHT', 'LIGHTFILTER', 'CAMERA']:
-                ob.update_tag(refresh={'DATA'})
-                return
+        ob_type = type(ob)
 
-        ob = bpy.data.worlds.get(ob_name, None)
-        if ob:
-            ob.update_tag()
+        if ob_type == bpy.types.Material:
+            self.update_material(ob)
+            return
+        elif ob_type == bpy.types.World:
+            ob.update_tag()   
+        else:
+            # light, lightfilters, and cameras
+            ob.update_tag(refresh={'DATA'})

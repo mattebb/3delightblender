@@ -1,6 +1,7 @@
 import os
 import bpy
 import sys
+from ..rfb_utils.filepath_utils import guess_rmantree
 try:
     from rman_utils.color_manager import ColorManager
 except:
@@ -17,30 +18,18 @@ def color_manager():
 
 
 def init():
-    """initialize ColorManager with houdini's $OCIO
-    which can be different from system's $OCIO if 
-    set in Edit > Color Settings
+    """initialize ColorManager
     """
     global __clrmgr__
 
     if __clrmgr__ is None:
-        ociopath = os.getenv('OCIO', None)
+        ociopath = os.getenv('OCIO', get_blender_ocio_config())
         if ColorManager:
             __clrmgr__ = ColorManager(ociopath)
 
 def get_blender_ocio_config():
-    # figure out the path to Blender's default ocio config file
-    # hopefully, this won't change between versions
-    ocioconfig = ''
-    version  = '%d.%d' % (bpy.app.version[0], bpy.app.version[1])
-    binary_path = os.path.dirname(bpy.app.binary_path)
-    rel_config_path = os.path.join(version, 'datafiles', 'colormanagement', 'config.ocio')
-    if sys.platform == ("win32"):
-        ocioconfig = os.path.join(binary_path, rel_config_path)
-    elif sys.platform == ("darwin"):                
-        ocioconfig = os.path.join(binary_path, '..', 'Resources', rel_config_path )
-    else:
-        ocioconfig = os.path.join(binary_path, rel_config_path)    
+    # return rman's version filmic-blender OCIO config
+    ocioconfig = os.path.join(guess_rmantree(), 'lib', 'ocio', 'filmic-blender', 'config.ocio')
 
     return ocioconfig
 

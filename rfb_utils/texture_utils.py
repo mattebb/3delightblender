@@ -211,7 +211,7 @@ def add_images_from_image_editor():
 
 def parse_scene_for_textures(bl_scene):
 
-    add_images_from_image_editor()
+    #add_images_from_image_editor()
 
     mats_to_scan = []
     for o in scene_utils.renderable_objects(bl_scene):

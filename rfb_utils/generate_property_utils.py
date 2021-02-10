@@ -1,5 +1,6 @@
 from ..rman_constants import RFB_ARRAYS_MAX_LEN, __RMAN_EMPTY_STRING__, __RESERVED_BLENDER_NAMES__
 from ..rfb_logger import rfb_log
+from ..rfb_utils import scene_utils
 from collections import OrderedDict
 from bpy.props import *
 from copy import deepcopy
@@ -27,6 +28,7 @@ def assetid_update_func(self, context, param_name):
     mat = None
     ob = None
     active = None
+    '''
     if node.renderman_node_type in ['displayfilter', 'samplefilter', 'integrator']:
         ob = context.scene.world        
     else:    
@@ -41,6 +43,17 @@ def assetid_update_func(self, context, param_name):
             mat = context.material
         elif context and hasattr(context, 'node'):
             mat = context.space_data.id
+    '''
+
+    ob = scene_utils.find_node_owner(node, context)
+    ob_type = type(ob)
+    if ob_type == bpy.types.Material:
+        mat = ob
+    elif ob_type == bpy.types.World:
+        active = ob
+    elif ob.type == 'LIGHT':
+        light = ob.data
+        active = ob
 
     texture_utils.update_texture(node, light=light, mat=mat, ob=ob)
 

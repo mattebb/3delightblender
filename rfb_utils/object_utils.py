@@ -165,26 +165,6 @@ def _detect_primitive_(ob):
     else:
         return rm_primitive    
 
-def get_context_id(node):
-    context = bpy.context
-    ob = None
-    if node.renderman_node_type in ['displayfilter', 'samplefilter', 'integrator']:
-        ob = context.scene.world        
-    else:    
-        active = context.active_object
-        if active:
-            if active.type == 'LIGHT':
-                ob = active.data
-            else:
-                ob = active
-                
-        if context and hasattr(context, 'material'):
-            ob = context.material
-        elif context and hasattr(context, 'node'):
-            ob = context.space_data.id    
-
-    return ob
-
 def get_active_material(ob):
     mat = None
     if ob.renderman.rman_material_override:

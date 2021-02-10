@@ -415,8 +415,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                             row.prop(node, '%s_colorspace' % prop_name, text='Color Space')
                             rman_icon = rfb_icons.get_icon('rman_txmanager')        
                             from . import texture_utils
-                            from . import object_utils
-                            id = object_utils.get_context_id(node)
+                            from . import scene_utils
+                            id = scene_utils.find_node_owner(node)
                             nodeID = texture_utils.generate_node_id(node, prop_name, ob=id)
                             op = row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)  
                             op.nodeID = nodeID
