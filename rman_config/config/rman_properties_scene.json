@@ -1242,17 +1242,8 @@
             "label": "Custom Denoise Commands",
             "type": "string",
             "default": "",
-            "help": "Inserts a string of custom command arguments into the render process"                   
-        },       
-        {
-            "panel": "RENDER_PT_renderman_spooling_export_options",
-            "page": "",
-            "name": "custom_cmd",
-            "label": "Custom Render Commands",
-            "type": "string",
-            "default": "",
             "help": "Inserts a string of custom commands arguments into the denoising process, if selected"                   
-        },                          
+        },                              
         {
             "panel": "RENDER_PT_renderman_spooling_export_options",
             "page": "",
