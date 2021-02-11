@@ -120,6 +120,8 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
                     selected_light_objects.append(obj)
 
         current_category_path = hostPrefs.getSelectedCategory()
+        if current_category_path == '':
+            return 
         rel_path = os.path.relpath(current_category_path, hostPrefs.getSelectedLibrary())                      
 
         asset_type = 'Environment'
