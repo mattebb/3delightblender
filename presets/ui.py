@@ -406,4 +406,8 @@ def unregister():
     bpy.types.VIEW3D_MT_object_context_menu.remove(rman_presets_object_menu)
 
     for cls in classes:
-        bpy.utils.unregister_class(cls)
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError:
+            rfb_log().debug('Could not unregister class: %s' % str(cls))
+            pass   
