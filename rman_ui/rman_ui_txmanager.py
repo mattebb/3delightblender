@@ -48,9 +48,12 @@ class TxFileItem(PropertyGroup):
     def colorspace_names(self, context):
         items = []
         items.append(('0', '', ''))
-        mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
-        for nm in mdict:
-            items.append((nm, nm, ""))
+        try:
+            mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
+            for nm in mdict:
+                items.append((nm, nm, ""))
+        except AttributeError:
+            pass
         return items
 
     ocioconvert: EnumProperty(
@@ -352,16 +355,19 @@ class PRMAN_OT_Renderman_txmanager_apply_preset(Operator):
         node_name,prop_name,ob_name = tokens            
         prop_colorspace_name = '%s_colorspace' % prop_name
 
-        mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
-        val = 0
-        for i, nm in enumerate(mdict):
-            if nm == item.ocioconvert:
-                val = i+1
-                break        
+        try:
+            mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
+            val = 0
+            for i, nm in enumerate(mdict):
+                if nm == item.ocioconvert:
+                    val = i+1
+                    break        
 
-        node, ob = scene_utils.find_node_by_name(node_name, ob_name)
-        if node:
-            node[prop_colorspace_name] = val        
+            node, ob = scene_utils.find_node_by_name(node_name, ob_name)
+            if node:
+                node[prop_colorspace_name] = val    
+        except AttributeError:
+            pass        
 
         return {'FINISHED'}        
 

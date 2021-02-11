@@ -63,14 +63,17 @@ def assetid_update_func(self, context, param_name):
         if txfile:
             params = txfile.params          
             param_colorspace = '%s_colorspace'  % param_name
-            mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
-            val = 0
-            for i, nm in enumerate(mdict):
-                if nm == params.ocioconvert:
-                    val = i+1
-                    break
+            try:
+                mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
+                val = 0
+                for i, nm in enumerate(mdict):
+                    if nm == params.ocioconvert:
+                        val = i+1
+                        break
 
-            node[param_colorspace] = val
+                node[param_colorspace] = val
+            except AttributeError:
+                pass                
     
     if mat:
         node.update_mat(mat)  
@@ -110,9 +113,12 @@ def generate_colorspace_menu(node, param_name):
 
         items = []
         items.append(('0', '', ''))
-        mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
-        for nm in mdict:
-            items.append((nm, nm, ""))
+        try:
+            mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
+            for nm in mdict:
+                items.append((nm, nm, ""))
+        except AttributeError:
+            pass                
         return items
 
     ui_label = "%s_colorspace" % param_name
