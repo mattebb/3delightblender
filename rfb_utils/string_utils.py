@@ -42,6 +42,7 @@ class SceneStringConverter(object):
             self.update()
         else:
             # make sure OUT is updated
+            self.expr.bl_scene = bpy.context.scene
             self.expr.update_out_token()    
 
         if token_dict:
