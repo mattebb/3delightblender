@@ -347,7 +347,39 @@
             "inherit_true_value": -1,
             "page": "Shading",
             "help": "Useful in holdout workflow. These objects collect reflections, shadows, and transmission."
-        },        
+        },       
+        {
+            "panel": "OBJECT_PT_renderman_object_render",
+            "name": "rman_indexofrefraction",
+            "riattr": "shade:indexofrefraction",
+            "label": "Index of Refraction",
+            "type": "float",
+            "default": -1,
+            "inheritable": true,
+            "inherit_true_value": -1,
+            "page": "Shading",
+            "help": "Override material IOR for nested dielectrics."
+        },
+        {
+            "panel": "OBJECT_PT_renderman_object_render",
+            "name": "rman_minsamples",
+            "riattr": "shade:minsamples",
+            "label": "Min Samples",
+            "type": "int",
+            "default": 1,
+            "page": "Shading",
+            "help": "Min Pixel Samples.  For fine-tuning adaptive sampling."
+        },          
+        {
+            "panel": "OBJECT_PT_renderman_object_render",
+            "name": "rman_relativepixelvariance",
+            "riattr": "shade:relativepixelvariance",
+            "label": "Relative Pixel Variance",
+            "type": "float",
+            "default": 1,
+            "page": "Shading",
+            "help": "PixelVariance multiplier for camera visible objects.  For fine-tuning adaptive sampling."
+        },            
         {
             "panel": "OBJECT_PT_renderman_object_raytracing",
             "name": "rman_maxDiffuseDepth",
