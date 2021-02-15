@@ -185,16 +185,16 @@ class PRMAN_MT_renderman_preset_ops_menu(bpy.types.Menu):
         op = getattr(context, 'op_ptr')
         if rel_path.startswith("Materials"):
             assign = layout.operator("renderman.load_asset_to_scene", text="Import and Assign to selected", )
-            assign.preset_path = current_preset
+            assign.preset_path = json_path
             assign.assign = True           
         layout.context_pointer_set("op_ptr", op)
         layout.operator("renderman.load_asset_to_scene", text="Import", )
         layout.separator()
-        layout.operator('renderman.move_preset', icon='EXPORT', text="Move to category...").preset_path = current_preset
+        layout.operator('renderman.move_preset', icon='EXPORT', text="Move to category...").preset_path = json_path
         layout.separator()
-        layout.operator("renderman.view_preset_json", text="Inspect json file").preset_path = current_preset
+        layout.operator("renderman.view_preset_json", text="Inspect json file").preset_path = json_path
         layout.separator()        
-        layout.operator('renderman.remove_preset', icon='X', text="Delete").preset_path = current_preset                
+        layout.operator('renderman.remove_preset', icon='X', text="Delete").preset_path = json_path                
 
 class RENDERMAN_UL_Presets_Categories_List(bpy.types.UIList):
 
