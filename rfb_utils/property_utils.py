@@ -332,7 +332,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
             osl_path = string_utils.expand_string(getattr(node, 'shadercode'))
             FileName = os.path.basename(osl_path)
             FileNameNoEXT,ext = os.path.splitext(FileName)
-            shaders_path = os.path.join(string_utils.expand_string(prefs.env_vars.out), "shaders")
+            shaders_path = os.path.join(string_utils.expand_string('<OUT>'), "shaders")
             out_file = os.path.join(shaders_path, FileName)
             if ext == ".oso":
                 if not os.path.exists(out_file) or not os.path.samefile(osl_path, out_file):

@@ -82,7 +82,7 @@ class RmanSpool(object):
 
     def blender_batch_render(self, bl_filename):
 
-        out_dir = get_pref('env_vars').out       
+        out_dir = '<OUT>'      
         scene = self.bl_scene 
         rm = scene.renderman
         bl_view_layer = self.depsgraph.view_layer
@@ -170,7 +170,7 @@ class RmanSpool(object):
 
     def batch_render(self):
 
-        out_dir = get_pref('env_vars').out       
+        out_dir = '<OUT>'
         scene = self.bl_scene 
         rm = scene.renderman
         bl_view_layer = self.depsgraph.view_layer

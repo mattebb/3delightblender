@@ -638,7 +638,7 @@ def export_material_preset(mat, nodes_to_convert, renderman_output_node, Asset):
                     osl_path = string_utils.expand_string(getattr(node, 'shadercode'))
                     FileName = os.path.basename(osl_path)
                     FileNameNoEXT,ext = os.path.splitext(FileName)
-                    shaders_path = os.path.join(string_utils.expand_string(prefs.env_vars.out), "shaders")
+                    shaders_path = os.path.join(string_utils.expand_string('<OUT>'), "shaders")
                     out_file = os.path.join(shaders_path, FileName)
                     if ext == ".oso":
                         if not os.path.exists(out_file) or not os.path.samefile(osl_path, out_file):
