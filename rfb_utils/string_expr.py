@@ -3,6 +3,7 @@ import re
 import time
 import os
 import datetime
+import sys
 from collections import OrderedDict
 from ..rfb_logger import rfb_log
 from ..rfb_utils import filepath_utils
@@ -33,33 +34,6 @@ def time_this(f):
 
     return timed
 
-
-STD_TOKENS = OrderedDict()
-STD_TOKENS['ws'] = '<ws>:\tpath to current project'
-STD_TOKENS['pwd'] = '<pwd>:\tpath to current directory'
-STD_TOKENS['file'] = '<file>:\tscene file name'
-STD_TOKENS['scene'] = '<scene>:\tscene name'
-STD_TOKENS['camera'] = '<camera>:\trender camera'
-STD_TOKENS['aov'] = '<aov>:\tAOV display name'
-STD_TOKENS['aovdir'] = '''<aovdir>:\tAOV directory name (without '_variance' if denoised)'''
-STD_TOKENS['ext'] = '<ext>:\timage file extension'
-STD_TOKENS['layer'] = '<layer>:\trender layer name'
-STD_TOKENS['shape'] = '<shape>:\tshort shape name'
-STD_TOKENS['shapepath'] = '<shapepath>:\tlong shape name'
-STD_TOKENS['frame'] = '<frame>:\tdecimal frame number'
-STD_TOKENS['f'] = '<f>:\tframe number'
-STD_TOKENS['f2'] = '<f2>:\tzero-padded frame number'
-STD_TOKENS['f3'] = '<f3>:\tzero-padded frame number'
-STD_TOKENS['f4'] = '<f4>:\tzero-padded frame number'
-STD_TOKENS['jobid'] = '<jobid>:\tunique job identifier'
-STD_TOKENS['date'] = '<date>:\tcurrent date'
-STD_TOKENS['time'] = '<time>:\tcurrent time'
-STD_TOKENS['version'] = '<version>:\tscene version number'
-STD_TOKENS['take'] = '<take>:\tscene take number'
-STD_TOKENS['assetlib'] = '<assetlib>:\tpath to the standard RenderManAssetLibrary'
-STD_TOKENS['imagedir'] = '<imagedir>:\timages output path defined in rmanGlobals'
-STD_TOKENS['integrator'] = '<integrator>:\tcurrent integrator'
-
 PAD_FMT = ['%d', '%01d', '%02d', '%03d', '%04d']
 
 # split the token into 3 groups:
@@ -85,6 +59,8 @@ class StringExpression(object):
         if bl_scene:
             self.bl_scene = bl_scene
         self.tokens = {}
+        self.update_temp_token()
+        self.update_out_token()
         self.update_blend_tokens()  
         self.tokens['pwd'] = ''
         ts = datetime.datetime.fromtimestamp(time.time())
@@ -110,6 +86,18 @@ class StringExpression(object):
                 tokens[k] = self.expand(v)
             self.tokens.update(tokens)
 
+    def update_temp_token(self):
+        if sys.platform == ("win32"):
+            self.tokens['TEMP'] = 'C:/tmp'
+        else:
+            self.tokens['TEMP'] = '/tmp'
+
+    def update_out_token(self):
+        if not self.bl_scene:
+            self.tokens['OUT'] = self.expand('<TEMP>/renderman_for_blender/<blend>')
+        else:
+            self.tokens['OUT'] = self.expand(self.bl_scene.renderman.root_path_output)         
+
     def update_blend_tokens(self):
         scene = self.bl_scene
         rm = scene.renderman        
@@ -123,9 +111,8 @@ class StringExpression(object):
             self.tokens['blend_dir'] = ''
         else:
             self.tokens['blend_dir'] = os.path.split(bpy.data.filepath)[0]     
-            self.tokens['blend'] = os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]     
+            self.tokens['blend'] = os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]             
 
-        self.tokens['OUT'] = self.expand(get_pref('env_vars').out)
         if self.tokens['blend_dir'] == '':
             self.tokens['blend_dir'] = self.tokens['OUT']
         self.tokens['scene'] = scene.name 

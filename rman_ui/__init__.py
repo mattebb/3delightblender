@@ -17,6 +17,7 @@ from . import rman_ui_view3d_panels
 from . import rman_ui_blender_panels
 from . import rman_ui_view3d_menus
 from . import rman_ui_texteditor
+from . import rman_ui_output_panels
 
 def register():
     rman_ui_base.register()
@@ -38,6 +39,7 @@ def register():
     rman_ui_blender_panels.register()
     rman_ui_view3d_menus.register()
     rman_ui_texteditor.register()
+    rman_ui_output_panels.register()
 
 def unregister():
     rman_ui_base.unregister()
@@ -59,3 +61,4 @@ def unregister():
     rman_ui_blender_panels.unregister()
     rman_ui_view3d_menus.unregister()
     rman_ui_texteditor.unregister()
+    rman_ui_output_panels.unregister()

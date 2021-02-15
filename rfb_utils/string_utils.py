@@ -40,7 +40,10 @@ class SceneStringConverter(object):
         """
         if not self.expr:
             self.update()
-            
+        else:
+            # make sure OUT is updated
+            self.expr.update_out_token()    
+
         if token_dict:
             self.update_tokens(token_dict)
 

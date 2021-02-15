@@ -1121,7 +1121,17 @@
             "type": "string",
             "default": "",
             "help": ""
-        },        
+        },      
+        {
+            "panel": "RENDER_PT_renderman_workspace",
+            "page": "",
+            "name": "root_path_output",
+            "label": "Output Path",
+            "type": "string",
+            "default": "<TEMP>/renderman_for_blender/<blend>",
+            "widget": "fileinput",
+            "help": "The root path for all generated files for the scene. Can be referenced using the <OUT> token in other paths."                   
+        },           
         {
             "panel": "RENDER_PT_renderman_workspace",
             "page": "",

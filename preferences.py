@@ -37,25 +37,6 @@ from . import rfb_icons
 class RendermanPreferencePath(bpy.types.PropertyGroup):
     path: StringProperty(name="", subtype='DIR_PATH')
 
-
-class RendermanEnvVarSettings(bpy.types.PropertyGroup):
-    if sys.platform == ("win32"):
-        outpath = os.path.join(
-            "C:", "Users", os.getlogin(), "Documents", "PRMan")
-        out: StringProperty(
-            name="OUT (Output Root)",
-            description="Default RIB export path root",
-            subtype='DIR_PATH',
-            default='C:/tmp/renderman_for_blender/<blend>')
-
-    else:
-        outpath = os.path.join(os.environ.get('HOME'), "Documents", "PRMan")
-        out: StringProperty(
-            name="OUT (Output Root)",
-            description="Default RIB export path root",
-            subtype='DIR_PATH',
-            default='/tmp/renderman_for_blender/<blend>')
-
 class RendermanPreferences(AddonPreferences):
     bl_idname = __package__
 
@@ -142,10 +123,6 @@ class RendermanPreferences(AddonPreferences):
         ],        
         default='MANUALLY'
     )    
-
-    env_vars: PointerProperty(
-        type=RendermanEnvVarSettings,
-        name="Environment Variable Settings")
 
     auto_check_update: bpy.props.BoolProperty(
         name = "Auto-check for Update",
@@ -311,7 +288,7 @@ class RendermanPreferences(AddonPreferences):
         row.label(text='Workspace', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
-        col.prop(env, "out")
+        #col.prop(env, "out")
         col.prop(self, 'path_fallback_textures_path')
         col.prop(self, "rman_scene_version_padding")
         col.prop(self, "rman_scene_take_padding")
@@ -361,11 +338,9 @@ class RendermanPreferences(AddonPreferences):
 
 def register():
     bpy.utils.register_class(RendermanPreferencePath)
-    bpy.utils.register_class(RendermanEnvVarSettings)
     bpy.utils.register_class(RendermanPreferences)
 
 
 def unregister():
     bpy.utils.unregister_class(RendermanPreferences)
-    bpy.utils.unregister_class(RendermanEnvVarSettings)
     bpy.utils.unregister_class(RendermanPreferencePath)

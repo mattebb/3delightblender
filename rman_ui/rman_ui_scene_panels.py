@@ -2,20 +2,6 @@ from .rman_ui_base import PRManButtonsPanel
 from bpy.types import Panel
 import bpy
 
-class RENDER_PT_renderman_workspace(PRManButtonsPanel, Panel):
-    bl_label = "Workspace"
-    bl_context = "scene"
-
-    def draw(self, context):
-        self.layout.use_property_split = True
-        self.layout.use_property_decorate = False
-
-        if context.scene.render.engine != "PRMAN_RENDER":
-            return
-
-        layout = self.layout
-        layout.operator('scene.rman_open_workspace', text='Open Workspace')
-
 class PRMAN_PT_Renderman_Light_Mixer_Panel(PRManButtonsPanel, Panel):
     bl_label = "RenderMan Light Mixer"
     bl_context = "scene"
@@ -63,7 +49,6 @@ class PRMAN_PT_Renderman_Groups_Panel(PRManButtonsPanel, Panel):
         layout.operator('scene.rman_open_groups_editor', text='Trace Sets Editor')                                                   
 
 classes = [
-    RENDER_PT_renderman_workspace,
     PRMAN_PT_Renderman_Light_Mixer_Panel, 
     PRMAN_PT_Renderman_Light_Linking_Panel,
     PRMAN_PT_Renderman_Groups_Panel
