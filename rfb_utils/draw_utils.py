@@ -84,16 +84,7 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             else:
                 if hasattr(ndp, 'page') and ndp.page != '':
                     row.label(text='', icon='BLANK1')
-                row.prop(parent, ndp.name, text=label)    
-
-            if widget in ['fileinput','assetidinput']:                            
-                prop_val = getattr(node, prop_name)
-                if prop_val != '':
-                    row = layout.row(align=True)
-                    indented_label(row, None, level)
-                    row.prop(node, '%s_colorspace' % prop_name, text='Color Space')
-                    rman_icon = rfb_icons.get_icon('rman_txmanager')        
-                    row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)                     
+                row.prop(parent, ndp.name, text=label)                    
 
 def _draw_props(node, prop_names, layout):
     for prop_name in prop_names:
