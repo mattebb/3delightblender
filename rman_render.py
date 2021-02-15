@@ -176,6 +176,30 @@ def scene_cb(e, d, db):
     if d == 0:
         rfb_log().debug("RixSGScene destroyed.")
 
+def preload_xpu():
+    """On linux there is a problem with std::call_once and
+    blender, by default, being linked with a static libstdc++.
+    The loader seems to not be able to get the right tls key
+    for the __once_call global when libprman loads libxpu. By preloading
+    we end up calling the proxy in the blender executable and
+    that works.
+    
+    Returns:
+    ctypes.CDLL of xpu or None if that fails. None if not on linux
+    """
+    if sys.platform != 'linux':
+        return None
+
+    tree = filepath_utils.guess_rmantree()
+    xpu_path = os.path.join(tree, 'lib', 'libxpu.so')
+
+    try:
+        xpu = ctypes.CDLL(xpu_path)
+        return xpu
+    except OSError as error:
+        rfb_log().debug('Failed to preload xpu: {0}'.format(error))
+        return None
+
 class RmanRender(object):
     '''
     RmanRender class. This class is responsible for starting and stopping
@@ -207,6 +231,9 @@ class RmanRender(object):
         self.draw_viewport_buckets = False
 
         self._start_prman_begin()
+
+        # hold onto this or python will unload it
+        self.preload_xpu = preload_xpu()
 
     @classmethod
     def get_rman_render(self):
