@@ -33,7 +33,7 @@ class RendermanDspyChannel(RmanBasePropertyGroup, bpy.types.PropertyGroup):
                 ("vector", "vector", ""),
                 ("normal", "normal", ""),
                 ("point", "point", ""),
-                ("int", "int", "")],
+                ("integer", "integer", "")],
             default="color"
             )            
 
