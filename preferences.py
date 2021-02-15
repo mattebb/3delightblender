@@ -283,12 +283,10 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'rman_emit_default_params')    
 
         # Workspace
-        env = self.env_vars
         row = layout.row()
         row.label(text='Workspace', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
-        #col.prop(env, "out")
         col.prop(self, 'path_fallback_textures_path')
         col.prop(self, "rman_scene_version_padding")
         col.prop(self, "rman_scene_take_padding")
