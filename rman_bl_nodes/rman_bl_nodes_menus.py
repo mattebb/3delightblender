@@ -37,6 +37,37 @@ class NODE_MT_renderman_param_presets_menu(Menu):
                     op.prop_name = prop_name
                     op.preset_name = k
 
+class NODE_MT_renderman_pattern_outputs_menu(Menu):
+    bl_label = "Outputs"
+    bl_idname = "NODE_MT_renderman_pattern_outputs_menu"
+
+    @classmethod
+    def poll(cls, context):
+        return context.active_object is not None      
+
+    def draw(self, context):
+        layout = self.layout
+        nt = context.nodetree
+        node = context.node
+        socket = context.socket
+
+        link = socket.links[0]
+        input_node = socket.links[0].from_node
+        dst_socket_type = getattr(link.from_socket, 'renderman_type', None)               
+        layout.label(text='%s' % link.from_socket.name)
+                
+        for o in input_node.outputs:
+            if link.from_socket == o:                
+                continue
+            if o.renderman_type in ['float', 'color', 'normal', 'vector', 'point']:
+                src_socket_type = getattr(o, 'renderman_type', '')  
+                if (src_socket_type == dst_socket_type) or ( src_socket_type in FLOAT3 and dst_socket_type in FLOAT3):
+                    layout.context_pointer_set("nodetree", nt)     
+                    layout.context_pointer_set("dst_socket", socket)
+                    layout.context_pointer_set("link", link)
+                    layout.context_pointer_set("src_socket", o)
+                    op = layout.operator('node.rman_change_output', text='%s (%s)' % (o.name, src_socket_type))
+
 class NODE_MT_renderman_node_solo_output_menu(Menu):
     bl_label = "Solo Node Output"
     bl_idname = "NODE_MT_renderman_node_solo_output_menu"
@@ -273,13 +304,16 @@ class NODE_MT_renderman_connection_menu(Menu):
         node = context.node
         socket = context.socket
         if context.socket.is_linked:
-            input_node = context.socket.links[0].from_node
+            link = context.socket.links[0]
+            input_node = link.from_node
             rman_icon = rfb_icons.get_icon('out_%s' % input_node.bl_label)
-            layout.label(text=input_node.name, icon_value=rman_icon.icon_id)
+            layout.label(text='%s (%s)' % (input_node.name, link.from_socket.name), icon_value=rman_icon.icon_id)
             layout.separator()
             layout.context_pointer_set("node", node)
             layout.context_pointer_set("nodetree", nt)
             layout.context_pointer_set("socket", socket)
+            if len(input_node.outputs) > 1:
+                layout.menu('NODE_MT_renderman_pattern_outputs_menu', text='Outputs')            
                         
             layout.operator('node.rman_shading_disconnect', text='Disconnect')
             layout.operator('node.rman_shading_remove', text='Remove')
@@ -315,7 +349,8 @@ class NODE_MT_renderman_connection_menu(Menu):
 classes = [
     NODE_MT_renderman_node_solo_output_menu,
     NODE_MT_renderman_param_presets_menu,
-    NODE_MT_renderman_connection_menu
+    NODE_MT_renderman_connection_menu,
+    NODE_MT_renderman_pattern_outputs_menu
 ]
 
 def register_renderman_bxdf_node_submenus():

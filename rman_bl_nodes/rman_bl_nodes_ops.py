@@ -376,6 +376,22 @@ class NODE_OT_rman_node_set_solo_output(bpy.types.Operator):
 
         return {'FINISHED'}         
 
+class NODE_OT_rman_node_change_output(bpy.types.Operator):
+    bl_idname = "node.rman_change_output"
+    bl_label = "Change output"
+    bl_description = "Change to a different output connection from the incoming node."
+
+    def invoke(self, context, event):
+        nt = context.nodetree
+        link = context.link
+        dst_socket = context.dst_socket
+        src_socket = context.src_socket
+
+        nt.links.remove(link)
+        nt.links.new(src_socket, dst_socket)
+
+        return {'FINISHED'}                
+
 class NODE_OT_rman_refresh_osl_shader(bpy.types.Operator):
     bl_idname = "node.rman_refresh_osl_shader"
     bl_label = "Refresh OSL Node"
@@ -397,6 +413,7 @@ classes = [
     NODE_OT_rman_preset_set_param,
     NODE_OT_rman_node_set_solo,
     NODE_OT_rman_node_set_solo_output,
+    NODE_OT_rman_node_change_output,
     NODE_OT_rman_refresh_osl_shader
 ]
 
