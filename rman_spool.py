@@ -18,9 +18,11 @@ class RmanSpool(object):
     def __init__(self, rman_render, rman_scene, depsgraph):
         self.rman_render = rman_render
         self.rman_scene = rman_scene
+        self.is_localqueue = True
         if depsgraph:
             self.bl_scene = depsgraph.scene_eval
             self.depsgraph = depsgraph
+            self.is_localqueue = (self.bl_scene.renderman.queuing_system == 'lq')
 
     def end_block(self, f, indent_level):
         f.write("%s}\n" % ('\t' * indent_level))
@@ -60,9 +62,13 @@ class RmanSpool(object):
         job_params = {
             'title': job_title,
             'serialsubtasks': 1,
-            'comment': 'Created by RenderMan for Blender',
-            'envkey': '{prman-%s}' % rman_vers
+            'comment': 'Created by RenderMan for Blender'
         }
+
+        if self.is_localqueue:
+            job_params['envkey'] = '{rmantree=%s}' % filepath_utils.guess_rmantree()
+        else:
+            job_params['envkey'] = '{prman-%s}' % rman_vers
 
         # dirmaps
         dirmaps = ''
@@ -111,7 +117,6 @@ class RmanSpool(object):
         if frame_end is None:
             frame_end = frame_begin
 
-        #bl_filename = bpy.data.filepath
         bl_blender_path = bpy.app.binary_path
 
         for frame_num in range(frame_begin, frame_end + 1):
@@ -130,43 +135,7 @@ class RmanSpool(object):
         # end job
         f.close()      
 
-        is_localqueue = (self.bl_scene.renderman.queuing_system == 'lq')
-
-        if is_localqueue:
-            lq = filepath_utils.find_local_queue()
-            args = []
-            args.append(lq)
-            args.append(alf_file)
-            rfb_log().info('Spooling job to LocalQueue: %s.', alf_file)
-            subprocess.Popen(args)
-        else:
-            # spool to tractor
-            tractor_engine ='tractor-engine'
-            tractor_port = '80'
-            owner = getpass.getuser()        
-
-            tractor_cfg = rfb_config['tractor_cfg']
-            tractor_engine = tractor_cfg.get('engine', tractor_engine)
-            tractor_port = str(tractor_cfg.get('port', tractor_port))
-            owner = tractor_cfg.get('user', owner)            
-
-            if 'TRACTOR_ENGINE' in os.environ:
-                tractor_env = os.environ['TRACTOR_ENGINE'].split(':')
-                tractor_engine = tractor_env[0]
-                if len(tractor_env) > 1:
-                    tractor_port = tractor_env[1]
-
-            if 'TRACTOR_USER' in os.environ:
-                owner = os.environ['TRACTOR_USER']
-
-            tractor_spool = filepath_utils.find_tractor_spool()
-            args = []
-            args.append(tractor_spool)
-            args.append('--user=%s' % owner)
-            args.append('--engine=%s:%s' % (tractor_engine, tractor_port))
-            args.append(alf_file)
-            rfb_log().info('Spooling job to Tractor: %s.', alf_file)
-            subprocess.Popen(args)
+        self.spool(alf_file)
 
     def batch_render(self):
 
@@ -263,15 +232,26 @@ class RmanSpool(object):
         f.write("}\n")
         f.close()      
 
-        is_localqueue = (self.bl_scene.renderman.queuing_system == 'lq')
+        self.spool(alf_file)
 
-        if is_localqueue:
+    def spool(self, alf_file):
+
+        env = dict(os.environ)
+        # if $OCIO is undefined, use filmic blender config
+        if not env.get('OCIO', None):
+            env['OCIO'] = os.path.join(os.environ['RMANTREE'], 'lib', 'ocio', 'filmic-blender', 'config.ocio')
+
+        for i in env:
+            if not isinstance(env[i], str):
+                env[i] = str(env[i])        
+
+        args = list()
+
+        if self.is_localqueue:
             lq = filepath_utils.find_local_queue()
-            args = []
             args.append(lq)
             args.append(alf_file)
             rfb_log().info('Spooling job to LocalQueue: %s.', alf_file)
-            subprocess.Popen(args)
         else:
             # spool to tractor
             tractor_engine ='tractor-engine'
@@ -293,13 +273,14 @@ class RmanSpool(object):
                 owner = os.environ['TRACTOR_USER']
 
             tractor_spool = filepath_utils.find_tractor_spool()
-            args = []
             args.append(tractor_spool)
             args.append('--user=%s' % owner)
             args.append('--engine=%s:%s' % (tractor_engine, tractor_port))
             args.append(alf_file)
             rfb_log().info('Spooling job to Tractor: %s.', alf_file)
-            subprocess.Popen(args)
+
+        subprocess.Popen(args, env=env)        
+
 
     """
     DISABLE THIS CODE FOR NOW
