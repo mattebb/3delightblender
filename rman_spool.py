@@ -99,7 +99,6 @@ class RmanSpool(object):
             frame_begin = self.bl_scene.frame_current
             frame_end = frame_begin
 
-        bl_filename = bpy.data.filepath
         if bl_filename == '':
             alf_file = string_utils.expand_string('<OUT>/<scene>.<layer>.alf', 
                                                 asFilePath=True)            
@@ -130,6 +129,7 @@ class RmanSpool(object):
         # add cleanup
         f.write("} -cleanup {\n")
         f.write("    Cmd {TractorBuiltIn File delete %s}\n" % bl_filename)
+        f.write("    Cmd {TractorBuiltIn File delete %s}\n" % alf_file)
         f.write("}\n")
 
         # end job
@@ -228,8 +228,12 @@ class RmanSpool(object):
         self.rman_render.bl_frame_current = cur_frame
         self.end_block(f, 1)
 
+        # add cleanup
+        f.write("} -cleanup {\n")
+        f.write("    Cmd {TractorBuiltIn File delete %s}\n" % alf_file)
+        f.write("}\n")        
+
         # end job
-        f.write("}\n")
         f.close()      
 
         self.spool(alf_file)
