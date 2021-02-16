@@ -25,6 +25,7 @@
 
 from bpy.props import *
 from bpy.types import PropertyGroup
+from ..rfb_logger import rfb_log
 import bpy.utils
 import os
 
