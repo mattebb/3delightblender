@@ -25,6 +25,7 @@
 
 from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rfb_utils import filepath_utils
+from ..rfb_logger import rfb_log
 
 # for panel icon
 from .. import rfb_icons
