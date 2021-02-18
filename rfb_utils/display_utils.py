@@ -169,7 +169,8 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
     if not display_driver:
         display_driver = __BLENDER_TO_RMAN_DSPY__.get(rman_scene.bl_scene.render.image_settings.file_format, 'openexr')
         param_list = rman_scene.rman.Types.ParamList()
-        param_list.SetInteger('asrgba', 1)
+        if display_driver == 'openexr':
+            param_list.SetInteger('asrgba', 1)
 
     if display_driver == 'blender' and rm.blender_optix_denoiser:   
         aov_denoise = True
@@ -475,7 +476,8 @@ def _set_rman_holdouts_dspy_dict(dspys_dict, dspy_drv, rman_scene, expandTokens)
     if not display_driver:
         display_driver = __BLENDER_TO_RMAN_DSPY__.get(rman_scene.bl_scene.render.image_settings.file_format, 'openexr')
         param_list = rman_scene.rman.Types.ParamList()
-        param_list.SetInteger('asrgba', 1)
+        if display_driver == 'openexr':
+            param_list.SetInteger('asrgba', 1)
 
     if display_driver == 'blender' and rman_scene.is_viewport_render:
             display_driver = 'null'
