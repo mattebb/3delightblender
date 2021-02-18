@@ -9,7 +9,7 @@ PAD_FMT = ['%d', '%01d', '%02d', '%03d', '%04d']
 __SCENE_STRING_CONVERTER__ = None
 # FIXME: we should get the extensions from the display driver args files
 EXT_MAP = {'it': 'it', 'openexr': 'exr', 
-            'tiff': 'tif', 'blender': 'blender', 
+            'tiff': 'tif', 'blender': 'exr', 
             'pointcloud': 'ptc', 'png': 'png', 
             'targa': 'tga', 'texture': 'tex', 
             'ies': 'ies', 'ptex': 'ptex'

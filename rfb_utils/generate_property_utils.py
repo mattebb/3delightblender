@@ -450,6 +450,11 @@ def generate_property(node, sp, update_function=None):
 
             if (param_widget in ['fileinput','assetidinput']):
                 generate_colorspace_menu(node, param_name)
+        
+        elif param_widget == 'dirinput':
+            prop = StringProperty(name=param_label,
+                                  default=param_default, subtype="DIR_PATH",
+                                  description=param_help)            
 
         elif param_widget in ['mapper', 'popup']:
             items = []

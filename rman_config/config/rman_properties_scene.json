@@ -1129,8 +1129,8 @@
             "label": "Output Path",
             "type": "string",
             "default": "<TEMP>/renderman_for_blender/<blend>",
-            "widget": "fileinput",
-            "help": "The root path for all generated files for the scene. Can be referenced using the <OUT> token in other paths."                   
+            "widget": "dirinput",
+            "help": "The root path for all generated files for the scene. Can be referenced using the <OUT> token in other paths. Note this is different than Blender's Output path."                   
         },           
         {
             "panel": "RENDER_PT_renderman_workspace",
