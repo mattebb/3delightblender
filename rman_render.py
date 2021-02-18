@@ -22,6 +22,7 @@ from gpu_extras.batch import batch_for_shader
 from .rfb_utils import filepath_utils
 from .rfb_utils import string_utils
 from .rfb_utils import display_utils
+from .rfb_utils import scene_utils
 from .rfb_utils.prefs_utils import get_pref
 
 # config
@@ -46,16 +47,6 @@ def __update_areas__():
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
             area.tag_redraw()
-
-def get_render_variant(bl_scene):
-    if filepath_utils.is_ncr_license():
-        return 'prman'
-
-    if sys.platform == ("darwin") and bl_scene.renderman.renderVariant != 'prman':
-        rfb_log().warning("XPU is not implemented on OSX: using RIS...")
-        return 'prman'
-
-    return bl_scene.renderman.renderVariant
 
 class ItHandler(chatserver.ItBaseHandler):
 
@@ -360,7 +351,7 @@ class RmanRender(object):
                 pass
 
         config = rman.Types.RtParamList()
-        config.SetString("rendervariant", get_render_variant(self.bl_scene))
+        config.SetString("rendervariant", scene_utils.get_render_variant(self.bl_scene))
         self.sg_scene = self.sgmngr.CreateScene(config) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
@@ -631,7 +622,7 @@ class RmanRender(object):
         time_start = time.time()      
 
         config = rman.Types.RtParamList()
-        config.SetString("rendervariant", get_render_variant(self.bl_scene))      
+        config.SetString("rendervariant", scene_utils.get_render_variant(self.bl_scene))      
         self.sg_scene = self.sgmngr.CreateScene(config) 
         self.rman_scene_sync.sg_scene = self.sg_scene
         rfb_log().info("Parsing scene...")        

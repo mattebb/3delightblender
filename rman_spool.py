@@ -7,6 +7,7 @@ import bpy
 from .rfb_utils import string_utils
 from .rfb_utils import filepath_utils
 from .rfb_utils import display_utils
+from .rfb_utils import scene_utils
 from .rfb_utils.prefs_utils import get_pref
 from .rman_config import __RFB_CONFIG_DICT__ as rfb_config
 from .rfb_logger import rfb_log
@@ -179,8 +180,9 @@ class RmanSpool(object):
             rib_file = string_utils.expand_string(rm.path_rib_output, 
                                                 frame=frame_num,
                                                 asFilePath=True)
+            render_variant = scene_utils.get_render_variant(scene)
             cmd_str = ['prman', '-Progress', '-cwd', self.quote(cdir), '-t:%d' %
-                    threads, self.quote(rib_file)]
+                    threads, '-variant', render_variant, self.quote(rib_file)]
             if rm.recover:
                 cmd_str.insert(5, '-recover 1')
             if rm.custom_cmd != '':

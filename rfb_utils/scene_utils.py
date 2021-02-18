@@ -1,6 +1,8 @@
 from . import shadergraph_utils
 from . import object_utils
+from . import filepath_utils
 import bpy
+import sys
 
 
 # ------------- Atom's helper functions -------------
@@ -39,6 +41,16 @@ def get_renderman_layer(context):
     rm_rl = layer.renderman 
 
     return rm_rl    
+
+def get_render_variant(bl_scene):
+    if filepath_utils.is_ncr_license():
+        return 'prman'
+
+    if sys.platform == ("darwin") and bl_scene.renderman.renderVariant != 'prman':
+        rfb_log().warning("XPU is not implemented on OSX: using RIS...")
+        return 'prman'
+
+    return bl_scene.renderman.renderVariant    
 
 def get_light_group(light_ob, scene):
     """Return the name of the lightGroup for this
