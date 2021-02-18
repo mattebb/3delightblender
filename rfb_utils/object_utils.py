@@ -223,9 +223,15 @@ def _get_mesh_(mesh, get_normals=False):
     verts = fastvertices.tolist()
 
     if get_normals:
-        fastnormals = np.zeros(npolygons*3, dtype=np.float32)
-        mesh.polygons.foreach_get('normal', fastnormals)
-        fastnormals = np.reshape(fastnormals, (npolygons, 3))
-        N = fastnormals.tolist()
+        fastsmooth = np.zeros(npolygons, dtype=np.int)
+        mesh.polygons.foreach_get('use_smooth', fastsmooth)
+        if True in fastsmooth:
+            for vi in fastvertices:
+                N.append(mesh.vertices[vi].normal)
+        else:            
+            fastnormals = np.zeros(npolygons*3, dtype=np.float32)
+            mesh.polygons.foreach_get('normal', fastnormals)
+            fastnormals = np.reshape(fastnormals, (npolygons, 3))
+            N = fastnormals.tolist()
 
     return (nverts, verts, P, N)

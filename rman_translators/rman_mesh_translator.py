@@ -283,7 +283,7 @@ class RmanMeshTranslator(RmanTranslator):
             rman_sg_mesh.sg_node.SetScheme(None)
             if N:
                 if len(N) == numnverts:
-                    primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "vertex")         
+                    primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "facevarying")         
                 else:
                     primvar.SetNormalDetail(self.rman_scene.rman.Tokens.Rix.k_N, N, "uniform")         
         subdiv_scheme = getattr(ob.data.renderman, 'rman_subdiv_scheme', 'none')
