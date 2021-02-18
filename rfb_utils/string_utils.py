@@ -1,5 +1,6 @@
 from .string_expr import StringExpression
 from . import filepath_utils
+from ..rfb_logger import rfb_log
 from bpy.app.handlers import persistent
 import bpy
 import os
@@ -130,7 +131,10 @@ def expand_string(string, display=None, glob_sequence=False, frame=None, token_d
             string = filepath_utils.get_real_path(string)
             dirname = os.path.dirname(string)
             if not os.path.exists(dirname):
-                os.makedirs(dirname, exist_ok=True)        
+                try:
+                    os.makedirs(dirname, exist_ok=True)
+                except PermissionError:
+                    rfb_log().error("Cannot create path: %s" % dirname)                    
         return string
 
     if __SCENE_STRING_CONVERTER__ is None:

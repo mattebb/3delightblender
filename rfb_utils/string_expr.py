@@ -209,7 +209,10 @@ class StringExpression(object):
 
             dirname = os.path.dirname(result)
             if not os.path.exists(dirname):
-                os.makedirs(dirname, exist_ok=True)
+                try:
+                    os.makedirs(dirname, exist_ok=True)
+                except PermissionError:
+                    rfb_log().error("Cannot create path: %s" % dirname)
     
         return result
 
