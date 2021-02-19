@@ -93,10 +93,18 @@ class StringExpression(object):
             self.tokens['TEMP'] = '/tmp'
 
     def update_out_token(self):
+        dflt_path = self.expand('<TEMP>/renderman_for_blender/<blend>')
         if not self.bl_scene:
-            self.tokens['OUT'] = self.expand('<TEMP>/renderman_for_blender/<blend>')
+            self.tokens['OUT'] = dflt_path
         else:
-            self.tokens['OUT'] = self.expand(self.bl_scene.renderman.root_path_output)         
+            root_path = self.expand(self.bl_scene.renderman.root_path_output) 
+            if not os.path.exists(root_path):
+                try:
+                    os.makedirs(root_path, exist_ok=True)
+                except PermissionError:
+                    rfb_log().error("Cannot create root path: %s. Using default." % root_path)            
+                    root_path = dflt_path
+            self.tokens['OUT'] = root_path         
 
     def update_blend_tokens(self):
         scene = self.bl_scene
