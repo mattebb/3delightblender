@@ -351,7 +351,8 @@ class RmanRender(object):
                 pass
 
         config = rman.Types.RtParamList()
-        config.SetString("rendervariant", scene_utils.get_render_variant(self.bl_scene))
+        rendervariant = scene_utils.get_render_variant(self.bl_scene)
+        config.SetString("rendervariant", rendervariant)
         self.sg_scene = self.sgmngr.CreateScene(config) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
@@ -361,61 +362,90 @@ class RmanRender(object):
         rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
 
         self.rman_is_live_rendering = True
-        if self.rman_render_into in ['it', 'blender']:
+        
+        if self.rman_render_into == 'it':
             self.sg_scene.Render("prman -live")
+        elif self.rman_render_into == 'blender':
+
+            if rendervariant == 'prman':
+                self.sg_scene.Render("prman -live")
+            else:
+                self.sg_scene.Render("prman -blocking")
         else:
             self.sg_scene.Render("prman -blocking")
 
-        if self.rman_render_into == 'blender':        
-            dspy_dict = display_utils.get_dspy_dict(self.rman_scene)
+        if self.rman_render_into == 'blender':  
+
+            if rendervariant != 'prman':
+                # FIXME: Remove this code path when we are able to get progress
+                # from XPU. Also, make sure we render with prman -live in that case
+                dspy_dict = display_utils.get_dspy_dict(self.rman_scene)
+                filepath = dspy_dict['displays']['beauty']['filePath']
+
+                render = self.bl_scene.render
+                image_scale = 100.0 / render.resolution_percentage
+                result = self.bl_engine.begin_result(0, 0,
+                                            render.resolution_x * image_scale,
+                                            render.resolution_y * image_scale)
+                lay = result.layers[0]
+                try:
+                    lay.load_from_file(filepath)
+                except:
+                    pass
+                self.bl_engine.end_result(result)     
+                self.stop_render()   
+
+            else:
+                dspy_dict = display_utils.get_dspy_dict(self.rman_scene)
+                
+                render = self.rman_scene.bl_scene.render
+                render_view = self.bl_engine.active_view_get()
+                image_scale = render.resolution_percentage / 100.0
+                width = int(render.resolution_x * image_scale)
+                height = int(render.resolution_y * image_scale)
+
+                bl_image_lyrs= dict()
+                # register any AOV's as passes
+                for i, dspy_nm in enumerate(dspy_dict['displays'].keys()):
+                    if i == 0:
+                        continue     
+                    self.bl_engine.add_pass(dspy_nm, 4, 'RGBA')
+
+                result = self.bl_engine.begin_result(0, 0,
+                                            width,
+                                            height,
+                                            view=render_view)
+
+                for i, dspy_nm in enumerate(dspy_dict['displays'].keys()):
+                    if i == 0:
+                        lyr = result.layers[0].passes.find_by_name("Combined", render_view)           
+                    else:
+                        lyr = result.layers[0].passes.find_by_name(dspy_nm, render_view)
+                    bl_image_lyrs[i] = lyr            
+                
+                while not self.bl_engine.test_break() and self.rman_is_live_rendering:
+                    time.sleep(0.01)        
+                    for i, img in bl_image_lyrs.items():
+                        buffer = self._get_buffer(width, height, image_num=i, as_flat=False)
+                        if buffer:
+                            img.rect = buffer
             
-            render = self.rman_scene.bl_scene.render
-            render_view = self.bl_engine.active_view_get()
-            image_scale = render.resolution_percentage / 100.0
-            width = int(render.resolution_x * image_scale)
-            height = int(render.resolution_y * image_scale)
+                    self.bl_engine.update_result(result)        
 
-            bl_image_lyrs= dict()
-            # register any AOV's as passes
-            for i, dspy_nm in enumerate(dspy_dict['displays'].keys()):
-                if i == 0:
-                    continue     
-                self.bl_engine.add_pass(dspy_nm, 4, 'RGBA')
+                self.stop_render()           
+                if result:   
+                    self.bl_engine.end_result(result) 
+                    # try to also save the image out to disk 
+                    bl_image = bpy.data.images.get('Render Result', None)
+                    if bl_image:
+                        try:
+                            bl_image.file_format = 'OPEN_EXR_MULTILAYER'
+                        except:
+                            pass
+                        filepath = dspy_dict['displays']['beauty']['filePath']
+                        rfb_log().debug("Saving image to: %s" % filepath)
+                        bl_image.save_render(filepath)
 
-            result = self.bl_engine.begin_result(0, 0,
-                                        width,
-                                        height,
-                                        view=render_view)
-
-            for i, dspy_nm in enumerate(dspy_dict['displays'].keys()):
-                if i == 0:
-                    lyr = result.layers[0].passes.find_by_name("Combined", render_view)           
-                else:
-                    lyr = result.layers[0].passes.find_by_name(dspy_nm, render_view)
-                bl_image_lyrs[i] = lyr            
-            
-            while not self.bl_engine.test_break() and self.rman_is_live_rendering:
-                time.sleep(0.01)        
-                for i, img in bl_image_lyrs.items():
-                    buffer = self._get_buffer(width, height, image_num=i, as_flat=False)
-                    if buffer:
-                        img.rect = buffer
-        
-                self.bl_engine.update_result(result)        
-
-            self.stop_render()           
-            if result:   
-                self.bl_engine.end_result(result) 
-                # try to also save the image out to disk 
-                bl_image = bpy.data.images.get('Render Result', None)
-                if bl_image:
-                    try:
-                        bl_image.file_format = 'OPEN_EXR_MULTILAYER'
-                    except:
-                        pass
-                    filepath = dspy_dict['displays']['beauty']['filePath']
-                    rfb_log().debug("Saving image to: %s" % filepath)
-                    bl_image.save_render(filepath)
         else:
             while not self.bl_engine.test_break() and self.rman_is_live_rendering:
                 time.sleep(0.01)      

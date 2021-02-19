@@ -1,6 +1,7 @@
 from . import string_utils
 from . import property_utils
 from . import shadergraph_utils
+from . import scene_utils
 from .. import rman_constants
 from .. import rman_config
 from collections import OrderedDict
@@ -601,6 +602,11 @@ def get_dspy_dict(rman_scene, expandTokens=True):
         # we ignore the display driver setting in the AOV and render to whatever
         # render_into is set to
         display_driver = rm.render_into
+
+        # FIXME: remove these lines once we are able to get some kind of progress
+        # when rendering to XPU
+        if rm.render_into == 'blender' and scene_utils.get_render_variant(rman_scene.bl_scene) != 'prman':
+            display_driver = 'openexr'
 
     if rm.render_rman_stylized:
         _add_stylized_channels(dspys_dict, display_driver, rman_scene, expandTokens)        
