@@ -2,6 +2,7 @@ from . import color_utils
 from . import filepath_utils
 from . import string_utils
 from . import object_utils
+from .node_desc import FLOAT3
 from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES
 import math
 
@@ -153,7 +154,7 @@ def is_float3_type(socket):
         prop_meta = getattr(socket.node, 'output_meta', [
         ]) if socket.is_output else getattr(socket.node, 'prop_meta', [])
         if socket.name in prop_meta:
-            return prop_meta[socket.name]['renderman_type'] in ['color', 'vector', 'normal']
+            return prop_meta[socket.name]['renderman_type'] in FLOAT3
     else:
         return socket.type in ['RGBA', 'VECTOR']    
 
@@ -237,32 +238,6 @@ def find_node_input(node, name):
             return input
 
     return None
-
-def is_float_type(socket):
-    # this is a renderman node
-    if type(socket) == type({}):
-        return socket['renderman_type'] in ['int', 'float']
-    elif hasattr(socket.node, 'plugin_name'):
-        prop_meta = getattr(socket.node, 'output_meta', [
-        ]) if socket.is_output else getattr(socket.node, 'prop_meta', [])
-        if socket.name in prop_meta:
-            return prop_meta[socket.name]['renderman_type'] in ['int', 'float']
-
-    else:
-        return socket.type in ['INT', 'VALUE']
-
-
-def is_float3_type(socket):
-    # this is a renderman node
-    if type(socket) == type({}):
-        return socket['renderman_type'] in ['int', 'float']
-    elif hasattr(socket.node, 'plugin_name'):
-        prop_meta = getattr(socket.node, 'output_meta', [
-        ]) if socket.is_output else getattr(socket.node, 'prop_meta', [])
-        if socket.name in prop_meta:
-            return prop_meta[socket.name]['renderman_type'] in ['color', 'vector', 'normal']
-    else:
-        return socket.type in ['RGBA', 'VECTOR']
 
 # walk the tree for nodes to export
 def gather_nodes(node):
