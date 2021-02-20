@@ -4,7 +4,6 @@ from . import rman_socket_utils
 from .. import rman_render
 from ..rfb_utils import string_utils
 from ..rfb_utils import shadergraph_utils
-from ..rfb_utils.node_desc import FLOAT3
 from ..rman_config import __RFB_CONFIG_DICT__
 from .. import rfb_icons
 from .. import rman_render
@@ -637,12 +636,10 @@ class RendermanPatternNode(RendermanShadingNode):
             if not to_node_type:
                 continue            
 
-            from_is_float3 = from_node_type in FLOAT3
-            to_is_float3 = to_node_type in FLOAT3
-
-            if from_node_type != to_node_type and not from_is_float3 and not to_is_float3:
+            if not shadergraph_utils.is_socket_same_type(link.from_socket, link.to_socket):
                 node_tree = self.id_data
-                node_tree.links.remove(link)
+                node_tree.links.remove(link)                
+
 
             # if this is a struct, check that the struct name matches
             if from_node_type == 'struct':

@@ -2,7 +2,7 @@ from bpy.props import EnumProperty, StringProperty, BoolProperty, IntProperty
 from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
 from .. import rman_render
-from ..rfb_utils.shadergraph_utils import find_node, find_selected_pattern_node
+from ..rfb_utils.shadergraph_utils import find_node, find_selected_pattern_node, is_socket_same_type
 from ..rfb_utils.node_desc import FLOAT3
 import bpy
 import os
@@ -58,14 +58,10 @@ def link_node(nt, from_node, in_socket):
         # try one more time, assuming we're trying
         # to connect float3 like types
         # again, connect the first one we find
-        in_socket_type = in_socket.renderman_type
-        if in_socket_type in FLOAT3:
-            for s in from_node.outputs:
-                out_socket_type = s.renderman_type
-                if out_socket_type in FLOAT3:
-                    out_socket = s
-                    break        
-
+        for s in from_node.outputs:
+            if is_socket_same_type(s, in_socket):
+                out_socket = s
+                break                
 
     if out_socket:
         nt.links.new(out_socket, in_socket)    
@@ -237,7 +233,10 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
             newnode.location = old_node.location
             active_material = context.active_object.active_material
             if active_material:
-                newnode.update_mat(active_material)
+                try:
+                    newnode.update_mat(active_material)
+                except:
+                    pass
             #nt.nodes.remove(old_node)
         return {'FINISHED'}
 
@@ -275,7 +274,10 @@ class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
             link_node(nt, newnode, socket)
             active_material = context.active_object.active_material
             if active_material:
-                newnode.update_mat(active_material)
+                try:
+                    newnode.update_mat(active_material)
+                except:
+                    pass
         return {'FINISHED'}
 
 class NODE_OT_rman_preset_set_param(bpy.types.Operator):

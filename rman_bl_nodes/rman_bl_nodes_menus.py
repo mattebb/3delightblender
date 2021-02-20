@@ -53,7 +53,8 @@ class NODE_MT_renderman_pattern_outputs_menu(Menu):
 
         link = socket.links[0]
         input_node = socket.links[0].from_node
-        dst_socket_type = getattr(link.from_socket, 'renderman_type', None)               
+            
+        dst_socket = link.from_socket
         layout.label(text='%s' % link.from_socket.name)
                 
         for o in input_node.outputs:
@@ -61,7 +62,7 @@ class NODE_MT_renderman_pattern_outputs_menu(Menu):
                 continue
             if o.renderman_type in ['float', 'color', 'normal', 'vector', 'point']:
                 src_socket_type = getattr(o, 'renderman_type', '')  
-                if (src_socket_type == dst_socket_type) or ( src_socket_type in FLOAT3 and dst_socket_type in FLOAT3):
+                if shadergraph_utils.is_socket_same_type(dst_socket, o):
                     layout.context_pointer_set("nodetree", nt)     
                     layout.context_pointer_set("dst_socket", socket)
                     layout.context_pointer_set("link", link)
@@ -262,11 +263,12 @@ class NODE_MT_renderman_connection_menu(Menu):
                 continue
             for output in n.outputs:
                 if not hasattr(output, 'renderman_type'):
-                    continue
-                if output.renderman_type == renderman_type:
+                    continue                
+                if shadergraph_utils.is_socket_same_type(socket, output):
                     op = layout.operator('node.rman_shading_connect_existing_node', text='_%s_' % n.name)
                     op.node_name = n.name
-                    break
+                    break                    
+
 
     def draw_patterns_all_menu(self, context):
         layout = self.layout

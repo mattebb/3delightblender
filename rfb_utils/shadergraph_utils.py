@@ -127,43 +127,62 @@ def linked_sockets(sockets):
         return []
     return [i for i in sockets if i.is_linked]
 
-def is_same_type(socket1, socket2):
-    return (type(socket1) == type(socket2)) or (is_float_type(socket1) and is_float_type(socket2)) or \
-        (is_float3_type(socket1) and is_float3_type(socket2))
+def is_socket_same_type(socket1, socket2):
+    '''Compare two NodeSockets to see if they are of the same type. Types that
+    are float3 like are considered the same.
+
+    Arguments:
+        socket1 (bpy.types.NodeSocket) - first socket to compare
+        socket2 (bpy.types.NodeSocket) - second socket to compare
+
+    Returns:
+        (bool) - return True if both sockets are the same type
+    '''
+
+    return (type(socket1) == type(socket2)) or (is_socket_float_type(socket1) and is_socket_float_type(socket2)) or \
+        (is_socket_float3_type(socket1) and is_socket_float3_type(socket2))
 
 
-def is_float_type(socket):
-    # this is a renderman node
-    if type(socket) == type({}):
-        return socket['renderman_type'] in ['int', 'float']
-    elif hasattr(socket.node, 'plugin_name'):
-        prop_meta = getattr(socket.node, 'output_meta', [
-        ]) if socket.is_output else getattr(socket.node, 'prop_meta', [])
-        if socket.name in prop_meta:
-            return prop_meta[socket.name]['renderman_type'] in ['int', 'float']
+def is_socket_float_type(socket):
+    '''Check if socket is of float type
+
+    Arguments:
+        socket (bpy.types.NodeSocket) - socket to check
+
+    Returns:
+        (bool) - return True if socket are float type
+    '''    
+    renderman_type = getattr(socket, 'renderman_type', None)
+
+    if renderman_type:
+        return renderman_type in ['int', 'float']
 
     else:
         return socket.type in ['INT', 'VALUE']
 
+def is_socket_float3_type(socket):
+    '''Check if socket is of float3 type
 
-def is_float3_type(socket):
-    # this is a renderman node
-    if type(socket) == type({}):
-        return socket['renderman_type'] in ['int', 'float']
-    elif hasattr(socket.node, 'plugin_name'):
-        prop_meta = getattr(socket.node, 'output_meta', [
-        ]) if socket.is_output else getattr(socket.node, 'prop_meta', [])
-        if socket.name in prop_meta:
-            return prop_meta[socket.name]['renderman_type'] in FLOAT3
+    Arguments:
+        socket (bpy.types.NodeSocket) - socket to check
+
+    Returns:
+        (bool) - return True if socket is float3 type
+    '''  
+
+    renderman_type = getattr(socket, 'renderman_type', None)
+
+    if renderman_type:
+        return renderman_type in FLOAT3
     else:
-        return socket.type in ['RGBA', 'VECTOR']    
+        return socket.type in ['RGBA', 'VECTOR'] 
 
 # do we need to convert this socket?
 def do_convert_socket(from_socket, to_socket):
     if not to_socket:
         return False
-    return (is_float_type(from_socket) and is_float3_type(to_socket)) or \
-        (is_float3_type(from_socket) and is_float_type(to_socket))
+    return (is_socket_float_type(from_socket) and is_socket_float3_type(to_socket)) or \
+        (is_socket_float3_type(from_socket) and is_socket_float_type(to_socket))
 
 def find_node_input(node, name):
     for input in node.inputs:
@@ -250,12 +269,12 @@ def gather_nodes(node):
                     nodes.append(sub_node)
 
             # if this is a float -> color inset a tofloat3
-            if is_float_type(link.from_socket) and is_float3_type(socket):
+            if is_socket_float_type(link.from_socket) and is_socket_float3_type(socket):
                 convert_node = ('PxrToFloat3', link.from_node,
                                 link.from_socket)
                 if convert_node not in nodes:
                     nodes.append(convert_node)
-            elif is_float3_type(link.from_socket) and is_float_type(socket):
+            elif is_socket_float3_type(link.from_socket) and is_socket_float_type(socket):
                 convert_node = ('PxrToFloat', link.from_node, link.from_socket)
                 if convert_node not in nodes:
                     nodes.append(convert_node)

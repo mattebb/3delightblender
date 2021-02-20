@@ -148,7 +148,7 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
             else:
                 from .rfb_utils import shadergraph_utils
                 for output in node.outputs:
-                    if shadergraph_utils.is_same_type(input, output):
+                    if shadergraph_utils.is_socket_same_type(input, output):
                         nt.links.new(output, input)
                         break
                 else:
