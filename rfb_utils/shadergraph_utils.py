@@ -2,8 +2,7 @@ from . import color_utils
 from . import filepath_utils
 from . import string_utils
 from . import object_utils
-from .node_desc import FLOAT3
-from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES
+from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES, RFB_FLOAT3
 import math
 
 def is_renderman_nodetree(material):
@@ -173,7 +172,7 @@ def is_socket_float3_type(socket):
     renderman_type = getattr(socket, 'renderman_type', None)
 
     if renderman_type:
-        return renderman_type in FLOAT3
+        return renderman_type in RFB_FLOAT3
     else:
         return socket.type in ['RGBA', 'VECTOR'] 
 

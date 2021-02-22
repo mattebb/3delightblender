@@ -48,7 +48,7 @@ from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__, is_vstruct_and_linked
 from ..rfb_logger import rfb_log
 from ..rman_bl_nodes import __BL_NODES_MAP__, __RMAN_NODE_TYPES__
-from ..rman_constants import RMAN_STYLIZED_FILTERS
+from ..rman_constants import RMAN_STYLIZED_FILTERS, RFB_FLOAT3
 from ..rman_cycles_convert import _CYCLES_NODE_MAP_
 
 def default_label_from_file_name(filename):
@@ -481,7 +481,7 @@ def set_asset_params(ob, node, nodeName, Asset):
                             else:
                                 prop = getattr(node, nm)
                                 val = string_utils.convert_val(prop, type_hint=param_type)
-                                if param_type in node_desc.FLOAT3:
+                                if param_type in RFB_FLOAT3:
                                     val_array.extend(val)
                                 else:
                                     val_array.append(val)

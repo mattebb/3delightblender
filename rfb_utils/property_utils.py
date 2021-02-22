@@ -1,9 +1,8 @@
 from . import texture_utils
 from . import string_utils
 from . import shadergraph_utils
-from . import node_desc
 from . import prefs_utils
-from ..rman_constants import RFB_ARRAYS_MAX_LEN, __RMAN_EMPTY_STRING__, __RESERVED_BLENDER_NAMES__
+from ..rman_constants import RFB_ARRAYS_MAX_LEN, __RMAN_EMPTY_STRING__, __RESERVED_BLENDER_NAMES__, RFB_FLOAT3
 from ..rfb_logger import rfb_log
 from collections import OrderedDict
 from bpy.props import *
@@ -561,7 +560,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                             else:
                                 prop = getattr(node, nm)
                                 val = string_utils.convert_val(prop, type_hint=param_type)
-                                if param_type in node_desc.FLOAT3:
+                                if param_type in RFB_FLOAT3:
                                     val_array.extend(val)
                                 else:
                                     val_array.append(val)

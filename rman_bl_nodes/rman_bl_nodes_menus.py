@@ -1,7 +1,7 @@
 from ..rfb_logger import rfb_log
 from ..rfb_utils.osl_utils import readOSO
 from ..rfb_utils import shadergraph_utils
-from ..rfb_utils.node_desc import FLOAT3
+from ..rman_constants import RFB_FLOAT3
 from . import rman_socket_utils
 from .. import rman_render
 from .. import rman_bl_nodes
@@ -193,9 +193,7 @@ class NODE_MT_renderman_connection_menu(Menu):
                         layout.context_pointer_set("nodetree", nt)
                         rman_icon = rfb_icons.get_pattern_icon(n.name)
                         op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
-                        op.node_name = '%sPatternNode' % n.name
-                        if n.path.endswith('.oso'):
-                            op.node_name = '%sPatternOSLNode' % n.name
+                        op.node_name = rman_bl_nodes.__BL_NODES_MAP__.get(n.name) 
                         break                                   
 
         elif renderman_type == 'bxdf':
@@ -234,7 +232,7 @@ class NODE_MT_renderman_connection_menu(Menu):
                                     continue
                             has_any = True
                             break
-                        elif node_desc_param.type in FLOAT3 and renderman_type in FLOAT3:
+                        elif node_desc_param.type in RFB_FLOAT3 and renderman_type in RFB_FLOAT3:
                             has_any = True
                             break           
                 if has_any:
@@ -439,15 +437,11 @@ def register_renderman_pattern_node_submenus():
                     vstruct = getattr(node_desc_param, 'vstruct', None)
                     if vstruct:               
                         break
-                    if renderman_type == 'pattern' or node_desc_param.type == renderman_type or (node_desc_param.type in FLOAT3 and renderman_type in FLOAT3):
+                    if renderman_type == 'pattern' or node_desc_param.type == renderman_type or (node_desc_param.type in RFB_FLOAT3 and renderman_type in RFB_FLOAT3):
                         rman_icon = rfb_icons.get_pattern_icon(n.name)
                         label = n.name
-                        #if n.path.endswith('.oso'):
-                        #    label = '%s.oso' % label
                         op = layout.operator('node.rman_shading_create_node', text=label, icon_value=rman_icon.icon_id)
-                        op.node_name = '%sPatternNode' % n.name
-                        if n.path.endswith('.oso'):
-                            op.node_name = '%sPatternOSLNode' % n.name
+                        op.node_name = rman_bl_nodes.__BL_NODES_MAP__.get(n.name) 
                         break   
 
 

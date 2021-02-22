@@ -209,7 +209,7 @@ class RmanMaterialTranslator(RmanTranslator):
         return sg_nodes        
 
     def translate_cycles_node(self, mat, rman_sg_material, node, mat_name):
-        from ..rfb_utils.node_desc import NodeDesc
+        from ..rfb_utils.rfb_node_desc_utils.rfb_node_desc import RfbNodeDesc
         from ..rfb_utils import filepath_utils
         from ..rfb_utils.filepath import FilePath
 
@@ -223,7 +223,7 @@ class RmanMaterialTranslator(RmanTranslator):
 
         mapping = _CYCLES_NODE_MAP_[node.bl_idname]
         shader_path = FilePath(filepath_utils.get_cycles_shader_path()).join(FilePath('%s.oso' % mapping))
-        node_desc = NodeDesc(shader_path)
+        node_desc = RfbNodeDesc(shader_path)
 
         sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", mapping, shadergraph_utils.get_node_name(node, mat_name))
         params = sg_node.params      

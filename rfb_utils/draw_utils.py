@@ -35,11 +35,12 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             else:
                 curr_col = row_dict['default']
 
-            if hasattr(ndp, 'conditionalVisOps'):
+            conditionalVisOps = getattr(ndp, 'conditionalVisOps', None)
+            if conditionalVisOps:
                 # check if the conditionalVisOp to see if we're disabled
-                expr = ndp.conditionalVisOps['expr']
+                expr = conditionalVisOps.get('expr', None)
                 node = parent
-                if not eval(expr):
+                if expr and not eval(expr):
                     continue
 
             label = ndp.label if hasattr(ndp, 'label') else ndp.name
@@ -253,17 +254,19 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
                 # double check the conditionalVisOps
                 # this might be our first time drawing, i.e.: scene was just opened.
-                if 'conditionalVisOps' in prop_meta:
-                    cond_expr = prop_meta['conditionalVisOps']['expr']
-                    try:
-                        hidden = not eval(cond_expr)
-                        prop_meta['hidden'] = hidden
-                        if hasattr(node, 'inputs') and prop_name in node.inputs:
-                            node.inputs[prop_name].hide = hidden
-                        if hidden:
-                            continue
-                    except:                        
-                        pass                             
+                conditionalVisOps = prop_meta.get('conditionalVisOps', None)
+                if conditionalVisOps:
+                    cond_expr = conditionalVisOps.get('expr', None)
+                    if cond_expr:
+                        try:
+                            hidden = not eval(cond_expr)
+                            prop_meta['hidden'] = hidden
+                            if hasattr(node, 'inputs') and prop_name in node.inputs:
+                                node.inputs[prop_name].hide = hidden
+                            if hidden:
+                                continue
+                        except:                        
+                            pass                             
 
                 # else check if the socket with this name is connected
                 socket = node.inputs[prop_name] if prop_name in node.inputs \

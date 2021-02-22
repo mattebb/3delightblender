@@ -27,6 +27,9 @@ RFB_MAX_USER_TOKENS = 10
 RFB_VIEWPORT_MAX_BUCKETS = 10
 RFB_PREFS_NAME = "RenderManForBlender"
 
+RFB_FLOAT3 = ['color', 'point', 'vector', 'normal']
+RFB_FLOATX = ['color', 'point', 'vector', 'normal', 'matrix']
+
 RMAN_STYLIZED_FILTERS = [
     "PxrStylizedHatching",
     "PxrStylizedLines",

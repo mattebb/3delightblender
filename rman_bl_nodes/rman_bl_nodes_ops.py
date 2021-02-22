@@ -3,7 +3,6 @@ from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
 from .. import rman_render
 from ..rfb_utils.shadergraph_utils import find_node, find_selected_pattern_node, is_socket_same_type
-from ..rfb_utils.node_desc import FLOAT3
 import bpy
 import os
 

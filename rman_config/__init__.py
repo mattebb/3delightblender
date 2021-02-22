@@ -1,4 +1,5 @@
-from ..rfb_utils.node_desc import NodeDescParamJSON
+from ..rfb_utils.rfb_node_desc_utils.rfb_node_desc_param import RfbNodeDescParamJSON
+from ..rfb_utils.rfb_node_desc_utils.conditional_visibility import build_condvis_expr
 from ..rfb_utils import generate_property_utils
 from ..rfb_utils.prefs_utils import get_pref
 from ..rfb_utils import filepath_utils
@@ -81,7 +82,7 @@ class RmanConfig:
 
     Attributes:
         jsonfile (str): Path to JSON file on disk
-        params (NodeDescParamJSON): Dictionary of parm names to NodeDescParamJSON objects
+        params (RfbNodeDescParamJSON): Dictionary of parm names to RfbNodeDescParamJSON objects
     """
     def __init__(self, jsonfile):
         self.jsonfile = jsonfile
@@ -98,7 +99,7 @@ class RmanConfig:
         if 'params' in jdata:
             for pdata in jdata['params']:
                 try:
-                    param = NodeDescParamJSON(pdata)
+                    param = RfbNodeDescParamJSON(pdata, build_condvis_expr)
                 except:
                     rfb_log().error('FAILED to parse param: %s' % pdata)
                     raise
@@ -248,7 +249,7 @@ def apply_args_overrides(name, node_desc):
 
     Args:
         name (str): Args filename ex: PxrVolume.args
-        node_desc (NodeDesc): NodeDesc object to apply overrides to.
+        node_desc (RfbNodeDesc): NodeDesc object to apply overrides to.
     """
 
     rman_config = __RMAN_CONFIG__.get(name, None)

@@ -1,4 +1,4 @@
-from ..rfb_utils.node_desc import NodeDesc
+from ..rfb_utils.rfb_node_desc_utils.rfb_node_desc import RfbNodeDesc
 from ..rfb_utils import filepath_utils
 from ..rfb_utils.filepath import FilePath
 from ..rfb_utils import generate_property_utils
@@ -105,15 +105,17 @@ __RMAN_NODES_ALREADY_REGISTERED__ = False
 
 def update_conditional_visops(node):
     for param_name, prop_meta in getattr(node, 'prop_meta').items():
-        if 'conditionalVisOps' in prop_meta:
-            cond_expr = prop_meta['conditionalVisOps']['expr']
-            try:
-                hidden = not eval(cond_expr)
-                prop_meta['hidden'] = hidden
-                if hasattr(node, 'inputs') and param_name in node.inputs:
-                    node.inputs[param_name].hide = hidden
-            except:
-                rfb_log().debug("Error in conditional visop: %s" % (cond_expr))
+        conditionalVisOps = prop_meta.get('conditionalVisOps', None)
+        if conditionalVisOps:
+            cond_expr = conditionalVisOps.get('expr', None)
+            if cond_expr:
+                try:
+                    hidden = not eval(cond_expr)
+                    prop_meta['hidden'] = hidden
+                    if hasattr(node, 'inputs') and param_name in node.inputs:
+                        node.inputs[param_name].hide = hidden
+                except:
+                    rfb_log().debug("Error in conditional visop: %s" % (cond_expr))
 
 def update_func_with_inputs(self, context):
     # check if this prop is set on an input
@@ -662,7 +664,7 @@ def register_rman_nodes():
                         is_oso = True
                         is_args = False
 
-                    node_desc = NodeDesc(FilePath(root).join(FilePath(filename)))
+                    node_desc = RfbNodeDesc(FilePath(root).join(FilePath(filename)))
 
                     # apply any overrides
                     rman_config.apply_args_overrides(filename, node_desc)
