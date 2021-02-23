@@ -280,7 +280,7 @@ def convert_cycles_nodetree(id, output_node):
     else:
         if begin_cycles_node.bl_idname == "ShaderNodeBsdfPrincipled":
             # use PxrDisney
-            node_name = __BL_NODES_MAP__.get('PxDisneyBsdf')
+            node_name = __BL_NODES_MAP__.get('PxrDisney')
             base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
         else:
             node_name = __BL_NODES_MAP__.get('LamaSurface')
