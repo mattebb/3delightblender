@@ -177,6 +177,8 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         if rman_parent.bl_label == 'LamaSurface':
             nt.links.new(rman_node.outputs["Bxdf"],
                             rman_parent.inputs['materialFront'])  
+            if node.bl_idname == 'ShaderNodeBsdfTransparent':
+                setattr(rman_parent, 'presence', 0.0)
         return rman_node
 
     elif node.bl_idname == 'ShaderNodeEmission':
