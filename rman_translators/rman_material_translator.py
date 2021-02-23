@@ -7,7 +7,6 @@ from ..rfb_utils import color_utils
 from ..rfb_utils import gpmaterial_utils
 
 from ..rfb_logger import rfb_log
-from ..rman_cycles_convert import _CYCLES_NODE_MAP_
 import math
 import re
 import bpy
@@ -212,6 +211,7 @@ class RmanMaterialTranslator(RmanTranslator):
         from ..rfb_utils.rfb_node_desc_utils.rfb_node_desc import RfbNodeDesc
         from ..rfb_utils import filepath_utils
         from ..rfb_utils.filepath import FilePath
+        from ..rman_cycles_convert import _CYCLES_NODE_MAP_
 
         if node.bl_idname == 'ShaderNodeGroup':
             return self.translate_node_group(mat, rman_sg_material, node, mat_name)

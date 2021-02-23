@@ -25,14 +25,14 @@
 import bpy
 from .rfb_utils import filepath_utils
 from .rfb_utils import texture_utils
+from .rman_bl_nodes import __BL_NODES_MAP__
 
 converted_nodes = {}
 report = None
 __CURRENT_MATERIAL__ = None
 
 
-def convert_cycles_node(nt, node, location=None):
-    from .rman_bl_nodes import __BL_NODES_MAP__
+def convert_cycles_node(nt, node, location=None):    
     node_type = node.bl_idname
     if node.name in converted_nodes:
         return nt.nodes[converted_nodes[node.name]]
@@ -69,8 +69,9 @@ def convert_cycles_node(nt, node, location=None):
         node2 = node.inputs[
             1 + i].links[0].from_node if node.inputs[1 + i].is_linked else None
 
-        if node.bl_idname == 'ShaderNodeAddShader':        
-            add = nt.nodes.new('LamaAddBxdfNode')
+        if node.bl_idname == 'ShaderNodeAddShader':      
+            node_name = __BL_NODES_MAP__.get('LamaAdd')  
+            add = nt.nodes.new(node_name)
             if location:
                 add.location = location            
 
@@ -89,8 +90,8 @@ def convert_cycles_node(nt, node, location=None):
             return add                      
 
         elif node.bl_idname == 'ShaderNodeMixShader': 
-
-            mixer = nt.nodes.new('LamaMixBxdfNode')
+            node_name = __BL_NODES_MAP__.get('LamaMix')
+            mixer = nt.nodes.new(node_name)
             if location:
                 mixer.location = location
 
@@ -133,6 +134,14 @@ def convert_cycles_node(nt, node, location=None):
                (node.name, node_type))
         return None
 
+def set_color_space(nt, socket, rman_node, node, param_name, in_socket):
+    ## FIXME: figure out a better way when we need to set
+    ## colorspace to data
+    from .rfb_utils import shadergraph_utils
+
+    if node.bl_label in ['PxrTexture'] and shadergraph_utils.is_socket_float_type(in_socket):
+        setattr(node, 'filename_colorspace', 'data')    
+
 
 def convert_cycles_input(nt, socket, rman_node, param_name):
     if socket.is_linked:
@@ -140,19 +149,23 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
             (socket.node.location - socket.links[0].from_node.location)
         node = convert_cycles_node(nt, socket.links[0].from_node, location)
         if node:
+            out_socket = None
+
             # find the appropriate socket to hook up.
-            input = rman_node.inputs[param_name]
+            in_socket = rman_node.inputs[param_name]
             if socket.links[0].from_socket.name in node.outputs:
-                nt.links.new(node.outputs[socket.links[
-                             0].from_socket.name], input)
+                out_socket = node.outputs[socket.links[0].from_socket.name]
             else:
                 from .rfb_utils import shadergraph_utils
                 for output in node.outputs:
-                    if shadergraph_utils.is_socket_same_type(input, output):
-                        nt.links.new(output, input)
+                    if shadergraph_utils.is_socket_same_type(in_socket, output):
+                        out_socket = output
                         break
                 else:
-                    nt.links.new(node.outputs[0], input)
+                    output = node.outputs[0]
+            
+            set_color_space(nt, socket, rman_node, node, param_name, in_socket)
+            nt.links.new(out_socket, in_socket)
 
     elif hasattr(socket, 'default_value'):
         if hasattr(rman_node, 'renderman_node_type'):

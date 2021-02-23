@@ -147,7 +147,7 @@ def build_output_param_str(mat_name, from_node, from_socket, convert_socket=Fals
 
     # replace with the convert node's output
     if convert_socket:
-        if shadergraph_utils.is_float_type(from_socket):
+        if shadergraph_utils.is_socket_float_type(from_socket):
             return "convert_%s_%s:resultRGB" % (from_node_name, from_sock_name)
         else:
             return "convert_%s_%s:resultF" % (from_node_name, from_sock_name)

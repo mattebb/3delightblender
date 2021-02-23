@@ -121,6 +121,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 prop_meta = self.prop_meta[prop_name]
                 widget = prop_meta.get('widget', 'default')
                 hidden = prop_meta.get('hidden', False)
+                renderman_type = prop_meta.get('renderman_type', '')
                 if hidden:
                     continue
 
@@ -141,7 +142,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                                       
 
                 if prop_name not in self.inputs:
-                    if prop_meta['renderman_type'] == 'page':
+                    if renderman_type == 'page':
                         # for now, don't draw the page   
                         '''
                         ui_prop = prop_name + "_uio"
@@ -165,7 +166,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                             context, layout, prop)          
 
                     
-                    elif prop_meta['renderman_type'] == 'array':
+                    elif renderman_type == 'array':
                         row = layout.row(align=True)
                         col = row.column()
                         row = col.row()
@@ -173,12 +174,21 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         row.label(text='%s Size' % prop_name)               
                         row.prop(self, '%s_arraylen' % prop_name, text='')
 
-                    elif prop_meta['widget'] == 'propsearch':                 
+                    elif widget == 'propsearch':                 
                         # use a prop_search layout
                         options = prop_meta['options']
                         prop_search_parent = options.get('prop_parent')
                         prop_search_name = options.get('prop_name')
                         eval(f'layout.prop_search(self, prop_name, {prop_search_parent}, "{prop_search_name}")')                          
+                    elif widget in ['fileinput','assetidinput']:  
+                        row = layout.row(align=True)
+                        row.prop(self, prop_name)                                                  
+                        prop_val = getattr(self, prop_name)
+                        if prop_val != '':
+                            row = layout.row(align=True)
+                            row.prop(self, '%s_colorspace' % prop_name, text='Color Space')
+                            rman_icon = rfb_icons.get_icon('rman_txmanager')        
+                            row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)   
 
                     else:
                         layout.prop(self, prop_name, slider=True)
