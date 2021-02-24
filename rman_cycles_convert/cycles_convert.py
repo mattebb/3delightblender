@@ -56,7 +56,12 @@ def convert_cycles_node(nt, node, location=None):
     elif node_type in node_map.keys():
         rman_name, convert_func = node_map[node_type]
         node_name = __BL_NODES_MAP__.get(rman_name, None)
-        rman_node = nt.nodes.new(node_name)
+        if node_name:
+            rman_node = nt.nodes.new(node_name)
+        else:
+            # copy node
+            node_name = node.bl_idname
+            rman_node = nt.nodes.new(node_name)        
         if location:
             rman_node.location = location
         convert_func(nt, node, rman_node)
@@ -143,29 +148,32 @@ def set_color_space(nt, socket, rman_node, node, param_name, in_socket):
         setattr(node, 'filename_colorspace', 'data')    
 
 
+def convert_linked_node(nt, socket, rman_node, param_name):
+    location = rman_node.location - \
+        (socket.node.location - socket.links[0].from_node.location)
+    node = convert_cycles_node(nt, socket.links[0].from_node, location)
+    if node:
+        out_socket = None
+
+        # find the appropriate socket to hook up.
+        in_socket = rman_node.inputs[param_name]
+        if socket.links[0].from_socket.name in node.outputs:
+            out_socket = node.outputs[socket.links[0].from_socket.name]
+        else:
+            from ..rfb_utils import shadergraph_utils
+            for output in node.outputs:
+                if shadergraph_utils.is_socket_same_type(in_socket, output):
+                    out_socket = output
+                    break
+            else:
+                output = node.outputs[0]
+        
+        set_color_space(nt, socket, rman_node, node, param_name, in_socket)
+        nt.links.new(out_socket, in_socket)    
+
 def convert_cycles_input(nt, socket, rman_node, param_name):
     if socket.is_linked:
-        location = rman_node.location - \
-            (socket.node.location - socket.links[0].from_node.location)
-        node = convert_cycles_node(nt, socket.links[0].from_node, location)
-        if node:
-            out_socket = None
-
-            # find the appropriate socket to hook up.
-            in_socket = rman_node.inputs[param_name]
-            if socket.links[0].from_socket.name in node.outputs:
-                out_socket = node.outputs[socket.links[0].from_socket.name]
-            else:
-                from ..rfb_utils import shadergraph_utils
-                for output in node.outputs:
-                    if shadergraph_utils.is_socket_same_type(in_socket, output):
-                        out_socket = output
-                        break
-                else:
-                    output = node.outputs[0]
-            
-            set_color_space(nt, socket, rman_node, node, param_name, in_socket)
-            nt.links.new(out_socket, in_socket)
+        convert_linked_node(nt, socket, rman_node, param_name)
 
     elif hasattr(socket, 'default_value'):
         if hasattr(rman_node, 'renderman_node_type'):
@@ -341,39 +349,17 @@ def convert_ramp_node(nt, cycles_node, rman_node):
 
     return
 
-math_map = {
-    'ADD': 'floatInput1 + floatInput2',
-    'SUBTRACT': 'floatInput1 - floatInput2',
-    'MULTIPLY': 'floatInput1 * floatInput2',
-    'DIVIDE': 'floatInput1 / floatInput2',
-    'SINE': 'sin(floatInput1)',
-    'COSINE': 'cos(floatInput1)',
-    'TANGENT': 'tan(floatInput1)',
-    'ARCSINE': 'asin(floatInput1)',
-    'ARCCOSINE': 'acos(floatInput1)',
-    'ARCTANGENT': 'atan(floatInput1)',
-    'POWER': 'floatInput1 ^ floatInput2',
-    'LOGARITHM': 'log(floatInput1)',
-    'MINIMUM': 'floatInput1 < floatInput2 ? floatInput1 : floatInput2',
-    'MAXIMUM': 'floatInput1 > floatInput2 ? floatInput1 : floatInput2',
-    'ROUND': 'round(floatInput1)',
-    'LESS_THAN': 'floatInput1 < floatInput2',
-    'GREATER_THAN': 'floatInput1 < floatInput2',
-    'MODULO': 'floatInput1 % floatInput2',
-    'ABSOLUTE': 'abs(floatInput1)',
-}
-
-
 def convert_math_node(nt, cycles_node, rman_node):
-    convert_cycles_input(nt, cycles_node.inputs[0], rman_node, 'floatInput1')
-    convert_cycles_input(nt, cycles_node.inputs[1], rman_node, 'floatInput2')
 
-    op = cycles_node.operation
-    clamp = cycles_node.use_clamp
-    expr = math_map[op]
-    if clamp:
-        expr = 'clamp((%s), 0, 1)' % expr
-    rman_node.expression = expr
+    rman_node.operation = cycles_node.operation
+    rman_node.use_clamp = cycles_node.use_clamp
+
+    for i in range(0,3):
+        input = cycles_node.inputs[i]
+        if input.is_linked:
+            convert_linked_node(nt, input, rman_node, input.name)
+        else:
+            rman_node.inputs[i].default_value = input.default_value
 
     return
 
@@ -554,7 +540,7 @@ node_map = {
     'ShaderNodeGroup': ('PxrNodeGroup', convert_node_group),
     'ShaderNodeBump': ('PxrBump', convert_bump_node),
     'ShaderNodeValToRGB': ('PxrRamp', convert_ramp_node),
-    'ShaderNodeMath': ('PxrSeExpr', convert_math_node),
+    'ShaderNodeMath': ('', convert_math_node),
     'ShaderNodeRGB': ('PxrHSL', convert_rgb_node),
     #'ShaderNodeValue': ('PxrSeExpr', convert_node_value),
     'ShaderNodeValue': ('PxrToFloat', convert_node_value),

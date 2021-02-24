@@ -48,8 +48,7 @@ from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rfb_utils.property_utils import __GAINS_TO_ENABLE__, is_vstruct_and_linked
 from ..rfb_logger import rfb_log
 from ..rman_bl_nodes import __BL_NODES_MAP__, __RMAN_NODE_TYPES__
-from ..rman_constants import RMAN_STYLIZED_FILTERS, RFB_FLOAT3
-from ..rman_cycles_convert import _CYCLES_NODE_MAP_
+from ..rman_constants import RMAN_STYLIZED_FILTERS, RFB_FLOAT3, CYCLES_NODE_MAP
 
 def default_label_from_file_name(filename):
     # print filename
@@ -650,10 +649,10 @@ def export_material_preset(mat, nodes_to_convert, renderman_output_node, Asset):
 
             elif renderman_node_type == '':
                 # check if a cycles node
-                if node.bl_idname not in _CYCLES_NODE_MAP_.keys():
+                if node.bl_idname not in CYCLES_NODE_MAP.keys():
                     rfb_log().debug('No translation for node of type %s named %s' % (node.bl_idname, node.name))
                     continue
-                mapping = _CYCLES_NODE_MAP_[node.bl_idname]
+                mapping = CYCLES_NODE_MAP[node.bl_idname]
                 cycles_shader_dir = filepath_utils.get_cycles_shader_path()
                 out_file = os.path.join(cycles_shader_dir, '%s.oso' % cycles_shader_dir)
                 Asset.processExternalFile(out_file)

@@ -205,27 +205,48 @@ class RmanMaterialTranslator(RmanTranslator):
         for node in nodes_to_export:
             sg_nodes += self.shader_node_sg(mat, node, rman_sg_material, mat_name=mat_name)
         current_group_node = None
-        return sg_nodes        
+        return sg_nodes       
+
+    def translate_cycles_math_node(self, mat, rman_sg_material, node, mat_name):
+        instance_name = shadergraph_utils.get_node_name(node, mat_name)
+        sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", 'node_math', instance_name)
+        params = sg_node.params   
+        params.SetString('type', node.operation)
+        
+        for i, in_name in enumerate(node.inputs.keys()):            
+            input = node.inputs[in_name]
+            param_name = "Value%d" % (i+1)
+            param_type = 'float'
+            if input.is_linked:
+                link = input.links[0]
+                val = property_utils.get_output_param_str(
+                    link.from_node, mat_name, link.from_socket, input)
+
+                property_utils.set_rix_param(params, param_type, param_name, val, is_reference=True)                
+
+            else:
+                val = input.default_value
+                property_utils.set_rix_param(params, param_type, param_name, val, is_reference=False)
+
+        return [sg_node]
 
     def translate_cycles_node(self, mat, rman_sg_material, node, mat_name):
-        from ..rfb_utils.rfb_node_desc_utils.rfb_node_desc import RfbNodeDesc
-        from ..rfb_utils import filepath_utils
-        from ..rfb_utils.filepath import FilePath
-        from ..rman_cycles_convert import _CYCLES_NODE_MAP_
+        from .. import rman_bl_nodes        
 
         if node.bl_idname == 'ShaderNodeGroup':
             return self.translate_node_group(mat, rman_sg_material, node, mat_name)
+        elif node.bl_idname == 'ShaderNodeMath':
+            return self.translate_cycles_math_node(mat, rman_sg_material, node, mat_name)            
 
-        if node.bl_idname not in _CYCLES_NODE_MAP_.keys():
-            print('No translation for node of type %s named %s' %
+        mapping, node_desc = rman_bl_nodes.get_cycles_node_desc(node)
+
+        if not mapping:
+            rfb_log().error('No translation for node of type %s named %s' %
                 (node.bl_idname, node.name))
             return []
 
-        mapping = _CYCLES_NODE_MAP_[node.bl_idname]
-        shader_path = FilePath(filepath_utils.get_cycles_shader_path()).join(FilePath('%s.oso' % mapping))
-        node_desc = RfbNodeDesc(shader_path)
-
-        sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", mapping, shadergraph_utils.get_node_name(node, mat_name))
+        instance_name = shadergraph_utils.get_node_name(node, mat_name)
+        sg_node = self.rman_scene.rman.SGManager.RixSGShader("Pattern", mapping, instance_name)
         params = sg_node.params      
         
         for in_name, input in node.inputs.items():

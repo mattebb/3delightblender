@@ -100,9 +100,38 @@ def get_socket_name(node, socket):
     # if this is a renderman node we can just use the socket name,
     else:
         if not hasattr('node', 'plugin_name'):
-            if socket.name in node.inputs and socket.name in node.outputs:
-                suffix = 'Out' if socket.is_output else 'In'
-                return socket.name.replace(' ', '') + suffix
+            from .. import rman_bl_nodes
+
+            # cycles node?
+            mapping, node_desc = rman_bl_nodes.get_cycles_node_desc(node)
+            if node_desc:
+                idx = -1
+                is_output = socket.is_output
+                if is_output:
+                    for i, output in enumerate(node.outputs):
+                        if socket.name == output.name:
+                            idx = i
+                            break      
+                else:              
+                    for i, input in enumerate(node.inputs):
+                        if socket.name == input.name:
+                            idx = i
+                            break
+                    
+                if idx == -1:
+                    return socket.identifier.replace(' ', '')
+
+                if is_output:
+                    node_desc_param = node_desc.outputs[idx]
+                else:
+                    node_desc_param = node_desc.params[idx]
+
+                return node_desc_param.name                        
+
+            else:
+                if socket.name in node.inputs and socket.name in node.outputs:
+                    suffix = 'Out' if socket.is_output else 'In'
+                    return socket.name.replace(' ', '') + suffix
         return socket.identifier.replace(' ', '')
 
 

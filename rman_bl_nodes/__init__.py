@@ -14,6 +14,7 @@ from ..rman_properties import rman_properties_world
 from ..rman_properties import rman_properties_camera
 from ..rman_constants import RFB_ADDON_PATH
 from ..rman_constants import RFB_ARRAYS_MAX_LEN
+from ..rman_constants import CYCLES_NODE_MAP
 from nodeitems_utils import NodeCategory, NodeItem
 from collections import OrderedDict
 from operator import attrgetter
@@ -101,7 +102,25 @@ if filepath_utils.is_ncr_license():
 # ex: PxrStylizedControl -> PxrStylizedControlPatternOSLNode
 __BL_NODES_MAP__ = dict()
 
+__CYCLES_NODE_DESC_MAP__ = dict()
 __RMAN_NODES_ALREADY_REGISTERED__ = False
+
+def get_cycles_node_desc(node):
+    from ..rfb_utils.filepath import FilePath
+
+    global __CYCLES_NODE_DESC_MAP__
+
+    mapping = CYCLES_NODE_MAP.get(node.bl_idname, None)
+    if not mapping:
+        return (None, None)
+
+    node_desc = __CYCLES_NODE_DESC_MAP__.get(mapping, None)  
+    if not node_desc:
+        shader_path = FilePath(filepath_utils.get_cycles_shader_path()).join(FilePath('%s.oso' % mapping))
+        node_desc = RfbNodeDesc(shader_path) 
+        __CYCLES_NODE_DESC_MAP__[mapping] = node_desc   
+
+    return (mapping, node_desc)
 
 def update_conditional_visops(node):
     for param_name, prop_meta in getattr(node, 'prop_meta').items():
