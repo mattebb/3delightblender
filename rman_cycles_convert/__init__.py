@@ -1,37 +1,20 @@
 from ..rfb_logger import rfb_log
 from .cycles_convert import *
+from .cycles_convert import _BSDF_MAP_
 from ..rfb_utils import shadergraph_utils
 from ..rman_bl_nodes import __BL_NODES_MAP__
 
 _COMBINE_NODES_ = ['ShaderNodeAddShader', 'ShaderNodeMixShader']
 
-_BSDF_MAP_ = {
-    'ShaderNodeBsdfDiffuse': ('diffuse', convert_diffuse_bsdf),
-    'ShaderNodeBsdfGlossy': ('specular', convert_glossy_bsdf),
-    'ShaderNodeBsdfAnisotropic': ('specular', convert_glossy_bsdf),
-    'ShaderNodeBsdfGlass': ('glass', convert_glass_bsdf),
-    'ShaderNodeBsdfRefraction': ('glass', convert_refraction_bsdf),
-    'ShaderNodeBsdfTransparent': ('glass', convert_transparent_bsdf),
-    'ShaderNodeBsdfTranslucent': ('singlescatter', convert_translucent_bsdf),
-    'ShaderNodeBsdfVelvet': ('fuzz', convert_velvet_bsdf),
-    'ShaderNodeSubsurfaceScattering': ('subsurface', convert_sss_bsdf),
-    'ShaderNodeBsdfPrincipled': ('diffuse', convert_principled_bsdf),
-    'ShaderNodeBsdfHair': (None, None),
-    'ShaderNodeEmission': (None, None),
-    'ShaderNodeGroup': (None, None)
-}
-
 def create_rman_surface(nt, parent_node, input_index, node_name=None):
     if not node_name:
         node_name = __BL_NODES_MAP__.get('PxrDisneyBsdf')
-    layer = nt.nodes.new(node_name)
-    nt.links.new(layer.outputs[0], parent_node.inputs[input_index])
-    setattr(layer, 'enableDiffuse', False)
+    rman_surf = nt.nodes.new(node_name)
+    nt.links.new(rman_surf.outputs[0], parent_node.inputs[input_index])
 
-    layer.location = parent_node.location
-    layer.diffuseGain = 0
-    layer.location[0] -= 300
-    return layer
+    rman_surf.location = parent_node.location
+    rman_surf.location[0] -= 300
+    return rman_surf
 
 def convert_cycles_bsdf(nt, rman_parent, node, input_index):
 
@@ -130,7 +113,12 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
 
         node_name = __BL_NODES_MAP__.get('LamaEmission')
         emission = nt.nodes.new(node_name)
-        convert_cycles_input(nt, node.inputs['Color'], emission, "color")      
+        convert_cycles_input(nt, node.inputs['Color'], emission, "color")  
+        if not node.inputs['Color'].is_linked and not node.inputs['Strength']:
+            emission_color = getattr(emission, 'color')
+            emission_color = node.inputs['Strength'] * emission_color
+            setattr(emission, 'color', emission_color)    
+
 
         if rman_parent.bl_label == 'LamaSurface':
             nt.links.new(emission.outputs["Bxdf"],
@@ -196,7 +184,7 @@ def convert_cycles_nodetree(id, output_node):
 
     # walk tree
     begin_cycles_node = cycles_output_node.inputs[0].links[0].from_node
-    # if this is an emission use PxrLightEmission
+    # if this is an emission use PxrMeshLight
     if begin_cycles_node.bl_idname == "ShaderNodeEmission":
         node_name = __BL_NODES_MAP__.get('PxrMeshLight')
         meshlight = nt.nodes.new(node_name)

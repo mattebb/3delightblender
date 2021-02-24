@@ -53,8 +53,8 @@ def convert_cycles_node(nt, node, location=None):
         convert_rgb_curve_node(nt, node, rman_node)
         converted_nodes[node.name] = rman_node.name
         return rman_node
-    elif node_type in node_map.keys():
-        rman_name, convert_func = node_map[node_type]
+    elif node_type in _NODE_MAP_.keys():
+        rman_name, convert_func = _NODE_MAP_[node_type]
         node_name = __BL_NODES_MAP__.get(rman_name, None)
         if node_name:
             rman_node = nt.nodes.new(node_name)
@@ -115,8 +115,8 @@ def convert_cycles_node(nt, node, location=None):
             return mixer        
 
 
-    elif node_type in bsdf_map.keys():
-        rman_name, convert_func = bsdf_map[node_type]
+    elif node_type in _BSDF_MAP_.keys():
+        rman_name, convert_func = _BSDF_MAP_[node_type]
         if not convert_func:
             return None
 
@@ -517,7 +517,7 @@ def convert_velvet_bsdf(nt, node, rman_node):
     return sheen       
 
 
-bsdf_map = {
+_BSDF_MAP_ = {
     'ShaderNodeBsdfDiffuse': ('diffuse', convert_diffuse_bsdf),
     'ShaderNodeBsdfGlossy': ('specular', convert_glossy_bsdf),
     'ShaderNodeBsdfAnisotropic': ('specular', convert_glossy_bsdf),
@@ -527,13 +527,14 @@ bsdf_map = {
     'ShaderNodeBsdfTranslucent': ('singlescatter', convert_translucent_bsdf),
     'ShaderNodeBsdfVelvet': ('fuzz', convert_velvet_bsdf),
     'ShaderNodeSubsurfaceScattering': ('subsurface', convert_sss_bsdf),
+    'ShaderNodeBsdfPrincipled': ('diffuse', convert_principled_bsdf),    
     'ShaderNodeBsdfHair': (None, None),
     'ShaderNodeEmission': (None, None),
     'ShaderNodeGroup': (None, None)
 }
 
 # we only convert the important shaders, all others are copied from cycles osl
-node_map = {
+_NODE_MAP_ = {
     'ShaderNodeTexImage': ('PxrTexture', convert_tex_image_node),
     'ShaderNodeMixRGB': ('PxrBlend', convert_mix_rgb_node),
     'ShaderNodeNormalMap': ('PxrNormalMap', convert_normal_map_node),
