@@ -402,7 +402,7 @@ def convert_principled_bsdf(nt, node, rman_node):
     convert_cycles_input(nt, inputs['Subsurface'], rman_node, "subsurface")
     convert_cycles_input(nt, inputs['Subsurface Color'], rman_node, "subsurfaceColor")
     convert_cycles_input(nt, inputs['Metallic'], rman_node, "metallic")
-    convert_cycles_input(nt, inputs['Specular'], rman_node, "specular")
+    convert_cycles_input(nt, inputs['Specular'], rman_node, "specReflectScale")
     convert_cycles_input(nt, inputs['Specular Tint'], rman_node, "specularTint")
     convert_cycles_input(nt, inputs['Roughness'], rman_node, "roughness")
     convert_cycles_input(nt, inputs['Anisotropic'], rman_node, "anisotropic")
@@ -410,6 +410,9 @@ def convert_principled_bsdf(nt, node, rman_node):
     convert_cycles_input(nt, inputs['Sheen Tint'], rman_node, "sheenTint")
     convert_cycles_input(nt, inputs['Clearcoat'], rman_node, "clearcoat")
     convert_cycles_input(nt, inputs['Clearcoat Roughness'], rman_node, "clearcoatGloss")
+    convert_cycles_input(nt, inputs['IOR'], rman_node, "ior")
+    convert_cycles_input(nt, inputs['Emission'], rman_node, "emitColor")
+    convert_cycles_input(nt, inputs['Alpha'], rman_node, "presence")
     convert_cycles_input(nt, inputs['Normal'], rman_node, "bumpNormal")
     
 def convert_diffuse_bsdf(nt, node, rman_node):
