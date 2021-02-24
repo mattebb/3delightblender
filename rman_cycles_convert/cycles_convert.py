@@ -23,9 +23,9 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 import bpy
-from .rfb_utils import filepath_utils
-from .rfb_utils import texture_utils
-from .rman_bl_nodes import __BL_NODES_MAP__
+from ..rfb_utils import filepath_utils
+from ..rfb_utils import texture_utils
+from ..rman_bl_nodes import __BL_NODES_MAP__
 
 converted_nodes = {}
 report = None
@@ -137,7 +137,7 @@ def convert_cycles_node(nt, node, location=None):
 def set_color_space(nt, socket, rman_node, node, param_name, in_socket):
     ## FIXME: figure out a better way when we need to set
     ## colorspace to data
-    from .rfb_utils import shadergraph_utils
+    from ..rfb_utils import shadergraph_utils
 
     if node.bl_label in ['PxrTexture'] and shadergraph_utils.is_socket_float_type(in_socket):
         setattr(node, 'filename_colorspace', 'data')    
@@ -156,7 +156,7 @@ def convert_cycles_input(nt, socket, rman_node, param_name):
             if socket.links[0].from_socket.name in node.outputs:
                 out_socket = node.outputs[socket.links[0].from_socket.name]
             else:
-                from .rfb_utils import shadergraph_utils
+                from ..rfb_utils import shadergraph_utils
                 for output in node.outputs:
                     if shadergraph_utils.is_socket_same_type(in_socket, output):
                         out_socket = output
