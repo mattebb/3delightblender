@@ -762,27 +762,6 @@
                 "conditionalVisPath": "opt_bucket_order",
                 "conditionalVisValue": "spiral"
             }              
-        },        
-        {
-            "panel": "",
-            "page": "Open Shading Language",
-            "name": "opt_useOSLPatterns",
-            "label": "Convert C++ patterns to OSL",
-            "type": "int",
-            "default": 0,
-            "widget": "checkBox",
-            "help": "Render with OSL patterns instead of C++ patterns. An error will be emitted if a C++ pattern doesn't have an OSL equivalent."
-        },
-        {
-            "panel": "RENDER_PT_renderman_advanced_settings",
-            "page": "Open Shading Language",
-            "name": "opt_oslmatchcpp",
-            "label": "Match C++ patterns",
-            "riopt": "osl:matchcpp",
-            "type": "int",
-            "default": 0,
-            "widget": "checkBox",
-            "help": "Use noise and hash functions matching RIS C++ patterns. This is slower and should only be enabled when necessary."
         },
         {
             "panel": "RENDER_PT_renderman_advanced_settings",
