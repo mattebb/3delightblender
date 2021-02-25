@@ -19,6 +19,8 @@ def create_rman_surface(nt, parent_node, input_index, node_name=None):
 def convert_cycles_bsdf(nt, rman_parent, node, input_index):
 
     # if mix or add pass both to parent
+    node_type = node.bl_idname
+    bxdf_name, convert_func = _BSDF_MAP_.get(node_type, (None, None))    
     if node.bl_idname in _COMBINE_NODES_:
         i = 0 if node.bl_idname == 'ShaderNodeAddShader' else 1
 
@@ -99,9 +101,11 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
 
             return mixer        
 
-    elif 'Bsdf' in node.bl_idname or node.bl_idname == 'ShaderNodeSubsurfaceScattering':
-        node_type = node.bl_idname
-        rman_node = _BSDF_MAP_[node_type][1](nt, node, rman_parent)
+    elif convert_func:
+        node_name = __BL_NODES_MAP__.get(bxdf_name)
+        rman_node = nt.nodes.new(node_name)
+        convert_func(nt, node, rman_node)
+    
         if rman_parent.bl_label == 'LamaSurface':
             nt.links.new(rman_node.outputs["Bxdf"],
                             rman_parent.inputs['materialFront'])  
@@ -109,28 +113,15 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
                 setattr(rman_parent, 'presence', 0.0)
         return rman_node
 
-    elif node.bl_idname == 'ShaderNodeEmission':
-
-        node_name = __BL_NODES_MAP__.get('LamaEmission')
-        emission = nt.nodes.new(node_name)
-        convert_cycles_input(nt, node.inputs['Color'], emission, "color")  
-        if not node.inputs['Color'].is_linked and not node.inputs['Strength']:
-            emission_color = getattr(emission, 'color')
-            emission_color = node.inputs['Strength'] * emission_color
-            setattr(emission, 'color', emission_color)    
-
-
+    elif 'Bsdf' in node.bl_idname:
+        # Fallback to LamaDiffuse
+        node_name = __BL_NODES_MAP__.get('LamaDiffuse')
+        rman_node = nt.nodes.new(node_name)  
         if rman_parent.bl_label == 'LamaSurface':
-            nt.links.new(emission.outputs["Bxdf"],
-                            rman_parent.inputs['materialFront'])
-        else:
-            nt.links.new(emission.outputs["Bxdf"],
-                            rman_parent.inputs[input_index])     
-        offset_node_location(rman_parent, emission, node)
+            nt.links.new(rman_node.outputs["Bxdf"],
+                            rman_parent.inputs['materialFront'])         
 
-        return emission
-
-
+        return rman_node
     else:
         rman_node = convert_cycles_node(nt, node)
         nt.links.new(rman_node.outputs[0], rman_parent.inputs[input_index])
@@ -205,6 +196,7 @@ def convert_cycles_nodetree(id, output_node):
             # use PxrDisneyBsdf
             node_name = __BL_NODES_MAP__.get('PxrDisneyBsdf')
             base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
+            convert_principled_bsdf(nt, begin_cycles_node, base_surface)            
         else:
             node_name = __BL_NODES_MAP__.get('LamaSurface')
             base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
@@ -212,8 +204,8 @@ def convert_cycles_nodetree(id, output_node):
             setattr(base_surface, 'computeOpacity', 1)
             setattr(base_surface, 'computeSubsurface', 1)
             setattr(base_surface, 'computeInterior', 1)
-        offset_node_location(output_node, base_surface, begin_cycles_node)
-        convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
+            convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
+        offset_node_location(output_node, base_surface, begin_cycles_node)            
         convert_cycles_displacement(
             nt, base_surface, cycles_output_node.inputs[2], output_node)
         base_surface.update_mat(id)

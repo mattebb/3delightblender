@@ -118,9 +118,14 @@ def convert_cycles_node(nt, node, location=None):
     elif node_type in _BSDF_MAP_.keys():
         rman_name, convert_func = _BSDF_MAP_[node_type]
         if not convert_func:
-            return None
+            # Fallback to LamaDiffuse
+            node_name = __BL_NODES_MAP__.get('LamaDiffuse')
+            rman_node = nt.nodes.new(node_name)            
+            return rman_node
 
-        rman_node = convert_func(nt, node)
+        node_name = __BL_NODES_MAP__.get(bxdf_name)
+        rman_node = nt.nodes.new(node_name)
+        convert_func(nt, node, rman_node)
         converted_nodes[node.name] = rman_node.name
 
         return rman_node
@@ -418,121 +423,115 @@ def convert_principled_bsdf(nt, node, rman_node):
 def convert_diffuse_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
-    diffuse = nt.nodes.new('LamaDiffuseBxdfNode')
-    convert_cycles_input(nt, inputs['Color'], diffuse, "color")
+    convert_cycles_input(nt, inputs['Color'], rman_node, "color")
     convert_cycles_input(nt, inputs['Roughness'],
-                         diffuse, "roughness")
-    convert_cycles_input(nt, inputs['Normal'], diffuse, "normal")    
-
-    return diffuse
+                         rman_node, "roughness")
+    convert_cycles_input(nt, inputs['Normal'], rman_node, "normal")    
 
 def convert_glossy_bsdf(nt, node, rman_node):
-    inputs = node.inputs    
-    conductor = nt.nodes.new('LamaConductorBxdfNode')
-    
-    convert_cycles_input(nt, inputs['Color'], conductor, "reflectivity")
-    convert_cycles_input(nt, inputs['Color'], conductor, "edgeColor")
+    inputs = node.inputs        
+    convert_cycles_input(nt, inputs['Color'], rman_node, "reflectivity")
+    convert_cycles_input(nt, inputs['Color'], rman_node, "edgeColor")
     convert_cycles_input(nt, inputs['Roughness'],
-                         conductor, "roughness")
+                         rman_node, "roughness")
     convert_cycles_input(
-        nt, inputs['Normal'], conductor, "normal")                         
+        nt, inputs['Normal'], rman_node, "normal")                         
 
     if type(node).__class__ == 'ShaderNodeBsdfAnisotropic':
         convert_cycles_input(
-            nt, inputs['Anisotropy'], conductor, "anisotropy")                         
-
-    return conductor    
-
+            nt, inputs['Anisotropy'], rman_node, "anisotropy")                         
 
 def convert_glass_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
-    dielectric = nt.nodes.new('LamaDielectricBxdfNode')
-    setattr(dielectric, 'fresnelMode', "1")
-    convert_cycles_input(nt, inputs['Color'], dielectric, "reflectionTint")
+    setattr(rman_node, 'fresnelMode', "1")
+    convert_cycles_input(nt, inputs['Color'], rman_node, "reflectionTint")
     convert_cycles_input(nt, inputs['Roughness'],
-                         dielectric, "roughness")
+                         rman_node, "roughness")
     convert_cycles_input(nt, inputs['IOR'],
-                         dielectric, "IOR")       
-    convert_cycles_input(nt, inputs['Normal'], dielectric, "normal")                                             
-
-    return dielectric    
-
-
+                         rman_node, "IOR")       
+    convert_cycles_input(nt, inputs['Normal'], rman_node, "normal")                                             
 
 def convert_refraction_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
-    dielectric = nt.nodes.new('LamaDielectricBxdfNode')
-    setattr(dielectric, 'fresnelMode', "1")
-    convert_cycles_input(nt, inputs['Color'], dielectric, "reflectionTint")
+    setattr(rman_node, 'fresnelMode', "1")
+    convert_cycles_input(nt, inputs['Color'], rman_node, "reflectionTint")
     convert_cycles_input(nt, inputs['Roughness'],
-                         dielectric, "roughness")
+                         rman_node, "roughness")
     convert_cycles_input(nt, inputs['IOR'],
-                         dielectric, "IOR")       
-    convert_cycles_input(nt, inputs['Normal'], dielectric, "normal")                                             
-
-    return dielectric        
-
+                         rman_node, "IOR")       
+    convert_cycles_input(nt, inputs['Normal'], rman_node, "normal")                                             
 
 def convert_transparent_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
-    dielectric = nt.nodes.new('LamaDielectricBxdfNode')
-    convert_cycles_input(nt, inputs['Color'], dielectric, "reflectionTint") 
-    setattr(dielectric, 'reflectivity', 1.0)
-    setattr(dielectric, 'isThin', 1)                                           
-
-    return dielectric            
-
+    convert_cycles_input(nt, inputs['Color'], rman_node, "reflectionTint") 
+    setattr(rman_node, 'reflectivity', 1.0)
+    setattr(rman_node, 'isThin', 1)                                           
 
 def convert_translucent_bsdf(nt, node, rman_node):
     inputs = node.inputs    
-    translucent = nt.nodes.new('LamaTranslucentBxdfNode')
-    convert_cycles_input(nt, inputs['Color'], translucent, "reflectionTint")   
-    convert_cycles_input(nt, inputs['Normal'], translucent, "normal")                                             
-
-    return translucent            
-
+    convert_cycles_input(nt, inputs['Color'], rman_node, "reflectionTint")   
+    convert_cycles_input(nt, inputs['Normal'], rman_node, "normal")                                             
 
 def convert_sss_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
-    sss = nt.nodes.new('LamaSSSBxdfNode')
-    convert_cycles_input(nt, inputs['Color'], sss, "color")
+    convert_cycles_input(nt, inputs['Color'], rman_node, "color")
     convert_cycles_input(nt, inputs['Radius'],
-                         sss, "radius")
+                         rman_node, "radius")
     convert_cycles_input(nt, inputs['Scale'],
-                         sss, "scale")                         
+                         rman_node, "scale")                         
     convert_cycles_input(nt, inputs['IOR'],
-                         sss, "IOR")       
-    convert_cycles_input(nt, inputs['Normal'], sss, "normal")                                             
-
-    return sss          
-
+                         rman_node, "IOR")       
+    convert_cycles_input(nt, inputs['Normal'], rman_node, "normal")                                             
 
 def convert_velvet_bsdf(nt, node, rman_node):
-    inputs = node.inputs    
-    sheen = nt.nodes.new('LamaSheenBxdfNode')
-    convert_cycles_input(nt, inputs['Color'], sheen, "color")      
-    convert_cycles_input(nt, inputs['Normal'], sheen, "normal")                                             
+    inputs = node.inputs   
+    convert_cycles_input(nt, inputs['Color'], rman_node, "color")      
+    convert_cycles_input(nt, inputs['Normal'], rman_node, "normal")           
 
-    return sheen       
+def convert_emission_bsdf(nt, node, rman_node):
+    convert_cycles_input(nt, node.inputs['Color'], rman_node, "color")  
+    if not node.inputs['Color'].is_linked and not node.inputs['Strength']:
+        emission_color = getattr(rman_node, 'color')
+        emission_color = node.inputs['Strength'] * emission_color
+        setattr(rman_node, 'color', emission_color)       
 
+def convert_hair_bsdf(nt, node, rman_node):
+    inputs = node.inputs   
+    convert_cycles_input(nt, inputs['Color'], rman_node, "colorTT")   
+    convert_cycles_input(nt, inputs['Offset'], rman_node, "offset")
+
+def convert_hair_principled_bsdf(nt, node, rman_node):
+    if node.parametrization == 'COLOR':
+        convert_cycles_input(nt, inputs['Color'], rman_node, "colorTT")         
+        convert_cycles_input(nt, inputs['IOR'], rman_node, "IOR")         
+        convert_cycles_input(nt, inputs['Offset'], rman_node, "offset")
+    elif node.parametrization == 'MELANIN':         
+        # use PxrHairColor
+        node_name = __BL_NODES_MAP__.get('PxrHairColor')
+        hair_color = nt.nodes.new(node_name)
+        convert_cycles_input(nt, inputs['Melanin'], hair_color, "melanin")   
+        nt.links.new(hair_color.outputs['resultDiff'], rman_node.inputs["colorTT"])
+
+        convert_cycles_input(nt, inputs['IOR'], rman_node, "IOR")         
+        convert_cycles_input(nt, inputs['Offset'], rman_node, "offset")        
 
 _BSDF_MAP_ = {
-    'ShaderNodeBsdfDiffuse': ('diffuse', convert_diffuse_bsdf),
-    'ShaderNodeBsdfGlossy': ('specular', convert_glossy_bsdf),
-    'ShaderNodeBsdfAnisotropic': ('specular', convert_glossy_bsdf),
-    'ShaderNodeBsdfGlass': ('glass', convert_glass_bsdf),
-    'ShaderNodeBsdfRefraction': ('glass', convert_refraction_bsdf),
-    'ShaderNodeBsdfTransparent': ('glass', convert_transparent_bsdf),
-    'ShaderNodeBsdfTranslucent': ('singlescatter', convert_translucent_bsdf),
-    'ShaderNodeBsdfVelvet': ('fuzz', convert_velvet_bsdf),
-    'ShaderNodeSubsurfaceScattering': ('subsurface', convert_sss_bsdf),
-    'ShaderNodeBsdfPrincipled': ('diffuse', convert_principled_bsdf),    
-    'ShaderNodeBsdfHair': (None, None),
-    'ShaderNodeEmission': (None, None),
+    'ShaderNodeBsdfDiffuse': ('LamaDiffuse', convert_diffuse_bsdf),
+    'ShaderNodeBsdfGlossy': ('LamaConductor', convert_glossy_bsdf),
+    'ShaderNodeBsdfAnisotropic': ('LamaConductor', convert_glossy_bsdf),
+    'ShaderNodeBsdfGlass': ('LamaDielectric', convert_glass_bsdf),
+    'ShaderNodeBsdfRefraction': ('LamaDielectric', convert_refraction_bsdf),
+    'ShaderNodeBsdfTransparent': ('LamaDielectric', convert_transparent_bsdf),
+    'ShaderNodeBsdfTranslucent': ('LamaTranslucent', convert_translucent_bsdf),
+    'ShaderNodeBsdfVelvet': ('LamaSheen', convert_velvet_bsdf),
+    'ShaderNodeSubsurfaceScattering': ('LamaSSS', convert_sss_bsdf), 
+    'ShaderNodeBsdfHair': ('LamaHairChiang', convert_hair_bsdf),
+    'ShaderNodeEmission': ('LamaEmission', convert_emission_bsdf),
+    'ShaderNodeBsdfHairPrincipled': ('LamaHairChiang', convert_hair_principled_bsdf),
     'ShaderNodeGroup': (None, None)
 }
 
