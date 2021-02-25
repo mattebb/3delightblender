@@ -128,18 +128,17 @@ def convert_cycles_bsdf(nt, rman_parent, node, input_index):
         return rman_node
 
 
-def convert_cycles_displacement(nt, surface_node, displace_socket, output_node):
+def convert_cycles_displacement(nt, displace_socket, output_node):
 
-    if displace_socket.is_linked:
-       node_name = __BL_NODES_MAP__.get('PxrDisplace')
-       displace = nt.nodes.new(node_name)
-       nt.links.new(displace.outputs[0], output_node.inputs['Displacement'])
-       displace.location = output_node.location
-       displace.location[0] -= 200
-       displace.location[1] -= 100
+    node_name = __BL_NODES_MAP__.get('PxrDisplace')
+    displace = nt.nodes.new(node_name)
+    nt.links.new(displace.outputs[0], output_node.inputs['Displacement'])
+    displace.location = output_node.location
+    displace.location[0] -= 200
+    displace.location[1] -= 100
 
-       setattr(displace, 'dispAmount', .01)
-       convert_cycles_input(nt, displace_socket, displace, "dispVector")
+    setattr(displace, 'dispAmount', .01)
+    convert_cycles_input(nt, displace_socket, displace, "dispVector")
     
 def set_ouput_node_location(nt, output_node, cycles_output):
     output_node.location = cycles_output.location
@@ -165,48 +164,68 @@ def convert_cycles_nodetree(id, output_node):
         rfb_log().warning('No Cycles output found ' + id.name)
         return False
 
-    # if no bsdf return false
-    if not cycles_output_node.inputs[0].is_linked:
-        rfb_log().warning('No Cycles bsdf found ' + id.name)
-        return False
-
     # set the output node location
     set_ouput_node_location(nt, output_node, cycles_output_node)
+    has_bxdf = False
+    has_volume = False
+    has_displacement = False
 
-    # walk tree
-    begin_cycles_node = cycles_output_node.inputs[0].links[0].from_node
-    # if this is an emission use PxrMeshLight
-    if begin_cycles_node.bl_idname == "ShaderNodeEmission":
-        node_name = __BL_NODES_MAP__.get('PxrMeshLight')
-        meshlight = nt.nodes.new(node_name)
-        nt.links.new(meshlight.outputs[0], output_node.inputs["Light"])
-        offset_node_location(output_node, meshlight, begin_cycles_node)
-        convert_cycles_input(nt, begin_cycles_node.inputs[
-                             'Strength'], meshlight, "intensity")
-        if begin_cycles_node.inputs['Color'].is_linked:
+    if cycles_output_node.inputs['Surface'].is_linked:
+        begin_cycles_node = cycles_output_node.inputs['Surface'].links[0].from_node
+        # if this is an emission use PxrMeshLight
+        if begin_cycles_node.bl_idname == "ShaderNodeEmission":
+            node_name = __BL_NODES_MAP__.get('PxrMeshLight')
+            meshlight = nt.nodes.new(node_name)
+            nt.links.new(meshlight.outputs[0], output_node.inputs["Light"])
+            offset_node_location(output_node, meshlight, begin_cycles_node)
             convert_cycles_input(nt, begin_cycles_node.inputs[
-                                 'Color'], meshlight, "textureColor")
+                                'Strength'], meshlight, "intensity")
+            if begin_cycles_node.inputs['Color'].is_linked:
+                convert_cycles_input(nt, begin_cycles_node.inputs[
+                                    'Color'], meshlight, "textureColor")
+            else:
+                setattr(meshlight, 'lightColor', begin_cycles_node.inputs[
+                        'Color'].default_value[:3])
+            bxdf = nt.nodes.new('PxrBlackBxdfNode')
+            nt.links.new(bxdf.outputs[0], output_node.inputs["Bxdf"])
         else:
-            setattr(meshlight, 'lightColor', begin_cycles_node.inputs[
-                    'Color'].default_value[:3])
-        bxdf = nt.nodes.new('PxrBlackBxdfNode')
-        nt.links.new(bxdf.outputs[0], output_node.inputs["Bxdf"])
-    else:
-        if begin_cycles_node.bl_idname == "ShaderNodeBsdfPrincipled":
-            # use PxrDisneyBsdf
-            node_name = __BL_NODES_MAP__.get('PxrDisneyBsdf')
-            base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
-            convert_principled_bsdf(nt, begin_cycles_node, base_surface)            
+            if begin_cycles_node.bl_idname == "ShaderNodeBsdfPrincipled":
+                # use PxrDisneyBsdf
+                node_name = __BL_NODES_MAP__.get('PxrDisneyBsdf')
+                base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
+                convert_principled_bsdf(nt, begin_cycles_node, base_surface)            
+            else:
+                node_name = __BL_NODES_MAP__.get('LamaSurface')
+                base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
+                setattr(base_surface, 'computePresence', 1)
+                setattr(base_surface, 'computeOpacity', 1)
+                setattr(base_surface, 'computeSubsurface', 1)
+                setattr(base_surface, 'computeInterior', 1)
+                convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
+            offset_node_location(output_node, base_surface, begin_cycles_node)            
+            base_surface.update_mat(id)
+        has_bxdf = True
+    elif cycles_output_node.inputs['Volume'].is_linked:
+        begin_cycles_node = cycles_output_node.inputs['Volume'].links[0].from_node
+        node_type = begin_cycles_node.bl_idname
+        bxdf_name, convert_func = _BSDF_MAP_.get(node_type, (None, None))
+        if convert_func:
+            node_name = __BL_NODES_MAP__.get(bxdf_name)
+            rman_node = nt.nodes.new(node_name)
+            convert_func(nt, begin_cycles_node, rman_node)
+            nt.links.new(rman_node.outputs[0], output_node.inputs["Bxdf"])
+            has_volume = True
         else:
-            node_name = __BL_NODES_MAP__.get('LamaSurface')
-            base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
-            setattr(base_surface, 'computePresence', 1)
-            setattr(base_surface, 'computeOpacity', 1)
-            setattr(base_surface, 'computeSubsurface', 1)
-            setattr(base_surface, 'computeInterior', 1)
-            convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
-        offset_node_location(output_node, base_surface, begin_cycles_node)            
-        convert_cycles_displacement(
-            nt, base_surface, cycles_output_node.inputs[2], output_node)
-        base_surface.update_mat(id)
+            rfb_log().warning("Could not convert cycles volume node: %s" % begin_cycles_node.name)
+        
+    elif cycles_output_node.inputs['Displacement'].is_linked:
+        convert_cycles_displacement(nt, cycles_output_node.inputs['Displacement'], output_node) 
+        has_displacement = True       
+
+    if not (has_volume or has_bxdf):
+        # did not convert anything to a bxdf, fallback to PxrDisneyBsdf
+        node_name = __BL_NODES_MAP__.get('PxrDisneyBsdf')
+        base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
+        rfb_log().warning("Could not convert Cycles material: %s. Fallback to PxrDisneyBsdf" % id.name)
+
     return True

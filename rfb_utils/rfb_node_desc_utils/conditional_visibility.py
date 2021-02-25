@@ -80,12 +80,14 @@ def _condvis_expr(pdict, prefix, trigger_params, expr=''):
                     (attr, opr,
                     str(val)))                      
         elif isinstance(val, int):
-            expr = ('getattr(node, "%s") %s %s' %
+            # always cast to int
+            # when dealing with EnumProperties, the values are always strings
+            expr = ('int(getattr(node, "%s")) %s int(%s)' %
                     (attr, opr,
                         val)) 
                                
         elif isinstance(val, float):
-            expr = ('getattr(node, "%s") %s %s' %
+            expr = ('float(getattr(node, "%s")) %s float(%s)' %
                     (attr, opr,
                         val))  
 

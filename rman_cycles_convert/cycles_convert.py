@@ -493,10 +493,11 @@ def convert_velvet_bsdf(nt, node, rman_node):
     convert_cycles_input(nt, inputs['Normal'], rman_node, "normal")           
 
 def convert_emission_bsdf(nt, node, rman_node):
-    convert_cycles_input(nt, node.inputs['Color'], rman_node, "color")  
+    inputs = node.inputs  
+    convert_cycles_input(nt, inputs['Color'], rman_node, "color")  
     if not node.inputs['Color'].is_linked and not node.inputs['Strength']:
         emission_color = getattr(rman_node, 'color')
-        emission_color = node.inputs['Strength'] * emission_color
+        emission_color = inputs['Strength'] * emission_color
         setattr(rman_node, 'color', emission_color)       
 
 def convert_hair_bsdf(nt, node, rman_node):
@@ -505,6 +506,7 @@ def convert_hair_bsdf(nt, node, rman_node):
     convert_cycles_input(nt, inputs['Offset'], rman_node, "offset")
 
 def convert_hair_principled_bsdf(nt, node, rman_node):
+    inputs = node.inputs  
     if node.parametrization == 'COLOR':
         convert_cycles_input(nt, inputs['Color'], rman_node, "colorTT")         
         convert_cycles_input(nt, inputs['IOR'], rman_node, "IOR")         
@@ -514,10 +516,23 @@ def convert_hair_principled_bsdf(nt, node, rman_node):
         node_name = __BL_NODES_MAP__.get('PxrHairColor')
         hair_color = nt.nodes.new(node_name)
         convert_cycles_input(nt, inputs['Melanin'], hair_color, "melanin")   
-        nt.links.new(hair_color.outputs['resultDiff'], rman_node.inputs["colorTT"])
+        nt.links.new(hair_color.outputs['resultTT'], rman_node.inputs["colorTT"])
 
         convert_cycles_input(nt, inputs['IOR'], rman_node, "IOR")         
-        convert_cycles_input(nt, inputs['Offset'], rman_node, "offset")        
+        convert_cycles_input(nt, inputs['Offset'], rman_node, "offset")   
+        setattr(rman_node, 'remapColorTT', False)     
+
+def convert_volume_principled(nt, node, rman_node):
+    inputs = node.inputs   
+    convert_cycles_input(nt, inputs['Color'], rman_node, "diffuseColor")  
+    if inputs['Density Attribute'].default_value != "":
+        convert_cycles_input(nt, inputs['Density Attribute'], rman_node, "densityFloatPrimVar")  
+    else:
+        convert_cycles_input(nt, inputs['Density'], rman_node, "densityFloat")  
+        setattr(rman_node, 'densityFloatPrimVar', '')
+
+    convert_cycles_input(nt, inputs['Emission Color'], rman_node, "emitColor")
+    convert_cycles_input(nt, inputs['Anisotropy'], rman_node, "anisotropy")        
 
 _BSDF_MAP_ = {
     'ShaderNodeBsdfDiffuse': ('LamaDiffuse', convert_diffuse_bsdf),
@@ -532,6 +547,7 @@ _BSDF_MAP_ = {
     'ShaderNodeBsdfHair': ('LamaHairChiang', convert_hair_bsdf),
     'ShaderNodeEmission': ('LamaEmission', convert_emission_bsdf),
     'ShaderNodeBsdfHairPrincipled': ('LamaHairChiang', convert_hair_principled_bsdf),
+    'ShaderNodeVolumePrincipled': ('PxrVolume', convert_volume_principled),
     'ShaderNodeGroup': (None, None)
 }
 
