@@ -5,6 +5,21 @@
             "name": "useNewRamp",    
             "widget": "null",
             "default": "1"
-        }                 
+        },
+        {
+            "name": "positions",    
+            "widget": "null",
+            "default": "1"
+        },        
+        {
+            "name": "colors",    
+            "widget": "null",
+            "default": "1"
+        },
+        {
+            "name": "basis",    
+            "widget": "null",
+            "default": "1"
+        }                                 
     ]
 }

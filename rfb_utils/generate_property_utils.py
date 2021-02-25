@@ -200,6 +200,10 @@ def generate_property(node, sp, update_function=None):
     options = {'ANIMATABLE'}
     param_name = sp._name
     renderman_name = param_name
+    param_widget = sp.widget.lower() if hasattr(sp,'widget') and sp.widget else 'default'
+
+    if param_widget == 'null':
+        return (None, None, None)    
 
     # blender doesn't like names with __ but we save the
     # "renderman_name with the real one"
@@ -210,8 +214,7 @@ def generate_property(node, sp, update_function=None):
 
     param_name = __RESERVED_BLENDER_NAMES__.get(param_name, param_name)        
 
-    param_label = sp.label if hasattr(sp,'label') else param_name
-    param_widget = sp.widget.lower() if hasattr(sp,'widget') and sp.widget else 'default'
+    param_label = sp.label if hasattr(sp,'label') else param_name    
     param_type = sp.type 
 
     prop_meta = dict()
@@ -243,7 +246,7 @@ def generate_property(node, sp, update_function=None):
                 return (None, None, None)
 
     # set this prop as non connectable
-    if param_widget in ['null', 'checkbox', 'switch', 'colorramp', 'floatramp']:
+    if param_widget in ['checkbox', 'switch', 'colorramp', 'floatramp']:
         prop_meta['__noconnection'] = True        
 
     param_help = ''

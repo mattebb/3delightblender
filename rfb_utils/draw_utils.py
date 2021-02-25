@@ -218,7 +218,6 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
     def draw_props(prop_names, layout, level):
         for prop_name in prop_names:
-            is_pxrramp = node.plugin_name == 'PxrRamp'
             if prop_name == "codetypeswitch":
                 row = layout.row()
                 if node.codetypeswitch == 'INT':
@@ -299,10 +298,6 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 else:                    
                     row = layout.row(align=True)
                     if prop_meta['renderman_type'] == 'page':
-                        if is_pxrramp:
-                            # don't' show the old color ramp
-                            if prop_name == 'Color Ramp (Manual)':
-                                continue
                         ui_prop = prop_name + "_uio"
                         ui_open = getattr(node, ui_prop)
                         icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
