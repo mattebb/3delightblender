@@ -147,7 +147,7 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
         '''
         haswidget = hasattr(ndp, 'widget')
         if haswidget:
-            if ndp.widget.lower() in ['null', 'colorramp', 'floatramp']:
+            if ndp.widget.lower() in ['remove', 'null', 'colorramp', 'floatramp']:
                 return False
 
         if hasattr(ndp, 'options'):
@@ -202,8 +202,8 @@ def generate_property(node, sp, update_function=None):
     renderman_name = param_name
     param_widget = sp.widget.lower() if hasattr(sp,'widget') and sp.widget else 'default'
 
-    if param_widget == 'null':
-        return (None, None, None)    
+    if param_widget == 'remove':
+        return (None, None, None)      
 
     # blender doesn't like names with __ but we save the
     # "renderman_name with the real one"
@@ -246,7 +246,7 @@ def generate_property(node, sp, update_function=None):
                 return (None, None, None)
 
     # set this prop as non connectable
-    if param_widget in ['checkbox', 'switch', 'colorramp', 'floatramp']:
+    if param_widget in ['null', 'checkbox', 'switch', 'colorramp', 'floatramp']:
         prop_meta['__noconnection'] = True        
 
     param_help = ''
@@ -266,7 +266,6 @@ def generate_property(node, sp, update_function=None):
         'struct_name']:
         if hasattr(sp, nm):
             prop_meta[nm] = getattr(sp, nm)
-
 
     if param_widget == 'colorramp':
         renderman_type = 'colorramp'
