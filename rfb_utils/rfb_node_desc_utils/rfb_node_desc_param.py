@@ -8,16 +8,9 @@ from ..node_desc_base.node_desc_param import (NodeDescParam,
                                         NodeDescParamJSON)
 
 # Override static class variable
-NodeDescParam.optional_attrs = NodeDescParam.optional_attrs + ['uiStruct']
-NodeDescParamJSON.keywords = NodeDescParamJSON.keywords + ['uiStruct', 'do_not_display']
-
-# Globals
-INTERP_RMAN_TO_MAYA = {'linear': 1,
-                       'catmull-rom': 2,
-                       'bspline': 3,
-                       'constant': 0,
-                       'none': 0}
-
+NodeDescParam.optional_attrs = NodeDescParam.optional_attrs + []
+NodeDescParamJSON.keywords = NodeDescParamJSON.keywords + ['panel', 'inheritable', 
+                'inherit_true_value', 'update_function_name', 'update_function']  
 
 def blender_finalize(obj):
     """Post-process some parameters for Blender.
@@ -29,6 +22,7 @@ def blender_finalize(obj):
 
     if hasattr(obj, 'help'):
         obj.help = obj.help.replace('"', '\\"')
+        obj.help = obj.help.replace('<br>', '\n')
 
 class RfbNodeDescParamXML(NodeDescParamXML):
     """Specialize NodeDescParamXML for Blender"""
@@ -68,15 +62,7 @@ class RfbNodeDescParamOSL(NodeDescParamOSL):
 
 
 class RfbNodeDescParamJSON(NodeDescParamJSON):
-    """Specialize NodeDescParamJSON for Blender"""
-
-    keywords = NodeDescParamJSON.keywords + ['panel', 'inheritable', 
-                'inherit_true_value', 'update_function_name', 'update_function']    
-
-    @staticmethod
-    def valid_keyword(kwd):
-        """Return True if the keyword is in the list of known tokens."""
-        return kwd in RfbNodeDescParamJSON.keywords                
+    """Specialize NodeDescParamJSON for Blender"""        
 
     def __init__(self, *args, **kwargs):
         super(RfbNodeDescParamJSON, self).__init__(*args, **kwargs)
