@@ -3,20 +3,20 @@
     "params": [
         {
             "name": "useNewRamp",    
-            "widget": "remove",
+            "widget": "none",
             "default": "1"
         },
         {
             "name": "positions",    
-            "widget": "remove"
+            "widget": "none"
         },        
         {
             "name": "colors",    
-            "widget": "remove"
+            "widget": "none"
         },
         {
             "name": "basis",    
-            "widget": "remove"
+            "widget": "none"
         }                                 
     ]
 }
