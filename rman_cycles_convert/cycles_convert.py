@@ -502,8 +502,19 @@ def convert_emission_bsdf(nt, node, rman_node):
 
 def convert_hair_bsdf(nt, node, rman_node):
     inputs = node.inputs   
-    convert_cycles_input(nt, inputs['Color'], rman_node, "colorTT")   
-    convert_cycles_input(nt, inputs['Offset'], rman_node, "offset")
+    if node.component == 'Reflection':
+        convert_cycles_input(nt, inputs['Color'], rman_node, "colorR")   
+        convert_cycles_input(nt, inputs['Offset'], rman_node, "offset")
+        setattr(rman_node, 'colorTT', (0.0, 0.0, 0.0))
+        setattr(rman_node, 'gainTT', 0.0)
+        setattr(rman_node, 'gainTRT', 0.0)
+        setattr(rman_node, 'gainTRRT', 0.0)
+    else:
+        convert_cycles_input(nt, inputs['Color'], rman_node, "colorTT")   
+        convert_cycles_input(nt, inputs['Offset'], rman_node, "offset")
+        setattr(rman_node, 'gainR', 0.0)
+        setattr(rman_node, 'gainTRT', 0.0)
+        setattr(rman_node, 'gainTRRT', 0.0)        
 
 def convert_hair_principled_bsdf(nt, node, rman_node):
     inputs = node.inputs  
@@ -516,7 +527,11 @@ def convert_hair_principled_bsdf(nt, node, rman_node):
         node_name = __BL_NODES_MAP__.get('PxrHairColor')
         hair_color = nt.nodes.new(node_name)
         convert_cycles_input(nt, inputs['Melanin'], hair_color, "melanin")   
+        convert_cycles_input(nt, inputs['Random Color'], hair_color, "randomMelanin")  
+        convert_cycles_input(nt, inputs['Tint'], hair_color, "dye")  
+        nt.links.new(hair_color.outputs['resultDiff'], rman_node.inputs["colorR"])
         nt.links.new(hair_color.outputs['resultTT'], rman_node.inputs["colorTT"])
+        setattr(hair_color, 'hairIndexPrimvar', 'index')
 
         convert_cycles_input(nt, inputs['IOR'], rman_node, "IOR")         
         convert_cycles_input(nt, inputs['Offset'], rman_node, "offset")   
@@ -561,8 +576,6 @@ _NODE_MAP_ = {
     'ShaderNodeValToRGB': ('PxrRamp', convert_ramp_node),
     'ShaderNodeMath': ('', convert_math_node),
     'ShaderNodeRGB': ('PxrHSL', convert_rgb_node),
-    #'ShaderNodeValue': ('PxrSeExpr', convert_node_value),
     'ShaderNodeValue': ('PxrToFloat', convert_node_value),
-    #'ShaderNodeRGBCurve': ('copy', copy_cycles_node),
     'ShaderNodeAttribute': ('PxrPrimvar', convert_attribute_node)
 }
