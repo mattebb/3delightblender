@@ -191,9 +191,28 @@ def convert_cycles_nodetree(id, output_node):
         else:
             if begin_cycles_node.bl_idname == "ShaderNodeBsdfPrincipled":
                 # use PxrDisneyBsdf
-                node_name = __BL_NODES_MAP__.get('PxrDisneyBsdf')
+                #node_name = __BL_NODES_MAP__.get('PxrDisneyBsdf')
+                #base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
+                #convert_principled_bsdf_to_disney(nt, begin_cycles_node, base_surface)   
+                     
+                node_name = __BL_NODES_MAP__.get('LamaSurface')
                 base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
-                convert_principled_bsdf(nt, begin_cycles_node, base_surface)            
+                setattr(base_surface, 'computePresence', 1)
+                setattr(base_surface, 'computeOpacity', 1)
+                setattr(base_surface, 'computeSubsurface', 1)
+                setattr(base_surface, 'computeInterior', 1)
+
+                rman_name, convert_func = _BSDF_MAP_["ShaderNodeBsdfPrincipled"]
+                node_name = __BL_NODES_MAP__.get(rman_name, None)
+                if node_name:
+                    rman_node = nt.nodes.new(node_name)
+
+                convert_func(nt, begin_cycles_node, rman_node)                    
+                nt.links.new(rman_node.outputs['Bxdf'], base_surface.inputs["materialFront"])
+                offset_node_location(output_node, base_surface, begin_cycles_node)     
+                rman_node.location = begin_cycles_node.location
+                rman_node.location[0] -= 500       
+
             else:
                 node_name = __BL_NODES_MAP__.get('LamaSurface')
                 base_surface = create_rman_surface(nt, output_node, 0, node_name=node_name)
@@ -202,7 +221,7 @@ def convert_cycles_nodetree(id, output_node):
                 setattr(base_surface, 'computeSubsurface', 1)
                 setattr(base_surface, 'computeInterior', 1)
                 convert_cycles_bsdf(nt, base_surface, begin_cycles_node, 0)
-            offset_node_location(output_node, base_surface, begin_cycles_node)            
+                offset_node_location(output_node, base_surface, begin_cycles_node)            
             base_surface.update_mat(id)
         has_bxdf = True
     elif cycles_output_node.inputs['Volume'].is_linked:

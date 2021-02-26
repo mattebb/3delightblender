@@ -393,7 +393,7 @@ def copy_cycles_node(nt, cycles_node, rman_node):
 
 #########  BSDF conversion methods  ############
 
-def convert_principled_bsdf(nt, node, rman_node):
+def convert_principled_bsdf_to_disney(nt, node, rman_node):
     inputs = node.inputs
 
     # INPUTS: ['Base Color', 'Subsurface', 'Subsurface Radius', 
@@ -420,6 +420,161 @@ def convert_principled_bsdf(nt, node, rman_node):
     convert_cycles_input(nt, inputs['Alpha'], rman_node, "presence")
     convert_cycles_input(nt, inputs['Normal'], rman_node, "bumpNormal")
     
+def convert_principled_bsdf_to_lama(nt, node, final_mix_node):
+    inputs = node.inputs
+    nodes_list = list()
+
+    node_name = __BL_NODES_MAP__.get('PxrBlenderPrincipledInputs', None)
+    rman_node = nt.nodes.new(node_name)     
+
+    convert_cycles_input(nt, inputs['Base Color'], rman_node, "BaseColor")
+    convert_cycles_input(nt, inputs['Subsurface'], rman_node, "Subsurface")
+    convert_cycles_input(nt, inputs['Subsurface Radius'], rman_node, "SubsurfaceRadius")
+    convert_cycles_input(nt, inputs['Subsurface Color'], rman_node, "SubsurfaceColor")
+    convert_cycles_input(nt, inputs['Metallic'], rman_node, "Metallic")
+    convert_cycles_input(nt, inputs['Specular'], rman_node, "Specular")
+    convert_cycles_input(nt, inputs['Specular Tint'], rman_node, "SpecularTint")
+    convert_cycles_input(nt, inputs['Roughness'], rman_node, "Roughness")
+    convert_cycles_input(nt, inputs['Anisotropic'], rman_node, "Anisotropic")
+    convert_cycles_input(nt, inputs['Anisotropic Rotation'], rman_node, "AnisotropicRotation")
+    convert_cycles_input(nt, inputs['Sheen'], rman_node, "Sheen")
+    convert_cycles_input(nt, inputs['Sheen Tint'], rman_node, "SheenTint")
+    convert_cycles_input(nt, inputs['Clearcoat'], rman_node, "Clearcoat")
+    convert_cycles_input(nt, inputs['Clearcoat Roughness'], rman_node, "ClearcoatRoughness")
+    convert_cycles_input(nt, inputs['IOR'], rman_node, "IOR")
+    convert_cycles_input(nt, inputs['Emission'], rman_node, "Emission")
+    convert_cycles_input(nt, inputs['Normal'], rman_node, "Normal")
+    convert_cycles_input(nt, inputs['Clearcoat Normal'], rman_node, "ClearcoatNormal")
+
+    # diffuse
+    node_name = __BL_NODES_MAP__.get('LamaDiffuse', None)
+    diffuse_node = nt.nodes.new(node_name) 
+    diffuse_node.name = 'Diffuse'
+    nodes_list.append(diffuse_node)
+    
+    nt.links.new(rman_node.outputs["out_baseColor"], diffuse_node.inputs["color"])
+    nt.links.new(rman_node.outputs["out_roughness"], diffuse_node.inputs["roughness"])
+    nt.links.new(rman_node.outputs["out_normal"], diffuse_node.inputs["normal"])
+
+    # subsurface
+    node_name = __BL_NODES_MAP__.get('LamaSSS', None)
+    sss_node = nt.nodes.new(node_name) 
+    nodes_list.append(sss_node)    
+    
+    nt.links.new(rman_node.outputs["out_sssColor"], sss_node.inputs["color"])
+    nt.links.new(rman_node.outputs["out_normal"], sss_node.inputs["normal"])
+    nt.links.new(rman_node.outputs["out_sssRadius"], sss_node.inputs["sssRadius"])
+
+    # diff or sss mix
+    node_name = __BL_NODES_MAP__.get('LamaMix', None)
+    diff_sss_mix_node = nt.nodes.new(node_name) 
+    diff_sss_mix_node.name = 'mix_sss'
+    nodes_list.append(diff_sss_mix_node)        
+
+    nt.links.new(diffuse_node.outputs["Bxdf"], diff_sss_mix_node.inputs["material1"])
+    nt.links.new(sss_node.outputs["Bxdf"], diff_sss_mix_node.inputs["material2"])
+    nt.links.new(rman_node.outputs["out_sssMix"], diff_sss_mix_node.inputs["mix"])    
+
+    # sheen
+    node_name = __BL_NODES_MAP__.get('LamaSheen', None)
+    sheen_node = nt.nodes.new(node_name) 
+    nodes_list.append(sheen_node)
+
+    nt.links.new(rman_node.outputs["out_sheenColor"], sheen_node.inputs["color"])
+    nt.links.new(rman_node.outputs["out_normal"], sheen_node.inputs["normal"])
+
+    # diff sheen add
+    node_name = __BL_NODES_MAP__.get('LamaAdd', None)
+    diff_sheen_add_node = nt.nodes.new(node_name) 
+    diff_sheen_add_node.name = 'plus_sheen'
+    nodes_list.append(diff_sheen_add_node)       
+
+    nt.links.new(diff_sss_mix_node.outputs["Bxdf"], diff_sheen_add_node.inputs["material1"])
+    nt.links.new(sheen_node.outputs["Bxdf"], diff_sheen_add_node.inputs["material2"])
+    nt.links.new(rman_node.outputs["out_sheenWeight"], diff_sheen_add_node.inputs["weight2"])  
+
+    # specular
+    node_name = __BL_NODES_MAP__.get('LamaConductor', None)
+    specular_node = nt.nodes.new(node_name)   
+    specular_node.name = 'Specular'
+    nodes_list.append(specular_node)       
+
+    nt.links.new(rman_node.outputs["out_specF0"], specular_node.inputs["reflectivity"])  
+    nt.links.new(rman_node.outputs["out_roughness"], specular_node.inputs["roughness"])
+    nt.links.new(rman_node.outputs["out_normal"], specular_node.inputs["normal"])
+    nt.links.new(rman_node.outputs["out_anisotropic"], specular_node.inputs["anisotropy"])
+    nt.links.new(rman_node.outputs["out_anisotropicRotation"], specular_node.inputs["anisotropyRotation"])
+
+    # sheen spec add
+    node_name = __BL_NODES_MAP__.get('LamaAdd', None)
+    sheen_spec_add_node = nt.nodes.new(node_name) 
+    sheen_spec_add_node.name = 'plus_spec'
+    nodes_list.append(sheen_spec_add_node)       
+
+    nt.links.new(diff_sheen_add_node.outputs["Bxdf"], sheen_spec_add_node.inputs["material1"])
+    nt.links.new(specular_node.outputs["Bxdf"], sheen_spec_add_node.inputs["material2"])
+    nt.links.new(rman_node.outputs["out_diffuseWeight"], sheen_spec_add_node.inputs["weight1"])  
+    nt.links.new(rman_node.outputs["out_specularWeight"], sheen_spec_add_node.inputs["weight2"])  
+
+
+    # transmission
+    node_name = __BL_NODES_MAP__.get('LamaDielectric', None)
+    transmission_node = nt.nodes.new(node_name) 
+    transmission_node.name = 'Transmission'
+    nodes_list.append(transmission_node)   
+
+    nt.links.new(rman_node.outputs["out_baseColor"], transmission_node.inputs["transmissionTint"])
+    nt.links.new(rman_node.outputs["out_roughness"], transmission_node.inputs["roughness"])
+    nt.links.new(rman_node.outputs["out_normal"], transmission_node.inputs["normal"])
+
+    # spec transmission add
+    node_name = __BL_NODES_MAP__.get('LamaAdd', None)
+    spec_transmission_add_node = nt.nodes.new(node_name) 
+    spec_transmission_add_node.name = 'plus_transmission'
+    nodes_list.append(spec_transmission_add_node)
+
+    nt.links.new(sheen_spec_add_node.outputs["Bxdf"], spec_transmission_add_node.inputs["material1"])
+    nt.links.new(transmission_node.outputs["Bxdf"], spec_transmission_add_node.inputs["material2"])
+    nt.links.new(rman_node.outputs["out_finalTransmission"], spec_transmission_add_node.inputs["weight2"])  
+
+    # coat
+    node_name = __BL_NODES_MAP__.get('LamaDielectric', None)
+    coat_node = nt.nodes.new(node_name)   
+    coat_node.name = 'Clearcoat'
+    nodes_list.append(coat_node)
+
+    nt.links.new(rman_node.outputs["out_clearcoatRoughness"], coat_node.inputs["roughness"])
+    nt.links.new(rman_node.outputs["out_clearcoatNormal"], coat_node.inputs["normal"])       
+
+    # transmission coat add
+    node_name = __BL_NODES_MAP__.get('LamaAdd', None)
+    transmission_coat_add_node = nt.nodes.new(node_name) 
+    transmission_coat_add_node.name = 'plus_coat'
+    nodes_list.append(transmission_coat_add_node)
+
+    nt.links.new(spec_transmission_add_node.outputs["Bxdf"], transmission_coat_add_node.inputs["material1"])
+    nt.links.new(coat_node.outputs["Bxdf"], transmission_coat_add_node.inputs["material2"])
+    nt.links.new(rman_node.outputs["out_clearcoat"], transmission_coat_add_node.inputs["weight2"])     
+
+    # emission
+    node_name = __BL_NODES_MAP__.get('LamaEmission', None)
+    emission_node = nt.nodes.new(node_name) 
+    nodes_list.append(emission_node)
+
+    nt.links.new(rman_node.outputs["out_emissionColor"], emission_node.inputs["color"])   
+
+    # final mix node
+    nt.links.new(transmission_coat_add_node.outputs["Bxdf"], final_mix_node.inputs["material1"]) 
+    nt.links.new(emission_node.outputs["Bxdf"], final_mix_node.inputs["material2"])   
+    nt.links.new(rman_node.outputs["out_emissionMix"], final_mix_node.inputs["mix"])   
+
+    # close ui_open connections
+    # with the number of connections to PxrBlenderPrincipledInputs, close all
+    # ui_open properties, otherwise we're redrawing the same PxrBlenderPrincipledInputs multiple times
+    for n in nodes_list:
+        for i in n.inputs:
+            i.ui_open = False
+   
 def convert_diffuse_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
@@ -563,6 +718,7 @@ _BSDF_MAP_ = {
     'ShaderNodeEmission': ('LamaEmission', convert_emission_bsdf),
     'ShaderNodeBsdfHairPrincipled': ('LamaHairChiang', convert_hair_principled_bsdf),
     'ShaderNodeVolumePrincipled': ('PxrVolume', convert_volume_principled),
+    "ShaderNodeBsdfPrincipled": ('LamaMix', convert_principled_bsdf_to_lama ),
     'ShaderNodeGroup': (None, None)
 }
 
