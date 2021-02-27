@@ -148,17 +148,16 @@ class PRMAN_OT_RM_Add_Light(bpy.types.Operator):
 
     def execute(self, context):
         bpy.ops.object.light_add(type='AREA')
-        bpy.context.object.data.renderman.renderman_light_role = 'RMAN_LIGHT'
-        bpy.context.object.data.renderman.renderman_lock_light_type = True
-        bpy.context.object.data.use_nodes = True
-        bpy.context.object.data.renderman.use_renderman_node = True
+        light_ob = context.selected_objects[0]
 
-        light_ob = None
-        for ob in context.selected_objects:
-            ob.name = self.rman_light_name
-            ob.data.name = self.rman_light_name
+        light_ob.data.renderman.renderman_light_role = 'RMAN_LIGHT'
+        light_ob.data.renderman.renderman_lock_light_type = True
+        light_ob.data.use_nodes = True
+        light_ob.data.renderman.use_renderman_node = True
+        light_ob.name = self.rman_light_name
+        light_ob.data.name = self.rman_light_name
 
-        nt = bpy.context.object.data.node_tree
+        nt = light_ob.data.node_tree
         output = nt.nodes.new('RendermanOutputNode')                 
         default = nt.nodes.new('%sLightNode' % self.rman_light_name)
         default.location = output.location
@@ -167,7 +166,7 @@ class PRMAN_OT_RM_Add_Light(bpy.types.Operator):
         output.inputs[0].hide = True
         output.inputs[2].hide = True
         output.inputs[3].hide = True          
-        bpy.context.object.data.renderman.renderman_light_shader = self.rman_light_name  
+        light_ob.data.renderman.renderman_light_shader = self.rman_light_name  
 
         return {"FINISHED"}
 
@@ -187,18 +186,16 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
         selected_objects = context.selected_objects
 
         bpy.ops.object.light_add(type='AREA')
-        bpy.context.object.data.renderman.renderman_light_role = 'RMAN_LIGHTFILTER'
-        bpy.context.object.data.renderman.renderman_lock_light_type = True
-        bpy.context.object.data.use_nodes = True
-        bpy.context.object.data.renderman.use_renderman_node = True
+        light_filter_ob = context.selected_objects[0]
+        light_filter_ob.data.renderman.renderman_light_role = 'RMAN_LIGHTFILTER'
+        light_filter_ob.data.renderman.renderman_lock_light_type = True
+        light_filter_ob.data.use_nodes = True
+        light_filter_ob.data.renderman.use_renderman_node = True
         
-        light_filter_ob = None
-        for ob in context.selected_objects:
-            ob.name = self.rman_lightfilter_name
-            ob.data.name = self.rman_lightfilter_name         
-            light_filter_ob = ob      
+        light_filter_ob.name = self.rman_lightfilter_name
+        light_filter_ob.data.name = self.rman_lightfilter_name         
 
-        nt = bpy.context.object.data.node_tree
+        nt = light_filter_ob.data.node_tree
         output = nt.nodes.new('RendermanOutputNode')
         default = nt.nodes.new('%sLightfilterNode' % self.rman_lightfilter_name)
         default.location = output.location
@@ -207,7 +204,7 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
         output.inputs[0].hide = True
         output.inputs[1].hide = True
         output.inputs[2].hide = True   
-        bpy.context.object.data.renderman.renderman_light_filter_shader = self.rman_lightfilter_name
+        light_filter_ob.data.renderman.renderman_light_filter_shader = self.rman_lightfilter_name
 
         if self.properties.add_to_selected:
             for ob in selected_objects:

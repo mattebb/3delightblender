@@ -2,10 +2,10 @@ from .rman_ui_base import _RManPanelHeader,ShaderPanel,ShaderNodePanel, Collecti
 from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
 from ..rfb_utils.draw_utils import _draw_props, panel_node_draw,draw_nodes_properties_ui,draw_node_properties_recursive
 from ..rfb_utils.prefs_utils import get_pref
+from ..rman_cycles_convert import do_cycles_convert
 from .. import rfb_icons
 from ..rman_render import RmanRender
 import bpy
-import os
 from bpy.types import Panel
 
 class MATERIAL_PT_renderman_preview(ShaderPanel, Panel):
@@ -163,7 +163,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
             rman_icon = rfb_icons.get_icon('rman_graph')
             col.operator(
                 'material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
-            if get_pref('rman_do_cycles_convert', False) or os.environ.get('RFB_ENABLE_CYCLES_CONVERT', False):
+            if do_cycles_convert():
                 col = row.column()                
                 op = col.operator('material.rman_convert_cycles_shader').idtype = "material"
                 if not mat.grease_pencil:

@@ -158,7 +158,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     def get_type_items(self, context):
         return get_bxdf_items()
 
-    bxdf_name: EnumProperty(items=get_type_items, name="Material")    
+    bxdf_name: EnumProperty(items=get_type_items, name="Material") 
+    do_world_nodetree_convert: BoolProperty(default=False)   
 
     def execute(self, context):
         idtype = self.properties.idtype
@@ -264,12 +265,13 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             df_output.location = sf_output.location
             df_output.location[0] -= 300
             
-            # create a default background display filter set to world color
-            bg = nt.nodes.new('PxrBackgroundDisplayFilterDisplayfilterNode')
-            bg.backgroundColor = idblock.color
-            bg.location = df_output.location
-            bg.location[0] -= 300
-            nt.links.new(bg.outputs[0], df_output.inputs[0])
+            if self.properties.do_world_nodetree_convert and not rman_cycles_convert.convert_world_nodetree(idblock, context):
+                # create a default background display filter set to world color
+                bg = nt.nodes.new('PxrBackgroundDisplayFilterDisplayfilterNode')
+                bg.backgroundColor = idblock.color
+                bg.location = df_output.location
+                bg.location[0] -= 300
+                nt.links.new(bg.outputs[0], df_output.inputs[0])
 
         return {'FINISHED'}
 

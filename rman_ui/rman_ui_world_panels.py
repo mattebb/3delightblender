@@ -8,6 +8,7 @@ from .rman_ui_base import PRManButtonsPanel
 from ..rfb_utils.draw_utils import draw_node_properties_recursive, draw_nodes_properties_ui
 from ..rfb_utils.shadergraph_utils import find_node
 from .. import rfb_icons
+from ..rman_cycles_convert import do_cycles_convert
 from bpy.types import Panel
 import bpy
 
@@ -28,8 +29,15 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
 
         if not world.renderman.use_renderman_node:
             layout.prop(world, 'color')
+            row = layout.row(align=True)
+            col = row.column()
             rman_icon = rfb_icons.get_icon('rman_graph')
-            layout.operator('material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
+            col.operator('material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
+            if do_cycles_convert():
+                col = row.column()                
+                op = col.operator('material.rman_add_rman_nodetree', text='Convert Cycles Shader')
+                op.idtype = "world"    
+                op.do_world_nodetree_convert = True   
         
 class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):
     bl_label = "Integrator"

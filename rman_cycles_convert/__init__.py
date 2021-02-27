@@ -2,7 +2,10 @@ from ..rfb_logger import rfb_log
 from .cycles_convert import *
 from .cycles_convert import _BSDF_MAP_
 from ..rfb_utils import shadergraph_utils
+from ..rfb_utils import texture_utils
 from ..rman_bl_nodes import __BL_NODES_MAP__
+from ..rfb_utils.prefs_utils import get_pref
+import os
 
 _COMBINE_NODES_ = ['ShaderNodeAddShader', 'ShaderNodeMixShader']
 
@@ -151,6 +154,24 @@ def offset_node_location(rman_parent, rman_node, cycles_node):
     if linked_socket:
         rman_node.location += (cycles_node.location -
                                linked_socket.links[0].to_node.location)    
+
+def do_cycles_convert():
+    return get_pref('rman_do_cycles_convert', False) or os.environ.get('RFB_ENABLE_CYCLES_CONVERT', False)
+
+def convert_world_nodetree(world, context):
+    cycles_output_node = shadergraph_utils.find_node(world, 'ShaderNodeOutputWorld')
+    if cycles_output_node and cycles_output_node.inputs['Surface'].is_linked:
+        surf_node = cycles_output_node.inputs['Surface'].links[0].from_node
+        if surf_node.inputs['Color'].is_linked:
+            color_node = surf_node.inputs['Color'].links[0].from_node
+            if color_node.bl_idname == 'ShaderNodeTexEnvironment' and color_node.image:
+                # create a dome light with texture
+                bpy.ops.object.rman_add_light('EXEC_DEFAULT', rman_light_name='PxrDomeLight')
+                light_ob = context.selected_objects[0]
+                light_shader = light_ob.data.renderman.get_light_node()
+                light_shader.lightColorMap = texture_utils.get_blender_image_path(color_node.image)   
+                return True
+    return False
 
 def convert_cycles_nodetree(id, output_node):
     # find base node
