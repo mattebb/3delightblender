@@ -154,7 +154,22 @@
                 "High Quality": 0.01
             },
             "help": "This value is applied during IPR.  Adaptive sampling is done when Pixel Variance is greater than zero. Reducing this value increases the likelihood that more rays will be traced while increasing its value allows undersampling."
-        },                     
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "IPR Sampling",
+            "name": "viewport_render_res_mult",
+            "label": "Render Resolution Multiplier",
+            "type": "float",
+            "default": 1.0,
+            "min": 0.125,
+            "max": 1.0,
+            "widget": "mapper",
+            "options": "100%:1.0|50%:0.5|33%:0.33|25%:0.25|12.5%:0.125",
+            "help": "This value is only applied during IPR. This scales down the resolution during viewport renders.",
+            "update_function_name": "update_viewport_res_mult",
+            "update_function": "def update_viewport_res_mult(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_viewport_res_mult(context)"            
+        },
         {
             "panel": "RENDER_PT_renderman_render",
             "page": "Threads Control",

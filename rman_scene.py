@@ -180,7 +180,10 @@ class RmanScene(object):
         self.render_default_light = False
         self.world_df_node = None
         self.default_light = None        
-        self.viewport_render_res_mult = 1.0  
+        if self.is_viewport_render:
+            self.viewport_render_res_mult = float(self.context.scene.renderman.viewport_render_res_mult)
+        else:
+            self.viewport_render_res_mult = 1.0  
         self.is_xpu = False  
 
     def export_for_final_render(self, depsgraph, sg_scene, bl_view_layer, is_external=False):

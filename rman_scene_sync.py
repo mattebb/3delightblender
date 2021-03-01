@@ -569,7 +569,8 @@ class RmanSceneSync(object):
             return         
         if context:
             self.rman_scene.context = context
-            self.rman_scene.bl_scene = context.scene            
+            self.rman_scene.bl_scene = context.scene    
+            self.rman_scene.viewport_render_res_mult = float(context.scene.renderman.viewport_render_res_mult)
         rman_sg_camera = self.rman_scene.main_camera
         translator = self.rman_scene.rman_translators['CAMERA']
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):

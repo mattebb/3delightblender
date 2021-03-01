@@ -140,7 +140,8 @@ class PRMAN_OT_Viewport_Resolution_Mult(bpy.types.Operator):
         rman_render = RmanRender.get_rman_render()
         bpy.ops.renderman_viewport.cropwindow_reset()
         get_crop_helper().crop_windowing = False
-        rman_render.rman_scene.viewport_render_res_mult = float(self.viewport_res_mult)
+        rm = context.scene.renderman
+        rm.viewport_render_res_mult = str(self.viewport_res_mult)
         rman_render.rman_scene_sync.update_viewport_res_mult(context) 
 
         return {"FINISHED"}       
