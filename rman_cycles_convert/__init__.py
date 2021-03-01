@@ -158,10 +158,15 @@ def offset_node_location(rman_parent, rman_node, cycles_node):
 def do_cycles_convert():
     return get_pref('rman_do_cycles_convert', False) or os.environ.get('RFB_ENABLE_CYCLES_CONVERT', False)
 
-def convert_world_nodetree(world, context):
+def convert_world_nodetree(world, context, df_output=False):
     cycles_output_node = shadergraph_utils.find_node(world, 'ShaderNodeOutputWorld')
+    add_filter = False
+    filter_color = (1.0, 1.0, 1.0)
     if cycles_output_node and cycles_output_node.inputs['Surface'].is_linked:
         surf_node = cycles_output_node.inputs['Surface'].links[0].from_node
+        if surf_node.bl_idname != 'ShaderNodeBackground':
+            return False
+
         if surf_node.inputs['Color'].is_linked:
             color_node = surf_node.inputs['Color'].links[0].from_node
             if color_node.bl_idname == 'ShaderNodeTexEnvironment' and color_node.image:
@@ -170,7 +175,23 @@ def convert_world_nodetree(world, context):
                 light_ob = context.selected_objects[0]
                 light_shader = light_ob.data.renderman.get_light_node()
                 light_shader.lightColorMap = texture_utils.get_blender_image_path(color_node.image)   
-                return True
+            elif color_node.bl_idname == 'ShaderNodeRGB':
+                add_filter = True
+                filter_color = color_node.outputs[0].default_value[:3]
+
+        else:
+            add_filter = True
+            filter_color = surf_node.inputs['Color'].default_value[:3]    
+
+        if df_output and add_filter:
+            node_name = __BL_NODES_MAP__.get('PxrBackgroundDisplayFilter')
+            nt = world.node_tree
+            bg = nt.nodes.new(node_name)
+            bg.backgroundColor = filter_color
+            bg.location = df_output.location
+            bg.location[0] -= 300
+            nt.links.new(bg.outputs[0], df_output.inputs[0])  
+        return True          
     return False
 
 def convert_cycles_nodetree(id, output_node):

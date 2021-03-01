@@ -252,7 +252,8 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             if shadergraph_utils.find_node(idblock, 'RendermanIntegratorsOutputNode'):
                 return {'FINISHED'}
             output = nt.nodes.new('RendermanIntegratorsOutputNode')
-            default = nt.nodes.new('PxrPathTracerIntegratorNode')
+            node_name = rman_bl_nodes.__BL_NODES_MAP__.get('PxrPathTracer')
+            default = nt.nodes.new(node_name)
             default.location = output.location
             default.location[0] -= 200
             nt.links.new(default.outputs[0], output.inputs[0]) 
@@ -264,10 +265,15 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             df_output = nt.nodes.new('RendermanDisplayfiltersOutputNode')
             df_output.location = sf_output.location
             df_output.location[0] -= 300
+
+            add_filter = True
+            if self.properties.do_world_nodetree_convert:
+                add_filter = not rman_cycles_convert.convert_world_nodetree(idblock, context, df_output)
             
-            if self.properties.do_world_nodetree_convert and not rman_cycles_convert.convert_world_nodetree(idblock, context):
+            if add_filter:
                 # create a default background display filter set to world color
-                bg = nt.nodes.new('PxrBackgroundDisplayFilterDisplayfilterNode')
+                node_name = rman_bl_nodes.__BL_NODES_MAP__.get('PxrBackgroundDisplayFilter')
+                bg = nt.nodes.new(node_name)
                 bg.backgroundColor = idblock.color
                 bg.location = df_output.location
                 bg.location[0] -= 300
