@@ -578,13 +578,15 @@ def convert_principled_bsdf_to_lama(nt, node, final_mix_node):
 def convert_diffuse_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
+    rman_node.name = 'diffuse_bsdf'
     convert_cycles_input(nt, inputs['Color'], rman_node, "color")
     convert_cycles_input(nt, inputs['Roughness'],
                          rman_node, "roughness")
     convert_cycles_input(nt, inputs['Normal'], rman_node, "normal")    
 
 def convert_glossy_bsdf(nt, node, rman_node):
-    inputs = node.inputs        
+    inputs = node.inputs       
+    rman_node.name = 'glossy_bsdf' 
     convert_cycles_input(nt, inputs['Color'], rman_node, "reflectivity")
     convert_cycles_input(nt, inputs['Color'], rman_node, "edgeColor")
     convert_cycles_input(nt, inputs['Roughness'],
@@ -599,6 +601,7 @@ def convert_glossy_bsdf(nt, node, rman_node):
 def convert_glass_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
+    rman_node.name = 'glass_bsdf'
     setattr(rman_node, 'fresnelMode', "1")
     convert_cycles_input(nt, inputs['Color'], rman_node, "reflectionTint")
     convert_cycles_input(nt, inputs['Roughness'],
@@ -610,6 +613,7 @@ def convert_glass_bsdf(nt, node, rman_node):
 def convert_refraction_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
+    rman_node.name = 'refraction_bsdf'
     setattr(rman_node, 'fresnelMode', "1")
     convert_cycles_input(nt, inputs['Color'], rman_node, "reflectionTint")
     convert_cycles_input(nt, inputs['Roughness'],
@@ -621,6 +625,7 @@ def convert_refraction_bsdf(nt, node, rman_node):
 def convert_transparent_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
+    rman_node.name = 'transparent_bsdf'
     convert_cycles_input(nt, inputs['Color'], rman_node, "reflectionTint") 
     setattr(rman_node, 'reflectivity', 1.0)
     setattr(rman_node, 'isThin', 1)                                           
@@ -633,6 +638,7 @@ def convert_translucent_bsdf(nt, node, rman_node):
 def convert_sss_bsdf(nt, node, rman_node):
 
     inputs = node.inputs    
+    rman_node.name = 'sss_bsdf'
     convert_cycles_input(nt, inputs['Color'], rman_node, "color")
     convert_cycles_input(nt, inputs['Radius'],
                          rman_node, "radius")
@@ -644,11 +650,13 @@ def convert_sss_bsdf(nt, node, rman_node):
 
 def convert_velvet_bsdf(nt, node, rman_node):
     inputs = node.inputs   
+    rman_node.name = 'velvet_bsdf'
     convert_cycles_input(nt, inputs['Color'], rman_node, "color")      
     convert_cycles_input(nt, inputs['Normal'], rman_node, "normal")           
 
 def convert_emission_bsdf(nt, node, rman_node):
     inputs = node.inputs  
+    rman_node.name = 'emission_bsdf'
     convert_cycles_input(nt, inputs['Color'], rman_node, "color")  
     if not node.inputs['Color'].is_linked and not node.inputs['Strength']:
         emission_color = getattr(rman_node, 'color')
@@ -694,6 +702,7 @@ def convert_hair_principled_bsdf(nt, node, rman_node):
 
 def convert_volume_principled(nt, node, rman_node):
     inputs = node.inputs   
+    rman_node.name = 'volume_principled'
     convert_cycles_input(nt, inputs['Color'], rman_node, "diffuseColor")  
     if inputs['Density Attribute'].default_value != "":
         convert_cycles_input(nt, inputs['Density Attribute'], rman_node, "densityFloatPrimVar")  
