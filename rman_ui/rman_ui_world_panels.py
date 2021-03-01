@@ -33,11 +33,6 @@ class DATA_PT_renderman_world(ShaderPanel, Panel):
             col = row.column()
             rman_icon = rfb_icons.get_icon('rman_graph')
             col.operator('material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
-            if do_cycles_convert():
-                col = row.column()                
-                op = col.operator('material.rman_add_rman_nodetree', text='Convert Cycles Shader')
-                op.idtype = "world"    
-                op.do_world_nodetree_convert = True   
         
 class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):
     bl_label = "Integrator"
