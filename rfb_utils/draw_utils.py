@@ -93,7 +93,7 @@ def _draw_props(node, prop_names, layout):
         prop = getattr(node, prop_name)
         row = layout.row()
         widget = prop_meta.get('widget', 'default')
-        prop_hidden = prop_meta.get('hidden', False)
+        prop_hidden = getattr(node, '%s_hidden' % prop_name, False)
 
         if prop_meta['renderman_type'] == 'page':
             ui_prop = prop_name + "_uio"
@@ -232,7 +232,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 prop = getattr(node, prop_name)
                 read_only = prop_meta.get('readOnly', False)
                 widget = prop_meta.get('widget', 'default')
-                prop_hidden = prop_meta.get('hidden', False)
+                prop_hidden = getattr(node, '%s_hidden' % prop_name, False)
 
                 if widget == 'null' or prop_hidden:
                     continue
@@ -259,13 +259,13 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     if cond_expr:
                         try:
                             hidden = not eval(cond_expr)
-                            prop_meta['hidden'] = hidden
+                            setattr(node, '%s_hidden' % prop_name, hidden)
                             if hasattr(node, 'inputs') and prop_name in node.inputs:
                                 node.inputs[prop_name].hide = hidden
                             if hidden:
                                 continue
                         except:                        
-                            pass                             
+                            pass
 
                 # else check if the socket with this name is connected
                 socket = node.inputs[prop_name] if prop_name in node.inputs \

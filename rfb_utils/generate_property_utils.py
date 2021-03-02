@@ -235,7 +235,6 @@ def generate_property(node, sp, update_function=None):
     prop_meta['label'] = param_label
     prop_meta['widget'] = param_widget
     prop_meta['options'] = getattr(sp, 'options', OrderedDict())
-    prop_meta['hidden'] = False
 
     if hasattr(sp, 'connectable') and not sp.connectable:
         prop_meta['__noconnection'] = True
@@ -266,6 +265,12 @@ def generate_property(node, sp, update_function=None):
         'struct_name']:
         if hasattr(sp, nm):
             prop_meta[nm] = getattr(sp, nm)
+
+    # bool property to represent whether this property
+    # should be hidden. Needed for conditionalVisOps
+    hidden_prop_name = '%s_hidden' % param_name
+    hidden_prop = BoolProperty(name=hidden_prop_name, default=False)
+    node.__annotations__[hidden_prop_name] = hidden_prop
 
     if param_widget == 'colorramp':
         renderman_type = 'colorramp'

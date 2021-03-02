@@ -130,7 +130,7 @@ def update_conditional_visops(node):
             if cond_expr:
                 try:
                     hidden = not eval(cond_expr)
-                    prop_meta['hidden'] = hidden
+                    setattr(node, '%s_hidden' % param_name, hidden)
                     if hasattr(node, 'inputs') and param_name in node.inputs:
                         node.inputs[param_name].hide = hidden
                 except:
