@@ -94,7 +94,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                 if prop_name not in self.inputs:
                     prop_meta = self.prop_meta[prop_name]
                     widget = prop_meta.get('widget', 'default')
-                    hidden = getattr(node, '%s_hidden' % prop_name, False)
+                    hidden = getattr(self, '%s_hidden' % prop_name, False)
                     if widget == 'null' or hidden:
                         continue
                     for name in getattr(self, prop_name):
@@ -120,7 +120,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             for prop_name in prop_names:
                 prop_meta = self.prop_meta[prop_name]
                 widget = prop_meta.get('widget', 'default')
-                hidden = getattr(node, '%s_hidden' % prop_name, False)
+                hidden = getattr(self, '%s_hidden' % prop_name, False)
                 renderman_type = prop_meta.get('renderman_type', '')
                 if hidden:
                     continue
