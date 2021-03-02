@@ -73,6 +73,9 @@ class RmanBasePropertyGroup:
                 page_name = ndp.page
                 if page_name not in page_names:
                     page_names.append(page_name)
+                    ui_label = "%s_uio" % page_name
+                    dflt = getattr(ndp, 'page_open', True)                
+                    cls.__annotations__[ui_label] = BoolProperty(name=ui_label, default=dflt)
 
         setattr(cls, 'prop_names', prop_names)
         setattr(cls, 'prop_meta', prop_meta)

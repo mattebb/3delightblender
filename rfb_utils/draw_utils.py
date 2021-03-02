@@ -28,21 +28,36 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
         if ndp.panel == panel:
             if not hasattr(parent, ndp.name):
                 continue
+            
+            has_page = False
+            page_prop = ''
+            page_open = False
+            page_name = ''
+            if hasattr(ndp, 'page') and ndp.page != '':       
+                page_prop = ndp.page + "_uio"
+                page_open = getattr(parent, page_prop)        
+                page_name = ndp.page       
+                has_page = True
 
-            if hasattr(ndp, 'page') and ndp.page != '':
+            if has_page:
                 # check if we've already drawn page with arrow
-                if ndp.page not in row_dict:
+                if page_name not in row_dict:
 
                     row = layout.row(align=True)
-                    row.label(text=ndp.page)
+                    icon = get_open_close_icon(page_open)
+                    row.context_pointer_set("node", parent)               
+                    op = row.operator('node.rman_open_close_page', text='', icon=icon, emboss=False) 
+                    op.prop_name = page_prop
+           
+                    row.label(text=page_name)
                     
                     row = layout.row(align=True)
                     col = row.column()
 
-                    row_dict[ndp.page] = col
+                    row_dict[page_name] = col
                     curr_col = col
                 else:
-                    curr_col = row_dict[ndp.page]
+                    curr_col = row_dict[page_name]
             else:
                 curr_col = row_dict['default']
 
@@ -90,11 +105,13 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
                 # use a prop_search layout
                 prop_search_parent = options.get('prop_parent')
                 prop_search_name = options.get('prop_name')
-                if hasattr(ndp, 'page') and ndp.page != '':
+                if has_page:
                     row.label(text='', icon='BLANK1')
                 eval(f'row.prop_search(parent, ndp.name, {prop_search_parent}, "{prop_search_name}", text=label)')               
-            else:
-                if hasattr(ndp, 'page') and ndp.page != '':
+            else:    
+                if has_page:           
+                    if not page_open:
+                        continue
                     row.label(text='', icon='BLANK1')
                 row.prop(parent, ndp.name, text=label)                    
 

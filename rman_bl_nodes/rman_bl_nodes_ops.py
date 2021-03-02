@@ -413,7 +413,8 @@ class NODE_OT_open_close_link(bpy.types.Operator):
         try:
             socket['ui_open'] = not socket['ui_open']        
         except:
-            socket.ui_open = False
+            dflt = not getattr(socket, self.properties.prop_name)
+            socket.ui_open = dflt
         return {'FINISHED'}
 
 class NODE_OT_open_close_page(bpy.types.Operator):
@@ -429,7 +430,8 @@ class NODE_OT_open_close_page(bpy.types.Operator):
         try:
             node[self.properties.prop_name] = not node[self.properties.prop_name]       
         except:
-            setattr(node, self.properties.prop_name, True)
+            dflt = not getattr(node, self.properties.prop_name)
+            setattr(node, self.properties.prop_name, dflt)
 
         return {'FINISHED'}        
 
