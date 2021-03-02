@@ -636,18 +636,7 @@
             "default": 1,
             "widget": "checkbox",
             "help": "Experimental scheme to use earlier lighting results to drive selection of lights in later iterations."
-        },
-        {
-            "panel": "RENDER_PT_renderman_advanced_settings",
-            "name": "hider_bluenoise",
-            "riopt": "hider:bluenoise",
-            "label": "Blue Noise Samples",
-            "type": "int",
-            "default": 1,
-            "widget": "checkbox",
-            "connectable": false,
-            "help": "Setting to control whether the samples should have a visually pleasing blue noise distribution or not.  Default is 1 (on). Set to 0 (off) if the samples in adjacent pixels need to be completely decorrelated."
-        },     
+        }, 
         {
             "panel": "RENDER_PT_renderman_advanced_settings",
             "name": "shade_roughnessmollification",
