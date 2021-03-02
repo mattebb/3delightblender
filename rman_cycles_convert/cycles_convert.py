@@ -690,6 +690,7 @@ def convert_hair_principled_bsdf(nt, node, rman_node):
         node_name = __BL_NODES_MAP__.get('PxrHairColor')
         hair_color = nt.nodes.new(node_name)
         convert_cycles_input(nt, inputs['Melanin'], hair_color, "melanin")   
+        convert_cycles_input(nt, inputs['Melanin Redness'], hair_color, "redness")
         convert_cycles_input(nt, inputs['Random Color'], hair_color, "randomMelanin")  
         convert_cycles_input(nt, inputs['Tint'], hair_color, "dye")  
         nt.links.new(hair_color.outputs['resultDiff'], rman_node.inputs["colorR"])
