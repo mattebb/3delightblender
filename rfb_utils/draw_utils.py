@@ -103,8 +103,10 @@ def _draw_props(node, prop_names, layout):
 
             split = layout.split(factor=NODE_LAYOUT_SPLIT)
             row = split.row()
-            row.prop(node, ui_prop, icon=icon, text='',
-                     icon_only=True, emboss=False)
+            row.context_pointer_set("node", node)                
+            op = row.operator('node.rman_open_close_page', text='', icon=icon, emboss=False)            
+            op.prop_name = ui_prop
+
             row.label(text=prop_name.split('.')[-1] + ':')
 
             if ui_open:
@@ -121,8 +123,10 @@ def _draw_props(node, prop_names, layout):
             for i in range(level):
                 row.label(text='', icon='BLANK1')
 
-            row.prop(node, ui_prop, icon=icon, text='',
-                        icon_only=True, emboss=False)
+            row.context_pointer_set("node", node)               
+            op = row.operator('node.rman_open_close_page', text='', icon=icon, emboss=False)            
+            op.prop_name = ui_prop
+
             sub_prop_names = list(prop)
             arraylen_nm = '%s_arraylen' % prop_name
             arraylen = getattr(node, arraylen_nm) 
@@ -280,8 +284,8 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                     split = layout.split()
                     row = split.row()
                     indented_label(row, None, level)
-                    row.prop(socket, "ui_open", icon=icon, text='',
-                             icon_only=True, emboss=False)
+                    row.context_pointer_set("socket", socket)               
+                    row.operator('node.rman_open_close_link', text='', icon=icon, emboss=False)
                     label = prop_meta.get('label', prop_name)
                     
                     rman_icon = rfb_icons.get_icon('out_%s' % input_node.bl_label)               
@@ -307,8 +311,10 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         row = split.row()
                         indented_label(row, None, level)
 
-                        row.prop(node, ui_prop, icon=icon, text='',
-                                 icon_only=True, emboss=False)
+                        row.context_pointer_set("node", node)               
+                        op = row.operator('node.rman_open_close_page', text='', icon=icon, emboss=False)            
+                        op.prop_name = ui_prop
+
                         sub_prop_names = list(prop)
                         if node.bl_idname in {"PxrSurfaceBxdfNode", "PxrLayerPatternOSLNode"}:
                             for pn in sub_prop_names:
@@ -331,8 +337,10 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                         row = split.row()
                         indented_label(row, None, level)
 
-                        row.prop(node, ui_prop, icon=icon, text='',
-                                 icon_only=True, emboss=False)
+                        row.context_pointer_set("node", node)               
+                        op = row.operator('node.rman_open_close_page', text='', icon=icon, emboss=False)            
+                        op.prop_name = ui_prop
+
                         sub_prop_names = list(prop)
                         arraylen = getattr(node, '%s_arraylen' % prop_name)
                         prop_label = prop_meta.get('label', prop_name)

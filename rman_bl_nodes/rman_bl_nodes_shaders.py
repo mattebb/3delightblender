@@ -152,8 +152,9 @@ class RendermanShadingNode(bpy.types.ShaderNode):
 
                         split = layout.split(factor=NODE_LAYOUT_SPLIT)
                         row = split.row()
-                        row.prop(self, ui_prop, icon=icon, text='',
-                                 icon_only=True, emboss=False, slider=True)
+                        row.context_pointer_set("node", self)               
+                        op = row.operator('node.rman_open_close_page', text='', icon=icon, emboss=False)            
+                        op.prop_name = ui_prop
                         row.label(text=prop_name.split('.')[-1] + ':')
 
                         if ui_open:

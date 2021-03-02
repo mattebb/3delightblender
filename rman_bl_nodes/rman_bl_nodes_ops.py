@@ -402,6 +402,37 @@ class NODE_OT_rman_refresh_osl_shader(bpy.types.Operator):
         context.node.RefreshNodes(context)
         return {'FINISHED'}
 
+class NODE_OT_open_close_link(bpy.types.Operator):
+    bl_idname = "node.rman_open_close_link"
+    bl_label = "Open/Close link"
+    bl_description = "Open or close a link"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        socket = context.socket
+        try:
+            socket['ui_open'] = not socket['ui_open']        
+        except:
+            socket.ui_open = False
+        return {'FINISHED'}
+
+class NODE_OT_open_close_page(bpy.types.Operator):
+    bl_idname = "node.rman_open_close_page"
+    bl_label = "Open/Close Page"
+    bl_description = "Open or close a page"
+    bl_options = {'INTERNAL'}
+
+    prop_name: StringProperty(default='')
+
+    def execute(self, context):
+        node = context.node
+        try:
+            node[self.properties.prop_name] = not node[self.properties.prop_name]       
+        except:
+            setattr(node, self.properties.prop_name, True)
+
+        return {'FINISHED'}        
+
 classes = [
     NODE_OT_add_displayfilter_node_socket,
     NODE_OT_remove_displayfilter_node_socket,
@@ -415,7 +446,9 @@ classes = [
     NODE_OT_rman_node_set_solo,
     NODE_OT_rman_node_set_solo_output,
     NODE_OT_rman_node_change_output,
-    NODE_OT_rman_refresh_osl_shader
+    NODE_OT_rman_refresh_osl_shader,
+    NODE_OT_open_close_link,
+    NODE_OT_open_close_page
 ]
 
 def register():    
