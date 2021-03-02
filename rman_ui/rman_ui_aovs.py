@@ -6,7 +6,7 @@ from ..rfb_logger import rfb_log
 from .rman_ui_base import _RManPanelHeader
 from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel
-from ..rfb_utils.draw_utils import _draw_props
+from ..rfb_utils.draw_utils import get_open_close_icon, draw_props
 from ..rfb_utils import string_utils
 from ..rfb_utils import scene_utils
 from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
@@ -235,15 +235,14 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row.prop(item, "displaydriver")
         displaydriver_settings = getattr(item, "%s_settings" % item.displaydriver)
 
-        icon = 'DISCLOSURE_TRI_DOWN' if item.show_displaydriver_settings \
-            else 'DISCLOSURE_TRI_RIGHT'
+        icon = get_open_close_icon(item.show_displaydriver_settings)
         text = item.displaydriver + " Settings:"
 
         row = col.row()
         row.prop(item, "show_displaydriver_settings", icon=icon, text=text,
                          emboss=False)
         if item.show_displaydriver_settings:
-            _draw_props(displaydriver_settings, displaydriver_settings.prop_names, col)   
+            draw_props(displaydriver_settings, displaydriver_settings.prop_names, col)   
 
         row = col.row()
         row.prop(item, 'camera')
@@ -297,8 +296,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         col.prop(channel, "channel_source")      
 
         col = layout.column()
-        icon = 'DISCLOSURE_TRI_DOWN' if channel.show_advanced \
-            else 'DISCLOSURE_TRI_RIGHT'
+        icon = get_open_close_icon(channel.show_advanced)
 
         row = col.row()
         row.prop(channel, "show_advanced", icon=icon, text="Advanced",

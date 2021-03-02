@@ -1,6 +1,7 @@
 from ..rman_render import RmanRender
 from .. import rfb_icons
 from ..rfb_utils import shadergraph_utils
+from ..rfb_utils import draw_utils
 from .rman_ui_base import _RManPanelHeader
 import bpy
 
@@ -38,7 +39,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                         icon_value=rman_render_icon.icon_id)
 
             row.prop(context.scene, "rm_render", text="",
-                    icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_render else 'DISCLOSURE_TRI_RIGHT')
+                    icon=draw_utils.get_open_close_icon(context.scene.rm_render))
 
             if context.scene.rm_render:
                 scene = context.scene
@@ -65,7 +66,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                             icon_value=rman_rerender_controls.icon_id)    
 
             row.prop(context.scene, "rm_ipr", text="",
-                    icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_render else 'DISCLOSURE_TRI_RIGHT')                            
+                    icon=draw_utils.get_open_close_icon(context.scene.rm_render))
 
             if context.scene.rm_ipr:
                 scene = context.scene
@@ -84,7 +85,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                         text="External Render", icon_value=rman_batch.icon_id)
 
             row.prop(context.scene, "rm_render_external", text="",
-                    icon='DISCLOSURE_TRI_DOWN' if context.scene.rm_render_external else 'DISCLOSURE_TRI_RIGHT')
+                    icon=draw_utils.get_open_close_icon(context.scene.rm_render_external))
             if context.scene.rm_render_external:
                 scene = context.scene
                 rd = scene.render
@@ -120,7 +121,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                      text="Add Camera", icon='CAMERA_DATA')
 
         row.prop(context.scene, "prm_cam", text="",
-                 icon='DISCLOSURE_TRI_DOWN' if context.scene.prm_cam else 'DISCLOSURE_TRI_RIGHT')
+                 icon=draw_utils.get_open_close_icon(context.scene.prm_cam))
 
         if context.scene.prm_cam:
             ob = bpy.context.object

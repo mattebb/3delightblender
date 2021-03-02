@@ -1,6 +1,6 @@
 from .rman_ui_base import _RManPanelHeader,ShaderPanel,ShaderNodePanel, CollectionPanel 
 from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
-from ..rfb_utils.draw_utils import _draw_props, panel_node_draw,draw_nodes_properties_ui,draw_node_properties_recursive
+from ..rfb_utils.draw_utils import panel_node_draw,draw_nodes_properties_ui,draw_node_properties_recursive
 from ..rfb_utils.prefs_utils import get_pref
 from ..rman_cycles_convert import do_cycles_convert
 from .. import rfb_icons
