@@ -370,7 +370,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
                 split = layout.split(factor=NODE_LAYOUT_SPLIT)
                 row = split.row()
-                indented_label(row, None, level)
+                draw_indented_label(row, None, level)
 
                 label = input.name                
                 rman_icon = rfb_icons.get_icon('out_%s' % input_node.bl_label)
@@ -388,7 +388,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
 
             else:
                 row = layout.row(align=True)              
-                indented_label(row, None, level)
+                draw_indented_label(row, None, level)
                 # indented_label(row, socket.name+':')
                 # don't draw prop for struct type
                 if input.hide_value:
