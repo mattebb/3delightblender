@@ -578,13 +578,13 @@ class RmanSceneSync(object):
             translator.update_transform(None, rman_sg_camera)
             self.rman_scene.export_viewport_stats()                  
 
-    def update_hider_options(self, context):
+    def update_global_options(self, context):
         if not self.rman_render.rman_interactive_running:
             return        
         self.rman_scene.bl_scene = context.scene
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+            self.rman_scene.export_global_options()            
             self.rman_scene.export_hider()
-            self.rman_scene.export_global_options()
             self.rman_scene.export_viewport_stats()
 
     def update_root_node_func(self, context):

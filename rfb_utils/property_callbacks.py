@@ -185,7 +185,7 @@ def update_integrator_func(self, context):
 def update_options_func(self, context):
     from .. import rman_render
     rr = rman_render.RmanRender.get_rman_render()
-    rr.rman_scene_sync.update_hider_options(context)   
+    rr.rman_scene_sync.update_global_options(context)   
 
 def update_root_node_func(self, context):
     from .. import rman_render
