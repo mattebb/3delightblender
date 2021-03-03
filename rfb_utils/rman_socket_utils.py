@@ -1,5 +1,4 @@
-from ..rman_constants import RFB_ARRAYS_MAX_LEN
-from .rman_bl_nodes_sockets import __RMAN_SOCKET_MAP__
+from ..rman_constants import RFB_ARRAYS_MAX_LEN, __RMAN_SOCKET_MAP__
 
 def update_inputs(node):
     if node.bl_idname == 'PxrMeshLightLightNode':

@@ -1,6 +1,6 @@
 from ..rfb_logger import rfb_log
 from ..rfb_utils.osl_utils import readOSO
-from . import rman_socket_utils
+from ..rfb_utils import rman_socket_utils
 from .. import rman_render
 from ..rfb_utils import string_utils
 from ..rfb_utils import shadergraph_utils

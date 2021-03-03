@@ -1,6 +1,6 @@
 from ..rman_constants import RFB_ARRAYS_MAX_LEN, __RMAN_EMPTY_STRING__, __RESERVED_BLENDER_NAMES__
 from ..rfb_logger import rfb_log
-from ..rfb_utils import scene_utils
+from .property_callbacks import *
 from collections import OrderedDict
 from bpy.props import *
 from copy import deepcopy
@@ -8,77 +8,6 @@ import math
 import bpy
 import sys
 import os
-
-def assetid_update_func(self, context, param_name):
-    from . import texture_utils
-    from . import filepath_utils
-
-    node = self.node if hasattr(self, 'node') else self
-
-    # get the real path if the value is the weird Blender relative path
-    file_path = None
-    if param_name in node:
-        file_path = filepath_utils.get_real_path(node[param_name])
-        node[param_name] = file_path
-
-    if not hasattr(node, 'renderman_node_type'):
-        return
-
-    light = None
-    mat = None
-    ob = None
-    active = None
-    '''
-    if node.renderman_node_type in ['displayfilter', 'samplefilter', 'integrator']:
-        ob = context.scene.world        
-    else:    
-        active = context.active_object
-        if active:
-            if active.type == 'LIGHT':
-                light = active.data
-            else:
-                ob = active
-                
-        if context and hasattr(context, 'material'):
-            mat = context.material
-        elif context and hasattr(context, 'node'):
-            mat = context.space_data.id
-    '''
-
-    ob = scene_utils.find_node_owner(node, context)
-    ob_type = type(ob)
-    if ob_type == bpy.types.Material:
-        mat = ob
-    elif ob_type == bpy.types.World:
-        active = ob
-    elif ob.type == 'LIGHT':
-        light = ob.data
-        active = ob
-
-    texture_utils.update_texture(node, light=light, mat=mat, ob=ob)
-
-    if file_path:
-        # update colorspace param from txmanager
-        txfile = texture_utils.get_txmanager().txmanager.get_txfile_from_path(file_path)
-        if txfile:
-            params = txfile.params          
-            param_colorspace = '%s_colorspace'  % param_name
-            try:
-                mdict = texture_utils.get_txmanager().txmanager.color_manager.colorspace_names()
-                val = 0
-                for i, nm in enumerate(mdict):
-                    if nm == params.ocioconvert:
-                        val = i+1
-                        break
-
-                node[param_colorspace] = val
-            except AttributeError:
-                pass                
-    
-    if mat:
-        node.update_mat(mat)  
-    if light:
-        active.update_tag(refresh={'DATA'})
 
 def update_colorspace_name(self, context, param_name):
     from . import texture_utils
@@ -125,7 +54,7 @@ def generate_colorspace_menu(node, param_name):
     node.__annotations__[ui_label] = EnumProperty(name=ui_label, items=colorspace_names,update=lambda s,c: update_colorspace_name(s,c, param_name))    
 
 
-def generate_array_property(node, prop_names, prop_meta, node_desc_param, update_array_size_func=None, update_array_elem_func=None):
+def generate_array_property(node, prop_names, prop_meta, node_desc_param, update_function=None):
     '''Generate the necessary properties for an array parameter and
     add it to the node
 
@@ -134,8 +63,7 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
         prop_names (list) - the current list of property names for the shading node
         prop_meta (dict) - dictionary of the meta data for the properties for the node
         node_desc_param (NodeDescParam) - NodeDescParam object
-        update_array_size_func (FunctionType) - callback function for when array size changes
-        update_array_elem_func (FunctionType) - callback function for when an array element changes
+        update_function (FunctionType) - callback function for when an array element changes
 
     Returns:
         bool - True if succeeded. False if not.
@@ -187,7 +115,7 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
         #ndp.size = None
         ndp.connectable = True
         ndp.widget = ''
-        name, meta, prop = generate_property(node, ndp, update_function=update_array_elem_func)
+        name, meta, prop = generate_property(node, ndp, update_function=update_function)
         meta['renderman_array_name'] = param_name
         sub_prop_names.append(ndp._name)
         prop_meta[ndp._name] = meta
@@ -271,6 +199,11 @@ def generate_property(node, sp, update_function=None):
     hidden_prop_name = '%s_hidden' % param_name
     hidden_prop = BoolProperty(name=hidden_prop_name, default=False)
     node.__annotations__[hidden_prop_name] = hidden_prop
+
+    if isinstance(update_function, str):
+        lcls = locals()
+        exec('update_func = %s' % update_function, globals(), lcls)
+        update_function = lcls['update_func']        
 
     if param_widget == 'colorramp':
         renderman_type = 'colorramp'

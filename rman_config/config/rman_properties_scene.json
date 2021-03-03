@@ -114,6 +114,8 @@
             "widget": false,
             "slidermin": 0,
             "slidermax": 4096,
+            "editable": true,
+            "update_function_name": "update_options_func",
             "help": "When set to zero this value is automatically computed as the square root of the max samples."
         },
         {
@@ -134,6 +136,8 @@
                 "Production": 1024,
                 "High Quality": 2048
             },
+            "editable": true,
+            "update_function_name": "update_options_func",            
             "help": "The maximum number of camera rays to be traced for each pixel.  When adaptive sampling is enabled (ie. Pixel Variance is greater than zero), fewer rays may be traced in smoother regions of the image."
         },                
         {
@@ -153,6 +157,8 @@
                 "Denoising": 0.05,
                 "High Quality": 0.01
             },
+            "editable": true,
+            "update_function_name": "update_options_func",               
             "help": "This value is applied during IPR.  Adaptive sampling is done when Pixel Variance is greater than zero. Reducing this value increases the likelihood that more rays will be traced while increasing its value allows undersampling."
         },
         {
@@ -167,6 +173,7 @@
             "widget": "mapper",
             "options": "100%:1.0|50%:0.5|33%:0.33|25%:0.25|12.5%:0.125",
             "help": "This value is only applied during IPR. This scales down the resolution during viewport renders.",
+            "editable": true,
             "update_function_name": "update_viewport_res_mult",
             "update_function": "def update_viewport_res_mult(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_viewport_res_mult(context)"            
         },
@@ -435,6 +442,8 @@
             "riattr": "trace:maxspeculardepth",
             "label": "Max Specular Depth",
             "type": "int",
+            "editable": true,
+            "update_function_name": "update_root_node_func",               
             "default": 4,
             "min": 0,
             "slidermax": 15
@@ -446,6 +455,8 @@
             "riattr": "trace:maxdiffusedepth",
             "label": "Max Diffuse Depth",
             "type": "int",
+            "editable": true,
+            "update_function_name": "update_root_node_func",               
             "default": 1,
             "min": 0,
             "slidermax": 15

@@ -1,6 +1,7 @@
 from . import shadergraph_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from .. import rman_config
+from ..rman_render import RmanRender
 from .. import rfb_icons
 import bpy
 
@@ -21,6 +22,8 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
     col = row.column(align=True)
     row_dict['default'] = col
     rmcfg = rman_config.__RMAN_CONFIG__.get(config_name, None)
+    rman_render = RmanRender.get_rman_render()
+    is_rman_interactive_running = rman_render.rman_interactive_running    
 
     curr_col = col
     for param_name, ndp in rmcfg.params.items():
@@ -33,6 +36,7 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             page_prop = ''
             page_open = False
             page_name = ''
+            editable = getattr(ndp, 'editable', False)
             if hasattr(ndp, 'page') and ndp.page != '':       
                 page_prop = ndp.page + "_uio"
                 page_open = getattr(parent, page_prop)        
@@ -113,7 +117,10 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
                     if not page_open:
                         continue
                     row.label(text='', icon='BLANK1')
-                row.prop(parent, ndp.name, text=label)                    
+                row.prop(parent, ndp.name, text=label)         
+
+            if is_rman_interactive_running and not editable:
+                row.enabled = False           
 
 def draw_props(node, prop_names, layout, level=0, nt=None, context=False):
     layout.context_pointer_set("node", node)

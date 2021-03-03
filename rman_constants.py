@@ -110,3 +110,19 @@ CYCLES_NODE_MAP = {
     'ShaderNodeWireframe': 'node_wireframe',
     'ShaderNodeDisplacement': 'node_displacement'
 }
+
+# map types in args files to socket types
+__RMAN_SOCKET_MAP__ = {
+    'float': 'RendermanNodeSocketFloat',
+    'color': 'RendermanNodeSocketColor',
+    'string': 'RendermanNodeSocketString',
+    'int': 'RendermanNodeSocketInt',
+    'integer': 'RendermanNodeSocketInt',
+    'struct': 'RendermanNodeSocketStruct',
+    'normal': 'RendermanNodeSocketNormal',
+    'vector': 'RendermanNodeSocketVector',
+    'point': 'RendermanNodeSocketPoint',
+    'void': 'RendermanNodeSocketStruct',
+    'vstruct': 'RendermanNodeSocketVStruct',
+    'bxdf': 'RendermanNodeSocketBxdf'
+}

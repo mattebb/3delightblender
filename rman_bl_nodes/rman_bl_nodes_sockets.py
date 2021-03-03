@@ -213,23 +213,6 @@ __RENDERMAN_TYPES_SOCKET_INTERFACES__ =[
     ),           
 ]
 
-# map types in args files to socket types
-__RMAN_SOCKET_MAP__ = {
-    'float': 'RendermanNodeSocketFloat',
-    'color': 'RendermanNodeSocketColor',
-    'string': 'RendermanNodeSocketString',
-    'int': 'RendermanNodeSocketInt',
-    'integer': 'RendermanNodeSocketInt',
-    'struct': 'RendermanNodeSocketStruct',
-    'normal': 'RendermanNodeSocketNormal',
-    'vector': 'RendermanNodeSocketVector',
-    'point': 'RendermanNodeSocketPoint',
-    'void': 'RendermanNodeSocketStruct',
-    'vstruct': 'RendermanNodeSocketVStruct',
-    'bxdf': 'RendermanNodeSocketBxdf'
-}
-
-
 class RendermanSocket:
     ui_open: BoolProperty(name='UI Open', default=True)
 
