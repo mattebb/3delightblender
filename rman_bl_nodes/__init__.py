@@ -89,7 +89,8 @@ __RMAN_NODES_NO_REGISTER__ = [
     'PxrDisplayFilterCombiner.args', 
     'PxrShadowDisplayFilter.args',
     'PxrShadowFilter.args',
-    'PxrDisplace.oso'
+    'PxrDisplace.oso',
+    'PxrSeExpr.args'
 ]
 
 if filepath_utils.is_ncr_license():
