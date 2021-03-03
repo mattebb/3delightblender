@@ -183,6 +183,7 @@ class NODE_MT_renderman_connection_menu(Menu):
         renderman_type = prop_meta.get('renderman_type', 'pattern')
         renderman_type = prop_meta.get('renderman_array_type', renderman_type)
         struct_name = prop_meta.get('struct_name', '')
+        terminal_node = None
 
         if hasattr(prop_meta, 'vstruct') or prop_name == 'inputMaterial':
             for n in rman_bl_nodes.__RMAN_PATTERN_NODES__:
@@ -197,6 +198,8 @@ class NODE_MT_renderman_connection_menu(Menu):
                         break                                   
 
         elif renderman_type == 'bxdf':
+            output_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
+            terminal_node = output_node.inputs[0].links[0].from_node
             for bxdf_cat, bxdfs in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
                 if not bxdfs[1]:
                     continue
@@ -258,6 +261,8 @@ class NODE_MT_renderman_connection_menu(Menu):
             if socket.is_linked and socket.links[0].from_node == n:
                 continue
             if n == node:
+                continue
+            if n == terminal_node:
                 continue
             for output in n.outputs:
                 if not hasattr(output, 'renderman_type'):
