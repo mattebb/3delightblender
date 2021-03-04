@@ -79,6 +79,14 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     # txmanager
     txmanagerData: StringProperty(name="txmanagerData", default="")
 
+    def get_platform(self):
+        if sys.platform == ("win32"):
+            return 'windows'
+        elif sys.platform == ("darwin"):
+            return 'macOS'
+        else:
+            return 'linux'
+
     def is_ncr_getter(self):
         return filepath_utils.is_ncr_license()
 
@@ -97,6 +105,7 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         rman_render = RmanRender.get_rman_render()
         return rman_render.rman_is_viewport_rendering
 
+    current_platform: StringProperty(get=get_platform)
     is_ncr: BoolProperty(get=is_ncr_getter)
     is_rman_interactive_running: BoolProperty(get=get_is_rman_interactive_running)         
     is_rman_swatch_render_running: BoolProperty(get=get_is_rman_swatch_render_running)  

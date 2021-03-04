@@ -45,9 +45,15 @@
             "update_function_name": "update_blender_optix_denoiser",
             "update_function": "def update_blender_optix_denoiser(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_displays(context)",
             "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "is_ncr",
-                "conditionalVisValue": "0"
+                "conditionalVis1Path": "is_ncr",
+                "conditionalVis2Op": "notEqualTo",
+                "conditionalVis1Value": "0",
+                "conditionalVisOp": "and",
+                "conditionalVis1Op": "equalTo",
+                "conditionalVisLeft": "conditionalVis1",
+                "conditionalVisRight": "conditionalVis2",
+                "conditionalVis2Path": "current_platform",
+                "conditionalVis2Value": "macOS"     
             }             
         },         
         {
@@ -61,9 +67,15 @@
             "options": "RIS:prman|XPU:xpu|XPU - CPU:xpucpu|XPU - GPU:xpugpu",
             "help": "",
             "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "is_ncr",
-                "conditionalVisValue": "0"
+                "conditionalVis1Path": "is_ncr",
+                "conditionalVis2Op": "notEqualTo",
+                "conditionalVis1Value": "0",
+                "conditionalVisOp": "and",
+                "conditionalVis1Op": "equalTo",
+                "conditionalVisLeft": "conditionalVis1",
+                "conditionalVisRight": "conditionalVis2",
+                "conditionalVis2Path": "current_platform",
+                "conditionalVis2Value": "macOS"     
             }              
         },       
         {
