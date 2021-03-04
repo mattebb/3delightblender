@@ -34,7 +34,7 @@
             "help": "Controls where preview and IPR renders will go to."
         }, 
         {
-            "panel": "",
+            "panel": "RENDER_PT_renderman_render",
             "page": "",
             "name": "blender_optix_denoiser",
             "label": "Use Optix Denoiser",
@@ -45,9 +45,9 @@
             "update_function_name": "update_blender_optix_denoiser",
             "update_function": "def update_blender_optix_denoiser(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_displays(context)",
             "conditionalVisOps": {
-                "conditionalVis1Path": "is_ncr",
+                "conditionalVis1Path": "render_into",
                 "conditionalVis2Op": "notEqualTo",
-                "conditionalVis1Value": "0",
+                "conditionalVis1Value": "blender",
                 "conditionalVisOp": "and",
                 "conditionalVis1Op": "equalTo",
                 "conditionalVisLeft": "conditionalVis1",
