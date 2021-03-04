@@ -36,7 +36,7 @@
             "help": "(hidden) Enable external RIB rendering"
         },    
         {
-            "panel": "",
+            "panel": "RENDER_PT_renderman_render",
             "page": "",
             "name": "render_into",
             "label": "Render to",
@@ -56,10 +56,15 @@
             "widget": "checkbox",
             "help": "Denoise with OptiX denoiser",
             "update_function_name": "update_blender_optix_denoiser",
-            "update_function": "def update_blender_optix_denoiser(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_displays(context)"
+            "update_function": "def update_blender_optix_denoiser(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_displays(context)",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "is_ncr",
+                "conditionalVisValue": "0"
+            }             
         },         
         {
-            "panel": "",
+            "panel": "RENDER_PT_renderman_render",
             "page": "",
             "name": "renderVariant",
             "label": "Renderer",
@@ -67,17 +72,27 @@
             "default": "prman",
             "widget": "popup",
             "options": "RIS:prman|XPU:xpu|XPU - CPU:xpucpu|XPU - GPU:xpugpu",
-            "help": ""
+            "help": "",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "is_ncr",
+                "conditionalVisValue": "0"
+            }              
         },       
         {
-            "panel": "",
+            "panel": "RENDER_PT_renderman_render",
             "page": "",
             "name": "render_rman_stylized",
             "label": "Stylized Render",
             "type": "int",
             "default": 0,
             "widget": "checkbox",
-            "help": "Render with RenderMan Stylized looks."
+            "help": "Render with RenderMan Stylized looks.",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "is_ncr",
+                "conditionalVisValue": "0"
+            }              
         },          
         {
             "panel": "RENDER_PT_renderman_render",

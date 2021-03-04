@@ -5,7 +5,6 @@ from ..rfb_utils.prefs_utils import get_pref
 from ..rfb_utils import prefs_utils
 from ..rfb_utils import string_utils
 from ..rfb_utils import filepath_utils
-from ..rman_render import RmanRender
 from bpy.props import StringProperty, BoolProperty
 
 class PRMAN_OT_Renderman_open_scene_RIB(bpy.types.Operator):
@@ -15,8 +14,8 @@ class PRMAN_OT_Renderman_open_scene_RIB(bpy.types.Operator):
 
     def invoke(self, context, event=None):
         scene = context.scene
-        rman_render = RmanRender.get_rman_render()
-        if not rman_render.rman_interactive_running:   
+        rm = scene.renderman
+        if not rm.is_rman_interactive_running:
             rm = scene.renderman     
             rm.enable_external_rendering = True
             anim_prev_val = rm.external_animation
@@ -55,8 +54,8 @@ class PRMAN_OT_Open_Selected_RIB(bpy.types.Operator):
         if selected_objects:
             temp_dir = prefs_utils.get_bl_temp_dir()
             rib_output = os.path.join(temp_dir, 'selected.rib')
-            rman_render = RmanRender.get_rman_render()
-            if not rman_render.rman_interactive_running:
+            rm = context.scene.renderman
+            if not rm.is_rman_interactive_running:
                 rman_render.start_export_rib_selected(context, rib_output, export_materials=True, export_all_frames=False)
                 filepath_utils.view_file(rib_output)
             else:
@@ -104,8 +103,8 @@ class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
             export_path = self.filepath
             export_range = self.export_all_frames
             export_mats = self.export_mat
-            rman_render = RmanRender.get_rman_render()
-            if not rman_render.rman_interactive_running:
+            rm = context.scene.renderman
+            if not rm.is_rman_interactive_running:
                 rman_render.start_export_rib_selected(context, export_path, export_materials=export_mats, export_all_frames=export_range)
             else:
                 self.report({"ERROR"}, "Viewport rendering is on.")

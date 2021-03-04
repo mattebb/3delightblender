@@ -1,7 +1,6 @@
 from . import shadergraph_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from .. import rman_config
-from ..rman_render import RmanRender
 from .. import rfb_icons
 import bpy
 
@@ -22,8 +21,7 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
     col = row.column(align=True)
     row_dict['default'] = col
     rmcfg = rman_config.__RMAN_CONFIG__.get(config_name, None)
-    rman_render = RmanRender.get_rman_render()
-    is_rman_interactive_running = rman_render.rman_interactive_running    
+    is_rman_interactive_running = context.scene.renderman.is_rman_interactive_running
 
     curr_col = col
     for param_name, ndp in rmcfg.params.items():

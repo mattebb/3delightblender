@@ -1,4 +1,3 @@
-from ..rman_render import RmanRender
 from .. import rfb_icons
 from ..rfb_utils.shadergraph_utils import is_renderman_nodetree, find_soloable_node
 import bpy
@@ -14,11 +13,9 @@ class PRMAN_HT_DrawRenderHeaderInfo(bpy.types.Header):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
         layout = self.layout
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
-
+        rm = context.scene.renderman
         
-        if not is_rman_interactive_running:
+        if not rm.is_rman_interactive_running:
 
             # Render
             row = layout.row(align=True)
@@ -142,10 +139,7 @@ class PRMAN_HT_DrawRenderHeaderImage(bpy.types.Header):
             return
         layout = self.layout
 
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
-
-        if not is_rman_interactive_running:
+        if not context.scene.renderman.is_rman_interactive_running:
 
             # Render
             row = layout.row(align=True)

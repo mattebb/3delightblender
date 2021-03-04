@@ -1,4 +1,3 @@
-from ..rman_render import RmanRender
 from .. import rfb_icons
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import draw_utils
@@ -28,8 +27,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
             return
 
         # Render
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running        
+        is_rman_interactive_running = rm.is_rman_interactive_running
 
         if not is_rman_interactive_running:
 

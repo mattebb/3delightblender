@@ -2,9 +2,7 @@ from .rman_ui_base import _RManPanelHeader
 from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel
 from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
-from ..rfb_utils import filepath_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
-from ..rman_render import RmanRender
 from .. import rfb_icons
 from bpy.types import Panel
 import bpy
@@ -19,20 +17,17 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
 
-        is_ncr = filepath_utils.is_ncr_license()
         layout = self.layout
         rd = context.scene.render
         rm = context.scene.renderman
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
 
-        if is_ncr:
+        if rm.is_ncr:
             split = layout.split(factor=0.25)
             col = split.column()
             col = split.column()
             col.label(text="NON-COMMERCIAL VERSION")
 
-        if not is_rman_interactive_running:
+        if not rm.is_rman_interactive_running:
 
             # Render
             row = layout.row(align=True)
@@ -51,23 +46,6 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
             row.operator('renderman.stop_ipr', text="Stop IPR",
                             icon_value=rman_rerender_controls.icon_id)                                          
 
-
-        split = layout.split(factor=0.33)
-        col = layout.column()
-        col.enabled = not is_rman_interactive_running
-
-        col.prop(rm, "render_into", text='Render To')
-        '''
-        if rm.render_into == "blender":
-            col2 = layout.column()
-            col2.prop(rm, "blender_optix_denoiser")
-        '''
-        if not is_ncr:        
-            col = layout.column()
-            col.enabled = not is_rman_interactive_running             
-            col.prop(rm, "renderVariant", text='Renderer')
-            col.prop(rm, "render_rman_stylized", text='Stylized Render')
-
         _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_render', context, layout, rm)  
 
 class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
@@ -82,9 +60,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         scene = context.scene
         rm = scene.renderman
 
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
-        layout.enabled = not is_rman_interactive_running        
+        layout.enabled = not rm.is_rman_interactive_running        
 
         # button
         col = layout.column()
@@ -114,11 +90,7 @@ class RENDER_PT_renderman_spooling_export_options(PRManButtonsPanel, Panel):
 
         layout = self.layout
         scene = context.scene
-        rm = scene.renderman
-
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
-        layout.enabled = not is_rman_interactive_running           
+        rm = scene.renderman  
 
         col = layout.column()
         _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_spooling_export_options', context, layout, rm)        
@@ -165,9 +137,7 @@ class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
         self.layout.use_property_split = True
         self.layout.use_property_decorate = False        
         layout = self.layout
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
-        layout.enabled = not is_rman_interactive_running  
+        layout.enabled = not rm.is_rman_interactive_running  
         scene = context.scene
         rm = scene.renderman         
         row = layout.row()

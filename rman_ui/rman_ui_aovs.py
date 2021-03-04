@@ -369,9 +369,8 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             col.prop(rl, "use_pass_emit", text="Emission")
 
             col.prop(rl, "use_pass_ambient_occlusion")
-        else:
-            rman_render = RmanRender.get_rman_render()            
-            if rman_render.rman_interactive_running:            
+        else:  
+            if scene.renderman.is_rman_interactive_running:
                 layout.operator("renderman.dspy_displays_reload")            
             layout.operator_menu_enum(
                 "renderman.dspy_rman_add_dspy_template", 'dspy_template', text="Add Display Template")  

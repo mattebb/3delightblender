@@ -1,4 +1,3 @@
-from ..rman_render import RmanRender
 from ..rfb_utils import filepath_utils
 import bpy
 import os
@@ -24,8 +23,8 @@ class PRMAN_OT_RendermanBake(bpy.types.Operator):
     def execute(self, context):
 
         scene = context.scene
-        rman_render = RmanRender.get_rman_render()
-        if not rman_render.rman_interactive_running:
+        rm = scene.renderman
+        if not rm.is_rman_interactive_running:
             scene.renderman.hider_type = 'BAKE'
             bpy.ops.render.render(layer=context.view_layer.name)
             scene.renderman.hider_type = 'RAYTRACE'
@@ -58,8 +57,8 @@ class PRMAN_OT_RendermanBakeSelectedBrickmap(bpy.types.Operator):
     def execute(self, context):
 
         scene = context.scene
-        rman_render = RmanRender.get_rman_render()
-        if not rman_render.rman_interactive_running:
+        rm = scene.renderman
+        if not rm.is_rman_interactive_running:
             ob = context.object
             fp = filepath_utils.get_real_path(self.properties.filepath)
             fp = os.path.splitext(fp)[0]
@@ -92,8 +91,8 @@ class PRMAN_OT_ExternalRendermanBake(bpy.types.Operator):
     def execute(self, context):
 
         scene = context.scene
-        rman_render = RmanRender.get_rman_render()
-        if not rman_render.rman_interactive_running:
+        rm = scene.renderman        
+        if not rm.is_rman_interactive_running:
             scene.renderman.hider_type = 'BAKE'
             scene.renderman.enable_external_rendering = True
             bpy.ops.render.render(layer=context.view_layer.name)
@@ -134,8 +133,8 @@ class PRMAN_OT_ExternalRender(bpy.types.Operator):
 
     def external_rib_render(self, context):
         scene = context.scene
-        rman_render = RmanRender.get_rman_render()
-        if not rman_render.rman_interactive_running:        
+        rm = scene.renderman
+        if not rm.is_rman_interactive_running:
             scene.renderman.enable_external_rendering = True        
             bpy.ops.render.render(layer=context.view_layer.name)
             scene.renderman.enable_external_rendering = False
@@ -144,8 +143,8 @@ class PRMAN_OT_ExternalRender(bpy.types.Operator):
 
     def execute(self, context):
         scene = context.scene
-        rman_render = RmanRender.get_rman_render()
-        if not rman_render.rman_interactive_running: 
+        rm = scene.renderman
+        if not rm.is_rman_interactive_running:
             if scene.renderman.spool_style == 'rib':
                 self.external_rib_render(context)       
             else:
@@ -163,7 +162,6 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
 
     def invoke(self, context, event=None):
         view = context.space_data
-        rman_render = RmanRender.get_rman_render()
         if view and view.shading.type != 'RENDERED':        
             view.shading.type = 'RENDERED'
 

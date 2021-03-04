@@ -1,5 +1,4 @@
 from .. import rfb_icons
-from ..rman_render import RmanRender
 from .. import rman_bl_nodes
 from ..rman_operators.rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
 from ..rfb_utils import scene_utils
@@ -167,8 +166,8 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
 
     def draw(self, context):
         layout = self.layout
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running     
+        
+        is_rman_interactive_running = context.scene.renderman.is_rman_interactive_running
         selected_objects = []
         selected_light_objects = []
         if context.selected_objects:
@@ -260,8 +259,7 @@ class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running        
+        is_rman_interactive_running = context.scene.renderman.is_rman_interactive_running
 
         if not is_rman_interactive_running:
             rman_rerender_controls = rfb_icons.get_icon("rman_ipr_on")

@@ -1,5 +1,4 @@
 from .rman_ui_base import _RManPanelHeader, CollectionPanel
-from ..rman_render import RmanRender
 from bl_ui.properties_particle import ParticleButtonsPanel
 import bpy
 from bpy.types import Panel
@@ -15,8 +14,7 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel, _RManPanelHead
 
         psys = context.particle_system
         rm = psys.settings.renderman
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running        
+        is_rman_interactive_running = context.scene.renderman.is_rman_interactive_running
 
         col = layout.column()
 

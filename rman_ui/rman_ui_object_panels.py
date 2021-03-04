@@ -5,7 +5,6 @@ from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
 from ..rfb_utils.draw_utils import draw_node_properties_recursive, panel_node_draw
 from ..rfb_utils import prefs_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
-from ..rman_render import RmanRender
 from .. import rfb_icons
 from ..rfb_utils import object_utils
 from ..rfb_utils.prefs_utils import get_pref
@@ -104,8 +103,7 @@ class OBJECT_PT_renderman_object_geometry(Panel, CollectionPanel):
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
 
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
+        rman_interactive_running = context.scene.renderman.is_rman_interactive_running
 
         col = layout.column()
         col.enabled = not rman_interactive_running          
@@ -259,11 +257,7 @@ class OBJECT_PT_renderman_object_geometry_quadric(Panel, CollectionPanel):
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
 
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
-
-        col = layout.column()
-        col.enabled = not rman_interactive_running        
+        col = layout.column()       
         col = layout.column(align = True)   
         _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry_quadric', context, layout, rm)      
 
@@ -300,11 +294,7 @@ class OBJECT_PT_renderman_object_geometry_runprogram(Panel, CollectionPanel):
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
 
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
-
-        col = layout.column()
-        col.enabled = not rman_interactive_running        
+        col = layout.column() 
         col = layout.column(align = True)   
         _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry_runprogram', context, layout, rm)                     
 
@@ -341,11 +331,7 @@ class OBJECT_PT_renderman_object_geometry_dynamic_load_dso(Panel, CollectionPane
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
 
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
-
-        col = layout.column()
-        col.enabled = not rman_interactive_running        
+        col = layout.column()     
         col = layout.column(align = True)   
         _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry_dynamic_load_dso', context, layout, rm)                     
 
@@ -382,9 +368,7 @@ class OBJECT_PT_renderman_object_geometry_rib_archive(Panel, CollectionPanel):
         anim = rm.archive_anim_settings
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
-
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
+        rman_interactive_running = context.scene.renderman.is_rman_interactive_running
 
         col = layout.column()
         col.enabled = not rman_interactive_running        
@@ -430,8 +414,7 @@ class OBJECT_PT_renderman_object_geometry_openvdb(Panel, CollectionPanel):
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
 
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
+        rman_interactive_running = context.scene.renderman.is_rman_interactive_running
 
         col = layout.column()
         col.enabled = not rman_interactive_running        
@@ -473,9 +456,7 @@ class OBJECT_PT_renderman_object_geometry_points(Panel, CollectionPanel):
         rm = ob.renderman
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
-
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
+        rman_interactive_running = context.scene.renderman.is_rman_interactive_running
 
         col = layout.column()
         col.enabled = not rman_interactive_running        
@@ -514,9 +495,7 @@ class OBJECT_PT_renderman_object_geometry_volume(Panel, CollectionPanel):
         rm = ob.renderman
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
-
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
+        rman_interactive_running = context.scene.renderman.is_rman_interactive_running
 
         col = layout.column()
         col.enabled = not rman_interactive_running        
@@ -556,11 +535,7 @@ class OBJECT_PT_renderman_object_geometry_brickmap(Panel, CollectionPanel):
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
 
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
-
-        col = layout.column()
-        col.enabled = not rman_interactive_running        
+        col = layout.column()  
         col = layout.column(align = True)   
         _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry_brickmap', context, layout, rm)       
 
@@ -597,11 +572,7 @@ class OBJECT_PT_renderman_object_geometry_alembic(Panel, CollectionPanel):
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
 
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
-
-        col = layout.column()
-        col.enabled = not rman_interactive_running        
+        col = layout.column()      
         col = layout.column(align = True)   
         _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry_alembic', context, layout, rm)                                 
 
@@ -638,11 +609,7 @@ class OBJECT_PT_renderman_object_geometry_attributes(Panel, CollectionPanel):
         active = context.active_object
         rman_type = object_utils._detect_primitive_(active)
 
-        rman_render = RmanRender.get_rman_render()
-        rman_interactive_running = rman_render.rman_interactive_running  
-
-        col = layout.column()
-        col.enabled = not rman_interactive_running        
+        col = layout.column()   
         col = layout.column(align = True)   
         _draw_ui_from_rman_config('rman_properties_object', 'OBJECT_PT_renderman_object_geometry_attributes', context, layout, rm)               
 

@@ -7,7 +7,6 @@ from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import string_utils
 from ..rfb_utils import object_utils
 from ..rfb_utils import filepath_utils
-from ..rman_render import RmanRender       
 from .. import rfb_icons
 from ..rman_operators.rman_operators_collections import return_empty_list   
 from ..rman_constants import RFB_MAX_USER_TOKENS, RMAN_STYLIZED_FILTERS  
@@ -119,8 +118,7 @@ class RENDER_OT_Renderman_Open_Workspace(CollectionPanel, bpy.types.Operator):
         layout = self.layout
         rd = context.scene.render
         rm = context.scene.renderman
-        rman_render = RmanRender.get_rman_render()
-        is_rman_interactive_running = rman_render.rman_interactive_running
+        is_rman_interactive_running = rm.is_rman_interactive_running
 
         split = layout.split(factor=0.33)
         col = layout.column()
