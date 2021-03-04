@@ -211,25 +211,31 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
     node_name: StringProperty(default="")
 
     def execute(self, context):
-        nt = context.nodetree
-        node = context.node
-        socket = context.socket
-        input_node = socket_node_input(nt, socket)
+        nt = getattr(context, 'nodetree', None)
+        node = getattr(context, 'node', None)
+        socket = getattr(context, 'socket', None)           
+        input_node = None
+        if nt and socket:
+            input_node = socket_node_input(nt, socket)
 
         if input_node is None:
             newnode = nt.nodes.new(self.node_name)
-            newnode.location = node.location
-            newnode.location[0] -= 300
-            newnode.selected = False
-            link_node(nt, newnode, socket)
+            if node and socket and nt:
+                newnode.location = node.location
+                newnode.location[0] -= 300
+                newnode.selected = False
+                link_node(nt, newnode, socket)
+            else:
+                newnode.location = context.space_data.cursor_location
 
         # replace input node with a new one
         else:
             newnode = nt.nodes.new(self.node_name)
-            input = socket
-            old_node = input.links[0].from_node
-            link_node(nt, newnode, socket)
-            newnode.location = old_node.location
+            if socket:
+                input = socket
+                old_node = input.links[0].from_node
+                link_node(nt, newnode, socket)
+                newnode.location = old_node.location
             active_material = context.active_object.active_material
             if active_material:
                 try:
@@ -247,9 +253,9 @@ class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
     node_name: StringProperty(default="")
 
     def execute(self, context):
-        nt = context.nodetree
-        node = context.node
-        socket = context.socket
+        nt = getattr(context, 'nodetree', None)
+        node = getattr(context, 'node', None)
+        socket = getattr(context, 'socket', None)            
         input_node = socket_node_input(nt, socket)
         newnode = None
 
@@ -288,9 +294,9 @@ class NODE_OT_rman_preset_set_param(bpy.types.Operator):
     preset_name: StringProperty(default="")
 
     def invoke(self, context, event):
-        nt = context.nodetree
-        node = context.node
-        socket = context.socket
+        node = getattr(context, 'node', None)
+        if not node:
+            return {'FINISHED'}
 
         prop_meta = node.prop_meta.get(self.prop_name, None)
         if prop_meta:            
@@ -370,10 +376,10 @@ class NODE_OT_rman_node_set_solo_output(bpy.types.Operator):
     solo_node_name: StringProperty(default="")
 
     def invoke(self, context, event):
-        nt = context.nodetree
-        node = context.node
-        node.solo_node_output = self.solo_node_output
-        node.solo_node_name = self.solo_node_name
+        node = getattr(context, 'node', None) 
+        if node:
+            node.solo_node_output = self.solo_node_output
+            node.solo_node_name = self.solo_node_name
 
         return {'FINISHED'}         
 

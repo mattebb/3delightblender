@@ -5,10 +5,10 @@ from ..rfb_utils import generate_property_utils
 from ..rfb_utils.property_callbacks import *
 from ..rfb_utils.rman_socket_utils import node_add_inputs
 from ..rfb_utils.rman_socket_utils import node_add_outputs
+from ..rfb_utils import shadergraph_utils
 from ..rfb_logger import rfb_log
+from .. import rfb_icons
 from .. import rman_config
-from .. import rman_render
-from ..rman_properties import rman_properties_scene
 from ..rman_properties import rman_properties_renderlayers
 from ..rman_properties import rman_properties_world
 from ..rman_properties import rman_properties_camera
@@ -17,7 +17,6 @@ from ..rman_constants import RFB_ARRAYS_MAX_LEN
 from ..rman_constants import CYCLES_NODE_MAP
 from nodeitems_utils import NodeCategory, NodeItem
 from collections import OrderedDict
-from operator import attrgetter
 from bpy.props import *
 import bpy
 import os
@@ -523,16 +522,44 @@ class RendermanShaderNodeCategory(NodeCategory):
         rd = context.scene.render
         if rd.engine != 'PRMAN_RENDER':
             return False        
-        return context.space_data.tree_type == 'ShaderNodeTree' and context.space_data.shader_type == 'OBJECT' 
+        return context.space_data.tree_type == 'ShaderNodeTree' and context.space_data.shader_type in ['OBJECT', 'WORLD']
 
-class RendermanWorldShaderNodeCategory(NodeCategory):
+class RendermanNodeItem(NodeItem):
+    '''
+    Custom NodeItem class so that we can modify the way the category menus
+    are drawn.
+    '''
 
-    @classmethod
-    def poll(cls, context):
-        rd = context.scene.render
-        if rd.engine != 'PRMAN_RENDER':
-            return False        
-        return context.space_data.tree_type == 'ShaderNodeTree' and context.space_data.shader_type == 'WORLD'  
+    def draw(self, item, layout, context):
+        if context.space_data.shader_type == 'OBJECT':
+            mat = getattr(context, 'material', None)
+            if not mat:
+                return
+            if not shadergraph_utils.is_renderman_nodetree(mat):
+                rman_icon = rfb_icons.get_icon('rman_graph')
+                layout.operator(
+                    'material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
+            else:
+                nt = mat.node_tree                        
+                layout.context_pointer_set("nodetree", nt) 
+                layout.menu('NODE_MT_RM_Bxdf_Category_Menu')
+                layout.menu('NODE_MT_RM_Displacement_Category_Menu')
+                layout.menu('NODE_MT_RM_Pattern_Category_Menu')
+                layout.menu('NODE_MT_RM_PxrSurface_Category_Menu')
+                layout.menu('NODE_MT_RM_Light_Category_Menu')
+
+        elif context.space_data.shader_type == 'WORLD':
+            world = context.scene.world
+            if not world.renderman.use_renderman_node:
+                rman_icon = rfb_icons.get_icon('rman_graph')
+                layout.operator('material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = 'world'
+            else:
+                nt = world.node_tree
+                layout.context_pointer_set("nodetree", nt) 
+                layout.menu('NODE_MT_RM_Integrators_Category_Menu')
+                layout.menu('NODE_MT_RM_SampleFilter_Category_Menu')
+                layout.menu('NODE_MT_RM_DisplayFilter_Category_Menu')
+
 
 def register_rman_nodes():
     global __RMAN_NODE_CATEGORIES__
@@ -685,30 +712,15 @@ def register_rman_nodes():
 
 def register_node_categories():
 
-    # all categories in a list
-    node_categories = []
-    for k in ['bxdf', 'displace', 'light', 'pattern']:
-        v = __RMAN_NODE_CATEGORIES__[k]
-        for name, ((desc, items), lst) in v.items():
-            if items:
-                node_categories.append(RendermanShaderNodeCategory(name, desc,
-                                                                    items=sorted(items,
-                                                                                key=attrgetter('_label'))))    
+    node_categories = []    
+    items = []
+    items.append(RendermanNodeItem('RenderMan', label='RenderMan'))
+    
+    shader_category = RendermanShaderNodeCategory('RenderMan', 'RenderMan', items=items)
+    node_categories.append(shader_category)
 
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES",
-                                             node_categories)  
-
-    world_node_categories = []
-    for k in ['integrator', 'displayfilter', 'samplefilter']:
-        v = __RMAN_NODE_CATEGORIES__[k]
-        for name, ((desc, items), lst) in v.items():
-            if items:
-                world_node_categories.append(RendermanWorldShaderNodeCategory(name, desc,
-                                                                    items=sorted(items,
-                                                                                key=attrgetter('_label'))))      
-
-    nodeitems_utils.register_node_categories("RENDERMANWORLDSHADERNODES",
-                                             world_node_categories)          
+                                                node_categories)  
 
 def register():
     global __RMAN_NODES_ALREADY_REGISTERED__
@@ -724,7 +736,6 @@ def register():
 
 def unregister():
     nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
-    nodeitems_utils.unregister_node_categories("RENDERMANWORLDSHADERNODES")
 
     rman_bl_nodes_props.unregister()
     rman_bl_nodes_sockets.unregister()    

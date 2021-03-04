@@ -50,6 +50,16 @@ class RmanBasePropertyGroup:
         prop_names = []
         prop_meta = {}
         page_names = []
+
+        def addpage(ndp):
+            if hasattr(ndp, 'page') and ndp.page != '':
+                page_name = ndp.page
+                if page_name not in page_names:
+                    page_names.append(page_name)
+                    ui_label = "%s_uio" % page_name
+                    dflt = getattr(ndp, 'page_open', True)                
+                    cls.__annotations__[ui_label] = BoolProperty(name=ui_label, default=dflt)            
+
         for param_name, ndp in config.params.items():
             update_func = None
             if hasattr(ndp, 'update_function'):
@@ -64,6 +74,7 @@ class RmanBasePropertyGroup:
                 update_func = ndp.update_function_name
             if ndp.is_array():
                 if generate_property_utils.generate_array_property(cls, prop_names, prop_meta, ndp):
+                    addpage(ndp)
                     continue
             name, meta, prop = generate_property_utils.generate_property(cls, ndp, update_function=update_func)
             if prop:
@@ -71,13 +82,7 @@ class RmanBasePropertyGroup:
                 prop_names.append(ndp.name)
                 prop_meta[ndp.name] = meta
 
-            if hasattr(ndp, 'page') and ndp.page != '':
-                page_name = ndp.page
-                if page_name not in page_names:
-                    page_names.append(page_name)
-                    ui_label = "%s_uio" % page_name
-                    dflt = getattr(ndp, 'page_open', True)                
-                    cls.__annotations__[ui_label] = BoolProperty(name=ui_label, default=dflt)
+            addpage(ndp)
 
         setattr(cls, 'prop_names', prop_names)
         setattr(cls, 'prop_meta', prop_meta)

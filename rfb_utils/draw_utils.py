@@ -37,7 +37,7 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             editable = getattr(ndp, 'editable', False)
             if hasattr(ndp, 'page') and ndp.page != '':       
                 page_prop = ndp.page + "_uio"
-                page_open = getattr(parent, page_prop)        
+                page_open = getattr(parent, page_prop, False)        
                 page_name = ndp.page       
                 has_page = True
 
@@ -76,6 +76,10 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             widget = getattr(ndp, 'widget', '')
             options = getattr(ndp, 'options', None)
             if ndp.is_array():
+                if has_page:           
+                    if not page_open:
+                        continue      
+                    row.label(text='', icon='BLANK1')          
                 ui_prop = param_name + "_uio"
                 ui_open = getattr(parent, ui_prop)
                 icon = get_open_close_icon(ui_open)

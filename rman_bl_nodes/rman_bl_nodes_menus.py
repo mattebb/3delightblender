@@ -275,10 +275,10 @@ class NODE_MT_renderman_connection_menu(Menu):
 
     def draw_patterns_all_menu(self, context):
         layout = self.layout
-        nt = context.nodetree
-        node = context.node
-        socket = context.socket
-        prop_name = socket.name
+        nt = getattr(context, 'nodetree', None)
+        node = getattr(context, 'node', None)
+        socket = getattr(context, 'socket', None)
+        prop_name = getattr(socket, 'name', '')
   
         for pattern_cat, patterns in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['pattern'].items():
             if not patterns[1]:
@@ -294,22 +294,28 @@ class NODE_MT_renderman_connection_menu(Menu):
             layout.context_pointer_set('socket', socket)
             layout.menu('NODE_MT_renderman_connection_submenu_%s' % pattern_cat, text=pattern_category.capitalize())       
 
-        layout.separator()
-        layout.label(text='__EXISTING__')
-        for n in nt.nodes:
-            if socket.is_linked and socket.links[0].from_node == n:
-                continue
-            if n == node:
-                continue
-            op = layout.operator('node.rman_shading_connect_existing_node', text='_%s_' % n.name)
+        if node:
+            layout.separator()
+            layout.label(text='__EXISTING__')
+            for n in nt.nodes:
+                if socket.is_linked and socket.links[0].from_node == n:
+                    continue
+                if n == node:
+                    continue
+                op = layout.operator('node.rman_shading_connect_existing_node', text='_%s_' % n.name)
 
     def draw(self, context):
         layout = self.layout
-        nt = context.nodetree
-        node = context.node
-        socket = context.socket
-        if context.socket.is_linked:
-            link = context.socket.links[0]
+        nt = getattr(context, 'nodetree', None)
+        node = getattr(context, 'node', None)
+        socket = getattr(context, 'socket', None)
+
+        if not node and not socket:
+            self.draw_patterns_all_menu(context)
+            return 
+
+        if socket and socket.is_linked:
+            link = socket.links[0]
             input_node = link.from_node
             rman_icon = rfb_icons.get_icon('out_%s' % input_node.bl_label)
             layout.label(text='%s (%s)' % (input_node.name, link.from_socket.name), icon_value=rman_icon.icon_id)
@@ -363,9 +369,9 @@ def register_renderman_bxdf_node_submenus():
 
     def draw(self, context):
         layout = self.layout  
-        nt = context.nodetree
-        node = context.node
-        socket = context.socket
+        nt = getattr(context, 'nodetree', None)
+        node = getattr(context, 'node', None)
+        socket = getattr(context, 'socket', None)
 
         # add submenus for subcategories
         for bxdf_cat, bxdfs in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
@@ -406,10 +412,10 @@ def register_renderman_pattern_node_submenus():
 
     def draw_rman(self, context):
         layout = self.layout  
-        nt = context.nodetree
-        node = context.node
-        socket = context.socket
-        prop_name = socket.name
+        nt = getattr(context, 'nodetree', None)
+        node = getattr(context, 'node', None)
+        socket = getattr(context, 'socket', None)       
+        prop_name = getattr(socket, 'name', '')         
         prop = getattr(node, prop_name, None)
         if hasattr(node, 'prop_meta'):
             prop_meta = node.prop_meta[prop_name]
