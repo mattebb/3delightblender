@@ -422,7 +422,7 @@ class NODE_OT_open_close_link(bpy.types.Operator):
         try:
             socket['ui_open'] = not socket['ui_open']        
         except:
-            dflt = not getattr(socket, self.properties.prop_name)
+            dflt = not getattr(socket, 'ui_open')
             socket.ui_open = dflt
         return {'FINISHED'}
 

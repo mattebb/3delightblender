@@ -35,6 +35,9 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 import traceback
                 traceback.print_exc()
 
+            for n in nt.nodes:
+                n.select = False                
+
         for light in bpy.data.lights:
             if light.renderman.use_renderman_node:
                 continue
@@ -70,7 +73,8 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
             light.renderman.use_renderman_node = True
 
             output = nt.nodes.new('RendermanOutputNode')
-            default = nt.nodes.new('%sLightNode' % light_shader)
+            node_name = rman_bl_nodes.__BL_NODES_MAP__[light_shader]
+            default = nt.nodes.new(node_name)
 
             default.location = output.location
             default.location[0] -= 300
@@ -86,6 +90,9 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 node.coneAngle = math.degrees(light.spot_size)
                 node.coneSoftness = light.spot_blend                    
 
+            for n in nt.nodes:
+                n.select = False   
+
         # convert cycles vis settings
         for ob in context.scene.objects:
             if not ob.cycles_visibility.camera:
@@ -94,6 +101,8 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
                 ob.renderman.visibility_trace_indirect = False
             if not ob.cycles_visibility.transmission:
                 ob.renderman.visibility_trace_transmission = False
+
+
         return {'FINISHED'}
 
 class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
@@ -143,6 +152,10 @@ class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
                     default.specularFaceColor = idblock.specular_color
 
             output.inputs[3].hide = True
+
+
+        for n in nt.nodes:
+            n.select = False               
                       
         return {'FINISHED'}
 
@@ -267,6 +280,10 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
 
             rman_cycles_convert.convert_world_nodetree(idblock, context, df_output)
 
+        # unselect all nodes
+        for n in nt.nodes:
+            n.select = False            
+
         return {'FINISHED'}
 
     def draw(self, context):
@@ -326,9 +343,10 @@ class PRMAN_OT_New_bxdf(bpy.types.Operator):
 
         output = nt.nodes.new('RendermanOutputNode')
         bxdf_node_name = rman_bl_nodes.__BL_NODES_MAP__[bxdf_name]        
-        default = nt.nodes.new('%sBxdfNode' % bxdf_node_name)
+        default = nt.nodes.new(bxdf_node_name)
         default.location = output.location
         default.location[0] -= 300
+        default.select = False
         nt.links.new(default.outputs[0], output.inputs[0])
         if self.bxdf_name == 'PxrLayerSurface':
             shadergraph_utils.create_pxrlayer_nodes(nt, default)
@@ -385,10 +403,12 @@ class PRMAN_OT_New_Material_Override(bpy.types.Operator):
         nt = mat.node_tree
 
         output = nt.nodes.new('RendermanOutputNode')
+        output.select = False
         bxdf_node_name = rman_bl_nodes.__BL_NODES_MAP__[bxdf_name]        
         default = nt.nodes.new(bxdf_node_name)
         default.location = output.location
         default.location[0] -= 300
+        default.select = False
         nt.links.new(default.outputs[0], output.inputs[0])
         if self.bxdf_name == 'PxrLayerSurface':
             shadergraph_utils.create_pxrlayer_nodes(nt, default)
@@ -470,12 +490,14 @@ class PRMAN_OT_Add_Projection_Nodetree(bpy.types.Operator):
 
         nt = bpy.data.node_groups.new(ob.data.name, 'ShaderNodeTree')
         output = nt.nodes.new('RendermanProjectionsOutputNode')
+        output.select = False
         ob.data.renderman.rman_nodetree = nt
 
         proj_node_name = rman_bl_nodes.__BL_NODES_MAP__[self.proj_name]    
         default = nt.nodes.new(proj_node_name)
         default.location = output.location
         default.location[0] -= 300
+        default.select = False
         nt.links.new(default.outputs[0], output.inputs[0])      
         ob.update_tag(refresh={'DATA'})  
 
