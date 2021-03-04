@@ -259,9 +259,9 @@ class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
 
     def draw(self, context):
         layout = self.layout
-        is_rman_interactive_running = context.scene.renderman.is_rman_interactive_running
+        rm = context.scene.renderman
 
-        if not is_rman_interactive_running:
+        if not rm.is_rman_interactive_running:
             rman_rerender_controls = rfb_icons.get_icon("rman_ipr_on")
             layout.operator('renderman.start_ipr', text="IPR",
                             icon_value=rman_rerender_controls.icon_id)                
@@ -276,7 +276,7 @@ class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
             rman_icon = rfb_icons.get_icon('rman_vp_viz')
             layout.menu('PRMAN_MT_Viewport_Integrator_Menu', icon_value=rman_icon.icon_id)
             layout.menu('PRMAN_MT_Viewport_Refinement_Menu', icon='IMPORT')
-            if rman_render.rman_is_viewport_rendering:
+            if rm.is_rman_viewport_rendering:
                 rman_icon = rfb_icons.get_icon('rman_vp_resolution')
                 layout.menu('PRMAN_MT_Viewport_Res_Mult_Menu', icon_value=rman_icon.icon_id)
                 rman_icon = rfb_icons.get_icon('rman_vp_aovs')

@@ -4,19 +4,6 @@
         {
             "panel": "",
             "page": "",
-            "name": "hider_decidither",
-            "riopt": "hider:decidither",
-            "label": "Interactive Refinement",
-            "type": "int",
-            "default": 0,
-            "min": 0,
-            "max": 6,
-            "widget": false,
-            "help": "This value is only applied during IPR. The value determines how much refinement (in a dither pattern) will be applied to the image during interactive rendering. 0 means full refinement up to a value of 6 which is the least refinement per iteration."
-        },
-        {
-            "panel": "",
-            "page": "",
             "name": "hider_type",
             "label": "Hider Type",
             "type": "string",
@@ -179,6 +166,21 @@
         {
             "panel": "RENDER_PT_renderman_sampling",
             "page": "IPR Sampling",
+            "name": "hider_decidither",
+            "riopt": "hider:decidither",
+            "label": "Interactive Refinement",
+            "type": "int",
+            "default": 0,
+            "min": 0,
+            "max": 6,
+            "widget": false,
+            "editable": true,
+            "update_function_name": "update_options_func",
+            "help": "This value is only applied during IPR. The value determines how much refinement (in a dither pattern) will be applied to the image during interactive rendering. 0 means full refinement up to a value of 6 which is the least refinement per iteration."
+        },        
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "page": "IPR Sampling",
             "name": "viewport_render_res_mult",
             "label": "Render Resolution Multiplier",
             "type": "float",
@@ -190,7 +192,12 @@
             "help": "This value is only applied during IPR. This scales down the resolution during viewport renders.",
             "editable": true,
             "update_function_name": "update_viewport_res_mult",
-            "update_function": "def update_viewport_res_mult(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_viewport_res_mult(context)"            
+            "update_function": "def update_viewport_res_mult(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_viewport_res_mult(context)",
+            "conditionalVisOps": {
+                "conditionalVisOp": "equalTo",
+                "conditionalVisPath": "render_into",
+                "conditionalVisValue": "blender"
+            }               
         },
         {
             "panel": "RENDER_PT_renderman_render",
