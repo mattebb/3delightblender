@@ -2,6 +2,7 @@ from . import scene_utils
 from .rman_socket_utils import node_add_inputs
 from .rman_socket_utils import node_add_outputs
 from .rman_socket_utils import update_inputs
+from ..rfb_logger import rfb_log
 
 def assetid_update_func(self, context, param_name):
     from . import texture_utils

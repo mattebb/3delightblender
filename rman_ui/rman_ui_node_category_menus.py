@@ -72,7 +72,7 @@ class NODE_MT_RM_Displacement_Category_Menu(bpy.types.Menu):
             layout.context_pointer_set("nodetree", nt)
             rman_icon = rfb_icons.get_displacement_icon(n.name)
             op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
-            op.node_name = '%sDisplaceNode' % n.name                                   
+            op.node_name = n.name                                   
 
 class NODE_MT_RM_PxrSurface_Category_Menu(bpy.types.Menu):
     bl_label = "PxrSurface"
@@ -91,12 +91,12 @@ class NODE_MT_RM_PxrSurface_Category_Menu(bpy.types.Menu):
         layout.context_pointer_set("nodetree", nt)
         rman_icon = rfb_icons.get_pattern_icon(node_name)
         op = layout.operator('node.rman_shading_create_node', text=node_name, icon_value=rman_icon.icon_id)
-        op.node_name = rman_bl_nodes.__BL_NODES_MAP__[node_name]   
+        op.node_name = node_name   
         node_name = 'PxrLayerMixer'
         layout.context_pointer_set("nodetree", nt)
         rman_icon = rfb_icons.get_pattern_icon(node_name)
         op = layout.operator('node.rman_shading_create_node', text=node_name, icon_value=rman_icon.icon_id)
-        op.node_name = rman_bl_nodes.__BL_NODES_MAP__[node_name]           
+        op.node_name = node_name           
 
 class NODE_MT_RM_Light_Category_Menu(bpy.types.Menu):
     bl_label = "Light"
@@ -115,7 +115,7 @@ class NODE_MT_RM_Light_Category_Menu(bpy.types.Menu):
         layout.context_pointer_set("nodetree", nt)
         rman_icon = rfb_icons.get_light_icon(node_name)
         op = layout.operator('node.rman_shading_create_node', text=node_name, icon_value=rman_icon.icon_id)
-        op.node_name = rman_bl_nodes.__BL_NODES_MAP__[node_name]                                
+        op.node_name = node_name                                
 
 
 class NODE_MT_RM_Integrators_Category_Menu(bpy.types.Menu):
@@ -134,7 +134,7 @@ class NODE_MT_RM_Integrators_Category_Menu(bpy.types.Menu):
             layout.context_pointer_set("nodetree", nt)
             rman_icon = rfb_icons.get_integrator_icon(n.name)
             op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
-            op.node_name = '%sIntegratorNode' % n.name    
+            op.node_name = n.name    
 
 class NODE_MT_RM_SampleFilter_Category_Menu(bpy.types.Menu):
     bl_label = "Sample Filters"
@@ -152,7 +152,7 @@ class NODE_MT_RM_SampleFilter_Category_Menu(bpy.types.Menu):
             layout.context_pointer_set("nodetree", nt)
             rman_icon = rfb_icons.get_samplefilter_icon(n.name)
             op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
-            op.node_name = '%sSamplefilterNode' % n.name         
+            op.node_name = n.name         
 
 class NODE_MT_RM_DisplayFilter_Category_Menu(bpy.types.Menu):
     bl_label = "Display Filters"
@@ -170,7 +170,7 @@ class NODE_MT_RM_DisplayFilter_Category_Menu(bpy.types.Menu):
             layout.context_pointer_set("nodetree", nt)
             rman_icon = rfb_icons.get_displayfilter_icon(n.name)
             op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
-            op.node_name = '%sDisplayfilterNode' % n.name          
+            op.node_name = n.name          
 
 classes = [
     NODE_MT_RM_Bxdf_Category_Menu,
