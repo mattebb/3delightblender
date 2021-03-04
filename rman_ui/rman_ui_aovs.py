@@ -313,14 +313,14 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
             row.prop(channel, "remap_b", text="B")
             row.prop(channel, "remap_c", text="C")
             layout.separator()
-            
-            row = col.row()
-            row.prop(channel, "chan_pixelfilter")
-            row = col.row()
-            if channel.chan_pixelfilter != 'default':
-                row.prop(channel, "chan_pixelfilter_x", text="Size X")
-                row.prop(channel, "chan_pixelfilter_y", text="Size Y")
-            layout.separator()
+            if rm.hider_pixelFilterMode != 'importance':
+                row = col.row()
+                row.prop(channel, "chan_pixelfilter")
+                row = col.row()
+                if channel.chan_pixelfilter != 'default':
+                    row.prop(channel, "chan_pixelfilter_x", text="Size X")
+                    row.prop(channel, "chan_pixelfilter_y", text="Size Y")
+                layout.separator()
             row = col.row()
             row.prop(channel, "stats_type")
             layout.separator()

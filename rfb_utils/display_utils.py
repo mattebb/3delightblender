@@ -209,30 +209,7 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
         'dspyDriverParams': param_list}
 
     if display_driver == 'blender' and rman_scene.is_viewport_render:
-            display_driver = 'null'
-
-    if rman_scene.is_interactive:
-        # Add ID pass
-        dspy_params = {}                        
-        dspy_params['displayChannels'] = []            
-        d = _default_dspy_params()
-        d[u'channelSource'] = {'type': u'string', 'value': 'id'}
-        d[u'channelType'] = { 'type': u'string', 'value': 'integer'}        
-        d[u'filter'] = {'type': u'string', 'value': 'zmin'}
-        d[u'filterwidth'] = { 'type': u'float2', 'value': [1, 1]}                       
-        dspys_dict['channels']['id'] = d     
-        dspy_params['displayChannels'].append('id')
-        filePath = 'id_pass'
-        
-        dspys_dict['displays']['id_pass'] = {
-            'driverNode': display_driver,
-            'filePath': filePath,
-            'denoise': False,
-            'denoise_mode': 'singleframe',  
-            'camera': None,    
-            'bake_mode': None,          
-            'params': dspy_params,
-            'dspyDriverParams': None}           
+            display_driver = 'null' 
 
     # so use built in aovs
     blender_aovs = [
@@ -271,7 +248,10 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
             settings = rman_config.__RMAN_DISPLAY_CHANNELS__[source]
 
             d[u'channelSource'] = {'type': u'string', 'value': settings['channelSource']}
-            d[u'channelType'] = { 'type': u'string', 'value': settings['channelType']}              
+            d[u'channelType'] = { 'type': u'string', 'value': settings['channelType']}     
+            if source == 'id':
+                d[u'filter'] = {'type': u'string', 'value': 'zmin'}
+                d[u'filterwidth'] = { 'type': u'float2', 'value': [1, 1]}             
 
             dspys_dict['channels'][name] = d
             dspy_params['displayChannels'].append(name)
@@ -283,7 +263,31 @@ def _set_blender_dspy_dict(layer, dspys_dict, dspy_drv, rman_scene, expandTokens
             'camera': None, 
             'bake_mode': None,                
             'params': dspy_params,
-            'dspyDriverParams': param_list}     
+            'dspyDriverParams': param_list}   
+
+    if not layer.use_pass_object_index and rman_scene.is_interactive:
+        # Add ID pass if it was not requested and we're in
+        # IPR mode
+        dspy_params = {}                        
+        dspy_params['displayChannels'] = []            
+        d = _default_dspy_params()
+        d[u'channelSource'] = {'type': u'string', 'value': 'id'}
+        d[u'channelType'] = { 'type': u'string', 'value': 'integer'}        
+        d[u'filter'] = {'type': u'string', 'value': 'zmin'}
+        d[u'filterwidth'] = { 'type': u'float2', 'value': [1, 1]}                       
+        dspys_dict['channels']['id'] = d     
+        dspy_params['displayChannels'].append('id')
+        filePath = 'id_pass'
+        
+        dspys_dict['displays']['id_pass'] = {
+            'driverNode': display_driver,
+            'filePath': filePath,
+            'denoise': False,
+            'denoise_mode': 'singleframe',  
+            'camera': None,    
+            'bake_mode': None,          
+            'params': dspy_params,
+            'dspyDriverParams': None}                     
 
 def _get_real_chan_name(chan):
     """ Get the real channel name
@@ -325,8 +329,12 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
             d[u'remap_b'] = { 'type': u'float', 'value': chan.remap_b}
             d[u'remap_c'] = { 'type': u'float', 'value': chan.remap_c}
             d[u'exposure'] = { 'type': u'float2', 'value': [chan.exposure_gain, chan.exposure_gamma] }
-            d[u'filter'] = {'type': u'string', 'value': chan.chan_pixelfilter}
-            d[u'filterwidth'] = { 'type': u'float2', 'value': [chan.chan_pixelfilter_x, chan.chan_pixelfilter_y]}
+
+            if rm.hider_pixelFilterMode != 'importance':
+                # per channel filter does not work in importance mode
+                d[u'filter'] = {'type': u'string', 'value': chan.chan_pixelfilter}
+                d[u'filterwidth'] = { 'type': u'float2', 'value': [chan.chan_pixelfilter_x, chan.chan_pixelfilter_y]}
+
             d[u'statistics'] = { 'type': u'string', 'value': chan.stats_type}
             d[u'shadowthreshold'] = { 'type': u'float', 'value': chan.shadowthreshold}
             dspys_dict['channels'][ch_name] = d    
