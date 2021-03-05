@@ -346,6 +346,9 @@ class RmanSceneSync(object):
                         # grease pencil curves
                         self._gpencil_transform_updated(obj)
                     elif rman_type == 'EMPTY':
+                        if ob.is_instancer:
+                            _check_empty(ob)
+                            continue
                         translator = self.rman_scene.rman_translators['EMPTY']
                         rman_sg_node = self.rman_scene.rman_objects.get(ob.original, None)
                         if rman_sg_node:
@@ -357,10 +360,7 @@ class RmanSceneSync(object):
                                     self.rman_scene.get_root_sg_node().RemoveCoordinateSystem(rman_sg_node.sg_node)
                         continue
                     else:
-                        if ob.type == 'EMPTY' and ob.is_instancer:
-                            _check_empty(ob)
-                        else:
-                            update_instances.append(obj.id.original)                  
+                        update_instances.append(obj.id.original)                  
 
                 if obj.is_updated_geometry:
                     if is_hidden:
