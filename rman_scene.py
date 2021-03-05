@@ -120,6 +120,7 @@ class RmanScene(object):
         self.default_light = None
 
         self.viewport_render_res_mult = 1.0
+        self.num_object_instances = 0
 
         self.create_translators()     
 
@@ -185,6 +186,7 @@ class RmanScene(object):
         else:
             self.viewport_render_res_mult = 1.0  
         self.is_xpu = False  
+        self.num_object_instances = 0
 
     def export_for_final_render(self, depsgraph, sg_scene, bl_view_layer, is_external=False):
         self.sg_scene = sg_scene
@@ -322,6 +324,7 @@ class RmanScene(object):
         self._update_progress("Finished Export", 1.0)            
 
         if self.is_interactive:
+            self.num_object_instances = len(self.depsgraph.object_instances)
             self.check_solo_light()
 
             if self.is_viewport_render:

@@ -22,6 +22,7 @@ class RmanSgNode(object):
         self.rman_type = ''
         self.is_instancer = False
         self.is_meshlight = False
+        self.is_hidden = False
         
         # the rman_sg_node this is instance of, if any
         self.rman_sg_node_instance = None
