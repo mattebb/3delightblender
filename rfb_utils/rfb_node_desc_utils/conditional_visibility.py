@@ -67,7 +67,7 @@ def _condvis_expr(pdict, prefix, trigger_params, expr=''):
         rexpr = _condvis_expr(pdict, right_side, trigger_params, expr=expr)
         expr += '%s %s %s' % (lexpr, opr, rexpr)
     else:
-        attr = pdict[fmt % 'Path'].strip('./')
+        attr = pdict[fmt % 'Path'].split('/')[-1]
         opr = COND_VIS_OPS[pdict[fmt % 'Op']]
         val = _safe_eval(pdict[fmt % 'Value'])
 
