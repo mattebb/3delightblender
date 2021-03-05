@@ -23,6 +23,7 @@ import os
 import sys
 import traceback
 import nodeitems_utils
+from operator import attrgetter
 
 # registers
 from . import rman_bl_nodes_sockets
@@ -514,6 +515,15 @@ def get_path_list():
             paths.append(os.path.join(p, 'Args'))
 
     return paths
+
+class RendermanWorldShaderNodeCategory(NodeCategory):
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        if rd.engine != 'PRMAN_RENDER':
+            return False        
+        return context.space_data.tree_type == 'ShaderNodeTree' and context.space_data.shader_type == 'WORLD'
                      
 class RendermanShaderNodeCategory(NodeCategory):
 
@@ -522,7 +532,7 @@ class RendermanShaderNodeCategory(NodeCategory):
         rd = context.scene.render
         if rd.engine != 'PRMAN_RENDER':
             return False        
-        return context.space_data.tree_type == 'ShaderNodeTree' and context.space_data.shader_type in ['OBJECT', 'WORLD']
+        return context.space_data.tree_type == 'ShaderNodeTree' and context.space_data.shader_type == 'OBJECT'
 
 class RendermanNodeItem(NodeItem):
     '''
@@ -531,6 +541,9 @@ class RendermanNodeItem(NodeItem):
     '''
 
     def draw(self, item, layout, context):
+        # skip everything but our submenu item
+        if item.nodetype != '__RenderMan_Node_Menu__':
+            return
         if context.space_data.shader_type == 'OBJECT':
             mat = getattr(context, 'material', None)
             if not mat:
@@ -613,7 +626,7 @@ def register_rman_nodes():
                         __BL_NODES_MAP__[node_desc.name] = typename
 
                     # categories
-                    node_item = NodeItem(typename, label=nodetype.bl_label)
+                    node_item = RendermanNodeItem(typename, label=nodetype.bl_label)
                     if node_desc.node_type == 'pattern':
                         # we favor the OSL version over the C++ version
                         # so only add the OSL version into categories list                        
@@ -713,14 +726,39 @@ def register_rman_nodes():
 def register_node_categories():
 
     node_categories = []    
-    items = []
-    items.append(RendermanNodeItem('RenderMan', label='RenderMan'))
-    
-    shader_category = RendermanShaderNodeCategory('RenderMan', 'RenderMan', items=items)
+    all_items = []
+    all_items.append(RendermanNodeItem('__RenderMan_Node_Menu__', label='RenderMan'))
+
+    # we still need to register our nodes for our category
+    # otherwise, they won't show up in th search
+    for k in ['bxdf', 'displace', 'light', 'pattern']:
+        v = __RMAN_NODE_CATEGORIES__[k]
+        for name, ((desc, items), lst) in v.items():
+            if items:
+                if k == 'light':
+                    # we only want PxrMeshLight
+                    for i in items:
+                        if i.label == 'PxrMeshLight':
+                            all_items.append(i)
+                            break
+                else:
+                    all_items.extend(items)
+
+    shader_category = RendermanShaderNodeCategory('RenderMan', 'RenderMan', items=all_items)
     node_categories.append(shader_category)
 
+    all_items = []
+    all_items.append(RendermanNodeItem('__RenderMan_Node_Menu__', label='RenderMan'))    
+    for k in ['integrator', 'displayfilter', 'samplefilter']:
+        v = __RMAN_NODE_CATEGORIES__[k]
+        for name, ((desc, items), lst) in v.items():
+            if items:
+                all_items.extend(items)
+
+    shader_category = RendermanWorldShaderNodeCategory('RenderMan', 'RenderMan', items=all_items)
+    node_categories.append(shader_category)
     nodeitems_utils.register_node_categories("RENDERMANSHADERNODES",
-                                                node_categories)  
+                                            node_categories)   
 
 def register():
     global __RMAN_NODES_ALREADY_REGISTERED__

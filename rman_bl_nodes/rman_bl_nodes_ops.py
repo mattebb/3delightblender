@@ -220,14 +220,14 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
 
         if input_node is None:
             rman_node_name = rman_bl_nodes.__BL_NODES_MAP__.get(self.node_name)
-            newnode = nt.nodes.new(rman_node_name)
-            newnode.select = False
             if node and socket and nt:
+                newnode = nt.nodes.new(rman_node_name)
+                newnode.select = False
                 newnode.location = node.location
                 newnode.location[0] -= 300
                 link_node(nt, newnode, socket)
             else:
-                newnode.location = context.space_data.cursor_location
+                bpy.ops.node.add_node(type=rman_node_name, use_transform=True)
 
         # replace input node with a new one
         else:
