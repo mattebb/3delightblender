@@ -29,6 +29,9 @@ class RmanSceneSync(object):
         self.rman_scene = rman_scene
         self.sg_scene = sg_scene        
 
+        self.update_instances = set() # set of objects we need to update their instances
+        self.update_particle_systems = set() # set of objects that need their particle systems updated
+
     @property
     def sg_scene(self):
         return self.__sg_scene
@@ -104,7 +107,7 @@ class RmanSceneSync(object):
                             self.rman_scene.sg_scene.DeleteDagNode(rman_sg_group.sg_node)                              
                             self.rman_scene._export_instance(ob_inst)                 
 
-    def _material_updated(self, obj):
+    def _material_updated(self, obj, updated_obs):
         mat = obj.id
         rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
         translator = self.rman_scene.rman_translators["MATERIAL"]              
@@ -115,6 +118,10 @@ class RmanSceneSync(object):
                 db_name = object_utils.get_db_name(mat)
                 rman_sg_material = translator.export(mat, db_name)
                 self.rman_scene.rman_materials[mat.original] = rman_sg_material
+                for ob in updated_obs:
+                    rman_sg_node = self.rman_scene.rman_objects[ob]
+                    for k,rman_sg_group in rman_sg_node.instances.items():
+                        rman_sg_group.sg_node.SetMaterial(rman_sg_material.sg_node) 
                 
             else:
                 rfb_log().debug("Material, call update")
@@ -215,8 +222,8 @@ class RmanSceneSync(object):
 
         new_objs = set() # set of new objects
         new_cams = set() # set of new cameras
-        update_instances = set() # set of objects we need to update their instances
-        update_particle_systems = set() # set of objects that need their particle systems updated
+        self.update_instances = set()
+        self.update_particle_systems = set()
 
         do_delete = False # whether or not we need to do an object deletion
         do_add = False # whether or not we need to add an object
@@ -228,6 +235,11 @@ class RmanSceneSync(object):
         self.rman_scene.bl_scene = depsgraph.scene
         self.rman_scene.context = context        
 
+        # Running set of transform objects. We need this in case a new material
+        # is added and attached to objects. For some reason, Blender tells us objects
+        # have been updated before we are told a material has been updated
+        update_transform_obs = set() 
+        
         # Particle system was updated        
         if depsgraph.id_type_updated('PARTICLE'):
             particle_system_updated = True
@@ -253,8 +265,8 @@ class RmanSceneSync(object):
                         for col_obj in collection.all_objects:
                             if col_obj.original not in self.rman_scene.rman_objects:
                                 new_objs.add(col_obj.original)
-                            update_instances.add(col_obj.original) 
-                            update_particle_systems.add(col_obj.original)           
+                            self.update_instances.add(col_obj.original) 
+                            self.update_particle_systems.add(col_obj.original)           
                     else:
                         collection_objs = collection.all_objects.keys()
                         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
@@ -273,7 +285,7 @@ class RmanSceneSync(object):
                                 rman_sg_group = rman_sg_node.instances.get(group_db_name, None)
                                 if rman_sg_group:
                                     rman_group_translator.update_transform(ob_inst, rman_sg_group)  
-                                update_particle_systems.add(id.original)       
+                                self.update_particle_systems.add(id.original)       
             else:
                 translator = self.rman_scene.rman_translators['EMPTY']
                 with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
@@ -309,7 +321,7 @@ class RmanSceneSync(object):
 
             elif isinstance(obj.id, bpy.types.Material):
                 rfb_log().debug("Material updated: %s" % obj.id.name)
-                self._material_updated(obj)    
+                self._material_updated(obj, update_transform_obs)    
               
             elif isinstance(obj.id, bpy.types.Object):
 
@@ -351,7 +363,7 @@ class RmanSceneSync(object):
                                 return
                             rfb_log().debug("New object added: %s" % obj.id.name)                                    
                             new_objs.add(obj.id.original)
-                            update_instances.add(obj.id.original)
+                            self.update_instances.add(obj.id.original)
                     continue      
 
                 if rman_sg_node and rman_sg_node.sg_node:
@@ -367,8 +379,8 @@ class RmanSceneSync(object):
                             if rman_type == 'EMPTY' and ob.is_instancer:
                                 _check_empty(ob)
                             else:         
-                                update_instances.add(obj.id.original)        
-                                update_particle_systems.add(obj.id.original)   
+                                self.update_instances.add(obj.id.original)        
+                                self.update_particle_systems.add(obj.id.original)   
                 else:
                     continue        
 
@@ -394,8 +406,9 @@ class RmanSceneSync(object):
                     elif rman_type == 'EMPTY':
                         _check_empty(ob, rman_sg_node)
                     elif num_instances_changed:
-                        update_instances.add(obj.id.original)                  
+                        self.update_instances.add(obj.id.original)                  
                     else:
+                        update_transform_obs.add(obj.id.original)
                         # this is a simple transform
                         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
                             rman_group_translator = self.rman_scene.rman_translators['GROUP']
@@ -417,13 +430,13 @@ class RmanSceneSync(object):
                         # don't update if this is hidden
                         continue
                     if num_instances_changed:
-                        update_particle_systems.add(obj.id.original)                   
+                        self.update_particle_systems.add(obj.id.original)                   
                     elif not particle_system_updated:
                         rfb_log().debug("Object updated: %s" % obj.id.name)
                         self._obj_geometry_updated(obj)   
                     elif obj.id.type not in ['CAMERA']:    
                         rfb_log().debug("Object's Particle Systems updated: %s" % obj.id.name)    
-                        update_particle_systems.add(obj.id.original)                            
+                        self.update_particle_systems.add(obj.id.original)                            
 
             elif isinstance(obj.id, bpy.types.Collection):
                 if not do_delete:
@@ -438,7 +451,7 @@ class RmanSceneSync(object):
                 for o in obj.id.all_objects:
                     if o.type in ('ARMATURE', 'CURVE', 'CAMERA'):
                         continue
-                    update_instances.add(o.original)
+                    self.update_instances.add(o.original)
 
         # call txmake all in case of new textures
         texture_utils.get_txmanager().txmake_all(blocking=False)                      
@@ -446,7 +459,7 @@ class RmanSceneSync(object):
         # loop over any objects that were marked their particle systems needing updated
         # if the particle system is an instancer, we mark the instanced object as needing
         # its instances updated
-        for ob in update_particle_systems:
+        for ob in self.update_particle_systems:
             rman_type = object_utils._detect_primitive_(ob)
             rman_sg_node = self.rman_scene.rman_objects.get(ob, None)
             if rman_type not in ['MESH', 'POINTS']:
@@ -470,10 +483,10 @@ class RmanSceneSync(object):
                 for psys in ob_eval.particle_systems:
                     if psys.settings.render_type == 'OBJECT':
                         # this particle system is a instancer, add the instanced object
-                        # to the update_instances list
+                        # to the self.update_instances list
                         inst_ob = psys.settings.instance_object 
                         if inst_ob:
-                            update_instances.add(inst_ob.original)      
+                            self.update_instances.add(inst_ob.original)      
                         continue
 
                     ob_psys = self.rman_scene.rman_particles.get(ob_eval.original, dict())
@@ -499,10 +512,10 @@ class RmanSceneSync(object):
                     self.rman_scene.default_light.SetHidden(1)    
 
         # update instances
-        if update_instances:
+        if self.update_instances:
             with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
                 # delete all instances for each object in the
-                # update_instances list
+                # self.update_instances list
                 #
                 # even if it's a simple a transform, we still have to delete all
                 # the instances as this could be part of a particle system, or
@@ -513,7 +526,7 @@ class RmanSceneSync(object):
                 # has been removed
 
                 rfb_log().debug("Deleting instances")
-                for ob in update_instances:
+                for ob in self.update_instances:
                     #rfb_log().debug("Deleting instances of: %s" % ob.name)
                     rman_sg_node = self.rman_scene.rman_objects.get(ob, None) 
                     if rman_sg_node:
@@ -532,7 +545,7 @@ class RmanSceneSync(object):
                     else:
                         ob = ob_inst.object
 
-                    if ob.original not in update_instances:
+                    if ob.original not in self.update_instances:
                         continue
 
                     self.rman_scene._export_instance(ob_inst)                              
