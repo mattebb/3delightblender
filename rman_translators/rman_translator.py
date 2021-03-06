@@ -100,6 +100,7 @@ class RmanTranslator(object):
     def export_object_id(self, ob, rman_sg_node, ob_inst):
         name = ob.name_full
         attrs = rman_sg_node.sg_node.GetAttributes()
+        rman_type = object_utils._detect_primitive_(ob)
 
         # Add ID
         if name != "":            
@@ -108,6 +109,15 @@ class RmanTranslator(object):
                 persistent_id = hash(ob.name_full) % 10**8                   
             self.rman_scene.obj_hash[persistent_id] = name
             attrs.SetInteger(self.rman_scene.rman.Tokens.Rix.k_identifier_id, persistent_id)
+
+            if rman_type in [
+                    'DELAYED_LOAD_ARCHIVE',
+                    'ALEMBIC',
+                    'PROCEDURAL_RUN_PROGRAM',
+                    'DYNAMIC_LOAD_DSO'
+                ]:
+                procprimid = float(hash(rman_sg_node.db_name) % 10**8 )
+                attrs.SetFloat('user:procprimid', procprimid)  
 
         rman_sg_node.sg_node.SetAttributes(attrs)      
 
