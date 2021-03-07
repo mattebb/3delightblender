@@ -600,7 +600,9 @@ class RmanScene(object):
 
                     ob_psys = self.rman_particles.get(ob.original, dict())
                     ob_psys[psys.settings.original] = rman_sg_particles
-                    self.rman_particles[ob.original] = ob_psys                       
+                    self.rman_particles[ob.original] = ob_psys 
+                    self.rman_objects[psys.settings.original] = rman_sg_particles  
+                    self.processed_obs.append(psys.settings.original)
                     rman_sg_node.rman_sg_particle_group_node.sg_node.AddChild(rman_sg_particles.sg_node)
 
             elif rman_type == 'EMPTY' and (ob.hide_render or ob.hide_viewport):
