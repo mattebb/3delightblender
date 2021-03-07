@@ -672,9 +672,11 @@ class RmanScene(object):
             ob = ob_inst.instance_object
             psys = ob_inst.particle_system
             if psys:
-                #particles_db_name = object_utils.get_db_name(parent, psys=psys)
-                #rman_sg_particles = self.rman_particles.get(psys.settings.original, None)
-                pass
+                # This object was instanced as part of a particle system. Add the object
+                # to particle system's owner' objects_instanced set.
+                parent_sg_node = self.rman_objects.get(parent.original, None)
+                if parent_sg_node:                
+                    parent_sg_node.objects_instanced.add(ob.original)
             else:                
                 #if parent.type == "EMPTY" and parent.is_instancer:
                 if parent.is_instancer:
@@ -764,7 +766,8 @@ class RmanScene(object):
 
             # attach material
             if psys:
-                self.attach_particle_material(psys, ob, rman_sg_group)
+                self.attach_particle_material(psys.settings, ob, rman_sg_group)
+                rman_sg_group.bl_psys_settings = psys.settings.original
             else:
                 self.attach_material(ob, rman_sg_group)                
             
@@ -824,7 +827,7 @@ class RmanScene(object):
                 rman_sg_node.sg_node.is_meshlight = rman_sg_material.has_meshlight       
         '''
 
-    def attach_particle_material(self, psys, ob, group):
+    def attach_particle_material(self, psys_settings, ob, group):
         if ob.renderman.rman_material_override:
             mat = ob.renderman.rman_material_override
             rman_sg_material = self.rman_materials.get(mat.original, None)
@@ -833,7 +836,7 @@ class RmanScene(object):
                 group.is_meshlight = rman_sg_material.has_meshlight     
             return
 
-        mat_idx = psys.settings.material - 1
+        mat_idx = psys_settings.material - 1
         if mat_idx < len(ob.material_slots):
             mat = ob.material_slots[mat_idx].material
             mat_db_name = object_utils.get_db_name(mat)

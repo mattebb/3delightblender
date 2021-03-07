@@ -39,6 +39,12 @@ class RmanSgNode(object):
         # in texture paths
         self.is_frame_sensitive = False
 
+        # objects that this node creates as part of ninstancing
+        self.objects_instanced = set()
+
+        # psys
+        self.bl_psys_settings = None
+
     @property
     def rman_scene(self):
         return self.__rman_scene
