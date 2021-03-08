@@ -6,14 +6,6 @@ from ..rfb_utils import transform_utils
 import bpy
 import math
 
-def is_instancer(psys):
-    if psys.settings.type == 'HAIR' and psys.settings.render_type != 'PATH':
-        return True  
-    if psys.settings.type == 'EMITTER' and psys.settings.render_type in ['COLLECTION', 'OBJECT', 'NONE']:
-        return True
-
-    return False
-
 class RmanParticlesTranslator(RmanTranslator):
 
     def __init__(self, rman_scene):
@@ -22,7 +14,7 @@ class RmanParticlesTranslator(RmanTranslator):
 
     def export(self, ob, psys, db_name):
 
-        if is_instancer(psys):
+        if object_utils.is_particle_instancer(psys):
             return False
 
         self.particles_type = psys.settings.type
@@ -52,7 +44,7 @@ class RmanParticlesTranslator(RmanTranslator):
         emitter_translator = self.rman_scene.rman_translators['EMITTER']
         hair_translator = self.rman_scene.rman_translators['HAIR']        
 
-        if psys.settings.type == 'EMITTER' and not is_instancer(psys):
+        if psys.settings.type == 'EMITTER' and not object_utils.is_particle_instancer(psys):
             emitter_translator.export_deform_sample(rman_sg_particles.rman_sg_emitter, ob, psys, time_sample)
         elif psys.settings.type == 'HAIR' and psys.settings.render_type == 'PATH':
             #hair_translator.export_deform_sample(rman_sg_particles.rman_sg_hair, ob, psys, time_sample)
@@ -73,17 +65,21 @@ class RmanParticlesTranslator(RmanTranslator):
         if rman_sg_particles.rman_sg_hair.sg_node:
             rman_sg_particles.sg_node.RemoveChild(rman_sg_particles.rman_sg_hair.sg_node)
 
-        if psys.settings.type == 'HAIR' and not is_instancer(psys):
+        if psys.settings.type == 'HAIR' and not object_utils.is_particle_instancer(psys):
             hair_translator = self.rman_scene.rman_translators['HAIR']
             hair_translator.update(ob, psys, rman_sg_particles.rman_sg_hair)
             if rman_sg_particles.rman_sg_hair.sg_node:
                 rman_sg_particles.sg_node.AddChild(rman_sg_particles.rman_sg_hair.sg_node)
 
             self.particles_type = psys.settings.type
+            return True
 
-        elif psys.settings.type == 'EMITTER' and not is_instancer(psys):
+        elif psys.settings.type == 'EMITTER' and not object_utils.is_particle_instancer(psys):
             emitter_translator = self.rman_scene.rman_translators['EMITTER']  
             emitter_translator.update(ob, psys, rman_sg_particles.rman_sg_emitter)
             if rman_sg_particles.rman_sg_emitter.sg_node:
                 rman_sg_particles.sg_node.AddChild(rman_sg_particles.rman_sg_emitter.sg_node)            
             self.particles_type = psys.settings.type
+            return True
+
+        return False

@@ -59,6 +59,14 @@ def get_group_db_name(ob_inst):
 
     return string_utils.sanitize_node_name(group_db_name)
 
+def is_particle_instancer(psys):
+    if psys.settings.type == 'HAIR' and psys.settings.render_type != 'PATH':
+        return True  
+    if psys.settings.type == 'EMITTER' and psys.settings.render_type in ['COLLECTION', 'OBJECT']:
+        return True
+
+    return False    
+
 def get_meta_family(ob):
     return ob.name.split('.')[0]
 

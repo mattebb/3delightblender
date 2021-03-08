@@ -227,19 +227,24 @@ class RmanSceneSync(object):
                         psys_translator = self.rman_scene.rman_translators['PARTICLES']
                         psys_translator.update(obj.id, psys, rman_sg_particles)
                     return
+                # This is a particle instancer. The instanced object needs to updated
+                elif object_utils.is_particle_instancer(psys):
+                    inst_object = getattr(particle_settings_node, 'instance_object', None) 
+                    collection = getattr(particle_settings_node, 'instance_collection', None)
+                    if inst_object:
+                        self.update_instances.add(inst_object.original)
+                    if collection:
+                        for col_obj in collection.all_objects:
+                            if col_obj.original not in self.rman_scene.rman_objects:
+                                new_objs.add(col_obj.original)
+                            self.update_instances.add(col_obj.original) 
+                    break                                 
 
-        # Check if these are instancers. If they are, we need to mark the instanced
-        # objects as needed to be updated
-        if particle_settings_node.render_type == 'OBJECT':
-            self.update_instances.add(particle_settings_node.instance_object.original)
-        elif particle_settings_node.render_type == 'COLLECTION':
-            coll = particle_settings_node.instance_collection
-            for o in coll.all_objects:
-                if o.type in ('ARMATURE', 'CURVE', 'CAMERA'):
-                    continue
-                self.update_instances.add(o.original)
-        else:
-            self.update_particle_systems.add(obj.id.original)        
+        # Update any other instance objects this object instanced. The instanced
+        # object may have changed
+        rman_sg_node = self.rman_scene.rman_objects.get(obj.id.original, None)
+        self.update_instances.update(rman_sg_node.objects_instanced)
+        rman_sg_node.objects_instanced.clear()        
 
     def update_scene(self, context, depsgraph):
         ## FIXME: this function is waaayyy too big and is doing too much stuff
@@ -433,13 +438,16 @@ class RmanSceneSync(object):
                         self._gpencil_transform_updated(obj)
                     elif rman_type == 'EMPTY':
                         _check_empty(ob, rman_sg_node)
-                    elif self.num_instances_changed:                        
-                        self.update_instances.add(obj.id.original)                  
+                    elif self.num_instances_changed:
+                        rman_sg_node = self.rman_scene.rman_objects.get(obj.id.original, None)
+                        self.update_instances.update(rman_sg_node.objects_instanced)
+                        rman_sg_node.objects_instanced.clear()
                     else:
                         # This is a simple transform. Take the time to also update material attachment,
                         # attributes and primvars; these may have changed.  
 
-                        # We always have to update particle systems when the object has transformed    
+                        # We always have to update particle systems when the object has transformed
+                        # A transform changed can also be triggered when a particle system is removed.
                         self.update_particle_systems.add(obj.id.original)                  
                         
                         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
@@ -473,14 +481,15 @@ class RmanSceneSync(object):
                         continue
 
                     rfb_log().debug("Object updated: %s" % obj.id.name)
-                    if has_particle_systems:
-                        if particle_settings_node:
-                            self.do_delete = False
-                            self.update_particle_settings(obj, particle_settings_node)
-                        else:
-                            self.update_particle_systems.add(obj.id.original)
-                    if not self.num_instances_changed:
-                        self._obj_geometry_updated(obj)
+                    if has_particle_systems and particle_settings_node:
+                        self.do_delete = False
+                        self.update_particle_settings(obj, particle_settings_node)
+                    else:
+                        if not self.num_instances_changed:
+                            self._obj_geometry_updated(obj)
+                        # We always update particle systems in the non-num_instance_change case
+                        # because the particle system can be pointing to a whole new particle settings
+                        self.update_particle_systems.add(obj.id.original)
 
             elif isinstance(obj.id, bpy.types.Collection):
                 if not self.do_delete:
@@ -532,12 +541,18 @@ class RmanSceneSync(object):
                 psys_translator = self.rman_scene.rman_translators['PARTICLES']
 
                 for psys in ob_eval.particle_systems:
-                    if psys.settings.render_type == 'OBJECT':
+                    if object_utils.is_particle_instancer(psys):
                         # this particle system is a instancer, add the instanced object
                         # to the self.update_instances list
-                        inst_ob = psys.settings.instance_object 
+                        inst_ob = getattr(psys.settings, 'instance_object', None) 
+                        collection = getattr(psys.settings, 'instance_collection', None)
                         if inst_ob:
                             self.update_instances.add(inst_ob.original)      
+                        if collection:
+                            for col_obj in collection.all_objects:
+                                if col_obj.original not in self.rman_scene.rman_objects:
+                                    new_objs.add(col_obj.original)
+                                self.update_instances.add(col_obj.original) 
                         continue
 
                     ob_psys = self.rman_scene.rman_particles.get(ob_eval.original, dict())
