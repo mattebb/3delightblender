@@ -6,6 +6,7 @@ from .rfb_utils import scene_utils
 from .rfb_utils import shadergraph_utils
 
 from .rfb_logger import rfb_log
+from .rman_sg_nodes.rman_sg_lightfilter import RmanSgLightFilter
 
 import bpy
 
