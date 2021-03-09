@@ -516,7 +516,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                         if rman_sg_node:
                             set_frame_sensitive(rman_sg_node, prop)
 
-                        val = val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
+                        val = string_utils.expand_string(prop)
                         if param_widget in ['fileinput', 'assetidinput']:
                             options = meta['options']
                             # txmanager doesn't currently deal with ptex
