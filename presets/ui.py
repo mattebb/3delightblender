@@ -73,7 +73,8 @@ class PRMAN_PT_Renderman_Presets_UI_Panel(bpy.types.Panel):
         if context.scene.render.engine != "PRMAN_RENDER":
             return
 
-        layout.operator('renderman.rman_open_presets_editor', text='Preset Browser')
+        rfb_icon = rfb_icons.get_icon("rman_presetbrowser")
+        layout.operator('renderman.rman_open_presets_editor', text='Preset Browser', icon_value=rfb_icon.icon_id)
 
 class PRMAN_MT_Renderman_Presets_Categories_Menu(bpy.types.Menu):
     bl_idname = "PRMAN_MT_renderman_presets_categories_menu"
@@ -105,7 +106,8 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
 
-        layout.operator('renderman.rman_open_presets_editor', text='Preset Browser')
+        rfb_icon = rfb_icons.get_icon("rman_presetbrowser")
+        layout.operator('renderman.rman_open_presets_editor', text='Preset Browser', icon_value=rfb_icon.icon_id)
         layout.separator()
         layout.menu('PRMAN_MT_renderman_presets_categories_menu', text="Select Category")   
 
@@ -235,6 +237,12 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
             preset.author = ass.getMetadata('author')
             preset.version = str(ass.getMetadata('version'))
             preset.created = ass.getMetadata('created')
+            metadict = ass.getMetadataDict()
+            for k,v in metadict.items():
+                meta = preset.preset_metadata.add()
+                meta.key = str(k)
+                meta.value = str(v)
+
             thumb = icons.get_preset_icon(preset.path)
             preset.icon_id = thumb.icon_id                       
 
@@ -314,7 +322,7 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
         cat = self.preset_categories[self.preset_categories_index]
         preset = None
         box = col.box()
-        box.template_icon(self.icon_id, scale=8.0)         
+        box.template_icon(self.icon_id, scale=10.0)         
         if self.presets_index > -1 and self.presets_index < len(self.presets):
             preset = self.presets[self.presets_index]
 
@@ -339,6 +347,11 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
             box.label(text='Created: %s' % preset.created)
             if preset.resolution != '':
                 box.label(text='Resolution: %s' % preset.resolution)
+            for meta in preset.preset_metadata:
+                col.label(text='%s: ' % (meta.key))
+                # Blender doesn't like \n in labels, so we have to split the string
+                for d in meta.value.split('\n'):
+                    col.label(text='%s%s' % ('      ',  d))
         else:
             box.label(text='')
         row = layout.row()
@@ -372,7 +385,7 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
         self.load_categories(context)
              
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=600)   
+        return wm.invoke_props_dialog(self, width=700)   
 
 def rman_presets_object_menu(self, context):
 

@@ -29,6 +29,11 @@ from ..rfb_logger import rfb_log
 import bpy.utils
 import os
 
+class RendermanPresetMetaData(PropertyGroup):
+
+    key: StringProperty(name="Key", default='')
+    value: StringProperty(name="Value", default='')
+
 class RendermanPreset(PropertyGroup):
     '''This class represents a single RendderMan preset on disk
 
@@ -53,6 +58,9 @@ class RendermanPreset(PropertyGroup):
     version: StringProperty(default='', name="Version")
     created: StringProperty(default='', name="Created")
     resolution: StringProperty(default='', name="Resolution")
+    preset_metadata: CollectionProperty(type=RendermanPresetMetaData,
+                                      name="Meta Data")
+
     thumb_path: StringProperty(subtype='FILE_PATH')
     path: StringProperty(subtype='FILE_PATH')
     json_path: StringProperty(subtype='FILE_PATH')
@@ -76,6 +84,7 @@ class RendermanPresetCategory(PropertyGroup):
     rel_path: StringProperty(default='', name='Rel Path', subtype="FILE_PATH")
 
 classes = [
+    RendermanPresetMetaData,
     RendermanPreset,
     RendermanPresetCategory
 ]

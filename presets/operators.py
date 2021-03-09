@@ -30,8 +30,9 @@ from ..rfb_logger import rfb_log
 import os
 from distutils.dir_util import copy_tree
 import bpy
-from bpy.props import StringProperty, EnumProperty, BoolProperty
+from bpy.props import StringProperty, EnumProperty, BoolProperty, CollectionProperty, IntProperty
 from . import rmanAssetsBlender as rab
+from .properties import RendermanPresetMetaData
 from rman_utils.rman_assets import lib as ral
 from rman_utils.filepath import FilePath
 import getpass
@@ -97,6 +98,39 @@ class PRMAN_OT_load_asset_to_scene(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class PRMAN_UL_Presets_Meta_Data_List(bpy.types.UIList):
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        layout.label(text=item.key)
+
+class PRMAN_OT_preset_add_metadata(bpy.types.Operator):
+    bl_idname = "renderman.preset_add_metadata"
+    bl_label = "Add"
+    bl_description = "Add Meta Data"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        op_ptr = context.op_ptr
+        md = op_ptr.meta_data.add()
+        op_ptr.meta_data_index = len(op_ptr.meta_data)-1
+        md.key = 'key%d' % op_ptr.meta_data_index
+        md.value = 'value %d' % op_ptr.meta_data_index
+
+        return {'FINISHED'}        
+
+class PRMAN_OT_preset_delete_metadata(bpy.types.Operator):
+    bl_idname = "renderman.preset_delete_metadata"
+    bl_label = "Delete"
+    bl_description = "Delete Meta Data"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        op_ptr = context.op_ptr
+        op_ptr.meta_data.remove(op_ptr.meta_data_index)
+        op_ptr.meta_data_index = len(op_ptr.meta_data)-1
+
+        return {'FINISHED'}                
+
 # save the current material to the library
 class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
     bl_idname = "renderman.save_asset_to_library"
@@ -110,6 +144,9 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
     include_display_filters: BoolProperty(name='Include DisplayFilters', 
         description="Include display filters with this preset. This is necessary if you want to export any stylized materials.",
         default=False)
+    meta_data: CollectionProperty(type=RendermanPresetMetaData,
+                                      name="Meta Data")
+    meta_data_index: IntProperty(default=-1)
 
     @classmethod
     def poll(cls, context):
@@ -133,12 +170,32 @@ class PRMAN_OT_save_asset_to_lib(bpy.types.Operator):
         col.prop(self, 'material_version')
         col.prop(self, 'include_display_filters')
 
+        col.separator()
+        col.label(text="Meta Data:")
+        row = col.row()
+        row.context_pointer_set('op_ptr', self)
+        col2 = row.column()
+        col2.operator('renderman.preset_add_metadata')
+        col2 = row.column()
+        col2.operator('renderman.preset_delete_metadata')
+        if self.meta_data_index < 0 or self.meta_data_index >= len(self.meta_data):
+            col2.enabled = False
+
+        col.template_list("PRMAN_UL_Presets_Meta_Data_List", "Meta Data",
+                            self.properties, "meta_data", self.properties, 'meta_data_index', rows=5)
+        if self.properties.meta_data_index >= 0:
+            md = self.properties.meta_data[self.properties.meta_data_index]
+            col.prop(md, 'key')
+            col.prop(md, 'value')
+
     def execute(self, context):
         hostPrefs = rab.get_host_prefs()
         if hostPrefs.preExportCheck('material', hdr=None, context=context, include_display_filters=self.include_display_filters):
             infodict = {'label': self.material_label,
                         'author': self.material_author,
                         'version': self.material_version}     
+            for md in self.meta_data:
+                infodict[md.key] = md.value
             category = hostPrefs.getSelectedCategory()   
             hostPrefs.exportMaterial(category, infodict, None)
 
@@ -166,6 +223,9 @@ class PRMAN_OT_save_lightrig_to_lib(bpy.types.Operator):
     author: StringProperty(name='Author', default='')
     version: StringProperty(name='Version', default='1.0')
     category: StringProperty(name='Category', default='')
+    meta_data: CollectionProperty(type=RendermanPresetMetaData,
+                                      name="Meta Data")
+    meta_data_index: IntProperty(default=-1)    
 
     @classmethod
     def poll(cls, context):
@@ -187,12 +247,32 @@ class PRMAN_OT_save_lightrig_to_lib(bpy.types.Operator):
         col.prop(self, 'author')
         col.prop(self, 'version')
 
+        col.separator()
+        col.label(text="Meta Data:")
+        row = col.row()
+        row.context_pointer_set('op_ptr', self)
+        col2 = row.column()
+        col2.operator('renderman.preset_add_metadata')
+        col2 = row.column()
+        col2.operator('renderman.preset_delete_metadata')
+        if self.meta_data_index < 0 or self.meta_data_index >= len(self.meta_data):
+            col2.enabled = False
+
+        col.template_list("PRMAN_UL_Presets_Meta_Data_List", "Meta Data",
+                            self.properties, "meta_data", self.properties, 'meta_data_index', rows=5)
+        if self.properties.meta_data_index >= 0:
+            md = self.properties.meta_data[self.properties.meta_data_index]
+            col.prop(md, 'key')
+            col.prop(md, 'value')     
+
     def execute(self, context):
         hostPrefs = rab.get_host_prefs()
         if hostPrefs.preExportCheck('lightrigs', hdr=None, context=context):
             infodict =  {'label': self.label,
                         'author': self.author,
                         'version': self.version}    
+            for md in self.meta_data:
+                infodict[md.key] = md.value                        
             category = hostPrefs.getSelectedCategory()   
             hostPrefs.exportMaterial(category, infodict, None)        
         if self.op:
@@ -218,6 +298,10 @@ class PRMAN_OT_save_envmap_to_lib(bpy.types.Operator):
     label: StringProperty(name='Asset Name', default='')
     author: StringProperty(name='Author', default=getpass.getuser())
     version: StringProperty(name='Version', default='1.0')
+    meta_data: CollectionProperty(type=RendermanPresetMetaData,
+                                      name="Meta Data")
+    meta_data_index: IntProperty(default=-1)    
+
     filepath: bpy.props.StringProperty(
         subtype="FILE_PATH")
 
@@ -242,6 +326,24 @@ class PRMAN_OT_save_envmap_to_lib(bpy.types.Operator):
         col.prop(self, 'author')
         col.prop(self, 'version')
 
+        col.separator()
+        col.label(text="Meta Data:")
+        row = col.row()
+        row.context_pointer_set('op_ptr', self)
+        col2 = row.column()
+        col2.operator('renderman.preset_add_metadata')
+        col2 = row.column()
+        col2.operator('renderman.preset_delete_metadata')
+        if self.meta_data_index < 0 or self.meta_data_index >= len(self.meta_data):
+            col2.enabled = False
+
+        col.template_list("PRMAN_UL_Presets_Meta_Data_List", "Meta Data",
+                            self.properties, "meta_data", self.properties, 'meta_data_index', rows=5)
+        if self.properties.meta_data_index >= 0:
+            md = self.properties.meta_data[self.properties.meta_data_index]
+            col.prop(md, 'key')
+            col.prop(md, 'value')  
+
     def execute(self, context):
         if self.properties.filename == '':
             return {'FINISHED'}            
@@ -254,6 +356,8 @@ class PRMAN_OT_save_envmap_to_lib(bpy.types.Operator):
             infodict = {'label': self.label,
                         'author': self.author,
                         'version': self.version}     
+            for md in self.meta_data:
+                infodict[md.key] = md.value                        
             category = hostPrefs.getSelectedCategory()   
             hostPrefs.exportEnvMap(category, infodict)
 
@@ -412,14 +516,14 @@ class PRMAN_OT_view_preset_json(bpy.types.Operator):
         return rd.engine == 'PRMAN_RENDER'
 
     def execute(self, context):
-        json_path = os.path.join(self.properties.preset_path, 'asset.json')
+        json_path = self.properties.preset_path
         filepath_utils.view_file(json_path)
         return {'FINISHED'}
 
 class PRMAN_OT_forget_preset_library(bpy.types.Operator):
     bl_idname = "renderman.forget_preset_library"
     bl_label = "Forgot Library"
-    bl_description = "Forget Library"
+    bl_description = "Forget the currently selected library"
 
     library_path: StringProperty(default='')
     
@@ -449,7 +553,7 @@ class PRMAN_OT_forget_preset_library(bpy.types.Operator):
 class PRMAN_OT_select_preset_library(bpy.types.Operator):
     bl_idname = "renderman.select_preset_library"
     bl_label = "Select Library"
-    bl_description = "Select Library"
+    bl_description = "Select a different loaded library."
 
     def get_libraries(self, context):
         items = []
@@ -497,6 +601,9 @@ classes = [
     PRMAN_OT_init_preset_library,
     PRMAN_OT_set_current_preset_category,
     PRMAN_OT_load_asset_to_scene,
+    PRMAN_UL_Presets_Meta_Data_List,
+    PRMAN_OT_preset_add_metadata,
+    PRMAN_OT_preset_delete_metadata,
     PRMAN_OT_save_asset_to_lib,
     PRMAN_OT_save_lightrig_to_lib,
     PRMAN_OT_save_envmap_to_lib,

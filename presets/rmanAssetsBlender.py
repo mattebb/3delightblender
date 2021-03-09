@@ -244,6 +244,7 @@ class BlenderHostPrefs(ral.HostPrefs):
             mat = ob.active_material
             self.blender_material = mat
             self.gather_material_nodes(mat) 
+            self._nodesToExport['displayfilter'] = list()
             if include_display_filters:
                 self.gather_displayfilter_nodes(context)
 
