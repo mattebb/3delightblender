@@ -59,10 +59,14 @@ def get_group_db_name(ob_inst):
 
     return string_utils.sanitize_node_name(group_db_name)
 
-def is_particle_instancer(psys):
-    if psys.settings.type == 'HAIR' and psys.settings.render_type != 'PATH':
+def is_particle_instancer(psys, particle_settings=None):
+    psys_settings = particle_settings
+    if not psys_settings:
+        psys_settings = psys.settings
+
+    if psys_settings.type == 'HAIR' and psys_settings.render_type != 'PATH':
         return True  
-    if psys.settings.type == 'EMITTER' and psys.settings.render_type in ['COLLECTION', 'OBJECT']:
+    if psys_settings.type == 'EMITTER' and psys_settings.render_type in ['COLLECTION', 'OBJECT']:
         return True
 
     return False    

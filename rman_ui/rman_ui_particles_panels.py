@@ -24,11 +24,10 @@ class PARTICLE_PT_renderman_particle(ParticleButtonsPanel, Panel, _RManPanelHead
                 col.row().prop(rm, "width")
                 
         if psys.settings.render_type == 'OBJECT':
-            pass
-        else:
-            col.prop(psys.settings, "material_slot")            
-
-
+            col.prop(rm, 'override_instance_material')
+            if rm.override_instance_material:
+                col.prop(psys.settings, "material_slot")
+       
         split = layout.split()
         col = split.column()
 

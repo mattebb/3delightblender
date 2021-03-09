@@ -340,8 +340,10 @@ class RmanSceneSync(object):
             rfb_log().debug("Re-emit instances")
             rman_group_translator = self.rman_scene.rman_translators['GROUP']
             for ob_inst in self.rman_scene.depsgraph.object_instances: 
+                parent = None
                 if ob_inst.is_instance:
                     ob = ob_inst.instance_object
+                    parent = ob_inst.parent
                 else:
                     ob = ob_inst.object
 
@@ -361,7 +363,7 @@ class RmanSceneSync(object):
                         # object attrs             
                         rman_group_translator.export_object_attributes(ob, rman_sg_group)  
                         if rman_sg_group.bl_psys_settings:
-                            self.rman_scene.attach_particle_material(rman_sg_group.bl_psys_settings, ob, rman_sg_group)
+                            self.rman_scene.attach_particle_material(rman_sg_group.bl_psys_settings, parent, ob, rman_sg_group)
                         else:
                             self.rman_scene.attach_material(ob, rman_sg_group)
                         continue                    

@@ -96,6 +96,12 @@ class RendermanParticleSettings(bpy.types.PropertyGroup):
         default="index"
     )
 
+    override_instance_material: BoolProperty(
+        name='Override Instance Material',
+        description='Override the material that is attached to the instance object',
+        default=False
+    ) 
+
     prim_vars: CollectionProperty(
         type=RendermanParticlePrimVar, name="Primitive Variables")
     prim_vars_index: IntProperty(min=-1, default=-1)

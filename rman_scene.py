@@ -768,7 +768,7 @@ class RmanScene(object):
 
             # attach material
             if psys:
-                self.attach_particle_material(psys.settings, ob, rman_sg_group)
+                self.attach_particle_material(psys.settings, parent, ob, rman_sg_group)
                 rman_sg_group.bl_psys_settings = psys.settings.original
             else:
                 self.attach_material(ob, rman_sg_group)                
@@ -818,33 +818,28 @@ class RmanScene(object):
                 rman_sg_node.sg_node.SetMaterial(rman_sg_material.sg_node) 
                 rman_sg_node.is_meshlight = rman_sg_material.has_meshlight 
 
-        '''
-        for mat in object_utils._get_used_materials_(ob): 
-            if not mat:
-                continue
-            mat_db_name = object_utils.get_db_name(mat)
-            rman_sg_material = self.rman_materials.get(mat.original, None)
-            if rman_sg_material and rman_sg_material.sg_node:
-                rman_sg_node.sg_node.SetMaterial(rman_sg_material.sg_node) 
-                rman_sg_node.sg_node.is_meshlight = rman_sg_material.has_meshlight       
-        '''
+    def attach_particle_material(self, psys_settings, parent, ob, group):
+        # This function should only be used by particle instancing.
+        # For emitters and hair, the material attachment is done in either
+        # the emitter translator or hair translator directly
 
-    def attach_particle_material(self, psys_settings, ob, group):
-        if ob.renderman.rman_material_override:
-            mat = ob.renderman.rman_material_override
-            rman_sg_material = self.rman_materials.get(mat.original, None)
-            if rman_sg_material and rman_sg_material.sg_node:
-                group.sg_node.SetMaterial(rman_sg_material.sg_node) 
-                group.is_meshlight = rman_sg_material.has_meshlight     
+        if not object_utils.is_particle_instancer(psys=None, particle_settings=psys_settings):
             return
 
-        mat_idx = psys_settings.material - 1
-        if mat_idx < len(ob.material_slots):
-            mat = ob.material_slots[mat_idx].material
-            mat_db_name = object_utils.get_db_name(mat)
-            rman_sg_material = self.rman_materials.get(mat.original, None)
-            if rman_sg_material:
-                group.sg_node.SetMaterial(rman_sg_material.sg_node)                    
+        if psys_settings.renderman.override_instance_material:
+            mat_idx = psys_settings.material - 1
+            if mat_idx < len(parent.material_slots):
+                mat = parent.material_slots[mat_idx].material
+                rman_sg_material = self.rman_materials.get(mat.original, None)
+                if rman_sg_material:
+                    group.sg_node.SetMaterial(rman_sg_material.sg_node)    
+        else:
+            mat = object_utils.get_active_material(ob)
+            if mat:
+                rman_sg_material = self.rman_materials.get(mat.original, None)
+                if rman_sg_material and rman_sg_material.sg_node:
+                    group.sg_node.SetMaterial(rman_sg_material.sg_node) 
+                    group.is_meshlight = rman_sg_material.has_meshlight 
 
     def export_instances_motion(self, obj_selected=None):
         actual_subframes = []
