@@ -392,14 +392,14 @@ class RmanSceneSync(object):
         self.do_delete = False # whether or not we need to do an object deletion
         self.do_add = False # whether or not we need to add an object
         self.num_instances_changed = False # if the number of instances has changed since the last update
-        
-        prev_num_instances = self.rman_scene.num_object_instances # the number of instances previously
-        
+                
         self.rman_scene.depsgraph = depsgraph
         self.rman_scene.bl_scene = depsgraph.scene
         self.rman_scene.context = context           
 
         particle_settings_node = None   
+        did_mesh_update = False # did the mesh actually update
+        prev_num_instances = self.rman_scene.num_object_instances # the number of instances previously
         
         # Check the number of instances. If we differ, an object may have been
         # added or deleted
@@ -438,6 +438,10 @@ class RmanSceneSync(object):
             elif isinstance(obj.id, bpy.types.Material):
                 rfb_log().debug("Material updated: %s" % obj.id.name)
                 self._material_updated(obj)    
+
+            elif isinstance(obj.id, bpy.types.Mesh):
+                rfb_log().debug("Mesh updated: %s" % obj.id.name)
+                did_mesh_update = True
 
             elif isinstance(obj.id, bpy.types.ParticleSettings):
                 rfb_log().debug("ParticleSettings updated: %s" % obj.id.name)
@@ -562,11 +566,16 @@ class RmanSceneSync(object):
                         self.do_delete = False
                         self.update_particle_settings(obj, particle_settings_node)
                     else:
-                        if not self.num_instances_changed:
-                            self._obj_geometry_updated(obj)
                         # We always update particle systems in the non-num_instance_change case
                         # because the particle system can be pointing to a whole new particle settings
                         self.update_particles.add(obj.id)
+
+                        if not self.num_instances_changed:
+                            if rman_type == 'MESH' and not did_mesh_update:
+                                # if a mesh didn't actually update don't call obj_geometry_updated
+                                rfb_log().debug("Skip object updated: %s" % obj.id.name)
+                                continue
+                            self._obj_geometry_updated(obj)
 
             elif isinstance(obj.id, bpy.types.Collection):
                 # don't check the collection if we know objects

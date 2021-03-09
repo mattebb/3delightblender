@@ -762,9 +762,9 @@ class RmanScene(object):
                 # add this instance to rman_sg_node
                 rman_sg_node.instances[group_db_name] = rman_sg_group                     
 
-            # object attrs             
+            # object attrs       
+            translator.export_object_attributes(ob, rman_sg_group)                    
             translator.export_object_id(ob, rman_sg_group, ob_inst)
-            translator.export_object_attributes(ob, rman_sg_group)  
 
             # attach material
             if psys:

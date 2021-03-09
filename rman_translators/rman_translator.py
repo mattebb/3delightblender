@@ -131,18 +131,20 @@ class RmanTranslator(object):
         for prop_name, meta in rm.prop_meta.items():
             if 'riattr' not in meta:
                 continue
-            
+
+            ri_name = meta['riattr']            
             val = getattr(rm, prop_name)
             if 'inheritable' in meta:
                 cond = meta['inherit_true_value']
                 if isinstance(cond, str):
                     node = rm
                     if exec(cond):
+                        attrs.Remove(ri_name)
                         continue
                 elif float(val) == cond:
+                    attrs.Remove(ri_name)
                     continue
 
-            ri_name = meta['riattr']
             is_array = False
             array_len = -1
             if 'arraySize' in meta:
