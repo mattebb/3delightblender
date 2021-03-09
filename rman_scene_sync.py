@@ -198,10 +198,14 @@ class RmanSceneSync(object):
 
     def _update_light_visibility(self, rman_sg_node, ob):
         if not self.rman_scene.scene_solo_light:
-            if not ob.hide_get():
-                rman_sg_node.sg_node.SetHidden(ob.renderman.mute)
-            else:
-                rman_sg_node.sg_node.SetHidden(1)
+            vis = rman_sg_node.sg_node.GetHidden()
+            with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+                if not ob.hide_get():
+                    rman_sg_node.sg_node.SetHidden(ob.renderman.mute)
+                    return (vis != int(ob.renderman.mute))
+                else:
+                    rman_sg_node.sg_node.SetHidden(1)
+                    return (vis != 1)
                 
     def update_particle_settings(self, obj, particle_settings_node):
         rfb_log().debug("Check %s for particle settings." % obj.id.name)
@@ -493,14 +497,14 @@ class RmanSceneSync(object):
 
                 if rman_sg_node and rman_sg_node.sg_node:
                     # double check hidden value
-                    if rman_sg_node.is_hidden != is_hidden:
-                        self.do_delete = False
-                        rman_sg_node.is_hidden = is_hidden
-                        if shadergraph_utils.is_rman_light(ob_data, include_light_filters=False):
-                            with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene): 
-                                rman_sg_node.sg_node.GetHidden() != int(is_hidden)
-                                self._update_light_visibility(rman_sg_node, ob_data)
-                        else:
+                    if rman_type in ['LIGHT']:
+                        if self._update_light_visibility(rman_sg_node, ob_data):
+                            rfb_log().debug("Update light visibility: %s" % obj.id.name)
+                            continue
+                    else:
+                        if rman_sg_node.is_hidden != is_hidden:
+                            self.do_delete = False
+                            rman_sg_node.is_hidden = is_hidden
                             if rman_type == 'EMPTY':
                                 self.update_empty(ob, rman_sg_node)
                             else:         
