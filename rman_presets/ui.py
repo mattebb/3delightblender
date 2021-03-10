@@ -402,6 +402,7 @@ def rman_presets_object_menu(self, context):
     layout = self.layout 
     rman_icon = rfb_icons.get_icon("rman_blender")    
     layout.menu('VIEW3D_MT_renderman_presets_object_context_menu', text="Presets", icon_value=rman_icon.icon_id)     
+    layout.separator()
 
 classes = [
     PRMAN_MT_Renderman_Presets_Categories_Menu,

@@ -217,7 +217,7 @@ def load_addon():
         set_up_paths()
         set_ocio()
         from . import rman_config
-        from . import presets
+        from . import rman_presets
         from . import rman_operators
         from . import rman_ui
         from . import rman_bl_nodes
@@ -225,7 +225,7 @@ def load_addon():
         from . import rman_handlers
 
         rman_config.register()
-        presets.register()        
+        rman_presets.register()        
         rman_operators.register()
         rman_bl_nodes.register()
         rman_properties.register()          
@@ -257,7 +257,7 @@ def unregister():
     preferences.unregister()
 
     if __RMAN_ADDON_LOADED__:
-        presets.unregister()
+        rman_presets.unregister()
         rman_handlers.unregister()
         rman_bl_nodes.unregister()    
         rman_ui.unregister()
