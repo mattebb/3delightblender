@@ -3,7 +3,7 @@ import os
 import subprocess
 from .. import rman_bl_nodes
 from ..rfb_utils.scene_utils import EXCLUDED_OBJECT_TYPES
-from ..rfb_utils.env_utils import envconfig
+from ..rfb_utils.envconfig_utils import envconfig
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import object_utils
 from ..rman_constants import RFB_ADDON_PATH

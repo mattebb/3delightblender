@@ -39,7 +39,7 @@ import bpy
 import mathutils
 from math import radians
 from ..rfb_utils import filepath_utils
-from ..rfb_utils.env_utils import envconfig
+from ..rfb_utils.envconfig_utils import envconfig
 from ..rfb_utils import string_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import object_utils   

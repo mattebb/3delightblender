@@ -2,7 +2,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, \
     CollectionProperty
 
-from ...rfb_utils.env_utils import envconfig
+from ...rfb_utils.envconfig_utils import envconfig
 from ...rfb_logger import rfb_log
 from ... import rman_render
 from ... import rman_bl_nodes

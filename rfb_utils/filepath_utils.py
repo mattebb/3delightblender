@@ -5,7 +5,7 @@ import sys
 import webbrowser
 from ..rfb_logger import rfb_log
 from .prefs_utils import get_pref
-from .env_utils import envconfig
+from .envconfig_utils import envconfig
 
 def view_file(file_path):
     

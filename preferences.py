@@ -30,7 +30,7 @@ from bpy.types import AddonPreferences
 from bpy.props import CollectionProperty, BoolProperty, StringProperty, FloatProperty
 from bpy.props import IntProperty, PointerProperty, EnumProperty, FloatVectorProperty
 
-from .rfb_utils import env_utils
+from .rfb_utils import envconfig_utils
 from . import rfb_logger
 from . import rfb_icons
 
@@ -44,7 +44,7 @@ class RendermanPreferences(AddonPreferences):
     def find_installed_rendermans(self, context):
         options = [('NEWEST', 'Newest Version Installed',
                     'Automatically updates when new version installed. NB: If an RMANTREE environment variable is set, this will always take precedence.')]
-        for vers, path in env_utils.get_installed_rendermans():
+        for vers, path in envconfig_utils.get_installed_rendermans():
             options.append((path, vers, path))
         return options
 
@@ -257,12 +257,12 @@ class RendermanPreferences(AddonPreferences):
         if self.rmantree_method == 'DETECT':
             col.prop(self, 'rmantree_choice')
             if self.rmantree_choice == 'NEWEST':
-                col.label(text="RMANTREE: %s " % env_utils.reload_envconfig().rmantree)
+                col.label(text="RMANTREE: %s " % envconfig_utils.reload_envconfig().rmantree)
         elif self.rmantree_method == 'ENV':
-            col.label(text="RMANTREE: %s" % env_utils.reload_envconfig().rmantree)
+            col.label(text="RMANTREE: %s" % envconfig_utils.reload_envconfig().rmantree)
         else:
             col.prop(self, "path_rmantree")
-        if env_utils.reload_envconfig() is None:
+        if envconfig_utils.reload_envconfig() is None:
             row = layout.row()
             row.alert = True
             row.label(text='Error in RMANTREE. Reload addon to reset.', icon='ERROR')

@@ -154,21 +154,21 @@ class RmanEnvConfig(object):
                 serial_num = child
                 break
 
-        self.is_ncr_license = (serial_num.text == 'Non-commercial')          
+        self.is_ncr_license = (serial_num.text == 'Non-commercial') 
+
+def _parse_version(s):
+    major_vers, minor_vers = s.split('.')
+    vers_modifier = ''
+    for v in ['b', 'rc']:
+        if v in minor_vers:
+            i = minor_vers.find(v)
+            vers_modifier = minor_vers[i:]
+            minor_vers = minor_vers[:i]
+            break
+    return int(major_vers), int(minor_vers), vers_modifier                  
 
 # return the major, minor rman version
 def _get_rman_version(rmantree):
-
-    def parse_version(s):
-        major_vers, minor_vers = vstr.split('.')
-        vers_modifier = ''
-        for v in ['b', 'rc']:
-            if v in minor_vers:
-                i = minor_vers.find(v)
-                vers_modifier = minor_vers[i:]
-                minor_vers = minor_vers[:i]
-                break
-        return int(major_vers), int(minor_vers), vers_modifier 
 
     try:        
         prman = 'prman.exe' if platform.system() == 'Windows' else 'prman'
@@ -176,16 +176,10 @@ def _get_rman_version(rmantree):
         desc = subprocess.check_output(
             [exe, "-version"], stderr=subprocess.STDOUT)
         vstr = str(desc, 'ascii').split('\n')[0].split()[-1]
-        major_vers, minor_vers, vers_modifier = parse_version(vstr)
+        major_vers, minor_vers, vers_modifier = _parse_version(vstr)
         return major_vers, minor_vers, vers_modifier
     except:
         return 0, 0, ''
-
-def _get_default_install_dir():
-    path = {'Windows': r'C:\Program Files\Pixar',
-            'Darwin': '/Applications/Pixar',
-            'Linux': '/opt/pixar'}[platform.system()]    
-    return path
 
 def _guess_rmantree():
     '''
@@ -203,6 +197,7 @@ def _guess_rmantree():
     choice = get_pref('rmantree_choice')
 
     rmantree = ''
+    version = (0, 0, '')
 
     if rmantree_method == 'MANUAL':
         rmantree = get_pref('path_rmantree')
@@ -222,20 +217,14 @@ def _guess_rmantree():
                  
         if choice == 'NEWEST':
             # get from detected installs (at default installation path)
-            try:
-                base = _get_default_install_dir()
-                latest = (0, 0, '')
-                for d in os.listdir(base):
-                    if "RenderManProServer" in d:
-                        d_rmantree = os.path.join(base, d)
-                        d_version = get_rman_version(d_rmantree)
-                        if d_version > latest:
-                            rmantree = d_rmantree
-                            latest = d_version
-            except:
-                pass
+            for vstr, d_rmantree in get_installed_rendermans():
+                d_version = _parse_version(vstr)
+                if d_version > latest:
+                    rmantree = d_rmantree
+                    version = d_version                
 
-    version = _get_rman_version(rmantree)  # major, minor, mod
+    if version[0] == 0:
+        version = _get_rman_version(rmantree)
 
     # check rmantree valid
     if version[0] == 0:
@@ -260,7 +249,9 @@ def _guess_rmantree():
     return __RMAN_ENV_CONFIG__
 
 def get_installed_rendermans():
-    base = _get_default_install_dir()
+    base = {'Windows': r'C:\Program Files\Pixar',
+            'Darwin': '/Applications/Pixar',
+            'Linux': '/opt/pixar'}[platform.system()]
     rendermans = []
 
     try:

@@ -7,7 +7,7 @@ from ..rfb_utils.rman_socket_utils import node_add_inputs
 from ..rfb_utils.rman_socket_utils import node_add_outputs
 from ..rfb_utils import shadergraph_utils
 from ..rfb_logger import rfb_log
-from ..rfb_utils.env_utils import envconfig
+from ..rfb_utils.envconfig_utils import envconfig
 from .. import rfb_icons
 from .. import rman_config
 from ..rman_properties import rman_properties_renderlayers

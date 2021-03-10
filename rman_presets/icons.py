@@ -27,7 +27,7 @@ import os
 import bpy
 import bpy.utils.previews
 from ..rfb_utils.prefs_utils import get_pref
-from ..rfb_utils.env_utils import envconfig
+from ..rfb_utils.envconfig_utils import envconfig
 import json
 
 asset_previews = bpy.utils.previews.new()

@@ -5,7 +5,7 @@ import socket
 import datetime
 import bpy
 from .rfb_utils import string_utils
-from .rfb_utils.env_utils import envconfig
+from .rfb_utils.envconfig_utils import envconfig
 from .rfb_utils import display_utils
 from .rfb_utils import scene_utils
 from .rfb_utils.prefs_utils import get_pref

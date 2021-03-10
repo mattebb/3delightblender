@@ -6,7 +6,7 @@ from ..rfb_utils import scene_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import string_utils
 from ..rfb_utils import object_utils
-from ..rfb_utils.env_utils import envconfig
+from ..rfb_utils.envconfig_utils import envconfig
 from .. import rfb_icons
 from ..rman_operators.rman_operators_collections import return_empty_list   
 from ..rman_constants import RFB_MAX_USER_TOKENS, RMAN_STYLIZED_FILTERS  

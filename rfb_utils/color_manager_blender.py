@@ -1,7 +1,7 @@
 import os
 import bpy
 import sys
-from ..rfb_utils.env_utils import envconfig
+from ..rfb_utils.envconfig_utils import envconfig
 try:
     from rman_utils.color_manager import ColorManager
 except:

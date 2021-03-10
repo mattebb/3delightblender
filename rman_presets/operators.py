@@ -24,7 +24,7 @@
 # ##### END MIT LICENSE BLOCK #####
 
 from ..rfb_utils import filepath_utils
-from ..rfb_utils.env_utils import envconfig
+from ..rfb_utils.envconfig_utils import envconfig
 from ..rfb_utils import object_utils
 from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
 from ..rfb_logger import rfb_log

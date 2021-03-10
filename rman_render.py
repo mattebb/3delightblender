@@ -19,7 +19,7 @@ import gpu
 from gpu_extras.batch import batch_for_shader
 
 # utils
-from .rfb_utils.env_utils import envconfig
+from .rfb_utils.envconfig_utils import envconfig
 from .rfb_utils import string_utils
 from .rfb_utils import display_utils
 from .rfb_utils import scene_utils
