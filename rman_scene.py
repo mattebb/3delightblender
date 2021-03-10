@@ -436,7 +436,7 @@ class RmanScene(object):
         render_output = string_utils.expand_string(render_output)
         display = self.rman.SGManager.RixSGShader("Display", display_driver, render_output)
         display.params.SetString("mode", 'Ci')
-        self.main_camera.sg_node.SetDisplay(display)         
+        self.main_camera.sg_camera_node.SetDisplay(display)         
                  
     def export_swatch_render_scene(self):
         self.reset()
@@ -474,7 +474,7 @@ class RmanScene(object):
         self.sg_scene.SetDisplayChannel([dspy_chan_Ci, dspy_chan_a])
         display = self.rman.SGManager.RixSGShader("Display", display_driver, 'blender_preview')
         display.params.SetString("mode", 'Ci,a')
-        self.main_camera.sg_node.SetDisplay(display)          
+        self.main_camera.sg_camera_node.SetDisplay(display)          
 
         rfb_log().debug("Calling materials()")
         self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])

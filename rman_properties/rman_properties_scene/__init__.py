@@ -2,8 +2,7 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, \
     CollectionProperty
 
-from ...rfb_utils import filepath_utils
-from ...rfb_utils import property_utils
+from ...rfb_utils.env_utils import envconfig
 from ...rfb_logger import rfb_log
 from ... import rman_render
 from ... import rman_bl_nodes
@@ -88,7 +87,7 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
             return 'linux'
 
     def is_ncr_getter(self):
-        return filepath_utils.is_ncr_license()
+        return envconfig().is_ncr_license
 
     def get_is_rman_interactive_running(self):
         from ...rman_render import RmanRender

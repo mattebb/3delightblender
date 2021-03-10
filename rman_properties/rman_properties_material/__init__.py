@@ -1,7 +1,5 @@
 from bpy.props import StringProperty, BoolProperty, EnumProperty, IntProperty, PointerProperty
 
-from ...rfb_utils import filepath_utils
-from ...rfb_utils import property_utils
 from ...rfb_logger import rfb_log
 from ...rman_config import RmanBasePropertyGroup
 

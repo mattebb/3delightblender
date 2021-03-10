@@ -5,7 +5,7 @@ import socket
 import datetime
 import bpy
 from .rfb_utils import string_utils
-from .rfb_utils import filepath_utils
+from .rfb_utils.env_utils import envconfig
 from .rfb_utils import display_utils
 from .rfb_utils import scene_utils
 from .rfb_utils.prefs_utils import get_pref
@@ -57,8 +57,7 @@ class RmanSpool(object):
         job_title += " frames %d-%d" % (frame_begin, frame_end) if frame_end \
             else " frame %d" % frame_begin
 
-        vers_major, vers_minor, vers_modifier = filepath_utils.get_rman_version(filepath_utils.guess_rmantree())
-        rman_vers = '%d.%d%s' % (vers_major, vers_minor, vers_modifier)
+        rman_vers = envconfig().rman_version
 
         job_params = {
             'title': job_title,
@@ -67,7 +66,7 @@ class RmanSpool(object):
         }
 
         if self.is_localqueue:
-            job_params['envkey'] = '{rmantree=%s}' % filepath_utils.guess_rmantree()
+            job_params['envkey'] = '{rmantree=%s}' % envconfig().rmantree
         else:
             job_params['envkey'] = '{prman-%s}' % rman_vers
 
@@ -254,7 +253,7 @@ class RmanSpool(object):
         args = list()
 
         if self.is_localqueue:
-            lq = filepath_utils.find_local_queue()
+            lq = envconfig().rman_lq_path
             args.append(lq)
             args.append(alf_file)
             rfb_log().info('Spooling job to LocalQueue: %s.', alf_file)
@@ -278,7 +277,11 @@ class RmanSpool(object):
             if 'TRACTOR_USER' in os.environ:
                 owner = os.environ['TRACTOR_USER']
 
-            tractor_spool = filepath_utils.find_tractor_spool()
+            tractor_spool = envconfig().rman_tractor_path
+            if tractor_spool == '':
+                rfb_log().error('Cannot find Tractor Spool. Aborting...')
+                return
+
             args.append(tractor_spool)
             args.append('--user=%s' % owner)
             args.append('--engine=%s:%s' % (tractor_engine, tractor_port))
@@ -446,7 +449,7 @@ class RmanSpool(object):
 
 
         if is_localqueue:
-            lq = filepath_utils.find_local_queue()
+            lq = envconfig().rman_lq_path
             args = []
             args.append(lq)
             args.append(jobfile)

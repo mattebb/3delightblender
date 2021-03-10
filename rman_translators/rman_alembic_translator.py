@@ -1,6 +1,5 @@
 from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_alembic import RmanSgAlembic
-#from ..rfb_utils import filepath_utils
 from ..rfb_utils import transform_utils
 from ..rfb_utils import string_utils
 from ..rfb_logger import rfb_log
@@ -24,7 +23,7 @@ class RmanAlembicTranslator(RmanTranslator):
 
     def update(self, ob, rman_sg_alembic):
         rm = ob.renderman
-        abc_filepath = rm.abc_filepath #filepath_utils.get_real_path(rm.abc_filepath)
+        abc_filepath = rm.abc_filepath 
         bounds = (-100000, 100000, -100000, 100000, -100000, 100000 )
 
         primvar = rman_sg_alembic.sg_node.GetPrimVars()

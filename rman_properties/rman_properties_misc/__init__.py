@@ -2,8 +2,6 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, FloatVectorProperty, \
     CollectionProperty, BoolVectorProperty
 
-from ...rfb_utils import filepath_utils
-from ...rfb_utils import property_utils
 from ...rfb_utils import shadergraph_utils
 from ...rfb_logger import rfb_log 
 from ... import rman_config

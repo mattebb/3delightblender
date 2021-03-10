@@ -24,6 +24,7 @@
 # ##### END MIT LICENSE BLOCK #####
 
 from ..rfb_utils import filepath_utils
+from ..rfb_utils.env_utils import envconfig
 from ..rfb_utils import object_utils
 from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
 from ..rfb_logger import rfb_log
@@ -60,7 +61,7 @@ class PRMAN_OT_init_preset_library(bpy.types.Operator):
             
         
         elif os.access(self.directory, os.W_OK):
-            rmantree_lib_path = os.path.join(filepath_utils.guess_rmantree(), 'lib', 'RenderManAssetLibrary')
+            rmantree_lib_path = os.path.join(envconfig().rmantree, 'lib', 'RenderManAssetLibrary')
             copy_tree(rmantree_lib_path, self.directory)
         else:
             raise Exception("No preset library found or directory chosen is not writable.")

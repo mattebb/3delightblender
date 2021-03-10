@@ -3,7 +3,7 @@ import os
 import subprocess
 from .. import rman_bl_nodes
 from ..rfb_utils.scene_utils import EXCLUDED_OBJECT_TYPES
-from ..rfb_utils.filepath_utils import find_it_path, find_local_queue
+from ..rfb_utils.env_utils import envconfig
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import object_utils
 from ..rman_constants import RFB_ADDON_PATH
@@ -321,7 +321,7 @@ class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
     bl_description = "Start RenderMan's it"
 
     def execute(self, context):
-        it_path = find_it_path()
+        it_path = envconfig().rman_it_path
         if not it_path:
             self.report({"ERROR"},
                         "Could not find 'it'.")
@@ -336,7 +336,7 @@ class PRMAN_OT_Renderman_start_localqueue(bpy.types.Operator):
     bl_description = "Start LocalQueue"
 
     def execute(self, context):
-        lq_path = find_local_queue()
+        lq_path = envconfig().rman_lq_path
         if not lq_path:
             self.report({"ERROR"},
                         "Could not find LocalQueue.")

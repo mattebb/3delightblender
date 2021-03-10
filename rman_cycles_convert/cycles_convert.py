@@ -23,7 +23,6 @@
 #
 # ##### END MIT LICENSE BLOCK #####
 import bpy
-from ..rfb_utils import filepath_utils
 from ..rfb_utils import texture_utils
 from ..rman_bl_nodes import __BL_NODES_MAP__
 

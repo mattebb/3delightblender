@@ -7,12 +7,12 @@ from ..rfb_utils.rman_socket_utils import node_add_inputs
 from ..rfb_utils.rman_socket_utils import node_add_outputs
 from ..rfb_utils import shadergraph_utils
 from ..rfb_logger import rfb_log
+from ..rfb_utils.env_utils import envconfig
 from .. import rfb_icons
 from .. import rman_config
 from ..rman_properties import rman_properties_renderlayers
 from ..rman_properties import rman_properties_world
 from ..rman_properties import rman_properties_camera
-from ..rman_constants import RFB_ADDON_PATH
 from ..rman_constants import RFB_ARRAYS_MAX_LEN
 from ..rman_constants import CYCLES_NODE_MAP
 from nodeitems_utils import NodeCategory, NodeItem
@@ -93,7 +93,7 @@ __RMAN_NODES_NO_REGISTER__ = [
     'PxrSeExpr.args'
 ]
 
-if filepath_utils.is_ncr_license():
+if envconfig().is_ncr_license:
     __RMAN_NODES_NO_REGISTER__.append("PxrStylizedHatching.args")
     __RMAN_NODES_NO_REGISTER__.append("PxrStylizedLines.args")
     __RMAN_NODES_NO_REGISTER__.append("PxrStylizedToon.args")
@@ -497,25 +497,6 @@ def register_plugin_types(node_desc):
         rfb_log().error("Error registering plugin ", name)
         traceback.print_exc()
 
-def get_path_list():
-    paths = []
-    rmantree = filepath_utils.guess_rmantree()
-    paths.append(os.path.join(rmantree, 'lib', 'shaders'))    
-    paths.append(os.path.join(rmantree, 'lib', 'plugins', 'Args'))
-    paths.append(os.path.join(RFB_ADDON_PATH, 'Args'))
-
-    if 'RMAN_SHADERPATH' in os.environ:
-        RMAN_SHADERPATH = os.environ['RMAN_SHADERPATH']
-        for p in RMAN_SHADERPATH.split(os.path.pathsep):
-            paths.append(p)
-
-    if 'RMAN_RIXPLUGINPATH' in os.environ:
-        RMAN_RIXPLUGINPATH = os.environ['RMAN_RIXPLUGINPATH']
-        for p in RMAN_RIXPLUGINPATH.split(os.path.pathsep):
-            paths.append(os.path.join(p, 'Args'))
-
-    return paths
-
 class RendermanWorldShaderNodeCategory(NodeCategory):
 
     @classmethod
@@ -578,7 +559,7 @@ def register_rman_nodes():
     global __RMAN_NODE_CATEGORIES__
 
     rfb_log().debug("Registering RenderMan Plugin Nodes:")
-    path_list = get_path_list()
+    path_list = envconfig().get_shader_registration_paths()
     visited = set()
     for path in path_list:
         for root, dirnames, filenames in os.walk(path):

@@ -27,7 +27,7 @@ import os
 import bpy
 import bpy.utils.previews
 from ..rfb_utils.prefs_utils import get_pref
-from ..rfb_utils import filepath_utils
+from ..rfb_utils.env_utils import envconfig
 import json
 
 asset_previews = bpy.utils.previews.new()
@@ -47,7 +47,7 @@ def get_icon(path):
     global asset_previews
     thumb = asset_previews.get(path, None)
     if not thumb:
-        flat_icon_path = os.path.join( filepath_utils.guess_rmantree(), __RMAN_MAT_FLAT_PATH__)
+        flat_icon_path = os.path.join(envconfig().rmantree, __RMAN_MAT_FLAT_PATH__)
         flat_icon_thumb = asset_previews.get(flat_icon_path, None)
         if not flat_icon_thumb:
             flat_icon_thumb_path = os.path.join(flat_icon_path, __RMAN_MAT_FLAT_FILENAME__)
@@ -58,7 +58,7 @@ def get_icon(path):
 
 def get_preset_icon(preset_path):
     global asset_previews
-    flat_icon_path = os.path.join( filepath_utils.guess_rmantree(), __RMAN_MAT_FLAT_PATH__)
+    flat_icon_path = os.path.join(envconfig().rmantree, __RMAN_MAT_FLAT_PATH__)
     flat_icon_thumb = asset_previews.get(flat_icon_path, None)
     if not flat_icon_thumb:
         flat_icon_thumb_path = os.path.join(flat_icon_path, __RMAN_MAT_FLAT_FILENAME__)

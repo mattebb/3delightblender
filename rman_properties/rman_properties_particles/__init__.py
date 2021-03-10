@@ -2,8 +2,6 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, \
     EnumProperty, IntProperty, FloatProperty, \
     CollectionProperty
 
-from ...rfb_utils import filepath_utils
-from ...rfb_utils import property_utils
 from ...rfb_logger import rfb_log
 from ... import rman_render
 from ... import rman_bl_nodes

@@ -1,6 +1,5 @@
 from ..rfb_utils import color_utils
 from ..rfb_utils import texture_utils
-from ..rfb_utils import filepath_utils
 from rman_utils import txmanager
 import math
 import bpy

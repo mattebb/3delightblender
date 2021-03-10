@@ -6,7 +6,7 @@ from ..rfb_utils import scene_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import string_utils
 from ..rfb_utils import object_utils
-from ..rfb_utils import filepath_utils
+from ..rfb_utils.env_utils import envconfig
 from .. import rfb_icons
 from ..rman_operators.rman_operators_collections import return_empty_list   
 from ..rman_constants import RFB_MAX_USER_TOKENS, RMAN_STYLIZED_FILTERS  
@@ -613,7 +613,7 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return rd.engine in {'PRMAN_RENDER'} and not filepath_utils.is_ncr_license()   
+        return rd.engine in {'PRMAN_RENDER'} and not envconfig().is_ncr_license   
 
     def updated_object_selected_name(self, context):
         ob = context.scene.objects.get(self.selected_obj_name, None)

@@ -39,6 +39,7 @@ import bpy
 import mathutils
 from math import radians
 from ..rfb_utils import filepath_utils
+from ..rfb_utils.env_utils import envconfig
 from ..rfb_utils import string_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import object_utils   
@@ -842,7 +843,7 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
     # Compatibility data
     # This will help other application decide if they can use this asset.
     #
-    prmanversion = "%d.%d.%s" % filepath_utils.get_rman_version(filepath_utils.guess_rmantree())
+    prmanversion = envconfig().rman_version
     Asset.setCompatibility(hostName='Blender',
                            hostVersion=bpy.app.version,
                            rendererVersion=prmanversion)                           
@@ -882,11 +883,11 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
     Asset.save(jsonfile, compact=False)
 
     if asset_type == 'Materials':
-        ral.renderAssetPreview(Asset, progress=None, rmantree=filepath_utils.guess_rmantree())
+        ral.renderAssetPreview(Asset, progress=None, rmantree=envconfig().rmantree)
     elif asset_type == 'LightRigs':
-        ral.renderAssetPreview(Asset, progress=None, rmantree=filepath_utils.guess_rmantree())
+        ral.renderAssetPreview(Asset, progress=None, rmantree=envconfig().rmantree)
     elif Asset._type == 'envMap':
-        ral.renderAssetPreview(Asset, progress=None, rmantree=filepath_utils.guess_rmantree())
+        ral.renderAssetPreview(Asset, progress=None, rmantree=envconfig().rmantree)
 
     return True        
 

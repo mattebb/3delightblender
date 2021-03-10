@@ -1,6 +1,6 @@
 from . import shadergraph_utils
 from . import object_utils
-from . import filepath_utils
+from . import env_utils
 import bpy
 import sys
 
@@ -43,7 +43,7 @@ def get_renderman_layer(context):
     return rm_rl    
 
 def get_render_variant(bl_scene):
-    if filepath_utils.is_ncr_license():
+    if env_utils.envconfig().is_ncr_license:
         return 'prman'
 
     if sys.platform == ("darwin") and bl_scene.renderman.renderVariant != 'prman':

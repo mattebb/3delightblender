@@ -1,7 +1,7 @@
 import os
 import bpy
 import sys
-from ..rfb_utils.filepath_utils import guess_rmantree
+from ..rfb_utils.env_utils import envconfig
 try:
     from rman_utils.color_manager import ColorManager
 except:
@@ -23,24 +23,18 @@ def init():
     global __clrmgr__
 
     if __clrmgr__ is None:
-        ociopath = os.getenv('OCIO', get_blender_ocio_config())
+        ociopath = envconfig().getenv('OCIO', envconfig().get_blender_ocio_config())
         if ColorManager:
             __clrmgr__ = ColorManager(ociopath)
-
-def get_blender_ocio_config():
-    # return rman's version filmic-blender OCIO config
-    ocioconfig = os.path.join(guess_rmantree(), 'lib', 'ocio', 'filmic-blender', 'config.ocio')
-
-    return ocioconfig
 
 def get_config_path():
     """return ocio config path. updating with $OCIO
     """
     clrmgr = color_manager()
 
-    ociopath = os.getenv('OCIO', None)
+    ociopath = envconfig().getenv('OCIO', None)
     if ociopath is None:
-        ociopath = get_blender_ocio_config()
+        ociopath = envconfig().get_blender_ocio_config()
 
     if ColorManager:
         clrmgr.update(ociopath)
@@ -53,9 +47,9 @@ def get_colorspace_name():
     """
     clrmgr = color_manager()
     
-    ociopath = os.getenv('OCIO', None)
+    ociopath = envconfig().getenv('OCIO', None)
     if ociopath is None:
-        ociopath = get_blender_ocio_config()
+        ociopath = envconfig().get_blender_ocio_config()
     if ColorManager:
         clrmgr.update(ociopath)
         return clrmgr.scene_colorspace_name

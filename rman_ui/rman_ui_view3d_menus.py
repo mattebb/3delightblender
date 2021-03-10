@@ -3,7 +3,7 @@ from .. import rman_bl_nodes
 from ..rman_operators.rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
 from ..rfb_utils import scene_utils
 from ..rfb_utils import shadergraph_utils
-from ..rfb_utils import filepath_utils
+from ..rfb_utils.env_utils import envconfig
 from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 from bpy.types import Menu
 import bpy
@@ -216,7 +216,7 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
         layout.menu('VIEW3D_MT_RM_Add_Selected_To_ObjectGroup_Menu', text='Trace Sets')     
         layout.menu('VIEW3D_MT_RM_Add_Selected_To_LightMixer_Menu', text='Light Mixer Groups')  
         layout.operator("scene.rman_open_light_linking", text="Light Linking Editor")    
-        if not filepath_utils.is_ncr_license():
+        if not envconfig().is_ncr_license:
             layout.separator()
             layout.menu('VIEW3D_MT_RM_Stylized_Menu', text='Stylized Looks')  
 

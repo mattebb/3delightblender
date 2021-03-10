@@ -19,7 +19,7 @@ import gpu
 from gpu_extras.batch import batch_for_shader
 
 # utils
-from .rfb_utils import filepath_utils
+from .rfb_utils.env_utils import envconfig
 from .rfb_utils import string_utils
 from .rfb_utils import display_utils
 from .rfb_utils import scene_utils
@@ -181,7 +181,7 @@ def preload_xpu():
     if sys.platform != 'linux':
         return None
 
-    tree = filepath_utils.guess_rmantree()
+    tree = envconfig().rmantree
     xpu_path = os.path.join(tree, 'lib', 'libxpu.so')
 
     try:
@@ -248,7 +248,7 @@ class RmanRender(object):
         argv.append("prman") 
         argv.append("-progress")  
         argv.append("-dspyserver")
-        argv.append("it")
+        argv.append("%s" % envconfig().rman_it_path)
 
         woffs = ',' . join(rfb_config['woffs'])
         if woffs:
@@ -256,7 +256,7 @@ class RmanRender(object):
             argv.append(woffs)
 
         #argv.append('-statsconfig')
-        #argv.append( os.path.join(filepath_utils.guess_rmantree(), 'etc', 'stats.ini'))
+        #argv.append( os.path.join(envconfig().rmantree, 'etc', 'stats.ini'))
 
         self.rictl.PRManBegin(argv)  
 
@@ -274,7 +274,7 @@ class RmanRender(object):
             rfb_log().debug("Finished writing RIB. Time: %s" % string_utils._format_time_(time.time() - rib_time_start))            
 
     def _load_placeholder_image(self):   
-        placeholder_image = os.path.join(filepath_utils.guess_rmantree(), 'lib', 'textures', 'placeholder.png')
+        placeholder_image = os.path.join(envconfig().rmantree, 'lib', 'textures', 'placeholder.png')
 
         render = self.bl_scene.render
         image_scale = 100.0 / render.resolution_percentage
@@ -297,7 +297,7 @@ class RmanRender(object):
                 ptc_file = '%s.ptc' % expanded_str            
                 bkm_file = '%s.bkm' % expanded_str
                 args = []
-                args.append('%s/bin/brickmake' % filepath_utils.guess_rmantree())
+                args.append('%s/bin/brickmake' % envconfig().rmantree)
                 args.append('-progress')
                 args.append('2')
                 args.append(ptc_file)
@@ -308,7 +308,7 @@ class RmanRender(object):
             ptc_file = '%s.ptc' % expanded_str            
             bkm_file = '%s.bkm' % expanded_str
             args = []
-            args.append('%s/bin/brickmake' % filepath_utils.guess_rmantree())
+            args.append('%s/bin/brickmake' % envconfig().rmantree)
             args.append('-progress')
             args.append('2')
             args.append(ptc_file)
@@ -798,7 +798,7 @@ class RmanRender(object):
             ext = '.so'
             if sys.platform == ("win32"):
                     ext = '.dll'
-            __BLENDER_DSPY_PLUGIN__ = ctypes.CDLL(os.path.join(filepath_utils.guess_rmantree(), 'lib', 'plugins', 'd_blender%s' % ext))
+            __BLENDER_DSPY_PLUGIN__ = ctypes.CDLL(os.path.join(envconfig().rmantree, 'lib', 'plugins', 'd_blender%s' % ext))
 
         return __BLENDER_DSPY_PLUGIN__
                 

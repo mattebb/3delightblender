@@ -26,10 +26,10 @@ import bpy
 import bgl
 import blf
 import time
-from .rfb_utils import filepath_utils
 from .rfb_utils.prefs_utils import get_pref
 from .rfb_utils import string_utils
 from .rfb_logger import rfb_log
+from .rfb_utils.env_utils import envconfig
 
 bl_info = {
     "name": "RenderMan For Blender",
@@ -183,39 +183,10 @@ class PRManRender(bpy.types.RenderEngine):
         self.unbind_display_space_shader()
         bgl.glDisable(bgl.GL_BLEND)        
 
-def set_up_paths():
-    import os
-    import platform
-
-    rmantree = filepath_utils.guess_rmantree()
-    filepath_utils.set_rmantree(rmantree)
-    if platform.system() == 'Windows':
-        rman_packages = os.path.join(rmantree, 'lib', 'python3.7', 'Lib', 'site-packages')
-    else:
-        rman_packages = os.path.join(rmantree, 'lib', 'python3.7', 'site-packages')
-    filepath_utils.set_pythonpath(rman_packages)        
-    filepath_utils.set_pythonpath(os.path.join(rmantree, 'bin'))
-    it_dir = os.path.dirname(filepath_utils.find_it_path())
-    filepath_utils.set_path([os.path.join(rmantree, 'bin'), it_dir])
-    pythonbindings = os.path.join(rmantree, 'bin', 'pythonbindings')
-    filepath_utils.set_pythonpath(pythonbindings)
-
-def set_ocio():
-    # make sure we set OCIO env var
-    # so that "it" will also get the correct configuration
-
-    import os
-    from .rfb_utils import color_manager_blender
-    path = color_manager_blender.get_config_path()
-    if path != '':
-        os.environ['OCIO'] = path
-
 def load_addon():
     global __RMAN_ADDON_LOADED__
 
-    if filepath_utils.guess_rmantree():
-        set_up_paths()
-        set_ocio()
+    if envconfig():
         from . import rman_config
         from . import rman_presets
         from . import rman_operators

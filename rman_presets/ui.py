@@ -24,7 +24,6 @@
 # ##### END MIT LICENSE BLOCK #####
 
 from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
-from ..rfb_utils import filepath_utils
 from ..rfb_logger import rfb_log
 from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 
