@@ -10,7 +10,7 @@
     "woffs": [
         "R90007"
     ],
-    "ui_preferences": {
+    "editor_preferences": {
         "preset_browser": {
             "width": 750
         },

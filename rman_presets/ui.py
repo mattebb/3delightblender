@@ -390,7 +390,7 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
         self.load_categories(context)
              
         wm = context.window_manager
-        width = rfb_config['ui_preferences']['preset_browser']['width']
+        width = rfb_config['editor_preferences']['preset_browser']['width']
         return wm.invoke_props_dialog(self, width=width)   
 
 def rman_presets_object_menu(self, context):

@@ -68,7 +68,7 @@
                 }                               
             }
         },
-        "ui_preference": {
+        "editor_preference": {
             "type": "object",
             "properties": {
                 "width": {
@@ -129,11 +129,11 @@
                 }
             }
         },
-        "ui_preferences": {
+        "editor_preferences": {
             "type": "object",
             "patternProperties": {
                 "[A-Za-z0-9_-]+": {
-                    "$ref": "#/definitions/ui_preference"
+                    "$ref": "#/definitions/editor_preference"
                 }
             }
         },           

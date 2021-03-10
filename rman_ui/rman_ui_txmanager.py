@@ -606,7 +606,7 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
                     break
 
         wm = context.window_manager
-        width = rfb_config['ui_preferences']['texture_manager']['width']
+        width = rfb_config['editor_preferences']['texture_manager']['width']
         return wm.invoke_props_dialog(self, width=width)
             
 def index_updated(self, context):

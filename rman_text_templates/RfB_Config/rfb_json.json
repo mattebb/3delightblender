@@ -12,7 +12,7 @@
             "zone": "UNC"
         }
     },
-    "ui_preferences": {
+    "editor_preferences": {
         "preset_browser": {
             "width": 900
         }

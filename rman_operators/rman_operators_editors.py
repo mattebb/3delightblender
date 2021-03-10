@@ -144,7 +144,7 @@ class RENDER_OT_Renderman_Open_Workspace(CollectionPanel, bpy.types.Operator):
     def invoke(self, context, event):
 
         wm = context.window_manager
-        width = rfb_config['ui_preferences']['workspace_editor']['width']
+        width = rfb_config['editor_preferences']['workspace_editor']['width']
         return wm.invoke_props_dialog(self, width=width)                      
 
 class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Operator):
@@ -206,7 +206,7 @@ class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Oper
     def invoke(self, context, event):
 
         wm = context.window_manager
-        width = rfb_config['ui_preferences']['lightmixer_editor']['width']
+        width = rfb_config['editor_preferences']['lightmixer_editor']['width']
         return wm.invoke_props_dialog(self, width=width)         
 
     def draw(self, context):
@@ -481,7 +481,7 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
     def invoke(self, context, event):
 
         wm = context.window_manager
-        width = rfb_config['ui_preferences']['lightlink_editor']['width']
+        width = rfb_config['editor_preferences']['lightlink_editor']['width']
         return wm.invoke_props_dialog(self, width=width)
 
 class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator):
@@ -602,7 +602,7 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
     def invoke(self, context, event):
 
         wm = context.window_manager
-        width = rfb_config['ui_preferences']['tracesets_editor']['width']
+        width = rfb_config['editor_preferences']['tracesets_editor']['width']
         return wm.invoke_props_dialog(self, width=width)  
 
 class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
@@ -837,7 +837,7 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
 
     def invoke(self, context, event):
         wm = context.window_manager
-        width = rfb_config['ui_preferences']['stylizedlooks_editor']['width']
+        width = rfb_config['editor_preferences']['stylizedlooks_editor']['width']
         return wm.invoke_props_dialog(self, width=width)
 
 classes = [
