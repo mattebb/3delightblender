@@ -1,4 +1,5 @@
 {
+    "$schema": "./schemas/rfbDspyChansSchema.json",
     "channels": {
         "blender_all_lighting": {
             "description": "All lighting",
