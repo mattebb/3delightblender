@@ -909,47 +909,15 @@
         },                        
         {
             "panel": "RENDER_PT_renderman_advanced_settings",
-            "page": "Statistics",
+            "page": "",
             "name": "use_statistics",
+            "riopt": "statistics:level",
             "label": "Enable Statistics",
             "type": "int",
             "default": 0,
-            "widget": "checkbox"
+            "widget": "checkbox",
+            "help": "Enable writing an XML statistics file. The location for the XML file can be specified in the workspace editor."
         },      
-        {
-            "panel": "RENDER_PT_renderman_advanced_settings",
-            "page": "Statistics",
-            "name": "statistics_level",
-            "riopt": "statistics:level",
-            "label": "Level",
-            "type": "int",
-            "default": 1,
-            "widget": "mapper",
-            "options": "0:0|1:1|2:2|3:3",
-            "help": "0 - None, 1 - Non-invasive, 2 - More accurate, at some cost, 3 - Most accurate, with potentially significant slowdown",
-            "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "use_statistics",
-                "conditionalVisValue": "1"
-            }  
-        },
-        {
-            "panel": "RENDER_PT_renderman_advanced_settings",
-            "page": "Statistics",
-            "name": "statistics_level",
-            "riopt": "statistics:level",
-            "label": "Level",
-            "type": "int",
-            "default": 1,
-            "widget": "mapper",
-            "options": "0:0|1:1|2:2|3:3",
-            "help": "0 - None, 1 - Non-invasive, 2 - More accurate, at some cost, 3 - Most accurate, with potentially significant slowdown",
-            "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "use_statistics",
-                "conditionalVisValue": "1"
-            }  
-        },
         {
             "panel": "RENDER_PT_renderman_advanced_settings",
             "page": "LPE Lobe Mappings",
@@ -1190,6 +1158,16 @@
             "widget": "fileinput",
             "help": "Path for the beauty image"                   
         },  
+        {
+            "panel": "RENDER_PT_renderman_workspace",
+            "page": "",
+            "name": "statistics_xmlfilename",
+            "riopt": "statistics:xmlfilename",
+            "label": "XML Filename",
+            "type": "string",
+            "widget": "fileinput",
+            "default": "<OUT>/stats.<F4>.xml"
+        },        
         {
             "panel": "RENDER_PT_renderman_workspace",
             "page": "",

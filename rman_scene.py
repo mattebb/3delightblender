@@ -1072,6 +1072,8 @@ class RmanScene(object):
                 is_array = True
                 array_len = meta['arraySize']
             param_type = meta['renderman_type']
+            if param_type == "string":
+                val = string_utils.expand_string(val, asFilePath=True)
             property_utils.set_rix_param(options, param_type, ri_name, val, is_reference=False, is_array=is_array, array_len=array_len, node=rm)
 
         # threads
@@ -1103,10 +1105,9 @@ class RmanScene(object):
         # Set frame number 
         options.SetInteger(self.rman.Tokens.Rix.k_Ri_Frame, self.bl_scene.frame_current)
 
-        # Stats
-        if not self.is_interactive and rm.use_statistics:
-            options.SetInteger(self.rman.Tokens.Rix.k_statistics_endofframe, int(rm.statistics_level))
-            options.SetString(self.rman.Tokens.Rix.k_statistics_xmlfilename, 'stats.%04d.xml' % self.bl_scene.frame_current)
+        # Always turn off xml stats when in interactive
+        if self.is_interactive:
+            options.SetInteger(self.rman.Tokens.Rix.k_statistics_level, 0)
 
         # Set bucket shape
         bucket_order = rm.opt_bucket_order.lower()
