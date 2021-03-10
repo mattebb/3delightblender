@@ -4,6 +4,7 @@ from ..rman_operators.rman_operators_utils import get_bxdf_items, get_light_item
 from ..rfb_utils import scene_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import filepath_utils
+from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 from bpy.types import Menu
 import bpy
 
@@ -51,14 +52,12 @@ class VIEW3D_MT_renderman_add_object_menu(Menu):
         op.bl_prim_type = ''
         op.rman_open_filebrowser = True    
 
-        '''
-        # Remove RunProgram for now
-        op = layout.operator('object.rman_add_rman_geo', text='RunProgram')
-        op.rman_prim_type = 'PROCEDURAL_RUN_PROGRAM'
-        op.rman_default_name = 'RiRunProgram'          
-        op.bl_prim_type = ''
-        op.rman_open_filebrowser = True
-        '''
+        if rfb_config['ui_preferences']['render_runprograms']['default']:
+            op = layout.operator('object.rman_add_rman_geo', text='RunProgram')
+            op.rman_prim_type = 'PROCEDURAL_RUN_PROGRAM'
+            op.rman_default_name = 'RiRunProgram'          
+            op.bl_prim_type = ''
+            op.rman_open_filebrowser = True
 
         rman_icon = rfb_icons.get_icon("rman_alembic")
         op = layout.operator('object.rman_add_rman_geo', text='Alembic Archive', icon_value=rman_icon.icon_id)

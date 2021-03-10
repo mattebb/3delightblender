@@ -10,6 +10,14 @@
     "woffs": [
         "R90007"
     ],
+    "ui_preferences": {
+        "render_runprograms": {
+            "default": false
+        },
+        "show_cycles_convert":{
+            "default": false
+        }
+    },
     "editor_preferences": {
         "preset_browser": {
             "width": 750

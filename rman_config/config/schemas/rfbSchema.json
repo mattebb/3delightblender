@@ -80,7 +80,7 @@
             "type": "object",
             "properties": {
                 "default": {
-                    "type": ["integer", "string", "array"]
+                    "type": ["integer", "string", "array", "boolean"]
                 }
             }
         }
@@ -136,7 +136,15 @@
                     "$ref": "#/definitions/editor_preference"
                 }
             }
-        },           
+        },
+        "ui_preferences": {
+            "type": "object",
+            "patternProperties": {
+                "[A-Za-z0-9_-]+": {
+                    "$ref": "#/definitions/preference"
+                }
+            }
+        },
         "tractor_cfg": {"$ref": "#/definitions/tractor_cfg" }       
     },
     "additionalProperties": false

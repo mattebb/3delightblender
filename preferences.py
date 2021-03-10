@@ -124,12 +124,6 @@ class RendermanPreferences(AddonPreferences):
         default='MANUALLY'
     )    
 
-    auto_check_update: bpy.props.BoolProperty(
-        name = "Auto-check for Update",
-        description = "If enabled, auto-check for updates using an interval",
-        default = True,
-        )
-
     def update_rman_logging_level(self, context):
         level = rfb_logger.__LOG_LEVELS__[self.rman_logging_level]
         rfb_logger.set_logger_level(level)
@@ -200,7 +194,7 @@ class RendermanPreferences(AddonPreferences):
         default=""
     )
 
-    rman_do_cycles_convert: BoolProperty(
+    rman_show_cycles_convert: BoolProperty(
         name="Convert Cycles Nodes",
         default=False,
         description="Add convert Cycles Networks buttons to the material properties panel. N.B.: This isn't guaranteed to fully convert Cycles networks successfully. Also, because of differences in OSL implementations, converted networks may cause stability problems when rendering."
@@ -279,7 +273,7 @@ class RendermanPreferences(AddonPreferences):
         col = row.column()
         col.prop(self, 'rman_do_preview_renders')  
         col.prop(self, 'rman_render_nurbs_as_mesh')
-        col.prop(self, 'rman_do_cycles_convert')     
+        col.prop(self, 'rman_show_cycles_convert')     
         col.prop(self, 'rman_emit_default_params')    
 
         # Workspace

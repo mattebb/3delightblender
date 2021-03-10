@@ -9,6 +9,7 @@ from .. import rfb_icons
 from ..rfb_utils import object_utils
 from ..rfb_utils.prefs_utils import get_pref
 from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
+from ..rman_cycles_convert import do_cycles_convert
 from bpy.types import Panel
 import bpy
 
@@ -217,7 +218,7 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
             rman_icon = rfb_icons.get_icon('rman_graph')
             col.operator(
                 'material.rman_add_rman_nodetree', icon_value=rman_icon.icon_id).idtype = "material"
-            if get_pref('rman_do_cycles_convert', False) or os.environ.get('RFB_ENABLE_CYCLES_CONVERT', False):
+            if do_cycles_convert():
                 col = row.column()                
                 op = col.operator('material.rman_convert_cycles_shader').idtype = "material"
                 if not mat.grease_pencil:

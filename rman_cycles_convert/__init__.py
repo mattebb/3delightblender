@@ -5,7 +5,7 @@ from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import texture_utils
 from ..rman_bl_nodes import __BL_NODES_MAP__
 from ..rfb_utils.prefs_utils import get_pref
-import os
+from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 
 _COMBINE_NODES_ = ['ShaderNodeAddShader', 'ShaderNodeMixShader']
 
@@ -156,7 +156,7 @@ def offset_node_location(rman_parent, rman_node, cycles_node):
                                linked_socket.links[0].to_node.location)    
 
 def do_cycles_convert():
-    return get_pref('rman_do_cycles_convert', False) or os.environ.get('RFB_ENABLE_CYCLES_CONVERT', False)
+    return get_pref('rman_show_cycles_convert', False) or rfb_config['ui_preferences']['show_cycles_convert']['default']
 
 def convert_world_nodetree(world, context, df_output=False):
     cycles_output_node = shadergraph_utils.find_node(world, 'ShaderNodeOutputWorld')
