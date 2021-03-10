@@ -12,5 +12,10 @@
             "zone": "UNC"
         }
     },
+    "ui_preferences": {
+        "preset_browser": {
+            "width": 900
+        }
+    }    
     "user tokens": ["PROD", "SHOT"]
 }

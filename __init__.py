@@ -246,12 +246,8 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     
-    #from . import presets
-    #presets.register()
     from . import preferences
     preferences.register()
-    #from . import rman_config
-    #rman_config.register()
     load_addon()
 
 def unregister():

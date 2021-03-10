@@ -26,6 +26,7 @@
 from ..rfb_utils.prefs_utils import get_pref, get_addon_prefs
 from ..rfb_utils import filepath_utils
 from ..rfb_logger import rfb_log
+from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 
 # for panel icon
 from .. import rfb_icons
@@ -84,15 +85,19 @@ class PRMAN_MT_Renderman_Presets_Categories_Menu(bpy.types.Menu):
 
     def draw(self, context):
         hostPrefs = rab.get_host_prefs()
+        current_category_path = hostPrefs.getSelectedCategory()        
         for cat in hostPrefs.getAllCategories(asDict=False):
             tokens = cat.split('/')
             category_path = os.path.join(hostPrefs.getSelectedLibrary(), cat)
             level = len(tokens)
             category_name = ''
             for i in range(0, level-1):
-                category_name += '    '
-            category_name = '%s%s' % (category_name, tokens[-1])           
-            self.layout.operator('renderman.set_current_preset_category',text=category_name).preset_current_path = category_path
+                category_name += '    '                
+            category_name = '%s%s' % (category_name, tokens[-1])
+            if category_path == current_category_path:
+                self.layout.label(text=category_name)
+            else:
+                self.layout.operator('renderman.set_current_preset_category',text=category_name).preset_current_path = category_path
                         
 class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
     bl_label = "Preset Browser"
@@ -385,7 +390,8 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
         self.load_categories(context)
              
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=700)   
+        width = rfb_config['ui_preferences']['preset_browser']['width']
+        return wm.invoke_props_dialog(self, width=width)   
 
 def rman_presets_object_menu(self, context):
 

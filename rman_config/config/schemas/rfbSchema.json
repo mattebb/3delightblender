@@ -68,6 +68,14 @@
                 }                               
             }
         },
+        "ui_preference": {
+            "type": "object",
+            "properties": {
+                "width": {
+                    "type": "number"
+                }
+            }
+        },    
         "preference": {
             "type": "object",
             "properties": {
@@ -120,7 +128,15 @@
                     "$ref": "#/definitions/bxdf_viewport_color_map"
                 }
             }
-        } ,
+        },
+        "ui_preferences": {
+            "type": "object",
+            "patternProperties": {
+                "[A-Za-z0-9_-]+": {
+                    "$ref": "#/definitions/ui_preference"
+                }
+            }
+        },           
         "tractor_cfg": {"$ref": "#/definitions/tractor_cfg" }       
     },
     "additionalProperties": false

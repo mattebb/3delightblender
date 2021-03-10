@@ -10,6 +10,7 @@ from ..rfb_utils import filepath_utils
 from .. import rfb_icons
 from ..rman_operators.rman_operators_collections import return_empty_list   
 from ..rman_constants import RFB_MAX_USER_TOKENS, RMAN_STYLIZED_FILTERS  
+from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 import bpy
 import re
 
@@ -143,7 +144,8 @@ class RENDER_OT_Renderman_Open_Workspace(CollectionPanel, bpy.types.Operator):
     def invoke(self, context, event):
 
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=600)                      
+        width = rfb_config['ui_preferences']['workspace_editor']['width']
+        return wm.invoke_props_dialog(self, width=width)                      
 
 class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Operator):
 
@@ -204,7 +206,8 @@ class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Oper
     def invoke(self, context, event):
 
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=600)         
+        width = rfb_config['ui_preferences']['lightmixer_editor']['width']
+        return wm.invoke_props_dialog(self, width=width)         
 
     def draw(self, context):
         layout = self.layout
@@ -478,7 +481,8 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
     def invoke(self, context, event):
 
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=900)       
+        width = rfb_config['ui_preferences']['lightlink_editor']['width']
+        return wm.invoke_props_dialog(self, width=width)
 
 class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator):
 
@@ -598,7 +602,8 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
     def invoke(self, context, event):
 
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=500)  
+        width = rfb_config['ui_preferences']['tracesets_editor']['width']
+        return wm.invoke_props_dialog(self, width=width)  
 
 class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
 
@@ -832,7 +837,8 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
 
     def invoke(self, context, event):
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=600)                      
+        width = rfb_config['ui_preferences']['stylizedlooks_editor']['width']
+        return wm.invoke_props_dialog(self, width=width)
 
 classes = [
     RENDER_OT_Renderman_Open_Workspace,

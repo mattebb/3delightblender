@@ -7,6 +7,7 @@ from ..rfb_utils import texture_utils
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import scene_utils
 from ..rfb_utils import object_utils
+from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 from .. import rman_render
 from rman_utils.txmanager import txparams
 from rman_utils import txmanager as txmngr
@@ -605,7 +606,8 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
                     break
 
         wm = context.window_manager
-        return wm.invoke_props_dialog(self, width=700)     
+        width = rfb_config['ui_preferences']['texture_manager']['width']
+        return wm.invoke_props_dialog(self, width=width)
             
 def index_updated(self, context):
     '''

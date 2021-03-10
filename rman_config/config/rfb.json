@@ -10,6 +10,29 @@
     "woffs": [
         "R90007"
     ],
+    "ui_preferences": {
+        "preset_browser": {
+            "width": 750
+        },
+        "texture_manager": {
+            "width": 700
+        },
+        "workspace_editor": {
+            "width": 600
+        },
+        "lightmixer_editor": {
+            "width": 600
+        },
+        "lightlink_editor": {
+            "width": 900
+        },
+        "tracesets_editor": {
+            "width": 500
+        },
+        "stylizedlooks_editor": {
+            "width": 600
+        }
+    },      
     "bxdf_viewport_color_mapping": {
         "PxrDisney": {
             "diffuse_color": ["baseColor"],
