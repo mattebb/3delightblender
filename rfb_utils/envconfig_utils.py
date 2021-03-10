@@ -1,8 +1,11 @@
 from .prefs_utils import get_pref
 from ..rfb_logger import rfb_log
+from .. import rfb_logger
 from .. import rman_constants
 from ..rman_constants import RFB_ADDON_PATH
 import os
+import bpy
+import json
 import xml.etree.ElementTree as ET
 import subprocess
 import platform
@@ -14,6 +17,7 @@ class RmanEnvConfig(object):
 
     def __init__(self):
         self.rmantree = ''
+        self.rmantree_from_json = False
         self.rman_version = ''
         self.rman_version_major = 0
         self.rman_version_minor = 0
@@ -33,11 +37,36 @@ class RmanEnvConfig(object):
         self._set_ocio()
         self._parse_license()
 
-    def getenv(self, k, default):
+    def getenv(self, k, default=''):
         return os.environ.get(k, default)
 
     def setenv(self, k, val):
         os.environ[k] = val
+
+    def read_envvars_file(self):
+        bl_config_path = bpy.utils.user_resource('CONFIG')
+        jsonfile = ''
+        for f in os.listdir(bl_config_path):
+            if not f.endswith('.json'):
+                continue
+            if f == 'rfb_envvars.json':
+                jsonfile = os.path.join(bl_config_path, f)
+                break
+        if jsonfile == '':
+            return
+
+        rfb_log().warning("Reading rfb_envvars.json")
+        jdata = json.load(open(jsonfile))
+        environment = jdata.get('environment', list())
+
+        for var, val in environment.items():
+            rfb_log().warning("Setting envvar %s to: %s" % (var, val['value']))  
+            self.setenv(var, val['value'])  
+            if var == 'RMANTREE':
+                self.rmantree_from_json = True
+                
+        # Re-init the log level in case RFB_LOG_LEVEL was set
+        rfb_logger.init_log_level()
 
     def get_shader_registration_paths(self):
         paths = []
@@ -183,8 +212,11 @@ def _get_rman_version(rmantree):
 
 def _guess_rmantree():
     '''
-    Try to figure out what RMANTREE should be set to based on what's set in the preferences.
+    Try to figure out what RMANTREE should be set.
     
+    First, we consult the rfb_envvars.json file to see if it's been set there. If not, we look at the 
+    rmantree_method preference. The preference can be set to either:
+
     ENV = Get From RMANTREE Environment Variable
     DETECT = Choose a version based on what's installed on the local machine (looks in the default install path)
     MANUAL =  Use the path that is manually set in the preferences.
@@ -199,46 +231,68 @@ def _guess_rmantree():
     rmantree = ''
     version = (0, 0, '')
 
-    if rmantree_method == 'MANUAL':
-        rmantree = get_pref('path_rmantree')
+    __RMAN_ENV_CONFIG__ = RmanEnvConfig()
+    
+    if not __RMAN_ENV_CONFIG__.getenv('RFB_IGNORE_ENVVARS_JSON', False):
+        __RMAN_ENV_CONFIG__.read_envvars_file()
 
-    if rmantree_method == 'DETECT' and choice != 'NEWEST':
-        rmantree = choice
+    if __RMAN_ENV_CONFIG__.rmantree_from_json:
+        rmantree = __RMAN_ENV_CONFIG__.getenv('RMANTREE', '')
 
-    if rmantree == '' or rmantree_method == 'ENV':
-        # Fallback to RMANTREE env var
-        if rmantree == '':
-            rfb_log().info('Fallback to using RMANTREE.')
-        rmantree = os.environ.get('RMANTREE', '') 
-
-    if rmantree == '':
-        if rmantree_method == 'ENV':
-            rfb_log().info('Fallback to autodetecting newest.')
-                 
-        if choice == 'NEWEST':
-            # get from detected installs (at default installation path)
-            for vstr, d_rmantree in get_installed_rendermans():
-                d_version = _parse_version(vstr)
-                if d_version > latest:
-                    rmantree = d_rmantree
-                    version = d_version                
-
-    if version[0] == 0:
+    if rmantree != '':
         version = _get_rman_version(rmantree)
+        if version[0] == 0:
+            rfb_log().error('RMANTREE from rfb_envvars.json is not valid. Fallback to preferences setting.')  
+            rmantree = ''    
+        else:
+            rfb_log().warning("Using RMANTREE from rfb_envvars.json")
 
-    # check rmantree valid
-    if version[0] == 0:
-        rfb_log().error(
-            "Error loading addon.  RMANTREE %s is not valid.  Correct RMANTREE setting in addon preferences." % rmantree)
-        return None
+    # Try and set RMANTREE depending on preferences
+    if rmantree == '':      
 
-    # check if this version of RenderMan is supported
-    if version[0] < rman_constants.RMAN_SUPPORTED_VERSION_MAJOR:
-        rfb_log().error("Error loading addon using RMANTREE=%s.  RMANTREE must be version %s or greater.  Correct RMANTREE setting in addon preferences." % (rmantree, rman_constants.RMAN_SUPPORTED_VERSION_STRING))
-        return None
+        if rmantree_method == 'MANUAL':
+            rmantree = get_pref('path_rmantree')
+
+        if rmantree_method == 'DETECT' and choice != 'NEWEST':
+            rmantree = choice
+
+        if rmantree == '' or rmantree_method == 'ENV':
+            # Fallback to RMANTREE env var
+            if rmantree == '':
+                rfb_log().info('Fallback to using RMANTREE.')
+            rmantree = os.environ.get('RMANTREE', '') 
+
+        if rmantree == '':
+            if rmantree_method == 'ENV':
+                rfb_log().info('Fallback to autodetecting newest.')
+                    
+            if choice == 'NEWEST':
+                # get from detected installs (at default installation path)
+                for vstr, d_rmantree in get_installed_rendermans():
+                    d_version = _parse_version(vstr)
+                    if d_version > latest:
+                        rmantree = d_rmantree
+                        version = d_version                
+
+        if version[0] == 0:
+            version = _get_rman_version(rmantree)
+
+        # check rmantree valid
+        if version[0] == 0:
+            rfb_log().error(
+                "Error loading addon.  RMANTREE %s is not valid.  Correct RMANTREE setting in addon preferences." % rmantree)
+            __RMAN_ENV_CONFIG__ = None
+            return None
+
+        # check if this version of RenderMan is supported
+        if version[0] < rman_constants.RMAN_SUPPORTED_VERSION_MAJOR:
+            rfb_log().error("Error loading addon using RMANTREE=%s.  RMANTREE must be version %s or greater.  Correct RMANTREE setting in addon preferences." % (rmantree, rman_constants.RMAN_SUPPORTED_VERSION_STRING))
+            __RMAN_ENV_CONFIG__ = None
+            return None
+
+        rfb_log().debug("Guessed RMANTREE: %s" % rmantree)
 
     # Create an RmanEnvConfig object
-    __RMAN_ENV_CONFIG__ = RmanEnvConfig()
     __RMAN_ENV_CONFIG__.rmantree = rmantree
     __RMAN_ENV_CONFIG__.rman_version = '%d.%d%s' % (version[0], version[1], version[2])
     __RMAN_ENV_CONFIG__.rman_version_major = version[0]

@@ -1,0 +1,29 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "definitions": {
+        "envvar": {
+            "type": "object",
+            "properties": {
+                "value": {
+                    "type": ["string"]
+                }
+            }
+        }
+    },
+    "type": "object",
+    "properties": {
+        "$schema": {
+            "description": "This is a validation schema for this file.\nSome editors can validate on the fly using this information.",
+            "type": "string"
+        },    
+        "environment": {
+            "type": "object",
+            "patternProperties": {
+                "[A-Za-z0-9_-]+": {
+                    "$ref": "#/definitions/envvar"
+                }
+            }
+        }   
+    },
+    "additionalProperties": false
+}
