@@ -217,6 +217,8 @@ class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
             nt = context.material.node_tree
             mat = context.material
             rman_output_node = is_renderman_nodetree(mat)
+            if not rman_output_node:
+                return            
             layout = self.layout
             if not rman_output_node.show_sticky_params:            
                 draw_nodes_properties_ui(
@@ -243,6 +245,8 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
             nt = context.material.node_tree
             mat = context.material
             rman_output_node = is_renderman_nodetree(mat)
+            if not rman_output_node:
+                return
             layout = self.layout
             if not rman_output_node.show_sticky_params:
                 draw_nodes_properties_ui(

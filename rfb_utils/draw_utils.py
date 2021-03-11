@@ -137,7 +137,7 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             if is_rman_interactive_running and not editable:
                 row.enabled = False      
 
-def draw_prop(node, prop_name, layout, level=0, nt=None, context=False, draw_connection_menu=True):
+def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_connection_menu=True):
     if prop_name == "codetypeswitch":
         row = layout.row()
         if node.codetypeswitch == 'INT':
@@ -331,13 +331,13 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=False, draw_con
                     op = row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)  
                     op.nodeID = nodeID                             
 
-def draw_props(node, prop_names, layout, level=0, nt=None, context=False):
+def draw_props(node, prop_names, layout, level=0, nt=None, context=None):
     layout.context_pointer_set("node", node)
     if nt:
         layout.context_pointer_set("nodetree", nt)
 
     for prop_name in prop_names:
-        draw_prop(node, prop_name, layout, level=level, nt=nt)
+        draw_prop(node, prop_name, layout, level=level, nt=nt, context=context)
 
 def panel_node_draw(layout, context, id_data, output_type, input_name):
     ntree = id_data.node_tree
