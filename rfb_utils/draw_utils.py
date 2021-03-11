@@ -279,7 +279,7 @@ def draw_props(node, prop_names, layout, level=0, nt=None, context=False):
                                     draw_node_properties_recursive(layout, context, nt, input_node, level=level + 1)
                                 else:
                                     row.label(text='%s[%d]: ' % (prop_label, i))
-                                    rman_icon = rfb_icons.get_icon('out_unknown')
+                                    rman_icon = rfb_icons.get_icon('rman_connection_menu')
                                     row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
                     continue
                 else:                      
@@ -306,7 +306,7 @@ def draw_props(node, prop_names, layout, level=0, nt=None, context=False):
                         row.context_pointer_set("socket", socket)
                         row.context_pointer_set("node", node)
                         row.context_pointer_set("nodetree", nt)
-                        rman_icon = rfb_icons.get_icon('out_unknown')
+                        rman_icon = rfb_icons.get_icon('rman_connection_menu')
                         row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
 
                 if widget in ['fileinput','assetidinput']:                            
