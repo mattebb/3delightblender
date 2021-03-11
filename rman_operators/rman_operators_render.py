@@ -2,6 +2,7 @@ from ..rfb_utils import filepath_utils
 import bpy
 import os
 import time
+import webbrowser
 
 class PRMAN_OT_Renderman_Use_Renderman(bpy.types.Operator):
     bl_idname = "renderman.use_renderman"
@@ -185,6 +186,23 @@ class PRMAN_OT_StoptInteractive(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class PRMAN_OT_Renderman_Launch_Webbrowser(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "renderman.launch_webbrowser"
+    bl_label = ""
+    bl_description = ""
+    bl_options = {'INTERNAL'}
+
+    url: bpy.props.StringProperty(name="URL", default='')
+
+    def invoke(self, context, event=None):
+        try:
+            webbrowser.open(self.url)
+        except Exception as e:
+            rfb_log().error("Failed to open URL: %s" % str(e))    
+        return {'FINISHED'}        
+
 classes = [
     PRMAN_OT_Renderman_Use_Renderman,
     PRMAN_OT_RendermanBake,
@@ -192,7 +210,8 @@ classes = [
     PRMAN_OT_ExternalRendermanBake,
     PRMAN_OT_ExternalRender,
     PRMAN_OT_StartInteractive,
-    PRMAN_OT_StoptInteractive 
+    PRMAN_OT_StoptInteractive,
+    PRMAN_OT_Renderman_Launch_Webbrowser
 ]
 
 def register():

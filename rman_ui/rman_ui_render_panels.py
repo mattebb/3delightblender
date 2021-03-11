@@ -22,10 +22,12 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         rm = context.scene.renderman
 
         if rm.is_ncr_license:
-            split = layout.split(factor=0.25)
-            col = split.column()
+            split = layout.split(factor=0.7)
             col = split.column()
             col.label(text="NON-COMMERCIAL VERSION")
+            col = split.column()
+            op = col.operator('renderman.launch_webbrowser', text='Upgrade/Buy Now')
+            op.url = 'https://renderman.pixar.com/store'
 
         if not rm.is_rman_interactive_running:
 
