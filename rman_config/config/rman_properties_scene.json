@@ -67,7 +67,7 @@
             "options": "RIS:prman|XPU:xpu|XPU - CPU:xpucpu|XPU - GPU:xpugpu",
             "help": "",
             "conditionalVisOps": {
-                "conditionalVis1Path": "is_ncr",
+                "conditionalVis1Path": "is_ncr_license",
                 "conditionalVis2Op": "notEqualTo",
                 "conditionalVis1Value": "0",
                 "conditionalVisOp": "and",
@@ -86,12 +86,7 @@
             "type": "int",
             "default": 0,
             "widget": "checkbox",
-            "help": "Render with RenderMan Stylized looks.",
-            "conditionalVisOps": {
-                "conditionalVisOp": "equalTo",
-                "conditionalVisPath": "is_ncr",
-                "conditionalVisValue": "0"
-            }              
+            "help": "Render with RenderMan Stylized looks."
         },          
         {
             "panel": "RENDER_PT_renderman_render",

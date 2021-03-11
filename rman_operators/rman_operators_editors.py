@@ -613,7 +613,7 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         rd = context.scene.render
-        return rd.engine in {'PRMAN_RENDER'} and not envconfig().is_ncr_license   
+        return rd.engine in {'PRMAN_RENDER'} 
 
     def updated_object_selected_name(self, context):
         ob = context.scene.objects.get(self.selected_obj_name, None)

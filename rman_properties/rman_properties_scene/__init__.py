@@ -105,7 +105,7 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         return rman_render.rman_is_viewport_rendering
 
     current_platform: StringProperty(get=get_platform)
-    is_ncr: BoolProperty(get=is_ncr_getter)
+    is_ncr_license: BoolProperty(get=is_ncr_getter)
     is_rman_interactive_running: BoolProperty(get=get_is_rman_interactive_running)         
     is_rman_swatch_render_running: BoolProperty(get=get_is_rman_swatch_render_running)  
     is_rman_viewport_rendering:  BoolProperty(get=get_is_rman_viewport_rendering)  

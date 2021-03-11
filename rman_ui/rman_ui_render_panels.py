@@ -21,7 +21,7 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
         rd = context.scene.render
         rm = context.scene.renderman
 
-        if rm.is_ncr:
+        if rm.is_ncr_license:
             split = layout.split(factor=0.25)
             col = split.column()
             col = split.column()
