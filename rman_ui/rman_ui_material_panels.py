@@ -1,6 +1,7 @@
 from .rman_ui_base import _RManPanelHeader,ShaderPanel,ShaderNodePanel, CollectionPanel 
-from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
+from ..rfb_utils.shadergraph_utils import is_renderman_nodetree, gather_nodes
 from ..rfb_utils.draw_utils import panel_node_draw,draw_nodes_properties_ui,draw_node_properties_recursive
+from ..rfb_utils.draw_utils import show_node_sticky_params, get_open_close_icon
 from ..rfb_utils.prefs_utils import get_pref
 from ..rman_cycles_convert import do_cycles_convert
 from .. import rfb_icons
@@ -131,14 +132,33 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
                         
                         layout.separator()
                         draw_node_properties_recursive(layout, context, nt, solo_node, level=0)
-                    else:
-                        layout.separator()
-                        panel_node_draw(layout, context, mat,
-                                        'RendermanOutputNode', 'Bxdf')                           
-                else:
-                    layout.separator()
+                        return 
+
+                # Sticky Toggle
+                split = layout.split(factor=0.10)
+                col = split.column()
+                sticky_icon = rfb_icons.get_icon('rman_blender_grey')
+                if getattr(rman_output_node, 'show_sticky_params'):
+                    sticky_icon = rfb_icons.get_icon('rman_blender')
+                col.context_pointer_set('node', rman_output_node)
+                op = col.operator('node.rman_toggle_sticky_params', icon_value=sticky_icon.icon_id, emboss=False, text='')
+                op.prop_name = 'show_sticky_params'
+                col = split.column()
+                col.label(text='Show Sticky Params')
+
+                layout.separator()
+                if not rman_output_node.show_sticky_params:
                     panel_node_draw(layout, context, mat,
-                                    'RendermanOutputNode', 'Bxdf')       
+                                    'RendermanOutputNode', 'Bxdf')    
+                elif not rman_output_node.inputs['Bxdf'].is_linked:
+                    panel_node_draw(layout, context, mat,
+                                    'RendermanOutputNode', 'Bxdf')                        
+                else:
+                    bxdf_node = rman_output_node.inputs['Bxdf'].links[0].from_node
+                    nodes = gather_nodes(bxdf_node)
+                    for node in nodes:
+                        prop_names = getattr(node, 'prop_names', list())
+                        show_node_sticky_params(layout, node, prop_names, context, nt, rman_output_node)
             else:
                 if not panel_node_draw(layout, context, mat, 'ShaderNodeOutputMaterial', 'Surface'):
                     layout.prop(mat, "diffuse_color")
@@ -195,8 +215,21 @@ class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
     def draw(self, context):
         if context.material.node_tree:
             nt = context.material.node_tree
-            draw_nodes_properties_ui(
-                self.layout, context, nt, input_name=self.shader_type)
+            mat = context.material
+            rman_output_node = is_renderman_nodetree(mat)
+            layout = self.layout
+            if not rman_output_node.show_sticky_params:            
+                draw_nodes_properties_ui(
+                    self.layout, context, nt, input_name=self.shader_type)
+            elif not rman_output_node.inputs['Light'].is_linked:
+                draw_nodes_properties_ui(
+                    layout, context, nt, input_name=self.shader_type)
+            else:
+                light_node = rman_output_node.inputs['Light'].links[0].from_node
+                nodes = gather_nodes(light_node)
+                for node in nodes:
+                    prop_names = getattr(node, 'prop_names', list())
+                    show_node_sticky_params(layout, node, prop_names, context, nt, rman_output_node)                    
 
 
 class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
@@ -208,8 +241,22 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
     def draw(self, context):
         if context.material.node_tree:
             nt = context.material.node_tree
-            draw_nodes_properties_ui(
-                self.layout, context, nt, input_name=self.shader_type)
+            mat = context.material
+            rman_output_node = is_renderman_nodetree(mat)
+            layout = self.layout
+            if not rman_output_node.show_sticky_params:
+                draw_nodes_properties_ui(
+                    layout, context, nt, input_name=self.shader_type)
+            elif not rman_output_node.inputs['Displacement'].is_linked:
+                draw_nodes_properties_ui(
+                    layout, context, nt, input_name=self.shader_type)
+            else:
+                disp_node = rman_output_node.inputs['Displacement'].links[0].from_node
+                nodes = gather_nodes(disp_node)
+                for node in nodes:
+                    prop_names = getattr(node, 'prop_names', list())
+                    show_node_sticky_params(layout, node, prop_names, context, nt, rman_output_node)
+
 
 class DATA_PT_renderman_light(ShaderPanel, Panel):
     bl_context = "data"

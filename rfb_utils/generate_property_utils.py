@@ -97,6 +97,11 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
                             'type': node_desc_param.type
                             }
     prop_names.append(param_name)
+
+    ui_label = "%s_sticky" % param_name
+    node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=False)
+
+
     ui_label = "%s_uio" % param_name
     node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=False)
     sub_prop_names = []
@@ -193,12 +198,6 @@ def generate_property(node, sp, update_function=None):
         'struct_name']:
         if hasattr(sp, nm):
             prop_meta[nm] = getattr(sp, nm)
-
-    # bool property to represent whether this property
-    # should be hidden. Needed for conditionalVisOps
-    hidden_prop_name = '%s_hidden' % param_name
-    hidden_prop = BoolProperty(name=hidden_prop_name, default=False)
-    node.__annotations__[hidden_prop_name] = hidden_prop
 
     if isinstance(update_function, str):
         lcls = locals()
@@ -475,6 +474,16 @@ def generate_property(node, sp, update_function=None):
                                  description=param_help, update=update_function)
         renderman_type = 'float'
         prop_meta['arraySize'] = 2      
+
+    # bool property to represent whether this property
+    # should be hidden. Needed for conditionalVisOps
+    hidden_prop_name = '%s_hidden' % param_name
+    hidden_prop = BoolProperty(name=hidden_prop_name, default=False)
+    node.__annotations__[hidden_prop_name] = hidden_prop
+
+    # add a property to represent if this property should be stickied
+    sticky_prop_name = "%s_sticky" % param_name
+    node.__annotations__[sticky_prop_name] = BoolProperty(name=sticky_prop_name, default=False)            
 
     prop_meta['renderman_type'] = renderman_type
     prop_meta['renderman_name'] = renderman_name

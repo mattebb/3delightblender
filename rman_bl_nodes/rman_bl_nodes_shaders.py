@@ -4,11 +4,12 @@ from ..rfb_utils import rman_socket_utils
 from .. import rman_render
 from ..rfb_utils import string_utils
 from ..rfb_utils import shadergraph_utils
+from ..rfb_utils import draw_utils
 from ..rman_config import __RFB_CONFIG_DICT__
 from .. import rfb_icons
 from .. import rman_render
 from bpy.types import Menu
-from bpy.props import EnumProperty, StringProperty, CollectionProperty
+from bpy.props import EnumProperty, StringProperty, CollectionProperty, BoolProperty
 import _cycles
 import bpy
 import os
@@ -78,16 +79,19 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         else:
             rman_icon = rfb_icons.get_icon('out_%s' % self.bl_label)
             layout.label(text='', icon_value=rman_icon.icon_id)             
-        self.draw_nonconnectable_props(context, layout, self.prop_names)
+        self.draw_nonconnectable_props(context, layout, self.prop_names, output_node=out_node)
         if self.bl_idname == "PxrOSLPatternNode":
             layout.operator("node.rman_refresh_osl_shader")
 
     def draw_buttons_ext(self, context, layout):
+        nt = self.id_data
+        out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')        
         rman_icon = rfb_icons.get_icon('out_%s' % self.bl_label)
         layout.label(text='', icon_value=rman_icon.icon_id)             
-        self.draw_nonconnectable_props(context, layout, self.prop_names)
+        self.draw_nonconnectable_props(context, layout, self.prop_names, output_node=out_node)
 
-    def draw_nonconnectable_props(self, context, layout, prop_names):   
+    def draw_nonconnectable_props(self, context, layout, prop_names, output_node=None):
+        
         if self.bl_idname in ['PxrLayerPatternOSLNode', 'PxrSurfaceBxdfNode']:
             col = layout.column(align=True)
             for prop_name in prop_names:
@@ -132,39 +136,22 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                     ramp_name =  getattr(self, prop_name)
                     ramp_node = node_group.nodes[ramp_name]
                     layout.template_color_ramp(
-                            ramp_node, 'color_ramp')    
+                            ramp_node, 'color_ramp') 
+                    draw_utils.draw_sticky_toggle(layout, self, prop_name, output_node)                               
                 elif widget == 'floatramp':
                     node_group = bpy.data.node_groups[self.rman_fake_node_group]
                     ramp_name =  getattr(self, prop_name)
                     ramp_node = node_group.nodes[ramp_name]
                     layout.template_curve_mapping(
                             ramp_node, 'mapping')                   
+                    draw_utils.draw_sticky_toggle(layout, self, prop_name, output_node)
                                       
 
                 if prop_name not in self.inputs:
                     if renderman_type == 'page':
-                        # for now, don't draw the page   
-                        '''
-                        ui_prop = prop_name + "_uio"
-                        ui_open = getattr(self, ui_prop)
-                        icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
-                            else 'DISCLOSURE_TRI_RIGHT'
-
-                        split = layout.split(factor=NODE_LAYOUT_SPLIT)
-                        row = split.row()
-                        row.context_pointer_set("node", self)               
-                        op = row.operator('node.rman_open_close_page', text='', icon=icon, emboss=False)            
-                        op.prop_name = ui_prop
-                        row.label(text=prop_name.split('.')[-1] + ':')
-
-                        if ui_open:
-                            prop = getattr(self, prop_name)
-                            self.draw_nonconnectable_props(
-                                context, layout, prop)
-                        '''
                         prop = getattr(self, prop_name)
                         self.draw_nonconnectable_props(
-                            context, layout, prop)          
+                            context, layout, prop, output_node)          
 
                     
                     elif renderman_type == 'array':
@@ -180,11 +167,13 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         options = prop_meta['options']
                         prop_search_parent = options.get('prop_parent')
                         prop_search_name = options.get('prop_name')
-                        eval(f'layout.prop_search(self, prop_name, {prop_search_parent}, "{prop_search_name}")')                          
+                        eval(f'layout.prop_search(self, prop_name, {prop_search_parent}, "{prop_search_name}")') 
+                        draw_utils.draw_sticky_toggle(layout, self, prop_name, output_node)                         
                     elif widget in ['fileinput','assetidinput']:  
                         row = layout.row(align=True)
                         row.prop(self, prop_name)                                                  
                         prop_val = getattr(self, prop_name)
+                        draw_utils.draw_sticky_toggle(row, self, prop_name, output_node)
                         if prop_val != '':
                             row = layout.row(align=True)
                             row.prop(self, '%s_colorspace' % prop_name, text='Color Space')
@@ -192,7 +181,12 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                             row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)   
 
                     else:
-                        layout.prop(self, prop_name, slider=True)
+                        split = layout.split(factor=0.95)
+                        row = split.row()
+                        col = row.column()
+                        col.prop(self, prop_name, slider=True)
+                        col = row.column()
+                        draw_utils.draw_sticky_toggle(col, self, prop_name, output_node)
 
     def copy(self, node):
         pass
@@ -363,6 +357,9 @@ class RendermanOutputNode(RendermanShadingNode):
 
     solo_node_name: StringProperty(name='Solo Node', update=update_solo_node_name)
     solo_node_output: StringProperty(name='Solo Node Output')
+
+    show_sticky_params: BoolProperty(name='Show Sticky Params', 
+                                    default=False)
 
     def init(self, context):
         self._init_inputs()   

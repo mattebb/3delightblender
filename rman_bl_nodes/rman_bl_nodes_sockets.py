@@ -1,5 +1,7 @@
 import bpy
 from bpy.props import *
+from ..rfb_utils import shadergraph_utils
+from ..rfb_utils import draw_utils
 
 # update node during ipr for a socket default_value
 def update_func(self, context):
@@ -243,7 +245,13 @@ class RendermanSocket:
         else:
             layout.prop(node, self.name,
                         text=self.get_pretty_name(node), slider=True)
-
+        mat = getattr(context, 'material')
+        if mat:
+            output_node = shadergraph_utils.is_renderman_nodetree(mat)
+            if not output_node:
+                return
+            if not self.is_linked and not self.is_output:
+                draw_utils.draw_sticky_toggle(layout, node, self.name, output_node)
 
 class RendermanSocketInterface:
 

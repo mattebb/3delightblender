@@ -411,7 +411,7 @@ class NODE_OT_rman_refresh_osl_shader(bpy.types.Operator):
         context.node.RefreshNodes(context)
         return {'FINISHED'}
 
-class NODE_OT_open_close_link(bpy.types.Operator):
+class NODE_OT_rman_open_close_link(bpy.types.Operator):
     bl_idname = "node.rman_open_close_link"
     bl_label = "Open/Close link"
     bl_description = "Open or close a link"
@@ -426,7 +426,7 @@ class NODE_OT_open_close_link(bpy.types.Operator):
             socket.ui_open = dflt
         return {'FINISHED'}
 
-class NODE_OT_open_close_page(bpy.types.Operator):
+class NODE_OT_rman_open_close_page(bpy.types.Operator):
     bl_idname = "node.rman_open_close_page"
     bl_label = "Open/Close Page"
     bl_description = "Open or close a page"
@@ -442,7 +442,25 @@ class NODE_OT_open_close_page(bpy.types.Operator):
             dflt = not getattr(node, self.properties.prop_name)
             setattr(node, self.properties.prop_name, dflt)
 
-        return {'FINISHED'}        
+        return {'FINISHED'}    
+
+class NODE_OT_rman_toggle_sticky_params(bpy.types.Operator):
+    bl_idname = "node.rman_toggle_sticky_params"
+    bl_label = ""
+    bl_description = "Enable to only show sticky parameters"
+    bl_options = {'INTERNAL'}
+
+    prop_name: StringProperty(default='')
+
+    def execute(self, context):
+        node = context.node
+        try:
+            node[self.properties.prop_name] = not node[self.properties.prop_name]       
+        except:
+            dflt = not getattr(node, self.properties.prop_name)
+            setattr(node, self.properties.prop_name, dflt)
+
+        return {'FINISHED'}               
 
 classes = [
     NODE_OT_add_displayfilter_node_socket,
@@ -458,8 +476,10 @@ classes = [
     NODE_OT_rman_node_set_solo_output,
     NODE_OT_rman_node_change_output,
     NODE_OT_rman_refresh_osl_shader,
-    NODE_OT_open_close_link,
-    NODE_OT_open_close_page
+    ## FIXME: These three below should probably be merged
+    NODE_OT_rman_open_close_link,
+    NODE_OT_rman_open_close_page,
+    NODE_OT_rman_toggle_sticky_params
 ]
 
 def register():    
