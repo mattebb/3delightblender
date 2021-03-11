@@ -268,14 +268,14 @@ class RmanSpool(object):
             tractor_port = str(tractor_cfg.get('port', tractor_port))
             owner = tractor_cfg.get('user', owner)
 
-            if 'TRACTOR_ENGINE' in os.environ:
-                tractor_env = os.environ['TRACTOR_ENGINE'].split(':')
+            tractor_env = envconfig().getenv('TRACTOR_ENGINE')
+            if tractor_env:
+                tractor_env = tractor_env.split(':')
                 tractor_engine = tractor_env[0]
                 if len(tractor_env) > 1:
                     tractor_port = tractor_env[1]
 
-            if 'TRACTOR_USER' in os.environ:
-                owner = os.environ['TRACTOR_USER']
+            owner = envconfig().getenv('TRACTOR_USER', owner)
 
             tractor_spool = envconfig().rman_tractor_path
             if tractor_spool == '':

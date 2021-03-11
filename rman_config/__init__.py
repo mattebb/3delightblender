@@ -3,6 +3,7 @@ from ..rfb_utils.rfb_node_desc_utils.conditional_visibility import build_condvis
 from ..rfb_utils import generate_property_utils
 from ..rfb_utils.prefs_utils import get_pref
 from ..rfb_utils import filepath_utils
+from ..rfb_utils.envconfig_utils import envconfig
 from ..rfb_logger import rfb_log
 from bpy.props import StringProperty, BoolProperty
 import json
@@ -231,19 +232,19 @@ def get_override_paths():
             paths.append(prefs_path)    
 
     # first, RFB_SITE_PATH
-    RFB_SITE_PATH = os.environ.get('RFB_SITE_PATH', None)
+    RFB_SITE_PATH = envconfig().getenv('RFB_SITE_PATH')
     if RFB_SITE_PATH:
         for path in RFB_SITE_PATH.split(os.path.pathsep):
             paths.append(path)
 
     # next, RFB_SHOW_PATH
-    RFB_SHOW_PATH = os.environ.get('RFB_SHOW_PATH', None)
+    RFB_SHOW_PATH = envconfig().getenv('RFB_SHOW_PATH')
     if RFB_SHOW_PATH:
         for path in RFB_SHOW_PATH.split(os.path.pathsep):
             paths.append(path)
 
     # finally, RFB_USER_PATH
-    RFB_USER_PATH = os.environ.get('RFB_USER_PATH', None)
+    RFB_USER_PATH = envconfig().getenv('RFB_USER_PATH')
     if RFB_USER_PATH:
         for path in RFB_USER_PATH.split(os.path.pathsep):
             paths.append(path)                        

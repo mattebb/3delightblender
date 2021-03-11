@@ -326,7 +326,7 @@ class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
             self.report({"ERROR"},
                         "Could not find 'it'.")
         else:
-            environ = os.environ.copy()
+            environ = envconfig().copyenv()
             subprocess.Popen([it_path], env=environ, close_fds=True)
         return {'FINISHED'}        
 
@@ -341,7 +341,7 @@ class PRMAN_OT_Renderman_start_localqueue(bpy.types.Operator):
             self.report({"ERROR"},
                         "Could not find LocalQueue.")
         else:
-            environ = os.environ.copy()
+            environ = envconfig().copyenv()
             subprocess.Popen([lq_path], env=environ, close_fds=True)
         return {'FINISHED'}        
 

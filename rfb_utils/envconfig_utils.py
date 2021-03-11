@@ -30,18 +30,21 @@ class RmanEnvConfig(object):
     def config_environment(self):
 
         self.setenv('RMANTREE', self.rmantree)
-        self._set_path(os.path.join(self.rmantree, 'bin'))
+        self._append_to_path(os.path.join(self.rmantree, 'bin'))
         self._set_it_path()
         self._set_localqueue_path()
         self._config_pythonpath()
         self._set_ocio()
         self._parse_license()
 
-    def getenv(self, k, default=''):
+    def getenv(self, k, default=None):
         return os.environ.get(k, default)
 
     def setenv(self, k, val):
         os.environ[k] = val
+
+    def copyenv(self):
+        return os.environ.copy()
 
     def read_envvars_file(self):
         bl_config_path = bpy.utils.user_resource('CONFIG')
@@ -80,11 +83,11 @@ class RmanEnvConfig(object):
         paths.append(os.path.join(rmantree, 'lib', 'plugins', 'Args'))
         paths.append(os.path.join(RFB_ADDON_PATH, 'Args'))
 
-        RMAN_SHADERPATH = os.environ.get('RMAN_SHADERPATH', '')
+        RMAN_SHADERPATH = self.getenv('RMAN_SHADERPATH', '')
         for p in RMAN_SHADERPATH.split(os.path.pathsep):
             paths.append(p)
 
-        RMAN_RIXPLUGINPATH = os.environ.get('RMAN_RIXPLUGINPATH', '')
+        RMAN_RIXPLUGINPATH = self.getenv('RMAN_RIXPLUGINPATH', '')
         for p in RMAN_RIXPLUGINPATH.split(os.path.pathsep):
             paths.append(os.path.join(p, 'Args'))
 
@@ -101,9 +104,9 @@ class RmanEnvConfig(object):
         pythonbindings = os.path.join(self.rmantree, 'bin', 'pythonbindings')
         sys.path.append(pythonbindings)          
 
-    def _set_path(self, path):        
+    def _append_to_path(self, path):        
         if path is not None:
-            os.environ['PATH'] = path + os.pathsep + os.environ['PATH']        
+            self.setenv('PATH', path + os.pathsep + self.getenv('PATH'))
 
     def _set_it_path(self):
 
@@ -238,7 +241,7 @@ def _guess_rmantree():
 
     __RMAN_ENV_CONFIG__ = RmanEnvConfig()
     
-    if not __RMAN_ENV_CONFIG__.getenv('RFB_IGNORE_ENVVARS_JSON', False):
+    if not __RMAN_ENV_CONFIG__.getenv('RFB_IGNORE_ENVVARS_JSON'):
         __RMAN_ENV_CONFIG__.read_envvars_file()
 
     if __RMAN_ENV_CONFIG__.rmantree_from_json:

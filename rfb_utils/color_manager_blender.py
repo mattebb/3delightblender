@@ -32,7 +32,7 @@ def get_config_path():
     """
     clrmgr = color_manager()
 
-    ociopath = envconfig().getenv('OCIO', None)
+    ociopath = envconfig().getenv('OCIO')
     if ociopath is None:
         ociopath = envconfig().get_blender_ocio_config()
 
@@ -47,7 +47,7 @@ def get_colorspace_name():
     """
     clrmgr = color_manager()
     
-    ociopath = envconfig().getenv('OCIO', None)
+    ociopath = envconfig().getenv('OCIO')
     if ociopath is None:
         ociopath = envconfig().get_blender_ocio_config()
     if ColorManager:

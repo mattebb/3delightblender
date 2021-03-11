@@ -32,6 +32,7 @@ from .rfb_utils import display_utils
 from .rfb_utils import string_utils
 from .rfb_utils import texture_utils
 from .rfb_utils import filepath_utils
+from .rfb_utils.envconfig_utils import envconfig
 from .rfb_utils import scene_utils
 from .rfb_utils.prefs_utils import get_pref
 from .rfb_utils import shadergraph_utils
@@ -989,9 +990,9 @@ class RmanScene(object):
         # get cycles shader directory
         cycles_shader_dir = filepath_utils.get_cycles_shader_path()
 
-        RMAN_SHADERPATH = os.environ.get('RMAN_SHADERPATH', '')
-        RMAN_TEXTUREPATH = os.environ.get('RMAN_TEXTUREPATH', '')
-        RMAN_RIXPLUGINPATH = os.environ.get('RMAN_RIXPLUGINPATH', '')
+        RMAN_SHADERPATH = envconfig().getenv('RMAN_SHADERPATH', '')
+        RMAN_TEXTUREPATH = envconfig().getenv('RMAN_TEXTUREPATH', '')
+        RMAN_RIXPLUGINPATH = envconfig().getenv('RMAN_RIXPLUGINPATH', '')
         if sys.platform == ("win32"):
             # substitute ; for : in paths
             RMAN_SHADERPATH = RMAN_SHADERPATH.replace(';', ':')

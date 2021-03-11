@@ -264,7 +264,7 @@ class RmanRender(object):
         self.rictl.PRManEnd()
 
     def _dump_rib_(self):
-        if 'RFB_DUMP_RIB' in os.environ:
+        if envconfig().getenv('RFB_DUMP_RIB'):
             rfb_log().debug("Writing to RIB...")
             rib_time_start = time.time()
             if sys.platform == ("win32"):

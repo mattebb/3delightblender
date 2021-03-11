@@ -9,6 +9,7 @@ from .rman_ui_base import PRManButtonsPanel
 from ..rfb_utils.draw_utils import get_open_close_icon, draw_props
 from ..rfb_utils import string_utils
 from ..rfb_utils import scene_utils
+from ..rfb_utils.envconfig_utils import envconfig
 from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
 from .. import rman_config
 from ..rman_render import RmanRender
@@ -263,7 +264,7 @@ class RENDER_PT_layer_custom_aovs(CollectionPanel, Panel):
         row = col.row()
         row.label(text="Channels")
         row = col.row()
-        if rm_rl and rm_rl.custom_aov_index == 0 and not os.environ.get('RFB_DUMP_RIB', None):
+        if rm_rl and rm_rl.custom_aov_index == 0 and not envconfig().getenv('RFB_DUMP_RIB'):
             row.enabled = False
         row.menu('PRMAN_MT_renderman_create_dspychan_menu', text='Add Channel')
         row.operator("renderman.dspychan_delete_channel", text="Delete Channel")
