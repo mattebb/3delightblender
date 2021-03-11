@@ -68,6 +68,11 @@ class RmanEnvConfig(object):
         # Re-init the log level in case RFB_LOG_LEVEL was set
         rfb_logger.init_log_level()
 
+        # Also, set logger file, if any
+        rfb_log_file = self.getenv('RFB_LOG_FILE')
+        if rfb_log_file:
+            rfb_logger.set_file_logger(rfb_log_file)
+
     def get_shader_registration_paths(self):
         paths = []
         rmantree = self.rmantree
