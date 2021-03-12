@@ -145,7 +145,7 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             else:
                 row.enabled = is_enabled
 
-def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_connection_menu=True):
+def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=False):
     if prop_name == "codetypeswitch":
         row = layout.row()
         if node.codetypeswitch == 'INT':
@@ -207,7 +207,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_conn
         socket =  inputs.get(prop_name, None)
         layout.context_pointer_set("socket", socket)
 
-        if draw_connection_menu and socket and socket.is_linked:
+        if socket and socket.is_linked:
             input_node = shadergraph_utils.socket_node_input(nt, socket)
             icon = get_open_close_icon(socket.ui_open)
 
@@ -328,7 +328,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_conn
                 else:
                     row.prop(node, prop_name, slider=True)
 
-                if draw_connection_menu and prop_name in inputs:
+                if prop_name in inputs:
                     row.context_pointer_set("socket", socket)
                     row.context_pointer_set("node", node)
                     row.context_pointer_set("nodetree", nt)
@@ -420,8 +420,15 @@ def show_node_sticky_params(layout, node, prop_names, context, nt, output_node, 
                 row.label(text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
                 label_drawn = True
                 row = layout.row(align=True)
-            draw_prop(node, prop_name, row, level=1, nt=nt, context=context, draw_connection_menu=False)
-            draw_sticky_toggle(row, node, prop_name, output_node)
+            inputs = getattr(node, 'inputs', dict())
+            socket =  inputs.get(prop_name, None)
+            
+            if socket and socket.is_linked:
+                continue
+
+            draw_sticky_toggle(row, node, prop_name, output_node)                
+            draw_prop(node, prop_name, row, level=1, nt=nt, context=context, sticky=True)
+            
     return label_drawn
 
 def draw_node_properties_recursive(layout, context, nt, node, level=0):
