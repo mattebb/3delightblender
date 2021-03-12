@@ -1,5 +1,6 @@
 from . import shadergraph_utils
 from . import object_utils
+from ..rfb_logger import rfb_log
 import bpy
 import sys
 
