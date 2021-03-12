@@ -329,7 +329,17 @@
             "default": 24.0,
             "page": "",
             "help": "Frames per second"
-        },                      
+        },       
+        {
+            "panel": "OBJECT_PT_renderman_object_geometry_alembic",
+            "name": "abc_velocityScale",
+            "label": "Velocity Scale",
+            "type": "float",
+            "editable": true,
+            "default": 1.0,
+            "page": "",
+            "help": "Scale the velocity primvar used to motion blur primitives with time-varying topology. Restart the renderer to see edits."
+        },                            
         {
             "panel": "OBJECT_PT_renderman_object_geometry_points",
             "name": "primitive_point_width",
