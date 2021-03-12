@@ -3,6 +3,7 @@ from ..rman_constants import NODE_LAYOUT_SPLIT
 from .. import rman_config
 from .. import rfb_icons
 import bpy
+import re
 
 def draw_indented_label(layout, label, level):
     for i in range(level):
@@ -20,9 +21,10 @@ def draw_sticky_toggle(layout, node, prop_name, output_node=None):
         return
     if output_node.solo_node_name != '':
         return
-    show_sticky_params = getattr(output_node, 'show_sticky_params', False)
+    if not output_node.is_sticky_selected():
+        return
     sticky_prop = '%s_sticky' % prop_name
-    if show_sticky_params and hasattr(node, sticky_prop):    
+    if hasattr(node, sticky_prop):    
         sticky_icon = 'HIDE_ON'
         if getattr(node, sticky_prop):
             sticky_icon = 'HIDE_OFF'                
@@ -427,6 +429,42 @@ def show_node_sticky_params(layout, node, prop_names, context, nt, output_node, 
                 continue
 
             draw_sticky_toggle(row, node, prop_name, output_node)                
+            draw_prop(node, prop_name, row, level=1, nt=nt, context=context, sticky=True)
+
+    return label_drawn
+
+def show_node_match_params(layout, node, expr, match_on, prop_names, context, nt, node_label_drawn=False):
+    label_drawn = node_label_drawn
+    for prop_name in prop_names:
+        prop_meta = node.prop_meta[prop_name]
+        prop_label = prop_meta.get('label', prop_name)
+        renderman_type = prop_meta.get('renderman_type', '')
+        if renderman_type == 'page':
+            prop = getattr(node, prop_name)
+            sub_prop_names = list(prop)
+            label_drawn = show_node_match_params(layout, node, expr, match_on, sub_prop_names, context, nt, label_drawn)
+        else:
+            if expr != '':
+                pattern = re.compile(expr)
+                haystack = prop_name
+                if match_on == 'PARAM_LABEL':
+                    haystack = prop_label
+                if not re.match(pattern, haystack):
+                    continue               
+
+            row = layout.row(align=True)
+            if not label_drawn:
+                row = layout.row(align=True)
+                rman_icon = rfb_icons.get_icon('out_%s' % node.bl_label)
+                row.label(text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
+                label_drawn = True
+                row = layout.row(align=True)
+            inputs = getattr(node, 'inputs', dict())
+            socket =  inputs.get(prop_name, None)
+            
+            if socket and socket.is_linked:
+                continue
+
             draw_prop(node, prop_name, row, level=1, nt=nt, context=context, sticky=True)
             
     return label_drawn

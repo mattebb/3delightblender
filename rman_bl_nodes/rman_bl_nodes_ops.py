@@ -444,10 +444,10 @@ class NODE_OT_rman_open_close_page(bpy.types.Operator):
 
         return {'FINISHED'}    
 
-class NODE_OT_rman_toggle_sticky_params(bpy.types.Operator):
-    bl_idname = "node.rman_toggle_sticky_params"
+class NODE_OT_rman_toggle_filter_params(bpy.types.Operator):
+    bl_idname = "node.rman_toggle_filter_params"
     bl_label = ""
-    bl_description = "Enable to only show sticky parameters"
+    bl_description = "Enable to filter parameters"
     bl_options = {'INTERNAL'}
 
     prop_name: StringProperty(default='')
@@ -479,7 +479,7 @@ classes = [
     ## FIXME: These three below should probably be merged
     NODE_OT_rman_open_close_link,
     NODE_OT_rman_open_close_page,
-    NODE_OT_rman_toggle_sticky_params
+    NODE_OT_rman_toggle_filter_params
 ]
 
 def register():    

@@ -358,8 +358,60 @@ class RendermanOutputNode(RendermanShadingNode):
     solo_node_name: StringProperty(name='Solo Node', update=update_solo_node_name)
     solo_node_output: StringProperty(name='Solo Node Output')
 
-    show_sticky_params: BoolProperty(name='Show Sticky Params', 
-                                    default=False)
+
+    bxdf_filter_method: EnumProperty(name="Filter Method",
+                                items=[
+                                    ('NONE', 'None', "Don't do any filtering."),
+                                    ('STICKY', 'Sticky', 'Show only parameters that are marked as sticky.'),
+                                    ("MATCH", 'Match', "Show only parameters that match a search string.")
+                                ]
+                                )
+    bxdf_filter_parameters: BoolProperty(name="Filter Parameters", default=False)
+    bxdf_match_expression: StringProperty(name="Search", default="")
+    bxdf_match_on: EnumProperty(name="Match On",
+                                items=[
+                                    ('PARAM_NAME', 'Name', "Match on the parameter name"),
+                                    ("PARAM_LABEL", 'Label', "Match on the parameter label")
+                                ]
+                                )    
+
+    disp_filter_method: EnumProperty(name="Filter Method",
+                                items=[
+                                    ('NONE', 'None', "Don't do any filtering."),
+                                    ('STICKY', 'Sticky', 'Show only parameters that are marked as sticky.'),
+                                    ("MATCH", 'Match', "Show only parameters that match a search string.")
+                                ]
+                                )
+    disp_filter_parameters: BoolProperty(name="Filter Parameters", default=False)
+    disp_match_expression: StringProperty(name="Search", default="")
+    disp_match_on: EnumProperty(name="Match On",
+                                items=[
+                                    ('PARAM_NAME', 'Name', "Match on the parameter name"),
+                                    ("PARAM_LABEL", 'Label', "Match on the parameter label")
+                                ]
+                                )        
+
+    light_filter_method: EnumProperty(name="Filter Method",
+                                items=[
+                                    ('NONE', 'None', "Don't do any filtering."),
+                                    ('STICKY', 'Sticky', 'Show only parameters that are marked as sticky.'),
+                                    ("MATCH", 'Match', "Show only parameters that match a search string.")
+                                ]
+                                )
+    light_filter_parameters: BoolProperty(name="Filter Parameters", default=False)
+    light_match_expression: StringProperty(name="Search", default="")    
+    light_match_on: EnumProperty(name="Match On",
+                                items=[
+                                    ('PARAM_NAME', 'Name', "Match on the parameter name"),
+                                    ("PARAM_LABEL", 'Label', "Match on the parameter label")
+                                ]
+                                )            
+
+    def is_sticky_selected(self):
+        return (self.bxdf_filter_method == 'STICKY' or 
+                self.disp_filter_method == 'STICKY' or
+                self.light_filter_method == 'STICKY'
+        ) 
 
     def init(self, context):
         self._init_inputs()   
