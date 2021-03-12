@@ -68,9 +68,15 @@ def update_conditional_visops(node):
             if cond_expr:
                 try:
                     hidden = not eval(cond_expr)
-                    setattr(node, '%s_hidden' % param_name, hidden)
-                    if hasattr(node, 'inputs') and param_name in node.inputs:
-                        node.inputs[param_name].hide = hidden
+                    if prop_meta.get('conditionalLockOps', None):
+                        setattr(node, '%s_disabled' % prop_name, hidden)
+                        prop_disabled = hidden
+                        if hasattr(node, 'inputs') and prop_name in node.inputs:
+                            node.inputs[prop_name].hide = hidden   
+                    else:                    
+                        setattr(node, '%s_hidden' % param_name, hidden)
+                        if hasattr(node, 'inputs') and param_name in node.inputs:
+                            node.inputs[param_name].hide = hidden
                 except:
                     rfb_log().debug("Error in conditional visop: %s" % (cond_expr))
 

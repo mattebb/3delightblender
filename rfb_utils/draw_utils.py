@@ -48,6 +48,7 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             page_open = False
             page_name = ''
             editable = getattr(ndp, 'editable', False)
+            is_enabled = True
             if hasattr(ndp, 'page') and ndp.page != '':       
                 page_prop = ndp.page + "_uio"
                 page_open = getattr(parent, page_prop, False)        
@@ -80,9 +81,14 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
             if conditionalVisOps:
                 # check if the conditionalVisOp to see if we're disabled
                 expr = conditionalVisOps.get('expr', None)
-                node = parent
+                node = parent              
                 if expr and not eval(expr):
-                    continue
+                    # conditionalLockOps disable the prop rather
+                    # than hide them
+                    if not hasattr(ndp, 'conditionalLockOps'):
+                        continue
+                    else:
+                        is_enabled = False
 
             label = ndp.label if hasattr(ndp, 'label') else ndp.name
             row = curr_col.row()
@@ -136,6 +142,8 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
 
             if is_rman_interactive_running and not editable:
                 row.enabled = False      
+            else:
+                row.enabled = is_enabled
 
 def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_connection_menu=True):
     if prop_name == "codetypeswitch":
@@ -153,6 +161,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_conn
         read_only = prop_meta.get('readOnly', False)
         widget = prop_meta.get('widget', 'default')
         prop_hidden = getattr(node, '%s_hidden' % prop_name, False)
+        prop_disabled = getattr(node, '%s_disabled' % prop_name, False)
 
         if widget == 'null' or prop_hidden:
             return
@@ -179,11 +188,17 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_conn
             if cond_expr:
                 try:
                     hidden = not eval(cond_expr)
-                    setattr(node, '%s_hidden' % prop_name, hidden)
-                    if hasattr(node, 'inputs') and prop_name in node.inputs:
-                        node.inputs[prop_name].hide = hidden
-                    if hidden:
-                        return
+                    if prop_meta.get('conditionalLockOps', None):
+                        setattr(node, '%s_disabled' % prop_name, hidden)
+                        prop_disabled = hidden
+                        if hasattr(node, 'inputs') and prop_name in node.inputs:
+                            node.inputs[prop_name].hide = hidden                        
+                    else:
+                        setattr(node, '%s_hidden' % prop_name, hidden)
+                        if hasattr(node, 'inputs') and prop_name in node.inputs:
+                            node.inputs[prop_name].hide = hidden
+                        if hidden:
+                            return
                 except:                        
                     pass
 
@@ -216,6 +231,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_conn
 
         else:                    
             row = layout.row(align=True)
+            row.enabled = not prop_disabled
             if prop_meta['renderman_type'] == 'page':
                 ui_prop = prop_name + "_uio"
                 ui_open = getattr(node, ui_prop)
@@ -223,6 +239,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_conn
 
                 split = layout.split(factor=NODE_LAYOUT_SPLIT)
                 row = split.row()
+                row.enabled = not prop_disabled
                 draw_indented_label(row, None, level)
 
                 row.context_pointer_set("node", node)               
@@ -248,6 +265,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_conn
 
                 split = layout.split(factor=NODE_LAYOUT_SPLIT)
                 row = split.row()
+                row.enabled = not prop_disabled
                 draw_indented_label(row, None, level)
 
                 row.context_pointer_set("node", node)               
@@ -321,6 +339,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, draw_conn
                 prop_val = getattr(node, prop_name)
                 if prop_val != '':
                     row = layout.row(align=True)
+                    row.enabled = not prop_disabled
                     draw_indented_label(row, None, level)
                     row.prop(node, '%s_colorspace' % prop_name, text='Color Space')
                     rman_icon = rfb_icons.get_icon('rman_txmanager')        

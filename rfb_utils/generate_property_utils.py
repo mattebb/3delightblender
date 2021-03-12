@@ -188,6 +188,7 @@ def generate_property(node, sp, update_function=None):
     for nm in ['vstructmember',
         'vstructConditionalExpr',
         'conditionalVisOps',
+        'conditionalLockOps'
         'riopt',
         'riattr',
         'primvar',
@@ -476,10 +477,14 @@ def generate_property(node, sp, update_function=None):
         prop_meta['arraySize'] = 2      
 
     # bool property to represent whether this property
-    # should be hidden. Needed for conditionalVisOps
+    # should be hidden. Needed for conditionalVisOps.
     hidden_prop_name = '%s_hidden' % param_name
-    hidden_prop = BoolProperty(name=hidden_prop_name, default=False)
-    node.__annotations__[hidden_prop_name] = hidden_prop
+    node.__annotations__[hidden_prop_name] = BoolProperty(name=hidden_prop_name, default=False)
+
+    # bool property to represent whether this property
+    # should be disabled. Needed for conditionalLockOps.
+    disabled_prop_name = '%s_disabled' % param_name
+    node.__annotations__[disabled_prop_name] = BoolProperty(name=disabled_prop_name, default=False)    
 
     # add a property to represent if this property should be stickied
     sticky_prop_name = "%s_sticky" % param_name
