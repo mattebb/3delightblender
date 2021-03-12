@@ -222,6 +222,9 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
             
             rman_icon = rfb_icons.get_icon('out_%s' % input_node.bl_label)               
             row.label(text=label + ' (%s):' % input_node.name)
+            if sticky:
+                return
+
             row.context_pointer_set("socket", socket)
             row.context_pointer_set("node", node)
             row.context_pointer_set("nodetree", nt)
@@ -425,15 +428,20 @@ def show_node_sticky_params(layout, node, prop_names, context, nt, output_node, 
             inputs = getattr(node, 'inputs', dict())
             socket =  inputs.get(prop_name, None)
             
-            if socket and socket.is_linked:
-                continue
-
             draw_sticky_toggle(row, node, prop_name, output_node)                
             draw_prop(node, prop_name, row, level=1, nt=nt, context=context, sticky=True)
 
     return label_drawn
 
 def show_node_match_params(layout, node, expr, match_on, prop_names, context, nt, node_label_drawn=False):
+    pattern = re.compile(expr)
+    if match_on in ['NODE_NAME', 'NODE_TYPE']:
+        haystack = node.name
+        if match_on == 'NODE_TYPE':
+            haystack = node.bl_label
+        if not re.match(pattern, haystack):
+            return node_label_drawn
+
     label_drawn = node_label_drawn
     for prop_name in prop_names:
         prop_meta = node.prop_meta[prop_name]
@@ -444,8 +452,7 @@ def show_node_match_params(layout, node, expr, match_on, prop_names, context, nt
             sub_prop_names = list(prop)
             label_drawn = show_node_match_params(layout, node, expr, match_on, sub_prop_names, context, nt, label_drawn)
         else:
-            if expr != '':
-                pattern = re.compile(expr)
+            if match_on in ['PARAM_LABEL', 'PARAM_NAME']:
                 haystack = prop_name
                 if match_on == 'PARAM_LABEL':
                     haystack = prop_label
@@ -462,9 +469,6 @@ def show_node_match_params(layout, node, expr, match_on, prop_names, context, nt
             inputs = getattr(node, 'inputs', dict())
             socket =  inputs.get(prop_name, None)
             
-            if socket and socket.is_linked:
-                continue
-
             draw_prop(node, prop_name, row, level=1, nt=nt, context=context, sticky=True)
             
     return label_drawn

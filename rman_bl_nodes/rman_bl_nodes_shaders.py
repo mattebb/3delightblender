@@ -371,7 +371,9 @@ class RendermanOutputNode(RendermanShadingNode):
     bxdf_match_on: EnumProperty(name="Match On",
                                 items=[
                                     ('PARAM_NAME', 'Name', "Match on the parameter name"),
-                                    ("PARAM_LABEL", 'Label', "Match on the parameter label")
+                                    ("PARAM_LABEL", 'Label', "Match on the parameter label"),
+                                    ("NODE_NAME", "Node Name", "Match the node name"),
+                                    ("NODE_TYPE", "Node Type", "Match the node type")
                                 ]
                                 )    
 
@@ -387,7 +389,9 @@ class RendermanOutputNode(RendermanShadingNode):
     disp_match_on: EnumProperty(name="Match On",
                                 items=[
                                     ('PARAM_NAME', 'Name', "Match on the parameter name"),
-                                    ("PARAM_LABEL", 'Label', "Match on the parameter label")
+                                    ("PARAM_LABEL", 'Label', "Match on the parameter label"),
+                                    ("NODE_NAME", "Node Name", "Match the node name"),
+                                    ("NODE_TYPE", "Node Type", "Match the node type")
                                 ]
                                 )        
 
@@ -403,7 +407,9 @@ class RendermanOutputNode(RendermanShadingNode):
     light_match_on: EnumProperty(name="Match On",
                                 items=[
                                     ('PARAM_NAME', 'Name', "Match on the parameter name"),
-                                    ("PARAM_LABEL", 'Label', "Match on the parameter label")
+                                    ("PARAM_LABEL", 'Label', "Match on the parameter label"),
+                                    ("NODE_NAME", "Node Name", "Match the node name"),
+                                    ("NODE_TYPE", "Node Type", "Match the node type")
                                 ]
                                 )            
 

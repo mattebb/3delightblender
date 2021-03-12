@@ -139,6 +139,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
                 col = split.column()
                 sticky_icon = 'CHECKBOX_DEHLT'
                 filter_parameters = getattr(rman_output_node, 'bxdf_filter_parameters', False)
+                filter_method = getattr(rman_output_node, 'bxdf_filter_method', 'NONE')
                 if filter_parameters:
                     sticky_icon = 'CHECKBOX_HLT'
                 col.context_pointer_set('node', rman_output_node)
@@ -153,7 +154,7 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
                     col = split.column()
                     col.prop(rman_output_node, 'bxdf_filter_method', text='')
 
-                    if rman_output_node.bxdf_filter_method == 'MATCH':
+                    if filter_method == 'MATCH':
                         col = split.column()
                         col.prop(rman_output_node, 'bxdf_match_expression', text='') 
                         col = split.column() 
@@ -163,16 +164,16 @@ class MATERIAL_PT_renderman_shader_surface(ShaderPanel, Panel):
                 if not rman_output_node.inputs['Bxdf'].is_linked:
                     panel_node_draw(layout, context, mat,
                                     'RendermanOutputNode', 'Bxdf')  
-                elif not filter_parameters or rman_output_node.bxdf_filter_method == 'NONE':
+                elif not filter_parameters or filter_method == 'NONE':
                     panel_node_draw(layout, context, mat,
                                     'RendermanOutputNode', 'Bxdf')                      
-                elif rman_output_node.bxdf_filter_method == 'STICKY':
+                elif filter_method == 'STICKY':
                     bxdf_node = rman_output_node.inputs['Bxdf'].links[0].from_node
                     nodes = gather_nodes(bxdf_node)
                     for node in nodes:
                         prop_names = getattr(node, 'prop_names', list())
                         show_node_sticky_params(layout, node, prop_names, context, nt, rman_output_node)   
-                elif rman_output_node.bxdf_filter_method == 'MATCH':
+                elif filter_method == 'MATCH':
                     expr = rman_output_node.bxdf_match_expression
                     if expr == '':
                         return
@@ -253,6 +254,7 @@ class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
             col = split.column()
             sticky_icon = 'CHECKBOX_DEHLT'
             filter_parameters = getattr(rman_output_node, 'light_filter_parameters', False)
+            filter_method = getattr(rman_output_node, 'light_filter_method', 'NONE')
             if filter_parameters:
                 sticky_icon = 'CHECKBOX_HLT'
             col.context_pointer_set('node', rman_output_node)
@@ -267,7 +269,7 @@ class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
                 col = split.column()
                 col.prop(rman_output_node, 'light_filter_method', text='')
 
-                if rman_output_node.light_filter_method == 'MATCH':
+                if filter_method == 'MATCH':
                     col = split.column()
                     col.prop(rman_output_node, 'light_match_expression', text='')     
                     col = split.column() 
@@ -276,16 +278,16 @@ class MATERIAL_PT_renderman_shader_light(ShaderPanel, Panel):
             if not rman_output_node.inputs['Light'].is_linked:
                 draw_nodes_properties_ui(
                     layout, context, nt, input_name=self.shader_type)
-            elif not filter_parameters or rman_output_node.light_filter_method == 'NONE':
+            elif not filter_parameters or filter_method == 'NONE':
                 draw_nodes_properties_ui(
                     layout, context, nt, input_name=self.shader_type)                 
-            elif rman_output_node.light_filter_method == 'STICKY':
+            elif filter_method == 'STICKY':
                 light_node = rman_output_node.inputs['Light'].links[0].from_node
                 nodes = gather_nodes(light_node)
                 for node in nodes:
                     prop_names = getattr(node, 'prop_names', list())
                     show_node_sticky_params(layout, node, prop_names, context, nt, rman_output_node)
-            elif rman_output_node.light_filter_method == 'MATCH':
+            elif filter_method == 'MATCH':
                 expr = rman_output_node.light_match_expression
                 if expr == '':
                     return                
@@ -319,6 +321,7 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
             col = split.column()
             sticky_icon = 'CHECKBOX_DEHLT'
             filter_parameters = getattr(rman_output_node, 'disp_filter_parameters', False)
+            filter_method = getattr(rman_output_node, 'disp_filter_method', 'NONE')
             if filter_parameters:
                 sticky_icon = 'CHECKBOX_HLT'
             col.context_pointer_set('node', rman_output_node)
@@ -333,7 +336,7 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
                 col = split.column()
                 col.prop(rman_output_node, 'disp_filter_method', text='')
 
-                if rman_output_node.disp_filter_method == 'MATCH':
+                if filter_method == 'MATCH':
                     col = split.column()
                     col.prop(rman_output_node, 'disp_match_expression', text='') 
                     col = split.column() 
@@ -343,16 +346,16 @@ class MATERIAL_PT_renderman_shader_displacement(ShaderPanel, Panel):
             if not rman_output_node.inputs['Displacement'].is_linked:
                 draw_nodes_properties_ui(
                     layout, context, nt, input_name=self.shader_type)
-            elif not filter_parameters or rman_output_node.disp_filter_method == 'NONE':
+            elif not filter_parameters or filter_method == 'NONE':
                 draw_nodes_properties_ui(
                     layout, context, nt, input_name=self.shader_type)                 
-            elif rman_output_node.disp_filter_method == 'STICKY':
+            elif filter_method == 'STICKY':
                 disp_node = rman_output_node.inputs['Displacement'].links[0].from_node
                 nodes = gather_nodes(disp_node)
                 for node in nodes:
                     prop_names = getattr(node, 'prop_names', list())
                     show_node_sticky_params(layout, node, prop_names, context, nt, rman_output_node)
-            elif rman_output_node.disp_filter_method == 'MATCH':
+            elif filter_method == 'MATCH':
                 expr = rman_output_node.disp_match_expression
                 if expr == '':
                     return                
