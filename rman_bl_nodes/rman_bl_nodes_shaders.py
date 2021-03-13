@@ -73,14 +73,6 @@ class RendermanShadingNode(bpy.types.ShaderNode):
     def draw_buttons(self, context, layout):
         nt = self.id_data
         out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
-        '''
-        if out_node and self.name == out_node.solo_node_name:
-            rman_icon = rfb_icons.get_icon('rman_solo_on')
-            layout.label(text='', icon_value=rman_icon.icon_id) 
-        else:
-            rman_icon = rfb_icons.get_icon('out_%s' % self.bl_label)
-            layout.label(text='', icon_value=rman_icon.icon_id)             
-        '''
         self.draw_nonconnectable_props(context, layout, self.prop_names, output_node=out_node)
         if self.bl_idname == "PxrOSLPatternNode":
             layout.operator("node.rman_refresh_osl_shader")
@@ -360,7 +352,6 @@ class RendermanOutputNode(RendermanShadingNode):
 
     def filter_method_items(self, context):
         items=[
-            ('NONE', 'None', "Don't do any filtering."),
             ('STICKY', 'Sticky', 'Show only parameters that are marked as sticky.'),
             ("MATCH", 'Match', "Show only parameters that match a search string.")
         ]

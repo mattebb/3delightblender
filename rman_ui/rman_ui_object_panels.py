@@ -217,22 +217,17 @@ class MATERIAL_PT_renderman_object_shader_surface(Panel, CollectionPanel):
                         return
 
                 # Filter Toggle
-                split = layout.split(factor=0.10)
+                split = layout.split(factor=0.05)
                 col = split.column()
-                sticky_icon = 'CHECKBOX_DEHLT'
+                filter_icon = 'FILTER'
                 filter_parameters = getattr(rman_output_node, 'bxdf_filter_parameters', False)
                 filter_method = getattr(rman_output_node, 'bxdf_filter_method', 'NONE')
-                if filter_parameters:
-                    sticky_icon = 'CHECKBOX_HLT'
                 col.context_pointer_set('node', rman_output_node)
-                op = col.operator('node.rman_toggle_filter_params', icon=sticky_icon, emboss=False, text='')
+                pressed = filter_parameters
+                op = col.operator('node.rman_toggle_filter_params', depress=pressed, icon=filter_icon, text='')
                 op.prop_name = 'bxdf_filter_parameters'
 
-                if not filter_parameters:
-                    col = split.column()
-                    col.label(text='Filter Parameters')
-                
-                else:
+                if filter_parameters:
                     col = split.column()
                     col.prop(rman_output_node, 'bxdf_filter_method', text='')
 
@@ -240,8 +235,11 @@ class MATERIAL_PT_renderman_object_shader_surface(Panel, CollectionPanel):
                         col = split.column()
                         col.prop(rman_output_node, 'bxdf_match_expression', text='') 
                         col = split.column() 
-                        col.prop(rman_output_node, 'bxdf_match_on', text='')                                    
-
+                        col.prop(rman_output_node, 'bxdf_match_on', text='')  
+                else:
+                    col = split.column()
+                    col = split.column()                                
+                
                 layout.separator()
                 if not rman_output_node.inputs['Bxdf'].is_linked:
                     panel_node_draw(layout, context, mat,
@@ -325,22 +323,17 @@ class MATERIAL_PT_renderman_object_shader_displacement(Panel, CollectionPanel):
             layout = self.layout
 
             # Filter Toggle
-            split = layout.split(factor=0.10)
+            split = layout.split(factor=0.05)
             col = split.column()
-            sticky_icon = 'CHECKBOX_DEHLT'
+            filter_icon = 'FILTER'
             filter_parameters = getattr(rman_output_node, 'disp_filter_parameters', False)
             filter_method = getattr(rman_output_node, 'disp_filter_method', 'NONE')
-            if filter_parameters:
-                sticky_icon = 'CHECKBOX_HLT'
             col.context_pointer_set('node', rman_output_node)
-            op = col.operator('node.rman_toggle_filter_params', icon=sticky_icon, emboss=False, text='')
+            pressed = filter_parameters
+            op = col.operator('node.rman_toggle_filter_params', depress=pressed, icon=filter_icon, text='')
             op.prop_name = 'disp_filter_parameters'
 
-            if not filter_parameters:
-                col = split.column()
-                col.label(text='Filter Parameters')
-            
-            else:
+            if filter_parameters:
                 col = split.column()
                 col.prop(rman_output_node, 'disp_filter_method', text='')
 
@@ -348,7 +341,10 @@ class MATERIAL_PT_renderman_object_shader_displacement(Panel, CollectionPanel):
                     col = split.column()
                     col.prop(rman_output_node, 'disp_match_expression', text='') 
                     col = split.column() 
-                    col.prop(rman_output_node, 'disp_match_on', text='')                 
+                    col.prop(rman_output_node, 'disp_match_on', text='')  
+                else:
+                    col = split.column()
+                    col = split.column()
 
             shader_type = 'Displacement'
             if not rman_output_node.inputs['Displacement'].is_linked:
