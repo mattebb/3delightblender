@@ -73,12 +73,14 @@ class RendermanShadingNode(bpy.types.ShaderNode):
     def draw_buttons(self, context, layout):
         nt = self.id_data
         out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')
+        '''
         if out_node and self.name == out_node.solo_node_name:
             rman_icon = rfb_icons.get_icon('rman_solo_on')
             layout.label(text='', icon_value=rman_icon.icon_id) 
         else:
             rman_icon = rfb_icons.get_icon('out_%s' % self.bl_label)
             layout.label(text='', icon_value=rman_icon.icon_id)             
+        '''
         self.draw_nonconnectable_props(context, layout, self.prop_names, output_node=out_node)
         if self.bl_idname == "PxrOSLPatternNode":
             layout.operator("node.rman_refresh_osl_shader")
@@ -87,7 +89,8 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         nt = self.id_data
         out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')        
         rman_icon = rfb_icons.get_icon('out_%s' % self.bl_label)
-        layout.label(text='', icon_value=rman_icon.icon_id)             
+        layout.label(text=self.bl_label, icon_value=rman_icon.icon_id)             
+        layout.separator()
         self.draw_nonconnectable_props(context, layout, self.prop_names, output_node=out_node)
 
     def draw_nonconnectable_props(self, context, layout, prop_names, output_node=None):
@@ -368,7 +371,8 @@ class RendermanOutputNode(RendermanShadingNode):
             ('PARAM_NAME', 'Param Name', "Match on the parameter name"),
             ("PARAM_LABEL", 'Param Label', "Match on the parameter label"),
             ("NODE_NAME", "Node Name", "Match the node name"),
-            ("NODE_TYPE", "Node Type", "Match the node type")
+            ("NODE_TYPE", "Node Type", "Match the node type (ex: PxrDirt)"),
+            ("NODE_LABEL", "Node Label", "Match the node label")
         ]       
         return items 
 

@@ -435,10 +435,12 @@ def show_node_sticky_params(layout, node, prop_names, context, nt, output_node, 
 
 def show_node_match_params(layout, node, expr, match_on, prop_names, context, nt, node_label_drawn=False):
     pattern = re.compile(expr)
-    if match_on in ['NODE_NAME', 'NODE_TYPE']:
+    if match_on in ['NODE_NAME', 'NODE_TYPE', 'NODE_LABEL']:
         haystack = node.name
         if match_on == 'NODE_TYPE':
             haystack = node.bl_label
+        elif match_on == 'NODE_LABEL':
+            haystack = node.label
         if not re.match(pattern, haystack):
             return node_label_drawn
 
