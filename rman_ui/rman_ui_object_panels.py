@@ -1,14 +1,15 @@
 from .rman_ui_base import _RManPanelHeader
 from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel
-from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
+from ..rfb_utils.draw_utils import _draw_ui_from_rman_config, draw_nodes_properties_ui
 from ..rfb_utils.draw_utils import draw_node_properties_recursive, panel_node_draw
+from ..rfb_utils.draw_utils import show_node_sticky_params, show_node_match_params
 from ..rfb_utils import prefs_utils
 from ..rman_constants import NODE_LAYOUT_SPLIT
 from .. import rfb_icons
 from ..rfb_utils import object_utils
 from ..rfb_utils.prefs_utils import get_pref
-from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
+from ..rfb_utils.shadergraph_utils import is_renderman_nodetree, gather_nodes
 from ..rman_cycles_convert import do_cycles_convert
 from bpy.types import Panel
 import bpy
@@ -145,7 +146,7 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "object"
-    bl_label = "RenderMan Material Override"
+    bl_label = "RenderMan Material"
 
     @classmethod
     def poll(cls, context):
@@ -166,6 +167,29 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
             layout.operator('node.rman_new_material_override', text='New Material')
             return
 
+class MATERIAL_PT_renderman_object_shader_surface(Panel, CollectionPanel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+    bl_label = "Bxdf"
+    bl_parent_id = "OBJECT_PT_renderman_object_material_override"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        ob = context.object
+        if ob.type != 'EMPTY':
+            return False
+        if ob.is_instancer:
+            return False
+        mat = context.object.renderman.rman_material_override
+        if not mat:            
+            return False
+        return (context.object and rd.engine in {'PRMAN_RENDER'} )    
+
+    def draw(self, context):
+        layout = self.layout
+        mat = context.object.renderman.rman_material_override
         if mat.renderman and mat.node_tree:
             nt = mat.node_tree
             rman_output_node = is_renderman_nodetree(mat)
@@ -189,14 +213,61 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
                         
                         layout.separator()
                         draw_node_properties_recursive(layout, context, nt, solo_node, level=0)
-                    else:
-                        layout.separator()
-                        panel_node_draw(layout, context, mat,
-                                        'RendermanOutputNode', 'Bxdf')                           
+
+                        return
+
+                # Filter Toggle
+                split = layout.split(factor=0.10)
+                col = split.column()
+                sticky_icon = 'CHECKBOX_DEHLT'
+                filter_parameters = getattr(rman_output_node, 'bxdf_filter_parameters', False)
+                filter_method = getattr(rman_output_node, 'bxdf_filter_method', 'NONE')
+                if filter_parameters:
+                    sticky_icon = 'CHECKBOX_HLT'
+                col.context_pointer_set('node', rman_output_node)
+                op = col.operator('node.rman_toggle_filter_params', icon=sticky_icon, emboss=False, text='')
+                op.prop_name = 'bxdf_filter_parameters'
+
+                if not filter_parameters:
+                    col = split.column()
+                    col.label(text='Filter Parameters')
+                
                 else:
-                    layout.separator()
+                    col = split.column()
+                    col.prop(rman_output_node, 'bxdf_filter_method', text='')
+
+                    if filter_method == 'MATCH':
+                        col = split.column()
+                        col.prop(rman_output_node, 'bxdf_match_expression', text='') 
+                        col = split.column() 
+                        col.prop(rman_output_node, 'bxdf_match_on', text='')                                    
+
+                layout.separator()
+                if not rman_output_node.inputs['Bxdf'].is_linked:
                     panel_node_draw(layout, context, mat,
-                                    'RendermanOutputNode', 'Bxdf')       
+                                    'RendermanOutputNode', 'Bxdf')  
+                elif not filter_parameters or filter_method == 'NONE':
+                    panel_node_draw(layout, context, mat,
+                                    'RendermanOutputNode', 'Bxdf')                      
+                elif filter_method == 'STICKY':
+                    bxdf_node = rman_output_node.inputs['Bxdf'].links[0].from_node
+                    nodes = gather_nodes(bxdf_node)
+                    for node in nodes:
+                        prop_names = getattr(node, 'prop_names', list())
+                        show_node_sticky_params(layout, node, prop_names, context, nt, rman_output_node)   
+                elif filter_method == 'MATCH':
+                    expr = rman_output_node.bxdf_match_expression
+                    if expr == '':
+                        return
+                    bxdf_node = rman_output_node.inputs['Bxdf'].links[0].from_node
+                    nodes = gather_nodes(bxdf_node)
+                    for node in nodes:
+                        prop_names = getattr(node, 'prop_names', list())
+                        show_node_match_params(layout, node, expr, rman_output_node.bxdf_match_on,
+                                            prop_names, context, nt)      
+                else:   
+                    panel_node_draw(layout, context, mat,
+                                    'RendermanOutputNode', 'Bxdf')                
             else:
                 if not panel_node_draw(layout, context, mat, 'ShaderNodeOutputMaterial', 'Surface'):
                     layout.prop(mat, "diffuse_color")
@@ -224,6 +295,87 @@ class OBJECT_PT_renderman_object_material_override(Panel, CollectionPanel):
                 if not mat.grease_pencil:
                     layout.operator('material.rman_convert_all_cycles_shaders')
 
+class MATERIAL_PT_renderman_object_shader_displacement(Panel, CollectionPanel):
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "object"
+    bl_label = "Displacement"
+    bl_parent_id = "OBJECT_PT_renderman_object_material_override"
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        ob = context.object
+        if ob.type != 'EMPTY':
+            return False
+        if ob.is_instancer:
+            return False
+        mat = context.object.renderman.rman_material_override
+        if not mat:            
+            return False
+        return (context.object and rd.engine in {'PRMAN_RENDER'} )             
+
+    def draw(self, context):
+        mat = context.object.renderman.rman_material_override
+        if mat.renderman and mat.node_tree:
+            nt = mat.node_tree
+            rman_output_node = is_renderman_nodetree(mat)
+            if not rman_output_node:
+                return
+            layout = self.layout
+
+            # Filter Toggle
+            split = layout.split(factor=0.10)
+            col = split.column()
+            sticky_icon = 'CHECKBOX_DEHLT'
+            filter_parameters = getattr(rman_output_node, 'disp_filter_parameters', False)
+            filter_method = getattr(rman_output_node, 'disp_filter_method', 'NONE')
+            if filter_parameters:
+                sticky_icon = 'CHECKBOX_HLT'
+            col.context_pointer_set('node', rman_output_node)
+            op = col.operator('node.rman_toggle_filter_params', icon=sticky_icon, emboss=False, text='')
+            op.prop_name = 'disp_filter_parameters'
+
+            if not filter_parameters:
+                col = split.column()
+                col.label(text='Filter Parameters')
+            
+            else:
+                col = split.column()
+                col.prop(rman_output_node, 'disp_filter_method', text='')
+
+                if filter_method == 'MATCH':
+                    col = split.column()
+                    col.prop(rman_output_node, 'disp_match_expression', text='') 
+                    col = split.column() 
+                    col.prop(rman_output_node, 'disp_match_on', text='')                 
+
+            shader_type = 'Displacement'
+            if not rman_output_node.inputs['Displacement'].is_linked:
+                draw_nodes_properties_ui(
+                    layout, context, nt, input_name=shader_type)
+            elif not filter_parameters or filter_method == 'NONE':
+                draw_nodes_properties_ui(
+                    layout, context, nt, input_name=shader_type)                 
+            elif filter_method == 'STICKY':
+                disp_node = rman_output_node.inputs['Displacement'].links[0].from_node
+                nodes = gather_nodes(disp_node)
+                for node in nodes:
+                    prop_names = getattr(node, 'prop_names', list())
+                    show_node_sticky_params(layout, node, prop_names, context, nt, rman_output_node)
+            elif filter_method == 'MATCH':
+                expr = rman_output_node.disp_match_expression
+                if expr == '':
+                    return                
+                disp_node = rman_output_node.inputs['Displacement'].links[0].from_node
+                nodes = gather_nodes(disp_node)
+                for node in nodes:
+                    prop_names = getattr(node, 'prop_names', list())
+                    show_node_match_params(layout, node, expr, rman_output_node.disp_match_on,
+                                        prop_names, context, nt)
+            else:
+                draw_nodes_properties_ui(
+                    layout, context, nt, input_name=shader_type)                  
 
 class OBJECT_PT_renderman_object_geometry_quadric(Panel, CollectionPanel):
     bl_space_type = 'PROPERTIES'
@@ -721,7 +873,11 @@ class OBJECT_PT_renderman_object_matteid(Panel, _RManPanelHeader):
 
 classes = [
     OBJECT_PT_renderman_object_geometry,
+
     OBJECT_PT_renderman_object_material_override,
+    MATERIAL_PT_renderman_object_shader_surface,
+    MATERIAL_PT_renderman_object_shader_displacement,
+
     OBJECT_PT_renderman_object_geometry_quadric,
     OBJECT_PT_renderman_object_geometry_runprogram,
     OBJECT_PT_renderman_object_geometry_dynamic_load_dso,
