@@ -159,7 +159,10 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
         return
     else:
         prop_meta = node.prop_meta[prop_name]
-        prop = getattr(node, prop_name)
+        prop = getattr(node, prop_name, None)
+        if not prop:
+            return
+
         read_only = prop_meta.get('readOnly', False)
         widget = prop_meta.get('widget', 'default')
         prop_hidden = getattr(node, '%s_hidden' % prop_name, False)
