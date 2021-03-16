@@ -27,15 +27,18 @@ def assetid_update_func(self, context, param_name):
 
     ob = scene_utils.find_node_owner(node, context)
     ob_type = type(ob)
+    obj_texture = ob
     if ob_type == bpy.types.Material:
         mat = ob
+        obj_texture = mat
     elif ob_type == bpy.types.World:
         active = ob
     elif ob.type == 'LIGHT':
         light = ob.data
+        obj_texture = light
         active = ob
 
-    texture_utils.update_texture(node, light=light, mat=mat, ob=ob)
+    texture_utils.update_texture(node, ob=obj_texture)
 
     if file_path:
         # update colorspace param from txmanager

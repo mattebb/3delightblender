@@ -34,18 +34,6 @@ s_orientPxrEnvDayLightInv = [-0.0, 1.0, -0.0, 0.0,
                             -1.0, -0.0, 0.0, -0.0,
                             0.0, -0.0, -0.0, 1.0]
 
-def find_portal_dome_parent(portal):  
-    dome = None
-    parent = portal.parent
-    while parent:
-        if parent.type == 'LIGHT' and hasattr(parent.data, 'renderman'): 
-            rm = parent.data.renderman
-            if rm.renderman_light_role == 'RMAN_LIGHT' and rm.get_light_node_name() == 'PxrDomeLight':
-                dome = parent
-                break
-        parent = parent.parent
-    return dome                   
-
 class RmanLightTranslator(RmanTranslator):
 
     def __init__(self, rman_scene):
@@ -62,14 +50,6 @@ class RmanLightTranslator(RmanTranslator):
 
         light = ob.data
         rm = light.renderman        
-
-        if rm.get_light_node_name() == 'PxrPortalLight':
-            if not ob.parent:
-                return None
-            if ob.parent.type != 'LIGHT'\
-                and portal_parent.data.renderman.get_light_node_name() != 'PxrDomeLight':
-                return None
-
         sg_node = self.rman_scene.sg_scene.CreateAnalyticLight(db_name)                
         rman_sg_light = RmanSgLight(self.rman_scene, sg_node, db_name)
         if self.rman_scene.do_motion_blur:
@@ -111,14 +91,33 @@ class RmanLightTranslator(RmanTranslator):
         if light_shader:
             light_shader_name = rm.get_light_node_name()
 
+            if light_shader_name == 'PxrDomeLight':
+                # check if there are portals attached to this dome light
+                # if there are, set the light shader to None and return
+                any_portals = False
+
+                for portal_pointer in rm.portal_lights:
+                    if portal_pointer.linked_portal_ob:
+                        any_portals = True
+                        break
+
+                if any_portals:
+                    rman_sg_light.sg_node.SetLight(None)
+                    return
+
             sg_node = self.rman_scene.rman.SGManager.RixSGShader("Light", light_shader_name , rman_sg_light.db_name)
             property_utils.property_group_to_rixparams(light_shader, rman_sg_light, sg_node, ob=ob)
             
             rixparams = sg_node.params
+            rman_sg_light.sg_node.SetLight(sg_node)
+            self.update_light_attributes(ob, rman_sg_light) 
 
-            # portal params
-            if rm.get_light_node_name() == 'PxrPortalLight':
-                portal_parent = find_portal_dome_parent(ob) #ob.parent
+            # check to see if this a portal light
+            if light_shader_name == 'PxrPortalLight':
+                portal_parent = rm.dome_light_portal
+
+                # if this portal light is attached to a dome light, 
+                # inherit the dome light's parameters
                 if portal_parent:
                     parent_node = portal_parent.data.renderman.get_light_node()
 
@@ -152,12 +151,11 @@ class RmanLightTranslator(RmanTranslator):
                     mtx = portal_mtx @ dome_mtx  
                     
                     rixparams.SetMatrix('portalToDome', transform_utils.convert_matrix4x4(mtx) )
+                    rman_sg_light.sg_node.SetLight(sg_node)
                 else:
-                    rfb_log().error('Could not find a dome light parent for: %s' % ob.name)
-            
-
-            rman_sg_light.sg_node.SetLight(sg_node)
-            self.update_light_attributes(ob, rman_sg_light)
+                    # If this portal light is not attached to a dome light
+                    # Set the light shader to None
+                    rman_sg_light.sg_node.SetLight(None)
 
         else:
             names = {'POINT': 'PxrSphereLight', 'SUN': 'PxrDistantLight',

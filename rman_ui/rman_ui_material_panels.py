@@ -540,6 +540,65 @@ class DATA_PT_renderman_node_filters_light(RENDERMAN_UL_LightFilters, Panel):
             and context.light is not None and hasattr(context.light, 'renderman') \
             and context.light.renderman.renderman_light_role != 'RMAN_LIGHTFILTER'
 
+class RENDERMAN_UL_Porta_Lights(CollectionPanel):
+    def draw_item(self, layout, context, item):        
+        #layout.prop(item, 'linked_portal_ob')    
+
+        portal = item.linked_portal_ob
+        if portal:
+            if context.scene.objects.get(portal.name) == None:
+                # This is pure yuck. We shouldn't be modifying the scene
+                # during a draw routine. However, we can still be referencing
+                # an object that's already been removed.
+                bpy.data.objects.remove(portal)
+                return
+
+            if portal.data.node_tree:
+                nt = portal.data.node_tree
+                draw_nodes_properties_ui(
+                    self.layout, context, nt, input_name='Light')
+        else:
+            layout.label(text='No portal light linked')            
+
+    def draw(self, context):
+        layout = self.layout
+        light = context.light
+
+        self._draw_collection(context, layout, light.renderman, "",
+                              "", "light", "portal_lights",
+                              "portal_lights_index")            
+
+class DATA_PT_renderman_node_portal_light(RENDERMAN_UL_Porta_Lights, Panel):
+    bl_label = "Portal Lights"
+    bl_context = 'data'
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "light") \
+            and context.light is not None and hasattr(context.light, 'renderman') \
+            and context.light.renderman.renderman_light_role == 'RMAN_LIGHT' \
+            and context.light.renderman.get_light_node_name() == 'PxrDomeLight'    
+
+class DATA_PT_renderman_node_dome_light(ShaderNodePanel, Panel):
+    bl_label = "Dome Lights"
+    bl_context = 'data'
+
+    @classmethod
+    def poll(cls, context):
+        rd = context.scene.render
+        return rd.engine == 'PRMAN_RENDER' and hasattr(context, "light") \
+            and context.light is not None and hasattr(context.light, 'renderman') \
+            and context.light.renderman.renderman_light_role == 'RMAN_LIGHT' \
+            and context.light.renderman.get_light_node_name() == 'PxrPortalLight'        
+
+    def draw(self, context):
+        layout = self.layout
+        light = context.light                 
+        rm = light.renderman
+
+        layout.prop(rm, 'dome_light_portal')
+
 class MATERIAL_PT_renderman_shader_light_filters(RENDERMAN_UL_LightFilters, Panel):
     bl_context = "material"
     bl_label = "Light Filters"
@@ -565,6 +624,8 @@ classes = [
     DATA_PT_renderman_node_shader_light,
     DATA_PT_renderman_node_shader_lightfilter,
     DATA_PT_renderman_node_filters_light,
+    DATA_PT_renderman_node_portal_light,
+    DATA_PT_renderman_node_dome_light,
     PRMAN_PT_context_material,
     MATERIAL_PT_renderman_shader_light_filters
 ]

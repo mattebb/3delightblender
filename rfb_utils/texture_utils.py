@@ -93,7 +93,7 @@ def get_txmanager():
         __RFB_TXMANAGER__ = RfBTxManager()
     return __RFB_TXMANAGER__    
 
-def update_texture(node, light=None, mat=None, ob=None):
+def update_texture(node, ob=None):
     if hasattr(node, 'bl_idname'):
         if node.bl_idname == "PxrPtexturePatternNode":
             return
@@ -109,7 +109,7 @@ def update_texture(node, light=None, mat=None, ob=None):
         elif node.bl_idname == 'ShaderNodeGroup':
             nt = node.node_tree
             for node in nt.nodes:
-                update_texture(node, light=light)
+                update_texture(node, ob=ob)
             return
 
     if hasattr(node, 'prop_meta'):
@@ -121,36 +121,31 @@ def update_texture(node, light=None, mat=None, ob=None):
                     continue
                 else:
                     if 'widget' in meta and meta['widget'] in ['assetidinput', 'fileinput'] and prop_name != 'iesProfile':
-                        node_name = ''
                         node_type = ''
-                        if node.renderman_node_type == 'light':
-                            node_name = light.name
-                            node_type = light.renderman.get_light_node_name()
-                            nodeID = generate_node_id(node, prop_name, ob=light)
-                        elif mat:
-                            node_name = node.name
-                            node_type = node.bl_label
-                            nodeID = generate_node_id(node, prop_name, ob=mat)                            
-                        elif ob:
-                            node_name = node.name
-                            node_type = node.bl_label
-                            nodeID = generate_node_id(node, prop_name, ob=ob)
-
-                        if node_name != '':  
-                            if prop == "":
-                                txfile = get_txmanager().txmanager.get_txfile_from_id(nodeID)
-                                if txfile:
-                                    # property was set to empty string, remove any texture from the UI
-                                    # if exists
-                                    get_txmanager().txmanager.remove_texture(nodeID)
-                                    bpy.ops.rman_txmgr_list.remove_texture('EXEC_DEFAULT', nodeID=nodeID)
+                        if isinstance(ob, bpy.types.Object):
+                            if ob.type == 'LIGHT':
+                                node_type = ob.data.renderman.get_light_node_name()
                             else:
-                                real_file = filepath_utils.get_real_path(prop)
-                                txfile = get_txmanager().txmanager.add_texture(nodeID, real_file, nodetype=node_type)    
-                                bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=real_file, nodeID=nodeID)
-                                txmake_all(blocking=False)
-                                if txfile:
-                                    get_txmanager().done_callback(nodeID, txfile)
+                                node_type = node.bl_label                            
+                        else:
+                            node_type = node.bl_label
+                            
+                        nodeID = generate_node_id(node, prop_name, ob=ob)
+
+                        if prop == "":
+                            txfile = get_txmanager().txmanager.get_txfile_from_id(nodeID)
+                            if txfile:
+                                # property was set to empty string, remove any texture from the UI
+                                # if exists
+                                get_txmanager().txmanager.remove_texture(nodeID)
+                                bpy.ops.rman_txmgr_list.remove_texture('EXEC_DEFAULT', nodeID=nodeID)
+                        else:
+                            real_file = filepath_utils.get_real_path(prop)
+                            txfile = get_txmanager().txmanager.add_texture(nodeID, real_file, nodetype=node_type)    
+                            bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=real_file, nodeID=nodeID)
+                            txmake_all(blocking=False)
+                            if txfile:
+                                get_txmanager().done_callback(nodeID, txfile)
 
 def generate_node_id(node, prop_name, ob=None):
     if ob:
@@ -170,7 +165,7 @@ def get_textures(id):
 
     nt = id.node_tree
     for node in nt.nodes:
-        update_texture(node, mat=id)
+        update_texture(node, ob=id)
 
 def recursive_texture_set(ob):
     mat_set = []
@@ -219,7 +214,7 @@ def parse_scene_for_textures(bl_scene):
             continue
         elif o.type == 'LIGHT':
             if o.data.renderman.get_light_node():
-                update_texture(o.data.renderman.get_light_node(), light=o.data)
+                update_texture(o.data.renderman.get_light_node(), ob=o)
         else:
             mats_to_scan += recursive_texture_set(o)
 

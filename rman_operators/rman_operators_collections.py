@@ -49,18 +49,23 @@ class COLLECTION_OT_add_remove(bpy.types.Operator):
         index = getattr(rm, coll_idx)
 
         if self.properties.action == 'ADD':
-            dflt_name = self.properties.defaultname
-            for coll in collection:
-                if coll.name == dflt_name:
-                    dflt_name = '%s_NEW' % dflt_name            
+            dflt_name = self.properties.defaultname          
             collection.add()
             index += 1
             setattr(rm, coll_idx, index)
-            collection[-1].name = dflt_name
+            if dflt_name != '':
+                for coll in collection:
+                    if coll.name == dflt_name:
+                        dflt_name = '%s_NEW' % dflt_name                  
+
+                collection[-1].name = dflt_name
 
         elif self.properties.action == 'REMOVE':
             collection.remove(index)
             setattr(rm, coll_idx, index - 1)
+
+        if context.object:
+            context.object.update_tag(refresh={'DATA'})
 
         return {'FINISHED'}
 

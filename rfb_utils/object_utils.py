@@ -59,6 +59,12 @@ def get_group_db_name(ob_inst):
 
     return string_utils.sanitize_node_name(group_db_name)
 
+def is_portal_light(ob):
+    if ob.type != 'LIGHT':
+        return False
+    rm = ob.data.renderman
+    return (rm.renderman_light_role == 'RMAN_LIGHT' and rm.get_light_node_name() == 'PxrPortalLight')
+
 def is_particle_instancer(psys, particle_settings=None):
     psys_settings = particle_settings
     if not psys_settings:
@@ -173,7 +179,7 @@ def _detect_primitive_(ob):
         elif ob.type == 'GPENCIL':
             return 'GPENCIL'
         else:
-            return 'NONE'
+            return ob.type
     else:
         return rm_primitive    
 

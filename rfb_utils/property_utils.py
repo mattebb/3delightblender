@@ -636,8 +636,8 @@ def property_group_to_rixparams(node, rman_sg_node, sg_node, ob=None, mat_name=N
 def portal_inherit_dome_params(portal_node, dome, dome_node, rixparams):
 
     tx_node_id = texture_utils.generate_node_id(dome_node, 'lightColorMap', ob=dome)
-    tex = string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id))
-    rixparams.SetString('domeColorMap', string_utils.convert_val(texture_utils.get_txmanager().get_txfile_from_id(tx_node_id,)))
+    tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+    rixparams.SetString('domeColorMap', tx_val) 
 
     prop = getattr(portal_node, 'colorMapGamma')
     if string_utils.convert_val(prop) == (1.0, 1.0, 1.0):

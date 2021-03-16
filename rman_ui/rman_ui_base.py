@@ -37,21 +37,22 @@ class CollectionPanel(_RManPanelHeader):
         row = col.row()
         if enable_add_func:
             row.enabled = enable_add_func(context)
-        op = row.operator(operator, icon="ADD", text="")
-        op.context = opcontext
-        op.collection = prop_coll
-        op.collection_index = collection_index
-        op.defaultname = default_name
-        op.action = 'ADD'
+        if operator != '':
+            op = row.operator(operator, icon="ADD", text="")
+            op.context = opcontext
+            op.collection = prop_coll
+            op.collection_index = collection_index
+            op.defaultname = default_name
+            op.action = 'ADD'
 
-        row = col.row()
-        if enable_remove_func:
-            row.enabled = enable_remove_func(context)
-        op = row.operator(operator, icon="REMOVE", text="")
-        op.context = opcontext
-        op.collection = prop_coll
-        op.collection_index = collection_index
-        op.action = 'REMOVE'
+            row = col.row()
+            if enable_remove_func:
+                row.enabled = enable_remove_func(context)
+            op = row.operator(operator, icon="REMOVE", text="")
+            op.context = opcontext
+            op.collection = prop_coll
+            op.collection_index = collection_index
+            op.action = 'REMOVE'
 
         if hasattr(ptr, prop_coll) and len(getattr(ptr, prop_coll)) > 0 and \
                 getattr(ptr, collection_index) >= 0:

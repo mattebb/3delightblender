@@ -12,13 +12,15 @@ class RendermanPluginSettings(bpy.types.PropertyGroup):
 
 class RendermanLightFilter(bpy.types.PropertyGroup):
 
-    name: StringProperty(default='SET FILTER')
+    def get_name(self):
+        if self.linked_filter_ob:
+            return self.linked_filter_ob.name
+        return ''    
+
+    name: StringProperty(default='', get=get_name)
 
     def update_linked_filter_ob(self, context):
-        if not self.linked_filter_ob:
-            self.name = 'Not Set'
-        else:
-            self.name = self.linked_filter_ob.name           
+        pass          
 
     def validate_obj(self, ob):
         if ob.type == 'LIGHT' and ob.data.renderman.renderman_light_role == 'RMAN_LIGHTFILTER':
@@ -31,6 +33,33 @@ class RendermanLightFilter(bpy.types.PropertyGroup):
                         update=update_linked_filter_ob,
                         poll=validate_obj
                         )    
+
+class RendermanPortalLightPointer(bpy.types.PropertyGroup):
+
+    def get_name(self):
+        if self.linked_portal_ob:
+            return self.linked_portal_ob.name
+        return ''
+
+    name: StringProperty(default='', get=get_name)
+
+    def update_linked_portal_ob(self, context):
+        if self.linked_portal_ob:     
+            self.linked_portal_ob.update_tag(refresh={'DATA'})        
+
+    def validate_obj(self, ob):        
+        if ob.type == 'LIGHT':
+            rm = ob.data.renderman
+            if rm.renderman_light_role == 'RMAN_LIGHT' and rm.get_light_node_name() == 'PxrPortalLight':              
+                return True
+        return False
+    
+    linked_portal_ob: PointerProperty(name='Portal Light', 
+                        description='Portal Light',
+                        type=bpy.types.Object,
+                        update=update_linked_portal_ob,
+                        poll=validate_obj
+                        )                            
 
 class RendermanLightSettings(bpy.types.PropertyGroup):
 
@@ -150,6 +179,71 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
         type=RendermanLightFilter
     )
     light_filters_index: IntProperty(min=-1, default=-1)
+
+    portal_lights: CollectionProperty(type=RendermanPortalLightPointer)
+
+    def update_portal_lights_index(self, context):
+        if self.portal_lights_index < 0:
+            return
+
+        if self.portal_lights_index > len(self.portal_lights) - 1:
+            return
+
+        portal_ptr = self.portal_lights[self.portal_lights_index]
+        if not portal_ptr.linked_portal_ob:
+            self.portal_lights.remove(self.portal_lights_index)
+            self.portal_lights_index = -1
+        
+
+    portal_lights_index: IntProperty(min=-1, default=-1, update=update_portal_lights_index)
+
+    def update_dome_light_portal(self, context):       
+        if self.dome_light_portal:
+            candidate = None
+            dome_light = self.dome_light_portal
+            rm = dome_light.data.renderman
+            for portal_ptr in rm.portal_lights:
+                if not portal_ptr.linked_portal_ob:
+                    candidate = portal_ptr
+                    break
+
+            if not candidate:
+                candidate = rm.portal_lights.add()
+            ob = context.object
+            candidate.linked_portal_ob = ob
+            self.dome_light_portal.update_tag(refresh={'DATA'})
+            ob.update_tag(refresh={'DATA'})
+        else:
+            # try and remove the portal light on the dome light
+            for obj in bpy.data.objects:
+                if not obj.type == 'LIGHT':
+                    continue
+                rm = obj.data.renderman
+                if rm.get_light_node_name() != 'PxrDomeLight':
+                    continue
+                if len(rm.portal_lights) < 1:
+                    continue
+                for i, portal_ptr in enumerate(rm.portal_lights):
+                    if not portal_ptr.linked_portal_ob:
+                        continue
+                    portal = portal_ptr.linked_portal_ob
+                    rm = portal.data.renderman
+                    if not rm.dome_light_portal:
+                        portal_ptr.linked_portal_ob = None
+                        setattr(rm, 'portal_lights_index', i)
+        
+    def validate_dome_light(self, ob):        
+        if ob.type == 'LIGHT':
+            rm = ob.data.renderman
+            if rm.renderman_light_role == 'RMAN_LIGHT' and rm.get_light_node_name() == 'PxrDomeLight':              
+                return True
+        return False    
+
+    dome_light_portal: PointerProperty(name="Dome Light",
+                                    type=bpy.types.Object,
+                                    description="Dome light to parent this portal light to.",
+                                    poll=validate_dome_light,
+                                    update=update_dome_light_portal)
 
     light_primary_visibility: BoolProperty(
         name="Light Primary Visibility",
@@ -274,6 +368,7 @@ class RendermanSampleFilterSettings(bpy.types.PropertyGroup):
     filter_type: EnumProperty(items=samplefilter_items, name='Filter')
 
 classes = [RendermanLightFilter,
+           RendermanPortalLightPointer,
            RendermanLightSettings,
            RendermanPluginSettings,
            RendermanDisplayFilterSettings,

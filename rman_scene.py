@@ -552,16 +552,6 @@ class RmanScene(object):
                     # skip if this is a light filter
                     # these will be exported when we do regular lights
                     return
-                elif ob.data.renderman.get_light_node_name() == 'PxrDomeLight':
-                    # check if there are portals attached to this light
-                    # if there are, skip
-                    any_portals = False
-                    for c in obj.children:
-                        if c.type == 'LIGHT' and c.data.renderman.get_light_node_name() == 'PxrPortalLight':
-                            any_portals = True
-                            break
-                    if any_portals:
-                        return  
 
             translator =  self.rman_translators.get(rman_type, None)
             if not translator:
