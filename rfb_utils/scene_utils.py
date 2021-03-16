@@ -43,7 +43,7 @@ def get_renderman_layer(context):
     return rm_rl    
 
 def get_render_variant(bl_scene):
-    if bl_scene.renderman.is_ncr_license:
+    if bl_scene.renderman.is_ncr_license and bl_scene.renderman.renderVariant != 'prman':
         rfb_log().warning("XPU is not available for a non-commercial license.")
         return 'prman'
 
