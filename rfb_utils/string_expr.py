@@ -61,7 +61,7 @@ class StringExpression(object):
         self.tokens = {}
         self.update_temp_token()
         self.update_out_token()
-        self.update_blend_tokens()  
+        #self.update_blend_tokens()  
         self.tokens['pwd'] = ''
         ts = datetime.datetime.fromtimestamp(time.time())
         self.tokens['jobid'] = ts.strftime('%y%m%d%H%M%S')
@@ -93,6 +93,8 @@ class StringExpression(object):
             self.tokens['TEMP'] = '/tmp'
 
     def update_out_token(self):
+        if 'blend' not in self.tokens:
+            self.update_blend_tokens()
         dflt_path = self.expand('<TEMP>/renderman_for_blender/<blend>')
         if not self.bl_scene:
             self.tokens['OUT'] = dflt_path
@@ -104,7 +106,13 @@ class StringExpression(object):
                 except PermissionError:
                     rfb_log().error("Cannot create root path: %s. Using default." % root_path)            
                     root_path = dflt_path
-            self.tokens['OUT'] = root_path         
+            self.tokens['OUT'] = root_path    
+            
+        unsaved = True if not bpy.data.filepath else False
+        if unsaved:
+            self.tokens['blend_dir'] = self.tokens['OUT']
+        else:
+            self.tokens['blend_dir'] = os.path.split(bpy.data.filepath)[0]     
 
     def update_blend_tokens(self):
         scene = self.bl_scene
@@ -116,13 +124,9 @@ class StringExpression(object):
         unsaved = True if not bpy.data.filepath else False
         if unsaved:
             self.tokens['blend'] = 'UNTITLED'
-            self.tokens['blend_dir'] = ''
         else:
-            self.tokens['blend_dir'] = os.path.split(bpy.data.filepath)[0]     
             self.tokens['blend'] = os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]             
-
-        if self.tokens['blend_dir'] == '':
-            self.tokens['blend_dir'] = self.tokens['OUT']
+            
         self.tokens['scene'] = scene.name 
         self.set_frame_context(scene.frame_current)
 
