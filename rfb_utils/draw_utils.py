@@ -160,7 +160,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
     else:
         prop_meta = node.prop_meta[prop_name]
         prop = getattr(node, prop_name, None)
-        if not prop:
+        if prop is None:
             return
 
         read_only = prop_meta.get('readOnly', False)
