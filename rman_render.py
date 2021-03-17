@@ -352,7 +352,8 @@ class RmanRender(object):
 
         config = rman.Types.RtParamList()
         rendervariant = scene_utils.get_render_variant(self.bl_scene)
-        config.SetString("rendervariant", rendervariant)
+        scene_utils.set_render_variant_config(self.bl_scene, config)
+
         self.sg_scene = self.sgmngr.CreateScene(config) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
@@ -651,8 +652,9 @@ class RmanRender(object):
 
         time_start = time.time()      
 
-        config = rman.Types.RtParamList()
-        config.SetString("rendervariant", scene_utils.get_render_variant(self.bl_scene))      
+        config = rman.Types.RtParamList()    
+        scene_utils.set_render_variant_config(self.bl_scene, config)
+        
         self.sg_scene = self.sgmngr.CreateScene(config) 
         self.rman_scene_sync.sg_scene = self.sg_scene
         rfb_log().info("Parsing scene...")        

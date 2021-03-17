@@ -53,6 +53,41 @@ def get_render_variant(bl_scene):
 
     return bl_scene.renderman.renderVariant    
 
+def set_render_variant_config(bl_scene, config):
+    variant = get_render_variant(bl_scene)
+    if variant.startswith('xpu'):
+        variant = 'xpu'
+    config.SetString('rendervariant', variant)
+
+    device_list = ''
+    if variant == 'xpu':
+        device_list = 'cpu,gpu0'
+    elif variant == 'xpucpu':
+        device_list = 'cpu'
+    else:
+        device_list = 'gpu0'
+
+    if device_list != '':
+        config.SetString('xpudevices', device_list)
+
+def set_render_variant_spool(bl_scene, args):
+    variant = get_render_variant(bl_scene)
+    if variant.startswith('xpu'):
+        variant = 'xpu'
+    args.append('-variant')
+    args.append(variant)
+
+    device_list = ''
+    if variant == 'xpu':
+        device_list = 'cpu,gpu0'
+    elif variant == 'xpucpu':
+        device_list = 'cpu'
+    else:
+        device_list = 'gpu0'
+
+    if device_list != '':
+        args.append('-xpudevices:%s' % device_list)
+
 def get_light_group(light_ob, scene):
     """Return the name of the lightGroup for this
     light, if any

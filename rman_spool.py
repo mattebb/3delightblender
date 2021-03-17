@@ -181,11 +181,14 @@ class RmanSpool(object):
                                                 asFilePath=True)
             render_variant = scene_utils.get_render_variant(scene)
             cmd_str = ['prman', '-Progress', '-cwd', self.quote(cdir), '-t:%d' %
-                    threads, '-variant', render_variant, self.quote(rib_file)]
+                    threads]
+
+            scene_utils.set_render_variant_spool(scene, cmd_str)
             if rm.recover:
-                cmd_str.insert(5, '-recover 1')
+                cmd_str.append('-recover 1')
             if rm.custom_cmd != '':
-                cmd_str.insert(5, rm.custom_cmd)
+                cmd_str.append(rm.custom_cmd)
+            cmd_str.append(self.quote(rib_file))
             self.write_cmd_task_line(f, 'Render frame %d' % frame_num, [('PixarRender',
                                                                     cmd_str)], 3)
         self.end_block(f, 1)
