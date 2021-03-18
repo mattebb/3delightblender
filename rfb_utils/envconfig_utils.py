@@ -6,7 +6,6 @@ from ..rman_constants import RFB_ADDON_PATH
 import os
 import bpy
 import json
-import xml.etree.ElementTree as ET
 import subprocess
 import platform
 import sys
@@ -26,6 +25,7 @@ class RmanEnvConfig(object):
         self.rman_lq_path = ''
         self.rman_tractor_path = ''
         self.is_ncr_license = False
+        self.license_info = None
 
     def config_environment(self):
 
@@ -35,7 +35,7 @@ class RmanEnvConfig(object):
         self._set_localqueue_path()
         self._config_pythonpath()
         self._set_ocio()
-        self._parse_license()
+        self._get_license_info()
 
     def getenv(self, k, default=None):
         return os.environ.get(k, default)
@@ -166,32 +166,11 @@ class RmanEnvConfig(object):
         if path == '':
             self.setenv('OCIO', self.get_blender_ocio_config())
 
-    def _parse_license(self):
-        pixar_license = os.path.join(self.rmantree, '..', 'pixar.license')
-        pixar_license = os.environ.get('PIXAR_LICENSE_FILE', pixar_license)
+    def _get_license_info(self):
+        from rman_utils import license as rman_license_info
 
-        if not os.path.isfile(pixar_license):
-            self.is_ncr_license = False
-            return
-
-        tree = ET.parse(pixar_license)
-        root = tree.getroot()
-        license_info = None
-        for child in root:
-            if child.tag == 'LicenseInfo':
-                license_info = child
-                break
-        if not license_info:
-            self.is_ncr_license = False
-            return
-
-        serial_num = None
-        for child in license_info:
-            if child.tag == 'SerialNumber':
-                serial_num = child
-                break
-
-        self.is_ncr_license = (serial_num.text == 'Non-commercial') 
+        self.license_info = rman_license_info.get_license_info(self.rmantree)
+        self.is_ncr_license = self.license_info.is_ncr_license
 
 def _parse_version(s):
     major_vers, minor_vers = s.split('.')
