@@ -139,9 +139,9 @@ class RENDER_PT_renderman_baking(PRManButtonsPanel, Panel):
         self.layout.use_property_split = True
         self.layout.use_property_decorate = False        
         layout = self.layout
-        layout.enabled = not rm.is_rman_interactive_running  
         scene = context.scene
-        rm = scene.renderman         
+        rm = scene.renderman        
+        layout.enabled = not rm.is_rman_interactive_running           
         row = layout.row()
         rman_batch = rfb_icons.get_icon("rman_bake")
         row.operator("renderman.bake",
