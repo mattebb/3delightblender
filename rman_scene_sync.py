@@ -447,6 +447,29 @@ class RmanSceneSync(object):
             elif isinstance(obj.id, bpy.types.Mesh):
                 rfb_log().debug("Mesh updated: %s" % obj.id.name)
                 did_mesh_update = True
+                '''
+                # Experimental code path. We can use context.blend_data.user_map to ask
+                # what objects use this mesh. We can then loop thru and call object_update on these
+                # objects.
+                # We could also try doing the same thing when we add a new Material. i.e.:
+                # use user_map to figure out what objects are using this material; however, that would require
+                # two loops thru user_map
+                users = context.blend_data.user_map(subset={obj.id.original}, value_types={'OBJECT'})
+                translator = self.rman_scene.rman_translators['MESH']
+                with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):
+                    for o in users[obj.id.original]:
+                        rman_type = object_utils._detect_primitive_(o)
+                        if rman_type != 'MESH':
+                            continue
+                        rman_sg_node = self.rman_scene.rman_objects.get(o.original, None)
+                        translator.update(o, rman_sg_node)
+                        translator.export_object_primvars(o, rman_sg_node)
+                        # material slots could have changed, so we need to double
+                        # check that too
+                        for k,v in rman_sg_node.instances.items():
+                            self.rman_scene.attach_material(o, v)                
+                return
+                '''
 
             elif isinstance(obj.id, bpy.types.ParticleSettings):
                 rfb_log().debug("ParticleSettings updated: %s" % obj.id.name)
