@@ -748,7 +748,11 @@ def register():
     rman_bl_nodes_menus.register()
 
 def unregister():
-    nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
+    try:
+        nodeitems_utils.unregister_node_categories("RENDERMANSHADERNODES")
+    except RuntimeError:
+        rfb_log().debug('Could not unregister node categories class: RENDERMANSHADERNODES')
+        pass               
 
     rman_bl_nodes_props.unregister()
     rman_bl_nodes_sockets.unregister()    
