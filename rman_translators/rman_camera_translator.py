@@ -456,8 +456,6 @@ class RmanCameraTranslator(RmanTranslator):
         rman_sg_camera.bl_camera = ob
 
         xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam)
-        dx = 0
-        dy = 0
 
         options = self.rman_scene.sg_scene.GetOptions()
 
@@ -478,13 +476,6 @@ class RmanCameraTranslator(RmanTranslator):
         # convert the crop border to screen window, flip y
         resolution = _render_get_resolution_(self.rman_scene.bl_scene.render)
         if self.rman_scene.bl_scene.render.use_border and self.rman_scene.bl_scene.render.use_crop_to_border:
-            screen_min_x = -xaspect + 2.0 * self.rman_scene.bl_scene.render.border_min_x * xaspect
-            screen_max_x = -xaspect + 2.0 * self.rman_scene.bl_scene.render.border_max_x * xaspect
-            screen_min_y = -yaspect + 2.0 * (self.rman_scene.bl_scene.render.border_min_y) * yaspect
-            screen_max_y = -yaspect + 2.0 * (self.rman_scene.bl_scene.render.border_max_y) * yaspect
-
-            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (screen_min_x, screen_max_x, screen_min_y, screen_max_y), 4)
-
             res_x = resolution[0] * (self.rman_scene.bl_scene.render.border_max_x -
                                     self.rman_scene.bl_scene.render.border_min_x)
             res_y = resolution[1] * (self.rman_scene.bl_scene.render.border_max_y -
@@ -493,14 +484,46 @@ class RmanCameraTranslator(RmanTranslator):
             options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (int(res_x), int(res_y)), 2)
             options.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)        
         else:            
-            if cam.type == 'PANO':
-                options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-1, 1, -1, 1), 4)
-            else:
-                options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect+dx, xaspect+dx, -yaspect+dy, yaspect+dy), 4)
             options.SetIntegerArray(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatResolution, (resolution[0], resolution[1]), 2)
             options.SetFloat(self.rman_scene.rman.Tokens.Rix.k_Ri_FormatPixelAspectRatio, 1.0)
 
-        self.rman_scene.sg_scene.SetOptions(options)                 
+        self.rman_scene.sg_scene.SetOptions(options)  
+
+        # update screen window
+        self._update_screen_window(ob, xaspect, yaspect, aspectratio)    
+
+    def _update_screen_window(self, ob, xaspect, yaspect, aspectratio):
+        cam = ob.data
+
+        options = self.rman_scene.sg_scene.GetOptions()
+
+        if self.rman_scene.bl_scene.render.use_border and self.rman_scene.bl_scene.render.use_crop_to_border:
+            screen_min_x = -xaspect + 2.0 * self.rman_scene.bl_scene.render.border_min_x * xaspect
+            screen_max_x = -xaspect + 2.0 * self.rman_scene.bl_scene.render.border_max_x * xaspect
+            screen_min_y = -yaspect + 2.0 * (self.rman_scene.bl_scene.render.border_min_y) * yaspect
+            screen_max_y = -yaspect + 2.0 * (self.rman_scene.bl_scene.render.border_max_y) * yaspect
+
+            options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (screen_min_x, screen_max_x, screen_min_y, screen_max_y), 4)   
+        else:            
+            if cam.type == 'PANO':
+                options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-1, 1, -1, 1), 4)
+            elif cam.type == 'ORTHO':
+                lens = cam.ortho_scale
+                xaspect = xaspect * lens / (aspectratio * 2.0)
+                yaspect = yaspect * lens / (aspectratio * 2.0)    
+                aspectratio = lens / 2.0   
+                dx = 2.0 * (aspectratio * cam.shift_x) 
+                dy = 2.0 * (aspectratio * cam.shift_y)   
+                sw = [-xaspect, xaspect, -yaspect, yaspect]
+                sw[0] += dx
+                sw[1] += dx
+                sw[2] += dy
+                sw[3] += dy                
+                options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, sw, 4)   
+            else:
+                options.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, (-xaspect+dx, xaspect+dx, -yaspect+dy, yaspect+dy), 4)        
+
+        self.rman_scene.sg_scene.SetOptions(options)  
 
     def _update_render_cam(self, ob, rman_sg_camera):
 
@@ -537,8 +560,10 @@ class RmanCameraTranslator(RmanTranslator):
             yaspect = yaspect * lens / (aspectratio * 2.0)
             proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")
 
-        rman_sg_camera.sg_camera_node.SetProjection(proj)
+        # Update screen window. Ortho scale may have change
+        self._update_screen_window(ob, xaspect, yaspect, aspectratio)
 
+        rman_sg_camera.sg_camera_node.SetProjection(proj)
         prop = rman_sg_camera.sg_camera_node.GetProperties()
 
         # Shutter Timings
