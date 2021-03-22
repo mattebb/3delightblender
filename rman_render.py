@@ -34,6 +34,10 @@ __BLENDER_DSPY_PLUGIN__ = None
 __DRAW_THREAD__ = None
 
 def __turn_off_viewport__():
+    '''
+    Loop through all of the windows/areas and turn shading to SOLID
+    for all view_3d areas.
+    '''
     rfb_log().debug("Attempting to turn off viewport render")
     for window in bpy.context.window_manager.windows:
         for area in window.screen.areas:
@@ -41,7 +45,21 @@ def __turn_off_viewport__():
                 for space in area.spaces:
                     if space.type == 'VIEW_3D':
                         space.shading.type = 'SOLID'    
-            area.tag_redraw()                        
+            area.tag_redraw()     
+
+def __any_areas_shading():           
+    '''
+    Loop through all of the windows/areas and return True if any of
+    the view_3d areas have their shading set to RENDERED. Otherwise,
+    return False.
+    '''    
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type == 'VIEW_3D':
+                for space in area.spaces:
+                    if space.type == 'VIEW_3D' and space.shading.type == 'RENDERED':
+                        return True
+    return False       
 
 def __update_areas__():
     for window in bpy.context.window_manager.windows:
@@ -131,11 +149,20 @@ def start_cmd_server():
 def draw_threading_func(db):
     refresh_rate = get_pref('rman_viewport_refresh_rate', default=0.01)
     while db.rman_is_live_rendering:
+        if not __any_areas_shading():
+            # if there are no 3d viewports, stop IPR
+            db.rman_is_live_rendering = False
+            db.stop_render(stop_draw_thread=False)
         try:
             db.bl_engine.tag_redraw()
             time.sleep(refresh_rate)
         except ReferenceError as e:
+            # calling tag_redraw has failed. This might mean
+            # that there are no more view_3d areas that are shading. Try to
+            # stop IPR.
             rfb_log().error("Error calling tag_redraw (%s). Aborting..." % str(e))
+            db.rman_is_live_rendering = False
+            db.stop_render(stop_draw_thread=False)
             return
 
 def viewport_progress_cb(e, d, db):
@@ -617,7 +644,6 @@ class RmanRender(object):
     def start_interactive_render(self, context, depsgraph):
 
         global __DRAW_THREAD__
-        global __DRAW_SIMPLE_SHADING_HANDLER__
 
         self.rman_interactive_running = True
         __update_areas__()
@@ -756,7 +782,7 @@ class RmanRender(object):
         self.rman_running = False        
         return True                 
 
-    def stop_render(self):
+    def stop_render(self, stop_draw_thread=True):
         global __DRAW_THREAD__
 
         if not self.rman_interactive_running and not self.rman_running:
@@ -772,7 +798,9 @@ class RmanRender(object):
         self.rman_is_live_rendering = False
 
         # wait for the drawing thread to finish
-        if __DRAW_THREAD__:
+        # if we are told to. stop_render() may also
+        # be called from the drawing thread
+        if stop_draw_thread and __DRAW_THREAD__:
             __DRAW_THREAD__.join()
             __DRAW_THREAD__ = None
 

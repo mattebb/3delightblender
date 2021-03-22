@@ -60,9 +60,9 @@ class PRManRender(bpy.types.RenderEngine):
             # already in progress, ignore this render request
             return
         if self.rman_render.rman_interactive_running:
-            if self.is_preview:
-                return
-            self.rman_render.stop_render()
+            # If IPR is already running, just return. 
+            # We report an error in render() if this is a render attempt
+            return 
         self.rman_render.bl_engine = self
 
     def __del__(self):
@@ -121,7 +121,11 @@ class PRManRender(bpy.types.RenderEngine):
         rm = bl_scene.renderman
         baking = (rm.hider_type in ['BAKE', 'BAKE_BRICKMAP_SELECTED'])
 
-        if self.is_preview:
+        if self.rman_render.rman_interactive_running:
+            # report an error if a render is trying to start while IPR is running
+            self.report({'ERROR'}, 'Cannot start a new render when IPR is running')
+            return
+        elif self.is_preview:
             # double check we're not already viewport rendering
             if self.rman_render.rman_interactive_running:
                 if get_pref('rman_do_preview_renders', False):
