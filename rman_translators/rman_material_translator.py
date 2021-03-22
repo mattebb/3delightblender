@@ -96,7 +96,7 @@ class RmanMaterialTranslator(RmanTranslator):
                             return True
 
                 # bxdf
-                socket = out.inputs[0]
+                socket = out.inputs['Bxdf']
                 if socket.is_linked:
                     bxdfList = []
                     for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
@@ -107,28 +107,26 @@ class RmanMaterialTranslator(RmanTranslator):
                         rman_sg_material.sg_node.SetBxdf(bxdfList)         
 
                 # light
-                if len(out.inputs) > 1:
-                    socket = out.inputs[1]
-                    if socket.is_linked:
-                        lightNodesList = []
-                        for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
-                            shader_sg_nodes = self.shader_node_sg(material, sub_node, rman_sg_material, mat_name=handle)
-                            for s in shader_sg_nodes:
-                                lightNodesList.append(s) 
-                        if lightNodesList:
-                            rman_sg_material.sg_node.SetLight(lightNodesList)                                   
+                socket = out.inputs['Light']
+                if socket.is_linked:
+                    lightNodesList = []
+                    for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
+                        shader_sg_nodes = self.shader_node_sg(material, sub_node, rman_sg_material, mat_name=handle)
+                        for s in shader_sg_nodes:
+                            lightNodesList.append(s) 
+                    if lightNodesList:
+                        rman_sg_material.sg_node.SetLight(lightNodesList)                                   
 
                 # displacement
-                if len(out.inputs) > 2:
-                    socket = out.inputs[2]
-                    if socket.is_linked:
-                        dispList = []
-                        for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
-                            shader_sg_nodes = self.shader_node_sg(material, sub_node, rman_sg_material, mat_name=handle)
-                            for s in shader_sg_nodes:
-                                dispList.append(s) 
-                        if dispList:
-                            rman_sg_material.sg_node.SetDisplace(dispList)  
+                socket = out.inputs['Displacement']
+                if socket.is_linked:
+                    dispList = []
+                    for sub_node in shadergraph_utils.gather_nodes(socket.links[0].from_node):
+                        shader_sg_nodes = self.shader_node_sg(material, sub_node, rman_sg_material, mat_name=handle)
+                        for s in shader_sg_nodes:
+                            dispList.append(s) 
+                    if dispList:
+                        rman_sg_material.sg_node.SetDisplace(dispList)  
 
                 return True                        
                     
