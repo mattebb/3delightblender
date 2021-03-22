@@ -496,6 +496,8 @@ class RmanCameraTranslator(RmanTranslator):
         cam = ob.data
 
         options = self.rman_scene.sg_scene.GetOptions()
+        dx = 0
+        dy = 0
 
         if self.rman_scene.bl_scene.render.use_border and self.rman_scene.bl_scene.render.use_crop_to_border:
             screen_min_x = -xaspect + 2.0 * self.rman_scene.bl_scene.render.border_min_x * xaspect
