@@ -486,7 +486,14 @@ class RmanSceneSync(object):
                 # to get the updated viewport hidden value                
                 ob_data = bpy.data.objects.get(ob.name, ob)
                 rman_sg_node = self.rman_scene.rman_objects.get(obj.id.original, None)
+                
+                # NOTE: hide_get() and hide_viewport are two different things in Blender
+                # hide_get() hides the object from the viewport, but it does not actually remove the object
+                # as instances of the object can still be visible (ex: in particle systems)
+                # hide_viewport should be interpreted as an actual deleted object, including
+                # particle instances.
                 is_hidden = ob_data.hide_get()
+                                
                 if self.do_add and not rman_sg_node:
                     rman_type = object_utils._detect_primitive_(ob_data)
                     if ob_data.hide_get():
@@ -659,7 +666,9 @@ class RmanSceneSync(object):
             for obj in keys:
                 try:
                     ob = self.rman_scene.bl_scene.objects.get(obj.name_full, None)
-                    if ob:
+                    # NOTE: objects that are hidden from the viewport are considered deleted
+                    # objects as well
+                    if ob and not ob.hide_viewport:
                         continue
                 except Exception as e:
                     pass
