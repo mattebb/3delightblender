@@ -89,6 +89,11 @@ class RendermanPreferences(AddonPreferences):
         subtype='FILE_PATH',
         default=os.path.join('<OUT>', 'textures'))        
 
+    path_fallback_textures_path_always: BoolProperty(
+        name="Always Fallback",
+        description="Always use the fallback texture path regardless",
+        default=False)              
+
     rman_scene_version_padding: IntProperty(
         name="Version Padding",
         description="The number of zeros to pad the version token",
@@ -283,6 +288,7 @@ class RendermanPreferences(AddonPreferences):
         row = layout.row()
         col = row.column()
         col.prop(self, 'path_fallback_textures_path')
+        col.prop(self, 'path_fallback_textures_path_always')
         col.prop(self, "rman_scene_version_padding")
         col.prop(self, "rman_scene_take_padding")
         col.prop(self, "rman_scene_version_increment")

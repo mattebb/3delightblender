@@ -24,8 +24,10 @@ class RfBTxManager(object):
     def __init__(self):        
         fallback_path = string_utils.expand_string(get_pref('path_fallback_textures_path'), 
                                                   asFilePath=True)
+        fallback_always = get_pref('path_fallback_textures_path_always')
         self.txmanager = txcore.TxManager(host_token_resolver_func=self.host_token_resolver_func, 
                                         fallback_path=fallback_path,
+                                        fallback_always=fallback_always,
                                         host_tex_done_func=self.done_callback,
                                         host_load_func=load_scene_state,
                                         host_save_func=save_scene_state,
