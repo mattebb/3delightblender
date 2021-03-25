@@ -32,6 +32,7 @@ __RMAN_RENDER__ = None
 __RMAN_IT_PORT__ = -1
 __BLENDER_DSPY_PLUGIN__ = None
 __DRAW_THREAD__ = None
+__RMAN_STATS_NAME__ = "RfB Session"
 
 def __turn_off_viewport__():
     '''
@@ -270,6 +271,7 @@ class RmanRender(object):
         self.__bl_engine = bl_engine        
 
     def _start_prman_begin(self):
+        global __RMAN_STATS_NAME__
 
         argv = []
         argv.append("prman") 
@@ -282,8 +284,8 @@ class RmanRender(object):
             argv.append('-woff')
             argv.append(woffs)
 
-        #argv.append('-statsconfig')
-        #argv.append( os.path.join(envconfig().rmantree, 'etc', 'stats.ini'))
+        argv.append("-statssession")
+        argv.append(__RMAN_STATS_NAME__)        
 
         self.rictl.PRManBegin(argv)  
 
@@ -378,10 +380,12 @@ class RmanRender(object):
                 pass
 
         config = rman.Types.RtParamList()
+        render_config = rman.Types.RtParamList()
+        stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
         rendervariant = scene_utils.get_render_variant(self.bl_scene)
-        scene_utils.set_render_variant_config(self.bl_scene, config)
+        scene_utils.set_render_variant_config(self.bl_scene, config, render_config)
 
-        self.sg_scene = self.sgmngr.CreateScene(config) 
+        self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
 
@@ -503,7 +507,11 @@ class RmanRender(object):
             rfb_log().debug("Writing to RIB...")             
             for frame in range(bl_scene.frame_start, bl_scene.frame_end + 1):
                 bl_view_layer = depsgraph.view_layer
-                self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
+                config = rman.Types.RtParamList()
+                render_config = rman.Types.RtParamList()
+                stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
+
+                self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
                 self.bl_engine.frame_set(frame, subframe=0.0)
                 self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_view_layer, is_external=True)
                 rib_output = string_utils.expand_string(rm.path_rib_output, 
@@ -516,7 +524,11 @@ class RmanRender(object):
             
 
         else:
-            self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
+            config = rman.Types.RtParamList()
+            render_config = rman.Types.RtParamList()
+            stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
+
+            self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
 
             time_start = time.time()
                     
@@ -568,7 +580,10 @@ class RmanRender(object):
         self.rman_render_into = ''
         rman.Dspy.DisableDspyServer()
         config = rman.Types.RtParamList()
-        self.sg_scene = self.sgmngr.CreateScene(config) 
+        render_config = rman.Types.RtParamList()
+        stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
+
+        self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_bake_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
 
@@ -603,7 +618,11 @@ class RmanRender(object):
             rfb_log().debug("Writing to RIB...")             
             for frame in range(bl_scene.frame_start, bl_scene.frame_end + 1):
                 bl_view_layer = depsgraph.view_layer
-                self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
+                config = rman.Types.RtParamList()
+                render_config = rman.Types.RtParamList()
+                stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
+
+                self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
                 self.bl_engine.frame_set(frame, subframe=0.0)
                 self.rman_scene.export_for_bake_render(depsgraph, self.sg_scene, bl_view_layer, is_external=True)
                 rib_output = string_utils.expand_string(rm.path_rib_output, 
@@ -616,7 +635,11 @@ class RmanRender(object):
             
 
         else:
-            self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
+            config = rman.Types.RtParamList()
+            render_config = rman.Types.RtParamList()
+            stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
+
+            self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
 
             time_start = time.time()
                     
@@ -678,10 +701,14 @@ class RmanRender(object):
 
         time_start = time.time()      
 
-        config = rman.Types.RtParamList()    
-        scene_utils.set_render_variant_config(self.bl_scene, config)
-        
-        self.sg_scene = self.sgmngr.CreateScene(config) 
+        config = rman.Types.RtParamList()
+        render_config = rman.Types.RtParamList()
+        stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
+        rendervariant = scene_utils.get_render_variant(self.bl_scene)
+        scene_utils.set_render_variant_config(self.bl_scene, config, render_config)
+
+        self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
+
         self.rman_scene_sync.sg_scene = self.sg_scene
         rfb_log().info("Parsing scene...")        
         self.rman_scene.export_for_interactive_render(context, depsgraph, self.sg_scene)
@@ -713,8 +740,12 @@ class RmanRender(object):
         self.rman_callbacks["Progress"] = progress_cb        
         ec.RegisterCallback("Render", render_cb, self)
         self.rman_callbacks["Render"] = render_cb        
-        
-        self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList()) 
+
+        config = rman.Types.RtParamList()
+        render_config = rman.Types.RtParamList()
+        stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
+
+        self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats)         
         self.rman_scene.export_for_swatch_render(depsgraph, self.sg_scene)
 
         self.rman_running = True
@@ -760,7 +791,11 @@ class RmanRender(object):
             rfb_log().debug("Writing to RIB...")             
             for frame in range(bl_scene.frame_start, bl_scene.frame_end + 1):        
                 bl_scene.frame_set(frame, subframe=0.0)
-                self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList())     
+                config = rman.Types.RtParamList()
+                render_config = rman.Types.RtParamList()
+                stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
+
+                self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats)   
                 self.rman_scene.export_for_rib_selection(context, self.sg_scene)
                 rib_output = string_utils.expand_string(rib_path, 
                                                     frame=frame, 
@@ -769,7 +804,10 @@ class RmanRender(object):
                 self.sgmngr.DeleteScene(self.sg_scene)
             bl_scene.frame_set(original_frame, subframe=0.0)    
         else:
-            self.sg_scene = self.sgmngr.CreateScene(rman.Types.RtParamList())     
+            config = rman.Types.RtParamList()
+            render_config = rman.Types.RtParamList()
+            stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
+
             self.rman_scene.export_for_rib_selection(context, self.sg_scene)
             rib_output = string_utils.expand_string(rib_path, 
                                                 frame=bl_scene.frame_current, 

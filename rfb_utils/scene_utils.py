@@ -53,22 +53,19 @@ def get_render_variant(bl_scene):
 
     return bl_scene.renderman.renderVariant    
 
-def set_render_variant_config(bl_scene, config):
+def set_render_variant_config(bl_scene, config, render_config):
     variant = get_render_variant(bl_scene)
     if variant.startswith('xpu'):
         variant = 'xpu'
     config.SetString('rendervariant', variant)
 
-    device_list = ''
     if variant == 'xpu':
-        device_list = 'cpu,gpu0'
+        render_config.SetInteger('xpu:cpuconfig', 0)
+        render_config.SetIntegerArray('xpu:gpuconfig', [0], 1)
     elif variant == 'xpucpu':
-        device_list = 'cpu'
+        render_config.SetInteger('xpu:cpuconfig', 0)
     else:
-        device_list = 'gpu0'
-
-    if device_list != '':
-        config.SetString('xpudevices', device_list)
+        render_config.SetIntegerArray('xpu:gpuconfig', [0], 1)
 
 def set_render_variant_spool(bl_scene, args):
     variant = get_render_variant(bl_scene)
