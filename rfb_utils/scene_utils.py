@@ -62,6 +62,9 @@ def set_render_variant_config(bl_scene, config, render_config):
 
     if variant == 'xpu':
 
+        '''
+        ## TODO: For when XPU can support multiple gpu devices...
+
         xpu_gpu_devices = prefs_utils.get_pref('rman_xpu_gpu_devices')
         gpus = list()
         for device in xpu_gpu_devices:
@@ -80,8 +83,27 @@ def set_render_variant_config(bl_scene, config, render_config):
             # Nothing was selected, we should at least use the cpu.
             print("No devices were selected for XPU. Defaulting to CPU.")
             render_config.SetInteger('xpu:cpuconfig', 1)
+        '''
 
-def set_render_variant_spool(bl_scene, args):
+        # Else, we only support selecting one GPU
+        xpu_gpu_device = int(prefs_utils.get_pref('rman_xpu_gpu_selection'))
+        if xpu_gpu_device > -1:
+            render_config.SetIntegerArray('xpu:gpuconfig', [xpu_gpu_device], 1)
+
+        # For now, there is only one CPU
+        xpu_cpu_devices = prefs_utils.get_pref('rman_xpu_cpu_devices')
+        device = xpu_cpu_devices[0]
+
+        render_config.SetInteger('xpu:cpuconfig', int(device.use))    
+
+        if xpu_gpu_device == -1 and not device.use:
+            # Nothing was selected, we should at least use the cpu.
+            print("No devices were selected for XPU. Defaulting to CPU.")
+            render_config.SetInteger('xpu:cpuconfig', 1)             
+
+
+
+def set_render_variant_spool(bl_scene, args, is_tractor=False):
     variant = get_render_variant(bl_scene)
     if variant.startswith('xpu'):
         variant = 'xpu'
@@ -90,15 +112,34 @@ def set_render_variant_spool(bl_scene, args):
 
     if variant == 'xpu':
         device_list = list()
-        xpu_gpu_devices = prefs_utils.get_pref('rman_xpu_gpu_devices')
-        for device in xpu_gpu_devices:
-            if device.use:
-                device_list.append('gpu%d' % device.id)
+        if not is_tractor:
+            '''
+            ## TODO: For when XPU can support multiple gpu devices...
+            xpu_gpu_devices = prefs_utils.get_pref('rman_xpu_gpu_devices')
+            for device in xpu_gpu_devices:
+                if device.use:
+                    device_list.append('gpu%d' % device.id)
 
-        xpu_cpu_devices = prefs_utils.get_pref('rman_xpu_cpu_devices')
-        device = xpu_cpu_devices[0]
+            xpu_cpu_devices = prefs_utils.get_pref('rman_xpu_cpu_devices')
+            device = xpu_cpu_devices[0]
 
-        if device.use or not device_list:
+            if device.use or not device_list:
+                device_list.append('cpu')
+            '''
+            xpu_gpu_device = int(prefs_utils.get_pref('rman_xpu_gpu_selection'))
+            if xpu_gpu_device > -1:
+                device_list.append('gpu%d' % xpu_gpu_device)
+
+            xpu_cpu_devices = prefs_utils.get_pref('rman_xpu_cpu_devices')
+            device = xpu_cpu_devices[0]
+
+            if device.use or xpu_gpu_device < 0:
+                device_list.append('cpu')            
+
+        else:
+            # Don't add the gpu list if we are spooling to Tractor
+            # There is no way for us to know what is available on the blade,
+            # so just ask for CPU for now.
             device_list.append('cpu')
 
         if device_list:

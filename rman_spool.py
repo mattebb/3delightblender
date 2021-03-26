@@ -20,10 +20,12 @@ class RmanSpool(object):
         self.rman_render = rman_render
         self.rman_scene = rman_scene
         self.is_localqueue = True
+        self.is_tractor = False
         if depsgraph:
             self.bl_scene = depsgraph.scene_eval
             self.depsgraph = depsgraph
             self.is_localqueue = (self.bl_scene.renderman.queuing_system == 'lq')
+            self.is_tractor = (self.bl_scene.renderman.queuing_system == 'tractor')
 
     def end_block(self, f, indent_level):
         f.write("%s}\n" % ('\t' * indent_level))
@@ -183,7 +185,7 @@ class RmanSpool(object):
             cmd_str = ['prman', '-Progress', '-cwd', self.quote(cdir), '-t:%d' %
                     threads]
 
-            scene_utils.set_render_variant_spool(scene, cmd_str)
+            scene_utils.set_render_variant_spool(scene, cmd_str, self.is_tractor)
             if rm.recover:
                 cmd_str.append('-recover 1')
             if rm.custom_cmd != '':

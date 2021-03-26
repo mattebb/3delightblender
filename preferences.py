@@ -111,6 +111,18 @@ class RendermanPreferences(AddonPreferences):
     rman_xpu_cpu_devices: bpy.props.CollectionProperty(type=RendermanDeviceDesc)
     rman_xpu_gpu_devices: bpy.props.CollectionProperty(type=RendermanDeviceDesc)
 
+    def fill_gpu_devices(self, context):
+        items = []
+        items.append(('-1', 'None', ''))
+        for device in self.rman_xpu_gpu_devices:
+            items.append(('%d' % device.id, '%s (%d.%d)' % (device.name, device.version_major, device.version_minor), ''))
+                  
+        return items
+
+    rman_xpu_gpu_selection: EnumProperty(name="GPU Device",
+                                        items=fill_gpu_devices
+                                        )
+
     rman_xpu_device: EnumProperty(name="Devices",
                                 description="Select category",
                                 items=[
@@ -326,8 +338,16 @@ class RendermanPreferences(AddonPreferences):
             if len(self.rman_xpu_gpu_devices) < 1:
                 layout.label(text="No compatible GPU devices found.", icon='INFO')
             else:
+                '''
+                ## TODO: For when XPU can support multiple gpu devices...
                 for device in self.rman_xpu_gpu_devices:
                     layout.prop(device, 'use', text='%s (%d.%d)' % (device.name, device.version_major, device.version_minor))
+                '''
+
+                # Else, we only can select one GPU
+                layout.prop(self, 'rman_xpu_gpu_selection')
+
+                
 
     def draw(self, context):
         self.layout.use_property_split = True
