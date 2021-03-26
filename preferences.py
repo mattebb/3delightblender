@@ -366,17 +366,18 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'rman_emit_default_params')    
 
         # XPU Prefs
-        row = layout.row()
-        row.label(text='XPU', icon_value=rman_r_icon.icon_id)
-        row = layout.row()
-        row.use_property_split = False
-        row.prop(self, 'rman_xpu_device', expand=True)
-        row = layout.row()
-        row.use_property_split = False
-        self.find_xpu_devices()
-        col = row.column()      
-        box = col.box()  
-        self.draw_xpu_devices(context, box)
+        if sys.platform != ("darwin") and not envconfig_utils.envconfig().is_ncr_license:
+            row = layout.row()
+            row.label(text='XPU', icon_value=rman_r_icon.icon_id)
+            row = layout.row()
+            row.use_property_split = False
+            row.prop(self, 'rman_xpu_device', expand=True)
+            row = layout.row()
+            row.use_property_split = False
+            self.find_xpu_devices()
+            col = row.column()      
+            box = col.box()  
+            self.draw_xpu_devices(context, box)
 
         # Workspace
         row = layout.row()
