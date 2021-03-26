@@ -135,7 +135,7 @@ def generate_property(node, sp, update_function=None):
     renderman_name = param_name
     param_widget = sp.widget.lower() if hasattr(sp,'widget') and sp.widget else 'default'
 
-    if param_widget == 'none':
+    if param_widget == '__REMOVE__':
         return (None, None, None)      
 
     # blender doesn't like names with __ but we save the
