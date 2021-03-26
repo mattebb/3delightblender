@@ -1,5 +1,6 @@
 from . import shadergraph_utils
 from . import object_utils
+from . import prefs_utils
 from ..rfb_logger import rfb_log
 import bpy
 import sys
@@ -60,12 +61,25 @@ def set_render_variant_config(bl_scene, config, render_config):
     config.SetString('rendervariant', variant)
 
     if variant == 'xpu':
-        render_config.SetInteger('xpu:cpuconfig', 0)
-        render_config.SetIntegerArray('xpu:gpuconfig', [0], 1)
-    elif variant == 'xpucpu':
-        render_config.SetInteger('xpu:cpuconfig', 0)
-    else:
-        render_config.SetIntegerArray('xpu:gpuconfig', [0], 1)
+
+        xpu_gpu_devices = prefs_utils.get_pref('rman_xpu_gpu_devices')
+        gpus = list()
+        for device in xpu_gpu_devices:
+            if device.use:
+                gpus.append(device.id)
+        if gpus:
+            render_config.SetIntegerArray('xpu:gpuconfig', gpus, len(gpus))    
+
+        # For now, there is only one CPU
+        xpu_cpu_devices = prefs_utils.get_pref('rman_xpu_cpu_devices')
+        device = xpu_cpu_devices[0]
+
+        render_config.SetInteger('xpu:cpuconfig', int(device.use))
+
+        if not gpus and not device.use:
+            # Nothing was selected, we should at least use the cpu.
+            print("No devices were selected for XPU. Defaulting to CPU.")
+            render_config.SetInteger('xpu:cpuconfig', 1)
 
 def set_render_variant_spool(bl_scene, args):
     variant = get_render_variant(bl_scene)
@@ -74,16 +88,22 @@ def set_render_variant_spool(bl_scene, args):
     args.append('-variant')
     args.append(variant)
 
-    device_list = ''
     if variant == 'xpu':
-        device_list = 'cpu,gpu0'
-    elif variant == 'xpucpu':
-        device_list = 'cpu'
-    else:
-        device_list = 'gpu0'
+        device_list = list()
+        xpu_gpu_devices = prefs_utils.get_pref('rman_xpu_gpu_devices')
+        for device in xpu_gpu_devices:
+            if device.use:
+                device_list.append('gpu%d' % device.id)
 
-    if device_list != '':
-        args.append('-xpudevices:%s' % device_list)
+        xpu_cpu_devices = prefs_utils.get_pref('rman_xpu_cpu_devices')
+        device = xpu_cpu_devices[0]
+
+        if device.use or not device_list:
+            device_list.append('cpu')
+
+        if device_list:
+            device_list = ','.join(device_list)
+            args.append('-xpudevices:%s' % device_list)            
 
 def get_light_group(light_ob, scene):
     """Return the name of the lightGroup for this

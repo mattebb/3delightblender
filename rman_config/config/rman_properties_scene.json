@@ -64,7 +64,7 @@
             "type": "string",
             "default": "prman",
             "widget": "popup",
-            "options": "RIS:prman|XPU:xpu|XPU - CPU:xpucpu|XPU - GPU:xpugpu",
+            "options": "RIS:prman|XPU:xpu",
             "help": "",
             "conditionalLockOps": {
                 "conditionalVis1Path": "is_ncr_license",

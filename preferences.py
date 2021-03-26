@@ -37,8 +37,68 @@ from . import rfb_icons
 class RendermanPreferencePath(bpy.types.PropertyGroup):
     path: StringProperty(name="", subtype='DIR_PATH')
 
+class RendermanDeviceDesc(bpy.types.PropertyGroup):
+    name: StringProperty(name="", default="")
+    id: IntProperty(default=-1)
+    version_major: IntProperty(default=0)
+    version_minor: IntProperty(default=0)
+    use: BoolProperty(name="Use", default=False)
+
 class RendermanPreferences(AddonPreferences):
     bl_idname = __package__
+
+    def find_xpu_cpu_devices(self):
+        # for now, there's only one CPU
+        if len(self.rman_xpu_cpu_devices) < 1:
+            device = self.rman_xpu_cpu_devices.add()
+            device.name = "CPU 0"
+            device.id = 0
+            device.use = True
+
+    def find_xpu_gpu_devices(self):
+        try:
+            import rman
+
+            count = rman.pxrcore.GetGpgpuCount(rman.pxrcore.k_cuda)
+            gpu_device_names = list()
+
+            # try and add ones that we don't know about
+            for i in range(count):
+                desc = rman.pxrcore.GpgpuDescriptor()
+                rman.pxrcore.GetGpgpuDescriptor(rman.pxrcore.k_cuda, i, desc)
+                gpu_device_names.append(desc.name)
+
+                found = False
+                for device in self.rman_xpu_gpu_devices:
+                    if device.name == desc.name:
+                        found = True
+                        break
+
+                if not found:
+                    device = self.rman_xpu_gpu_devices.add()
+                    device.name = desc.name
+                    device.version_major = desc.major
+                    device.version_minor = desc.minor
+                    device.id = i
+                    if len(self.rman_xpu_gpu_devices) == 1:
+                        # always use the first one, if this is our first time adding
+                        # gpus
+                        device.use = True
+
+            # now, try and remove devices that no longer exist
+            name_list = [device.name for device in self.rman_xpu_gpu_devices]
+            for nm in name_list:
+                if nm not in gpu_device_names:
+                    self.rman_xpu_gpu_devices.remove(self.rman_xpu_gpu_devices.find(nm))
+
+        except Exception as e:
+            rfb_logger.rfb_log().debug("Exception when getting GPU devices: %s" % str(e))
+            pass
+
+    def find_xpu_devices(self):
+        self.find_xpu_cpu_devices()
+        self.find_xpu_gpu_devices()
+
 
     # find the renderman options installed
     def find_installed_rendermans(self, context):
@@ -47,6 +107,17 @@ class RendermanPreferences(AddonPreferences):
         for vers, path in envconfig_utils.get_installed_rendermans():
             options.append((path, vers, path))
         return options
+
+    rman_xpu_cpu_devices: bpy.props.CollectionProperty(type=RendermanDeviceDesc)
+    rman_xpu_gpu_devices: bpy.props.CollectionProperty(type=RendermanDeviceDesc)
+
+    rman_xpu_device: EnumProperty(name="Devices",
+                                description="Select category",
+                                items=[
+                                    ("CPU", "CPU", ""),
+                                    ("GPU", "GPU", "")
+                                ]
+                                )
 
     rmantree_choice: EnumProperty(
         name='RenderMan Version to use',
@@ -247,6 +318,17 @@ class RendermanPreferences(AddonPreferences):
     rpbSelectedCategory: StringProperty(default='')
     rpbSelectedPreset: StringProperty(default='')
 
+    def draw_xpu_devices(self, context, layout):
+        if self.rman_xpu_device == 'CPU':
+            device = self.rman_xpu_cpu_devices[0]
+            layout.prop(device, 'use', text='%s' % device.name)
+        else:
+            if len(self.rman_xpu_gpu_devices) < 1:
+                layout.label(text="No compatible GPU devices found.", icon='INFO')
+            else:
+                for device in self.rman_xpu_gpu_devices:
+                    layout.prop(device, 'use', text='%s (%d.%d)' % (device.name, device.version_major, device.version_minor))
+
     def draw(self, context):
         self.layout.use_property_split = True
         self.layout.use_property_decorate = False        
@@ -271,6 +353,7 @@ class RendermanPreferences(AddonPreferences):
             row = layout.row()
             row.alert = True
             row.label(text='Error in RMANTREE. Reload addon to reset.', icon='ERROR')
+            return
 
         # Behavior Prefs
         row = layout.row()
@@ -281,6 +364,19 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'rman_render_nurbs_as_mesh')
         col.prop(self, 'rman_show_cycles_convert')     
         col.prop(self, 'rman_emit_default_params')    
+
+        # XPU Prefs
+        row = layout.row()
+        row.label(text='XPU', icon_value=rman_r_icon.icon_id)
+        row = layout.row()
+        row.use_property_split = False
+        row.prop(self, 'rman_xpu_device', expand=True)
+        row = layout.row()
+        row.use_property_split = False
+        self.find_xpu_devices()
+        col = row.column()      
+        box = col.box()  
+        self.draw_xpu_devices(context, box)
 
         # Workspace
         row = layout.row()
@@ -335,11 +431,21 @@ class RendermanPreferences(AddonPreferences):
                 col.prop(self, 'rman_preview_renders_maxSamples')
                 col.prop(self, 'rman_preview_renders_pixelVariance') 
 
+classes = [
+    RendermanPreferencePath,
+    RendermanDeviceDesc,
+    RendermanPreferences
+]
+
 def register():
-    bpy.utils.register_class(RendermanPreferencePath)
-    bpy.utils.register_class(RendermanPreferences)
+    for cls in classes:
+        bpy.utils.register_class(cls)
 
 
 def unregister():
-    bpy.utils.unregister_class(RendermanPreferences)
-    bpy.utils.unregister_class(RendermanPreferencePath)
+    for cls in classes:
+        try:
+            bpy.utils.unregister_class(cls)
+        except RuntimeError:
+            rfb_log().debug('Could not unregister class: %s' % str(cls))
+            pass
