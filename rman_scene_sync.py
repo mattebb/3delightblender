@@ -115,7 +115,12 @@ class RmanSceneSync(object):
     def _material_updated(self, obj):
         mat = obj.id
         rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
-        translator = self.rman_scene.rman_translators["MATERIAL"]              
+        translator = self.rman_scene.rman_translators["MATERIAL"]         
+        db_name = object_utils.get_db_name(mat)
+        if not rman_sg_material:
+            # Double check if we can't find the material because of an undo
+            rman_sg_material = self.update_materials_dict(mat)
+
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):   
             mat = obj.id              
             if not rman_sg_material:
@@ -126,6 +131,9 @@ class RmanSceneSync(object):
             else:
                 rfb_log().debug("Material, call update")
                 translator.update(mat, rman_sg_material)   
+
+        # update db_name
+        rman_sg_material.db_name = db_name
 
     def _light_filter_transform_updated(self, obj):
         ob = obj.id
@@ -384,7 +392,38 @@ class RmanSceneSync(object):
                     rman_empty_node.sg_node.RemoveChild(rman_sg_group.sg_node)
                 else:
                     self.rman_scene.get_root_sg_node().RemoveChild(rman_sg_group.sg_node)                            
-            rman_sg_node.instances.clear()                 
+            rman_sg_node.instances.clear()      
+
+    def update_materials_dict(self, mat):    
+        # See comment below in update_objects_dict 
+        rman_sg_material = None
+        for id, rman_sg_node in self.rman_scene.rman_materials.items():
+            if rman_sg_node:
+                db_name = object_utils.get_db_name(mat)
+                if rman_sg_node.db_name == db_name:
+                    self.rman_scene.rman_materials[mat.original] = rman_sg_node
+                    del self.rman_scene.rman_materials[id]
+                    rman_sg_material = rman_sg_node 
+                    break
+        
+        return rman_sg_material
+
+    def update_objects_dict(self, ob, rman_type=None):      
+        # Try to see if we already have an obj with the same db_name
+        # We need to do this because undo/redo causes all bpy.types.ID 
+        # references to be invalidated (see: https://docs.blender.org/api/current/info_gotcha.html)
+        # We don't want to accidentally mistake this for a new object, so we need to update
+        # our objects dictionary with the new bpy.types.ID reference
+        rman_sg_node = None
+        for id, rsn in self.rman_scene.rman_objects.items():
+            if rsn:
+                db_name = object_utils.get_db_name(ob, rman_type=rman_type)
+                if rsn.db_name == db_name:
+                    self.rman_scene.rman_objects[ob.original] = rsn
+                    del self.rman_scene.rman_objects[id]
+                    rman_sg_node = rsn
+                    break
+        return rman_sg_node
 
     def update_scene(self, context, depsgraph):
         ## FIXME: this function is waaayyy too big and is doing too much stuff
@@ -493,9 +532,13 @@ class RmanSceneSync(object):
                 # hide_viewport should be interpreted as an actual deleted object, including
                 # particle instances.
                 is_hidden = ob_data.hide_get()
+
+                if not rman_sg_node:
+                    rman_sg_node = self.update_objects_dict(obj.id, rman_type=rman_type)
                                 
                 if self.do_add and not rman_sg_node:
                     rman_type = object_utils._detect_primitive_(ob_data)
+
                     if ob_data.hide_get():
                         # don't add if this hidden in the viewport
                         continue                    
@@ -536,6 +579,10 @@ class RmanSceneSync(object):
                     continue      
 
                 if rman_sg_node and rman_sg_node.sg_node:
+                    # update db_name
+                    db_name = object_utils.get_db_name(ob, rman_type=rman_type)
+                    rman_sg_node.db_name = db_name
+
                     # double check hidden value
                     if rman_type in ['LIGHT']:
                         if self._update_light_visibility(rman_sg_node, ob_data):
@@ -618,7 +665,7 @@ class RmanSceneSync(object):
                 if self.do_delete or self.do_add:
                     continue
                 
-                rfb_log().debug("Collection updated")
+                rfb_log().debug("Collection updated: %s" % obj.id.name)
                 # mark all objects in a collection
                 # as needing their instances updated
                 # the collection could have been updated with new objects
@@ -627,9 +674,19 @@ class RmanSceneSync(object):
                 for o in obj.id.all_objects:
                     if o.type in ('ARMATURE', 'CURVE', 'CAMERA'):
                         continue
+
+                    rman_type = object_utils._detect_primitive_(o)
+                    rman_sg_node = self.rman_scene.rman_objects.get(o.original, None)
+                    if not rman_sg_node:
+                        if not self.update_objects_dict(o, rman_type=rman_type):
+                            self.new_objects.add(o)
+                            self.update_instances.add(o)
+                            continue
+
                     self.update_instances.add(o.original)
                     self.clear_instances(o)
                     self.update_particles.add(o)
+                    continue
 
         # call txmake all in case of new textures
         texture_utils.get_txmanager().txmake_all(blocking=False)                         
