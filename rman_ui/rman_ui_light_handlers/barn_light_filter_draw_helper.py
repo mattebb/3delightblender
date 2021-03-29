@@ -52,7 +52,7 @@ def get_parented_lights(light_filter):
         if rm.renderman_type == 'FILTER':
             continue
         for lf in rm.light_filters:
-            if lf.filter_name == light_filter.name:
+            if lf.name == light_filter.name:
                 parents.append(ob)
                 break
     return parents        
