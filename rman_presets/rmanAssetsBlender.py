@@ -177,6 +177,8 @@ class BlenderHostPrefs(ral.HostPrefs):
                     prefs = get_addon_prefs()
                     prefs.rpbUserLibraries.clear()
                     for val in list(dict.fromkeys(value)):
+                        if not os.path.exists(val):
+                            continue
                         p = prefs.rpbUserLibraries.add()
                         p.path = val
             else:

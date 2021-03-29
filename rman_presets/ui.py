@@ -127,15 +127,18 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
                     selected_light_objects.append(obj)
 
         current_category_path = hostPrefs.getSelectedCategory()
-        if current_category_path == '':
-            return 
-        rel_path = os.path.relpath(current_category_path, hostPrefs.getSelectedLibrary())                      
+        lib_path = hostPrefs.getSelectedLibrary()
+        asset_type = 'Environment'        
+        if current_category_path == '' or (current_category_path not in lib_path):
+            current_category_path = os.path.join(lib_path, 'EnvironmentMaps')
+            asset_path = 'Environment'
+        else:
+            rel_path = os.path.relpath(current_category_path, hostPrefs.getSelectedLibrary())                      
 
-        asset_type = 'Environment'
-        if rel_path.startswith('Materials'):
-            asset_type = 'Materials'
-        elif rel_path.startswith('LightRigs'):
-            asset_type = 'LightRigs'
+            if rel_path.startswith('Materials'):
+                asset_type = 'Materials'
+            elif rel_path.startswith('LightRigs'):
+                asset_type = 'LightRigs'
 
         layout.separator()  
         if libInfo.isEditable():        
@@ -150,7 +153,7 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
         if asset_type == 'Materials':
             for asset in hostPrefs.getAssetList(current_category_path):
                 ass = ra.RmanAsset()
-                path = os.path.join(hostPrefs.getSelectedLibrary(), asset)
+                path = os.path.join(lib_path, asset)
                 json_path = os.path.join(path, 'asset.json')
                 ass.load(json_path)
                 label = ass.label()       
@@ -164,7 +167,7 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
         else: 
             for asset in hostPrefs.getAssetList(current_category_path):
                 ass = ra.RmanAsset()
-                path = os.path.join(hostPrefs.getSelectedLibrary(), asset)
+                path = os.path.join(lib_path, asset)
                 json_path = os.path.join(path, 'asset.json')
                 ass.load(json_path)
                 label = ass.label()       
@@ -226,6 +229,7 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
         category = self.preset_categories[self.preset_categories_index]
         libInfo = hostPrefs.cfg.getCurrentLibraryInfos()
         self.library_name = libInfo.getData('name')
+        self.library_path = libInfo.getPath()
         self.is_editable = libInfo.isEditable()
 
         hostPrefs.setSelectedCategory(category.path)
@@ -268,6 +272,7 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
 
     icon_id: IntProperty(default=-1) 
     library_name: StringProperty(default="")
+    library_path: StringProperty(default="")
     is_editable: BoolProperty(default=False)
 
     def execute(self, context):
@@ -310,6 +315,7 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
         if self.is_editable:
             lock = 'UNLOCKED'
         layout.label(text=self.library_name, icon=lock)
+        layout.label(text='(%s)' % self.library_path)
         row = layout.row(align=True)           
         col = row.column()  
         col.context_pointer_set('op_ptr', self) 
@@ -319,7 +325,8 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
         col.operator("renderman.select_preset_library", text="Select Library")
         col = row.column()
         col.context_pointer_set('op_ptr', self) 
-        col.operator("renderman.forget_preset_library", text="Forget Library")        
+        op = col.operator("renderman.forget_preset_library", text="Forget Library")
+        op.library_path = self.library_path        
 
         row = layout.row()
         col = row.column()
@@ -387,6 +394,7 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
 
     def invoke(self, context, event):
         self.load_categories(context)
+        self.load_presets(context)
              
         wm = context.window_manager
         width = rfb_config['editor_preferences']['preset_browser']['width']

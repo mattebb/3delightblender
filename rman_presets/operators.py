@@ -56,25 +56,21 @@ class PRMAN_OT_init_preset_library(bpy.types.Operator):
         json_file = os.path.join(self.directory, 'library.json')
         hostPrefs = rab.get_host_prefs()
 
-        if os.path.exists(json_file):
-            hostPrefs.cfg.addLibraryToLibraryList(self.directory)
-            
-        
-        elif os.access(self.directory, os.W_OK):
-            rmantree_lib_path = os.path.join(envconfig().rmantree, 'lib', 'RenderManAssetLibrary')
-            copy_tree(rmantree_lib_path, self.directory)
-        else:
-            raise Exception("No preset library found or directory chosen is not writable.")
-            return {'FINISHED'}
+        if not os.path.exists(json_file):        
+            if os.access(self.directory, os.W_OK):
+                rmantree_lib_path = os.path.join(envconfig().rmantree, 'lib', 'RenderManAssetLibrary')
+                copy_tree(rmantree_lib_path, self.directory)
+            else:
+                raise Exception("No preset library found or directory chosen is not writable.")
+                return {'FINISHED'}
 
-        hostPrefs.cfg.setCurrentLibraryByPath(FilePath(self.directory))
-        hostPrefs.setSelectedLibrary(self.directory)
-        hostPrefs.setSelectedCategory(os.path.join(self.library_paths, 'EnvironmentMaps'))
+        hostPrefs.cfg.setCurrentLibraryByPath(FilePath(self.directory)) 
+        hostPrefs.setSelectedCategory(os.path.join(self.directory, 'EnvironmentMaps'))
         hostPrefs.setSelectedPreset('')
         hostPrefs.saveAllPrefs()     
-        if self.op:
-            self.op.dummy_index = -1
-            self.op.preset_categories_index = 0             
+
+        # re-open the preset browser
+        bpy.ops.renderman.rman_open_presets_editor('INVOKE_DEFAULT')
 
         return {'FINISHED'}
 
@@ -534,6 +530,7 @@ class PRMAN_OT_forget_preset_library(bpy.types.Operator):
         return rd.engine == 'PRMAN_RENDER'
 
     def execute(self, context):
+        self.op = getattr(context, 'op_ptr', None) 
         json_file = os.path.join(self.library_path, 'library.json')
         if not os.path.exists(json_file):
             return {'FINISHED'}
@@ -541,12 +538,18 @@ class PRMAN_OT_forget_preset_library(bpy.types.Operator):
         hostPrefs = rab.get_host_prefs()
         hostPrefs.cfg.removeLibraryFromLibraryList(self.library_path)
         hostPrefs.cfg.setCurrentLibraryByName(None)
-        hostPrefs.setSelectedLibrary(
-            hostPrefs.cfg.getCurrentLibraryPath())       
+        lib_path = hostPrefs.cfg.getCurrentLibraryPath()
+        libInfo = hostPrefs.cfg.getCurrentLibraryInfos()
+        hostPrefs.cfg.setCurrentLibraryByPath(FilePath(lib_path))
+        hostPrefs.setSelectedLibrary(lib_path)       
 
         hostPrefs.setSelectedPreset('')
-        hostPrefs.setSelectedCategory('')
+        hostPrefs.setSelectedCategory(os.path.join(lib_path, 'EnvironmentMaps'))
         hostPrefs.saveAllPrefs()    
+
+        if self.op:
+            self.op.dummy_index = -1
+            self.op.preset_categories_index = 0            
 
         
         return {'FINISHED'}
@@ -560,6 +563,8 @@ class PRMAN_OT_select_preset_library(bpy.types.Operator):
         items = []
         hostPrefs = rab.get_host_prefs()
         for p,libinfo in hostPrefs.cfg.libs.items():
+            if not os.path.exists(libinfo.getPath()):
+                continue
             items.append((p, libinfo.getData('name'), p))    
 
         return items
