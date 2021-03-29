@@ -355,13 +355,17 @@ class RmanMaterialTranslator(RmanTranslator):
                 rix_params.SetFloatReference('input', val)            
                     
             return [sg_node]
+        elif node.bl_idname == 'NodeReroute':
+            # This is a reroute node. Ignore. We will deal with these when we build
+            # the connection string
+            return list()
         elif not hasattr(node, 'renderman_node_type'):
             return self.translate_cycles_node(mat, rman_sg_material, node, mat_name)
 
         instance = string_utils.sanitize_node_name(mat_name + '_' + node.name)
 
         if not hasattr(node, 'renderman_node_type'):
-            return
+            return list()
 
         if node.renderman_node_type == "pattern":
             if node.bl_label == 'PxrOSL':

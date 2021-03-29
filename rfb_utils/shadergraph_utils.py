@@ -314,6 +314,28 @@ def gather_nodes(node):
 
     return nodes    
 
+def get_rerouted_node(node):
+    '''Find and return the rerouted node and socket, given
+    a NodeReroute node
+
+    Arguments:
+        node (bpy.types.Node) - A shader node of type NodeReroute
+
+    Returns:
+        (bpy.types.Node) - the rerouted node
+        (bpy.types.NodeSocket) - the socket that should be connected from the rerouted node
+    '''
+
+    if not node.inputs[0].is_linked:
+        return (None, None)
+
+    from_node = node.inputs[0].links[0].from_node
+    if from_node.bl_idname == 'NodeReroute':
+        return get_rerouted_node(from_node)
+
+    socket = node.inputs[0].links[0].from_socket
+    return (from_node, socket)
+
 def find_integrator_node(world):
     '''Find and return the integrator node from the world nodetree
 

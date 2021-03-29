@@ -188,6 +188,14 @@ def get_output_param_str(node, mat_name, socket, to_socket=None, param_type=''):
         else:
             return "error:error"
 
+    if node.bl_idname == 'NodeReroute':
+        if not node.inputs[0].is_linked:
+            return None
+        # for re-route nodes, find the real node that got re-routed
+        node, socket = shadergraph_utils.get_rerouted_node(node)
+        if node is None:
+            return None
+        
     return build_output_param_str(mat_name, node, socket, shadergraph_utils.do_convert_socket(socket, to_socket), param_type)    
 
 
@@ -348,8 +356,8 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                 param_name = input_name
 
                 val = get_output_param_str(from_socket.node, mat_name, from_socket, to_socket, param_type)
-
-                set_rix_param(params, param_type, param_name, val, is_reference=True)    
+                if val:
+                    set_rix_param(params, param_type, param_name, val, is_reference=True)    
 
             elif type(input).__name__ != 'RendermanNodeSocketStruct':
 
@@ -389,8 +397,8 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
 
                     val = get_output_param_str(
                             from_socket.node, mat_name, from_socket, to_socket, param_type)
-
-                    set_rix_param(params, param_type, param_name, val, is_reference=True)                            
+                    if val:
+                        set_rix_param(params, param_type, param_name, val, is_reference=True)                            
                 # else output rib
                 else:
                     param_type = meta['renderman_type']
@@ -439,8 +447,8 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                     else:
                         val = get_output_param_str(
                                 from_node, mat_name, from_socket, to_socket, param_type)
-
-                        set_rix_param(params, param_type, param_name, val, is_reference=True)                  
+                        if val:
+                            set_rix_param(params, param_type, param_name, val, is_reference=True)                  
 
                 # see if vstruct linked
                 elif is_vstruct_and_linked(node, prop_name):
@@ -485,8 +493,9 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                             if expr:
                                 if expr.split(' ')[0] == 'set':
                                     val = 1
-                                    is_reference = False                        
-                        set_rix_param(params, param_type, param_name, val, is_reference=is_reference)
+                                    is_reference = False      
+                        if val:                  
+                            set_rix_param(params, param_type, param_name, val, is_reference=is_reference)
 
                     else:
                         rfb_log().warning('Warning! %s not found on %s' %
@@ -556,7 +565,8 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
 
                                 val = get_output_param_str(
                                     from_node, mat_name, from_socket, to_socket, param_type)
-                                val_ref_array.append(val)
+                                if val:
+                                    val_ref_array.append(val)
                             else:
                                 prop = getattr(node, nm)
                                 val = string_utils.convert_val(prop, type_hint=param_type)
