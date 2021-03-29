@@ -44,7 +44,7 @@ def _get_mesh_uv_(mesh, name=""):
     uv_count = len(uv_loop_layer.data)
     fastuvs = np.zeros(uv_count * 2)
     uv_loop_layer.data.foreach_get("uv", fastuvs)
-    fastuvs.reshape(uv_count, 2)    
+    fastuvs = fastuvs.reshape(uv_count, 2)    
     uvs = fastuvs.tolist()
 
     return uvs
@@ -87,21 +87,24 @@ def _get_material_ids(ob, geo):
     material_ids = string_utils.convert_val([p.material_index for p in geo.polygons])
     return material_ids
 
-def _get_primvars_(ob, geo, rixparams, interpolation=""):
+def _get_primvars_(ob, rman_sg_mesh, geo, rixparams):
 
     rm = ob.data.renderman
 
-    interpolation = 'facevarying' if not interpolation else interpolation
+    vertex_detail = rman_sg_mesh.npoints 
+    facevarying_detail = rman_sg_mesh.nverts 
 
     if rm.export_default_uv:
         uvs = _get_mesh_uv_(geo)
         if uvs and len(uvs) > 0:
-            rixparams.SetFloatArrayDetail("st", uvs, 2, interpolation)
+            detail = "facevarying" if facevarying_detail == len(uvs) else "vertex"
+            rixparams.SetFloatArrayDetail("st", uvs, 2, detail)
 
     if rm.export_default_vcol:
         vcols = _get_mesh_vcol_(geo)
         if vcols and len(vcols) > 0:
-            rixparams.SetColorDetail("Cs", vcols, "vertex")
+            detail = "facevarying" if facevarying_detail == len(vcols) else "vertex"
+            rixparams.SetColorDetail("Cs", vcols, detail)
     
     # custom prim vars
 
@@ -110,17 +113,20 @@ def _get_primvars_(ob, geo, rixparams, interpolation=""):
             vcols = _get_mesh_vcol_(geo, p.data_name)
             
             if vcols and len(vcols) > 0:
-                rixparams.SetColorDetail(p.name, vcols, "vertex")
+                detail = "facevarying" if facevarying_detail == len(vcols) else "vertex"
+                rixparams.SetColorDetail(p.name, vcols, detail)
             
         elif p.data_source == 'UV_TEXTURE':
             uvs = _get_mesh_uv_(geo, p.data_name)
             if uvs and len(uvs) > 0:
-                rixparams.SetFloatArrayDetail(p.name, uvs, 2, interpolation)
+                detail = "facevarying" if facevarying_detail == len(uvs) else "vertex"
+                rixparams.SetFloatArrayDetail(p.name, uvs, 2, detail)
 
         elif p.data_source == 'VERTEX_GROUP':
             weights = _get_mesh_vgroup_(ob, geo, p.data_name)
             if weights and len(weights) > 0:
-                rixparams.SetFloatDetail(p.name, weights, "vertex")
+                detail = "facevarying" if facevarying_detail == len(weights) else "vertex"
+                rixparams.SetFloatDetail(p.name, weights, detail)
 
     for prop_name, meta in rm.prop_meta.items():
         if 'primvar' not in meta:
@@ -266,7 +272,7 @@ class RmanMeshTranslator(RmanTranslator):
             super().set_primvar_times(rman_sg_mesh.motion_steps, primvar)
         
         primvar.SetPointDetail(self.rman_scene.rman.Tokens.Rix.k_P, P, "vertex")
-        _get_primvars_(ob, mesh, primvar, "facevarying")   
+        _get_primvars_(ob, rman_sg_mesh, mesh, primvar)   
 
         primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_nvertices, nverts, "uniform")
         primvar.SetIntegerDetail(self.rman_scene.rman.Tokens.Rix.k_Ri_vertices, verts, "facevarying")            
