@@ -400,6 +400,10 @@ class RendermanOutputNode(RendermanShadingNode):
                                 )            
 
     def is_sticky_selected(self):
+        if (self.bxdf_filter_parameters == False and 
+            self.disp_filter_parameters  == False and 
+            self.light_filter_parameters == False):
+            return False
         return (self.bxdf_filter_method == 'STICKY' or 
                 self.disp_filter_method == 'STICKY' or
                 self.light_filter_method == 'STICKY'
