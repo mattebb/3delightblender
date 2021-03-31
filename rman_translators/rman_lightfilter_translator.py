@@ -29,7 +29,6 @@ class RmanLightFilterTranslator(RmanTranslator):
             if light_filter:
                 # check to make sure this light filter is still in the scene
                 if not self.rman_scene.bl_scene.objects.get(light_filter.name, None):
-                    lf.name = 'Not Set'
                     continue
                 light_filter_sg = None
 
