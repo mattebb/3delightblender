@@ -29,7 +29,6 @@ from ..rfb_utils import object_utils
 from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
 from ..rfb_logger import rfb_log
 import os
-from distutils.dir_util import copy_tree
 import bpy
 from bpy.props import StringProperty, EnumProperty, BoolProperty, CollectionProperty, IntProperty
 from . import rmanAssetsBlender as rab
@@ -59,7 +58,7 @@ class PRMAN_OT_init_preset_library(bpy.types.Operator):
         if not os.path.exists(json_file):        
             if os.access(self.directory, os.W_OK):
                 rmantree_lib_path = os.path.join(envconfig().rmantree, 'lib', 'RenderManAssetLibrary')
-                copy_tree(rmantree_lib_path, self.directory)
+                self.directory = ral.copyLibrary(FilePath(rmantree_lib_path), FilePath(self.directory))
             else:
                 raise Exception("No preset library found or directory chosen is not writable.")
                 return {'FINISHED'}

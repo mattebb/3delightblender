@@ -226,11 +226,17 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
 
         self.presets.clear()
         self.presets_index = -1
-        category = self.preset_categories[self.preset_categories_index]
         libInfo = hostPrefs.cfg.getCurrentLibraryInfos()
         self.library_name = libInfo.getData('name')
         self.library_path = libInfo.getPath()
         self.is_editable = libInfo.isEditable()
+
+        if self.preset_categories_index > -1:
+            category = self.preset_categories[self.preset_categories_index]
+        else:
+            # we shouldn't get here, but just in case,
+            # grab the first category
+            category = self.preset_categories[0]
 
         hostPrefs.setSelectedCategory(category.path)
         hostPrefs.saveAllPrefs()
