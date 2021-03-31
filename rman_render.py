@@ -33,6 +33,7 @@ __RMAN_IT_PORT__ = -1
 __BLENDER_DSPY_PLUGIN__ = None
 __DRAW_THREAD__ = None
 __RMAN_STATS_NAME__ = "RfB Session"
+__RMAN_STATS_SESSION__ = None
 
 def __turn_off_viewport__():
     '''
@@ -272,6 +273,9 @@ class RmanRender(object):
 
     def _start_prman_begin(self):
         global __RMAN_STATS_NAME__
+        global __RMAN_STATS_SESSION__
+        
+        __RMAN_STATS_SESSION__ = rman.Stats.AddSession(__RMAN_STATS_NAME__)
 
         argv = []
         argv.append("prman") 
@@ -285,7 +289,7 @@ class RmanRender(object):
             argv.append(woffs)
 
         argv.append("-statssession")
-        argv.append(__RMAN_STATS_NAME__)        
+        argv.append(__RMAN_STATS_NAME__)      
 
         self.rictl.PRManBegin(argv)  
 
@@ -345,6 +349,8 @@ class RmanRender(object):
             subprocess.run(args)               
 
     def start_render(self, depsgraph, for_background=False):
+    
+        global __RMAN_STATS_SESSION__
 
         self.bl_scene = depsgraph.scene_eval
         rm = self.bl_scene.renderman
@@ -381,11 +387,10 @@ class RmanRender(object):
 
         config = rman.Types.RtParamList()
         render_config = rman.Types.RtParamList()
-        stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
         rendervariant = scene_utils.get_render_variant(self.bl_scene)
         scene_utils.set_render_variant_config(self.bl_scene, config, render_config)
 
-        self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
+        self.sg_scene = self.sgmngr.CreateScene(config, render_config, __RMAN_STATS_SESSION__) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
 
@@ -485,7 +490,9 @@ class RmanRender(object):
 
         return True   
 
-    def start_external_render(self, depsgraph):         
+    def start_external_render(self, depsgraph):  
+
+        global __RMAN_STATS_SESSION__    
 
         bl_scene = depsgraph.scene_eval
         rm = bl_scene.renderman
@@ -509,9 +516,8 @@ class RmanRender(object):
                 bl_view_layer = depsgraph.view_layer
                 config = rman.Types.RtParamList()
                 render_config = rman.Types.RtParamList()
-                stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
 
-                self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
+                self.sg_scene = self.sgmngr.CreateScene(config, render_config, __RMAN_STATS_SESSION__) 
                 self.bl_engine.frame_set(frame, subframe=0.0)
                 self.rman_scene.export_for_final_render(depsgraph, self.sg_scene, bl_view_layer, is_external=True)
                 rib_output = string_utils.expand_string(rm.path_rib_output, 
@@ -526,9 +532,8 @@ class RmanRender(object):
         else:
             config = rman.Types.RtParamList()
             render_config = rman.Types.RtParamList()
-            stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
 
-            self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
+            self.sg_scene = self.sgmngr.CreateScene(config, render_config, __RMAN_STATS_SESSION__) 
 
             time_start = time.time()
                     
@@ -554,6 +559,8 @@ class RmanRender(object):
         return True          
 
     def start_bake_render(self, depsgraph, for_background=False):
+    
+        global __RMAN_STATS_SESSION__
 
         self.bl_scene = depsgraph.scene_eval
         rm = self.bl_scene.renderman
@@ -581,9 +588,8 @@ class RmanRender(object):
         rman.Dspy.DisableDspyServer()
         config = rman.Types.RtParamList()
         render_config = rman.Types.RtParamList()
-        stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
 
-        self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
+        self.sg_scene = self.sgmngr.CreateScene(config, render_config, __RMAN_STATS_SESSION__) 
         bl_layer = depsgraph.view_layer
         self.rman_scene.export_for_bake_render(depsgraph, self.sg_scene, bl_layer, is_external=is_external)
 
@@ -596,7 +602,9 @@ class RmanRender(object):
             self._call_brickmake_for_selected()
         return True        
 
-    def start_external_bake_render(self, depsgraph):         
+    def start_external_bake_render(self, depsgraph):  
+
+        global __RMAN_STATS_SESSION__    
 
         bl_scene = depsgraph.scene_eval
         rm = bl_scene.renderman
@@ -620,9 +628,8 @@ class RmanRender(object):
                 bl_view_layer = depsgraph.view_layer
                 config = rman.Types.RtParamList()
                 render_config = rman.Types.RtParamList()
-                stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
 
-                self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
+                self.sg_scene = self.sgmngr.CreateScene(config, render_config, __RMAN_STATS_SESSION__) 
                 self.bl_engine.frame_set(frame, subframe=0.0)
                 self.rman_scene.export_for_bake_render(depsgraph, self.sg_scene, bl_view_layer, is_external=True)
                 rib_output = string_utils.expand_string(rm.path_rib_output, 
@@ -637,9 +644,8 @@ class RmanRender(object):
         else:
             config = rman.Types.RtParamList()
             render_config = rman.Types.RtParamList()
-            stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
 
-            self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
+            self.sg_scene = self.sgmngr.CreateScene(config, render_config, __RMAN_STATS_SESSION__) 
 
             time_start = time.time()
                     
@@ -667,6 +673,7 @@ class RmanRender(object):
     def start_interactive_render(self, context, depsgraph):
 
         global __DRAW_THREAD__
+        global __RMAN_STATS_SESSION__
 
         self.rman_interactive_running = True
         __update_areas__()
@@ -703,11 +710,10 @@ class RmanRender(object):
 
         config = rman.Types.RtParamList()
         render_config = rman.Types.RtParamList()
-        stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
         rendervariant = scene_utils.get_render_variant(self.bl_scene)
         scene_utils.set_render_variant_config(self.bl_scene, config, render_config)
 
-        self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats) 
+        self.sg_scene = self.sgmngr.CreateScene(config, render_config, __RMAN_STATS_SESSION__) 
 
         self.rman_scene_sync.sg_scene = self.sg_scene
         rfb_log().info("Parsing scene...")        
@@ -729,6 +735,7 @@ class RmanRender(object):
             __DRAW_THREAD__.start()
 
     def start_swatch_render(self, depsgraph):
+        global __RMAN_STATS_SESSION__
         self.bl_scene = depsgraph.scene_eval
 
         rfb_log().debug("Parsing scene...")
@@ -743,9 +750,8 @@ class RmanRender(object):
 
         config = rman.Types.RtParamList()
         render_config = rman.Types.RtParamList()
-        stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
 
-        self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats)         
+        self.sg_scene = self.sgmngr.CreateScene(config, render_config, __RMAN_STATS_SESSION__)         
         self.rman_scene.export_for_swatch_render(depsgraph, self.sg_scene)
 
         self.rman_running = True
@@ -783,6 +789,7 @@ class RmanRender(object):
         return True  
 
     def start_export_rib_selected(self, context, rib_path, export_materials=True, export_all_frames=False):
+        global __RMAN_STATS_SESSION__
 
         self.rman_running = True  
         bl_scene = context.scene
@@ -793,9 +800,8 @@ class RmanRender(object):
                 bl_scene.frame_set(frame, subframe=0.0)
                 config = rman.Types.RtParamList()
                 render_config = rman.Types.RtParamList()
-                stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
 
-                self.sg_scene = self.sgmngr.CreateScene(config, render_config, stats)   
+                self.sg_scene = self.sgmngr.CreateScene(config, render_config, __RMAN_STATS_SESSION__)   
                 self.rman_scene.export_for_rib_selection(context, self.sg_scene)
                 rib_output = string_utils.expand_string(rib_path, 
                                                     frame=frame, 
@@ -806,8 +812,8 @@ class RmanRender(object):
         else:
             config = rman.Types.RtParamList()
             render_config = rman.Types.RtParamList()
-            stats = rman.Stats.AddSession(__RMAN_STATS_NAME__)
 
+            self.sg_scene = self.sgmngr.CreateScene(config, render_config, __RMAN_STATS_SESSION__)   
             self.rman_scene.export_for_rib_selection(context, self.sg_scene)
             rib_output = string_utils.expand_string(rib_path, 
                                                 frame=bl_scene.frame_current, 
