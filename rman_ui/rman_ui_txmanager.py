@@ -254,17 +254,17 @@ class PRMAN_OT_Renderman_txmanager_clear_all_cache(Operator):
     """Clear RenderMan Texture cache"""
 
     bl_idname = "rman_txmgr_list.clear_all_cache"
-    bl_label = "Clear Texture Cache"
-    bl_description = "Tell the core RenderMan to clear its texture cache."
+    bl_label = "Flush Texture Cache"
+    bl_description = "Tell the core RenderMan to flush its texture cache."
 
     def execute(self, context):
         rr = rman_render.RmanRender.get_rman_render() 
-        if rr.rman_interactive_running:    
+        if rr.rman_interactive_running and rr.sg_scene:
             for item in context.scene.rman_txmgr_list:
                 txfile = None
                 if item.nodeID != "":
-                    output_texture = texture_utils.get_txfile_from_id(item.nodeID)
-                    rr.rictl.InvalidateTexture(output_texture)
+                    output_texture = texture_utils.get_txmanager().get_txfile_from_id(item.nodeID)
+                    rr.sg_scene.InvalidateTexture(output_texture)
                     
         return{'FINISHED'}
 
@@ -529,9 +529,7 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
         row.operator('rman_txmgr_list.parse_scene', text='Parse Scene')
         row.operator('rman_txmgr_list.reset_state', text='Reset', icon='FILE_REFRESH')         
         row.operator('rman_txmgr_list.pick_images', text='Pick Images', icon='FILE_FOLDER')        
-        row.operator('rman_txmgr_list.reconvert_all', text='Reconvert All')
-        #row.operator('rman_txmgr_list.clear_all_cache', text='Clear All Cache')      
-         
+        row.operator('rman_txmgr_list.reconvert_all', text='Reconvert All')         
 
         if scene.rman_txmgr_list_index >= 0 and scene.rman_txmgr_list:
             row = layout.row()

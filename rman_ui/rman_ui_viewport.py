@@ -615,7 +615,8 @@ def draw_rman_viewport_props(self, context):
                 rman_icon = rfb_icons.get_icon('rman_vp_snapshot')
                 row.operator('renderman_viewport.snapshot', text='', icon_value=rman_icon.icon_id)    
             # texture cache clear      
-            row.operator('rman_txmgr_list.clear_all_cache', text='', icon='FILE_REFRESH')  
+            rman_icon = rfb_icons.get_icon('rman_lightning_grey')
+            row.operator('rman_txmgr_list.clear_all_cache', text='', icon_value=rman_icon.icon_id)  
             
         else:
             get_crop_helper().reset()
