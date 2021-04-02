@@ -468,20 +468,23 @@ class RmanRender(object):
                             img.rect = buffer
             
                     self.bl_engine.update_result(result)        
-
-                self.stop_render()           
+          
                 if result:   
                     self.bl_engine.end_result(result) 
-                    # try to also save the image out to disk 
-                    bl_image = bpy.data.images.get('Render Result', None)
-                    if bl_image:
-                        try:
-                            bl_image.file_format = 'OPEN_EXR_MULTILAYER'
-                        except:
-                            pass
-                        filepath = dspy_dict['displays']['beauty']['filePath']
-                        rfb_log().debug("Saving image to: %s" % filepath)
-                        bl_image.save_render(filepath)
+
+                    # Try to save out the displays out to disk. This matches
+                    # Cycles behavior
+                    for i, dspy_nm in enumerate(dspy_dict['displays'].keys()):
+                        filepath = dspy_dict['displays'][dspy_nm]['filePath']
+                        buffer = self._get_buffer(width, height, image_num=i, as_flat=True)
+                        if buffer:
+                            bl_image = bpy.data.images.new(dspy_nm, width, height)
+                            bl_image.pixels = buffer
+                            bl_image.file_format = 'OPEN_EXR'
+                            bl_image.save_render(filepath)
+                            bpy.data.images.remove(bl_image)
+                            
+                self.stop_render()                              
 
         else:
             while not self.bl_engine.test_break() and self.rman_is_live_rendering:

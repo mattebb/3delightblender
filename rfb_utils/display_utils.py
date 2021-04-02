@@ -424,7 +424,10 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
                 dspy_name = '%s_%s' % (aov.name, ch_name)
                 new_dspy_params = deepcopy(dspy_params)
                 new_dspy_params['displayChannels'] = [ch_name]
-                new_file_path = filePath.replace('.it', '_%s.it' % ch_name)
+                if display_driver == 'it':
+                    new_file_path = filePath.replace('.it', '_%s.it' % ch_name)
+                else:
+                    new_file_path = filePath.replace('.exr', '_%s.exr' % ch_name)
 
                 dspys_dict['displays'][dspy_name] = {
                     'driverNode': display_driver,
