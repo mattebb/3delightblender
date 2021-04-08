@@ -920,7 +920,7 @@
             "riopt": "lpe:diffuse2",
             "label": "Diffuse 2 Lobe ID",
             "type": "string",
-            "default": "Diffuse,HairDiffuse",
+            "default": "Diffuse,HairDiffuse,diffuse,translucent,hair4,irradiance",
             "help": ""
         },
         {
@@ -930,7 +930,7 @@
             "riopt": "lpe:diffuse3",
             "label": "Diffuse 3 Lobe ID",
             "type": "string",
-            "default": "Subsurface",
+            "default": "Subsurface,subsurface",
             "help": ""
         },
         {
@@ -940,7 +940,7 @@
             "riopt": "lpe:specular2",
             "label": "Specular 2 Lobe ID",
             "type": "string",
-            "default": "Specular,HairSpecularR",
+            "default": "Specular,HairSpecularR,specular,hair1",
             "help": ""
         },
         {
@@ -950,7 +950,7 @@
             "riopt": "lpe:specular3",
             "label": "Specular 3 Lobe ID",
             "type": "string",
-            "default": "RoughSpecular,HairSpecularTRT",
+            "default": "RoughSpecular,HairSpecularTRT,hair3",
             "help": ""
         },
         {
@@ -990,7 +990,7 @@
             "riopt": "lpe:specular7",
             "label": "Specular 7 Lobe ID",
             "type": "string",
-            "default": "SingleScatter,HairSpecularTT",
+            "default": "SingleScatter,HairSpecularTT,hair2",
             "help": ""
         },
         {
@@ -1000,7 +1000,7 @@
             "riopt": "lpe:specular8",
             "label": "Specular 8 Lobe ID",
             "type": "string",
-            "default": "Glass",
+            "default": "Glass,specular",
             "help": ""
         },
         {
