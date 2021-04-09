@@ -1300,6 +1300,10 @@ def draw():
         if not light_shader:
             continue
 
+        # check the local view for this light
+        if not ob.visible_in_viewport_get(bpy.context.space_data):
+            continue
+
         light_shader_name = rm.get_light_node_name()
         if light_shader_name == '':
             return
