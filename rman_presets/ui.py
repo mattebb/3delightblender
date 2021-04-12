@@ -129,7 +129,7 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
         current_category_path = hostPrefs.getSelectedCategory()
         lib_path = hostPrefs.getSelectedLibrary()
         asset_type = 'Environment'        
-        if current_category_path == '' or (current_category_path not in lib_path):
+        if current_category_path == '' or (lib_path not in current_category_path):
             current_category_path = os.path.join(lib_path, 'EnvironmentMaps')
             asset_path = 'Environment'
         else:
