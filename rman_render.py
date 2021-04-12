@@ -479,9 +479,12 @@ class RmanRender(object):
                         buffer = self._get_buffer(width, height, image_num=i, as_flat=True)
                         if buffer:
                             bl_image = bpy.data.images.new(dspy_nm, width, height)
+                            bl_image.use_generated_float = True
+                            bl_image.filepath_raw = filepath                            
                             bl_image.pixels = buffer
                             bl_image.file_format = 'OPEN_EXR'
-                            bl_image.save_render(filepath)
+                            bl_image.update()
+                            bl_image.save()
                             bpy.data.images.remove(bl_image)
                             
                 self.stop_render()                              
