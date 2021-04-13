@@ -8,6 +8,7 @@ from .rfb_utils import shadergraph_utils
 from .rfb_logger import rfb_log
 from .rman_sg_nodes.rman_sg_lightfilter import RmanSgLightFilter
 
+from . import rman_constants
 import bpy
 
 class RmanSceneSync(object):
@@ -425,6 +426,28 @@ class RmanSceneSync(object):
                     break
         return rman_sg_node
 
+    def update_collection(self, coll):
+        # mark all objects in a collection
+        # as needing their instances updated
+        # the collection could have been updated with new objects
+        # FIXME: like grease pencil above we seem to crash when removing and adding instances 
+        # of curves, we need to figure out what's going on
+        for o in coll.all_objects:
+            if o.type in ('ARMATURE', 'CURVE', 'CAMERA'):
+                continue
+
+            rman_type = object_utils._detect_primitive_(o)
+            rman_sg_node = self.rman_scene.rman_objects.get(o.original, None)
+            if not rman_sg_node:
+                if not self.update_objects_dict(o, rman_type=rman_type):
+                    self.new_objects.add(o)
+                    self.update_instances.add(o)
+                    continue
+
+            self.update_instances.add(o.original)
+            self.clear_instances(o)
+            self.update_particles.add(o)   
+
     def update_scene(self, context, depsgraph):
         ## FIXME: this function is waaayyy too big and is doing too much stuff
 
@@ -666,27 +689,24 @@ class RmanSceneSync(object):
                     continue
                 
                 rfb_log().debug("Collection updated: %s" % obj.id.name)
-                # mark all objects in a collection
-                # as needing their instances updated
-                # the collection could have been updated with new objects
-                # FIXME: like grease pencil above we seem to crash when removing and adding instances 
-                # of curves, we need to figure out what's going on
-                for o in obj.id.all_objects:
-                    if o.type in ('ARMATURE', 'CURVE', 'CAMERA'):
-                        continue
+                self.update_collection(obj.id)
 
-                    rman_type = object_utils._detect_primitive_(o)
-                    rman_sg_node = self.rman_scene.rman_objects.get(o.original, None)
-                    if not rman_sg_node:
-                        if not self.update_objects_dict(o, rman_type=rman_type):
-                            self.new_objects.add(o)
-                            self.update_instances.add(o)
-                            continue
-
-                    self.update_instances.add(o.original)
-                    self.clear_instances(o)
-                    self.update_particles.add(o)
-                    continue
+            # check for >= 2.92 types
+            elif rman_constants.BLENDER_VERSION_MAJOR >= 2 and rman_constants.BLENDER_VERSION_MINOR >= 92:
+                if isinstance(obj.id, bpy.types.GeometryNodeTree):
+                    rfb_log().debug("Geometry Node Tree updated: %s" % obj.id.name)
+                    # look for all point instance nodes
+                    for n in [node for node in obj.id.nodes if isinstance(node, bpy.types.GeometryNodePointInstance)]:
+                        if n.instance_type == 'OBJECT':
+                            instance_obj = n.inputs['Object'].default_value
+                            if instance_obj:
+                                self.clear_instances(instance_obj)
+                                self.update_particles.add(instance_obj)                        
+                                self.update_instances.add(instance_obj.original)
+                        elif n.instance_type == 'COLLECTION':
+                            instance_coll = n.inputs['Collection'].default_value
+                            if instance_coll:
+                                self.update_collection(instance_coll)
 
         # call txmake all in case of new textures
         texture_utils.get_txmanager().txmake_all(blocking=False)                         
