@@ -56,11 +56,11 @@ class PRMAN_MT_Viewport_Res_Mult_Menu(Menu):
 
     def get_items(self):
         items=[
-            (1.0, "100%"),
-            (0.5, "50%"),
-            (0.33, "33%"),
-            (0.25, "25%"),
-            (0.125, "12.5%")
+            ("1.0", "100%"),
+            ("0.5", "50%"),
+            ("0.33", "33%"),
+            ("0.25", "25%"),
+            ("0.125", "12.5%")
         ]        
         return items
 
@@ -131,9 +131,9 @@ class PRMAN_OT_Viewport_Resolution_Mult(bpy.types.Operator):
     bl_description = "Lower the resolution of the viewport. This can help speed up renders."
     bl_options = {"INTERNAL"}       
 
-    viewport_res_mult: FloatProperty(name="Resolution Multiplier",
+    viewport_res_mult: StringProperty(name="Resolution Multiplier",
                                       description="",
-                                      default=1.0
+                                      default='1.0'
                                     )
 
     def execute(self, context):
@@ -141,7 +141,7 @@ class PRMAN_OT_Viewport_Resolution_Mult(bpy.types.Operator):
         bpy.ops.renderman_viewport.cropwindow_reset()
         get_crop_helper().crop_windowing = False
         rm = context.scene.renderman
-        rm.viewport_render_res_mult = str(self.viewport_res_mult)
+        rm.viewport_render_res_mult = self.viewport_res_mult
         rman_render.rman_scene_sync.update_viewport_res_mult(context) 
 
         return {"FINISHED"}       
