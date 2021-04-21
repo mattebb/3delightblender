@@ -649,11 +649,6 @@
             "channelSource": "lpe:nothruput;noinfinitecheck;noclamp;unoccluded;overwrite;CU4L",
             "group": "User Lobes"
         },
-        "NPRfinal": {
-            "channelType": "color",
-            "channelSource": "NPRfinal",
-            "group": "NPR"
-        },
         "NPRallLines": {
             "channelType": "color",
             "channelSource": "NPRallLines",
@@ -794,7 +789,6 @@
                 "sampleCount",
                 "directSpecular",
                 "NPRtoonDiffRamp",
-                "NPRfinal",
                 "NPRallLines",
                 "NPRallLinesAlpha",
                 "NPRoutline",
