@@ -610,7 +610,7 @@ def register_rman_nodes():
                             if args_filename in [node_desc.name for node_desc_list in [nodes for cat,nodes in __RMAN_NODES__.items()] for node_desc in node_desc_list]:
                                 continue   
                         classification = getattr(node_desc, 'classification', '')                                                       
-                        if classification != '':
+                        if classification and classification != '':
                             tokens = classification.split('/')                                
                             category = tokens[-1].lower()
                             category_nice_name = category.capitalize()
@@ -636,7 +636,7 @@ def register_rman_nodes():
                             __RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'][1].append(node_desc)
                     elif node_desc.node_type == 'bxdf':
                         classification = getattr(node_desc, 'classification', '')
-                        if classification != '':
+                        if classification and classification != '':
                             tokens = classification.split(':')
                             category = ''
                             
