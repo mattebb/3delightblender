@@ -398,7 +398,7 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'rman_do_preview_renders')  
         col.prop(self, 'rman_render_nurbs_as_mesh')
         col.prop(self, 'rman_show_cycles_convert')     
-        col.prop(self, 'rman_emit_default_params')    
+        col.prop(self, 'rman_emit_default_params')          
 
         # XPU Prefs
         if sys.platform != ("darwin") and not envconfig_utils.envconfig().is_ncr_license:
@@ -413,6 +413,14 @@ class RendermanPreferences(AddonPreferences):
             col = row.column()      
             box = col.box()  
             self.draw_xpu_devices(context, box)
+
+        row = layout.row()
+        row.label(text='Live Stats', icon_value=rman_r_icon.icon_id)
+        row = layout.row()
+        col = row.column()
+        col.prop(self, 'rman_roz_logLevel')  
+        col.prop(self, 'rman_roz_grpcEnabled')
+        col.prop(self, 'rman_roz_webSocketEnabled')               
 
         # Workspace
         row = layout.row()
