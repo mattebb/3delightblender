@@ -201,10 +201,13 @@ class RENDER_PT_renderman_stats_settings(PRManButtonsPanel, Panel):
         col.use_property_split = True
         col.use_property_decorate = False
         prefs = prefs_utils.get_addon_prefs()
-        col.prop(prefs, 'rman_roz_logLevel')
-        col.prop(prefs, 'rman_roz_grpcEnabled')
-        col.prop(prefs, 'rman_roz_webSocketEnabled')
-        col.operator('renderman.update_stats_config')
+        if hasattr(prefs, 'rman_roz_logLevel' ):
+            col.prop(prefs, 'rman_roz_logLevel')
+            col.prop(prefs, 'rman_roz_grpcEnabled')
+            col.prop(prefs, 'rman_roz_webSocketEnabled')
+        else:
+            col.operator('bpy.ops.screen.userpref_show()', text='Open Preferences')
+        col.operator('renderman.update_stats_config')            
 
 class RENDER_PT_renderman_custom_options(PRManButtonsPanel, Panel):
     bl_label = "Custom Options"
