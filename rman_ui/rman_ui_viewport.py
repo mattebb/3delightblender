@@ -617,6 +617,10 @@ def draw_rman_viewport_props(self, context):
             # texture cache clear      
             rman_icon = rfb_icons.get_icon('rman_lightning_grey')
             row.operator('rman_txmgr_list.clear_all_cache', text='', icon_value=rman_icon.icon_id)  
+        elif rman_render.rman_running:
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
+            row.operator('renderman.stop_render', text="",
+                            icon_value=rman_rerender_controls.icon_id)              
             
         else:
             get_crop_helper().reset()

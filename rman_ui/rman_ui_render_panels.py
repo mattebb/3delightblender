@@ -31,8 +31,18 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
             op = col.operator('renderman.launch_webbrowser', text='Upgrade/Buy Now')
             op.url = 'https://renderman.pixar.com/store'
 
-        if not rm.is_rman_interactive_running:
+        if rm.is_rman_interactive_running:
+            row = layout.row(align=True)
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
+            row.operator('renderman.stop_ipr', text="Stop IPR",
+                            icon_value=rman_rerender_controls.icon_id)    
+        elif rm.is_rman_running:
+            row = layout.row(align=True)
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
+            row.operator('renderman.stop_render', text="Stop Render",
+                            icon_value=rman_rerender_controls.icon_id)              
 
+        else:
             # Render
             row = layout.row(align=True)
             rman_render_icon = rfb_icons.get_icon("rman_render") 
@@ -43,12 +53,6 @@ class RENDER_PT_renderman_render(PRManButtonsPanel, Panel):
             rman_batch = rfb_icons.get_icon("rman_batch")
             row.operator("render.render", text="Render Animation",
                         icon_value=rman_batch.icon_id).animation = True
-
-        else:
-            row = layout.row(align=True)
-            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
-            row.operator('renderman.stop_ipr', text="Stop IPR",
-                            icon_value=rman_rerender_controls.icon_id)                                          
 
         _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_render', context, layout, rm)  
 
@@ -64,7 +68,7 @@ class RENDER_PT_renderman_spooling(PRManButtonsPanel, Panel):
         scene = context.scene
         rm = scene.renderman
 
-        layout.enabled = not rm.is_rman_interactive_running        
+        layout.enabled = not rm.is_rman_running        
 
         # button
         col = layout.column()

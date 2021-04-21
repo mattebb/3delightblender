@@ -164,8 +164,15 @@ class VIEW3D_MT_renderman_object_context_menu(Menu):
 
     def draw(self, context):
         layout = self.layout
-        
+        is_rman_running = context.scene.renderman.is_rman_running
         is_rman_interactive_running = context.scene.renderman.is_rman_interactive_running
+
+        if is_rman_running and not is_rman_interactive_running:
+            rman_icon = rfb_icons.get_icon("rman_ipr_cancel")
+            layout.operator('renderman.stop_render', text="Stop Render",
+                            icon_value=rman_icon.icon_id)
+            return      
+
         selected_objects = []
         selected_light_objects = []
         if context.selected_objects:

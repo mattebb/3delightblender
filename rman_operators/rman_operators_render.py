@@ -21,6 +21,7 @@ class PRMAN_OT_RendermanBake(bpy.types.Operator):
     bl_idname = "renderman.bake"
     bl_label = "Baking"
     bl_description = "Bake pattern nodes and/or illumination to 2D and 3D formats."
+    bl_options = {'INTERNAL'}    
             
     def execute(self, context):
 
@@ -38,6 +39,7 @@ class PRMAN_OT_RendermanBakeSelectedBrickmap(bpy.types.Operator):
     bl_idname = "renderman.bake_selected_brickmap"
     bl_label = "Bake to Brickmap"
     bl_description = "Bake to Brickmap"
+    bl_options = {'INTERNAL'}    
 
     filepath: bpy.props.StringProperty(
         subtype="FILE_PATH")
@@ -89,6 +91,7 @@ class PRMAN_OT_ExternalRendermanBake(bpy.types.Operator):
     bl_idname = "renderman.external_bake"
     bl_label = "External Baking"
     bl_description = "Spool an external bake render."
+    bl_options = {'INTERNAL'}    
             
     def execute(self, context):
 
@@ -111,6 +114,7 @@ class PRMAN_OT_ExternalRender(bpy.types.Operator):
     bl_idname = "renderman.external_render"
     bl_label = "External Render"
     bl_description = "Launch a spooled external render."
+    bl_options = {'INTERNAL'}    
 
     def external_blender_batch(self, context):
         rm = context.scene.renderman
@@ -161,6 +165,7 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
     bl_idname = "renderman.start_ipr"
     bl_label = "Start Interactive Rendering"
     bl_description = "Start Interactive Rendering"
+    bl_options = {'INTERNAL'}    
 
     def invoke(self, context, event=None):
         view = context.space_data
@@ -169,12 +174,13 @@ class PRMAN_OT_StartInteractive(bpy.types.Operator):
 
         return {'FINISHED'}
 
-class PRMAN_OT_StoptInteractive(bpy.types.Operator):
+class PRMAN_OT_StopInteractive(bpy.types.Operator):
 
     ''''''
     bl_idname = "renderman.stop_ipr"
     bl_label = "Stop Interactive Rendering"
     bl_description = "Stop Interactive Rendering"
+    bl_options = {'INTERNAL'}    
 
     def invoke(self, context, event=None):
         for window in bpy.context.window_manager.windows:
@@ -187,12 +193,35 @@ class PRMAN_OT_StoptInteractive(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class PRMAN_OT_StopRender(bpy.types.Operator):
+    ''''''
+    bl_idname = "renderman.stop_render"
+    bl_label = "Stop Render"
+    bl_description = "Stop the current render."
+    bl_options = {'INTERNAL'}
+
+    def invoke(self, context, event=None):
+        rm = context.scene.renderman      
+        if rm.is_rman_running:  
+            rr = RmanRender.get_rman_render()   
+            
+            # FIXME: For some reason if we call
+            # rr.stop_render() directly, we crash
+            # blender. For now, just set rman_is_live_rendering
+            # to False and wait
+            rr.rman_is_live_rendering = False  
+            while rr.rman_running:
+                time.sleep(0.001)
+
+        return {'FINISHED'}
+
 class PRMAN_OT_AttachStatsRender(bpy.types.Operator):
 
     ''''''
     bl_idname = "renderman.attach_stats_render"
     bl_label = "Attach to Render"
     bl_description = "Attach the stats listener to the renderer"
+    bl_options = {'INTERNAL'}
 
     def invoke(self, context, event=None):
 
@@ -206,6 +235,7 @@ class PRMAN_OT_UpdateStatsConfig(bpy.types.Operator):
     bl_idname = "renderman.update_stats_config"
     bl_label = "Update Config"
     bl_description = "Update the current stats configuration"
+    bl_options = {'INTERNAL'}
 
     def invoke(self, context, event=None):
 
@@ -238,7 +268,8 @@ classes = [
     PRMAN_OT_ExternalRendermanBake,
     PRMAN_OT_ExternalRender,
     PRMAN_OT_StartInteractive,
-    PRMAN_OT_StoptInteractive,
+    PRMAN_OT_StopInteractive,
+    PRMAN_OT_StopRender,
     PRMAN_OT_AttachStatsRender,
     PRMAN_OT_UpdateStatsConfig,
     PRMAN_OT_Renderman_Launch_Webbrowser

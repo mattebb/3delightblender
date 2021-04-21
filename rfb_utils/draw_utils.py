@@ -37,6 +37,7 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
     row_dict['default'] = col
     rmcfg = rman_config.__RMAN_CONFIG__.get(config_name, None)
     is_rman_interactive_running = context.scene.renderman.is_rman_interactive_running
+    is_rman_running = context.scene.renderman.is_rman_running
 
     curr_col = col
     for param_name, ndp in rmcfg.params.items():
@@ -143,7 +144,9 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
                 row.prop(parent, ndp.name, text=label)         
 
             if is_rman_interactive_running and not editable:
-                row.enabled = False      
+                row.enabled = False
+            elif is_rman_running:
+                row.enabled = False
             else:
                 row.enabled = is_enabled
 

@@ -89,6 +89,11 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     def is_ncr_getter(self):
         return envconfig().is_ncr_license
 
+    def get_is_rman_running(self):
+        from ...rman_render import RmanRender
+        rman_render = RmanRender.get_rman_render()
+        return rman_render.rman_running            
+
     def get_is_rman_interactive_running(self):
         from ...rman_render import RmanRender
         rman_render = RmanRender.get_rman_render()
@@ -106,6 +111,7 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
 
     current_platform: StringProperty(get=get_platform)
     is_ncr_license: BoolProperty(get=is_ncr_getter)
+    is_rman_running: BoolProperty(get=get_is_rman_running)
     is_rman_interactive_running: BoolProperty(get=get_is_rman_interactive_running)         
     is_rman_swatch_render_running: BoolProperty(get=get_is_rman_swatch_render_running)  
     is_rman_viewport_rendering:  BoolProperty(get=get_is_rman_viewport_rendering)  

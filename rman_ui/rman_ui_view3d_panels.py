@@ -29,7 +29,17 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         # Render
         is_rman_interactive_running = rm.is_rman_interactive_running
 
-        if not is_rman_interactive_running:
+        if is_rman_interactive_running:
+            row = layout.row(align=True)
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
+            row.operator('renderman.stop_ipr', text="Stop IPR",
+                            icon_value=rman_rerender_controls.icon_id)   
+        elif rm.is_rman_running:
+            row = layout.row(align=True)
+            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
+            row.operator('renderman.stop_render', text="Stop IPR",
+                            icon_value=rman_rerender_controls.icon_id)              
+        else:
 
             row = layout.row(align=True)
             rman_render_icon = rfb_icons.get_icon("rman_render")
@@ -104,13 +114,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
                 row = box.row(align=True)
                 col = row.column()
                 col.prop(rm, "queuing_system", text='')            
-
-        else:
-            row = layout.row(align=True)
-            rman_rerender_controls = rfb_icons.get_icon("rman_ipr_cancel")
-            row.operator('renderman.stop_ipr', text="Stop IPR",
-                            icon_value=rman_rerender_controls.icon_id)            
-
+   
         layout.separator()
 
         # Create Camera
