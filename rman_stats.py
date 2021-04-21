@@ -95,11 +95,11 @@ class RfBStatsManager:
 
     def update_session_config(self):
 
-        self.web_socket_enabled = prefs_utils.get_pref('rman_roz_webSocketEnabled')
+        self.web_socket_enabled = prefs_utils.get_pref('rman_roz_webSocketEnabled', default=True)
 
         config_dict = dict()
-        config_dict["logLevel"] = int(prefs_utils.get_pref('rman_roz_logLevel'))
-        config_dict["grpcEnabled"] = prefs_utils.get_pref('rman_roz_grpcEnabled')
+        config_dict["logLevel"] = int(prefs_utils.get_pref('rman_roz_logLevel', default='3'))
+        config_dict["grpcEnabled"] = prefs_utils.get_pref('rman_roz_grpcEnabled', default=True)
         config_dict["webSocketEnabled"] = self.web_socket_enabled
 
         config_str = json.dumps(config_dict)
@@ -205,7 +205,7 @@ class RfBStatsManager:
             if dat:
                 progressVal = int(dat['payload'])
                 self._progress = progressVal  
-                
+
         self.draw_stats()
 
     def set_export_stats(self, label, progress):
