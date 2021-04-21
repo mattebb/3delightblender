@@ -608,36 +608,35 @@ def register_rman_nodes():
                         if is_args:
                             args_filename = os.path.splitext(filename)[0]
                             if args_filename in [node_desc.name for node_desc_list in [nodes for cat,nodes in __RMAN_NODES__.items()] for node_desc in node_desc_list]:
-                                continue                              
-                        if hasattr(node_desc, 'classification'):
-                            try:
-                                tokens = node_desc.classification.split('/')                                
-                                category = tokens[-1].lower()
-                                category_nice_name = category.capitalize()
-                                # category seems empty. Put in misc
-                                if category == '':
-                                    category = 'misc'
-                                if node_desc.name not in ['PxrLayer', 'PxrLayerMixer']:
-                                    # append OSL to the category if these are osl shaders, except
-                                    # for PxrLayer and PxrLayerMixer
-                                    if is_oso:
-                                        pass
-                                        #category_nice_name = 'OSL %s' % category.capitalize()
-                                        #category = 'OSL_%s' % category                                        
-                                lst = __RMAN_NODE_CATEGORIES__['pattern'].get('patterns_%s' % category, None)
-                                if not lst:
-                                    lst = (('RenderMan %s Patterns' % category_nice_name, []), [])
-                                lst[0][1].append(node_item)
-                                lst[1].append(node_desc)
-                                __RMAN_NODE_CATEGORIES__['pattern']['patterns_%s' % category] = lst                                         
-                            except Exception as e:
-                                pass
+                                continue   
+                        classification = getattr(node_desc, 'classification', '')                                                       
+                        if classification != '':
+                            tokens = classification.split('/')                                
+                            category = tokens[-1].lower()
+                            category_nice_name = category.capitalize()
+                            # category seems empty. Put in misc
+                            if category == '':
+                                category = 'misc'
+                            if node_desc.name not in ['PxrLayer', 'PxrLayerMixer']:
+                                # append OSL to the category if these are osl shaders, except
+                                # for PxrLayer and PxrLayerMixer
+                                if is_oso:
+                                    pass
+                                    #category_nice_name = 'OSL %s' % category.capitalize()
+                                    #category = 'OSL_%s' % category                                        
+                            lst = __RMAN_NODE_CATEGORIES__['pattern'].get('patterns_%s' % category, None)
+                            if not lst:
+                                lst = (('RenderMan %s Patterns' % category_nice_name, []), [])
+                            lst[0][1].append(node_item)
+                            lst[1].append(node_desc)
+                            __RMAN_NODE_CATEGORIES__['pattern']['patterns_%s' % category] = lst                                         
+
                         else:
                             __RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'][0][1].append(node_item)
                             __RMAN_NODE_CATEGORIES__['pattern']['patterns_misc'][1].append(node_desc)
                     elif node_desc.node_type == 'bxdf':
-                        if hasattr(node_desc, 'classification'):
-                            classification = node_desc.classification
+                        classification = getattr(node_desc, 'classification', '')
+                        if classification != '':
                             tokens = classification.split(':')
                             category = ''
                             
