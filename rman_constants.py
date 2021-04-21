@@ -33,6 +33,7 @@ RFB_ARRAYS_MAX_LEN = 50
 RFB_MAX_USER_TOKENS = 10
 RFB_VIEWPORT_MAX_BUCKETS = 10
 RFB_PREFS_NAME = "RenderManForBlender"
+RMAN_RENDERMAN_BLUE = (0.0, 0.498, 1.0, 1.0)
 
 RFB_FLOAT3 = ['color', 'point', 'vector', 'normal']
 RFB_FLOATX = ['color', 'point', 'vector', 'normal', 'matrix']

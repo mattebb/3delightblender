@@ -78,6 +78,7 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     # txmanager
     txmanagerData: StringProperty(name="txmanagerData", default="")
 
+    # Renderer Status properties
     def get_platform(self):
         if sys.platform == ("win32"):
             return 'windows'
@@ -115,6 +116,14 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     is_rman_interactive_running: BoolProperty(get=get_is_rman_interactive_running)         
     is_rman_swatch_render_running: BoolProperty(get=get_is_rman_swatch_render_running)  
     is_rman_viewport_rendering:  BoolProperty(get=get_is_rman_viewport_rendering)  
+
+    # Roz Stats Properties
+    def get_roz_progress(self):
+        from ...rman_render import RmanRender
+        rman_render = RmanRender.get_rman_render()
+        return rman_render.stats_mgr._progress
+
+    roz_stats_progress: IntProperty(name='Progress', subtype='PERCENTAGE', min=0, max=100, get=get_roz_progress)
 
 classes = [         
     RendermanSceneSettings

@@ -261,6 +261,18 @@ class RendermanPreferences(AddonPreferences):
         min=0.001, soft_max=0.5,
     )          
 
+    rman_viewport_draw_bucket: BoolProperty(
+        name="Draw Bucket Marker",    
+        description="Unchechk this if you do not want the bucket markers in the viewport",
+        default=True
+    )
+
+    rman_viewport_draw_progress: BoolProperty(
+        name="Draw Progress Bar",    
+        description="Unchechk this if you do not want the progress bar in the viewport",
+        default=True
+    )    
+
     rman_viewport_crop_color: FloatVectorProperty(
         name="CropWindow Color",
         description="Color of the cropwindow border in the viewport when in IPR.",
@@ -273,7 +285,14 @@ class RendermanPreferences(AddonPreferences):
         description="Color of the bucket markers in the viewport when in IPR.",
         default=(0.0, 0.498, 1.0, 1.0), 
         size=4,
-        subtype="COLOR")     
+        subtype="COLOR")  
+
+    rman_viewport_progress_color: FloatVectorProperty(
+        name="Progress Bar Color",
+        description="Color of the progress bar in the viewport when in IPR.",
+        default=(0.0, 0.498, 1.0, 1.0), 
+        size=4,
+        subtype="COLOR")                
 
     rman_editor: StringProperty(
         name="Editor",
@@ -330,6 +349,9 @@ class RendermanPreferences(AddonPreferences):
     rpbSelectedCategory: StringProperty(default='')
     rpbSelectedPreset: StringProperty(default='')
 
+    def update_stats_config(self, context):
+        bpy.ops.renderman.update_stats_config('INVOKE_DEFAULT')
+
     # For roz stats
     rman_roz_logLevel: EnumProperty(
                         name="Log Level",
@@ -340,10 +362,11 @@ class RendermanPreferences(AddonPreferences):
                                 ('3', 'Warning', ''),
                                 ('4', 'Info', ''),
                                 ('5', 'Debug', ''),
-                            ]
+                            ],
+                        update=update_stats_config
                         )
-    rman_roz_grpcEnabled: BoolProperty(name="Send Stats to 'it' HUD", default=True)
-    rman_roz_webSocketEnabled: BoolProperty(name="Enable Websocket Server", default=True)
+    rman_roz_grpcEnabled: BoolProperty(name="Send Stats to 'it' HUD", default=True, update=update_stats_config)
+    rman_roz_webSocketEnabled: BoolProperty(name="Enable Websocket Server", default=True, update=update_stats_config)
 
     def draw_xpu_devices(self, context, layout):
         if self.rman_xpu_device == 'CPU':
@@ -415,7 +438,7 @@ class RendermanPreferences(AddonPreferences):
             self.draw_xpu_devices(context, box)
 
         row = layout.row()
-        row.label(text='Live Stats', icon_value=rman_r_icon.icon_id)
+        row.label(text='Live Statistics', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
         col.prop(self, 'rman_roz_logLevel')  
@@ -440,7 +463,12 @@ class RendermanPreferences(AddonPreferences):
         row = layout.row()
         col = row.column()
         col.prop(self, 'rman_viewport_crop_color')
-        col.prop(self, 'rman_viewport_bucket_color')        
+        col.prop(self, 'rman_viewport_draw_bucket')
+        if self.rman_viewport_draw_bucket:
+            col.prop(self, 'rman_viewport_bucket_color')   
+        col.prop(self, 'rman_viewport_draw_progress')
+        if self.rman_viewport_draw_progress:
+            col.prop(self, 'rman_viewport_progress_color')                
         col.prop(self, 'draw_ipr_text')
         col.prop(self, 'draw_panel_icon')
         col.prop(self, 'rman_editor')

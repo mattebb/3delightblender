@@ -3,7 +3,7 @@ import os
 import rman
 import bpy
 import sys
-from .rman_constants import RFB_VIEWPORT_MAX_BUCKETS
+from .rman_constants import RFB_VIEWPORT_MAX_BUCKETS, RMAN_RENDERMAN_BLUE
 from .rman_scene import RmanScene
 from .rman_scene_sync import RmanSceneSync
 from. import rman_spool
@@ -174,17 +174,6 @@ def call_stats_update_payloads(db):
         db.stats_mgr.update_payloads()
         __update_areas__()
         time.sleep(0.01)
-            
-def viewport_progress_cb(e, d, db):
-    if float(d) > 99.0:
-        # clear bucket markers
-        db.draw_viewport_buckets = False
-        db.viewport_buckets.clear()
-    else:
-        if float(d) < 1.0:
-            # clear bucket markers if we are back to 0 progress
-            db.viewport_buckets.clear()
-        db.draw_viewport_buckets = True
 
 def progress_cb(e, d, db):
     db.bl_engine.update_progress(float(d) / 100.0)
@@ -257,7 +246,7 @@ class RmanRender(object):
         self.viewport_res_x = -1
         self.viewport_res_y = -1
         self.viewport_buckets = list()
-        self.draw_viewport_buckets = False
+        self._draw_viewport_buckets = False
         self.stats_mgr = RfBStatsManager(self)
 
         self._start_prman_begin()
@@ -355,7 +344,10 @@ class RmanRender(object):
             args.append('2')
             args.append(ptc_file)
             args.append(bkm_file)
-            subprocess.run(args)      
+            subprocess.run(args)   
+
+    def do_draw_buckets(self):
+        return self.do_draw_buckets and get_pref('rman_viewport_draw_bucket', default=True)
 
     def start_stats_thread(self): 
         # start a stats thread so we can periodically call update_payloads
@@ -723,11 +715,9 @@ class RmanRender(object):
                 self.rman_is_viewport_rendering = True    
                 rman.Dspy.DisableDspyServer()             
                 self.rman_callbacks.clear()
-                ec = rman.EventCallbacks.Get()
-                ec.RegisterCallback("Progress", viewport_progress_cb, self)
-                self.rman_callbacks["Progress"] = viewport_progress_cb       
+                ec = rman.EventCallbacks.Get()      
                 self.viewport_buckets.clear()
-                self.draw_viewport_buckets = True                           
+                self._draw_viewport_buckets = True                           
             else:
                 rman.Dspy.EnableDspyServer()
         except:
@@ -910,7 +900,7 @@ class RmanRender(object):
         self.stats_mgr.reset()
         self.rman_scene.reset()
         self.viewport_buckets.clear()
-        self.draw_viewport_buckets = False                
+        self._draw_viewport_buckets = False                
         __update_areas__()
         rfb_log().debug("RenderMan has Stopped.")
 
@@ -941,7 +931,7 @@ class RmanRender(object):
             arYMax = ctypes.c_int(0)            
             dspy_plugin.GetActiveRegion(ctypes.c_size_t(image_num), ctypes.byref(arXMin), ctypes.byref(arXMax), ctypes.byref(arYMin), ctypes.byref(arYMax))
             # draw bucket indicators
-            if self.draw_viewport_buckets and ( (arXMin.value + arXMax.value + arYMin.value + arYMax.value) > 0):
+            if self.do_draw_buckets() and ( (arXMin.value + arXMax.value + arYMin.value + arYMax.value) > 0):
                 yMin = height-1 - arYMin.value
                 yMax = height-1 - arYMax.value
                 xMin = arXMin.value
@@ -971,7 +961,7 @@ class RmanRender(object):
                 if len(self.viewport_buckets) > RFB_VIEWPORT_MAX_BUCKETS:
                     self.viewport_buckets.pop()
                 self.viewport_buckets.insert(0,[vertices, indices])
-                bucket_color =  get_pref('rman_viewport_bucket_color', default=(0.0, 0.498, 1.0, 1.0))
+                bucket_color = get_pref('rman_viewport_bucket_color', default=RMAN_RENDERMAN_BLUE)
 
                 # draw from newest to oldest
                 for v, i in (self.viewport_buckets):      
@@ -979,7 +969,18 @@ class RmanRender(object):
                     shader.uniform_float("color", bucket_color)                                  
                     batch = batch_for_shader(shader, 'LINES', {"pos": v}, indices=i)
                     shader.bind()
-                    batch.draw(shader)              
+                    batch.draw(shader)   
+
+            # draw progress bar at the bottom of the viewport
+            if get_pref('rman_viewport_draw_progress') and self.stats_mgr.is_connected() and self.stats_mgr._progress < 100:
+                progress = self.stats_mgr._progress / 100.0 
+                progress_color = get_pref('rman_viewport_progress_color', default=RMAN_RENDERMAN_BLUE) 
+                shader = gpu.shader.from_builtin('2D_UNIFORM_COLOR')
+                shader.uniform_float("color", progress_color)                       
+                vtx = [(0, 1), (width * progress, 1)]
+                batch = batch_for_shader(shader, 'LINES', {"pos": vtx})
+                shader.bind()
+                batch.draw(shader)
 
     def _get_buffer(self, width, height, image_num=0, as_flat=True):
         dspy_plugin = self.get_blender_dspy_plugin()

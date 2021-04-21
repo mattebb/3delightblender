@@ -14,6 +14,14 @@ from .rfb_logger import rfb_log
 __oneK2__ = 1024.0*1024.0
 __RFB_STATS_MANAGER__ = None
 
+__LIVE_METRICS__ = [
+    ["/system.processMemory", "Memory"],
+    ["/rman/raytracing.numRays", "Num Rays"],
+    #['/rman.iterationsCompleted', 'Iterations'],
+    ['/rman@iterationComplete', 'Iterations'],
+    ["/rman/renderer@progress", "Progress"],
+]
+
 class RfBStatsManager:
 
     def __init__(self, rman_render):
@@ -26,7 +34,7 @@ class RfBStatsManager:
         self._progress = 0
         self._prevTotalRaysValid = True
 
-        for name,label in self.mgr.liveMetrics:
+        for name,label in __LIVE_METRICS__:
             # we handle process a little differently
             if name == "/rman/renderer@progress":
                 continue
@@ -50,6 +58,7 @@ class RfBStatsManager:
 
         self.rman_render = rman_render
         self.init_stats_session()
+        self.attach()
         __RFB_STATS_MANAGER__ = self
 
     @classmethod
@@ -128,12 +137,16 @@ class RfBStatsManager:
 
         connected = self.mgr.connectToServer(host, port)
         if connected:
-            for name,label in self.mgr.liveMetrics:
+            for name,label in __LIVE_METRICS__:
                 # Declare interest
                 self.mgr.enableMetric(name)
 
     def is_connected(self):
         return (self.web_socket_enabled and self.mgr and self.mgr.clientConnected())
+
+    def disconnect(self):
+        if self.is_connected():
+            self.mgr.wsc.DisconnectFromServer()
 
     def check_payload(self, jsonData, name):
         try:
@@ -142,7 +155,7 @@ class RfBStatsManager:
         except KeyError:
             # could not find the metric name in the JSON
             # try re-registering it again
-            #self.mgr.enableMetric(name)
+            self.mgr.enableMetric(name)
             return None
 
     def update_payloads(self):
@@ -170,7 +183,7 @@ class RfBStatsManager:
                 if not dat:
                     continue
 
-                if (name == "/system.processMemory"):
+                if name == "/system.processMemory":
                     # Payload has 3 floats: max, resident, XXX
                     # Convert resident mem to MB : payload[1] / 1024*1024;
                     memPayload = dat["payload"].split(',')
@@ -179,7 +192,7 @@ class RfBStatsManager:
                     
                     self.render_live_stats[label] = "{:.2f} MB".format(maxresMB)
                     
-                elif (name == "/rman/raytracing.numRays"):
+                elif name == "/rman/raytracing.numRays":
                     currentTotalRays = int(dat['payload'])
                     if currentTotalRays <= self._prevTotalRays:
                         self._prevTotalRaysValid = False
@@ -200,6 +213,11 @@ class RfBStatsManager:
                         
                     self._prevTotalRaysValid = True
                     self._prevTotalRays = currentTotalRays
+                elif name == "/rman.iterationsCompleted":
+                    self.render_live_stats[label] = '%s / %s ' % (str(dat['payload']), self._maxSamples)                    
+                elif name == "/rman@iterationComplete":
+                    itr = eval(dat['payload'])[0]
+                    self.render_live_stats[label] = '%s / %s ' % (str(itr), self._maxSamples)
 
                 else:
                     self.render_live_stats[label] = str(dat['payload'])
@@ -238,28 +256,40 @@ class RfBStatsManager:
         if not self.rman_render.rman_running:
             return
 
+        _stats_to_draw = [
+            "Memory",
+            "Num Rays",
+            "Iterations"
+        ]
+
         if self.rman_render.rman_interactive_running:
             message = '\n%s, %d/%d, %d, %d%%' % (self._integrator, self._minSamples, self._maxSamples, self._decidither, self._res_mult)
             if self.is_connected():
-                for label, data in self.render_live_stats.items():
+                #for label, data in self.render_live_stats.items():
+                #    message = message + '\n%s: %s' % (label, data)
+                for label in _stats_to_draw:
+                    data = self.render_live_stats[label]
                     message = message + '\n%s: %s' % (label, data)
-                message = message + '\nProgress: %d%%' % self._progress                    
             try:
                 self.rman_render.bl_engine.update_stats('RenderMan (Stats)', message)
-                self.rman_render.bl_engine.update_progress(self._progress)
             except ReferenceError as e:
                 rfb_log().debug("Error calling update stats (%s). Aborting..." % str(e))
                 return
         else:
             message = ''
             if self.is_connected():
-                for label, data in self.render_live_stats.items():
-                    message = message + '%s: %s ' % (label, data)  
+                #for label, data in self.render_live_stats.items():
+                #    message = message + '%s: %s ' % (label, data)  
+                for label in _stats_to_draw:
+                    data = self.render_live_stats[label]
+                    message = message + '\n%s: %s' % (label, data)                
             else:
                 message = '(no stats connection) '          
 
             try:
-                self.rman_render.bl_engine.update_stats(message, "%d%%" % self._progress)    
+                self.rman_render.bl_engine.update_stats(message, "%d%%" % self._progress)  
+                progress = float(self._progress) / 100.0  
+                self.rman_render.bl_engine.update_progress(progress)
             except ReferenceError as e:
                 rfb_log().debug("Error calling update stats (%s). Aborting..." % str(e))
                 return                

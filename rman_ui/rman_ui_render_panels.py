@@ -170,7 +170,7 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_advanced_settings', context, layout, rm)  
 
 class RENDER_PT_renderman_stats_settings(PRManButtonsPanel, Panel):
-    bl_label = "Live Stats"
+    bl_label = "Live Statistics"
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
@@ -183,32 +183,19 @@ class RENDER_PT_renderman_stats_settings(PRManButtonsPanel, Panel):
         layout.separator()
         if rr.stats_mgr.web_socket_enabled:
             col = layout.column()
-            col.enabled = not rr.stats_mgr.is_connected()
-            col.operator('renderman.attach_stats_render')
+            if rr.stats_mgr.is_connected():
+                col.operator('renderman.disconnect_stats_render')
+            else:
+                col.operator('renderman.attach_stats_render')
             box = layout.box()
             if rr.stats_mgr.is_connected():
                 for label, data in rr.stats_mgr.render_live_stats.items():
                     box.label(text='%s: %s' % (label, data))
-                if rr.rman_running:
-                    box.label(text='Progress: %d%%' % rr.stats_mgr._progress)    
+                if rr.rman_running:   
+                    box.prop(rm, 'roz_stats_progress', slider=True)
             else:
-                box.label(text='(not connected)')             
-
-        col = layout.column()                    
-        col.label(text='Configuration')
-        col.separator()
-        col = layout.column()
-        col.use_property_split = True
-        col.use_property_decorate = False
-        prefs = prefs_utils.get_addon_prefs()
-        if hasattr(prefs, 'rman_roz_logLevel' ):
-            col.prop(prefs, 'rman_roz_logLevel')
-            col.prop(prefs, 'rman_roz_grpcEnabled')
-            col.prop(prefs, 'rman_roz_webSocketEnabled')
-        else:
-            col.operator('bpy.ops.screen.userpref_show()', text='Open Preferences')
-        col.operator('renderman.update_stats_config')            
-
+                box.label(text='(not connected)')
+                
 class RENDER_PT_renderman_custom_options(PRManButtonsPanel, Panel):
     bl_label = "Custom Options"
     bl_options = {'DEFAULT_CLOSED'}

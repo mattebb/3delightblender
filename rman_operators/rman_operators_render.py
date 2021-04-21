@@ -191,6 +191,9 @@ class PRMAN_OT_StopInteractive(bpy.types.Operator):
                             if space.shading.type == 'RENDERED':    
                                 space.shading.type = 'SOLID'
 
+        rr = RmanRender.get_rman_render()
+        rr.rman_running = False
+
         return {'FINISHED'}
 
 class PRMAN_OT_StopRender(bpy.types.Operator):
@@ -227,7 +230,21 @@ class PRMAN_OT_AttachStatsRender(bpy.types.Operator):
 
         rr = RmanRender.get_rman_render()
         rr.stats_mgr.attach()
-        return {'FINISHED'}        
+        return {'FINISHED'}      
+
+class PRMAN_OT_DisconnectStatsRender(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "renderman.disconnect_stats_render"
+    bl_label = "Disconnect"
+    bl_description = "Disconnect the stats listener from the renderer"
+    bl_options = {'INTERNAL'}
+
+    def invoke(self, context, event=None):
+
+        rr = RmanRender.get_rman_render()
+        rr.stats_mgr.disconnect()
+        return {'FINISHED'}                 
 
 class PRMAN_OT_UpdateStatsConfig(bpy.types.Operator):
 
@@ -271,6 +288,7 @@ classes = [
     PRMAN_OT_StopInteractive,
     PRMAN_OT_StopRender,
     PRMAN_OT_AttachStatsRender,
+    PRMAN_OT_DisconnectStatsRender,
     PRMAN_OT_UpdateStatsConfig,
     PRMAN_OT_Renderman_Launch_Webbrowser
 ]

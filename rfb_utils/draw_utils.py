@@ -143,8 +143,8 @@ def _draw_ui_from_rman_config(config_name, panel, context, layout, parent):
                     row.label(text='', icon='BLANK1')
                 row.prop(parent, ndp.name, text=label)         
 
-            if is_rman_interactive_running and not editable:
-                row.enabled = False
+            if is_rman_interactive_running:
+                row.enabled = editable
             elif is_rman_running:
                 row.enabled = False
             else:
