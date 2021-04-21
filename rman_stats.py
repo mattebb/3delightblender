@@ -201,6 +201,9 @@ class RfBStatsManager:
                     self._prevTotalRaysValid = True
                     self._prevTotalRays = currentTotalRays
 
+                else:
+                    self.render_live_stats[label] = str(dat['payload'])
+
             dat = self.check_payload(jsonData, "/rman/renderer@progress")
             if dat:
                 progressVal = int(dat['payload'])

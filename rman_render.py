@@ -288,6 +288,9 @@ class RmanRender(object):
         argv.append("-dspyserver")
         argv.append("%s" % envconfig().rman_it_path)
 
+        argv.append("-statssession")
+        argv.append(self.stats_mgr.rman_stats_session_name)
+
         woffs = ',' . join(rfb_config['woffs'])
         if woffs:
             argv.append('-woff')
@@ -300,7 +303,6 @@ class RmanRender(object):
 
     def _append_render_cmd(self, render_cmd):
 
-        render_cmd = render_cmd + ' -statssession %s' % self.stats_mgr.rman_stats_session_name
         return render_cmd
 
     def _dump_rib_(self):
