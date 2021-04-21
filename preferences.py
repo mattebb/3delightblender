@@ -330,6 +330,21 @@ class RendermanPreferences(AddonPreferences):
     rpbSelectedCategory: StringProperty(default='')
     rpbSelectedPreset: StringProperty(default='')
 
+    # For roz stats
+    rman_roz_logLevel: EnumProperty(
+                        name="Log Level",
+                        default='3',        
+                        items=[('0', 'None', ''),
+                                ('1', 'Severe', ''),
+                                ('2', 'Error', ''),
+                                ('3', 'Warning', ''),
+                                ('4', 'Info', ''),
+                                ('5', 'Debug', ''),
+                            ]
+                        )
+    rman_roz_grpcEnabled: BoolProperty(name="Send Stats to 'it' HUD", default=True)
+    rman_roz_webSocketEnabled: BoolProperty(name="Enable Websocket Server", default=True)
+
     def draw_xpu_devices(self, context, layout):
         if self.rman_xpu_device == 'CPU':
             device = self.rman_xpu_cpu_devices[0]

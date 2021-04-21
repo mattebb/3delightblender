@@ -1,4 +1,5 @@
 from ..rfb_utils import filepath_utils
+from ..rman_render import RmanRender
 import bpy
 import os
 import time
@@ -186,6 +187,33 @@ class PRMAN_OT_StoptInteractive(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class PRMAN_OT_AttachStatsRender(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "renderman.attach_stats_render"
+    bl_label = "Attach to Render"
+    bl_description = "Attach the stats listener to the renderer"
+
+    def invoke(self, context, event=None):
+
+        rr = RmanRender.get_rman_render()
+        rr.stats_mgr.attach()
+        return {'FINISHED'}        
+
+class PRMAN_OT_UpdateStatsConfig(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "renderman.update_stats_config"
+    bl_label = "Update Config"
+    bl_description = "Update the current stats configuration"
+
+    def invoke(self, context, event=None):
+
+        rr = RmanRender.get_rman_render()
+        bpy.ops.wm.save_userpref()         
+        rr.stats_mgr.update_session_config()
+        return {'FINISHED'}            
+
 class PRMAN_OT_Renderman_Launch_Webbrowser(bpy.types.Operator):
 
     ''''''
@@ -211,6 +239,8 @@ classes = [
     PRMAN_OT_ExternalRender,
     PRMAN_OT_StartInteractive,
     PRMAN_OT_StoptInteractive,
+    PRMAN_OT_AttachStatsRender,
+    PRMAN_OT_UpdateStatsConfig,
     PRMAN_OT_Renderman_Launch_Webbrowser
 ]
 

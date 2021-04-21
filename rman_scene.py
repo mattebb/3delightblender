@@ -158,15 +158,6 @@ class RmanScene(object):
         if self.bl_view_layer.renderman.use_renderman:
             self.rm_rl = self.bl_view_layer.renderman  
 
-    def _update_progress(self, msg, f):
-        if self.rman_render.bl_engine:
-            try:
-                progress = int(f*100)
-                self.rman_render.bl_engine.update_stats(msg, "%d%%" % progress)
-                #self.rman_render.bl_engine.update_progress(f)
-            except:
-                rfb_log().debug("Cannot update progress")
-
     def reset(self):
         # clear out dictionaries etc.
         self.rman_materials.clear()
@@ -322,14 +313,12 @@ class RmanScene(object):
             rfb_log().debug("Calling export_instances()")
             self.export_instances()
 
-        self._update_progress("Finished Export", 1.0)            
+        self.rman_render.stats_mgr.set_export_stats("Finished Export", 1.0)
 
         if self.is_interactive:
             self.num_object_instances = len(self.depsgraph.object_instances)
             self.check_solo_light()
-
-            if self.is_viewport_render:
-                self.export_viewport_stats()
+            self.export_viewport_stats()
 
     def export_bake_render_scene(self):
         self.reset()
@@ -524,7 +513,7 @@ class RmanScene(object):
                 ob = obj.evaluated_get(self.depsgraph)           
                 self.export_data_block(ob) 
             rfb_log().debug("   Exported %d/%d data blocks... (%s)" % (i, total, obj.name))
-            self._update_progress("Exporting data blocks",i/total)
+            self.rman_render.stats_mgr.set_export_stats("Exporting data blocks",i/total)
 
     def export_data_block(self, db_ob):
 
@@ -798,7 +787,8 @@ class RmanScene(object):
                 continue
 
             self._export_instance(ob_inst)  
-            self._update_progress("Exporting instances", i/total)
+            self.rman_render.stats_mgr.set_export_stats("Exporting instances", i/total)
+            
             rfb_log().debug("   Exported %d/%d instances..." % (i, total))
 
     def attach_material(self, ob, rman_sg_node):
@@ -886,7 +876,7 @@ class RmanScene(object):
                 if first_sample:
                     # for the first motion sample use _export_instance()
                     self._export_instance(ob_inst, seg=time_samp)  
-                    self._update_progress("Exporting instances (%f)" % seg, i/total)
+                    self.rman_render.stats_mgr.set_export_stats("Exporting instances (%f)" % seg, i/total)
                     continue  
 
                 rman_group_translator = self.rman_translators['GROUP']
@@ -924,7 +914,7 @@ class RmanScene(object):
                         rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps ) # should have been set in _export_instances()                       
                         rman_group_translator.update_transform_sample( ob_inst, rman_sg_group, idx, time_samp)
 
-                self._update_progress("Exporting instances (%f)" % seg, i/total)
+                self.rman_render.stats_mgr.set_export_stats("Exporting instances (%f)" % seg, i/total)
 
             for ob_original,rman_sg_node in self.rman_objects.items():
                 ob = ob_original.evaluated_get(self.depsgraph)
@@ -1522,8 +1512,8 @@ class RmanScene(object):
         self.sg_scene.SetDisplayChannel(displaychannels)  
 
     def export_viewport_stats(self, integrator=''):
-        if not self.is_viewport_render:
-            return
+
+        stats_mgr = self.rman_render.stats_mgr
         rm = self.bl_scene.renderman
         if integrator == '':
             integrator = 'PxrPathTracer'
@@ -1532,6 +1522,8 @@ class RmanScene(object):
             bl_integrator_node = shadergraph_utils.find_integrator_node(world)
             if bl_integrator_node:
                 integrator = bl_integrator_node.bl_label
-   
-        self.rman_render.bl_engine.update_stats('RenderMan (Stats)', 
-                                                '\nIntegrator: %s\nMin Samples: %d\nMax Samples: %d\nInteractive Refinement: %d\nResolution Multiplier: %d%%' % (integrator, rm.ipr_hider_minSamples, rm.ipr_hider_maxSamples, rm.hider_decidither, int(self.viewport_render_res_mult*100)))
+        stats_mgr._integrator = integrator
+        stats_mgr._minSamples = rm.ipr_hider_minSamples
+        stats_mgr._maxSamples = rm.ipr_hider_maxSamples
+        stats_mgr._decidither = rm.hider_decidither
+        stats_mgr._res_mult = int(self.viewport_render_res_mult*100)

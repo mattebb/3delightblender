@@ -3,6 +3,8 @@ from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel
 from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
 from ..rman_constants import NODE_LAYOUT_SPLIT
+from ..rman_render import RmanRender
+from ..rfb_utils import prefs_utils
 from .. import rfb_icons
 from bpy.types import Panel
 import bpy
@@ -161,7 +163,44 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         scene = context.scene
         rm = scene.renderman
 
-        _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_advanced_settings', context, layout, rm)      
+        _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_advanced_settings', context, layout, rm)  
+
+class RENDER_PT_renderman_stats_settings(PRManButtonsPanel, Panel):
+    bl_label = "Live Stats"
+    bl_options = {'DEFAULT_CLOSED'}
+
+    def draw(self, context):
+
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman         
+        rr = RmanRender.get_rman_render()
+        layout.label(text='Diagnostics')
+        layout.separator()
+        if rr.stats_mgr.web_socket_enabled:
+            col = layout.column()
+            col.enabled = not rr.stats_mgr.is_connected()
+            col.operator('renderman.attach_stats_render')
+            box = layout.box()
+            if rr.stats_mgr.is_connected():
+                for label, data in rr.stats_mgr.render_live_stats.items():
+                    box.label(text='%s: %s' % (label, data))
+                if rr.rman_running:
+                    box.label(text='Progress: %d%%' % rr.stats_mgr._progress)    
+            else:
+                box.label(text='(not connected)')             
+
+        col = layout.column()                    
+        col.label(text='Configuration')
+        col.separator()
+        col = layout.column()
+        col.use_property_split = True
+        col.use_property_decorate = False
+        prefs = prefs_utils.get_addon_prefs()
+        col.prop(prefs, 'rman_roz_logLevel')
+        col.prop(prefs, 'rman_roz_grpcEnabled')
+        col.prop(prefs, 'rman_roz_webSocketEnabled')
+        col.operator('renderman.update_stats_config')
 
 class RENDER_PT_renderman_custom_options(PRManButtonsPanel, Panel):
     bl_label = "Custom Options"
@@ -179,12 +218,13 @@ class RENDER_PT_renderman_custom_options(PRManButtonsPanel, Panel):
 
 classes = [
     RENDER_PT_renderman_render,
+    RENDER_PT_renderman_stats_settings,     
     RENDER_PT_renderman_spooling,
     RENDER_PT_renderman_spooling_export_options,    
     RENDER_PT_renderman_baking,
     RENDER_PT_renderman_sampling,
     RENDER_PT_renderman_motion_blur,    
-    RENDER_PT_renderman_advanced_settings,
+    RENDER_PT_renderman_advanced_settings,   
     RENDER_PT_renderman_custom_options
 ]
 
