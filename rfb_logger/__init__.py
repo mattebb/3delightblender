@@ -53,7 +53,12 @@ def init_log_level():
 
     if 'RFB_LOG_LEVEL' in os.environ:
         __RFB_LOG_LEVEL = os.environ['RFB_LOG_LEVEL']
-        set_logger_level(__LOG_LEVELS__[__RFB_LOG_LEVEL])
+        level = WARNING
+        if __RFB_LOG_LEVEL not in __LOG_LEVELS__:
+            __log__.error("Invalid Log Level: %s" % str(__RFB_LOG_LEVEL))
+        else:
+            level = __LOG_LEVELS__.get(__RFB_LOG_LEVEL, WARNING)
+        set_logger_level(level)
 
     __log__.debug('logger initialized')
     __log__.debug('   |_ logger: %d', logger_level())
