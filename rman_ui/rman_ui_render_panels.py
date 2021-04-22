@@ -181,13 +181,8 @@ class RENDER_PT_renderman_stats_settings(PRManButtonsPanel, Panel):
         rr = RmanRender.get_rman_render()
         layout.label(text='Diagnostics')
         layout.separator()
+        box = layout.box()
         if rr.stats_mgr.web_socket_enabled:
-            col = layout.column()
-            if rr.stats_mgr.is_connected():
-                col.operator('renderman.disconnect_stats_render')
-            else:
-                col.operator('renderman.attach_stats_render')
-            box = layout.box()
             if rr.stats_mgr.is_connected():
                 for label, data in rr.stats_mgr.render_live_stats.items():
                     box.label(text='%s: %s' % (label, data))
@@ -195,6 +190,8 @@ class RENDER_PT_renderman_stats_settings(PRManButtonsPanel, Panel):
                     box.prop(rm, 'roz_stats_progress', slider=True)
             else:
                 box.label(text='(not connected)')
+        else:
+            box.label(text='(web socket server disabled)')
                 
 class RENDER_PT_renderman_custom_options(PRManButtonsPanel, Panel):
     bl_label = "Custom Options"

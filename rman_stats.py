@@ -25,6 +25,8 @@ __LIVE_METRICS__ = [
 class RfBStatsManager:
 
     def __init__(self, rman_render):
+        global __RFB_STATS_MANAGER__
+        global __LIVE_METRICS__
 
         self.mgr = None
         self.create_stats_manager()        

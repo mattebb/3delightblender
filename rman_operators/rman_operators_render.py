@@ -222,7 +222,7 @@ class PRMAN_OT_AttachStatsRender(bpy.types.Operator):
 
     ''''''
     bl_idname = "renderman.attach_stats_render"
-    bl_label = "Attach to Render"
+    bl_label = "Attach Stats Listener"
     bl_description = "Attach the stats listener to the renderer"
     bl_options = {'INTERNAL'}
 
@@ -236,8 +236,8 @@ class PRMAN_OT_DisconnectStatsRender(bpy.types.Operator):
 
     ''''''
     bl_idname = "renderman.disconnect_stats_render"
-    bl_label = "Disconnect"
-    bl_description = "Disconnect the stats listener from the renderer"
+    bl_label = "Disconnect Stats Listener"
+    bl_description = "Disconnect the stats listener from the renderer. This shouldn't need to be done in most circumstances. Disconnecting can cause error-proned behavior."
     bl_options = {'INTERNAL'}
 
     def invoke(self, context, event=None):

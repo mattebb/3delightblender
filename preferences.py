@@ -363,10 +363,15 @@ class RendermanPreferences(AddonPreferences):
                                 ('4', 'Info', ''),
                                 ('5', 'Debug', ''),
                             ],
+                        description="Change the logging level for the live statistics system.",
                         update=update_stats_config
                         )
-    rman_roz_grpcEnabled: BoolProperty(name="Send Stats to 'it' HUD", default=True, update=update_stats_config)
-    rman_roz_webSocketEnabled: BoolProperty(name="Enable Websocket Server", default=True, update=update_stats_config)
+    rman_roz_grpcEnabled: BoolProperty(name="Send Stats to 'it' HUD", default=True, 
+                                        description="Turn this off if you don't want stats to be sent to the 'it' HUD.",
+                                        update=update_stats_config)
+    rman_roz_webSocketEnabled: BoolProperty(name="Enable Websocket Server", default=True, 
+                                        description="Turning this off will disable the live statistics system in RfB. In most circumstances, this should not be off. Turning it off could cause error-proned behavior.",
+                                        update=update_stats_config)
 
     def draw_xpu_devices(self, context, layout):
         if self.rman_xpu_device == 'CPU':
@@ -437,14 +442,6 @@ class RendermanPreferences(AddonPreferences):
             box = col.box()  
             self.draw_xpu_devices(context, box)
 
-        row = layout.row()
-        row.label(text='Live Statistics', icon_value=rman_r_icon.icon_id)
-        row = layout.row()
-        col = row.column()
-        col.prop(self, 'rman_roz_logLevel')  
-        col.prop(self, 'rman_roz_grpcEnabled')
-        col.prop(self, 'rman_roz_webSocketEnabled')               
-
         # Workspace
         row = layout.row()
         row.label(text='Workspace', icon_value=rman_r_icon.icon_id)
@@ -481,21 +478,45 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'rman_logging_level')
         col.prop(self, 'rman_logging_file')
 
-        row = layout.row()   
-        row.label(text='Advanced', icon_value=rman_r_icon.icon_id)
-        row = layout.row()
-
-        ui_open = getattr(self, 'rman_show_advanced_params')
-        icon = 'DISCLOSURE_TRI_DOWN' if ui_open \
-            else 'DISCLOSURE_TRI_RIGHT'
-
-        row.prop(self, 'rman_show_advanced_params', icon=icon, text='',
-            icon_only=True, emboss=False)              
+        # Advanced
+        row = layout.row()      
+        row.use_property_split = False
+        row.use_property_decorate = True          
+        row.prop(self, 'rman_show_advanced_params')              
 
         row = layout.row()
         col = row.column() 
-
+        ui_open = getattr(self, 'rman_show_advanced_params')
         if ui_open:
+            col.label(text='Live Statistics', icon_value=rman_r_icon.icon_id)
+            row = col.row()
+            col = row.column()
+            col.prop(self, 'rman_roz_logLevel')  
+            col.prop(self, 'rman_roz_grpcEnabled')
+            col.prop(self, 'rman_roz_webSocketEnabled')    
+            if self.rman_roz_webSocketEnabled:
+                try:
+                    from .rman_stats import RfBStatsManager
+                    stats_mgr = RfBStatsManager.get_stats_manager()
+                    split = layout.split()
+                    row = split.row()
+                    col = row.column()
+                    col.label(text='')
+                    col = row.column()
+                    if stats_mgr:
+                        if stats_mgr.is_connected():
+                            col.operator('renderman.disconnect_stats_render')
+                        else:
+                            col.operator('renderman.attach_stats_render')
+           
+                except Exception as e:
+                    rfb_logger.rfb_log().debug("Could not import rman_stats: %s" % str(e))
+                    pass                
+
+            row = layout.row()
+            col = row.column()
+            col.label(text='Other', icon_value=rman_r_icon.icon_id)
+
             col.prop(self, 'rman_viewport_refresh_rate')  
             col.prop(self, 'rman_config_dir')   
             if self.rman_do_preview_renders:
