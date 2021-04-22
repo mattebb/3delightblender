@@ -552,7 +552,18 @@
                 "conditionalVisPath": "rman_traceSssAutoBias",
                 "conditionalVisValue": 1
             }
-        },           
+        },
+        {
+            "panel": "RENDER_PT_renderman_sampling",
+            "name": "rman_shadowBumpTerminator",
+            "primvar": "shade:shadowBumpTerminator",
+            "label": "Shadow Bump Terminator",
+            "type": "int",
+            "default": 1,
+            "page": "Global Trace Settings",
+            "widget": "checkbox",
+            "help": "Setting to control whether bump shadow terminators are smoothed in non-hair bxdfs."
+        },
         {
             "panel": "RENDER_PT_renderman_sampling",
             "name": "rman_geomShadowTermBias",
