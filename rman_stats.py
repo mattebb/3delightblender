@@ -4,6 +4,8 @@ import sys
 import json
 import bpy
 import rman
+import threading
+import time
 
 from collections import OrderedDict
 import rman_utils.stats_config.core as stcore
@@ -22,7 +24,7 @@ __LIVE_METRICS__ = [
     ["/rman/renderer@progress", "Progress"],
 ]
 
-class RfBStatsManager:
+class RfBStatsManager(object):
 
     def __init__(self, rman_render):
         global __RFB_STATS_MANAGER__
@@ -60,8 +62,14 @@ class RfBStatsManager:
 
         self.rman_render = rman_render
         self.init_stats_session()
+        self.boot_strap_thread = None
+        self.boot_strap_thread_kill = False
         self.attach()
         __RFB_STATS_MANAGER__ = self
+
+    def __del__(self):
+        self.boot_strap_thread_kill = True
+        self.boot_strap_thread.join()
 
     @classmethod
     def get_stats_manager(self):
@@ -122,6 +130,17 @@ class RfBStatsManager:
         else:
             del self.mgr
             self.mgr = None
+
+    def boot_strap(self):
+        while not self.mgr.clientConnected():
+            time.sleep(0.01)
+            if self.boot_strap_thread_kill:
+                return
+            if self.mgr.clientConnected():
+                for name,label in __LIVE_METRICS__:
+                    # Declare interest
+                    self.mgr.enableMetric(name)
+                return       
         
     def attach(self):
         """
@@ -129,7 +148,7 @@ class RfBStatsManager:
         # 
         # TODO put WebSocket client host/port into config
         host = "127.0.0.1"
-        port = 8080
+        port = int(self.mgr.config["webSocketPort"])
 
         if not self.mgr:
             return 
@@ -137,18 +156,18 @@ class RfBStatsManager:
             # Maybe toggle with disconnect
             return
 
-        connected = self.mgr.connectToServer(host, port)
-        if connected:
-            for name,label in __LIVE_METRICS__:
-                # Declare interest
-                self.mgr.enableMetric(name)
+        # The connectToServer call is a set of asynchronous calls so we set
+        # a thread to check the connection and then enable the metrics
+        self.mgr.connectToServer(host, port)
+        self.boot_strap_thread = threading.Thread(target=self.boot_strap)
+        self.boot_strap_thread.start()
 
     def is_connected(self):
         return (self.web_socket_enabled and self.mgr and self.mgr.clientConnected())
 
     def disconnect(self):
         if self.is_connected():
-            self.mgr.wsc.DisconnectFromServer()
+            self.mgr.disconnectFromServer()
 
     def check_payload(self, jsonData, name):
         try:
@@ -226,7 +245,7 @@ class RfBStatsManager:
 
             dat = self.check_payload(jsonData, "/rman/renderer@progress")
             if dat:
-                progressVal = int(dat['payload'])
+                progressVal = int(float(dat['payload']))
                 self._progress = progressVal  
 
         self.draw_stats()
@@ -284,7 +303,7 @@ class RfBStatsManager:
                 #    message = message + '%s: %s ' % (label, data)  
                 for label in _stats_to_draw:
                     data = self.render_live_stats[label]
-                    message = message + '\n%s: %s' % (label, data)                
+                    message = message + '%s: %s ' % (label, data)                
             else:
                 message = '(no stats connection) '          
 

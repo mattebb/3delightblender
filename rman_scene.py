@@ -320,6 +320,9 @@ class RmanScene(object):
             self.num_object_instances = len(self.depsgraph.object_instances)
             self.check_solo_light()
             self.export_viewport_stats()
+        else:
+            self.num_object_instances = len(self.depsgraph.object_instances)
+            self.export_stats()            
 
     def export_bake_render_scene(self):
         self.reset()
@@ -1511,6 +1514,21 @@ class RmanScene(object):
             cam_sg_node.sg_camera_node.SetDisplay(cam_dspys)
 
         self.sg_scene.SetDisplayChannel(displaychannels)  
+
+    def export_stats(self):
+
+        stats_mgr = self.rman_render.stats_mgr
+        rm = self.bl_scene.renderman
+
+        integrator = 'PxrPathTracer'
+        world = self.bl_scene.world
+
+        bl_integrator_node = shadergraph_utils.find_integrator_node(world)
+        if bl_integrator_node:
+            integrator = bl_integrator_node.bl_label
+        stats_mgr._integrator = integrator
+        stats_mgr._minSamples = rm.hider_minSamples
+        stats_mgr._maxSamples = rm.hider_maxSamples    
 
     def export_viewport_stats(self, integrator=''):
 
