@@ -257,7 +257,6 @@ class RmanSpool(object):
                         command.argv.append(variance_file)
                         aov_file = string_utils.expand_string(params['filePath'], 
                                                 frame=frame_num,
-                                                token_dict=token_dict,
                                                 asFilePath=True)    
                         command.argv.append(aov_file)
     
@@ -293,7 +292,6 @@ class RmanSpool(object):
                         command.argv.append(variance_file)
                         aov_file = string_utils.expand_string(params['filePath'], 
                                                 frame=frame_num,
-                                                token_dict=token_dict,
                                                 asFilePath=True)    
                         command.argv.append(aov_file)
     
@@ -309,7 +307,11 @@ class RmanSpool(object):
         rm = scene.renderman
         frame_begin = self.bl_scene.frame_start
         frame_end = self.bl_scene.frame_end
-        by = self.bl_scene.frame_step        
+        by = self.bl_scene.frame_step     
+
+        # update variables
+        string_utils.set_var('scene', self.bl_scene.name)
+        string_utils.set_var('layer', self.rman_scene.bl_view_layer.name)           
 
         if not rm.external_animation:
             frame_begin = self.bl_scene.frame_current

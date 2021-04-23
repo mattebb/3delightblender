@@ -178,6 +178,7 @@ class RmanScene(object):
         else:
             self.viewport_render_res_mult = 1.0  
         self.is_xpu = False  
+        self.rman_bake = False
         self.num_object_instances = 0
 
     def export_for_final_render(self, depsgraph, sg_scene, bl_view_layer, is_external=False):
