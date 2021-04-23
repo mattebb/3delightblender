@@ -301,7 +301,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
                         row = col.row()
                         array_elem_nm = '%s[%d]' % (prop_name, i)
                         draw_indented_label(row, None, level)
-                        if draw_connection_menu and array_elem_nm in node.inputs:
+                        if array_elem_nm in node.inputs:
                             op_text = ''
                             socket = node.inputs[array_elem_nm]
                             row.context_pointer_set("socket", socket)
