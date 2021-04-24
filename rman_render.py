@@ -346,6 +346,19 @@ class RmanRender(object):
             args.append(bkm_file)
             subprocess.run(args)   
 
+    def _check_prman_license(self):
+        if not envconfig().is_valid_license:
+            self.bl_engine.report({'ERROR'}, 'Cannot find a valid RenderMan license. Aborting.')
+            self.stop_render()
+            return False
+
+        # check for any available PhotoRealistic-RenderMan licenses
+        if not envconfig()._is_prman_license_available():
+            self.bl_engine.report({'ERROR'}, 'No PhotoRealistic-RenderMan licenses available. Aborting.')
+            self.stop_render()
+            return False
+        return True        
+
     def do_draw_buckets(self):
         return self.do_draw_buckets and get_pref('rman_viewport_draw_bucket', default=True)
 
@@ -405,6 +418,9 @@ class RmanRender(object):
 
         self._dump_rib_()
         rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
+
+        if not self._check_prman_license():
+            return False
 
         self.rman_is_live_rendering = True
         
@@ -617,6 +633,8 @@ class RmanRender(object):
         self._dump_rib_()
         rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
         render_cmd = "prman -blocking"
+        if not self._check_prman_license():
+            return False
         render_cmd = self._append_render_cmd(render_cmd)        
         self.sg_scene.Render(render_cmd)
         self.stop_render()
@@ -746,6 +764,8 @@ class RmanRender(object):
 
         self._dump_rib_()      
         rfb_log().info("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start))     
+        if not self._check_prman_license():
+            return False        
         self.rman_is_live_rendering = True     
         render_cmd = "prman -live"   
         render_cmd = self._append_render_cmd(render_cmd)
@@ -786,6 +806,8 @@ class RmanRender(object):
         self.rman_swatch_render_running = True
         self._dump_rib_()
         rfb_log().debug("Finished parsing scene. Total time: %s" % string_utils._format_time_(time.time() - time_start)) 
+        if not self._check_prman_license():
+            return False
         self.rman_is_live_rendering = True
         self.sg_scene.Render("prman -live")
         render = self.rman_scene.bl_scene.render

@@ -25,7 +25,10 @@ class RmanEnvConfig(object):
         self.rman_lq_path = ''
         self.rman_tractor_path = ''
         self.is_ncr_license = False
+        self.is_valid_license = False
         self.license_info = None
+        self.has_xpu_license = False
+        self.has_stylized_license = False
 
     def config_environment(self):
 
@@ -171,6 +174,21 @@ class RmanEnvConfig(object):
 
         self.license_info = rman_license_info.get_license_info(self.rmantree)
         self.is_ncr_license = self.license_info.is_ncr_license
+        self.is_valid_license = self.license_info.is_valid_license
+        if self.is_valid_license:
+            feature_version = '%d.0' % self.rman_version_major
+            status = self.license_info.is_feature_available(feature_name='RPS-Stylized', feature_version=feature_version)
+            self.has_stylized_license = status.found
+            status = self.license_info.is_feature_available(feature_name='RPS-XPU', feature_version=feature_version)
+            self.has_xpu_license =  status.found    
+
+    def _is_prman_license_available(self):
+        # Return true if there is PhotoRealistic-RenderMan a feature
+        # in our license and there seats available
+        status = self.license_info.is_feature_available(feature_name='PhotoRealistic-RenderMan', force_reread=True)
+        if status.found and status.is_available:
+            return True
+        return False
 
 def _parse_version(s):
     major_vers, minor_vers = s.split('.')

@@ -429,7 +429,7 @@ class RendermanPreferences(AddonPreferences):
         col.prop(self, 'rman_emit_default_params')          
 
         # XPU Prefs
-        if sys.platform != ("darwin") and not envconfig_utils.envconfig().is_ncr_license:
+        if sys.platform != ("darwin") and not envconfig_utils.envconfig().has_xpu_license:
             row = layout.row()
             row.label(text='XPU', icon_value=rman_r_icon.icon_id)
             row = layout.row()

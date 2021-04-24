@@ -67,7 +67,7 @@
             "options": "RIS:prman|XPU:xpu",
             "help": "",
             "conditionalLockOps": {
-                "conditionalVis1Path": "is_ncr_license",
+                "conditionalVis1Path": "has_xpu_license",
                 "conditionalVis2Op": "notEqualTo",
                 "conditionalVis1Value": "0",
                 "conditionalVisOp": "and",

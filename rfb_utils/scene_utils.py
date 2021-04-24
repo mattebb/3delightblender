@@ -44,8 +44,9 @@ def get_renderman_layer(context):
     return rm_rl    
 
 def get_render_variant(bl_scene):
-    if bl_scene.renderman.is_ncr_license and bl_scene.renderman.renderVariant != 'prman':
-        rfb_log().warning("XPU is not available for a non-commercial license.")
+    #if bl_scene.renderman.is_ncr_license and bl_scene.renderman.renderVariant != 'prman':
+    if not bl_scene.renderman.has_xpu_license and bl_scene.renderman.renderVariant != 'prman':
+        rfb_log().warning("Your RenderMan license does not include XPU. Reverting to RIS.")
         return 'prman'
 
     if sys.platform == ("darwin") and bl_scene.renderman.renderVariant != 'prman':
