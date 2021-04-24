@@ -187,6 +187,7 @@ class RENDER_PT_renderman_stats_settings(PRManButtonsPanel, Panel):
                 for label, data in rr.stats_mgr.render_live_stats.items():
                     box.label(text='%s: %s' % (label, data))
                 if rr.rman_running:   
+                    box.prop(rm, 'roz_stats_iterations', slider=True, text='Iterations (%d / %d)' % (rr.stats_mgr._iterations, rr.stats_mgr._maxSamples))
                     box.prop(rm, 'roz_stats_progress', slider=True)
             else:
                 box.label(text='(not connected)')

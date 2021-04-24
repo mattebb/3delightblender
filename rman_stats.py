@@ -19,10 +19,20 @@ __RFB_STATS_MANAGER__ = None
 __LIVE_METRICS__ = [
     ["/system.processMemory", "Memory"],
     ["/rman/raytracing.numRays", "Num Rays"],
-    #['/rman.iterationsCompleted', 'Iterations'],
-    ['/rman@iterationComplete', 'Iterations'],
-    ["/rman/renderer@progress", "Progress"],
+    ["/rman/renderer@progress", None],
+    ['/rman@iterationComplete', None],
+    ["/rman.timeToFirstRaytrace", "Time to first Ray"],
+    ["/rman.timeToFirstPixel", "Time to first Pixel"],
+    ["/rman.timeToFirstIteration", "Time to first Iteration"],    
 ]
+
+class RfBBaseMetric(object):
+
+    def __init__(self, key, label):
+        self.key = key
+        self.label = label
+
+
 
 class RfBStatsManager(object):
 
@@ -39,18 +49,16 @@ class RfBStatsManager(object):
         self._prevTotalRaysValid = True
 
         for name,label in __LIVE_METRICS__:
-            # we handle process a little differently
-            if name == "/rman/renderer@progress":
-                continue
-            self.render_live_stats[label] = '--'
+            if label:
+                self.render_live_stats[label] = '--'
             self.render_stats_names[name] = label
 
         self.export_stat_label = ''
         self.export_stat_progress = 0.0
 
         self._integrator = 'PxrPathTracer'
-        self._minSamples = 0
         self._maxSamples = 0
+        self._iterations = 0
         self._decidither = 0
         self._res_mult = 0.0
         self.web_socket_enabled = False
@@ -233,20 +241,16 @@ class RfBStatsManager(object):
                             self.render_live_stats[label] = '{:.3f}'.format(raysPerSecond)
                         
                     self._prevTotalRaysValid = True
-                    self._prevTotalRays = currentTotalRays
-                elif name == "/rman.iterationsCompleted":
-                    self.render_live_stats[label] = '%s / %s ' % (str(dat['payload']), self._maxSamples)                    
+                    self._prevTotalRays = currentTotalRays    
                 elif name == "/rman@iterationComplete":
                     itr = eval(dat['payload'])[0]
-                    self.render_live_stats[label] = '%s / %s ' % (str(itr), self._maxSamples)
-
+                    self._iterations = itr  
+                    self.render_live_stats[label] = '%d / %d' % (itr, self._maxSamples)
+                elif name == "/rman/renderer@progress":
+                    progressVal = int(float(dat['payload']))
+                    self._progress = progressVal                      
                 else:
-                    self.render_live_stats[label] = str(dat['payload'])
-
-            dat = self.check_payload(jsonData, "/rman/renderer@progress")
-            if dat:
-                progressVal = int(float(dat['payload']))
-                self._progress = progressVal  
+                    self.render_live_stats[label] = str(dat['payload'])           
 
         self.draw_stats()
 
@@ -280,17 +284,16 @@ class RfBStatsManager(object):
         _stats_to_draw = [
             "Memory",
             "Num Rays",
-            "Iterations"
         ]
 
         if self.rman_render.rman_interactive_running:
-            message = '\n%s, %d/%d, %d, %d%%' % (self._integrator, self._minSamples, self._maxSamples, self._decidither, self._res_mult)
+            message = '\n%s, %d, %d%%' % (self._integrator, self._decidither, self._res_mult)
             if self.is_connected():
-                #for label, data in self.render_live_stats.items():
-                #    message = message + '\n%s: %s' % (label, data)
                 for label in _stats_to_draw:
                     data = self.render_live_stats[label]
                     message = message + '\n%s: %s' % (label, data)
+                # iterations
+                message = message + '\nIterations: %d / %d' % (self._iterations, self._maxSamples)
             try:
                 self.rman_render.bl_engine.update_stats('RenderMan (Stats)', message)
             except ReferenceError as e:
@@ -299,11 +302,11 @@ class RfBStatsManager(object):
         else:
             message = ''
             if self.is_connected():
-                #for label, data in self.render_live_stats.items():
-                #    message = message + '%s: %s ' % (label, data)  
                 for label in _stats_to_draw:
                     data = self.render_live_stats[label]
-                    message = message + '%s: %s ' % (label, data)                
+                    message = message + '%s: %s ' % (label, data)       
+                # iterations                    
+                message = message + 'Iterations: %d / %d ' % (self._iterations, self._maxSamples)                             
             else:
                 message = '(no stats connection) '          
 

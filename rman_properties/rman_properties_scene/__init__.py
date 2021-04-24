@@ -118,12 +118,21 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     is_rman_viewport_rendering:  BoolProperty(get=get_is_rman_viewport_rendering)  
 
     # Roz Stats Properties
-    def get_roz_progress(self):
+    def get_roz_stats_progress(self):
         from ...rman_render import RmanRender
         rman_render = RmanRender.get_rman_render()
         return rman_render.stats_mgr._progress
 
-    roz_stats_progress: IntProperty(name='Progress', subtype='PERCENTAGE', min=0, max=100, get=get_roz_progress)
+    def get_roz_stats_iterations(self):
+        from ...rman_render import RmanRender
+        stats_mgr = RmanRender.get_rman_render().stats_mgr
+        itr = stats_mgr._iterations
+        maxSamples = stats_mgr._maxSamples
+        frac = itr/maxSamples
+        return (frac * 100)
+
+    roz_stats_progress: IntProperty(name='Progress', subtype='PERCENTAGE', min=0, max=100, get=get_roz_stats_progress)
+    roz_stats_iterations: IntProperty(name='Iterations', subtype='PERCENTAGE', min=0, max=100, get=get_roz_stats_iterations)
 
 classes = [         
     RendermanSceneSettings

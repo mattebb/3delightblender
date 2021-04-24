@@ -1527,7 +1527,7 @@ class RmanScene(object):
         if bl_integrator_node:
             integrator = bl_integrator_node.bl_label
         stats_mgr._integrator = integrator
-        stats_mgr._minSamples = rm.hider_minSamples
+        #stats_mgr._minSamples = rm.hider_minSamples
         stats_mgr._maxSamples = rm.hider_maxSamples    
 
     def export_viewport_stats(self, integrator=''):
@@ -1542,7 +1542,7 @@ class RmanScene(object):
             if bl_integrator_node:
                 integrator = bl_integrator_node.bl_label
         stats_mgr._integrator = integrator
-        stats_mgr._minSamples = rm.ipr_hider_minSamples
+        #stats_mgr._minSamples = rm.ipr_hider_minSamples
         stats_mgr._maxSamples = rm.ipr_hider_maxSamples
         stats_mgr._decidither = rm.hider_decidither
         stats_mgr._res_mult = int(self.viewport_render_res_mult*100)
