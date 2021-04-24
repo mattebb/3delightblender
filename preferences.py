@@ -532,7 +532,11 @@ classes = [
 
 def register():
     for cls in classes:
-        bpy.utils.register_class(cls)
+        try:
+            bpy.utils.register_class(cls)
+        except ValueError as e:
+            rfb_logger.rfb_log().debug("Could not register class, %s, because: %s" % (str(cls), str(e)))
+            pass
 
 
 def unregister():
