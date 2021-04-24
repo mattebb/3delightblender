@@ -255,6 +255,7 @@ def _guess_rmantree():
                     
             if choice == 'NEWEST':
                 # get from detected installs (at default installation path)
+                latest = (0, 0, '')
                 for vstr, d_rmantree in get_installed_rendermans():
                     d_version = _parse_version(vstr)
                     if d_version > latest:
