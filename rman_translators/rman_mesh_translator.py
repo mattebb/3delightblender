@@ -301,6 +301,8 @@ class RmanMeshTranslator(RmanTranslator):
                 _get_mats_faces_(nverts, material_ids).items():
 
                 mat = ob.data.materials[mat_id]
+                if not mat:
+                    continue
                 mat_handle = object_utils.get_db_name(mat) 
                 sg_material = self.rman_scene.rman_materials.get(mat.original, None)
 

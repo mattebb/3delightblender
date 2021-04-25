@@ -156,7 +156,8 @@ class RfBStatsManager(object):
         # 
         # TODO put WebSocket client host/port into config
         host = "127.0.0.1"
-        port = int(self.mgr.config["webSocketPort"])
+        #port = int(self.mgr.config["webSocketPort"])
+        port = 8080
 
         if not self.mgr:
             return 
