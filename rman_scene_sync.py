@@ -446,7 +446,37 @@ class RmanSceneSync(object):
 
             self.update_instances.add(o.original)
             self.clear_instances(o)
-            self.update_particles.add(o)   
+            self.update_particles.add(o)  
+            self.update_geometry_node_instances(o) 
+
+    def update_geometry_node_instances(self, obj):
+        def update_geo_instances(nodes):
+            # look for all point instance nodes
+            for n in [node for node in nodes if isinstance(node, bpy.types.GeometryNodePointInstance)]:
+                if n.instance_type == 'OBJECT':
+                    instance_obj = n.inputs['Object'].default_value
+                    if instance_obj:
+                        self.clear_instances(instance_obj)
+                        self.update_particles.add(instance_obj)                        
+                        self.update_instances.add(instance_obj.original)
+                elif n.instance_type == 'COLLECTION':
+                    instance_coll = n.inputs['Collection'].default_value
+                    if instance_coll:
+                        self.update_collection(instance_coll)                
+
+
+        if rman_constants.BLENDER_VERSION_MAJOR >= 2 and rman_constants.BLENDER_VERSION_MINOR >= 92:
+            if isinstance(obj, bpy.types.GeometryNodeTree):
+                rfb_log().debug("Geometry Node Tree updated: %s" % obj.name)
+                # look for all point instance nodes
+                update_geo_instances(obj.nodes)     
+            else:
+                # This is an object. Look for any geometry node trees attached.
+                node_tree = None
+                for modifier in obj.modifiers:
+                    if modifier.type == 'NODES':
+                        rfb_log().debug("Geometry Node Tree updated: %s" % modifier.node_group.name)
+                        update_geo_instances(modifier.node_group.nodes)
 
     def update_scene(self, context, depsgraph):
         ## FIXME: this function is waaayyy too big and is doing too much stuff
@@ -659,6 +689,7 @@ class RmanSceneSync(object):
                         # A transform changed can also be triggered when a particle system is removed.        
                         self.update_particles.add(obj.id)                        
                         self.update_instances.add(obj.id.original)
+                        self.update_geometry_node_instances(obj.id)
                         self.do_delete = False
 
                 elif obj.is_updated_geometry:
@@ -691,22 +722,8 @@ class RmanSceneSync(object):
                 rfb_log().debug("Collection updated: %s" % obj.id.name)
                 self.update_collection(obj.id)
 
-            # check for >= 2.92 types
-            elif rman_constants.BLENDER_VERSION_MAJOR >= 2 and rman_constants.BLENDER_VERSION_MINOR >= 92:
-                if isinstance(obj.id, bpy.types.GeometryNodeTree):
-                    rfb_log().debug("Geometry Node Tree updated: %s" % obj.id.name)
-                    # look for all point instance nodes
-                    for n in [node for node in obj.id.nodes if isinstance(node, bpy.types.GeometryNodePointInstance)]:
-                        if n.instance_type == 'OBJECT':
-                            instance_obj = n.inputs['Object'].default_value
-                            if instance_obj:
-                                self.clear_instances(instance_obj)
-                                self.update_particles.add(instance_obj)                        
-                                self.update_instances.add(instance_obj.original)
-                        elif n.instance_type == 'COLLECTION':
-                            instance_coll = n.inputs['Collection'].default_value
-                            if instance_coll:
-                                self.update_collection(instance_coll)
+            else:
+                self.update_geometry_node_instances(obj.id)
 
         # call txmake all in case of new textures
         texture_utils.get_txmanager().txmake_all(blocking=False)                         
