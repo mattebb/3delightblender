@@ -357,7 +357,11 @@ class RmanRender(object):
             self.bl_engine.report({'ERROR'}, 'No PhotoRealistic-RenderMan licenses available. Aborting.')
             self.stop_render()
             return False
-        return True        
+        return True     
+
+    def is_regular_rendering(self):
+        # return if we are doing a regular render and not interactive
+        return (self.rman_running and not self.rman_interactive_running)   
 
     def do_draw_buckets(self):
         return self.do_draw_buckets and get_pref('rman_viewport_draw_bucket', default=True)

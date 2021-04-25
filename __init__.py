@@ -78,7 +78,7 @@ class PRManRender(bpy.types.RenderEngine):
         '''
 
         # check if we are already doing a regular render
-        if self.rman_render.rman_running:
+        if self.rman_render.is_regular_rendering():
             return
         
         # if interactive rendering has not started, start it
