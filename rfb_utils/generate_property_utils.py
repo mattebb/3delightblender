@@ -188,7 +188,7 @@ def generate_property(node, sp, update_function=None):
     for nm in ['vstructmember',
         'vstructConditionalExpr',
         'conditionalVisOps',
-        'conditionalLockOps'
+        'conditionalLockOps',
         'riopt',
         'riattr',
         'primvar',

@@ -300,44 +300,46 @@ def _get_real_chan_name(chan):
         ch_name = '%s_%s' % (ch_name, lgt_grp)   
     return ch_name
 
+def _add_chan_to_dpsychan_list(rm, rm_rl, dspys_dict, chan):
+
+    ch_name = _get_real_chan_name(chan)
+    lgt_grp = chan.light_group.strip()
+    # add the channel if not already in list            
+    if ch_name not in dspys_dict['channels']:
+        d = _default_dspy_params()                
+        source_type = chan.channel_type
+        source = chan.channel_source
+
+        if lgt_grp or lgt_grp != '':
+            if 'Ci' in source:
+                source = "lpe:C[DS]*[<L.>O]"
+            if "<L.>" in source:
+                source = source.replace("<L.>", "<L.'%s'>" % lgt_grp)
+            elif "lpe:" in source:
+                source = source.replace("L", "<L.'%s'>" % lgt_grp)
+
+        d[u'channelSource'] = {'type': u'string', 'value': source}
+        d[u'channelType'] = { 'type': u'string', 'value': source_type}
+        d[u'lpeLightGroup'] = { 'type': u'string', 'value': lgt_grp}
+        d[u'remap_a'] = { 'type': u'float', 'value': chan.remap_a}
+        d[u'remap_b'] = { 'type': u'float', 'value': chan.remap_b}
+        d[u'remap_c'] = { 'type': u'float', 'value': chan.remap_c}
+        d[u'exposure'] = { 'type': u'float2', 'value': [chan.exposure_gain, chan.exposure_gamma] }
+
+        if rm.hider_pixelFilterMode != 'importance':
+            # per channel filter does not work in importance mode
+            d[u'filter'] = {'type': u'string', 'value': chan.chan_pixelfilter}
+            d[u'filterwidth'] = { 'type': u'float2', 'value': [chan.chan_pixelfilter_x, chan.chan_pixelfilter_y]}
+
+        d[u'statistics'] = { 'type': u'string', 'value': chan.stats_type}
+        d[u'shadowthreshold'] = { 'type': u'float', 'value': chan.shadowthreshold}
+        dspys_dict['channels'][ch_name] = d      
+    
+
 def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
 
     rm = rman_scene.bl_scene.renderman
     display_driver = dspy_drv
-
-    for chan in rm_rl.dspy_channels:
-        ch_name = _get_real_chan_name(chan)
-        lgt_grp = chan.light_group.strip()
-        # add the channel if not already in list            
-        if ch_name not in dspys_dict['channels']:
-            d = _default_dspy_params()                
-            source_type = chan.channel_type
-            source = chan.channel_source
-
-            if lgt_grp or lgt_grp != '':
-                if 'Ci' in source:
-                    source = "lpe:C[DS]*[<L.>O]"
-                if "<L.>" in source:
-                    source = source.replace("<L.>", "<L.'%s'>" % lgt_grp)
-                elif "lpe:" in source:
-                    source = source.replace("L", "<L.'%s'>" % lgt_grp)
-
-            d[u'channelSource'] = {'type': u'string', 'value': source}
-            d[u'channelType'] = { 'type': u'string', 'value': source_type}
-            d[u'lpeLightGroup'] = { 'type': u'string', 'value': lgt_grp}
-            d[u'remap_a'] = { 'type': u'float', 'value': chan.remap_a}
-            d[u'remap_b'] = { 'type': u'float', 'value': chan.remap_b}
-            d[u'remap_c'] = { 'type': u'float', 'value': chan.remap_c}
-            d[u'exposure'] = { 'type': u'float2', 'value': [chan.exposure_gain, chan.exposure_gamma] }
-
-            if rm.hider_pixelFilterMode != 'importance':
-                # per channel filter does not work in importance mode
-                d[u'filter'] = {'type': u'string', 'value': chan.chan_pixelfilter}
-                d[u'filterwidth'] = { 'type': u'float2', 'value': [chan.chan_pixelfilter_x, chan.chan_pixelfilter_y]}
-
-            d[u'statistics'] = { 'type': u'string', 'value': chan.stats_type}
-            d[u'shadowthreshold'] = { 'type': u'float', 'value': chan.shadowthreshold}
-            dspys_dict['channels'][ch_name] = d    
 
     for aov in rm_rl.custom_aovs:
         if aov.name == '':
@@ -350,6 +352,7 @@ def _set_rman_dspy_dict(rm_rl, dspys_dict, dspy_drv, rman_scene, expandTokens):
 
         for chan_ptr in aov.dspy_channels:
             chan = rm_rl.dspy_channels[chan_ptr.dspy_chan_idx]
+            _add_chan_to_dpsychan_list(rm, rm_rl, dspys_dict, chan)
             dspy_params['displayChannels'].append(chan.channel_name)
 
         param_list = None
