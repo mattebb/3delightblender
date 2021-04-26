@@ -138,6 +138,11 @@ class RendermanMeshPrimVar(bpy.types.PropertyGroup):
     )
 class RendermanMeshReferencePose(bpy.types.PropertyGroup):
 
+    has_Pref: BoolProperty(name='has_Pref', default=False)
+    has_WPref: BoolProperty(name='has_WPref', default=False)
+    has_Nref: BoolProperty(name='has_Nref', default=False)
+    has_WNref: BoolProperty(name='has_WNref', default=False)    
+
     rman__Pref: FloatVectorProperty(name='rman__Pref',
                                 default=(0,0, 0), size=3,
                                 subtype="XYZ")

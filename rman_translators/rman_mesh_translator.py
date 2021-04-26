@@ -93,15 +93,40 @@ def _export_reference_pose(ob, rm, rixparams, vertex_detail):
     rman__Nref = []
     rman__WNref = []
     for rp in rm.reference_pose:
-        rman__Pref.append( rp.rman__Pref)
-        rman__WPref.append( rp.rman__WPref)
-        rman__Nref.append( rp.rman__Nref)
-        rman__WNref.append( rp.rman__WNref)
+        if rp.has_Pref:
+            rman__Pref.append( rp.rman__Pref)
+        if rp.has_WPref:
+            rman__WPref.append( rp.rman__WPref)
+        if rp.has_Nref:
+            rman__Nref.append( rp.rman__Nref)
+        if rp.has_WPref:
+            rman__WNref.append( rp.rman__WNref)
 
-    if rman__Pref and len(rman__Pref) != vertex_detail:
-        rfb_log().error("Number of Pref primvars do not match. Please re-freeze the reference position.")
-        return
+    if rman__Pref:
+        if len(rman__Pref) == vertex_detail:
+            rixparams.SetPointDetail('__Pref', rman__Pref, 'vertex')
+        else:
+            rfb_log().error("Number of Pref primvars do not match. Please re-freeze the reference position.")
 
+    if rman__WPref:
+        if len(rman__WPref) == vertex_detail:
+            rixparams.SetPointDetail('__WPref', rman__WPref, 'vertex')
+        else:
+            rfb_log().error("Number of WPref primvars do not match. Please re-freeze the reference position.")
+                
+    if rman__Nref:
+        if len(rman__Nref) == vertex_detail:
+            rixparams.SetNormalDetail('__Nref', rman__Nref, 'vertex')
+        else:
+            rfb_log().error("Number of Nref primvars do not match. Please re-freeze the reference position.")
+        
+    if rman__WNref:
+        if len(rman__WNref) == vertex_detail:
+            rixparams.SetNormalDetail('__WNref', rman__WNref, 'vertex')
+        else:
+            rfb_log().error("Number of WNref primvars do not match. Please re-freeze the reference position.")
+        
+    '''
     if rman__Pref:
         rixparams.SetPointDetail('__Pref', rman__Pref, 'vertex')
     if rman__WPref:
@@ -110,7 +135,7 @@ def _export_reference_pose(ob, rm, rixparams, vertex_detail):
         rixparams.SetNormalDetail('__Nref', rman__Nref, 'vertex')
     if rman__WNref:
         rixparams.SetNormalDetail('__WNref', rman__WNref, 'vertex')
-
+    '''
 
 def _get_primvars_(ob, rman_sg_mesh, geo, rixparams):
 
