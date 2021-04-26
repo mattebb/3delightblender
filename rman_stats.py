@@ -78,9 +78,7 @@ class RfBStatsManager(object):
     def __del__(self):
         if self.boot_strap_thread.is_alive():
             self.boot_strap_thread_kill = True
-            print("Try killing boot_strap thread")
             self.boot_strap_thread.join()
-            print("boostrap_thread killed")
 
     @classmethod
     def get_stats_manager(self):
