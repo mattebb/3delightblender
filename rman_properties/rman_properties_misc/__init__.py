@@ -136,7 +136,7 @@ class RendermanMeshPrimVar(bpy.types.PropertyGroup):
                ('UV_TEXTURE', 'UV Texture', '')
                ]
     )
-class RendermanMeshReferencePose(bpy.types.PropertyGroup):
+class RendermanReferencePosePrimVars(bpy.types.PropertyGroup):
 
     has_Pref: BoolProperty(name='has_Pref', default=False)
     has_WPref: BoolProperty(name='has_WPref', default=False)
@@ -241,7 +241,7 @@ classes = [
     RendermanGroup,
     LightLinking,
     RendermanMeshPrimVar,   
-    RendermanMeshReferencePose,
+    RendermanReferencePosePrimVars,
     RendermanOpenVDBChannel,
     RendermanAnimSequenceSettings,
     Tab_CollectionGroup
