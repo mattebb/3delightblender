@@ -87,6 +87,31 @@ def _get_material_ids(ob, geo):
     material_ids = string_utils.convert_val([p.material_index for p in geo.polygons])
     return material_ids
 
+def _export_reference_pose(ob, rm, rixparams, vertex_detail):
+    rman__Pref = []
+    rman__WPref = []
+    rman__Nref = []
+    rman__WNref = []
+    for rp in rm.reference_pose:
+        rman__Pref.append( rp.rman__Pref)
+        rman__WPref.append( rp.rman__WPref)
+        rman__Nref.append( rp.rman__Nref)
+        rman__WNref.append( rp.rman__WNref)
+
+    if rman__Pref and len(rman__Pref) != vertex_detail:
+        rfb_log().error("Number of Pref primvars do not match. Please re-freeze the reference position.")
+        return
+
+    if rman__Pref:
+        rixparams.SetPointDetail('__Pref', rman__Pref, 'vertex')
+    if rman__WPref:
+        rixparams.SetPointDetail('__WPref', rman__WPref, 'vertex')
+    if rman__Nref:
+        rixparams.SetNormalDetail('__Nref', rman__Nref, 'vertex')
+    if rman__WNref:
+        rixparams.SetNormalDetail('__WNref', rman__WNref, 'vertex')
+
+
 def _get_primvars_(ob, rman_sg_mesh, geo, rixparams):
 
     rm = ob.data.renderman
@@ -105,6 +130,9 @@ def _get_primvars_(ob, rman_sg_mesh, geo, rixparams):
         if vcols and len(vcols) > 0:
             detail = "facevarying" if facevarying_detail == len(vcols) else "vertex"
             rixparams.SetColorDetail("Cs", vcols, detail)
+
+    # reference pose
+    _export_reference_pose(ob, rm, rixparams, vertex_detail)
     
     # custom prim vars
 

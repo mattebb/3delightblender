@@ -2,7 +2,7 @@ from bpy.props import PointerProperty, IntProperty, CollectionProperty
 
 from ...rfb_logger import rfb_log 
 from ...rman_config import RmanBasePropertyGroup
-from ..rman_properties_misc import RendermanMeshPrimVar 
+from ..rman_properties_misc import RendermanMeshPrimVar, RendermanMeshReferencePose 
 
 import bpy
 
@@ -10,6 +10,10 @@ class RendermanMeshGeometrySettings(RmanBasePropertyGroup, bpy.types.PropertyGro
     prim_vars: CollectionProperty(
         type=RendermanMeshPrimVar, name="Primitive Variables")
     prim_vars_index: IntProperty(min=-1, default=-1)
+
+    reference_pose: CollectionProperty(
+        type=RendermanMeshReferencePose, name=""
+    )
 
 classes = [         
     RendermanMeshGeometrySettings

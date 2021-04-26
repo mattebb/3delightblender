@@ -136,6 +136,24 @@ class RendermanMeshPrimVar(bpy.types.PropertyGroup):
                ('UV_TEXTURE', 'UV Texture', '')
                ]
     )
+class RendermanMeshReferencePose(bpy.types.PropertyGroup):
+
+    rman__Pref: FloatVectorProperty(name='rman__Pref',
+                                default=(0,0, 0), size=3,
+                                subtype="XYZ")
+
+    rman__WPref: FloatVectorProperty(name='rman__WPref',
+                                default=(0,0, 0), size=3,
+                                subtype="XYZ")    
+                                
+    rman__Nref: FloatVectorProperty(name='rman__Nref',
+                                default=(0,0, 0), size=3,
+                                subtype="XYZ")    
+
+    rman__WNref: FloatVectorProperty(name='rman__WNref',
+                                default=(0,0, 0), size=3,
+                                subtype="XYZ")                                    
+
 
 class RendermanOpenVDBChannel(bpy.types.PropertyGroup):
     name: StringProperty(name="Channel Name")
@@ -218,6 +236,7 @@ classes = [
     RendermanGroup,
     LightLinking,
     RendermanMeshPrimVar,   
+    RendermanMeshReferencePose,
     RendermanOpenVDBChannel,
     RendermanAnimSequenceSettings,
     Tab_CollectionGroup

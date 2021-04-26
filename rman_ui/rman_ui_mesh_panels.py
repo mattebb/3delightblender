@@ -62,7 +62,13 @@ class MESH_PT_renderman_prim_vars(CollectionPanel, Panel):
                               "collection.add_remove", "mesh", "prim_vars",
                               "prim_vars_index")
 
-        _draw_ui_from_rman_config('rman_properties_mesh', 'MESH_PT_renderman_prim_vars', context, layout, rm)             
+        _draw_ui_from_rman_config('rman_properties_mesh', 'MESH_PT_renderman_prim_vars', context, layout, rm)
+
+
+        if len(rm.reference_pose) > 0:
+            layout.operator('mesh.freeze_reference_pose', text='Re-Freeze Reference Pose')
+        else:
+            layout.operator('mesh.freeze_reference_pose', text='Freeze Reference Pose')
 
 classes = [
     MESH_PT_renderman_mesh_attrs,

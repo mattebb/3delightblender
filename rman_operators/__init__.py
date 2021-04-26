@@ -6,6 +6,7 @@ from . import rman_operators_nodetree
 from . import rman_operators_collections
 from . import rman_operators_editors
 from . import rman_operators_stylized
+from . import rman_operators_mesh
 
 def register():
     rman_operators_printer.register()
@@ -16,6 +17,7 @@ def register():
     rman_operators_collections.register()
     rman_operators_editors.register()
     rman_operators_stylized.register()
+    rman_operators_mesh.register()
 
 def unregister():
     rman_operators_printer.unregister()
@@ -26,3 +28,4 @@ def unregister():
     rman_operators_collections.unregister()
     rman_operators_editors.unregister()
     rman_operators_stylized.unregister()
+    rman_operators_mesh.unregister()
