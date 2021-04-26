@@ -76,8 +76,11 @@ class RfBStatsManager(object):
         __RFB_STATS_MANAGER__ = self
 
     def __del__(self):
-        self.boot_strap_thread_kill = True
-        self.boot_strap_thread.join()
+        if self.boot_strap_thread.is_alive():
+            self.boot_strap_thread_kill = True
+            print("Try killing boot_strap thread")
+            self.boot_strap_thread.join()
+            print("boostrap_thread killed")
 
     @classmethod
     def get_stats_manager(self):
@@ -168,6 +171,15 @@ class RfBStatsManager(object):
         # The connectToServer call is a set of asynchronous calls so we set
         # a thread to check the connection and then enable the metrics
         self.mgr.connectToServer(host, port)
+
+        # if the bootstrap thread is still running, kill it
+        if self.boot_strap_thread:
+            if self.boot_strap_thread.is_alive():
+                self.boot_strap_thread_kill = True
+                self.boot_strap_thread.join()
+            self.boot_strap_thread_kill = False
+            self.boot_strap_thread = False
+
         self.boot_strap_thread = threading.Thread(target=self.boot_strap)
         self.boot_strap_thread.start()
 
