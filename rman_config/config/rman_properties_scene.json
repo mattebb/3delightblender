@@ -69,7 +69,7 @@
             "conditionalLockOps": {
                 "conditionalVis1Path": "has_xpu_license",
                 "conditionalVis2Op": "notEqualTo",
-                "conditionalVis1Value": "0",
+                "conditionalVis1Value": "1",
                 "conditionalVisOp": "and",
                 "conditionalVis1Op": "equalTo",
                 "conditionalVisLeft": "conditionalVis1",
