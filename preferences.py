@@ -366,10 +366,10 @@ class RendermanPreferences(AddonPreferences):
                         description="Change the logging level for the live statistics system.",
                         update=update_stats_config
                         )
-    rman_roz_grpcEnabled: BoolProperty(name="Send Stats to 'it' HUD", default=True, 
+    rman_roz_grpcServer: BoolProperty(name="Send Stats to 'it' HUD", default=True, 
                                         description="Turn this off if you don't want stats to be sent to the 'it' HUD.",
                                         update=update_stats_config)
-    rman_roz_webSocketEnabled: BoolProperty(name="Enable Websocket Server", default=True, 
+    rman_roz_webSocketServer: BoolProperty(name="Enable Websocket Server", default=True, 
                                         description="Turning this off will disable the live statistics system in RfB. In most circumstances, this should not be off. Turning it off could cause error-proned behavior.",
                                         update=update_stats_config)
 
@@ -492,8 +492,8 @@ class RendermanPreferences(AddonPreferences):
             row = col.row()
             col = row.column()
             col.prop(self, 'rman_roz_logLevel')  
-            col.prop(self, 'rman_roz_grpcEnabled')
-            col.prop(self, 'rman_roz_webSocketEnabled')    
+            col.prop(self, 'rman_roz_grpcServer')
+            col.prop(self, 'rman_roz_webSocketServer')    
             if self.rman_roz_webSocketEnabled:
                 try:
                     from .rman_stats import RfBStatsManager

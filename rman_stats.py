@@ -123,12 +123,12 @@ class RfBStatsManager(object):
 
     def update_session_config(self):
 
-        self.web_socket_enabled = prefs_utils.get_pref('rman_roz_webSocketEnabled', default=True)
+        self.web_socket_enabled = prefs_utils.get_pref('rman_roz_webSocketServer', default=True)
 
         config_dict = dict()
         config_dict["logLevel"] = int(prefs_utils.get_pref('rman_roz_logLevel', default='3'))
-        config_dict["grpcEnabled"] = prefs_utils.get_pref('rman_roz_grpcEnabled', default=True)
-        config_dict["webSocketEnabled"] = self.web_socket_enabled
+        config_dict["grpcServer"] = prefs_utils.get_pref('rman_roz_grpcServer', default=True)
+        config_dict["webSocketServer"] = self.web_socket_enabled
 
         config_str = json.dumps(config_dict)
         self.rman_stats_session_config.Update(config_str)
