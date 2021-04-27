@@ -18,7 +18,7 @@ __RFB_STATS_MANAGER__ = None
 
 __LIVE_METRICS__ = [
     ["/system.processMemory", "Memory"],
-    ["/rman/raytracing.numRays", "Num Rays"],
+    ["/rman/raytracing.numRays", "Rays/Sec"],
     ["/rman/renderer@progress", None],
     ['/rman@iterationComplete', None],
     ["/rman.timeToFirstRaytrace", "Time to first Ray"],
@@ -294,7 +294,7 @@ class RfBStatsManager(object):
 
         _stats_to_draw = [
             "Memory",
-            "Num Rays",
+            "Rays/Sec",
         ]
 
         if self.rman_render.rman_interactive_running:
