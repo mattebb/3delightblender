@@ -494,7 +494,7 @@ class RendermanPreferences(AddonPreferences):
             col.prop(self, 'rman_roz_logLevel')  
             col.prop(self, 'rman_roz_grpcServer')
             col.prop(self, 'rman_roz_webSocketServer')    
-            if self.rman_roz_webSocketEnabled:
+            if self.rman_roz_webSocketServer:
                 try:
                     from .rman_stats import RfBStatsManager
                     stats_mgr = RfBStatsManager.get_stats_manager()
