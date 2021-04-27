@@ -13,8 +13,6 @@ from bpy_extras.io_utils import ImportHelper
 import mathutils
 import math
 
-__RFB_EXAMPLE_SCENE_LIST__ = []
-
 class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
     bl_idname = "object.rman_add_rman_geo"
     bl_label = "Add RenderMan Geometry"
@@ -443,28 +441,6 @@ class PRMAN_OT_Renderman_open_stats(bpy.types.Operator):
             url="file://" + os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current))
         return {'FINISHED'}
 
-class PRMAN_OT_LoadExampleScene(bpy.types.Operator):
-    bl_label = "RenderMan Examples"
-    bl_idname = "renderman.open_example_scene"
-    bl_description = "Open a RenderMan Example Scene"
-
-    filepath: bpy.props.StringProperty(subtype="FILE_PATH")
-
-    def execute(self, context):
-        if self.filepath and os.path.exists(self.filepath):
-            bpy.ops.wm.open_mainfile(filepath=self.filepath)
-        return {'FINISHED'}
-
-class PRMAN_MT_LoadExampleSceneMenu(bpy.types.Menu):
-    bl_label = "RenderMan Examples"
-    bl_idname = "PRMAN_MT_LoadExampleSceneMenu"
-
-    def draw(self, context):
-        global __RFB_EXAMPLE_SCENE_LIST__
-        for nm, filepath in __RFB_EXAMPLE_SCENE_LIST__:
-            op = self.layout.operator("renderman.open_example_scene", text=nm)
-            op.filepath = filepath
-
 classes = [
     PRMAN_OT_RM_Add_RenderMan_Geometry,
     PRMAN_OT_RM_Add_Subdiv_Scheme,
@@ -478,27 +454,10 @@ classes = [
     PRMAN_MT_Camera_List_Menu,
     PRMAN_OT_Deletecameras,
     PRMAN_OT_AddCamera,    
-    PRMAN_OT_Renderman_open_stats,
-    PRMAN_OT_LoadExampleScene,
-    PRMAN_MT_LoadExampleSceneMenu    
+    PRMAN_OT_Renderman_open_stats
 ]            
 
-def register_example_scenes():
-    global __RFB_EXAMPLE_SCENE_LIST__
-
-    examples_path = os.path.join(RFB_ADDON_PATH, "examples")
-    for root, dirnames, filenames in os.walk(examples_path):    
-        for d in dirnames:
-            dir_path = os.path.join(root, d)
-            for f in os.listdir(dir_path):
-                if f.endswith('.blend'):
-                    __RFB_EXAMPLE_SCENE_LIST__.append( (d, os.path.join(dir_path, f)) )
-                    break
-
 def register():
-    global __RFB_EXAMPLE_SCENE_LIST__    
-    if not __RFB_EXAMPLE_SCENE_LIST__:
-        register_example_scenes()
     for cls in classes:
         bpy.utils.register_class(cls)
     

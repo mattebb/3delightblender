@@ -238,16 +238,11 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         # RenderMan Doc
         rman_help = rfb_icons.get_icon("rman_help")
         layout.operator("wm.url_open", text="RenderMan Docs",
-                        icon_value=rman_help.icon_id).url = "https://github.com/prman-pixar/RenderManForBlender/wiki/Documentation-Home"
+                        icon_value=rman_help.icon_id).url = "https://rmanwiki.pixar.com/display/RFB24"
         rman_info = rfb_icons.get_icon("rman_blender")
         layout.operator("wm.url_open", text="About RenderMan",
                         icon_value=rman_info.icon_id).url = "https://renderman.pixar.com/store/intro"
-
-        # Enable the menu item to display the examples menu in the RenderMan
-        # Panel.
-        layout.separator()
-        rman_beaker = rfb_icons.get_icon("rman_beaker")
-        layout.menu("PRMAN_MT_LoadExampleSceneMenu", icon_value=rman_beaker.icon_id)    
+ 
 
 classes = [
     PRMAN_PT_Renderman_UI_Panel,
