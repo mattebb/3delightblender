@@ -145,6 +145,9 @@ class RfBStatsManager(object):
             time.sleep(0.01)
             if self.boot_strap_thread_kill:
                 return
+            if self.mgr.failedToConnect():
+                rfb_log().error('Failed to connect to stats web socket server.')
+                return
             if self.mgr.clientConnected():
                 for name,label in __LIVE_METRICS__:
                     # Declare interest

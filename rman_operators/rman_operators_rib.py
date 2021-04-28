@@ -5,6 +5,7 @@ from ..rfb_utils.prefs_utils import get_pref
 from ..rfb_utils import prefs_utils
 from ..rfb_utils import string_utils
 from ..rfb_utils import filepath_utils
+from ..rman_render import RmanRender
 from bpy.props import StringProperty, BoolProperty
 
 class PRMAN_OT_Renderman_open_scene_RIB(bpy.types.Operator):
@@ -56,8 +57,10 @@ class PRMAN_OT_Open_Selected_RIB(bpy.types.Operator):
             rib_output = os.path.join(temp_dir, 'selected.rib')
             rm = context.scene.renderman
             if not rm.is_rman_interactive_running:
+                rman_render = RmanRender.get_rman_render()
                 rman_render.start_export_rib_selected(context, rib_output, export_materials=True, export_all_frames=False)
                 filepath_utils.view_file(rib_output)
+                rfb_log().error("Nothing selected for RIB export.")
             else:
                 self.report({"ERROR"}, "Viewport rendering is on.")
 
@@ -105,6 +108,7 @@ class PRMAN_OT_ExportRIBObject(bpy.types.Operator):
             export_mats = self.export_mat
             rm = context.scene.renderman
             if not rm.is_rman_interactive_running:
+                rman_render = RmanRender.get_rman_render()
                 rman_render.start_export_rib_selected(context, export_path, export_materials=export_mats, export_all_frames=export_range)
             else:
                 self.report({"ERROR"}, "Viewport rendering is on.")

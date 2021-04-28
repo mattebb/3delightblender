@@ -6,8 +6,8 @@ class PRMAN_OT_Renderman_printer(Operator):
     """An operator to simply print messages."""
 
     bl_idname = "renderman.printer"
-    bl_label = "RenderMan Message Dialog"
-    bl_options = {'REGISTER', 'UNDO'}
+    bl_label = "RenderMan Message"
+    bl_options = {'INTERNAL'}
 
     message: StringProperty()
     
@@ -31,9 +31,11 @@ class PRMAN_OT_Renderman_printer(Operator):
     def draw(self, context):
         layout = self.layout
         col = layout.column()
-        col.label(text='%s' % self.level)
-        col.label(text='%s' % self.message)
-        self.report({'%s' % self.level}, '%s' % self.message )     
+        rman_icon = 'ERROR'
+        if self.level == 'INFO':
+            rman_icon = 'INFO'
+
+        col.label(text='%s' % self.message, icon=rman_icon)  
 
     def execute(self, context):  
         try:
