@@ -175,7 +175,26 @@ class RendermanPreferences(AddonPreferences):
     path_fallback_textures_path_always: BoolProperty(
         name="Always Fallback",
         description="Always use the fallback texture path regardless",
-        default=False)              
+        default=False)            
+
+    rman_txmanager_keep_extension: BoolProperty(
+        name='Keep original extension',
+        default=True,
+        description="If on, keep the original extension of the input image."
+    )  
+
+    rman_txmanager_workers: IntProperty(
+        name='Number of processes',
+        description="Number of txmake processes to launch in parallel. Default to 2 (assuming a typical 4-cores computer). You should only increase this if you have more than 8 physical cores.",
+        default=2,
+        min=1,max=32
+    )  
+
+    rman_txmanager_tex_extensions: StringProperty(
+        name='Texture Extensions',
+        description="Any file with one of these extensions will not be converted by the texture manager and used as-is. Entries should be space-delimited.",
+        default='tex tx txr ptx ptex',
+    )      
 
     rman_scene_version_padding: IntProperty(
         name="Version Padding",
@@ -447,12 +466,21 @@ class RendermanPreferences(AddonPreferences):
         row.label(text='Workspace', icon_value=rman_r_icon.icon_id)
         row = layout.row()
         col = row.column()
-        col.prop(self, 'path_fallback_textures_path')
-        col.prop(self, 'path_fallback_textures_path_always')
         col.prop(self, "rman_scene_version_padding")
         col.prop(self, "rman_scene_take_padding")
         col.prop(self, "rman_scene_version_increment")
         col.prop(self, "rman_scene_take_increment")
+
+        # TxManager
+        row = layout.row()
+        row.label(text='Texture Manager', icon_value=rman_r_icon.icon_id)
+        row = layout.row()
+        col = row.column()
+        col.prop(self, 'path_fallback_textures_path')
+        col.prop(self, 'path_fallback_textures_path_always')
+        col.prop(self, "rman_txmanager_workers")
+        col.prop(self, "rman_txmanager_keep_extension")
+        col.prop(self, "rman_txmanager_tex_extensions")
 
         # UI Prefs
         row = layout.row()

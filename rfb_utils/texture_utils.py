@@ -22,15 +22,12 @@ __RFB_TXMANAGER__ = None
 class RfBTxManager(object):
 
     def __init__(self):        
-        fallback_path = string_utils.expand_string(get_pref('path_fallback_textures_path'), 
-                                                  asFilePath=True)
-        fallback_always = get_pref('path_fallback_textures_path_always')
         self.txmanager = txcore.TxManager(host_token_resolver_func=self.host_token_resolver_func, 
-                                        fallback_path=fallback_path,
-                                        fallback_always=fallback_always,
+                                        host_prefs_func=self.get_prefs,
                                         host_tex_done_func=self.done_callback,
                                         host_load_func=load_scene_state,
                                         host_save_func=save_scene_state,
+                                        texture_extensions=self.get_ext_list(),
                                         color_manager=color_manager())
         self.rman_scene = None
 
@@ -40,7 +37,22 @@ class RfBTxManager(object):
 
     @rman_scene.setter
     def rman_scene(self, rman_scene):
-        self.__rman_scene = rman_scene            
+        self.__rman_scene = rman_scene      
+
+    def get_prefs(self):
+        prefs = dict()
+        prefs['num_workers'] = get_pref('rman_txmanager_workers')
+        prefs['fallback_path'] = string_utils.expand_string(get_pref('path_fallback_textures_path'), 
+                                                  asFilePath=True)
+        prefs['fallback_always'] = get_pref('path_fallback_textures_path_always')
+        prefs['keep_extension'] = get_pref('rman_txmanager_keep_extension')
+
+        return prefs
+
+    def get_ext_list(self):
+        ext_prefs = get_pref('rman_txmanager_tex_extensions')
+        ext_list = ['.%s' % ext for ext in ext_prefs.split()]
+        return ext_list
 
     def host_token_resolver_func(self, outpath):
         if self.rman_scene:
