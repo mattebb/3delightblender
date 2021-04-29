@@ -69,15 +69,17 @@ class RfBTxManager(object):
             except:
                 pass
             from .. import rman_render
+            output_texture = self.get_output_tex(txfile)
             rr = rman_render.RmanRender.get_rman_render()
+            rr.rman_scene_sync.flush_texture_cache([output_texture])
             rr.rman_scene_sync.texture_updated(nodeID)
+            
         return tex_done    
 
-    def get_txfile_from_id(self, nodeID):
-        txfile = self.txmanager.get_txfile_from_id(nodeID)
-        if not txfile:
-            return ''
-
+    def get_output_tex(self, txfile):
+        '''
+        Get the real output texture path given a TxFile 
+        '''
         if txfile.state in (txmanager.STATE_EXISTS, txmanager.STATE_IS_TEX):
             output_tex = txfile.get_output_texture()
             if self.rman_scene:
@@ -93,7 +95,18 @@ class RfBTxManager(object):
         else:
             output_tex = self.txmanager.get_placeholder_tex()
 
-        return output_tex
+        return output_tex        
+
+
+    def get_output_tex_from_id(self, nodeID):
+        '''
+        Get the real output texture path given a nodeID
+        '''
+        txfile = self.txmanager.get_txfile_from_id(nodeID)
+        if not txfile:
+            return ''
+
+        return self.get_output_tex(txfile)
             
     def get_txfile_from_path(self, filepath):
         return self.txmanager.get_txfile_from_path(filepath)                

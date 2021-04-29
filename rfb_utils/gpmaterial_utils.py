@@ -49,7 +49,7 @@ def gp_material_stroke_texture(mat, rman, rman_sg_material, handle):
         texture_handle = '%s-PxrTexture' % handle
 
         nodeID = '%s|filename|%s' % (texture_handle, real_file)
-        output_tex = texture_utils.get_txmanager().get_txfile_from_id(nodeID)
+        output_tex = texture_utils.get_txmanager().get_output_tex_from_id(nodeID)
         if output_tex == '':  
             txfile = texture_utils.get_txmanager().txmanager.add_texture(nodeID, real_file, nodetype='PxrTexture') 
             if txfile.state in (txmanager.STATE_EXISTS, txmanager.STATE_IS_TEX):
@@ -118,7 +118,7 @@ def gp_material_fill_texture(mat, rman, rman_sg_material, handle):
         texture_handle = '%s-PxrTexture' % handle
 
         nodeID = '%s|filename|%s' % (texture_handle, real_file)
-        output_tex = texture_utils.get_txmanager().get_txfile_from_id(nodeID)
+        output_tex = texture_utils.get_txmanager().get_output_tex_from_id(nodeID)
         if output_tex == '':  
             txfile = texture_utils.get_txmanager().txmanager.add_texture(nodeID, real_file, nodetype='PxrTexture') 
             if txfile.state in (txmanager.STATE_EXISTS, txmanager.STATE_IS_TEX):

@@ -459,7 +459,7 @@ def set_asset_params(ob, node, nodeName, Asset):
                             # this is a texture
                             elif ('texture' in options) or ('env' in options) or ('imageplane' in options):
                                 tx_node_id = texture_utils.generate_node_id(node, param_name, ob=ob)
-                                tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+                                tx_val = texture_utils.get_txmanager().get_output_tex_from_id(tx_node_id)
                                 val = tx_val if tx_val != '' else val
                         elif param_widget == 'assetidoutput':
                             display = 'openexr'

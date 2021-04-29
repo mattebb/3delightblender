@@ -260,11 +260,13 @@ class PRMAN_OT_Renderman_txmanager_clear_all_cache(Operator):
     def execute(self, context):
         rr = rman_render.RmanRender.get_rman_render() 
         if rr.rman_interactive_running and rr.sg_scene:
+            texture_list = list()
             for item in context.scene.rman_txmgr_list:
-                txfile = None
                 if item.nodeID != "":
-                    output_texture = texture_utils.get_txmanager().get_txfile_from_id(item.nodeID)
-                    rr.sg_scene.InvalidateTexture(output_texture)
+                    output_texture = texture_utils.get_txmanager().get_output_tex_from_id(item.nodeID)
+                    texture_list.append(output_texture)
+            if texture_list:
+                rr.rman_scene_sync.flush_texture_cache(texture_list)
                     
         return{'FINISHED'}
 
@@ -298,8 +300,11 @@ class PRMAN_OT_Renderman_txmanager_reconvert_selected(Operator):
         else:
             txfile = texture_utils.get_txmanager().txmanager.get_txfile_from_path(item.name)
 
-        if txfile:           
+        if txfile:
+            rr = rman_render.RmanRender.get_rman_render()
             txfile.delete_texture_files()
+            if item.nodeID:
+                rr.rman_scene_sync.texture_updated(item.nodeID)
             texture_utils.get_txmanager().txmake_all(blocking=False)
 
         return{'FINISHED'}               

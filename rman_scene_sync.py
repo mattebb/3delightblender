@@ -977,3 +977,10 @@ class RmanSceneSync(object):
         else:
             # light, lightfilters, and cameras
             ob.update_tag(refresh={'DATA'})
+
+    def flush_texture_cache(self, texture_list):
+        if not self.rman_render.rman_interactive_running:
+            return         
+        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):  
+            for tex in texture_list:
+                self.rman_scene.sg_scene.InvalidateTexture(tex)   

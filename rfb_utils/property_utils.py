@@ -537,7 +537,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                             # this is a texture
                             elif ('texture' in options) or ('env' in options) or ('imageplane' in options):
                                 tx_node_id = texture_utils.generate_node_id(node, param_name, ob=ob)
-                                tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+                                tx_val = texture_utils.get_txmanager().get_output_tex_from_id(tx_node_id)
                                 val = tx_val if tx_val != '' else val
                         elif param_widget == 'assetidoutput':
                             display = 'openexr'
@@ -646,7 +646,7 @@ def property_group_to_rixparams(node, rman_sg_node, sg_node, ob=None, mat_name=N
 def portal_inherit_dome_params(portal_node, dome, dome_node, rixparams):
 
     tx_node_id = texture_utils.generate_node_id(dome_node, 'lightColorMap', ob=dome)
-    tx_val = texture_utils.get_txmanager().get_txfile_from_id(tx_node_id)
+    tx_val = texture_utils.get_txmanager().get_output_tex_from_id(tx_node_id)
     rixparams.SetString('domeColorMap', tx_val) 
 
     prop = getattr(portal_node, 'colorMapGamma')
