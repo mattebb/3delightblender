@@ -62,6 +62,8 @@ class RfBStatsManager(object):
         self._decidither = 0
         self._res_mult = 0.0
         self.web_socket_enabled = False
+        self.boot_strap_thread = None
+        self.boot_strap_thread_kill = False        
 
         # roz objects
         self.rman_stats_session_name = "RfB Stats Session"
@@ -70,9 +72,7 @@ class RfBStatsManager(object):
 
         self.rman_render = rman_render
         self.init_stats_session()
-        self.boot_strap_thread = None
-        self.boot_strap_thread_kill = False
-        self.attach()
+        self.create_stats_manager()
         __RFB_STATS_MANAGER__ = self
 
     def __del__(self):
@@ -99,10 +99,7 @@ class RfBStatsManager(object):
             return
 
         try:
-            self.mgr = stcore.StatsManager(
-                            # host_update_config_func=update_config_func,
-                            # host_load_config_func=self.load_config_func
-                            ) 
+            self.mgr = stcore.StatsManager()
             self.is_valid = self.mgr.is_valid
         except:
             self.mgr = None
@@ -133,12 +130,14 @@ class RfBStatsManager(object):
         config_str = json.dumps(config_dict)
         self.rman_stats_session_config.Update(config_str)
         if self.rman_stats_session:
-            self.rman_stats_session.Update(self.rman_stats_session_config)            
+            self.rman_stats_session.Update(self.rman_stats_session_config)   
+
         if self.web_socket_enabled:
-            self.create_stats_manager()
+            #self.attach()
+            pass
         else:
-            del self.mgr
-            self.mgr = None
+            self.disconnect()
+
 
     def boot_strap(self):
         while not self.mgr.clientConnected():
@@ -166,7 +165,6 @@ class RfBStatsManager(object):
         if not self.mgr:
             return 
         if (self.mgr.clientConnected()):
-            # Maybe toggle with disconnect
             return
 
         # The connectToServer call is a set of asynchronous calls so we set
@@ -190,6 +188,14 @@ class RfBStatsManager(object):
     def disconnect(self):
         if self.is_connected():
             self.mgr.disconnectFromServer()
+
+    def get_status(self):
+        if self.is_connected():
+            return 'Connected'
+        elif self.mgr.failedToConnect():
+            return 'Connection Failed'
+        else:
+            return 'Disconnected'
 
     def check_payload(self, jsonData, name):
         try:

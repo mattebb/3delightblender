@@ -388,8 +388,8 @@ class RendermanPreferences(AddonPreferences):
     rman_roz_grpcServer: BoolProperty(name="Send Stats to 'it' HUD", default=True, 
                                         description="Turn this off if you don't want stats to be sent to the 'it' HUD.",
                                         update=update_stats_config)
-    rman_roz_webSocketServer: BoolProperty(name="Enable Websocket Server", default=True, 
-                                        description="Turning this off will disable the live statistics system in RfB. In most circumstances, this should not be off. Turning it off could cause error-proned behavior.",
+    rman_roz_webSocketServer: BoolProperty(name="Enable Live Stats", default=False, 
+                                        description="Turning this off will disable the live statistics system in RfB.",
                                         update=update_stats_config)
 
     def draw_xpu_devices(self, context, layout):
@@ -522,7 +522,8 @@ class RendermanPreferences(AddonPreferences):
             col.prop(self, 'rman_roz_logLevel')  
             col.prop(self, 'rman_roz_grpcServer')
             col.prop(self, 'rman_roz_webSocketServer')    
-            if self.rman_roz_webSocketServer:
+
+            if self.rman_roz_webSocketServer:     
                 try:
                     from .rman_stats import RfBStatsManager
                     stats_mgr = RfBStatsManager.get_stats_manager()
@@ -536,10 +537,11 @@ class RendermanPreferences(AddonPreferences):
                             col.operator('renderman.disconnect_stats_render')
                         else:
                             col.operator('renderman.attach_stats_render')
+                        col.label(text='              Web Socket Status: %s' % stats_mgr.get_status())   
            
                 except Exception as e:
                     rfb_logger.rfb_log().debug("Could not import rman_stats: %s" % str(e))
-                    pass                
+                    pass                         
 
             row = layout.row()
             col = row.column()

@@ -1063,7 +1063,7 @@ class RmanScene(object):
 
         # threads
         if not self.external_render:
-            options.SetInteger(self.rman.Tokens.Rix.k_threads, rm.threads)
+            options.SetInteger(self.rman.Tokens.Rix.k_limits_threads, rm.threads)
 
         # cache sizes
         options.SetInteger(self.rman.Tokens.Rix.k_limits_geocachememory, rm.limits_geocachememory)
