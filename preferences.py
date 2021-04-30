@@ -391,6 +391,10 @@ class RendermanPreferences(AddonPreferences):
     rman_roz_webSocketServer: BoolProperty(name="Enable Live Stats", default=False, 
                                         description="Turning this off will disable the live statistics system in RfB.",
                                         update=update_stats_config)
+    rman_roz_webSocketServer_Port: IntProperty(name="Port", default=9723, 
+                                        min=0,
+                                        description="Port number of the live stats server to use.",
+                                        update=update_stats_config)                                        
 
     def draw_xpu_devices(self, context, layout):
         if self.rman_xpu_device == 'CPU':
@@ -529,6 +533,7 @@ class RendermanPreferences(AddonPreferences):
                     stats_mgr = RfBStatsManager.get_stats_manager()
                     split = layout.split()
                     row = split.row()
+                    col.prop(self, 'rman_roz_webSocketServer_Port', slider=False)
                     col = row.column()
                     col.label(text='')
                     col = row.column()
