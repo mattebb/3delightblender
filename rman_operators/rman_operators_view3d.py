@@ -6,7 +6,7 @@ from ..rfb_utils.scene_utils import EXCLUDED_OBJECT_TYPES
 from ..rfb_utils.envconfig_utils import envconfig
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import object_utils
-from ..rman_constants import RFB_ADDON_PATH
+from ..rman_constants import RFB_ADDON_PATH, RMAN_BL_NODE_DESCRIPTIONS
 from .rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
 from bpy.props import EnumProperty, StringProperty, BoolProperty
 from bpy_extras.io_utils import ImportHelper
@@ -144,6 +144,11 @@ class PRMAN_OT_RM_Add_Light(bpy.types.Operator):
 
     rman_light_name: EnumProperty(items=get_type_items, name="Light Name")
 
+    @classmethod
+    def description(cls, context, properties):    
+        info = RMAN_BL_NODE_DESCRIPTIONS.get(properties.rman_light_name, properties.rman_light_name)
+        return info
+
     def execute(self, context):
         bpy.ops.object.light_add(type='AREA')
         light_ob = context.selected_objects[0]
@@ -179,6 +184,11 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
 
     rman_lightfilter_name: EnumProperty(items=get_type_items, name="Light Filter Name")
     add_to_selected: BoolProperty(default=True)
+
+    @classmethod
+    def description(cls, context, properties):    
+        info = RMAN_BL_NODE_DESCRIPTIONS.get(properties.rman_lightfilter_name, properties.rman_lightfilter_name)
+        return info    
 
     def execute(self, context):
         selected_objects = context.selected_objects
@@ -266,7 +276,7 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
 class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
     bl_idname = "object.rman_create_meshlight"
     bl_label = "Create Mesh Light"
-    bl_description = "Convert selected object to a mesh light"
+    bl_description = "Convert the selected object to a mesh light"
     bl_options = {"REGISTER", "UNDO"}
 
     def create_mesh_light_material(self, context):

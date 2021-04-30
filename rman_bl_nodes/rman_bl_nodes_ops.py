@@ -2,6 +2,7 @@ from bpy.props import EnumProperty, StringProperty, BoolProperty, IntProperty
 from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
 from .. import rman_render
+from ..rman_constants import RMAN_BL_NODE_DESCRIPTIONS
 from ..rfb_utils.shadergraph_utils import find_node, find_selected_pattern_node, is_socket_same_type
 import bpy
 import os
@@ -209,6 +210,11 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
     bl_description = "Create and connect selected node."
 
     node_name: StringProperty(default="")
+
+    @classmethod
+    def description(cls, context, properties):    
+        info = RMAN_BL_NODE_DESCRIPTIONS.get(properties.node_name, properties.node_name)
+        return info     
 
     def execute(self, context):
         nt = getattr(context, 'nodetree', None)

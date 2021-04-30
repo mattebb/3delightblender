@@ -1,5 +1,6 @@
 from .. import rman_bl_nodes
 from ..rfb_icons import get_bxdf_icon, get_light_icon, get_lightfilter_icon, get_projection_icon
+from ..rman_constants import RMAN_BL_NODE_DESCRIPTIONS
 
 def get_bxdf_items():
  
@@ -30,7 +31,8 @@ def get_light_items():
         if n.name != dflt:
             i += 1
             light_icon = get_light_icon(n.name)
-            items.append( (n.name, n.name, '', light_icon.icon_id, i))
+            description = RMAN_BL_NODE_DESCRIPTIONS.get(n.name, '')
+            items.append( (n.name, n.name, description, light_icon.icon_id, i))
     return items    
 
 def get_lightfilter_items():
@@ -43,7 +45,8 @@ def get_lightfilter_items():
         if n.name != dflt:
             i += 1
             light_icon = get_lightfilter_icon(n.name)
-            items.append( (n.name, n.name, '', light_icon.icon_id, i))
+            description = RMAN_BL_NODE_DESCRIPTIONS.get(n.name, '')
+            items.append( (n.name, n.name, description, light_icon.icon_id, i))
     return items    
 
 def get_projection_items():
@@ -56,5 +59,6 @@ def get_projection_items():
         if n.name != dflt:
             i += 1
             proj_icon = get_projection_icon(n.name)
-            items.append( (n.name, n.name, '', proj_icon.icon_id, i))
+            description = RMAN_BL_NODE_DESCRIPTIONS.get(n.name, '')
+            items.append( (n.name, n.name, description, proj_icon.icon_id, i))
     return items        
