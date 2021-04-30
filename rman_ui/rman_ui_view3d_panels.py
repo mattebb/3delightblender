@@ -2,6 +2,7 @@ from .. import rfb_icons
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import draw_utils
 from .rman_ui_base import _RManPanelHeader
+from ..rman_render import RmanRender
 import bpy
 
 class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
@@ -17,11 +18,6 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout = self.layout
         scene = context.scene
         rm = scene.renderman
-
-        # save Scene
-        # layout.operator("wm.save_mainfile", text="Save Scene", icon='FILE_TICK')
-
-        # layout.separator()
 
         if context.scene.render.engine != "PRMAN_RENDER":
             return
@@ -242,10 +238,40 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         rman_info = rfb_icons.get_icon("rman_blender")
         layout.operator("wm.url_open", text="About RenderMan",
                         icon_value=rman_info.icon_id).url = "https://renderman.pixar.com/store/intro"
- 
 
+class RENDER_PT_renderman_live_stats(bpy.types.Panel, _RManPanelHeader):
+    bl_label = "RenderMan Live Statistics"
+    bl_options = {'DEFAULT_CLOSED'}
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Renderman"
+
+    def draw(self, context):
+
+        layout = self.layout
+        scene = context.scene
+        rm = scene.renderman         
+        rr = RmanRender.get_rman_render()
+        layout.label(text='Diagnostics')
+        layout.separator()
+        box = layout.box()
+        if rr.stats_mgr.web_socket_enabled:
+            if rr.stats_mgr.is_connected():
+                for label, data in rr.stats_mgr.render_live_stats.items():
+                    if label:
+                        box.label(text='%s: %s' % (label, data))
+                if rr.rman_running:   
+                    box.prop(rm, 'roz_stats_iterations', slider=True, text='Iterations (%d / %d)' % (rr.stats_mgr._iterations, rr.stats_mgr._maxSamples))
+                    box.prop(rm, 'roz_stats_progress', slider=True)
+            else:
+                box.label(text='(not connected)')
+                layout.operator('renderman.attach_stats_render')
+        else:
+            box.label(text='(live stats disabled)')                        
+ 
 classes = [
     PRMAN_PT_Renderman_UI_Panel,
+    RENDER_PT_renderman_live_stats
 
 ]
 

@@ -3,7 +3,6 @@ from .rman_ui_base import CollectionPanel
 from .rman_ui_base import PRManButtonsPanel
 from ..rfb_utils.draw_utils import _draw_ui_from_rman_config
 from ..rman_constants import NODE_LAYOUT_SPLIT
-from ..rman_render import RmanRender
 from ..rfb_utils import prefs_utils
 from .. import rfb_icons
 from bpy.types import Panel
@@ -168,32 +167,6 @@ class RENDER_PT_renderman_advanced_settings(PRManButtonsPanel, Panel):
         rm = scene.renderman
 
         _draw_ui_from_rman_config('rman_properties_scene', 'RENDER_PT_renderman_advanced_settings', context, layout, rm)  
-
-class RENDER_PT_renderman_stats_settings(PRManButtonsPanel, Panel):
-    bl_label = "Live Statistics"
-    bl_options = {'DEFAULT_CLOSED'}
-
-    def draw(self, context):
-
-        layout = self.layout
-        scene = context.scene
-        rm = scene.renderman         
-        rr = RmanRender.get_rman_render()
-        layout.label(text='Diagnostics')
-        layout.separator()
-        box = layout.box()
-        if rr.stats_mgr.web_socket_enabled:
-            if rr.stats_mgr.is_connected():
-                for label, data in rr.stats_mgr.render_live_stats.items():
-                    if label:
-                        box.label(text='%s: %s' % (label, data))
-                if rr.rman_running:   
-                    box.prop(rm, 'roz_stats_iterations', slider=True, text='Iterations (%d / %d)' % (rr.stats_mgr._iterations, rr.stats_mgr._maxSamples))
-                    box.prop(rm, 'roz_stats_progress', slider=True)
-            else:
-                box.label(text='(not connected)')
-        else:
-            box.label(text='(web socket server disabled)')
                 
 class RENDER_PT_renderman_custom_options(PRManButtonsPanel, Panel):
     bl_label = "Custom Options"
@@ -211,7 +184,6 @@ class RENDER_PT_renderman_custom_options(PRManButtonsPanel, Panel):
 
 classes = [
     RENDER_PT_renderman_render,
-    RENDER_PT_renderman_stats_settings,     
     RENDER_PT_renderman_spooling,
     RENDER_PT_renderman_spooling_export_options,    
     RENDER_PT_renderman_baking,
