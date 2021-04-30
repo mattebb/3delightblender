@@ -154,13 +154,8 @@ class RfBStatsManager(object):
                 return       
         
     def attach(self):
-        """
-        """
-        # 
-        # TODO put WebSocket client host/port into config
-        host = "127.0.0.1"
-        #port = int(self.mgr.config["webSocketPort"])
-        port = 8080
+        host = self.mgr.config["webSocketHost"]
+        port = int(self.mgr.config["webSocketPort"])
 
         if not self.mgr:
             return 
