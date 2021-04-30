@@ -446,7 +446,7 @@ class RmanScene(object):
         h = int(self.bl_scene.render.resolution_y * scale)
         options.SetIntegerArray(self.rman.Tokens.Rix.k_Ri_FormatResolution, (w, h), 2)
         options.SetFloat(self.rman.Tokens.Rix.k_Ri_PixelVariance, get_pref('rman_preview_renders_pixelVariance', default=0.15))
-        options.SetInteger(self.rman.Tokens.Rix.k_threads, -2)
+        options.SetInteger(self.rman.Tokens.Rix.k_limits_threads, -2)
         options.SetString(self.rman.Tokens.Rix.k_bucket_order, 'horizontal')
         self.sg_scene.SetOptions(options)
 

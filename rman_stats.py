@@ -21,9 +21,9 @@ __LIVE_METRICS__ = [
     ["/rman/raytracing.numRays", "Rays/Sec"],
     ["/rman/renderer@progress", None],
     ['/rman@iterationComplete', None],
-    ["/rman.timeToFirstRaytrace", "Time to first Ray"],
-    ["/rman.timeToFirstPixel", "Time to first Pixel"],
-    ["/rman.timeToFirstIteration", "Time to first Iteration"],    
+    ["/rman.timeToFirstRaytrace", "First Ray"],
+    ["/rman.timeToFirstPixel", "First Pixel"],
+    ["/rman.timeToFirstIteration", "First Iteration"],    
 ]
 
 class RfBBaseMetric(object):
@@ -269,8 +269,12 @@ class RfBStatsManager(object):
                 elif name == "/rman/renderer@progress":
                     progressVal = int(float(dat['payload']))
                     self._progress = progressVal                      
-                else:
-                    self.render_live_stats[label] = str(dat['payload'])           
+                elif name in ["/rman.timeToFirstRaytrace",
+                              "/rman.timeToFirstPixel", 
+                              "/rman.timeToFirstIteration"]:
+                    self.render_live_stats[label] = '%s secs' % str(dat['payload'])       
+                else:    
+                    self.render_live_stats[label] = str(dat['payload'])
 
         self.draw_stats()
 
