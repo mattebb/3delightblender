@@ -7,7 +7,7 @@ from ..rfb_utils.envconfig_utils import envconfig
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import object_utils
 from ..rman_constants import RFB_ADDON_PATH, RMAN_BL_NODE_DESCRIPTIONS
-from .rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items
+from .rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items, get_description
 from bpy.props import EnumProperty, StringProperty, BoolProperty
 from bpy_extras.io_utils import ImportHelper
 import mathutils
@@ -42,6 +42,37 @@ class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
         default="*.*",
         options={'HIDDEN'},
         )        
+
+    @classmethod
+    def description(cls, context, properties):    
+        info = cls.bl_description
+        if properties.rman_prim_type == 'QUADRIC':
+            if properties.rman_quadric_type == 'SPHERE':
+                info = "Create a RenderMan sphere quadric."
+            elif properties.rman_quadric_type == 'CYLINDER':
+                info = "Create a RenderMan cylinder quadric."
+            elif properties.rman_quadric_type == 'CONE':
+                info = "Create a RenderMan cone quadric."
+            elif properties.rman_quadric_type == 'DISK':
+                info = "Create a RenderMan disk quadric." 
+            elif properties.rman_quadric_type == 'TORUS':
+                info = "Create a RenderMan torus quadric."                 
+        elif properties.rman_prim_type == 'RI_VOLUME':
+            info = "Create a volume object"
+        elif properties.rman_prim_type == 'DELAYED_LOAD_ARCHIVE':
+            info = "Load a RIB Archive."                 
+        elif properties.rman_prim_type == 'PROCEDURAL_RUN_PROGRAM':
+            info = "Load a RenderMan RunProgram procedural."             
+        elif properties.rman_prim_type == 'ALEMBIC':
+            info = "Load an Alembic archive and use the RenderMan Alembic procedural to render it."            
+        elif properties.rman_prim_type == 'DYNAMIC_LOAD_DSO':
+            info = "Load a RenderMan procedural DSO."
+        elif properties.rman_prim_type == 'BRICKMAP':
+            info = "Create a brickmap object. This allows you to load a brickmap (.bkm) file and use it as geometry."
+        elif properties.bl_prim_type == 'VOLUME':
+            info = "Create a OpenVDB object."
+
+        return info    
 
     def execute(self, context):
 
@@ -146,7 +177,7 @@ class PRMAN_OT_RM_Add_Light(bpy.types.Operator):
 
     @classmethod
     def description(cls, context, properties):    
-        info = RMAN_BL_NODE_DESCRIPTIONS.get(properties.rman_light_name, properties.rman_light_name)
+        info = get_description('light', properties.rman_light_name)
         return info
 
     def execute(self, context):
@@ -187,7 +218,7 @@ class PRMAN_OT_RM_Add_Light_Filter(bpy.types.Operator):
 
     @classmethod
     def description(cls, context, properties):    
-        info = RMAN_BL_NODE_DESCRIPTIONS.get(properties.rman_lightfilter_name, properties.rman_lightfilter_name)
+        info = get_description('lightfilter', properties.rman_lightfilter_name)
         return info    
 
     def execute(self, context):
@@ -238,6 +269,11 @@ class PRMAN_OT_RM_Add_bxdf(bpy.types.Operator):
         return get_bxdf_items()  
 
     bxdf_name: EnumProperty(items=get_type_items, name="Bxdf Name")
+
+    @classmethod
+    def description(cls, context, properties):
+        info = get_description('bxdf', properties.bxdf_name)
+        return info
 
     def execute(self, context):
         selection = bpy.context.selected_objects if hasattr(

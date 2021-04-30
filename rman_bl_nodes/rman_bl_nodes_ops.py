@@ -210,10 +210,14 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
     bl_description = "Create and connect selected node."
 
     node_name: StringProperty(default="")
+    node_description: StringProperty(default="")
 
     @classmethod
-    def description(cls, context, properties):    
-        info = RMAN_BL_NODE_DESCRIPTIONS.get(properties.node_name, properties.node_name)
+    def description(cls, context, properties): 
+        info = properties.node_name
+        info = RMAN_BL_NODE_DESCRIPTIONS.get(properties.node_name, info)
+        if properties.node_description:
+            info = properties.node_description   
         return info     
 
     def execute(self, context):

@@ -145,7 +145,7 @@ RMAN_BL_NODE_DESCRIPTIONS = {
     'PxrSphereLight': "This area light simulates point and spherical shaped light sources, like light bulbs, headlamps, and more!",
     'PxrDistantLight': "This infinite light simulates a bright distant light source like from the sun or moon. This light bathes the entire scene and treats the light as-if the rays are parallel by default",
     'PxrPortalLight': "Although a portal light is a rectangular shape, it is not interchangeable nor replaceable by a PxrRectLight because we get the illumination from the 3D environment using a PxrDomeLight. PxrPortalLight is one-sided. That is, there is no illumination behind the portal. If we need to illuminate the back side, we can create another portal facing the reverse direction.",
-    'PxrAOVLight': "Allows a lighting artist to output an AOV mask. Since it is a 'light', we can use light linking as well as light filter(s) to modify the output mask. This is a very handy 'utility' light to output shot-specific masks without needing to request them from the shading artists.",
+    'PxrAovLight': "Allows a lighting artist to output an AOV mask. Since it is a 'light', we can use light linking as well as light filter(s) to modify the output mask. This is a very handy 'utility' light to output shot-specific masks without needing to request them from the shading artists.",
     
     # Light Filters
     'PxrBarnLightFilter': "PxrBarnLightFilter allows us to create physically accurate window barns to simulate the real set lighting with correct shadowing. Its other usage include controlling bounce lights in a large scene. In addition to the physical mode, it also provides an analytic mode.",
@@ -166,15 +166,5 @@ RMAN_BL_NODE_DESCRIPTIONS = {
     'PxrDebugShadingContext': "This integrator is used to visualize data in the shading context, such as normals and texture coordinates. It is not designed to produce 'final-quality' images.",
     'PxrValidateBxdf': "This integrator serves mainly as a debugging tool to authors of Bxdf plugins.",
     'PxrVisualizer': "PxrVisualizer is a utility integrator that can be used to navigate large scenes and inspect geometry during Interactive re-rendering. It allows different styles of viewing, including shaded, flat, normals, st, wireframe.",
-
-    # Projections
-    'PxrCamera': "A camera model that approximates a number of real world physical effects. This supports all of the traditional prman perspective camera settings including shaped motion blur and bokeh.",
-    'PxrPanini': "This projection plug in creates the Panini Projection used to render reasonable images with a wide field of view. Some tweaking during interactive rendering will allow you to reach a comfortable compression amount for your chosen field of view. Note that we do not currently redice/tessellate during these changes and you should restart the render after reaching a good setting to preview the geometry correctly.",
-
-    # sample/display filters
-    'PxrLightSaturation': "A simple display filter that changes the color saturation in the beauty pass (or any other arbitrary output variable) according to whether a region is lit or shadowed by particular light group.",
-    'PxrImageDisplayFilter': "PxrImageDisplayFilter is used to render an image plate for in-render compositing. It can be used in conjunction with the holdout workflow to composite 3D elements onto 2D plates.",
-    'PxrShadowDisplayFilter': "PxrShadowDisplayFilter is used to generate a normalized shadow output. It can be used in conjunction with the holdout workflow to composite 3D elements onto 2D plates.",
-    'PxrCryptomatte': "Cryptomatte was developed by Psyop Studios for use in production pipelines. The current version is Cryptomatte 1.2.0.\nThe output of the sample filter allows artists to (mostly) automatically generate IDs for use in a compositing package such as Nuke for selecting and masking operations to specific objects or material selections. You will find example files in the Katana and Maya pages on Cryptomatte output. Below are object and material results of Cryptomatte output on a simple scene with a teapot.",
 
 }

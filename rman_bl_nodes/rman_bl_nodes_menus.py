@@ -114,7 +114,9 @@ class NODE_MT_renderman_connection_menu(Menu):
                 layout.context_pointer_set("nodetree", nt)
                 rman_icon = rfb_icons.get_displacement_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
-                op.node_name = n.name     
+                op.node_name = n.name    
+                if n.help:
+                    op.node_description = n.help                 
         elif renderman_type == 'integrator':    
             for n in rman_bl_nodes.__RMAN_INTEGRATOR_NODES__:
                 layout.context_pointer_set("node", node)
@@ -122,6 +124,8 @@ class NODE_MT_renderman_connection_menu(Menu):
                 rman_icon = rfb_icons.get_integrator_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
                 op.node_name = n.name    
+                if n.help:
+                    op.node_description = n.help
         elif 'samplefilter' in renderman_type:    
             for n in rman_bl_nodes.__RMAN_SAMPLEFILTER_NODES__:
                 layout.context_pointer_set("node", node)
@@ -129,20 +133,26 @@ class NODE_MT_renderman_connection_menu(Menu):
                 rman_icon = rfb_icons.get_samplefilter_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
                 op.node_name = n.name 
+                if n.help:
+                    op.node_description = n.help                
         elif 'displayfilter' in renderman_type:    
             for n in rman_bl_nodes.__RMAN_DISPLAYFILTER_NODES__:
                 layout.context_pointer_set("node", node)
                 layout.context_pointer_set("nodetree", nt)
                 rman_icon = rfb_icons.get_displayfilter_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
-                op.node_name = n.name         
+                op.node_name = n.name       
+                if n.help:
+                    op.node_description = n.help                  
         elif 'projection' in renderman_type:    
             for n in rman_bl_nodes.__RMAN_PROJECTION_NODES__:
                 layout.context_pointer_set("node", node)
                 layout.context_pointer_set("nodetree", nt)
                 rman_icon = rfb_icons.get_samplefilter_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
-                op.node_name = n.name                                                                                            
+                op.node_name = n.name  
+                if n.help:
+                    op.node_description = n.help                                                                                                          
         elif renderman_type == 'bxdf':    
             for bxdf_cat, bxdfs in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
                 if not bxdfs[1]:
@@ -195,6 +205,8 @@ class NODE_MT_renderman_connection_menu(Menu):
                         rman_icon = rfb_icons.get_pattern_icon(n.name)
                         op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
                         op.node_name = rman_bl_nodes.__BL_NODES_MAP__.get(n.name) 
+                        if n.help:
+                            op.node_description = n.help                        
                         break                                   
 
         elif renderman_type == 'bxdf':
@@ -392,7 +404,9 @@ def register_renderman_bxdf_node_submenus():
             for n in bxdfs[1]:
                 rman_icon = rfb_icons.get_bxdf_icon(n.name)
                 op = layout.operator('node.rman_shading_create_node', text=n.name, icon_value=rman_icon.icon_id)
-                op.node_name = n.name                     
+                op.node_name = n.name
+                if n.help:
+                    op.node_description = n.help
 
     for bxdf_cat, ((desc, items), lst) in rman_bl_nodes.__RMAN_NODE_CATEGORIES__['bxdf'].items():
         if not items:
@@ -453,6 +467,8 @@ def register_renderman_pattern_node_submenus():
                         label = n.name
                         op = layout.operator('node.rman_shading_create_node', text=label, icon_value=rman_icon.icon_id)
                         op.node_name = n.name 
+                        if n.help:
+                            op.node_description = n.help
                         break   
 
 

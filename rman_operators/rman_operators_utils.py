@@ -2,6 +2,18 @@ from .. import rman_bl_nodes
 from ..rfb_icons import get_bxdf_icon, get_light_icon, get_lightfilter_icon, get_projection_icon
 from ..rman_constants import RMAN_BL_NODE_DESCRIPTIONS
 
+def get_description(category, node_name):
+    description = None
+    for n in rman_bl_nodes.__RMAN_NODES__.get(category, list()):
+        if n.name == node_name:
+            if n.help:
+                description = n.help
+            break
+    if not description:
+        description = RMAN_BL_NODE_DESCRIPTIONS.get(node_name, node_name)
+    return description
+
+
 def get_bxdf_items():
  
     items = []
@@ -31,7 +43,10 @@ def get_light_items():
         if n.name != dflt:
             i += 1
             light_icon = get_light_icon(n.name)
-            description = RMAN_BL_NODE_DESCRIPTIONS.get(n.name, '')
+            description = get_description('light', n.name)
+            description = RMAN_BL_NODE_DESCRIPTIONS.get(n.name, n.name)
+            if n.help:
+                description = n.help            
             items.append( (n.name, n.name, description, light_icon.icon_id, i))
     return items    
 
@@ -45,7 +60,9 @@ def get_lightfilter_items():
         if n.name != dflt:
             i += 1
             light_icon = get_lightfilter_icon(n.name)
-            description = RMAN_BL_NODE_DESCRIPTIONS.get(n.name, '')
+            description = RMAN_BL_NODE_DESCRIPTIONS.get(n.name, n.name)
+            if n.help:
+                description = n.help
             items.append( (n.name, n.name, description, light_icon.icon_id, i))
     return items    
 
@@ -59,6 +76,8 @@ def get_projection_items():
         if n.name != dflt:
             i += 1
             proj_icon = get_projection_icon(n.name)
-            description = RMAN_BL_NODE_DESCRIPTIONS.get(n.name, '')
+            description = RMAN_BL_NODE_DESCRIPTIONS.get(n.name, n.name)
+            if n.help:
+                description = n.help            
             items.append( (n.name, n.name, description, proj_icon.icon_id, i))
     return items        

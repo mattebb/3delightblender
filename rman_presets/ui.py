@@ -158,12 +158,23 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
                 ass.load(json_path)
                 label = ass.label()       
                 thumb = icons.get_preset_icon(path)
+                metadict = ass.getMetadataDict()
+                preset_description = '%s\n' % label
+                preset_description += '\nAuthor: %s' %  ass.getMetadata('author')
+                preset_description += '\nVersion: %s' % str(ass.getMetadata('version'))
+                preset_description += '\nVersion: %s' % ass.getMetadata('created')              
+                for k,v in metadict.items():
+                    preset_description += '\n%s: %s' % (str(k), str(v))
+
                 if selected_objects:
                     assign = layout.operator("renderman.load_asset_to_scene", text=label, icon_value=thumb.icon_id)
                     assign.preset_path = json_path
+                    assign.preset_description = preset_description
                     assign.assign = True   
                 else:             
-                    layout.operator("renderman.load_asset_to_scene", text=label, icon_value=thumb.icon_id).preset_path = json_path                      
+                    op = layout.operator("renderman.load_asset_to_scene", text=label, icon_value=thumb.icon_id)
+                    op.preset_path = json_path
+                    op.preset_description = preset_description
         else: 
             for asset in hostPrefs.getAssetList(current_category_path):
                 ass = ra.RmanAsset()
@@ -171,8 +182,17 @@ class VIEW3D_MT_renderman_presets_object_context_menu(bpy.types.Menu):
                 json_path = os.path.join(path, 'asset.json')
                 ass.load(json_path)
                 label = ass.label()       
-                thumb = icons.get_preset_icon(path)       
-                layout.operator("renderman.load_asset_to_scene", text=label, icon_value=thumb.icon_id).preset_path = json_path  
+                thumb = icons.get_preset_icon(path)  
+                metadict = ass.getMetadataDict()
+                preset_description = '%s\n' % label
+                preset_description += '\nAuthor: %s' %  ass.getMetadata('author')
+                preset_description += '\nVersion: %s' % str(ass.getMetadata('version'))
+                preset_description += '\nVersion: %s' % ass.getMetadata('created')              
+                for k,v in metadict.items():
+                    preset_description += '\n%s: %s' % (str(k), str(v))                     
+                op = layout.operator("renderman.load_asset_to_scene", text=label, icon_value=thumb.icon_id)
+                op.preset_path = json_path  
+                op.preset_description = preset_description
 
 class PRMAN_MT_renderman_preset_ops_menu(bpy.types.Menu):
     bl_label = "Preset Ops"
@@ -220,6 +240,7 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
 
     bl_idname = "renderman.rman_open_presets_editor"
     bl_label = "RenderMan Preset Browser"
+    bl_description = "Open the RenderMan Preset Browser"
 
     def load_presets(self, context):
         hostPrefs = rab.get_host_prefs()

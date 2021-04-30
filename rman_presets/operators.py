@@ -80,6 +80,14 @@ class PRMAN_OT_load_asset_to_scene(bpy.types.Operator):
 
     preset_path: StringProperty(default='')
     assign: BoolProperty(default=False)
+    preset_description: StringProperty(default='')
+
+    @classmethod
+    def description(cls, context, properties):    
+        info = cls.bl_description
+        if properties.preset_description:
+            info = properties.preset_description
+        return info    
 
     def invoke(self, context, event):
         from . import rmanAssetsBlender
