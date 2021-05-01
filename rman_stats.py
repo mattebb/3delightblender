@@ -120,7 +120,7 @@ class RfBStatsManager(object):
 
     def update_session_config(self):
 
-        self.web_socket_enabled = prefs_utils.get_pref('rman_roz_webSocketServer', default=True)
+        self.web_socket_enabled = prefs_utils.get_pref('rman_roz_webSocketServer', default=False)
         self.web_socket_port = prefs_utils.get_pref('rman_roz_webSocketServer_Port', default=9723)
 
         config_dict = dict()
