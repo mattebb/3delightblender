@@ -241,12 +241,18 @@ class VIEW3D_MT_RM_Stylized_Menu(bpy.types.Menu):
     def draw(self, context):
         rm = context.scene.renderman
         layout = self.layout
+        '''
         if rm.render_rman_stylized: 
             layout.operator_menu_enum('node.rman_attach_stylized_pattern', 'stylized_pattern')
             layout.operator("scene.rman_open_stylized_editor", text="Stylized Looks Editor")    
         else:
             op = layout.operator("scene.rman_enable_stylized_looks", text="Enable Stylized Looks")   
             op.open_editor = True
+        ''' 
+        if rm.render_rman_stylized: 
+            layout.operator_menu_enum('node.rman_attach_stylized_pattern', 'stylized_pattern')
+        layout.operator("scene.rman_open_stylized_editor", text="Stylized Looks Editor")    
+            
 
 class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
     bl_label = "Render"

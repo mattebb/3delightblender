@@ -79,7 +79,7 @@
             }              
         },       
         {
-            "panel": "RENDER_PT_renderman_render",
+            "panel": "",
             "page": "",
             "name": "render_rman_stylized",
             "label": "Stylized Render",

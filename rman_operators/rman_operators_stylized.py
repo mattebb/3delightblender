@@ -1,6 +1,7 @@
 import bpy
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from ..rfb_utils import shadergraph_utils
+from ..rfb_utils import object_utils
 from .. import rman_bl_nodes
 from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES  
 
@@ -55,9 +56,14 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
     stylized_pattern: EnumProperty(name="", items=rman_stylized_patterns)
 
     def attach_pattern(self, context, ob):
-        if len(ob.material_slots) < 1:
+        mat = object_utils.get_active_material(ob)
+        if not mat:
             bpy.ops.object.rman_add_bxdf('EXEC_DEFAULT', bxdf_name='PxrSurface')
-        mat = ob.material_slots[0].material
+            mat = object_utils.get_active_material(ob)
+
+        if not mat:
+            self.report({'ERROR'}, 'Cannot find a material for: %s' % ob.name)
+        
         nt = mat.node_tree
         output = shadergraph_utils.is_renderman_nodetree(mat)
         if not output:

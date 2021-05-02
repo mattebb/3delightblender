@@ -439,9 +439,9 @@ def find_all_stylized_filters(world):
 def has_stylized_pattern_node(ob, node=None):
     prop_name = ''
     if not node:
-        if len(ob.material_slots) < 1:
+        mat = object_utils.get_active_material(ob)
+        if not mat:
             return False
-        mat = ob.material_slots[0].material
         nt = mat.node_tree
         output = is_renderman_nodetree(mat)
         if not output:

@@ -9,9 +9,11 @@ from ..rfb_utils import object_utils
 from ..rfb_utils.envconfig_utils import envconfig
 from .. import rfb_icons
 from ..rman_operators.rman_operators_collections import return_empty_list   
-from ..rman_constants import RFB_MAX_USER_TOKENS, RMAN_STYLIZED_FILTERS  
+from ..rman_constants import RFB_MAX_USER_TOKENS, RMAN_STYLIZED_FILTERS, RFB_ADDON_PATH  
 from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 import bpy
+import bpy_extras
+import os
 import re
 
 class RENDERMAN_UL_LightLink_Light_List(bpy.types.UIList):
@@ -605,6 +607,44 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
         width = rfb_config['editor_preferences']['tracesets_editor']['width']
         return wm.invoke_props_dialog(self, width=width)  
 
+class PRMAN_OT_Renderman_Open_Stylized_Help(bpy.types.Operator):
+    bl_idname = "renderman.rman_stylized_help"
+    bl_label = "Stylized Help" 
+    bl_description = "Get help on how to use RenderMan Stylzied Looks"
+
+    def execute(self, context):
+        return{'FINISHED'}     
+
+    def draw(self, context):
+        layout = self.layout       
+        box = layout.box()
+        box.scale_y = 0.4
+        rman_icon = rfb_icons.get_icon('out_PxrStylizedControl')
+        box.label(text="RenderMan Stylized Looks HOWTO", icon_value = rman_icon.icon_id)
+        rman_icon = rfb_icons.get_icon('help_stylized_1')
+        box.template_icon(rman_icon.icon_id, scale=10.0)
+        box.label(text="")
+        box.label(text="To start using RenderMan Stylized Looks, click the Enable Stylized Looks.")
+        box.label(text="")
+        box.label(text="Stylized looks requires BOTH a stylized pattern node") 
+        box.label(text="be connected in an object's shading material network")
+        box.label(text="and one of the stylized display filters be present in the scene.")
+        box.label(text="")
+        box.label(text="In the RenderMan Stylized Editor, the Patterns tab allows you to")
+        box.label(text="search for an object in the scene and attach a PxrStylizedControl pattern.")
+        box.label(text="You can use the drop down list or do a filter search to select the object you want to stylized.")
+        box.label(text="If no material is present, a PxrSurface material will automatically be created for you.")
+        box.label(text="The stylized pattern allows for per-object control.")
+        box.label(text="")
+        box.label(text="The Filters tab allows you to add one of the stylized display filters.")
+        box.label(text="The filters can be turned on and off, individually.")
+        box.label(text="As mentioned in earlier, both the patterns and the filters need to be present.")
+        box.label(text="So you need to add at least one filter for the stylized looks to work.")       
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=500)  
+
 class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
 
     bl_idname = "scene.rman_open_stylized_editor"
@@ -693,8 +733,8 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
     stylized_tabs: EnumProperty(
         name="",
         items=[
-            ('patterns', 'Patterns', ''),
-            ('filters', 'Filters', ''),
+            ('patterns', 'Patterns', 'Add or eidt stylized patterns attached to objects in the scene'),
+            ('filters', 'Filters', 'Add or edit stylized display filters in the scene'),
         ]
     )
 
@@ -714,6 +754,20 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
     stylized_objects: EnumProperty(
         name="",
         items=get_stylized_objects
+    )
+
+    def update_render_stylized(self, context):
+        scene = context.scene
+        rm = scene.renderman
+        rm.render_rman_stylized = self.enabled_render_stylized
+        if rm.render_rman_stylized:
+            bpy.ops.renderman.dspy_displays_reload('EXEC_DEFAULT')
+        world = scene.world
+        world.update_tag()            
+
+    enabled_render_stylized: BoolProperty(
+        name="Enable Stylized Looks",
+        update=update_render_stylized
     )
          
     def execute(self, context):
@@ -817,14 +871,16 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         layout = self.layout  
         scene = context.scene 
         rm = scene.renderman         
-        row = layout.row(align=True)
+        split = layout.split()
+        row = split.row()
         col = row.column()
+        col.prop(self, 'enabled_render_stylized', text='Enable Stylized Looks')
+        col = row.column()
+        icon = rfb_icons.get_icon('rman_help')
+        col.operator("renderman.rman_stylized_help", text="", icon_value=icon.icon_id)
         if not rm.render_rman_stylized:
-            op = col.operator('scene.rman_enable_stylized_looks')        
-            op.open_editor = False
             return
-        col.operator('scene.rman_disable_stylized_looks')        
-        
+
         row = layout.row(align=True)
         row.prop_tabs_enum(self, 'stylized_tabs', icon_only=False)
 
@@ -833,9 +889,11 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         else:
             self.draw_filters_tab(context)
         
-           
-
+        
     def invoke(self, context, event):
+        scene = context.scene
+        rm = scene.renderman
+        self.properties.enabled_render_stylized = rm.render_rman_stylized
         wm = context.window_manager
         width = rfb_config['editor_preferences']['stylizedlooks_editor']['width']
         return wm.invoke_props_dialog(self, width=width)
@@ -849,6 +907,7 @@ classes = [
     RENDERMAN_UL_LightLink_Light_List,
     RENDERMAN_UL_LightLink_Object_List,
     RENDERMAN_UL_LightMixer_Group_Members_List,
+    PRMAN_OT_Renderman_Open_Stylized_Help,
     PRMAN_OT_Renderman_Open_Stylized_Editor
 ]
 
