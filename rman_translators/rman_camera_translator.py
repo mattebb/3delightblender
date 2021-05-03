@@ -9,6 +9,10 @@ from ..rfb_utils import shadergraph_utils
 from mathutils import Matrix, Vector
 import math
 
+# copied from Blender's source code
+DEFAULT_SENSOR_WIDTH = 32.0
+DEFAULT_SENSOR_HEIGHT = 18.0
+
 def _render_get_resolution_(r):
     xres = int(r.resolution_x * r.resolution_percentage * 0.01)
     yres = int(r.resolution_y * r.resolution_percentage * 0.01)
@@ -89,6 +93,8 @@ class RmanCameraTranslator(RmanTranslator):
     def update_transform(self, ob, rman_sg_camera, index=0, seg=0):
         if self.rman_scene.is_viewport_render:
             self._update_viewport_transform(rman_sg_camera)
+        elif self.rman_scene.is_interactive and not ob:
+            self._update_viewport_transform(rman_sg_camera)
         else:
             self._update_render_cam_transform(ob, rman_sg_camera, index, seg)
 
@@ -126,6 +132,8 @@ class RmanCameraTranslator(RmanTranslator):
 
     def export(self, ob, db_name=""):
         if self.rman_scene.is_viewport_render:
+            return self._export_viewport_cam(db_name)
+        elif self.rman_scene.is_interactive and not ob:
             return self._export_viewport_cam(db_name)
         else:
             return self._export_render_cam(ob, db_name)
@@ -232,16 +240,25 @@ class RmanCameraTranslator(RmanTranslator):
 
             elif region_data.view_perspective ==  'PERSP': 
                 ob = self.rman_scene.context.space_data.camera 
-                cam = ob.data
+                cam = None
+                if ob:
+                    cam = ob.data
                 r = self.rman_scene.bl_scene.render
 
                 xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam, x=width, y=height)          
                 zoom = 2.0
+                if not cam:
+                    zoom = 1.0
 
                 # shift and offset            
+                shift_x = 0.0
+                shift_y = 0.0
+                if cam:
+                    shift_x = cam.shift_x
+                    shift_y = cam.shift_y
                 offset = tuple(rman_sg_camera.view_camera_offset)
-                dx = 2.0 * (aspectratio * cam.shift_x + offset[0] * xaspect * 2.0)
-                dy = 2.0 * (aspectratio * cam.shift_y + offset[1] * yaspect * 2.0)               
+                dx = 2.0 * (aspectratio * shift_x + offset[0] * xaspect * 2.0)
+                dy = 2.0 * (aspectratio * shift_y + offset[1] * yaspect * 2.0)               
 
                 if rman_sg_camera.lens != self.rman_scene.context.space_data.lens:
                     rman_sg_camera.lens = self.rman_scene.context.space_data.lens
@@ -253,12 +270,12 @@ class RmanCameraTranslator(RmanTranslator):
                     rman_sg_camera.aspectratio = aspectratio
                     updated = True               
 
-                if rman_sg_camera.shift_x != cam.shift_x:
-                    rman_sg_camera.shift_x = cam.shift_x
+                if rman_sg_camera.shift_x != shift_x:
+                    rman_sg_camera.shift_x = shift_x
                     updated = True
 
-                if rman_sg_camera.shift_y != cam.shift_y:
-                    rman_sg_camera.shift_y = cam.shift_y
+                if rman_sg_camera.shift_y != shift_y:
+                    rman_sg_camera.shift_y = shift_y
                     updated = True                        
 
                 sw = [-xaspect * zoom, xaspect * zoom, -yaspect * zoom, yaspect * zoom]
@@ -274,8 +291,10 @@ class RmanCameraTranslator(RmanTranslator):
                 prop.SetFloatArray(self.rman_scene.rman.Tokens.Rix.k_Ri_ScreenWindow, sw, 4)                                     
 
             else: 
-                ob = self.rman_scene.context.space_data.camera       
-                cam = ob.data
+                ob = self.rman_scene.context.space_data.camera 
+                cam = None
+                if ob:
+                    cam = ob.data
                 
                 r = self.rman_scene.bl_scene.render
 
@@ -284,8 +303,11 @@ class RmanCameraTranslator(RmanTranslator):
                 # 2.0 zoom value copied from cycles
                 zoom = 2.0
                 lens = self.rman_scene.context.space_data.lens
-                sensor = cam.sensor_height \
-                    if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+                if cam:
+                    sensor = cam.sensor_height \
+                        if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+                else:
+                    sensor = DEFAULT_SENSOR_WIDTH
 
                 ortho_scale = region_data.view_distance * sensor / lens
                 xaspect = xaspect * ortho_scale / (aspectratio * 2.0)
@@ -298,10 +320,15 @@ class RmanCameraTranslator(RmanTranslator):
                     rman_sg_camera.aspectratio = aspectratio
                     updated = True                               
 
-                # shift and offset            
+                # shift and offset   
+                shift_x = 0.0
+                shift_y = 0.0
+                if cam:
+                    shift_x = cam.shift_x
+                    shift_y = cam.shift_y                         
                 offset = tuple(rman_sg_camera.view_camera_offset)
-                dx = 2.0 * (aspectratio * cam.shift_x + offset[0] * xaspect * 2.0)
-                dy = 2.0 * (aspectratio * cam.shift_y + offset[1] * yaspect * 2.0)                            
+                dx = 2.0 * (aspectratio * shift_x + offset[0] * xaspect * 2.0)
+                dy = 2.0 * (aspectratio * shift_y + offset[1] * yaspect * 2.0)                            
 
                 sw = [-xaspect * zoom, xaspect * zoom, -yaspect * zoom, yaspect * zoom]
                 sw[0] += dx
@@ -396,15 +423,25 @@ class RmanCameraTranslator(RmanTranslator):
                     projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_focalDistance, dof_focal_distance)                       
 
         elif rman_sg_camera.view_perspective ==  'PERSP': 
-            cam = ob.data
+            cam = None
+            if ob:
+                cam = ob.data
             rman_sg_camera.bl_camera = ob
             
             aspectratio = rman_sg_camera.aspectratio
             lens = rman_sg_camera.lens 
-            sensor = cam.sensor_height \
-                if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
+            if cam:
+                sensor = cam.sensor_height \
+                    if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
                      
-            fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
+                fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
+            else:
+                # code from: 
+                # https://blender.stackexchange.com/questions/46391/how-to-convert-spaceview3d-lens-to-field-of-view
+                region_data = self.rman_scene.context.region_data
+                vmat_inv = region_data.view_matrix.inverted()
+                pmat = region_data.perspective_matrix @ vmat_inv
+                fov = 360.0 * math.atan(1.0/pmat[1][1]) / math.pi
 
             if rman_sg_camera.rman_fov == -1:
                 rman_sg_camera.rman_fov = fov  

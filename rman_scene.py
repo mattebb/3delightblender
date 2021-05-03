@@ -1177,22 +1177,24 @@ class RmanScene(object):
             self.sg_scene.Root().AddChild(self.main_camera.sg_node)
 
             # add camera so we don't mistake it for a new obj
-            self.rman_cameras[main_cam.original] = self.main_camera
-            
-            self.rman_objects[main_cam.original] = self.main_camera
+            if main_cam:
+                self.rman_cameras[main_cam.original] = self.main_camera
+                self.rman_objects[main_cam.original] = self.main_camera
       
-            self.processed_obs.append(main_cam.original)
+                self.processed_obs.append(main_cam.original)
         else:
             if self.is_interactive:
                 main_cam = self.context.space_data.camera
             db_name = object_utils.get_db_name(main_cam)
             rman_sg_camera = cam_translator.export(main_cam, db_name)
-            self.main_camera = rman_sg_camera         
-            self.rman_cameras[main_cam.original] = rman_sg_camera            
-            self.rman_objects[main_cam.original] = rman_sg_camera
+            self.main_camera = rman_sg_camera     
+            if main_cam:    
+                self.rman_cameras[main_cam.original] = rman_sg_camera            
+                self.rman_objects[main_cam.original] = rman_sg_camera
             
-            # resolution
-            cam_translator._update_render_resolution(main_cam, self.main_camera)            
+                # resolution
+                cam_translator._update_render_resolution(main_cam, self.main_camera)            
+                
             self.sg_scene.Root().AddChild(rman_sg_camera.sg_node)            
 
         # export all other scene cameras
