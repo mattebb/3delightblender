@@ -640,6 +640,14 @@ class PRMAN_OT_Renderman_Open_Stylized_Help(bpy.types.Operator):
         box.label(text="The filters can be turned on and off, individually.")
         box.label(text="As mentioned in earlier, both the patterns and the filters need to be present.")
         box.label(text="So you need to add at least one filter for the stylized looks to work.")       
+        rman_help = rfb_icons.get_icon("rman_help")
+        split = layout.split(factor=0.98)
+        row = split.row()
+        col = row.column()
+        col = row.column()
+        col.label(text="")        
+        row.operator("wm.url_open", text="RenderMan Docs",
+                        icon_value=rman_help.icon_id).url = "https://rmanwiki.pixar.com/display/RFB24"
 
     def invoke(self, context, event):
         wm = context.window_manager
