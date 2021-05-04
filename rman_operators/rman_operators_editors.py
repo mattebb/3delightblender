@@ -763,20 +763,6 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         name="",
         items=get_stylized_objects
     )
-
-    def update_render_stylized(self, context):
-        scene = context.scene
-        rm = scene.renderman
-        rm.render_rman_stylized = self.enabled_render_stylized
-        if rm.render_rman_stylized:
-            bpy.ops.renderman.dspy_displays_reload('EXEC_DEFAULT')
-        world = scene.world
-        world.update_tag()            
-
-    enabled_render_stylized: BoolProperty(
-        name="Enable Stylized Looks",
-        update=update_render_stylized
-    )
          
     def execute(self, context):
         return{'FINISHED'}   
@@ -882,7 +868,7 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         split = layout.split()
         row = split.row()
         col = row.column()
-        col.prop(self, 'enabled_render_stylized', text='Enable Stylized Looks')
+        col.prop(rm, 'render_rman_stylized', text='Enable Stylized Looks')
         col = row.column()
         icon = rfb_icons.get_icon('rman_help')
         col.operator("renderman.rman_stylized_help", text="", icon_value=icon.icon_id)
@@ -899,9 +885,6 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         
         
     def invoke(self, context, event):
-        scene = context.scene
-        rm = scene.renderman
-        self.properties.enabled_render_stylized = rm.render_rman_stylized
         wm = context.window_manager
         width = rfb_config['editor_preferences']['stylizedlooks_editor']['width']
         return wm.invoke_props_dialog(self, width=width)
