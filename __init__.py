@@ -124,7 +124,9 @@ class PRManRender(bpy.types.RenderEngine):
         if self.rman_render.rman_interactive_running:
             # report an error if a render is trying to start while IPR is running
             if self.is_preview and get_pref('rman_do_preview_renders', False):
-                self.report({'ERROR'}, 'Cannot start a preview render when IPR is running')
+                #self.report({'ERROR'}, 'Cannot start a preview render when IPR is running')
+                rfb_log().debug('Cannot start a preview render when IPR is running')
+                pass
             elif not self.is_preview:
                 self.report({'ERROR'}, 'Cannot start a render when IPR is running')
             return
