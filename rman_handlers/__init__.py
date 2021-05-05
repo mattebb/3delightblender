@@ -29,4 +29,7 @@ def unregister():
         bpy.app.handlers.load_post.remove(string_utils.update_blender_tokens_cb)
 
     if string_utils.update_blender_tokens_cb in bpy.app.handlers.save_post:
-        bpy.app.handlers.save_post.remove(string_utils.update_blender_tokens_cb)            
+        bpy.app.handlers.save_post.remove(string_utils.update_blender_tokens_cb)       
+
+    if texture_utils.txmanager_pre_save_cb in bpy.app.handlers.save_pre:
+        bpy.app.handlers.save_pre.remove(texture_utils.txmanager_pre_save_cb)                
