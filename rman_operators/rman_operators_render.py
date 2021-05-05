@@ -133,27 +133,22 @@ class PRMAN_OT_ExternalRender(bpy.types.Operator):
             rr.rman_scene.external_render = True
             spooler = rman_spool.RmanSpool(rr, rr.rman_scene, depsgraph)
             
-            # FIXME: we cannot use a temp file as all of the aovs
-            # would get the temp statsh scene filename in their filepaths
-            # For now, we just use the current scene. Definitely
-            # need to fix this.
-
             # create a temporary .blend file
 
-            #bl_scene_file = bpy.data.filepath
-            #pid = os.getpid()
-            #timestamp = int(time.time())
-            #_id = 'pid%s_%d' % (str(pid), timestamp)
-            #bl_filepath = os.path.dirname(bl_scene_file)
-            #bl_filename = os.path.splitext(os.path.basename(bl_scene_file))[0]
-            #bl_stash_scene_file = os.path.join(bl_filepath, '_%s%s_.blend' % (bl_filename, _id))
-            #bpy.ops.wm.save_as_mainfile(filepath=bl_stash_scene_file, copy=True)
-            #bl_stash_scene_file = bl_scene_file
-            #spooler.blender_batch_render(bl_stash_scene_file)
-
             bl_scene_file = bpy.data.filepath
-            bpy.ops.wm.save_as_mainfile(filepath=bl_scene_file, copy=True)
-            spooler.blender_batch_render(bl_scene_file)
+            pid = os.getpid()
+            timestamp = int(time.time())
+            _id = 'pid%s_%d' % (str(pid), timestamp)
+            bl_filepath = os.path.dirname(bl_scene_file)
+            bl_filename = os.path.splitext(os.path.basename(bl_scene_file))[0]
+            # set blend_token to the real filename
+            rm.blend_token = bl_filename
+            bl_stash_scene_file = os.path.join(bl_filepath, '_%s%s_.blend' % (bl_filename, _id))
+            bpy.ops.wm.save_as_mainfile(filepath=bl_stash_scene_file, copy=True)
+            spooler.blender_batch_render(bl_stash_scene_file)
+            # now reset the token back
+            rm.blend_token = ''
+
         else:
             self.report({'ERROR'}, 'Queuing system set to none')       
 

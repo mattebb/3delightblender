@@ -122,7 +122,11 @@ class StringExpression(object):
             self.tokens[user_token.name] = user_token.value
 
         unsaved = True if not bpy.data.filepath else False
-        if unsaved:
+        if rm.blend_token != "":
+            # check if the scene blend token is set
+            # usually this is set for batch renders
+            self.tokens['blend'] = rm.blend_token
+        elif unsaved:
             self.tokens['blend'] = 'UNTITLED'
         else:
             self.tokens['blend'] = os.path.splitext(os.path.split(bpy.data.filepath)[1])[0]             

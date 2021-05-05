@@ -72,6 +72,7 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
     # Tokens
     version_token: IntProperty(name="version", default=1, min=1)
     take_token: IntProperty(name="take", default=1, min=1)
+    blend_token: StringProperty(name="", default="")
     user_tokens: CollectionProperty(type=RendermanUserTokenGroup, name="User Tokens")
     user_tokens_index: IntProperty(min=-1, max=10, default=-1)
 
