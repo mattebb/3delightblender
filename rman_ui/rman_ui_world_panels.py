@@ -45,6 +45,8 @@ class DATA_PT_renderman_world_integrators(ShaderPanel, Panel):
         return rd.engine == 'PRMAN_RENDER' and world.renderman.use_renderman_node
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False        
         layout = self.layout
         world = context.scene.world
         rm = world.renderman
@@ -63,6 +65,8 @@ class DATA_PT_renderman_world_display_filters(ShaderPanel, Panel):
         return rd.engine == 'PRMAN_RENDER' and world.renderman.use_renderman_node
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False           
         layout = self.layout
         world = context.scene.world
         rm = world.renderman
@@ -114,6 +118,8 @@ class DATA_PT_renderman_world_sample_filters(ShaderPanel, Panel):
         return rd.engine == 'PRMAN_RENDER' and world.renderman.use_renderman_node
 
     def draw(self, context):
+        self.layout.use_property_split = True
+        self.layout.use_property_decorate = False           
         layout = self.layout
         world = context.scene.world
         rm = world.renderman
