@@ -389,6 +389,21 @@ class PRMAN_OT_Renderman_start_localqueue(bpy.types.Operator):
             subprocess.Popen([lq_path], env=environ, close_fds=True)
         return {'FINISHED'}        
 
+class PRMAN_OT_Renderman_start_licenseapp(bpy.types.Operator):
+    bl_idname = 'renderman.start_licenseapp'
+    bl_label = "Start LicenseApp"
+    bl_description = "Start LicenseApp"
+
+    def execute(self, context):
+        lapp_path = envconfig().rman_license_app_path
+        if not lapp_path:
+            self.report({"ERROR"},
+                        "Could not find LicenseApp.")
+        else:
+            environ = envconfig().copyenv()
+            subprocess.Popen([lapp_path], env=environ, close_fds=True)
+        return {'FINISHED'}           
+
 class PRMAN_OT_Select_Cameras(bpy.types.Operator):
     bl_idname = "object.select_cameras"
     bl_label = "Select Cameras"
@@ -496,6 +511,7 @@ classes = [
     PRMAN_OT_RM_Create_MeshLight,
     PRMAN_OT_Renderman_start_it,
     PRMAN_OT_Renderman_start_localqueue,
+    PRMAN_OT_Renderman_start_licenseapp,
     PRMAN_OT_Select_Cameras,
     PRMAN_MT_Camera_List_Menu,
     PRMAN_OT_Deletecameras,

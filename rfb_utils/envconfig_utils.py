@@ -24,6 +24,7 @@ class RmanEnvConfig(object):
         self.rman_it_path = ''
         self.rman_lq_path = ''
         self.rman_tractor_path = ''
+        self.rman_license_app_path = ''
         self.is_ncr_license = False
         self.is_valid_license = False
         self.license_info = None
@@ -36,6 +37,7 @@ class RmanEnvConfig(object):
         self._append_to_path(os.path.join(self.rmantree, 'bin'))
         self._set_it_path()
         self._set_localqueue_path()
+        self._set_license_app_path()
         self._config_pythonpath()
         self._set_ocio()
         self._get_license_info()
@@ -129,6 +131,15 @@ class RmanEnvConfig(object):
                 self.rmantree, 'bin', 'LocalQueue.app', 'Contents', 'MacOS', 'LocalQueue')
         else:
             self.rman_lq_path= os.path.join(self.rmantree, 'bin', 'LocalQueue')
+
+    def _set_license_app_path(self):
+        if platform.system() == 'Windows':
+            self.rman_license_app_path = os.path.join(self.rmantree, 'bin', 'LicenseApp.exe')
+        elif platform.system() == 'Darwin':
+            self.rman_license_app_path = os.path.join(
+                self.rmantree, 'bin', 'LicenseApp.app', 'Contents', 'MacOS', 'LicenseApp')
+        else:
+            self.rman_license_app_path= os.path.join(self.rmantree, 'bin', 'LicenseApp')            
 
     def _set_tractor_path(self):
         base = ""

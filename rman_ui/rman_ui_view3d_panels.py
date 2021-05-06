@@ -186,6 +186,8 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         box.operator("renderman.start_it", icon_value=rman_it.icon_id)  
         rman_lq = rfb_icons.get_icon("rman_localqueue")
         box.operator("renderman.start_localqueue", icon_value=rman_lq.icon_id)          
+        rman_lapp = rfb_icons.get_icon("rman_licenseapp")
+        box.operator("renderman.start_licenseapp", icon_value=rman_lapp.icon_id)        
         
         selected_objects = []
         selected_light_objects = []
