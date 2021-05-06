@@ -290,12 +290,15 @@ class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
             input = socket
             old_node = input.links[0].from_node
             link_node(nt, newnode, socket)
-            active_material = context.active_object.active_material
-            if active_material:
-                try:
-                    newnode.update_mat(active_material)
-                except:
-                    pass
+            if nt.id_data == context.scene.world.node_tree:
+                context.scene.world.update_tag()
+            else:
+                active_material = context.active_object.active_material
+                if active_material:
+                    try:
+                        newnode.update_mat(active_material)
+                    except:
+                        pass
         return {'FINISHED'}
 
 class NODE_OT_rman_preset_set_param(bpy.types.Operator):

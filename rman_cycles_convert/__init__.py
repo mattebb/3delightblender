@@ -162,7 +162,7 @@ def convert_world_nodetree(world, context, df_output=False):
     cycles_output_node = shadergraph_utils.find_node(world, 'ShaderNodeOutputWorld')
     add_filter = True
     filter_color = world.color
-    if cycles_output_node and cycles_output_node.inputs['Surface'].is_linked:
+    if do_cycles_convert() and cycles_output_node and cycles_output_node.inputs['Surface'].is_linked:
         # check if the linked node is a background node
         surf_node = cycles_output_node.inputs['Surface'].links[0].from_node
         if surf_node.bl_idname == 'ShaderNodeBackground':            

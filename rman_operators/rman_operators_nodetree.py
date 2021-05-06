@@ -13,6 +13,7 @@ class SHADING_OT_convert_all_renderman_nodetree(bpy.types.Operator):
     bl_idname = "material.rman_convert_all_cycles_shaders"
     bl_label = "Convert All Cycles to RenderMan"
     bl_description = "Convert all Cycles nodetrees to RenderMan. This is not guaranteed to work. It is still recommended to use RenderMan only nodes."
+    bl_options = {'INTERNAL'}
 
     def execute(self, context):
         for mat in bpy.data.materials:
@@ -111,6 +112,7 @@ class SHADING_OT_convert_cycles_to_renderman_nodetree(bpy.types.Operator):
     bl_idname = "material.rman_convert_cycles_shader"
     bl_label = "Convert Cycles Shader"
     bl_description = "Try to convert the current Cycles Shader to RenderMan. This is not guaranteed to work. It is still recommended to use RenderMan only nodes."
+    bl_options = {'INTERNAL'}
 
     idtype: StringProperty(name="ID Type", default="material")
     bxdf_name: StringProperty(name="Bxdf Name", default="LamaSurface")
@@ -165,6 +167,7 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
     bl_idname = "material.rman_add_rman_nodetree"
     bl_label = "Add RenderMan Nodetree"
     bl_description = "Add a RenderMan shader node tree"
+    bl_options = {'INTERNAL'}    
 
     idtype: StringProperty(name="ID Type", default="material")
 
@@ -319,6 +322,107 @@ class SHADING_OT_add_renderman_nodetree(bpy.types.Operator):
             wm = context.window_manager
             return wm.invoke_props_dialog(self)  
         return self.execute(context)
+
+class SHADING_OT_add_integrator_nodetree(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "material.rman_add_integrator_nodetree"
+    bl_label = "Add RenderMan Integrator Nodetree"
+    bl_description = "Add a RenderMan Integrator node tree"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        
+        world = context.scene.world
+
+        world.use_nodes = True
+        nt = world.node_tree
+       
+        # world
+        world.renderman.use_renderman_node = True
+        if shadergraph_utils.find_node(world, 'RendermanIntegratorsOutputNode'):
+            return {'FINISHED'}
+        output = nt.nodes.new('RendermanIntegratorsOutputNode')
+        node_name = rman_bl_nodes.__BL_NODES_MAP__.get('PxrPathTracer')
+        default = nt.nodes.new(node_name)
+        default.location = output.location
+        default.location[0] -= 200
+        nt.links.new(default.outputs[0], output.inputs[0]) 
+
+        # unselect all nodes
+        for n in nt.nodes:
+            n.select = False            
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event): 
+        return self.execute(context)        
+
+class SHADING_OT_add_displayfilters_nodetree(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "material.rman_add_displayfilters_nodetree"
+    bl_label = "Add RenderMan Dsiplay Filters Nodetree"
+    bl_description = "Add a RenderMan display filters node tree. Note, a PxrBackgroundDisplayFilter will be automatically added for you, that will inherit the world color."
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        
+        world = context.scene.world
+        world.use_nodes = True
+        nt = world.node_tree
+       
+        world.renderman.use_renderman_node = True
+        if shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode'):
+            return {'FINISHED'}
+
+        df_output = nt.nodes.new('RendermanDisplayfiltersOutputNode')
+        df_output.location = df_output.location
+        df_output.location[0] -= 300
+
+        rman_cycles_convert.convert_world_nodetree(world, context, df_output)
+
+        # unselect all nodes
+        for n in nt.nodes:
+            n.select = False            
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event): 
+        return self.execute(context)        
+
+
+class SHADING_OT_add_samplefilters_nodetree(bpy.types.Operator):
+
+    ''''''
+    bl_idname = "material.rman_add_samplefilters_nodetree"
+    bl_label = "Add RenderMan Sample Filters Nodetree"
+    bl_description = "Add a RenderMan sample filters node tree"
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        
+        world = context.scene.world
+        world.use_nodes = True
+        nt = world.node_tree
+
+        world.renderman.use_renderman_node = True
+        if shadergraph_utils.find_node(world, 'RendermanSamplefiltersOutputNode'):
+            return {'FINISHED'}
+
+        sf_output = nt.nodes.new('RendermanSamplefiltersOutputNode')
+        sf_output.location = sf_output.location
+        sf_output.location[0] -= 300
+
+        # unselect all nodes
+        for n in nt.nodes:
+            n.select = False            
+
+        return {'FINISHED'}
+
+    def invoke(self, context, event): 
+        return self.execute(context)        
+
 
 class PRMAN_OT_New_bxdf(bpy.types.Operator):
     bl_idname = "node.rman_new_bxdf"
@@ -518,6 +622,9 @@ classes = [
     SHADING_OT_convert_all_renderman_nodetree,
     SHADING_OT_convert_cycles_to_renderman_nodetree,
     SHADING_OT_add_renderman_nodetree,
+    SHADING_OT_add_integrator_nodetree,
+    SHADING_OT_add_displayfilters_nodetree,
+    SHADING_OT_add_samplefilters_nodetree,
     PRMAN_OT_New_bxdf,
     PRMAN_OT_New_Material_Override,
     PRMAN_OT_Force_Material_Refresh,

@@ -1228,7 +1228,8 @@ class RmanScene(object):
 
         world = self.bl_scene.world
 
-        if not world.renderman.use_renderman_node:
+        output = shadergraph_utils.find_node(world, 'RendermanDisplayfiltersOutputNode')
+        if not output:
             # put in a default background color, using world color, then bail
             if not self.world_df_node:
                 self.world_df_node = self.rman.SGManager.RixSGShader("DisplayFilter", "PxrBackgroundDisplayFilter", "__rman_world_df")
