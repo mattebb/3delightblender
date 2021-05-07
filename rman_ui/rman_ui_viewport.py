@@ -340,6 +340,11 @@ class PRMAN_OT_Viewport_Enhance(bpy.types.Operator):
         pass
 
     @classmethod
+    def poll(cls, context):
+        rman_render = RmanRender.get_rman_render()
+        return (rman_render.rman_scene.main_camera.projection_shader.name.CStr() == 'PxrCamera')
+
+    @classmethod
     def description(cls, context, properties):
         help = "NOTE: This only works with perspective cameras or the PxrCamera projection plugin.\n\n"
         help += "Embiggens the region around a pixel (X,Y) by zoom"
