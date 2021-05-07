@@ -94,7 +94,7 @@ __RMAN_NODES_NO_REGISTER__ = [
 ]
 
 # map RenderMan name to Blender node name
-# ex: PxrStylizedControl -> PxrStylizedControlPatternOSLNode
+# ex: PxrStylizedControl -> PxrStylizedControlPatternNode
 __BL_NODES_MAP__ = dict()
 
 __CYCLES_NODE_DESC_MAP__ = dict()
@@ -283,9 +283,6 @@ def generate_node_type(node_desc, is_oso=False):
 
     name = node_desc.name
     nodeType = node_desc.node_type
-    typename = '%s%sNode' % (name, nodeType.capitalize())
-    if is_oso:
-        typename = '%s%sOSLNode' % (name, nodeType.capitalize())
 
     nodeDict = {'bxdf': rman_bl_nodes_shaders.RendermanBxdfNode,
                 'pattern': rman_bl_nodes_shaders.RendermanPatternNode,
@@ -299,15 +296,16 @@ def generate_node_type(node_desc, is_oso=False):
 
     if nodeType not in nodeDict.keys():
         return (None, None)
+
+    typename = '%s%sNode' % (name, nodeType.capitalize())
     ntype = type(typename, (nodeDict[nodeType],), {})
-    '''
-    if is_oso:
-        ntype.bl_label = '%s.oso' % name
-    else:
-        ntype.bl_label = name
-    '''
+
     ntype.bl_label = name
     ntype.typename = typename
+    description = getattr(node_desc, 'help')
+    if not description:
+        description = name
+    ntype.bl_description = description
 
     def init(self, context):
         # add input/output sockets to nodes, based on type
@@ -449,6 +447,35 @@ def generate_node_type(node_desc, is_oso=False):
 
     bpy.utils.register_class(ntype)
 
+    if nodeType == 'pattern' and is_oso:
+        # This is mainly here for backwards compatability
+        #
+        # Originally, we postfix the class name with OSLNode
+        # when loading OSL pattern nodes. However, this would have
+        # caused problems when all of our C++ pattern nodes
+        # become OSL shaders; older scenes that were using the C++
+        # patterns will break because the old class name will not 
+        # exist anymore.
+        #
+        # We now register every pattern node with the none postfix
+        # name. However, this will now break all of the scenes that
+        # were created during the 24.0 beta, including our example scenes.
+        # Rather than try to come up with some fancy post load handler, just
+        # register the pattern node again with the postfix name. 
+        #
+        # This code should definitely be removed in the future.
+        osl_node_typename = '%s%sOSLNode' % (name, nodeType.capitalize())
+        osl_node_type = type(osl_node_typename, (nodeDict[nodeType],), {})
+
+        osl_node_type.bl_label = name
+        osl_node_type.typename = typename
+        osl_node_type.init = init
+        osl_node_type.free = free     
+        osl_node_type.bl_description = ntype.bl_description   
+        osl_node_type.__annotations__ = ntype.__annotations__
+        class_generate_properties(osl_node_type, name, node_desc)
+        bpy.utils.register_class(osl_node_type)
+
     return (typename, ntype)
 
 def register_plugin_to_parent(ntype, name, node_desc, plugin_type, parent):
@@ -484,6 +511,10 @@ def register_plugin_types(node_desc):
     ntype.typename = typename
     ntype.bl_idname = typename
     ntype.plugin_name = name
+    description = getattr(node_desc, 'help')
+    if not description:
+        description = name
+    ntype.bl_description = description    
 
     try:
         register_plugin_to_parent(ntype, name, node_desc, node_desc.node_type, parent)

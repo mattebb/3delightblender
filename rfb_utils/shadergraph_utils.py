@@ -480,9 +480,9 @@ def has_stylized_pattern_node(ob, node=None):
     return False
 
 def create_pxrlayer_nodes(nt, bxdf):
-    mixer = nt.nodes.new("PxrLayerMixerPatternOSLNode")
-    layer1 = nt.nodes.new("PxrLayerPatternOSLNode")
-    layer2 = nt.nodes.new("PxrLayerPatternOSLNode")
+    mixer = nt.nodes.new("PxrLayerMixerPatternNode")
+    layer1 = nt.nodes.new("PxrLayerPatternNode")
+    layer2 = nt.nodes.new("PxrLayerPatternNode")
 
     mixer.location = bxdf.location
     mixer.location[0] -= 300
