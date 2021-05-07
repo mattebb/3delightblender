@@ -295,6 +295,7 @@ class VIEW3D_MT_RM_Add_Render_Menu(bpy.types.Menu):
                 layout.operator("renderman_viewport.cropwindow", icon_value=rman_icon.icon_id)
                 rman_icon = rfb_icons.get_icon('rman_vp_snapshot')
                 layout.operator("renderman_viewport.snapshot", icon_value=rman_icon.icon_id)
+                layout.operator('renderman_viewport.enhance', icon='VIEW_ZOOM')                
             # texture cache clear      
             rman_icon = rfb_icons.get_icon('rman_lightning_grey')
             layout.operator('rman_txmgr_list.clear_all_cache', icon_value=rman_icon.icon_id)                 

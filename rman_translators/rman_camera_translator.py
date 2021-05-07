@@ -370,7 +370,7 @@ class RmanCameraTranslator(RmanTranslator):
         height = rman_sg_camera.res_height
         view_camera_zoom = rman_sg_camera.view_camera_zoom
 
-        proj = None
+        rman_sg_camera.projection_shader = None
         fov = -1
 
         updated = False
@@ -386,7 +386,7 @@ class RmanCameraTranslator(RmanTranslator):
                 if cam.sensor_fit == 'VERTICAL' else cam.sensor_width
 
             if cam.type == 'ORTHO':
-                proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")   
+                rman_sg_camera.projection_shader = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")   
                 updated = True
             else:
                 fov = 360.0 * math.atan((sensor * 0.5) / lens / aspectratio) / math.pi
@@ -400,15 +400,15 @@ class RmanCameraTranslator(RmanTranslator):
 
                 node = shadergraph_utils.find_projection_node(ob)        
                 if node:
-                    proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", node.bl_label, "proj")
-                    rman_sg_node = RmanSgNode(self.rman_scene, proj, "")                           
-                    property_utils.property_group_to_rixparams(node, rman_sg_node, proj, ob=cam) 
-                    projparams = proj.params
+                    rman_sg_camera.projection_shader = self.rman_scene.rman.SGManager.RixSGShader("Projection", node.bl_label, "proj")
+                    rman_sg_node = RmanSgNode(self.rman_scene, rman_sg_camera.projection_shader, "")                           
+                    property_utils.property_group_to_rixparams(node, rman_sg_node, rman_sg_camera.projection_shader, ob=cam) 
+                    projparams = rman_sg_camera.projection_shader.params
                     projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov) 
   
                 else:                
-                    proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrPerspective", "proj")
-                    projparams = proj.params         
+                    rman_sg_camera.projection_shader = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+                    projparams = rman_sg_camera.projection_shader.params         
                     projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov) 
 
                 if cam_rm.rman_use_dof:
@@ -450,17 +450,17 @@ class RmanCameraTranslator(RmanTranslator):
                 rman_sg_camera.rman_fov = fov  
                 updated = True               
 
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrPerspective", "proj")
-            projparams = proj.params         
+            rman_sg_camera.projection_shader = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+            projparams = rman_sg_camera.projection_shader.params         
             projparams.SetFloat(self.rman_scene.rman.Tokens.Rix.k_fov, fov)   
 
         else:
             # orthographic
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")  
+            rman_sg_camera.projection_shader = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")  
             updated = True        
 
         if updated or force_update:    
-            rman_sg_camera.sg_camera_node.SetProjection(proj)         
+            rman_sg_camera.sg_camera_node.SetProjection(rman_sg_camera.projection_shader)         
 
     def _set_fov(self, ob, cam, aspectratio, projparams):
         lens = cam.lens
@@ -573,36 +573,36 @@ class RmanCameraTranslator(RmanTranslator):
         rman_sg_camera.bl_camera = ob
 
         xaspect, yaspect, aspectratio = _render_get_aspect_(r, cam)
-        proj = None
+        rman_sg_camera.projection_shader = None
 
         node = shadergraph_utils.find_projection_node(ob)        
         if node:
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", node.bl_label, "proj")
-            rman_sg_node = RmanSgNode(self.rman_scene, proj, "")                           
-            property_utils.property_group_to_rixparams(node, rman_sg_node, proj, ob=cam)   
+            rman_sg_camera.projection_shader = self.rman_scene.rman.SGManager.RixSGShader("Projection", node.bl_label, "proj")
+            rman_sg_node = RmanSgNode(self.rman_scene, rman_sg_camera.projection_shader, "")                           
+            property_utils.property_group_to_rixparams(node, rman_sg_node, rman_sg_camera.projection_shader, ob=cam)   
             if cam_rm.rman_use_cam_fov:
-                self._set_fov(ob, cam, aspectratio, proj.params)
+                self._set_fov(ob, cam, aspectratio, rman_sg_camera.projection_shader.params)
 
 
         elif cam.type == 'PERSP':
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
-            self._set_fov(ob, cam, aspectratio, proj.params)              
+            rman_sg_camera.projection_shader = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrCamera", "proj")
+            self._set_fov(ob, cam, aspectratio, rman_sg_camera.projection_shader.params)              
                      
         elif cam.type == 'PANO':
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrSphereCamera", "proj")
-            projparams = proj.params
+            rman_sg_camera.projection_shader = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrSphereCamera", "proj")
+            projparams = rman_sg_camera.projection_shader.params
             projparams.SetFloat("hsweep", 360)
             projparams.SetFloat("vsweep", 180)           
         else:
             lens = cam.ortho_scale
             xaspect = xaspect * lens / (aspectratio * 2.0)
             yaspect = yaspect * lens / (aspectratio * 2.0)
-            proj = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")
+            rman_sg_camera.projection_shader = self.rman_scene.rman.SGManager.RixSGShader("Projection", "PxrOrthographic", "proj")
 
         # Update screen window. Ortho scale may have change
         self._update_screen_window(ob, xaspect, yaspect, aspectratio)
 
-        rman_sg_camera.sg_camera_node.SetProjection(proj)
+        rman_sg_camera.sg_camera_node.SetProjection(rman_sg_camera.projection_shader)
         prop = rman_sg_camera.sg_camera_node.GetProperties()
 
         # Shutter Timings

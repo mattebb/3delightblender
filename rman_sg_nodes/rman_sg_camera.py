@@ -21,6 +21,7 @@ class RmanSgCamera(RmanSgNode):
         self.shift_y = -1
         self.screenwindow = None
         self.sg_camera_node = None
+        self.projection_shader = None
 
     @property
     def bl_camera(self):
@@ -118,3 +119,10 @@ class RmanSgCamera(RmanSgNode):
     def sg_camera_node(self, sg_camera_node):
         self.__sg_camera_node = sg_camera_node         
                                        
+    @property
+    def projection_shader(self):
+        return self.__projection_shader
+
+    @projection_shader.setter
+    def projection_shader(self, projection_shader):
+        self.__projection_shader = projection_shader                                         

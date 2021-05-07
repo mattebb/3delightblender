@@ -984,3 +984,15 @@ class RmanSceneSync(object):
         with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):  
             for tex in texture_list:
                 self.rman_scene.sg_scene.InvalidateTexture(tex)   
+
+    def update_enhance(self, context, x, y, zoom):
+        if not self.rman_render.rman_interactive_running:
+            return         
+        rman_sg_camera = self.rman_scene.main_camera
+        if rman_sg_camera.projection_shader.name.CStr() != 'PxrCamera':
+            return
+
+        with self.rman_scene.rman.SGManager.ScopedEdit(self.rman_scene.sg_scene):              
+            projparams = rman_sg_camera.projection_shader.params         
+            projparams.SetVector("enhance", [x, y, zoom])
+            rman_sg_camera.sg_camera_node.SetProjection(rman_sg_camera.projection_shader)

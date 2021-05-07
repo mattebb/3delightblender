@@ -324,6 +324,81 @@ class DrawCropWindowHelper(object):
         return False        
 
 
+class PRMAN_OT_Viewport_Enhance(bpy.types.Operator):
+    bl_idname = "renderman_viewport.enhance"
+    bl_label = "Enhance"
+    bl_description = "Enhance"
+    bl_options = {"INTERNAL"}    
+
+    zoom_factor: FloatProperty(name="Zoom", default=5.0, min=1.0, max=5.0)
+
+    def __init__(self):
+        self.x = -1
+        self.y = -1
+
+    def __del__(self):
+        pass
+
+    @classmethod
+    def description(cls, context, properties):
+        help = "NOTE: This only works with perspective cameras or the PxrCamera projection plugin.\n\n"
+        help += "Embiggens the region around a pixel (X,Y) by zoom"
+        help += "\nfactor for trouble-shooting.  The magnified pixel will remain"
+        help += "\nanchored in place relative to the image.  Camera effects such as"
+        help += "\nvignetting will be scaled accordingly.  Intentionally does not"
+        help += "\naffect level-of-detail, dicing, displacement, or MIP map levels."
+        help += "\n\nLeft click on the region you want to embiggen. Right click to reset the zoom. Esc or Enter to exit out of the operator."
+        return help
+
+
+    def execute(self, context):
+        rman_render = RmanRender.get_rman_render()
+        rman_render.rman_scene_sync.update_enhance(context, self.x, self.y, self.zoom_factor)
+
+        return {'RUNNING_MODAL'}
+
+    def reset(self, context):
+        rman_render = RmanRender.get_rman_render()
+        rman_render.rman_scene_sync.update_enhance(context, 0.0, 0.0, 1.0)
+
+    def call_upate(self, context, x, y):
+        rman_render = RmanRender.get_rman_render()
+        rman_render.rman_scene_sync.update_enhance(context, x, y, self.zoom_factor)        
+
+    def modal(self, context, event):
+        x = event.mouse_region_x
+        y = event.mouse_region_y
+
+        region = getattr(context, 'region', None)
+
+        if (x < 0 or y < 0) or (x > region.width or y > region.height):
+            return {'RUNNING_MODAL'}
+
+        region_height = region.height
+        self.x = x
+        self.y = region.height - y
+
+        if event.type == 'LEFTMOUSE':      
+            if event.value == 'PRESS':
+                return self.execute(context)
+
+        elif event.type == 'RIGHTMOUSE':      
+            if event.value == 'PRESS':
+                self.reset(context)
+                return {'RUNNING_MODAL'}
+            
+        elif event.type in {'ESC', 'RET'}:
+            context.window.cursor_modal_restore()
+            self.reset(context)
+            return {'FINISHED'}
+
+        return {'RUNNING_MODAL'}
+
+    def invoke(self, context, event):
+        context.window_manager.modal_handler_add(self)
+        context.window.cursor_modal_set('EYEDROPPER')
+        return {'RUNNING_MODAL'}
+
 def get_crop_helper():
     global __DRAW_CROP_HANDLER__
     return __DRAW_CROP_HANDLER__
@@ -367,6 +442,15 @@ class PRMAN_OT_Viewport_Cropwindow(bpy.types.Operator):
                 self.crop_handler.edit_cropwindow = False        
         except:
             pass
+
+    @classmethod
+    def description(cls, context, properties):
+        help = "Create or edit the current crop window.\n\n"
+        help += "Crop windows will tell RenderMan to only update the portion of the image within the window. "
+        help += "\nCrop windows can be moved around. Clicking the X in the top right corner will reset the window."
+        help += "\nPress and hold the left mouse button to draw the window."
+        help += "\nPress Esc or Enter to exit the operator."
+        return help        
 
     def reset(self):
         self.outside_region = False
@@ -614,6 +698,10 @@ def draw_rman_viewport_props(self, context):
                 # snapshot
                 rman_icon = rfb_icons.get_icon('rman_vp_snapshot')
                 row.operator('renderman_viewport.snapshot', text='', icon_value=rman_icon.icon_id)    
+
+                # enhance
+                row.operator('renderman_viewport.enhance', text='', icon='VIEW_ZOOM')    
+
             # texture cache clear      
             rman_icon = rfb_icons.get_icon('rman_lightning_grey')
             row.operator('rman_txmgr_list.clear_all_cache', text='', icon_value=rman_icon.icon_id)  
@@ -643,7 +731,8 @@ classes = [
     PRMAN_OT_Viewport_Channel_Selector,
     PRMAN_OT_Viewport_Snapshot,
     PRMAN_OT_Viewport_CropWindow_Reset,
-    PRMAN_OT_Viewport_Cropwindow
+    PRMAN_OT_Viewport_Cropwindow,
+    PRMAN_OT_Viewport_Enhance
 ]
 
 def register():
