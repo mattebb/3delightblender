@@ -361,7 +361,7 @@ class PRMAN_OT_RM_Create_MeshLight(bpy.types.Operator):
 
 class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
     bl_idname = 'renderman.start_it'
-    bl_label = "Start 'it'"
+    bl_label = "'it'"
     bl_description = "Start RenderMan's it"
 
     def execute(self, context):
@@ -376,7 +376,7 @@ class PRMAN_OT_Renderman_start_it(bpy.types.Operator):
 
 class PRMAN_OT_Renderman_start_localqueue(bpy.types.Operator):
     bl_idname = 'renderman.start_localqueue'
-    bl_label = "Start Local Queue"
+    bl_label = "Local Queue"
     bl_description = "Start LocalQueue"
 
     def execute(self, context):
@@ -391,7 +391,7 @@ class PRMAN_OT_Renderman_start_localqueue(bpy.types.Operator):
 
 class PRMAN_OT_Renderman_start_licenseapp(bpy.types.Operator):
     bl_idname = 'renderman.start_licenseapp'
-    bl_label = "Start LicenseApp"
+    bl_label = "LicenseApp"
     bl_description = "Start LicenseApp"
 
     def execute(self, context):
