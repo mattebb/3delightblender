@@ -170,9 +170,19 @@ def draw_threading_func(db):
             return
 
 def call_stats_update_payloads(db):
+    panel_region = None
+    # find the region where the live stats panel is in
+    for window in bpy.context.window_manager.windows:
+        for area in window.screen.areas:
+            if area.type == 'VIEW_3D':
+                for region in area.regions:
+                    if region.type == 'UI':
+                        panel_region = region
+                        break   
+
     while db.rman_running:
         db.stats_mgr.update_payloads()
-        __update_areas__()
+        panel_region.tag_redraw()
         time.sleep(0.01)
 
 def progress_cb(e, d, db):
