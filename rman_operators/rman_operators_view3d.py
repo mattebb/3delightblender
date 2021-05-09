@@ -6,12 +6,14 @@ from ..rfb_utils.scene_utils import EXCLUDED_OBJECT_TYPES
 from ..rfb_utils.envconfig_utils import envconfig
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import object_utils
+from .. import rfb_icons
 from ..rman_constants import RFB_ADDON_PATH, RMAN_BL_NODE_DESCRIPTIONS
 from .rman_operators_utils import get_bxdf_items, get_light_items, get_lightfilter_items, get_description
 from bpy.props import EnumProperty, StringProperty, BoolProperty
 from bpy_extras.io_utils import ImportHelper
 import mathutils
 import math
+import time
 
 class PRMAN_OT_RM_Add_RenderMan_Geometry(bpy.types.Operator):
     bl_idname = "object.rman_add_rman_geo"
@@ -502,6 +504,80 @@ class PRMAN_OT_Renderman_open_stats(bpy.types.Operator):
             url="file://" + os.path.join(output_dir, 'stats.%04d.xml' % scene.frame_current))
         return {'FINISHED'}
 
+class PRMAN_OT_Renderman_Open_About_Renderman(bpy.types.Operator):
+    bl_idname = "renderman.about_renderman"
+    bl_label = "About RenderMan" 
+    bl_description = "About RenderMan"
+
+    def get_notices(self, context):
+        items = []
+        items.append(('NULL', 'Select Notce', ''))
+        notices_files = []
+        notices_path = os.path.join(envconfig().rmantree, 'etc', 'notices')
+        for (_, _, filenames) in os.walk(notices_path):
+            notices_files.extend(filenames)
+            break
+
+        for nfl in notices_files:
+            if nfl != "NOTICE":
+                items.append((nfl, nfl, ''))
+        return items
+
+    notice_files: EnumProperty(name="Notice",
+                            items=get_notices
+    )
+
+    def execute(self, context):
+        return{'FINISHED'}     
+
+    def _read_notice(self, box):
+        if self.notice_files == 'NULL':
+            return
+        notices_path = os.path.join(envconfig().rmantree, 'etc', 'notices', self.notice_files)
+
+        try:
+            my_file = open(notices_path, 'r')
+            lines = my_file.readlines()
+            for line in lines:
+                line = line.replace('\r', '')
+                line = line.replace('\n', '')
+                box.label(text='%s' % line)
+            my_file.close()
+        except IOError:
+            return
+
+    def draw(self, context):
+        layout = self.layout     
+        box = layout.box()
+        box.scale_y = 0.4
+        rman_icon = rfb_icons.get_icon('rman_blender')
+        box.template_icon(rman_icon.icon_id, scale=10.0)
+        box.label(text="")
+        
+        box.label(text='Version: %s' % envconfig().build_info.version())
+        box.label(text='Linked: %s %s' % (envconfig().build_info.date(),
+                                       envconfig().build_info.id()))
+        box.label(text='Build: %s' % envconfig().build_info.name())
+        
+        timedata = time.localtime()
+        thisyear = time.strftime("%Y", timedata)
+        box.label(text='Copyright (c) 1996-%s Pixar Animation Studios' % thisyear)
+        box.label(text='')
+        box.label(text='The RenderMan rendering software may ship with and/or ')
+        box.label(text='portions of the RenderMan rendering software may')
+        box.label(text='include open source software. The following are')
+        box.label(text='notices for and (if applicable) licenses governing the')
+        box.label(text='open source software.')
+
+        layout.prop(self, 'notice_files') 
+        box = layout.box()
+        box.scale_y = 0.4        
+        self._read_notice(box)        
+
+    def invoke(self, context, event):
+        wm = context.window_manager
+        return wm.invoke_props_dialog(self, width=400)          
+
 classes = [
     PRMAN_OT_RM_Add_RenderMan_Geometry,
     PRMAN_OT_RM_Add_Subdiv_Scheme,
@@ -516,7 +592,8 @@ classes = [
     PRMAN_MT_Camera_List_Menu,
     PRMAN_OT_Deletecameras,
     PRMAN_OT_AddCamera,    
-    PRMAN_OT_Renderman_open_stats
+    PRMAN_OT_Renderman_open_stats,
+    PRMAN_OT_Renderman_Open_About_Renderman
 ]            
 
 def register():

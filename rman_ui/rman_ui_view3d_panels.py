@@ -238,8 +238,7 @@ class PRMAN_PT_Renderman_UI_Panel(bpy.types.Panel, _RManPanelHeader):
         layout.operator("wm.url_open", text="RenderMan Docs",
                         icon_value=rman_help.icon_id).url = "https://rmanwiki.pixar.com/display/RFB24"
         rman_info = rfb_icons.get_icon("rman_blender")
-        layout.operator("wm.url_open", text="About RenderMan",
-                        icon_value=rman_info.icon_id).url = "https://renderman.pixar.com/store/intro"
+        layout.operator("renderman.about_renderman", icon_value=rman_info.icon_id)
 
 class RENDER_PT_renderman_live_stats(bpy.types.Panel, _RManPanelHeader):
     bl_label = "RenderMan Live Statistics"

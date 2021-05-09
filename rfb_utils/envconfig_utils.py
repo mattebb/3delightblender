@@ -9,6 +9,41 @@ import json
 import subprocess
 import platform
 import sys
+import re
+
+class BuildInfo(object):
+    """Hold version and build infos"""
+
+    def __init__(self, re_dict):
+        self._version_string = '%s.%s%s' % (re_dict['version_major'], re_dict['version_minor'], re_dict['beta'])
+        self._beta = re_dict['beta']
+        self._version_major = int(re_dict['version_major'])
+        self._version_minor = int(re_dict['version_minor'])
+        self._id = re_dict['id']
+        self._name = re_dict['name']
+        self._date_string = ('%s %s %s %s at %s' %
+                             (re_dict['day'], re_dict['month'], re_dict['date'], re_dict['year'], re_dict['time']))
+
+    def version(self):
+        """return the version string"""
+        return self._version_string
+
+    def full_version(self):
+        """Return a full version string, i.e. '24.1b3 @ 73438742'"""
+        return '%d.%d%s @ %d' % (self._version_major, self._version_minor,
+                                 self._beta, self._id)
+
+    def date(self):
+        """Return the build date string"""
+        return self._date_string
+
+    def name(self):
+        """Return the build name string"""
+        return self._name
+
+    def id(self):
+        """Return the build id"""
+        return self._id
 
 __RMAN_ENV_CONFIG__ = None
 
@@ -17,10 +52,7 @@ class RmanEnvConfig(object):
     def __init__(self):
         self.rmantree = ''
         self.rmantree_from_json = False
-        self.rman_version = ''
-        self.rman_version_major = 0
-        self.rman_version_minor = 0
-        self.rman_version_modifier = ''
+        self.build_info = None
         self.rman_it_path = ''
         self.rman_lq_path = ''
         self.rman_tractor_path = ''
@@ -187,7 +219,7 @@ class RmanEnvConfig(object):
         self.is_ncr_license = self.license_info.is_ncr_license
         self.is_valid_license = self.license_info.is_valid_license
         if self.is_valid_license:
-            feature_version = '%d.0' % self.rman_version_major
+            feature_version = '%d.0' % self.build_info._version_major
             status = self.license_info.is_feature_available(feature_name='RPS-Stylized', feature_version=feature_version)
             self.has_stylized_license = status.found
             status = self.license_info.is_feature_available(feature_name='RPS-XPU', feature_version=feature_version)
@@ -212,19 +244,36 @@ def _parse_version(s):
             break
     return int(major_vers), int(minor_vers), vers_modifier                  
 
-# return the major, minor rman version
-def _get_rman_version(rmantree):
+def _get_build_info(rmantree):
 
     try:        
         prman = 'prman.exe' if platform.system() == 'Windows' else 'prman'
         exe = os.path.join(rmantree, 'bin', prman)
         desc = subprocess.check_output(
             [exe, "-version"], stderr=subprocess.STDOUT)
-        vstr = str(desc, 'ascii').split('\n')[0].split()[-1]
-        major_vers, minor_vers, vers_modifier = _parse_version(vstr)
-        return major_vers, minor_vers, vers_modifier
-    except:
-        return 0, 0, ''
+    
+        pat = re.compile(
+            r'(?P<version_major>\d{2})\.(?P<version_minor>\d+)(?P<beta>[b0-9]*)'
+            r'\s+\w+\s(?P<day>[A-Za-z]{,3})\s(?P<month>[A-Za-z]+)\s+'
+            r'(?P<date>\d{1,2})\s(?P<time>[0-9\:]+)\s(?P<year>\d{4})\sPDT\s'
+            r'(?P<id>@\d+|<unknown_buildid>)\s+\w+\s(?P<name>[\w\.-]+)',
+            re.MULTILINE)
+        match = pat.search(str(desc, 'ascii'))
+        if match:
+            """
+            match.groupdict() should return a dictionary looking like:
+            {'version_major': 'xx', 'version_minor': 'x', 'beta': '',
+               'day': 'unknown', 'month': 'unknown', 'date': 'xx',
+               'year': 'xxxx', 'time': 'xx:xx:xx', 'id': 'xxxxxxxx',
+               'name': 'unknown'}
+            """
+            return BuildInfo(match.groupdict()) 
+
+        return None
+
+    except Exception as e:       
+        rfb_log().error('Exception trying to get rman version: %s' % str(e)) 
+        return None
 
 def _guess_rmantree():
     '''
@@ -245,7 +294,7 @@ def _guess_rmantree():
     choice = get_pref('rmantree_choice')
 
     rmantree = ''
-    version = (0, 0, '')
+    buildinfo = None
 
     __RMAN_ENV_CONFIG__ = RmanEnvConfig()
     
@@ -256,8 +305,8 @@ def _guess_rmantree():
         rmantree = __RMAN_ENV_CONFIG__.getenv('RMANTREE', '')
 
     if rmantree != '':
-        version = _get_rman_version(rmantree)
-        if version[0] == 0:
+        buildinfo = _get_build_info(rmantree)
+        if not buildinfo:
             rfb_log().error('RMANTREE from rfb_envvars.json is not valid. Fallback to preferences setting.')  
             rmantree = ''    
         else:
@@ -268,19 +317,23 @@ def _guess_rmantree():
 
         if rmantree_method == 'MANUAL':
             rmantree = get_pref('path_rmantree')
+            buildinfo = _get_build_info(rmantree)
 
         if rmantree_method == 'DETECT' and choice != 'NEWEST':
             rmantree = choice
+            buildinfo = _get_build_info(rmantree)
 
-        if rmantree == '' or rmantree_method == 'ENV':
+        if (rmantree != '' and not buildinfo) or rmantree_method == 'ENV':
             # Fallback to RMANTREE env var
-            if rmantree == '':
-                rfb_log().info('Fallback to using RMANTREE.')
+            if not buildinfo:
+                rfb_log().warning('Fallback to using RMANTREE.')
             rmantree = os.environ.get('RMANTREE', '') 
+            rfb_log().info('RMANTREE: %s' % rmantree)
+            buildinfo = _get_build_info(rmantree)
 
-        if rmantree == '':
+        if rmantree == '' or not buildinfo:
             if rmantree_method == 'ENV':
-                rfb_log().info('Fallback to autodetecting newest.')
+                rfb_log().warning('Getting RMANTREE from environment failed. Fallback to autodetecting newest.')
                     
             if choice == 'NEWEST':
                 # get from detected installs (at default installation path)
@@ -288,21 +341,24 @@ def _guess_rmantree():
                 for vstr, d_rmantree in get_installed_rendermans():
                     d_version = _parse_version(vstr)
                     if d_version > latest:
+                        latest = d_version
                         rmantree = d_rmantree
-                        version = d_version                
+                        buildinfo = _get_build_info(rmantree)      
+                if rmantree:
+                     rfb_log().info('Newest RMANTREE: %s' % rmantree)     
 
-        if version[0] == 0:
-            version = _get_rman_version(rmantree)
+        if not buildinfo:
+            buildinfo = _get_build_info(rmantree)
 
         # check rmantree valid
-        if version[0] == 0:
+        if not buildinfo:
             rfb_log().error(
                 "Error loading addon.  RMANTREE %s is not valid.  Correct RMANTREE setting in addon preferences." % rmantree)
             __RMAN_ENV_CONFIG__ = None
             return None
 
         # check if this version of RenderMan is supported
-        if version[0] < rman_constants.RMAN_SUPPORTED_VERSION_MAJOR:
+        if buildinfo._version_major < rman_constants.RMAN_SUPPORTED_VERSION_MAJOR:
             rfb_log().error("Error loading addon using RMANTREE=%s.  RMANTREE must be version %s or greater.  Correct RMANTREE setting in addon preferences." % (rmantree, rman_constants.RMAN_SUPPORTED_VERSION_STRING))
             __RMAN_ENV_CONFIG__ = None
             return None
@@ -311,10 +367,7 @@ def _guess_rmantree():
 
     # Create an RmanEnvConfig object
     __RMAN_ENV_CONFIG__.rmantree = rmantree
-    __RMAN_ENV_CONFIG__.rman_version = '%d.%d%s' % (version[0], version[1], version[2])
-    __RMAN_ENV_CONFIG__.rman_version_major = version[0]
-    __RMAN_ENV_CONFIG__.rman_version_minor = version[1]
-    __RMAN_ENV_CONFIG__.rman_version_modifier = version[2]
+    __RMAN_ENV_CONFIG__.build_info = buildinfo
     __RMAN_ENV_CONFIG__.config_environment()
 
     return __RMAN_ENV_CONFIG__

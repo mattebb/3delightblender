@@ -430,9 +430,11 @@ class RendermanPreferences(AddonPreferences):
         if self.rmantree_method == 'DETECT':
             col.prop(self, 'rmantree_choice')
             if self.rmantree_choice == 'NEWEST':
-                col.label(text="RMANTREE: %s " % envconfig_utils.reload_envconfig().rmantree)
+                if envconfig_utils.reload_envconfig():
+                    col.label(text="RMANTREE: %s " % envconfig_utils.reload_envconfig().rmantree)
         elif self.rmantree_method == 'ENV':
-            col.label(text="RMANTREE: %s" % envconfig_utils.reload_envconfig().rmantree)
+            if envconfig_utils.reload_envconfig():
+                col.label(text="RMANTREE: %s" % envconfig_utils.reload_envconfig().rmantree)
         else:
             col.prop(self, "path_rmantree")
         if envconfig_utils.reload_envconfig() is None:
