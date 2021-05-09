@@ -186,12 +186,17 @@ def call_stats_update_payloads(db):
         time.sleep(0.01)
 
 def progress_cb(e, d, db):
-    db.bl_engine.update_progress(float(d) / 100.0)
+    if not db.stats_mgr.is_connected():
+        # set the progress in stats_mgr
+        # we can at least get progress from the event callback
+        # in case the stats listener is not connected
+        db.stats_mgr._progress = int(d)
     if db.rman_is_live_rendering and int(d) == 100:
         db.rman_is_live_rendering = False
 
-def bake_progress_cb(e, d, db):
-    db.bl_engine.update_progress(float(d) / 100.0)     
+def bake_progress_cb(e, d, db): 
+    if not db.stats_mgr.is_connected():
+        db.stats_mgr._progress = int(d)      
 
 def render_cb(e, d, db):
     if d == 0:
