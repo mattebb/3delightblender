@@ -75,10 +75,19 @@ class RmanScene(object):
         rman_particles (dict) - dictionary of all particle systems used
         rman_cameras (dict) - dictionary of all cameras in the scene
         obj_hash (dict) - dictionary of hashes to objects ( for object picking )
+        moving_objects (dict) - dictionary of objects that are moving/deforming in the scene
+        processed_obs (dict) - dictionary of objects already processed
         motion_steps (set) - the full set of motion steps for the scene, including 
                             overrides from individual objects
-        main_camera (RmanSgCamera) - pointer to the main scene camera
-
+        main_camera (RmanSgCamera) - pointer to the main scene camera                            
+        rman_root_sg_node (RixSGGroup) - the main root RixSceneGraph node
+        render_default_light (bool) - whether to add a "headlight" light when there are no lights in the scene
+        world_df_node (RixSGShader) - a display filter shader that represents the world color
+        default_light (RixSGAnalyticLight) - the default "headlight" light
+        viewport_render_res_mult (float) - the current render resolution multiplier (for IPR)
+        num_object_instances (int) - the current number of object instances. This is used during IPR to
+                                    track the number of instances between edits. We try to use this to determine
+                                    when an object is added or deleted.
     '''
 
     def __init__(self, rman_render=None):
@@ -109,7 +118,6 @@ class RmanScene(object):
         self.rman_cameras = dict()
         self.obj_hash = dict() 
         self.moving_objects = dict()
-        #self.processed_obs = dict()
         self.processed_obs = []
 
         self.motion_steps = set()
@@ -127,6 +135,8 @@ class RmanScene(object):
 
 
     def create_translators(self):
+        # Create our dictionary of translators. The object type is determined
+        # by the "_detect_primitive_" function in rfb_utils/object_utils.py
 
         self.rman_translators['CAMERA'] = RmanCameraTranslator(rman_scene=self)
         self.rman_translators['LIGHT'] = RmanLightTranslator(rman_scene=self)
@@ -282,6 +292,8 @@ class RmanScene(object):
         #self.export_materials(bpy.data.materials)
         self.export_materials([m for m in self.depsgraph.ids if isinstance(m, bpy.types.Material)])  
                 
+        # tell the texture manager to start converting any unconverted textures
+        # normally textures are converted as they are added to the scene                
         rfb_log().debug("Calling txmake_all()")
         texture_utils.get_txmanager().rman_scene = self  
         texture_utils.get_txmanager().txmake_all(blocking=True)
@@ -327,7 +339,7 @@ class RmanScene(object):
     def export_bake_render_scene(self):
         self.reset()
 
-        # update variables
+        # update tokens
         string_utils.set_var('scene', self.bl_scene.name)
         string_utils.set_var('layer', self.bl_view_layer.name)
 
@@ -614,6 +626,7 @@ class RmanScene(object):
                     rman_sg_node.is_deforming = False
 
     def export_defaultlight(self):
+        # Export a headlight light if needed
         if not self.default_light:
             self.default_light = self.sg_scene.CreateAnalyticLight('__defaultlight')
             sg_node = self.rman.SGManager.RixSGShader("Light", 'PxrDistantLight' , "light")
@@ -630,6 +643,7 @@ class RmanScene(object):
             self.default_light.SetHidden(1)
 
     def _scene_has_lights(self):
+        # Determine if there are any lights in the scene
         num_lights = len(scene_utils.get_all_lights(self.bl_scene, include_light_filters=False))
         return num_lights > 0     
 
@@ -757,17 +771,19 @@ class RmanScene(object):
             else:
                 self.attach_material(ob, rman_sg_group)                
             
-            if rman_type != "META":
+            if rman_type == "META":
                 # meta/blobbies are already in world space. Their instances don't need to
                 # set a transform.
-                if rman_sg_node.is_transforming:
-                    rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps )
-                    rman_group_translator.update_transform_sample(ob_inst, rman_sg_group, 0, seg )
-                elif psys and self.do_motion_blur:
-                    rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps )
-                    rman_group_translator.update_transform_sample(ob_inst, rman_sg_group, 0, seg )                    
-                else:
-                    rman_group_translator.update_transform(ob_inst, rman_sg_group)
+                return
+
+            if rman_sg_node.is_transforming:
+                rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps )
+                rman_group_translator.update_transform_sample(ob_inst, rman_sg_group, 0, seg )
+            elif psys and self.do_motion_blur:
+                rman_group_translator.update_transform_num_samples(rman_sg_group, rman_sg_node.motion_steps )
+                rman_group_translator.update_transform_sample(ob_inst, rman_sg_group, 0, seg )                    
+            else:
+                rman_group_translator.update_transform(ob_inst, rman_sg_group)
 
     def export_instances(self, obj_selected=None):
         total = len(self.depsgraph.object_instances)
@@ -827,12 +843,10 @@ class RmanScene(object):
                     group.is_meshlight = rman_sg_material.has_meshlight 
 
     def export_instances_motion(self, obj_selected=None):
-        actual_subframes = []
         origframe = self.bl_scene.frame_current
 
         mb_segs = self.bl_scene.renderman.motion_segments
-        origframe = self.bl_scene.frame_current
-        #actual_subframes = [origframe + subframe for subframe in subframes]        
+        origframe = self.bl_scene.frame_current      
 
         motion_steps = sorted(list(self.motion_steps))
 

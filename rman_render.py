@@ -204,10 +204,6 @@ def render_cb(e, d, db):
         if db.rman_is_live_rendering:
             db.rman_is_live_rendering = False
 
-def scene_cb(e, d, db):
-    if d == 0:
-        rfb_log().debug("RixSGScene destroyed.")
-
 def preload_xpu():
     """On linux there is a problem with std::call_once and
     blender, by default, being linked with a static libstdc++.
@@ -306,7 +302,6 @@ class RmanRender(object):
         self.rictl.PRManEnd()
 
     def _append_render_cmd(self, render_cmd):
-
         return render_cmd
 
     def _dump_rib_(self):
@@ -461,7 +456,8 @@ class RmanRender(object):
 
             if rendervariant != 'prman':
                 # FIXME: Remove this code path when we are able to get progress
-                # from XPU. Also, make sure we render with prman -live in that case
+                # from XPU to determine when it reaches 100%. 
+                # Also, make sure we render with prman -live in that case
                 dspy_dict = display_utils.get_dspy_dict(self.rman_scene)
                 filepath = dspy_dict['displays']['beauty']['filePath']
 

@@ -8,6 +8,12 @@ class RmanSgNode(object):
         db_name (str) - unique datablock name for this node
         instances (dict) - instances that uses this sg_node
         motion_steps (list) - the full list of motion time samples that are required for this Blender object
+        is_transforming (bool) - if this object is moving
+        is_deforming (bool) - if this object is deforming
+        rman_type (str) - the renderman type for this object
+        is_instancer (bool) - whether this object is instancer 
+        is_meshlight (bool) - if this object is a mesh light.
+        is_hidden (bool) - whether this object is considered hidden
         is_frame_sensitive (bool) - indicates that the sg_node should be updated on frame changes
  
     '''
@@ -39,7 +45,7 @@ class RmanSgNode(object):
         # in texture paths
         self.is_frame_sensitive = False
 
-        # objects that this node creates as part of ninstancing
+        # objects that this node creates as part of instancing
         self.objects_instanced = set()
 
         # psys
