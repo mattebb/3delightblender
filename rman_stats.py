@@ -294,7 +294,8 @@ class RfBStatsManager(object):
                 else:
                     progress = int(self.export_stat_progress*100)
                     self.rman_render.bl_engine.update_stats(self.export_stat_label, "%d%%" % progress)
-
+                    progress = self.export_stat_progress
+                    self.rman_render.bl_engine.update_progress(progress)
             except:
                 rfb_log().debug("Cannot update progress")        
 
