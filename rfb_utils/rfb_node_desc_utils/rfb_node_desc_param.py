@@ -2,7 +2,7 @@
 
 from collections import OrderedDict
 # pylint: disable=import-error
-from ..node_desc_base.node_desc_param import (NodeDescParam,
+from rman_utils.node_desc_param import (NodeDescParam,
                                         NodeDescParamXML,
                                         NodeDescParamOSL,
                                         NodeDescParamJSON)

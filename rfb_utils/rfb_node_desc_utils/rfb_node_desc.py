@@ -9,8 +9,9 @@
 # pylint: disable=superfluous-parens
 
 import re
-from ..node_desc_base.node_desc_param import osl_metadatum
-from ..node_desc_base.node_desc import NodeDesc
+from rman_utils.node_desc_param import osl_metadatum
+from rman_utils.node_desc import NodeDesc
+
 from .conditional_visibility import build_condvis_expr
 from .rfb_node_desc_param import (
     RfbNodeDescParamXML,
