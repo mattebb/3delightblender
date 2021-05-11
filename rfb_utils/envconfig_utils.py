@@ -255,7 +255,7 @@ def _get_build_info(rmantree):
         pat = re.compile(
             r'(?P<version_major>\d{2})\.(?P<version_minor>\d+)(?P<beta>[b0-9]*)'
             r'\s+\w+\s(?P<day>[A-Za-z]{,3})\s(?P<month>[A-Za-z]+)\s+'
-            r'(?P<date>\d{1,2})\s(?P<time>[0-9\:]+)\s(?P<year>\d{4})\sPDT\s'
+            r'(?P<date>\d{1,2})\s(?P<time>[0-9\:]+)\s(?P<year>\d{4})\s.*\s'
             r'(?P<id>@\d+|<unknown_buildid>)\s+\w+\s(?P<name>[\w\.-]+)',
             re.MULTILINE)
         match = pat.search(str(desc, 'ascii'))
