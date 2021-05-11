@@ -4,6 +4,7 @@ from . import string_utils
 from . import object_utils
 from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES, RFB_FLOAT3
 import math
+import bpy
 
 def is_renderman_nodetree(material):
     return find_node(material, 'RendermanOutputNode')
@@ -246,6 +247,14 @@ def find_node_from_nodetree(ntree, nodetype):
     return active_output_node
 
     return None
+
+def find_material_from_nodetree(ntree):
+    mat = None
+    for m in bpy.data.materials:
+        if m.node_tree == ntree.id_data:
+            mat = m
+            break
+    return mat
 
 def is_soloable_node(node):
     is_soloable = False

@@ -3,7 +3,7 @@ from operator import attrgetter, itemgetter
 from .. import rman_bl_nodes
 from .. import rman_render
 from ..rman_constants import RMAN_BL_NODE_DESCRIPTIONS
-from ..rfb_utils.shadergraph_utils import find_node, find_selected_pattern_node, is_socket_same_type
+from ..rfb_utils.shadergraph_utils import find_node, find_selected_pattern_node, is_socket_same_type, find_material_from_nodetree
 import bpy
 import os
 
@@ -178,7 +178,7 @@ class NODE_OT_rman_node_remove(bpy.types.Operator):
 
         nt.nodes.remove(input_node)
         rr = rman_render.RmanRender.get_rman_render()         
-        active_material = context.active_object.active_material
+        active_material = find_material_from_nodetree(nt)
         if active_material:
             rr.rman_scene_sync.update_material(active_material) 
 
@@ -198,7 +198,7 @@ class NODE_OT_rman_node_disconnect(bpy.types.Operator):
         link = next((l for l in nt.links if l.to_socket == socket), None)
         nt.links.remove(link)
         rr = rman_render.RmanRender.get_rman_render()             
-        active_material = context.active_object.active_material
+        active_material = find_material_from_nodetree(nt)
         if active_material:
             rr.rman_scene_sync.update_material(active_material)         
 
@@ -249,7 +249,7 @@ class NODE_OT_rman_node_create(bpy.types.Operator):
                 old_node = input.links[0].from_node
                 link_node(nt, newnode, socket)
                 newnode.location = old_node.location
-            active_material = context.active_object.active_material
+            active_material = find_material_from_nodetree(nt)
             if active_material:
                 try:
                     newnode.update_mat(active_material)
@@ -293,7 +293,7 @@ class NODE_OT_rman_node_connect_existing(bpy.types.Operator):
             if nt.id_data == context.scene.world.node_tree:
                 context.scene.world.update_tag()
             else:
-                active_material = context.active_object.active_material
+                active_material = find_material_from_nodetree(nt)
                 if active_material:
                     try:
                         newnode.update_mat(active_material)
