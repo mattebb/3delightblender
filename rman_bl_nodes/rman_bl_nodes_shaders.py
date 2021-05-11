@@ -672,8 +672,8 @@ class RendermanDisplacementNode(RendermanShadingNode):
 class RendermanPatternNode(RendermanShadingNode):
     bl_label = 'Texture'
     renderman_node_type = 'pattern'
-    bl_type = 'TEX_IMAGE'
-    bl_static_type = 'TEX_IMAGE'
+    bl_type = 'CUSTOM'
+    bl_static_type = 'CUSTOM'
     node_tree = None
     new_links = []    
 
