@@ -112,7 +112,28 @@ class RfBTxManager(object):
         return self.txmanager.get_txfile_from_path(filepath)                
 
     def txmake_all(self, blocking=True):
-        self.txmanager.txmake_all(start_queue=True, blocking=blocking)                     
+        self.txmanager.txmake_all(start_queue=True, blocking=blocking)   
+
+    def add_texture(self, node, ob, param_name, file_path, node_type='PxrTexture', category='pattern'):
+        nodeID = generate_node_id(node, param_name, ob=ob)
+
+        if file_path == "":
+            txfile = self.txmanager.get_txfile_from_id(nodeID)
+            if txfile:
+                self.txmanager.remove_texture(nodeID)
+                bpy.ops.rman_txmgr_list.remove_texture('EXEC_DEFAULT', nodeID=nodeID)
+        else:
+            txfile = self.txmanager.add_texture(nodeID, file_path, nodetype=node_type, category=category)    
+            bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=file_path, nodeID=nodeID)
+            txmake_all(blocking=False)
+            if txfile:
+                self.done_callback(nodeID, txfile)      
+
+    def is_file_src_tex(self, file_path):
+        txfile = self.txmanager.get_txfile_from_path(file_path)
+        if txfile:
+            return (txfile.state == txmanager.STATE_IS_TEX)  
+        return False
 
 def get_txmanager():
     global __RFB_TXMANAGER__
@@ -156,23 +177,9 @@ def update_texture(node, ob=None):
                                 node_type = node.bl_label                            
                         else:
                             node_type = node.bl_label
-                            
-                        nodeID = generate_node_id(node, prop_name, ob=ob)
 
-                        if prop == "":
-                            txfile = get_txmanager().txmanager.get_txfile_from_id(nodeID)
-                            if txfile:
-                                # property was set to empty string, remove any texture from the UI
-                                # if exists
-                                get_txmanager().txmanager.remove_texture(nodeID)
-                                bpy.ops.rman_txmgr_list.remove_texture('EXEC_DEFAULT', nodeID=nodeID)
-                        else:
-                            real_file = filepath_utils.get_real_path(prop)
-                            txfile = get_txmanager().txmanager.add_texture(nodeID, real_file, nodetype=node_type)    
-                            bpy.ops.rman_txmgr_list.add_texture('EXEC_DEFAULT', filepath=real_file, nodeID=nodeID)
-                            txmake_all(blocking=False)
-                            if txfile:
-                                get_txmanager().done_callback(nodeID, txfile)
+                        category = getattr(node, 'renderman_node_type', 'pattern') 
+                        get_txmanager().add_texture(node, ob, prop_name, prop, node_type=node_type, category=category)
 
 def generate_node_id(node, prop_name, ob=None):
     if ob:

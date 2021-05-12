@@ -16,6 +16,8 @@ def assetid_update_func(self, context, param_name):
     if param_name in node:
         file_path = filepath_utils.get_real_path(node[param_name])
         node[param_name] = file_path
+    else:
+        file_path = getattr(node, param_name, '')
 
     if not hasattr(node, 'renderman_node_type'):
         return
@@ -28,17 +30,22 @@ def assetid_update_func(self, context, param_name):
     ob = scene_utils.find_node_owner(node, context)
     ob_type = type(ob)
     obj_texture = ob
+    category = node.renderman_node_type
     if ob_type == bpy.types.Material:
         mat = ob
         obj_texture = mat
+        node_type = node.bl_label
+        category = node.renderman_node_type
     elif ob_type == bpy.types.World:
         active = ob
+        node_type = node.bl_label
     elif ob.type == 'LIGHT':
         light = ob.data
         obj_texture = light
         active = ob
+        node_type = light.renderman.get_light_node_name()
 
-    texture_utils.update_texture(node, ob=obj_texture)
+    texture_utils.get_txmanager().add_texture(node, ob, param_name, file_path, node_type=node_type, category=category)
 
     if file_path:
         # update colorspace param from txmanager
