@@ -258,7 +258,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
                 op.prop_name = ui_prop
 
                 sub_prop_names = list(prop)
-                if node.bl_idname in {"PxrSurfaceBxdfNode", "PxrLayerPatternNode"}:
+                if node.bl_idname in {"PxrSurfaceBxdfNode", "PxrLayerPatternOSLNode", "PxrLayerPatternNode"}:
                     for pn in sub_prop_names:
                         if pn.startswith('enable'):
                             row.prop(node, pn, text='')

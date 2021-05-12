@@ -111,7 +111,7 @@ def update_func_with_inputs(self, context):
     # update the conditional_vis_ops
     update_conditional_visops(node)
 
-    if node.bl_idname in ['PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
+    if node.bl_idname in ['PxrLayerPatternOSLNode', 'PxrLayerPatternNode', 'PxrSurfaceBxdfNode']:
         node_add_inputs(node, node.name, node.prop_names)
     else:
         update_inputs(node)
