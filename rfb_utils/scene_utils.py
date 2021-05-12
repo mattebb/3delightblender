@@ -93,16 +93,16 @@ def set_render_variant_config(bl_scene, config, render_config):
 
         # For now, there is only one CPU
         xpu_cpu_devices = prefs_utils.get_pref('rman_xpu_cpu_devices')
-        device = xpu_cpu_devices[0]
+        if len(xpu_cpu_devices) > 0:
+            device = xpu_cpu_devices[0]
+            render_config.SetInteger('xpu:cpuconfig', int(device.use))    
 
-        render_config.SetInteger('xpu:cpuconfig', int(device.use))    
-
-        if xpu_gpu_device == -1 and not device.use:
-            # Nothing was selected, we should at least use the cpu.
-            print("No devices were selected for XPU. Defaulting to CPU.")
-            render_config.SetInteger('xpu:cpuconfig', 1)             
-
-
+            if xpu_gpu_device == -1 and not device.use:
+                # Nothing was selected, we should at least use the cpu.
+                print("No devices were selected for XPU. Defaulting to CPU.")
+                render_config.SetInteger('xpu:cpuconfig', 1)                         
+        else:
+            render_config.SetInteger('xpu:cpuconfig', 1)         
 
 def set_render_variant_spool(bl_scene, args, is_tractor=False):
     variant = get_render_variant(bl_scene)
@@ -132,10 +132,13 @@ def set_render_variant_spool(bl_scene, args, is_tractor=False):
                 device_list.append('gpu%d' % xpu_gpu_device)
 
             xpu_cpu_devices = prefs_utils.get_pref('rman_xpu_cpu_devices')
-            device = xpu_cpu_devices[0]
+            if len(xpu_cpu_devices) > 0:
+                device = xpu_cpu_devices[0]
 
-            if device.use or xpu_gpu_device < 0:
-                device_list.append('cpu')            
+                if device.use or xpu_gpu_device < 0:
+                    device_list.append('cpu')            
+            else:
+                device_list.append('cpu')      
 
         else:
             # Don't add the gpu list if we are spooling to Tractor
