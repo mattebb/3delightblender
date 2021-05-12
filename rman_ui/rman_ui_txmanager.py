@@ -572,9 +572,11 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
 
                 # b2r
                 row = layout.row()   
+                row.enabled = item.enable 
                 row.prop(item, "bumpRough")
                 if item.bumpRough != "-1":
                     row = layout.row()
+                    row.enabled = item.enable 
                     row.alignment = "RIGHT"
                     row.label(text="")
                     row.prop(item, "bumpRough_factor")
