@@ -24,6 +24,7 @@ import sys
 import traceback
 import nodeitems_utils
 from operator import attrgetter
+from copy import deepcopy
 
 # registers
 from . import rman_bl_nodes_sockets
@@ -472,7 +473,7 @@ def generate_node_type(node_desc, is_oso=False):
         osl_node_type.init = init
         osl_node_type.free = free     
         osl_node_type.bl_description = ntype.bl_description   
-        osl_node_type.__annotations__ = ntype.__annotations__
+        osl_node_type.__annotations__ = deepcopy(ntype.__annotations__)
         class_generate_properties(osl_node_type, name, node_desc)
         bpy.utils.register_class(osl_node_type)
 
