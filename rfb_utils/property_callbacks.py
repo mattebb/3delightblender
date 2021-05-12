@@ -14,7 +14,7 @@ def assetid_update_func(self, context, param_name):
     # get the real path if the value is the weird Blender relative path
     file_path = None
     if param_name in node:
-        file_path = filepath_utils.get_real_path(node[param_name])
+        file_path = filepath_utils.get_token_blender_file_path(node[param_name])
         node[param_name] = file_path
     else:
         file_path = getattr(node, param_name, '')

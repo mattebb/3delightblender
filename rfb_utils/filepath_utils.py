@@ -3,6 +3,7 @@ import os
 import platform
 import sys
 import webbrowser
+import re
 from ..rfb_logger import rfb_log
 from .prefs_utils import get_pref
 from .envconfig_utils import envconfig
@@ -61,6 +62,19 @@ def get_cycles_shader_path():
         path = os.path.join(binary_path, rel_config_path)        
 
     return path
+
+def get_token_blender_file_path(p):
+    # Same as filesystem_path below, but substitutes the relative Blender path
+    # with the <blend_dir> token
+    if p.startswith('//'):
+        pout = bpy.path.abspath(p)
+        if p != pout:
+            regex = r"^//"
+            pout = re.sub(regex, '<blend_dir>/', p, 0, re.MULTILINE)
+    else:
+        pout = p
+    
+    return pout.replace('\\', '/')
  
 def filesystem_path(p):
 	#Resolve a relative Blender path to a real filesystem path
