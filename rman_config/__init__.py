@@ -271,8 +271,9 @@ def apply_args_overrides(name, node_desc):
         ndp = rman_config.params.get(ndp_org.name, None)
         if ndp:        
             for attr in __ALLOWABLE_ATTR_OVERRIDES__:
-                if hasattr(ndp, attr):
-                    setattr(ndp_org, attr, getattr(ndp, attr))
+                val = getattr(ndp, attr, None)
+                if val is not None:
+                    setattr(ndp_org, attr, val)
 
 def apply_overrides(rman_config_org, rman_config_override):
     """Given two RmanConfig objects, apply the overrides from the second

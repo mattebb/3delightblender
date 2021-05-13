@@ -118,6 +118,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
             is_pxrramp = (self.plugin_name == 'PxrRamp')
             for prop_name in prop_names:
                 prop_meta = self.prop_meta[prop_name]
+                read_only = prop_meta.get('readOnly', False)
                 widget = prop_meta.get('widget', 'default')
                 hidden = getattr(self, '%s_hidden' % prop_name, False)
                 renderman_type = prop_meta.get('renderman_type', '')
@@ -179,6 +180,8 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         split = layout.split(factor=0.95)
                         row = split.row()
                         col = row.column()
+                        if read_only:
+                            col.enabled = False
                         col.prop(self, prop_name, slider=True)
                         col = row.column()
                         draw_utils.draw_sticky_toggle(col, self, prop_name, output_node)
