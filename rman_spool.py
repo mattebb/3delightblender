@@ -34,7 +34,7 @@ class RmanSpool(object):
                         dst=str(dirmap['to']),
                         zone=str(dirmap['zone']))
 
-        rman_vers = envconfig().rman_version
+        rman_vers = envconfig().build_info.version()
         if self.is_localqueue:
             job.envkey = ['rmantree=%s' % envconfig().rmantree]
         else:

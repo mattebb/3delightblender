@@ -845,7 +845,7 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
     # Compatibility data
     # This will help other application decide if they can use this asset.
     #
-    prmanversion = envconfig().rman_version
+    prmanversion = envconfig().build_info.version()
     Asset.setCompatibility(hostName='Blender',
                            hostVersion=bpy.app.version,
                            rendererVersion=prmanversion)                           
