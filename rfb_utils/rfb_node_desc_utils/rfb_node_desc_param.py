@@ -21,7 +21,8 @@ def blender_finalize(obj):
         obj.connectable = False
 
     if hasattr(obj, 'help'):
-        obj.help = obj.help.replace('"', '\\"')
+        obj.help = obj.help.replace('\\"', '"')
+        obj.help = obj.help.replace("'", "\\'")
         obj.help = obj.help.replace('<br>', '\n')
 
 class RfbNodeDescParamXML(NodeDescParamXML):
