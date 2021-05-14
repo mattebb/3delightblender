@@ -55,6 +55,34 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
 
     stylized_pattern: EnumProperty(name="", items=rman_stylized_patterns)
 
+    def add_manifolds(self, nt, pattern_node):
+        pxr_to_float3_nm = rman_bl_nodes.__BL_NODES_MAP__['PxrToFloat3']
+        pxr_manifold3d_nm = rman_bl_nodes.__BL_NODES_MAP__['PxrManifold3D']
+        pxr_projector_nm = rman_bl_nodes.__BL_NODES_MAP__['PxrProjector']
+
+        pxr_manifold3d = nt.nodes.new(pxr_manifold3d_nm) 
+        pxr_to_float3_1 = nt.nodes.new(pxr_to_float3_nm) 
+
+        nt.links.new(pxr_manifold3d.outputs['resultX'], pxr_to_float3_1.inputs['inputR'])
+        nt.links.new(pxr_manifold3d.outputs['resultY'], pxr_to_float3_1.inputs['inputG'])
+        nt.links.new(pxr_manifold3d.outputs['resultZ'], pxr_to_float3_1.inputs['inputB'])
+        nt.links.new(pxr_to_float3_1.outputs['resultRGB'], pattern_node.inputs['inputPtriplanar'])
+        pxr_to_float3_1.inputs['inputR'].ui_open = False
+        pxr_to_float3_1.inputs['inputG'].ui_open = False
+        pxr_to_float3_1.inputs['inputB'].ui_open = False
+        pattern_node.inputs['inputPtriplanar'].ui_open = False
+
+        pxr_to_float3_2 = nt.nodes.new(pxr_to_float3_nm) 
+        pxr_projector = nt.nodes.new(pxr_projector_nm) 
+
+        pxr_projector.coordsys = "NDC"
+        nt.links.new(pxr_projector.outputs['resultS'], pxr_to_float3_2.inputs['inputR'])
+        nt.links.new(pxr_projector.outputs['resultT'], pxr_to_float3_2.inputs['inputG'])
+        nt.links.new(pxr_to_float3_2.outputs['resultRGB'], pattern_node.inputs['inputTextureCoords'])    
+        pxr_to_float3_2.inputs['inputR'].ui_open = False
+        pxr_to_float3_2.inputs['inputG'].ui_open = False
+        pattern_node.inputs['inputTextureCoords'].ui_open = False
+
     def attach_pattern(self, context, ob):
         mat = object_utils.get_active_material(ob)
         if not mat:
@@ -105,7 +133,10 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
                         setattr(pattern_node, param_name, val)
             
                 sub_prop_nm = '%s[%d]' % (prop_name, array_len-1)     
-                nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[sub_prop_nm])      
+                nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[sub_prop_nm]) 
+                
+                # Add manifolds
+                self.add_manifolds(nt, pattern_node)                    
 
             else:
                 if node.inputs[prop_name].is_linked:
@@ -120,6 +151,8 @@ class PRMAN_OT_Attach_Stylized_Pattern(bpy.types.Operator):
             
                 nt.links.new(pattern_node.outputs['resultAOV'], node.inputs[prop_name])
 
+                # Add manifolds      
+                self.add_manifolds(nt, pattern_node)         
     
     def execute(self, context):
         scene = context.scene
