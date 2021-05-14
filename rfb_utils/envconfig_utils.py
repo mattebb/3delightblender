@@ -310,7 +310,7 @@ def _guess_rmantree():
             rfb_log().error('RMANTREE from rfb_envvars.json is not valid. Fallback to preferences setting.')  
             rmantree = ''    
         else:
-            rfb_log().warning("Using RMANTREE from rfb_envvars.json")
+            rfb_log().debug("Using RMANTREE from rfb_envvars.json")
 
     # Try and set RMANTREE depending on preferences
     if rmantree == '':      
@@ -326,14 +326,14 @@ def _guess_rmantree():
         if (rmantree != '' and not buildinfo) or rmantree_method == 'ENV':
             # Fallback to RMANTREE env var
             if not buildinfo:
-                rfb_log().warning('Fallback to using RMANTREE.')
+                rfb_log().debug('Fallback to using RMANTREE.')
             rmantree = os.environ.get('RMANTREE', '') 
             rfb_log().info('RMANTREE: %s' % rmantree)
             buildinfo = _get_build_info(rmantree)
 
         if rmantree == '' or not buildinfo:
             if rmantree_method == 'ENV':
-                rfb_log().warning('Getting RMANTREE from environment failed. Fallback to autodetecting newest.')
+                rfb_log().debug('Getting RMANTREE from environment failed. Fallback to autodetecting newest.')
                     
             if choice == 'NEWEST':
                 # get from detected installs (at default installation path)
