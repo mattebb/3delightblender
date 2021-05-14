@@ -167,6 +167,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
             return
 
         read_only = prop_meta.get('readOnly', False)
+        not_connectable = prop_meta.get('__noconnection', True)
         widget = prop_meta.get('widget', 'default')
         prop_hidden = getattr(node, '%s_hidden' % prop_name, False)
         prop_disabled = getattr(node, '%s_disabled' % prop_name, False)
@@ -331,11 +332,15 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
                 elif prop_meta['renderman_type'] in ['struct', 'bxdf', 'vstruct']:
                     row.label(text=prop_meta['label'])
                 elif read_only:
-                    # param is read_only i.e.: it is expected that this param has a connection
-                    row.label(text=prop_meta['label'])
-                    row2 = row.row()
-                    row2.prop(node, prop_name, text="", slider=True)
-                    row2.enabled=False                           
+                    if not_connectable:
+                        row2 = row.row()
+                        row2.prop(node, prop_name)
+                        row2.enabled=False
+                    else:
+                        row.label(text=prop_meta['label'])
+                        row2 = row.row()
+                        row2.prop(node, prop_name, text="", slider=True)
+                        row2.enabled=False                           
                 else:
                     row.prop(node, prop_name, slider=True)
 

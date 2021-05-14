@@ -1,0 +1,10 @@
+{
+    "name": "PxrStylizedLines.args",
+    "params": [
+        {
+            "name": "Notes",    
+            "connectable": false,
+            "readOnly": true
+        }                                
+    ]
+}

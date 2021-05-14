@@ -1,0 +1,10 @@
+{
+    "name": "PxrStylizedToon.args",
+    "params": [
+        {
+            "name": "Notes",    
+            "connectable": false,
+            "readOnly": true
+        }                                
+    ]
+}

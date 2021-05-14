@@ -252,7 +252,7 @@ def get_override_paths():
     return paths
 
 # only allow these attrs to be overriden
-__ALLOWABLE_ATTR_OVERRIDES__ = ['default', 'label', 'help', 'min', 'max', 'options', 'page_open', 'connectable', 'widget']
+__ALLOWABLE_ATTR_OVERRIDES__ = ['default', 'label', 'help', 'min', 'max', 'options', 'page_open', 'connectable', 'widget', 'readOnly']
 
 def apply_args_overrides(name, node_desc):
     """Apply overrides on an NodeDesc object. Only certian attributes will be overridden. See
