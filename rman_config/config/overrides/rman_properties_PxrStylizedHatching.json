@@ -4,6 +4,11 @@
         {
             "name": "Notes",
             "readOnly": true
-        }                                
+        },
+        {
+            "name": "hatchingTexType",
+            "always_write": true
+        }
+
     ]
 }

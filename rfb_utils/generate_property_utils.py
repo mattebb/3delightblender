@@ -196,7 +196,8 @@ def generate_property(node, sp, update_function=None):
         'inherit_true_value',
         'presets',
         'readOnly',
-        'struct_name']:
+        'struct_name',
+        'always_write']:
         if hasattr(sp, nm):
             prop_meta[nm] = getattr(sp, nm)
 

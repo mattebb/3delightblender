@@ -111,7 +111,16 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
                         val = float(val)
                         dflt = float(dflt)
 
-                if val == dflt:
+                # Check if this param is marked always_write.
+                # We still have some plugins where the Args file and C++ don't agree
+                # on default behavior
+                always_write = False
+                prop_meta = getattr(node, 'prop_meta', dict())
+                if param_name in node.prop_meta:
+                    meta = prop_meta.get(param_name)
+                    always_write = meta.get('always_write', always_write)
+
+                if not always_write and val == dflt:
                     return                  
 
         if is_array:

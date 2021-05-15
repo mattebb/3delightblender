@@ -10,7 +10,8 @@ from rman_utils.node_desc_param import (NodeDescParam,
 # Override static class variable
 NodeDescParam.optional_attrs = NodeDescParam.optional_attrs + []
 NodeDescParamJSON.keywords = NodeDescParamJSON.keywords + ['panel', 'inheritable', 
-                'inherit_true_value', 'update_function_name', 'update_function', 'readOnly']  
+                'inherit_true_value', 'update_function_name', 'update_function', 
+                'readOnly', 'always_write']  
 
 def blender_finalize(obj):
     """Post-process some parameters for Blender.
