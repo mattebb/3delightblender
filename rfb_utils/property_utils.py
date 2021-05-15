@@ -100,16 +100,21 @@ def set_rix_param(params, param_type, param_name, val, is_reference=False, is_ar
                 if isinstance(val, list):
                     dflt = list(dflt)
 
-                if not is_array and isinstance(val, str):
-                    # these explicit conversions are necessary because of EnumProperties
-                    if param_type == 'string' and val == __RMAN_EMPTY_STRING__:
-                        val = ""
-                    elif param_type == 'int':
+                if not is_array:
+                    if ((isinstance(val, str) or isinstance(dflt, str))):
+                        # these explicit conversions are necessary because of EnumProperties
+                        if param_type == 'string' and val == __RMAN_EMPTY_STRING__:
+                            val = ""
+                        elif param_type == 'int':
+                            val = int(val)
+                            dflt = int(dflt)
+                        elif param_type == 'float':
+                            val = float(val)
+                            dflt = float(dflt)
+                    elif param_type == 'int' and (isinstance(val, bool) or isinstance(dflt, bool)):
+                        # convert bools into ints
                         val = int(val)
                         dflt = int(dflt)
-                    elif param_type == 'float':
-                        val = float(val)
-                        dflt = float(dflt)
 
                 # Check if this param is marked always_write.
                 # We still have some plugins where the Args file and C++ don't agree
