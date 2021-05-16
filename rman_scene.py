@@ -1261,8 +1261,6 @@ class RmanScene(object):
                 continue
 
             df_name = bl_df_node.name
-            if df_name == "":
-                df_name = "rman_displayfilter_filter%d" % i
 
             rman_df_node = self.rman.SGManager.RixSGShader("DisplayFilter", bl_df_node.bl_label, df_name)
             rman_sg_node = RmanSgNode(self, rman_df_node, "")
@@ -1303,8 +1301,6 @@ class RmanScene(object):
             if not bl_sf_node.is_active:
                 continue
             sf_name = bl_sf_node.name
-            if sf_name == "":
-                sf_name = "rman_samplefilter_filter%d" % i
 
             rman_sf_node = self.rman.SGManager.RixSGShader("SampleFilter", bl_sf_node.bl_label, sf_name)
             rman_sg_node = RmanSgNode(self, rman_sf_node, "")
