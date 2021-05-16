@@ -316,7 +316,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
                                 row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
                                 draw_node_properties_recursive(layout, context, nt, input_node, level=level + 1)
                             else:
-                                row.label(text='%s[%d]: ' % (prop_label, i))
+                                row.prop(node, '%s[%d]' % (prop_name, i), slider=True)
                                 rman_icon = rfb_icons.get_icon('rman_connection_menu')
                                 row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
                 return
