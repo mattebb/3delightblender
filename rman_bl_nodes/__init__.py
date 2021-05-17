@@ -430,11 +430,6 @@ def generate_node_type(node_desc, is_oso=False):
 
     class_generate_properties(ntype, name, node_desc)
     if nodeType == 'light':
-        ntype.__annotations__['light_shading_rate'] = FloatProperty(
-            name="Light Shading Rate",
-            description="Shading Rate for this light.  \
-                Leave this high unless detail is missing",
-            default=100.0)
         ntype.__annotations__['light_primary_visibility'] = BoolProperty(
             name="Light Primary Visibility",
             description="Camera visibility for this light",
