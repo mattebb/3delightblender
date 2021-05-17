@@ -633,13 +633,7 @@ def register_rman_nodes():
 
                     # categories
                     node_item = RendermanNodeItem(typename, label=nodetype.bl_label)
-                    if node_desc.node_type == 'pattern':
-                        # we favor the OSL version over the C++ version
-                        # so only add the OSL version into categories list                        
-                        if is_args:
-                            args_filename = os.path.splitext(filename)[0]
-                            if args_filename in [node_desc.name for node_desc_list in [nodes for cat,nodes in __RMAN_NODES__.items()] for node_desc in node_desc_list]:
-                                continue   
+                    if node_desc.node_type == 'pattern': 
                         classification = getattr(node_desc, 'classification', '')                                                       
                         if classification and classification != '':
                             tokens = classification.split('/')                                
@@ -647,14 +641,7 @@ def register_rman_nodes():
                             category_nice_name = category.capitalize()
                             # category seems empty. Put in misc
                             if category == '':
-                                category = 'misc'
-                            if node_desc.name not in ['PxrLayer', 'PxrLayerMixer']:
-                                # append OSL to the category if these are osl shaders, except
-                                # for PxrLayer and PxrLayerMixer
-                                if is_oso:
-                                    pass
-                                    #category_nice_name = 'OSL %s' % category.capitalize()
-                                    #category = 'OSL_%s' % category                                        
+                                category = 'misc'                                      
                             lst = __RMAN_NODE_CATEGORIES__['pattern'].get('patterns_%s' % category, None)
                             if not lst:
                                 lst = (('RenderMan %s Patterns' % category_nice_name, []), [])
