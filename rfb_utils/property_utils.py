@@ -380,49 +380,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                 param_type = prop_type
                 param_name = input_name
                 val = string_utils.convert_val(input.default_value, type_hint=prop_type)
-                set_rix_param(params, param_type, param_name, val, is_reference=False)                
-
-
-    # Special case for SeExpr Nodes. Assume that the code will be in a file so
-    # that needs to be extracted.
-    elif node.bl_idname == "PxrSeExprPatternNode":
-        fileInputType = node.codetypeswitch
-
-        for prop_name, meta in node.prop_meta.items():
-            if prop_name in ["codetypeswitch", 'filename']:
-                pass
-            elif prop_name == "internalSearch" and fileInputType == 'INT':
-                if node.internalSearch != "":
-                    script = bpy.data.texts[node.internalSearch]
-
-                    params.SetString("expression", script.as_string() )
-            elif prop_name == "shadercode" and fileInputType == "NODE":
-                params.SetString("expression", node.expression)
-            else:
-                prop = getattr(node, prop_name)
-                # if input socket is linked reference that
-                if prop_name in node.inputs and \
-                        node.inputs[prop_name].is_linked:
-
-                    to_socket = node.inputs[prop_name]
-                    from_socket = to_socket.links[0].from_socket
-                    from_node = to_socket.links[0].from_node
-
-                    param_type = meta['renderman_type']
-                    param_name = meta['renderman_name']
-
-                    val = get_output_param_str(
-                            from_socket.node, mat_name, from_socket, to_socket, param_type)
-                    if val:
-                        set_rix_param(params, param_type, param_name, val, is_reference=True)                            
-                # else output rib
-                else:
-                    param_type = meta['renderman_type']
-                    param_name = meta['renderman_name']
-
-                    val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
-                    set_rix_param(params, param_type, param_name, val, is_reference=False)                          
-
+                set_rix_param(params, param_type, param_name, val, is_reference=False)
     else:
 
         for prop_name, meta in node.prop_meta.items():
@@ -430,6 +388,9 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                 continue
 
             param_widget = meta.get('widget', 'default')
+            param_type = meta['renderman_type']
+            param_name = meta['renderman_name']     
+                   
             if param_widget == 'null' and 'vstructmember' not in meta:
                 # if widget is marked null, don't export parameter and rely on default
                 # unless it has a vstructmember
@@ -438,7 +399,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
             else:
                 prop = getattr(node, prop_name)
                 # if property group recurse
-                if meta['renderman_type'] == 'page':
+                if param_type == 'page':
                     continue
                 elif prop_name == 'inputMaterial' or \
                         ('vstruct' in meta and meta['vstruct'] is True) or \
@@ -452,9 +413,6 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                     to_socket = node.inputs[prop_name]
                     from_socket = to_socket.links[0].from_socket
                     from_node = to_socket.links[0].from_node
-
-                    param_type = meta['renderman_type']
-                    param_name = meta['renderman_name']
 
                     if 'arraySize' in meta:
                         pass
@@ -494,9 +452,6 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                         actual_socket = from_socket.node.output_meta[
                             vstruct_from_param]
 
-                        param_type = meta['renderman_type']
-                        param_name = meta['renderman_name']
-
                         node_meta = getattr(
                             node, 'shader_meta') if node.bl_idname == "PxrOSLPatternNode" else node.output_meta                        
                         node_meta = node_meta.get(vstruct_from_param)
@@ -520,35 +475,27 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                 # else output rib
                 else:
                     # if struct is not linked continue
-                    if meta['renderman_type'] in ['struct', 'enum']:
+                    if param_type in ['struct', 'enum']:
                         continue
 
-                    param_type = meta['renderman_type']
-                    param_name = meta['renderman_name']
                     val = None
-                    arrayLen = 0
 
                     # if this is a gain on PxrSurface and the lobe isn't
-                    # enabled
-                    
+                    # enabled                    
                     if node.bl_idname == 'PxrSurfaceBxdfNode' and \
                             prop_name in __GAINS_TO_ENABLE__ and \
                             not getattr(node, __GAINS_TO_ENABLE__[prop_name]):
-                        val = [0, 0, 0] if meta[
-                            'renderman_type'] == 'color' else 0
+                        val = [0, 0, 0] if param_type == 'color' else 0
 
-                    elif meta['renderman_type'] == 'string':
+                    elif param_type == 'string':
                         if rman_sg_node:
                             set_frame_sensitive(rman_sg_node, prop)
 
                         val = string_utils.expand_string(prop)
+                        options = meta['options']
                         if param_widget in ['fileinput', 'assetidinput']:
-                            options = meta['options']
-                            # txmanager doesn't currently deal with ptex
-                            if node.bl_idname == "PxrPtexturePatternNode":
-                                val = string_utils.expand_string(val, display='ptex', asFilePath=True)        
                             # ies profiles don't need txmanager for converting                       
-                            elif 'ies' in options:
+                            if 'ies' in options:
                                 val = string_utils.expand_string(val, display='ies', asFilePath=True)
                             # this is a texture
                             elif ('texture' in options) or ('env' in options) or ('imageplane' in options):
@@ -557,13 +504,13 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                                 val = tx_val if tx_val != '' else val
                         elif param_widget == 'assetidoutput':
                             display = 'openexr'
-                            if 'texture' in meta['options']:
+                            if 'texture' in options:
                                 display = 'texture'
                             val = string_utils.expand_string(val, display='texture', asFilePath=True)
 
                     elif 'renderman_array_name' in meta:
                         continue
-                    elif meta['renderman_type'] == 'array':
+                    elif param_type == 'array':
                         array_len = getattr(node, '%s_arraylen' % prop_name)
                         sub_prop_names = getattr(node, prop_name)
                         sub_prop_names = sub_prop_names[:array_len]
@@ -595,7 +542,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                         else:
                             set_rix_param(params, param_type, param_name, val_array, is_reference=False, is_array=True, array_len=len(val_array))
                         continue
-                    elif meta['renderman_type'] == 'colorramp':
+                    elif param_type == 'colorramp':
                         nt = bpy.data.node_groups[node.rman_fake_node_group]
                         if nt:
                             ramp_name =  prop
@@ -620,7 +567,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                             interp = rman_interp_map.get(color_ramp_node.color_ramp.interpolation,'catmull-rom')
                             params.SetString("%s_Interpolation" % prop_name, interp )         
                         continue               
-                    elif meta['renderman_type'] == 'floatramp':
+                    elif param_type == 'floatramp':
                         nt = bpy.data.node_groups[node.rman_fake_node_group]
                         if nt:
                             ramp_name =  prop
@@ -648,7 +595,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                         continue
                     else:
 
-                        val = string_utils.convert_val(prop, type_hint=meta['renderman_type'])
+                        val = string_utils.convert_val(prop, type_hint=param_type)
 
                     set_rix_param(params, param_type, param_name, val, is_reference=False, node=node)
                         
@@ -660,6 +607,10 @@ def property_group_to_rixparams(node, rman_sg_node, sg_node, ob=None, mat_name=N
     set_node_rixparams(node, rman_sg_node, params, ob=ob, mat_name=mat_name)
 
 def portal_inherit_dome_params(portal_node, dome, dome_node, rixparams):
+    '''
+    Portal lights need to inherit some parameter values from the dome light
+    it is parented to.
+    '''
 
     tx_node_id = texture_utils.generate_node_id(dome_node, 'lightColorMap', ob=dome)
     tx_val = texture_utils.get_txmanager().get_output_tex_from_id(tx_node_id)

@@ -75,7 +75,7 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
         '''
         haswidget = hasattr(ndp, 'widget')
         if haswidget:
-            if ndp.widget.lower() in ['none', 'null', 'colorramp', 'floatramp']:
+            if ndp.widget.lower() in ['none', 'null', 'colorramp', 'floatramp', '__remove__']:
                 return False
 
         if hasattr(ndp, 'options'):
@@ -117,7 +117,6 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
         ndp._name = '%s[%d]' % (param_name, i)
         if hasattr(ndp, 'label'):
             ndp.label = '%s[%d]' % (ndp.label, i)
-        #ndp.size = None
         ndp.connectable = True
         ndp.widget = ''
         name, meta, prop = generate_property(node, ndp, update_function=update_function)
@@ -135,7 +134,7 @@ def generate_property(node, sp, update_function=None):
     renderman_name = param_name
     param_widget = sp.widget.lower() if hasattr(sp,'widget') and sp.widget else 'default'
 
-    if param_widget == '__REMOVE__':
+    if param_widget == '__remove__':
         return (None, None, None)      
 
     # blender doesn't like names with __ but we save the

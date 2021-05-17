@@ -102,7 +102,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                             break
             return
 
-        if self.bl_idname == "PxrOSLPatternNode" or self.bl_idname == "PxrSeExprPatternNode":
+        if self.bl_idname == "PxrOSLPatternNode":
             prop = getattr(self, "codetypeswitch")
             layout.prop(self, "codetypeswitch")
             if getattr(self, "codetypeswitch") == 'INT':

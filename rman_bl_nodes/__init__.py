@@ -127,7 +127,7 @@ def class_generate_properties(node, parent_name, node_desc):
             setattr(node, "__annotations__", {})
 
     # pxr osl and seexpr need these to find the code
-    if parent_name in ["PxrOSL", "PxrSeExpr"]:
+    if parent_name in ["PxrOSL"]:
         # Enum for internal, external type selection
         EnumName = "codetypeswitch"
         if parent_name == 'PxrOSL':
@@ -206,7 +206,7 @@ def class_generate_properties(node, parent_name, node_desc):
                 # For pages, add a BoolProperty called '[page_name].uio'
                 # This determines whether the page is opened or closed
                 sub_prop_names.append(page_name)
-                prop_meta[page_name] = {'renderman_type': 'page'}
+                prop_meta[page_name] = {'renderman_type': 'page', 'renderman_name': page_name}
                 ui_label = "%s_uio" % page_name
                 dflt = getattr(node_desc_param, 'page_open', False)                
                 node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=dflt)
@@ -235,7 +235,7 @@ def class_generate_properties(node, parent_name, node_desc):
                     parent_page = page_name
                     page_name += '.' + tokens[i]
                     if page_name not in prop_meta:
-                        prop_meta[page_name] = {'renderman_type': 'page'}
+                        prop_meta[page_name] = {'renderman_type': 'page', 'renderman_name': page_name}
                         ui_label = "%s_uio" % page_name
                         dflt = getattr(node_desc_param, 'page_open', False) 
                         node.__annotations__[ui_label] = BoolProperty(name=ui_label, default=dflt)
@@ -311,8 +311,7 @@ def generate_node_type(node_desc, is_oso=False):
     def init(self, context):
         # add input/output sockets to nodes, based on type
         if self.renderman_node_type == 'bxdf':
-            self.outputs.new('RendermanNodeSocketBxdf', "Bxdf") #.type = 'SHADER'
-            #socket_template = self.socket_templates.new(identifier='Bxdf', name='Bxdf', type='SHADER')
+            self.outputs.new('RendermanNodeSocketBxdf', "Bxdf")
             node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self)
             # if this is PxrLayerSurface set the diffusegain to 0.  The default
