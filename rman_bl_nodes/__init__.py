@@ -314,10 +314,6 @@ def generate_node_type(node_desc, is_oso=False):
             self.outputs.new('RendermanNodeSocketBxdf', "Bxdf")
             node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self)
-            # if this is PxrLayerSurface set the diffusegain to 0.  The default
-            # of 1 is unintuitive
-            if self.plugin_name == 'PxrLayerSurface':
-                self.diffuseGain = 0
         elif self.renderman_node_type == 'light':
             node_add_inputs(self, name, self.prop_names)
             self.outputs.new('RendermanNodeSocketLight', "Light")
@@ -339,9 +335,9 @@ def generate_node_type(node_desc, is_oso=False):
         elif self.renderman_node_type == 'projection':
             self.outputs.new('RendermanNodeSocketProjection', "Projection")
             node_add_inputs(self, name, self.prop_names)                                   
-        # else pattern
         elif name == "PxrOSL":
             self.outputs.clear()
+        # else pattern            
         else:
             node_add_inputs(self, name, self.prop_names)
             node_add_outputs(self)
