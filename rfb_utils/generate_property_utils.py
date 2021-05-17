@@ -107,7 +107,7 @@ def generate_array_property(node, prop_names, prop_meta, node_desc_param, update
     sub_prop_names = []
     arraylen_nm = '%s_arraylen' % param_name
     prop = IntProperty(name=arraylen_nm, 
-                        default=0, soft_min=0, soft_max=RFB_ARRAYS_MAX_LEN,
+                        default=0, min=0, max=RFB_ARRAYS_MAX_LEN,
                         description="Size of array",
                         update=update_array_size_func)
     node.__annotations__[arraylen_nm] = prop  
