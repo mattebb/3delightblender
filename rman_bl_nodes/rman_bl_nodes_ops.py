@@ -87,13 +87,11 @@ class NODE_OT_add_displayfilter_node_socket(bpy.types.Operator):
         node.add_input()
         return {'FINISHED'}   
 
-        return {'FINISHED'}    
-
 class NODE_OT_remove_displayfilter_node_socket(bpy.types.Operator):
 
     bl_idname = 'node.rman_remove_displayfilter_node_socket'
     bl_label = 'Remove DisplayFilter Socket'
-    bl_description = 'Remove a new socket to the displayfilter output node'
+    bl_description = 'Remove this displayfilter socket.'
 
     index: IntProperty(default=-1)
 
@@ -115,6 +113,100 @@ class NODE_OT_remove_displayfilter_node_socket(bpy.types.Operator):
             socket = node.inputs[self.index]
             node.remove_input_index(socket)
         return {'FINISHED'}                
+
+class NODE_OT_move_displayfilter_node_up(bpy.types.Operator):
+
+    bl_idname = 'node.rman_move_displayfilter_node_up'
+    bl_label = 'Move DisplayFilter Up'
+    bl_description = 'Move this display filter up the chain'
+
+    index: IntProperty(default=-1)
+
+    def execute(self, context):
+        if hasattr(context, 'node'):
+            node = context.node
+            nt = context.nodetree
+            socket = context.socket        
+            world = context.scene.world    
+        else:
+            world = context.scene.world
+            rm = world.renderman
+            nt = world.node_tree
+
+            node = find_node(world, 'RendermanDisplayfiltersOutputNode')
+            if not node:
+                return {'FINISHED'}
+
+            socket = node.inputs[self.index]
+
+        socket_before = node.inputs[self.index-1]
+        socket_before_node = None
+        if socket_before.is_linked:
+            link = socket_before.links[0]
+            socket_before_node = link.from_node
+            nt.links.remove(link)
+
+        socket_node = None
+        if socket.is_linked:
+            link = socket.links[0]
+            socket_node = link.from_node   
+            nt.links.remove(link)   
+
+        if socket_node:
+            nt.links.new(socket_node.outputs[0], socket_before)
+        if socket_before_node:
+            nt.links.new(socket_before_node.outputs[0], socket)
+
+        world.update_tag()            
+
+        return {'FINISHED'}         
+
+class NODE_OT_move_displayfilter_node_down(bpy.types.Operator):
+
+    bl_idname = 'node.rman_move_displayfilter_node_down'
+    bl_label = 'Move DisplayFilter Down'
+    bl_description = 'Move this display filter down the chain'
+
+    index: IntProperty(default=-1)
+
+    def execute(self, context):
+        if hasattr(context, 'node'):
+            node = context.node
+            nt = context.nodetree
+            socket = context.socket         
+            world = context.scene.world   
+        else:
+            world = context.scene.world
+            rm = world.renderman
+            nt = world.node_tree
+
+            node = find_node(world, 'RendermanDisplayfiltersOutputNode')
+            if not node:
+                return {'FINISHED'}
+
+            socket = node.inputs[self.index]
+
+        socket_after = node.inputs[self.index+1]
+        socket_after_node = None
+        if socket_after.is_linked:
+            link = socket_after.links[0]
+            socket_after_node = link.from_node
+            nt.links.remove(link)
+
+        socket_node = None
+        if socket.is_linked:
+            link = socket.links[0]
+            socket_node = link.from_node   
+            nt.links.remove(link)   
+
+        if socket_node:
+            nt.links.new(socket_node.outputs[0], socket_after)
+        if socket_after_node:
+            nt.links.new(socket_after_node.outputs[0], socket)
+
+        world.update_tag()            
+
+        return {'FINISHED'}                       
 
 class NODE_OT_add_samplefilter_node_socket(bpy.types.Operator):
 
@@ -141,7 +233,7 @@ class NODE_OT_remove_samplefilter_node_socket(bpy.types.Operator):
 
     bl_idname = 'node.rman_remove_samplefilter_node_socket'
     bl_label = 'Remove SampleFilter Socket'
-    bl_description = 'Remove a new socket to the samplefilter output node'
+    bl_description = 'Remove this sample filter socket.'
 
     index: IntProperty(default=-1)    
 
@@ -163,6 +255,100 @@ class NODE_OT_remove_samplefilter_node_socket(bpy.types.Operator):
             socket = node.inputs[self.index]
             node.remove_input_index(socket)
         return {'FINISHED'}             
+
+class NODE_OT_move_samplefilter_node_up(bpy.types.Operator):
+
+    bl_idname = 'node.rman_move_samplefilter_node_up'
+    bl_label = 'Move SampleFilter Up'
+    bl_description = 'Move this sample filter up the chain'
+
+    index: IntProperty(default=-1)
+
+    def execute(self, context):
+        if hasattr(context, 'node'):
+            node = context.node
+            nt = context.nodetree
+            socket = context.socket           
+            world = context.scene.world 
+        else:
+            world = context.scene.world
+            rm = world.renderman
+            nt = world.node_tree
+
+            node = find_node(world, 'RendermanSamplefiltersOutputNode')
+            if not node:
+                return {'FINISHED'}
+
+            socket = node.inputs[self.index]
+
+        socket_before = node.inputs[self.index-1]
+        socket_before_node = None
+        if socket_before.is_linked:
+            link = socket_before.links[0]
+            socket_before_node = link.from_node
+            nt.links.remove(link)
+
+        socket_node = None
+        if socket.is_linked:
+            link = socket.links[0]
+            socket_node = link.from_node   
+            nt.links.remove(link)   
+
+        if socket_node:
+            nt.links.new(socket_node.outputs[0], socket_before)
+        if socket_before_node:
+            nt.links.new(socket_before_node.outputs[0], socket)
+
+        world.update_tag()            
+
+        return {'FINISHED'}         
+
+class NODE_OT_move_samplefilter_node_down(bpy.types.Operator):
+
+    bl_idname = 'node.rman_move_samplefilter_node_down'
+    bl_label = 'Move SampleFilter Down'
+    bl_description = 'Move this sample filter down the chain'
+
+    index: IntProperty(default=-1)
+
+    def execute(self, context):
+        if hasattr(context, 'node'):
+            node = context.node
+            nt = context.nodetree
+            socket = context.socket
+            world = context.scene.world
+        else:
+            world = context.scene.world
+            rm = world.renderman
+            nt = world.node_tree
+
+            node = find_node(world, 'RendermanSamplefiltersOutputNode')
+            if not node:
+                return {'FINISHED'}
+
+            socket = node.inputs[self.index]
+
+        socket_after = node.inputs[self.index+1]
+        socket_after_node = None
+        if socket_after.is_linked:
+            link = socket_after.links[0]
+            socket_after_node = link.from_node
+            nt.links.remove(link)
+
+        socket_node = None
+        if socket.is_linked:
+            link = socket.links[0]
+            socket_node = link.from_node   
+            nt.links.remove(link)   
+
+        if socket_node:
+            nt.links.new(socket_node.outputs[0], socket_after)
+        if socket_after_node:
+            nt.links.new(socket_after_node.outputs[0], socket)
+
+        world.update_tag()
+
+        return {'FINISHED'}                        
 
 class NODE_OT_rman_node_remove(bpy.types.Operator):
     bl_idname = "node.rman_shading_remove"
@@ -478,8 +664,12 @@ class NODE_OT_rman_toggle_filter_params(bpy.types.Operator):
 classes = [
     NODE_OT_add_displayfilter_node_socket,
     NODE_OT_remove_displayfilter_node_socket,
+    NODE_OT_move_displayfilter_node_up,
+    NODE_OT_move_displayfilter_node_down,
     NODE_OT_add_samplefilter_node_socket,
     NODE_OT_remove_samplefilter_node_socket,
+    NODE_OT_move_samplefilter_node_up,
+    NODE_OT_move_samplefilter_node_down,    
     NODE_OT_rman_node_disconnect,
     NODE_OT_rman_node_remove,
     NODE_OT_rman_node_create,

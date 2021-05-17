@@ -164,16 +164,33 @@ class RENDER_PT_renderman_world_display_filters(PRManButtonsPanel, Panel):
         layout.separator()
 
         for i, socket in enumerate(output.inputs):
-            row = layout.row()
+            split = layout.split()
+            row = split.row()
             col = row.column()
             col.context_pointer_set("node", output)
             col.context_pointer_set("nodetree", nt)
             col.context_pointer_set("socket", socket)                 
             op = col.operator("node.rman_remove_displayfilter_node_socket", text="", icon="REMOVE")
-            op.index = i            
+            op.index = i                      
             col = row.column()
             col.label(text=socket.name)
 
+            if socket.is_linked:
+                col = row.column()
+                col.enabled = (i != 0)
+                col.context_pointer_set("node", output)
+                col.context_pointer_set("nodetree", nt)
+                col.context_pointer_set("socket", socket)             
+                op = col.operator("node.rman_move_displayfilter_node_up", text="", icon="TRIA_UP")
+                op.index = i
+                col = row.column()
+                col.context_pointer_set("node", output)
+                col.context_pointer_set("nodetree", nt)
+                col.context_pointer_set("socket", socket)             
+                col.enabled = (i != len(output.inputs)-1)
+                op = col.operator("node.rman_move_displayfilter_node_down", text="", icon="TRIA_DOWN")
+                op.index = i
+                        
             layout.context_pointer_set("node", output)
             layout.context_pointer_set("nodetree", nt)
             layout.context_pointer_set("socket", socket)      
@@ -229,7 +246,23 @@ class RENDER_PT_renderman_world_sample_filters(PRManButtonsPanel, Panel):
             op = col.operator("node.rman_remove_samplefilter_node_socket", text="", icon="REMOVE")
             op.index = i               
             col = row.column()
-            col.label(text=socket.name)        
+            col.label(text=socket.name)       
+
+            if socket.is_linked:
+                col = row.column()
+                col.enabled = (i != 0)
+                col.context_pointer_set("node", output)
+                col.context_pointer_set("nodetree", nt)
+                col.context_pointer_set("socket", socket)             
+                op = col.operator("node.rman_move_samplefilter_node_up", text="", icon="TRIA_UP")
+                op.index = i
+                col = row.column()
+                col.context_pointer_set("node", output)
+                col.context_pointer_set("nodetree", nt)
+                col.context_pointer_set("socket", socket)             
+                col.enabled = (i != len(output.inputs)-1)
+                op = col.operator("node.rman_move_samplefilter_node_down", text="", icon="TRIA_DOWN")
+                op.index = i             
 
             layout.context_pointer_set("socket", socket)
             layout.context_pointer_set("node", output)
