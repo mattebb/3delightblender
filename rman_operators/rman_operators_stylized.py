@@ -2,6 +2,7 @@ import bpy
 from bpy.props import StringProperty, BoolProperty, EnumProperty
 from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import object_utils
+from ..rfb_logger import rfb_log
 from .. import rman_bl_nodes
 from ..rman_constants import RMAN_STYLIZED_FILTERS, RMAN_STYLIZED_PATTERNS, RMAN_UTILITY_PATTERN_NAMES  
 
@@ -183,8 +184,20 @@ class PRMAN_OT_Add_Stylized_Filter(bpy.types.Operator):
 
     def rman_stylized_filters(self, context):
         items = []
+        scene = context.scene
+        world = scene.world        
         for f in RMAN_STYLIZED_FILTERS:
+            found = False
+            for n in shadergraph_utils.find_displayfilter_nodes(world):
+                if n.bl_label == f:
+                    found = True
+                    break
+            if found:
+                continue          
             items.append((f, f, ""))
+
+        if len(items) < 1:
+            items.append(('0', '', ''))
 
         return items
 

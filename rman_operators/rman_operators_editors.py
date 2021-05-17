@@ -7,12 +7,12 @@ from ..rfb_utils import shadergraph_utils
 from ..rfb_utils import string_utils
 from ..rfb_utils import object_utils
 from ..rfb_utils.envconfig_utils import envconfig
+from ..rfb_logger import rfb_log
 from .. import rfb_icons
 from ..rman_operators.rman_operators_collections import return_empty_list   
 from ..rman_constants import RFB_MAX_USER_TOKENS, RMAN_STYLIZED_FILTERS, RFB_ADDON_PATH  
 from ..rman_config import __RFB_CONFIG_DICT__ as rfb_config
 import bpy
-import bpy_extras
 import os
 import re
 
@@ -741,7 +741,7 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
     stylized_tabs: EnumProperty(
         name="",
         items=[
-            ('patterns', 'Patterns', 'Add or eidt stylized patterns attached to objects in the scene'),
+            ('patterns', 'Patterns', 'Add or edit stylized patterns attached to objects in the scene'),
             ('filters', 'Filters', 'Add or edit stylized display filters in the scene'),
         ]
     )
@@ -857,6 +857,7 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         if selected_stylized_node:
             rman_icon = rfb_icons.get_displayfilter_icon(node.bl_label) 
             layout.prop(selected_stylized_node, "is_active")
+            layout.prop(node, 'name')
             if selected_stylized_node.is_active:
                 draw_node_properties_recursive(layout, context, nt, selected_stylized_node, level=1)             
 
