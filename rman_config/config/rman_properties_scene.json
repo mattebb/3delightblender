@@ -88,7 +88,7 @@
             "widget": "checkbox",
             "update_function_name": "update_render_rman_stylized",
             "update_function": "def update_render_rman_stylized(self, context):\n    from ..rman_render import RmanRender\n    rr = RmanRender.get_rman_render()\n    rr.rman_scene_sync.update_displays(context)\n    context.scene.world.update_tag()",
-            "help": "Render with RenderMan Stylized looks."
+            "help": "Render with RenderMan Stylized looks. Note, this simply adds the necessary AOVs to render with stylized looks. Both the stylized display filters need to be added to the scene, and a stylized pattern node needs to be added to an objects's material network."
         },          
         {
             "panel": "RENDER_PT_renderman_render",
