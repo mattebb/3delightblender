@@ -489,9 +489,11 @@ def has_stylized_pattern_node(ob, node=None):
     return False
 
 def create_pxrlayer_nodes(nt, bxdf):
-    mixer = nt.nodes.new("PxrLayerMixerPatternNode")
-    layer1 = nt.nodes.new("PxrLayerPatternNode")
-    layer2 = nt.nodes.new("PxrLayerPatternNode")
+    from .. import rman_bl_nodes
+
+    mixer = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__["PxrLayerMixer"])
+    layer1 = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__["PxrLayer"])
+    layer2 = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__["PxrLayer"])
 
     mixer.location = bxdf.location
     mixer.location[0] -= 300
@@ -509,13 +511,15 @@ def create_pxrlayer_nodes(nt, bxdf):
     nt.links.new(layer2.outputs[0], mixer.inputs['layer1'])         
 
 def _convert_grease_pencil_stroke_texture(mat, nt, output):
+    from .. import rman_bl_nodes
+
     gp_mat = mat.grease_pencil
     col =  gp_mat.color[:3]
     # col = color_utils.linearizeSRGB(col)
     alpha = gp_mat.color[3]
 
     bl_image = gp_mat.stroke_image
-    bxdf = nt.nodes.new('PxrConstantBxdfNode')
+    bxdf = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrConstant'])
     bxdf.location = output.location
     bxdf.location[0] -= 300
     bxdf.emitColor = col
@@ -526,7 +530,7 @@ def _convert_grease_pencil_stroke_texture(mat, nt, output):
         bxdf.emitColor = [0.0, 0.0, 0.0, 1.0]
     else:
         real_file = filepath_utils.get_real_path(bl_image.filepath)
-        manifold = nt.nodes.new('PxrManifold2DPatternNode')
+        manifold = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrManifold2D'])
         manifold.angle = -math.degrees(gp_mat.pattern_angle)
         manifold.scaleS = gp_mat.pattern_scale[0]
         manifold.scaleT = gp_mat.pattern_scale[1]
@@ -534,12 +538,12 @@ def _convert_grease_pencil_stroke_texture(mat, nt, output):
         manifold.offsetT = gp_mat.texture_offset[1]
         manifold.invertT = 1
 
-        texture = nt.nodes.new('PxrTexturePatternNode')
+        texture = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrTexture'])
         texture.filename = real_file
         texture.linearize = 1
         nt.links.new(manifold.outputs[0], texture.inputs[3])  
 
-        mix = nt.nodes.new('PxrMixPatternNode')
+        mix = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrMix'])
         mix.color2 = col
         mix.mix = gp_mat.mix_stroke_factor
         nt.links.new(texture.outputs[0], mix.inputs[0])
@@ -548,6 +552,7 @@ def _convert_grease_pencil_stroke_texture(mat, nt, output):
         nt.links.new(texture.outputs[4], bxdf.inputs[1])              
 
 def _convert_grease_pencil_fill_texture(mat, nt, output):
+    from .. import rman_bl_nodes    
 
     gp_mat = mat.grease_pencil
     col = gp_mat.fill_color[:3]
@@ -556,7 +561,7 @@ def _convert_grease_pencil_fill_texture(mat, nt, output):
     mix_color = gp_mat.mix_color[:3]
     mix_alpha = gp_mat.mix_color[3]
 
-    bxdf = nt.nodes.new('PxrConstantBxdfNode')
+    bxdf = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrConstant'])
     bxdf.location = output.location
     bxdf.location[0] -= 300
     bxdf.emitColor = col
@@ -569,7 +574,7 @@ def _convert_grease_pencil_fill_texture(mat, nt, output):
         bxdf.emitColor = [0.0, 0.0, 0.0, 1.0]
     else:
         real_file = filepath_utils.get_real_path(bl_image.filepath)
-        manifold = nt.nodes.new('PxrManifold2DPatternNode')
+        manifold = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrManifold2D'])
         manifold.angle = -math.degrees(gp_mat.texture_angle)
         manifold.scaleS = gp_mat.texture_scale[0]
         manifold.scaleT = gp_mat.texture_scale[1]
@@ -577,12 +582,12 @@ def _convert_grease_pencil_fill_texture(mat, nt, output):
         manifold.offsetT = gp_mat.texture_offset[1]
         manifold.invertT = 1
 
-        texture = nt.nodes.new('PxrTexturePatternNode')
+        texture = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrTexture'])
         texture.filename = real_file
         texture.linearize = 1
         nt.links.new(manifold.outputs[0], texture.inputs[3])
 
-        mix = nt.nodes.new('PxrMixPatternNode')
+        mix = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrMix'])
         mix.color2 = col
         mix.mix = gp_mat.mix_factor
         nt.links.new(texture.outputs[0], mix.inputs[0])
@@ -591,6 +596,7 @@ def _convert_grease_pencil_fill_texture(mat, nt, output):
         nt.links.new(texture.outputs[4], bxdf.inputs[1])
         
 def _convert_grease_pencil_fill_checker(mat, nt, output):
+    from .. import rman_bl_nodes    
 
     gp_mat = mat.grease_pencil
     col = gp_mat.fill_color[:3]
@@ -599,37 +605,37 @@ def _convert_grease_pencil_fill_checker(mat, nt, output):
     mix_color = gp_mat.mix_color[:3]
     mix_alpha = gp_mat.mix_color[3]
 
-    bxdf = nt.nodes.new('PxrConstantBxdfNode')
+    bxdf = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrConstant'])
     bxdf.location = output.location
     bxdf.location[0] -= 300
     bxdf.emitColor = col
     bxdf.presence = alpha
     nt.links.new(bxdf.outputs[0], output.inputs[0])   
 
-    manifold = nt.nodes.new('PxrManifold2DPatternNode')
+    manifold = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrManifold2D'])
     manifold.angle = -math.degrees(gp_mat.pattern_angle)
     manifold.scaleS = (1/gp_mat.pattern_gridsize) * gp_mat.pattern_scale[0]
     manifold.scaleT = (1/gp_mat.pattern_gridsize) * gp_mat.pattern_scale[1]
 
-    checker = nt.nodes.new('PxrCheckerPatternNode')
+    checker = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrChecker'])
     checker.colorA = col
     checker.colorB = mix_color
 
     nt.links.new(manifold.outputs[0], checker.inputs[2])
 
-    checker2 = nt.nodes.new('PxrCheckerPatternNode')
+    checker2 = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrChecker'])
     checker2.colorA = col
     checker2.colorB = mix_color 
 
     nt.links.new(manifold.outputs[0], checker2.inputs[2])
 
-    float3_1 = nt.nodes.new('PxrToFloat3PatternNode')
+    float3_1 = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrToFloat3'])
     float3_1.input = alpha
 
-    float3_2 = nt.nodes.new('PxrToFloat3PatternNode')
+    float3_2 = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrToFloat3'])
     float3_2.input = mix_alpha
 
-    mix = nt.nodes.new('PxrMixPatternNode')
+    mix = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrMix'])
     nt.links.new(float3_1.outputs[0], mix.inputs[0])
     nt.links.new(float3_2.outputs[0], mix.inputs[1])
     nt.links.new(checker2.outputs[1], mix.inputs[2])
@@ -638,6 +644,8 @@ def _convert_grease_pencil_fill_checker(mat, nt, output):
     nt.links.new(mix.outputs[0], bxdf.inputs[1])
 
 def convert_grease_pencil_mat(mat, nt, output):
+    from .. import rman_bl_nodes
+
     gp_mat = mat.grease_pencil
     if gp_mat.show_stroke:
         stroke_style = gp_mat.stroke_style
@@ -648,7 +656,7 @@ def convert_grease_pencil_mat(mat, nt, output):
             # col = color_utils.linearizeSRGB(col)
             alpha = gp_mat.color[3]
 
-            bxdf = nt.nodes.new('PxrConstantBxdfNode')
+            bxdf = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrConstant'])
             bxdf.location = output.location
             bxdf.location[0] -= 300
             bxdf.emitColor = col
@@ -667,7 +675,7 @@ def convert_grease_pencil_mat(mat, nt, output):
             mix_color = gp_mat.mix_color[:3]
             mix_alpha = gp_mat.mix_color[3]    
     
-            bxdf = nt.nodes.new('PxrConstantBxdfNode')
+            bxdf = nt.nodes.new(rman_bl_nodes.__BL_NODES_MAP__['PxrConstant'])
             bxdf.location = output.location
             bxdf.location[0] -= 300
             bxdf.emitColor = col
