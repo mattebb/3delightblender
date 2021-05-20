@@ -470,8 +470,8 @@ class RmanSceneSync(object):
                 rfb_log().debug("Geometry Node Tree updated: %s" % obj.name)
                 # look for all point instance nodes
                 update_geo_instances(obj.nodes)     
-            else:
-                # This is an object. Look for any geometry node trees attached.
+            elif hasattr(obj, 'modifiers'):
+                # This is an object with modifiers. Look for any geometry node trees attached.
                 node_tree = None
                 for modifier in obj.modifiers:
                     if modifier.type == 'NODES':
