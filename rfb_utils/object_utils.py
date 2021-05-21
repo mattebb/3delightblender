@@ -21,7 +21,6 @@ def get_db_name(ob, rman_type='', psys=None):
         return db_name
     elif isinstance(ob, bpy.types.Material):
         mat_name = ob.name_full.replace('.', '_')
-        #db_name = '%s-MATERIAL' % mat_name
         db_name = '%s' % mat_name
     elif isinstance(ob, bpy.types.Object):
         if ob.type == 'MESH':
@@ -32,7 +31,6 @@ def get_db_name(ob, rman_type='', psys=None):
             db_name = ob.name_full
             return db_name
         elif ob.type == 'EMPTY':
-            #db_name = '%s-EMPTY' % ob.name_full  
             db_name = '%s' % ob.name_full  
 
 
@@ -44,9 +42,6 @@ def get_group_db_name(ob_inst):
             ob = ob_inst.instance_object
             parent = ob_inst.parent
             psys = ob_inst.particle_system
-            #if ob.parent:
-            #    group_db_name = "%s|%s|%s|%d|%d" % (parent.name_full, ob.parent.name_full, ob.name_full, ob_inst.persistent_id[0], ob_inst.persistent_id[1])
-            #else:
             if psys:
                 group_db_name = "%s|%s|%s|%d|%d" % (parent.name_full, ob.name_full, psys.name, ob_inst.persistent_id[1], ob_inst.persistent_id[0])
             else:
