@@ -44,6 +44,15 @@ RMAN_STYLIZED_FILTERS = [
     "PxrStylizedToon"
 ]    
 
+# These lights should be set as Blender AREA light type.
+# This allows for target aiming using Shift + T.
+# All other lights are set to be POINT light types.
+RMAN_AREA_LIGHT_TYPES = [
+    "PxrRectLight",
+    "PxrDiskLight",
+    "PxrDistantLight"
+]
+
 RMAN_STYLIZED_PATTERNS = ["PxrStylizedControl"]
 RMAN_UTILITY_PATTERN_NAMES = [
                             "utilityPattern",

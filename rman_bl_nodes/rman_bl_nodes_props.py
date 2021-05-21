@@ -6,6 +6,7 @@ from .. import rman_bl_nodes
 from .. import rfb_icons
 from ..rfb_utils.shadergraph_utils import is_renderman_nodetree
 from ..rfb_utils import shadergraph_utils
+from ..rman_constants import RMAN_AREA_LIGHT_TYPES
 
 class RendermanPluginSettings(bpy.types.PropertyGroup):
     pass
@@ -126,10 +127,13 @@ class RendermanLightSettings(bpy.types.PropertyGroup):
 
     def renderman_light_shader_update(self, context):
         light = self.id_data      
+        light_shader = self.get_light_node_name()
           
         if hasattr(light, 'size'):
             light.size = 0.0
-        light.type = 'POINT'
+
+        if light_shader not in RMAN_AREA_LIGHT_TYPES:
+            light.type = 'POINT'
 
     def get_rman_light_shaders(self, context):
         items = []

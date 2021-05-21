@@ -2,6 +2,7 @@ import bpy
 import gpu
 from gpu_extras.batch import batch_for_shader
 from ...rfb_utils import transform_utils
+from ...rman_constants import RMAN_AREA_LIGHT_TYPES
 from .barn_light_filter_draw_helper import BarnLightFilterDrawHelper
 from mathutils import Vector, Matrix
 import mathutils
@@ -1308,7 +1309,13 @@ def draw():
         if light_shader_name == '':
             return
 
-        if ob.data.type != 'POINT':
+        if light_shader_name in RMAN_AREA_LIGHT_TYPES:
+            if ob.data.type != 'AREA':
+                if hasattr(ob.data, 'size'):
+                    ob.data.size = 0.0
+                ob.data.type = 'AREA'
+
+        elif ob.data.type != 'POINT':
             if hasattr(ob.data, 'size'):
                 ob.data.size = 0.0
             ob.data.type = 'POINT'
