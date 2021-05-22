@@ -100,11 +100,14 @@ class StringExpression(object):
             self.tokens['OUT'] = dflt_path
         else:
             root_path = self.expand(self.bl_scene.renderman.root_path_output) 
-            if not os.path.exists(root_path):
+            if not os.path.isabs(root_path):
+                rfb_log().debug("Root path: %s is not absolute. Using default." % root_path)            
+                root_path = dflt_path
+            elif not os.path.exists(root_path):
                 try:
                     os.makedirs(root_path, exist_ok=True)
                 except PermissionError:
-                    rfb_log().error("Cannot create root path: %s. Using default." % root_path)            
+                    rfb_log().debug("Cannot create root path: %s. Using default." % root_path)            
                     root_path = dflt_path
             self.tokens['OUT'] = root_path    
             
