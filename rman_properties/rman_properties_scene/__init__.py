@@ -137,6 +137,8 @@ class RendermanSceneSettings(RmanBasePropertyGroup, bpy.types.PropertyGroup):
         stats_mgr = RmanRender.get_rman_render().stats_mgr
         itr = stats_mgr._iterations
         maxSamples = stats_mgr._maxSamples
+        if maxSamples <= 0:
+            return 0.0
         frac = itr/maxSamples
         return (frac * 100)
 
