@@ -496,7 +496,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                         if param_widget in ['fileinput', 'assetidinput']:
                             # ies profiles don't need txmanager for converting                       
                             if 'ies' in options:
-                                val = string_utils.expand_string(val, display='ies', asFilePath=True)
+                                val = string_utils.expand_string(prop, display='ies', asFilePath=True)
                             # this is a texture
                             elif ('texture' in options) or ('env' in options) or ('imageplane' in options):
                                 tx_node_id = texture_utils.generate_node_id(node, param_name, ob=ob)
@@ -506,7 +506,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                             display = 'openexr'
                             if 'texture' in options:
                                 display = 'texture'
-                            val = string_utils.expand_string(val, display='texture', asFilePath=True)
+                            val = string_utils.expand_string(prop, display=display, asFilePath=True)
 
                     elif 'renderman_array_name' in meta:
                         continue
