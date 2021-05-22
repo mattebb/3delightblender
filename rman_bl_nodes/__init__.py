@@ -587,7 +587,7 @@ def register_rman_nodes():
                 continue
             visited.add(real)
 
-            for filename in filenames:        
+            for filename in sorted(filenames):        
                 if filename.endswith(('.args', '.oso')):
                     # skip registering these nodes
                     if filename in __RMAN_NODES_NO_REGISTER__:
