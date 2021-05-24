@@ -37,6 +37,7 @@ from .rfb_utils import scene_utils
 from .rfb_utils.prefs_utils import get_pref
 from .rfb_utils import shadergraph_utils
 from .rfb_utils import color_manager_blender
+from .rfb_utils import scenegraph_utils
 
 # config
 from .rman_config import __RFB_CONFIG_DICT__ as rfb_config
@@ -815,8 +816,8 @@ class RmanScene(object):
         mat = object_utils.get_active_material(ob)
         if mat:
             rman_sg_material = self.rman_materials.get(mat.original, None)
-            if rman_sg_material and rman_sg_material.sg_node:
-                rman_sg_node.sg_node.SetMaterial(rman_sg_material.sg_node) 
+            if rman_sg_material and rman_sg_material.sg_node:                
+                scenegraph_utils.set_material(rman_sg_node.sg_node, rman_sg_material.sg_node)
                 rman_sg_node.is_meshlight = rman_sg_material.has_meshlight 
 
     def attach_particle_material(self, psys_settings, parent, ob, group):
@@ -833,13 +834,13 @@ class RmanScene(object):
                 mat = parent.material_slots[mat_idx].material
                 rman_sg_material = self.rman_materials.get(mat.original, None)
                 if rman_sg_material:
-                    group.sg_node.SetMaterial(rman_sg_material.sg_node)    
+                    scenegraph_utils.set_material(group.sg_node, rman_sg_material.sg_node)    
         else:
             mat = object_utils.get_active_material(ob)
             if mat:
                 rman_sg_material = self.rman_materials.get(mat.original, None)
                 if rman_sg_material and rman_sg_material.sg_node:
-                    group.sg_node.SetMaterial(rman_sg_material.sg_node) 
+                    scenegraph_utils.set_material(group.sg_node, rman_sg_material.sg_node)
                     group.is_meshlight = rman_sg_material.has_meshlight 
 
     def export_instances_motion(self, obj_selected=None):

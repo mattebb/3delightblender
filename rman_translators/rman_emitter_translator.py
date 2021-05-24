@@ -2,6 +2,7 @@ from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_emitter import RmanSgEmitter
 from ..rfb_utils import object_utils
 from ..rfb_utils import transform_utils
+from ..rfb_utils import scenegraph_utils
 
 import bpy
 import math
@@ -156,4 +157,4 @@ class RmanEmitterTranslator(RmanTranslator):
                 rman_sg_material = self.rman_scene.rman_materials.get(mat.original, None)
                 if rman_sg_material:
                     material_sg_node = rman_sg_material.sg_node
-            sg_emitter_node.SetMaterial(material_sg_node)          
+            scenegraph_utils.set_material(sg_emitter_node, material_sg_node)

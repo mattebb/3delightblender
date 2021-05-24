@@ -2,6 +2,7 @@ from .rman_translator import RmanTranslator
 from ..rman_sg_nodes.rman_sg_gp import RmanSgGreaseP
 from ..rfb_utils import object_utils
 from ..rfb_utils import string_utils
+from ..rfb_utils import scenegraph_utils
 from ..rfb_logger import rfb_log
 from mathutils import Vector, Matrix
 
@@ -111,7 +112,7 @@ class RmanGPencilTranslator(RmanTranslator):
             primvar.SetFloatArrayDetail("st", st, 2, "vertex")  
         mesh_sg.SetPrimVars(primvar)
         if rman_sg_material:
-            mesh_sg.SetMaterial(rman_sg_material.sg_fill_mat)         
+            scenegraph_utils.set_material(mesh_sg, rman_sg_material.sg_fill_mat)
         rman_sg_gpencil.sg_node.AddChild(mesh_sg)     
 
     def _create_points(self, ob, i, lyr, stroke, rman_sg_gpencil, rman_sg_material, adjust_point=False):
@@ -148,7 +149,7 @@ class RmanGPencilTranslator(RmanTranslator):
 
         # Attach material
         if rman_sg_material:
-            points_sg.SetMaterial(rman_sg_material.sg_stroke_mat)          
+            scenegraph_utils.set_material(points_sg, rman_sg_material.sg_strok_mat)
 
         rman_sg_gpencil.sg_node.AddChild(points_sg)                     
         
@@ -201,8 +202,8 @@ class RmanGPencilTranslator(RmanTranslator):
         curves_sg.SetPrimVars(primvar)
 
         # Attach material
-        if rman_sg_material:
-            curves_sg.SetMaterial(rman_sg_material.sg_stroke_mat)          
+        if rman_sg_material:      
+            scenegraph_utils.set_material(curves_sg, rman_sg_material.sg_stroke_mat)
 
         rman_sg_gpencil.sg_node.AddChild(curves_sg)    
 
