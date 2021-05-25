@@ -193,7 +193,7 @@ class RendermanPreferences(AddonPreferences):
     rman_txmanager_tex_extensions: StringProperty(
         name='Texture Extensions',
         description="Any file with one of these extensions will not be converted by the texture manager and used as-is. Entries should be space-delimited.",
-        default='tex tx txr ptx ptex',
+        default='tex tx txr ptx ptex ies',
     )      
 
     rman_scene_version_padding: IntProperty(

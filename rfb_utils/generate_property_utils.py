@@ -389,7 +389,10 @@ def generate_property(node, sp, update_function=None):
                                   description=param_help, update=lambda s,c: assetid_update_func(s,c, param_name))
 
             if (param_widget in ['fileinput','assetidinput']):
-                generate_colorspace_menu(node, param_name)
+                # FIXME: Need a better way to figure out what parameters
+                # need the colorspace dropdown
+                if 'ies' not in prop_meta['options']:
+                    generate_colorspace_menu(node, param_name)
         
         elif param_widget == 'dirinput':
             prop = StringProperty(name=param_label,

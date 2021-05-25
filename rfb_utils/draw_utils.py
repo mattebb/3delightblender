@@ -357,10 +357,13 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
                     from . import texture_utils
                     from . import scene_utils
                     if not texture_utils.get_txmanager().is_file_src_tex(prop_val):
+                        colorspace_prop_name = '%s_colorspace' % prop_name
+                        if not hasattr(node, colorspace_prop_name):
+                            return
                         row = layout.row(align=True)
                         row.enabled = not prop_disabled
                         draw_indented_label(row, None, level)
-                        row.prop(node, '%s_colorspace' % prop_name, text='Color Space')
+                        row.prop(node, colorspace_prop_name, text='Color Space')
                         rman_icon = rfb_icons.get_icon('rman_txmanager')
                         id = scene_utils.find_node_owner(node)
                         nodeID = texture_utils.generate_node_id(node, prop_name, ob=id)

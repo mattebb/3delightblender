@@ -171,8 +171,11 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         prop_val = getattr(self, prop_name)
                         draw_utils.draw_sticky_toggle(row, self, prop_name, output_node)
                         if prop_val != '':
+                            colorspace_prop_name = '%s_colorspace' % prop_name
+                            if not hasattr(self, colorspace_prop_name):
+                                continue
                             row = layout.row(align=True)
-                            row.prop(self, '%s_colorspace' % prop_name, text='Color Space')
+                            row.prop(self, colorspace_prop_name, text='Color Space')
                             rman_icon = rfb_icons.get_icon('rman_txmanager')        
                             row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)   
 

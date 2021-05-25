@@ -893,7 +893,7 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
 
     return True        
 
-def setParams(node, paramsList):
+def setParams(Asset, node, paramsList):
     '''Set param values.
        Note: we are only handling a subset of maya attribute types.'''
     float3 = ['color', 'point', 'vector', 'normal']
@@ -1054,6 +1054,9 @@ def setParams(node, paramsList):
                 # this param is always connected.
                 continue
             if 'string' in ptype:
+                depfile = Asset.getDependencyPath(pval)
+                if depfile:
+                    pval = depfile
                 setattr(node, pname, pval)
             elif ptype in float3:
                 try:
@@ -1163,7 +1166,7 @@ def createNodes(Asset):
 
         if created_node:
             nodeDict[nodeId] = created_node.name
-            setParams(created_node, node.paramsDict())
+            setParams(Asset, created_node, node.paramsDict())
 
         if nodeClass == 'bxdf':
             created_node.update_mat(mat)
@@ -1214,7 +1217,7 @@ def import_light_rig(Asset):
 
         if created_node:
             nodeDict[nodeId] = created_node.name
-            setParams(created_node, node.paramsDict())
+            setParams(Asset, created_node, node.paramsDict())
 
         if nodeClass == 'light':
             light_nodes[nodeId] = light
@@ -1370,7 +1373,7 @@ def create_displayfilter_nodes(Asset):
         output.add_input()    
         nt.links.new(created_node.outputs['DisplayFilter'], output.inputs[-1])
         nodeDict[node_id] = created_node.name
-        setParams(created_node, df_node.paramsDict())
+        setParams(Asset, created_node, df_node.paramsDict())
 
         if not has_stylized and node_type in RMAN_STYLIZED_FILTERS:
             bpy.ops.scene.rman_enable_stylized_looks('EXEC_DEFAULT')
