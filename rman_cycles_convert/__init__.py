@@ -251,7 +251,12 @@ def convert_cycles_nodetree(id, output_node):
                 nt.links.new(rman_node.outputs['Bxdf'], base_surface.inputs["materialFront"])
                 offset_node_location(output_node, base_surface, begin_cycles_node)     
                 rman_node.location = begin_cycles_node.location
-                rman_node.location[0] -= 500       
+                rman_node.location[0] -= 500      
+
+                output_node.bxdf_filter_parameters = True
+                output_node.bxdf_match_on = 'NODE_TYPE'
+                output_node.bxdf_filter_method = 'MATCH'
+                output_node.bxdf_match_expression = 'PxrBlenderPrincipled'
 
             else:
                 node_name = __BL_NODES_MAP__.get('LamaSurface')
