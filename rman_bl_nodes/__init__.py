@@ -374,6 +374,7 @@ def generate_node_type(node_desc, is_oso=False):
                     prev_val = cols.default[i]
                     if i == 0:
                         elem = elements[0]
+                        elem.position = knots.default[i]
                     else:
                         elem = elements.new(knots.default[i])
                     elem.color = (cols.default[i][0], cols.default[i][1], cols.default[i][2], 1.0)
