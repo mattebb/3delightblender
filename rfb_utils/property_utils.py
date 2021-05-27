@@ -563,7 +563,7 @@ def set_node_rixparams(node, rman_sg_node, params, ob=None, mat_name=None):
                             params.SetFloatArray("%s_Knots" % prop_name, positions, len(positions))
                             params.SetColorArray("%s_Colors" % prop_name, colors, len(positions))
 
-                            rman_interp_map = { 'LINEAR': 'linear', 'CONSTANT': 'constant'}
+                            rman_interp_map = { 'B_SPLINE': 'bspline', 'LINEAR': 'linear', 'CONSTANT': 'constant'}
                             interp = rman_interp_map.get(color_ramp_node.color_ramp.interpolation,'catmull-rom')
                             params.SetString("%s_Interpolation" % prop_name, interp )         
                         continue               

@@ -372,8 +372,11 @@ def generate_node_type(node_desc, is_oso=False):
                     elif prev_val == cols.default[i]:
                         continue
                     prev_val = cols.default[i]
-                    new_elem = elements.new(knots.default[i])
-                    new_elem.color = (cols.default[i][0], cols.default[i][1], cols.default[i][2], 1.0)
+                    if i == 0:
+                        elem = elements[0]
+                    else:
+                        elem = elements.new(knots.default[i])
+                    elem.color = (cols.default[i][0], cols.default[i][1], cols.default[i][2], 1.0)
                 
                 setattr(self, ramp_name, n.name)
 
@@ -390,6 +393,8 @@ def generate_node_type(node_desc, is_oso=False):
                     elif node_desc_param.name == vals_name:
                         vals = node_desc_param                
                 curve = n.mapping.curves[0]
+                n.mapping.clip_min_x = 0.0
+                n.mapping.clip_min_y = 0.0
                 points = curve.points
                 prev_val = None
                 for i in range(0, len(knots.default)):
@@ -397,8 +402,13 @@ def generate_node_type(node_desc, is_oso=False):
                         prev_val = vals.default[i]
                     elif prev_val == vals.default[i]:
                         continue      
-                    prev_val = vals.default[i]              
-                    points.new(knots.default[i], vals.default[i])
+                    prev_val = vals.default[i]    
+                    if i == 0:
+                        point = points[0]
+                        point.location[0] = knots.default[i]
+                        point.location[0] = vals.default[i]
+                    else:
+                        points.new(knots.default[i], vals.default[i])
 
                 setattr(self, ramp_name, n.name)        
 
