@@ -238,7 +238,7 @@ class RendermanSocket:
 
     def draw(self, context, layout, node, text):
         
-        if self.hide_value:
+        if self.hide and self.hide_value:
             pass
         elif self.is_linked or self.is_output or not hasattr(self, 'default_value'):
             layout.label(text=self.get_pretty_name(node))

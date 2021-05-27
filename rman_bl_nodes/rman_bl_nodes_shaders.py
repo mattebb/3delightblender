@@ -297,8 +297,20 @@ class RendermanShadingNode(bpy.types.ShaderNode):
         return ok
 
     def update(self):
-        #rfb_log().debug("ShadingNode Updated: %s" % self.name)
-        pass
+        for output in self.outputs:
+            if not output.is_linked:
+                continue
+            link = output.links[0]
+            from_node_type = getattr(link.from_socket, 'renderman_type', None)
+            to_node_type = getattr(link.to_socket, 'renderman_type', None)
+            if not from_node_type:
+                continue            
+            if not to_node_type:
+                continue            
+
+            if not shadergraph_utils.is_socket_same_type(link.from_socket, link.to_socket):
+                node_tree = self.id_data
+                node_tree.links.remove(link) 
 
     @classmethod
     def poll(cls, ntree):
@@ -669,20 +681,13 @@ class RendermanProjectionsOutputNode(RendermanShadingNode):
         if cam:
             cam.update_tag(refresh={'DATA'})        
 
-# Final output node, used as a dummy to find top level shaders
 class RendermanBxdfNode(RendermanShadingNode):
     bl_label = 'Bxdf'
     renderman_node_type = 'bxdf'
 
-    shading_compatibility = {'NEW_SHADING'}
-
-
 class RendermanDisplacementNode(RendermanShadingNode):
     bl_label = 'Displacement'
     renderman_node_type = 'displace'
-
-# Final output node, used as a dummy to find top level shaders
-
 
 class RendermanPatternNode(RendermanShadingNode):
     bl_label = 'Texture'
