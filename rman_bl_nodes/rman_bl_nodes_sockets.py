@@ -237,8 +237,10 @@ class RendermanSocket:
         layout.prop(node, self.identifier)
 
     def draw(self, context, layout, node, text):
+        
         if self.is_linked or self.is_output or self.hide_value or not hasattr(self, 'default_value'):
-            layout.label(text=self.get_pretty_name(node))
+            #layout.label(text=self.get_pretty_name(node))
+            pass
         elif node.bl_idname in __CYCLES_GROUP_NODES__ or node.bl_idname == "PxrOSLPatternNode":
             layout.prop(self, 'default_value',
                         text=self.get_pretty_name(node), slider=True)
