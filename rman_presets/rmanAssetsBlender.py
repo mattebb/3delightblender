@@ -1054,9 +1054,10 @@ def setParams(Asset, node, paramsList):
                 # this param is always connected.
                 continue
             if 'string' in ptype:
-                depfile = Asset.getDependencyPath(pval)
-                if depfile:
-                    pval = depfile
+                if pval != '':
+                    depfile = Asset.getDependencyPath(pval)
+                    if depfile:
+                        pval = depfile
                 setattr(node, pname, pval)
             elif ptype in float3:
                 try:
