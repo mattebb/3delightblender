@@ -151,10 +151,12 @@ class StringExpression(object):
         self.tokens['f2'] = '{:0>2d}'.format(iframe)
         self.tokens['f3'] = '{:0>3d}'.format(iframe)
         self.tokens['f4'] = '{:0>4d}'.format(iframe)
+        self.tokens['f5'] = '{:0>5d}'.format(iframe)
         self.tokens['F'] = str(iframe)
         self.tokens['F2'] = '{:0>2d}'.format(iframe)
         self.tokens['F3'] = '{:0>3d}'.format(iframe)
-        self.tokens['F4'] = '{:0>4d}'.format(iframe)        
+        self.tokens['F4'] = '{:0>4d}'.format(iframe)
+        self.tokens['F5'] = '{:0>5d}'.format(iframe)
 
     # @time_this
     def expand(self, expr, objTokens={}, asFilePath=False):
