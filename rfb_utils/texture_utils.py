@@ -135,6 +135,12 @@ class RfBTxManager(object):
             return (txfile.state == txmanager.STATE_IS_TEX)  
         return False
 
+    def does_file_exist(self, file_path):
+        txfile = self.txmanager.get_txfile_from_path(file_path)
+        if txfile:
+            return (txfile.state != txmanager.STATE_INPUT_MISSING)  
+        return True
+
 def get_txmanager():
     global __RFB_TXMANAGER__
     if __RFB_TXMANAGER__ is None:

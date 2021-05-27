@@ -361,14 +361,18 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
                         if not hasattr(node, colorspace_prop_name):
                             return
                         row = layout.row(align=True)
-                        row.enabled = not prop_disabled
-                        draw_indented_label(row, None, level)
-                        row.prop(node, colorspace_prop_name, text='Color Space')
-                        rman_icon = rfb_icons.get_icon('rman_txmanager')
-                        id = scene_utils.find_node_owner(node)
-                        nodeID = texture_utils.generate_node_id(node, prop_name, ob=id)
-                        op = row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)  
-                        op.nodeID = nodeID                             
+                        if texture_utils.get_txmanager().does_file_exist(prop_val):
+                            row.enabled = not prop_disabled
+                            draw_indented_label(row, None, level)
+                            row.prop(node, colorspace_prop_name, text='Color Space')
+                            rman_icon = rfb_icons.get_icon('rman_txmanager')
+                            id = scene_utils.find_node_owner(node)
+                            nodeID = texture_utils.generate_node_id(node, prop_name, ob=id)
+                            op = row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)  
+                            op.nodeID = nodeID     
+                        else:
+                            draw_indented_label(row, None, level)
+                            row.label(text="Input mage does not exists.", icon='ERROR')                        
 
 def draw_props(node, prop_names, layout, level=0, nt=None, context=None):
     layout.context_pointer_set("node", node)

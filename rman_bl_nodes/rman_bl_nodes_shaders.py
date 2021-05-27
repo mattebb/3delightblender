@@ -171,14 +171,23 @@ class RendermanShadingNode(bpy.types.ShaderNode):
                         prop_val = getattr(self, prop_name)
                         draw_utils.draw_sticky_toggle(row, self, prop_name, output_node)
                         if prop_val != '':
+                            from ..rfb_utils import texture_utils
+                            from ..rfb_utils import scene_utils
+                            if texture_utils.get_txmanager().is_file_src_tex(prop_val):
+                                continue
                             colorspace_prop_name = '%s_colorspace' % prop_name
                             if not hasattr(self, colorspace_prop_name):
                                 continue
                             row = layout.row(align=True)
-                            row.prop(self, colorspace_prop_name, text='Color Space')
-                            rman_icon = rfb_icons.get_icon('rman_txmanager')        
-                            row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)   
-
+                            if texture_utils.get_txmanager().does_file_exist(prop_val):
+                                row.prop(self, colorspace_prop_name, text='Color Space')
+                                rman_icon = rfb_icons.get_icon('rman_txmanager')  
+                                id = scene_utils.find_node_owner(self)
+                                nodeID = texture_utils.generate_node_id(self, prop_name, ob=id)                                      
+                                op = row.operator('rman_txmgr_list.open_txmanager', text='', icon_value=rman_icon.icon_id)   
+                                op.nodeID = nodeID     
+                            else:
+                                row.label(text="Input mage does not exists.", icon='ERROR')
                     else:
                         split = layout.split(factor=0.95)
                         row = split.row()
