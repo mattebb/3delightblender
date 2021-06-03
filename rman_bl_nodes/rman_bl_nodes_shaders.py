@@ -80,7 +80,7 @@ class RendermanShadingNode(bpy.types.ShaderNode):
     def draw_buttons_ext(self, context, layout):
         nt = self.id_data
         out_node = shadergraph_utils.find_node_from_nodetree(nt, 'RendermanOutputNode')        
-        rman_icon = rfb_icons.get_icon('out_%s' % self.bl_label)
+        rman_icon = rfb_icons.get_node_icon(self.bl_label)
         layout.label(text=self.bl_label, icon_value=rman_icon.icon_id)             
         layout.separator()
         self.draw_nonconnectable_props(context, layout, self.prop_names, output_node=out_node)

@@ -101,7 +101,7 @@ class VIEW3D_MT_renderman_add_object_volumes_menu(Menu):
         op.rman_open_filebrowser = True 
         op.rman_convert_to_zup = True
 
-        rman_icon = rfb_icons.get_icon('out_PxrVolume')
+        rman_icon = rfb_icons.get_node_icon('PxrVolume')
         op = layout.operator('object.rman_add_rman_geo', text='Volume Box', icon_value=rman_icon.icon_id)
         op.rman_prim_type = 'RI_VOLUME'
         op.rman_default_name = 'RiVolume'   

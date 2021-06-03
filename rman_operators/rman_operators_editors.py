@@ -619,7 +619,7 @@ class PRMAN_OT_Renderman_Open_Stylized_Help(bpy.types.Operator):
         layout = self.layout       
         box = layout.box()
         box.scale_y = 0.4
-        rman_icon = rfb_icons.get_icon('out_PxrStylizedControl')
+        rman_icon = rfb_icons.get_node_icon('PxrStylizedControl')
         box.label(text="RenderMan Stylized Looks HOWTO", icon_value = rman_icon.icon_id)
         rman_icon = rfb_icons.get_icon('help_stylized_1')
         box.template_icon(rman_icon.icon_id, scale=10.0)

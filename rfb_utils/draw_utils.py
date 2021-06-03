@@ -227,7 +227,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
             row.operator('node.rman_open_close_link', text='', icon=icon, emboss=False)
             label = prop_meta.get('label', prop_name)
             
-            rman_icon = rfb_icons.get_icon('out_%s' % input_node.bl_label)               
+            rman_icon = rfb_icons.get_node_icon(input_node.bl_label)               
             row.label(text=label + ' (%s):' % input_node.name)
             if sticky:
                 return
@@ -311,7 +311,7 @@ def draw_prop(node, prop_name, layout, level=0, nt=None, context=None, sticky=Fa
 
                             if socket.is_linked:
                                 input_node = shadergraph_utils.socket_node_input(nt, socket)
-                                rman_icon = rfb_icons.get_icon('out_%s' % input_node.bl_label)
+                                rman_icon = rfb_icons.get_node_icon(input_node.bl_label)
                                 row.label(text='%s[%d] (%s):' % (prop_label, i, input_node.name))    
                                 row.menu('NODE_MT_renderman_connection_menu', text='', icon_value=rman_icon.icon_id)
                                 draw_node_properties_recursive(layout, context, nt, input_node, level=level + 1)
@@ -416,7 +416,7 @@ def draw_nodes_properties_ui(layout, context, nt, input_name='Bxdf',
         split.context_pointer_set("node", output_node)
         split.context_pointer_set("nodetree", nt)            
         if socket.is_linked:
-            rman_icon = rfb_icons.get_icon('out_%s' % node.bl_label)            
+            rman_icon = rfb_icons.get_node_icon(node.bl_label)            
             split.menu('NODE_MT_renderman_connection_menu', text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
         else:
             split.menu('NODE_MT_renderman_connection_menu', text='None', icon='NODE_MATERIAL')            
@@ -440,7 +440,7 @@ def show_node_sticky_params(layout, node, prop_names, context, nt, output_node, 
             row = layout.row(align=True)
             if not label_drawn:
                 row = layout.row(align=True)
-                rman_icon = rfb_icons.get_icon('out_%s' % node.bl_label)
+                rman_icon = rfb_icons.get_node_icon(node.bl_label)
                 row.label(text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
                 label_drawn = True
                 row = layout.row(align=True)
@@ -483,7 +483,7 @@ def show_node_match_params(layout, node, expr, match_on, prop_names, context, nt
             row = layout.row(align=True)
             if not label_drawn:
                 row = layout.row(align=True)
-                rman_icon = rfb_icons.get_icon('out_%s' % node.bl_label)
+                rman_icon = rfb_icons.get_node_icon(node.bl_label)
                 row.label(text='%s (%s)' % (node.name, node.bl_label), icon_value=rman_icon.icon_id)
                 label_drawn = True
                 row = layout.row(align=True)
@@ -509,7 +509,7 @@ def draw_node_properties_recursive(layout, context, nt, node, level=0):
                 draw_indented_label(row, None, level)
 
                 label = input.name                
-                rman_icon = rfb_icons.get_icon('out_%s' % input_node.bl_label)
+                rman_icon = rfb_icons.get_node_icon(input_node.bl_label)
                 row.prop(input, "show_expanded", icon=icon, text='',
                          icon_only=True, emboss=False)                                   
                 row.label(text=label + ' (%s):' % input_node.name)

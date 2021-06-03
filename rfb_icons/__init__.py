@@ -64,6 +64,9 @@ def get_icon(name='', dflt='rman_blender'):
     dflt_icon = icons.get('%s.png' % dflt)
     return icons.get('%s.png' % name, dflt_icon)
 
+def get_node_icon(name=''):
+    return get_icon('out_%s' % name, dflt='rman_blender')
+
 def get_light_icon(name=''):
     return get_icon('out_%s' % name, dflt='out_PxrRectLight')
 
