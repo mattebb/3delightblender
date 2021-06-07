@@ -852,14 +852,14 @@ def export_asset(nodes, atype, infodict, category, cfg, renderPreview='std',
 
     # parse maya scene
     #
-    if atype is "nodeGraph":
+    if atype == "nodeGraph":
         if asset_type == 'Materials':
             export_material_preset(hostPrefs.blender_material, nodes['material'], hostPrefs.renderman_output_node, Asset)
             if nodes['displayfilter']:
                 export_displayfilter_nodes(hostPrefs.bl_world, nodes['displayfilter'], Asset)
         else:
             export_light_rig(nodes['lightrigs'], Asset)
-    elif atype is "envMap":
+    elif atype == "envMap":
         parse_texture(nodes['envmap'][0], Asset)
     else:
         raise RmanRmanAssetBlenderError("%s is not a known asset type !" % atype)
