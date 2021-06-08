@@ -1254,13 +1254,21 @@ def import_light_rig(Asset):
                 light.rotation_euler = (radians(vals[3]), radians(vals[4]), radians(vals[5]))
 
         try:
-            if nodeType not in ['PxrDomeLight', 'PxrEnvDayLight']:
-                cdata = Asset._assetData['compatibility']
-                if cdata['host']['name'] != 'Blender':
+            cdata = Asset._assetData['compatibility']
+            if cdata['host']['name'] != 'Blender':            
+                if nodeType not in ['PxrDomeLight', 'PxrEnvDayLight']:
                     # assume that if a lightrig did not come from Blender,
                     # we need convert from Y-up to Z-up
                     yup_to_zup = mathutils.Matrix.Rotation(radians(90.0), 4, 'X')
                     light.matrix_world = yup_to_zup @ light.matrix_world
+                else:
+                    # for dome and envdaylight, flip the Y and Z rotation axes
+                    # and ignore scale and translations
+                    euler = light.matrix_world.to_euler('XYZ')
+                    tmp = euler.y
+                    euler.y = euler.z
+                    euler.z = tmp
+                    light.matrix_world = mathutils.Matrix.Identity(4) @ euler.to_matrix().to_4x4()
         except:
             pass   
 
