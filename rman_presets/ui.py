@@ -417,6 +417,13 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
             col2.menu('PRMAN_MT_renderman_preset_ops_menu', text="")   
             col2 = row.column()
             col2.label(text="")
+
+    def cancel(self, context):
+        if self.event and self.event.type == 'LEFTMOUSE':
+            bpy.ops.renderman.rman_open_presets_editor('INVOKE_DEFAULT')
+            
+    def __init__(self):
+        self.event = None            
      
 
     def invoke(self, context, event):
@@ -425,6 +432,7 @@ class PRMAN_OT_Renderman_Presets_Editor(bpy.types.Operator):
              
         wm = context.window_manager
         width = rfb_config['editor_preferences']['preset_browser']['width']
+        self.event = event
         return wm.invoke_props_dialog(self, width=width)   
 
 def rman_presets_object_menu(self, context):

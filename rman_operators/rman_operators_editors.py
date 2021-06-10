@@ -143,10 +143,19 @@ class RENDER_OT_Renderman_Open_Workspace(CollectionPanel, bpy.types.Operator):
                               default_name='name_%d' % len(rm.user_tokens),
                               enable_add_func=self.add_callback)        
 
+
+    def cancel(self, context):
+        if self.event and self.event.type == 'LEFTMOUSE':
+            bpy.ops.scene.rman_open_workspace('INVOKE_DEFAULT')
+            
+    def __init__(self):
+        self.event = None         
+
     def invoke(self, context, event):
 
         wm = context.window_manager
         width = rfb_config['editor_preferences']['workspace_editor']['width']
+        self.event = event
         return wm.invoke_props_dialog(self, width=width)                      
 
 class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Operator):
@@ -205,10 +214,18 @@ class PRMAN_OT_Renderman_Open_Light_Mixer_Editor(CollectionPanel, bpy.types.Oper
     def execute(self, context):
         return{'FINISHED'}         
 
+    def cancel(self, context):
+        if self.event and self.event.type == 'LEFTMOUSE':
+            bpy.ops.scene.rman_open_light_mixer_editor('INVOKE_DEFAULT')
+            
+    def __init__(self):
+        self.event = None         
+
     def invoke(self, context, event):
 
         wm = context.window_manager
         width = rfb_config['editor_preferences']['lightmixer_editor']['width']
+        self.event = event
         return wm.invoke_props_dialog(self, width=width)         
 
     def draw(self, context):
@@ -478,12 +495,20 @@ class PRMAN_PT_Renderman_Open_Light_Linking(bpy.types.Operator):
       
             col = flow.column()
             if is_rman_light and len(light_link_item.members) > 0:
-                col.prop(light_link_item, 'illuminate', text='')          
+                col.prop(light_link_item, 'illuminate', text='')         
+
+    def cancel(self, context):
+        if self.event and self.event.type == 'LEFTMOUSE':
+            bpy.ops.scene.rman_open_light_linking('INVOKE_DEFAULT')
+            
+    def __init__(self):
+        self.event = None                     
 
     def invoke(self, context, event):
 
         wm = context.window_manager
         width = rfb_config['editor_preferences']['lightlink_editor']['width']
+        self.event = event
         return wm.invoke_props_dialog(self, width=width)
 
 class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator):
@@ -601,10 +626,18 @@ class PRMAN_OT_Renderman_Open_Groups_Editor(CollectionPanel, bpy.types.Operator)
     def draw_item(self, layout, context, item):
         self.draw_objects_item(layout, context, item)
 
+    def cancel(self, context):
+        if self.event and self.event.type == 'LEFTMOUSE':
+            bpy.ops.scene.rman_open_groups_editor('INVOKE_DEFAULT')
+            
+    def __init__(self):
+        self.event = None            
+
     def invoke(self, context, event):
 
         wm = context.window_manager
         width = rfb_config['editor_preferences']['tracesets_editor']['width']
+        self.event = event
         return wm.invoke_props_dialog(self, width=width)  
 
 class PRMAN_OT_Renderman_Open_Stylized_Help(bpy.types.Operator):
@@ -884,10 +917,17 @@ class PRMAN_OT_Renderman_Open_Stylized_Editor(bpy.types.Operator):
         else:
             self.draw_filters_tab(context)
         
-        
+    def cancel(self, context):
+        if self.event and self.event.type == 'LEFTMOUSE':
+            bpy.ops.scene.rman_open_stylized_editor('INVOKE_DEFAULT')
+            
+    def __init__(self):
+        self.event = None
+
     def invoke(self, context, event):
         wm = context.window_manager
         width = rfb_config['editor_preferences']['stylizedlooks_editor']['width']
+        self.event = event
         return wm.invoke_props_dialog(self, width=width)
 
 classes = [

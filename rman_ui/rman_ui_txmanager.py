@@ -247,6 +247,8 @@ class PRMAN_OT_Renderman_txmanager_pick_images(Operator, ImportHelper):
             texture_utils.get_txmanager().txmake_all(blocking=False)
             texture_utils.get_txmanager().txmanager.save_state()
 
+        PRMAN_PT_Renderman_txmanager_list.refresh_panel(context)                
+
         return{'FINISHED'}
 
 
@@ -478,9 +480,10 @@ class PRMAN_OT_Renderman_txmanager_refresh(Operator):
                 params.bumpRough = "-1"                
     
             item.tooltip = '\n' + item.nodeID + "\n" + str(txfile)
+       
+        PRMAN_PT_Renderman_txmanager_list.refresh_panel(context)
 
-
-        return{'FINISHED'}    
+        return {'FINISHED'}    
 
 class PRMAN_OT_Renderman_txmanager_remove_texture(Operator):
 
@@ -507,30 +510,23 @@ class PRMAN_PT_Renderman_txmanager_list(_RManPanelHeader, Panel):
     bl_region_type = 'WINDOW'
     bl_context = "scene"
 
-    def draw(self, context):
-        layout = self.layout
+    nodeID: StringProperty()    
+
+    @classmethod
+    def refresh_panel(cls, context):
+        for window in context.window_manager.windows:
+            for area in window.screen.areas:
+                for space in area.spaces:
+                    if space.type == 'PROPERTIES':
+                        for region in area.regions:
+                            if region.type == 'WINDOW':
+                                region.tag_redraw()
+
+    @classmethod
+    def draw_txmanager_layout(cls, context, layout):
         scene = context.scene
-
         row = layout.row()
-        rman_icon = rfb_icons.get_icon('rman_txmanager')        
-        row.operator('rman_txmgr_list.open_txmanager', text='Open TxManager', icon_value=rman_icon.icon_id)
-
-class PRMAN_OT_Renderman_open_txmanager(Operator):
-
-    bl_idname = "rman_txmgr_list.open_txmanager"
-    bl_label = "Open TxManager"
-
-    nodeID: StringProperty(default='')
-
-    def execute(self, context):
-        return{'FINISHED'}         
-
-    def draw(self, context):
-        layout = self.layout
-
-        scene = context.scene
-
-        row = layout.row()
+        txmanager = texture_utils.get_txmanager().txmanager
         row.operator('rman_txmgr_list.parse_scene', text='Parse Scene')
         row.operator('rman_txmgr_list.reset_state', text='Reset', icon='FILE_REFRESH')         
         row.operator('rman_txmgr_list.pick_images', text='Pick Images', icon='FILE_FOLDER')        
@@ -567,7 +563,7 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
                     row = layout.row()
                     row.enabled = item.enable
                     row.prop(item, "ocioconvert")   
-                    dst = texture_utils.get_txmanager().txmanager.color_manager.scene_colorspace_name
+                    dst = txmanager.color_manager.scene_colorspace_name
                     row.label(text='%s' % dst if dst else txmngr.NO_COLORSPACE)        
 
                 # b2r
@@ -585,23 +581,55 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
                     row.prop(item, "bumpRough_invertV")
                     row.prop(item, "bumpRough_refit")
 
-
                 row = layout.row()   
                 row.enabled = item.enable      
                 row.alignment = 'RIGHT'          
                 row.operator('rman_txmgr_list.reconvert_selected', text='Reconvert')
                 row.operator('rman_txmgr_list.apply_preset', text='Apply')
                 
-                '''
                 row = layout.row()
                 row.alignment='CENTER'
                 in_list = len(context.scene.rman_txmgr_list)
                 progress = 'All Converted'
-                qsize = texture_utils.get_txmanager().txmanager.workQueue.qsize()
+                qsize = txmanager.work_queue.qsize()
                 if qsize != 0:
-                    progress = 'Converting...%d left to convert' % (qsize)
-                row.label(text=progress)        
-                '''
+                    progress = 'Converting... %d left to convert' % (qsize)
+                else:
+                    t_size = txmanager.file_size()
+                    # t_size in bytes
+                    t_size /= 1024.0 * 1024.0
+                    unit = 'MB'
+                    if t_size > 1024:
+                        t_size /= 1024.0
+                        unit = 'GB'
+                    progress = 'All Converted (Texture Disk Space: %.2f %s)' % (t_size, unit)
+                row.label(text=progress)         
+
+
+    def draw(self, context):
+        layout = self.layout
+        PRMAN_PT_Renderman_txmanager_list.draw_txmanager_layout(context, layout)
+
+class PRMAN_OT_Renderman_open_txmanager(Operator):
+
+    bl_idname = "rman_txmgr_list.open_txmanager"
+    bl_label = "Open TxManager"
+
+    nodeID: StringProperty(default='')
+
+    def execute(self, context):
+        return{'FINISHED'}         
+
+    def draw(self, context):
+        layout = self.layout
+        PRMAN_PT_Renderman_txmanager_list.draw_txmanager_layout(context, layout)
+
+    def cancel(self, context):
+        if self.event and self.event.type == 'LEFTMOUSE':
+            bpy.ops.rman_txmgr_list.open_txmanager('INVOKE_DEFAULT')
+            
+    def __init__(self):
+        self.event = None    
 
     def invoke(self, context, event):
         if self.properties.nodeID != '':
@@ -612,6 +640,7 @@ class PRMAN_OT_Renderman_open_txmanager(Operator):
 
         wm = context.window_manager
         width = rfb_config['editor_preferences']['texture_manager']['width']
+        self.event = event
         return wm.invoke_props_dialog(self, width=width)
             
 def index_updated(self, context):
