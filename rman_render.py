@@ -363,10 +363,15 @@ class RmanRender(object):
             return False
 
         # check for any available PhotoRealistic-RenderMan licenses
-        if not envconfig()._is_prman_license_available():
+        status = envconfig().get_prman_license_status()
+        if not(status.found and status.is_available):
             self.bl_engine.report({'ERROR'}, 'No PhotoRealistic-RenderMan licenses available. Aborting.')
             self.stop_render()
             return False
+        if status.is_expired():
+            self.bl_engine.report({'ERROR'}, 'PhotoRealistic-RenderMan licenses have expired (%s).' % str(status.exp_date))
+            self.stop_render()
+            return False            
         return True     
 
     def is_regular_rendering(self):

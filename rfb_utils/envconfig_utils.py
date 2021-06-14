@@ -233,6 +233,10 @@ class RmanEnvConfig(object):
             return True
         return False
 
+    def get_prman_license_status(self):
+        status = self.license_info.is_feature_available(feature_name='PhotoRealistic-RenderMan', force_reread=True)
+        return status
+
 def _parse_version(s):
     major_vers, minor_vers = s.split('.')
     vers_modifier = ''
