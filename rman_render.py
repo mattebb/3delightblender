@@ -333,7 +333,7 @@ class RmanRender(object):
         rm = self.bl_scene.renderman
         ob = bpy.context.active_object
         if rm.external_animation:
-            for frame in range(bl_scene.frame_start, bl_scene.frame_end + 1):        
+            for frame in range(self.bl_scene.frame_start, self.bl_scene.frame_end + 1):        
                 expanded_str = string_utils.expand_string(ob.renderman.bake_filename_attr, frame=self.bl_scene.frame_current) 
                 ptc_file = '%s.ptc' % expanded_str            
                 bkm_file = '%s.bkm' % expanded_str
