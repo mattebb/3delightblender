@@ -528,6 +528,8 @@
             "type": "int",
             "editable": true,
             "default": 0,
+            "min": 0,
+            "max": 31,            
             "page": "Nested Dielectrics",
             "help": "Raytrace intersection priority for nested dielectrics"
         },
