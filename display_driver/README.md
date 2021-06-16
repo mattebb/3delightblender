@@ -1,0 +1,1 @@
+The source for the RenderMan for Blender display driver is provided here for reference only. It is not expected for users to compile the driver themselves. 
