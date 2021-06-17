@@ -24,7 +24,6 @@ import sys
 import traceback
 import nodeitems_utils
 from operator import attrgetter
-from copy import deepcopy
 
 # registers
 from . import rman_bl_nodes_sockets
@@ -474,7 +473,13 @@ def generate_node_type(node_desc, is_oso=False):
         osl_node_type.init = init
         osl_node_type.free = free     
         osl_node_type.bl_description = ntype.bl_description   
-        osl_node_type.__annotations__ = deepcopy(ntype.__annotations__)
+        if "__annotations__" not in osl_node_type.__dict__:
+                setattr(osl_node_type, "__annotations__", {})            
+        osl_node_type.__annotations__['rman_fake_node_group'] = StringProperty('__rman_ramps__', default='')
+
+        osl_node_type.__annotations__['plugin_name'] = StringProperty(name='Plugin Name',
+                                        default=name, options={'HIDDEN'})
+                
         class_generate_properties(osl_node_type, name, node_desc)
         bpy.utils.register_class(osl_node_type)
 

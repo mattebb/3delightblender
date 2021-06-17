@@ -40,18 +40,18 @@ __RENDERMAN_TYPES_SOCKETS__ = [
     ),    
     ('struct', 'Struct', bpy.types.NodeSocketString, (1.0, 0.344, 0.0, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
             'struct_name': StringProperty(default='')
         }
     ),  
     ('vstruct', 'VStruct', bpy.types.NodeSocketString, (1.0, 0.0, 1.0, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),      
     ('bxdf', 'Bxdf', bpy.types.NodeSocketString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),      
     ('color', 'Color', bpy.types.NodeSocketColor, (1.0, 1.0, .5, 1.0), False,
@@ -76,42 +76,42 @@ __RENDERMAN_TYPES_SOCKETS__ = [
     ),     
     ('light', 'Light', bpy.types.NodeSocketString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),    
     ('lightfilter', 'LightFilter', bpy.types.NodeSocketString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),        
     ('displacement', 'Displacement', bpy.types.NodeSocketString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),       
     ('samplefilter', 'SampleFilter', bpy.types.NodeSocketString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),     
     ('displayfilter', 'DisplayFilter', bpy.types.NodeSocketString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),    
     ('integrator', 'Integrator', bpy.types.NodeSocketString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),      
     ('shader', 'Shader', bpy.types.NodeSocketShader, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),  
     ('projection', 'Projection', bpy.types.NodeSocketString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),                    
 ]
@@ -139,18 +139,18 @@ __RENDERMAN_TYPES_SOCKET_INTERFACES__ =[
     ),
     ('struct', 'Struct', bpy.types.NodeSocketInterfaceString, (1.0, 0.344, 0.0, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
             'struct_name': StringProperty(default='')
         }
     ),  
     ('vstruct', 'VStruct', bpy.types.NodeSocketInterfaceString, (1.0, 0.0, 1.0, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),      
     ('bxdf', 'Bxdf', bpy.types.NodeSocketInterfaceString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),       
     ('color', 'Color', bpy.types.NodeSocketInterfaceColor, (1.0, 1.0, .5, 1.0), False,
@@ -175,42 +175,42 @@ __RENDERMAN_TYPES_SOCKET_INTERFACES__ =[
     ),             
     ('light', 'Light', bpy.types.NodeSocketInterfaceString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),      
     ('lightfilter', 'LightFilter', bpy.types.NodeSocketInterfaceString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),     
     ('displacement', 'Displacement', bpy.types.NodeSocketInterfaceString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),     
     ('samplefilter', 'SampleFilter', bpy.types.NodeSocketInterfaceString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),    
     ('displayfilter', 'DisplayFilter', bpy.types.NodeSocketInterfaceString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),             
     ('integrator', 'Integrator', bpy.types.NodeSocketInterfaceString, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),         
     ('shader', 'Shader', bpy.types.NodeSocketInterfaceShader, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ), 
     ('projection', 'Projection', bpy.types.NodeSocketInterfaceShader, (0.25, 1.0, 0.25, 1.0), True,
         {
-            'default_value': '',
+            'default_value': StringProperty(default=''),
         }
     ),           
 ]
@@ -240,14 +240,19 @@ class RendermanSocket:
         
         if self.hide and self.hide_value:
             pass
-        elif self.is_linked or self.is_output or not hasattr(self, 'default_value'):
+        elif self.hide_value:
+            layout.label(text=self.get_pretty_name(node))
+        elif self.is_linked or self.is_output:
             layout.label(text=self.get_pretty_name(node))
         elif node.bl_idname in __CYCLES_GROUP_NODES__ or node.bl_idname == "PxrOSLPatternNode":
             layout.prop(self, 'default_value',
                         text=self.get_pretty_name(node), slider=True)
-        else:
+        elif hasattr(node, self.name):
             layout.prop(node, self.name,
                         text=self.get_pretty_name(node), slider=True)
+        else:
+            layout.label(text=self.get_pretty_name(node))
+            
         mat = getattr(context, 'material')
         if mat:
             output_node = shadergraph_utils.is_renderman_nodetree(mat)
