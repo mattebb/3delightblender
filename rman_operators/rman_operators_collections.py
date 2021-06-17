@@ -481,7 +481,7 @@ class PRMAN_OT_remove_light_link_object(bpy.types.Operator):
                 ll.members.remove(i)
                 ll.members_index -= 1
                 grp = ob.renderman.rman_lighting_excludesubset
-                light_props = shadergraph_utils.get_rman_light_properties_group(self.light_ob)
+                light_props = shadergraph_utils.get_rman_light_properties_group(ll.light_ob)
                 if light_props.renderman_light_role == 'RMAN_LIGHTFILTER':
                     grp = ob.renderman.rman_lightfilter_subset
                 for j, subset in enumerate(grp):

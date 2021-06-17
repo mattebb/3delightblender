@@ -27,6 +27,8 @@ class RendermanLightGroup(bpy.types.PropertyGroup):
             member.light_ob.update_tag(refresh={'DATA'})
 
     def update_members_index(self, context):
+        if self.members_index < 0:
+            return        
         member = self.members[self.members_index]
         light_ob = member.light_ob
                 
@@ -59,6 +61,8 @@ class RendermanGroup(bpy.types.PropertyGroup):
             member.ob_pointer.update_tag(refresh={'OBJECT'})
 
     def update_members_index(self, context):
+        if self.members_index < 0:
+            return        
         member = self.members[self.members_index]
         ob = member.ob_pointer
                 
@@ -103,6 +107,8 @@ class LightLinking(bpy.types.PropertyGroup):
                                  name='Group Members')    
 
     def update_members_index(self, context):
+        if self.members_index < 0:
+            return
         member = self.members[self.members_index]
         ob = member.ob_pointer
                 

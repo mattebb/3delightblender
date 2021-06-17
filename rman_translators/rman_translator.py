@@ -182,9 +182,13 @@ class RmanTranslator(object):
 
         if exclude_subset:
             attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_lighting_excludesubset, ' '. join(exclude_subset) )
+        else:
+            attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_lighting_excludesubset, '')
 
         if lightfilter_subset:
             attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_lightfilter_subset, ' ' . join(lightfilter_subset))
+        else:
+            attrs.SetString(self.rman_scene.rman.Tokens.Rix.k_lightfilter_subset, '')
 
         if hasattr(ob, 'color'):
             attrs.SetColor('user:Cs', ob.color[:3])   
